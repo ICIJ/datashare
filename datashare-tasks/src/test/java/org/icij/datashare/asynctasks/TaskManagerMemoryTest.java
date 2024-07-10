@@ -37,24 +37,24 @@ public class TaskManagerMemoryTest {
     public void test_run_task() throws Exception {
         TaskView<Integer> task = new TaskView<>(TestFactory.HelloWorld.class.getName(), User.local(), Map.of("greeted", "world"));
 
-        TaskView<Integer> t = taskManager.startTask(task);
+        String tid = taskManager.startTask(task);
         taskManager.shutdownAndAwaitTermination(100, TimeUnit.MILLISECONDS);
 
-        assertThat(taskManager.getTask(t.id).getState()).isEqualTo(TaskView.State.DONE);
-        assertThat(taskManager.getTask(t.id).getResult()).isEqualTo("Hello world!");
+        assertThat(taskManager.getTask(tid).getState()).isEqualTo(TaskView.State.DONE);
+        assertThat(taskManager.getTask(tid).getResult()).isEqualTo("Hello world!");
         assertThat(taskManager.getTasks()).hasSize(1);
     }
 
     @Test
     public void test_stop_current_task() throws Exception {
         TaskView<Integer> task = new TaskView<>(TestFactory.SleepForever.class.getName(), User.local(), Map.of("intParameter", 2000));
-        task = taskManager.startTask(task);
+        String taskId = taskManager.startTask(task);
 
-        taskInspector.awaitToBeStarted(task.id, 10000);
-        taskManager.stopTask(task.id);
+        taskInspector.awaitToBeStarted(taskId, 10000);
+        taskManager.stopTask(taskId);
         taskManager.shutdownAndAwaitTermination(1, TimeUnit.SECONDS);
 
-        assertThat(taskManager.getTask(task.id).getState()).isEqualTo(TaskView.State.CANCELLED);
+        assertThat(taskManager.getTask(taskId).getState()).isEqualTo(TaskView.State.CANCELLED);
         assertThat(taskManager.numberOfExecutedTasks()).isEqualTo(0);
     }
 
