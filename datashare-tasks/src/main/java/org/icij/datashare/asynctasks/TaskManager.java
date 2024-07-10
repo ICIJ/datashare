@@ -33,7 +33,7 @@ public interface TaskManager extends Closeable {
     List<TaskView<?>> getTasks(User user, Pattern pattern);
     List<TaskView<?>> clearDoneTasks();
     void clear();
-    void save(TaskView<?> task);
+    boolean save(TaskView<?> task);
     void enqueue(TaskView<?> task) throws IOException;
 
     static List<TaskView<?>> getTasks(Stream<TaskView<?>> stream, User user, Pattern pattern) {
@@ -51,19 +51,29 @@ public interface TaskManager extends Closeable {
     }
 
 
-    default  <V> TaskView<V> startTask(String taskName, User user, Map<String, Object> properties) throws IOException {
+    default String startTask(String taskName, User user, Map<String, Object> properties) throws IOException {
         return startTask(new TaskView<>(taskName, user, properties));
     }
 
-    default  <V> TaskView<V> startTask(String id, String taskName, User user) throws IOException {
+    default  String startTask(String id, String taskName, User user) throws IOException {
         return startTask(new TaskView<>(id, taskName, user, new HashMap<>()));
     }
 
-    default <V> TaskView<V> startTask(TaskView<V> taskView) throws IOException {
-        taskView.queue();
-        save(taskView);
-        enqueue(taskView);
-        return taskView;
+    /**
+     * Main start task function. it saves the task in the persistent storage. If the task is new it will enqueue
+     * it in the memory/redis/AMQP queue and return the id. Else it will not enqueue the task and return null.
+     *
+     * @param taskView: the task description.
+     * @return task id if it was new and has been saved else null
+     * @throws IOException in case of communication failure with Redis or AMQP broker
+     */
+    default <V> String startTask(TaskView<V> taskView) throws IOException {
+        boolean saved = save(taskView);
+        if (saved) {
+            taskView.queue();
+            enqueue(taskView);
+        }
+        return saved ? taskView.id: null;
     }
 
     default <V extends Serializable> TaskView<V> setResult(ResultEvent<V> e) {

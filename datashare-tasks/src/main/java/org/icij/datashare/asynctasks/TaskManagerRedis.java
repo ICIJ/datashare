@@ -122,8 +122,9 @@ public class TaskManagerRedis implements TaskManager {
         taskQueue.clear();
     }
 
-    public void save(TaskView<?> task) {
-        tasks.put(task.id, task);
+    public boolean save(TaskView<?> task) {
+        TaskView<?> oldVal = tasks.put(task.id, task);
+        return oldVal == null;
     }
 
     @Override

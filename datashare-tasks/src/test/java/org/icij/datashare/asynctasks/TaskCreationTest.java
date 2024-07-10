@@ -15,6 +15,7 @@ public class TaskCreationTest {
         TaskView<Object> taskView = new TaskView<>("name", User.local(), Map.of("key", "value"));
         TaskCreation expectedValue = new TaskCreation(taskView);
         String json = JsonObjectMapper.MAPPER.writeValueAsString(expectedValue);
+        System.out.println(json);
         assertThat(json).contains("\"@type\":\"TaskCreation\"");
         assertThat(json).doesNotContain("\"taskCreation\":{"); // do not nest taskView
 

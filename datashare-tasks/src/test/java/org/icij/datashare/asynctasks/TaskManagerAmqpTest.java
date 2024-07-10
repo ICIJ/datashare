@@ -39,12 +39,12 @@ public class TaskManagerAmqpTest {
 
     @Test(timeout = 2000)
     public void test_new_task() throws Exception {
-        TaskView<Serializable> expectedTaskView = taskManager.startTask("taskName", User.local(), Map.of("key", "value"));
+        String expectedTaskViewId = taskManager.startTask("taskName", User.local(), Map.of("key", "value"));
 
-        assertThat(taskManager.getTask(expectedTaskView.id)).isNotNull();
+        assertThat(taskManager.getTask(expectedTaskViewId)).isNotNull();
         TaskView<Serializable> actualTaskView = taskSupplier.get(10, TimeUnit.SECONDS);
         Assertions.assertThat(actualTaskView).isNotNull();
-        Assertions.assertThat(actualTaskView).isEqualTo(expectedTaskView);
+        Assertions.assertThat(actualTaskView.id).isEqualTo(expectedTaskViewId);
     }
 
     @Test(timeout = 2000)

@@ -58,11 +58,11 @@ public class TaskManagerRedisTest {
 
     @Test
     public void test_done_tasks() throws Exception {
-        TaskView<Integer> taskView = taskManager.startTask("sleep", User.local(), new HashMap<>());
+        String taskViewId = taskManager.startTask("sleep", User.local(), new HashMap<>());
 
         assertThat(taskManager.getTasks()).hasSize(1);
 
-        taskSupplier.result(taskView.id, 12);
+        taskSupplier.result(taskViewId, 12);
         assertThat(waitForEvent.await(1, TimeUnit.SECONDS)).isTrue();
 
         assertThat(taskManager.getTasks().get(0).getState()).isEqualTo(TaskView.State.DONE);
@@ -72,27 +72,27 @@ public class TaskManagerRedisTest {
 
     @Test
     public void test_clear_task_among_two_tasks() throws Exception {
-        TaskView<Integer> taskView1 = taskManager.startTask("sleep", User.local(), new HashMap<>());
-        TaskView<Integer> taskView2 = taskManager.startTask("sleep", User.local(), new HashMap<>());
+        String taskView1Id = taskManager.startTask("sleep", User.local(), new HashMap<>());
+        String taskView2Id = taskManager.startTask("sleep", User.local(), new HashMap<>());
 
-        taskSupplier.result(taskView1.id, 123);
+        taskSupplier.result(taskView1Id, 123);
         assertThat(waitForEvent.await(1, TimeUnit.SECONDS)).isTrue();
 
         assertThat(taskManager.getTasks()).hasSize(2);
-        TaskView<?> clearedTask = taskManager.clearTask(taskView1.id);
+        TaskView<?> clearedTask = taskManager.clearTask(taskView1Id);
         assertThat(taskManager.getTasks()).hasSize(1);
-        assertThat(taskManager.getTask(taskView1.id)).isNull();
-        assertThat(taskManager.getTask(taskView2.id)).isNotNull();
-        assertThat(taskView1.id).isEqualTo(clearedTask.id);
+        assertThat(taskManager.getTask(taskView1Id)).isNull();
+        assertThat(taskManager.getTask(taskView2Id)).isNotNull();
+        assertThat(taskView1Id).isEqualTo(clearedTask.id);
     }
 
     @Test
     public void test_done_task_result_for_file() throws Exception {
-        TaskView<String> taskView = taskManager.startTask("HelloWorld", User.local(), new HashMap<>() {{
+        String taskViewId = taskManager.startTask("HelloWorld", User.local(), new HashMap<>() {{
                 put("greeted", "world");
             }});
         String expectedResult = "Hello world !";
-        taskSupplier.result(taskView.id, expectedResult);
+        taskSupplier.result(taskViewId, expectedResult);
         assertThat(waitForEvent.await(100, TimeUnit.SECONDS)).isTrue();
 
         assertThat(taskManager.getTasks()).hasSize(1);

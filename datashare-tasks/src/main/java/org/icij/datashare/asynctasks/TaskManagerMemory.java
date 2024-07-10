@@ -102,8 +102,9 @@ public class TaskManagerMemory implements TaskManager, TaskSupplier {
         }
     }
 
-    public void save(TaskView<?> taskView) {
-        tasks.put(taskView.id, taskView);
+    public boolean save(TaskView<?> taskView) {
+        TaskView<?> oldTask = tasks.put(taskView.id, taskView);
+        return oldTask == null;
     }
 
     @Override

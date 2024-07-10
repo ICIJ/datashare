@@ -70,8 +70,9 @@ public class TaskManagerAmqp implements TaskManager {
         return false;
     }
 
-    public void save(TaskView<?> task) {
-        tasks.put(task.id, task);
+    public boolean save(TaskView<?> task) {
+        TaskView<?> oldVal = tasks.put(task.id, task);
+        return oldVal == null;
     }
 
     @Override
