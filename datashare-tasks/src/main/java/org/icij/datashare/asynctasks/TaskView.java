@@ -1,27 +1,26 @@
 package org.icij.datashare.asynctasks;
 
-import static java.util.Optional.ofNullable;
-import static java.util.UUID.randomUUID;
-
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import org.icij.datashare.Entity;
+import org.icij.datashare.asynctasks.bus.amqp.TaskError;
+import org.icij.datashare.user.User;
+
 import java.io.Serializable;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Properties;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
 import java.util.function.Function;
-import org.icij.datashare.Entity;
-import org.icij.datashare.asynctasks.bus.amqp.TaskError;
-import org.icij.datashare.json.JsonObjectMapper;
-import org.icij.datashare.user.User;
+
+import static java.util.Optional.ofNullable;
+import static java.util.UUID.randomUUID;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class TaskView<V> implements Entity {
