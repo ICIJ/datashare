@@ -29,7 +29,7 @@ public class TaskView<V> implements Entity {
     @JsonIgnore private final Object lock = new Object();
 
     public enum State {CREATED, QUEUED, RUNNING, CANCELLED, ERROR, DONE}
-    public final Map<String, Object> properties;
+    public final Map<String, Object> arguments;
 
     public final String id;
     public final String name;
@@ -38,16 +38,16 @@ public class TaskView<V> implements Entity {
     private volatile double progress;
     private volatile V result;
 
-    public TaskView(String name, User user, Map<String, Object> properties) {
-        this(randomUUID().toString(), name, user, properties);
+    public TaskView(String name, User user, Map<String, Object> arguments) {
+        this(randomUUID().toString(), name, user, arguments);
     }
 
     public TaskView(String id, String name, User user) {
         this(id, name, user, new HashMap<>());
     }
 
-    public TaskView(String id, String name, User user, Map<String, Object> properties) {
-        this(id, name, State.CREATED, 0, null, addTo(properties, user));
+    public TaskView(String id, String name, User user, Map<String, Object> arguments) {
+        this(id, name, State.CREATED, 0, null, addTo(arguments, user));
     }
 
     @JsonCreator
@@ -56,15 +56,15 @@ public class TaskView<V> implements Entity {
              @JsonProperty("state") State state,
              @JsonProperty("progress") double progress,
              @JsonProperty("result") V result,
-             @JsonProperty("properties") Map<String, Object> properties) {
+             @JsonProperty("properties") Map<String, Object> arguments) {
         this.id = id;
         this.name = name;
         this.state = state;
         this.progress = progress;
         this.result = result;
         // avoids "no default constructor found" for anonymous inline maps
-        this.properties =
-            Collections.unmodifiableMap(ofNullable(properties).orElse(new HashMap<>()));
+        this.arguments =
+            Collections.unmodifiableMap(ofNullable(arguments).orElse(new HashMap<>()));
     }
 
     public V getResult() {
@@ -166,7 +166,7 @@ public class TaskView<V> implements Entity {
 
     @JsonIgnore
     public User getUser() {
-        return (User) properties.get(USER_KEY);
+        return (User) arguments.get(USER_KEY);
     }
 
     public static <V> String getId(Callable<V> task) {
