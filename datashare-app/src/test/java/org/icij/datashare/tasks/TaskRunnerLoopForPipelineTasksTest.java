@@ -87,7 +87,7 @@ public class TaskRunnerLoopForPipelineTasksTest {
     }
 
     private void testTaskWithTaskRunner(TaskView<Long> task) throws Exception {
-        taskSupplier.startTask(task.name, User.local(), task.properties);
+        taskSupplier.startTask(task.name, User.local(), task.arguments);
         taskSupplier.shutdownAndAwaitTermination(1, TimeUnit.SECONDS);
 
         assertThat(taskSupplier.getTasks()).hasSize(1);

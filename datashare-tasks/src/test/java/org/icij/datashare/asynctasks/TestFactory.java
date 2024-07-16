@@ -1,6 +1,5 @@
 package org.icij.datashare.asynctasks;
 
-import com.sun.xml.bind.v2.runtime.ClassBeanInfoImpl;
 import java.util.Objects;
 import java.util.concurrent.Callable;
 import java.util.function.Function;
@@ -25,7 +24,7 @@ public class TestFactory implements TaskFactory {
 
         public HelloWorld(TaskView<Void> taskView, Function<Double, Void> progress) {
             this.progress = progress;
-            this.greeted = (String) Objects.requireNonNull(taskView.properties.get("greeted"), "missing greeted parameter");
+            this.greeted = (String) Objects.requireNonNull(taskView.arguments.get("greeted"), "missing greeted parameter");
         }
 
         @Override

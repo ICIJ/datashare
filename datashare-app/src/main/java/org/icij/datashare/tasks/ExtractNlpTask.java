@@ -40,15 +40,15 @@ public class ExtractNlpTask extends PipelineTask<String> implements Monitorable 
 
     @Inject
     public ExtractNlpTask(Indexer indexer, PipelineRegistry registry, final DocumentCollectionFactory<String> factory, @Assisted TaskView<Long> taskView, @Assisted final Function<Double, Void> updateCallback) {
-        this(indexer, registry.get(Pipeline.Type.parse((String)taskView.properties.get(NLP_PIPELINE_OPT))), factory, taskView, updateCallback);
+        this(indexer, registry.get(Pipeline.Type.parse((String)taskView.arguments.get(NLP_PIPELINE_OPT))), factory, taskView, updateCallback);
     }
 
 
     ExtractNlpTask(Indexer indexer, Pipeline pipeline, final DocumentCollectionFactory<String> factory, @Assisted TaskView<Long> taskView, @Assisted final Function<Double, Void> updateCallback) {
-        super(Stage.NLP, taskView.getUser(), factory, new PropertiesProvider(taskView.properties), String.class);
+        super(Stage.NLP, taskView.getUser(), factory, new PropertiesProvider(taskView.arguments), String.class);
         this.nlpPipeline = pipeline;
-        project = Project.project(ofNullable((String)taskView.properties.get(DEFAULT_PROJECT_OPT)).orElse(DEFAULT_DEFAULT_PROJECT));
-        maxContentLengthChars = (int) HumanReadableSize.parse(ofNullable((String)taskView.properties.get(MAX_CONTENT_LENGTH_OPT)).orElse(valueOf(DEFAULT_MAX_CONTENT_LENGTH)));
+        project = Project.project(ofNullable((String)taskView.arguments.get(DEFAULT_PROJECT_OPT)).orElse(DEFAULT_DEFAULT_PROJECT));
+        maxContentLengthChars = (int) HumanReadableSize.parse(ofNullable((String)taskView.arguments.get(MAX_CONTENT_LENGTH_OPT)).orElse(valueOf(DEFAULT_MAX_CONTENT_LENGTH)));
         this.indexer = indexer;
     }
 
