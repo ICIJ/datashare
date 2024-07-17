@@ -9,9 +9,12 @@ import com.rabbitmq.client.Envelope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentNavigableMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.TimeoutException;
@@ -23,12 +26,12 @@ import java.util.function.Consumer;
  * see <a href="https://www.rabbitmq.com/confirms.html#publisher-confirms">rabbitMQ documentation</a>
  */
 public class AmqpChannel {
+	public static final String WORKER_PREFIX = "worker";
 	private final boolean durable = true;
 	private final boolean exclusive = false;
 	private final boolean autoDelete = false;
 	private final Logger logger = LoggerFactory.getLogger(this.getClass());
 	private final ConcurrentNavigableMap<Long, byte[]> outstandingConfirms = new ConcurrentSkipListMap<>();
-	private final int consumerNb;
 	final Channel rabbitMqChannel;
 	final AmqpQueue queue;
 	private final ConfirmCallback cleanOutstandingConfirms = (sequenceNumber, multiple) -> {
@@ -41,12 +44,7 @@ public class AmqpChannel {
 	};
 	
 	public AmqpChannel(Channel channel, AmqpQueue queue) {
-		this(channel, queue, 0);
-	}
-
-	public AmqpChannel(Channel channel, AmqpQueue queue, int consumerNb) {
 		this.rabbitMqChannel = channel;
-		this.consumerNb = consumerNb;
 		channel.addConfirmListener(cleanOutstandingConfirms, (sequenceNumber, multiple) -> {
 			byte[] body = outstandingConfirms.get(sequenceNumber);
 			logger.error("Message with body {} has been nack-ed. Sequence number: {}, multiple: {}", new String(body), sequenceNumber, multiple);
@@ -60,7 +58,7 @@ public class AmqpChannel {
 	}
 
 	String consume(Consumer<byte[]> bodyHandler, ConsumerCriteria criteria, CancelFunction cancelCallback) throws IOException {
-		return this.rabbitMqChannel.basicConsume(queueName(), new DefaultConsumer(rabbitMqChannel) {
+		return this.rabbitMqChannel.basicConsume(queueName(WORKER_PREFIX), new DefaultConsumer(rabbitMqChannel) {
 			@Override
 			public void handleDelivery(String consumerTag, Envelope envelope, AMQP.BasicProperties properties, byte[] body) throws IOException {
 				try {
@@ -93,14 +91,14 @@ public class AmqpChannel {
 		}
 	}
 
-	String queueName() {
+	String queueName(String prefix) {
 		return BuiltinExchangeType.FANOUT.equals(queue.exchangeType) ?
-				String.format("%s-%d", queue.name(), consumerNb) :
+				String.format("%s-%s-%s-%d-%d", queue.name(), prefix, getHostname(), ProcessHandle.current().pid(), Thread.currentThread().getId()) :
 				queue.name();
 	}
 
     @Override public String toString() {
-        return String.format("%s (%s)", queueName(), queue);
+        return String.format("%s (%s)", queueName(""), queue);
     }
 
 	void initForPublish() throws IOException {
@@ -112,14 +110,35 @@ public class AmqpChannel {
 			if (queue.deadLetterQueue != null && deadletter)
 				put("x-dead-letter-exchange", queue.deadLetterQueue.exchange);
 		}};
+		String queueName = queueName(WORKER_PREFIX);
 		rabbitMqChannel.exchangeDeclare(queue.exchange, queue.exchangeType, durable);
-		rabbitMqChannel.queueDeclare(queueName(), durable, exclusive, autoDelete, queueParameters);
-		rabbitMqChannel.queueBind(queueName(), queue.exchange, queue.routingKey);
+		rabbitMqChannel.queueDeclare(queueName, durable, exclusive, autoDelete, queueParameters);
+		rabbitMqChannel.queueBind(queueName, queue.exchange, queue.routingKey);
 		rabbitMqChannel.basicQos(nbMaxMessages);
 	}
 
 	@FunctionalInterface
 	interface CancelFunction {
 		void cancel() throws IOException;
+	}
+
+	static synchronized String getHostname() {
+		return getHostname("hostname");
+	}
+
+	static synchronized String getHostname(String hostnameCommandName) {
+		Logger log = LoggerFactory.getLogger(AmqpChannel.class);
+		try {
+			Process process = new ProcessBuilder(hostnameCommandName.split(" ")).start();
+			int exitVal = process.waitFor();
+			if (exitVal != 0) {
+				log.error("hostname command exited with {} returning uuid", exitVal);
+				return UUID.randomUUID().toString();
+			}
+			return new BufferedReader(new InputStreamReader(process.getInputStream())).readLine();
+		} catch (IOException | InterruptedException e) {
+			log.error("call to hostname failed returning uuid", e);
+			return UUID.randomUUID().toString();
+		}
 	}
 }
