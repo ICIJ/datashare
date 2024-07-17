@@ -107,8 +107,10 @@ public class AmqpChannel {
 
 	void initForConsume(boolean deadletter, int nbMaxMessages) throws IOException {
 		Map<String, Object> queueParameters = new HashMap<>() {{
-			if (queue.deadLetterQueue != null && deadletter)
+			if (queue.deadLetterQueue != null && deadletter) {
 				put("x-dead-letter-exchange", queue.deadLetterQueue.exchange);
+				put("x-dead-letter-routing-key", queue.deadLetterQueue.routingKey);
+			}
 		}};
 		String queueName = queueName(WORKER_PREFIX);
 		rabbitMqChannel.exchangeDeclare(queue.exchange, queue.exchangeType, durable);
