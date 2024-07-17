@@ -98,7 +98,7 @@ public class AmqpChannel {
 	}
 
     @Override public String toString() {
-        return String.format("%s (%s)", queueName(""), queue);
+        return String.format("%s (%s)", queueName(WORKER_PREFIX), queue);
     }
 
 	void initForPublish() throws IOException {
