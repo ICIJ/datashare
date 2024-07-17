@@ -21,8 +21,8 @@ public class TaskCreation extends Event {
         this.taskView = taskView;
     }
 
-    TaskCreation(Date creationDate, int ttl, TaskView<?> taskView) {
-        super(creationDate, ttl);
+    TaskCreation(Date creationDate, int retries, TaskView<?> taskView) {
+        super(creationDate, retries);
         this.taskView = taskView;
     }
 
@@ -40,7 +40,7 @@ public class TaskCreation extends Event {
             JsonNode taskViewEventNode = oc.readTree(p);
             TaskView<?> taskView = oc.treeToValue(taskViewEventNode, TaskView.class);
             return new TaskCreation(new Date(taskViewEventNode.get("createdAt").asLong()),
-                    taskViewEventNode.get("ttl").asInt(), taskView);
+                    taskViewEventNode.get("retries").asInt(), taskView);
         }
     }
 }
