@@ -6,8 +6,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
+
+import static java.util.Optional.ofNullable;
 
 /**
  * Class for consumer implementation. Is orchestrates the received events handling : deserialize and save.
@@ -29,6 +32,15 @@ public class AmqpConsumer<Evt extends Event, EvtConsumer extends Consumer<Evt>> 
         this.eventConsumer = eventConsumer;
         this.channel = amqpInterlocutor.createAmqpChannelForConsume(queue);
         this.evtClass = evtClass;
+    }
+
+    AmqpConsumer(AmqpInterlocutor amqpInterlocutor,
+                 EvtConsumer eventConsumer, AmqpQueue queue, Class<Evt> evtClass, CountDownLatch initLatch) throws IOException {
+        this.amqpInterlocutor = amqpInterlocutor;
+        this.eventConsumer = eventConsumer;
+        this.channel = amqpInterlocutor.createAmqpChannelForConsume(queue);
+        this.evtClass = evtClass;
+        ofNullable(initLatch).ifPresent(CountDownLatch::countDown);
     }
 
     public AmqpConsumer<Evt, EvtConsumer> consumeEvents() {

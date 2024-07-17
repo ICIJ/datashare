@@ -11,6 +11,9 @@ import org.junit.Test;
 
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
@@ -69,14 +72,17 @@ public class AmqpTest {
         assertThat(consumer.isCanceled()).isTrue();
     }
 
-    @Test(timeout = 2000)
+    @Test(timeout = 6000)
     public void test_publish_fanout_exchange() throws Exception {
-        AmqpConsumer<TestEvent, TestEventConsumer> consumer1 = new AmqpConsumer<>(amqp, new TestEventConsumer(), AmqpQueue.EVENT, TestEvent.class );
-        AmqpConsumer<TestEvent, TestEventConsumer> consumer2 = new AmqpConsumer<>(amqp, new TestEventConsumer(), AmqpQueue.EVENT, TestEvent.class );
-        consumer1.consumeEvents(1);
-        consumer2.consumeEvents(1);
+        ExecutorService executorService = Executors.newFixedThreadPool(2);
+        CountDownLatch init = new CountDownLatch(2);
+        executorService.submit(() -> new AmqpConsumer<>(amqp, new TestEventConsumer(), AmqpQueue.EVENT, TestEvent.class, init).consumeEvents(1));
+        executorService.submit(() -> new AmqpConsumer<>(amqp, new TestEventConsumer(), AmqpQueue.EVENT, TestEvent.class, init).consumeEvents(1));
+        init.await(1, TimeUnit.SECONDS);
 
         amqp.publish(AmqpQueue.EVENT, new TestEvent("hello pubsub"));
+        executorService.shutdown();
+        executorService.awaitTermination(5, TimeUnit.SECONDS);
 
         assertThat(eventQueue.take().field).isEqualTo("hello pubsub");
         assertThat(eventQueue.take().field).isEqualTo("hello pubsub");

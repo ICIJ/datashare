@@ -90,9 +90,9 @@ public class AmqpInterlocutor {
     }
 
     public synchronized AmqpChannel createAmqpChannelForConsume(AmqpQueue queue) throws IOException {
-        AmqpChannel channel = new AmqpChannel(connection.createChannel(), queue, nbQueue.incrementAndGet());
+        AmqpChannel channel = new AmqpChannel(connection.createChannel(), queue);
         channel.initForConsume(configuration.deadLetter, configuration.nbMaxMessages);
-        logger.info("consume channel " + channel + " has been created for queue {}", channel.queueName());
+        logger.info("consume channel " + channel + " has been created for queue {}", channel.queueName("worker-"));
         return channel;
     }
 
