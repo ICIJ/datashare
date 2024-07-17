@@ -1,6 +1,8 @@
 package org.icij.datashare.json;
 
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import com.fasterxml.jackson.core.JsonFactory;
+import com.fasterxml.jackson.core.StreamReadConstraints;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -39,6 +41,13 @@ public class JsonObjectMapper {
 
     // JSON - Object mapper
     public static final ObjectMapper MAPPER = new ObjectMapper();
+
+    public static final int MAX_NESTING_DEPTH = 20;
+
+    public static final int MAX_NUMBER_LENGTH = 100;
+
+    public static final int MAX_STRING_LENGTH = 1000000000;
+
     static {
         // Handle Optional and other JDK 8 only features
         MAPPER.registerModule(new Jdk8Module());
@@ -48,6 +57,10 @@ public class JsonObjectMapper {
         //  Making domain entities' private fields visible to Jackson
         MAPPER.setVisibility(FIELD, ANY);
         MAPPER.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+        MAPPER.getFactory().setStreamReadConstraints(StreamReadConstraints.builder()
+                .maxNestingDepth(MAX_NESTING_DEPTH)
+                .maxNumberLength(MAX_NUMBER_LENGTH)
+                .maxStringLength(MAX_STRING_LENGTH).build());
     }
 
     /**
