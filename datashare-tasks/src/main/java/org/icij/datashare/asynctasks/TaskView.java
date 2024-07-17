@@ -56,7 +56,7 @@ public class TaskView<V> implements Entity {
              @JsonProperty("state") State state,
              @JsonProperty("progress") double progress,
              @JsonProperty("result") V result,
-             @JsonProperty("properties") Map<String, Object> arguments) {
+             @JsonProperty("arguments") Map<String, Object> arguments) {
         this.id = id;
         this.name = name;
         this.state = state;
