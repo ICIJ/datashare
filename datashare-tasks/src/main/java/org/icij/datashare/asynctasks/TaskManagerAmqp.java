@@ -102,8 +102,8 @@ public class TaskManagerAmqp implements TaskManager {
 
     public void close() throws IOException {
         clearDoneTasks();
-        resultConsumer.cancel();
-        eventConsumer.cancel();
+        resultConsumer.shutdown();
+        eventConsumer.shutdown();
     }
 
     @Override
