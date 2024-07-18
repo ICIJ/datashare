@@ -93,7 +93,7 @@ public class TaskSupplierAmqp implements TaskSupplier {
 
     @Override
     public void close() throws IOException {
-        consumer.cancel();
+        consumer.shutdown();
     }
 
     static class SupplierBufferingException extends RuntimeException { }

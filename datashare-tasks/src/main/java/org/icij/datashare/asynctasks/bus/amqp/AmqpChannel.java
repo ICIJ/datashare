@@ -14,6 +14,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Random;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentNavigableMap;
 import java.util.concurrent.ConcurrentSkipListMap;
@@ -26,6 +27,7 @@ import java.util.function.Consumer;
  * see <a href="https://www.rabbitmq.com/confirms.html#publisher-confirms">rabbitMQ documentation</a>
  */
 public class AmqpChannel {
+	private static final Random rand = new Random();
 	public static final String WORKER_PREFIX = "worker";
 	private final boolean durable = true;
 	private final boolean exclusive = false;
@@ -34,6 +36,8 @@ public class AmqpChannel {
 	private final ConcurrentNavigableMap<Long, byte[]> outstandingConfirms = new ConcurrentSkipListMap<>();
 	final Channel rabbitMqChannel;
 	final AmqpQueue queue;
+	private final int randomQueueNumber;
+
 	private final ConfirmCallback cleanOutstandingConfirms = (sequenceNumber, multiple) -> {
 		if (multiple) {
 			ConcurrentNavigableMap<Long, byte[]> confirmed = outstandingConfirms.headMap(sequenceNumber, true);
@@ -51,6 +55,7 @@ public class AmqpChannel {
 			cleanOutstandingConfirms.handle(sequenceNumber, multiple);
 		});
 		this.queue = queue;
+		this.randomQueueNumber = rand.nextInt(1000);
 	}
 
 	void publish(Event event) throws IOException {
@@ -93,7 +98,7 @@ public class AmqpChannel {
 
 	String queueName(String prefix) {
 		return BuiltinExchangeType.FANOUT.equals(queue.exchangeType) ?
-				String.format("%s-%s-%s-%d-%d", queue.name(), prefix, getHostname(), ProcessHandle.current().pid(), Thread.currentThread().getId()) :
+				String.format("%s-%s-%s-%d-%d-%d", queue.name(), prefix, getHostname(), ProcessHandle.current().pid(), Thread.currentThread().getId(), randomQueueNumber) :
 				queue.name();
 	}
 
