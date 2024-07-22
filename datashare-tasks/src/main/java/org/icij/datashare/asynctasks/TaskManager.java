@@ -134,6 +134,7 @@ public interface TaskManager extends Closeable {
         if (e instanceof ProgressEvent) {
             return setProgress((ProgressEvent)e);
         }
+        logger.warn("received event not handled {}", e);
         return null;
     }
 

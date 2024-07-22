@@ -42,7 +42,7 @@ public class TaskSupplierAmqp implements TaskSupplier {
     @Override
     public Void progress(String taskId, double rate) {
         try {
-            amqp.publish(AmqpQueue.EVENT, new ProgressEvent(taskId, rate));
+            amqp.publish(AmqpQueue.MANAGER_EVENT, new ProgressEvent(taskId, rate));
         } catch (IOException e) {
             LoggerFactory.getLogger(getClass()).warn("cannot publish progress {} for task {}", rate, taskId);
         }
@@ -57,7 +57,7 @@ public class TaskSupplierAmqp implements TaskSupplier {
     @Override
     public <V extends Serializable> void result(String taskId, V result) {
         try {
-            amqp.publish(AmqpQueue.TASK_RESULT, new ResultEvent<>(taskId, result));
+            amqp.publish(AmqpQueue.MANAGER_EVENT, new ResultEvent<>(taskId, result));
         } catch (IOException e) {
             LoggerFactory.getLogger(getClass()).warn("cannot publish result {} for task {}", result, taskId);
         }
@@ -71,7 +71,7 @@ public class TaskSupplierAmqp implements TaskSupplier {
             //  it. This avoid complex communication (worker)->(manager)->(broker) and then
             //  (manager)->(worker) (to confirm the cancellation to the worker). Instead we have
             //  (worker)->(broker) and then (worker)->(*) (broadcast the cancellation).
-            amqp.publish(AmqpQueue.EVENT, new CancelledEvent(task.id, requeue));
+            amqp.publish(AmqpQueue.MANAGER_EVENT, new CancelledEvent(task.id, requeue));
         } catch (IOException e) {
             LoggerFactory.getLogger(getClass()).warn("cannot publish cancelled for task {}", task.id);
         }
