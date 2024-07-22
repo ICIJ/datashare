@@ -23,44 +23,44 @@ import java.util.regex.Pattern;
 
 import static java.util.concurrent.Executors.newSingleThreadExecutor;
 import static java.util.stream.Collectors.toList;
-import static org.icij.datashare.asynctasks.TaskView.State.RUNNING;
+import static org.icij.datashare.asynctasks.Task.State.RUNNING;
 
 
 public class TaskManagerMemory implements TaskManager, TaskSupplier {
     private final Logger logger = LoggerFactory.getLogger(getClass());
     private final ExecutorService executor = newSingleThreadExecutor();
-    private final ConcurrentMap<String, TaskView<?>> tasks = new ConcurrentHashMap<>();
-    private final BlockingQueue<TaskView<?>> taskQueue;
+    private final ConcurrentMap<String, Task<?>> tasks = new ConcurrentHashMap<>();
+    private final BlockingQueue<Task<?>> taskQueue;
     private final TaskRunnerLoop loop;
     private final AtomicInteger executedTasks = new AtomicInteger(0);
 
-    public TaskManagerMemory(BlockingQueue<TaskView<?>> taskQueue, TaskFactory taskFactory) {
+    public TaskManagerMemory(BlockingQueue<Task<?>> taskQueue, TaskFactory taskFactory) {
         this(taskQueue, taskFactory, new CountDownLatch(1));
     }
 
-    public TaskManagerMemory(BlockingQueue<TaskView<?>> taskQueue, TaskFactory taskFactory, CountDownLatch latch) {
+    public TaskManagerMemory(BlockingQueue<Task<?>> taskQueue, TaskFactory taskFactory, CountDownLatch latch) {
         this.taskQueue = taskQueue;
         loop = new TaskRunnerLoop(taskFactory, this, latch);
         executor.submit(loop);
     }
 
-    public <V> TaskView<V> getTask(final String taskId) {
-        return (TaskView<V>) tasks.get(taskId);
+    public <V> Task<V> getTask(final String taskId) {
+        return (Task<V>) tasks.get(taskId);
     }
 
     @Override
-    public List<TaskView<?>> getTasks() {
+    public List<Task<?>> getTasks() {
         return new LinkedList<>(tasks.values());
     }
 
     @Override
-    public List<TaskView<?>> getTasks(User user, Pattern pattern) {
+    public List<Task<?>> getTasks(User user, Pattern pattern) {
         return TaskManager.getTasks(tasks.values().stream(), user, pattern);
     }
 
     @Override
     public Void progress(String taskId, double rate) {
-        TaskView<?> taskView = tasks.get(taskId);
+        Task<?> taskView = tasks.get(taskId);
         if (taskView != null) {
             taskView.setProgress(rate);
         } else {
@@ -71,7 +71,7 @@ public class TaskManagerMemory implements TaskManager, TaskSupplier {
 
     @Override
     public <V extends Serializable> void result(String taskId, V result) {
-        TaskView<V> taskView = (TaskView<V>) tasks.get(taskId);
+        Task<V> taskView = (Task<V>) tasks.get(taskId);
         if (taskView != null) {
             taskView.setResult(result);
             executedTasks.incrementAndGet();
@@ -81,8 +81,8 @@ public class TaskManagerMemory implements TaskManager, TaskSupplier {
     }
 
     @Override
-    public void canceled(TaskView<?> task, boolean requeue) {
-        TaskView<?> taskView = tasks.get(task.id);
+    public void canceled(Task<?> task, boolean requeue) {
+        Task<?> taskView = tasks.get(task.id);
         if (taskView != null) {
             taskView.cancel();
             if (requeue) {
@@ -93,7 +93,7 @@ public class TaskManagerMemory implements TaskManager, TaskSupplier {
 
     @Override
     public void error(String taskId, TaskError reason) {
-        TaskView<?> taskView = tasks.get(taskId);
+        Task<?> taskView = tasks.get(taskId);
         if (taskView != null) {
             taskView.setError(reason);
             executedTasks.incrementAndGet();
@@ -102,24 +102,24 @@ public class TaskManagerMemory implements TaskManager, TaskSupplier {
         }
     }
 
-    public boolean save(TaskView<?> taskView) {
-        TaskView<?> oldTask = tasks.put(taskView.id, taskView);
+    public boolean save(Task<?> taskView) {
+        Task<?> oldTask = tasks.put(taskView.id, taskView);
         return oldTask == null;
     }
 
     @Override
-    public void enqueue(TaskView<?> task) {
+    public void enqueue(Task<?> task) {
         taskQueue.add(task);
     }
 
     public boolean shutdownAndAwaitTermination(int timeout, TimeUnit timeUnit) throws InterruptedException {
-        taskQueue.add(TaskView.nullObject());
+        taskQueue.add(Task.nullObject());
         waitTasksToBeDone(timeout, timeUnit);
         executor.shutdownNow();
         return executor.awaitTermination(timeout, timeUnit);
     }
 
-    public List<TaskView<?>> waitTasksToBeDone(int timeout, TimeUnit timeUnit) {
+    public List<Task<?>> waitTasksToBeDone(int timeout, TimeUnit timeUnit) {
         return tasks.values().stream().peek(taskView -> {
             try {
                 taskView.getResult(timeout, timeUnit);
@@ -129,17 +129,17 @@ public class TaskManagerMemory implements TaskManager, TaskSupplier {
         }).collect(toList());
     }
 
-    public List<TaskView<?>> clearDoneTasks() {
+    public List<Task<?>> clearDoneTasks() {
         return tasks.values().stream().filter(taskView -> taskView.getState() != RUNNING).map(t -> tasks.remove(t.id)).collect(toList());
     }
 
     @Override
-    public <V> TaskView<V> clearTask(String taskName) {
-        return (TaskView<V>) tasks.remove(taskName);
+    public <V> Task<V> clearTask(String taskName) {
+        return (Task<V>) tasks.remove(taskName);
     }
 
     public boolean stopTask(String taskId) {
-        TaskView<?> taskView = tasks.get(taskId);
+        Task<?> taskView = tasks.get(taskId);
         if (taskView != null) {
             switch (taskView.getState()) {
                 case QUEUED:
@@ -157,8 +157,8 @@ public class TaskManagerMemory implements TaskManager, TaskSupplier {
     }
 
     @Override
-    public <V extends Serializable> TaskView<V> get(int timeOut, TimeUnit timeUnit) throws InterruptedException {
-        return (TaskView<V>) taskQueue.poll(timeOut, timeUnit);
+    public <V extends Serializable> Task<V> get(int timeOut, TimeUnit timeUnit) throws InterruptedException {
+        return (Task<V>) taskQueue.poll(timeOut, timeUnit);
     }
 
     @Override

@@ -23,8 +23,8 @@ import java.util.function.Consumer;
 import static java.util.Optional.ofNullable;
 
 public class TaskSupplierAmqp implements TaskSupplier {
-    private final BlockingQueue<TaskCreation> taskCreations = new ArrayBlockingQueue<>(1024);
-    final AmqpConsumer<TaskCreation, Consumer<TaskCreation>> consumer;
+    private final BlockingQueue<Task> taskCreations = new ArrayBlockingQueue<>(1024);
+    final AmqpConsumer<Task, Consumer<Task>> consumer;
     final AmqpConsumer<TaskEvent, Consumer<TaskEvent>> eventConsumer;
     final List<Consumer<TaskEvent>> eventCallbackList = new LinkedList<>();
     private final AmqpInterlocutor amqp;
@@ -35,7 +35,7 @@ public class TaskSupplierAmqp implements TaskSupplier {
             if (!taskCreations.offer(event)) {
                 throw new SupplierBufferingException();
             }
-        }, AmqpQueue.TASK, TaskCreation.class).consumeEvents();
+        }, AmqpQueue.TASK, Task.class).consumeEvents();
         eventConsumer = new AmqpConsumer<>(amqp, this::handleEvent, AmqpQueue.RUNNER_EVENT, TaskEvent.class).consumeEvents();
     }
 
@@ -50,8 +50,8 @@ public class TaskSupplierAmqp implements TaskSupplier {
     }
 
     @Override
-    public <V extends Serializable> TaskView<V> get(int timeOut, TimeUnit timeUnit) throws InterruptedException {
-        return (TaskView<V>) ofNullable(taskCreations.poll(timeOut, timeUnit)).map(te -> te.taskView).orElse(null);
+    public <V extends Serializable> Task<V> get(int timeOut, TimeUnit timeUnit) throws InterruptedException {
+        return (Task<V>) ofNullable(taskCreations.poll(timeOut, timeUnit)).orElse(null);
     }
 
     @Override
@@ -64,7 +64,7 @@ public class TaskSupplierAmqp implements TaskSupplier {
     }
 
     @Override
-    public void canceled(TaskView<?> task, boolean requeue) {
+    public void canceled(Task<?> task, boolean requeue) {
         try {
             // TODO: align behavior here with Python where calling this directly nacks the task
             //  instead of sending a message to the taskManager which is then responsible to handle

@@ -4,7 +4,7 @@ import co.elastic.clients.elasticsearch._types.Refresh;
 import org.icij.datashare.PipelineHelper;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Stage;
-import org.icij.datashare.asynctasks.TaskView;
+import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.extract.MemoryDocumentCollectionFactory;
 import org.icij.datashare.test.ElasticsearchRule;
 import org.icij.datashare.text.Language;
@@ -42,7 +42,7 @@ public class IndexTaskIntTest {
         DocumentQueue<Path> queue = inputQueueFactory.createQueue(new PipelineHelper(propertiesProvider).getQueueNameFor(Stage.INDEX), Path.class);
         queue.add(Paths.get(ClassLoader.getSystemResource("docs/doc.txt").getPath()));
 
-        Long nbDocs = new IndexTask(spewer, inputQueueFactory, new TaskView<>(IndexTask.class.getName(), User.local(), map), null).call();
+        Long nbDocs = new IndexTask(spewer, inputQueueFactory, new Task<>(IndexTask.class.getName(), User.local(), map), null).call();
 
         assertThat(nbDocs).isEqualTo(1);
         DocumentQueue<String> outputQueue = outputQueueFactory.createQueue(new PipelineHelper(propertiesProvider).getOutputQueueNameFor(Stage.INDEX), String.class);

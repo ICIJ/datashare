@@ -6,7 +6,7 @@ import java.util.function.Function;
 import org.icij.datashare.Entity;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Stage;
-import org.icij.datashare.asynctasks.TaskView;
+import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.extract.DocumentCollectionFactory;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.indexing.Indexer;
@@ -39,7 +39,7 @@ public class EnqueueFromIndexTask extends PipelineTask<String> {
 
     @Inject
     public EnqueueFromIndexTask(final DocumentCollectionFactory<String> factory, final Indexer indexer,
-                                @Assisted TaskView<Long> taskView, @Assisted final Function<Double, Void> updateCallback) {
+                                @Assisted Task<Long> taskView, @Assisted final Function<Double, Void> updateCallback) {
         super(Stage.ENQUEUEIDX, taskView.getUser(), factory, new PropertiesProvider(taskView.arguments), String.class);
         this.factory = factory;
         this.indexer = indexer;

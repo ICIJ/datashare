@@ -17,7 +17,7 @@ public class TaskManagerRedisCodecTest {
 
     @Test
     public void test_json_serialize_deserialize_with_inline_properties_map() throws Exception {
-        TaskView<?> taskView = new TaskView<>("name", User.local(), new HashMap<>() {{
+        Task<?> taskView = new Task<>("name", User.local(), new HashMap<>() {{
             put("key", "value");
         }});
         String json = codec.getValueEncoder().encode(taskView).toString(Charset.defaultCharset());
@@ -25,7 +25,7 @@ public class TaskManagerRedisCodecTest {
         assertThat(json).contains("\"key\":\"value\"");
         assertThat(json).contains("\"name\":\"name\"");
 
-        TaskView<?> actualTask = (TaskView<?>) codec.getValueDecoder().decode(Unpooled.wrappedBuffer(json.getBytes()), new State());
+        Task<?> actualTask = (Task<?>) codec.getValueDecoder().decode(Unpooled.wrappedBuffer(json.getBytes()), new State());
         Assertions.assertThat(actualTask.name).isEqualTo("name");
         Assertions.assertThat(actualTask.arguments).hasSize(2);
         Assertions.assertThat(actualTask.arguments).includes(entry("key", "value"));

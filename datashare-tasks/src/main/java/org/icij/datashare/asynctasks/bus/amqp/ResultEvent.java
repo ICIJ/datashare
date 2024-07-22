@@ -9,7 +9,7 @@ import java.io.Serializable;
 
 public class ResultEvent<V extends Serializable> extends TaskEvent {
     @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "@type")
-    @JsonSubTypes(@JsonSubTypes.Type(TaskError.class))
+    @JsonSubTypes({@JsonSubTypes.Type(TaskError.class), @JsonSubTypes.Type(UriResult.class)})
     public final V result;
 
     @JsonCreator

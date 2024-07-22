@@ -9,8 +9,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 import static org.fest.assertions.Assertions.assertThat;
-import static org.icij.datashare.asynctasks.TaskView.State.CREATED;
-import static org.icij.datashare.asynctasks.TaskView.State.RUNNING;
+import static org.icij.datashare.asynctasks.Task.State.CREATED;
+import static org.icij.datashare.asynctasks.Task.State.RUNNING;
 
 public class StateLatchTest {
     private static final int WAIT_MS = 50;
@@ -22,10 +22,10 @@ public class StateLatchTest {
         long start = System.currentTimeMillis();
         executor.submit((Callable<Void>) () -> {
             Thread.sleep(WAIT_MS);
-            stateLatch.setTaskState(TaskView.State.RUNNING);
+            stateLatch.setTaskState(Task.State.RUNNING);
             return null;
         });
-        assertThat(stateLatch.await(TaskView.State.RUNNING, 1500, TimeUnit.MILLISECONDS)).isTrue();
+        assertThat(stateLatch.await(Task.State.RUNNING, 1500, TimeUnit.MILLISECONDS)).isTrue();
         assertThat(System.currentTimeMillis() - start).isGreaterThanOrEqualTo(WAIT_MS);
     }
 
@@ -35,10 +35,10 @@ public class StateLatchTest {
         long start = System.currentTimeMillis();
         executor.submit((Callable<Void>) () -> {
             Thread.sleep(WAIT_MS);
-            stateLatch.setTaskState(TaskView.State.RUNNING);
+            stateLatch.setTaskState(Task.State.RUNNING);
             return null;
         });
-        stateLatch.await(TaskView.State.RUNNING);
+        stateLatch.await(Task.State.RUNNING);
         assertThat(System.currentTimeMillis() - start).isGreaterThanOrEqualTo(WAIT_MS);
     }
 

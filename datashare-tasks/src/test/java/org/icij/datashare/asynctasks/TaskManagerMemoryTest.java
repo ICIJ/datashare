@@ -27,7 +27,7 @@ public class TaskManagerMemoryTest {
 
     @Before
     public void setUp() throws Exception {
-        LinkedBlockingQueue<TaskView<?>> taskViews = new LinkedBlockingQueue<>();
+        LinkedBlockingQueue<Task<?>> taskViews = new LinkedBlockingQueue<>();
         taskManager = new TaskManagerMemory(taskViews, factory, waitForLoop);
         taskInspector = new TaskInspector(taskManager);
         waitForLoop.await();
@@ -35,33 +35,33 @@ public class TaskManagerMemoryTest {
 
     @Test
     public void test_run_task() throws Exception {
-        TaskView<Integer> task = new TaskView<>(TestFactory.HelloWorld.class.getName(), User.local(), Map.of("greeted", "world"));
+        Task<Integer> task = new Task<>(TestFactory.HelloWorld.class.getName(), User.local(), Map.of("greeted", "world"));
 
         String tid = taskManager.startTask(task);
         taskManager.shutdownAndAwaitTermination(100, TimeUnit.MILLISECONDS);
 
-        assertThat(taskManager.getTask(tid).getState()).isEqualTo(TaskView.State.DONE);
+        assertThat(taskManager.getTask(tid).getState()).isEqualTo(Task.State.DONE);
         assertThat(taskManager.getTask(tid).getResult()).isEqualTo("Hello world!");
         assertThat(taskManager.getTasks()).hasSize(1);
     }
 
     @Test
     public void test_stop_current_task() throws Exception {
-        TaskView<Integer> task = new TaskView<>(TestFactory.SleepForever.class.getName(), User.local(), Map.of("intParameter", 2000));
+        Task<Integer> task = new Task<>(TestFactory.SleepForever.class.getName(), User.local(), Map.of("intParameter", 2000));
         String taskId = taskManager.startTask(task);
 
         taskInspector.awaitToBeStarted(taskId, 10000);
         taskManager.stopTask(taskId);
         taskManager.shutdownAndAwaitTermination(1, TimeUnit.SECONDS);
 
-        assertThat(taskManager.getTask(taskId).getState()).isEqualTo(TaskView.State.CANCELLED);
+        assertThat(taskManager.getTask(taskId).getState()).isEqualTo(Task.State.CANCELLED);
         assertThat(taskManager.numberOfExecutedTasks()).isEqualTo(0);
     }
 
     @Test
     public void test_stop_queued_task() throws Exception {
-        TaskView<Integer> t1 = new TaskView<>(TestFactory.SleepForever.class.getName(), User.local(), Map.of());
-        TaskView<Integer> t2 = new TaskView<>(TestFactory.HelloWorld.class.getName(), User.local(), Map.of("greeted", "stucked task"));
+        Task<Integer> t1 = new Task<>(TestFactory.SleepForever.class.getName(), User.local(), Map.of());
+        Task<Integer> t2 = new Task<>(TestFactory.HelloWorld.class.getName(), User.local(), Map.of("greeted", "stucked task"));
 
         taskManager.startTask(t1);
         taskManager.startTask(t2);
@@ -71,14 +71,14 @@ public class TaskManagerMemoryTest {
         taskManager.stopTask(t1.id);
 
         taskManager.shutdownAndAwaitTermination(1, TimeUnit.SECONDS);
-        assertThat(t2.getState()).isEqualTo(TaskView.State.CANCELLED);
+        assertThat(t2.getState()).isEqualTo(Task.State.CANCELLED);
         assertThat(taskManager.numberOfExecutedTasks()).isEqualTo(0);
         assertThat(taskManager.getTasks()).hasSize(2);
     }
 
     @Test
     public void test_clear_the_only_task() throws Exception {
-        TaskView<Integer> task = new TaskView<>("sleep", User.local(), Map.of("intParameter", 12));
+        Task<Integer> task = new Task<>("sleep", User.local(), Map.of("intParameter", 12));
 
         taskManager.startTask(task);
         taskManager.shutdownAndAwaitTermination(1, TimeUnit.SECONDS);

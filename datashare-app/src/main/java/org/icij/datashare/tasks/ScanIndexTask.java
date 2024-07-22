@@ -6,7 +6,7 @@ import java.util.function.Function;
 import org.icij.datashare.Entity;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Stage;
-import org.icij.datashare.asynctasks.TaskView;
+import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.extract.DocumentCollectionFactory;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.indexing.Indexer;
@@ -51,7 +51,7 @@ public class ScanIndexTask extends PipelineTask<Path> {
 
     @Inject
     public ScanIndexTask(DocumentCollectionFactory<Path> factory, final Indexer indexer,
-                         @Assisted TaskView<Long> taskView, @Assisted Function<Double, Void> updateCallback) {
+                         @Assisted Task<Long> taskView, @Assisted Function<Double, Void> updateCallback) {
         super(Stage.SCANIDX, taskView.getUser(), factory, new PropertiesProvider(taskView.arguments), Path.class);
         this.scrollDuration = propertiesProvider.get(SCROLL_DURATION_OPT).orElse(DEFAULT_SCROLL_DURATION);
         this.scrollSize = parseInt(propertiesProvider.get(SCROLL_SIZE_OPT).orElse(valueOf(DEFAULT_SCROLL_SIZE)));

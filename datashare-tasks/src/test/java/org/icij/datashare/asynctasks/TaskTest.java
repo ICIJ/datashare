@@ -6,18 +6,19 @@ import org.icij.datashare.user.User;
 import org.junit.Test;
 
 import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 import static org.fest.assertions.Assertions.assertThat;
 
-public class TaskViewTest {
+public class TaskTest {
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
 
     @Test
     public void test_get_result_sync_when_task_is_running() throws InterruptedException {
-        TaskView<String> taskView = new TaskView<>("name", User.local(), new HashMap<>());
+        Task<String> taskView = new Task<>("name", User.local(), new HashMap<>());
         executor.execute(() -> {
             try {
                 taskView.getResult(1, TimeUnit.SECONDS);
@@ -31,40 +32,40 @@ public class TaskViewTest {
         assertThat(executor.awaitTermination(1, TimeUnit.SECONDS)).isTrue();
         assertThat(taskView.getProgress()).isEqualTo(1);
         assertThat(taskView.getResult()).isEqualTo("foo");
-        assertThat(taskView.getState()).isEqualTo(TaskView.State.DONE);
+        assertThat(taskView.getState()).isEqualTo(Task.State.DONE);
     }
 
     @Test
     public void test_get_result_sync_when_task_is_not_local() {
-        TaskView<Object> taskView = new TaskView<>("id", "task", TaskView.State.DONE, 1, null, new HashMap<>());
+        Task<Object> taskView = new Task<>("id", "task", Task.State.DONE, 1, null, new HashMap<>());
         assertThat(taskView.getResult()).isNull();
-        assertThat(taskView.getState()).isEqualTo(TaskView.State.DONE);
+        assertThat(taskView.getState()).isEqualTo(Task.State.DONE);
         assertThat(taskView.getProgress()).isEqualTo(1);
     }
 
     @Test
     public void test_progress() {
-        TaskView<Object> taskView = new TaskView<>("name", User.local(), new HashMap<>());
+        Task<Object> taskView = new Task<>("name", User.local(), new HashMap<>());
         assertThat(taskView.getProgress()).isEqualTo(0);
-        assertThat(taskView.getState()).isEqualTo(TaskView.State.CREATED);
+        assertThat(taskView.getState()).isEqualTo(Task.State.CREATED);
 
         taskView.setProgress(0.0);
-        assertThat(taskView.getState()).isEqualTo(TaskView.State.RUNNING);
+        assertThat(taskView.getState()).isEqualTo(Task.State.RUNNING);
 
         taskView.setProgress(0.3);
         assertThat(taskView.getProgress()).isEqualTo(0.3);
-        assertThat(taskView.getState()).isEqualTo(TaskView.State.RUNNING);
+        assertThat(taskView.getState()).isEqualTo(Task.State.RUNNING);
     }
 
     @Test
     public void test_get_result_sync_when_task_is_not_local_and_result_is_not_null() {
-        TaskView<Object> taskView = new TaskView<>("id", "task", TaskView.State.DONE, 1, "run", new HashMap<>());
+        Task<Object> taskView = new Task<>("id", "task", Task.State.DONE, 1, "run", new HashMap<>());
         assertThat(taskView.getResult()).isEqualTo("run");
     }
 
     @Test
     public void test_json_deserialize() throws Exception {
-        String json = "{\"id\":\"d605de70-dc8d-429f-8b22-1cc3e9157756\"," +
+        String json = "{\"@type\":\"Task\",\"id\":\"d605de70-dc8d-429f-8b22-1cc3e9157756\"," +
                 "\"name\":\"HelloWorld\",\"state\":\"CREATED\"," +
                 "\"progress\":0.0,\"user\":{\"id\":\"local\",\"name\":null,\"email\":null," +
                 "\"provider\":\"local\"},\"properties\":" +
@@ -75,8 +76,20 @@ public class TaskViewTest {
                 "\"filename\":\"file:///home/dev/src/datashare/datashare-app/app/tmp/archive_local_2021-07-07T12_23_34Z%5BGMT%5D.zip\"," +
                 "\"query\":\"*\",\"uri\":null,\"user\":{\"id\":\"local\",\"name\":null,\"email\":null,\"provider\":\"local\"}," +
                 "\"encrypted\":false,\"zipSize\":0,\"exists\":false}}}";
-        TaskView<?> taskView = JsonObjectMapper.MAPPER.readValue(json, TaskView.class);
+        Task<?> taskView = JsonObjectMapper.MAPPER.readValue(json, Task.class);
         Assertions.assertThat(taskView.name).isEqualTo("HelloWorld");
         Assertions.assertThat(taskView.id).isEqualTo("d605de70-dc8d-429f-8b22-1cc3e9157756");
+    }
+
+    @Test
+    public void test_serialize_deserialize() throws Exception {
+        Task<Object> taskView = new Task<>("name", User.local(), Map.of("key", "value"));
+        String json = JsonObjectMapper.MAPPER.writeValueAsString(taskView);
+        assertThat(json).contains("\"@type\":\"Task\"");
+        assertThat(json).contains("\"user\":{\"@type\":\"org.icij.datashare.user.User\"");
+
+        Task<?> taskCreation = JsonObjectMapper.MAPPER.readValue(json, Task.class);
+        assertThat(taskCreation).isEqualTo(taskView);
+        assertThat(taskCreation.createdAt).isEqualTo(taskCreation.createdAt);
     }
 }

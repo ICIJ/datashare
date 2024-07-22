@@ -11,7 +11,8 @@ import org.apache.commons.lang3.StringUtils;
 import org.icij.datashare.Entity;
 import org.icij.datashare.HumanReadableSize;
 import org.icij.datashare.PropertiesProvider;
-import org.icij.datashare.asynctasks.TaskView;
+import org.icij.datashare.asynctasks.Task;
+import org.icij.datashare.asynctasks.bus.amqp.UriResult;
 import org.icij.datashare.batch.BatchDownload;
 import org.icij.datashare.com.mail.Mail;
 import org.icij.datashare.com.mail.MailException;
@@ -52,7 +53,7 @@ public class BatchDownloadRunner implements Callable<UriResult>, Monitorable, Us
     static final int MAX_SCROLL_SIZE = 3500;
     static final int MAX_BATCH_RESULT_SIZE = 10000;
     private final DocumentVerifier documentVerifier;
-    private final TaskView<File> task;
+    private final Task<File> task;
     volatile long docsToProcessSize = 0;
     private final AtomicInteger numberOfResults = new AtomicInteger(0);
     private final Indexer indexer;
@@ -61,13 +62,13 @@ public class BatchDownloadRunner implements Callable<UriResult>, Monitorable, Us
     private final Function<URI, MailSender> mailSenderSupplier;
 
     @Inject
-    public BatchDownloadRunner(Indexer indexer, PropertiesProvider propertiesProvider, @Assisted TaskView<?> task, @Assisted Function<Double, Void> progressCallback) {
+    public BatchDownloadRunner(Indexer indexer, PropertiesProvider propertiesProvider, @Assisted Task<?> task, @Assisted Function<Double, Void> progressCallback) {
         this(indexer, propertiesProvider, progressCallback, task, MailSender::new);
     }
 
-    BatchDownloadRunner(Indexer indexer, PropertiesProvider provider, Function<Double, Void> progressCallback, TaskView<?> task, Function<URI, MailSender> mailSenderSupplier) {
+    BatchDownloadRunner(Indexer indexer, PropertiesProvider provider, Function<Double, Void> progressCallback, Task<?> task, Function<URI, MailSender> mailSenderSupplier) {
         assert task.arguments.get("batchDownload") != null : "'batchDownload' property in task shouldn't be null";
-        this.task = (TaskView<File>) task;
+        this.task = (Task<File>) task;
         this.indexer = indexer;
         this.propertiesProvider = provider;
         this.progressCallback = progressCallback;

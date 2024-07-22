@@ -10,11 +10,11 @@ public class TestFactory implements TaskFactory {
 
     private static final Logger logger = LoggerFactory.getLogger(TaskManager.class);
 
-    public static Callable<String> createHelloWorld(TaskView<Void> taskView, Function<Double, Void> progress) {
+    public static Callable<String> createHelloWorld(Task<Void> taskView, Function<Double, Void> progress) {
         return new HelloWorld(taskView, progress);
     }
 
-    public SleepForever createSleepForever(TaskView<Void> taskView, Function<Double, Void> progress) {
+    public SleepForever createSleepForever(Task<Void> taskView, Function<Double, Void> progress) {
         return new SleepForever(taskView, progress);
     }
 
@@ -22,7 +22,7 @@ public class TestFactory implements TaskFactory {
         private final Function<Double, Void> progress;
         private String greeted;
 
-        public HelloWorld(TaskView<Void> taskView, Function<Double, Void> progress) {
+        public HelloWorld(Task<Void> taskView, Function<Double, Void> progress) {
             this.progress = progress;
             this.greeted = (String) Objects.requireNonNull(taskView.arguments.get("greeted"), "missing greeted parameter");
         }
@@ -45,7 +45,7 @@ public class TestFactory implements TaskFactory {
         Boolean requeue = null;
         Thread taskThread;
 
-        SleepForever(TaskView<Void> taskView, Function<Double, Void> progress) {
+        SleepForever(Task<Void> taskView, Function<Double, Void> progress) {
             this.progress = progress;
         }
 

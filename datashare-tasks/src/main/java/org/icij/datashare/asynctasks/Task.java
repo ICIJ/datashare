@@ -4,7 +4,9 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import org.icij.datashare.Entity;
+import org.icij.datashare.asynctasks.bus.amqp.Event;
 import org.icij.datashare.asynctasks.bus.amqp.TaskError;
 import org.icij.datashare.user.User;
 
@@ -23,12 +25,13 @@ import static java.util.Optional.ofNullable;
 import static java.util.UUID.randomUUID;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class TaskView<V> implements Entity {
+public class Task<V> extends Event implements Entity {
     public static final String USER_KEY = "user";
     @JsonIgnore private StateLatch stateLatch;
     @JsonIgnore private final Object lock = new Object();
 
     public enum State {CREATED, QUEUED, RUNNING, CANCELLED, ERROR, DONE}
+    @JsonTypeInfo(use = JsonTypeInfo.Id.CLASS, property = "@type")
     public final Map<String, Object> arguments;
 
     public final String id;
@@ -38,25 +41,25 @@ public class TaskView<V> implements Entity {
     private volatile double progress;
     private volatile V result;
 
-    public TaskView(String name, User user, Map<String, Object> arguments) {
+    public Task(String name, User user, Map<String, Object> arguments) {
         this(randomUUID().toString(), name, user, arguments);
     }
 
-    public TaskView(String id, String name, User user) {
+    public Task(String id, String name, User user) {
         this(id, name, user, new HashMap<>());
     }
 
-    public TaskView(String id, String name, User user, Map<String, Object> arguments) {
+    public Task(String id, String name, User user, Map<String, Object> arguments) {
         this(id, name, State.CREATED, 0, null, addTo(arguments, user));
     }
 
     @JsonCreator
-    TaskView(@JsonProperty("id") String id,
-             @JsonProperty("name") String name,
-             @JsonProperty("state") State state,
-             @JsonProperty("progress") double progress,
-             @JsonProperty("result") V result,
-             @JsonProperty("arguments") Map<String, Object> arguments) {
+    Task(@JsonProperty("id") String id,
+         @JsonProperty("name") String name,
+         @JsonProperty("state") State state,
+         @JsonProperty("progress") double progress,
+         @JsonProperty("result") V result,
+         @JsonProperty("arguments") Map<String, Object> arguments) {
         this.id = id;
         this.name = name;
         this.state = state;
@@ -145,7 +148,7 @@ public class TaskView<V> implements Entity {
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        TaskView<?> taskView = (TaskView<?>) o;
+        Task<?> taskView = (Task<?>) o;
         return Objects.equals(id, taskView.id);
     }
 
@@ -178,8 +181,8 @@ public class TaskView<V> implements Entity {
         return id;
     }
 
-    public static TaskView<Serializable> nullObject() {
-        return new TaskView<>(null, null, State.CREATED, 0, null, new HashMap<>());
+    public static Task<Serializable> nullObject() {
+        return new Task<>(null, null, State.CREATED, 0, null, new HashMap<>());
     }
 
     public Function<Double, Void> progress(BiFunction<String, Double, Void> taskSupplierProgress) {
