@@ -25,7 +25,6 @@ public class TaskManagerAmqp implements TaskManager {
     private final Map<String, TaskView<?>> tasks;
     private final AmqpInterlocutor amqp;
     private final AmqpConsumer<TaskEvent, Consumer<TaskEvent>> eventConsumer;
-    private final AmqpConsumer<ResultEvent<? extends Serializable>, Consumer<ResultEvent<? extends Serializable>>> resultConsumer;
 
     public TaskManagerAmqp(AmqpInterlocutor amqp, Map<String, TaskView<?>> tasks) throws IOException {
         this(amqp, tasks, null);
@@ -36,12 +35,7 @@ public class TaskManagerAmqp implements TaskManager {
         this.tasks = tasks;
         eventConsumer = new AmqpConsumer<>(amqp, event ->
                 ofNullable(TaskManager.super.handleAck(event)).flatMap(t ->
-                        ofNullable(eventCallback)).ifPresent(Runnable::run), AmqpQueue.EVENT, TaskEvent.class).consumeEvents();
-
-        resultConsumer = new AmqpConsumer<>(amqp, event ->
-                ofNullable(TaskManager.super.handleAck(event)).flatMap(t ->
-                        ofNullable(eventCallback)).ifPresent(Runnable::run), AmqpQueue.TASK_RESULT,
-                (Class<ResultEvent<? extends Serializable>>) (Class<?>) ResultEvent.class).consumeEvents();
+                        ofNullable(eventCallback)).ifPresent(Runnable::run), AmqpQueue.MANAGER_EVENT, TaskEvent.class).consumeEvents();
     }
 
     @Override
@@ -102,7 +96,6 @@ public class TaskManagerAmqp implements TaskManager {
 
     public void close() throws IOException {
         clearDoneTasks();
-        resultConsumer.shutdown();
         eventConsumer.shutdown();
     }
 

@@ -119,8 +119,7 @@ public class TaskManagerAmqpTest {
             put("messageBusAddress", "amqp://admin:admin@localhost?deadLetter=false");
         }}));
         AMQP.createAmqpChannelForPublish(AmqpQueue.TASK);
-        AMQP.createAmqpChannelForPublish(AmqpQueue.TASK_RESULT);
-        AMQP.createAmqpChannelForPublish(AmqpQueue.EVENT);
+        AMQP.createAmqpChannelForPublish(AmqpQueue.MANAGER_EVENT);
     }
 
     @Before

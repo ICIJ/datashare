@@ -69,9 +69,8 @@ public class TaskManagersIntTest {
         );
         AMQP = new AmqpInterlocutor(propertiesProvider);
         AMQP.createAmqpChannelForPublish(AmqpQueue.TASK);
-        AMQP.createAmqpChannelForPublish(AmqpQueue.TASK_RESULT);
-        AMQP.createAmqpChannelForPublish(AmqpQueue.EVENT);
         AMQP.createAmqpChannelForPublish(AmqpQueue.RUNNER_EVENT);
+        AMQP.createAmqpChannelForPublish(AmqpQueue.MANAGER_EVENT);
         BlockingQueue<TaskView<?>> taskQueue = new RedissonBlockingQueue<>(new TaskManagerRedis.TaskViewCodec(),
                 new CommandSyncService(((Redisson) redissonClient).getConnectionManager(),
                         new RedissonObjectBuilder(redissonClient)), "tasks:queue:test", redissonClient);
