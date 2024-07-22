@@ -3,14 +3,12 @@ package org.icij.datashare.asynctasks;
 import org.icij.datashare.asynctasks.bus.amqp.AmqpInterlocutor;
 import org.icij.datashare.asynctasks.bus.amqp.AmqpQueue;
 import org.icij.datashare.asynctasks.bus.amqp.CancelEvent;
-import org.icij.datashare.asynctasks.bus.amqp.ResultEvent;
 import org.icij.datashare.asynctasks.bus.amqp.TaskEvent;
 import org.icij.datashare.asynctasks.bus.amqp.AmqpConsumer;
 import org.icij.datashare.asynctasks.bus.amqp.TaskCreation;
 import org.icij.datashare.user.User;
 
 import java.io.IOException;
-import java.io.Serializable;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -22,15 +20,15 @@ import static java.util.Optional.ofNullable;
 import static java.util.stream.Collectors.toList;
 
 public class TaskManagerAmqp implements TaskManager {
-    private final Map<String, TaskView<?>> tasks;
+    private final Map<String, Task<?>> tasks;
     private final AmqpInterlocutor amqp;
     private final AmqpConsumer<TaskEvent, Consumer<TaskEvent>> eventConsumer;
 
-    public TaskManagerAmqp(AmqpInterlocutor amqp, Map<String, TaskView<?>> tasks) throws IOException {
+    public TaskManagerAmqp(AmqpInterlocutor amqp, Map<String, Task<?>> tasks) throws IOException {
         this(amqp, tasks, null);
     }
 
-    public TaskManagerAmqp(AmqpInterlocutor amqp, Map<String, TaskView<?>> tasks, Runnable eventCallback) throws IOException {
+    public TaskManagerAmqp(AmqpInterlocutor amqp, Map<String, Task<?>> tasks, Runnable eventCallback) throws IOException {
         this.amqp = amqp;
         this.tasks = tasks;
         eventConsumer = new AmqpConsumer<>(amqp, event ->
@@ -40,7 +38,7 @@ public class TaskManagerAmqp implements TaskManager {
 
     @Override
     public boolean stopTask(String taskId) {
-        TaskView<?> taskView = tasks.get(taskId);
+        Task<?> taskView = tasks.get(taskId);
         if (taskView != null) {
             try {
                 amqp.publish(AmqpQueue.RUNNER_EVENT, new CancelEvent(taskId, false));
@@ -55,7 +53,7 @@ public class TaskManagerAmqp implements TaskManager {
     }
 
     @Override
-    public <V> TaskView<V> clearTask(String taskId) {
+    public <V> Task<V> clearTask(String taskId) {
         return null;
     }
 
@@ -64,34 +62,34 @@ public class TaskManagerAmqp implements TaskManager {
         return false;
     }
 
-    public boolean save(TaskView<?> task) {
-        TaskView<?> oldVal = tasks.put(task.id, task);
+    public boolean save(Task<?> task) {
+        Task<?> oldVal = tasks.put(task.id, task);
         return oldVal == null;
     }
 
     @Override
-    public void enqueue(TaskView<?> task) throws IOException {
-        amqp.publish(AmqpQueue.TASK, new TaskCreation(task));
+    public void enqueue(Task<?> task) throws IOException {
+        amqp.publish(AmqpQueue.TASK, task);
     }
 
     @Override
-    public <V> TaskView<V> getTask(String taskId) {
-        return (TaskView<V>) tasks.get(taskId);
+    public <V> Task<V> getTask(String taskId) {
+        return (Task<V>) tasks.get(taskId);
     }
 
     @Override
-    public List<TaskView<?>> getTasks() {
+    public List<Task<?>> getTasks() {
         return new LinkedList<>(tasks.values());
     }
 
     @Override
-    public List<TaskView<?>> getTasks(User user, Pattern pattern) {
+    public List<Task<?>> getTasks(User user, Pattern pattern) {
         return TaskManager.getTasks(tasks.values().stream(), user, pattern);
     }
 
     @Override
-    public List<TaskView<?>> clearDoneTasks() {
-        return tasks.values().stream().filter(f -> f.getState() != TaskView.State.RUNNING).map(t -> tasks.remove(t.id)).collect(toList());
+    public List<Task<?>> clearDoneTasks() {
+        return tasks.values().stream().filter(f -> f.getState() != Task.State.RUNNING).map(t -> tasks.remove(t.id)).collect(toList());
     }
 
     public void close() throws IOException {

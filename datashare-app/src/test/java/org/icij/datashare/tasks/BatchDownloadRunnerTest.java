@@ -3,8 +3,9 @@ package org.icij.datashare.tasks;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.rest.RestStatus;
 import org.icij.datashare.PropertiesProvider;
+import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.asynctasks.TaskModifier;
-import org.icij.datashare.asynctasks.TaskView;
+import org.icij.datashare.asynctasks.bus.amqp.UriResult;
 import org.icij.datashare.batch.BatchDownload;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.indexing.Indexer;
@@ -42,7 +43,7 @@ public class BatchDownloadRunnerTest {
 
     @Test(expected = AssertionError.class)
     public void test_task_with_no_batch_download() {
-        new BatchDownloadRunner(indexer, new PropertiesProvider(), new TaskView<Serializable>("name", User.local(), new HashMap<>()), null);
+        new BatchDownloadRunner(indexer, new PropertiesProvider(), new Task<Serializable>("name", User.local(), new HashMap<>()), null);
     }
 
     @Test
@@ -50,7 +51,7 @@ public class BatchDownloadRunnerTest {
         Document[] documents = IntStream.range(0, 3).mapToObj(i -> createDoc("doc" + i).with(createFile(i)).build()).toArray(Document[]::new);
         mockSearch.willReturn(2, documents);
         BatchDownload batchDownload = new BatchDownload(singletonList(project("test-datashare")), User.local(), "query");
-        TaskView<File> taskView = getTaskView(batchDownload);
+        Task<File> taskView = getTaskView(batchDownload);
         UriResult result = new BatchDownloadRunner(indexer, new PropertiesProvider(new HashMap<>() {{
                     put(BATCH_DOWNLOAD_MAX_NB_FILES_OPT, "3");
                     put(SCROLL_SIZE_OPT, "3");
@@ -63,7 +64,7 @@ public class BatchDownloadRunnerTest {
     public void test_max_zip_size() throws Exception {
         Document[] documents = IntStream.range(0, 3).mapToObj(i -> createDoc("doc" + i).with(createFile(i)).with("hello world " + i).build()).toArray(Document[]::new);
         mockSearch.willReturn(2, documents);
-        TaskView<File> taskView = getTaskView(new BatchDownload(singletonList(project("test-datashare")), User.local(), "query"));
+        Task<File> taskView = getTaskView(new BatchDownload(singletonList(project("test-datashare")), User.local(), "query"));
         UriResult result = new BatchDownloadRunner(indexer, new PropertiesProvider(new HashMap<>() {{
             put(BATCH_DOWNLOAD_MAX_SIZE_OPT, valueOf("hello world 1".getBytes(StandardCharsets.UTF_8).length * 3));
             put(SCROLL_SIZE_OPT, "3");
@@ -75,7 +76,7 @@ public class BatchDownloadRunnerTest {
     @Test(expected = ElasticsearchException.class)
     public void test_elasticsearch_status_exception__should_be_sent() throws Exception {
         mockSearch.willThrow(new ElasticsearchException("error", RestStatus.BAD_REQUEST, new RuntimeException()));
-        TaskView<File> taskView = getTaskView(new BatchDownload(singletonList(project("test-datashare")), User.local(), "query"));
+        Task<File> taskView = getTaskView(new BatchDownload(singletonList(project("test-datashare")), User.local(), "query"));
         new BatchDownloadRunner(indexer, new PropertiesProvider(), taskView, taskView.progress(updater::progress)).call();
     }
 
@@ -91,8 +92,8 @@ public class BatchDownloadRunnerTest {
     }
 
     @NotNull
-    private static TaskView<File> getTaskView(BatchDownload batchDownload) {
-        return new TaskView<>(BatchDownloadRunner.class.toString(), batchDownload.user, new HashMap<>() {{
+    private static Task<File> getTaskView(BatchDownload batchDownload) {
+        return new Task<>(BatchDownloadRunner.class.toString(), batchDownload.user, new HashMap<>() {{
             put("batchDownload", batchDownload);
         }});
     }

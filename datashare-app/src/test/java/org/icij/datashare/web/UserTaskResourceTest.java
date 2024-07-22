@@ -6,10 +6,10 @@ import net.codestory.http.filters.basic.BasicAuthFilter;
 import net.codestory.http.routes.Routes;
 import net.codestory.http.security.SessionIdStore;
 import org.icij.datashare.PropertiesProvider;
+import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.asynctasks.TaskManager;
 import org.icij.datashare.asynctasks.TaskModifier;
-import org.icij.datashare.asynctasks.TaskView;
-import org.icij.datashare.tasks.UriResult;
+import org.icij.datashare.asynctasks.bus.amqp.UriResult;
 import org.icij.datashare.tasks.DatashareTaskFactory;
 import org.icij.datashare.extension.PipelineRegistry;
 import org.icij.datashare.mode.CommonMode;
@@ -207,7 +207,7 @@ public class UserTaskResourceTest extends AbstractProdWebServerTest {
     }
 
     public interface DatashareTaskFactoryForTest extends DatashareTaskFactory {
-        <V> DummyUserTask<V> createDummyUserTask(TaskView<V> tv, Function<Double, Void> updateCallback);
-        SleepingUserTask createSleepingUserTask(TaskView<?> tv, Function<Double, Void> updateCallback);
+        <V> DummyUserTask<V> createDummyUserTask(Task<V> tv, Function<Double, Void> updateCallback);
+        SleepingUserTask createSleepingUserTask(Task<?> tv, Function<Double, Void> updateCallback);
     }
 }

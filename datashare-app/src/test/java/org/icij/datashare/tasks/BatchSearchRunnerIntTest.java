@@ -3,7 +3,7 @@ package org.icij.datashare.tasks;
 import co.elastic.clients.elasticsearch._types.Refresh;
 import java.util.function.Function;
 import org.icij.datashare.PropertiesProvider;
-import org.icij.datashare.asynctasks.TaskView;
+import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.batch.BatchSearch;
 import org.icij.datashare.batch.BatchSearchRepository;
 import org.icij.datashare.batch.SearchException;
@@ -63,8 +63,8 @@ public class BatchSearchRunnerIntTest {
         verify(repository).saveResults(search.uuid, "mydoc", singletonList(mydoc));
     }
 
-    private TaskView<?> taskView(BatchSearch search) {
-        return new TaskView<>(search.uuid, BatchSearchRunner.class.getName(), User.local());
+    private Task<?> taskView(BatchSearch search) {
+        return new Task<>(search.uuid, BatchSearchRunner.class.getName(), User.local());
     }
 
     @Test

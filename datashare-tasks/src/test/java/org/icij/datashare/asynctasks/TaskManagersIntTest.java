@@ -59,7 +59,7 @@ public class TaskManagersIntTest {
                 "messageBusAddress", "amqp://admin:admin@rabbitmq"));
         final RedissonClient redissonClient = new RedissonClientFactory().withOptions(
             Options.from(propertiesProvider.getProperties())).create();
-        Map<String, TaskView<?>> amqpTasks = new RedissonMap<>(new TaskManagerRedis.TaskViewCodec(),
+        Map<String, Task<?>> amqpTasks = new RedissonMap<>(new TaskManagerRedis.TaskViewCodec(),
             new CommandSyncService(((Redisson) redissonClient).getConnectionManager(),
                 new RedissonObjectBuilder(redissonClient)),
             "tasks:queue:test",
@@ -71,7 +71,7 @@ public class TaskManagersIntTest {
         AMQP.createAmqpChannelForPublish(AmqpQueue.TASK);
         AMQP.createAmqpChannelForPublish(AmqpQueue.RUNNER_EVENT);
         AMQP.createAmqpChannelForPublish(AmqpQueue.MANAGER_EVENT);
-        BlockingQueue<TaskView<?>> taskQueue = new RedissonBlockingQueue<>(new TaskManagerRedis.TaskViewCodec(),
+        BlockingQueue<Task<?>> taskQueue = new RedissonBlockingQueue<>(new TaskManagerRedis.TaskViewCodec(),
                 new CommandSyncService(((Redisson) redissonClient).getConnectionManager(),
                         new RedissonObjectBuilder(redissonClient)), "tasks:queue:test", redissonClient);
         EventWaiter amqpWaiter = new EventWaiter(2); // default: progress, result
@@ -103,14 +103,14 @@ public class TaskManagersIntTest {
         eventWaiter.setWaiter(new CountDownLatch(2)); // 1 progress, 1 cancelled
         String taskViewId = taskManager.startTask(TestFactory.SleepForever.class.getName(), User.local(), new HashMap<>());
 
-        taskInspector.awaitStatus(taskViewId, TaskView.State.RUNNING, 1, SECONDS);
+        taskInspector.awaitStatus(taskViewId, Task.State.RUNNING, 1, SECONDS);
 
         taskManager.stopTask(taskViewId);
-        taskInspector.awaitStatus(taskViewId, TaskView.State.CANCELLED, 1, SECONDS);
+        taskInspector.awaitStatus(taskViewId, Task.State.CANCELLED, 1, SECONDS);
         eventWaiter.await();
 
         assertThat(taskManager.getTasks()).hasSize(1);
-        assertThat(taskManager.getTasks().get(0).getState()).isEqualTo(TaskView.State.CANCELLED);
+        assertThat(taskManager.getTasks().get(0).getState()).isEqualTo(Task.State.CANCELLED);
     }
 
     @Test(timeout = 10000)
@@ -120,15 +120,15 @@ public class TaskManagersIntTest {
         String tv1Id = taskManager.startTask(TestFactory.SleepForever.class.getName(), User.local(), new HashMap<>());
         String tv2Id = taskManager.startTask(TestFactory.SleepForever.class.getName(), User.local(), new HashMap<>());
 
-        taskInspector.awaitStatus(tv1Id, TaskView.State.RUNNING, 1, SECONDS);
+        taskInspector.awaitStatus(tv1Id, Task.State.RUNNING, 1, SECONDS);
         taskManager.stopTask(tv2Id);
         taskManager.stopTask(tv1Id);
-        taskInspector.awaitStatus(tv1Id, TaskView.State.CANCELLED, 1, SECONDS);
-        taskInspector.awaitStatus(tv2Id, TaskView.State.CANCELLED, 1, SECONDS);
+        taskInspector.awaitStatus(tv1Id, Task.State.CANCELLED, 1, SECONDS);
+        taskInspector.awaitStatus(tv2Id, Task.State.CANCELLED, 1, SECONDS);
 
         assertThat(taskManager.getTasks()).hasSize(2);
-        assertThat(taskManager.getTasks().get(0).getState()).isEqualTo(TaskView.State.CANCELLED);
-        assertThat(taskManager.getTasks().get(1).getState()).isEqualTo(TaskView.State.CANCELLED);
+        assertThat(taskManager.getTasks().get(0).getState()).isEqualTo(Task.State.CANCELLED);
+        assertThat(taskManager.getTasks().get(1).getState()).isEqualTo(Task.State.CANCELLED);
     }
 
     @Before

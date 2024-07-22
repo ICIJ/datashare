@@ -38,15 +38,15 @@ import static java.util.stream.Collectors.toList;
 public class TaskManagerRedis implements TaskManager {
     private final Runnable eventCallback; // for test
     public static final String EVENT_CHANNEL_NAME = "EVENT";
-    private final RedissonMap<String, TaskView<?>> tasks;
-    private final BlockingQueue<TaskView<?>> taskQueue;
+    private final RedissonMap<String, Task<?>> tasks;
+    private final BlockingQueue<Task<?>> taskQueue;
     private final RTopic eventTopic;
 
-    public TaskManagerRedis(RedissonClient redissonClient, BlockingQueue<TaskView<?>> taskQueue, String taskMapName) {
+    public TaskManagerRedis(RedissonClient redissonClient, BlockingQueue<Task<?>> taskQueue, String taskMapName) {
         this(redissonClient, taskQueue, taskMapName,null);
     }
 
-    public TaskManagerRedis(RedissonClient redissonClient, BlockingQueue<TaskView<?>> taskQueue, String taskMapName, Runnable eventCallback) {
+    public TaskManagerRedis(RedissonClient redissonClient, BlockingQueue<Task<?>> taskQueue, String taskMapName, Runnable eventCallback) {
         CommandSyncService commandSyncService = new CommandSyncService(((Redisson) redissonClient).getConnectionManager(), new RedissonObjectBuilder(redissonClient));
         this.tasks = new RedissonMap<>(new TaskViewCodec(), commandSyncService, taskMapName, redissonClient, null, null);
         this.taskQueue = taskQueue;
@@ -56,33 +56,33 @@ public class TaskManagerRedis implements TaskManager {
     }
 
     @Override
-    public <V> TaskView<V> getTask(String id) {
-        return (TaskView<V>) tasks.get(id);
+    public <V> Task<V> getTask(String id) {
+        return (Task<V>) tasks.get(id);
     }
 
     @Override
-    public List<TaskView<?>> getTasks() {
+    public List<Task<?>> getTasks() {
         return new LinkedList<>(tasks.values());
     }
 
     @Override
-    public List<TaskView<?>> getTasks(User user, Pattern pattern) {
+    public List<Task<?>> getTasks(User user, Pattern pattern) {
         return TaskManager.getTasks(tasks.values().stream(), user, pattern);
     }
 
     @Override
-    public List<TaskView<?>> clearDoneTasks() {
-        return tasks.values().stream().filter(TaskView::isFinished).map(t -> tasks.remove(t.id)).collect(toList());
+    public List<Task<?>> clearDoneTasks() {
+        return tasks.values().stream().filter(Task::isFinished).map(t -> tasks.remove(t.id)).collect(toList());
     }
 
     @Override
-    public TaskView<?> clearTask(String taskName) {
+    public Task<?> clearTask(String taskName) {
         return tasks.remove(taskName);
     }
 
     @Override
     public boolean stopTask(String taskId) {
-        TaskView<?> taskView = getTask(taskId);
+        Task<?> taskView = getTask(taskId);
         if (taskView != null) {
             return eventTopic.publish(new CancelEvent(taskId, false)) > 0;
         } else {
@@ -101,7 +101,7 @@ public class TaskManagerRedis implements TaskManager {
 
     @Override
     public boolean shutdownAndAwaitTermination(int timeout, TimeUnit timeUnit) {
-        taskQueue.add(TaskView.nullObject());
+        taskQueue.add(Task.nullObject());
         return true;
     }
 
@@ -112,7 +112,7 @@ public class TaskManagerRedis implements TaskManager {
         eventTopic.removeAllListeners();
         tasks.delete();
         if (taskQueue instanceof RedissonBlockingQueue) {
-            ((RedissonBlockingQueue<TaskView<?>>) taskQueue).delete();
+            ((RedissonBlockingQueue<Task<?>>) taskQueue).delete();
         }
     }
 
@@ -122,13 +122,13 @@ public class TaskManagerRedis implements TaskManager {
         taskQueue.clear();
     }
 
-    public boolean save(TaskView<?> task) {
-        TaskView<?> oldVal = tasks.put(task.id, task);
+    public boolean save(Task<?> task) {
+        Task<?> oldVal = tasks.put(task.id, task);
         return oldVal == null;
     }
 
     @Override
-    public void enqueue(TaskView<?> task) {
+    public void enqueue(Task<?> task) {
         taskQueue.add(task);
     }
 
@@ -138,7 +138,7 @@ public class TaskManagerRedis implements TaskManager {
         protected final ObjectMapper mapObjectMapper;
 
         public TaskViewCodec() {
-            this.mapObjectMapper = JsonObjectMapper.createTypeInclusionMapper();
+            this.mapObjectMapper = JsonObjectMapper.MAPPER;
 
             this.keyEncoder = in -> {
                 ByteBuf out = ByteBufAllocator.DEFAULT.buffer();
@@ -173,7 +173,7 @@ public class TaskManagerRedis implements TaskManager {
         private final Decoder<Object> decoder = new Decoder<>() {
             @Override
             public Object decode(ByteBuf buf, State state) throws IOException {
-                return mapObjectMapper.readValue((InputStream) new ByteBufInputStream(buf), Object.class);
+                return mapObjectMapper.readValue((InputStream) new ByteBufInputStream(buf), Task.class);
             }
         };
 

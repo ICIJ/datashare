@@ -7,27 +7,27 @@ public class StateLatch {
     private final Sync sync;
 
     public StateLatch() {
-        this.sync = new StateLatch.Sync(TaskView.State.CREATED);
+        this.sync = new StateLatch.Sync(Task.State.CREATED);
     }
 
-    public StateLatch(TaskView.State state) {
+    public StateLatch(Task.State state) {
         this.sync = new StateLatch.Sync(state);
     }
 
-    public void await(TaskView.State state) throws InterruptedException {
+    public void await(Task.State state) throws InterruptedException {
         this.sync.acquireSharedInterruptibly(state.ordinal());
     }
 
-    public boolean await(TaskView.State state, long timeout, TimeUnit unit) throws InterruptedException {
+    public boolean await(Task.State state, long timeout, TimeUnit unit) throws InterruptedException {
         return this.sync.tryAcquireSharedNanos(state.ordinal(), unit.toNanos(timeout));
     }
 
-    public void setTaskState(TaskView.State state) {
+    public void setTaskState(Task.State state) {
         this.sync.releaseShared(state.ordinal());
     }
 
-    public TaskView.State getTaskState() {
-        return TaskView.State.values()[sync.getOrdinal()];
+    public Task.State getTaskState() {
+        return Task.State.values()[sync.getOrdinal()];
     }
 
     public String toString() {
@@ -36,14 +36,14 @@ public class StateLatch {
 
     private static final class Sync extends AbstractQueuedSynchronizer {
         private static final long serialVersionUID = 4982264981922014374L;
-        private final TaskView.State originalTaskState;
+        private final Task.State originalTaskState;
 
-        Sync(TaskView.State state) {
+        Sync(Task.State state) {
             this.setState(state.ordinal());
             this.originalTaskState = state;
         }
 
-        TaskView.State getOriginalTaskState() { return this.originalTaskState;}
+        Task.State getOriginalTaskState() { return this.originalTaskState;}
         int getOrdinal() { return this.getState();}
 
         @Override

@@ -17,17 +17,17 @@ import java.util.function.Consumer;
 import static org.icij.datashare.asynctasks.TaskManagerRedis.EVENT_CHANNEL_NAME;
 
 public class TaskSupplierRedis implements TaskSupplier {
-    private final BlockingQueue<TaskView<?>> taskQueue;
+    private final BlockingQueue<Task<?>> taskQueue;
     private final RTopic eventTopic;
 
-    public TaskSupplierRedis(RedissonClient redissonClient, BlockingQueue<TaskView<?>> taskQueue) {
+    public TaskSupplierRedis(RedissonClient redissonClient, BlockingQueue<Task<?>> taskQueue) {
         this.taskQueue = taskQueue;
         this.eventTopic = redissonClient.getTopic(EVENT_CHANNEL_NAME);
     }
 
     @Override
-    public <V extends Serializable> TaskView<V> get(int timeOut, TimeUnit timeUnit) throws InterruptedException {
-        return (TaskView<V>) taskQueue.poll(timeOut, timeUnit);
+    public <V extends Serializable> Task<V> get(int timeOut, TimeUnit timeUnit) throws InterruptedException {
+        return (Task<V>) taskQueue.poll(timeOut, timeUnit);
     }
 
     @Override
@@ -42,7 +42,7 @@ public class TaskSupplierRedis implements TaskSupplier {
     }
 
     @Override
-    public void canceled(TaskView<?> task, boolean requeue) {
+    public void canceled(Task<?> task, boolean requeue) {
         eventTopic.publish(new CancelledEvent(task.id, requeue));
     }
 

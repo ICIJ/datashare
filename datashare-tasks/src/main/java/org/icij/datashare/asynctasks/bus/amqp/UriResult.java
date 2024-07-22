@@ -1,7 +1,8 @@
-package org.icij.datashare.tasks;
+package org.icij.datashare.asynctasks.bus.amqp;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
 
 import java.io.Serializable;
 import java.net.URI;
@@ -9,6 +10,7 @@ import java.util.Objects;
 
 import static java.lang.String.format;
 
+@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "@type")
 public class UriResult implements Serializable {
     public final URI uri;
     public final long size;

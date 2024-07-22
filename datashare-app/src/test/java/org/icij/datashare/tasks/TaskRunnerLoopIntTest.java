@@ -1,8 +1,8 @@
 package org.icij.datashare.tasks;
 
 import org.icij.datashare.PropertiesProvider;
+import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.asynctasks.TaskRunnerLoop;
-import org.icij.datashare.asynctasks.TaskView;
 import org.icij.datashare.batch.BatchDownload;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.user.User;
@@ -22,7 +22,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class TaskRunnerLoopIntTest {
-    private final LinkedBlockingQueue<TaskView<?>> taskQueue = new LinkedBlockingQueue<>();
+    private final LinkedBlockingQueue<Task<?>> taskQueue = new LinkedBlockingQueue<>();
     private final TaskSupplierRedis taskSupplier = new TaskSupplierRedis(new PropertiesProvider(), taskQueue);
 
 
@@ -36,7 +36,7 @@ public class TaskRunnerLoopIntTest {
             HashMap<String, Object> properties = new HashMap<>() {{
                 put("batchDownload", batchDownload);
             }};
-            TaskView<File> taskView = new TaskView<>(BatchDownloadRunner.class.getName(), batchDownload.user, properties);
+            Task<File> taskView = new Task<>(BatchDownloadRunner.class.getName(), batchDownload.user, properties);
             BatchDownloadRunner runner = new BatchDownloadRunner(mock(Indexer.class), new PropertiesProvider(), taskView, taskView.progress(taskSupplier::progress));
             when(factory.createBatchDownloadRunner(any(), any())).thenReturn(runner);
 

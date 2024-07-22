@@ -4,7 +4,7 @@ import java.util.concurrent.BlockingQueue;
 import org.icij.datashare.CollectionUtils;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.asynctasks.CancelException;
-import org.icij.datashare.asynctasks.TaskView;
+import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.batch.BatchSearch;
 import org.icij.datashare.batch.BatchSearchRepository;
 import org.icij.datashare.batch.SearchException;
@@ -46,7 +46,7 @@ public class TaskManagerMemoryForBatchSearchTest {
 
     CountDownLatch startLoop = new CountDownLatch(1);
     MockSearch<Indexer.QueryBuilderSearcher> mockSearch;
-    BlockingQueue<TaskView<?>> batchSearchQueue = new LinkedBlockingQueue<>();
+    BlockingQueue<Task<?>> batchSearchQueue = new LinkedBlockingQueue<>();
     TaskManagerMemory taskManager;
     BatchSearch testBatchSearch = new BatchSearch(singletonList(project("test-datashare")), "name", "desc", CollectionUtils.asSet("query") , local(), true, new LinkedList<>(), "queryBody", null, 0);
 
@@ -93,7 +93,7 @@ public class TaskManagerMemoryForBatchSearchTest {
     public void test_run_batch_search_failure() throws Exception {
         when(factory.createBatchSearchRunner(any(), any())).thenReturn(batchSearchRunner);
         mockSearch.willThrow(new IOException("io exception"));
-        batchSearchQueue.add(new TaskView<>(testBatchSearch.uuid, BatchSearchRunner.class.getName(), local()));
+        batchSearchQueue.add(new Task<>(testBatchSearch.uuid, BatchSearchRunner.class.getName(), local()));
 
         taskManager.shutdownAndAwaitTermination(1, TimeUnit.SECONDS);
 
@@ -119,7 +119,7 @@ public class TaskManagerMemoryForBatchSearchTest {
         Signal.raise(new Signal("TERM"));
         taskManager.waitTasksToBeDone(1, TimeUnit.SECONDS);
 
-        assertThat(batchSearchQueue).excludes(TaskView.nullObject());
+        assertThat(batchSearchQueue).excludes(Task.nullObject());
         assertThat(batchSearchQueue).hasSize(2);
     }
 
@@ -144,7 +144,7 @@ public class TaskManagerMemoryForBatchSearchTest {
         taskManager = new TaskManagerMemory(batchSearchQueue, factory, startLoop);
         mockSearch = new MockSearch<>(indexer, Indexer.QueryBuilderSearcher.class);
 
-        TaskView<Object> taskView = new TaskView<>(testBatchSearch.uuid, BatchSearchRunner.class.getName(), local());
+        Task<Object> taskView = new Task<>(testBatchSearch.uuid, BatchSearchRunner.class.getName(), local());
         batchSearchRunner = new BatchSearchRunner(indexer, new PropertiesProvider(), repository, taskView, taskView.progress(taskManager::progress));
         when(repository.get(eq(local()), anyString())).thenReturn(testBatchSearch);
         when(factory.createBatchSearchRunner(any(), any())).thenReturn(batchSearchRunner);
@@ -160,7 +160,7 @@ public class TaskManagerMemoryForBatchSearchTest {
         private final CountDownLatch countDownLatch;
 
         public SleepingBatchSearchRunner(int sleepingMilliseconds, CountDownLatch countDownLatch, BatchSearch bs) {
-            super(mock(Indexer.class), new PropertiesProvider(), repository, new TaskView<>(bs.uuid, BatchSearchRunner.class.getName(), local()), (b) -> null);
+            super(mock(Indexer.class), new PropertiesProvider(), repository, new Task<>(bs.uuid, BatchSearchRunner.class.getName(), local()), (b) -> null);
             this.sleepingMilliseconds = sleepingMilliseconds;
             this.countDownLatch = countDownLatch;
         }

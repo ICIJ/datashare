@@ -22,7 +22,7 @@ public class TaskManagerRedisTest {
     PropertiesProvider propertiesProvider = new PropertiesProvider(new HashMap<>() {{
         put("redisAddress", "redis://redis:6379");
     }});
-    private final BlockingQueue<TaskView<?>> batchDownloadQueue = new LinkedBlockingQueue<>();
+    private final BlockingQueue<Task<?>> batchDownloadQueue = new LinkedBlockingQueue<>();
     private final RedissonClient redissonClient = new RedissonClientFactory().withOptions(
         Options.from(propertiesProvider.getProperties())).create();
     private final TaskManagerRedis taskManager = new TaskManagerRedis(
@@ -39,7 +39,7 @@ public class TaskManagerRedisTest {
 
     @Test
     public void test_save_task() {
-        TaskView<String> task = new TaskView<>("name", User.local(), new HashMap<>());
+        Task<String> task = new Task<>("name", User.local(), new HashMap<>());
 
         taskManager.save(task);
 
@@ -61,11 +61,12 @@ public class TaskManagerRedisTest {
         String taskViewId = taskManager.startTask("sleep", User.local(), new HashMap<>());
 
         assertThat(taskManager.getTasks()).hasSize(1);
+        System.out.println(taskManager.getTasks());
 
         taskSupplier.result(taskViewId, 12);
         assertThat(waitForEvent.await(1, TimeUnit.SECONDS)).isTrue();
 
-        assertThat(taskManager.getTasks().get(0).getState()).isEqualTo(TaskView.State.DONE);
+        assertThat(taskManager.getTasks().get(0).getState()).isEqualTo(Task.State.DONE);
         assertThat(taskManager.clearDoneTasks()).hasSize(1);
         assertThat(taskManager.getTasks()).hasSize(0);
     }
@@ -79,7 +80,7 @@ public class TaskManagerRedisTest {
         assertThat(waitForEvent.await(1, TimeUnit.SECONDS)).isTrue();
 
         assertThat(taskManager.getTasks()).hasSize(2);
-        TaskView<?> clearedTask = taskManager.clearTask(taskView1Id);
+        Task<?> clearedTask = taskManager.clearTask(taskView1Id);
         assertThat(taskManager.getTasks()).hasSize(1);
         assertThat(taskManager.getTask(taskView1Id)).isNull();
         assertThat(taskManager.getTask(taskView2Id)).isNotNull();

@@ -5,7 +5,7 @@ import com.google.inject.assistedinject.Assisted;
 import java.util.function.Function;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Stage;
-import org.icij.datashare.asynctasks.TaskView;
+import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.extract.DocumentCollectionFactory;
 import org.icij.datashare.monitoring.Monitorable;
 import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchSpewer;
@@ -41,7 +41,7 @@ public class IndexTask extends PipelineTask<Path> implements Monitorable{
     private final Integer parallelism;
 
     @Inject
-    public IndexTask(final ElasticsearchSpewer spewer, final DocumentCollectionFactory<Path> factory, @Assisted TaskView<Long> taskView, @Assisted final Function<Double, Void> updateCallback) throws IOException {
+    public IndexTask(final ElasticsearchSpewer spewer, final DocumentCollectionFactory<Path> factory, @Assisted Task<Long> taskView, @Assisted final Function<Double, Void> updateCallback) throws IOException {
         super(Stage.INDEX, taskView.getUser(), factory, new PropertiesProvider(taskView.arguments), Path.class);
         parallelism = propertiesProvider.get(PARALLELISM_OPT).map(Integer::parseInt).orElse(Runtime.getRuntime().availableProcessors());
 

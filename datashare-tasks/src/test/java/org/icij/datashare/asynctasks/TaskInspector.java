@@ -10,10 +10,10 @@ public class TaskInspector {
     }
 
     public boolean awaitToBeStarted(String taskId, int timeoutMs) throws InterruptedException {
-        return this.awaitStatus(taskId, TaskView.State.RUNNING, timeoutMs, TimeUnit.MILLISECONDS);
+        return this.awaitStatus(taskId, Task.State.RUNNING, timeoutMs, TimeUnit.MILLISECONDS);
     }
 
-    public boolean awaitStatus(String taskId, TaskView.State state, long timeout, TimeUnit unit) throws InterruptedException {
+    public boolean awaitStatus(String taskId, Task.State state, long timeout, TimeUnit unit) throws InterruptedException {
         StateLatch stateLatch = new StateLatch();
         taskManager.foo(taskId, stateLatch);
         return stateLatch.await(state, timeout, unit);

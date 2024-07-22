@@ -42,7 +42,7 @@ public class TaskManagerAmqpTest {
         String expectedTaskViewId = taskManager.startTask("taskName", User.local(), Map.of("key", "value"));
 
         assertThat(taskManager.getTask(expectedTaskViewId)).isNotNull();
-        TaskView<Serializable> actualTaskView = taskSupplier.get(10, TimeUnit.SECONDS);
+        Task<Serializable> actualTaskView = taskSupplier.get(10, TimeUnit.SECONDS);
         Assertions.assertThat(actualTaskView).isNotNull();
         Assertions.assertThat(actualTaskView.id).isEqualTo(expectedTaskViewId);
     }
@@ -53,8 +53,8 @@ public class TaskManagerAmqpTest {
             taskManager.startTask("taskName1", User.local(), new HashMap<>());
             taskManager.startTask("taskName2", User.local(), new HashMap<>());
 
-            TaskView<Serializable> actualTask1 = taskSupplier.get(2, TimeUnit.SECONDS);
-            TaskView<Serializable> actualTask2 = otherConsumer.get(2, TimeUnit.SECONDS);
+            Task<Serializable> actualTask1 = taskSupplier.get(2, TimeUnit.SECONDS);
+            Task<Serializable> actualTask2 = otherConsumer.get(2, TimeUnit.SECONDS);
 
             Assertions.assertThat(actualTask1).isNotNull();
             Assertions.assertThat(actualTask2).isNotNull();
@@ -66,7 +66,7 @@ public class TaskManagerAmqpTest {
         taskManager.startTask("taskName", User.local(), new HashMap<>());
 
         // in the task runner loop
-        TaskView<Serializable> taskView = taskSupplier.get(10, TimeUnit.SECONDS);
+        Task<Serializable> taskView = taskSupplier.get(10, TimeUnit.SECONDS);
         taskSupplier.progress(taskView.id,0.5);
 
         nextMessage.await();
@@ -78,11 +78,11 @@ public class TaskManagerAmqpTest {
         taskManager.startTask("taskName", User.local(), new HashMap<>());
 
         // in the task runner loop
-        TaskView<Serializable> taskView = taskSupplier.get(10, TimeUnit.SECONDS);
+        Task<Serializable> taskView = taskSupplier.get(10, TimeUnit.SECONDS);
         taskSupplier.result(taskView.id,"result");
 
         nextMessage.await();
-        assertThat(taskManager.getTask(taskView.id).getState()).isEqualTo(TaskView.State.DONE);
+        assertThat(taskManager.getTask(taskView.id).getState()).isEqualTo(Task.State.DONE);
         assertThat(taskManager.getTask(taskView.id).getResult()).isEqualTo("result");
     }
 
@@ -91,12 +91,12 @@ public class TaskManagerAmqpTest {
         taskManager.startTask("taskName", User.local(), new HashMap<>());
 
         // in the task runner loop
-        TaskView<Serializable> taskView = taskSupplier.get(10, TimeUnit.SECONDS);
+        Task<Serializable> taskView = taskSupplier.get(10, TimeUnit.SECONDS);
         taskSupplier.error(taskView.id,new TaskError(new RuntimeException("error in runner")));
 
         nextMessage.await();
         assertThat(taskManager.getTask(taskView.id).getResult()).isNull();
-        assertThat(taskManager.getTask(taskView.id).getState()).isEqualTo(TaskView.State.ERROR);
+        assertThat(taskManager.getTask(taskView.id).getState()).isEqualTo(Task.State.ERROR);
         assertThat(taskManager.getTask(taskView.id).error.getMessage()).isEqualTo("error in runner");
     }
 
@@ -105,12 +105,12 @@ public class TaskManagerAmqpTest {
         taskManager.startTask("taskName", User.local(), new HashMap<>());
 
         // in the task runner loop
-        TaskView<Serializable> taskView = taskSupplier.get(10, TimeUnit.SECONDS);
+        Task<Serializable> taskView = taskSupplier.get(10, TimeUnit.SECONDS);
         taskSupplier.canceled(taskView,false);
 
         nextMessage.await();
         assertThat(taskManager.getTask(taskView.id).getProgress()).isEqualTo(0.0);
-        assertThat(taskManager.getTask(taskView.id).getState()).isEqualTo(TaskView.State.CANCELLED);
+        assertThat(taskManager.getTask(taskView.id).getState()).isEqualTo(Task.State.CANCELLED);
     }
 
     @BeforeClass
@@ -127,7 +127,7 @@ public class TaskManagerAmqpTest {
         nextMessage = new CountDownLatch(1);
         final RedissonClient redissonClient = new RedissonClientFactory().withOptions(
             Options.from(new PropertiesProvider(Map.of("redisAddress", "redis://redis:6379")).getProperties())).create();
-        Map<String, TaskView<?>> tasks = new RedissonMap<>(new TaskManagerRedis.TaskViewCodec(),
+        Map<String, Task<?>> tasks = new RedissonMap<>(new TaskManagerRedis.TaskViewCodec(),
             new CommandSyncService(((Redisson) redissonClient).getConnectionManager(),
                 new RedissonObjectBuilder(redissonClient)),
             "tasks:queue:test",

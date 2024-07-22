@@ -5,7 +5,7 @@ import com.google.inject.assistedinject.Assisted;
 import java.util.function.Function;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Stage;
-import org.icij.datashare.asynctasks.TaskView;
+import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.cli.DatashareCliOptions;
 import org.icij.datashare.extract.DocumentCollectionFactory;
 import org.icij.extract.Scanner;
@@ -22,7 +22,7 @@ public class ScanTask extends PipelineTask<Path> {
     private final Path path;
 
     @Inject
-    public ScanTask(DocumentCollectionFactory<Path> factory, @Assisted TaskView<Long> task, @Assisted Function<Double, Void> updateCallback) {
+    public ScanTask(DocumentCollectionFactory<Path> factory, @Assisted Task<Long> task, @Assisted Function<Double, Void> updateCallback) {
         super(Stage.SCAN, task.getUser(), factory, new PropertiesProvider(task.arguments), Path.class);
         scanner = new Scanner(outputQueue).configure(options().createFrom(Options.from(task.arguments)));
         path = Paths.get((String)task.arguments.get(DatashareCliOptions.DATA_DIR_OPT));

@@ -6,7 +6,7 @@ import java.util.function.Function;
 import org.icij.datashare.HumanReadableSize;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Stage;
-import org.icij.datashare.asynctasks.TaskView;
+import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.extension.PipelineRegistry;
 import org.icij.datashare.extract.DocumentCollectionFactory;
 import org.icij.datashare.monitoring.Monitorable;
@@ -39,12 +39,12 @@ public class ExtractNlpTask extends PipelineTask<String> implements Monitorable 
     private final int maxContentLengthChars;
 
     @Inject
-    public ExtractNlpTask(Indexer indexer, PipelineRegistry registry, final DocumentCollectionFactory<String> factory, @Assisted TaskView<Long> taskView, @Assisted final Function<Double, Void> updateCallback) {
+    public ExtractNlpTask(Indexer indexer, PipelineRegistry registry, final DocumentCollectionFactory<String> factory, @Assisted Task<Long> taskView, @Assisted final Function<Double, Void> updateCallback) {
         this(indexer, registry.get(Pipeline.Type.parse((String)taskView.arguments.get(NLP_PIPELINE_OPT))), factory, taskView, updateCallback);
     }
 
 
-    ExtractNlpTask(Indexer indexer, Pipeline pipeline, final DocumentCollectionFactory<String> factory, @Assisted TaskView<Long> taskView, @Assisted final Function<Double, Void> updateCallback) {
+    ExtractNlpTask(Indexer indexer, Pipeline pipeline, final DocumentCollectionFactory<String> factory, @Assisted Task<Long> taskView, @Assisted final Function<Double, Void> updateCallback) {
         super(Stage.NLP, taskView.getUser(), factory, new PropertiesProvider(taskView.arguments), String.class);
         this.nlpPipeline = pipeline;
         project = Project.project(ofNullable((String)taskView.arguments.get(DEFAULT_PROJECT_OPT)).orElse(DEFAULT_DEFAULT_PROJECT));

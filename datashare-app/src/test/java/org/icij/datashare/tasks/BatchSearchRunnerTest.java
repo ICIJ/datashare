@@ -1,7 +1,7 @@
 package org.icij.datashare.tasks;
 
 import org.icij.datashare.PropertiesProvider;
-import org.icij.datashare.asynctasks.TaskView;
+import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.batch.BatchSearch;
 import org.icij.datashare.batch.BatchSearchRepository;
 import org.icij.datashare.batch.SearchException;
@@ -68,8 +68,8 @@ public class BatchSearchRunnerTest {
         verify(progressCb).apply( 1.0);
     }
 
-    private TaskView<?> taskView(BatchSearch search) {
-        return new TaskView<>(search.uuid, BatchSearchRunner.class.getName(), local());
+    private Task<?> taskView(BatchSearch search) {
+        return new Task<>(search.uuid, BatchSearchRunner.class.getName(), local());
     }
 
     @Test(expected = RuntimeException.class)

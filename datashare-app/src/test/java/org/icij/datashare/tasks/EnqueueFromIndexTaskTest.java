@@ -2,7 +2,7 @@ package org.icij.datashare.tasks;
 
 import co.elastic.clients.elasticsearch._types.Refresh;
 import org.icij.datashare.PropertiesProvider;
-import org.icij.datashare.asynctasks.TaskView;
+import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.extract.MemoryDocumentCollectionFactory;
 import org.icij.datashare.test.ElasticsearchRule;
 import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchIndexer;
@@ -38,7 +38,7 @@ public class EnqueueFromIndexTaskTest {
                 "queueName", "test:queue",
                 NLP_PIPELINE_OPT, Pipeline.Type.OPENNLP.name());
         MemoryDocumentCollectionFactory<String> factory = new MemoryDocumentCollectionFactory<>();
-        EnqueueFromIndexTask resumeNlpTask = new EnqueueFromIndexTask(factory, indexer, new TaskView<>(EnqueueFromIndexTask.class.getName(), new User("test"), properties), null);
+        EnqueueFromIndexTask resumeNlpTask = new EnqueueFromIndexTask(factory, indexer, new Task<>(EnqueueFromIndexTask.class.getName(), new User("test"), properties), null);
         resumeNlpTask.call();
         assertThat(factory.queues.get("test:queue:nlp")).hasSize(21); // with poison
     }

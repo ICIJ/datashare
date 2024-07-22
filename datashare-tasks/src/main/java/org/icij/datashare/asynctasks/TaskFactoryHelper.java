@@ -8,13 +8,13 @@ import java.util.function.Function;
 
 public class TaskFactoryHelper {
     public static Callable<?> createTaskCallable(
-        TaskFactory factory, String name, TaskView<?> taskView, Function<Double, Void> progress
+            TaskFactory factory, String name, Task<?> taskView, Function<Double, Void> progress
     )
         throws UnknownTask {
         Callable<?> taskFn;
         try {
             Class<? extends Callable<?>> taskClass = (Class<? extends Callable<?>>) Class.forName(name);
-            Method method = factory.getClass().getMethod(format("create%s", taskClass.getSimpleName()), TaskView.class, Function.class);
+            Method method = factory.getClass().getMethod(format("create%s", taskClass.getSimpleName()), Task.class, Function.class);
             taskFn = (Callable<?>) method.invoke(factory, taskView, progress);
         } catch (ReflectiveOperationException e) {
             throw new UnknownTask("unknown task \"" + name + "\"", e);

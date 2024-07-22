@@ -23,13 +23,13 @@ public class TaskRunnerLoop implements Callable<Integer>, Closeable {
     private final TaskFactory factory;
     private final TaskSupplier taskSupplier;
     final AtomicReference<Callable<?>> currentTaskReference = new AtomicReference<>();
-    public static final TaskView<Serializable> POISON = TaskView.nullObject();
+    public static final Task<Serializable> POISON = Task.nullObject();
     private final CountDownLatch waitForMainLoopCalled; // for tests only
     private final int pollTimeMillis;
     private final ConcurrentHashMap<String, Boolean> cancelledTasks;
     private volatile boolean exitAsked = false;
     private volatile Thread loopThread;
-    private volatile TaskView<?> currentTask = null;
+    private volatile Task<?> currentTask = null;
 
     public TaskRunnerLoop(TaskFactory factory, TaskSupplier taskSupplier) {
         this(factory, taskSupplier, new CountDownLatch(1));

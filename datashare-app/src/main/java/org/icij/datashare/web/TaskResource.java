@@ -21,8 +21,8 @@ import net.codestory.http.errors.HttpException;
 import net.codestory.http.payload.Payload;
 import org.apache.commons.lang3.StringUtils;
 import org.icij.datashare.PropertiesProvider;
+import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.asynctasks.TaskManager;
-import org.icij.datashare.asynctasks.TaskView;
 import org.icij.datashare.batch.BatchDownload;
 import org.icij.datashare.extract.OptionsWrapper;
 import org.icij.datashare.json.JsonObjectMapper;
@@ -33,7 +33,7 @@ import org.icij.datashare.tasks.ExtractNlpTask;
 import org.icij.datashare.tasks.IndexTask;
 import org.icij.datashare.tasks.ScanIndexTask;
 import org.icij.datashare.tasks.ScanTask;
-import org.icij.datashare.tasks.UriResult;
+import org.icij.datashare.asynctasks.bus.amqp.UriResult;
 import org.icij.datashare.text.Project;
 import org.icij.datashare.user.User;
 
@@ -87,7 +87,7 @@ public class TaskResource {
             parameters = {@Parameter(name = "filter", description = "pattern contained in the task name", in = ParameterIn.QUERY)})
     @ApiResponse(responseCode = "200", description = "returns the list of tasks", useReturnTypeSchema = true)
     @Get("/all")
-    public List<TaskView<?>> tasks(Context context) {
+    public List<Task<?>> tasks(Context context) {
         Pattern pattern = Pattern.compile(StringUtils.isEmpty(context.get("filter")) ? ".*": String.format(".*%s.*", context.get("filter")));
         return taskManager.getTasks((User) context.currentUser(), pattern);
     }
@@ -95,18 +95,18 @@ public class TaskResource {
     @Operation(description = "Gets one task with its id.")
     @ApiResponse(responseCode = "200", description = "returns the task from its id", useReturnTypeSchema = true)
     @Get("/:id")
-    public TaskView<?> getTask(@Parameter(name = "id", description = "task id", in = ParameterIn.PATH) String id) {
+    public Task<?> getTask(@Parameter(name = "id", description = "task id", in = ParameterIn.PATH) String id) {
         return notFoundIfNull(taskManager.getTask(id));
     }
 
     @Operation(description = "Create a task with JSON body",
-            requestBody = @RequestBody(description = "the task creation body", required = true,  content = @Content(schema = @Schema(implementation = TaskView.class))))
+            requestBody = @RequestBody(description = "the task creation body", required = true,  content = @Content(schema = @Schema(implementation = Task.class))))
     @ApiResponse(responseCode = "201", description = "the task has been created", content = @Content(schema = @Schema(implementation = TaskResponse.class)))
     @ApiResponse(responseCode = "200", description = "the task was already existing")
     @ApiResponse(responseCode = "400", description = "bad request, for example the task payload id is not the same as the url id", content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
     @Put("/:id")
     public <V> Payload createTask(@Parameter(name = "id", description = "task id", required = true, in = ParameterIn.PATH) String id,
-                              TaskView<V> taskView) throws IOException {
+                              Task<V> taskView) throws IOException {
         if (taskView == null || id == null || !Objects.equals(taskView.id, id)) {
             return new JsonPayload(400, new ErrorResponse("body should contain a taskView, URL id should be present and equal to body id"));
         }
@@ -120,7 +120,7 @@ public class TaskResource {
     @ApiResponse(responseCode = "404", description = "returns 404 if the task doesn't exist")
     @Get("/:id/result")
     public Payload getTaskResult(@Parameter(name = "id", description = "task id", in = ParameterIn.PATH) String id, Context context) throws IOException {
-        TaskView<?> task = forbiddenIfNotSameUser(context, notFoundIfNull(taskManager.getTask(id)));
+        Task<?> task = forbiddenIfNotSameUser(context, notFoundIfNull(taskManager.getTask(id)));
         Object result = task.getResult();
         if (result instanceof UriResult) {
             UriResult uriResult = (UriResult) result;
@@ -192,13 +192,13 @@ public class TaskResource {
         taskIds.add(scanResponse.taskId);
         Properties properties = applyProjectProperties(optionsWrapper);
         User user = (User) context.currentUser();
-        TaskView<Long> scanIndex;
+        Task<Long> scanIndex;
         // Use a report map only if the request's body contains a "filter" attribute
         if (properties.get("filter") != null && Boolean.parseBoolean(properties.getProperty("filter"))) {
             // TODO remove taskFactory.createScanIndexTask would allow to get rid of taskfactory dependency in taskresource
             // problem for now is that if we call taskManager.startTask(ScanIndexTask.class.getName(), user, propertiesToMap(properties))
             // the task will be run as a background task that will have race conditions with indexTask report loading
-            scanIndex = new TaskView<>(ScanIndexTask.class.getName(), user, propertiesToMap(properties));
+            scanIndex = new Task<>(ScanIndexTask.class.getName(), user, propertiesToMap(properties));
             taskFactory.createScanIndexTask(scanIndex, (p) -> null).call();
             taskIds.add(scanIndex.id);
         } else {
@@ -224,7 +224,7 @@ public class TaskResource {
     @Operation(description = "Cleans all DONE tasks.")
     @ApiResponse(responseCode = "200", description = "returns 200 and the list of removed tasks", useReturnTypeSchema = true)
     @Post("/clean")
-    public List<TaskView<?>> cleanDoneTasks() {
+    public List<Task<?>> cleanDoneTasks() {
         return taskManager.clearDoneTasks();
     }
 
@@ -233,8 +233,8 @@ public class TaskResource {
     @ApiResponse(responseCode = "403", description = "returns 403 if the task is still in RUNNING state")
     @Delete("/clean/:taskName:")
     public Payload cleanTask(@Parameter(name = "taskName", description = "name of the task to delete", in = ParameterIn.PATH) final String taskId, Context context) {
-        TaskView<?> task = forbiddenIfNotSameUser(context, notFoundIfNull(taskManager.getTask(taskId)));
-        if (task.getState() == TaskView.State.RUNNING) {
+        Task<?> task = forbiddenIfNotSameUser(context, notFoundIfNull(taskManager.getTask(taskId)));
+        if (task.getState() == Task.State.RUNNING) {
             return forbidden();
         } else {
             taskManager.clearTask(task.id);
@@ -318,7 +318,7 @@ public class TaskResource {
         return "extract:report:" + projectName;
     }
 
-    private static <V> TaskView<V> forbiddenIfNotSameUser(Context context, TaskView<V> task) {
+    private static <V> Task<V> forbiddenIfNotSameUser(Context context, Task<V> task) {
         if (!task.getUser().equals(context.currentUser())) throw new ForbiddenException();
         return task;
     }

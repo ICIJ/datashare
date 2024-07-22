@@ -4,7 +4,7 @@ import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import java.io.IOException;
 import org.icij.datashare.asynctasks.TaskManagerRedis;
-import org.icij.datashare.asynctasks.TaskView;
+import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.asynctasks.bus.amqp.AmqpInterlocutor;
 import org.icij.datashare.mode.CommonMode;
 import org.redisson.Redisson;
@@ -28,7 +28,7 @@ public class TaskManagerAmqp extends org.icij.datashare.asynctasks.TaskManagerAm
         super(amqp, createTaskQueue(redissonClient), eventCallback);
     }
 
-    private static RedissonMap<String, TaskView<?>> createTaskQueue(RedissonClient redissonClient) {
+    private static RedissonMap<String, Task<?>> createTaskQueue(RedissonClient redissonClient) {
         return new RedissonMap<>(new TaskManagerRedis.TaskViewCodec(),
             new CommandSyncService(((Redisson) redissonClient).getConnectionManager(),
                 new RedissonObjectBuilder(redissonClient)),

@@ -20,11 +20,10 @@ import net.codestory.http.routes.Routes;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Repository;
 import org.icij.datashare.TesseractOCRParserWrapper;
-import org.icij.datashare.asynctasks.TaskFactory;
+import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.asynctasks.TaskManager;
 import org.icij.datashare.asynctasks.TaskModifier;
 import org.icij.datashare.asynctasks.TaskSupplier;
-import org.icij.datashare.asynctasks.TaskView;
 import org.icij.datashare.asynctasks.bus.amqp.AmqpInterlocutor;
 import org.icij.datashare.com.queue.MemoryBlockingQueue;
 import org.icij.datashare.com.queue.RedisBlockingQueue;
@@ -192,11 +191,11 @@ public abstract class CommonMode extends AbstractModule {
     }
 
     private void configureBatchQueuesMemory() {
-        bind(new TypeLiteral<BlockingQueue<TaskView<?>>>(){}).toInstance(new MemoryBlockingQueue<>(DS_TASKS_QUEUE_NAME));
+        bind(new TypeLiteral<BlockingQueue<Task<?>>>(){}).toInstance(new MemoryBlockingQueue<>(DS_TASKS_QUEUE_NAME));
     }
 
     private void configureBatchQueuesRedis(RedissonClient redissonClient) {
-        bind(new TypeLiteral<BlockingQueue<TaskView<?>>>(){}).toInstance(new RedisBlockingQueue<>(redissonClient, DS_TASKS_QUEUE_NAME));
+        bind(new TypeLiteral<BlockingQueue<Task<?>>>(){}).toInstance(new RedisBlockingQueue<>(redissonClient, DS_TASKS_QUEUE_NAME));
     }
 
     public Properties properties() {

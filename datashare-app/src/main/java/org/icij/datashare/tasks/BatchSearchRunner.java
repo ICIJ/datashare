@@ -10,7 +10,7 @@ import org.icij.datashare.Entity;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.asynctasks.CancelException;
 import org.icij.datashare.asynctasks.CancellableTask;
-import org.icij.datashare.asynctasks.TaskView;
+import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.batch.BatchSearch;
 import org.icij.datashare.batch.BatchSearchRecord;
 import org.icij.datashare.batch.BatchSearchRepository;
@@ -63,23 +63,23 @@ public class BatchSearchRunner implements CancellableTask, UserTask, Callable<In
 
     private final CountDownLatch callWaiterLatch;
     private final BatchSearchRepository repository;
-    protected final TaskView<String> taskView;
+    protected final Task<String> taskView;
     protected volatile boolean cancelAsked = false;
     protected volatile Thread callThread;
     protected volatile boolean requeueCancel;
 
     @Inject
     public BatchSearchRunner(Indexer indexer, PropertiesProvider propertiesProvider, BatchSearchRepository repository,
-                             @Assisted TaskView<?> taskView, @Assisted Function<Double, Void> updateCallback) {
+                             @Assisted Task<?> taskView, @Assisted Function<Double, Void> updateCallback) {
         this(indexer, propertiesProvider, repository, taskView, updateCallback, new CountDownLatch(1));
     }
 
     BatchSearchRunner(Indexer indexer, PropertiesProvider propertiesProvider, BatchSearchRepository repository,
-                      TaskView<?> taskView, Function<Double, Void> updateCallback, CountDownLatch latch) {
+                      Task<?> taskView, Function<Double, Void> updateCallback, CountDownLatch latch) {
         this.indexer = indexer;
         this.propertiesProvider = propertiesProvider;
         this.repository = repository;
-        this.taskView = (TaskView<String>) taskView;
+        this.taskView = (Task<String>) taskView;
         this.updateCallback = updateCallback;
         this.callWaiterLatch = latch;
     }
