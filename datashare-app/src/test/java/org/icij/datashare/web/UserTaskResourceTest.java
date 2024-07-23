@@ -57,11 +57,11 @@ public class UserTaskResourceTest extends AbstractProdWebServerTest {
         setupAppWith(new DummyUserTask<>("foo"), "foo");
         String tId = taskManager.startTask(DummyUserTask.class.getName(), localUser("foo"), new HashMap<>());
         get("/api/task/" + tId).withPreemptiveAuthentication("foo", "qux").should().respond(200).
-                contain(format("{\"id\":\"%s\",\"name\":\"%s\",\"state\":\"DONE\",\"progress\":1.0",tId, DummyUserTask.class.getName())).
+                contain(format("{\"@type\":\"Task\",\"id\":\"%s\",\"name\":\"%s\",\"state\":\"DONE\",\"progress\":1.0",tId, DummyUserTask.class.getName())).
                 contain("\"details\":").
                 contain("\"uid\":\"foo\"").
                 contain("\"groups_by_applications\":{\"datashare\":[\"foo-datashare\"]}").
-                contain("\"arguments\":{\"user\":{\"id\":\"foo\"");
+                contain("\"arguments\":{\"user\":{\"@type\":\"org.icij.datashare.user.User\",\"id\":\"foo\"");
     }
 
     @Test
@@ -138,7 +138,7 @@ public class UserTaskResourceTest extends AbstractProdWebServerTest {
                 contain("\"details\":").
                 contain("\"uid\":\"bar\"").
                 contain("\"groups_by_applications\":{\"datashare\":[\"bar-datashare\"]}").
-                contain("\"arguments\":{\"user\":{\"id\":\"bar\"");
+                contain("\"arguments\":{\"user\":{\"@type\":\"org.icij.datashare.user.User\",\"id\":\"bar\"");
         get("/api/task/all?filter=foo").withPreemptiveAuthentication("bar", "qux").should().contain("[]");
     }
 

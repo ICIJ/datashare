@@ -55,11 +55,13 @@ import static org.mockito.Mockito.when;
 import static org.mockito.MockitoAnnotations.initMocks;
 
 public class TaskResourceTest extends AbstractProdWebServerTest {
-    @Rule public DatashareTimeRule time = new DatashareTimeRule("2021-07-07T12:23:34Z");
-    @Mock JooqRepository jooqRepository;
+    @Rule
+    public DatashareTimeRule time = new DatashareTimeRule("2021-07-07T12:23:34Z");
+    @Mock
+    JooqRepository jooqRepository;
     private static final DatashareTaskFactoryForTest taskFactory = mock(DatashareTaskFactoryForTest.class);
     private static final BlockingQueue<Task<?>> taskQueue = new ArrayBlockingQueue<>(3);
-    private static final TaskManagerMemory taskManager= new TaskManagerMemory(taskQueue, taskFactory);
+    private static final TaskManagerMemory taskManager = new TaskManagerMemory(taskQueue, taskFactory);
 
     @Before
     public void setUp() {
@@ -72,20 +74,23 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         pipelineRegistry.register(EmailPipeline.class);
         LocalUserFilter localUserFilter = new LocalUserFilter(propertiesProvider, jooqRepository);
         configure(new CommonMode(propertiesProvider.getProperties()) {
-                    @Override
-                    protected void configure() {
-                        bind(DatashareTaskFactory.class).toInstance(taskFactory);
-                        bind(Indexer.class).toInstance(mock(Indexer.class));
-                        bind(TaskManager.class).toInstance(taskManager);
-                        bind(TaskSupplier.class).toInstance(taskManager);
-                        bind(TaskModifier.class).toInstance(taskManager);
-                        bind(PipelineRegistry.class).toInstance(pipelineRegistry);
-                        bind(LocalUserFilter.class).toInstance(localUserFilter);
-                        bind(PropertiesProvider.class).toInstance(getDefaultPropertiesProvider());
-                    }
-            @Override protected Routes addModeConfiguration(Routes routes) {
-                        return routes.add(TaskResource.class).filter(LocalUserFilter.class);}
-                }.createWebConfiguration());
+            @Override
+            protected void configure() {
+                bind(DatashareTaskFactory.class).toInstance(taskFactory);
+                bind(Indexer.class).toInstance(mock(Indexer.class));
+                bind(TaskManager.class).toInstance(taskManager);
+                bind(TaskSupplier.class).toInstance(taskManager);
+                bind(TaskModifier.class).toInstance(taskManager);
+                bind(PipelineRegistry.class).toInstance(pipelineRegistry);
+                bind(LocalUserFilter.class).toInstance(localUserFilter);
+                bind(PropertiesProvider.class).toInstance(getDefaultPropertiesProvider());
+            }
+
+            @Override
+            protected Routes addModeConfiguration(Routes routes) {
+                return routes.add(TaskResource.class).filter(LocalUserFilter.class);
+            }
+        }.createWebConfiguration());
         init(taskFactory);
     }
 
@@ -120,7 +125,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
 
     @Test
     public void test_index_file_and_filter() {
-        String body ="{\"options\":{\"filter\": true}}";
+        String body = "{\"options\":{\"filter\": true}}";
         RestAssert response = post("/api/task/batchUpdate/index/" + getClass().getResource("/docs/doc.txt").getPath().substring(1), body);
 
         ShouldChain responseBody = response.should().haveType("application/json");
@@ -325,8 +330,8 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         Response response = post("/api/task/batchDownload", "{\"options\":{ \"projectIds\":[\"test-datashare\"], \"query\": \"*\" }}").response();
 
         assertThat(response.contentType()).startsWith("application/json");
-        Task<?> task = MAPPER.readValue(response.content(), Task.class);
-        assertThat(taskQueue.contains(task));
+        TaskResource.TaskResponse taskResponse = MAPPER.readValue(response.content(), TaskResource.TaskResponse.class);
+        assertThat(taskManager.getTask(taskResponse.taskId())).isNotNull();
     }
 
     @Test
@@ -334,27 +339,26 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         Response response = post("/api/task/batchDownload", "{\"options\":{ \"projectIds\":[\"project1\", \"project2\"], \"query\": \"*\" }}").response();
 
         assertThat(response.contentType()).startsWith("application/json");
-        Task<?> task = MAPPER.readValue(response.content(), Task.class);
-        assertThat(taskQueue.contains(task));
+        TaskResource.TaskResponse taskResponse = MAPPER.readValue(response.content(), TaskResource.TaskResponse.class);
+        assertThat(taskManager.getTask(taskResponse.taskId())).isNotNull();
     }
 
     @Test
-    public void test_batch_download_uri() throws Exception  {
+    public void test_batch_download_uri() throws Exception {
         Response response = post("/api/task/batchDownload", "{\"options\":{ \"projectIds\":[\"test-datashare\"], \"query\": \"*\", \"uri\": \"/an%20url-encoded%20uri\" }}").response();
 
         assertThat(response.contentType()).startsWith("application/json");
-        Task<?> task = MAPPER.readValue(response.content(), Task.class);
-        assertThat(taskQueue.contains(task));
+        TaskResource.TaskResponse taskResponse = MAPPER.readValue(response.content(), TaskResource.TaskResponse.class);
+        assertThat(taskManager.getTask(taskResponse.taskId())).isNotNull();
     }
-
 
     @Test
     public void test_batch_download_json_query()  throws Exception {
         Response response = post("/api/task/batchDownload", "{\"options\":{ \"projectIds\":[\"test-datashare\"], \"query\": {\"match_all\":{}} }}").response();
 
         assertThat(response.contentType()).startsWith("application/json");
-        Task<?> task = MAPPER.readValue(response.content(), Task.class);
-        assertThat(taskQueue.contains(task));
+        TaskResource.TaskResponse taskResponse = MAPPER.readValue(response.content(), TaskResource.TaskResponse.class);
+        assertThat(taskManager.getTask(taskResponse.taskId())).isNotNull();
     }
 
     @Test
@@ -450,7 +454,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
     @Test
     public void test_create_new_task_not_same_id_for_url_and_json() throws IOException {
         put("/api/task/my_url_task_id", """
-            {"@type":"TaskView","id":"my_json_task_id","name":"name",
+            {"@type":"Task","id":"my_json_task_id","name":"name",
             "properties": {"user":{"id":"local","name":null,"email":null,"provider":"local","details":{"uid":"local","groups_by_applications":{"datashare":["local-datashare"]}}
             }}}""")
                 .should().respond(400)
@@ -460,7 +464,8 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
 
     @Test
     public void test_create_new_task_with_empty_json() throws IOException {
-        put("/api/task/my_url_task_id", "{}")
+        put("/api/task/my_url_task_id", """
+                {"@type":"Task"}""")
                 .should().respond(400)
                 .should().haveType("application/json")
                 .should().contain("{\"message\":");
@@ -469,7 +474,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
     @Test
     public void test_create_new_task() throws IOException {
         put("/api/task/my_json_task_id", """
-            {"@type":"TaskView","id":"my_json_task_id","name":"TaskCreation",
+            {"@type":"Task","id":"my_json_task_id","name":"TaskCreation",
             "properties": {"user":{"id":"local","name":null,"email":null,"provider":"local","details":{"uid":"local","groups_by_applications":{"datashare":["local-datashare"]}}
             }}}""")
                 .should().respond(201);

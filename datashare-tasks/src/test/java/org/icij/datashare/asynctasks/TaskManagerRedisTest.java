@@ -100,6 +100,13 @@ public class TaskManagerRedisTest {
         assertThat(taskManager.getTasks().get(0).getResult()).isEqualTo(expectedResult);
     }
 
+    @Test
+    public void test_shutdown_and_await_termination() throws Exception {
+        taskManager.shutdownAndAwaitTermination(1, TimeUnit.SECONDS);
+        assertThat(batchDownloadQueue).hasSize(1);
+        assertThat(batchDownloadQueue.take()).isEqualTo(Task.nullObject());
+    }
+
     private void callback() {
         waitForEvent.countDown();
     }
