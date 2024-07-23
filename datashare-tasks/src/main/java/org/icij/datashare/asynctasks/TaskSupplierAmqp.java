@@ -4,6 +4,7 @@ import org.icij.datashare.asynctasks.bus.amqp.AmqpConsumer;
 import org.icij.datashare.asynctasks.bus.amqp.AmqpInterlocutor;
 import org.icij.datashare.asynctasks.bus.amqp.AmqpQueue;
 import org.icij.datashare.asynctasks.bus.amqp.CancelledEvent;
+import org.icij.datashare.asynctasks.bus.amqp.ErrorEvent;
 import org.icij.datashare.asynctasks.bus.amqp.ProgressEvent;
 import org.icij.datashare.asynctasks.bus.amqp.ResultEvent;
 import org.icij.datashare.asynctasks.bus.amqp.TaskError;
@@ -56,7 +57,9 @@ public class TaskSupplierAmqp implements TaskSupplier {
     @Override
     public <V extends Serializable> void result(String taskId, V result) {
         try {
-            amqp.publish(AmqpQueue.MANAGER_EVENT, new ResultEvent<>(taskId, result));
+            amqp.publish(AmqpQueue.MANAGER_EVENT, result.getClass().isAssignableFrom(TaskError.class) ?
+                    new ErrorEvent(taskId, (TaskError) result):
+                    new ResultEvent<>(taskId, result));
         } catch (IOException e) {
             LoggerFactory.getLogger(getClass()).warn("cannot publish result {} for task {}", result, taskId);
         }

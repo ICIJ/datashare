@@ -76,8 +76,8 @@ public class TaskManagerRedis implements TaskManager {
     }
 
     @Override
-    public Task<?> clearTask(String taskName) {
-        return tasks.remove(taskName);
+    public Task<?> clearTask(String taskId) {
+        return tasks.remove(taskId);
     }
 
     @Override
