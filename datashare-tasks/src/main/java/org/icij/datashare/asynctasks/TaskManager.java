@@ -115,7 +115,7 @@ public interface TaskManager extends Closeable {
         logger.debug("progress event for {}", e.taskId);
         Task<?> taskView = getTask(e.taskId);
         if (taskView != null) {
-            taskView.setProgress(e.rate);
+            taskView.setProgress(e.progress);
             save(taskView);
         }
         return taskView;

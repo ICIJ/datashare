@@ -4,11 +4,11 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 public class ProgressEvent extends TaskEvent {
-    public final double rate;
+    public final double progress;
 
     @JsonCreator
-    public ProgressEvent(@JsonProperty("taskId") String taskId, @JsonProperty("rate") double rate) {
+    public ProgressEvent(@JsonProperty("taskId") String taskId, @JsonProperty("progress") double progress) {
         super(taskId);
-        this.rate = rate;
+        this.progress = progress;
     }
 }
