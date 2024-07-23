@@ -45,7 +45,7 @@ public class TaskManagersIntTest {
     private final Creator<TaskManager> taskManagerCreator;
     private final Creator<TaskSupplier> taskSupplierCreator;
 
-    private TaskRunnerLoop taskRunner;
+    private TaskWorkerLoop taskWorker;
     private TaskManager taskManager;
     private TaskInspector taskInspector;
 
@@ -69,7 +69,7 @@ public class TaskManagersIntTest {
         );
         AMQP = new AmqpInterlocutor(propertiesProvider);
         AMQP.createAmqpChannelForPublish(AmqpQueue.TASK);
-        AMQP.createAmqpChannelForPublish(AmqpQueue.RUNNER_EVENT);
+        AMQP.createAmqpChannelForPublish(AmqpQueue.WORKER_EVENT);
         AMQP.createAmqpChannelForPublish(AmqpQueue.MANAGER_EVENT);
         BlockingQueue<Task<?>> taskQueue = new RedissonBlockingQueue<>(new TaskManagerRedis.TaskViewCodec(),
                 new CommandSyncService(((Redisson) redissonClient).getConnectionManager(),
@@ -136,8 +136,8 @@ public class TaskManagersIntTest {
         this.taskManager = taskManagerCreator.create();
         this.taskInspector = new TaskInspector(this.taskManager);
         CountDownLatch taskRunnerWaiter = new CountDownLatch(1);
-        this.taskRunner = new TaskRunnerLoop(factory, taskSupplierCreator.create(), taskRunnerWaiter, 100);
-        executor.submit(taskRunner);
+        this.taskWorker = new TaskWorkerLoop(factory, taskSupplierCreator.create(), taskRunnerWaiter, 100);
+        executor.submit(taskWorker);
         taskRunnerWaiter.await();
     }
 
@@ -145,7 +145,7 @@ public class TaskManagersIntTest {
     public void tearDown() throws Exception {
         taskManager.clear();
         taskManager.close();
-        taskRunner.close();
+        taskWorker.close();
         executor.shutdownNow();
         executor.awaitTermination(1, SECONDS);
     }

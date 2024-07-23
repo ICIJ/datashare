@@ -13,7 +13,7 @@ public enum AmqpQueue {
 	TASK  ("exchangeMainTasks",  BuiltinExchangeType.DIRECT,"routingKeyMainTasks", TASK_DLQ),
 	MANAGER_EVENT_DLQ  ("exchangeDLQManagerEvents",  BuiltinExchangeType.DIRECT,"routingKeyDLQManagerEvent"),
 	MANAGER_EVENT  ("exchangeManagerEvents",  BuiltinExchangeType.DIRECT,"routingKeyManagerEvent", MANAGER_EVENT_DLQ),
-	RUNNER_EVENT ("exchangeRunnerEvents", BuiltinExchangeType.FANOUT, "routingKeyRunnerEvents");
+	WORKER_EVENT("exchangeWorkerEvents", BuiltinExchangeType.FANOUT, "routingKeyWorkerEvents");
 
 	public final String exchange;
 	public final String routingKey;

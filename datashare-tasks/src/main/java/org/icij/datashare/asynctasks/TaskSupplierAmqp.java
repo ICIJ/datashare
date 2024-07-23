@@ -8,7 +8,6 @@ import org.icij.datashare.asynctasks.bus.amqp.ProgressEvent;
 import org.icij.datashare.asynctasks.bus.amqp.ResultEvent;
 import org.icij.datashare.asynctasks.bus.amqp.TaskError;
 import org.icij.datashare.asynctasks.bus.amqp.TaskEvent;
-import org.icij.datashare.asynctasks.bus.amqp.TaskCreation;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
@@ -36,7 +35,7 @@ public class TaskSupplierAmqp implements TaskSupplier {
                 throw new SupplierBufferingException();
             }
         }, AmqpQueue.TASK, Task.class).consumeEvents();
-        eventConsumer = new AmqpConsumer<>(amqp, this::handleEvent, AmqpQueue.RUNNER_EVENT, TaskEvent.class).consumeEvents();
+        eventConsumer = new AmqpConsumer<>(amqp, this::handleEvent, AmqpQueue.WORKER_EVENT, TaskEvent.class).consumeEvents();
     }
 
     @Override

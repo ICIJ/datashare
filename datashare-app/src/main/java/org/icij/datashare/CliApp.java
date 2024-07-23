@@ -49,7 +49,7 @@ class CliApp {
             extension.run(properties);
             System.exit(0);
         }
-        runTaskRunner(commonMode, properties);
+        runTaskWorker(commonMode, properties);
     }
 
     private static void process(DeliverableService<?> deliverableService, Properties properties) throws IOException {
@@ -65,7 +65,7 @@ class CliApp {
         System.exit(0);
     }
 
-    private static void runTaskRunner(CommonMode mode, Properties properties) throws Exception {
+    private static void runTaskWorker(CommonMode mode, Properties properties) throws Exception {
         TaskManagerMemory taskManager = mode.get(TaskManagerMemory.class);
         DatashareTaskFactory taskFactory = mode.get(DatashareTaskFactory.class);
         Indexer indexer = mode.get(Indexer.class);

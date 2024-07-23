@@ -24,7 +24,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.mockito.MockitoAnnotations.initMocks;
 
-public class TaskRunnerLoopForPipelineTasksTest {
+public class TaskWorkerLoopForPipelineTasksTest {
     @Mock
     DatashareTaskFactory taskFactory;
     @Mock Function<Double, Void> updateCallback;

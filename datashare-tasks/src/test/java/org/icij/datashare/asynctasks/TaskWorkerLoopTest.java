@@ -19,14 +19,14 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-public class TaskRunnerLoopTest {
+public class TaskWorkerLoopTest {
     TestFactory registry = new TestFactory();
     @Mock
     TaskSupplier supplier;
 
     @Test(timeout = 2000)
     public void test_loop() throws Exception {
-        TaskRunnerLoop app = new TaskRunnerLoop(registry, supplier);
+        TaskWorkerLoop app = new TaskWorkerLoop(registry, supplier);
         Task<Serializable> taskView = new Task<>(TestFactory.HelloWorld.class.getName(), User.local(), Map.of("greeted", "world"));
         Mockito.when(supplier.get(ArgumentMatchers.anyInt(), ArgumentMatchers.any())).thenReturn(taskView, Task.nullObject());
 
@@ -38,7 +38,7 @@ public class TaskRunnerLoopTest {
 
     @Test
     public void test_cancel_task() throws Exception {
-        TaskRunnerLoop app = new TaskRunnerLoop(registry, supplier);
+        TaskWorkerLoop app = new TaskWorkerLoop(registry, supplier);
         Task<Serializable> taskView = new Task<>(TestFactory.SleepForever.class.getName(), User.local(), Map.of());
         Mockito.when(supplier.get(ArgumentMatchers.anyInt(), ArgumentMatchers.any())).thenReturn(taskView, Task.nullObject());
         boolean requeue = false;
@@ -55,7 +55,7 @@ public class TaskRunnerLoopTest {
 
     @Test
     public void test_cancel_task_and_requeue() throws Exception {
-        TaskRunnerLoop app = new TaskRunnerLoop(registry, supplier);
+        TaskWorkerLoop app = new TaskWorkerLoop(registry, supplier);
         Task<Serializable> taskView = new Task<>(TestFactory.SleepForever.class.getName(), User.local(), Map.of());
         Mockito.when(supplier.get(ArgumentMatchers.anyInt(), ArgumentMatchers.any())).thenReturn(taskView, Task.nullObject());
         boolean requeue = true;
@@ -72,7 +72,7 @@ public class TaskRunnerLoopTest {
 
     @Test(timeout = 2000)
     public void test_task_interrupted() throws Exception {
-        TaskRunnerLoop app = new TaskRunnerLoop(registry, supplier);
+        TaskWorkerLoop app = new TaskWorkerLoop(registry, supplier);
         Task<Serializable> taskView = new Task<>(TestFactory.SleepForever.class.getName(), User.local(), Map.of());
         Mockito.when(supplier.get(ArgumentMatchers.anyInt(), ArgumentMatchers.any()))
             .thenReturn(taskView, Task.nullObject());
