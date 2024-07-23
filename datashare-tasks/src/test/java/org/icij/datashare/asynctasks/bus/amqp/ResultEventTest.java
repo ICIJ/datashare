@@ -28,9 +28,9 @@ public class ResultEventTest {
         ResultEvent<Integer> intResult = new ResultEvent<>("task_id", 12);
 
         ObjectMapper jsonMapper = JsonObjectMapper.MAPPER;
-        String jsonError = jsonMapper.writeValueAsString(intResult);
+        String jsonResult = jsonMapper.writeValueAsString(intResult);
 
-        ResultEvent<Integer> deserializedIntResult = jsonMapper.readValue(jsonError, new TypeReference<>() {});
+        ResultEvent<Integer> deserializedIntResult = jsonMapper.readValue(jsonResult, new TypeReference<>() {});
         assertThat(deserializedIntResult.result).isEqualTo(intResult.result);
         assertThat(deserializedIntResult.taskId).isEqualTo(intResult.taskId);
     }
