@@ -1,6 +1,7 @@
 package org.icij.datashare.asynctasks;
 
 import org.icij.datashare.asynctasks.bus.amqp.CancelledEvent;
+import org.icij.datashare.asynctasks.bus.amqp.ErrorEvent;
 import org.icij.datashare.asynctasks.bus.amqp.TaskError;
 import org.icij.datashare.asynctasks.bus.amqp.ProgressEvent;
 import org.icij.datashare.asynctasks.bus.amqp.ResultEvent;
@@ -80,14 +81,22 @@ public interface TaskManager extends Closeable {
         Task<V> taskView = getTask(e.taskId);
         if (taskView != null) {
             logger.info("result event for {}", e.taskId);
-            if (e.result instanceof TaskError) {
-                taskView.setError((TaskError) e.result);
-            } else {
-                taskView.setResult(e.result);
-            }
+            taskView.setResult(e.result);
             save(taskView);
         } else {
             logger.warn("no task found for result event {}", e.taskId);
+        }
+        return taskView;
+    }
+
+    default <V extends Serializable> Task<V> setError(ErrorEvent e) {
+        Task<V> taskView = getTask(e.taskId);
+        if (taskView != null) {
+            logger.info("error event for {}", e.taskId);
+            taskView.setError(e.error);
+            save(taskView);
+        } else {
+            logger.warn("no task found for error event {}", e.taskId);
         }
         return taskView;
     }
@@ -125,12 +134,12 @@ public interface TaskManager extends Closeable {
         if (e instanceof CancelledEvent) {
             return setCanceled((CancelledEvent) e);
         }
-        // TODO: difference with Python where there's dedicated message for error (separate from result)
         if (e instanceof ResultEvent) {
             return setResult(((ResultEvent<V>) e));
         }
-        // TODO: difference with Python where we have TaskEvent which can hold more than progress
-        //  updates
+        if (e instanceof ErrorEvent) {
+            return setError((ErrorEvent) e);
+        }
         if (e instanceof ProgressEvent) {
             return setProgress((ProgressEvent)e);
         }
