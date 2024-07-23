@@ -18,7 +18,7 @@ import org.slf4j.LoggerFactory;
 import sun.misc.Signal;
 
 
-public class TaskRunnerLoop implements Callable<Integer>, Closeable {
+public class TaskWorkerLoop implements Callable<Integer>, Closeable {
     private final Logger logger = LoggerFactory.getLogger(getClass());
     private final TaskFactory factory;
     private final TaskSupplier taskSupplier;
@@ -31,15 +31,15 @@ public class TaskRunnerLoop implements Callable<Integer>, Closeable {
     private volatile Thread loopThread;
     private volatile Task<?> currentTask = null;
 
-    public TaskRunnerLoop(TaskFactory factory, TaskSupplier taskSupplier) {
+    public TaskWorkerLoop(TaskFactory factory, TaskSupplier taskSupplier) {
         this(factory, taskSupplier, new CountDownLatch(1));
     }
 
-    TaskRunnerLoop(TaskFactory factory, TaskSupplier taskSupplier, CountDownLatch countDownLatch) {
+    TaskWorkerLoop(TaskFactory factory, TaskSupplier taskSupplier, CountDownLatch countDownLatch) {
         this(factory, taskSupplier, countDownLatch, 60_000);
     }
 
-    TaskRunnerLoop(TaskFactory factory, TaskSupplier taskSupplier, CountDownLatch countDownLatch, int pollTimeMillis) {
+    TaskWorkerLoop(TaskFactory factory, TaskSupplier taskSupplier, CountDownLatch countDownLatch, int pollTimeMillis) {
         this.factory = factory;
         this.taskSupplier = taskSupplier;
         this.waitForMainLoopCalled = countDownLatch;

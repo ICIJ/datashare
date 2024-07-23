@@ -2,7 +2,7 @@ package org.icij.datashare.tasks;
 
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.asynctasks.Task;
-import org.icij.datashare.asynctasks.TaskRunnerLoop;
+import org.icij.datashare.asynctasks.TaskWorkerLoop;
 import org.icij.datashare.batch.BatchDownload;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.user.User;
@@ -21,7 +21,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class TaskRunnerLoopIntTest {
+public class TaskWorkerLoopIntTest {
     private final LinkedBlockingQueue<Task<?>> taskQueue = new LinkedBlockingQueue<>();
     private final TaskSupplierRedis taskSupplier = new TaskSupplierRedis(new PropertiesProvider(), taskQueue);
 
@@ -40,12 +40,12 @@ public class TaskRunnerLoopIntTest {
             BatchDownloadRunner runner = new BatchDownloadRunner(mock(Indexer.class), new PropertiesProvider(), taskView, taskView.progress(taskSupplier::progress));
             when(factory.createBatchDownloadRunner(any(), any())).thenReturn(runner);
 
-            TaskRunnerLoop taskRunnerLoop = new TaskRunnerLoop(factory, taskSupplier);
+            TaskWorkerLoop taskWorkerLoop = new TaskWorkerLoop(factory, taskSupplier);
 
             taskManager.startTask(BatchDownloadRunner.class.getName(), User.local(), properties);
             taskManager.shutdownAndAwaitTermination(1, TimeUnit.SECONDS);
 
-            taskRunnerLoop.call();
+            taskWorkerLoop.call();
             eventWaiter.await();
 
             assertThat(taskManager.getTasks()).hasSize(1);

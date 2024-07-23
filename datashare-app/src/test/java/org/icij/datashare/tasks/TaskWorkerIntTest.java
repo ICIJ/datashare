@@ -42,7 +42,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.MockitoAnnotations.initMocks;
 
-public class BatchDownloadRunnerIntTest {
+public class TaskWorkerIntTest {
     @ClassRule public static ElasticsearchRule es = new ElasticsearchRule(TEST_INDEXES);
     @Rule public DatashareTimeRule timeRule = new DatashareTimeRule("2020-05-25T10:11:12Z");
     @Rule public TemporaryFolder fs = new TemporaryFolder();

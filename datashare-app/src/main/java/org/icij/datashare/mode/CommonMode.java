@@ -114,7 +114,7 @@ public abstract class CommonMode extends AbstractModule {
                 return new EmbeddedMode(properties);
             case SERVER:
                 return new ServerMode(properties);
-            case TASK_RUNNER:
+            case TASK_WORKER:
             case CLI:
                 return new CliMode(properties);
             default:

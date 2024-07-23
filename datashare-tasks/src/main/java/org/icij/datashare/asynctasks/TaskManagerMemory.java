@@ -31,7 +31,7 @@ public class TaskManagerMemory implements TaskManager, TaskSupplier {
     private final ExecutorService executor = newSingleThreadExecutor();
     private final ConcurrentMap<String, Task<?>> tasks = new ConcurrentHashMap<>();
     private final BlockingQueue<Task<?>> taskQueue;
-    private final TaskRunnerLoop loop;
+    private final TaskWorkerLoop loop;
     private final AtomicInteger executedTasks = new AtomicInteger(0);
 
     public TaskManagerMemory(BlockingQueue<Task<?>> taskQueue, TaskFactory taskFactory) {
@@ -40,7 +40,7 @@ public class TaskManagerMemory implements TaskManager, TaskSupplier {
 
     public TaskManagerMemory(BlockingQueue<Task<?>> taskQueue, TaskFactory taskFactory, CountDownLatch latch) {
         this.taskQueue = taskQueue;
-        loop = new TaskRunnerLoop(taskFactory, this, latch);
+        loop = new TaskWorkerLoop(taskFactory, this, latch);
         executor.submit(loop);
     }
 
