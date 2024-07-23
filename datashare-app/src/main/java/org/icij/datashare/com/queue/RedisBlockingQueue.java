@@ -5,6 +5,7 @@ import java.util.concurrent.TimeUnit;
 import org.redisson.Redisson;
 import org.redisson.RedissonBlockingQueue;
 import org.redisson.api.RedissonClient;
+import org.redisson.client.codec.BaseCodec;
 import org.redisson.codec.JsonJacksonCodec;
 import org.redisson.command.CommandSyncService;
 import org.redisson.liveobject.core.RedissonObjectBuilder;
@@ -13,9 +14,13 @@ public class RedisBlockingQueue<T> extends RedissonBlockingQueue<T> implements C
     private final RedissonClient redissonClient;
 
     public RedisBlockingQueue(RedissonClient redissonClient, String queueName) {
-        super(new JsonJacksonCodec(),
-            new CommandSyncService(((Redisson) redissonClient).getConnectionManager(),
-                new RedissonObjectBuilder(redissonClient)), queueName, redissonClient);
+       this(redissonClient, queueName, new JsonJacksonCodec());
+    }
+
+    public RedisBlockingQueue(RedissonClient redissonClient, String queueName, BaseCodec codec) {
+        super(codec,
+                new CommandSyncService(((Redisson) redissonClient).getConnectionManager(),
+                        new RedissonObjectBuilder(redissonClient)), queueName, redissonClient);
         this.redissonClient = redissonClient;
     }
 

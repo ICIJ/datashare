@@ -5,6 +5,7 @@ import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.user.User;
 import org.junit.Test;
 
+import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
@@ -90,6 +91,17 @@ public class TaskTest {
 
         Task<?> taskCreation = JsonObjectMapper.MAPPER.readValue(json, Task.class);
         assertThat(taskCreation).isEqualTo(taskView);
+        assertThat(taskCreation.createdAt).isEqualTo(taskCreation.createdAt);
+    }
+
+    @Test
+    public void test_serialize_deserialize_null() throws Exception {
+        String json = JsonObjectMapper.MAPPER.writeValueAsString(Task.nullObject());
+        assertThat(json).contains("\"@type\":\"Task\"");
+        assertThat(json).contains("\"arguments\":{}");
+
+        Task<?> taskCreation = JsonObjectMapper.MAPPER.readValue(json, Task.class);
+        assertThat(taskCreation).isEqualTo(Task.nullObject());
         assertThat(taskCreation.createdAt).isEqualTo(taskCreation.createdAt);
     }
 }

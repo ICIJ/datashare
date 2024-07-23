@@ -195,7 +195,7 @@ public abstract class CommonMode extends AbstractModule {
     }
 
     private void configureBatchQueuesRedis(RedissonClient redissonClient) {
-        bind(new TypeLiteral<BlockingQueue<Task<?>>>(){}).toInstance(new RedisBlockingQueue<>(redissonClient, DS_TASKS_QUEUE_NAME));
+        bind(new TypeLiteral<BlockingQueue<Task<?>>>(){}).toInstance(new RedisBlockingQueue<>(redissonClient, DS_TASKS_QUEUE_NAME, new org.icij.datashare.asynctasks.TaskManagerRedis.TaskViewCodec()));
     }
 
     public Properties properties() {
