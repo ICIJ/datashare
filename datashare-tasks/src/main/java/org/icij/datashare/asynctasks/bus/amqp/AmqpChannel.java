@@ -27,12 +27,12 @@ import java.util.function.Consumer;
  * see <a href="https://www.rabbitmq.com/confirms.html#publisher-confirms">rabbitMQ documentation</a>
  */
 public class AmqpChannel {
+	private static final Logger logger = LoggerFactory.getLogger(AmqpChannel.class);
 	private static final Random rand = new Random();
 	public static final String WORKER_PREFIX = "worker";
 	private final boolean durable = true;
 	private final boolean exclusive = false;
 	private final boolean autoDelete = false;
-	private final Logger logger = LoggerFactory.getLogger(this.getClass());
 	private final ConcurrentNavigableMap<Long, byte[]> outstandingConfirms = new ConcurrentSkipListMap<>();
 	final Channel rabbitMqChannel;
 	final AmqpQueue queue;
@@ -69,9 +69,12 @@ public class AmqpChannel {
 				try {
 					bodyHandler.accept(body);
 					rabbitMqChannel.basicAck(envelope.getDeliveryTag(), false);
-				} catch (RuntimeException rex) {
-					logger.warn("exception while accepting message", rex);
+				} catch (Deserializer.DeserializeException jsonException) {
+					logger.warn("exception while deserializing json. Sending nack without requeue", jsonException);
 					rabbitMqChannel.basicNack(envelope.getDeliveryTag(), false, false);
+				} catch (RuntimeException rex) {
+					logger.warn("runtime exception while accepting event. Sending nack with requeue", rex);
+					rabbitMqChannel.basicNack(envelope.getDeliveryTag(), false, true);
 				}
 				criteria.newEvent();
 				if (!criteria.isValid()) {
@@ -108,18 +111,25 @@ public class AmqpChannel {
 
 	void initForPublish() throws IOException {
 		rabbitMqChannel.exchangeDeclare(queue.exchange, queue.exchangeType, durable);
+		if (queue.exchangeType != BuiltinExchangeType.FANOUT) {
+            rabbitMqChannel.queueDeclare(queueName(""), durable, exclusive, autoDelete, getQueueArguments());
+		}
 	}
 
-	void initForConsume(boolean deadletter, int nbMaxMessages) throws IOException {
-		Map<String, Object> queueParameters = new HashMap<>() {{
-			if (queue.deadLetterQueue != null && deadletter) {
+	private Map<String, Object> getQueueArguments() {
+        return new HashMap<>() {{
+			if (queue.deadLetterQueue != null) {
 				put("x-dead-letter-exchange", queue.deadLetterQueue.exchange);
 				put("x-dead-letter-routing-key", queue.deadLetterQueue.routingKey);
 			}
+			putAll(queue.arguments);
 		}};
+	}
+
+	void initForConsume(int nbMaxMessages) throws IOException {
 		String queueName = queueName(WORKER_PREFIX);
 		rabbitMqChannel.exchangeDeclare(queue.exchange, queue.exchangeType, durable);
-		rabbitMqChannel.queueDeclare(queueName, durable, exclusive, autoDelete, queueParameters);
+		rabbitMqChannel.queueDeclare(queueName, durable, exclusive, autoDelete, getQueueArguments());
 		rabbitMqChannel.queueBind(queueName, queue.exchange, queue.routingKey);
 		rabbitMqChannel.basicQos(nbMaxMessages);
 	}
@@ -134,17 +144,16 @@ public class AmqpChannel {
 	}
 
 	static synchronized String getHostname(String hostnameCommandName) {
-		Logger log = LoggerFactory.getLogger(AmqpChannel.class);
 		try {
 			Process process = new ProcessBuilder(hostnameCommandName.split(" ")).start();
 			int exitVal = process.waitFor();
 			if (exitVal != 0) {
-				log.error("hostname command exited with {} returning uuid", exitVal);
+				logger.error("hostname command exited with {} returning uuid", exitVal);
 				return UUID.randomUUID().toString();
 			}
 			return new BufferedReader(new InputStreamReader(process.getInputStream())).readLine();
 		} catch (IOException | InterruptedException e) {
-			log.error("call to hostname failed returning uuid", e);
+			logger.error("call to hostname failed returning uuid", e);
 			return UUID.randomUUID().toString();
 		}
 	}

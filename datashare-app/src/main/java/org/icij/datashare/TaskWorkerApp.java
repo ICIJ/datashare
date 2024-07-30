@@ -15,8 +15,8 @@ public class TaskWorkerApp {
         CommonMode mode = CommonMode.create(properties);
         TaskWorkerLoop batchSearchLoop = new TaskWorkerLoop(mode.get(DatashareTaskFactory.class), mode.get(TaskSupplier.class));
         batchSearchLoop.call();
-        batchSearchLoop.close();
-        mode.get(Indexer.class).close();// to avoid being blocked
-        mode.get(RedissonClient.class).shutdown();
+        //batchSearchLoop.close();
+        //mode.get(Indexer.class).close();// to avoid being blocked
+        //mode.get(RedissonClient.class).shutdown();
     }
 }

@@ -31,11 +31,7 @@ public class TaskSupplierAmqp implements TaskSupplier {
 
     public TaskSupplierAmqp(AmqpInterlocutor amqp) throws IOException {
         this.amqp = amqp;
-        consumer = new AmqpConsumer<>(amqp, event -> {
-            if (!taskCreations.offer(event)) {
-                throw new SupplierBufferingException();
-            }
-        }, AmqpQueue.TASK, Task.class).consumeEvents();
+        consumer = new AmqpConsumer<>(amqp, null, AmqpQueue.TASK, Task.class);
         eventConsumer = new AmqpConsumer<>(amqp, this::handleEvent, AmqpQueue.WORKER_EVENT, TaskEvent.class).consumeEvents();
     }
 
@@ -52,6 +48,10 @@ public class TaskSupplierAmqp implements TaskSupplier {
     @Override
     public <V extends Serializable> Task<V> get(int timeOut, TimeUnit timeUnit) throws InterruptedException {
         return (Task<V>) ofNullable(taskCreations.poll(timeOut, timeUnit)).orElse(null);
+    }
+
+    public AmqpConsumer<Task, Consumer<Task>> consumeEvent(Consumer<Task> cb) {
+        return consumer.consumeEvents(cb);
     }
 
     @Override

@@ -1,6 +1,7 @@
 package org.icij.datashare.asynctasks.bus.amqp;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.json.JsonObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -49,6 +50,10 @@ public class AmqpConsumer<Evt extends Event, EvtConsumer extends Consumer<Evt>> 
 
     public AmqpConsumer<Evt, EvtConsumer> consumeEvents(int nb) {
         return launchConsumer(channel, AmqpConsumer.this::handle, nb);
+    }
+
+    public AmqpConsumer<Evt, EvtConsumer> consumeEvents(Consumer<Evt> cb) {
+        return launchConsumer(channel, cb);
     }
 
     AmqpConsumer<Evt, EvtConsumer> launchConsumer(AmqpChannel channel, Consumer<Evt> eventHandler, final int nbEventsToConsume) {
@@ -113,7 +118,7 @@ public class AmqpConsumer<Evt extends Event, EvtConsumer extends Consumer<Evt>> 
         try {
             return JsonObjectMapper.MAPPER.readValue(rawJson, evtClass);
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new DeserializeException(e);
         }
     }
 }

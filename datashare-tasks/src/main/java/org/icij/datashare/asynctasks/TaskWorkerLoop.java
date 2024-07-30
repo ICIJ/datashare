@@ -66,7 +66,8 @@ public class TaskWorkerLoop implements Callable<Integer>, Closeable {
     }
 
     public Integer call() {
-        return mainLoop();
+        mainLoop2();
+        return 0;
     }
 
     @SuppressWarnings("unchecked")
@@ -114,11 +115,13 @@ public class TaskWorkerLoop implements Callable<Integer>, Closeable {
                 logger.error("task {} interrupted, cancelling it", currentTask, iex);
                 // TODO: align with Python (requeue)
                 ofNullable(currentTask).ifPresent(t -> taskSupplier.canceled(t, false));
-            } catch (Throwable ex) {
+            } catch (RuntimeException ex) {
                 logger.error("error in loop for task {}", currentTask, ex);
                 if (currentTask != null && !currentTask.isNull()) {
                     taskSupplier.error(currentTask.id, new TaskError(ex));
                 }
+            } catch (Error|Exception ex) {
+                throw new RuntimeException(ex); // nack
             } finally {
                 currentTaskReference.set(null);
             }
@@ -127,11 +130,49 @@ public class TaskWorkerLoop implements Callable<Integer>, Closeable {
         return nbTasks;
     }
 
+    private void mainLoop2() {
+        ((TaskSupplierAmqp)taskSupplier).consumeEvent((evt) -> {
+            currentTask = evt;
+            try {
+                Callable<?> taskFn;
+                taskFn = TaskFactoryHelper.createTaskCallable(factory, currentTask.name, currentTask, currentTask.progress(taskSupplier::progress));
+                currentTaskReference.set(taskFn);
+                logger.info("running task {}", currentTask);
+                taskSupplier.progress(currentTask.id, 0);
+                Serializable result = (Serializable) taskFn.call();
+                taskSupplier.result(currentTask.id, result);
+            } catch (CancelException cex) {
+                // TODO: this has to be improved/simplified. The cancellation mechanism relies on
+                //  the fact that the CancellableTask code will properly handle the cancellation.
+                //  However while some task correctly throw a CancelException and correctly forward
+                //  the requeue arg. However some tasks like the PipelineTask simple throw an
+                //  InterruptedException and without rethrowing a new CancelException(requeue) with
+                //  the requeue attribute correctly set. This will lead to unexpected behavior,
+                //  such asking for cancel with requeue argument which is actually ignored.
+                logger.error("task {} cancelled with requeue = {}", currentTask, cex.requeue);
+                taskSupplier.canceled(currentTask, cex.requeue);
+            } catch (InterruptedException iex) {
+                logger.error("task {} interrupted, cancelling it", currentTask, iex);
+                // TODO: align with Python (requeue)
+                ofNullable(currentTask).ifPresent(t -> taskSupplier.canceled(t, false));
+            } catch (RuntimeException ex) {
+                logger.error("error in loop for task {}", currentTask, ex);
+                if (currentTask != null && !currentTask.isNull()) {
+                    taskSupplier.error(currentTask.id, new TaskError(ex));
+                }
+            } catch (Error | Exception ex) {
+                throw new RuntimeException(ex); // nack
+            } finally {
+                currentTaskReference.set(null);
+            }
+        });
+    }
+
     @Override
     public void close() throws IOException {
         exitAsked = true;
         taskSupplier.close();
-        loopThread.interrupt();
+        ofNullable(loopThread).ifPresent(Thread::interrupt);
     }
 
      public void cancel(String taskId, boolean requeue) {
