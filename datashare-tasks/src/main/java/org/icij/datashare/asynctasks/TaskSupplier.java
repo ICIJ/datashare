@@ -16,7 +16,6 @@ public interface TaskSupplier extends TaskModifier, Closeable {
      * @param timeOut: amount of #TimeUnit for exiting the
      * @param timeUnit: unit of time
      * @return a Task
-     * @throws InterruptedException: if the blocking call receives an interruption signal
      */
     <V extends Serializable> Task<V> get(int timeOut, TimeUnit timeUnit) throws InterruptedException;
     /**

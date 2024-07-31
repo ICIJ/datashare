@@ -2,6 +2,7 @@ package org.icij.datashare.asynctasks.bus.amqp;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import org.icij.datashare.asynctasks.NackException;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -9,6 +10,7 @@ import org.junit.ClassRule;
 import org.junit.Ignore;
 import org.junit.Test;
 
+import java.net.URI;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CountDownLatch;
@@ -28,8 +30,9 @@ public class AmqpTest {
 
     @BeforeClass
     public static void setUp() throws Exception {
-        amqp = new AmqpInterlocutor(new Configuration("localhost", 12345, "admin", "admin", 10));
+        amqp = new AmqpInterlocutor(new Configuration(new URI("amqp://admin:admin@localhost:12345?nbMessageMax=10&deadLetter=false")));
         amqp.createAmqpChannelForPublish(AmqpQueue.EVENT);
+        amqp.createAmqpChannelForPublish(AmqpQueue.MANAGER_EVENT);
     }
 
     @Test
@@ -88,6 +91,30 @@ public class AmqpTest {
         assertThat(eventQueue.take().field).isEqualTo("hello pubsub");
     }
 
+    @Test(timeout = 2000)
+    public void test_consume_nack_with_requeue() throws Exception {
+        FailingConsumer failingConsumer = new FailingConsumer(true);
+        new AmqpConsumer<>(amqp, failingConsumer, AmqpQueue.MANAGER_EVENT, TestEvent.class).consumeEvents(1);
+        new AmqpConsumer<>(amqp, new TestEventConsumer(), AmqpQueue.MANAGER_EVENT, TestEvent.class).consumeEvents(1);
+
+        amqp.publish(AmqpQueue.MANAGER_EVENT, new TestEvent("boom!!"));
+
+        assertThat(eventQueue.take().field).isEqualTo("boom!!");
+        assertThat(failingConsumer.hasBeenCalled).isTrue();
+    }
+
+    @Test
+    public void test_consume_nack_without_requeue() throws Exception {
+        FailingConsumer failingConsumer = new FailingConsumer(false);
+        new AmqpConsumer<>(amqp, failingConsumer, AmqpQueue.EVENT, TestEvent.class ).consumeEvents(1);
+        new AmqpConsumer<>(amqp, new TestEventConsumer(), AmqpQueue.MANAGER_EVENT, TestEvent.class).consumeEvents(1);
+
+        amqp.publish(AmqpQueue.EVENT, new TestEvent("boom!!"));
+
+        assertThat(eventQueue.poll(1, TimeUnit.SECONDS)).isNull();
+        assertThat(failingConsumer.hasBeenCalled).isTrue();
+    }
+
     @Ignore("throws com.rabbitmq.client.AlreadyClosedException " +
             "the shutdown is too 'graceful' to reproduce a network error or server crash. " +
             "We don't know for now how to interrupt the QPid Server")
@@ -135,6 +162,21 @@ public class AmqpTest {
         @Override
         public void accept(TestEvent event) {
             eventQueue.add(event);
+        }
+    }
+
+    static class FailingConsumer implements Consumer<TestEvent> {
+        public volatile boolean hasBeenCalled = false;
+        public final boolean requeue;
+
+        FailingConsumer(boolean requeue) {
+            this.requeue = requeue;
+        }
+
+        @Override
+        public void accept(TestEvent event) {
+            hasBeenCalled = true;
+            throw new NackException(new RuntimeException("consumer fails"), requeue);
         }
     }
 }
