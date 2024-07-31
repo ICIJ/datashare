@@ -115,6 +115,18 @@ public class AmqpTest {
         assertThat(failingConsumer.hasBeenCalled).isTrue();
     }
 
+    @Test
+    public void test_wait_channel_is_closed() throws Exception {
+        ExecutorService executorService = Executors.newFixedThreadPool(1);
+
+        AmqpConsumer<TestEvent, TestEventConsumer> c = new AmqpConsumer<>(amqp, new TestEventConsumer(), AmqpQueue.EVENT, TestEvent.class).consumeEvents(e -> {});
+        executorService.submit(c::waitUntilChannelIsClosed);
+        c.shutdown();
+
+        executorService.shutdown();
+        assertThat(executorService.awaitTermination(5, TimeUnit.SECONDS)).isTrue();
+    }
+
     @Ignore("throws com.rabbitmq.client.AlreadyClosedException " +
             "the shutdown is too 'graceful' to reproduce a network error or server crash. " +
             "We don't know for now how to interrupt the QPid Server")

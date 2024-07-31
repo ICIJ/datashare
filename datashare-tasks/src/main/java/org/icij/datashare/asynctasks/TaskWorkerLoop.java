@@ -66,10 +66,11 @@ public class TaskWorkerLoop implements Callable<Integer>, Closeable {
         }));
     }
 
-    public Integer call() {
+    public Integer call()  {
         waitForMainLoopCalled.countDown();
         if (taskSupplier instanceof TaskSupplierAmqp) {
             taskSupplier.consumeTasks(this::handle);
+            taskSupplier.waitForConsumer();
             return nbTasks;
         } else {
             return mainLoop();
