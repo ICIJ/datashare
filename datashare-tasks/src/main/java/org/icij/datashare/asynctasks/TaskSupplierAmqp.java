@@ -1,5 +1,6 @@
 package org.icij.datashare.asynctasks;
 
+import org.apache.commons.lang3.NotImplementedException;
 import org.icij.datashare.asynctasks.bus.amqp.AmqpConsumer;
 import org.icij.datashare.asynctasks.bus.amqp.AmqpInterlocutor;
 import org.icij.datashare.asynctasks.bus.amqp.AmqpQueue;
@@ -15,15 +16,11 @@ import java.io.IOException;
 import java.io.Serializable;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
-import static java.util.Optional.ofNullable;
 
 public class TaskSupplierAmqp implements TaskSupplier {
-    private final BlockingQueue<Task> taskCreations = new ArrayBlockingQueue<>(1024);
     final AmqpConsumer<Task, Consumer<Task>> consumer;
     final AmqpConsumer<TaskEvent, Consumer<TaskEvent>> eventConsumer;
     final List<Consumer<TaskEvent>> eventCallbackList = new LinkedList<>();
@@ -31,11 +28,7 @@ public class TaskSupplierAmqp implements TaskSupplier {
 
     public TaskSupplierAmqp(AmqpInterlocutor amqp) throws IOException {
         this.amqp = amqp;
-        consumer = new AmqpConsumer<>(amqp, event -> {
-            if (!taskCreations.offer(event)) {
-                throw new SupplierBufferingException();
-            }
-        }, AmqpQueue.TASK, Task.class).consumeEvents();
+        consumer = new AmqpConsumer<>(amqp, null, AmqpQueue.TASK, Task.class);
         eventConsumer = new AmqpConsumer<>(amqp, this::handleEvent, AmqpQueue.WORKER_EVENT, TaskEvent.class).consumeEvents();
     }
 
@@ -51,7 +44,12 @@ public class TaskSupplierAmqp implements TaskSupplier {
 
     @Override
     public <V extends Serializable> Task<V> get(int timeOut, TimeUnit timeUnit) throws InterruptedException {
-        return (Task<V>) ofNullable(taskCreations.poll(timeOut, timeUnit)).orElse(null);
+        throw new NotImplementedException("no get method for AMQP, use consumeTasks(Consumer<Task<V>>");
+    }
+
+    @Override
+    public void consumeTasks(Consumer<Task> taskCallback) {
+        consumer.consumeEvents(taskCallback);
     }
 
     @Override
@@ -97,6 +95,4 @@ public class TaskSupplierAmqp implements TaskSupplier {
     public void close() throws IOException {
         consumer.shutdown();
     }
-
-    static class SupplierBufferingException extends RuntimeException { }
 }

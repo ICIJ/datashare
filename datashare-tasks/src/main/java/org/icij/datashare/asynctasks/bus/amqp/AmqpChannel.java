@@ -6,6 +6,7 @@ import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.ConfirmCallback;
 import com.rabbitmq.client.DefaultConsumer;
 import com.rabbitmq.client.Envelope;
+import org.icij.datashare.asynctasks.NackException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -69,9 +70,12 @@ public class AmqpChannel {
 				try {
 					bodyHandler.accept(body);
 					rabbitMqChannel.basicAck(envelope.getDeliveryTag(), false);
-				} catch (RuntimeException rex) {
-					logger.warn("exception while accepting message", rex);
+				} catch (Deserializer.DeserializeException jsonException) {
+					logger.warn("exception while deserializing json. Sending nack without requeue", jsonException);
 					rabbitMqChannel.basicNack(envelope.getDeliveryTag(), false, false);
+				} catch (NackException nackEx) {
+					logger.warn("exception while accepting event. Sending nack with requeue=" + nackEx.requeue, nackEx);
+					rabbitMqChannel.basicNack(envelope.getDeliveryTag(), false, nackEx.requeue);
 				}
 				criteria.newEvent();
 				if (!criteria.isValid()) {

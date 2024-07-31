@@ -26,7 +26,6 @@ public class AmqpInterlocutor {
     private static final Logger logger = LoggerFactory.getLogger(AmqpInterlocutor.class);
     final Configuration configuration;
     private final Connection connection;
-    private final AtomicInteger nbQueue = new AtomicInteger(0);
     private final ConcurrentHashMap<AmqpQueue, AmqpChannel> publishChannels = new ConcurrentHashMap<>();
 
 
