@@ -14,6 +14,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 import static org.fest.assertions.Assertions.assertThat;
+import static org.fest.assertions.Fail.fail;
 import static org.mockito.ArgumentMatchers.anyDouble;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
@@ -34,6 +35,19 @@ public class TaskWorkerLoopTest {
 
         assertThat(nb).isEqualTo(1);
         Mockito.verify(supplier).result(eq(taskView.id), eq("Hello world!"));
+    }
+
+    @Test(timeout = 2000)
+    public void test_unknown_task() throws Exception {
+        TaskWorkerLoop app = new TaskWorkerLoop(registry, supplier);
+        Task<Serializable> taskView = new Task<>("unknown_task", User.local(), Map.of());
+
+        try {
+            app.handle(taskView);
+            fail("NackException should be raised");
+        } catch (NackException ne) {
+            assertThat(ne.requeue).isTrue();
+        }
     }
 
     @Test
