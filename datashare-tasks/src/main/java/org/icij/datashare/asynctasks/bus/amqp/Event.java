@@ -19,24 +19,24 @@ import java.util.Date;
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "@type")
 public class Event implements Serializable {
 	@Serial private static final long serialVersionUID = -2295266944323500399L;
-	protected int retries = 3;
+	protected int retriesLeft = 3;
 	public final Date createdAt;
 
 	public Event() {
 		this(DatashareTime.getNow(), 3);
 	}
 	@JsonCreator
-	public Event(@JsonProperty("createdAt") Date createdAt, @JsonProperty("retries") int retries) {
+	public Event(@JsonProperty("createdAt") Date createdAt, @JsonProperty("retries") int retriesLeft) {
 		this.createdAt = createdAt;
-		this.retries = retries;
+		this.retriesLeft = retriesLeft;
 	}
 	
 	public boolean canBeReinjected() {
-		return retries > 0;
+		return retriesLeft > 0;
 	}
 
 	public Event reinject() {
-		retries--;
+		retriesLeft--;
 		return this;
 	}
 
