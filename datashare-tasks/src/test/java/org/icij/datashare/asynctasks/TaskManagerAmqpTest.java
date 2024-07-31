@@ -20,7 +20,9 @@ import java.io.IOException;
 import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import org.redisson.Redisson;
 import org.redisson.RedissonMap;
@@ -33,6 +35,7 @@ import static org.fest.assertions.Assertions.assertThat;
 public class TaskManagerAmqpTest {
     private static AmqpInterlocutor AMQP;
     @ClassRule static public AmqpServerRule qpid = new AmqpServerRule(5672);
+    BlockingQueue<Task<Serializable>> taskQueue = new LinkedBlockingQueue<>();
     TaskManagerAmqp taskManager;
     TaskSupplierAmqp taskSupplier;
     CountDownLatch nextMessage;
@@ -42,7 +45,7 @@ public class TaskManagerAmqpTest {
         String expectedTaskViewId = taskManager.startTask("taskName", User.local(), Map.of("key", "value"));
 
         assertThat(taskManager.getTask(expectedTaskViewId)).isNotNull();
-        Task<Serializable> actualTaskView = taskSupplier.get(10, TimeUnit.SECONDS);
+        Task<Serializable> actualTaskView = taskQueue.poll(1, TimeUnit.SECONDS);
         Assertions.assertThat(actualTaskView).isNotNull();
         Assertions.assertThat(actualTaskView.id).isEqualTo(expectedTaskViewId);
     }
@@ -50,11 +53,12 @@ public class TaskManagerAmqpTest {
     @Test(timeout = 2000)
     public void test_new_task_two_workers() throws Exception {
         try (TaskSupplierAmqp otherConsumer = new TaskSupplierAmqp(AMQP)) {
+            otherConsumer.consumeTasks(t -> taskQueue.add(t));
             taskManager.startTask("taskName1", User.local(), new HashMap<>());
             taskManager.startTask("taskName2", User.local(), new HashMap<>());
 
-            Task<Serializable> actualTask1 = taskSupplier.get(2, TimeUnit.SECONDS);
-            Task<Serializable> actualTask2 = otherConsumer.get(2, TimeUnit.SECONDS);
+            Task<Serializable> actualTask1 = taskQueue.poll(1, TimeUnit.SECONDS);
+            Task<Serializable> actualTask2 = taskQueue.poll(1, TimeUnit.SECONDS);
 
             Assertions.assertThat(actualTask1).isNotNull();
             Assertions.assertThat(actualTask2).isNotNull();
@@ -66,11 +70,11 @@ public class TaskManagerAmqpTest {
         taskManager.startTask("taskName", User.local(), new HashMap<>());
 
         // in the task runner loop
-        Task<Serializable> taskView = taskSupplier.get(10, TimeUnit.SECONDS);
-        taskSupplier.progress(taskView.id,0.5);
+        Task<Serializable> task = taskQueue.poll(2, TimeUnit.SECONDS); // to sync
+        taskSupplier.progress(task.id,0.5);
 
         nextMessage.await();
-        assertThat(taskManager.getTask(taskView.id).getProgress()).isEqualTo(0.5);
+        assertThat(taskManager.getTask(task.id).getProgress()).isEqualTo(0.5);
     }
 
     @Test(timeout = 2000)
@@ -78,12 +82,12 @@ public class TaskManagerAmqpTest {
         taskManager.startTask("taskName", User.local(), new HashMap<>());
 
         // in the task runner loop
-        Task<Serializable> taskView = taskSupplier.get(10, TimeUnit.SECONDS);
-        taskSupplier.result(taskView.id,"result");
+        Task<Serializable> task = taskQueue.poll(2, TimeUnit.SECONDS); // to sync
+        taskSupplier.result(task.id,"result");
 
         nextMessage.await();
-        assertThat(taskManager.getTask(taskView.id).getState()).isEqualTo(Task.State.DONE);
-        assertThat(taskManager.getTask(taskView.id).getResult()).isEqualTo("result");
+        assertThat(taskManager.getTask(task.id).getState()).isEqualTo(Task.State.DONE);
+        assertThat(taskManager.getTask(task.id).getResult()).isEqualTo("result");
     }
 
     @Test(timeout = 2000)
@@ -91,13 +95,13 @@ public class TaskManagerAmqpTest {
         taskManager.startTask("taskName", User.local(), new HashMap<>());
 
         // in the task runner loop
-        Task<Serializable> taskView = taskSupplier.get(10, TimeUnit.SECONDS);
-        taskSupplier.error(taskView.id,new TaskError(new RuntimeException("error in runner")));
+        Task<Serializable> task = taskQueue.poll(2, TimeUnit.SECONDS); // to sync
+        taskSupplier.error(task.id,new TaskError(new RuntimeException("error in runner")));
 
         nextMessage.await();
-        assertThat(taskManager.getTask(taskView.id).getResult()).isNull();
-        assertThat(taskManager.getTask(taskView.id).getState()).isEqualTo(Task.State.ERROR);
-        assertThat(taskManager.getTask(taskView.id).error.getMessage()).isEqualTo("error in runner");
+        assertThat(taskManager.getTask(task.id).getResult()).isNull();
+        assertThat(taskManager.getTask(task.id).getState()).isEqualTo(Task.State.ERROR);
+        assertThat(taskManager.getTask(task.id).error.getMessage()).isEqualTo("error in runner");
     }
 
     @Test(timeout = 2000)
@@ -105,12 +109,12 @@ public class TaskManagerAmqpTest {
         taskManager.startTask("taskName", User.local(), new HashMap<>());
 
         // in the task runner loop
-        Task<Serializable> taskView = taskSupplier.get(10, TimeUnit.SECONDS);
-        taskSupplier.canceled(taskView,false);
+        Task<Serializable> task = taskQueue.poll(2, TimeUnit.SECONDS); // to sync
+        taskSupplier.canceled(task,false);
 
         nextMessage.await();
-        assertThat(taskManager.getTask(taskView.id).getProgress()).isEqualTo(0.0);
-        assertThat(taskManager.getTask(taskView.id).getState()).isEqualTo(Task.State.CANCELLED);
+        assertThat(taskManager.getTask(task.id).getProgress()).isEqualTo(0.0);
+        assertThat(taskManager.getTask(task.id).getState()).isEqualTo(Task.State.CANCELLED);
     }
 
     @BeforeClass
@@ -137,10 +141,12 @@ public class TaskManagerAmqpTest {
         );
         taskManager = new TaskManagerAmqp(AMQP, tasks, () -> nextMessage.countDown());
         taskSupplier = new TaskSupplierAmqp(AMQP);
+        taskSupplier.consumeTasks(t -> taskQueue.add(t));
     }
 
     @After
     public void tearDown() throws Exception {
+        taskQueue.clear();
         taskManager.clear();
         taskManager.stopAllTasks(User.local());
         taskSupplier.close();

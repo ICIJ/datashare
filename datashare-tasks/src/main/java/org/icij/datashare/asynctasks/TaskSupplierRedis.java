@@ -1,5 +1,6 @@
 package org.icij.datashare.asynctasks;
 
+import org.apache.commons.lang3.NotImplementedException;
 import org.icij.datashare.asynctasks.bus.amqp.AmqpQueue;
 import org.icij.datashare.asynctasks.bus.amqp.CancelledEvent;
 import org.icij.datashare.asynctasks.bus.amqp.ErrorEvent;
@@ -30,6 +31,11 @@ public class TaskSupplierRedis implements TaskSupplier {
     @Override
     public <V extends Serializable> Task<V> get(int timeOut, TimeUnit timeUnit) throws InterruptedException {
         return (Task<V>) taskQueue.poll(timeOut, timeUnit);
+    }
+
+    @Override
+    public void consumeTasks(Consumer<Task> taskCallback) {
+        throw new NotImplementedException("no loop is provided by redis databus. Use get(int, TimeUnit) method.");
     }
 
     @Override
