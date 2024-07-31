@@ -92,6 +92,11 @@ public class TaskSupplierAmqp implements TaskSupplier {
     }
 
     @Override
+    public void waitForConsumer() {
+        consumer.waitUntilChannelIsClosed();
+    }
+
+    @Override
     public void close() throws IOException {
         consumer.shutdown();
     }

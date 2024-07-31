@@ -187,4 +187,7 @@ public class TaskManagerMemory implements TaskManager, TaskSupplier {
     public void addEventListener(Consumer<TaskEvent> callback) {
         // no need for this we use task runner reference for stopping tasks
     }
+
+    @Override
+    public void waitForConsumer() {}
 }

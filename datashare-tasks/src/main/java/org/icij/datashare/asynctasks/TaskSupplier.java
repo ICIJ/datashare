@@ -51,4 +51,6 @@ public interface TaskSupplier extends TaskModifier, Closeable {
      * @param callback: callback to handle the Task Events
      */
     void addEventListener(Consumer<TaskEvent> callback);
+
+    void waitForConsumer();
 }

@@ -65,6 +65,10 @@ public class TaskSupplierRedis implements TaskSupplier {
     public void addEventListener(Consumer<TaskEvent> callback) {
         eventTopic.addListener(TaskEvent.class, (channelString, message) -> callback.accept(message));
     }
+
+    @Override
+    public void waitForConsumer() {}
+
     @Override
     public void close() throws IOException {
         eventTopic.removeAllListeners();
