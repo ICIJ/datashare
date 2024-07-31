@@ -1,7 +1,9 @@
 package org.icij.datashare.asynctasks.bus.amqp;
 
 import com.rabbitmq.client.BuiltinExchangeType;
+import org.apache.commons.collections4.map.UnmodifiableMap;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -32,7 +34,7 @@ public enum AmqpQueue {
 		this.exchangeType = exchangeType;
 		this.routingKey = routingKey;
 		this.deadLetterQueue = deadLetterQueue;
-		this.arguments = arguments;
+		this.arguments = Collections.unmodifiableMap(arguments);;
 	}
 
 	@Override public String toString() {
