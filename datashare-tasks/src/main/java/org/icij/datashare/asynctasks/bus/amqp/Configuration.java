@@ -1,20 +1,12 @@
 package org.icij.datashare.asynctasks.bus.amqp;
 
 import java.net.URI;
-import java.net.URL;
-import java.util.AbstractMap;
-import java.util.Arrays;
 import java.util.Collections;
-import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 import java.util.stream.Collectors;
 
 import static java.util.Arrays.stream;
 import static java.util.Optional.ofNullable;
-import static java.util.stream.Collectors.mapping;
-import static java.util.stream.Collectors.toList;
 
 /**
  * Registry of all Configuration parameters for AMQP
@@ -28,7 +20,7 @@ public class Configuration {
 	public final int nbMaxMessages;
 	public final int requeueDelay;
 	public final int connectionRecoveryDelay;
-	public final boolean deadLetter;
+	public final boolean rabbitMq;
 
 	public Configuration(URI amqpAddress) {
 		assert "amqp".equals(amqpAddress.getScheme());
@@ -47,7 +39,7 @@ public class Configuration {
 				Collections.emptyMap():
 				stream(query.split("&")).
                         collect(Collectors.toMap(kv -> kv.split("=")[0], kv -> kv.split("=")[1]));
-		deadLetter = Boolean.parseBoolean(ofNullable(properties.get("deadLetter")).orElse("true"));
+		rabbitMq = Boolean.parseBoolean(ofNullable(properties.get("rabbitMq")).orElse("true"));
 		nbMaxMessages = Integer.parseInt(ofNullable(properties.get("nbMaxMessages")).orElse("100"));
 		requeueDelay = Integer.parseInt(ofNullable(properties.get("requeueDelay")).orElse("30"));
 		String connectionRecoveryDelayStr = properties.get("recoveryDelay");
@@ -63,7 +55,7 @@ public class Configuration {
 		this.nbMaxMessages = nbMessageMax;
 		this.requeueDelay = 30;
 		this.connectionRecoveryDelay = DEFAULT_CONNECTION_RECOVERY_DELAY;
-		this.deadLetter = true;
+		this.rabbitMq = true;
 	}
 	
 	@Override public String toString() {
