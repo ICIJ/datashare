@@ -114,13 +114,15 @@ public class AmqpChannel {
 		rabbitMqChannel.exchangeDeclare(queue.exchange, queue.exchangeType, durable);
 	}
 
-	void initForConsume(boolean deadletter, int nbMaxMessages) throws IOException {
+	void initForConsume(boolean rabbitMq, int nbMaxMessages) throws IOException {
 		Map<String, Object> queueArguments = new HashMap<>() {{
-			if (queue.deadLetterQueue != null && deadletter) {
-				put("x-dead-letter-exchange", queue.deadLetterQueue.exchange);
-				put("x-dead-letter-routing-key", queue.deadLetterQueue.routingKey);
+			if (rabbitMq) {
+				if (queue.deadLetterQueue != null) {
+					put("x-dead-letter-exchange", queue.deadLetterQueue.exchange);
+					put("x-dead-letter-routing-key", queue.deadLetterQueue.routingKey);
+				}
+				putAll(queue.arguments);
 			}
-			putAll(queue.arguments);
 		}};
 		String queueName = queueName(WORKER_PREFIX);
 		rabbitMqChannel.exchangeDeclare(queue.exchange, queue.exchangeType, durable);

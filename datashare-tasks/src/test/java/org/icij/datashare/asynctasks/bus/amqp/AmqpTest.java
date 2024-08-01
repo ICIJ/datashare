@@ -30,7 +30,7 @@ public class AmqpTest {
 
     @BeforeClass
     public static void setUp() throws Exception {
-        amqp = new AmqpInterlocutor(new Configuration(new URI("amqp://admin:admin@localhost:12345?nbMessageMax=10&deadLetter=false")));
+        amqp = new AmqpInterlocutor(new Configuration(new URI("amqp://admin:admin@localhost:12345?nbMessageMax=10&rabbitMq=false")));
         amqp.createAmqpChannelForPublish(AmqpQueue.EVENT);
         amqp.createAmqpChannelForPublish(AmqpQueue.MANAGER_EVENT);
     }

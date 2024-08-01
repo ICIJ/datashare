@@ -120,7 +120,7 @@ public class TaskManagerAmqpTest {
     @BeforeClass
     public static void beforeClass() throws Exception {
         AMQP = new AmqpInterlocutor(new PropertiesProvider(new HashMap<>() {{
-            put("messageBusAddress", "amqp://admin:admin@localhost?deadLetter=false");
+            put("messageBusAddress", "amqp://admin:admin@localhost?rabbitMq=false");
         }}));
         AMQP.createAmqpChannelForPublish(AmqpQueue.TASK);
         AMQP.createAmqpChannelForPublish(AmqpQueue.MANAGER_EVENT);

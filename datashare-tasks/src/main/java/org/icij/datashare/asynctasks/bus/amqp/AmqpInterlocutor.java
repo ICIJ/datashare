@@ -11,7 +11,6 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeoutException;
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * AmpInterlocutor has the responsibility for creating a connection and publish channels.
@@ -90,7 +89,7 @@ public class AmqpInterlocutor {
 
     public synchronized AmqpChannel createAmqpChannelForConsume(AmqpQueue queue) throws IOException {
         AmqpChannel channel = new AmqpChannel(connection.createChannel(), queue);
-        channel.initForConsume(configuration.deadLetter, configuration.nbMaxMessages);
+        channel.initForConsume(configuration.rabbitMq, configuration.nbMaxMessages);
         logger.info("consume channel {} has been created for queue {}", channel, channel.queueName(AmqpChannel.WORKER_PREFIX));
         return channel;
     }
