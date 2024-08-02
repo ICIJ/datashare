@@ -7,7 +7,7 @@
     <parent>
         <artifactId>datashare</artifactId>
         <groupId>org.icij.datashare</groupId>
-        <version>17.1.5</version>
+        <version>17.1.6</version>
     </parent>
 
     <artifactId>datashare-dist</artifactId>
