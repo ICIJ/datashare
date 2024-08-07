@@ -23,8 +23,10 @@ import org.icij.datashare.text.nlp.AbstractModels;
 import org.icij.datashare.user.User;
 import org.icij.datashare.web.testhelpers.AbstractProdWebServerTest;
 import org.jetbrains.annotations.NotNull;
-import org.junit.*;
-import org.junit.runners.MethodSorters;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Rule;
+import org.junit.Test;
 import org.mockito.Mock;
 
 import java.io.IOException;
@@ -52,7 +54,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.MockitoAnnotations.initMocks;
 
-@FixMethodOrder(MethodSorters.JVM)
 public class TaskResourceTest extends AbstractProdWebServerTest {
     @Rule
     public DatashareTimeRule time = new DatashareTimeRule("2021-07-07T12:23:34Z");
