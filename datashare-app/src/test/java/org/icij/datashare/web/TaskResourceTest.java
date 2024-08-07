@@ -11,6 +11,7 @@ import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.asynctasks.TaskManager;
 import org.icij.datashare.asynctasks.TaskModifier;
 import org.icij.datashare.asynctasks.TaskSupplier;
+import org.icij.datashare.asynctasks.bus.amqp.TaskCreation;
 import org.icij.datashare.db.JooqRepository;
 import org.icij.datashare.extension.PipelineRegistry;
 import org.icij.datashare.mode.CommonMode;
@@ -473,10 +474,10 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
 
     @Test
     public void test_create_new_task() {
-        put("/api/task/my_json_task_id", """
-            {"@type":"Task","id":"my_json_task_id","name":"org.icij.datashare.tasks.TestTask",
+        put("/api/task/my_json_task_id", String.format("""
+            {"@type":"Task","id":"my_json_task_id","name":"%s",
             "arguments": {"user":{"@type":"org.icij.datashare.user.User", "id":"local","name":null,"email":null,"provider":"local","details":{"uid":"local","groups_by_applications":{"datashare":["local-datashare"]}}
-            }}}""")
+            }}}""", TaskCreation.class.getName()))
                 .should().respond(201);
     }
 
@@ -516,10 +517,12 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         when(taskFactory.createExtractNlpTask(any(), any())).thenReturn(mock(ExtractNlpTask.class));
         when(taskFactory.createTestTask(any(Task.class), any(Function.class))).thenReturn(new TestTask(10));
         when(taskFactory.createTestSleepingTask(any(Task.class), any(Function.class))).thenReturn(new TestSleepingTask(100000));
+        when(taskFactory.createTaskCreation(any(Task.class), any(Function.class))).thenReturn(mock(TaskCreation.class));
     }
 
     public interface DatashareTaskFactoryForTest extends DatashareTaskFactory {
-        TestSleepingTask createTestSleepingTask(Task<Integer> taskView, Function<Double, Void> updateCallback);
-        TestTask createTestTask(Task<Integer> taskView, Function<Double, Void> updateCallback);
+        TestSleepingTask createTestSleepingTask(Task<Integer> task, Function<Double, Void> updateCallback);
+        TestTask createTestTask(Task<Integer> task, Function<Double, Void> updateCallback);
+        TaskCreation createTaskCreation(Task<?> task, Function<Double, Void> updateCallback);
     }
 }
