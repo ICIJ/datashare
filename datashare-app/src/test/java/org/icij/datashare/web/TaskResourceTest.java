@@ -455,7 +455,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
     public void test_create_new_task_not_same_id_for_url_and_json() {
         put("/api/task/my_url_task_id", """
             {"@type":"Task","id":"my_json_task_id","name":"name",
-            "properties": {"user":{"id":"local","name":null,"email":null,"provider":"local","details":{"uid":"local","groups_by_applications":{"datashare":["local-datashare"]}}
+            "arguments": {"user":{"@type":"org.icij.datashare.user.User", "id":"local","name":null,"email":null,"provider":"local","details":{"uid":"local","groups_by_applications":{"datashare":["local-datashare"]}}
             }}}""")
                 .should().respond(400)
                 .should().haveType("application/json")
@@ -475,7 +475,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
     public void test_create_new_task() {
         put("/api/task/my_json_task_id", """
             {"@type":"Task","id":"my_json_task_id","name":"org.icij.datashare.tasks.TestTask",
-            "properties": {"user":{"id":"local","name":null,"email":null,"provider":"local","details":{"uid":"local","groups_by_applications":{"datashare":["local-datashare"]}}
+            "arguments": {"user":{"@type":"org.icij.datashare.user.User", "id":"local","name":null,"email":null,"provider":"local","details":{"uid":"local","groups_by_applications":{"datashare":["local-datashare"]}}
             }}}""")
                 .should().respond(201);
     }
