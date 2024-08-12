@@ -61,7 +61,7 @@ public class UserTaskResourceTest extends AbstractProdWebServerTest {
                 contain("\"details\":").
                 contain("\"uid\":\"foo\"").
                 contain("\"groups_by_applications\":{\"datashare\":[\"foo-datashare\"]}").
-                contain("\"arguments\":{\"user\":{\"@type\":\"org.icij.datashare.user.User\",\"id\":\"foo\"");
+                contain("\"args\":{\"user\":{\"@type\":\"org.icij.datashare.user.User\",\"id\":\"foo\"");
     }
 
     @Test
@@ -138,7 +138,7 @@ public class UserTaskResourceTest extends AbstractProdWebServerTest {
                 contain("\"details\":").
                 contain("\"uid\":\"bar\"").
                 contain("\"groups_by_applications\":{\"datashare\":[\"bar-datashare\"]}").
-                contain("\"arguments\":{\"user\":{\"@type\":\"org.icij.datashare.user.User\",\"id\":\"bar\"");
+                contain("\"args\":{\"user\":{\"@type\":\"org.icij.datashare.user.User\",\"id\":\"bar\"");
         get("/api/task/all?filter=foo").withPreemptiveAuthentication("bar", "qux").should().contain("[]");
     }
 

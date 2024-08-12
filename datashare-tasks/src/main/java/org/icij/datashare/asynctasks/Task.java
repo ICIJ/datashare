@@ -32,7 +32,7 @@ public class Task<V> extends Event implements Entity {
 
     public enum State {CREATED, QUEUED, RUNNING, CANCELLED, ERROR, DONE}
     @JsonTypeInfo(use = JsonTypeInfo.Id.CLASS, property = "@type")
-    public final Map<String, Object> arguments;
+    public final Map<String, Object> args;
 
     public final String id;
     public final String name;
@@ -41,16 +41,16 @@ public class Task<V> extends Event implements Entity {
     private volatile double progress;
     private volatile V result;
 
-    public Task(String name, User user, Map<String, Object> arguments) {
-        this(randomUUID().toString(), name, user, arguments);
+    public Task(String name, User user, Map<String, Object> args) {
+        this(randomUUID().toString(), name, user, args);
     }
 
     public Task(String id, String name, User user) {
         this(id, name, user, new HashMap<>());
     }
 
-    public Task(String id, String name, User user, Map<String, Object> arguments) {
-        this(id, name, State.CREATED, 0, null, addTo(arguments, user));
+    public Task(String id, String name, User user, Map<String, Object> args) {
+        this(id, name, State.CREATED, 0, null, addTo(args, user));
     }
 
     @JsonCreator
@@ -59,15 +59,15 @@ public class Task<V> extends Event implements Entity {
          @JsonProperty("state") State state,
          @JsonProperty("progress") double progress,
          @JsonProperty("result") V result,
-         @JsonProperty("arguments") Map<String, Object> arguments) {
+         @JsonProperty("args") Map<String, Object> args) {
         this.id = id;
         this.name = name;
         this.state = state;
         this.progress = progress;
         this.result = result;
         // avoids "no default constructor found" for anonymous inline maps
-        this.arguments =
-            Collections.unmodifiableMap(ofNullable(arguments).orElse(new HashMap<>()));
+        this.args =
+            Collections.unmodifiableMap(ofNullable(args).orElse(new HashMap<>()));
     }
 
     public V getResult() {
@@ -169,7 +169,7 @@ public class Task<V> extends Event implements Entity {
 
     @JsonIgnore
     public User getUser() {
-        return (User) arguments.get(USER_KEY);
+        return (User) args.get(USER_KEY);
     }
 
     public static <V> String getId(Callable<V> task) {

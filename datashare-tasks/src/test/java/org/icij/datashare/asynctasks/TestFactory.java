@@ -24,7 +24,7 @@ public class TestFactory implements TaskFactory {
 
         public HelloWorld(Task<Void> taskView, Function<Double, Void> progress) {
             this.progress = progress;
-            this.greeted = (String) Objects.requireNonNull(taskView.arguments.get("greeted"), "missing greeted parameter");
+            this.greeted = (String) Objects.requireNonNull(taskView.args.get("greeted"), "missing greeted parameter");
         }
 
         @Override

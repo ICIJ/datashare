@@ -111,7 +111,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         responseBody.should().contain(taskNames.get(1));
 
         assertThat(findTask(taskManager, "org.icij.datashare.tasks.IndexTask")).isNotNull();
-        assertThat(findTask(taskManager, "org.icij.datashare.tasks.IndexTask").get().arguments).excludes(entry("reportName", "extract:report:map"));
+        assertThat(findTask(taskManager, "org.icij.datashare.tasks.IndexTask").get().args).excludes(entry("reportName", "extract:report:map"));
 
     }
 
@@ -121,7 +121,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         post("/api/task/batchUpdate/index/" + getClass().getResource("/docs/doc.txt").getPath().substring(1), body).should().haveType("application/json");
 
         assertThat(findTask(taskManager, "org.icij.datashare.tasks.IndexTask")).isNotNull();
-        assertThat(findTask(taskManager, "org.icij.datashare.tasks.IndexTask").get().arguments).excludes(entry("reportName", "foo"));
+        assertThat(findTask(taskManager, "org.icij.datashare.tasks.IndexTask").get().args).excludes(entry("reportName", "foo"));
     }
 
     @Test
@@ -136,7 +136,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         responseBody.should().contain(taskNames.get(1));
 
         assertThat(findTask(taskManager, "org.icij.datashare.tasks.IndexTask")).isNotNull();
-        assertThat(findTask(taskManager, "org.icij.datashare.tasks.IndexTask").get().arguments).includes(entry("reportName", "extract:report:local-datashare"));
+        assertThat(findTask(taskManager, "org.icij.datashare.tasks.IndexTask").get().args).includes(entry("reportName", "extract:report:local-datashare"));
     }
 
     @Test
@@ -151,7 +151,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         responseBody.should().contain(taskNames.get(1));
 
         assertThat(findTask(taskManager, "org.icij.datashare.tasks.IndexTask")).isNotNull();
-        assertThat(findTask(taskManager, "org.icij.datashare.tasks.IndexTask").get().arguments).includes(entry("reportName", "extract:report:foo"));
+        assertThat(findTask(taskManager, "org.icij.datashare.tasks.IndexTask").get().args).includes(entry("reportName", "extract:report:foo"));
     }
 
     @Test
@@ -184,7 +184,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         properties.put("foo", "bar");
 
         response.should().respond(200).haveType("application/json");
-        assertThat(findTask(taskManager, "org.icij.datashare.tasks.ScanTask").get().arguments).
+        assertThat(findTask(taskManager, "org.icij.datashare.tasks.ScanTask").get().args).
                 includes(entry("dataDir", "/default/data/dir"));
     }
 
@@ -204,10 +204,10 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
 
         assertThat(taskManager.getTasks()).hasSize(2);
         assertThat(findTask(taskManager, "org.icij.datashare.tasks.ScanTask")).isNotNull();
-        assertThat(findTask(taskManager, "org.icij.datashare.tasks.ScanTask").get().arguments.get(DATA_DIR_OPT)).isEqualTo(path);
+        assertThat(findTask(taskManager, "org.icij.datashare.tasks.ScanTask").get().args.get(DATA_DIR_OPT)).isEqualTo(path);
 
         assertThat(findTask(taskManager, "org.icij.datashare.tasks.IndexTask")).isNotNull();
-        assertThat(findTask(taskManager, "org.icij.datashare.tasks.IndexTask").get().arguments).isEqualTo(defaultProperties);
+        assertThat(findTask(taskManager, "org.icij.datashare.tasks.IndexTask").get().args).isEqualTo(defaultProperties);
     }
 
     @Test
@@ -223,7 +223,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
 
         assertThat(taskManager.getTasks()).hasSize(1);
         assertThat(taskManager.getTasks().get(0).name).isEqualTo("org.icij.datashare.tasks.IndexTask");
-        assertThat(taskManager.getTasks().get(0).arguments).isEqualTo(defaultProperties);
+        assertThat(taskManager.getTasks().get(0).args).isEqualTo(defaultProperties);
     }
 
     @Test
@@ -240,7 +240,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         Map<String, Object> defaultProperties = getDefaultProperties();
         defaultProperties.put("key", "val");
         defaultProperties.put("foo", "qux");
-        assertThat(findTask(taskManager, "org.icij.datashare.tasks.ScanTask").get().arguments).
+        assertThat(findTask(taskManager, "org.icij.datashare.tasks.ScanTask").get().args).
                 includes(entry("key", "val"), entry("foo", "qux"), entry(DATA_DIR_OPT, path));
         assertThat(findTask(taskManager, "org.icij.datashare.tasks.IndexTask")).isNotNull();
     }
@@ -253,7 +253,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         response.should().haveType("application/json");
         taskManager.waitTasksToBeDone(1, SECONDS).stream().map(t -> t.id).collect(toList());
 
-        assertThat(findTask(taskManager, "org.icij.datashare.tasks.ScanTask").get().arguments).
+        assertThat(findTask(taskManager, "org.icij.datashare.tasks.ScanTask").get().args).
                 includes(entry("queueName", "extract:queue:foo:1725215461"));
     }
 
@@ -265,7 +265,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         response.should().haveType("application/json");
         taskManager.waitTasksToBeDone(1, SECONDS).stream().map(t -> t.id).collect(toList());
 
-        assertThat(findTask(taskManager, "org.icij.datashare.tasks.ScanTask").get().arguments).
+        assertThat(findTask(taskManager, "org.icij.datashare.tasks.ScanTask").get().args).
                 includes(entry("digestProjectName", "foo"));
     }
 
@@ -277,7 +277,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         response.should().haveType("application/json");
         taskManager.waitTasksToBeDone(1, SECONDS).stream().map(t -> t.id).collect(toList());
 
-        assertThat(findTask(taskManager, "org.icij.datashare.tasks.ScanTask").get().arguments).
+        assertThat(findTask(taskManager, "org.icij.datashare.tasks.ScanTask").get().args).
                 includes(entry("queueName", "extract:queue:foo:1725215461"));
     }
 
@@ -292,7 +292,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
 
         assertThat(findTask(taskManager, "org.icij.datashare.tasks.EnqueueFromIndexTask")).isNotNull();
         assertThat(findTask(taskManager, "org.icij.datashare.tasks.ExtractNlpTask")).isNotNull();
-        assertThat(findTask(taskManager, "org.icij.datashare.tasks.ExtractNlpTask").get().arguments).includes(entry("nlpPipeline", "EMAIL"));
+        assertThat(findTask(taskManager, "org.icij.datashare.tasks.ExtractNlpTask").get().args).includes(entry("nlpPipeline", "EMAIL"));
     }
 
     @Test
@@ -302,7 +302,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
 
         assertThat(findTask(taskManager, "org.icij.datashare.tasks.EnqueueFromIndexTask")).isNotNull();
         assertThat(findTask(taskManager, "org.icij.datashare.tasks.ExtractNlpTask")).isNotNull();
-        assertThat(findTask(taskManager, "org.icij.datashare.tasks.ExtractNlpTask").get().arguments).
+        assertThat(findTask(taskManager, "org.icij.datashare.tasks.ExtractNlpTask").get().args).
                 includes(
                         entry("nlpPipeline", "EMAIL"),
                         entry("key", "val"),

@@ -98,7 +98,7 @@ public class TaskTest {
     public void test_serialize_deserialize_null() throws Exception {
         String json = JsonObjectMapper.MAPPER.writeValueAsString(Task.nullObject());
         assertThat(json).contains("\"@type\":\"Task\"");
-        assertThat(json).contains("\"arguments\":{}");
+        assertThat(json).contains("\"args\":{}");
 
         Task<?> taskCreation = JsonObjectMapper.MAPPER.readValue(json, Task.class);
         assertThat(taskCreation).isEqualTo(Task.nullObject());
