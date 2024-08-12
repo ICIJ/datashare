@@ -67,7 +67,7 @@ public class BatchDownloadRunner implements Callable<UriResult>, Monitorable, Us
     }
 
     BatchDownloadRunner(Indexer indexer, PropertiesProvider provider, Function<Double, Void> progressCallback, Task<?> task, Function<URI, MailSender> mailSenderSupplier) {
-        assert task.arguments.get("batchDownload") != null : "'batchDownload' property in task shouldn't be null";
+        assert task.args.get("batchDownload") != null : "'batchDownload' property in task shouldn't be null";
         this.task = (Task<File>) task;
         this.indexer = indexer;
         this.propertiesProvider = provider;
@@ -156,7 +156,7 @@ public class BatchDownloadRunner implements Callable<UriResult>, Monitorable, Us
     }
 
     private BatchDownload getBatchDownload() {
-        return (BatchDownload) task.arguments.get("batchDownload");
+        return (BatchDownload) task.args.get("batchDownload");
     }
     private static class Zipper implements AutoCloseable {
 

@@ -27,8 +27,8 @@ public class TaskManagerRedisCodecTest {
 
         Task<?> actualTask = (Task<?>) codec.getValueDecoder().decode(Unpooled.wrappedBuffer(json.getBytes()), new State());
         Assertions.assertThat(actualTask.name).isEqualTo("name");
-        Assertions.assertThat(actualTask.arguments).hasSize(2);
-        Assertions.assertThat(actualTask.arguments).includes(entry("key", "value"));
+        Assertions.assertThat(actualTask.args).hasSize(2);
+        Assertions.assertThat(actualTask.args).includes(entry("key", "value"));
         Assertions.assertThat(actualTask.getUser()).isEqualTo(User.local());
     }
 }
