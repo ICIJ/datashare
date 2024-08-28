@@ -31,7 +31,8 @@ public interface Pipeline {
         IXAPIPE((short)2),
         MITIE((short)3),
         OPENNLP((short)4),
-        EMAIL((short)5);
+        EMAIL((short)5),
+        SPACY((short)6);
 
         private final String className;
         public final short code;
