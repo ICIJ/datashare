@@ -1,9 +1,12 @@
 package org.icij.datashare.text.indexing.elasticsearch;
 
+import jj2000.j2k.NotImplementedError;
+import org.apache.commons.lang3.NotImplementedException;
 import org.apache.tika.exception.TikaException;
 import org.apache.tika.parser.DigestingParser;
 import org.apache.tika.parser.digestutils.CommonsDigester;
 import org.icij.datashare.PropertiesProvider;
+import org.icij.datashare.cli.DatashareCliOptions;
 import org.icij.datashare.cli.Mode;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.Hasher;
@@ -19,8 +22,12 @@ import org.xml.sax.SAXException;
 
 import java.io.*;
 import java.nio.charset.Charset;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import static org.icij.datashare.PropertiesProvider.DEFAULT_PROJECT_OPTION;
 
@@ -31,16 +38,16 @@ public class SourceExtractor {
     private final boolean filterMetadata;
     private final MetadataCleaner metadataCleaner = new MetadataCleaner();
 
-    public SourceExtractor() {
-        this(new PropertiesProvider(), false);
+    public SourceExtractor(Path artifactDir) {
+        this(new PropertiesProvider(Map.of(DatashareCliOptions.ARTIFACT_DIR_OPT, artifactDir.toString())), false);
     }
 
     public SourceExtractor(PropertiesProvider propertiesProvider) {
         this(propertiesProvider, false);
     }
 
-    public SourceExtractor( boolean filterMetadata) {
-        this.propertiesProvider = new PropertiesProvider();
+    public SourceExtractor(Path artifactDir, boolean filterMetadata) {
+        this.propertiesProvider = new PropertiesProvider(Map.of(DatashareCliOptions.ARTIFACT_DIR_OPT, artifactDir.toString()));
         this.filterMetadata = filterMetadata;
     }
 
@@ -48,7 +55,6 @@ public class SourceExtractor {
         this.propertiesProvider = propertiesProvider;
         this.filterMetadata = filterMetadata;
     }
-
 
     public InputStream getSource(final Document document) throws FileNotFoundException {
         return getSource(document.getProject(), document);
@@ -90,11 +96,16 @@ public class SourceExtractor {
         for (DigestingParser.Digester digester : digesters) {
             Identifier identifier = new DigestIdentifier(hasher.toString(), Charset.defaultCharset());
             TikaDocument rootDocument = new DocumentFactory().withIdentifier(identifier).create(document.getPath());
-            EmbeddedDocumentMemoryExtractor embeddedExtractor = new EmbeddedDocumentMemoryExtractor(digester, algorithm, false);
 
             try {
+                // TODO should use memory instead of temp dir see https://github.com/ICIJ/datashare/issues/1165
+                // BT: it was to be able to commit without breaking tests
+                EmbeddedDocumentMemoryExtractor embeddedExtractor = new EmbeddedDocumentMemoryExtractor(
+                        digester, algorithm,
+                        Paths.get(propertiesProvider.get(DatashareCliOptions.ARTIFACT_DIR_OPT).
+                                orElse(Files.createTempDirectory("artifacts").toString())),false);
                 TikaDocumentSource source = embeddedExtractor.extract(rootDocument, document.getId());
-                InputStream inputStream = new ByteArrayInputStream(source.content);
+                InputStream inputStream = new FileInputStream(source.content());
                 if (filterMetadata) {
                     return new ByteArrayInputStream(metadataCleaner.clean(inputStream).getContent());
                 }

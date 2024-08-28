@@ -119,6 +119,7 @@ public final class DatashareCliOptions {
     public static final String TCP_LISTEN_PORT_OPT = "tcpListenPort";
     public static final String VERSION_ABBR_OPT = "v";
     public static final String VERSION_OPT = "version";
+    public static final String ARTIFACT_DIR_OPT = "artifactDir";
 
     private static final Path DEFAULT_DATASHARE_HOME = Paths.get(System.getProperty("user.home"), ".local/share/datashare");
     private static final Integer DEFAULT_NLP_PARALLELISM = 1;
@@ -126,6 +127,7 @@ public final class DatashareCliOptions {
     private static final Integer DEFAULT_PARSER_PARALLELISM = 1;
     public static final DigestAlgorithm DEFAULT_DIGEST_METHOD = DigestAlgorithm.SHA_384;
     public static final String DEFAULT_DATA_DIR = Paths.get(System.getProperty("user.home")).resolve("Datashare").toString();
+    public static final String DEFAULT_ARTIFACT_DIR = DEFAULT_DATA_DIR;
     public static final Mode DEFAULT_MODE = Mode.LOCAL;
     public static final QueueType DEFAULT_BATCH_QUEUE_TYPE = QueueType.MEMORY;
     public static final QueueType DEFAULT_BUS_TYPE = QueueType.MEMORY;
@@ -339,6 +341,15 @@ public final class DatashareCliOptions {
                 .withRequiredArg()
                 .ofType(File.class)
                 .defaultsTo(new File(DEFAULT_DATA_DIR));
+    }
+
+    static void artifactDir(OptionParser parser) {
+        parser.acceptsAll(
+                asList(ARTIFACT_DIR_OPT),
+                "Artifact directory for embedded caching" )
+                .withRequiredArg()
+                .ofType(File.class)
+                .defaultsTo(new File(DEFAULT_ARTIFACT_DIR));
     }
 
     static void rootHost(OptionParser parser) {

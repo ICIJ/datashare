@@ -42,7 +42,7 @@ public class SourceExtractorTest {
         File file = tmpDir.newFile("foo.bar");
         Document document = DocumentBuilder.createDoc(project("project"), file.toPath()).build();
         assertThat(file.delete()).isTrue();
-        new SourceExtractor().getSource(document);
+        new SourceExtractor(tmpDir.getRoot().toPath()).getSource(document);
     }
 
     @Test(expected = EmbeddedDocumentMemoryExtractor.ContentNotFoundException.class)
@@ -55,7 +55,7 @@ public class SourceExtractorTest {
                 .with(new HashMap<>())
                 .with(Document.Status.INDEXED)
                 .withContentLength(45L).build();
-        new SourceExtractor().getEmbeddedSource(project("project"), document);
+        new SourceExtractor(tmpDir.getRoot().toPath()).getEmbeddedSource(project("project"), document);
     }
 
     @Test
@@ -69,7 +69,7 @@ public class SourceExtractorTest {
                 .with(Document.Status.INDEXED)
                 .withContentLength(45L).build();
 
-        InputStream source = new SourceExtractor().getSource(document);
+        InputStream source = new SourceExtractor(tmpDir.getRoot().toPath()).getSource(document);
         assertThat(source).isNotNull();
         assertThat(getBytes(source)).hasSize(70574);
     }
@@ -85,8 +85,8 @@ public class SourceExtractorTest {
                 .with(Document.Status.INDEXED)
                 .withContentLength(0L).build();
 
-        InputStream inputStreamWithMetadata = new SourceExtractor(false).getSource(document);
-        InputStream inputStreamWithoutMetadata = new SourceExtractor(true).getSource(document);
+        InputStream inputStreamWithMetadata = new SourceExtractor(tmpDir.getRoot().toPath(), false).getSource(document);
+        InputStream inputStreamWithoutMetadata = new SourceExtractor(tmpDir.getRoot().toPath(), true).getSource(document);
         assertThat(inputStreamWithMetadata).isNotNull();
         assertThat(inputStreamWithoutMetadata).isNotNull();
         assertThat(getBytes(inputStreamWithMetadata).length).isEqualTo(9216);
@@ -118,7 +118,7 @@ public class SourceExtractorTest {
 
         assertThat(attachedPdf).isNotNull();
         assertThat(attachedPdf.getContentType()).isEqualTo("application/pdf");
-        InputStream source = new SourceExtractor().getSource(project(TEST_INDEX), attachedPdf);
+        InputStream source = new SourceExtractor(tmpDir.getRoot().toPath()).getSource(project(TEST_INDEX), attachedPdf);
         assertThat(source).isNotNull();
         assertThat(getBytes(source)).hasSize(49779);
     }
@@ -155,7 +155,7 @@ public class SourceExtractorTest {
                 get(TEST_INDEX, "1bf2b6aa27dd8b45c7db58875004b8cb27a78ced5200b4976b63e351ebbae5ececb86076d90e156a7cdea06cde9573ca",
                         "f4078910c3e73a192e3a82d205f3c0bdb749c4e7b23c1d05a622db0f07d7f0ededb335abdb62aef41ace5d3cdb9298bc");
 
-        InputStream source = new SourceExtractor(true).getSource(project(TEST_INDEX), attachedPdf);
+        InputStream source = new SourceExtractor(tmpDir.getRoot().toPath(), true).getSource(project(TEST_INDEX), attachedPdf);
         assertThat(source).isNotNull();
         assertThat(getBytes(source).length).isNotEqualTo(49779);
     }
@@ -184,7 +184,7 @@ public class SourceExtractorTest {
                 get(TEST_INDEX, "754ea07d66c2ec23d2849b4d44f276a7ebe719e586c20d15c7b772dcd4a620b0117e7396b76496ed5c10a066bf19d907",
                         "c78925fb478426ccc4c5a7cb975bc0f35d4079cd8a55d7a340bdccb3a46379e4940daa198c0be0dfd247cde338194105");
 
-        InputStream source = new SourceExtractor().getSource(project(TEST_INDEX), attachedPdf);
+        InputStream source = new SourceExtractor(tmpDir.getRoot().toPath()).getSource(project(TEST_INDEX), attachedPdf);
         assertThat(source).isNotNull();
         assertThat(getBytes(source)).hasSize(49779);
     }
@@ -194,6 +194,7 @@ public class SourceExtractorTest {
         PropertiesProvider propertiesProvider = new PropertiesProvider(new HashMap<>() {{
             put("digestAlgorithm", Document.DEFAULT_DIGESTER.toString());
             put("digestProjectName", "local-datashare");
+            put("artifactDir", tmpDir.newFolder("local_mode").toString());
             put("mode", "LOCAL");
         }});
         Options<String> options = Options.from(propertiesProvider.getProperties());
@@ -226,6 +227,7 @@ public class SourceExtractorTest {
         PropertiesProvider propertiesProvider = new PropertiesProvider(new HashMap<>() {{
             put("digestAlgorithm", Document.DEFAULT_DIGESTER.toString());
             put("digestProjectName", "local-datashare");
+            put("artifactDir", tmpDir.newFolder("server_mode").toString());
             put("mode", "SERVER");
         }});
         Options<String> options = Options.from(propertiesProvider.getProperties());
