@@ -114,6 +114,7 @@ public class DatashareCli {
         DatashareCliOptions.charset(parser);
         DatashareCliOptions.stages(parser);
         DatashareCliOptions.dataDir(parser);
+        DatashareCliOptions.artifactDir(parser);
         DatashareCliOptions.enableOcr(parser);
         DatashareCliOptions.language(parser);
         DatashareCliOptions.ocrLanguage(parser);
