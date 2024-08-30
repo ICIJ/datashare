@@ -1,7 +1,6 @@
 package org.icij.datashare.text.nlp;
 
 import org.icij.datashare.PropertiesProvider;
-import org.icij.datashare.text.Document;
 import org.icij.datashare.text.Language;
 import org.icij.datashare.text.NamedEntity;
 import org.slf4j.Logger;
@@ -64,11 +63,6 @@ public abstract class AbstractPipeline implements Pipeline {
         LOGGER.info("initializing " + getType());
         return true;
     }
-
-    /**
-     * Apply all specified stages/annotators on input
-     *  @param doc is the document source to process */
-    public abstract List<NamedEntity> process(Document doc) throws InterruptedException;
 
     /**
      * Post-processing operations

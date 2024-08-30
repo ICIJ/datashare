@@ -1,5 +1,6 @@
 package org.icij.datashare.text.nlp;
 
+import java.util.stream.Stream;
 import org.icij.datashare.reflect.EnumTypeToken;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.Language;
@@ -21,6 +22,9 @@ public interface Pipeline {
     static Set<Type> set(Type ...types) {
         return new HashSet<>(Arrays.asList(types));
     }
+
+    record PipelineInput (Document doc, int contentLength, int contentOffset) {}
+
 
     enum Type implements EnumTypeToken {
         TEST((short)-1),
@@ -98,6 +102,15 @@ public interface Pipeline {
 
     List<NamedEntity> process(Document doc) throws InterruptedException;
     List<NamedEntity> process(Document doc, int contentLength, int contentOffset) throws InterruptedException;
+    default List<List<NamedEntity>> process(Stream<PipelineInput> inputs) throws InterruptedException {
+        return inputs.map(i -> {
+            try {
+                return process(i.doc, i.contentLength, i.contentOffset);
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+        }).collect(Collectors.toList());
+    }
 
     void terminate(Language language) throws InterruptedException;
 
