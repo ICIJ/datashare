@@ -9,7 +9,7 @@ import org.icij.datashare.text.DocumentBuilder;
 import org.icij.datashare.text.Language;
 import org.icij.extract.document.DocumentFactory;
 import org.icij.extract.document.TikaDocument;
-import org.icij.extract.extractor.EmbeddedDocumentMemoryExtractor;
+import org.icij.extract.extractor.EmbeddedDocumentExtractor;
 import org.icij.extract.extractor.Extractor;
 import org.icij.spewer.FieldNames;
 import org.icij.task.Options;
@@ -45,7 +45,7 @@ public class SourceExtractorTest {
         new SourceExtractor(tmpDir.getRoot().toPath()).getSource(document);
     }
 
-    @Test(expected = EmbeddedDocumentMemoryExtractor.ContentNotFoundException.class)
+    @Test(expected = EmbeddedDocumentExtractor.ContentNotFoundException.class)
     public void test_content_not_found() {
         Document document = DocumentBuilder.createDoc(project("project"), get(getClass().getResource("/docs/embedded_doc.eml").getPath()))
                 .with("it has been parsed")
@@ -222,7 +222,7 @@ public class SourceExtractorTest {
         assertThat(getBytes(source)).hasSize(49779);
     }
 
-    @Test(expected = EmbeddedDocumentMemoryExtractor.ContentNotFoundException.class)
+    @Test(expected = EmbeddedDocumentExtractor.ContentNotFoundException.class)
     public void test_not_get_source_for_embedded_doc_with_digest_project_name_using_legacy_value_in_server() throws Exception {
         PropertiesProvider propertiesProvider = new PropertiesProvider(new HashMap<>() {{
             put("digestAlgorithm", Document.DEFAULT_DIGESTER.toString());

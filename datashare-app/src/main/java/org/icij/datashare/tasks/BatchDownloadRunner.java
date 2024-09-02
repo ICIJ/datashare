@@ -26,7 +26,7 @@ import org.icij.datashare.text.indexing.elasticsearch.SourceExtractor;
 import org.icij.datashare.user.User;
 import org.icij.datashare.user.UserTask;
 import org.icij.datashare.utils.DocumentVerifier;
-import org.icij.extract.extractor.EmbeddedDocumentMemoryExtractor.ContentNotFoundException;
+import org.icij.extract.extractor.EmbeddedDocumentExtractor.ContentNotFoundException;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

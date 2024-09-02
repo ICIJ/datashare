@@ -33,7 +33,7 @@ import org.icij.datashare.text.indexing.elasticsearch.SourceExtractor;
 import org.icij.datashare.user.User;
 import org.icij.datashare.utils.DocumentVerifier;
 import org.icij.datashare.utils.PayloadFormatter;
-import org.icij.extract.extractor.EmbeddedDocumentMemoryExtractor;
+import org.icij.extract.extractor.EmbeddedDocumentExtractor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -410,7 +410,7 @@ public class DocumentResource {
             Payload payload = new Payload(contentType, from);
             String fileName = doc.isRootDocument() ? doc.getName(): doc.getId().substring(0, 10) + "." + FileExtension.get(contentType);
             return inline ? payload: payload.withHeader("Content-Disposition", "attachment;filename=\"" + fileName + "\"");
-        } catch (FileNotFoundException | EmbeddedDocumentMemoryExtractor.ContentNotFoundException fnf) {
+        } catch (FileNotFoundException | EmbeddedDocumentExtractor.ContentNotFoundException fnf) {
             logger.error("unable to read document source file", fnf);
             return Payload.notFound();
         }
