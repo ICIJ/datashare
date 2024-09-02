@@ -346,10 +346,8 @@ public final class DatashareCliOptions {
     static void artifactDir(OptionParser parser) {
         parser.acceptsAll(
                 asList(ARTIFACT_DIR_OPT),
-                "Artifact directory for embedded caching" )
-                .withRequiredArg()
-                .ofType(File.class)
-                .defaultsTo(new File(DEFAULT_ARTIFACT_DIR));
+                "Artifact directory for embedded caching. If not provided datashare will use memory." )
+                .withRequiredArg();
     }
 
     static void rootHost(OptionParser parser) {

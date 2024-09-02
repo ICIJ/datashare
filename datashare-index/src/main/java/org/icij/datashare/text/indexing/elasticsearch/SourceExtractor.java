@@ -1,7 +1,5 @@
 package org.icij.datashare.text.indexing.elasticsearch;
 
-import jj2000.j2k.NotImplementedError;
-import org.apache.commons.lang3.NotImplementedException;
 import org.apache.tika.exception.TikaException;
 import org.apache.tika.parser.DigestingParser;
 import org.apache.tika.parser.digestutils.CommonsDigester;
@@ -12,19 +10,25 @@ import org.icij.datashare.text.Document;
 import org.icij.datashare.text.Hasher;
 import org.icij.datashare.text.Project;
 import org.icij.extract.cleaner.MetadataCleaner;
-import org.icij.extract.document.*;
-import org.icij.extract.extractor.EmbeddedDocumentMemoryExtractor;
-import org.icij.extract.extractor.EmbeddedDocumentMemoryExtractor.ContentNotFoundException;
+import org.icij.extract.document.DigestIdentifier;
+import org.icij.extract.document.DocumentFactory;
+import org.icij.extract.document.Identifier;
+import org.icij.extract.document.TikaDocument;
+import org.icij.extract.document.TikaDocumentSource;
+import org.icij.extract.extractor.EmbeddedDocumentExtractor;
+import org.icij.extract.extractor.EmbeddedDocumentExtractor.ContentNotFoundException;
 import org.icij.extract.extractor.UpdatableDigester;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xml.sax.SAXException;
 
-import java.io.*;
+import java.io.ByteArrayInputStream;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
 import java.nio.charset.Charset;
-import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -98,14 +102,11 @@ public class SourceExtractor {
             TikaDocument rootDocument = new DocumentFactory().withIdentifier(identifier).create(document.getPath());
 
             try {
-                // TODO should use memory instead of temp dir see https://github.com/ICIJ/datashare/issues/1165
-                // BT: it was to be able to commit without breaking tests
-                EmbeddedDocumentMemoryExtractor embeddedExtractor = new EmbeddedDocumentMemoryExtractor(
+                EmbeddedDocumentExtractor embeddedExtractor = new EmbeddedDocumentExtractor(
                         digester, algorithm,
-                        Paths.get(propertiesProvider.get(DatashareCliOptions.ARTIFACT_DIR_OPT).
-                                orElse(Files.createTempDirectory("artifacts").toString())),false);
+                        propertiesProvider.get(DatashareCliOptions.ARTIFACT_DIR_OPT).map(Path::of).orElse(null),false);
                 TikaDocumentSource source = embeddedExtractor.extract(rootDocument, document.getId());
-                InputStream inputStream = new FileInputStream(source.content());
+                InputStream inputStream = source.get();
                 if (filterMetadata) {
                     return new ByteArrayInputStream(metadataCleaner.clean(inputStream).getContent());
                 }
