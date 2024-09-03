@@ -127,7 +127,6 @@ public final class DatashareCliOptions {
     private static final Integer DEFAULT_PARSER_PARALLELISM = 1;
     public static final DigestAlgorithm DEFAULT_DIGEST_METHOD = DigestAlgorithm.SHA_384;
     public static final String DEFAULT_DATA_DIR = Paths.get(System.getProperty("user.home")).resolve("Datashare").toString();
-    public static final String DEFAULT_ARTIFACT_DIR = DEFAULT_DATA_DIR;
     public static final Mode DEFAULT_MODE = Mode.LOCAL;
     public static final QueueType DEFAULT_BATCH_QUEUE_TYPE = QueueType.MEMORY;
     public static final QueueType DEFAULT_BUS_TYPE = QueueType.MEMORY;
