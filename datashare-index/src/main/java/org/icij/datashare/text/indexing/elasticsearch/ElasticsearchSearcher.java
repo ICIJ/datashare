@@ -9,7 +9,6 @@ import co.elastic.clients.elasticsearch.core.SearchRequest;
 import co.elastic.clients.elasticsearch.core.SearchResponse;
 import co.elastic.clients.elasticsearch.core.search.Hit;
 import co.elastic.clients.elasticsearch.core.search.ResponseBody;
-import co.elastic.clients.json.JsonpMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import jakarta.json.JsonException;
@@ -64,7 +63,7 @@ class ElasticsearchSearcher implements Indexer.Searcher {
     }
 
     static <T extends Entity> T hitToObject(Hit<ObjectNode> searchHit, Class<T> cls) {
-        return (T) JsonObjectMapper.getObject(searchHit.id(), searchHit.index(), JsonUtils.nodeToMap(searchHit.source()), cls);
+        return JsonObjectMapper.getObject(searchHit.id(), searchHit.index(), JsonUtils.nodeToMap(searchHit.source()), cls);
     }
 
     @Override
@@ -177,6 +176,14 @@ class ElasticsearchSearcher implements Indexer.Searcher {
         return this;
     }
 
+    @Override
+    public Searcher sort(String field, SortOrder order) {
+        sourceBuilder.sort(builder ->
+            builder.field(fieldBuilder -> fieldBuilder.field(field).order(esSortOrder(order)))
+        );
+        return this;
+    }
+
 
     @Override
     public void clearScroll() throws IOException {
@@ -193,5 +200,12 @@ class ElasticsearchSearcher implements Indexer.Searcher {
     @Override
     public String toString() {
         return "query : " + jsonBoolQuery;
+    }
+
+    private co.elastic.clients.elasticsearch._types.SortOrder esSortOrder(SortOrder sortOrder) {
+        return switch (sortOrder) {
+            case ASC -> co.elastic.clients.elasticsearch._types.SortOrder.Asc;
+            case DESC -> co.elastic.clients.elasticsearch._types.SortOrder.Desc;
+        };
     }
 }
