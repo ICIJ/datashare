@@ -54,7 +54,8 @@ public class EnqueueFromIndexTask extends PipelineTask<String> {
     public Long call() throws Exception {
         super.call();
         Indexer.Searcher searcher = indexer.search(singletonList(projectName), Document.class)
-                .without(nlpPipeline).withSource("rootDocument").limit(scrollSize);
+            .without(nlpPipeline).withSource("rootDocument").limit(scrollSize)
+            .sort("language", Indexer.Searcher.SortOrder.ASC);
         logger.info("resuming NLP name finding for index {} and {} with {} scroll and size of {} : {} documents found", projectName, nlpPipeline,
                 scrollDuration, scrollSize, searcher.totalHits());
         List<? extends Entity> docsToProcess = searcher.scroll(scrollDuration).collect(toList());
