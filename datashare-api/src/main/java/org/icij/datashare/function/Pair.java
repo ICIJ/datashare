@@ -35,4 +35,8 @@ public class Pair<T1, T2> {
                 second.equals(objPair._2());
     }
 
+    @Override
+    public String toString() {
+        return String.format("(%s,%s)", first, second);
+    }
 }
