@@ -10,7 +10,8 @@ public enum Stage {
     DEDUPLICATE(false),
     INDEX(true),
     ENQUEUEIDX(false),
-    NLP(true);
+    NLP(true),
+    ARTIFACT(false);
 
     public static final Comparator<Stage> comparator = Comparator.comparing(Stage::ordinal);
     private final boolean isMainStage;

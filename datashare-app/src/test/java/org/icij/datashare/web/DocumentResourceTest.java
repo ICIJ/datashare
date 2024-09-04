@@ -4,6 +4,7 @@ import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Repository;
 import org.icij.datashare.db.JooqRepository;
 import org.icij.datashare.session.LocalUserFilter;
+import org.icij.datashare.tasks.MockIndexer;
 import org.icij.datashare.test.LogbackCapturingRule;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.DocumentBuilder;
@@ -22,13 +23,14 @@ import org.slf4j.event.Level;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Arrays.asList;
 import static java.util.stream.Stream.of;
 import static org.fest.assertions.Assertions.assertThat;
@@ -38,7 +40,10 @@ import static org.icij.datashare.text.Project.project;
 import static org.icij.datashare.text.Tag.tag;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.anyString;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 import static org.mockito.MockitoAnnotations.initMocks;
 
 public class DocumentResourceTest extends AbstractProdWebServerTest {
@@ -46,11 +51,13 @@ public class DocumentResourceTest extends AbstractProdWebServerTest {
     @Rule public LogbackCapturingRule logback = new LogbackCapturingRule();
     @Mock JooqRepository jooqRepository;
     @Mock Indexer indexer;
+    MockIndexer mockIndexer;
     @Mock PropertiesProvider propertiesProvider;
 
     @Before
     public void setUp() {
         initMocks(this);
+        mockIndexer = new MockIndexer(indexer);
         when(propertiesProvider.get(EMBEDDED_DOCUMENT_DOWNLOAD_MAX_SIZE_OPT)).thenReturn(Optional.of("1G"));
         configure(routes -> {
             routes.add(new DocumentResource(jooqRepository, indexer, propertiesProvider))
@@ -61,8 +68,8 @@ public class DocumentResourceTest extends AbstractProdWebServerTest {
     @Test
     public void test_get_source_file() throws Exception {
         File txtFile = new File(temp.getRoot(), "file.txt");
-        write(txtFile, "text content");
-        indexFile("local-datashare", "id_txt", txtFile.toPath(), null, null);
+        MockIndexer.write(txtFile, "text content");
+        mockIndexer.indexFile("local-datashare", "id_txt", txtFile.toPath(), null, null);
 
         get("/api/local-datashare/documents/src/id_txt").should().contain("text content").haveType("text/plain;charset=UTF-8");
     }
@@ -70,8 +77,8 @@ public class DocumentResourceTest extends AbstractProdWebServerTest {
     @Test
     public void test_get_source_file_with_content_type() throws Exception {
         File txtFile = new File(temp.getRoot(), "/my/path/to/file.ods");
-        write(txtFile, "content");
-        indexFile("local-datashare", "id_ods", txtFile.toPath(), "application/vnd.oasis.opendocument.spreadsheet", null);
+        MockIndexer.write(txtFile, "content");
+        mockIndexer.indexFile("local-datashare", "id_ods", txtFile.toPath(), "application/vnd.oasis.opendocument.spreadsheet", null);
 
         get("/api/local-datashare/documents/src/id_ods").should().
                 haveType("application/vnd.oasis.opendocument.spreadsheet").
@@ -81,8 +88,8 @@ public class DocumentResourceTest extends AbstractProdWebServerTest {
     @Test
     public void test_get_source_file_without_metadata() throws Exception {
         File txtFile = new File(temp.getRoot(), "/my/path/to/file.ods");
-        write(txtFile, "content");
-        indexFile("local-datashare", "id_ods", txtFile.toPath(), "application/vnd.oasis.opendocument.spreadsheet", null);
+        MockIndexer.write(txtFile, "content");
+        mockIndexer.indexFile("local-datashare", "id_ods", txtFile.toPath(), "application/vnd.oasis.opendocument.spreadsheet", null);
 
         get("/api/local-datashare/documents/src/id_ods?filter_metadata=true").should().succeed();
     }
@@ -90,8 +97,8 @@ public class DocumentResourceTest extends AbstractProdWebServerTest {
     @Test
     public void test_get_source_file_with_content_type_inline() throws Exception {
         File img = new File(temp.getRoot(), "/my/path/to/image.jpg");
-        write(img, "content");
-        indexFile("local-datashare", "id_jpg", img.toPath(), "image/jpg", null);
+        MockIndexer.write(img, "content");
+        mockIndexer.indexFile("local-datashare", "id_jpg", img.toPath(), "image/jpg", null);
 
         get("/api/local-datashare/documents/src/id_jpg?inline=true").should().
                 haveType("image/jpg").contain("content").
@@ -101,7 +108,7 @@ public class DocumentResourceTest extends AbstractProdWebServerTest {
     @Test
     public void test_get_embedded_source_file_with_routing() {
         String path = getClass().getResource("/docs/embedded_doc.eml").getPath();
-        indexFile("local-datashare", "d365f488df3c84ecd6d7aa752ca268b78589f2082e4fe2fbe9f62dff6b3a6b74bedc645ec6df9ae5599dab7631433623", Paths.get(path), "application/pdf", "id_eml");
+        mockIndexer.indexFile("local-datashare", "d365f488df3c84ecd6d7aa752ca268b78589f2082e4fe2fbe9f62dff6b3a6b74bedc645ec6df9ae5599dab7631433623", Paths.get(path), "application/pdf", "id_eml");
 
         get("/api/local-datashare/documents/src/d365f488df3c84ecd6d7aa752ca268b78589f2082e4fe2fbe9f62dff6b3a6b74bedc645ec6df9ae5599dab7631433623?routing=id_eml").
                 should().haveType("application/pdf").contain("PDF-1.3").haveHeader("Content-Disposition", "attachment;filename=\"d365f488df.pdf\"");;
@@ -110,7 +117,7 @@ public class DocumentResourceTest extends AbstractProdWebServerTest {
     @Test
     public void test_get_embedded_source_file_with_routing_sha256_for_backward_compatibility() {
         String path = getClass().getResource("/docs/embedded_doc.eml").getPath();
-        indexFile("local-datashare", "6abb96950946b62bb993307c8945c0c096982783bab7fa24901522426840ca3e", Paths.get(path), "application/pdf", "id_eml");
+        mockIndexer.indexFile("local-datashare", "6abb96950946b62bb993307c8945c0c096982783bab7fa24901522426840ca3e", Paths.get(path), "application/pdf", "id_eml");
 
         get("/api/local-datashare/documents/src/6abb96950946b62bb993307c8945c0c096982783bab7fa24901522426840ca3e?routing=id_eml").
                 should().haveType("application/pdf").contain("PDF-1.3").haveHeader("Content-Disposition", "attachment;filename=\"6abb969509.pdf\"");;
@@ -119,7 +126,7 @@ public class DocumentResourceTest extends AbstractProdWebServerTest {
     @Test
     public void test_content_not_found_should_return_404() {
         String path = getClass().getResource("/docs/embedded_doc.eml").getPath();
-        indexFile("local-datashare", "embedded_id_sha256_of_sixty_four_character_not_in_actual_content", Paths.get(path), "application/pdf", "id_eml");
+        mockIndexer.indexFile("local-datashare", "embedded_id_sha256_of_sixty_four_character_not_in_actual_content", Paths.get(path), "application/pdf", "id_eml");
 
         get("/api/local-datashare/documents/src/embedded_id_sha256_of_sixty_four_character_not_in_actual_content?routing=id_eml").
                 should().respond(404);
@@ -128,7 +135,7 @@ public class DocumentResourceTest extends AbstractProdWebServerTest {
 
     @Test
     public void test_source_file_not_found_should_return_404() {
-        indexFile("local-datashare", "missing_file", Paths.get("missing/file"), null, null);
+        mockIndexer.indexFile("local-datashare", "missing_file", Paths.get("missing/file"), null, null);
         get("/api/local-datashare/documents/src/missing_file").should().respond(404);
         assertThat(logback.logs(Level.ERROR)).contains("unable to read document source file");
     }
@@ -144,7 +151,7 @@ public class DocumentResourceTest extends AbstractProdWebServerTest {
         Project index = new Project("local-datashare");
         Document documentBar = DocumentBuilder.createDoc("bar").with(index).withContentLength(2L * 1024 * 1024 * 1024).build();
         Document documentFoo = DocumentBuilder.createDoc("foo").with(index).with(path).withParentId("bar").withRootId("bar").build();
-        indexFile("local-datashare", documentBar, documentFoo);
+        mockIndexer.indexFile("local-datashare", documentBar, documentFoo);
         get("/api/local-datashare/documents/src/foo?routing=bar").should().respond(413);
     }
 
@@ -268,7 +275,7 @@ public class DocumentResourceTest extends AbstractProdWebServerTest {
     public void test_get_document_source_with_good_mask() throws Exception {
         File txtFile = new File(temp.getRoot(), "file.txt");
         List<String> sourceExcludes = List.of("content", "content_translated");
-        write(txtFile, "content");
+        MockIndexer.write(txtFile, "content");
         when(indexer.get("local-datashare", "docId", "root", sourceExcludes)).thenReturn(createDoc("doc").with(txtFile.toPath()).build());
 
         when(jooqRepository.getProject("local-datashare")).thenReturn(new Project("local-datashare", "*.*.*.*"));
@@ -293,7 +300,7 @@ public class DocumentResourceTest extends AbstractProdWebServerTest {
     public void test_get_document_source_with_unknown_project() throws IOException {
         File txtFile = new File(temp.getRoot(), "file.txt");
         List<String> sourceExcludes = List.of("content", "content_translated");
-        write(txtFile, "content");
+        MockIndexer.write(txtFile, "content");
         when(indexer.get("local-datashare", "docId", "root", sourceExcludes)).thenReturn(createDoc("doc").with(txtFile.toPath()).build());
 
         when(jooqRepository.getProject("local-datashare")).thenReturn(null);
@@ -409,40 +416,5 @@ public class DocumentResourceTest extends AbstractProdWebServerTest {
                 .contain("\"query\":\"test\"")
                 .contain("\"count\":2")
                 .contain("\"offsets\":[1,2]");
-    }
-
-    private void indexFile(String index, String _id, Path path, String contentType, String routing) {
-        Document document = DocumentBuilder.createDoc(_id)
-                .with(path)
-                .with(new Project(index))
-                .ofContentType(contentType)
-                .withParentId(routing)
-                .withRootId(routing)
-                .withContentLength(10)
-                .build();
-        if (routing == null) {
-            indexFile(index, document);
-        } else {
-            Document rootDocument = DocumentBuilder.createDoc(routing).with(path).with(new Project(index)).build();
-            indexFile(index, rootDocument, document);
-        }
-    }
-
-    private void indexFile(String index, Document rootDocument, Document document) {
-        List<String> sourceExcludes = List.of("content", "content_translated");
-        when(indexer.get(index, rootDocument.getId())).thenReturn(rootDocument);
-        when(indexer.get(index, document.getId(), document.getRootDocument())).thenReturn(document);
-        when(indexer.get(index, document.getId(), document.getRootDocument(), sourceExcludes)).thenReturn(document);
-    }
-
-    private void indexFile(String index, Document document) {
-        List<String> sourceExcludes = List.of("content", "content_translated");
-        when(indexer.get(index, document.getId())).thenReturn(document);
-        when(indexer.get(index, document.getId(), document.getId(), sourceExcludes)).thenReturn(document);
-    }
-
-    static void write(File file, String content) throws IOException {
-        file.toPath().getParent().toFile().mkdirs();
-        Files.write(file.toPath(), content.getBytes(UTF_8));
     }
 }
