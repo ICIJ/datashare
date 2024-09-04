@@ -23,17 +23,15 @@ public abstract class AbstractModels<T> {
     private static final Path BASE_DIR = Paths.get(".").toAbsolutePath().normalize();
     protected static final Path BASE_CLASSPATH = Paths.get("models");
     private static final String PREFIX = "dist";
-    protected final ConcurrentHashMap<Language, Semaphore> modelLock = new ConcurrentHashMap<Language, Semaphore>() {{
+    protected final ConcurrentHashMap<Language, Semaphore> modelLock = new ConcurrentHashMap<>() {{
         for (Language l : Language.values()) {
             put(l, new Semaphore(1, true));
         }
     }};
-    public final NlpStage stage;
     protected final Map<Language, T> models;
     protected final Pipeline.Type type;
 
-    protected AbstractModels(final Pipeline.Type type, final NlpStage stage) {
-        this.stage = stage;
+    protected AbstractModels(final Pipeline.Type type) {
         this.type = type;
         this.models = new HashMap<>();
     }
@@ -57,9 +55,9 @@ public abstract class AbstractModels<T> {
                 downloadIfNecessary(language);
             }
             models.put(language, loadModelFile(language));
-            LOGGER.info("loaded {} model for {}", stage, language);
+            LOGGER.info("loaded model for {}", language);
         } catch (IOException e) {
-            LOGGER.error("failed loading " + stage, e);
+            LOGGER.error("failed loading ", e);
         } finally {
             l.release();
         }

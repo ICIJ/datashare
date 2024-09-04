@@ -5,12 +5,11 @@ import org.junit.Test;
 
 import static org.fest.assertions.Assertions.assertThat;
 import static org.icij.datashare.text.Language.GERMAN;
-import static org.icij.datashare.text.nlp.NlpStage.NER;
 
 public class CoreNlpModelsTest {
     @Test
     public void testLoadJar() {
-        final CoreNlpModels jarModels = new CoreNlpModels(NER) {
+        final CoreNlpModels jarModels = new CoreNlpModels() {
             @Override
             String getPropertyName() { return null;}
 
