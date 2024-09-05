@@ -106,8 +106,8 @@ public class EmailPipeline extends AbstractPipeline {
         this.processText(Stream.of(chunkContent), doc.getLanguage())
             .get(0)
             .forEach(t -> {
-                String mention = chunkContent.substring(t.getBegin(), t.getEnd());
-                namedEntitiesBuilder.add(NamedEntity.Category.EMAIL, mention, t.getBegin() + contentOffset);
+                String mention = chunkContent.substring(t.begin(), t.end());
+                namedEntitiesBuilder.add(NamedEntity.Category.EMAIL, mention, t.begin() + contentOffset);
             });
         List<NamedEntity> entities = namedEntitiesBuilder.build();
         if ("message/rfc822".equals(doc.getContentType())) {

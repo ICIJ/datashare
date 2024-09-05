@@ -116,9 +116,9 @@ public interface Pipeline {
         this.processText(Stream.of(docContent.substring(contentOffset, contentOffset + contentLength)), doc.getLanguage())
             .get(0)
             .forEach(tag -> {
-                int begin = tag.getBegin() + contentOffset;
-                int end = tag.getEnd() + contentOffset;
-                annotations.add(begin, end, tag.getCategory());
+                int begin = tag.begin() + contentOffset;
+                int end = tag.end() + contentOffset;
+                annotations.add(begin, end, tag.category());
             });
         return NamedEntity.allFrom(docContent, annotations);
     }

@@ -135,9 +135,9 @@ public class ExtractNlpTask extends PipelineTask<String> implements Monitorable 
                 new Annotations(doc.getId(), nlpPipeline.getType(), doc.getLanguage());
             int offset = item.offset;
             chunkTags.forEach(tag -> {
-                int begin = tag.getBegin() + offset;
-                int end = tag.getEnd() + offset;
-                annotations.add(begin, end, tag.getCategory());
+                int begin = tag.begin() + offset;
+                int end = tag.end() + offset;
+                annotations.add(begin, end, tag.category());
             });
             List<NamedEntity> chunkEntities = NamedEntity.allFrom(doc.getContent(), annotations);
             boolean isComplete = offset + item.text.length() == doc.getContentTextLength();
