@@ -17,6 +17,10 @@ public class Pair<T1, T2> {
         second = snd;
     }
 
+    public static <T1, T2>  Pair<T1, T2> of(T1 fst, T2 snd) {
+        return new Pair<>(fst, snd);
+    }
+
     public T1 _1() { return first; }
     public T2 _2() { return second; }
 
@@ -27,12 +31,10 @@ public class Pair<T1, T2> {
 
     @Override
     public boolean equals(Object o) {
-        if ( ! (o instanceof Pair) ) {
+        if ( ! (o instanceof Pair<?, ?> objPair) ) {
             return false;
         }
-        Pair objPair = (Pair) o;
-        return  first .equals(objPair._1()) &&
-                second.equals(objPair._2());
+        return  first .equals(objPair._1()) && second.equals(objPair._2());
     }
 
 }

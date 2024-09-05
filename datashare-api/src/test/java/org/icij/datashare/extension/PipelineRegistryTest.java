@@ -73,61 +73,62 @@ public class PipelineRegistryTest {
         loader = new ExtensionLoader(folder.getRoot().toPath());
     }
 
-    String EXTENSION_PIPELINE_SOURCE = "package org.icij.datashare.text.nlp.test;\n" +
-            "\n" +
-            "import org.icij.datashare.PropertiesProvider;\n" +
-            "import org.icij.datashare.text.Document;\n" +
-            "import org.icij.datashare.text.Language;\n" +
-            "import org.icij.datashare.text.NamedEntity;\n" +
-            "import org.icij.datashare.text.nlp.Annotations;\n" +
-            "import org.icij.datashare.text.nlp.Pipeline;\n" +
-            "\n" +
-            "import java.nio.charset.Charset;\n" +
-            "import java.util.List;\n" +
-            "import java.util.Optional;\n" +
-            "\n" +
-            "public class ExtensionPipeline implements Pipeline {\n" +
-            "    @Override\n" +
-            "    public Type getType() {\n" +
-            "        return Type.TEST;\n" +
-            "    }\n" +
-            "\n" +
-            "    public ExtensionPipeline(PropertiesProvider provider) {}\n" +
-            "    @Override\n" +
-            "    public boolean initialize(Language language) throws InterruptedException {\n" +
-            "        return false;\n" +
-            "    }\n" +
-            "    @Override\n" +
-            "    public List<NamedEntity> process(Document doc) throws InterruptedException  {\n" +
-            "        return null;\n" +
-            "    }\n" +
-            "    @Override\n" +
-            "    public List<NamedEntity> process(Document doc, int contentLength, int offset) throws InterruptedException  {\n" +
-            "        return null;\n" +
-            "    }\n" +
-            "    @Override\n" +
-            "    public void terminate(Language language) throws InterruptedException {\n" +
-            "\n" +
-            "    }\n" +
-            "\n" +
-            "    @Override\n" +
-            "    public boolean supports(Language language) {\n" +
-            "        return false;\n" +
-            "    }\n" +
-            "\n" +
-            "    @Override\n" +
-            "    public List<NamedEntity.Category> getTargetEntities() {\n" +
-            "        return null;\n" +
-            "    }\n" +
-            "\n" +
-            "    @Override\n" +
-            "    public boolean isCaching() {\n" +
-            "        return false;\n" +
-            "    }\n" +
-            "\n" +
-            "    @Override\n" +
-            "    public Charset getEncoding() {\n" +
-            "        return null;\n" +
-            "    }\n" +
-            "}\n";
+    String EXTENSION_PIPELINE_SOURCE = """
+        package org.icij.datashare.text.nlp.test;
+
+        import org.icij.datashare.PropertiesProvider;
+        import org.icij.datashare.text.Document;
+        import org.icij.datashare.text.Language;
+        import org.icij.datashare.text.NamedEntity;
+        import org.icij.datashare.text.nlp.Annotations;
+        import org.icij.datashare.text.nlp.Pipeline;
+        import org.icij.datashare.text.nlp.NlpTag;
+
+        import java.nio.charset.Charset;
+        import java.util.List;
+        import java.util.stream.Stream;
+        import java.util.Optional;
+
+        public class ExtensionPipeline implements Pipeline {
+            @Override
+            public Type getType() {
+                return Type.TEST;
+            }
+
+            public ExtensionPipeline(PropertiesProvider provider) {}
+            @Override
+            public boolean initialize(Language language) throws InterruptedException {
+                return false;
+            }
+            @Override
+            public List<List<NlpTag>> processText(Stream<String> batch, Language language)  {
+                return null;
+            }
+
+            @Override
+            public void terminate(Language language) throws InterruptedException {
+
+            }
+
+            @Override
+            public boolean supports(Language language) {
+                return false;
+            }
+
+            @Override
+            public List<NamedEntity.Category> getTargetEntities() {
+                return null;
+            }
+
+            @Override
+            public boolean isCaching() {
+                return false;
+            }
+
+            @Override
+            public Charset getEncoding() {
+                return null;
+            }
+        }
+        """;
 }

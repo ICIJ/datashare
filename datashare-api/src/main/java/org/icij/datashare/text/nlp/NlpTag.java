@@ -14,7 +14,7 @@ public class NlpTag {
     private final NamedEntity.Category category;
 
 
-    NlpTag(int begin, int end, NamedEntity.Category category) {
+    public NlpTag(int begin, int end, NamedEntity.Category category) {
         this.begin = begin;
         this.end = end;
         this.category = category;

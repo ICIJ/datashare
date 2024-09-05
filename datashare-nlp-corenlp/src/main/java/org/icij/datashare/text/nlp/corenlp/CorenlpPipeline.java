@@ -5,16 +5,15 @@ import static org.icij.datashare.text.nlp.corenlp.models.CoreNlpPipelineModels.S
 import com.google.inject.Inject;
 import edu.stanford.nlp.pipeline.CoreDocument;
 import edu.stanford.nlp.pipeline.StanfordCoreNLP;
+import edu.stanford.nlp.util.Pair;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Stream;
 import org.icij.datashare.PropertiesProvider;
-import org.icij.datashare.function.ThrowingFunctions;
-import org.icij.datashare.text.Document;
-import org.icij.datashare.text.Hasher;
 import org.icij.datashare.text.Language;
-import org.icij.datashare.text.NamedEntitiesBuilder;
 import org.icij.datashare.text.NamedEntity;
 import org.icij.datashare.text.nlp.AbstractPipeline;
+import org.icij.datashare.text.nlp.NlpTag;
 import org.icij.datashare.text.nlp.Pipeline;
 import org.icij.datashare.text.nlp.corenlp.models.CoreNlpPipelineModels;
 
@@ -49,14 +48,10 @@ public final class CorenlpPipeline extends AbstractPipeline {
         return initializePipelineAnnotator(language);
     }
 
-    @Override
-    public List<NamedEntity> process(Document doc) throws InterruptedException {
-        return process(doc, doc.getContentTextLength(), 0);
-    }
 
     @Override
-    public List<NamedEntity> process(Document doc, int contentLength, int contentOffset) throws InterruptedException {
-        return processPipeline(doc, contentLength, contentOffset);
+    public List<List<NlpTag>> processText(Stream<String> batch, Language language) throws InterruptedException {
+        return processPipeline(batch, language);
     }
 
     /**
@@ -82,27 +77,15 @@ public final class CorenlpPipeline extends AbstractPipeline {
         return true;
     }
 
-    /**
-     * Named Entity Classifier (Conditional Random Fields) only
-     *
-     * @param doc the document
-     */
-    private List<NamedEntity> processPipeline(Document doc, int contentLength, int contentOffset)
-        throws InterruptedException {
-        NamedEntitiesBuilder namedEntitiesBuilder =
-            new NamedEntitiesBuilder(getType(), doc.getId(), doc.getLanguage()).withRoot(doc.getRootDocument());
-        LOGGER.info("name-finding for {} in document {} (offset {})", doc.getLanguage(), Hasher.shorten(doc.getId(), 4),
-            contentOffset);
-        final StanfordCoreNLP annotator;
-        annotator = CoreNlpPipelineModels.getInstance().get(doc.getLanguage());
-        String text = doc.getContent()
-            .substring(contentOffset, Math.min(contentOffset + contentLength, doc.getContentTextLength()));
-        CoreDocument codeDoc = annotator.processToCoreDocument(text);
-        codeDoc.entityMentions().forEach(e -> {
-            NamedEntity.Category category = NamedEntity.Category.parse(e.entityType());
-            String mention = ThrowingFunctions.removeNewLines.apply(e.text());
-            namedEntitiesBuilder.add(category, mention, e.charOffsets().first + contentOffset);
-        });
-        return namedEntitiesBuilder.build();
+    private List<List<NlpTag>> processPipeline(Stream<String> batch, Language language) throws InterruptedException {
+        final StanfordCoreNLP annotator = CoreNlpPipelineModels.getInstance().get(language);
+        return batch.map(text -> {
+            CoreDocument codeDoc = annotator.processToCoreDocument(text);
+            return codeDoc.entityMentions().stream().map(e -> {
+                NamedEntity.Category category = NamedEntity.Category.parse(e.entityType());
+                Pair<Integer, Integer> offsets = e.charOffsets();
+                return new NlpTag(offsets.first, offsets.first, category);
+            }).toList();
+        }).toList();
     }
 }

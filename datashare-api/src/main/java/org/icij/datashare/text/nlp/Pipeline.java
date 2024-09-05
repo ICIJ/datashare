@@ -1,5 +1,11 @@
 package org.icij.datashare.text.nlp;
 
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Optional;
+import java.util.Properties;
+import java.util.Set;
 import java.util.stream.Stream;
 import org.icij.datashare.reflect.EnumTypeToken;
 import org.icij.datashare.text.Document;
@@ -7,7 +13,6 @@ import org.icij.datashare.text.Language;
 import org.icij.datashare.text.NamedEntity;
 
 import java.nio.charset.Charset;
-import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -22,9 +27,6 @@ public interface Pipeline {
     static Set<Type> set(Type ...types) {
         return new HashSet<>(Arrays.asList(types));
     }
-
-    record PipelineInput (Document doc, int contentLength, int contentOffset) {}
-
 
     enum Type implements EnumTypeToken {
         TEST((short)-1),
@@ -71,6 +73,10 @@ public interface Pipeline {
             return comaSeparatedTypes == null || comaSeparatedTypes.isEmpty() ? new HashSet<>():
                     stream(comaSeparatedTypes.split(",")).map(Type::valueOf).collect(Collectors.toSet());
         }
+
+        public boolean extractFromDoc() {
+            return this == Type.EMAIL;
+        }
     }
 
     enum Property {
@@ -100,17 +106,24 @@ public interface Pipeline {
 
     boolean initialize(Language language) throws InterruptedException;
 
-    List<NamedEntity> process(Document doc) throws InterruptedException;
-    List<NamedEntity> process(Document doc, int contentLength, int contentOffset) throws InterruptedException;
-    default List<List<NamedEntity>> process(Stream<PipelineInput> inputs) throws InterruptedException {
-        return inputs.map(i -> {
-            try {
-                return process(i.doc, i.contentLength, i.contentOffset);
-            } catch (InterruptedException e) {
-                throw new RuntimeException(e);
-            }
-        }).collect(Collectors.toList());
+    default List<NamedEntity> processDoc(Document doc) throws InterruptedException {
+        return processDoc(doc, doc.getContentTextLength(), 0);
     }
+
+    default List<NamedEntity> processDoc(Document doc, int contentLength, int contentOffset) throws InterruptedException {
+        Annotations annotations = new Annotations(doc.getId(), this.getType(), doc.getLanguage());
+        String docContent = doc.getContent();
+        this.processText(Stream.of(docContent.substring(contentOffset, contentOffset + contentLength)), doc.getLanguage())
+            .get(0)
+            .forEach(tag -> {
+                int begin = tag.getBegin() + contentOffset;
+                int end = tag.getEnd() + contentOffset;
+                annotations.add(begin, end, tag.getCategory());
+            });
+        return NamedEntity.allFrom(docContent, annotations);
+    }
+
+    List<List<NlpTag>> processText(Stream<String> batch, Language language) throws InterruptedException;
 
     void terminate(Language language) throws InterruptedException;
 

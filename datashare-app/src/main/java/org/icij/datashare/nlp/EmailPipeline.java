@@ -8,6 +8,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.stream.Stream;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.Language;
@@ -19,6 +20,7 @@ import java.nio.charset.Charset;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import org.icij.datashare.text.nlp.NlpTag;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.unmodifiableSet;
@@ -87,19 +89,26 @@ public class EmailPipeline extends AbstractPipeline {
     }
 
     @Override
-    public List<NamedEntity> process(Document doc) {
-        return process(doc, doc.getContentTextLength(), 0);
+    public List<List<NlpTag>> processText(Stream<String> batch, Language ignored) {
+        return batch.map(text -> {
+            Matcher matcher = pattern.matcher(text);
+            return matcher.results()
+                .map(r -> new NlpTag(matcher.start(), matcher.end(), NamedEntity.Category.EMAIL))
+                .toList();
+        }).toList();
     }
 
     @Override
-    public List<NamedEntity> process(Document doc, int contentLength, int contentOffset) {
-        Matcher matcher = pattern.matcher(doc.getContent().substring(contentOffset, Math.min(contentLength + contentOffset, doc.getContentTextLength())));
+    public List<NamedEntity> processDoc(Document doc, int contentLength, int contentOffset) {
+        String docContent = doc.getContent();
         NamedEntitiesBuilder namedEntitiesBuilder = new NamedEntitiesBuilder(EMAIL, doc.getId(), doc.getLanguage()).withRoot(doc.getRootDocument());
-        while (matcher.find()) {
-            String email = matcher.group(0);
-            int start = matcher.start();
-            namedEntitiesBuilder.add(NamedEntity.Category.EMAIL, email, start + contentOffset);
-        }
+        String chunkContent = docContent.substring(contentOffset, Math.min(contentLength + contentOffset, doc.getContentTextLength()));
+        this.processText(Stream.of(chunkContent), doc.getLanguage())
+            .get(0)
+            .forEach(t -> {
+                String mention = chunkContent.substring(t.getBegin(), t.getEnd());
+                namedEntitiesBuilder.add(NamedEntity.Category.EMAIL, mention, t.getBegin() + contentOffset);
+            });
         List<NamedEntity> entities = namedEntitiesBuilder.build();
         if ("message/rfc822".equals(doc.getContentType())) {
             entities.addAll(processMetadata(doc));
