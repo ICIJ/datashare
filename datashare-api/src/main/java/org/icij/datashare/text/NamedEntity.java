@@ -135,8 +135,8 @@ public final class NamedEntity implements Entity {
     }
 
     public static NamedEntity from(String text, NlpTag tag, Annotations annotations) {
-        String mention = ThrowingFunctions.removeNewLines.apply(text.substring(tag.getBegin(), tag.getEnd()));
-        return NamedEntity.create(tag.getCategory(), mention, List.of((long) tag.getBegin()),
+        String mention = ThrowingFunctions.removeNewLines.apply(text.substring(tag.begin(), tag.end()));
+        return NamedEntity.create(tag.category(), mention, List.of((long) tag.begin()),
                 annotations.documentId, annotations.rootId, annotations.pipelineType, annotations.language
         );
     }

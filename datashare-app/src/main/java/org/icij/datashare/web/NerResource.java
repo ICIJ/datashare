@@ -10,6 +10,7 @@ import net.codestory.http.annotations.Get;
 import net.codestory.http.annotations.Post;
 import net.codestory.http.annotations.Prefix;
 import org.icij.datashare.extension.PipelineRegistry;
+import org.icij.datashare.text.Document;
 import org.icij.datashare.text.DocumentBuilder;
 import org.icij.datashare.text.Language;
 import org.icij.datashare.text.NamedEntity;
@@ -51,7 +52,8 @@ public class NerResource {
         Pipeline p = pipelineRegistry.get(Pipeline.Type.parse(pipeline));
         Language language = languageGuesser.guess(text);
         if (p.initialize(language)) {
-            return p.process(DocumentBuilder.createDoc("inline").with(text).with(language).build());
+            Document doc = DocumentBuilder.createDoc("inline").with(text).with(language).build();
+            return p.processDoc(doc);
         }
         return emptyList();
     }

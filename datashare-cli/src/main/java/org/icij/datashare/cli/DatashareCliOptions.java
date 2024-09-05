@@ -37,6 +37,7 @@ public final class DatashareCliOptions {
     public static final String BATCH_SEARCH_MAX_TIME_OPT = "batchSearchMaxTimeSeconds";
     public static final String BATCH_SEARCH_SCROLL_DURATION_OPT = "batchSearchScroll";
     public static final String BATCH_SEARCH_SCROLL_SIZE_OPT = "batchSearchScrollSize";
+    public static final String BATCH_SIZE_OPT = "batchSize";
     public static final String BATCH_THROTTLE_OPT = "batchThrottleMilliseconds";
     public static final String BROWSER_OPEN_LINK_OPT = "browserOpenLink";
     public static final String BUS_TYPE_OPT = "busType";
@@ -212,7 +213,7 @@ public final class DatashareCliOptions {
                 singletonList(FOLLOW_SYMLINKS_OPT), "Follow symlinks while scanning documents")
                 .withRequiredArg()
                 .ofType(Boolean.class)
-                .defaultsTo(DEFAULT_FOLLOW_SYMLINKS);;
+                .defaultsTo(DEFAULT_FOLLOW_SYMLINKS);
     }
 
     static void cors(OptionParser parser) {
@@ -344,7 +345,7 @@ public final class DatashareCliOptions {
 
     static void artifactDir(OptionParser parser) {
         parser.acceptsAll(
-                asList(ARTIFACT_DIR_OPT),
+                List.of(ARTIFACT_DIR_OPT),
                 "Artifact directory for embedded caching. If not provided datashare will use memory." )
                 .withRequiredArg();
     }
@@ -790,7 +791,7 @@ public final class DatashareCliOptions {
     }
 
     public static ValueConverter<String> toAbsolute() {
-        return new ValueConverter<String>() {
+        return new ValueConverter<>() {
             @Override
             public String convert(String value) {
                 Path path = Paths.get(value);

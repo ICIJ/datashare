@@ -1,5 +1,6 @@
 package org.icij.datashare.nlp;
 
+import java.util.Objects;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.Language;
@@ -24,9 +25,9 @@ import static org.icij.datashare.text.NamedEntity.Category.EMAIL;
 public class EmailPipelineTest {
     private final EmailPipeline pipeline = new EmailPipeline(new PropertiesProvider());
     @Test
-    public void test_no_email() {
-        List<NamedEntity> annotations = pipeline.process(createDocument("this is a content without email but with an arobase (@).", "docId", Language.ENGLISH));
-        assertThat(annotations).isEmpty();
+    public void test_no_email() throws InterruptedException {
+        List<NamedEntity> namedEntities = pipeline.processDoc(createDocument("this is a content without email but with an arobase (@).", "docId", Language.ENGLISH));
+        assertThat(namedEntities).isEmpty();
     }
 
     private Document createDocument(String content, String docId, Language language) {
@@ -34,63 +35,66 @@ public class EmailPipelineTest {
     }
 
     @Test
-    public void test_one_email() {
+    public void test_one_email() throws InterruptedException {
         String content = "this is a content with email@domain.com";
-        List<NamedEntity> annotations = pipeline.process(createDocument(content, "docId", Language.ENGLISH));
+        List<NamedEntity> nameEntities = pipeline.processDoc(createDocument(content, "docId", Language.ENGLISH));
 
-        assertThat(annotations).hasSize(1);
-        assertThat(annotations.get(0).getOffsets()).containsExactly(23L);
-        assertThat(annotations.get(0).getCategory()).isEqualTo(NamedEntity.Category.EMAIL);
-        assertThat(annotations.get(0).getMention()).isEqualTo("email@domain.com");
+        assertThat(nameEntities).hasSize(1);
+        assertThat(nameEntities.get(0).getOffsets()).containsExactly(23L);
+        assertThat(nameEntities.get(0).getCategory()).isEqualTo(NamedEntity.Category.EMAIL);
+        assertThat(nameEntities.get(0).getMention()).isEqualTo("email@domain.com");
     }
 
     @Test
-    public void test_one_email_twice() {
-        String content = "this is a content with email@domain.com\n" +
-                "that is twice in the document\n" +
-                "email@domain.com";
-        List<NamedEntity> annotations = pipeline.process(createDocument(content, "docId", Language.ENGLISH));
+    public void test_one_email_twice() throws InterruptedException {
+        String content = """
+this is a content with email@domain.com
+that is twice in the document
+email@domain.com""";
+        List<NamedEntity> namedEntities = pipeline.processDoc(createDocument(content, "docId", Language.ENGLISH));
 
-        assertThat(annotations).hasSize(1);
-        NamedEntity nlpTag = annotations.get(0);
+        assertThat(namedEntities).hasSize(1);
+        NamedEntity nlpTag = namedEntities.get(0);
         assertThat(nlpTag.getOffsets()).containsExactly(23L, 70L);
         assertThat(nlpTag.getMention()).isEqualTo("email@domain.com");
     }
 
     @Test
-    public void test_three_emails() {
-        List<NamedEntity> annotations = pipeline.process(createDocument("this is a content with email@domain.com\n" +
-                "and another one : foo@bar.com\n" +
-                "and baz@qux.fr", "docId", Language.ENGLISH));
+    public void test_three_emails() throws InterruptedException {
+        List<NamedEntity> namedEntities = pipeline.processDoc(createDocument("""
+this is a content with email@domain.com
+and another one : foo@bar.com
+and baz@qux.fr""", "docId", Language.ENGLISH));
 
-        assertThat(annotations).hasSize(3);
+        assertThat(namedEntities).hasSize(3);
     }
 
     @Test
     public void test_emails_chunked_content() {
-        Document document = createDocument("this is a content with email@domain.com\n" +
-                "and another one : foo@bar.com\n" +
-                "and baz@qux.fr", "docId", Language.ENGLISH);
-        List<NamedEntity> annotations = pipeline.process(document, 20, 72);
+        Document document = createDocument("""
+this is a content with email@domain.com
+and another one : foo@bar.com
+and baz@qux.fr""", "docId", Language.ENGLISH);
+        List<NamedEntity> namedEntities = pipeline.processDoc(document, 20, 72);
 
-        assertThat(annotations).hasSize(1);
-        assertThat(annotations.get(0).getMention()).isEqualTo("baz@qux.fr");
-        assertThat(annotations.get(0).getOffsets()).containsExactly(74L);
+        assertThat(namedEntities).hasSize(1);
+        assertThat(namedEntities.get(0).getMention()).isEqualTo("baz@qux.fr");
+        assertThat(namedEntities.get(0).getOffsets()).containsExactly(74L);
     }
 
     @Test
-    public void test_acceptance() throws IOException {
-        Path emailFile = Paths.get(getClass().getResource("/email.eml").getPath());
+    public void test_acceptance() throws IOException, InterruptedException {
+        Path emailFile = Paths.get(Objects.requireNonNull(getClass().getResource("/email.eml")).getPath());
         String content = new String(Files.readAllBytes(emailFile));
 
-        List<NamedEntity> annotations = pipeline.process(createDocument(content, "docId", Language.ENGLISH));
+        List<NamedEntity> namedEntities = pipeline.processDoc(createDocument(content, "docId", Language.ENGLISH));
 
-        assertThat(annotations).hasSize(3);
-        assertThat(annotations.get(0).getOffsets()).containsExactly(14L, 48L, 168L, 332L, 1283L, 1482L, 1544L, 1582L);
+        assertThat(namedEntities).hasSize(3);
+        assertThat(namedEntities.get(0).getOffsets()).containsExactly(14L, 48L, 168L, 332L, 1283L, 1482L, 1544L, 1582L);
     }
 
     @Test
-    public void test_adds_document_headers_parsing_for_email() {
+    public void test_adds_document_headers_parsing_for_email() throws InterruptedException {
         Document doc = createDoc("docid")
             .with("hello@world.com")
             .withRootId("root")
@@ -101,7 +105,7 @@ public class EmailPipelineTest {
                 put(tikaMsgHeader("Cc"), "email2@domain.com,email3@domain.com");
             }}).build();
 
-        List<NamedEntity> namedEntities = pipeline.process(doc);
+        List<NamedEntity> namedEntities = pipeline.processDoc(doc);
 
         Map<String, Object> metaFirst = Map.of("emailHeaderField", "tika_metadata_message_to");
         NamedEntity fourth = NamedEntity.create(
@@ -124,7 +128,7 @@ public class EmailPipelineTest {
     }
 
     @Test
-    public void test_filter_headers_that_contains_mail_addresses() {
+    public void test_filter_headers_that_contains_mail_addresses() throws InterruptedException {
         Document doc = createDoc("docid")
             .with("mail content")
             .ofContentType("message/rfc822")
@@ -151,7 +155,7 @@ public class EmailPipelineTest {
                 put(tikaRawHeader("Resent-bcc"), "resent-bcc@head.er");
             }}).build();
 
-        List<NamedEntity> namedEntities = pipeline.process(doc);
+        List<NamedEntity> namedEntities = pipeline.processDoc(doc);
 
         assertThat(namedEntities).containsExactly(
                         NamedEntity.create(EMAIL, "replyto@head.er", List.of(-1L), "docid", "root", Type.EMAIL, FRENCH, Map.of("emailHeaderField", "tika_metadata_message_raw_header_reply_to")),

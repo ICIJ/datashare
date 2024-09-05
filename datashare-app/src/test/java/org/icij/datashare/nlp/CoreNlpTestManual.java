@@ -22,7 +22,7 @@ public class CoreNlpTestManual {
         systemClassLoader.add(distDir.toURI().toURL());
         CorenlpPipeline corenlpPipeline = new CorenlpPipeline(new PropertiesProvider());
         corenlpPipeline.initialize(Language.ENGLISH);
-        List<NamedEntity> process = corenlpPipeline.process(DocumentBuilder.createDoc("my_doc_id").with("this is Dwight's document").build());
+        List<NamedEntity> process = corenlpPipeline.processDoc(DocumentBuilder.createDoc("my_doc_id").with("this is Dwight's document").build());
         assertThat(process.size()).isGreaterThan(0);
     }
 }

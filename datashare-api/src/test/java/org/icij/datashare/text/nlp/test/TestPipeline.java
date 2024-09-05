@@ -1,9 +1,10 @@
 package org.icij.datashare.text.nlp.test;
 
+import java.util.stream.Stream;
 import org.icij.datashare.PropertiesProvider;
-import org.icij.datashare.text.Document;
 import org.icij.datashare.text.Language;
 import org.icij.datashare.text.NamedEntity;
+import org.icij.datashare.text.nlp.NlpTag;
 import org.icij.datashare.text.nlp.Pipeline;
 
 import java.nio.charset.Charset;
@@ -22,15 +23,9 @@ public class TestPipeline implements Pipeline {
     }
 
     @Override
-    public List<NamedEntity> process(Document doc) {
+    public List<List<NlpTag>> processText(Stream<String> batch, Language language) {
         return null;
     }
-
-    @Override
-    public List<NamedEntity> process(Document doc, int contentLength, int contentOffset) {
-        return null;
-    }
-
     @Override
     public void terminate(Language language) {
     }
