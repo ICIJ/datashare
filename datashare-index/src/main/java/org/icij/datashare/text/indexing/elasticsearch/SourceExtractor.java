@@ -112,16 +112,13 @@ public class SourceExtractor {
                 }
                 return inputStream;
             } catch (ContentNotFoundException | SAXException | TikaException | IOException ex) {
-                LOGGER.info(String.format("Extract attempt %s/%s for embedded document failed:", ++i, digesters.size()));
-                LOGGER.info(String.format("\t├── exception: %s",  ex.getClass().getSimpleName()));
-                LOGGER.info(String.format("\t├── algorithm: %s",  algorithm));
-                LOGGER.info(String.format("\t├── digester: %s",  digester.getClass().getSimpleName()));
-                LOGGER.info(String.format("\t├── id: %s", document.getId()));
-                LOGGER.info(String.format("\t├── routing: %s",  document.getRootDocument()));
-                LOGGER.info(String.format("\t└── project: %s",  document.getProject().getName()));
+                LOGGER.debug("Extract attempt {}/{} for embedded document {}/{} failed (algorithm={}, digester={}, project={})",
+                        ++i, digesters.size(),
+                        document.getId(), document.getRootDocument(),
+                        algorithm, digester.getClass().getSimpleName(),
+                        document.getProject(), ex);
             }
         }
-
         throw new ContentNotFoundException(document.getRootDocument(), document.getId());
     }
 
