@@ -106,6 +106,7 @@ public class BatchDownloadRunner implements Callable<UriResult>, Monitorable, Us
                         maxResultSize, batchDownload.uuid, batchDownload.user);
             }
 
+            logger.info("creating zip file with max input files size of {} bytes", maxZipSizeBytes);
             try (Zipper zipper = createZipper(batchDownload, propertiesProvider, mailSenderSupplier)) {
                 HashMap<String, Object> taskProperties = new HashMap<>();
                 taskProperties.put("batchDownload", batchDownload);
