@@ -66,11 +66,11 @@ public class BatchDownloadRunnerTest {
         mockSearch.willReturn(2, documents);
         Task<File> taskView = getTaskView(new BatchDownload(singletonList(project("test-datashare")), User.local(), "query"));
         UriResult result = new BatchDownloadRunner(indexer, new PropertiesProvider(new HashMap<>() {{
-            put(BATCH_DOWNLOAD_MAX_SIZE_OPT, valueOf("hello world 1".getBytes(StandardCharsets.UTF_8).length * 3));
+            put(BATCH_DOWNLOAD_MAX_SIZE_OPT, valueOf("hello world 1".getBytes(StandardCharsets.UTF_8).length * 3 - 1)); // to avoid adding the 4th doc
             put(SCROLL_SIZE_OPT, "3");
         }}), taskView, taskView.progress(updater::progress)).call();
 
-        assertThat(new ZipFile(new File(result.uri)).size()).isEqualTo(4);
+        assertThat(new ZipFile(new File(result.uri)).size()).isEqualTo(3); // the 4th doc must have been skipped
     }
 
     @Test(expected = ElasticsearchException.class)
