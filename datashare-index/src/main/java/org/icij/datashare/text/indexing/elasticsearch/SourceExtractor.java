@@ -86,7 +86,7 @@ public class SourceExtractor {
         String algorithm = hasher.toString();
         int i = 0;
         List<DigestingParser.Digester> digesters = new ArrayList<>(List.of());
-        // Digester with the project name
+        // Digester without project name
         digesters.add(new CommonsDigester(20 * 1024 * 1024,  algorithm.replace("-", "")));
         // Digester with the project name
         digesters.add(new UpdatableDigester(project.getId(), algorithm));
@@ -104,7 +104,7 @@ public class SourceExtractor {
             try {
                 EmbeddedDocumentExtractor embeddedExtractor = new EmbeddedDocumentExtractor(
                         digester, algorithm,
-                        propertiesProvider.get(DatashareCliOptions.ARTIFACT_DIR_OPT).map(Path::of).orElse(null),false);
+                        propertiesProvider.get(DatashareCliOptions.ARTIFACT_DIR_OPT).map(dir -> Path.of(dir).resolve(project.name)).orElse(null),false);
                 TikaDocumentSource source = embeddedExtractor.extract(rootDocument, document.getId());
                 InputStream inputStream = source.get();
                 if (filterMetadata) {

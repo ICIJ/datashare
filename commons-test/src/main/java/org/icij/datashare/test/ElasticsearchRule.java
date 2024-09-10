@@ -83,7 +83,7 @@ public class ElasticsearchRule extends ExternalResource {
             client.indices().delete(DeleteIndexRequest.of(dir -> dir.index(asList(indexesNames))));
             client._transport().close();
         } catch (IOException e) {
-            e.printStackTrace();
+            throw new IllegalStateException("cannot close ES client properly", e);
         }
     }
 
