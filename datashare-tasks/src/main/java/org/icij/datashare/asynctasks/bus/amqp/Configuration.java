@@ -13,6 +13,7 @@ import static java.util.Optional.ofNullable;
  */
 public class Configuration {
 	private static final int DEFAULT_CONNECTION_RECOVERY_DELAY = 5000;
+	private static final int DEFAULT_PREFETCH_NUMBER = 1;
 	public final String host;
 	public final int port;
 	public final String user;
@@ -40,7 +41,7 @@ public class Configuration {
 				stream(query.split("&")).
                         collect(Collectors.toMap(kv -> kv.split("=")[0], kv -> kv.split("=")[1]));
 		rabbitMq = Boolean.parseBoolean(ofNullable(properties.get("rabbitMq")).orElse("true"));
-		nbMaxMessages = Integer.parseInt(ofNullable(properties.get("nbMaxMessages")).orElse("100"));
+		nbMaxMessages = Integer.parseInt(ofNullable(properties.get("nbMaxMessages")).orElse(String.valueOf(DEFAULT_PREFETCH_NUMBER)));
 		requeueDelay = Integer.parseInt(ofNullable(properties.get("requeueDelay")).orElse("30"));
 		String connectionRecoveryDelayStr = properties.get("recoveryDelay");
 		connectionRecoveryDelay = connectionRecoveryDelayStr == null ?
