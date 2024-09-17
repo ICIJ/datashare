@@ -1,7 +1,6 @@
 package org.icij.datashare.asynctasks.bus.amqp;
 
 import com.rabbitmq.client.BuiltinExchangeType;
-import org.apache.commons.collections4.map.UnmodifiableMap;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -14,7 +13,10 @@ import java.util.Map;
 public enum AmqpQueue {
 	EVENT  ("exchangeMainEvents",  BuiltinExchangeType.FANOUT, "routingKeyMainEvents"),
 	TASK_DLQ  ("exchangeDLQTasks", BuiltinExchangeType.DIRECT, "routingKeyDLQTasks"),
-	TASK  ("exchangeMainTasks",  BuiltinExchangeType.DIRECT,"routingKeyMainTasks", Map.of("x-queue-type", "quorum", "x-delivery-limit", 10), TASK_DLQ),
+	TASK  ("exchangeMainTasks",  BuiltinExchangeType.DIRECT,"routingKeyMainTasks", Map.of(
+			"x-queue-type", "quorum",
+			"x-delivery-limit", 10,
+			"x-consumer-timeout", 3600 * 1000), TASK_DLQ),
 	MANAGER_EVENT_DLQ  ("exchangeDLQManagerEvents",  BuiltinExchangeType.DIRECT,"routingKeyDLQManagerEvents"),
 	MANAGER_EVENT  ("exchangeManagerEvents",  BuiltinExchangeType.DIRECT,"routingKeyManagerEvents", new HashMap<>(), MANAGER_EVENT_DLQ),
 	WORKER_EVENT("exchangeWorkerEvents", BuiltinExchangeType.FANOUT, "routingKeyWorkerEvents");
