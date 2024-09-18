@@ -45,7 +45,7 @@ public class EnqueueFromIndexTaskTest {
     }
 
     @Test
-    public void test_with_query() throws Exception {
+    public void test_with_query_body() throws Exception {
         indexer.add(TEST_INDEX, createDoc("my_id").with("this is my precious doc")
                 .with(Pipeline.Type.CORENLP).with(project(TEST_INDEX)).build()); // because default is CORENLP so it should fail as of now
         Map<String, Object> properties = Map.of(
@@ -59,6 +59,22 @@ public class EnqueueFromIndexTaskTest {
                             }
                         }
                         """);
+
+        MemoryDocumentCollectionFactory<String> factory = new MemoryDocumentCollectionFactory<>();
+        EnqueueFromIndexTask enqueueFromIndex = new EnqueueFromIndexTask(factory, indexer, new Task<>(EnqueueFromIndexTask.class.getName(), new User("test"), properties), null);
+        enqueueFromIndex.call();
+        assertThat(factory.queues.get("test:queue:nlp")).hasSize(2); // with poison
+    }
+
+    @Test
+    public void test_with_query_string() throws Exception {
+        indexer.add(TEST_INDEX, createDoc("my_id").with("this is my precious doc")
+                .with(Pipeline.Type.CORENLP).with(project(TEST_INDEX)).build()); // because default is CORENLP so it should fail as of now
+        Map<String, Object> properties = Map.of(
+                "defaultProject", "test-datashare",
+                "stages", "ENQUEUEIDX",
+                "queueName", "test:queue",
+                "searchQuery", "extractionLevel:0");
 
         MemoryDocumentCollectionFactory<String> factory = new MemoryDocumentCollectionFactory<>();
         EnqueueFromIndexTask enqueueFromIndex = new EnqueueFromIndexTask(factory, indexer, new Task<>(EnqueueFromIndexTask.class.getName(), new User("test"), properties), null);
