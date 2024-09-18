@@ -19,6 +19,7 @@ import static org.fest.assertions.Assertions.assertThat;
 import static org.icij.datashare.cli.DatashareCliOptions.NLP_PIPELINE_OPT;
 import static org.icij.datashare.test.ElasticsearchRule.TEST_INDEX;
 import static org.icij.datashare.text.DocumentBuilder.createDoc;
+import static org.icij.datashare.text.Project.project;
 
 public class EnqueueFromIndexTaskTest {
     @ClassRule
@@ -38,8 +39,30 @@ public class EnqueueFromIndexTaskTest {
                 "queueName", "test:queue",
                 NLP_PIPELINE_OPT, Pipeline.Type.OPENNLP.name());
         MemoryDocumentCollectionFactory<String> factory = new MemoryDocumentCollectionFactory<>();
-        EnqueueFromIndexTask resumeNlpTask = new EnqueueFromIndexTask(factory, indexer, new Task<>(EnqueueFromIndexTask.class.getName(), new User("test"), properties), null);
-        resumeNlpTask.call();
+        EnqueueFromIndexTask enqueueFromIndex = new EnqueueFromIndexTask(factory, indexer, new Task<>(EnqueueFromIndexTask.class.getName(), new User("test"), properties), null);
+        enqueueFromIndex.call();
         assertThat(factory.queues.get("test:queue:nlp")).hasSize(21); // with poison
+    }
+
+    @Test
+    public void test_with_query() throws Exception {
+        indexer.add(TEST_INDEX, createDoc("my_id").with("this is my precious doc")
+                .with(Pipeline.Type.CORENLP).with(project(TEST_INDEX)).build()); // because default is CORENLP so it should fail as of now
+        Map<String, Object> properties = Map.of(
+                "defaultProject", "test-datashare",
+                "stages", "ENQUEUEIDX",
+                "queueName", "test:queue",
+                "searchQuery", """
+                        {
+                            "match": {
+                              "extractionLevel": 0
+                            }
+                        }
+                        """);
+
+        MemoryDocumentCollectionFactory<String> factory = new MemoryDocumentCollectionFactory<>();
+        EnqueueFromIndexTask enqueueFromIndex = new EnqueueFromIndexTask(factory, indexer, new Task<>(EnqueueFromIndexTask.class.getName(), new User("test"), properties), null);
+        enqueueFromIndex.call();
+        assertThat(factory.queues.get("test:queue:nlp")).hasSize(2); // with poison
     }
 }
