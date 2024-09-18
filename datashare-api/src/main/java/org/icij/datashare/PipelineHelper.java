@@ -1,8 +1,11 @@
 package org.icij.datashare;
 
 import java.util.List;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
 import static java.util.Arrays.stream;
+import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toList;
 
 public class PipelineHelper {
@@ -43,5 +46,10 @@ public class PipelineHelper {
 
     static String getInputQueueName(PropertiesProvider propertiesProvider) {
         return propertiesProvider.get(PropertiesProvider.QUEUE_NAME_OPTION).orElse("extract:queue");
+    }
+
+    @Override
+    public String toString() {
+        return String.format("Pipeline stages: %s", stages.stream().map(Objects::toString).collect(joining(", ")));
     }
 }

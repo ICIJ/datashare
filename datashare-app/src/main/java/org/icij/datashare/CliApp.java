@@ -5,6 +5,7 @@ import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.cli.CliExtensionService;
 import org.icij.datashare.cli.spi.CliExtension;
 import org.icij.datashare.mode.CommonMode;
+import org.icij.datashare.tasks.ArtifactTask;
 import org.icij.datashare.tasks.DeduplicateTask;
 import org.icij.datashare.tasks.EnqueueFromIndexTask;
 import org.icij.datashare.tasks.ExtractNlpTask;
@@ -107,6 +108,7 @@ class CliApp {
         }
 
         PipelineHelper pipeline = new PipelineHelper(new PropertiesProvider(properties));
+        logger.info("executing {}", pipeline);
         if (pipeline.has(Stage.DEDUPLICATE)) {
             Long result = taskFactory.createDeduplicateTask(
                     new Task<>(DeduplicateTask.class.getName(), nullUser(), propertiesToMap(properties)),
@@ -142,6 +144,12 @@ class CliApp {
         if (pipeline.has(Stage.NLP)) {
             taskFactory.createExtractNlpTask(
                     new Task<>(ExtractNlpTask.class.getName(), nullUser(), propertiesToMap(properties)),
+                    (percentage) -> {logger.info("percentage: {}% done", percentage); return null;}).call();
+        }
+
+        if (pipeline.has(Stage.ARTIFACT)) {
+            taskFactory.createArtifactTask(
+                    new Task<>(ArtifactTask.class.getName(), nullUser(), propertiesToMap(properties)),
                     (percentage) -> {logger.info("percentage: {}% done", percentage); return null;}).call();
         }
         taskManager.shutdownAndAwaitTermination(Integer.MAX_VALUE, SECONDS);
