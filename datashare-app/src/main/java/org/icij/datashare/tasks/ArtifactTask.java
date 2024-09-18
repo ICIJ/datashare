@@ -1,5 +1,6 @@
 package org.icij.datashare.tasks;
 
+import com.google.inject.Inject;
 import com.google.inject.assistedinject.Assisted;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Stage;
@@ -29,6 +30,7 @@ public class ArtifactTask extends PipelineTask<String> {
     private final Project project;
     private final Path artifactDir;
 
+    @Inject
     public ArtifactTask(DocumentCollectionFactory<String> factory, Indexer indexer, PropertiesProvider propertiesProvider, @Assisted Task<Long> taskView, @Assisted final Function<Double, Void> updateCallback) {
         super(Stage.ARTIFACT, taskView.getUser(), factory, propertiesProvider, String.class);
         this.indexer = indexer;
@@ -48,8 +50,6 @@ public class ArtifactTask extends PipelineTask<String> {
             try {
                 if (docId != null) {
                     Document doc = indexer.get(project.name, docId, sourceExcludes);
-                    // we are getting a file input stream that is only created if we call the Supplier<InputStream>.get()
-                    // so it is safe to ignore the return value, it will just create the file
                     extractor.extractEmbeddedSources(project, doc);
                     nbDocs++;
                 }
