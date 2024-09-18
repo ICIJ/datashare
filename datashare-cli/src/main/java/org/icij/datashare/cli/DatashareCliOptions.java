@@ -120,6 +120,7 @@ public final class DatashareCliOptions {
     public static final String VERSION_ABBR_OPT = "v";
     public static final String VERSION_OPT = "version";
     public static final String ARTIFACT_DIR_OPT = "artifactDir";
+    public static final String SEARCH_QUERY_OPT = "searchQuery";
 
     private static final Path DEFAULT_DATASHARE_HOME = Paths.get(System.getProperty("user.home"), ".local/share/datashare");
     private static final Integer DEFAULT_NLP_PARALLELISM = 1;
@@ -785,6 +786,12 @@ public final class DatashareCliOptions {
 
     public static void oauthClaimIdAttribute(OptionParser parser) {
         parser.acceptsAll(singletonList("oauthClaimIdAttribute"), "Json field name sent by the Identity Provider that contains user identifier value.")
+                .withRequiredArg()
+                .ofType(String.class);
+    }
+
+    public static void searchQuery(OptionParser parser) {
+        parser.acceptsAll(singletonList(SEARCH_QUERY_OPT), "Json query for filtering index matches for EnqueueFromIndex task.")
                 .withRequiredArg()
                 .ofType(String.class);
     }

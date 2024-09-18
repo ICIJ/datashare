@@ -180,6 +180,7 @@ public class DatashareCli {
         DatashareCliOptions.digestProjectName(parser);
         DatashareCliOptions.noDigestProject(parser);
         DatashareCliOptions.logLevel(parser);
+        DatashareCliOptions.searchQuery(parser);
         return parser;
     }
 
