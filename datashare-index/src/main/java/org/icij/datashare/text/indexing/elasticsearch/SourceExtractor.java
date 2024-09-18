@@ -42,17 +42,8 @@ public class SourceExtractor {
     private final boolean filterMetadata;
     private final MetadataCleaner metadataCleaner = new MetadataCleaner();
 
-    public SourceExtractor(Path artifactDir) {
-        this(new PropertiesProvider(Map.of(DatashareCliOptions.ARTIFACT_DIR_OPT, artifactDir.toString())), false);
-    }
-
     public SourceExtractor(PropertiesProvider propertiesProvider) {
         this(propertiesProvider, false);
-    }
-
-    public SourceExtractor(Path artifactDir, boolean filterMetadata) {
-        this.propertiesProvider = new PropertiesProvider(Map.of(DatashareCliOptions.ARTIFACT_DIR_OPT, artifactDir.toString()));
-        this.filterMetadata = filterMetadata;
     }
 
     public SourceExtractor(PropertiesProvider propertiesProvider, boolean filterMetadata) {
@@ -83,16 +74,15 @@ public class SourceExtractor {
 
     public InputStream getEmbeddedSource(final Project project, final Document document) {
         Hasher hasher = Hasher.valueOf(document.getId().length());
-        String algorithm = hasher.toString();
         int i = 0;
         List<DigestingParser.Digester> digesters = new ArrayList<>(List.of());
-        // Digester without project name
-        digesters.add(new CommonsDigester(20 * 1024 * 1024,  algorithm.replace("-", "")));
+        // Digester without the project name
+        digesters.add(new CommonsDigester(20 * 1024 * 1024,  hasher.toStringWithoutDash()));
         // Digester with the project name
-        digesters.add(new UpdatableDigester(project.getId(), algorithm));
+        digesters.add(new UpdatableDigester(project.getId(), hasher.toString()));
         // Digester with the project name set on "defaultProject" for retro-compatibility
         if (mightUseLegacyDigester(document)) {
-            digesters.add(new UpdatableDigester(getDefaultProject(), algorithm));
+            digesters.add(new UpdatableDigester(getDefaultProject(), hasher.toString()));
         }
 
         // Try each digester to find embedded doc and ensure we 
@@ -103,8 +93,8 @@ public class SourceExtractor {
 
             try {
                 EmbeddedDocumentExtractor embeddedExtractor = new EmbeddedDocumentExtractor(
-                        digester, algorithm,
-                        propertiesProvider.get(DatashareCliOptions.ARTIFACT_DIR_OPT).map(dir -> Path.of(dir).resolve(project.name)).orElse(null),false);
+                        digester, hasher.toString(),
+                        getArtifactPath(project),false);
                 TikaDocumentSource source = embeddedExtractor.extract(rootDocument, document.getId());
                 InputStream inputStream = source.get();
                 if (filterMetadata) {
@@ -115,11 +105,32 @@ public class SourceExtractor {
                 LOGGER.debug("Extract attempt {}/{} for embedded document {}/{} failed (algorithm={}, digester={}, project={})",
                         ++i, digesters.size(),
                         document.getId(), document.getRootDocument(),
-                        algorithm, digester.getClass().getSimpleName(),
+                        hasher, digester.getClass().getSimpleName(),
                         document.getProject(), ex);
             }
         }
+
         throw new ContentNotFoundException(document.getRootDocument(), document.getId());
+    }
+
+    private Path getArtifactPath(Project project) {
+        return propertiesProvider.get(DatashareCliOptions.ARTIFACT_DIR_OPT).map(dir -> Path.of(dir).resolve(project.name)).orElse(null);
+    }
+
+    public void extractEmbeddedSources(final Project project, Document document) throws TikaException, IOException, SAXException {
+        Hasher hasher = Hasher.valueOf(document.getId().length());
+        DigestingParser.Digester digester = noDigestProject() ?
+                new CommonsDigester(20 * 1024 * 1024,  hasher.toStringWithoutDash()):
+                new UpdatableDigester(project.getId(), hasher.toString());
+
+        Identifier identifier = new DigestIdentifier(hasher.toString(), Charset.defaultCharset());
+        TikaDocument tikaDocument = new DocumentFactory().withIdentifier(identifier).create(document.getPath());
+        EmbeddedDocumentExtractor embeddedExtractor = new EmbeddedDocumentExtractor(digester, hasher.toString(), getArtifactPath(project),false);
+        embeddedExtractor.extractAll(tikaDocument);
+    }
+
+    private boolean noDigestProject() {
+        return Boolean.parseBoolean(propertiesProvider.get(DatashareCliOptions.NO_DIGEST_PROJECT_OPT).orElse("true"));
     }
 
     private boolean mightUseLegacyDigester(Document document) {
@@ -133,6 +144,4 @@ public class SourceExtractor {
     private boolean isServerMode() {
         return propertiesProvider.get("mode").orElse(Mode.SERVER.name()).equals((Mode.SERVER.name()));
     }
-
-
 }

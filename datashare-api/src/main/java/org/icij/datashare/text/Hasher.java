@@ -39,6 +39,9 @@ public enum Hasher {
         return algorithm;
     }
 
+    public String toStringWithoutDash() {
+        return algorithm.replace("-", "");
+    }
 
     public String hash(String message) {
         return hash(message, DEFAULT_ENCODING);

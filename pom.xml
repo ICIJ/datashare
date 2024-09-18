@@ -88,7 +88,7 @@
         <guice.version>4.2.3</guice.version>
         <amazon.version>1.12.411</amazon.version>
 
-        <extract.version>7.2.0</extract.version>
+        <extract.version>7.3.0</extract.version>
         <opennlp.version>1.6.0</opennlp.version>
         <elasticsearch.version>7.17.9</elasticsearch.version>
         <lucene.version>8.11.1</lucene.version>
