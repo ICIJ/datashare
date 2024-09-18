@@ -2,9 +2,9 @@ package org.icij.datashare.asynctasks;
 
 import org.fest.assertions.Assertions;
 import org.icij.datashare.PropertiesProvider;
-import org.icij.datashare.asynctasks.bus.amqp.AmqpServerRule;
 import org.icij.datashare.asynctasks.bus.amqp.AmqpInterlocutor;
 import org.icij.datashare.asynctasks.bus.amqp.AmqpQueue;
+import org.icij.datashare.asynctasks.bus.amqp.AmqpServerRule;
 import org.icij.datashare.asynctasks.bus.amqp.TaskError;
 import org.icij.datashare.user.User;
 import org.icij.extract.redis.RedissonClientFactory;
@@ -15,6 +15,11 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
+import org.redisson.Redisson;
+import org.redisson.RedissonMap;
+import org.redisson.api.RedissonClient;
+import org.redisson.command.CommandSyncService;
+import org.redisson.liveobject.core.RedissonObjectBuilder;
 
 import java.io.IOException;
 import java.io.Serializable;
@@ -24,11 +29,6 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
-import org.redisson.Redisson;
-import org.redisson.RedissonMap;
-import org.redisson.api.RedissonClient;
-import org.redisson.command.CommandSyncService;
-import org.redisson.liveobject.core.RedissonObjectBuilder;
 
 import static org.fest.assertions.Assertions.assertThat;
 

@@ -4,10 +4,12 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import org.icij.datashare.Entity;
 import org.icij.datashare.asynctasks.bus.amqp.Event;
 import org.icij.datashare.asynctasks.bus.amqp.TaskError;
+import org.icij.datashare.asynctasks.bus.amqp.UriResult;
 import org.icij.datashare.user.User;
 
 import java.io.Serializable;
@@ -39,6 +41,12 @@ public class Task<V> extends Event implements Entity {
     volatile TaskError error;
     private volatile State state;
     private volatile double progress;
+
+    @JsonSubTypes({
+        @JsonSubTypes.Type(value = UriResult.class),
+        @JsonSubTypes.Type(value = Long.class)
+    })
+    @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "@type")
     private volatile V result;
 
     public Task(String name, User user, Map<String, Object> args) {

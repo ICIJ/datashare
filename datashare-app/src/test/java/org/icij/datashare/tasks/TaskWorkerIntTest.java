@@ -111,7 +111,7 @@ public class TaskWorkerIntTest {
         Task<File> taskView = createTaskView(bd);
         UriResult result = new BatchDownloadRunner(indexer, createProvider(), taskView, taskView.progress(taskModifier::progress)).call();
 
-        assertThat(result.size).isGreaterThan(0);
+        assertThat(result.size()).isGreaterThan(0);
     }
 
     @Test

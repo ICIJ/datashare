@@ -57,7 +57,7 @@ public class BatchDownloadRunnerTest {
                     put(SCROLL_SIZE_OPT, "3");
                 }}), taskView, taskView.progress(updater::progress)).call();
 
-        assertThat(new ZipFile(new File(result.uri)).size()).isEqualTo(3);
+        assertThat(new ZipFile(new File(result.uri())).size()).isEqualTo(3);
     }
 
     @Test
@@ -70,7 +70,7 @@ public class BatchDownloadRunnerTest {
             put(SCROLL_SIZE_OPT, "3");
         }}), taskView, taskView.progress(updater::progress)).call();
 
-        assertThat(new ZipFile(new File(result.uri)).size()).isEqualTo(3); // the 4th doc must have been skipped
+        assertThat(new ZipFile(new File(result.uri())).size()).isEqualTo(3); // the 4th doc must have been skipped
     }
 
     @Test(expected = ElasticsearchException.class)
