@@ -23,35 +23,34 @@ import static org.icij.datashare.cli.DatashareCliOptions.ARTIFACT_DIR_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_DEFAULT_PROJECT;
 import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_PROJECT_OPT;
 
-public class ArtifactTask extends PipelineTask<Pair<String, String>> {
+public class ArtifactTask extends PipelineTask<String> {
     private final Logger logger = LoggerFactory.getLogger(getClass());
     private final Indexer indexer;
     private final Project project;
     private final Path artifactDir;
-    static Pair<String, String> POISON = new Pair<>("POISON", "POISON");
 
-    public ArtifactTask(DocumentCollectionFactory<Pair<String, String>> factory, Indexer indexer, PropertiesProvider propertiesProvider, @Assisted Task<Long> taskView, @Assisted final Function<Double, Void> updateCallback) {
-        super(Stage.ARTIFACT, taskView.getUser(), factory, propertiesProvider, (Class<Pair<String, String>>)(Object)Pair.class);
+    public ArtifactTask(DocumentCollectionFactory<String> factory, Indexer indexer, PropertiesProvider propertiesProvider, @Assisted Task<Long> taskView, @Assisted final Function<Double, Void> updateCallback) {
+        super(Stage.ARTIFACT, taskView.getUser(), factory, propertiesProvider, String.class);
         this.indexer = indexer;
-        project = Project.project(ofNullable((String)taskView.args.get(DEFAULT_PROJECT_OPT)).orElse(DEFAULT_DEFAULT_PROJECT));
-        artifactDir = Path.of(ofNullable((String)taskView.args.get(ARTIFACT_DIR_OPT)).orElseThrow(() -> new IllegalArgumentException(String.format("cannot create artifact task with empty %s", ARTIFACT_DIR_OPT))));
+        project = Project.project(propertiesProvider.get(DEFAULT_PROJECT_OPT).orElse(DEFAULT_DEFAULT_PROJECT));
+        artifactDir = Path.of(propertiesProvider.get(ARTIFACT_DIR_OPT).orElseThrow(() -> new IllegalArgumentException(String.format("cannot create artifact task with empty %s", ARTIFACT_DIR_OPT))));
     }
 
     @Override
     public Long call() throws Exception {
         super.call();
         logger.info("creating artifact cache in {} for project {} from queue {}", artifactDir, project, inputQueue.getName());
-        SourceExtractor extractor = new SourceExtractor(artifactDir.resolve(project.name));
+        SourceExtractor extractor = new SourceExtractor(propertiesProvider);
         List<String> sourceExcludes = List.of("content", "content_translated");
-        Pair<String, String> docRef;
+        String docId;
         long nbDocs = 0;
-        while (!(POISON.equals(docRef = inputQueue.poll(60, TimeUnit.SECONDS)))) {
+        while (!(STRING_POISON.equals(docId = inputQueue.poll(60, TimeUnit.SECONDS)))) {
             try {
-                if (docRef != null) {
-                    Document doc = indexer.get(project.name, docRef._1(), docRef._2(), sourceExcludes);
+                if (docId != null) {
+                    Document doc = indexer.get(project.name, docId, sourceExcludes);
                     // we are getting a file input stream that is only created if we call the Supplier<InputStream>.get()
                     // so it is safe to ignore the return value, it will just create the file
-                    extractor.getEmbeddedSource(project, doc);
+                    extractor.extractEmbeddedSources(project, doc);
                     nbDocs++;
                 }
             } catch (Throwable e) {

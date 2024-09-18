@@ -21,6 +21,9 @@ public class MockIndexer {
         this.mockIndexer = mockIndexer;
     }
 
+    public void indexFile(String index, String _id, Path path, String contentType) {
+        indexFile(index, _id, path, contentType, null);
+    }
     public void indexFile(String index, String _id, Path path, String contentType, String routing) {
         Document document = DocumentBuilder.createDoc(_id)
                 .with(path)
@@ -48,6 +51,7 @@ public class MockIndexer {
     public void indexFile(String index, Document document) {
         List<String> sourceExcludes = List.of("content", "content_translated");
         when(mockIndexer.get(index, document.getId())).thenReturn(document);
+        when(mockIndexer.get(index, document.getId(), sourceExcludes)).thenReturn(document);
         when(mockIndexer.get(index, document.getId(), document.getId(), sourceExcludes)).thenReturn(document);
     }
 

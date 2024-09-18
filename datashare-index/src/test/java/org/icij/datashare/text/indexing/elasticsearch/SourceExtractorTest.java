@@ -14,6 +14,7 @@ import org.icij.extract.extractor.Extractor;
 import org.icij.spewer.FieldNames;
 import org.icij.task.Options;
 import org.junit.ClassRule;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
@@ -29,19 +30,22 @@ import java.util.Map;
 
 import static java.nio.file.Paths.get;
 import static org.fest.assertions.Assertions.assertThat;
+import static org.icij.datashare.cli.DatashareCliOptions.ARTIFACT_DIR_OPT;
+import static org.icij.datashare.cli.DatashareCliOptions.NO_DIGEST_PROJECT_OPT;
 import static org.icij.datashare.test.ElasticsearchRule.TEST_INDEX;
 import static org.icij.datashare.text.Project.project;
 
 public class SourceExtractorTest {
-    @ClassRule static public TemporaryFolder tmpDir = new TemporaryFolder();
-    @ClassRule public static ElasticsearchRule es = new ElasticsearchRule();
+    @Rule public TemporaryFolder tmpDir = new TemporaryFolder();
+    @ClassRule
+    public static ElasticsearchRule es = new ElasticsearchRule();
 
     @Test(expected = FileNotFoundException.class)
     public void test_file_not_found() throws IOException {
         File file = tmpDir.newFile("foo.bar");
         Document document = DocumentBuilder.createDoc(project("project"), file.toPath()).build();
         assertThat(file.delete()).isTrue();
-        new SourceExtractor(tmpDir.getRoot().toPath()).getSource(document);
+        new SourceExtractor(getPropertiesProvider()).getSource(document);
     }
 
     @Test(expected = EmbeddedDocumentExtractor.ContentNotFoundException.class)
@@ -54,7 +58,7 @@ public class SourceExtractorTest {
                 .with(new HashMap<>())
                 .with(Document.Status.INDEXED)
                 .withContentLength(45L).build();
-        new SourceExtractor(new PropertiesProvider()).getEmbeddedSource(project("project"), document);
+        new SourceExtractor(getPropertiesProvider()).getEmbeddedSource(project("project"), document);
     }
 
     @Test
@@ -68,7 +72,7 @@ public class SourceExtractorTest {
                 .with(Document.Status.INDEXED)
                 .withContentLength(45L).build();
 
-        InputStream source = new SourceExtractor(new PropertiesProvider()).getSource(document);
+        InputStream source = new SourceExtractor(getPropertiesProvider()).getSource(document);
         assertThat(source).isNotNull();
         assertThat(getBytes(source)).hasSize(70574);
     }
@@ -84,8 +88,8 @@ public class SourceExtractorTest {
                 .with(Document.Status.INDEXED)
                 .withContentLength(0L).build();
 
-        InputStream inputStreamWithMetadata = new SourceExtractor(new PropertiesProvider(), false).getSource(document);
-        InputStream inputStreamWithoutMetadata = new SourceExtractor(new PropertiesProvider(), true).getSource(document);
+        InputStream inputStreamWithMetadata = new SourceExtractor(getPropertiesProvider(), false).getSource(document);
+        InputStream inputStreamWithoutMetadata = new SourceExtractor(getPropertiesProvider(), true).getSource(document);
         assertThat(inputStreamWithMetadata).isNotNull();
         assertThat(inputStreamWithoutMetadata).isNotNull();
         assertThat(getBytes(inputStreamWithMetadata).length).isEqualTo(9216);
@@ -118,13 +122,14 @@ public class SourceExtractorTest {
         Map<String, Object> stringProperties = Map.of(
             "digestAlgorithm", Document.DEFAULT_DIGESTER.toString(),
             "digestProjectName", TEST_INDEX,
+            ARTIFACT_DIR_OPT, tmpDir.getRoot().toString(),
             "defaultProject", TEST_INDEX);
         ElasticsearchIndexer elasticsearchIndexer = indexDocument(stringProperties, path, stringProperties);
         Document attachedPdf = elasticsearchIndexer.
                 get(TEST_INDEX, "1bf2b6aa27dd8b45c7db58875004b8cb27a78ced5200b4976b63e351ebbae5ececb86076d90e156a7cdea06cde9573ca",
                         "f4078910c3e73a192e3a82d205f3c0bdb749c4e7b23c1d05a622db0f07d7f0ededb335abdb62aef41ace5d3cdb9298bc");
 
-        InputStream source = new SourceExtractor(tmpDir.getRoot().toPath()).getSource(project(TEST_INDEX), attachedPdf);
+        InputStream source = new SourceExtractor(new PropertiesProvider(stringProperties)).getSource(project(TEST_INDEX), attachedPdf);
         assertThat(source).isNotNull();
         assertThat(tmpDir.getRoot().toPath().resolve(TEST_INDEX).toFile()).isDirectory();
         Path cachedArtifact = tmpDir.getRoot().toPath()
@@ -227,6 +232,39 @@ public class SourceExtractorTest {
         return new ElasticsearchIndexer(es.client, new PropertiesProvider(Map.of("defaultProject", defaultProject))).withRefresh(Refresh.True);
     }
 
+    @Test
+    public void test_extract_embeds_for_doc() throws Exception {
+        Document document = DocumentBuilder.createDoc(project(TEST_INDEX),get(getClass().getResource("/docs/embedded_doc.eml").getPath()))
+                .with("it has been parsed")
+                .with(Language.FRENCH)
+                .with(Charset.defaultCharset())
+                .ofContentType("message/rfc822")
+                .with(new HashMap<>())
+                .with(Document.Status.INDEXED)
+                .withContentLength(45L).build();
+
+        new SourceExtractor(getPropertiesProvider()).extractEmbeddedSources(project(TEST_INDEX), document);
+        assertThat(tmpDir.getRoot().toPath().resolve(TEST_INDEX).toFile()).isDirectory();
+        assertThat(tmpDir.getRoot().toPath().resolve(TEST_INDEX).toFile().listFiles()).containsOnly(
+                tmpDir.getRoot().toPath().resolve(TEST_INDEX).resolve("1b").toFile());
+    }
+
+    @Test
+    public void test_extract_embeds_for_doc_with_no_digest_project_opt() throws Exception {
+        Document document = DocumentBuilder.createDoc(project(TEST_INDEX),get(getClass().getResource("/docs/embedded_doc.eml").getPath()))
+                .with("it has been parsed")
+                .with(Language.FRENCH)
+                .with(Charset.defaultCharset())
+                .ofContentType("message/rfc822")
+                .with(new HashMap<>())
+                .with(Document.Status.INDEXED)
+                .withContentLength(45L).build();
+
+        new SourceExtractor(getPropertiesProvider(true)).extractEmbeddedSources(project(TEST_INDEX), document);
+        assertThat(tmpDir.getRoot().toPath().resolve(TEST_INDEX).toFile().listFiles()).containsOnly(
+                tmpDir.getRoot().toPath().resolve(TEST_INDEX).resolve("75").toFile());
+    }
+
     private byte[] getBytes(InputStream source) throws IOException {
         ByteArrayOutputStream buffer = new ByteArrayOutputStream();
         int nbTmpBytesRead;
@@ -234,5 +272,16 @@ public class SourceExtractorTest {
             buffer.write(tmp, 0, nbTmpBytesRead);
         }
         return buffer.toByteArray();
+    }
+
+    private PropertiesProvider getPropertiesProvider() {
+        return getPropertiesProvider(false);
+    }
+
+    private PropertiesProvider getPropertiesProvider(boolean noDigestProject) {
+        return new PropertiesProvider(Map.of(
+                ARTIFACT_DIR_OPT, tmpDir.getRoot().toString(),
+                NO_DIGEST_PROJECT_OPT, String.valueOf(noDigestProject))
+        );
     }
 }
