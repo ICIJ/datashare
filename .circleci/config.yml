@@ -284,10 +284,25 @@ jobs:
             cd /tmp/datashare-client
             yarn test:unit --silent --minWorkers 1 --maxWorkers 2  
       - run:
-          name: build the from for distribution
+          name: build the front for distribution
           command: |
             cd /tmp/datashare-client
-            make dist
+            yarn build --outDir dist/
+      - run:
+          name: switch to new design branch
+          command: |
+            cd /tmp/datashare-client
+            git checkout feat/new-design
+      - run:
+          name: make install again (package.json changed)
+          command: |
+            cd /tmp/datashare-client
+            make install
+      - run:
+          name: build the front with the new design for distribution
+          command: |
+            cd /tmp/datashare-client
+            yarn build --outDir dist/next/
       - persist_to_workspace:
           root: /tmp/datashare-client
           paths:
