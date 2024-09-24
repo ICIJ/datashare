@@ -292,7 +292,7 @@ jobs:
           name: switch to new design branch
           command: |
             cd /tmp/datashare-client
-            git checkout feat/new-design
+            git switch feat/new-design
       - run:
           name: make install again (package.json changed)
           command: |
