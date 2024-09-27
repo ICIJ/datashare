@@ -13,8 +13,10 @@
     import net.codestory.http.annotations.*;
     import net.codestory.http.constants.HttpStatus;
     import net.codestory.http.payload.Payload;
+    import org.apache.commons.io.FileUtils;
     import org.icij.datashare.PropertiesProvider;
     import org.icij.datashare.Repository;
+    import org.icij.datashare.cli.DatashareCliOptions;
     import org.icij.datashare.cli.Mode;
     import org.icij.datashare.session.DatashareUser;
     import org.icij.datashare.extract.DocumentCollectionFactory;
@@ -30,6 +32,7 @@
     import org.slf4j.Logger;
     import org.slf4j.LoggerFactory;
 
+    import java.io.File;
     import java.io.IOException;
     import java.nio.file.Path;
     import java.util.List;
@@ -170,7 +173,7 @@
         @ApiResponse(responseCode = "204", description = "if project is deleted")
         @ApiResponse(responseCode = "401", description = "if project id is not in the current user's projects")
         @Delete("/:id")
-        public Payload deleteProject(String id, Context context) throws Exception {
+        public Payload deleteProject(String id, Context context) throws IOException {
             modeVerifier.checkAllowedMode(Mode.LOCAL, Mode.EMBEDDED);
             DatashareUser user = (DatashareUser) context.currentUser();
             Project project = getUserProject(user, id);
@@ -179,9 +182,17 @@
             logger.info("Deleted {}'s index: {}", id, indexer.deleteAll(id));
             logger.info("Deleted {}'s queues: {}", id, deleteQueues(project));
             logger.info("Deleted {}'s report map: {}", id, deleteReportMap(project));
+            propertiesProvider.get(DatashareCliOptions.ARTIFACT_DIR_OPT).ifPresent(dir -> {
+                try {
+                    File projectArtifactDir = Path.of(dir).resolve(id).toFile();
+                    FileUtils.deleteDirectory(projectArtifactDir);
+                    logger.info("Deleted artifacts dir {}", projectArtifactDir);
+                } catch (IOException e) {
+                    logger.error("cannot delete project {} artifact dir", id, e);
+                }
+            });
             return new Payload(204);
         }
-
 
         @Operation(description = "Deletes all user's projects from database and elasticsearch index.")
         @ApiResponse(responseCode = "204", description = "if projects are deleted")
@@ -191,7 +202,7 @@
             getUserProjects(user).forEach(project -> {
                 try {
                     deleteProject(project.name, context);
-                } catch (Exception e) {
+                } catch (IOException e) {
                     throw new RuntimeException(e);
                 }
             });

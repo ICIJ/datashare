@@ -19,7 +19,9 @@ import org.icij.extract.queue.DocumentQueue;
 import org.icij.extract.report.Report;
 import org.icij.extract.report.ReportMap;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 import org.mockito.Mock;
 
 import java.io.IOException;
@@ -37,6 +39,7 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
     @Mock Repository repository;
     @Mock JooqRepository jooqRepository;
     @Mock Indexer indexer;
+    @Rule public TemporaryFolder artifactDir = new TemporaryFolder();
     MemoryDocumentCollectionFactory<Path> documentCollectionFactory;
     PropertiesProvider propertiesProvider;
 
@@ -271,6 +274,29 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
         when(indexer.deleteAll("local-datashare")).thenReturn(true).thenReturn(false);
         delete("/api/project/local-datashare").should().respond(204);
         delete("/api/project/local-datashare").should().respond(204);
+    }
+
+    @Test
+    public void test_delete_project_delete_artifacts() throws Exception {
+        configure(routes -> {
+            propertiesProvider = new PropertiesProvider(new HashMap<>() {{
+                put("dataDir", "/vault");
+                put("mode", "LOCAL");
+                put("artifactDir", artifactDir.getRoot().toString());
+            }});
+
+            ProjectResource projectResource = new ProjectResource(repository, indexer, propertiesProvider, documentCollectionFactory);
+            routes.filter(new LocalUserFilter(propertiesProvider, jooqRepository)).add(projectResource);
+        });
+
+        artifactDir.newFolder("test-datashare");
+        artifactDir.newFile("test-datashare/foo");
+        Project project = new Project("test-datashare");
+        when(repository.getProjects(any())).thenReturn(List.of(project));
+        when(repository.deleteAll(project.getId())).thenReturn(false).thenReturn(false);
+        when(indexer.deleteAll(project.getId())).thenReturn(true).thenReturn(false);
+        delete("/api/project/test-datashare").should().respond(204);
+        assertThat(artifactDir.getRoot().toPath().resolve(project.getId()).toFile()).doesNotExist();
     }
 
     @Test
