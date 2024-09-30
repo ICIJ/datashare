@@ -22,6 +22,8 @@ import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Consumer;
 
+import static java.util.Optional.ofNullable;
+
 /**
  * AmqpChannel is handling publish errors with Publisher Confirm mechanism.
  * It encapsulates a channel, and expose consume/publish related functions.
@@ -38,6 +40,7 @@ public class AmqpChannel {
 	final Channel rabbitMqChannel;
 	final AmqpQueue queue;
 	private final int randomQueueNumber;
+	private final String key;
 
 	private final ConfirmCallback cleanOutstandingConfirms = (sequenceNumber, multiple) -> {
 		if (multiple) {
@@ -49,6 +52,10 @@ public class AmqpChannel {
 	};
 	
 	public AmqpChannel(Channel channel, AmqpQueue queue) {
+		this(channel, queue, null);
+	}
+
+	public AmqpChannel(Channel channel, AmqpQueue queue, String key) {
 		this.rabbitMqChannel = channel;
 		channel.addConfirmListener(cleanOutstandingConfirms, (sequenceNumber, multiple) -> {
 			byte[] body = outstandingConfirms.get(sequenceNumber);
@@ -57,10 +64,15 @@ public class AmqpChannel {
 		});
 		this.queue = queue;
 		this.randomQueueNumber = rand.nextInt(1000);
+		this.key = key;
 	}
 
 	void publish(Event event) throws IOException {
 		rabbitMqChannel.basicPublish(queue.exchange, queue.routingKey, null, event.serialize());
+	}
+
+	public void publish(Event event, String key) throws IOException {
+		rabbitMqChannel.basicPublish(queue.exchange, key, null, event.serialize());
 	}
 
 	String consume(Consumer<byte[]> bodyHandler, ConsumerCriteria criteria, CancelFunction cancelCallback) throws IOException {
@@ -103,7 +115,7 @@ public class AmqpChannel {
 	String queueName(String prefix) {
 		return BuiltinExchangeType.FANOUT.equals(queue.exchangeType) ?
 				String.format("%s-%s-%s-%d-%d-%d", queue.name(), prefix, getHostname(), ProcessHandle.current().pid(), Thread.currentThread().getId(), randomQueueNumber) :
-				queue.name();
+				ofNullable(key).map(q -> String.format("%s.%s", queue.name(), key)).orElse(queue.name());
 	}
 
     @Override public String toString() {
@@ -127,7 +139,7 @@ public class AmqpChannel {
 		String queueName = queueName(WORKER_PREFIX);
 		rabbitMqChannel.exchangeDeclare(queue.exchange, queue.exchangeType, durable);
 		rabbitMqChannel.queueDeclare(queueName, durable, exclusive, autoDelete, queueArguments);
-		rabbitMqChannel.queueBind(queueName, queue.exchange, queue.routingKey);
+		rabbitMqChannel.queueBind(queueName, queue.exchange, ofNullable(key).orElse(queue.routingKey));
 		rabbitMqChannel.basicQos(nbMaxMessages);
 	}
 

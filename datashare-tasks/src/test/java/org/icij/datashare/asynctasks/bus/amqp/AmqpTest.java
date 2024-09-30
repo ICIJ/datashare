@@ -144,6 +144,18 @@ public class AmqpTest {
         consumer.cancel();
     }
 
+    @Test(timeout = 4000)
+    public void test_routing_with_suffix() throws Exception {
+        String key = "KEY";
+        AmqpConsumer<TestEvent, TestEventConsumer> consumer = new AmqpConsumer<>(amqp, new TestEventConsumer(), AmqpQueue.MANAGER_EVENT, TestEvent.class, key).consumeEvents(1);
+        consumer.consumeEvents();
+
+        amqp.publish(AmqpQueue.MANAGER_EVENT, key, new TestEvent("hello Key AMQP"));
+
+        assertThat(eventQueue.take().field).isEqualTo("hello Key AMQP");
+        consumer.cancel();
+    }
+
     @After
     public void tearDown() throws Exception {
         eventQueue.clear();
