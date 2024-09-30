@@ -80,7 +80,6 @@ public class PipelineRegistryTest {
             "import org.icij.datashare.text.Language;\n" +
             "import org.icij.datashare.text.NamedEntity;\n" +
             "import org.icij.datashare.text.nlp.Annotations;\n" +
-            "import org.icij.datashare.text.nlp.NlpStage;\n" +
             "import org.icij.datashare.text.nlp.Pipeline;\n" +
             "\n" +
             "import java.nio.charset.Charset;\n" +
@@ -112,17 +111,12 @@ public class PipelineRegistryTest {
             "    }\n" +
             "\n" +
             "    @Override\n" +
-            "    public boolean supports(NlpStage stage, Language language) {\n" +
+            "    public boolean supports(Language language) {\n" +
             "        return false;\n" +
             "    }\n" +
             "\n" +
             "    @Override\n" +
             "    public List<NamedEntity.Category> getTargetEntities() {\n" +
-            "        return null;\n" +
-            "    }\n" +
-            "\n" +
-            "    @Override\n" +
-            "    public List<NlpStage> getStages() {\n" +
             "        return null;\n" +
             "    }\n" +
             "\n" +
@@ -134,11 +128,6 @@ public class PipelineRegistryTest {
             "    @Override\n" +
             "    public Charset getEncoding() {\n" +
             "        return null;\n" +
-            "    }\n" +
-            "\n" +
-            "    @Override\n" +
-            "    public Optional<String> getPosTagSet(Language language) {\n" +
-            "        return Optional.empty();\n" +
             "    }\n" +
             "}\n";
 }

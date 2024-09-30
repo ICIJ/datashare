@@ -8,14 +8,17 @@ import java.util.HashMap;
 
 import static org.fest.assertions.Assertions.assertThat;
 import static org.fest.assertions.MapAssert.entry;
-import static org.icij.datashare.text.Language.*;
+import static org.icij.datashare.text.Language.ARMENIAN;
+import static org.icij.datashare.text.Language.BRETON;
+import static org.icij.datashare.text.Language.WELSH;
+import static org.icij.datashare.text.Language.WOLOF;
 
 public class AbstractModelsTest {
     @Before public void setUp() { System.clearProperty(AbstractModels.JVM_PROPERTY_NAME);}
 
     @Test
     public void test_sync_models_true_by_default() throws Exception {
-        ConcreteModelsForTesting models = new ConcreteModelsForTesting(Pipeline.Type.CORENLP, NlpStage.NER);
+        ConcreteModelsForTesting models = new ConcreteModelsForTesting(Pipeline.Type.CORENLP);
         assertThat(models.get(WOLOF)).includes(entry("foo", "bar"));
 
         assertThat(models.hasBeenDownloaded).isTrue();
@@ -24,7 +27,7 @@ public class AbstractModelsTest {
     @Test
     public void test_sync_models_false() throws Exception {
         AbstractModels.syncModels(false);
-        ConcreteModelsForTesting models = new ConcreteModelsForTesting(Pipeline.Type.CORENLP, NlpStage.NER);
+        ConcreteModelsForTesting models = new ConcreteModelsForTesting(Pipeline.Type.CORENLP);
         assertThat(models.get(BRETON)).includes(entry("foo", "bar"));
 
         assertThat(models.hasBeenDownloaded).isFalse();
@@ -32,7 +35,7 @@ public class AbstractModelsTest {
 
     @Test
     public void test_sync_models_is_dynamic() throws Exception {
-        ConcreteModelsForTesting models = new ConcreteModelsForTesting(Pipeline.Type.CORENLP, NlpStage.NER);
+        ConcreteModelsForTesting models = new ConcreteModelsForTesting(Pipeline.Type.CORENLP);
         models.get(WELSH);
         assertThat(models.hasBeenDownloaded).isTrue();
 
@@ -42,10 +45,10 @@ public class AbstractModelsTest {
         assertThat(models.hasBeenDownloaded).isFalse();
     }
 
-    private static class ConcreteModelsForTesting extends AbstractModels<HashMap> {
+    private static class ConcreteModelsForTesting extends AbstractModels<HashMap<String, String>> {
         boolean hasBeenDownloaded = false;
-        ConcreteModelsForTesting(Pipeline.Type type, NlpStage stage) { super(type, stage);}
-        @Override protected HashMap loadModelFile(Language language) { return new HashMap() {{
+        ConcreteModelsForTesting(Pipeline.Type type) { super(type);}
+        @Override protected HashMap<String, String> loadModelFile(Language language) { return new HashMap<>() {{
             put("foo", "bar");
         }};}
         @Override protected String getVersion() { return "1.0";}

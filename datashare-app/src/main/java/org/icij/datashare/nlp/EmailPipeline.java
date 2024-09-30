@@ -1,16 +1,21 @@
 package org.icij.datashare.nlp;
 
 import com.google.inject.Inject;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.Collection;
+import java.util.Collections;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.Language;
 import org.icij.datashare.text.NamedEntitiesBuilder;
 import org.icij.datashare.text.NamedEntity;
 import org.icij.datashare.text.nlp.AbstractPipeline;
-import org.icij.datashare.text.nlp.NlpStage;
 
 import java.nio.charset.Charset;
-import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -144,16 +149,12 @@ public class EmailPipeline extends AbstractPipeline {
     public void terminate(Language language) {}
 
     @Override
-    public Map<Language, Set<NlpStage>> supportedStages() { throw new UnsupportedOperationException();}
-
-    @Override
-    public boolean supports(NlpStage stage, Language language) { return stage == NlpStage.NER;}
+    public Set<Language> supportedLanguages() {
+        return Set.of(Language.values());
+    }
 
     @Override
     public List<NamedEntity.Category> getTargetEntities() { return Collections.singletonList(NamedEntity.Category.EMAIL);}
-
-    @Override
-    public List<NlpStage> getStages() { return Collections.singletonList(NlpStage.NER);}
 
     @Override
     public boolean isCaching() { return false;}
@@ -163,7 +164,4 @@ public class EmailPipeline extends AbstractPipeline {
 
     @Override
     public boolean initialize(Language language) { return true;}
-
-    @Override
-    public Optional<String> getPosTagSet(Language language) { return Optional.empty();}
 }
