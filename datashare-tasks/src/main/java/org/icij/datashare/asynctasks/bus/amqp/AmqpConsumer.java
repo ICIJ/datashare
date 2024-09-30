@@ -28,17 +28,24 @@ public class AmqpConsumer<Evt extends Event, EvtConsumer extends Consumer<Evt>> 
 
     public AmqpConsumer(AmqpInterlocutor amqpInterlocutor,
                         EvtConsumer eventConsumer, AmqpQueue queue, Class<Evt> evtClass) throws IOException {
-        this.amqpInterlocutor = amqpInterlocutor;
-        this.eventConsumer = eventConsumer;
-        this.channel = amqpInterlocutor.createAmqpChannelForConsume(queue);
-        this.evtClass = evtClass;
+        this(amqpInterlocutor, eventConsumer, queue, evtClass, null, null);
+    }
+
+    public AmqpConsumer(AmqpInterlocutor amqpInterlocutor,
+                        EvtConsumer eventConsumer, AmqpQueue queue, Class<Evt> evtClass, CountDownLatch initLatch) throws IOException {
+        this(amqpInterlocutor, eventConsumer, queue, evtClass, null, initLatch);
+    }
+
+    public AmqpConsumer(AmqpInterlocutor amqpInterlocutor,
+                        EvtConsumer eventConsumer, AmqpQueue queue, Class<Evt> evtClass, String key) throws IOException {
+        this(amqpInterlocutor, eventConsumer, queue, evtClass, key, null);
     }
 
     AmqpConsumer(AmqpInterlocutor amqpInterlocutor,
-                 EvtConsumer eventConsumer, AmqpQueue queue, Class<Evt> evtClass, CountDownLatch initLatch) throws IOException {
+                 EvtConsumer eventConsumer, AmqpQueue queue, Class<Evt> evtClass, String key, CountDownLatch initLatch) throws IOException {
         this.amqpInterlocutor = amqpInterlocutor;
         this.eventConsumer = eventConsumer;
-        this.channel = amqpInterlocutor.createAmqpChannelForConsume(queue);
+        this.channel = amqpInterlocutor.createAmqpChannelForConsume(queue, key);
         this.evtClass = evtClass;
         ofNullable(initLatch).ifPresent(CountDownLatch::countDown);
     }
@@ -92,7 +99,9 @@ public class AmqpConsumer<Evt extends Event, EvtConsumer extends Consumer<Evt>> 
     }
 
     public void cancel() throws IOException {
-        channel.cancel(consumerTag.getAndSet(null));
+        if (consumerTag.get() != null) {
+            channel.cancel(consumerTag.getAndSet(null));
+        }
     }
 
     public boolean isCanceled() {

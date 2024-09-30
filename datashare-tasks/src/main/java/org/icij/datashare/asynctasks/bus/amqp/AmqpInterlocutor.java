@@ -57,6 +57,10 @@ public class AmqpInterlocutor {
         getChannel(queue).publish(event);
     }
 
+    public void publish(AmqpQueue amqpQueue, String key, Event event) throws IOException {
+        getChannel(amqpQueue).publish(event, key);
+    }
+
     AmqpChannel getChannel(AmqpQueue queue) {
         if (queue == null) {
             throw new UnknownChannelException(queue);
@@ -87,8 +91,8 @@ public class AmqpInterlocutor {
         return this;
     }
 
-    public synchronized AmqpChannel createAmqpChannelForConsume(AmqpQueue queue) throws IOException {
-        AmqpChannel channel = new AmqpChannel(connection.createChannel(), queue);
+    public AmqpChannel createAmqpChannelForConsume(AmqpQueue queue, String key) throws IOException {
+        AmqpChannel channel = new AmqpChannel(connection.createChannel(), queue, key);
         channel.initForConsume(configuration.rabbitMq, configuration.nbMaxMessages);
         logger.info("consume channel {} has been created for queue {}", channel, channel.queueName(AmqpChannel.WORKER_PREFIX));
         return channel;
