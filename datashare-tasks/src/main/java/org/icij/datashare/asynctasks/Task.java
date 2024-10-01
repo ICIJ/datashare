@@ -12,6 +12,7 @@ import org.icij.datashare.asynctasks.bus.amqp.TaskError;
 import org.icij.datashare.asynctasks.bus.amqp.UriResult;
 import org.icij.datashare.user.User;
 
+import java.io.Serial;
 import java.io.Serializable;
 import java.util.Collections;
 import java.util.HashMap;
@@ -29,19 +30,19 @@ import static java.util.UUID.randomUUID;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class Task<V> extends Event implements Entity {
     public static final String USER_KEY = "user";
+    public static final String GROUP_KEY = "group";
     @JsonIgnore private StateLatch stateLatch;
     @JsonIgnore private final Object lock = new Object();
 
-    public enum State {CREATED, QUEUED, RUNNING, CANCELLED, ERROR, DONE}
+    public enum State {CREATED, QUEUED, RUNNING, CANCELLED, ERROR, DONE;}
     @JsonTypeInfo(use = JsonTypeInfo.Id.CLASS, property = "@type")
     public final Map<String, Object> args;
-
     public final String id;
+
     public final String name;
     volatile TaskError error;
     private volatile State state;
     private volatile double progress;
-
     @JsonSubTypes({
         @JsonSubTypes.Type(value = UriResult.class),
         @JsonSubTypes.Type(value = Long.class)
@@ -51,6 +52,10 @@ public class Task<V> extends Event implements Entity {
 
     public Task(String name, User user, Map<String, Object> args) {
         this(randomUUID().toString(), name, user, args);
+    }
+
+    public Task(String name, User user, Group group, Map<String, Object> args) {
+        this(randomUUID().toString(), name, State.CREATED, 0, null, addTo(args, user, group));
     }
 
     public Task(String id, String name, User user) {
@@ -74,8 +79,7 @@ public class Task<V> extends Event implements Entity {
         this.progress = progress;
         this.result = result;
         // avoids "no default constructor found" for anonymous inline maps
-        this.args =
-            Collections.unmodifiableMap(ofNullable(args).orElse(new HashMap<>()));
+        this.args = Collections.unmodifiableMap(ofNullable(args).orElse(new HashMap<>()));
     }
 
     public V getResult() {
@@ -180,6 +184,11 @@ public class Task<V> extends Event implements Entity {
         return (User) args.get(USER_KEY);
     }
 
+    @JsonIgnore
+    public Group getGroup() {
+        return (Group) args.get(GROUP_KEY);
+    }
+
     public static <V> String getId(Callable<V> task) {
         return task.toString();
     }
@@ -209,6 +218,13 @@ public class Task<V> extends Event implements Entity {
     private static Map<String, Object> addTo(Map<String, Object> properties, User user) {
         LinkedHashMap<String, Object> result = new LinkedHashMap<>(properties);
         result.put(USER_KEY, user);
+        return result;
+    }
+
+    private static Map<String, Object> addTo(Map<String, Object> properties, User user, Group group) {
+        LinkedHashMap<String, Object> result = new LinkedHashMap<>(properties);
+        result.put(USER_KEY, user);
+        result.put(GROUP_KEY, group);
         return result;
     }
 }

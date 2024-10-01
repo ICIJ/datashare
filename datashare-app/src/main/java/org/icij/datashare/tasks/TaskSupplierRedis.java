@@ -2,24 +2,32 @@ package org.icij.datashare.tasks;
 
 import com.google.inject.Singleton;
 import org.icij.datashare.PropertiesProvider;
-import org.icij.datashare.asynctasks.Task;
+import org.icij.datashare.cli.DatashareCliOptions;
 import org.icij.extract.redis.RedissonClientFactory;
 import org.icij.task.Options;
+import org.jetbrains.annotations.NotNull;
 import org.redisson.api.RedissonClient;
 
 import javax.inject.Inject;
-import java.util.concurrent.BlockingQueue;
 
 @Singleton
 public class TaskSupplierRedis extends org.icij.datashare.asynctasks.TaskSupplierRedis {
     // Convenience class made to ease injection and test
     @Inject
-    public TaskSupplierRedis(RedissonClient redissonClient, BlockingQueue<Task<?>> taskQueue) {
-        super(redissonClient, taskQueue);
+    public TaskSupplierRedis(RedissonClient redissonClient, PropertiesProvider propertiesProvider) {
+        super(redissonClient, getRoutingStrategy(propertiesProvider), getRoutingKey(propertiesProvider));
     }
 
-    TaskSupplierRedis(PropertiesProvider propertiesProvider, BlockingQueue<Task<?>> taskQueue) {
-        this(new RedissonClientFactory().withOptions(Options.from(propertiesProvider.getProperties())).create(), taskQueue);
+    TaskSupplierRedis(PropertiesProvider propertiesProvider) {
+        this(new RedissonClientFactory().withOptions(Options.from(propertiesProvider.getProperties())).create(), propertiesProvider);
     }
 
+    @NotNull
+    private static RoutingStrategy getRoutingStrategy(PropertiesProvider propertiesProvider) {
+        return RoutingStrategy.valueOf(propertiesProvider.get(DatashareCliOptions.TASK_ROUTING_STRATEGY_OPT).orElse(DatashareCliOptions.DEFAULT_TASK_ROUTING_STRATEGY.name()));
+    }
+
+    private static String getRoutingKey(PropertiesProvider propertiesProvider) {
+        return propertiesProvider.get(DatashareCliOptions.TASK_ROUTING_KEY_OPT).orElse(null);
+    }
 }

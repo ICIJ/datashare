@@ -5,14 +5,18 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.ByteBufInputStream;
 import io.netty.buffer.ByteBufOutputStream;
+import org.icij.datashare.asynctasks.bus.amqp.AmqpQueue;
 import org.icij.datashare.asynctasks.bus.amqp.CancelEvent;
 import org.icij.datashare.asynctasks.bus.amqp.TaskEvent;
 import org.icij.datashare.json.JsonObjectMapper;
+import org.icij.datashare.tasks.RoutingStrategy;
 import org.icij.datashare.user.User;
 import org.redisson.Redisson;
 import org.redisson.RedissonBlockingQueue;
 import org.redisson.RedissonMap;
+import org.redisson.api.RKeys;
 import org.redisson.api.RTopic;
+import org.redisson.api.RType;
 import org.redisson.api.RedissonClient;
 import org.redisson.client.codec.BaseCodec;
 import org.redisson.client.handler.State;
@@ -31,6 +35,7 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.regex.Pattern;
+import java.util.stream.StreamSupport;
 
 import static java.util.Optional.ofNullable;
 import static java.util.stream.Collectors.toList;
@@ -39,17 +44,19 @@ public class TaskManagerRedis implements TaskManager {
     private final Runnable eventCallback; // for test
     public static final String EVENT_CHANNEL_NAME = "EVENT";
     private final RedissonMap<String, Task<?>> tasks;
-    private final BlockingQueue<Task<?>> taskQueue;
     private final RTopic eventTopic;
+    private final RedissonClient redissonClient;
+    private final RoutingStrategy routingStrategy;
 
-    public TaskManagerRedis(RedissonClient redissonClient, BlockingQueue<Task<?>> taskQueue, String taskMapName) {
-        this(redissonClient, taskQueue, taskMapName,null);
+    public TaskManagerRedis(RedissonClient redissonClient, String taskMapName) {
+        this(redissonClient, taskMapName, RoutingStrategy.UNIQUE, null);
     }
 
-    public TaskManagerRedis(RedissonClient redissonClient, BlockingQueue<Task<?>> taskQueue, String taskMapName, Runnable eventCallback) {
-        CommandSyncService commandSyncService = new CommandSyncService(((Redisson) redissonClient).getConnectionManager(), new RedissonObjectBuilder(redissonClient));
+    public TaskManagerRedis(RedissonClient redissonClient, String taskMapName, RoutingStrategy routingStrategy, Runnable eventCallback) {
+        this.redissonClient = redissonClient;
+        this.routingStrategy = routingStrategy;
+        CommandSyncService commandSyncService = getCommandSyncService();
         this.tasks = new RedissonMap<>(new TaskViewCodec(), commandSyncService, taskMapName, redissonClient, null, null);
-        this.taskQueue = taskQueue;
         this.eventTopic = redissonClient.getTopic(EVENT_CHANNEL_NAME);
         this.eventCallback = eventCallback;
         addEventListener(this::handleEvent);
@@ -101,8 +108,26 @@ public class TaskManagerRedis implements TaskManager {
 
     @Override
     public boolean shutdownAndAwaitTermination(int timeout, TimeUnit timeUnit) {
-        taskQueue.add(Task.nullObject());
+        taskQueue(Task.nullObject()).add(Task.nullObject());
         return true;
+    }
+
+    BlockingQueue<Task<?>> taskQueue(Task<?> task) {
+        switch (routingStrategy) {
+            case GROUP -> {
+                return new RedissonBlockingQueue<>(new TaskViewCodec(), getCommandSyncService(), String.format("%s.%s", AmqpQueue.TASK.name(), task.getGroup().id()), redissonClient);
+            }
+            case NAME -> {
+                return new RedissonBlockingQueue<>(new TaskViewCodec(), getCommandSyncService(), String.format("%s.%s", AmqpQueue.TASK.name(), task.name), redissonClient);
+            }
+            default -> {
+                return new RedissonBlockingQueue<>(new TaskViewCodec(), getCommandSyncService(), AmqpQueue.TASK.name(), redissonClient);
+            }
+        }
+    }
+
+    private CommandSyncService getCommandSyncService() {
+        return new CommandSyncService(((Redisson) redissonClient).getConnectionManager(), new RedissonObjectBuilder(redissonClient));
     }
 
     @Override
@@ -110,16 +135,21 @@ public class TaskManagerRedis implements TaskManager {
         logger.info("closing");
         // we cannot close RedissonClient connection pool as it may be used by other keys
         eventTopic.removeAllListeners();
-        tasks.delete();
-        if (taskQueue instanceof RedissonBlockingQueue) {
-            ((RedissonBlockingQueue<Task<?>>) taskQueue).delete();
-        }
     }
 
     @Override
     public void clear() {
         tasks.clear();
-        taskQueue.clear();
+        clearTaskQueues();
+    }
+
+    private void clearTaskQueues() {
+        RKeys keys = redissonClient.getKeys();
+        Iterable<String> iterable = keys.getKeysByPattern(AmqpQueue.TASK.name() + "*", 100);
+        StreamSupport
+                .stream(iterable.spliterator(), false)
+                .filter(k -> keys.getType(k) == RType.LIST)
+                .forEach(k -> redissonClient.getQueue(k).delete());
     }
 
     public boolean save(Task<?> task) {
@@ -129,7 +159,7 @@ public class TaskManagerRedis implements TaskManager {
 
     @Override
     public void enqueue(Task<?> task) {
-        taskQueue.add(task);
+        taskQueue(task).add(task);
     }
 
     public static class TaskViewCodec extends BaseCodec {
