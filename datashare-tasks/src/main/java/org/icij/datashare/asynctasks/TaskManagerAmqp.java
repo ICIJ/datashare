@@ -1,10 +1,11 @@
 package org.icij.datashare.asynctasks;
 
+import org.icij.datashare.asynctasks.bus.amqp.AmqpConsumer;
 import org.icij.datashare.asynctasks.bus.amqp.AmqpInterlocutor;
 import org.icij.datashare.asynctasks.bus.amqp.AmqpQueue;
 import org.icij.datashare.asynctasks.bus.amqp.CancelEvent;
 import org.icij.datashare.asynctasks.bus.amqp.TaskEvent;
-import org.icij.datashare.asynctasks.bus.amqp.AmqpConsumer;
+import org.icij.datashare.tasks.RoutingStrategy;
 import org.icij.datashare.user.User;
 
 import java.io.IOException;
@@ -20,16 +21,22 @@ import static java.util.stream.Collectors.toList;
 
 public class TaskManagerAmqp implements TaskManager {
     private final Map<String, Task<?>> tasks;
+    private final RoutingStrategy routingStrategy;
     private final AmqpInterlocutor amqp;
     private final AmqpConsumer<TaskEvent, Consumer<TaskEvent>> eventConsumer;
 
     public TaskManagerAmqp(AmqpInterlocutor amqp, Map<String, Task<?>> tasks) throws IOException {
-        this(amqp, tasks, null);
+        this(amqp, tasks, RoutingStrategy.UNIQUE);
     }
 
-    public TaskManagerAmqp(AmqpInterlocutor amqp, Map<String, Task<?>> tasks, Runnable eventCallback) throws IOException {
+    public TaskManagerAmqp(AmqpInterlocutor amqp, Map<String, Task<?>> tasks, RoutingStrategy routingStrategy) throws IOException {
+        this(amqp, tasks, routingStrategy, null);
+    }
+
+    public TaskManagerAmqp(AmqpInterlocutor amqp, Map<String, Task<?>> tasks, RoutingStrategy routingStrategy, Runnable eventCallback) throws IOException {
         this.amqp = amqp;
         this.tasks = tasks;
+        this.routingStrategy = routingStrategy;
         eventConsumer = new AmqpConsumer<>(amqp, event ->
                 ofNullable(TaskManager.super.handleAck(event)).flatMap(t ->
                         ofNullable(eventCallback)).ifPresent(Runnable::run), AmqpQueue.MANAGER_EVENT, TaskEvent.class).consumeEvents();
@@ -68,7 +75,11 @@ public class TaskManagerAmqp implements TaskManager {
 
     @Override
     public void enqueue(Task<?> task) throws IOException {
-        amqp.publish(AmqpQueue.TASK, task);
+        switch (routingStrategy) {
+            case GROUP -> amqp.publish(AmqpQueue.TASK, task.getGroup().id(), task);
+            case NAME -> amqp.publish(AmqpQueue.TASK, task.name, task);
+            default -> amqp.publish(AmqpQueue.TASK, task);
+        }
     }
 
     @Override

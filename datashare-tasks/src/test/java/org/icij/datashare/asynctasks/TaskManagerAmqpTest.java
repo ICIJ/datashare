@@ -1,11 +1,11 @@
 package org.icij.datashare.asynctasks;
 
-import org.fest.assertions.Assertions;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.asynctasks.bus.amqp.AmqpInterlocutor;
 import org.icij.datashare.asynctasks.bus.amqp.AmqpQueue;
 import org.icij.datashare.asynctasks.bus.amqp.AmqpServerRule;
 import org.icij.datashare.asynctasks.bus.amqp.TaskError;
+import org.icij.datashare.tasks.RoutingStrategy;
 import org.icij.datashare.user.User;
 import org.icij.extract.redis.RedissonClientFactory;
 import org.icij.task.Options;
@@ -26,6 +26,7 @@ import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
@@ -46,8 +47,37 @@ public class TaskManagerAmqpTest {
 
         assertThat(taskManager.getTask(expectedTaskViewId)).isNotNull();
         Task<Serializable> actualTaskView = taskQueue.poll(1, TimeUnit.SECONDS);
-        Assertions.assertThat(actualTaskView).isNotNull();
-        Assertions.assertThat(actualTaskView.id).isEqualTo(expectedTaskViewId);
+        assertThat(actualTaskView).isNotNull();
+        assertThat(actualTaskView.id).isEqualTo(expectedTaskViewId);
+    }
+
+    @Test(timeout = 2000)
+    public void test_new_task_with_group_routing() throws Exception {
+        String key = "Key";
+        try (TaskManagerAmqp groupTaskManager = new TaskManagerAmqp(AMQP, new ConcurrentHashMap<>(), RoutingStrategy.GROUP, () -> nextMessage.countDown());
+             TaskSupplierAmqp groupTaskSupplier = new TaskSupplierAmqp(AMQP, RoutingStrategy.GROUP, key)) {
+            groupTaskSupplier.consumeTasks(t -> taskQueue.add(t));
+            String expectedTaskViewId = groupTaskManager.startTask("taskName", User.local(), new Group(key), Map.of());
+
+            assertThat(groupTaskManager.getTask(expectedTaskViewId)).isNotNull();
+            Task<Serializable> actualTaskView = taskQueue.poll(1, TimeUnit.SECONDS);
+            assertThat(actualTaskView).isNotNull();
+            assertThat(actualTaskView.getGroup()).isEqualTo(new Group(key));
+        }
+    }
+
+    @Test(timeout = 2000)
+    public void test_new_task_with_name_routing() throws Exception {
+        try (TaskManagerAmqp groupTaskManager = new TaskManagerAmqp(AMQP, new ConcurrentHashMap<>(), RoutingStrategy.NAME, () -> nextMessage.countDown());
+             TaskSupplierAmqp groupTaskSupplier = new TaskSupplierAmqp(AMQP, RoutingStrategy.NAME, "TaskName")) {
+            groupTaskSupplier.consumeTasks(t -> taskQueue.add(t));
+            String expectedTaskViewId = groupTaskManager.startTask("TaskName", User.local(), Map.of());
+
+            assertThat(groupTaskManager.getTask(expectedTaskViewId)).isNotNull();
+            Task<Serializable> actualTaskView = taskQueue.poll(1, TimeUnit.SECONDS);
+            assertThat(actualTaskView).isNotNull();
+            assertThat(actualTaskView.name).isEqualTo("TaskName");
+        }
     }
 
     @Test(timeout = 2000)
@@ -60,8 +90,8 @@ public class TaskManagerAmqpTest {
             Task<Serializable> actualTask1 = taskQueue.poll(1, TimeUnit.SECONDS);
             Task<Serializable> actualTask2 = taskQueue.poll(1, TimeUnit.SECONDS);
 
-            Assertions.assertThat(actualTask1).isNotNull();
-            Assertions.assertThat(actualTask2).isNotNull();
+            assertThat(actualTask1).isNotNull();
+            assertThat(actualTask2).isNotNull();
         }
     }
 
@@ -139,7 +169,7 @@ public class TaskManagerAmqpTest {
             null,
             null
         );
-        taskManager = new TaskManagerAmqp(AMQP, tasks, () -> nextMessage.countDown());
+        taskManager = new TaskManagerAmqp(AMQP, tasks, RoutingStrategy.UNIQUE, () -> nextMessage.countDown());
         taskSupplier = new TaskSupplierAmqp(AMQP);
         taskSupplier.consumeTasks(t -> taskQueue.add(t));
     }

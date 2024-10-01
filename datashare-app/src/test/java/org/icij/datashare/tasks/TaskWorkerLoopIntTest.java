@@ -23,7 +23,7 @@ import static org.mockito.Mockito.when;
 
 public class TaskWorkerLoopIntTest {
     private final LinkedBlockingQueue<Task<?>> taskQueue = new LinkedBlockingQueue<>();
-    private final TaskSupplierRedis taskSupplier = new TaskSupplierRedis(new PropertiesProvider(), taskQueue);
+    private final TaskSupplierRedis taskSupplier = new TaskSupplierRedis(new PropertiesProvider());
 
 
     @Test(timeout=5000)

@@ -10,6 +10,7 @@ import org.icij.datashare.asynctasks.bus.amqp.ProgressEvent;
 import org.icij.datashare.asynctasks.bus.amqp.ResultEvent;
 import org.icij.datashare.asynctasks.bus.amqp.TaskError;
 import org.icij.datashare.asynctasks.bus.amqp.TaskEvent;
+import org.icij.datashare.tasks.RoutingStrategy;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
@@ -27,9 +28,15 @@ public class TaskSupplierAmqp implements TaskSupplier {
     private final AmqpInterlocutor amqp;
 
     public TaskSupplierAmqp(AmqpInterlocutor amqp) throws IOException {
+        this(amqp, RoutingStrategy.UNIQUE, null);
+    }
+
+    public TaskSupplierAmqp(AmqpInterlocutor amqp, RoutingStrategy routingStrategy, String routingKey) throws IOException {
         this.amqp = amqp;
-        consumer = new AmqpConsumer<>(amqp, null, AmqpQueue.TASK, Task.class);
-        eventConsumer = new AmqpConsumer<>(amqp, this::handleEvent, AmqpQueue.WORKER_EVENT, TaskEvent.class).consumeEvents();
+        this.consumer = routingStrategy == RoutingStrategy.UNIQUE ?
+                new AmqpConsumer<>(amqp, null, AmqpQueue.TASK, Task.class):
+                new AmqpConsumer<>(amqp, null, AmqpQueue.TASK, Task.class, routingKey);
+        this.eventConsumer = new AmqpConsumer<>(amqp, this::handleEvent, AmqpQueue.WORKER_EVENT, TaskEvent.class).consumeEvents();
     }
 
     @Override
