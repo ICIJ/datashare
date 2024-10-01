@@ -27,9 +27,7 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
-import java.util.Date;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.concurrent.ExecutionException;
 
 import static java.lang.String.format;
@@ -161,7 +159,37 @@ public final class OAuth2CookieFilter extends CookieAuthFilter {
         }
         if (!oauthDefaultProject.isEmpty()) {
             userMap.put("provider", "icij");
-            userMap.put("groups_by_applications", Map.of("datashare", singletonList(oauthDefaultProject)));
+
+            // Check if groups_by_applications already exists in userMap
+            Object groupsByApplicationsObj = userMap.get("groups_by_applications");
+
+            Map<String, Object> groupsByApplications;
+
+            if (groupsByApplicationsObj instanceof Map) {
+                groupsByApplications = (Map<String, Object>) groupsByApplicationsObj;
+            } else {
+                // Initialize a new map if groups_by_applications is missing or is of a wrong type
+                groupsByApplications = new HashMap<>();
+                userMap.put("groups_by_applications", groupsByApplications);
+            }
+
+            // Check if datashare exists in groups_by_applications
+            Object datashareObj = groupsByApplications.get("datashare");
+
+            List<String> datashare;
+
+            if (datashareObj instanceof List) {
+                datashare = (List<String>) datashareObj;
+            } else {
+                // If datashare does not exist or is not a list, create a new one
+                datashare = new ArrayList<>();
+                groupsByApplications.put("datashare", datashare);
+            }
+
+            // Add the default project only if it is not already in the list
+            if (!datashare.contains(oauthDefaultProject)) {
+                datashare.add(oauthDefaultProject);
+            }
         }
         DatashareUser datashareUser = new DatashareUser(userMap);
         writableUsers().saveOrUpdate(datashareUser);
