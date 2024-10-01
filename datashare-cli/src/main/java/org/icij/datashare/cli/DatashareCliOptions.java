@@ -349,7 +349,7 @@ public final class DatashareCliOptions {
 
     static void artifactDir(OptionParser parser) {
         parser.acceptsAll(
-                asList(ARTIFACT_DIR_OPT),
+                List.of(ARTIFACT_DIR_OPT),
                 "Artifact directory for embedded caching. If not provided datashare will use memory." )
                 .withRequiredArg();
     }
@@ -377,12 +377,20 @@ public final class DatashareCliOptions {
                 .defaultsTo(DEFAULT_BUS_TYPE);
     }
 
-    public static void taskRoutingStrategyOpt(OptionParser parser) {
+    public static void taskRoutingStrategy(OptionParser parser) {
         parser.acceptsAll(
                 singletonList(TASK_ROUTING_STRATEGY_OPT),
                 "Routing strategy for tasks.")
                 .withRequiredArg().ofType( RoutingStrategy.class )
                 .defaultsTo(DEFAULT_TASK_ROUTING_STRATEGY);
+    }
+
+    static void taskRoutingKey(OptionParser parser) {
+        parser.acceptsAll(
+                        singletonList(TASK_ROUTING_KEY_OPT),
+                        "Routing key (and queue suffix) for task worker. If 'Key' is provided " +
+                                "task worker will connect to the queue TASK.Key with 'Key' binding (AMQP).")
+                .withRequiredArg();
     }
 
     static void redisAddress(OptionParser parser) {
