@@ -123,6 +123,7 @@ public final class DatashareCliOptions {
     public static final String ARTIFACT_DIR_OPT = "artifactDir";
     public static final String SEARCH_QUERY_OPT = "searchQuery";
     public static final String TASK_ROUTING_STRATEGY_OPT = "taskRoutingStrategy";
+    public static final String TASK_ROUTING_KEY_OPT = "taskRoutingKey";
 
     private static final Path DEFAULT_DATASHARE_HOME = Paths.get(System.getProperty("user.home"), ".local/share/datashare");
     private static final Integer DEFAULT_NLP_PARALLELISM = 1;

@@ -16,7 +16,7 @@ public class TaskManagerRedis extends org.icij.datashare.asynctasks.TaskManagerR
     // Convenience class made to ease injection and test
     @Inject
     public TaskManagerRedis(RedissonClient redissonClient, PropertiesProvider propertiesProvider) {
-        this(redissonClient, CommonMode.DS_TASK_MANAGER_MAP_NAME, getRoutingStrategy(propertiesProvider), null);
+        this(redissonClient, CommonMode.DS_TASK_MANAGER_MAP_NAME, Utils.getRoutingStrategy(propertiesProvider), null);
     }
 
     public TaskManagerRedis(PropertiesProvider propertiesProvider) {
@@ -24,15 +24,10 @@ public class TaskManagerRedis extends org.icij.datashare.asynctasks.TaskManagerR
     }
 
     TaskManagerRedis(PropertiesProvider propertiesProvider, String taskMapName, Runnable eventCallback) {
-        this(new RedissonClientFactory().withOptions(Options.from(propertiesProvider.getProperties())).create(), taskMapName, getRoutingStrategy(propertiesProvider), eventCallback);
+        this(new RedissonClientFactory().withOptions(Options.from(propertiesProvider.getProperties())).create(), taskMapName, Utils.getRoutingStrategy(propertiesProvider), eventCallback);
     }
 
     TaskManagerRedis(RedissonClient redissonClient, String taskMapName, RoutingStrategy routingStrategy, Runnable eventCallback) {
         super(redissonClient, taskMapName, routingStrategy, eventCallback);
-    }
-
-    @NotNull
-    private static RoutingStrategy getRoutingStrategy(PropertiesProvider propertiesProvider) {
-        return RoutingStrategy.valueOf(propertiesProvider.get(DatashareCliOptions.TASK_ROUTING_STRATEGY_OPT).orElse(DatashareCliOptions.DEFAULT_TASK_ROUTING_STRATEGY.name()));
     }
 }

@@ -75,7 +75,7 @@ public class TaskManagersIntTest {
 
         return asList(new Object[][]{
             {
-                (Creator<TaskManager>) () -> new TaskManagerAmqp(AMQP, amqpTasks, amqpWaiter::countDown),
+                (Creator<TaskManager>) () -> new TaskManagerAmqp(AMQP, amqpTasks, RoutingStrategy.UNIQUE, amqpWaiter::countDown),
                 (Creator<TaskSupplier>) () -> new TaskSupplierAmqp(AMQP),
                 amqpWaiter
             },
