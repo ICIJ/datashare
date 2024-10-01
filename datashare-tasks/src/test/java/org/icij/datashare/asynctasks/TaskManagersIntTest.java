@@ -5,6 +5,7 @@ import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.asynctasks.bus.amqp.AmqpInterlocutor;
 import org.icij.datashare.asynctasks.bus.amqp.AmqpQueue;
 import org.icij.datashare.asynctasks.bus.amqp.AmqpServerRule;
+import org.icij.datashare.tasks.RoutingStrategy;
 import org.icij.datashare.user.User;
 import org.icij.extract.redis.RedissonClientFactory;
 import org.icij.task.Options;
@@ -16,7 +17,6 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.redisson.Redisson;
-import org.redisson.RedissonBlockingQueue;
 import org.redisson.RedissonMap;
 import org.redisson.api.RedissonClient;
 import org.redisson.command.CommandSyncService;
@@ -25,7 +25,6 @@ import org.redisson.liveobject.core.RedissonObjectBuilder;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -71,9 +70,6 @@ public class TaskManagersIntTest {
         AMQP.createAmqpChannelForPublish(AmqpQueue.TASK);
         AMQP.createAmqpChannelForPublish(AmqpQueue.WORKER_EVENT);
         AMQP.createAmqpChannelForPublish(AmqpQueue.MANAGER_EVENT);
-        BlockingQueue<Task<?>> taskQueue = new RedissonBlockingQueue<>(new TaskManagerRedis.TaskViewCodec(),
-                new CommandSyncService(((Redisson) redissonClient).getConnectionManager(),
-                        new RedissonObjectBuilder(redissonClient)), "tasks:queue:test", redissonClient);
         EventWaiter amqpWaiter = new EventWaiter(2); // default: progress, result
         EventWaiter redisWaiter = new EventWaiter(2); // default: progress, result
 
@@ -84,9 +80,9 @@ public class TaskManagersIntTest {
                 amqpWaiter
             },
             {
-                (Creator<TaskManager>) () -> new TaskManagerRedis(redissonClient, taskQueue,
-                    "tasks:map:test", redisWaiter::countDown),
-                (Creator<TaskSupplier>) () -> new TaskSupplierRedis(redissonClient, taskQueue),
+                (Creator<TaskManager>) () -> new TaskManagerRedis(redissonClient,
+                        "tasks:map:test", RoutingStrategy.UNIQUE, redisWaiter::countDown),
+                (Creator<TaskSupplier>) () -> new TaskSupplierRedis(redissonClient),
                 redisWaiter
             }
     });

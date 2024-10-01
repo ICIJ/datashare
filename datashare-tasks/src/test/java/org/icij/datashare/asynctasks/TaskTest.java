@@ -5,7 +5,6 @@ import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.user.User;
 import org.junit.Test;
 
-import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
@@ -13,6 +12,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 import static org.fest.assertions.Assertions.assertThat;
+import static org.fest.assertions.MapAssert.entry;
 
 public class TaskTest {
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
@@ -42,6 +42,12 @@ public class TaskTest {
         assertThat(taskView.getResult()).isNull();
         assertThat(taskView.getState()).isEqualTo(Task.State.DONE);
         assertThat(taskView.getProgress()).isEqualTo(1);
+    }
+
+    @Test
+    public void test_user_group_parameters() {
+        Task<Object> taskView = new Task<>("foo", User.local(), new Group("bar"), Map.of("baz", "qux"));
+        assertThat(taskView.args).includes(entry("group", new Group("bar")), entry("user", User.local()), entry("baz", "qux"));
     }
 
     @Test

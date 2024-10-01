@@ -1,20 +1,20 @@
 package org.icij.datashare.asynctasks;
 
-import org.fest.assertions.Assertions;
 import org.icij.datashare.PropertiesProvider;
+import org.icij.datashare.tasks.RoutingStrategy;
 import org.icij.datashare.user.User;
 import org.icij.extract.redis.RedissonClientFactory;
 import org.icij.task.Options;
 import org.junit.After;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.redisson.RedissonBlockingQueue;
 import org.redisson.api.RedissonClient;
 
 import java.io.IOException;
 import java.util.HashMap;
-import java.util.concurrent.BlockingQueue;
+import java.util.Map;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
 import static org.fest.assertions.Assertions.assertThat;
@@ -23,20 +23,17 @@ public class TaskManagerRedisTest {
     PropertiesProvider propertiesProvider = new PropertiesProvider(new HashMap<>() {{
         put("redisAddress", "redis://redis:6379");
     }});
-    private final BlockingQueue<Task<?>> taskQueue = new LinkedBlockingQueue<>();
     private final RedissonClient redissonClient = new RedissonClientFactory().withOptions(
         Options.from(propertiesProvider.getProperties())).create();
     private final TaskManagerRedis taskManager = new TaskManagerRedis(
         redissonClient,
-            taskQueue,
-        "test:task:manager",
-        this::callback
-    );
+            "test:task:manager", RoutingStrategy.UNIQUE ,
+            this::callback);
 
     private final CountDownLatch waitForEvent = new CountDownLatch(1); // result event
 
     private final TaskSupplierRedis
-        taskSupplier = new TaskSupplierRedis(redissonClient, taskQueue);
+        taskSupplier = new TaskSupplierRedis(redissonClient);
 
     @Test
     public void test_save_task() {
@@ -53,8 +50,36 @@ public class TaskManagerRedisTest {
         assertThat(taskManager.startTask("HelloWorld", User.local(),
             new HashMap<>() {{ put("greeted", "world"); }})).isNotNull();
         assertThat(taskManager.getTasks()).hasSize(1);
-        Assertions.assertThat(taskManager.getTasks().get(0).getUser()).isEqualTo(User.local());
-        assertThat(taskQueue).hasSize(1);
+        assertThat(taskManager.getTasks().get(0).getUser()).isEqualTo(User.local());
+    }
+
+    @Test
+    public void test_start_task_with_group_routing() throws IOException {
+        try (TaskManagerRedis groupTaskManager = new TaskManagerRedis(
+                redissonClient,
+                "test:task:manager", RoutingStrategy.GROUP,
+                this::callback)) {
+            assertThat(groupTaskManager.startTask("HelloWorld", User.local(), new Group("Group"),Map.of("greeted", "world"))).isNotNull();
+
+            Task<?> task = groupTaskManager.getTasks().get(0);
+            assertThat(task.getGroup()).isEqualTo(new Group("Group"));
+            assertThat(groupTaskManager.taskQueue(task)).hasSize(1);
+            assertThat(((RedissonBlockingQueue<?>) groupTaskManager.taskQueue(task)).getName()).isEqualTo("TASK.Group");
+        }
+    }
+
+    @Test
+    public void test_start_task_with_name_routing() throws IOException {
+        try (TaskManagerRedis nameTaskManager = new TaskManagerRedis(
+                redissonClient,
+                "test:task:manager", RoutingStrategy.NAME,
+                this::callback)) {
+            assertThat(nameTaskManager.startTask("HelloWorld", User.local(), Map.of("greeted", "world"))).isNotNull();
+
+            Task<?> task = nameTaskManager.getTasks().get(0);
+            assertThat(nameTaskManager.taskQueue(task)).hasSize(1);
+            assertThat(((RedissonBlockingQueue<?>) nameTaskManager.taskQueue(task)).getName()).isEqualTo("TASK.HelloWorld");
+        }
     }
 
     @Test
@@ -100,13 +125,6 @@ public class TaskManagerRedisTest {
 
         assertThat(taskManager.getTasks()).hasSize(1);
         assertThat(taskManager.getTasks().get(0).getResult()).isEqualTo(expectedResult);
-    }
-
-    @Test
-    public void test_shutdown_and_await_termination() throws Exception {
-        taskManager.shutdownAndAwaitTermination(1, TimeUnit.SECONDS);
-        assertThat(taskQueue).hasSize(1);
-        assertThat(taskQueue.take()).isEqualTo(Task.nullObject());
     }
 
     private void callback() {

@@ -6,6 +6,7 @@ import joptsimple.ValueConverter;
 import org.icij.datashare.PipelineHelper;
 import org.icij.datashare.Stage;
 import org.slf4j.event.Level;
+import org.icij.datashare.tasks.RoutingStrategy;
 
 import java.io.File;
 import java.net.URI;
@@ -121,6 +122,7 @@ public final class DatashareCliOptions {
     public static final String VERSION_OPT = "version";
     public static final String ARTIFACT_DIR_OPT = "artifactDir";
     public static final String SEARCH_QUERY_OPT = "searchQuery";
+    public static final String TASK_ROUTING_STRATEGY_OPT = "taskRoutingStrategy";
 
     private static final Path DEFAULT_DATASHARE_HOME = Paths.get(System.getProperty("user.home"), ".local/share/datashare");
     private static final Integer DEFAULT_NLP_PARALLELISM = 1;
@@ -167,6 +169,7 @@ public final class DatashareCliOptions {
     public static final int DEFAULT_TCP_LISTEN_PORT = 8080;
     public static final int DEFAULT_SESSION_TTL_SECONDS = 43200;
     public static final String DEFAULT_MAX_CONTENT_LENGTH = "20000000";
+    public static final RoutingStrategy DEFAULT_TASK_ROUTING_STRATEGY = RoutingStrategy.UNIQUE;
 
     // A list of aliases for retro-compatibility when an option changed
     public static final Map<String, String> OPT_ALIASES = Map.ofEntries(
@@ -371,6 +374,14 @@ public final class DatashareCliOptions {
                 "Backend data bus type.")
                 .withRequiredArg().ofType( QueueType.class )
                 .defaultsTo(DEFAULT_BUS_TYPE);
+    }
+
+    public static void taskRoutingStrategyOpt(OptionParser parser) {
+        parser.acceptsAll(
+                singletonList(TASK_ROUTING_STRATEGY_OPT),
+                "Routing strategy for tasks.")
+                .withRequiredArg().ofType( RoutingStrategy.class )
+                .defaultsTo(DEFAULT_TASK_ROUTING_STRATEGY);
     }
 
     static void redisAddress(OptionParser parser) {

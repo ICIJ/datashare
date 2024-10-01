@@ -8,8 +8,13 @@ import org.icij.datashare.asynctasks.bus.amqp.ProgressEvent;
 import org.icij.datashare.asynctasks.bus.amqp.ResultEvent;
 import org.icij.datashare.asynctasks.bus.amqp.TaskError;
 import org.icij.datashare.asynctasks.bus.amqp.TaskEvent;
+import org.icij.datashare.tasks.RoutingStrategy;
+import org.redisson.Redisson;
+import org.redisson.RedissonBlockingQueue;
 import org.redisson.api.RTopic;
 import org.redisson.api.RedissonClient;
+import org.redisson.command.CommandSyncService;
+import org.redisson.liveobject.core.RedissonObjectBuilder;
 
 import java.io.IOException;
 import java.io.Serializable;
@@ -20,17 +25,25 @@ import java.util.function.Consumer;
 import static org.icij.datashare.asynctasks.TaskManagerRedis.EVENT_CHANNEL_NAME;
 
 public class TaskSupplierRedis implements TaskSupplier {
-    private final BlockingQueue<Task<?>> taskQueue;
     private final RTopic eventTopic;
+    private final RedissonClient redissonClient;
+    private final RoutingStrategy routingStrategy;
+    private final String taskQueueKey;
 
-    public TaskSupplierRedis(RedissonClient redissonClient, BlockingQueue<Task<?>> taskQueue) {
-        this.taskQueue = taskQueue;
+    public TaskSupplierRedis(RedissonClient redissonClient) {
+        this(redissonClient, RoutingStrategy.UNIQUE, null);
+    }
+
+    public TaskSupplierRedis(RedissonClient redissonClient, RoutingStrategy routingStrategy, String taskQueueKey) {
         this.eventTopic = redissonClient.getTopic(EVENT_CHANNEL_NAME);
+        this.redissonClient = redissonClient;
+        this.routingStrategy = routingStrategy;
+        this.taskQueueKey = taskQueueKey;
     }
 
     @Override
     public <V extends Serializable> Task<V> get(int timeOut, TimeUnit timeUnit) throws InterruptedException {
-        return (Task<V>) taskQueue.poll(timeOut, timeUnit);
+        return (Task<V>) taskQueue().poll(timeOut, timeUnit);
     }
 
     @Override
@@ -68,6 +81,21 @@ public class TaskSupplierRedis implements TaskSupplier {
 
     @Override
     public void waitForConsumer() {}
+
+    private <V extends Serializable> BlockingQueue<Task<V>> taskQueue() {
+        switch (routingStrategy) {
+            case GROUP, NAME -> {
+                return new RedissonBlockingQueue<>(new TaskManagerRedis.TaskViewCodec(), getCommandSyncService(), String.format("%s.%s", AmqpQueue.TASK.name(), taskQueueKey), redissonClient);
+            }
+            default -> {
+                return new RedissonBlockingQueue<>(new TaskManagerRedis.TaskViewCodec(), getCommandSyncService(), AmqpQueue.TASK.name(), redissonClient);
+            }
+        }
+    }
+
+    private CommandSyncService getCommandSyncService() {
+        return new CommandSyncService(((Redisson) redissonClient).getConnectionManager(), new RedissonObjectBuilder(redissonClient));
+    }
 
     @Override
     public void close() throws IOException {

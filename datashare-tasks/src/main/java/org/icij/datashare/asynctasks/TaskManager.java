@@ -2,7 +2,6 @@ package org.icij.datashare.asynctasks;
 
 import org.icij.datashare.asynctasks.bus.amqp.CancelledEvent;
 import org.icij.datashare.asynctasks.bus.amqp.ErrorEvent;
-import org.icij.datashare.asynctasks.bus.amqp.TaskError;
 import org.icij.datashare.asynctasks.bus.amqp.ProgressEvent;
 import org.icij.datashare.asynctasks.bus.amqp.ResultEvent;
 import org.icij.datashare.asynctasks.bus.amqp.TaskEvent;
@@ -54,6 +53,10 @@ public interface TaskManager extends Closeable {
 
     default String startTask(String taskName, User user, Map<String, Object> properties) throws IOException {
         return startTask(new Task<>(taskName, user, properties));
+    }
+
+    default String startTask(String taskName, User user, Group group, Map<String, Object> properties) throws IOException {
+        return startTask(new Task<>(taskName, user, group, properties));
     }
 
     default  String startTask(String id, String taskName, User user) throws IOException {

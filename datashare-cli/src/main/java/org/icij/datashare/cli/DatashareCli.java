@@ -181,6 +181,7 @@ public class DatashareCli {
         DatashareCliOptions.noDigestProject(parser);
         DatashareCliOptions.logLevel(parser);
         DatashareCliOptions.searchQuery(parser);
+        DatashareCliOptions.taskRoutingStrategyOpt(parser);
         return parser;
     }
 
