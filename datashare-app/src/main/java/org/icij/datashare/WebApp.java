@@ -69,7 +69,7 @@ public class WebApp {
     private static void requeueDatabaseBatchSearches(BatchSearchRepository repository, TaskManager taskManager) throws IOException {
         for (String batchSearchUuid: repository.getQueued()) {
             BatchSearch batchSearch = repository.get(batchSearchUuid);
-            taskManager.startTask(batchSearchUuid, BatchSearchRunner.class.getName(), batchSearch.user);
+            taskManager.startTask(batchSearchUuid, BatchSearchRunner.class, batchSearch.user);
         }
     }
 

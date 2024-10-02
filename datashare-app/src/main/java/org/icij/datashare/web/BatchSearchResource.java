@@ -279,7 +279,7 @@ public class BatchSearchResource {
                 (User) context.currentUser(), published, fileTypes, queryTemplate, paths, fuzziness,phraseMatches);
         boolean isSaved = batchSearchRepository.save(batchSearch);
         if (isSaved) {
-            taskManager.startTask(batchSearch.uuid, BatchSearchRunner.class.getName(), (User) context.currentUser());
+            taskManager.startTask(batchSearch.uuid, BatchSearchRunner.class, (User) context.currentUser());
         }
         return isSaved ? new Payload("application/json", batchSearch.uuid, 200) : badRequest();
     }
@@ -308,7 +308,7 @@ public class BatchSearchResource {
         }
         BatchSearch copy = new BatchSearch(sourceBatchSearch, context.extract(HashMap.class));
         boolean isSaved = batchSearchRepository.save(copy);
-        if (isSaved) taskManager.startTask(copy.uuid, BatchSearchRunner.class.getName(), (User) context.currentUser());
+        if (isSaved) taskManager.startTask(copy.uuid, BatchSearchRunner.class, (User) context.currentUser());
         return copy.uuid;
     }
 

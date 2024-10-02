@@ -1,7 +1,9 @@
 package org.icij.datashare.tasks;
 
 import org.icij.datashare.asynctasks.CancelException;
+import org.icij.datashare.asynctasks.TaskGroup;
 
+@TaskGroup("TestGroup")
 public class TestSleepingTask extends TestTask {
     public TestSleepingTask(int value) {
         super(value);

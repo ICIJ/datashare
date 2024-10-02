@@ -12,6 +12,7 @@ import org.icij.datashare.Entity;
 import org.icij.datashare.HumanReadableSize;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.asynctasks.Task;
+import org.icij.datashare.asynctasks.TaskGroup;
 import org.icij.datashare.asynctasks.bus.amqp.UriResult;
 import org.icij.datashare.batch.BatchDownload;
 import org.icij.datashare.com.mail.Mail;
@@ -48,6 +49,7 @@ import static java.lang.String.valueOf;
 import static java.util.stream.Collectors.toList;
 import static org.icij.datashare.cli.DatashareCliOptions.*;
 
+@TaskGroup("Java")
 public class BatchDownloadRunner implements Callable<UriResult>, Monitorable, UserTask {
     private final static Logger logger = LoggerFactory.getLogger(BatchDownloadRunner.class);
     static final int MAX_SCROLL_SIZE = 3500;

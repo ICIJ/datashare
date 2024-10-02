@@ -2,6 +2,7 @@ package org.icij.datashare.tasks;
 
 import com.google.inject.Inject;
 import com.google.inject.assistedinject.Assisted;
+import org.icij.datashare.asynctasks.TaskGroup;
 import org.icij.datashare.user.ApiKeyRepository;
 import org.icij.datashare.user.DatashareApiKey;
 import org.icij.datashare.user.User;
@@ -12,6 +13,7 @@ import org.slf4j.LoggerFactory;
 
 import javax.crypto.SecretKey;
 
+@TaskGroup("Java")
 public class GenApiKeyTask extends DefaultTask<String> implements UserTask {
     private final Logger logger = LoggerFactory.getLogger(getClass());
     private final ApiKeyRepository apiKeyRepository;

@@ -7,6 +7,7 @@ import net.codestory.rest.Response;
 import net.codestory.rest.RestAssert;
 import net.codestory.rest.ShouldChain;
 import org.icij.datashare.PropertiesProvider;
+import org.icij.datashare.asynctasks.Group;
 import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.asynctasks.TaskManager;
 import org.icij.datashare.asynctasks.TaskModifier;
@@ -200,6 +201,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         defaultProperties.put("foo", "baz");
         defaultProperties.put("key", "val");
         defaultProperties.put("user", User.local());
+        defaultProperties.put("group", new Group("Java"));
         defaultProperties.remove(REPORT_NAME_OPT);
 
         assertThat(taskManager.getTasks()).hasSize(2);
@@ -220,9 +222,11 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         defaultProperties.put("key1", "val1");
         defaultProperties.put("key2", "val2");
         defaultProperties.put("user", User.local());
+        defaultProperties.put("group", new Group("Java"));
 
         assertThat(taskManager.getTasks()).hasSize(1);
         assertThat(taskManager.getTasks().get(0).name).isEqualTo("org.icij.datashare.tasks.IndexTask");
+
         assertThat(taskManager.getTasks().get(0).args).isEqualTo(defaultProperties);
     }
 
@@ -376,7 +380,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
 
     @Test
     public void test_clean_one_done_task() throws IOException {
-        String dummyTaskId = taskManager.startTask(TestTask.class.getName(), User.local(), new HashMap<>());
+        String dummyTaskId = taskManager.startTask(TestTask.class, User.local(), new HashMap<>());
         taskManager.waitTasksToBeDone(1, SECONDS);
         assertThat(taskManager.getTasks()).hasSize(1);
         assertThat(taskManager.getTask(dummyTaskId).getState()).isEqualTo(Task.State.DONE);
@@ -392,14 +396,14 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
 
     @Test
     public void test_clean_task_preflight() throws IOException {
-        String dummyTaskId = taskManager.startTask(TestTask.class.getName(), User.local(), new HashMap<>());
+        String dummyTaskId = taskManager.startTask(TestTask.class, User.local(), new HashMap<>());
         taskManager.waitTasksToBeDone(1, SECONDS);
         options("/api/task/clean/" + dummyTaskId).should().respond(200);
     }
 
     @Test
     public void test_cannot_clean_running_task() throws IOException {
-        String dummyTaskId = taskManager.startTask(TestSleepingTask.class.getName(), User.local(), new HashMap<>());
+        String dummyTaskId = taskManager.startTask(TestSleepingTask.class, User.local(), new HashMap<>());
         assertThat(taskManager.getTask(dummyTaskId).getState()).isNotEqualTo(Task.State.DONE);
         delete("/api/task/clean/" + dummyTaskId).should().respond(403);
         assertThat(taskManager.getTasks()).hasSize(1);
@@ -409,7 +413,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
 
     @Test
     public void test_stop_task() throws IOException {
-        String dummyTaskId = taskManager.startTask(TestSleepingTask.class.getName(), User.local(), new HashMap<>());
+        String dummyTaskId = taskManager.startTask(TestSleepingTask.class, User.local(), new HashMap<>());
         put("/api/task/stop/" + dummyTaskId).should().respond(200).contain("true");
 
         assertThat(taskManager.getTask(dummyTaskId).getState()).isEqualTo(Task.State.CANCELLED);
@@ -423,8 +427,8 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
 
     @Test
     public void test_stop_all() throws IOException {
-        String t1Id = taskManager.startTask(TestSleepingTask.class.getName(), User.local(), new HashMap<>());
-        String t2Id = taskManager.startTask(TestSleepingTask.class.getName(), User.local(), new HashMap<>());
+        String t1Id = taskManager.startTask(TestSleepingTask.class, User.local(), new HashMap<>());
+        String t2Id = taskManager.startTask(TestSleepingTask.class, User.local(), new HashMap<>());
         put("/api/task/stopAll").should().respond(200).
                 contain(t1Id + "\":true").
                 contain(t2Id + "\":true");
@@ -435,7 +439,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
 
     @Test
     public void test_stop_all_filters_running_tasks() throws IOException {
-        taskManager.startTask(TestTask.class.getName(), User.local(), new HashMap<>());
+        taskManager.startTask(TestTask.class, User.local(), new HashMap<>());
         taskManager.waitTasksToBeDone(1, SECONDS);
 
         put("/api/task/stopAll").should().respond(200).contain("{}");
@@ -443,7 +447,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
 
     @Test
     public void test_clear_done_tasks() throws IOException {
-        taskManager.startTask(TestTask.class.getName(), User.local(), new HashMap<>());
+        taskManager.startTask(TestTask.class, User.local(), new HashMap<>());
         taskManager.waitTasksToBeDone(1, SECONDS);
 
         put("/api/task/stopAll").should().respond(200).contain("{}");

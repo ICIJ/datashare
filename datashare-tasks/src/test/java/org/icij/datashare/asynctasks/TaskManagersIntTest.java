@@ -97,7 +97,7 @@ public class TaskManagersIntTest {
     @Test(timeout = 10000)
     public void test_stop_running_task() throws Exception {
         eventWaiter.setWaiter(new CountDownLatch(2)); // 1 progress, 1 cancelled
-        String taskViewId = taskManager.startTask(TestFactory.SleepForever.class.getName(), User.local(), new HashMap<>());
+        String taskViewId = taskManager.startTask(TestFactory.SleepForever.class, User.local(), new HashMap<>());
 
         taskInspector.awaitStatus(taskViewId, Task.State.RUNNING, 1, SECONDS);
 
@@ -113,8 +113,8 @@ public class TaskManagersIntTest {
     public void test_stop_queued_task() throws Exception {
         eventWaiter.setWaiter(new CountDownLatch(3)); // 1 progress, 2 cancelled
 
-        String tv1Id = taskManager.startTask(TestFactory.SleepForever.class.getName(), User.local(), new HashMap<>());
-        String tv2Id = taskManager.startTask(TestFactory.SleepForever.class.getName(), User.local(), new HashMap<>());
+        String tv1Id = taskManager.startTask(TestFactory.SleepForever.class, User.local(), new HashMap<>());
+        String tv2Id = taskManager.startTask(TestFactory.SleepForever.class, User.local(), new HashMap<>());
 
         taskInspector.awaitStatus(tv1Id, Task.State.RUNNING, 1, SECONDS);
         taskManager.stopTask(tv2Id);

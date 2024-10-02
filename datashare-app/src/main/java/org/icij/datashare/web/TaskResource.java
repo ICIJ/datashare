@@ -158,7 +158,7 @@ public class TaskResource {
 
         BatchDownload batchDownload = new BatchDownload(projectIds.stream().map(Project::project).collect(toList()), (User) context.currentUser(), query, uri, downloadDir, batchDownloadEncrypt);
 
-        return new TaskResponse(taskManager.startTask(BatchDownloadRunner.class.getName(), (User) context.currentUser(), Map.of("batchDownload", batchDownload)));
+        return new TaskResponse(taskManager.startTask(BatchDownloadRunner.class, (User) context.currentUser(), Map.of("batchDownload", batchDownload)));
     }
 
     @Operation(description = "Indexes files from the queue.",
@@ -168,7 +168,7 @@ public class TaskResource {
     @Post("/batchUpdate/index")
     public Payload indexQueue(final OptionsWrapper<String> optionsWrapper, Context context) throws IOException {
         Properties properties = applyProjectProperties(optionsWrapper);
-        return ofNullable(taskManager.startTask(IndexTask.class.getName(), (User) context.currentUser(), propertiesToMap(properties)))
+        return ofNullable(taskManager.startTask(IndexTask.class, (User) context.currentUser(), propertiesToMap(properties)))
                 .map(id -> new Payload("application/json", String.format("{\"taskId\":\"%s\"}", id), 200))
                 .orElse(new Payload("application/json", "{\"message\":\"unknown error\"}", 500));
     }
@@ -203,7 +203,7 @@ public class TaskResource {
         } else {
             properties.remove(MAP_NAME_OPTION); // avoid use of reportMap to override ES docs
         }
-        ofNullable(taskManager.startTask(IndexTask.class.getName(), user, propertiesToMap(properties))).ifPresent(taskIds::add);
+        ofNullable(taskManager.startTask(IndexTask.class, user, propertiesToMap(properties))).ifPresent(taskIds::add);
         return new JsonPayload(new TasksResponse(taskIds));
     }
 
@@ -216,7 +216,7 @@ public class TaskResource {
         Path path = IS_OS_WINDOWS ?  get(filePath) : get(File.separator, filePath);
         Properties properties = applyProjectProperties(optionsWrapper);
         properties.setProperty(DATA_DIR_OPT, path.toString());
-        return ofNullable(taskManager.startTask(ScanTask.class.getName(), (User) context.currentUser(), propertiesToMap(properties)))
+        return ofNullable(taskManager.startTask(ScanTask.class, (User) context.currentUser(), propertiesToMap(properties)))
                 .map(TaskResponse::new).orElseThrow(() -> new HttpException(500));
     }
 
@@ -293,9 +293,9 @@ public class TaskResource {
         syncModels(parseBoolean(properties.getProperty(SYNC_MODELS_OPTION, "true")));
         List<String> tasks = new LinkedList<>();
         if (parseBoolean(properties.getProperty(RESUME_OPTION, "true"))) {
-            tasks.add(taskManager.startTask(EnqueueFromIndexTask.class.getName(), ((User) context.currentUser()), propertiesToMap(properties)));
+            tasks.add(taskManager.startTask(EnqueueFromIndexTask.class, ((User) context.currentUser()), propertiesToMap(properties)));
         }
-        tasks.add(taskManager.startTask(ExtractNlpTask.class.getName(), (User) context.currentUser(), propertiesToMap(properties)));
+        tasks.add(taskManager.startTask(ExtractNlpTask.class, (User) context.currentUser(), propertiesToMap(properties)));
         return new JsonPayload(new TasksResponse(tasks));
     }
 

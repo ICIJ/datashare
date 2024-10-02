@@ -51,16 +51,24 @@ public interface TaskManager extends Closeable {
     }
 
 
+    // for tests
     default String startTask(String taskName, User user, Map<String, Object> properties) throws IOException {
         return startTask(new Task<>(taskName, user, properties));
     }
 
+    // TaskResource and pipeline tasks
+    default String startTask(Class<?> taskClass, User user, Map<String, Object> properties) throws IOException {
+        return startTask(new Task<>(taskClass.getName(), user, new Group(taskClass.getAnnotation(TaskGroup.class).value()), properties));
+    }
+
+    // for tests
     default String startTask(String taskName, User user, Group group, Map<String, Object> properties) throws IOException {
         return startTask(new Task<>(taskName, user, group, properties));
     }
 
-    default  String startTask(String id, String taskName, User user) throws IOException {
-        return startTask(new Task<>(id, taskName, user, new HashMap<>()));
+    // BatchSearchResource and WebApp for batch searches
+    default  String startTask(String id, Class<?> taskClass, User user) throws IOException {
+        return startTask(new Task<>(id, taskClass.getName(), user, new Group(taskClass.getAnnotation(TaskGroup.class).value())));
     }
 
     /**

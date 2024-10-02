@@ -2,6 +2,7 @@ package org.icij.datashare.tasks;
 
 import com.google.inject.Inject;
 import org.icij.datashare.PropertiesProvider;
+import org.icij.datashare.asynctasks.TaskGroup;
 import org.icij.datashare.batch.BatchDownload;
 import org.icij.datashare.cli.DatashareCliOptions;
 import org.icij.datashare.time.DatashareTime;
@@ -17,6 +18,7 @@ import static java.util.Arrays.stream;
 import static java.util.Optional.ofNullable;
 import static java.util.regex.Pattern.compile;
 
+@TaskGroup("Java")
 public class BatchDownloadCleaner implements Runnable {
     private final Logger logger = LoggerFactory.getLogger(getClass());
     private final Pattern filePattern = compile(BatchDownload.ZIP_FORMAT.replace("%s", "[a-z0-9\\.:|_Z\\-\\[GMT\\]]+"));
