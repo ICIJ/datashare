@@ -380,7 +380,7 @@ public final class DatashareCliOptions {
     public static void taskRoutingStrategy(OptionParser parser) {
         parser.acceptsAll(
                 singletonList(TASK_ROUTING_STRATEGY_OPT),
-                format("Routing strategy for tasks (%s).", Arrays.toString(RoutingStrategy.values())))
+                format("Task Manager routing strategy (%s).", Arrays.toString(RoutingStrategy.values())))
                 .withRequiredArg().ofType( RoutingStrategy.class )
                 .defaultsTo(DEFAULT_TASK_ROUTING_STRATEGY);
     }

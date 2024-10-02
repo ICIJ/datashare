@@ -12,6 +12,6 @@ public class TaskSupplierAmqp extends org.icij.datashare.asynctasks.TaskSupplier
     // Convenience class made to ease injection and test
     @Inject
     public TaskSupplierAmqp(AmqpInterlocutor amqp, PropertiesProvider propertiesProvider) throws IOException {
-        super(amqp, Utils.getRoutingStrategy(propertiesProvider), Utils.getRoutingKey(propertiesProvider));
+        super(amqp, Utils.getRoutingKey(propertiesProvider));
     }
 }

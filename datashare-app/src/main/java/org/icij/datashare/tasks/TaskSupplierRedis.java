@@ -13,7 +13,7 @@ public class TaskSupplierRedis extends org.icij.datashare.asynctasks.TaskSupplie
     // Convenience class made to ease injection and test
     @Inject
     public TaskSupplierRedis(RedissonClient redissonClient, PropertiesProvider propertiesProvider) {
-        super(redissonClient, Utils.getRoutingStrategy(propertiesProvider), Utils.getRoutingKey(propertiesProvider));
+        super(redissonClient, Utils.getRoutingKey(propertiesProvider));
     }
 
     TaskSupplierRedis(PropertiesProvider propertiesProvider) {
