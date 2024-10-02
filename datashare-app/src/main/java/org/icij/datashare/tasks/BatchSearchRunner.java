@@ -11,6 +11,7 @@ import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.asynctasks.CancelException;
 import org.icij.datashare.asynctasks.CancellableTask;
 import org.icij.datashare.asynctasks.Task;
+import org.icij.datashare.asynctasks.TaskGroup;
 import org.icij.datashare.batch.BatchSearch;
 import org.icij.datashare.batch.BatchSearchRecord;
 import org.icij.datashare.batch.BatchSearchRepository;
@@ -44,6 +45,7 @@ import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_SCROLL_SIZE;
 import static org.icij.datashare.cli.DatashareCliOptions.SCROLL_SIZE_OPT;
 import static org.icij.datashare.text.ProjectProxy.asCommaConcatNames;
 
+@TaskGroup("Java")
 public class BatchSearchRunner implements CancellableTask, UserTask, Callable<Integer> {
     private final Logger logger = LoggerFactory.getLogger(getClass());
 

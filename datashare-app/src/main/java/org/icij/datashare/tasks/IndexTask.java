@@ -6,6 +6,7 @@ import java.util.function.Function;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Stage;
 import org.icij.datashare.asynctasks.Task;
+import org.icij.datashare.asynctasks.TaskGroup;
 import org.icij.datashare.extract.DocumentCollectionFactory;
 import org.icij.datashare.monitoring.Monitorable;
 import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchSpewer;
@@ -33,6 +34,7 @@ import static org.icij.datashare.cli.DatashareCliOptions.*;
 @OptionsClass(DocumentQueueDrainer.class)
 @Option(name = DEFAULT_PROJECT_OPT, description = "the default project name")
 @Option(name = "projectName", description = "task project name")
+@TaskGroup("Java")
 public class IndexTask extends PipelineTask<Path> implements Monitorable{
     private final Logger logger = LoggerFactory.getLogger(getClass());
     private final DocumentQueueDrainer<Path> drainer;

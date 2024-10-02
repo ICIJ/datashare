@@ -40,6 +40,7 @@ public class TestFactory implements TaskFactory {
         }
     }
 
+    @TaskGroup("TestGroup")
     public static class SleepForever implements Callable<Void>, CancellableTask {
         private final Function<Double, Void> progress;
         Boolean requeue = null;

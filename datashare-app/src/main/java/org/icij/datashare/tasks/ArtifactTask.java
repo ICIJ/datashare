@@ -5,6 +5,7 @@ import com.google.inject.assistedinject.Assisted;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Stage;
 import org.icij.datashare.asynctasks.Task;
+import org.icij.datashare.asynctasks.TaskGroup;
 import org.icij.datashare.extract.DocumentCollectionFactory;
 import org.icij.datashare.function.Pair;
 import org.icij.datashare.text.Document;
@@ -24,6 +25,7 @@ import static org.icij.datashare.cli.DatashareCliOptions.ARTIFACT_DIR_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_DEFAULT_PROJECT;
 import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_PROJECT_OPT;
 
+@TaskGroup("Java")
 public class ArtifactTask extends PipelineTask<String> {
     private final Logger logger = LoggerFactory.getLogger(getClass());
     private final Indexer indexer;
