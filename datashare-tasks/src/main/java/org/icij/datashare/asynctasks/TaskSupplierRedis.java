@@ -27,17 +27,15 @@ import static org.icij.datashare.asynctasks.TaskManagerRedis.EVENT_CHANNEL_NAME;
 public class TaskSupplierRedis implements TaskSupplier {
     private final RTopic eventTopic;
     private final RedissonClient redissonClient;
-    private final RoutingStrategy routingStrategy;
     private final String taskQueueKey;
 
     public TaskSupplierRedis(RedissonClient redissonClient) {
-        this(redissonClient, RoutingStrategy.UNIQUE, null);
+        this(redissonClient, null);
     }
 
-    public TaskSupplierRedis(RedissonClient redissonClient, RoutingStrategy routingStrategy, String taskQueueKey) {
+    public TaskSupplierRedis(RedissonClient redissonClient, String taskQueueKey) {
         this.eventTopic = redissonClient.getTopic(EVENT_CHANNEL_NAME);
         this.redissonClient = redissonClient;
-        this.routingStrategy = routingStrategy;
         this.taskQueueKey = taskQueueKey;
     }
 
@@ -83,14 +81,9 @@ public class TaskSupplierRedis implements TaskSupplier {
     public void waitForConsumer() {}
 
     private <V extends Serializable> BlockingQueue<Task<V>> taskQueue() {
-        switch (routingStrategy) {
-            case GROUP, NAME -> {
-                return new RedissonBlockingQueue<>(new TaskManagerRedis.TaskViewCodec(), getCommandSyncService(), String.format("%s.%s", AmqpQueue.TASK.name(), taskQueueKey), redissonClient);
-            }
-            default -> {
-                return new RedissonBlockingQueue<>(new TaskManagerRedis.TaskViewCodec(), getCommandSyncService(), AmqpQueue.TASK.name(), redissonClient);
-            }
-        }
+        return this.taskQueueKey == null ?
+            new RedissonBlockingQueue<>(new TaskManagerRedis.TaskViewCodec(), getCommandSyncService(), AmqpQueue.TASK.name(), redissonClient):
+            new RedissonBlockingQueue<>(new TaskManagerRedis.TaskViewCodec(), getCommandSyncService(), String.format("%s.%s", AmqpQueue.TASK.name(), taskQueueKey), redissonClient);
     }
 
     private CommandSyncService getCommandSyncService() {

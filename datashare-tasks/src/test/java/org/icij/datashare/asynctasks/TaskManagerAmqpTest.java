@@ -55,7 +55,7 @@ public class TaskManagerAmqpTest {
     public void test_new_task_with_group_routing() throws Exception {
         String key = "Key";
         try (TaskManagerAmqp groupTaskManager = new TaskManagerAmqp(AMQP, new ConcurrentHashMap<>(), RoutingStrategy.GROUP, () -> nextMessage.countDown());
-             TaskSupplierAmqp groupTaskSupplier = new TaskSupplierAmqp(AMQP, RoutingStrategy.GROUP, key)) {
+             TaskSupplierAmqp groupTaskSupplier = new TaskSupplierAmqp(AMQP, key)) {
             groupTaskSupplier.consumeTasks(t -> taskQueue.add(t));
             String expectedTaskViewId = groupTaskManager.startTask("taskName", User.local(), new Group(key), Map.of());
 
@@ -69,7 +69,7 @@ public class TaskManagerAmqpTest {
     @Test(timeout = 2000)
     public void test_new_task_with_name_routing() throws Exception {
         try (TaskManagerAmqp groupTaskManager = new TaskManagerAmqp(AMQP, new ConcurrentHashMap<>(), RoutingStrategy.NAME, () -> nextMessage.countDown());
-             TaskSupplierAmqp groupTaskSupplier = new TaskSupplierAmqp(AMQP, RoutingStrategy.NAME, "TaskName")) {
+             TaskSupplierAmqp groupTaskSupplier = new TaskSupplierAmqp(AMQP, "TaskName")) {
             groupTaskSupplier.consumeTasks(t -> taskQueue.add(t));
             String expectedTaskViewId = groupTaskManager.startTask("TaskName", User.local(), Map.of());
 

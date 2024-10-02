@@ -12,6 +12,7 @@ import org.redisson.RedissonBlockingQueue;
 import org.redisson.api.RedissonClient;
 
 import java.io.IOException;
+import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
@@ -54,30 +55,31 @@ public class TaskManagerRedisTest {
     }
 
     @Test
-    public void test_start_task_with_group_routing() throws IOException {
+    public void test_start_task_with_group_routing() throws Exception {
         try (TaskManagerRedis groupTaskManager = new TaskManagerRedis(
                 redissonClient,
                 "test:task:manager", RoutingStrategy.GROUP,
-                this::callback)) {
+                this::callback);
+            TaskSupplierRedis taskSupplier = new TaskSupplierRedis(redissonClient, "Group")) {
+
             assertThat(groupTaskManager.startTask("HelloWorld", User.local(), new Group("Group"),Map.of("greeted", "world"))).isNotNull();
 
-            Task<?> task = groupTaskManager.getTasks().get(0);
+            Task<Serializable> task = taskSupplier.get(2, TimeUnit.SECONDS);
             assertThat(task.getGroup()).isEqualTo(new Group("Group"));
-            assertThat(groupTaskManager.taskQueue(task)).hasSize(1);
             assertThat(((RedissonBlockingQueue<?>) groupTaskManager.taskQueue(task)).getName()).isEqualTo("TASK.Group");
         }
     }
 
     @Test
-    public void test_start_task_with_name_routing() throws IOException {
+    public void test_start_task_with_name_routing() throws Exception {
         try (TaskManagerRedis nameTaskManager = new TaskManagerRedis(
                 redissonClient,
                 "test:task:manager", RoutingStrategy.NAME,
-                this::callback)) {
+                this::callback);
+             TaskSupplierRedis taskSupplier = new TaskSupplierRedis(redissonClient, "HelloWorld")) {
             assertThat(nameTaskManager.startTask("HelloWorld", User.local(), Map.of("greeted", "world"))).isNotNull();
 
-            Task<?> task = nameTaskManager.getTasks().get(0);
-            assertThat(nameTaskManager.taskQueue(task)).hasSize(1);
+            Task<Serializable> task = taskSupplier.get(2, TimeUnit.SECONDS);
             assertThat(((RedissonBlockingQueue<?>) nameTaskManager.taskQueue(task)).getName()).isEqualTo("TASK.HelloWorld");
         }
     }
