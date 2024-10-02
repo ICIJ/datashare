@@ -32,7 +32,6 @@ import java.util.concurrent.ExecutionException;
 
 import static java.lang.String.format;
 import static java.lang.String.valueOf;
-import static java.util.Collections.singletonList;
 import static java.util.Optional.ofNullable;
 
 /**
@@ -148,7 +147,7 @@ public final class OAuth2CookieFilter extends CookieAuthFilter {
         ObjectMapper mapper = new ObjectMapper();
         ObjectNode root = (ObjectNode) mapper.readTree(oauthApiResponse.getBody());
         Map<String, Object> userMap = mapper.convertValue(root, new TypeReference<>() {});
-        if (!oauthClaimIdAttribute.isEmpty()){
+        if (!oauthClaimIdAttribute.isEmpty()) {
             if (userMap.get(oauthClaimIdAttribute) == null) {
                 logger.error("The attribute {} does not exist in the response body.", oauthClaimIdAttribute);
                 throw new BadRequestException();
@@ -157,6 +156,20 @@ public final class OAuth2CookieFilter extends CookieAuthFilter {
             userMap.put("id", id);
             userMap.put("uid", id);
         }
+
+        // Retrieve the existing user from the database via id or uid
+        String login = (String) userMap.get("id");
+        DatashareUser existingUser = (DatashareUser) writableUsers().find(login);
+
+        if (existingUser != null) {
+            // Merge existing details with the new data from the OAuth response
+            Map<String, Object> existingDetails = existingUser.getDetails();
+            userMap.putAll(existingDetails); // Ensures existing details are preserved
+        } else {
+            logger.info("No existing user found for login: {}", login);
+        }
+
+        // Check for the default project and groups_by_applications handling
         if (!oauthDefaultProject.isEmpty()) {
             userMap.put("provider", "icij");
 
@@ -189,10 +202,22 @@ public final class OAuth2CookieFilter extends CookieAuthFilter {
             // Add the default project only if it is not already in the list
             if (!datashare.contains(oauthDefaultProject)) {
                 datashare.add(oauthDefaultProject);
+                logger.info("Appended default project {} to user {}'s datashare.", oauthDefaultProject, login);
+            } else {
+                logger.info("Default project {} already exists for user {} in datashare.", oauthDefaultProject, login);
             }
         }
+
+        // Save the updated user back to the database
         DatashareUser datashareUser = new DatashareUser(userMap);
-        writableUsers().saveOrUpdate(datashareUser);
+        boolean isSaved = writableUsers().saveOrUpdate(datashareUser);
+
+        if (!isSaved) {
+            logger.warn("Failed to save updated user data for login: {}", login);
+        } else {
+            logger.info("Successfully updated user data for login: {}", login);
+        }
+
         return datashareUser;
     }
 
