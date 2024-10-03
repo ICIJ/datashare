@@ -30,7 +30,7 @@ public class TaskWorkerLoopForPipelineTasksTest {
     @Mock Function<Double, Void> updateCallback;
     @Mock ElasticsearchSpewer spewer;
     private final BlockingQueue<Task<?>> taskQueue = new LinkedBlockingQueue<>();
-    private final TaskManagerMemory taskSupplier = new TaskManagerMemory(taskQueue, taskFactory);
+    private final TaskManagerMemory taskSupplier = new TaskManagerMemory(taskQueue, taskFactory, new PropertiesProvider());
 
     @Test
     public void test_scan_task() throws Exception {
