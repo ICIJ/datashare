@@ -20,17 +20,21 @@ import static java.util.Collections.singletonList;
 import static java.util.Collections.unmodifiableMap;
 import static java.util.Optional.ofNullable;
 import static org.icij.datashare.json.JsonUtils.deserialize;
+import static org.icij.datashare.text.StringUtils.isEmpty;
 
 public class User implements Entity {
     public static final String LOCAL = "local";
-    public static final String XEMX_APPLICATIONS_KEY = "groups_by_applications";
-    public static final String XEMX_DATASHARE_KEY = "datashare";
+    public static final String DEFAULT_PROJECTS_KEY = "groups_by_applications.datashare";
+    public static final String JVM_PROJECT_KEY = "datashare.user.projects";
+
     public final String id;
     public final String name;
     public final String email;
     public final String provider;
     public final Map<String, Object> details;
     private final HashSet<Project> projects = new HashSet<>();
+    @JsonIgnore
+    private final String jsonProjectKey;
 
     public User(final String id, String name, String email, String provider, String jsonDetails) {
         this(id, name, email, provider, deserialize(jsonDetails));
@@ -40,11 +44,18 @@ public class User implements Entity {
     public User(@JsonProperty("id") final String id, @JsonProperty("name") String name,
                 @JsonProperty("email") String email, @JsonProperty("provider") String provider,
                 @JsonProperty("details") Map<String, Object> details) {
+        this(id, name, email, provider, details, getDefaultProjectsKey());
+    }
+
+    public User(String id, String name,
+                String email, String provider,
+                Map<String, Object> details, String jsonProjectKey) {
         this.id = id;
         this.name = name;
         this.email = email;
         this.provider = provider;
         this.details = unmodifiableMap(ofNullable(details).orElse(new HashMap<>()));
+        this.jsonProjectKey = jsonProjectKey;
     }
 
     public User(final String id, String name, String email, String provider) {
@@ -80,8 +91,19 @@ public class User implements Entity {
 
     @JsonIgnore
     public List<String> getApplicationProjectNames() {
-        Map<String, Object> applications = (Map<String, Object>) ofNullable(details.get(XEMX_APPLICATIONS_KEY)).orElse(new HashMap<>());
-        return (List<String>) ofNullable(applications.get(XEMX_DATASHARE_KEY)).orElse(new LinkedList<>());
+        List<String> jsonKeys = List.of(jsonProjectKey.split("\\."));
+        Map<String, Object> node = details;
+        for (String key: jsonKeys)  {
+            Object o = node.get(key);
+            if (o instanceof Map<?,?>) {
+                node = (Map<String, Object>) o;
+            } else if (jsonKeys.indexOf(key) == jsonKeys.size() -1 && o instanceof List<?>) {
+                return (List<String>) o;
+            } else {
+                return new ArrayList<>();
+            }
+        }
+        return new ArrayList<>();
     }
 
     @JsonIgnore
@@ -169,6 +191,7 @@ public class User implements Entity {
     }
 
     @Override public String getId() { return id;}
+
     public String queueName() { return "extract:queue_" + id;}
     @JsonIgnore
     public String getPath() { return this.equals(local()) || isNull() ? "" : id;}
@@ -178,20 +201,23 @@ public class User implements Entity {
     public boolean isLocal() { return LOCAL.equals(this.id);}
     public static User local() { return localUser(LOCAL);}
     public static User localUser(String id) {
+        String[] keys = DEFAULT_PROJECTS_KEY.split("\\.");
         return new User(
-            Map.of("uid", id, XEMX_APPLICATIONS_KEY, Map.of(XEMX_DATASHARE_KEY, singletonList(id + "-datashare")))
+            Map.of("uid", id, keys[0], Map.of(keys[1], singletonList(id + "-datashare")))
         );
     }
     public static User nullUser() { return new User((String)null);}
-
     @Override
     public int hashCode() { return Objects.hash(id);}
 
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
-        if (o == null || !(o instanceof User)) return false;
-        User user = (User) o;
+        if (!(o instanceof User user)) return false;
         return Objects.equals(id, user.id);
+    }
+
+    static String getDefaultProjectsKey() {
+        return isEmpty(System.getProperty(JVM_PROJECT_KEY)) ? DEFAULT_PROJECTS_KEY: System.getProperty(JVM_PROJECT_KEY);
     }
 }

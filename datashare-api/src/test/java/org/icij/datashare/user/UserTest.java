@@ -2,15 +2,19 @@ package org.icij.datashare.user;
 
 
 import org.icij.datashare.json.JsonObjectMapper;
+import org.junit.After;
 import org.junit.Test;
 
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
 
 import static org.fest.assertions.Assertions.assertThat;
 import static org.fest.assertions.MapAssert.entry;
+import static org.icij.datashare.text.Project.project;
 import static org.icij.datashare.user.User.fromJson;
 
 public class UserTest {
@@ -144,6 +148,21 @@ public class UserTest {
     }
 
     @Test
+    public void test_get_project_key() {
+        System.setProperty("datashare.user.projects", "projects");
+        assertThat(User.getDefaultProjectsKey()).isEqualTo("projects");
+    }
+
+    @Test
+    public void test_get_projects() {
+        assertThat(new User(Map.of("groups_by_applications", Map.of("datashare", List.of("my_project")))).getProjects())
+                .contains(project("my_project"));
+        System.setProperty("datashare.user.projects", "projects");
+        assertThat(new User(Map.of("projects", List.of("my_project"))).getProjects())
+                .contains(project("my_project"));
+    }
+
+    @Test
     public void test_can_set_several_projects_in_addition_to_json_detail() {
         User user = new User("id", "name", "email", "provider", "{ \"groups_by_applications\": { \"datashare\": [\"foo\"] } }");
         user.setProjectNames(Collections.singletonList("bar"));
@@ -169,5 +188,10 @@ public class UserTest {
         assertThat(user.getProjectNames()).hasSize(1);
         user.clearProjects();
         assertThat(user.getProjectNames()).hasSize(0);
+    }
+
+    @After
+    public void tearDown() throws Exception {
+        System.setProperty("datashare.user.projects", "");
     }
 }
