@@ -41,15 +41,8 @@ public class YesCookieAuthFilter extends CookieAuthFilter {
     private User createUser(String userName) {
         List<Project> projects = getProjects();
         List<String> projectNames = getProjectNames();
-        // Build user properties
-        HashMap<String, Object> userProperties = new HashMap<>() {{
-            put("uid", userName);
-            put(DatashareUser.XEMX_APPLICATIONS_KEY, new HashMap<String, Object>() {{
-                put(DatashareUser.XEMX_DATASHARE_KEY, projectNames);
-            }});
-        }};
         // Build datashare user
-        DatashareUser user = new DatashareUser(userProperties);
+        DatashareUser user = new DatashareUser(org.icij.datashare.user.User.localUser(userName));
         user.setProjects(projects);
         // Finally, store the user in redis so the session can be retrieved
         ((UsersInRedis) users).saveOrUpdate(user);
