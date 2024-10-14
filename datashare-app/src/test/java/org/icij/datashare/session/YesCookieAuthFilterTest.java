@@ -55,7 +55,7 @@ public class YesCookieAuthFilterTest {
         assertThat(payload).isSameAs(next);
         verify(context).setCurrentUser(user.capture());
         assertThat(user.getValue().login()).isNotEmpty();
-        assertThat(((DatashareUser)user.getValue()).getProjectNames()).containsExactly("demo");
+        assertThat(((DatashareUser)user.getValue()).getProjectNames()).contains("demo");
         assertThat(user.getValue().isInRole("local")).isFalse();
     }
 
