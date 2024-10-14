@@ -18,9 +18,9 @@ import java.util.Properties;
 
 import static java.util.Optional.ofNullable;
 import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_PROJECT_OPT;
-import static org.icij.datashare.cli.DatashareCliOptions.OAUTH_USER_PROJECTS_KEY;
 import static org.icij.datashare.cli.DatashareCliOptions.DIGEST_PROJECT_NAME_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.NO_DIGEST_PROJECT_OPT;
+import static org.icij.datashare.cli.DatashareCliOptions.OAUTH_USER_PROJECTS_KEY_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.OPT_ALIASES;
 
 
@@ -75,9 +75,9 @@ public class DatashareCli {
                     && properties.getProperty(DIGEST_PROJECT_NAME_OPT) == null) {
                 properties.setProperty(DIGEST_PROJECT_NAME_OPT, properties.getProperty(DEFAULT_PROJECT_OPT));
             }
-            if (!User.DEFAULT_PROJECTS_KEY.equals(properties.getProperty(OAUTH_USER_PROJECTS_KEY))) {
-                LOGGER.info("settings system property {} to {}", User.JVM_PROJECT_KEY, properties.getProperty(OAUTH_USER_PROJECTS_KEY));
-                System.setProperty(User.JVM_PROJECT_KEY, properties.getProperty(OAUTH_USER_PROJECTS_KEY));
+            if (!User.DEFAULT_PROJECTS_KEY.equals(properties.getProperty(OAUTH_USER_PROJECTS_KEY_OPT))) {
+                LOGGER.info("settings system property {} to {}", User.JVM_PROJECT_KEY, properties.getProperty(OAUTH_USER_PROJECTS_KEY_OPT));
+                System.setProperty(User.JVM_PROJECT_KEY, properties.getProperty(OAUTH_USER_PROJECTS_KEY_OPT));
             }
             // Retro-compatibility so the alias options is are mapped to the right property
             for (String alias : OPT_ALIASES.keySet()) {
