@@ -131,6 +131,12 @@ public class DatashareCliTest {
     }
 
     @Test
+    public void test_user_projects_key() {
+        cli.parseArguments(new String[] {"--oauthUserProjectsKey", "foo.bar.baz"});
+        assertThat(System.getProperty("datashare.user.projects")).isEqualTo("foo.bar.baz");
+    }
+
+    @Test
     public void test_absolute_batch_download_dir() {
         cli.parseArguments(new String[] {"--batchDownloadDir", "/home/foo"});
         assertThat(cli.properties).includes(entry("batchDownloadDir", "/home/foo"));
