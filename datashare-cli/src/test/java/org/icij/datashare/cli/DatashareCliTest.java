@@ -132,7 +132,7 @@ public class DatashareCliTest {
 
     @Test
     public void test_user_projects_key() {
-        cli.parseArguments(new String[] {"--oauthUserProjectsKey", "foo.bar.baz"});
+        cli.parseArguments(new String[] {"--oauthUserProjectsAttribute", "foo.bar.baz"});
         assertThat(System.getProperty("datashare.user.projects")).isEqualTo("foo.bar.baz");
     }
 
