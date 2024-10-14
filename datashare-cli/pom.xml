@@ -31,7 +31,7 @@
         <dependency>
             <groupId>org.icij.datashare</groupId>
             <artifactId>datashare-api</artifactId>
-            <version>14.2.0</version>
+            <version>14.3.1</version>
             <scope>provided</scope>
         </dependency>
 
