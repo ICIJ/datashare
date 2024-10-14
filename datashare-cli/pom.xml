@@ -12,7 +12,7 @@
 
     <artifactId>datashare-cli</artifactId>
     <packaging>jar</packaging>
-    <version>13.5.0</version>
+    <version>13.6.0</version>
 
     <dependencies>
         <dependency>
