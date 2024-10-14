@@ -5,6 +5,7 @@ import joptsimple.OptionSpec;
 import joptsimple.ValueConverter;
 import org.icij.datashare.PipelineHelper;
 import org.icij.datashare.Stage;
+import org.icij.datashare.user.User;
 import org.slf4j.event.Level;
 import org.icij.datashare.tasks.RoutingStrategy;
 
@@ -124,6 +125,8 @@ public final class DatashareCliOptions {
     public static final String SEARCH_QUERY_OPT = "searchQuery";
     public static final String TASK_ROUTING_STRATEGY_OPT = "taskRoutingStrategy";
     public static final String TASK_ROUTING_KEY_OPT = "taskRoutingKey";
+    public static final String OAUTH_USER_PROJECTS_KEY = "oauthUserProjectsKey";
+
 
     private static final Path DEFAULT_DATASHARE_HOME = Paths.get(System.getProperty("user.home"), ".local/share/datashare");
     private static final Integer DEFAULT_NLP_PARALLELISM = 1;
@@ -210,6 +213,15 @@ public final class DatashareCliOptions {
                 .withRequiredArg()
                 .ofType(String.class)
                 .defaultsTo(DEFAULT_USER);
+    }
+
+    static void defaultUserProjectKey(OptionParser parser) {
+        parser.acceptsAll(
+                        List.of(OAUTH_USER_PROJECTS_KEY),
+                "User json key to use for finding user's project list from identity provider")
+                .withRequiredArg()
+                .ofType(String.class)
+                .defaultsTo(User.DEFAULT_PROJECTS_KEY);
     }
 
     static void followSymlinks(OptionParser parser) {
