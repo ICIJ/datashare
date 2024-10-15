@@ -491,14 +491,14 @@ jobs:
   deploy_datashare_cli:
     docker:
       - image: cimg/openjdk:17.0.11
+      - image: adobe/s3mock:latest
+        name: s3mock
 
     environment:
       MAVEN_OPTS: "-Xms512m -Xmx512m -Xss10M"
 
     steps:
       - checkout
-      - image: adobe/s3mock:latest
-        name: s3mock
       - run:
           name: Configure GPG private key for signing project artifacts in OSS Sonatype
           shell: /bin/bash
