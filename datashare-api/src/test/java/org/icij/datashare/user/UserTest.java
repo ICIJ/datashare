@@ -130,6 +130,13 @@ public class UserTest {
     }
 
     @Test
+    public void test_local_user_with_projects() {
+        User user = User.localUser("foo", List.of("p1", "p2"));
+        assertThat(user.id).isEqualTo("foo");
+        assertThat(user.getProjects()).contains (project("p1"), project("p2"));
+    }
+
+    @Test
     public void test_can_set_several_projects() {
         User user = new User("id", "name", "email", "provider", "{}");
         user.setProjectNames(Arrays.asList("foo", "bar"));

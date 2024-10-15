@@ -201,9 +201,13 @@ public class User implements Entity {
     public boolean isLocal() { return LOCAL.equals(this.id);}
     public static User local() { return localUser(LOCAL);}
     public static User localUser(String id) {
+        return localUser(id, singletonList(id + "-datashare"));
+    }
+
+    public static User localUser(String id, List<String> projectNames) {
         String[] keys = DEFAULT_PROJECTS_KEY.split("\\.");
         return new User(
-            Map.of("uid", id, keys[0], Map.of(keys[1], singletonList(id + "-datashare")))
+                Map.of("uid", id, keys[0], Map.of(keys[1], projectNames))
         );
     }
     public static User nullUser() { return new User((String)null);}
