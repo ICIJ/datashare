@@ -6,6 +6,8 @@ import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
+
+import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.test.LogbackCapturingRule;
 import org.icij.datashare.user.User;
 import org.junit.After;
@@ -28,7 +30,7 @@ public class TaskManagerMemoryTest {
     @Before
     public void setUp() throws Exception {
         LinkedBlockingQueue<Task<?>> taskViews = new LinkedBlockingQueue<>();
-        taskManager = new TaskManagerMemory(taskViews, factory, waitForLoop);
+        taskManager = new TaskManagerMemory(taskViews, factory, new PropertiesProvider(), waitForLoop);
         taskInspector = new TaskInspector(taskManager);
         waitForLoop.await();
     }

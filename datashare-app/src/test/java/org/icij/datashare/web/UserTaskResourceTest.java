@@ -192,7 +192,7 @@ public class UserTaskResourceTest extends AbstractProdWebServerTest {
         final PropertiesProvider propertiesProvider = new PropertiesProvider(new HashMap<>() {{
             put("mode", "LOCAL");
         }});
-        taskManager = new TaskManagerMemory(new ArrayBlockingQueue<>(3), taskFactory);
+        taskManager = new TaskManagerMemory(new ArrayBlockingQueue<>(3), taskFactory, new PropertiesProvider());
         configure(new CommonMode(propertiesProvider.getProperties()) {
             @Override
             protected void configure() {
