@@ -497,6 +497,8 @@ jobs:
 
     steps:
       - checkout
+      - image: adobe/s3mock:latest
+        name: s3mock
       - run:
           name: Configure GPG private key for signing project artifacts in OSS Sonatype
           shell: /bin/bash
