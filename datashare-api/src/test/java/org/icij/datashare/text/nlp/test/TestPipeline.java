@@ -4,12 +4,10 @@ import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.Language;
 import org.icij.datashare.text.NamedEntity;
-import org.icij.datashare.text.nlp.NlpStage;
 import org.icij.datashare.text.nlp.Pipeline;
 
 import java.nio.charset.Charset;
 import java.util.List;
-import java.util.Optional;
 
 public class TestPipeline implements Pipeline {
     @Override
@@ -17,39 +15,33 @@ public class TestPipeline implements Pipeline {
         return Type.TEST;
     }
 
-    public TestPipeline(PropertiesProvider provider) {}
+    public TestPipeline(PropertiesProvider ignore) {}
     @Override
-    public boolean initialize(Language language) throws InterruptedException {
+    public boolean initialize(Language language) {
         return false;
     }
 
     @Override
-    public List<NamedEntity> process(Document doc) throws InterruptedException {
+    public List<NamedEntity> process(Document doc) {
         return null;
     }
 
     @Override
-    public List<NamedEntity> process(Document doc, int contentLength, int contentOffset) throws InterruptedException {
+    public List<NamedEntity> process(Document doc, int contentLength, int contentOffset) {
         return null;
     }
 
     @Override
-    public void terminate(Language language) throws InterruptedException {
-
+    public void terminate(Language language) {
     }
 
     @Override
-    public boolean supports(NlpStage stage, Language language) {
+    public boolean supports(Language language) {
         return false;
     }
 
     @Override
     public List<NamedEntity.Category> getTargetEntities() {
-        return null;
-    }
-
-    @Override
-    public List<NlpStage> getStages() {
         return null;
     }
 
@@ -61,10 +53,5 @@ public class TestPipeline implements Pipeline {
     @Override
     public Charset getEncoding() {
         return null;
-    }
-
-    @Override
-    public Optional<String> getPosTagSet(Language language) {
-        return Optional.empty();
     }
 }

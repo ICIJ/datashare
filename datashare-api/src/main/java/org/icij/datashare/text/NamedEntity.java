@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonGetter;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import java.io.Serial;
 import org.icij.datashare.Entity;
 import org.icij.datashare.function.ThrowingFunction;
 import org.icij.datashare.function.ThrowingFunctions;
@@ -17,7 +18,6 @@ import org.icij.datashare.text.nlp.NlpTag;
 import org.icij.datashare.text.nlp.Pipeline;
 
 import java.io.Serializable;
-import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
@@ -27,16 +27,14 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 import static java.lang.Math.min;
-import static java.util.Arrays.asList;
 import static org.icij.datashare.function.ThrowingFunctions.removePattFrom;
 import static org.icij.datashare.text.NamedEntity.Category.UNKNOWN;
-import static org.icij.datashare.text.nlp.NlpStage.NER;
-import static org.icij.datashare.text.nlp.NlpStage.POS;
 
 
 @IndexType("NamedEntity")
 @JsonIgnoreProperties(ignoreUnknown = true)
 public final class NamedEntity implements Entity {
+    @Serial
     private static final long serialVersionUID = 1946532866377498L;
 
     private final String mention;
@@ -130,7 +128,7 @@ public final class NamedEntity implements Entity {
     }
 
     public static List<NamedEntity> allFrom(String text, Annotations annotations) {
-        return annotations.get(NER).stream()
+        return annotations.getTags().stream()
                 .map     ( tag -> from(text, tag, annotations) )
                 .filter  ( ne -> ne.category != UNKNOWN)
                 .collect ( Collectors.toList() );
@@ -138,12 +136,7 @@ public final class NamedEntity implements Entity {
 
     public static NamedEntity from(String text, NlpTag tag, Annotations annotations) {
         String mention = ThrowingFunctions.removeNewLines.apply(text.substring(tag.getBegin(), tag.getEnd()));
-        List<NlpTag> posTags = annotations.get(POS);
-        int posTagIndex = Collections.binarySearch(posTags, tag, NlpTag.comparator);
-        if (posTagIndex > 0) {
-            LOGGER.info(posTagIndex + ", " + posTags.get(posTagIndex));
-        }
-        return NamedEntity.create(tag.getCategory(), mention, asList((long)tag.getBegin()),
+        return NamedEntity.create(tag.getCategory(), mention, List.of((long) tag.getBegin()),
                 annotations.documentId, annotations.rootId, annotations.pipelineType, annotations.language
         );
     }

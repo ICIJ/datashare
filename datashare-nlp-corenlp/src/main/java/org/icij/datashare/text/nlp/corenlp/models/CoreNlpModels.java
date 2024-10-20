@@ -2,11 +2,8 @@ package org.icij.datashare.text.nlp.corenlp.models;
 
 import org.icij.datashare.text.Language;
 import org.icij.datashare.text.nlp.AbstractModels;
-import org.icij.datashare.text.nlp.NlpStage;
 import org.icij.datashare.text.nlp.Pipeline;
 
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -17,8 +14,8 @@ public abstract class CoreNlpModels<T> extends AbstractModels<CoreNlpAnnotator<T
     final Map<Language, String> modelNames = new HashMap<>();
     private static final String IN_JAR_BASE_PATH = "edu/stanford/nlp/models/";
 
-    CoreNlpModels(NlpStage stage) {
-        super(Pipeline.Type.CORENLP, stage);
+    CoreNlpModels() {
+        super(Pipeline.Type.CORENLP);
     }
 
     String getJarFileName(Language language) {

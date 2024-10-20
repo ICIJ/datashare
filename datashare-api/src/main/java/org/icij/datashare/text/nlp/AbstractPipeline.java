@@ -19,13 +19,9 @@ public abstract class AbstractPipeline implements Pipeline {
     public static final String NLP_STAGES_PROP = "nlpStages";
     protected final Logger LOGGER = LoggerFactory.getLogger(getClass());
 
-
     protected final Charset encoding;
-    protected final Map<NlpStage, List<NlpStage>> stageDependencies;
-    protected final List<NlpStage> targetStages;
     protected final List<NamedEntity.Category> targetEntities;
     protected final boolean caching;
-    protected List<NlpStage> stages;
 
     protected AbstractPipeline(Properties properties) {
         targetEntities = getProperty(Property.ENTITIES.getName(), properties,
@@ -34,10 +30,6 @@ public abstract class AbstractPipeline implements Pipeline {
                         .andThen(NamedEntity.Category.parseAll))
                 .orElse(DEFAULT_ENTITIES);
 
-        targetStages = getProperty(NLP_STAGES_PROP, properties,
-                        removeSpaces.andThen(splitComma).andThen(NlpStage.parseAll))
-                        .orElse(DEFAULT_TARGET_STAGES);
-
         encoding = getProperty(Property.ENCODING.getName(), properties,
                 parseCharset.compose(String::trim))
                 .orElse(DEFAULT_ENCODING);
@@ -45,13 +37,6 @@ public abstract class AbstractPipeline implements Pipeline {
         caching = getProperty(Property.CACHING.getName(), properties,
                 trim.andThen(Boolean::parseBoolean))
                 .orElse(DEFAULT_CACHING);
-
-        stageDependencies = new HashMap<NlpStage, List<NlpStage>>() {{
-            Arrays.stream(NlpStage.values())
-                    .forEach( stage ->
-                            put(stage, new ArrayList<>())
-                    );
-        }};
     }
 
     @Override
@@ -59,9 +44,6 @@ public abstract class AbstractPipeline implements Pipeline {
 
     @Override
     public List<NamedEntity.Category> getTargetEntities() { return targetEntities; }
-
-    @Override
-    public List<NlpStage> getStages() { return stages; }
 
     @Override
     public boolean isCaching() { return caching; }
@@ -74,22 +56,12 @@ public abstract class AbstractPipeline implements Pipeline {
         return pipelineClass.getDeclaredConstructor(PropertiesProvider.class).newInstance(propertiesProvider);
     }
 
-    /**
-     * Prepare pipeline run
-     * Check language support for implied stages.
-     *
-     * @return false if any stage is not supported in language; true otherwise
-     */
     public boolean initialize(Language language) throws InterruptedException {
-        // Pull all dependencies from targeted stages
-        stages = stagesDependenciesTC(targetStages);
-        // Check all dependencies for support in language
-        if ( ! checkStages(language)) {
-            LOGGER.info("initializing " + getType() + " Skipping... Stage unsupported for " +
-                            language + " " + stages);
+        if (!supports(language)) {
+            LOGGER.info("initializing " + getType() + ", skipping as " + language + " is not supported");
             return false;
         }
-        LOGGER.info("initializing " + getType() + " " + language + " " + stages);
+        LOGGER.info("initializing " + getType());
         return true;
     }
 
@@ -102,72 +74,16 @@ public abstract class AbstractPipeline implements Pipeline {
      * Post-processing operations
      */
     public void terminate(Language language) throws InterruptedException {
-        LOGGER.info("ending " + getType() + " " + language + " " + stages.toString());
+        LOGGER.info("ending " + getType() + " " + language);
     }
 
     /**
      * @return Language . NlpStage support matrix
      */
-    public abstract Map<Language, Set<NlpStage>> supportedStages();
+    public abstract Set<Language> supportedLanguages();
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
-    public boolean supports(NlpStage stage, Language language) {
-        Set<NlpStage> supStagesForLang = supportedStages().get(language);
-        if (supStagesForLang == null || supStagesForLang.isEmpty())
-            return false;
-        return supStagesForLang.contains(stage);
-    }
-
-
-    /**
-     * Check every stage supports language
-     *
-     * @return true if every stage supports language, false otherwise
-     */
-    private boolean checkStages(Language language) {
-        for (NlpStage stage : getStages()) {
-            if ( ! supports(stage, language))
-                return false;
-        }
-        return true;
-    }
-
-    /**
-     * Transitive closure of stage dependencies
-     *
-     * @param coreStages the set of stages to expand
-     * @return the topological sort of all depending stages
-     */
-    private List<NlpStage> stagesDependenciesTC(List<NlpStage> coreStages) {
-        Set<NlpStage>  visited = new HashSet<>();
-        List<NlpStage> tc      = new ArrayList<>();
-        for (NlpStage stage : coreStages) {
-            dfs(stage, visited, tc, stageDependencies);
-        }
-        return tc;
-    }
-
-    /**
-     * Depth-First Search traversal of stage dependencies
-     *
-     * @param stage     the current stage being traversed
-     * @param visited   keeps the set of already seen stages during traversal
-     * @param sorted    represents the stages, in post-fix DFS traversal order
-     * @param stagesMatrix holds stages dependencies
-     */
-    private void dfs(NlpStage stage,
-                     Set<NlpStage> visited,
-                     List<NlpStage> sorted,
-                     Map<NlpStage, List<NlpStage>> stagesMatrix) {
-        visited.add(stage);
-        stagesMatrix.get(stage)
-                .forEach( stageDep -> {
-                    if ( ! visited.contains(stageDep))
-                        dfs(stageDep, visited, sorted, stagesMatrix);
-                });
-        sorted.add(stage);
+    public boolean supports(Language language) {
+        return supportedLanguages().contains(language);
     }
 }
