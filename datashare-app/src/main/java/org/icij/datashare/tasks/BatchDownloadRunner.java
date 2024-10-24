@@ -49,7 +49,7 @@ import static java.lang.String.valueOf;
 import static java.util.stream.Collectors.toList;
 import static org.icij.datashare.cli.DatashareCliOptions.*;
 
-@TaskGroup("Java")
+@TaskGroup(JAVA_GROUP)
 public class BatchDownloadRunner implements Callable<UriResult>, Monitorable, UserTask {
     private final static Logger logger = LoggerFactory.getLogger(BatchDownloadRunner.class);
     static final int MAX_SCROLL_SIZE = 3500;

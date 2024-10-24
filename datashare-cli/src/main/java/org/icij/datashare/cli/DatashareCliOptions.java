@@ -77,6 +77,7 @@ public final class DatashareCliOptions {
     public static final String MESSAGE_BUS_OPT = "messageBusAddress";
     public static final String MODE_ABBR_OPT = "m";
     public static final String MODE_OPT = "mode";
+    public static final String NLP_BATCH_SIZE_OPT = "batchSize";
     public static final String NLP_PARALLELISM_ABBR_OPT = "np";
     public static final String NLP_PARALLELISM_OPT = "nlpParallelism";
     public static final String NLP_PIPELINE_ABBR_OPT = "nlpp";
@@ -229,7 +230,7 @@ public final class DatashareCliOptions {
                 singletonList(FOLLOW_SYMLINKS_OPT), "Follow symlinks while scanning documents")
                 .withRequiredArg()
                 .ofType(Boolean.class)
-                .defaultsTo(DEFAULT_FOLLOW_SYMLINKS);;
+                .defaultsTo(DEFAULT_FOLLOW_SYMLINKS);
     }
 
     static void cors(OptionParser parser) {
@@ -829,7 +830,7 @@ public final class DatashareCliOptions {
     }
 
     public static ValueConverter<String> toAbsolute() {
-        return new ValueConverter<String>() {
+        return new ValueConverter<>() {
             @Override
             public String convert(String value) {
                 Path path = Paths.get(value);

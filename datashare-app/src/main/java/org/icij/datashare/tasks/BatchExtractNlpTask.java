@@ -1,7 +1,18 @@
 package org.icij.datashare.tasks;
 
+import static java.lang.String.valueOf;
+import static java.util.Optional.ofNullable;
+import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_DEFAULT_PROJECT;
+import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_PROJECT_OPT;
+import static org.icij.datashare.cli.DatashareCliOptions.MAX_CONTENT_LENGTH_OPT;
+import static org.icij.datashare.cli.DatashareCliOptions.NLP_PIPELINE_OPT;
+import static org.icij.extract.document.Identifier.shorten;
+
 import com.google.inject.Inject;
 import com.google.inject.assistedinject.Assisted;
+import java.io.IOException;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import org.icij.datashare.HumanReadableSize;
 import org.icij.datashare.PropertiesProvider;
@@ -19,35 +30,25 @@ import org.icij.datashare.text.nlp.Pipeline;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
-
-import static java.lang.String.valueOf;
-import static java.util.Optional.ofNullable;
-import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_DEFAULT_PROJECT;
-import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_PROJECT_OPT;
-import static org.icij.datashare.cli.DatashareCliOptions.MAX_CONTENT_LENGTH_OPT;
-import static org.icij.datashare.cli.DatashareCliOptions.NLP_PIPELINE_OPT;
-import static org.icij.extract.document.Identifier.shorten;
-
 @TaskGroup(JAVA_GROUP)
-public class ExtractNlpTask extends PipelineTask<String> implements Monitorable {
+public class BatchNlpTask extends PipelineTask<List> implements Monitorable {
+    // TODO: fix the raw used of parametrized type...
     private static final int DEFAULT_MAX_CONTENT_LENGTH = 1024 * 1024;
     private final Logger logger = LoggerFactory.getLogger(getClass());
     private final Indexer indexer;
     private final Pipeline nlpPipeline;
     private final Project project;
     private final int maxContentLengthChars;
+    private final int nlpParallelism;
 
     @Inject
-    public ExtractNlpTask(Indexer indexer, PipelineRegistry registry, final DocumentCollectionFactory<String> factory, @Assisted Task<Long> taskView, @Assisted final Function<Double, Void> updateCallback) {
+    public BatchExtractNlpTask(Indexer indexer, PipelineRegistry registry, final DocumentCollectionFactory<List> factory, @Assisted Task<Long> taskView, @Assisted final Function<Double, Void> updateCallback) {
         this(indexer, registry.get(Pipeline.Type.parse((String)taskView.args.get(NLP_PIPELINE_OPT))), factory, taskView, updateCallback);
     }
 
 
-    ExtractNlpTask(Indexer indexer, Pipeline pipeline, final DocumentCollectionFactory<String> factory, @Assisted Task<Long> taskView, @Assisted final Function<Double, Void> updateCallback) {
-        super(Stage.NLP, taskView.getUser(), factory, new PropertiesProvider(taskView.args), String.class);
+    BatchExtractNlpTask(Indexer indexer, Pipeline pipeline, final DocumentCollectionFactory<List> factory, @Assisted Task<Long> taskView, @Assisted final Function<Double, Void> ignored) {
+        super(Stage.NLP, taskView.getUser(), factory, new PropertiesProvider(taskView.args), List.class);
         this.nlpPipeline = pipeline;
         project = Project.project(ofNullable((String)taskView.args.get(DEFAULT_PROJECT_OPT)).orElse(DEFAULT_DEFAULT_PROJECT));
         maxContentLengthChars = (int) HumanReadableSize.parse(ofNullable((String)taskView.args.get(MAX_CONTENT_LENGTH_OPT)).orElse(valueOf(DEFAULT_MAX_CONTENT_LENGTH)));
@@ -58,12 +59,12 @@ public class ExtractNlpTask extends PipelineTask<String> implements Monitorable 
     public Long call() throws Exception {
         super.call();
         logger.info("extracting Named Entities with pipeline {} for {} from queue {}", nlpPipeline.getType(), project, inputQueue.getName());
-        String docId;
+        List<String> batch;
         long nbMessages = 0;
-        while (!(STRING_POISON.equals(docId = inputQueue.poll(60, TimeUnit.SECONDS)))) {
+        while (!(STRING_LIST_POISON.equals(batch = inputQueue.poll(60, TimeUnit.SECONDS)))) {
             try {
-                if (docId != null) {
-                    findNamedEntities(project, docId);
+                if (batch != null) {
+                    queueBatch(project, docId);
                     nbMessages++;
                 }
             } catch (Throwable e) {
