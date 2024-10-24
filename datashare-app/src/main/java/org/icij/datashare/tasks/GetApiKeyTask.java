@@ -10,7 +10,7 @@ import org.icij.task.DefaultTask;
 
 import javax.inject.Inject;
 
-@TaskGroup("Java")
+@TaskGroup(JAVA_GROUP)
 public class GetApiKeyTask extends DefaultTask<String> implements UserTask  {
     private final ApiKeyRepository apiKeyRepository;
     private final User user;

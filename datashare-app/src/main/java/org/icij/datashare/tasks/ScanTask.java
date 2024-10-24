@@ -18,7 +18,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 
 @OptionsClass(Scanner.class)
-@TaskGroup("Java")
+@TaskGroup(JAVA_GROUP)
 public class ScanTask extends PipelineTask<Path> {
     private final Scanner scanner;
     private final Path path;

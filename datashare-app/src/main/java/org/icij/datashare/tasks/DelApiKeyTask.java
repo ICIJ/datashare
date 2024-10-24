@@ -10,7 +10,7 @@ import org.icij.task.DefaultTask;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@TaskGroup("Java")
+@TaskGroup(JAVA_GROUP)
 public class DelApiKeyTask extends DefaultTask<Boolean> implements UserTask {
     private final Logger logger = LoggerFactory.getLogger(getClass());
     private final ApiKeyRepository apiKeyRepository;

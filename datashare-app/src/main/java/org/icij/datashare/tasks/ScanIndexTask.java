@@ -41,7 +41,7 @@ import static org.icij.datashare.cli.DatashareCliOptions.SCROLL_SIZE_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.SCROLL_SLICES_OPT;
 import static org.icij.datashare.text.indexing.ScrollQueryBuilder.createScrollQuery;
 
-@TaskGroup("Java")
+@TaskGroup(JAVA_GROUP)
 public class ScanIndexTask extends PipelineTask<Path> {
     private final Logger logger = LoggerFactory.getLogger(getClass());
     private final Indexer indexer;

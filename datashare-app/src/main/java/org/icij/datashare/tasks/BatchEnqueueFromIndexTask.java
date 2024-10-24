@@ -2,7 +2,9 @@ package org.icij.datashare.tasks;
 
 import static java.lang.Integer.parseInt;
 import static java.util.Collections.singletonList;
-import static java.util.stream.Collectors.toList;
+import static java.util.Optional.ofNullable;
+import static java.util.stream.Collectors.groupingBy;
+import static org.icij.datashare.asynctasks.Task.GROUP_KEY;
 import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_DEFAULT_PROJECT;
 import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_PROJECT_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_SCROLL_DURATION;
@@ -12,34 +14,47 @@ import static org.icij.datashare.cli.DatashareCliOptions.NLP_PIPELINE_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.SCROLL_DURATION_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.SCROLL_SIZE_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.SEARCH_QUERY_OPT;
+import static org.icij.datashare.nlp.NlpHelper.pipelineExtras;
+import static org.icij.datashare.tasks.GroupHelper.JAVA_GROUP;
+import static org.icij.datashare.tasks.GroupHelper.nlpGroup;
 
 import com.google.inject.Inject;
 import com.google.inject.assistedinject.Assisted;
+import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Function;
-import java.util.stream.IntStream;
 import org.icij.datashare.Entity;
 import org.icij.datashare.PropertiesProvider;
-import org.icij.datashare.Stage;
+import org.icij.datashare.asynctasks.CancellableTask;
 import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.asynctasks.TaskGroup;
-import org.icij.datashare.extract.DocumentCollectionFactory;
+import org.icij.datashare.asynctasks.TaskManager;
 import org.icij.datashare.text.Document;
+import org.icij.datashare.text.Language;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.text.indexing.SearchQuery;
 import org.icij.datashare.text.nlp.Pipeline;
-import org.icij.extract.queue.DocumentQueue;
+import org.icij.datashare.user.User;
+import org.icij.datashare.user.UserTask;
+import org.icij.task.DefaultTask;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@TaskGroup("Java")
-public class BatchEnqueueFromIndexTask extends PipelineTask<List> {
-    // TODO: this is a bit ugly, List is unparametrized
-    public static final int DEFAULT_NLP_BATCH_SIZE = 1000;
-    private final DocumentCollectionFactory<List> factory;
-    private final String searchQuery;
+@TaskGroup(JAVA_GROUP)
+public class BatchEnqueueFromIndexTask extends DefaultTask<Long> implements UserTask, CancellableTask {
     Logger logger = LoggerFactory.getLogger(getClass());
+
+    public static final int DEFAULT_NLP_BATCH_SIZE = 1000;
+    private final User user;
+    private volatile Thread taskThread;
+    private final TaskManager taskManager;
+    private final String searchQuery;
+    private final Map<String, Object> batchTaskArgs;
     private final Pipeline.Type nlpPipeline;
     private final int batchSize;
     private final String projectName;
@@ -47,14 +62,24 @@ public class BatchEnqueueFromIndexTask extends PipelineTask<List> {
     private final String scrollDuration;
     private final int scrollSize;
 
+    public record BatchDocument(String id, String rootDocument, Language language) {
+        public static BatchDocument fromDocument(Document document) {
+            return new BatchDocument(document.getId(), document.getRootDocument(), document.getLanguage());
+        }
+    }
+
     @Inject
-    public BatchEnqueueFromIndexTask(final DocumentCollectionFactory<List> factory, final Indexer indexer,
-                                     @Assisted Task<Long> taskView, @Assisted final Function<Double, Void> ignored) {
-        super(Stage.BATCHENQUEUEIDX, taskView.getUser(), factory, new PropertiesProvider(taskView.args), List.class);
-        this.factory = factory;
+    public BatchEnqueueFromIndexTask(
+        final TaskManager taskManager, final Indexer indexer, @Assisted Task<Long> taskView,
+        @Assisted final Function<Double, Void> ignored
+    ) {
+        PropertiesProvider propertiesProvider = new PropertiesProvider(taskView.args);
+        this.user = taskView.getUser();
+        this.taskManager = taskManager;
         this.indexer = indexer;
         this.nlpPipeline =
             Pipeline.Type.parse((String) taskView.args.getOrDefault(NLP_PIPELINE_OPT, Pipeline.Type.CORENLP.name()));
+        this.batchTaskArgs = batchTaskArgs();
         this.batchSize = (int) taskView.args.getOrDefault(NLP_BATCH_SIZE_OPT, DEFAULT_NLP_BATCH_SIZE);
         this.projectName = (String) taskView.args.getOrDefault(DEFAULT_PROJECT_OPT, DEFAULT_DEFAULT_PROJECT);
         this.scrollDuration = propertiesProvider.get(SCROLL_DURATION_OPT).orElse(DEFAULT_SCROLL_DURATION);
@@ -64,7 +89,7 @@ public class BatchEnqueueFromIndexTask extends PipelineTask<List> {
 
     @Override
     public Long call() throws Exception {
-        super.call();
+        taskThread = Thread.currentThread();
         Indexer.Searcher searcher;
         if (searchQuery == null) {
             searcher = indexer.search(singletonList(projectName), Document.class).without(nlpPipeline);
@@ -77,29 +102,95 @@ public class BatchEnqueueFromIndexTask extends PipelineTask<List> {
             "pushing batches of {} docs ids for index {}, pipeline {} with {} scroll and size of {}",
             totalHits, projectName, nlpPipeline, scrollDuration, scrollSize
         );
-        List<? extends Entity> docs = searcher.scroll(scrollDuration).toList();
-        ArrayList<String> batch = new ArrayList<>(this.batchSize);
-        try (DocumentQueue<List> outputQueue = factory.createQueue(getOutputQueueName(), List.class)) {
-            do {
-                for (int batchI = 0; batchI < docs.size(); batchI += batchSize) {
-                    final List<? extends Entity> finalDocs = docs;
-                    List<String> batchAddition = IntStream.range(batchI, Integer.min(batchI + batchSize, docs.size()))
-                        .mapToObj(i -> finalDocs.get(i).getId()).toList();
-                    batch.addAll(batchAddition);
-                    if (batch.size() >= batchSize) {
-                        outputQueue.add(batch);
-                        batch.clear();
-                    }
-                }
-                docs = searcher.scroll(scrollDuration).collect(toList());
-            } while (docs.size() >= scrollSize);
-            if (!batch.isEmpty()) {
-                outputQueue.add(batch);
-            }
-            outputQueue.add(STRING_LIST_POISON);
-            logger.info("queued batches for {} docs into {}", totalHits, outputQueue.getName());
-            searcher.clearScroll();
+        Map<Language, ? extends List<? extends Entity>> scrolledDocsByLanguage = searcher
+            .scroll(scrollDuration)
+            .collect(groupingBy(d -> ((Document) d).getLanguage()));
+        ArrayList<Document> batch = new ArrayList<>(this.batchSize);
+        Language currentLanguage = null;
+        do {
+            // For each scrolled page, we fill the batch...
+            currentLanguage = enqueueScrollBatches(scrolledDocsByLanguage, currentLanguage, batch);
+            // and keep scrolling...
+            scrolledDocsByLanguage = searcher
+                .scroll(scrollDuration)
+                .collect(groupingBy(d -> ((Document) d).getLanguage()));
+            // until we reach a page smaller than the scroll size aka the last page of the scrol
+        } while (scrolledDocsByLanguage.values().stream().map(List::size).mapToInt(Integer::intValue).sum() >= scrollSize);
+        // Let's fill the batches for that last page
+        enqueueScrollBatches(scrolledDocsByLanguage, currentLanguage, batch);
+        // ... and enqueue that last batch if not done yet
+        if (!batch.isEmpty()) {
+            this.enqueueBatch(batch);
         }
+        logger.info("queued batches for {} docs", totalHits);
+        searcher.clearScroll();
         return totalHits;
     }
+
+    private Language enqueueScrollBatches(
+        Map<Language, ? extends List<? extends Entity>> docsByLanguage,
+        Language currentLanguage,
+        ArrayList<Document> batch
+    ) {
+        // Make sure we consume the languages in order
+        Iterator<? extends Map.Entry<Language, ? extends List<? extends Entity>>> docsIt = docsByLanguage.entrySet()
+            .stream().sorted(Comparator.comparing(e -> e.getKey().name())).iterator();
+        while (docsIt.hasNext()) {
+            Map.Entry<Language, ? extends List<? extends Entity>> entry = docsIt.next();
+            Language language = entry.getKey();
+            // If we switch language, we need to queue the batch
+            if (!language.equals(currentLanguage)) {
+                if (!batch.isEmpty()) {
+                    this.enqueueBatch(batch);
+                }
+                currentLanguage = language;
+            }
+            // and then we fill the current batch which can already be partially filled
+            List<Document> languageDocs = (List<Document>) entry.getValue();
+            int start = 0;
+            int end = 0;
+            while (end < languageDocs.size()) {
+                end = Integer.min(batchSize - batch.size(), languageDocs.size() - start);
+                batch.addAll(languageDocs.subList(start, end));
+                if (batch.size() >= batchSize) {
+                    this.enqueueBatch(batch);
+                }
+                start = end;
+            }
+        }
+        return currentLanguage;
+    }
+
+    private void enqueueBatch(List<Document> batch) {
+        HashMap<String, Object> args = new HashMap<>(this.batchTaskArgs);
+        args.put("docs", batch.stream().map(BatchDocument::fromDocument).toList());
+        try {
+            // TODO: here we bind the task name to the Java class name which is not ideal since it leaks Java inners
+            //  bolts to Python, it could be nice to decouple task names from class names since they can change and
+            //  are bound to languages
+            this.taskManager.startTask(BatchNlpTask.class, this.user, args);
+        } catch (IOException e) {
+            throw new RuntimeException("failed to queue task " + args, e);
+        }
+        batch.clear();
+    }
+
+    @Override
+    public void cancel(boolean requeue) {
+        ofNullable(taskThread).ifPresent(Thread::interrupt);
+    }
+
+    @Override
+    public User getUser() {
+        return user;
+    }
+
+    private Map<String, Object> batchTaskArgs() {
+        return Map.of(
+            "pipeline", this.nlpPipeline.name(),
+            GROUP_KEY, nlpGroup(this.nlpPipeline),
+            "extras", pipelineExtras(this.nlpPipeline)
+        );
+    }
+
 }

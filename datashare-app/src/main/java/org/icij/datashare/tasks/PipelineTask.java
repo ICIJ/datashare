@@ -25,7 +25,6 @@ public abstract class PipelineTask<T> extends DefaultTask<Long> implements UserT
     private final DocumentCollectionFactory<T> factory;
     public static Path PATH_POISON = Paths.get("POISON");
     public static String STRING_POISON = "POISON";
-    public static List<String> STRING_LIST_POISON = List.of("POISON");
     private volatile Thread taskThread;
 
     public PipelineTask(Stage stage, User user, DocumentCollectionFactory<T> factory, final PropertiesProvider propertiesProvider, Class<T> clazz) {

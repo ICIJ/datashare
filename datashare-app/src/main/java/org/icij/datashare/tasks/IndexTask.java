@@ -34,7 +34,7 @@ import static org.icij.datashare.cli.DatashareCliOptions.*;
 @OptionsClass(DocumentQueueDrainer.class)
 @Option(name = DEFAULT_PROJECT_OPT, description = "the default project name")
 @Option(name = "projectName", description = "task project name")
-@TaskGroup("Java")
+@TaskGroup(JAVA_GROUP)
 public class IndexTask extends PipelineTask<Path> implements Monitorable{
     private final Logger logger = LoggerFactory.getLogger(getClass());
     private final DocumentQueueDrainer<Path> drainer;
