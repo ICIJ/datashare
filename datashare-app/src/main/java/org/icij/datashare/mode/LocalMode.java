@@ -36,6 +36,7 @@ public class LocalMode extends CommonMode {
                 add(PluginResource.class).
                 add(ExtensionResource.class).
                 add(ProjectResource.class).
+                add(FtmResource.class).
                 add(NoteResource.class).
                 add(NerResource.class).
                 filter(IndexWaiterFilter.class).
