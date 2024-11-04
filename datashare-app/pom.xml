@@ -32,6 +32,10 @@
             <version>5.5.0</version>
         </dependency>
         <dependency>
+            <groupId>org.icij</groupId>
+            <artifactId>ftm.java</artifactId>
+        </dependency>
+        <dependency>
             <groupId>redis.clients</groupId>
             <artifactId>jedis</artifactId>
             <version>2.9.0</version>

@@ -87,6 +87,7 @@ public class ServerMode extends CommonMode {
                 add(DocumentUserRecommendationResource.class).
                 add(BatchSearchResource.class).
                 add(NoteResource.class).
+                add(FtmResource.class).
                 add(PluginResource.class).
                 add(ExtensionResource.class).
                 add(NerResource.class).
