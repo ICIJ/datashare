@@ -102,7 +102,7 @@ public class FtmDocument implements Document {
 
     @Override
     public String getTranslatedLanguage() {
-        return ofNullable(icjjDoc.getContentTranslated()).map(maps -> maps.get(0).get(TARGET_LANGUAGE_KEY)).orElse(null);
+        return ofNullable(icjjDoc.getContentTranslated()).filter(l -> !l.isEmpty()).map(maps -> maps.get(0).get(TARGET_LANGUAGE_KEY)).orElse(null);
     }
 
     @Override
