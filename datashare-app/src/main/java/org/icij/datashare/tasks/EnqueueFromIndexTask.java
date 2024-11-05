@@ -31,8 +31,9 @@ import static org.icij.datashare.cli.DatashareCliOptions.NLP_PIPELINE_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.SCROLL_DURATION_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.SCROLL_SIZE_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.SEARCH_QUERY_OPT;
+import static org.icij.datashare.tasks.GroupHelper.JAVA_GROUP;
 
-@TaskGroup("Java")
+@TaskGroup(JAVA_GROUP)
 public class EnqueueFromIndexTask extends PipelineTask<String> {
     private final DocumentCollectionFactory<String> factory;
     private final String searchQuery;
@@ -44,7 +45,7 @@ public class EnqueueFromIndexTask extends PipelineTask<String> {
     private final int scrollSize;
 
     @Inject
-    public EnqueueFromIndexTask(final DocumentCollectionFactory<String> factory, final Indexer indexer, @Assisted Task<Long> taskView, @Assisted final Function<Double, Void> updateCallback) {
+    public EnqueueFromIndexTask(final DocumentCollectionFactory<String> factory, final Indexer indexer, @Assisted Task<Long> taskView, @Assisted final Function<Double, Void> ignored) {
         super(Stage.ENQUEUEIDX, DatashareTask.getUser(taskView), factory, new PropertiesProvider(taskView.args), String.class);
         this.factory = factory;
         this.indexer = indexer;
@@ -66,6 +67,7 @@ public class EnqueueFromIndexTask extends PipelineTask<String> {
             searcher = indexer.search(singletonList(projectName), Document.class, new SearchQuery(searchQuery))
                     .withoutSource("content", "contentTranslated").limit(scrollSize);
         }
+        searcher.sort("language", Indexer.Searcher.SortOrder.ASC);
         logger.info("enqueuing doc ids finding for index {} and {} with {} scroll and size of {} : {} documents found", projectName, nlpPipeline,
                 scrollDuration, scrollSize, searcher.totalHits());
         List<? extends Entity> docsToProcess = searcher.scroll(scrollDuration).collect(toList());

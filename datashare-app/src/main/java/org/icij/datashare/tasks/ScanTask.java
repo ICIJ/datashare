@@ -1,5 +1,7 @@
 package org.icij.datashare.tasks;
 
+import static org.icij.datashare.tasks.GroupHelper.JAVA_GROUP;
+
 import com.google.inject.Inject;
 import com.google.inject.assistedinject.Assisted;
 import java.util.function.Function;
@@ -18,7 +20,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 
 @OptionsClass(Scanner.class)
-@TaskGroup("Java")
+@TaskGroup(JAVA_GROUP)
 public class ScanTask extends PipelineTask<Path> {
     private final Scanner scanner;
     private final Path path;

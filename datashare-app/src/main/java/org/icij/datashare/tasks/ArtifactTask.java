@@ -22,8 +22,9 @@ import java.util.function.Function;
 import static org.icij.datashare.cli.DatashareCliOptions.ARTIFACT_DIR_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_DEFAULT_PROJECT;
 import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_PROJECT_OPT;
+import static org.icij.datashare.tasks.GroupHelper.JAVA_GROUP;
 
-@TaskGroup("Java")
+@TaskGroup(JAVA_GROUP)
 public class ArtifactTask extends PipelineTask<String> {
     private final Logger logger = LoggerFactory.getLogger(getClass());
     private final Indexer indexer;

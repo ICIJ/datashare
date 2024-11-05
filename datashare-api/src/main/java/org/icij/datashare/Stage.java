@@ -11,6 +11,8 @@ public enum Stage {
     INDEX(true),
     ENQUEUEIDX(false),
     NLP(true),
+    BATCHENQUEUEIDX(false),
+    BATCHNLP(false),
     ARTIFACT(false);
 
     public static final Comparator<Stage> comparator = Comparator.comparing(Stage::ordinal);
