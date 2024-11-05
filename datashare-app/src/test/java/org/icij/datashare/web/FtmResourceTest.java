@@ -14,10 +14,13 @@ import static org.mockito.MockitoAnnotations.initMocks;
 public class FtmResourceTest extends AbstractProdWebServerTest {
     @Mock Indexer mockEs;
     MockIndexer mockIndexer;
+
     @Test
     public void test_doc_id() {
         mockIndexer.indexFile("prj", "doc_id", Path.of("path/to/doc.pdf"), "application/pdf");
-        get("/api/ftm/prj/doc_id").should().respond(200).haveType("application/json").contain("path/to/doc.pdf");
+        get("/api/ftm/prj/doc_id").should().respond(200).haveType("application/json")
+                .contain("path/to/doc.pdf")
+                .not().contain("null");
     }
 
     @Before
