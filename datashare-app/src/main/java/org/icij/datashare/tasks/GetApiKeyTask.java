@@ -1,5 +1,7 @@
 package org.icij.datashare.tasks;
 
+import static org.icij.datashare.tasks.GroupHelper.JAVA_GROUP;
+
 import com.google.inject.assistedinject.Assisted;
 import org.icij.datashare.asynctasks.TaskGroup;
 import org.icij.datashare.user.ApiKey;
@@ -10,7 +12,7 @@ import org.icij.task.DefaultTask;
 
 import javax.inject.Inject;
 
-@TaskGroup("Java")
+@TaskGroup(JAVA_GROUP)
 public class GetApiKeyTask extends DefaultTask<String> implements UserTask  {
     private final ApiKeyRepository apiKeyRepository;
     private final User user;

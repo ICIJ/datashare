@@ -125,6 +125,8 @@ public class DatashareCli {
         DatashareCliOptions.language(parser);
         DatashareCliOptions.ocrLanguage(parser);
         DatashareCliOptions.nlpPipeline(parser);
+        DatashareCliOptions.nlpMaxTextLength(parser);
+        DatashareCliOptions.nlpBatchSize(parser);
         DatashareCliOptions.resume(parser);
         DatashareCliOptions.scroll(parser);
         DatashareCliOptions.scrollSize(parser);
