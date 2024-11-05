@@ -4,12 +4,19 @@ import org.icij.datashare.text.DocumentBuilder;
 import org.icij.datashare.text.Language;
 import org.junit.Test;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
 import static org.fest.assertions.Assertions.assertThat;
 
 public class FtmDocumentTest  {
+    @Test
+    public void test_translated_language_empty_list() {
+        FtmDocument doc = new FtmDocument(DocumentBuilder.createDoc("docId").with(Language.FRENCH).with("un doc en français").with(new ArrayList<>()).build());
+        assertThat(doc.getTranslatedLanguage()).isNull();
+    }
+
     @Test
     public void test_translated_language() {
         FtmDocument doc = new FtmDocument(DocumentBuilder.createDoc("docId").with(Language.FRENCH).with("un doc en français").with(
