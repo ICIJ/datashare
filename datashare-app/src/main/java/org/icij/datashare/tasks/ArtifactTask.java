@@ -7,7 +7,6 @@ import org.icij.datashare.Stage;
 import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.asynctasks.TaskGroup;
 import org.icij.datashare.extract.DocumentCollectionFactory;
-import org.icij.datashare.function.Pair;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.Project;
 import org.icij.datashare.text.indexing.Indexer;
@@ -20,14 +19,14 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
-import static java.util.Optional.ofNullable;
 import static org.icij.datashare.cli.DatashareCliOptions.ARTIFACT_DIR_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_DEFAULT_PROJECT;
 import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_POLLING_INTERVAL_SEC;
 import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_PROJECT_OPT;
+import static org.icij.datashare.tasks.GroupHelper.JAVA_GROUP;
 import static org.icij.datashare.cli.DatashareCliOptions.POLLING_INTERVAL_OPT;
 
-@TaskGroup("Java")
+@TaskGroup(JAVA_GROUP)
 public class ArtifactTask extends PipelineTask<String> {
     private final Logger logger = LoggerFactory.getLogger(getClass());
     private final Indexer indexer;

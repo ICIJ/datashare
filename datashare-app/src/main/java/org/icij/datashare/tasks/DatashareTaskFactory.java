@@ -1,5 +1,6 @@
 package org.icij.datashare.tasks;
 
+import java.util.List;
 import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.user.User;
 
@@ -15,6 +16,8 @@ public interface DatashareTaskFactory extends org.icij.datashare.asynctasks.Task
     ScanIndexTask createScanIndexTask(Task<Long> taskView, Function<Double, Void> updateCallback);
     ExtractNlpTask createExtractNlpTask(Task<Long> taskView, Function<Double, Void> updateCallback);
     EnqueueFromIndexTask createEnqueueFromIndexTask(Task<Long> taskView, Function<Double, Void> updateCallback);
+    CreateNlpBatchesFromIndex createBatchEnqueueFromIndexTask(Task<List<String>> taskView, Function<Double, Void> updateCallback);
+    BatchNlpTask createBatchNlpTask(Task<Long> taskView, Function<Double, Void> updateCallback);
     DeduplicateTask createDeduplicateTask(Task<Long> taskView, Function<Double, Void> updateCallback);
     ArtifactTask createArtifactTask(Task<Long> taskView, Function<Double, Void> updateCallback);
 

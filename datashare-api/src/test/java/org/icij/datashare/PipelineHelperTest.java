@@ -42,6 +42,38 @@ public class PipelineHelperTest {
     }
 
     @Test
+    public void test_get_queue_names_for_batch_nlp_pipeline() {
+        PipelineHelper pipelineHelper = new PipelineHelper(new PropertiesProvider(new HashMap<>() {{
+            put("stages", "SCAN,INDEX,BATCHNLP");
+        }}));
+        assertThat(pipelineHelper.getQueueNameFor(Stage.BATCHNLP)).isEqualTo("extract:queue:batchnlp");
+    }
+
+    @Test
+    public void test_get_queue_names_for_batch_nlp_pipeline_from_index() {
+        PipelineHelper pipelineHelper = new PipelineHelper(new PropertiesProvider(new HashMap<>() {{
+            put("stages", "CREATENLPBATCHESFROMIDX,BATCHNLP");
+        }}));
+        assertThat(pipelineHelper.getQueueNameFor(Stage.BATCHNLP)).isEqualTo("extract:queue:batchnlp");
+    }
+
+    @Test
+    public void test_get_queue_names_for_batch_nlp() {
+        PipelineHelper pipelineHelper = new PipelineHelper(new PropertiesProvider(new HashMap<>() {{
+            put("stages", "SCAN,INDEX,NLP");
+        }}));
+        assertThat(pipelineHelper.getQueueNameFor(Stage.NLP)).isEqualTo("extract:queue:nlp");
+    }
+
+    @Test
+    public void test_get_queue_names_for_nlp_pipeline_from_index() {
+        PipelineHelper pipelineHelper = new PipelineHelper(new PropertiesProvider(new HashMap<>() {{
+            put("stages", "ENQUEUEIDX,NLP");
+        }}));
+        assertThat(pipelineHelper.getQueueNameFor(Stage.NLP)).isEqualTo("extract:queue:nlp");
+    }
+
+    @Test
     public void test_get_queue_name_scan_index() {
         PipelineHelper pipelineHelper = new PipelineHelper(new PropertiesProvider(new HashMap<>() {{
             put("stages", "SCAN,INDEX");
