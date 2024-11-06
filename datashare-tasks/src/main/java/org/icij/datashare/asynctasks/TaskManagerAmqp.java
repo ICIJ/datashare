@@ -1,10 +1,6 @@
 package org.icij.datashare.asynctasks;
 
-import org.icij.datashare.asynctasks.bus.amqp.AmqpConsumer;
-import org.icij.datashare.asynctasks.bus.amqp.AmqpInterlocutor;
-import org.icij.datashare.asynctasks.bus.amqp.AmqpQueue;
-import org.icij.datashare.asynctasks.bus.amqp.CancelEvent;
-import org.icij.datashare.asynctasks.bus.amqp.TaskEvent;
+import org.icij.datashare.asynctasks.bus.amqp.*;
 import org.icij.datashare.tasks.RoutingStrategy;
 import org.icij.datashare.user.User;
 
@@ -60,6 +56,10 @@ public class TaskManagerAmqp implements TaskManager {
 
     @Override
     public <V> Task<V> clearTask(String taskId) {
+        if (tasks.get(taskId).getState() == Task.State.RUNNING) {
+            throw new IllegalStateException(String.format("task id <%s> is already in RUNNING state", taskId));
+        }
+        logger.info("deleting task id <{}>", taskId);
         return (Task<V>) tasks.remove(taskId);
     }
 
