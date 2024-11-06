@@ -1,6 +1,7 @@
 package org.icij.datashare.asynctasks;
 
 import org.apache.commons.lang3.NotImplementedException;
+import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.asynctasks.bus.amqp.TaskError;
 import org.icij.datashare.asynctasks.bus.amqp.TaskEvent;
 import org.icij.datashare.user.User;
@@ -15,28 +16,33 @@ import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
-import static java.util.concurrent.Executors.newSingleThreadExecutor;
+import static java.lang.Integer.parseInt;
 import static java.util.stream.Collectors.toList;
 import static org.icij.datashare.asynctasks.Task.State.RUNNING;
 
 
 public class TaskManagerMemory implements TaskManager, TaskSupplier {
     private final Logger logger = LoggerFactory.getLogger(getClass());
-    private final ExecutorService executor = newSingleThreadExecutor();
+    private final ExecutorService executor;
     private final ConcurrentMap<String, Task<?>> tasks = new ConcurrentHashMap<>();
     private final BlockingQueue<Task<?>> taskQueue;
-    private final TaskWorkerLoop loop;
+    private final List<TaskWorkerLoop> loops;
     private final AtomicInteger executedTasks = new AtomicInteger(0);
 
     public TaskManagerMemory(BlockingQueue<Task<?>> taskQueue, TaskFactory taskFactory) {
-        this(taskQueue, taskFactory, new CountDownLatch(1));
+        this(taskQueue, taskFactory, new PropertiesProvider(), new CountDownLatch(1));
     }
 
-    public TaskManagerMemory(BlockingQueue<Task<?>> taskQueue, TaskFactory taskFactory, CountDownLatch latch) {
+    public TaskManagerMemory(BlockingQueue<Task<?>> taskQueue, TaskFactory taskFactory, PropertiesProvider propertiesProvider, CountDownLatch latch) {
         this.taskQueue = taskQueue;
-        loop = new TaskWorkerLoop(taskFactory, this, latch);
-        executor.submit(loop);
+        int parallelism = parseInt(propertiesProvider.get("parallelism").orElse("1"));
+        logger.info("running TaskManager with {} threads", parallelism);
+        executor = Executors.newFixedThreadPool(parallelism);
+        loops = IntStream.range(0, parallelism).mapToObj(i -> new TaskWorkerLoop(taskFactory, this, latch)).collect(Collectors.toList());
+        loops.forEach(executor::submit);
     }
 
     public <V> Task<V> getTask(final String taskId) {
@@ -146,7 +152,7 @@ public class TaskManagerMemory implements TaskManager, TaskSupplier {
                     canceled(taskView, false);
                     return removed;
                 case RUNNING:
-                    loop.cancel(taskId, false);
+                    loops.forEach(l -> l.cancel(taskId, false));
                     return true;
             }
         } else {
