@@ -84,6 +84,10 @@ public class TaskManagerRedis implements TaskManager {
 
     @Override
     public Task<?> clearTask(String taskId) {
+        if (tasks.get(taskId).getState() == Task.State.RUNNING) {
+            throw new IllegalStateException(String.format("task id <%s> is already in RUNNING state", taskId));
+        }
+        logger.info("deleting task id <{}>", taskId);
         return tasks.remove(taskId);
     }
 

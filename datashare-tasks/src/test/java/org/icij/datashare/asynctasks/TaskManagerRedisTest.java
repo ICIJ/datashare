@@ -117,6 +117,17 @@ public class TaskManagerRedisTest {
         assertThat(taskManager.getTask(taskView2Id)).isNotNull();
     }
 
+    @Test(expected = IllegalStateException.class)
+    public void test_clear_running_task_should_throw_exception() throws Exception {
+        String taskViewId = taskManager.startTask("sleep", User.local(), new HashMap<>());
+
+        taskSupplier.progress(taskViewId,0.5);
+        assertThat(waitForEvent.await(1, TimeUnit.SECONDS)).isTrue();
+        assertThat(taskManager.getTask(taskViewId).getState()).isEqualTo(Task.State.RUNNING);
+
+        taskManager.clearTask(taskViewId);
+    }
+
     @Test
     public void test_done_task_result_for_file() throws Exception {
         String taskViewId = taskManager.startTask("HelloWorld", User.local(), new HashMap<>() {{

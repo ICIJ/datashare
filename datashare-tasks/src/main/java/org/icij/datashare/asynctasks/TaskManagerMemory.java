@@ -11,13 +11,7 @@ import java.io.IOException;
 import java.io.Serializable;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.CancellationException;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.regex.Pattern;
@@ -136,6 +130,10 @@ public class TaskManagerMemory implements TaskManager, TaskSupplier {
 
     @Override
     public <V> Task<V> clearTask(String taskName) {
+        if (tasks.get(taskName).getState() == Task.State.RUNNING) {
+            throw new IllegalStateException(String.format("task id <%s> is already in RUNNING state", taskName));
+        }
+        logger.info("deleting task id <{}>", taskName);
         return (Task<V>) tasks.remove(taskName);
     }
 
