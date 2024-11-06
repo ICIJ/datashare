@@ -23,9 +23,8 @@ public class FtmResource {
         this.indexer = indexer;
     }
 
-    @Operation(description = "Get the document from its project and id (content hash)")
-    @ApiResponse(responseCode = "200", description = "returns the hashed key JSON",
-            content = { @Content(examples = { @ExampleObject(value="")} )})
+    @Operation(description = "Get the FtM document from its project and id (content hash)")
+    @ApiResponse(responseCode = "200", description = "returns the JSON document", useReturnTypeSchema = true)
     @Get("/:project/:docId")
     public FtmDocument getDocument(@Parameter(name = "project", description = "project identifier", in = ParameterIn.PATH) String project,
                                    @Parameter(name = "docId", description = "document identifier", in = ParameterIn.PATH) String docId) throws Exception {
