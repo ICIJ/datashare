@@ -28,6 +28,7 @@ public class BatchNlpTask extends DefaultTask<Long> implements UserTask, Cancell
     private static final List<String> EXCLUDED_SOURCES = List.of("contentTranslated");
     private final Logger logger = LoggerFactory.getLogger(getClass());
     private final User user;
+    private final Function<Double, Void> progress;
     private volatile Thread taskThread;
     private final Indexer indexer;
     private final List<BatchEnqueueFromIndexTask.BatchDocument> docs;
@@ -36,18 +37,19 @@ public class BatchNlpTask extends DefaultTask<Long> implements UserTask, Cancell
 
     @Inject
     public BatchNlpTask(Indexer indexer, PipelineRegistry registry, @Assisted Task<Long> taskView,
-                        @Assisted final Function<Double, Void> updateCallback) {
-        this(indexer, registry.get(Pipeline.Type.parse((String) taskView.args.get("pipeline"))), taskView, updateCallback);
+                        @Assisted final Function<Double, Void> progress) {
+        this(indexer, registry.get(Pipeline.Type.parse((String) taskView.args.get("pipeline"))), taskView, progress);
     }
 
 
     BatchNlpTask(Indexer indexer, Pipeline pipeline, @Assisted Task<Long> taskView,
-                 @Assisted final Function<Double, Void> ignored) {
+                 @Assisted final Function<Double, Void> progress) {
         this.user = taskView.getUser();
         this.indexer = indexer;
         this.pipeline = pipeline;
         this.docs = (List<BatchEnqueueFromIndexTask.BatchDocument>) taskView.args.get("docs");
         this.maxLength = (int) taskView.args.get("maxLength");
+        this.progress = progress;
     }
 
     @Override
@@ -56,11 +58,15 @@ public class BatchNlpTask extends DefaultTask<Long> implements UserTask, Cancell
         if (this.docs.isEmpty()) {
             return 0L;
         }
+        int batchSize = this.docs.size();
+        int updateRate = batchSize / 10;
         Language language = this.docs.get(0).language();
         pipeline.initialize(language);
-        logger.info("performing NER on {} docs in {}...", this.docs.size(), language);
+        logger.info("performing NER on {} docs in {}...", batchSize, language);
         // TODO: for now None of the Java NER seems to support batch processing, we just iterate docs one by one
         // TODO: we could improve perfs by fetching docs and processing them concurrently...
+        int nProcessed = 0;
+        this.progress.apply(0.0);
         for (BatchEnqueueFromIndexTask.BatchDocument doc : this.docs) {
             String project = doc.project();
             Document indexDoc = indexer.get(doc.id(), doc.rootDocument(), EXCLUDED_SOURCES);
@@ -79,9 +85,14 @@ public class BatchNlpTask extends DefaultTask<Long> implements UserTask, Cancell
                     }
                 }
             }
+            nProcessed += 1;
+            if (nProcessed % updateRate == 0) {
+                this.progress.apply((double) nProcessed / (double) batchSize);
+            }
         }
         pipeline.terminate(language);
-        return (long) this.docs.size();
+        this.progress.apply(1.0);
+        return (long) batchSize;
     }
 
     @Override
