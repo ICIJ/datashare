@@ -31,7 +31,7 @@ public class BatchNlpTask extends DefaultTask<Long> implements UserTask, Cancell
     private final Function<Double, Void> progress;
     private volatile Thread taskThread;
     private final Indexer indexer;
-    private final List<BatchEnqueueFromIndexTask.BatchDocument> docs;
+    private final List<CreateNlpBatchesFromIndex.BatchDocument> docs;
     private final Pipeline pipeline;
     private final int maxLength;
 
@@ -47,7 +47,7 @@ public class BatchNlpTask extends DefaultTask<Long> implements UserTask, Cancell
         this.user = taskView.getUser();
         this.indexer = indexer;
         this.pipeline = pipeline;
-        this.docs = (List<BatchEnqueueFromIndexTask.BatchDocument>) taskView.args.get("docs");
+        this.docs = (List<CreateNlpBatchesFromIndex.BatchDocument>) taskView.args.get("docs");
         this.maxLength = (int) taskView.args.get("maxLength");
         this.progress = progress;
     }
@@ -67,7 +67,7 @@ public class BatchNlpTask extends DefaultTask<Long> implements UserTask, Cancell
         // TODO: we could improve perfs by fetching docs and processing them concurrently...
         int nProcessed = 0;
         this.progress.apply(0.0);
-        for (BatchEnqueueFromIndexTask.BatchDocument doc : this.docs) {
+        for (CreateNlpBatchesFromIndex.BatchDocument doc : this.docs) {
             String project = doc.project();
             Document indexDoc = indexer.get(doc.id(), doc.rootDocument(), EXCLUDED_SOURCES);
             if (indexDoc.getContentTextLength() < this.maxLength) {
