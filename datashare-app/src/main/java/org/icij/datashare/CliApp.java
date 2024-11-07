@@ -20,6 +20,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Properties;
 
@@ -110,47 +111,38 @@ class CliApp {
         PipelineHelper pipeline = new PipelineHelper(new PropertiesProvider(properties));
         logger.info("executing {}", pipeline);
         if (pipeline.has(Stage.DEDUPLICATE)) {
-            Long result = taskFactory.createDeduplicateTask(
-                    new Task<>(DeduplicateTask.class.getName(), nullUser(), propertiesToMap(properties)),
-                    (percentage) -> {logger.info("percentage: {}% done", percentage);return null;}).call();
-            logger.info("removed {} duplicates", result);
+            taskManager.startTask(
+                    new Task<>(DeduplicateTask.class.getName(), nullUser(), propertiesToMap(properties)));
         }
 
         if (pipeline.has(Stage.SCANIDX)) {
-            Long result = taskFactory.createScanIndexTask(
-                    new Task<>(ScanIndexTask.class.getName(), nullUser(), propertiesToMap(properties)),
-                    (percentage) -> {logger.info("percentage: {}% done", percentage);return null;}).call();
-            logger.info("scanned {}", result);
+            taskManager.startTask(
+                    new Task<>(ScanIndexTask.class.getName(), nullUser(), propertiesToMap(properties)));
         }
 
         if (pipeline.has(Stage.SCAN)) {
-            taskFactory.createScanTask(
-                    new Task<>(ScanTask.class.getName(), nullUser(), propertiesToMap(properties)),
-                    (percentage) -> {logger.info("percentage: {}% done", percentage); return null;}).call();
+            taskManager.startTask(
+                    new Task<>(ScanTask.class.getName(), nullUser(), propertiesToMap(properties)));
         }
 
         if (pipeline.has(Stage.INDEX)) {
-            taskFactory.createIndexTask(
-                    new Task<>(IndexTask.class.getName(), nullUser(), propertiesToMap(properties)),
-                    (percentage) -> {logger.info("percentage: {}% done", percentage); return null;}).call();
+            taskManager.startTask(
+                    new Task<>(IndexTask.class.getName(), nullUser(), propertiesToMap(properties)));
         }
 
         if (pipeline.has(Stage.ENQUEUEIDX)) {
-            taskFactory.createEnqueueFromIndexTask(
-                    new Task<>(EnqueueFromIndexTask.class.getName(), nullUser(), propertiesToMap(properties)),
-                    (percentage) -> {logger.info("percentage: {}% done", percentage); return null;}).call();
+            taskManager.startTask(
+                    new Task<>(EnqueueFromIndexTask.class.getName(), nullUser(), propertiesToMap(properties)));
         }
 
         if (pipeline.has(Stage.NLP)) {
-            taskFactory.createExtractNlpTask(
-                    new Task<>(ExtractNlpTask.class.getName(), nullUser(), propertiesToMap(properties)),
-                    (percentage) -> {logger.info("percentage: {}% done", percentage); return null;}).call();
+            taskManager.startTask(
+                    new Task<>(ExtractNlpTask.class.getName(), nullUser(), propertiesToMap(properties)));
         }
 
         if (pipeline.has(Stage.ARTIFACT)) {
-            taskFactory.createArtifactTask(
-                    new Task<>(ArtifactTask.class.getName(), nullUser(), propertiesToMap(properties)),
-                    (percentage) -> {logger.info("percentage: {}% done", percentage); return null;}).call();
+            taskManager.startTask(
+                    new Task<>(ArtifactTask.class.getName(), nullUser(), propertiesToMap(properties)));
         }
         taskManager.shutdownAndAwaitTermination(Integer.MAX_VALUE, SECONDS);
         indexer.close();
