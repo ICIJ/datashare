@@ -52,7 +52,7 @@ public class PipelineHelperTest {
     @Test
     public void test_get_queue_names_for_batch_nlp_pipeline_from_index() {
         PipelineHelper pipelineHelper = new PipelineHelper(new PropertiesProvider(new HashMap<>() {{
-            put("stages", "BATCHENQUEUEIDX,BATCHNLP");
+            put("stages", "CREATENLPBATCHESFROMINDEX,BATCHNLP");
         }}));
         assertThat(pipelineHelper.getQueueNameFor(Stage.BATCHNLP)).isEqualTo("extract:queue:batchnlp");
     }
