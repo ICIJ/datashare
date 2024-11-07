@@ -5,6 +5,8 @@ import org.icij.datashare.cli.CliExtensionService;
 import org.icij.datashare.cli.spi.CliExtension;
 import org.icij.datashare.mode.CommonMode;
 import org.icij.datashare.tasks.ArtifactTask;
+import org.icij.datashare.tasks.BatchEnqueueFromIndexTask;
+import org.icij.datashare.tasks.BatchNlpTask;
 import org.icij.datashare.tasks.DatashareTask;
 import org.icij.datashare.tasks.DeduplicateTask;
 import org.icij.datashare.tasks.EnqueueFromIndexTask;
@@ -131,6 +133,18 @@ class CliApp {
         if (pipeline.has(Stage.ENQUEUEIDX)) {
             taskManager.startTask(
                     DatashareTask.task(EnqueueFromIndexTask.class.getName(), nullUser(), propertiesToMap(properties)));
+        }
+
+        if (pipeline.has(Stage.BATCHENQUEUEIDX)) {
+            taskFactory.createBatchEnqueueFromIndexTask(
+                    new Task<>(BatchEnqueueFromIndexTask.class.getName(), nullUser(), propertiesToMap(properties)),
+                    (percentage) -> {logger.info("percentage: {}% done", percentage); return null;}).call();
+        }
+
+        if (pipeline.has(Stage.BATCHNLP)) {
+            taskFactory.createBatchNlpTask(
+                    new Task<>(BatchNlpTask.class.getName(), nullUser(), propertiesToMap(properties)),
+                    (percentage) -> {logger.info("percentage: {}% done", percentage); return null;}).call();
         }
 
         if (pipeline.has(Stage.NLP)) {
