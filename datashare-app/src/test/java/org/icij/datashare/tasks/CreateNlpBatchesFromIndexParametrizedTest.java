@@ -36,7 +36,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
-public class BatchEnqueueFromIndexTaskParametrizedTest {
+public class CreateNlpBatchesFromIndexParametrizedTest {
     private final int batchSize;
     private final int scrollSize;
     private final List<List<Language>> expectedLanguages;
@@ -44,8 +44,8 @@ public class BatchEnqueueFromIndexTaskParametrizedTest {
     @Rule
     public DatashareTimeRule time = new DatashareTimeRule();
 
-    static class TestableBatchEnqueueFromIndexTask extends BatchEnqueueFromIndexTask {
-        public TestableBatchEnqueueFromIndexTask(
+    static class TestableCreateNlpBatchesFromIndex extends CreateNlpBatchesFromIndex {
+        public TestableCreateNlpBatchesFromIndex(
             TaskManager taskManager, Indexer indexer, Task<Long> taskView, Function<Double, Void> ignored) {
             super(taskManager, indexer, taskView, ignored);
         }
@@ -76,7 +76,7 @@ public class BatchEnqueueFromIndexTaskParametrizedTest {
     }
 
 
-    public BatchEnqueueFromIndexTaskParametrizedTest(int batchSize, int scrollSize, List<List<Language>> expectedLanguages) {
+    public CreateNlpBatchesFromIndexParametrizedTest(int batchSize, int scrollSize, List<List<Language>> expectedLanguages) {
         this.batchSize = batchSize;
         this.scrollSize = scrollSize;
         this.expectedLanguages = expectedLanguages;
@@ -129,15 +129,15 @@ public class BatchEnqueueFromIndexTaskParametrizedTest {
             "batchSize", this.batchSize,
             "scrollSize", this.scrollSize
         );
-        TestableBatchEnqueueFromIndexTask enqueueFromIndex =
-            new TestableBatchEnqueueFromIndexTask(taskManager, indexer,
-                new Task<>(BatchEnqueueFromIndexTask.class.getName(), new User("test"), properties), null);
+        TestableCreateNlpBatchesFromIndex enqueueFromIndex =
+            new TestableCreateNlpBatchesFromIndex(taskManager, indexer,
+                new Task<>(CreateNlpBatchesFromIndex.class.getName(), new User("test"), properties), null);
         // When
         enqueueFromIndex.call();
         List<List<Language>> queued = taskManager.getTasks().stream()
             .sorted(Comparator.comparing(t -> t.createdAt))
-            .map(t -> ((List<BatchEnqueueFromIndexTask.BatchDocument>) t.args.get("docs")).stream().map(
-                BatchEnqueueFromIndexTask.BatchDocument::language).toList())
+            .map(t -> ((List<CreateNlpBatchesFromIndex.BatchDocument>) t.args.get("docs")).stream().map(
+                CreateNlpBatchesFromIndex.BatchDocument::language).toList())
             .toList();
         // Then
         assertThat(queued).isEqualTo(this.expectedLanguages);

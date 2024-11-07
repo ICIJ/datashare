@@ -48,7 +48,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @TaskGroup(JAVA_GROUP)
-public class BatchEnqueueFromIndexTask extends DefaultTask<Long> implements UserTask, CancellableTask {
+public class CreateNlpBatchesFromIndex extends DefaultTask<Long> implements UserTask, CancellableTask {
     Logger logger = LoggerFactory.getLogger(getClass());
 
     private final User user;
@@ -71,7 +71,7 @@ public class BatchEnqueueFromIndexTask extends DefaultTask<Long> implements User
     }
 
     @Inject
-    public BatchEnqueueFromIndexTask(
+    public CreateNlpBatchesFromIndex(
         final TaskManager taskManager, final Indexer indexer, @Assisted Task<Long> taskView,
         @Assisted final Function<Double, Void> ignored
     ) {

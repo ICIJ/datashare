@@ -27,7 +27,7 @@ import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
 
-public class BatchEnqueueFromIndexTaskTest {
+public class CreateNlpBatchesFromIndexTest {
     @Rule
     public DatashareTimeRule time = new DatashareTimeRule();
 
@@ -75,13 +75,13 @@ public class BatchEnqueueFromIndexTaskTest {
                 }
                 """
         );
-        BatchEnqueueFromIndexTask enqueueFromIndex = new BatchEnqueueFromIndexTask(taskManager, indexer,
-            new Task<>(BatchEnqueueFromIndexTask.class.getName(), new User("test"), properties), null);
+        CreateNlpBatchesFromIndex enqueueFromIndex = new CreateNlpBatchesFromIndex(taskManager, indexer,
+            new Task<>(CreateNlpBatchesFromIndex.class.getName(), new User("test"), properties), null);
         // When
         enqueueFromIndex.call();
         List<List<String>> queued = taskManager.getTasks().stream()
-            .map(t -> ((List<BatchEnqueueFromIndexTask.BatchDocument>) t.args.get("docs")).stream().map(
-                BatchEnqueueFromIndexTask.BatchDocument::id).toList())
+            .map(t -> ((List<CreateNlpBatchesFromIndex.BatchDocument>) t.args.get("docs")).stream().map(
+                CreateNlpBatchesFromIndex.BatchDocument::id).toList())
             .toList();
         // Then
         List<List<String>> expected = List.of(List.of("my_id"));
