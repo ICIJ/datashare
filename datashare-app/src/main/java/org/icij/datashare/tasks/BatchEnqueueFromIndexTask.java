@@ -113,8 +113,6 @@ public class BatchEnqueueFromIndexTask extends DefaultTask<Long> implements User
         Language currentLanguage = null;
         do {
             // For each scrolled page, we fill the batch...
-            // TODO: remove me
-            logger.info("new page grouped by language {}", scrolledDocsByLanguage);
             currentLanguage = this.enqueueScrollBatches(scrolledDocsByLanguage, currentLanguage, batch);
             // and keep scrolling...
             scrolledDocsByLanguage = searcher
@@ -149,8 +147,6 @@ public class BatchEnqueueFromIndexTask extends DefaultTask<Long> implements User
                 if (!batch.isEmpty()) {
                     this.enqueueBatch(batch);
                 }
-                // TODO: remove me
-                logger.info("switching to {}", language);
                 currentLanguage = language;
             }
             // and then we fill the current batch which can already be partially filled
