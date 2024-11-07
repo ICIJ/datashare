@@ -6,6 +6,7 @@ import static org.icij.datashare.tasks.GroupHelper.JAVA_GROUP;
 import com.google.inject.Inject;
 import com.google.inject.assistedinject.Assisted;
 import java.util.List;
+import java.util.Optional;
 import java.util.function.Function;
 import org.icij.datashare.asynctasks.CancellableTask;
 import org.icij.datashare.asynctasks.Task;
@@ -59,14 +60,14 @@ public class BatchNlpTask extends DefaultTask<Long> implements UserTask, Cancell
             return 0L;
         }
         int batchSize = this.docs.size();
-        int updateRate = batchSize / 10;
+        int updateRate = Integer.max(batchSize / 10, 1);
         Language language = this.docs.get(0).language();
         pipeline.initialize(language);
         logger.info("performing NER on {} docs in {}...", batchSize, language);
         // TODO: for now None of the Java NER seems to support batch processing, we just iterate docs one by one
         // TODO: we could improve perfs by fetching docs and processing them concurrently...
         int nProcessed = 0;
-        this.progress.apply(0.0);
+        Optional.ofNullable(this.progress).ifPresent(p -> p.apply(0.0));
         for (CreateNlpBatchesFromIndex.BatchDocument doc : this.docs) {
             String project = doc.project();
             Document indexDoc = indexer.get(doc.id(), doc.rootDocument(), EXCLUDED_SOURCES);
@@ -87,11 +88,12 @@ public class BatchNlpTask extends DefaultTask<Long> implements UserTask, Cancell
             }
             nProcessed += 1;
             if (nProcessed % updateRate == 0) {
-                this.progress.apply((double) nProcessed / (double) batchSize);
+                Double prog = (double) nProcessed / (double) batchSize;
+                Optional.ofNullable(this.progress).ifPresent(p -> p.apply(prog));
             }
         }
         pipeline.terminate(language);
-        this.progress.apply(1.0);
+        Optional.ofNullable(this.progress).ifPresent(p -> p.apply(1.0));
         return (long) batchSize;
     }
 
