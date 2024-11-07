@@ -63,7 +63,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
     JooqRepository jooqRepository;
     private static final DatashareTaskFactoryForTest taskFactory = mock(DatashareTaskFactoryForTest.class);
     private static final BlockingQueue<Task<?>> taskQueue = new ArrayBlockingQueue<>(3);
-    private static final TaskManagerMemory taskManager = new TaskManagerMemory(taskQueue, taskFactory, new PropertiesProvider());
+    private static final TaskManagerMemory taskManager = new TaskManagerMemory(taskQueue, taskFactory);
 
     @Before
     public void setUp() {

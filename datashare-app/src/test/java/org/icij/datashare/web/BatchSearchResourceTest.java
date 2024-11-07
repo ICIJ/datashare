@@ -491,7 +491,7 @@ public class BatchSearchResourceTest extends AbstractProdWebServerTest {
     @Before
     public void setUp() {
         initMocks(this);
-        taskManager = new TaskManagerMemory(new ArrayBlockingQueue<>(5), factory, new PropertiesProvider());
+        taskManager = new TaskManagerMemory(new ArrayBlockingQueue<>(5), factory);
         when(factory.createBatchSearchRunner(any(), any())).thenReturn(mock(BatchSearchRunner.class));
         configure(routes -> routes.add(new BatchSearchResource(new PropertiesProvider(), taskManager, batchSearchRepository)).
                 filter(new LocalUserFilter(new PropertiesProvider(), jooqRepository)));
