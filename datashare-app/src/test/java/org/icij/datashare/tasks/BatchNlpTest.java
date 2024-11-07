@@ -22,7 +22,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
 
-public class BatchNlpTaskTest {
+public class BatchNlpTest {
     @Mock
     private Indexer indexer;
     @Mock
@@ -53,9 +53,9 @@ public class BatchNlpTaskTest {
         when(pipeline.initialize(any())).thenReturn(true);
 
         when(indexer.get(anyString(), anyString(), any(List.class))).thenReturn(doc0, doc1);
-        List<BatchEnqueueFromIndexTask.BatchDocument> batchDocs = List.of(
-            new BatchEnqueueFromIndexTask.BatchDocument(doc0.getId(), doc0.getRootDocument(), TEST_INDEX, language),
-            new BatchEnqueueFromIndexTask.BatchDocument(doc1.getId(), doc1.getRootDocument(), TEST_INDEX, language)
+        List<CreateNlpBatchesFromIndex.BatchDocument> batchDocs = List.of(
+            new CreateNlpBatchesFromIndex.BatchDocument(doc0.getId(), doc0.getRootDocument(), TEST_INDEX, language),
+            new CreateNlpBatchesFromIndex.BatchDocument(doc1.getId(), doc1.getRootDocument(), TEST_INDEX, language)
         );
         Map<String, Object> properties = Map.of(
             "docs", batchDocs,
