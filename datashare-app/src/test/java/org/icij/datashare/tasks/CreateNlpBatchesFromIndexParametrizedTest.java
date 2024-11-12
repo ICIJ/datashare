@@ -66,7 +66,7 @@ public class CreateNlpBatchesFromIndexParametrizedTest {
     public void setUp() {
         DatashareTaskFactory factory = mock(DatashareTaskFactory.class);
         when(factory.createBatchNlpTask(any(), any())).thenReturn(mock(BatchNlpTask.class));
-        taskManager = new TaskManagerMemory(new LinkedBlockingQueue<>(), factory);
+        taskManager = new TaskManagerMemory(new LinkedBlockingQueue<>(), factory, new PropertiesProvider());
     }
 
     @After
@@ -76,7 +76,8 @@ public class CreateNlpBatchesFromIndexParametrizedTest {
     }
 
 
-    public CreateNlpBatchesFromIndexParametrizedTest(int batchSize, int scrollSize, List<List<Language>> expectedLanguages) {
+    public CreateNlpBatchesFromIndexParametrizedTest(int batchSize, int scrollSize,
+                                                     List<List<Language>> expectedLanguages) {
         this.batchSize = batchSize;
         this.scrollSize = scrollSize;
         this.expectedLanguages = expectedLanguages;
@@ -86,7 +87,8 @@ public class CreateNlpBatchesFromIndexParametrizedTest {
     public static Collection<Object[]> taskParams() {
         return List.of(
             new Object[] {7, 3, List.of(
-                List.of(Language.ENGLISH, Language.ENGLISH, Language.ENGLISH, Language.ENGLISH, Language.ENGLISH, Language.ENGLISH, Language.ENGLISH),
+                List.of(Language.ENGLISH, Language.ENGLISH, Language.ENGLISH, Language.ENGLISH, Language.ENGLISH,
+                    Language.ENGLISH, Language.ENGLISH),
                 List.of(Language.ENGLISH, Language.ENGLISH, Language.ENGLISH),
                 List.of(Language.FRENCH, Language.FRENCH, Language.FRENCH, Language.FRENCH, Language.FRENCH),
                 List.of(Language.SPANISH, Language.SPANISH, Language.SPANISH, Language.SPANISH, Language.SPANISH)

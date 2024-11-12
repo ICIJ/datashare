@@ -41,7 +41,7 @@ public class CreateNlpBatchesFromIndexTest {
     public void setUp() {
         DatashareTaskFactory factory = mock(DatashareTaskFactory.class);
         when(factory.createBatchNlpTask(any(), any())).thenReturn(mock(BatchNlpTask.class));
-        taskManager = new TaskManagerMemory(new LinkedBlockingQueue<>(), factory);
+        taskManager = new TaskManagerMemory(new LinkedBlockingQueue<>(), factory, new PropertiesProvider());
     }
 
     @After
