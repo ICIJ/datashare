@@ -148,6 +148,22 @@ public class TaskManagerAmqpTest {
         assertThat(taskManager.getTasks()).hasSize(1);
     }
 
+    @Test(expected = IllegalStateException.class)
+    public void test_clear_running_task_should_throw_exception() throws Exception {
+        taskManager.startTask("taskName", User.local(), new HashMap<>());
+
+        assertThat(taskManager.getTasks()).hasSize(1);
+
+        // in the task runner loop
+        Task<Serializable> task = taskQueue.poll(1, TimeUnit.SECONDS); // to sync
+        taskSupplier.progress(task.id,0.5);
+        nextMessage.await();
+
+        assertThat(taskManager.getTask(task.id).getState()).isEqualTo(Task.State.RUNNING);
+
+        taskManager.clearTask(task.id);
+    }
+
     @Test(timeout = 2000)
     public void test_task_canceled() throws Exception {
         taskManager.startTask("taskName", User.local(), new HashMap<>());
