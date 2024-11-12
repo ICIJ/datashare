@@ -91,6 +91,18 @@ public class TaskManagerMemoryTest {
         assertThat(taskManager.getTasks()).hasSize(0);
     }
 
+    @Test(expected = IllegalStateException.class)
+    public void test_clear_running_task_should_throw_exception() throws Exception {
+        Task<Integer> task = new Task<>("sleep", User.local(), Map.of("intParameter", 12));
+
+        taskManager.startTask(task);
+        taskManager.shutdownAndAwaitTermination(1, TimeUnit.SECONDS);
+        taskManager.progress(task.id, 0.5);
+        assertThat(taskManager.getTask(task.id).getState()).isEqualTo(Task.State.RUNNING);
+
+        taskManager.clearTask(task.id);
+    }
+
     @Test
     public void test_progress_on_unknown_task() throws InterruptedException {
         taskManager.shutdownAndAwaitTermination(1, TimeUnit.SECONDS);

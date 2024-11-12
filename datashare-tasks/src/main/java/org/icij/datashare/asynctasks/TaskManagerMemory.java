@@ -146,6 +146,10 @@ public class TaskManagerMemory implements TaskManager, TaskSupplier {
 
     @Override
     public <V> Task<V> clearTask(String taskName) {
+        if (tasks.get(taskName).getState() == Task.State.RUNNING) {
+            throw new IllegalStateException(String.format("task id <%s> is already in RUNNING state", taskName));
+        }
+        logger.info("deleting task id <{}>", taskName);
         return (Task<V>) tasks.remove(taskName);
     }
 
