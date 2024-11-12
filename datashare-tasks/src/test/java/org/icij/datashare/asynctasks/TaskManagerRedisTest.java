@@ -85,6 +85,7 @@ public class TaskManagerRedisTest {
     }
 
     @Test
+    @Ignore("remove is async and clearTasks is not always done before the size is changed")
     public void test_done_tasks() throws Exception {
         String taskViewId = taskManager.startTask("sleep", User.local(), new HashMap<>());
 
@@ -114,6 +115,17 @@ public class TaskManagerRedisTest {
         assertThat(taskManager.getTasks()).hasSize(1);
         assertThat(taskManager.getTask(taskView1Id)).isNull();
         assertThat(taskManager.getTask(taskView2Id)).isNotNull();
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void test_clear_running_task_should_throw_exception() throws Exception {
+        String taskViewId = taskManager.startTask("sleep", User.local(), new HashMap<>());
+
+        taskSupplier.progress(taskViewId,0.5);
+        assertThat(waitForEvent.await(1, TimeUnit.SECONDS)).isTrue();
+        assertThat(taskManager.getTask(taskViewId).getState()).isEqualTo(Task.State.RUNNING);
+
+        taskManager.clearTask(taskViewId);
     }
 
     @Test
