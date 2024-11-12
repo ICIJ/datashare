@@ -1,10 +1,6 @@
 package org.icij.datashare.asynctasks;
 
-import org.icij.datashare.asynctasks.bus.amqp.AmqpConsumer;
-import org.icij.datashare.asynctasks.bus.amqp.AmqpInterlocutor;
-import org.icij.datashare.asynctasks.bus.amqp.AmqpQueue;
-import org.icij.datashare.asynctasks.bus.amqp.CancelEvent;
-import org.icij.datashare.asynctasks.bus.amqp.TaskEvent;
+import org.icij.datashare.asynctasks.bus.amqp.*;
 import org.icij.datashare.tasks.RoutingStrategy;
 import org.icij.datashare.user.User;
 

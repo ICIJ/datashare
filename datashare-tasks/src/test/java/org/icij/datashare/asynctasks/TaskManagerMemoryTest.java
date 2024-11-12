@@ -1,12 +1,5 @@
 package org.icij.datashare.asynctasks;
 
-import static org.fest.assertions.Assertions.assertThat;
-
-import java.util.Map;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.TimeUnit;
-
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.test.LogbackCapturingRule;
 import org.icij.datashare.user.User;
@@ -15,6 +8,13 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.slf4j.event.Level;
+
+import java.util.Map;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
+
+import static org.fest.assertions.Assertions.assertThat;
 
 
 public class TaskManagerMemoryTest {
