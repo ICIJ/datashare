@@ -1,5 +1,6 @@
 package org.icij.datashare.asynctasks;
 
+import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.test.LogbackCapturingRule;
 import org.icij.datashare.user.User;
 import org.junit.After;
@@ -29,7 +30,7 @@ public class TaskManagerMemoryTest {
     @Before
     public void setUp() throws Exception {
         LinkedBlockingQueue<Task<?>> taskViews = new LinkedBlockingQueue<>();
-        taskManager = new TaskManagerMemory(taskViews, factory, waitForLoop);
+        taskManager = new TaskManagerMemory(taskViews, factory, new PropertiesProvider(), waitForLoop);
         taskInspector = new TaskInspector(taskManager);
         waitForLoop.await();
     }
