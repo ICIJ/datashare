@@ -7,7 +7,6 @@ import org.icij.datashare.text.Document;
 import org.icij.datashare.text.DocumentBuilder;
 import org.icij.datashare.text.NamedEntity;
 import org.icij.datashare.text.nlp.Annotations;
-import org.icij.datashare.text.nlp.NlpStage;
 import org.icij.datashare.text.nlp.Pipeline;
 import org.icij.datashare.web.testhelpers.AbstractProdWebServerTest;
 import org.junit.Before;
@@ -64,7 +63,7 @@ public class NerResourceTest extends AbstractProdWebServerTest {
     public void test_post_text_returns_NamedEntity_list() throws Exception {
         Document doc = DocumentBuilder.createDoc("inline").with("This the 'foù' file content.").with(ENGLISH).build();
         final Annotations annotations = new Annotations("inline", CORENLP, ENGLISH);
-        annotations.add(NlpStage.NER, 10, 13, NamedEntity.Category.PERSON);
+        annotations.add( 10, 13, NamedEntity.Category.PERSON);
         doReturn(asList(NamedEntity.create(NamedEntity.Category.PERSON, "foù", asList(10L), doc.getId(), "root", CORENLP, ENGLISH))).when(pipeline).process(eq(doc));
 
         Response response = post("/api/ner/findNames/CORENLP", doc.getContent()).response();
