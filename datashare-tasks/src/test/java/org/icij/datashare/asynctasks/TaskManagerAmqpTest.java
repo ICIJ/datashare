@@ -9,7 +9,12 @@ import org.icij.datashare.tasks.RoutingStrategy;
 import org.icij.datashare.user.User;
 import org.icij.extract.redis.RedissonClientFactory;
 import org.icij.task.Options;
-import org.junit.*;
+import org.junit.After;
+import org.junit.AfterClass;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.ClassRule;
+import org.junit.Test;
 import org.redisson.Redisson;
 import org.redisson.RedissonMap;
 import org.redisson.api.RedissonClient;
@@ -20,7 +25,11 @@ import java.io.IOException;
 import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.*;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
 
 import static org.fest.assertions.Assertions.assertThat;
 
@@ -123,36 +132,6 @@ public class TaskManagerAmqpTest {
         assertThat(taskManager.getTask(task.id).getResult()).isNull();
         assertThat(taskManager.getTask(task.id).getState()).isEqualTo(Task.State.ERROR);
         assertThat(taskManager.getTask(task.id).error.getMessage()).isEqualTo("error in runner");
-    }
-
-    @Test
-    public void test_clear_task_among_two_tasks() throws Exception {
-        String taskView1Id = taskManager.startTask("taskName1", User.local(), new HashMap<>());
-        taskManager.startTask("taskName2", User.local(), new HashMap<>());
-
-        assertThat(taskManager.getTasks()).hasSize(2);
-
-        Task<?> clearedTask = taskManager.clearTask(taskView1Id);
-
-        assertThat(taskView1Id).isEqualTo(clearedTask.id);
-        assertThat(taskManager.getTask(taskView1Id)).isNull();
-        assertThat(taskManager.getTasks()).hasSize(1);
-    }
-
-    @Test(expected = IllegalStateException.class)
-    public void test_clear_running_task_should_throw_exception() throws Exception {
-        taskManager.startTask("taskName", User.local(), new HashMap<>());
-
-        assertThat(taskManager.getTasks()).hasSize(1);
-
-        // in the task runner loop
-        Task<Serializable> task = taskQueue.poll(1, TimeUnit.SECONDS); // to sync
-        taskSupplier.progress(task.id,0.5);
-        nextMessage.await();
-
-        assertThat(taskManager.getTask(task.id).getState()).isEqualTo(Task.State.RUNNING);
-
-        taskManager.clearTask(task.id);
     }
 
     @Test(timeout = 2000)

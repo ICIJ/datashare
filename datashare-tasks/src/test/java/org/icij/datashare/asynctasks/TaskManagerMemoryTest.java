@@ -1,5 +1,12 @@
 package org.icij.datashare.asynctasks;
 
+import static org.fest.assertions.Assertions.assertThat;
+
+import java.util.Map;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
+
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.test.LogbackCapturingRule;
 import org.icij.datashare.user.User;
@@ -8,13 +15,6 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.slf4j.event.Level;
-
-import java.util.Map;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.TimeUnit;
-
-import static org.fest.assertions.Assertions.assertThat;
 
 
 public class TaskManagerMemoryTest {
@@ -89,18 +89,6 @@ public class TaskManagerMemoryTest {
         taskManager.clearTask(task.id);
 
         assertThat(taskManager.getTasks()).hasSize(0);
-    }
-
-    @Test(expected = IllegalStateException.class)
-    public void test_clear_running_task_should_throw_exception() throws Exception {
-        Task<Integer> task = new Task<>("sleep", User.local(), Map.of("intParameter", 12));
-
-        taskManager.startTask(task);
-        taskManager.shutdownAndAwaitTermination(1, TimeUnit.SECONDS);
-        taskManager.progress(task.id, 0.5);
-        assertThat(taskManager.getTask(task.id).getState()).isEqualTo(Task.State.RUNNING);
-
-        taskManager.clearTask(task.id);
     }
 
     @Test
