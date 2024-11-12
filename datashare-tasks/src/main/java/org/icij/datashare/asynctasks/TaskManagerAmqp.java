@@ -60,7 +60,7 @@ public class TaskManagerAmqp implements TaskManager {
 
     @Override
     public <V> Task<V> clearTask(String taskId) {
-        return null;
+        return (Task<V>) tasks.remove(taskId);
     }
 
     @Override

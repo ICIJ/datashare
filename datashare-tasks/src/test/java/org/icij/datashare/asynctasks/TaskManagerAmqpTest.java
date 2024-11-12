@@ -134,6 +134,20 @@ public class TaskManagerAmqpTest {
         assertThat(taskManager.getTask(task.id).error.getMessage()).isEqualTo("error in runner");
     }
 
+    @Test
+    public void test_clear_task_among_two_tasks() throws Exception {
+        String taskView1Id = taskManager.startTask("taskName1", User.local(), new HashMap<>());
+        taskManager.startTask("taskName2", User.local(), new HashMap<>());
+
+        assertThat(taskManager.getTasks()).hasSize(2);
+
+        Task<?> clearedTask = taskManager.clearTask(taskView1Id);
+
+        assertThat(taskView1Id).isEqualTo(clearedTask.id);
+        assertThat(taskManager.getTask(taskView1Id)).isNull();
+        assertThat(taskManager.getTasks()).hasSize(1);
+    }
+
     @Test(timeout = 2000)
     public void test_task_canceled() throws Exception {
         taskManager.startTask("taskName", User.local(), new HashMap<>());
