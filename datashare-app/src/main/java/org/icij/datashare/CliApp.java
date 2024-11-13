@@ -135,7 +135,7 @@ class CliApp {
                     DatashareTask.task(EnqueueFromIndexTask.class.getName(), nullUser(), propertiesToMap(properties)));
         }
 
-        if (pipeline.has(Stage.CREATENLPBATCHESFROMINDEX)) {
+        if (pipeline.has(Stage.CREATENLPBATCHESFROMIDX)) {
             taskFactory.createBatchEnqueueFromIndexTask(
                     new Task<>(CreateNlpBatchesFromIndex.class.getName(), nullUser(), propertiesToMap(properties)),
                     (percentage) -> {logger.info("percentage: {}% done", percentage); return null;}).call();
