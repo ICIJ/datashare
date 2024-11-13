@@ -127,7 +127,7 @@ class CliApp {
                     new Task<>(EnqueueFromIndexTask.class.getName(), nullUser(), propertiesToMap(properties)));
         }
 
-        if (pipeline.has(Stage.CREATENLPBATCHESFROMINDEX)) {
+        if (pipeline.has(Stage.CREATENLPBATCHESFROMIDX)) {
             taskManager.startTask(
                 new Task<>(CreateNlpBatchesFromIndex.class.getName(), nullUser(), propertiesToMap(properties)));
         }
