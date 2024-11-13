@@ -6,7 +6,7 @@ import org.icij.datashare.text.nlp.Pipeline;
 public class NlpHelper {
     public static Map<String, Object> pipelineExtras(Pipeline.Type pipeline) {
         if (pipeline == Pipeline.Type.SPACY) {
-            return Map.of("size", "md");
+            return Map.of("modelSize", "md");
         }
         return Map.of();
     }
