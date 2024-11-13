@@ -22,7 +22,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.nio.file.Path;
 import java.util.List;
 import java.util.Properties;
 
@@ -137,7 +136,7 @@ class CliApp {
                     new Task<>(EnqueueFromIndexTask.class.getName(), nullUser(), propertiesToMap(properties)));
         }
 
-        if (pipeline.has(Stage.CREATENLPBATCHESFROMINDEX)) {
+        if (pipeline.has(Stage.CREATENLPBATCHESFROMIDX)) {
             taskFactory.createBatchEnqueueFromIndexTask(
                     new Task<>(CreateNlpBatchesFromIndex.class.getName(), nullUser(), propertiesToMap(properties)),
                     (percentage) -> {logger.info("percentage: {}% done", percentage); return null;}).call();
