@@ -2,6 +2,7 @@ package org.icij.datashare.tasks;
 
 import co.elastic.clients.elasticsearch._types.Refresh;
 import org.icij.datashare.PropertiesProvider;
+import org.icij.datashare.asynctasks.CancelException;
 import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.asynctasks.TaskModifier;
 import org.icij.datashare.asynctasks.bus.amqp.UriResult;
@@ -11,11 +12,7 @@ import org.icij.datashare.test.ElasticsearchRule;
 import org.icij.datashare.text.Project;
 import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchIndexer;
 import org.jetbrains.annotations.NotNull;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.ClassRule;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.*;
 import org.junit.rules.TemporaryFolder;
 import org.mockito.Mock;
 
@@ -24,22 +21,19 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.*;
 import java.util.zip.ZipFile;
 
 import static java.util.Arrays.asList;
 import static org.fest.assertions.Assertions.assertThat;
-import static org.icij.datashare.cli.DatashareCliOptions.BATCH_DOWNLOAD_SCROLL_DURATION_OPT;
-import static org.icij.datashare.cli.DatashareCliOptions.BATCH_DOWNLOAD_SCROLL_SIZE_OPT;
-import static org.icij.datashare.cli.DatashareCliOptions.SCROLL_SIZE_OPT;
+import static org.icij.datashare.cli.DatashareCliOptions.*;
 import static org.icij.datashare.test.ElasticsearchRule.TEST_INDEX;
 import static org.icij.datashare.test.ElasticsearchRule.TEST_INDEXES;
 import static org.icij.datashare.text.Project.project;
 import static org.icij.datashare.user.User.local;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.anyDouble;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.*;
 import static org.mockito.MockitoAnnotations.initMocks;
 
 public class TaskWorkerIntTest {
@@ -198,6 +192,23 @@ public class TaskWorkerIntTest {
 
         assertThat(batchDownloadRunner.toString()).startsWith("BatchDownloadRunner@");
         assertThat(batchDownloadRunner.toString()).contains(bd.uuid);
+    }
+
+    @Test
+    public void test_cancel_current_batch_download() throws Exception {
+        new IndexerHelper(es.client).indexFile("mydoc.txt", "content", fs);
+        ExecutorService executor = Executors.newFixedThreadPool(1);
+        CountDownLatch countDownLatch = new CountDownLatch(1);
+        Task<File> taskView = createTaskView(createBatchDownload("*"));
+        BatchDownloadRunner batchDownloadRunner = new BatchDownloadRunner(indexer, createProvider(), taskView.progress(taskModifier::progress), taskView, null, countDownLatch);
+
+        Future<UriResult> result = executor.submit(batchDownloadRunner);
+        executor.shutdown();
+        countDownLatch.await();
+        batchDownloadRunner.cancel(false);
+
+        assertThat(executor.awaitTermination(2, TimeUnit.SECONDS)).isTrue();
+        assertThat(assertThrows(ExecutionException.class, result::get).getCause()).isInstanceOf(CancelException.class);
     }
 
     @Test(expected = ElasticSearchAdapterException.class)
