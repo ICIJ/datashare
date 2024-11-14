@@ -18,6 +18,7 @@ import org.mockito.Mock;
 
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.concurrent.CountDownLatch;
 
 import static java.util.Collections.singletonList;
 import static org.fest.assertions.Assertions.assertThat;
@@ -44,7 +45,7 @@ public class BatchDownloadRunnerEncryptedIntTest {
                 new HashMap<>() {{
                     put("batchDownload", batchDownload);
                 }});
-        new BatchDownloadRunner(indexer, createProvider(), taskView.progress(taskSupplier::progress), taskView, (uri) -> mailSender).call();
+        new BatchDownloadRunner(indexer, createProvider(), taskView.progress(taskSupplier::progress), taskView, (uri) -> mailSender, new CountDownLatch(1)).call();
 
         assertThat(new net.lingala.zip4j.ZipFile(batchDownload.filename.toFile()).isEncrypted()).isTrue();
         ArgumentCaptor<Mail> mailCaptor = ArgumentCaptor.forClass(Mail.class);
