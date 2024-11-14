@@ -1,6 +1,7 @@
 package org.icij.datashare.tasks;
 
 import org.icij.datashare.PropertiesProvider;
+import org.icij.datashare.asynctasks.CancelException;
 import org.icij.datashare.asynctasks.Group;
 import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.batch.BatchSearch;
@@ -17,10 +18,7 @@ import org.mockito.Mock;
 
 import java.util.Date;
 import java.util.HashMap;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 import java.util.function.Function;
 import java.util.stream.IntStream;
 
@@ -36,10 +34,7 @@ import static org.icij.datashare.text.Project.project;
 import static org.icij.datashare.user.User.local;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.anyList;
-import static org.mockito.Mockito.anyString;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 import static org.mockito.MockitoAnnotations.initMocks;
 
 
@@ -128,17 +123,19 @@ public class BatchSearchRunnerTest {
     @Test
     public void test_cancel_current_batch_search() throws Exception {
         CountDownLatch countDownLatch = new CountDownLatch(1);
-        BatchSearch batchSearch = new BatchSearch("uuid1", singletonList(project("test-datashare")), "name1", "desc1", asSet("query1", "query2"), new Date(), BatchSearch.State.QUEUED, local());
-        Document[] documents = {createDoc("doc").build()};
-        mockSearch.willReturn(1,documents);
-        BatchSearchRunner batchSearchRunner = new BatchSearchRunner(indexer, new PropertiesProvider(), repository, taskView(batchSearch), progressCb, countDownLatch);
+        Document[] documents = {createDoc("doc1").build(), createDoc("doc2").build()};
+        mockSearch.willReturn(1, documents);
+        BatchSearch search = new BatchSearch("uuid1", singletonList(project("test-datashare")), "name1", "desc1", asSet("query1", "query2"), new Date(), BatchSearch.State.QUEUED, User.local());
+        when(repository.get(local(), search.uuid)).thenReturn(search);
+        BatchSearchRunner batchSearchRunner = new BatchSearchRunner(indexer, new PropertiesProvider(), repository, taskView(search), progressCb, countDownLatch);
 
-        executor.submit(batchSearchRunner);
+        Future<Integer> result = executor.submit(batchSearchRunner);
         executor.shutdown();
         countDownLatch.await();
         batchSearchRunner.cancel(false);
 
         assertThat(executor.awaitTermination(2, TimeUnit.SECONDS)).isTrue();
+        assertThat(assertThrows(ExecutionException.class, result::get).getCause()).isInstanceOf(CancelException.class);
     }
 
     @Before
