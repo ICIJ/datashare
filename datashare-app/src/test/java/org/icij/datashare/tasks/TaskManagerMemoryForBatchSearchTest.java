@@ -85,8 +85,7 @@ public class TaskManagerMemoryForBatchSearchTest {
         taskManager.shutdownAndAwaitTermination(1, TimeUnit.SECONDS);
 
         assertThat(DatashareTime.getInstance().now().getTime() - beforeTest.getTime()).isEqualTo(100);
-        assertThat(batchSearchQueue).hasSize(2); // with poison from shutdown
-        batchSearchQueue.take(); // poison
+        assertThat(batchSearchQueue).hasSize(1);
         assertThat(batchSearchQueue.take().id).isEqualTo(testBatchSearch.uuid);
     }
 

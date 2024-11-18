@@ -29,11 +29,15 @@ public class TaskWorkerLoopTest {
     public void test_loop() throws Exception {
         TaskWorkerLoop app = new TaskWorkerLoop(registry, supplier);
         Task<Serializable> taskView = new Task<>(TestFactory.HelloWorld.class.getName(), User.local(), Map.of("greeted", "world"));
-        Mockito.when(supplier.get(ArgumentMatchers.anyInt(), ArgumentMatchers.any())).thenReturn(taskView, Task.nullObject());
+        Mockito.when(supplier.get(ArgumentMatchers.anyInt(), ArgumentMatchers.any())).thenReturn(taskView);
+        CountDownLatch taskStarted = whenTaskHasStarted(taskView.id);
 
-        Integer nb = app.call();
+        Thread appThread = new Thread(app::call);
+        appThread.start();
+        taskStarted.await(1, TimeUnit.SECONDS);
+        app.exit();
+        appThread.join();
 
-        assertThat(nb).isEqualTo(1);
         Mockito.verify(supplier).result(eq(taskView.id), eq("Hello world!"));
     }
 
@@ -88,11 +92,13 @@ public class TaskWorkerLoopTest {
     public void test_task_interrupted() throws Exception {
         TaskWorkerLoop app = new TaskWorkerLoop(registry, supplier);
         Task<Serializable> taskView = new Task<>(TestFactory.SleepForever.class.getName(), User.local(), Map.of());
-        Mockito.when(supplier.get(ArgumentMatchers.anyInt(), ArgumentMatchers.any()))
-            .thenReturn(taskView, Task.nullObject());
+        Mockito.when(supplier.get(ArgumentMatchers.anyInt(), ArgumentMatchers.any())).thenReturn(taskView);
+        CountDownLatch taskStarted = whenTaskHasStarted(taskView.id);
 
         Thread appThread = new Thread(app::call);
         appThread.start();
+        taskStarted.await(1, TimeUnit.SECONDS);
+        app.exit();
         appThread.interrupt();
         appThread.join();
 

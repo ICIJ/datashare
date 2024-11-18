@@ -6,6 +6,7 @@ import org.icij.datashare.asynctasks.bus.amqp.AmqpInterlocutor;
 import org.icij.datashare.asynctasks.bus.amqp.AmqpQueue;
 import org.icij.datashare.asynctasks.bus.amqp.CancelledEvent;
 import org.icij.datashare.asynctasks.bus.amqp.ErrorEvent;
+import org.icij.datashare.asynctasks.bus.amqp.Event;
 import org.icij.datashare.asynctasks.bus.amqp.ProgressEvent;
 import org.icij.datashare.asynctasks.bus.amqp.ResultEvent;
 import org.icij.datashare.asynctasks.bus.amqp.TaskError;
@@ -22,8 +23,8 @@ import java.util.function.Consumer;
 
 public class TaskSupplierAmqp implements TaskSupplier {
     final AmqpConsumer<Task, Consumer<Task>> consumer;
-    final AmqpConsumer<TaskEvent, Consumer<TaskEvent>> eventConsumer;
-    final List<Consumer<TaskEvent>> eventCallbackList = new LinkedList<>();
+    final AmqpConsumer<Event, Consumer<Event>> eventConsumer;
+    final List<Consumer<Event>> eventCallbackList = new LinkedList<>();
     private final AmqpInterlocutor amqp;
 
     public TaskSupplierAmqp(AmqpInterlocutor amqp) throws IOException {
@@ -35,7 +36,7 @@ public class TaskSupplierAmqp implements TaskSupplier {
         this.consumer = routingKey == null ?
                 new AmqpConsumer<>(amqp, null, AmqpQueue.TASK, Task.class):
                 new AmqpConsumer<>(amqp, null, AmqpQueue.TASK, Task.class, routingKey);
-        this.eventConsumer = new AmqpConsumer<>(amqp, this::handleEvent, AmqpQueue.WORKER_EVENT, TaskEvent.class).consumeEvents();
+        this.eventConsumer = new AmqpConsumer<>(amqp, this::handleEvent, AmqpQueue.WORKER_EVENT, Event.class).consumeEvents();
     }
 
     @Override
@@ -88,12 +89,12 @@ public class TaskSupplierAmqp implements TaskSupplier {
         result(taskId, taskError);
     }
 
-    private void handleEvent(TaskEvent taskEvent) {
+    private void handleEvent(Event taskEvent) {
         eventCallbackList.forEach(c -> c.accept(taskEvent));
     }
 
     @Override
-    public void addEventListener(Consumer<TaskEvent> callback) {
+    public void addEventListener(Consumer<Event> callback) {
         eventCallbackList.add(callback);
     }
 
@@ -105,5 +106,6 @@ public class TaskSupplierAmqp implements TaskSupplier {
     @Override
     public void close() throws IOException {
         consumer.shutdown();
+        eventConsumer.shutdown();
     }
 }

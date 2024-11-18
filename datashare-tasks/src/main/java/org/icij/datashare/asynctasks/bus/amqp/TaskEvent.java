@@ -6,11 +6,6 @@ import com.fasterxml.jackson.annotation.JsonSubTypes;
 
 import java.util.Date;
 
-@JsonSubTypes(
-        {@JsonSubTypes.Type(ProgressEvent.class), @JsonSubTypes.Type(CancelEvent.class),
-         @JsonSubTypes.Type(CancelledEvent.class), @JsonSubTypes.Type(ResultEvent.class),
-         @JsonSubTypes.Type(ErrorEvent.class)}
-)
 public abstract class TaskEvent extends Event {
     public final String taskId;
 
