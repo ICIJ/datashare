@@ -53,6 +53,14 @@
       "homepage": "https://github.com/ICIJ/datashare-extension-neo4j",
       "version": "0.4.5",
       "type": "WEB"
+    },
+    {
+      "id": "datashare-extension-nlp-spacy",
+      "description": "Extension to extract NER entities with Spacy",
+      "url": "https://github.com/ICIJ/datashare-extension-nlp-spacy/releases/download/0.1.5/datashare-extension-nlp-spacy-0.1.5",
+      "homepage": "https://github.com/ICIJ/datashare-extension-nlp-spacy",
+      "version": "0.1.5",
+      "type": "NLP"
     }
   ]
 }
