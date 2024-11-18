@@ -85,8 +85,8 @@ public class TaskManagersIntTest {
                 (Creator<TaskSupplier>) () -> new TaskSupplierRedis(redissonClient),
                 redisWaiter
             }
-    });
-}
+        });
+    }
 
     public TaskManagersIntTest(Creator<TaskManager> managerCreator, Creator<TaskSupplier> taskSupplierCreator, EventWaiter eventWaiter) {
         this.taskManagerCreator = managerCreator;
@@ -100,7 +100,6 @@ public class TaskManagersIntTest {
         String taskViewId = taskManager.startTask(TestFactory.SleepForever.class, User.local(), new HashMap<>());
 
         taskInspector.awaitStatus(taskViewId, Task.State.RUNNING, 1, SECONDS);
-
         taskManager.stopTask(taskViewId);
         taskInspector.awaitStatus(taskViewId, Task.State.CANCELLED, 1, SECONDS);
         eventWaiter.await();
@@ -139,9 +138,9 @@ public class TaskManagersIntTest {
 
     @After
     public void tearDown() throws Exception {
+        taskWorker.close();
         taskManager.clear();
         taskManager.close();
-        taskWorker.close();
         executor.shutdownNow();
         executor.awaitTermination(1, SECONDS);
     }

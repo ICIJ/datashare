@@ -4,6 +4,7 @@ import org.apache.commons.lang3.NotImplementedException;
 import org.icij.datashare.asynctasks.bus.amqp.AmqpQueue;
 import org.icij.datashare.asynctasks.bus.amqp.CancelledEvent;
 import org.icij.datashare.asynctasks.bus.amqp.ErrorEvent;
+import org.icij.datashare.asynctasks.bus.amqp.Event;
 import org.icij.datashare.asynctasks.bus.amqp.ProgressEvent;
 import org.icij.datashare.asynctasks.bus.amqp.ResultEvent;
 import org.icij.datashare.asynctasks.bus.amqp.TaskError;
@@ -73,7 +74,7 @@ public class TaskSupplierRedis implements TaskSupplier {
     }
 
     @Override
-    public void addEventListener(Consumer<TaskEvent> callback) {
+    public void addEventListener(Consumer<Event> callback) {
         eventTopic.addListener(TaskEvent.class, (channelString, message) -> callback.accept(message));
     }
 

@@ -1,5 +1,6 @@
 package org.icij.datashare.asynctasks;
 
+import org.icij.datashare.asynctasks.bus.amqp.Event;
 import org.icij.datashare.asynctasks.bus.amqp.TaskError;
 import org.icij.datashare.asynctasks.bus.amqp.TaskEvent;
 
@@ -46,11 +47,11 @@ public interface TaskSupplier extends TaskModifier, Closeable {
     void canceled(Task<?> task, boolean requeue);
 
     /**
-     * Method to add a listener to the TaskEvent sent by the task manager.
-     * For now, it is for CancelEvent.
+     * Method to add a listener to the Event sent by the task manager.
+     *
      * @param callback: callback to handle the Task Events
      */
-    void addEventListener(Consumer<TaskEvent> callback);
+    void addEventListener(Consumer<Event> callback);
 
     void waitForConsumer();
 }

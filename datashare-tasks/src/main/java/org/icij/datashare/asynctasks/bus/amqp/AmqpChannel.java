@@ -33,8 +33,8 @@ public class AmqpChannel {
 	private static final Random rand = new Random();
 	public static final String WORKER_PREFIX = "worker";
 	private final boolean durable = true;
-	private final boolean exclusive = false;
-	private final boolean autoDelete = false;
+	private final boolean exclusive;
+	private final boolean autoDelete;
 	private final Logger logger = LoggerFactory.getLogger(this.getClass());
 	private final ConcurrentNavigableMap<Long, byte[]> outstandingConfirms = new ConcurrentSkipListMap<>();
 	final Channel rabbitMqChannel;
@@ -65,6 +65,8 @@ public class AmqpChannel {
 		this.queue = queue;
 		this.randomQueueNumber = rand.nextInt(1000);
 		this.key = key;
+		this.autoDelete = BuiltinExchangeType.FANOUT.equals(queue.exchangeType);
+		this.exclusive = BuiltinExchangeType.FANOUT.equals(queue.exchangeType);
 	}
 
 	void publish(Event event) throws IOException {

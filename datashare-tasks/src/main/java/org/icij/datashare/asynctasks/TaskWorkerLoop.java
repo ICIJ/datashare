@@ -1,7 +1,9 @@
 package org.icij.datashare.asynctasks;
 
+import com.rabbitmq.client.AMQP;
 import org.icij.datashare.asynctasks.bus.amqp.CancelEvent;
 import org.icij.datashare.asynctasks.bus.amqp.CancelledEvent;
+import org.icij.datashare.asynctasks.bus.amqp.ShutdownEvent;
 import org.icij.datashare.asynctasks.bus.amqp.TaskError;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,7 +27,6 @@ public class TaskWorkerLoop implements Callable<Integer>, Closeable {
     private final TaskSupplier taskSupplier;
     final AtomicReference<Callable<?>> currentTaskReference = new AtomicReference<>();
     final AtomicReference<Task<?>> currentTask = new AtomicReference<>();
-    public static final Task<Serializable> POISON = Task.nullObject();
     private final CountDownLatch waitForMainLoopCalled; // for tests only
     private final int pollTimeMillis;
     private final ConcurrentHashMap<String, Boolean> cancelledTasks;
@@ -48,17 +49,23 @@ public class TaskWorkerLoop implements Callable<Integer>, Closeable {
         this.pollTimeMillis = pollTimeMillis;
         this.cancelledTasks = new ConcurrentHashMap<>();
         Signal.handle(new Signal("TERM"), signal -> {
-            exitAsked = true;
+            exit();
             cancel(null, true);
             ofNullable(loopThread).ifPresent(Thread::interrupt); // for interrupting poll
         });
         taskSupplier.addEventListener((event -> {
+            if (event instanceof ShutdownEvent) {
+                try {
+                    close();
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
             // TODO: python alignment possible, in Python if the
             //  worker.negative_acknowledge(task_id, requeue) succeeds the worker doesn't wait
             //  for confirmation by the task manager to consider the task nacked (this works for
             //  AMQP where the nack is transactional, does it work for Redis ?)
-            if (event instanceof CancelledEvent) {
-                cancelledTasks.remove(event.taskId);
+            } else if (event instanceof CancelledEvent cancelledEvent) {
+                cancelledTasks.remove(cancelledEvent.taskId);
             } else if (event instanceof CancelEvent cancelEvent) {
                 cancel(cancelEvent.taskId, cancelEvent.requeue);
                 cancelledTasks.put(cancelEvent.taskId, cancelEvent.requeue);
@@ -79,12 +86,12 @@ public class TaskWorkerLoop implements Callable<Integer>, Closeable {
 
     private Integer mainLoop() {
         loopThread = Thread.currentThread();
-        Task<Serializable> task = null;
+        Task<Serializable> task;
         logger.info("Waiting tasks from supplier ({})", taskSupplier.getClass());
-        while (!POISON.equals(task) && !exitAsked) {
+        while (!exitAsked) {
             try {
                 task = taskSupplier.get(pollTimeMillis, TimeUnit.MILLISECONDS);
-                if (task != null && !POISON.equals(task)) {
+                if (task != null) {
                     handle(task);
                 }
             } catch (InterruptedException e) {
@@ -103,8 +110,7 @@ public class TaskWorkerLoop implements Callable<Integer>, Closeable {
             taskSupplier.canceled(currentTask.get(), cancelledTasks.remove(currentTask.get().id));
         } else {
             try {
-                Callable<?> taskFn;
-                taskFn = TaskFactoryHelper.createTaskCallable(factory, currentTask.get().name, currentTask.get(),
+                Callable<?> taskFn = TaskFactoryHelper.createTaskCallable(factory, currentTask.get().name, currentTask.get(),
                         currentTask.get().progress(taskSupplier::progress));
                 currentTaskReference.set(taskFn);
                 logger.info("running task {}", currentTask.get());
@@ -143,7 +149,7 @@ public class TaskWorkerLoop implements Callable<Integer>, Closeable {
 
     @Override
     public void close() throws IOException {
-        exitAsked = true;
+        exit();
         taskSupplier.close();
         ofNullable(loopThread).ifPresent(Thread::interrupt);
     }
@@ -162,5 +168,9 @@ public class TaskWorkerLoop implements Callable<Integer>, Closeable {
                 ((CancellableTask) t).cancel(requeue);
             }
         });
+    }
+
+    void exit() {
+        exitAsked = true;
     }
 }

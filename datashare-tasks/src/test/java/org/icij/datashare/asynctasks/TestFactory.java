@@ -18,6 +18,10 @@ public class TestFactory implements TaskFactory {
         return new SleepForever(taskView, progress);
     }
 
+    public Sleep createSleep(Task<Void> taskView, Function<Double, Void> progress) {
+        return new Sleep(taskView, progress);
+    }
+
     public static class HelloWorld implements Callable<String> {
         private final Function<Double, Void> progress;
         private String greeted;
@@ -37,6 +41,23 @@ public class TestFactory implements TaskFactory {
             progress.apply(1.);
             logger.debug("Politely greeted {}", greeted);
             return hello;
+        }
+    }
+
+    @TaskGroup("TestGroup")
+    public static class Sleep implements Callable<Void> {
+        private final Function<Double, Void> progress;
+        private final int duration;
+
+
+        public Sleep(Task<Void> taskView, Function<Double, Void> progress) {
+            this.progress = progress;
+            this.duration = (int) taskView.args.get("duration");
+        }
+        @Override
+        public Void call() throws Exception {
+            Thread.sleep(duration);
+            return null;
         }
     }
 

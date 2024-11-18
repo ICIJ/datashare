@@ -2,6 +2,7 @@ package org.icij.datashare.asynctasks;
 
 import org.apache.commons.lang3.NotImplementedException;
 import org.icij.datashare.PropertiesProvider;
+import org.icij.datashare.asynctasks.bus.amqp.Event;
 import org.icij.datashare.asynctasks.bus.amqp.TaskError;
 import org.icij.datashare.asynctasks.bus.amqp.TaskEvent;
 import org.icij.datashare.user.User;
@@ -114,7 +115,6 @@ public class TaskManagerMemory implements TaskManager, TaskSupplier {
     }
 
     public boolean shutdownAndAwaitTermination(int timeout, TimeUnit timeUnit) throws InterruptedException {
-        taskQueue.add(Task.nullObject());
         waitTasksToBeDone(timeout, timeUnit);
         executor.shutdownNow();
         return executor.awaitTermination(timeout, timeUnit);
@@ -188,7 +188,7 @@ public class TaskManagerMemory implements TaskManager, TaskSupplier {
     }
 
     @Override
-    public void addEventListener(Consumer<TaskEvent> callback) {
+    public void addEventListener(Consumer<Event> callback) {
         // no need for this we use task runner reference for stopping tasks
     }
 
