@@ -1,5 +1,15 @@
 package org.icij.datashare;
 
+import static java.lang.Boolean.parseBoolean;
+import static java.lang.Integer.parseInt;
+import static org.icij.datashare.cli.DatashareCliOptions.BROWSER_OPEN_LINK_OPT;
+
+import java.awt.Desktop;
+import java.io.IOException;
+import java.net.Socket;
+import java.net.URI;
+import java.util.Map;
+import java.util.Properties;
 import net.codestory.http.WebServer;
 import org.icij.datashare.asynctasks.TaskManager;
 import org.icij.datashare.asynctasks.TaskSupplier;
@@ -13,25 +23,18 @@ import org.icij.datashare.cli.QueueType;
 import org.icij.datashare.mode.CommonMode;
 import org.icij.datashare.tasks.BatchSearchRunner;
 import org.icij.datashare.tasks.DatashareTaskFactory;
+import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.awt.*;
-import java.io.IOException;
-import java.net.Socket;
-import java.net.URI;
 import java.util.List;
-import java.util.Map;
-import java.util.Properties;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.stream.IntStream;
 
-import static java.lang.Boolean.parseBoolean;
-import static java.lang.Integer.parseInt;
 import static java.util.Optional.ofNullable;
-import static org.icij.datashare.cli.DatashareCliOptions.BROWSER_OPEN_LINK_OPT;
 
 public class WebApp {
+    private static final Logger LOGGER = LoggerFactory.getLogger(WebApp.class);
 
     public static void main(String[] args) throws Exception {
         start(new DatashareCli().parseArguments(args).properties);
@@ -50,7 +53,7 @@ public class WebApp {
                 .configure(mode.createWebConfiguration())
                 .start(parseInt(mode.properties().getProperty(PropertiesProvider.TCP_LISTEN_PORT)));
 
-        if (shouldStartWorkers(properties, parallelism)) {
+        if (isEmbeddedAMQP(properties, parallelism)) {
             ExecutorService executorService = Executors.newFixedThreadPool(parallelism);
             List<TaskWorkerLoop> workers = IntStream.range(0, parallelism).mapToObj(i -> new TaskWorkerLoop(mode.get(DatashareTaskFactory.class), mode.get(TaskSupplier.class))).toList();
             workers.forEach(executorService::submit);
@@ -64,7 +67,7 @@ public class WebApp {
         requeueDatabaseBatchSearches(mode.get(BatchSearchRepository.class), mode.get(TaskManager.class));
     }
 
-    private static boolean shouldStartWorkers(Properties properties, int parallelism) {
+    private static boolean isEmbeddedAMQP(Properties properties, int parallelism) {
         return (CommonMode.getMode(properties) == Mode.EMBEDDED || CommonMode.getMode(properties) == Mode.LOCAL)
                 && properties.containsValue(QueueType.AMQP.name())
                 && parallelism > 0;
@@ -100,7 +103,7 @@ public class WebApp {
             try {
                 mode.close();
             } catch (IOException e) {
-                LoggerFactory.getLogger(WebApp.class).error("Error closing web app", e);
+                LOGGER.error("Error closing web app", e);
             }
         });
     }
