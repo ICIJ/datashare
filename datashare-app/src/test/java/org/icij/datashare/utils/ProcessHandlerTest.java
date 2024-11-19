@@ -3,7 +3,7 @@ package org.icij.datashare.utils;
 import static java.lang.String.join;
 import static org.fest.assertions.Assertions.assertThat;
 import static org.icij.datashare.utils.ProcessHandler.dumpPid;
-import static org.icij.datashare.utils.ProcessHandler.findPidPath;
+import static org.icij.datashare.utils.ProcessHandler.findPidPaths;
 import static org.icij.datashare.utils.ProcessHandler.isProcessRunning;
 import static org.icij.datashare.utils.ProcessHandler.killProcessById;
 
@@ -54,14 +54,19 @@ public class ProcessHandlerTest {
 
         // When
         String pidFilePattern = "glob:test-process-handler-*.pid";
-        Path foundPath = findPidPath(pidFilePattern, Path.of(pidFileDir));
+        List<Path> foundPaths = findPidPaths(pidFilePattern, Path.of(pidFileDir));
         // Then
-        assertThat(Objects.requireNonNull(foundPath).toString()).isEqualTo(pidPath.toString());
+        assertThat(foundPaths.size()).isEqualTo(1);
+        assertThat(foundPaths.get(0).toString()).isEqualTo(pidPath.toString());
 
         // When
         boolean isRunning = isProcessRunning(pid, 2, TimeUnit.SECONDS);
         // Then
         assertThat(isRunning).isTrue();
+        // When
+        boolean isRunningFromFile = isProcessRunning(pidPath, 2, TimeUnit.SECONDS);
+        // Then
+        assertThat(isRunningFromFile).isTrue();
 
         // When
         killProcessById(pid, true);

@@ -23,20 +23,17 @@ public class ProcessHandler {
         }
     }
 
-    public static Long isProcessRunning(Path pidPath, int timeout, TimeUnit timeunit) {
+    public static boolean isProcessRunning(Path pidPath, int timeout, TimeUnit timeunit) {
         try (Stream<String> lines = Files.lines(pidPath)) {
             Long pid = Long.parseLong(
                 lines.findFirst()
                     .orElseThrow(() -> new RuntimeException("PID file is empty"))
                     .strip()
             );
-            if (isProcessRunning(pid, timeout, timeunit)) {
-                return pid;
-            }
+            return isProcessRunning(pid, timeout, timeunit);
         } catch (IOException e) {
             throw new RuntimeException("Failed to read PID file", e);
         }
-        return null;
     }
 
     public static boolean isProcessRunning(Long pid, int timeout, TimeUnit timeunit) {
@@ -92,23 +89,10 @@ public class ProcessHandler {
             );
     }
 
-    public static Path findPidPath(String pattern, Path dir) {
+    public static List<Path> findPidPaths(String pattern, Path dir) {
         PathMatcher pathMatcher = FileSystems.getDefault().getPathMatcher(pattern);
         try (Stream<Path> paths = Files.list(dir)) {
-            List<Path> pidFilePaths = paths
-                .filter(file -> !Files.isDirectory(file) && pathMatcher.matches(file.getFileName()))
-                .toList();
-            if (pidFilePaths.isEmpty()) {
-                return null;
-            }
-            if (pidFilePaths.size() != 1) {
-                String msg = "Found several matching PID files "
-                    + pidFilePaths
-                    + ", to avoid phantom Python process,"
-                    + " kill these processes and clean the PID files";
-                throw new RuntimeException(msg);
-            }
-            return pidFilePaths.get(0);
+            return paths.filter(file -> !Files.isDirectory(file) && pathMatcher.matches(file.getFileName())).toList();
         } catch (IOException e) {
             throw new RuntimeException("Failed to list files in " + pattern, e);
         }
