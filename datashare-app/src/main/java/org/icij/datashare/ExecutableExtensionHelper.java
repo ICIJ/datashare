@@ -43,6 +43,15 @@ public class ExecutableExtensionHelper {
         return builder.start();
     }
 
+    String getPidFilePattern() {
+        String pattern = extensionPattern;
+        if (pattern.endsWith("$")) {
+            pattern = pattern.substring(0, pattern.length() - 1);
+        }
+        pattern += ".*\\.pid";
+        return pattern;
+    }
+
     private Path locateExtension() {
         Set<File> extensionBins = extensionService.listInstalled(extensionPattern);
         return switch (extensionBins.size()) {
