@@ -119,7 +119,6 @@ public class TaskManagerMemoryForBatchSearchTest {
         Signal.raise(new Signal("TERM"));
         taskManager.waitTasksToBeDone(1, TimeUnit.SECONDS);
 
-        assertThat(batchSearchQueue).excludes(Task.nullObject());
         assertThat(batchSearchQueue).hasSize(2);
     }
 

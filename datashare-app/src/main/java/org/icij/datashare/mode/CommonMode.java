@@ -86,7 +86,7 @@ public abstract class CommonMode extends AbstractModule {
 
     protected CommonMode(Properties properties) {
         propertiesProvider = properties == null ? new PropertiesProvider() :
-                new PropertiesProvider(properties.getProperty(PropertiesProvider.SETTINGS_FILE_PARAMETER_KEY)).mergeWith(properties);
+                new PropertiesProvider(properties.getProperty(PropertiesProvider.SETTINGS_FILE_PARAMETER_KEY)).overrideWith(properties);
         this.mode = getMode(properties);
         try {
             this.injector = Guice.createInjector(this);
@@ -102,6 +102,10 @@ public abstract class CommonMode extends AbstractModule {
     }
 
     public static CommonMode create(final Map<String, Object> map) {
+        return create(PropertiesProvider.fromMap(map));
+    }
+
+    public static CommonMode create(final Map<String, Object> map, boolean override) {
         return create(PropertiesProvider.fromMap(map));
     }
     public static CommonMode create(final Properties properties) {
