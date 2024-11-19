@@ -102,12 +102,12 @@ public class TaskTest {
 
     @Test
     public void test_serialize_deserialize_null() throws Exception {
-        String json = JsonObjectMapper.MAPPER.writeValueAsString(Task.nullObject());
+        String json = JsonObjectMapper.MAPPER.writeValueAsString(new Task<>(null, null, Task.State.CREATED, 0, null, new HashMap<>()));
         assertThat(json).contains("\"@type\":\"Task\"");
         assertThat(json).contains("\"args\":{}");
 
         Task<?> taskCreation = JsonObjectMapper.MAPPER.readValue(json, Task.class);
-        assertThat(taskCreation).isEqualTo(Task.nullObject());
+        assertThat(taskCreation).isEqualTo(new Task<>(null, null, Task.State.CREATED, 0, null, new HashMap<>()));
         assertThat(taskCreation.createdAt).isEqualTo(taskCreation.createdAt);
     }
 }

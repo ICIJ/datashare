@@ -75,7 +75,7 @@ public class TaskSupplierRedis implements TaskSupplier {
 
     @Override
     public void addEventListener(Consumer<Event> callback) {
-        eventTopic.addListener(TaskEvent.class, (channelString, message) -> callback.accept(message));
+        eventTopic.addListener(Event.class, (channelString, message) -> callback.accept(message));
     }
 
     @Override

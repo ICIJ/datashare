@@ -6,12 +6,13 @@ import org.icij.datashare.asynctasks.TaskWorkerLoop;
 import org.icij.datashare.batch.BatchDownload;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.user.User;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 
 import java.io.File;
-import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
 import static java.util.Collections.singletonList;
@@ -22,37 +23,46 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class TaskWorkerLoopIntTest {
-    private final LinkedBlockingQueue<Task<?>> taskQueue = new LinkedBlockingQueue<>();
     private final TaskSupplierRedis taskSupplier = new TaskSupplierRedis(new PropertiesProvider());
+    TaskManagerRedis taskManager;
+    CountDownLatch eventWaiter;
 
-
-    @Test(timeout=5000)
+    @Test(timeout = 5000)
     public void test_batch_download_task_view_properties() throws Exception {
-        CountDownLatch eventWaiter = new CountDownLatch(2); // progress, result(error)
-        try (TaskManagerRedis taskManager = new TaskManagerRedis(new PropertiesProvider(), "test:task:manager", eventWaiter::countDown)) {
-            DatashareTaskFactory factory = mock(DatashareTaskFactory.class);
-            BatchDownload batchDownload = new BatchDownload(singletonList(project("prj")), User.local(), "foo");
+        DatashareTaskFactory factory = mock(DatashareTaskFactory.class);
+        BatchDownload batchDownload = new BatchDownload(singletonList(project("prj")), User.local(), "foo");
+        Map<String, Object> properties = Map.of("batchDownload", batchDownload);
+        Task<File> taskView = new Task<>(BatchDownloadRunner.class.getName(), batchDownload.user, properties);
+        BatchDownloadRunner runner = new BatchDownloadRunner(mock(Indexer.class), new PropertiesProvider(), taskView, taskView.progress(taskSupplier::progress));
+        when(factory.createBatchDownloadRunner(any(), any())).thenReturn(runner);
 
-            HashMap<String, Object> properties = new HashMap<>() {{
-                put("batchDownload", batchDownload);
-            }};
-            Task<File> taskView = new Task<>(BatchDownloadRunner.class.getName(), batchDownload.user, properties);
-            BatchDownloadRunner runner = new BatchDownloadRunner(mock(Indexer.class), new PropertiesProvider(), taskView, taskView.progress(taskSupplier::progress));
-            when(factory.createBatchDownloadRunner(any(), any())).thenReturn(runner);
+        CountDownLatch workerStarted = new CountDownLatch(1);
+        TaskWorkerLoop taskWorkerLoop = new TaskWorkerLoop(factory, taskSupplier, workerStarted);
+        Thread worker = new Thread(taskWorkerLoop::call);
+        worker.start();
+        workerStarted.await();
+        taskManager.startTask(BatchDownloadRunner.class.getName(), User.local(), properties);
+        Thread.sleep(100); // this is a symptom of a possible flaky test but for now I can't figure out how to be event driven
 
-            TaskWorkerLoop taskWorkerLoop = new TaskWorkerLoop(factory, taskSupplier);
+        taskManager.shutdownAndAwaitTermination(1, TimeUnit.SECONDS);
+        eventWaiter.await();
 
-            taskManager.startTask(BatchDownloadRunner.class.getName(), User.local(), properties);
-            taskManager.shutdownAndAwaitTermination(1, TimeUnit.SECONDS);
+        assertThat(taskManager.getTasks()).hasSize(1);
+        assertThat(taskManager.getTasks().get(0).getError()).isNotNull();
+        assertThat(taskManager.getTasks().get(0).getProgress()).isEqualTo(1);
+        assertThat(taskManager.getTasks().get(0).args).hasSize(2);
+        assertThat(taskManager.getTasks().get(0).getUser()).isEqualTo(User.local());
+    }
 
-            taskWorkerLoop.call();
-            eventWaiter.await();
+    @Before
+    public void setUp() throws Exception {
+        eventWaiter = new CountDownLatch(2); // progress, error
+        taskManager = new TaskManagerRedis(new PropertiesProvider(), "test:task:manager", eventWaiter::countDown);
+    }
 
-            assertThat(taskManager.getTasks()).hasSize(1);
-            assertThat(taskManager.getTasks().get(0).getError()).isNotNull();
-            assertThat(taskManager.getTasks().get(0).getProgress()).isEqualTo(1);
-            assertThat(taskManager.getTasks().get(0).args).hasSize(2);
-            assertThat(taskManager.getTasks().get(0).getUser()).isEqualTo(User.local());
-        }
+    @After
+    public void tearDown() throws Exception {
+        taskManager.clear();
+        taskManager.close();
     }
 }

@@ -7,6 +7,7 @@ import io.netty.buffer.ByteBufInputStream;
 import io.netty.buffer.ByteBufOutputStream;
 import org.icij.datashare.asynctasks.bus.amqp.AmqpQueue;
 import org.icij.datashare.asynctasks.bus.amqp.CancelEvent;
+import org.icij.datashare.asynctasks.bus.amqp.ShutdownEvent;
 import org.icij.datashare.asynctasks.bus.amqp.TaskEvent;
 import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.tasks.RoutingStrategy;
@@ -113,8 +114,7 @@ public class TaskManagerRedis implements TaskManager {
 
     @Override
     public boolean shutdownAndAwaitTermination(int timeout, TimeUnit timeUnit) {
-        taskQueue(Task.nullObject()).add(Task.nullObject());
-        return true;
+        return eventTopic.publish(new ShutdownEvent()) > 0;
     }
 
     BlockingQueue<Task<?>> taskQueue(Task<?> task) {

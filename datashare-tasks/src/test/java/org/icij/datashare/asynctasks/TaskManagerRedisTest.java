@@ -6,6 +6,7 @@ import org.icij.datashare.user.User;
 import org.icij.extract.redis.RedissonClientFactory;
 import org.icij.task.Options;
 import org.junit.After;
+import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.redisson.RedissonBlockingQueue;
@@ -147,6 +148,10 @@ public class TaskManagerRedisTest {
 
     @After
     public void tearDown() {
+        taskManager.clear();
+    }
+    @Before
+    public void setUp() {
         taskManager.clear();
     }
 }

@@ -198,10 +198,6 @@ public class Task<V> extends Event implements Entity {
         return id;
     }
 
-    public static Task<Serializable> nullObject() {
-        return new Task<>(null, null, State.CREATED, 0, null, new HashMap<>());
-    }
-
     public Function<Double, Void> progress(BiFunction<String, Double, Void> taskSupplierProgress) {
         return (p) -> taskSupplierProgress.apply(this.id, p);
     }

@@ -38,7 +38,7 @@ public class TaskWorkerLoop implements Callable<Integer>, Closeable {
         this(factory, taskSupplier, new CountDownLatch(1));
     }
 
-    TaskWorkerLoop(TaskFactory factory, TaskSupplier taskSupplier, CountDownLatch countDownLatch) {
+    public TaskWorkerLoop(TaskFactory factory, TaskSupplier taskSupplier, CountDownLatch countDownLatch) {
         this(factory, taskSupplier, countDownLatch, 60_000);
     }
 
