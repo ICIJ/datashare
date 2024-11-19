@@ -60,7 +60,7 @@ public class SettingsResource {
      * - if a file is given (w/ -c path/to/file) to the command line it will be read and used (it can be empty or not present)
      * - if no file is given, we are looking for datashare.properties in the classpath (for example in /dist)
      * - if none of the two above cases is fulfilled we are taking the default CLI parameters (and those given by the user)
-     * - parameters are common between CLI and settings file, the settings file "wins"
+     * - if parameters are common between CLI and settings file, the CLI "wins"
      * - if a settings file is not writable then 404 will be returned (and a WARN will be logged at start)
      *
      * @return 200 or 404 or 403
