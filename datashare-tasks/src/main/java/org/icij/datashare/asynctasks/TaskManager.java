@@ -12,7 +12,6 @@ import org.slf4j.LoggerFactory;
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.Serializable;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -25,15 +24,15 @@ import static java.util.stream.Collectors.toMap;
 public interface TaskManager extends Closeable {
     Logger logger = LoggerFactory.getLogger(TaskManager.class);
 
-    boolean stopTask(String taskId);
-    <V> Task<V> clearTask(String taskId);
-    boolean shutdownAndAwaitTermination(int timeout, TimeUnit timeUnit) throws InterruptedException;
-    <V> Task<V> getTask(String taskId);
-    List<Task<?>> getTasks();
-    List<Task<?>> getTasks(User user, Pattern pattern);
-    List<Task<?>> clearDoneTasks();
-    void clear();
-    boolean save(Task<?> task);
+    boolean stopTask(String taskId) throws IOException;
+    <V> Task<V> clearTask(String taskId) throws IOException;
+    boolean shutdownAndAwaitTermination(int timeout, TimeUnit timeUnit) throws InterruptedException, IOException;
+    <V> Task<V> getTask(String taskId) throws IOException;
+    List<Task<?>> getTasks() throws IOException;
+    List<Task<?>> getTasks(User user, Pattern pattern) throws IOException;
+    List<Task<?>> clearDoneTasks() throws IOException;
+    void clear() throws IOException;
+    boolean save(Task<?> task) throws IOException;
     void enqueue(Task<?> task) throws IOException;
 
     static List<Task<?>> getTasks(Stream<Task<?>> stream, User user, Pattern pattern) {
@@ -43,11 +42,18 @@ public interface TaskManager extends Closeable {
                 collect(toList());
     }
 
-    default Map<String, Boolean> stopAllTasks(User user) {
+    default Map<String, Boolean> stopAllTasks(User user) throws IOException {
         return getTasks().stream().
                 filter(t -> user.equals(t.getUser())).
                 filter(t -> t.getState() == Task.State.RUNNING || t.getState() == Task.State.QUEUED).collect(
-                        toMap(t -> t.id, t -> stopTask(t.id)));
+                        toMap(t -> t.id, t -> {
+                            try {
+                                return stopTask(t.id);
+                            } catch (IOException e) {
+                                logger.error("cannot stop task {}", t.id, e);
+                                return false;
+                            }
+                        }));
     }
 
 
@@ -88,7 +94,7 @@ public interface TaskManager extends Closeable {
         return saved ? taskView.id: null;
     }
 
-    default <V extends Serializable> Task<V> setResult(ResultEvent<V> e) {
+    default <V extends Serializable> Task<V> setResult(ResultEvent<V> e) throws IOException {
         Task<V> taskView = getTask(e.taskId);
         if (taskView != null) {
             logger.info("result event for {}", e.taskId);
@@ -100,7 +106,7 @@ public interface TaskManager extends Closeable {
         return taskView;
     }
 
-    default <V extends Serializable> Task<V> setError(ErrorEvent e) {
+    default <V extends Serializable> Task<V> setError(ErrorEvent e) throws IOException {
         Task<V> taskView = getTask(e.taskId);
         if (taskView != null) {
             logger.info("error event for {}", e.taskId);
@@ -112,8 +118,8 @@ public interface TaskManager extends Closeable {
         return taskView;
     }
 
-    default Task<?> setCanceled(CancelledEvent e) {
-        Task<?> taskView = getTask(e.taskId);
+    default <V> Task<V> setCanceled(CancelledEvent e) throws IOException {
+        Task<V> taskView = getTask(e.taskId);
         if (taskView != null) {
             logger.info("canceled event for {}", e.taskId);
             taskView.cancel();
@@ -131,9 +137,9 @@ public interface TaskManager extends Closeable {
         return taskView;
     }
 
-    default Task<?> setProgress(ProgressEvent e) {
+    default <V> Task<V> setProgress(ProgressEvent e) throws IOException {
         logger.debug("progress event for {}", e.taskId);
-        Task<?> taskView = getTask(e.taskId);
+        Task<V> taskView = getTask(e.taskId);
         if (taskView != null) {
             taskView.setProgress(e.progress);
             save(taskView);
@@ -141,25 +147,35 @@ public interface TaskManager extends Closeable {
         return taskView;
     }
 
-    default <V extends Serializable> Task<?> handleAck(TaskEvent e) {
-        if (e instanceof CancelledEvent) {
-            return setCanceled((CancelledEvent) e);
+    default <V extends Serializable> Task<V> handleAck(TaskEvent e)  {
+        try {
+            if (e instanceof CancelledEvent ce) {
+                return setCanceled(ce);
+            }
+            if (e instanceof ResultEvent) {
+                return setResult((ResultEvent<V>) e);
+            }
+            if (e instanceof ErrorEvent ee) {
+                return setError(ee);
+            }
+            if (e instanceof ProgressEvent pe) {
+                return setProgress(pe);
+            }
+            logger.warn("received event not handled {}", e);
+            return null;
+        } catch (IOException ioe) {
+            throw new TaskEventHandlingException(ioe);
         }
-        if (e instanceof ResultEvent) {
-            return setResult(((ResultEvent<V>) e));
-        }
-        if (e instanceof ErrorEvent) {
-            return setError((ErrorEvent) e);
-        }
-        if (e instanceof ProgressEvent) {
-            return setProgress((ProgressEvent)e);
-        }
-        logger.warn("received event not handled {}", e);
-        return null;
     }
 
-    default void foo(String taskId, StateLatch stateLatch) {
+    // for tests
+    default void setLatch(String taskId, StateLatch stateLatch) throws IOException {
         getTask(taskId).setLatch(stateLatch);
     }
 
+    class TaskEventHandlingException extends RuntimeException {
+        public TaskEventHandlingException(Exception cause) {
+            super(cause);
+        }
+    }
 }

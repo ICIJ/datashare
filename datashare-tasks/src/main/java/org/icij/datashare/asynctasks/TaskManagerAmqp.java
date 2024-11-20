@@ -71,13 +71,9 @@ public class TaskManagerAmqp implements TaskManager {
     }
 
     @Override
-    public boolean shutdownAndAwaitTermination(int timeout, TimeUnit timeUnit) throws InterruptedException {
-        try {
-            amqp.publish(AmqpQueue.WORKER_EVENT, new ShutdownEvent());
-            return true;
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+    public boolean shutdownAndAwaitTermination(int timeout, TimeUnit timeUnit) throws InterruptedException, IOException {
+        amqp.publish(AmqpQueue.WORKER_EVENT, new ShutdownEvent());
+        return true;
     }
 
     public boolean save(Task<?> task) {

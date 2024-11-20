@@ -9,13 +9,13 @@ public class TaskInspector {
         this.taskManager = taskManager;
     }
 
-    public boolean awaitToBeStarted(String taskId, int timeoutMs) throws InterruptedException {
+    public boolean awaitToBeStarted(String taskId, int timeoutMs) throws Exception {
         return this.awaitStatus(taskId, Task.State.RUNNING, timeoutMs, TimeUnit.MILLISECONDS);
     }
 
-    public boolean awaitStatus(String taskId, Task.State state, long timeout, TimeUnit unit) throws InterruptedException {
+    public boolean awaitStatus(String taskId, Task.State state, long timeout, TimeUnit unit) throws Exception {
         StateLatch stateLatch = new StateLatch();
-        taskManager.foo(taskId, stateLatch);
+        taskManager.setLatch(taskId, stateLatch);
         return stateLatch.await(state, timeout, unit);
     }
 }
