@@ -152,6 +152,7 @@ public class TaskManagerMemory implements TaskManager, TaskSupplier {
                     canceled(taskView, false);
                     return removed;
                 case RUNNING:
+                    logger.info("sending cancel event for {}", taskId);
                     loops.forEach(l -> l.cancel(taskId, false));
                     return true;
             }

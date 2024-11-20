@@ -95,6 +95,7 @@ public class TaskManagerRedis implements TaskManager {
     public boolean stopTask(String taskId) {
         Task<?> taskView = getTask(taskId);
         if (taskView != null) {
+            logger.info("sending cancel event for {}", taskId);
             return eventTopic.publish(new CancelEvent(taskId, false)) > 0;
         } else {
             logger.warn("unknown task id <{}> for cancel call", taskId);

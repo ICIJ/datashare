@@ -43,7 +43,7 @@ public class TaskManagerAmqp implements TaskManager {
         Task<?> taskView = tasks.get(taskId);
         if (taskView != null) {
             try {
-                logger.info("sending cancel event for task id <{}>", taskId);
+                logger.info("sending cancel event for {}", taskId);
                 amqp.publish(AmqpQueue.WORKER_EVENT, new CancelEvent(taskId, false));
             } catch (IOException e) {
                 throw new RuntimeException(e);
