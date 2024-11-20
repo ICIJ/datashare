@@ -30,25 +30,33 @@ import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.mode.CommonMode;
 import org.icij.datashare.mode.EmbeddedMode;
 import org.icij.datashare.tasks.BatchSearchRunner;
+import org.icij.datashare.text.indexing.Indexer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import org.icij.datashare.tasks.DatashareTaskManager;
 
 public class WebApp {
     private static final int AMQP_PORT = 5672;
+    private static final Logger LOGGER = LoggerFactory.getLogger(Indexer.class);
 
     public static void main(String[] args) throws Exception {
         start(new DatashareCli().parseArguments(args).properties);
     }
 
     static void start(Properties properties) throws Exception {
-        if (isEmbeddedAMQP(properties)) {
+        boolean isEmbeddedAMQP = isEmbeddedAMQP(properties);
+        if (isEmbeddedAMQP) {
             // before creating mode because AmqpInterlocutor will try to connect the broker
             new QpidAmqpServer(AMQP_PORT).start();
         }
         CommonMode mode = CommonMode.create(properties);
         Process nlpWorkerProcess = null;
         Path nlpWorkersPidPath = null;
-        if (isEmbeddedAMQP(properties)) {
+        boolean startNlpWorker = isEmbeddedAMQP && !mode.get(ExtensionService.class)
+            .listInstalled("datashare-spacy-worker.*")
+            .isEmpty();
+        if (startNlpWorker) {
             nlpWorkerProcess = startNlpWorkers((EmbeddedMode) mode, true);
             nlpWorkersPidPath = Files.createTempFile("datashare-spacy-worker-", ".pid");
             dumpPid(nlpWorkersPidPath.toFile(), nlpWorkerProcess.pid());
@@ -134,11 +142,13 @@ public class WebApp {
     }
 
     private static Process startNlpWorkers(EmbeddedMode mode, boolean inheritIO) throws IOException {
+
         PropertiesProvider propertiesProvider = mode.get(PropertiesProvider.class);
         ExecutableExtensionHelper nlpExtHelper = new ExecutableExtensionHelper(
             propertiesProvider, mode.get(ExtensionService.class), "^datashare-spacy-worker-[\\d\\.]+$"
         );
         int nWorkers = mode.get(PropertiesProvider.class).get(NLP_PARALLELISM_OPT).map(Integer::parseInt).orElse(1);
+        LOGGER.info("starting " + nWorkers + " Python NLP workers !");
         return startNlpWorkers(nlpExtHelper, nWorkers, inheritIO);
     }
 
