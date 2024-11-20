@@ -60,7 +60,7 @@ public class TaskManagerRedis implements TaskManager {
         this.tasks = new RedissonMap<>(new TaskViewCodec(), commandSyncService, taskMapName, redissonClient, null, null);
         this.eventTopic = redissonClient.getTopic(EVENT_CHANNEL_NAME);
         this.eventCallback = eventCallback;
-        addEventListener(this::handleEvent);
+        eventTopic.addListener(TaskEvent.class, (channelString, message) -> handleEvent(message));
     }
 
     @Override
@@ -104,11 +104,7 @@ public class TaskManagerRedis implements TaskManager {
     }
 
     public void handleEvent(TaskEvent e) {
-        ofNullable(TaskManager.super.handleAck(e)).ifPresent(t -> ofNullable(eventCallback).ifPresent(Runnable::run));
-    }
-
-    public void addEventListener(Consumer<TaskEvent> callback) {
-        eventTopic.addListener(TaskEvent.class, (channelString, message) -> callback.accept(message));
+        ofNullable(TaskManager.super.handleAck(e)).flatMap(t -> ofNullable(eventCallback)).ifPresent(Runnable::run);
     }
 
     @Override

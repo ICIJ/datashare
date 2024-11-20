@@ -87,7 +87,7 @@ public class TaskResource {
             parameters = {@Parameter(name = "filter", description = "pattern contained in the task name", in = ParameterIn.QUERY)})
     @ApiResponse(responseCode = "200", description = "returns the list of tasks", useReturnTypeSchema = true)
     @Get("/all")
-    public List<Task<?>> tasks(Context context) {
+    public List<Task<?>> tasks(Context context) throws IOException {
         Pattern pattern = Pattern.compile(StringUtils.isEmpty(context.get("filter")) ? ".*": String.format(".*%s.*", context.get("filter")));
         return taskManager.getTasks((User) context.currentUser(), pattern);
     }
@@ -95,7 +95,7 @@ public class TaskResource {
     @Operation(description = "Gets one task with its id.")
     @ApiResponse(responseCode = "200", description = "returns the task from its id", useReturnTypeSchema = true)
     @Get("/:id")
-    public Task<?> getTask(@Parameter(name = "id", description = "task id", in = ParameterIn.PATH) String id) {
+    public Task<?> getTask(@Parameter(name = "id", description = "task id", in = ParameterIn.PATH) String id) throws IOException {
         return notFoundIfNull(taskManager.getTask(id));
     }
 
@@ -223,7 +223,7 @@ public class TaskResource {
     @Operation(description = "Cleans all DONE tasks.")
     @ApiResponse(responseCode = "200", description = "returns 200 and the list of removed tasks", useReturnTypeSchema = true)
     @Post("/clean")
-    public List<Task<?>> cleanDoneTasks() {
+    public List<Task<?>> cleanDoneTasks() throws IOException {
         return taskManager.clearDoneTasks();
     }
 
@@ -231,7 +231,7 @@ public class TaskResource {
     @ApiResponse(responseCode = "200", description = "returns 200 if the task is removed")
     @ApiResponse(responseCode = "403", description = "returns 403 if the task is still in RUNNING state")
     @Delete("/clean/:taskName:")
-    public Payload cleanTask(@Parameter(name = "taskName", description = "name of the task to delete", in = ParameterIn.PATH) final String taskId, Context context) {
+    public Payload cleanTask(@Parameter(name = "taskName", description = "name of the task to delete", in = ParameterIn.PATH) final String taskId, Context context) throws IOException {
         Task<?> task = forbiddenIfNotSameUser(context, notFoundIfNull(taskManager.getTask(taskId)));
         if (task.getState() == Task.State.RUNNING) {
             return forbidden();
@@ -251,7 +251,7 @@ public class TaskResource {
     @Operation(description = "Cancels the task with the given name.")
     @ApiResponse(responseCode = "200", description = "returns 200 with the cancellation status (true/false)", useReturnTypeSchema = true)
     @Put("/stop/:taskId:")
-    public boolean stopTask(@Parameter(name = "taskName", description = "name of the task to cancel", in = ParameterIn.PATH) final String taskId) {
+    public boolean stopTask(@Parameter(name = "taskName", description = "name of the task to cancel", in = ParameterIn.PATH) final String taskId) throws IOException {
         return taskManager.stopTask(notFoundIfNull(taskManager.getTask(taskId)).id);
     }
 
@@ -266,7 +266,7 @@ public class TaskResource {
             "If the status is false, it means that the thread has not been stopped.")
     @ApiResponse(responseCode = "200", description = "returns 200 and the tasks stop result map", useReturnTypeSchema = true)
     @Put("/stopAll")
-    public Map<String, Boolean> stopAllTasks(final Context context) {
+    public Map<String, Boolean> stopAllTasks(final Context context) throws IOException {
         return taskManager.stopAllTasks((User) context.currentUser());
     }
 
