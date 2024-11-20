@@ -33,6 +33,7 @@ import org.icij.datashare.mode.CommonMode;
 import org.icij.datashare.mode.EmbeddedMode;
 import org.icij.datashare.tasks.BatchSearchRunner;
 import org.icij.datashare.tasks.DatashareTaskFactory;
+import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
@@ -44,6 +45,7 @@ import static java.util.Optional.ofNullable;
 
 public class WebApp {
     private static final int AMQP_PORT = 5672;
+    private static final Logger LOGGER = LoggerFactory.getLogger(WebApp.class);
 
     public static void main(String[] args) throws Exception {
         start(new DatashareCli().parseArguments(args).properties);
@@ -56,7 +58,10 @@ public class WebApp {
         CommonMode mode = CommonMode.create(properties);
         Process nlpWorkerProcess = null;
         Path nlpWorkersPidPath;
-        if (isEmbeddedAMQP(properties)) {
+        boolean startNlpWorker = isEmbeddedAMQP(properties) && !mode.get(ExtensionService.class)
+            .listInstalled("datashare-spacy-worker.*")
+            .isEmpty();
+        if (startNlpWorker) {
             nlpWorkerProcess = startNlpWorkers((EmbeddedMode) mode, true);
             nlpWorkersPidPath = Files.createTempFile("datashare-spacy-worker-", ".pid");
             dumpPid(nlpWorkersPidPath.toFile(), nlpWorkerProcess.pid());
@@ -138,11 +143,13 @@ public class WebApp {
     }
 
     private static Process startNlpWorkers(EmbeddedMode mode, boolean inheritIO) throws IOException {
+
         PropertiesProvider propertiesProvider = mode.get(PropertiesProvider.class);
         ExecutableExtensionHelper nlpExtHelper = new ExecutableExtensionHelper(
             propertiesProvider, mode.get(ExtensionService.class), "^datashare-spacy-worker-[\\d\\.]+$"
         );
         int nWorkers = mode.get(PropertiesProvider.class).get(NLP_PARALLELISM_OPT).map(Integer::parseInt).orElse(1);
+        LOGGER.info("starting " + nWorkers + " Python NLP workers !");
         return startNlpWorkers(nlpExtHelper, nWorkers, inheritIO);
     }
 
