@@ -1,12 +1,12 @@
 package org.icij.datashare.web;
 
-import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import com.google.inject.Singleton;
 import net.codestory.http.Context;
 import net.codestory.http.constants.HttpStatus;
 import net.codestory.http.filters.Filter;
 import net.codestory.http.filters.PayloadSupplier;
 import net.codestory.http.payload.Payload;
+import org.icij.datashare.text.indexing.Indexer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -26,13 +26,13 @@ public class IndexWaiterFilter implements Filter {
     private static final String WAIT_CONTENT = "<!DOCTYPE html>" +
             "<head><meta HTTP-EQUIV=\"refresh\" CONTENT=\"2\"><title>Datashare</title></head>" +
             "<body>waiting for Datashare to be up...</body>";
-    private final ElasticsearchClient client;
+    private final Indexer indexer;
     private final AtomicBoolean indexOk = new AtomicBoolean(false);
     final ExecutorService executor = Executors.newSingleThreadExecutor();
 
     @Inject
-    public IndexWaiterFilter(final ElasticsearchClient client) {
-        this.client = client;
+    public IndexWaiterFilter(final Indexer indexer) {
+        this.indexer = indexer;
         waitForIndexAsync();
     }
 
@@ -48,17 +48,17 @@ public class IndexWaiterFilter implements Filter {
         executor.submit(() -> {
             for (int i = 0; i < TIMEOUT_SECONDS; i++) {
                 try {
-                    if (client.ping().value()) {
+                    if (indexer.ping()) {
                         this.indexOk.set(true);
-                        LOGGER.info("Ping elasticsearch succeeded");
+                        LOGGER.info("Ping indexer succeeded");
                         break;
                     }
                 } catch (IOException|RuntimeException e) {
-                    LOGGER.info("Ping failed. Waiting for Elasticsearch to be up " + e);
+                    LOGGER.info("Ping failed. Waiting for indexer to be up " + e);
                     try {
                         Thread.sleep(1000);
                     } catch (InterruptedException ie) {
-                        LOGGER.warn("interrupted while waiting for elasticsearch", ie);
+                        LOGGER.warn("interrupted while waiting for indexer", ie);
                     }
                 }
             }

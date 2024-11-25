@@ -1,6 +1,5 @@
 package org.icij.datashare.mode;
 
-import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.inject.AbstractModule;
 import com.google.inject.CreationException;
@@ -25,15 +24,17 @@ import org.icij.datashare.asynctasks.TaskManager;
 import org.icij.datashare.asynctasks.TaskModifier;
 import org.icij.datashare.asynctasks.TaskSupplier;
 import org.icij.datashare.asynctasks.bus.amqp.AmqpInterlocutor;
-import org.icij.datashare.com.queue.MemoryBlockingQueue;
-import org.icij.datashare.com.queue.RedisBlockingQueue;
 import org.icij.datashare.batch.BatchSearchRepository;
 import org.icij.datashare.cli.Mode;
 import org.icij.datashare.cli.QueueType;
+import org.icij.datashare.com.queue.MemoryBlockingQueue;
+import org.icij.datashare.com.queue.RedisBlockingQueue;
 import org.icij.datashare.db.RepositoryFactoryImpl;
 import org.icij.datashare.extension.ExtensionLoader;
 import org.icij.datashare.extension.PipelineRegistry;
-import org.icij.datashare.extract.*;
+import org.icij.datashare.extract.DocumentCollectionFactory;
+import org.icij.datashare.extract.MemoryDocumentCollectionFactory;
+import org.icij.datashare.extract.RedisDocumentCollectionFactory;
 import org.icij.datashare.nlp.EmailPipeline;
 import org.icij.datashare.nlp.OptimaizeLanguageGuesser;
 import org.icij.datashare.tasks.DatashareTaskFactory;
@@ -51,6 +52,7 @@ import org.icij.datashare.web.OpenApiResource;
 import org.icij.datashare.web.RootResource;
 import org.icij.datashare.web.SettingsResource;
 import org.icij.datashare.web.StatusResource;
+import org.icij.extract.redis.CloseableRedissonClient;
 import org.icij.extract.redis.RedissonClientFactory;
 import org.icij.task.Options;
 import org.jetbrains.annotations.NotNull;
@@ -58,10 +60,14 @@ import org.redisson.api.RedissonClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.Closeable;
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.BlockingQueue;
@@ -69,11 +75,14 @@ import java.util.function.Consumer;
 
 import static com.fasterxml.jackson.databind.DeserializationFeature.ACCEPT_EMPTY_STRING_AS_NULL_OBJECT;
 import static java.util.Optional.ofNullable;
+import static org.icij.datashare.LambdaExceptionUtils.rethrowConsumer;
 import static org.icij.datashare.PluginService.PLUGINS_BASE_URL;
-import static org.icij.datashare.cli.DatashareCliOptions.*;
+import static org.icij.datashare.cli.DatashareCliOptions.BATCH_QUEUE_TYPE_OPT;
+import static org.icij.datashare.cli.DatashareCliOptions.MODE_OPT;
+import static org.icij.datashare.cli.DatashareCliOptions.QUEUE_TYPE_OPT;
 import static org.icij.datashare.text.indexing.elasticsearch.ElasticsearchConfiguration.createESClient;
 
-public abstract class CommonMode extends AbstractModule {
+public abstract class CommonMode extends AbstractModule implements Closeable {
     protected Logger logger = LoggerFactory.getLogger(getClass());
     public static final String DS_TASKS_QUEUE_NAME = "ds:task:manager:queue";
     public static final String DS_TASK_MANAGER_MAP_NAME = "ds:task:manager:tasks";
@@ -83,6 +92,7 @@ public abstract class CommonMode extends AbstractModule {
     protected final Mode mode;
     private final Injector injector;
     private PipelineRegistry pipelineRegistry;
+    private final List<Closeable> closeables = new LinkedList<>();
 
     protected CommonMode(Properties properties) {
         propertiesProvider = properties == null ? new PropertiesProvider() :
@@ -109,21 +119,13 @@ public abstract class CommonMode extends AbstractModule {
         return create(PropertiesProvider.fromMap(map));
     }
     public static CommonMode create(final Properties properties) {
-        switch (getMode(properties)) {
-            case NER:
-                return new NerMode(properties);
-            case LOCAL:
-                return new LocalMode(properties);
-            case EMBEDDED:
-                return new EmbeddedMode(properties);
-            case SERVER:
-                return new ServerMode(properties);
-            case TASK_WORKER:
-            case CLI:
-                return new CliMode(properties);
-            default:
-                throw new IllegalStateException("unknown mode : " + properties.getProperty(MODE_OPT));
-        }
+        return switch (getMode(properties)) {
+            case NER -> new NerMode(properties);
+            case LOCAL -> new LocalMode(properties);
+            case EMBEDDED -> new EmbeddedMode(properties);
+            case SERVER -> new ServerMode(properties);
+            case TASK_WORKER, CLI -> new CliMode(properties);
+        };
     }
 
     public Mode getMode() {return mode;}
@@ -137,9 +139,10 @@ public abstract class CommonMode extends AbstractModule {
         bind(PropertiesProvider.class).toInstance(propertiesProvider);
         install(new FactoryModuleBuilder().build(DatashareTaskFactory.class));
 
-        RedissonClient redissonClient = null;
+        CloseableRedissonClient redissonClient = null;
         if ( hasProperty(QueueType.REDIS) ) {
-            redissonClient = new RedissonClientFactory().withOptions(Options.from(propertiesProvider.getProperties())).create();
+            redissonClient = new RedissonClientFactory().withOptions(Options.from(propertiesProvider.getProperties())).createCloseable();
+            addCloseable(redissonClient);
             bind(RedissonClient.class).toInstance(redissonClient);
         }
         if ( hasProperty(QueueType.AMQP) ) {
@@ -147,6 +150,7 @@ public abstract class CommonMode extends AbstractModule {
                 AmqpInterlocutor amqp = new AmqpInterlocutor(propertiesProvider);
                 amqp.createAllPublishChannels();
                 bind(AmqpInterlocutor.class).toInstance(amqp);
+                addCloseable(amqp);
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }
@@ -173,9 +177,9 @@ public abstract class CommonMode extends AbstractModule {
                 bind(TaskSupplier.class).to(TaskManagerMemory.class);
         }
 
-        ElasticsearchClient esClient = createESClient(propertiesProvider);
-        bind(ElasticsearchClient.class).toInstance(esClient);
-        bind(Indexer.class).to(ElasticsearchIndexer.class).asEagerSingleton();
+        ElasticsearchIndexer indexer = new ElasticsearchIndexer(createESClient(propertiesProvider), propertiesProvider);
+        bind(Indexer.class).toInstance(indexer);
+        addCloseable(indexer);
 
         bind(TesseractOCRParserWrapper.class).toInstance(new TesseractOCRParserWrapper());
 
@@ -312,5 +316,13 @@ public abstract class CommonMode extends AbstractModule {
         return QueueType.valueOf(
             ofNullable(properties).orElse(new PropertiesProvider()).
                 get(propertyName).orElse(defaultQueueType.name()).toUpperCase());
+    }
+
+    protected void addCloseable(Closeable client) {
+        closeables.add(client);
+    }
+
+    public void close() throws IOException {
+        closeables.forEach(rethrowConsumer(Closeable::close));
     }
 }

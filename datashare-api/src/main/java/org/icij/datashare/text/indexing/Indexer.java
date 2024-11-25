@@ -25,7 +25,7 @@ public interface Indexer extends Closeable {
     boolean deleteAll(String indexName) throws IOException;
 
     boolean getHealth();
-
+    boolean ping() throws IOException;
     void close() throws IOException;
 
     boolean bulkAdd(String indexName, Pipeline.Type nerType, List<NamedEntity> namedEntities, Document parent) throws IOException;
