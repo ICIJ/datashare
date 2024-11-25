@@ -13,6 +13,8 @@ import liquibase.ui.LoggerUIService;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Repository;
 import org.icij.datashare.RepositoryFactory;
+import org.icij.datashare.batch.BatchSearchRepository;
+import org.icij.datashare.user.ApiKeyRepository;
 import org.jooq.SQLDialect;
 
 import javax.sql.DataSource;
@@ -37,14 +39,17 @@ public class RepositoryFactoryImpl implements RepositoryFactory {
         this.dataSource = createDatasource();
     }
 
+    @Override
     public Repository createRepository() {
         return createRepository(JooqRepository::new);
     }
-    public JooqApiKeyRepository createApiKeyRepository() {
+    @Override
+    public ApiKeyRepository createApiKeyRepository() {
         return createRepository(JooqApiKeyRepository::new);
     }
 
-    public JooqBatchSearchRepository createBatchSearchRepository() {
+    @Override
+    public BatchSearchRepository createBatchSearchRepository() {
         return createRepository(JooqBatchSearchRepository::new);
     }
 

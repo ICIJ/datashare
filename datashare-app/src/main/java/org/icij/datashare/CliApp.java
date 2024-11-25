@@ -2,6 +2,7 @@ package org.icij.datashare;
 
 import com.google.inject.ConfigurationException;
 import org.icij.datashare.asynctasks.Task;
+import org.icij.datashare.asynctasks.TaskManager;
 import org.icij.datashare.cli.CliExtensionService;
 import org.icij.datashare.cli.spi.CliExtension;
 import org.icij.datashare.mode.CommonMode;
@@ -41,17 +42,18 @@ class CliApp {
         ExtensionService extensionService = new ExtensionService(new PropertiesProvider(properties));
         process(extensionService, properties);
         process(new PluginService(new PropertiesProvider(properties), extensionService), properties);
-        CommonMode commonMode = CommonMode.create(properties);
-        List<CliExtension> extensions = CliExtensionService.getInstance().getExtensions();
+        try (CommonMode commonMode = CommonMode.create(properties)) {
+            List<CliExtension> extensions = CliExtensionService.getInstance().getExtensions();
 
-        logger.info("found {} CLI extension(s)", extensions.size());
-        if (extensions.size() == 1 && extensions.get(0).identifier().equals(properties.get("ext"))) {
-            CliExtension extension = extensions.get(0);
-            extension.init(commonMode::createChildInjector);
-            extension.run(properties);
-            System.exit(0);
+            logger.info("found {} CLI extension(s)", extensions.size());
+            if (extensions.size() == 1 && extensions.get(0).identifier().equals(properties.get("ext"))) {
+                CliExtension extension = extensions.get(0);
+                extension.init(commonMode::createChildInjector);
+                extension.run(properties);
+                System.exit(0);
+            }
+            runTaskWorker(commonMode, properties);
         }
-        runTaskWorker(commonMode, properties);
     }
 
     private static void process(DeliverableService<?> deliverableService, Properties properties) throws IOException {
@@ -71,13 +73,6 @@ class CliApp {
         TaskManagerMemory taskManager = mode.get(TaskManagerMemory.class);
         DatashareTaskFactory taskFactory = mode.get(DatashareTaskFactory.class);
         Indexer indexer = mode.get(Indexer.class);
-        RedissonClient redissonClient;
-        try {
-            redissonClient = mode.get(RedissonClient.class);
-        } catch (ConfigurationException ce) {
-            logger.debug("no redisson client found, set up to null");
-            redissonClient = null;
-        }
 
         if (properties.getProperty(CREATE_INDEX_OPT) != null) {
             indexer.createIndex(properties.getProperty(CREATE_INDEX_OPT));
@@ -145,10 +140,5 @@ class CliApp {
                     new Task<>(ArtifactTask.class.getName(), nullUser(), propertiesToMap(properties)));
         }
         taskManager.shutdownAndAwaitTermination(Integer.MAX_VALUE, SECONDS);
-        indexer.close();
-        ofNullable(redissonClient).ifPresent(r -> {
-            logger.info("shutting down RedissonClient");
-            r.shutdown();
-        });
     }
 }

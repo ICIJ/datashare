@@ -6,6 +6,7 @@ import org.icij.datashare.PropertiesProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.Closeable;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -21,7 +22,7 @@ import java.util.concurrent.TimeoutException;
  * </p>
  * Consumer channels are kept inside AbstractConsumer and closed by each consumer.
  */
-public class AmqpInterlocutor {
+public class AmqpInterlocutor implements Closeable {
     private static final Logger logger = LoggerFactory.getLogger(AmqpInterlocutor.class);
     final Configuration configuration;
     private final Connection connection;
@@ -49,7 +50,7 @@ public class AmqpInterlocutor {
         }
     }
 
-    public synchronized void close() throws IOException, TimeoutException {
+    public synchronized void close() throws IOException {
         closeChannelsAndConnection();
     }
 

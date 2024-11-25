@@ -10,6 +10,7 @@ import org.icij.datashare.cli.Mode;
 import org.icij.datashare.cli.QueueType;
 import org.icij.datashare.mode.CommonMode;
 import org.icij.datashare.tasks.BatchSearchRunner;
+import org.slf4j.LoggerFactory;
 
 import java.awt.*;
 import java.io.IOException;
@@ -32,24 +33,23 @@ public class WebApp {
             // before creating mode because AmqpInterlocutor will try to connect the broker
             new QpidAmqpServer(5672).start();
         }
-        CommonMode mode = CommonMode.create(properties);
 
-        Thread webServerThread = new Thread(() ->
-                new WebServer()
-                        .withThreadCount(10)
-                        .withSelectThreads(2)
-                        .withWebSocketThreads(1)
-                        .configure(mode.createWebConfiguration())
-                        .start(parseInt(mode.properties().getProperty(PropertiesProvider.TCP_LISTEN_PORT)))
-        );
-        webServerThread.start();
+        CommonMode mode = CommonMode.create(properties);
+        Runtime.getRuntime().addShutdownHook(close(mode));
+
+        new WebServer()
+                .withThreadCount(10)
+                .withSelectThreads(2)
+                .withWebSocketThreads(1)
+                .configure(mode.createWebConfiguration())
+                .start(parseInt(mode.properties().getProperty(PropertiesProvider.TCP_LISTEN_PORT)));
+
         if (Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(Desktop.Action.BROWSE) &&
                 parseBoolean(properties.getProperty(BROWSER_OPEN_LINK_OPT))) {
             waitForServerToBeUp(parseInt(mode.properties().getProperty(PropertiesProvider.TCP_LISTEN_PORT)));
-            Desktop.getDesktop().browse(URI.create(new URI("http://localhost:")+mode.properties().getProperty(PropertiesProvider.TCP_LISTEN_PORT)));
+            Desktop.getDesktop().browse(URI.create(new URI("http://localhost:") + mode.properties().getProperty(PropertiesProvider.TCP_LISTEN_PORT)));
         }
         requeueDatabaseBatchSearches(mode.get(BatchSearchRepository.class), mode.get(TaskManager.class));
-        webServerThread.join();
     }
 
     private static boolean shouldStartQpid(Properties properties) {
@@ -79,5 +79,15 @@ public class WebApp {
         } catch (IOException ignored) {
             return false;
         }
+    }
+
+    private static Thread close(CommonMode mode) {
+        return new Thread(() -> {
+            try {
+                mode.close();
+            } catch (IOException e) {
+                LoggerFactory.getLogger(WebApp.class).error("Error closing web app", e);
+            }
+        });
     }
 }

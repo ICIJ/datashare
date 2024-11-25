@@ -1,6 +1,8 @@
 package org.icij.datashare.asynctasks;
 
 import com.rabbitmq.client.AMQP;
+import com.rabbitmq.client.ShutdownSignalException;
+import org.icij.datashare.asynctasks.bus.amqp.AmqpChannel;
 import org.icij.datashare.asynctasks.bus.amqp.CancelEvent;
 import org.icij.datashare.asynctasks.bus.amqp.CancelledEvent;
 import org.icij.datashare.asynctasks.bus.amqp.ShutdownEvent;
@@ -13,6 +15,7 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.concurrent.Callable;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -55,11 +58,7 @@ public class TaskWorkerLoop implements Callable<Integer>, Closeable {
         });
         taskSupplier.addEventListener((event -> {
             if (event instanceof ShutdownEvent) {
-                try {
-                    close();
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
+                closeAsync(); // for sending ack
             // TODO: python alignment possible, in Python if the
             //  worker.negative_acknowledge(task_id, requeue) succeeds the worker doesn't wait
             //  for confirmation by the task manager to consider the task nacked (this works for
@@ -145,6 +144,16 @@ public class TaskWorkerLoop implements Callable<Integer>, Closeable {
                 currentTask.set(null);
             }
         }
+    }
+
+    private void closeAsync() {
+        CompletableFuture.runAsync(() -> {
+            try {
+                close();
+            } catch (IOException e) {
+                logger.error("error closing worker loop", e);
+            }
+        });
     }
 
     @Override
