@@ -66,22 +66,23 @@ public class BatchSearchRunner implements CancellableTask, UserTask, Callable<In
     private final CountDownLatch callWaiterLatch;
     private final BatchSearchRepository repository;
     protected final Task<String> taskView;
+    private final User user;
     protected volatile boolean cancelAsked = false;
     protected volatile Thread callThread;
     protected volatile boolean requeueCancel;
 
     @Inject
-    public BatchSearchRunner(Indexer indexer, PropertiesProvider propertiesProvider, BatchSearchRepository repository,
-                             @Assisted Task<?> taskView, @Assisted Function<Double, Void> updateCallback) {
+    public BatchSearchRunner(Indexer indexer, PropertiesProvider propertiesProvider, BatchSearchRepository repository, @Assisted Task<?> taskView, @Assisted Function<Double, Void> updateCallback) {
         this(indexer, propertiesProvider, repository, taskView, updateCallback, new CountDownLatch(1));
     }
 
     BatchSearchRunner(Indexer indexer, PropertiesProvider propertiesProvider, BatchSearchRepository repository,
-                      Task<?> taskView, Function<Double, Void> updateCallback, CountDownLatch latch) {
+                     Task<?> taskView, Function<Double, Void> updateCallback, CountDownLatch latch) {
         this.indexer = indexer;
         this.propertiesProvider = propertiesProvider;
         this.repository = repository;
         this.taskView = (Task<String>) taskView;
+        this.user = DatashareTask.getUser(this.taskView);
         this.updateCallback = updateCallback;
         this.callWaiterLatch = latch;
     }
@@ -100,7 +101,7 @@ public class BatchSearchRunner implements CancellableTask, UserTask, Callable<In
         int scrollSize = min(scrollSizeFromParams, MAX_SCROLL_SIZE);
         callThread = Thread.currentThread();
         callWaiterLatch.countDown(); // for tests
-        BatchSearch batchSearch = repository.get(taskView.getUser(), taskView.id);
+        BatchSearch batchSearch = repository.get(user, taskView.id);
         if (batchSearch == null) {
             logger.warn("batch search {} not found in database (check that database url is the same as datashare backend)", taskView.id);
             return 0;
@@ -164,7 +165,7 @@ public class BatchSearchRunner implements CancellableTask, UserTask, Callable<In
 
     @Override
     public User getUser() {
-        return taskView.getUser();
+        return user;
     }
 
     /**

@@ -2,7 +2,6 @@ package org.icij.datashare.asynctasks;
 
 import org.fest.assertions.Assertions;
 import org.icij.datashare.json.JsonObjectMapper;
-import org.icij.datashare.user.User;
 import org.junit.Test;
 
 import java.util.HashMap;
@@ -12,14 +11,13 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 import static org.fest.assertions.Assertions.assertThat;
-import static org.fest.assertions.MapAssert.entry;
 
 public class TaskTest {
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
 
     @Test
     public void test_get_result_sync_when_task_is_running() throws InterruptedException {
-        Task<String> taskView = new Task<>("name", User.local(), new HashMap<>());
+        Task<String> taskView = new Task<>("name",  new HashMap<>());
         executor.execute(() -> {
             try {
                 taskView.getResult(1, TimeUnit.SECONDS);
@@ -45,14 +43,8 @@ public class TaskTest {
     }
 
     @Test
-    public void test_user_group_parameters() {
-        Task<Object> taskView = new Task<>("foo", User.local(), new Group("bar"), Map.of("baz", "qux"));
-        assertThat(taskView.args).includes(entry("group", new Group("bar")), entry("user", User.local()), entry("baz", "qux"));
-    }
-
-    @Test
     public void test_progress() {
-        Task<Object> taskView = new Task<>("name", User.local(), new HashMap<>());
+        Task<Object> taskView = new Task<>("name", new HashMap<>());
         assertThat(taskView.getProgress()).isEqualTo(0);
         assertThat(taskView.getState()).isEqualTo(Task.State.CREATED);
 
@@ -90,10 +82,9 @@ public class TaskTest {
 
     @Test
     public void test_serialize_deserialize() throws Exception {
-        Task<Object> taskView = new Task<>("name", User.local(), Map.of("key", "value"));
+        Task<Object> taskView = new Task<>("name", Map.of("key", "value"));
         String json = JsonObjectMapper.MAPPER.writeValueAsString(taskView);
         assertThat(json).contains("\"@type\":\"Task\"");
-        assertThat(json).contains("\"user\":{\"@type\":\"org.icij.datashare.user.User\"");
 
         Task<?> taskCreation = JsonObjectMapper.MAPPER.readValue(json, Task.class);
         assertThat(taskCreation).isEqualTo(taskView);

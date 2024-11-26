@@ -1,5 +1,6 @@
 package org.icij.datashare.asynctasks;
 
+import java.util.Optional;
 import org.apache.commons.lang3.NotImplementedException;
 import org.icij.datashare.asynctasks.bus.amqp.AmqpQueue;
 import org.icij.datashare.asynctasks.bus.amqp.CancelledEvent;
@@ -83,8 +84,8 @@ public class TaskSupplierRedis implements TaskSupplier {
 
     private <V extends Serializable> BlockingQueue<Task<V>> taskQueue() {
         return this.taskQueueKey == null ?
-            new RedissonBlockingQueue<>(new TaskManagerRedis.TaskViewCodec(), getCommandSyncService(), AmqpQueue.TASK.name(), redissonClient):
-            new RedissonBlockingQueue<>(new TaskManagerRedis.TaskViewCodec(), getCommandSyncService(), String.format("%s.%s", AmqpQueue.TASK.name(), taskQueueKey), redissonClient);
+            new RedissonBlockingQueue<>(new TaskManagerRedis.RedisCodec<>(Task.class), getCommandSyncService(), AmqpQueue.TASK.name(), redissonClient):
+            new RedissonBlockingQueue<>(new TaskManagerRedis.RedisCodec<>(Task.class), getCommandSyncService(), String.format("%s.%s", AmqpQueue.TASK.name(), taskQueueKey), redissonClient);
     }
 
     private CommandSyncService getCommandSyncService() {

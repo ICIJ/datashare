@@ -2,7 +2,6 @@ package org.icij.datashare.asynctasks;
 
 import org.icij.datashare.asynctasks.bus.amqp.Event;
 import org.icij.datashare.asynctasks.bus.amqp.TaskError;
-import org.icij.datashare.asynctasks.bus.amqp.TaskEvent;
 
 import java.io.Closeable;
 import java.io.Serializable;

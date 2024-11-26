@@ -1,8 +1,9 @@
 package org.icij.datashare.asynctasks;
 
+import java.io.IOException;
+import java.util.HashMap;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.test.LogbackCapturingRule;
-import org.icij.datashare.user.User;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -37,7 +38,7 @@ public class TaskManagerMemoryTest {
 
     @Test
     public void test_run_task() throws Exception {
-        Task<Integer> task = new Task<>(TestFactory.HelloWorld.class.getName(), User.local(), Map.of("greeted", "world"));
+        Task<Integer> task = new Task<>(TestFactory.HelloWorld.class.getName(), Map.of("greeted", "world"));
 
         String tid = taskManager.startTask(task);
         taskManager.shutdownAndAwaitTermination(100, TimeUnit.MILLISECONDS);
@@ -49,7 +50,7 @@ public class TaskManagerMemoryTest {
 
     @Test
     public void test_stop_current_task() throws Exception {
-        Task<Integer> task = new Task<>(TestFactory.SleepForever.class.getName(), User.local(), Map.of("intParameter", 2000));
+        Task<Integer> task = new Task<>(TestFactory.SleepForever.class.getName(), Map.of("intParameter", 2000));
         String taskId = taskManager.startTask(task);
 
         taskInspector.awaitToBeStarted(taskId, 10000);
@@ -62,8 +63,8 @@ public class TaskManagerMemoryTest {
 
     @Test
     public void test_stop_queued_task() throws Exception {
-        Task<Integer> t1 = new Task<>(TestFactory.SleepForever.class.getName(), User.local(), Map.of());
-        Task<Integer> t2 = new Task<>(TestFactory.HelloWorld.class.getName(), User.local(), Map.of("greeted", "stucked task"));
+        Task<Integer> t1 = new Task<>(TestFactory.SleepForever.class.getName(), Map.of());
+        Task<Integer> t2 = new Task<>(TestFactory.HelloWorld.class.getName(), Map.of("greeted", "stucked task"));
 
         taskManager.startTask(t1);
         taskManager.startTask(t2);
@@ -80,7 +81,7 @@ public class TaskManagerMemoryTest {
 
     @Test
     public void test_clear_the_only_task() throws Exception {
-        Task<Integer> task = new Task<>("sleep", User.local(), Map.of("intParameter", 12));
+        Task<Integer> task = new Task<>("sleep", Map.of("intParameter", 12));
 
         taskManager.startTask(task);
         taskManager.shutdownAndAwaitTermination(1, TimeUnit.SECONDS);
@@ -93,7 +94,7 @@ public class TaskManagerMemoryTest {
 
     @Test(expected = IllegalStateException.class)
     public void test_clear_running_task_should_throw_exception() throws Exception {
-        Task<Integer> task = new Task<>("sleep", User.local(), Map.of("intParameter", 12));
+        Task<Integer> task = new Task<>("sleep", Map.of("intParameter", 12));
 
         taskManager.startTask(task);
         taskManager.shutdownAndAwaitTermination(1, TimeUnit.SECONDS);
@@ -119,6 +120,29 @@ public class TaskManagerMemoryTest {
             "unknown task id <unknownId> for result=0.5 call");
     }
 
+    @Test
+    public void test_save_task() throws TaskAlreadyExists, IOException {
+        Task<String> task = new Task<>("name", new HashMap<>());
+
+        taskManager.save(task, null);
+
+        assertThat(taskManager.getTasks()).hasSize(1);
+        assertThat(taskManager.getTask(task.id)).isNotNull();
+    }
+
+    @Test
+    public void test_update_task() throws TaskAlreadyExists, IOException {
+        // Given
+        Task<?> task = new Task<>("HelloWorld", Map.of("greeted", "world"));
+        TaskMetadata<?> meta = new TaskMetadata<>(task, null);
+        Task<?> update = new Task<>(task.id, task.name, task.getState(), 0.5, null, task.args);
+        // When
+        taskManager.saveMetadata(meta);
+        taskManager.update(update);
+        Task<?> updated = taskManager.getTask(task.id);
+        // Then
+        assertThat(updated).isEqualTo(update);
+    }
 
     @After
     public void tearDown() throws Exception {

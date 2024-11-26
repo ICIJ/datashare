@@ -1,11 +1,11 @@
 package org.icij.datashare;
 
 import com.google.inject.ConfigurationException;
-import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.cli.CliExtensionService;
 import org.icij.datashare.cli.spi.CliExtension;
 import org.icij.datashare.mode.CommonMode;
 import org.icij.datashare.tasks.ArtifactTask;
+import org.icij.datashare.tasks.DatashareTask;
 import org.icij.datashare.tasks.DeduplicateTask;
 import org.icij.datashare.tasks.EnqueueFromIndexTask;
 import org.icij.datashare.tasks.ExtractNlpTask;
@@ -20,7 +20,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.nio.file.Path;
 import java.util.List;
 import java.util.Properties;
 
@@ -111,38 +110,37 @@ class CliApp {
         PipelineHelper pipeline = new PipelineHelper(new PropertiesProvider(properties));
         logger.info("executing {}", pipeline);
         if (pipeline.has(Stage.DEDUPLICATE)) {
-            taskManager.startTask(
-                    new Task<>(DeduplicateTask.class.getName(), nullUser(), propertiesToMap(properties)));
+            taskManager.startTask(DatashareTask.task(DeduplicateTask.class.getName(), nullUser(), propertiesToMap(properties)));
         }
 
         if (pipeline.has(Stage.SCANIDX)) {
             taskManager.startTask(
-                    new Task<>(ScanIndexTask.class.getName(), nullUser(), propertiesToMap(properties)));
+                    DatashareTask.task(ScanIndexTask.class.getName(), nullUser(), propertiesToMap(properties)));
         }
 
         if (pipeline.has(Stage.SCAN)) {
             taskManager.startTask(
-                    new Task<>(ScanTask.class.getName(), nullUser(), propertiesToMap(properties)));
+                    DatashareTask.task(ScanTask.class.getName(), nullUser(), propertiesToMap(properties)));
         }
 
         if (pipeline.has(Stage.INDEX)) {
             taskManager.startTask(
-                    new Task<>(IndexTask.class.getName(), nullUser(), propertiesToMap(properties)));
+                    DatashareTask.task(IndexTask.class.getName(), nullUser(), propertiesToMap(properties)));
         }
 
         if (pipeline.has(Stage.ENQUEUEIDX)) {
             taskManager.startTask(
-                    new Task<>(EnqueueFromIndexTask.class.getName(), nullUser(), propertiesToMap(properties)));
+                    DatashareTask.task(EnqueueFromIndexTask.class.getName(), nullUser(), propertiesToMap(properties)));
         }
 
         if (pipeline.has(Stage.NLP)) {
             taskManager.startTask(
-                    new Task<>(ExtractNlpTask.class.getName(), nullUser(), propertiesToMap(properties)));
+                    DatashareTask.task(ExtractNlpTask.class.getName(), nullUser(), propertiesToMap(properties)));
         }
 
         if (pipeline.has(Stage.ARTIFACT)) {
             taskManager.startTask(
-                    new Task<>(ArtifactTask.class.getName(), nullUser(), propertiesToMap(properties)));
+                    DatashareTask.task(ArtifactTask.class.getName(), nullUser(), propertiesToMap(properties)));
         }
         taskManager.shutdownAndAwaitTermination(Integer.MAX_VALUE, SECONDS);
         indexer.close();

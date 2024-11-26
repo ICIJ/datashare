@@ -8,7 +8,6 @@ import net.codestory.http.security.SessionIdStore;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.asynctasks.TaskGroup;
-import org.icij.datashare.asynctasks.TaskManager;
 import org.icij.datashare.asynctasks.TaskModifier;
 import org.icij.datashare.asynctasks.bus.amqp.UriResult;
 import org.icij.datashare.tasks.DatashareTaskFactory;
@@ -199,7 +198,7 @@ public class UserTaskResourceTest extends AbstractProdWebServerTest {
                 bind(PropertiesProvider.class).toInstance(propertiesProvider);
                 bind(PipelineRegistry.class).toInstance(mock(PipelineRegistry.class));
                 bind(SessionIdStore.class).toInstance(SessionIdStore.inMemory());
-                bind(TaskManager.class).toInstance(taskManager);
+                bind(DatashareTaskManager.class).toInstance(taskManager);
                 bind(TaskModifier.class).toInstance(taskManager);
                 bind(Filter.class).toInstance(new BasicAuthFilter("/", "ds", DatashareUser.users(userLogins)));
                 bind(DatashareTaskFactory.class).toInstance(taskFactory);
