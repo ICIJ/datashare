@@ -1,5 +1,6 @@
 package org.icij.datashare.web;
 
+import java.util.Map;
 import java.util.function.Function;
 import net.codestory.http.filters.Filter;
 import net.codestory.http.filters.basic.BasicAuthFilter;
@@ -27,7 +28,6 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.util.HashMap;
-import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.Callable;
 import java.util.function.Supplier;
 
@@ -189,24 +189,10 @@ public class UserTaskResourceTest extends AbstractProdWebServerTest {
         setupAppWith(taskFactory, userLogins);
     }
     private void setupAppWith(DatashareTaskFactory taskFactory, String... userLogins) {
-        final PropertiesProvider propertiesProvider = new PropertiesProvider(new HashMap<>() {{
-            put("mode", "LOCAL");
-        }});
-        taskManager = new TaskManagerMemory(new ArrayBlockingQueue<>(3), taskFactory, new PropertiesProvider());
-        configure(new CommonMode(propertiesProvider.getProperties()) {
-            @Override
-            protected void configure() {
-                bind(PropertiesProvider.class).toInstance(propertiesProvider);
-                bind(PipelineRegistry.class).toInstance(mock(PipelineRegistry.class));
-                bind(SessionIdStore.class).toInstance(SessionIdStore.inMemory());
-                bind(TaskManager.class).toInstance(taskManager);
-                bind(TaskModifier.class).toInstance(taskManager);
-                bind(Filter.class).toInstance(new BasicAuthFilter("/", "ds", DatashareUser.users(userLogins)));
-                bind(DatashareTaskFactory.class).toInstance(taskFactory);
-                bind(Indexer.class).toInstance(mock(Indexer.class));
-            }
-            @Override protected Routes addModeConfiguration(Routes routes) { return routes.add(TaskResource.class).filter(Filter.class);}
-        }.createWebConfiguration());
+        final PropertiesProvider propertiesProvider = new PropertiesProvider(Map.of("mode", "LOCAL"));
+        taskManager = new TaskManagerMemory(taskFactory, new PropertiesProvider());
+        configure(routes -> routes.add(new TaskResource(taskFactory, taskManager, propertiesProvider))
+                .filter(new BasicAuthFilter("/", "ds", DatashareUser.users(userLogins))));
     }
 
     public interface DatashareTaskFactoryForTest extends DatashareTaskFactory {

@@ -7,7 +7,7 @@ import com.google.inject.Guice;
 import com.google.inject.Injector;
 import com.google.inject.Key;
 import com.google.inject.Module;
-import com.google.inject.TypeLiteral;
+import com.google.inject.Provides;
 import com.google.inject.assistedinject.FactoryModuleBuilder;
 import net.codestory.http.Configuration;
 import net.codestory.http.annotations.Get;
@@ -16,22 +16,20 @@ import net.codestory.http.extensions.Extensions;
 import net.codestory.http.injection.GuiceAdapter;
 import net.codestory.http.misc.Env;
 import net.codestory.http.routes.Routes;
+import org.icij.datashare.PipelineRegistry;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Repository;
-import org.icij.datashare.TesseractOCRParserWrapper;
-import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.asynctasks.TaskManager;
 import org.icij.datashare.asynctasks.TaskModifier;
 import org.icij.datashare.asynctasks.TaskSupplier;
-import org.icij.datashare.asynctasks.bus.amqp.AmqpInterlocutor;
 import org.icij.datashare.batch.BatchSearchRepository;
 import org.icij.datashare.cli.Mode;
 import org.icij.datashare.cli.QueueType;
+import org.icij.datashare.com.queue.AmqpInterlocutor;
 import org.icij.datashare.com.queue.MemoryBlockingQueue;
 import org.icij.datashare.com.queue.RedisBlockingQueue;
 import org.icij.datashare.db.RepositoryFactoryImpl;
 import org.icij.datashare.extension.ExtensionLoader;
-import org.icij.datashare.extension.PipelineRegistry;
 import org.icij.datashare.extract.DocumentCollectionFactory;
 import org.icij.datashare.extract.MemoryDocumentCollectionFactory;
 import org.icij.datashare.extract.RedisDocumentCollectionFactory;
@@ -64,6 +62,7 @@ import java.io.Closeable;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.net.URISyntaxException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.LinkedList;
@@ -91,7 +90,6 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
     protected final PropertiesProvider propertiesProvider;
     protected final Mode mode;
     private final Injector injector;
-    private PipelineRegistry pipelineRegistry;
     private final List<Closeable> closeables = new LinkedList<>();
 
     protected CommonMode(Properties properties) {
@@ -134,76 +132,85 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
     public Injector createChildInjector(Module... modules) {
         return injector.createChildInjector(modules);
     }
+
     @Override
     protected void configure() {
         bind(PropertiesProvider.class).toInstance(propertiesProvider);
         install(new FactoryModuleBuilder().build(DatashareTaskFactory.class));
 
-        CloseableRedissonClient redissonClient = null;
-        if ( hasProperty(QueueType.REDIS) ) {
-            redissonClient = new RedissonClientFactory().withOptions(Options.from(propertiesProvider.getProperties())).createCloseable();
-            addCloseable(redissonClient);
-            bind(RedissonClient.class).toInstance(redissonClient);
-        }
-        if ( hasProperty(QueueType.AMQP) ) {
-            try {
-                AmqpInterlocutor amqp = new AmqpInterlocutor(propertiesProvider);
-                amqp.createAllPublishChannels();
-                bind(AmqpInterlocutor.class).toInstance(amqp);
-                addCloseable(amqp);
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            }
-        }
-
         QueueType batchQueueType = getQueueType(propertiesProvider, BATCH_QUEUE_TYPE_OPT, QueueType.MEMORY);
         switch ( batchQueueType ) {
             case REDIS:
-                configureBatchQueuesRedis(redissonClient);
                 bind(TaskManager.class).to(TaskManagerRedis.class);
                 bind(TaskModifier.class).to(TaskSupplierRedis.class);
                 bind(TaskSupplier.class).to(TaskSupplierRedis.class);
                 break;
             case AMQP:
-                configureBatchQueuesRedis(redissonClient);
                 bind(TaskManager.class).to(TaskManagerAmqp.class);
                 bind(TaskSupplier.class).to(TaskSupplierAmqp.class);
                 bind(TaskModifier.class).to(TaskSupplierAmqp.class);
                 break;
             default:
-                configureBatchQueuesMemory();
                 bind(TaskManager.class).to(TaskManagerMemory.class);
                 bind(TaskModifier.class).to(TaskManagerMemory.class);
                 bind(TaskSupplier.class).to(TaskManagerMemory.class);
         }
-
-        ElasticsearchIndexer indexer = new ElasticsearchIndexer(createESClient(propertiesProvider), propertiesProvider);
-        bind(Indexer.class).toInstance(indexer);
-        addCloseable(indexer);
-
-        bind(TesseractOCRParserWrapper.class).toInstance(new TesseractOCRParserWrapper());
-
-        configureIndexingQueues(propertiesProvider);
-        pipelineRegistry = bindPipelineRegistry(propertiesProvider);
     }
 
-    private void configureIndexingQueues(final PropertiesProvider propertiesProvider) {
-        QueueType queueType = getQueueType(propertiesProvider, QUEUE_TYPE_OPT, QueueType.MEMORY);
-        if ( queueType == QueueType.MEMORY ) {
-            bind(new TypeLiteral<DocumentCollectionFactory<String>>(){}).toInstance(new MemoryDocumentCollectionFactory<>());
-            bind(new TypeLiteral<DocumentCollectionFactory<Path>>() {}).toInstance(new MemoryDocumentCollectionFactory<>());
-        } else {
-            bind(new TypeLiteral<DocumentCollectionFactory<String>>(){}).to(new TypeLiteral<RedisDocumentCollectionFactory<String>>(){});
-            bind(new TypeLiteral<DocumentCollectionFactory<Path>>(){}).to(new TypeLiteral<RedisDocumentCollectionFactory<Path>>(){});
+    @Provides
+    RedissonClient provideRedissonClient() {
+        CloseableRedissonClient redissonClient = new RedissonClientFactory().withOptions(Options.from(propertiesProvider.getProperties())).createCloseable();
+        addCloseable(redissonClient);
+        return redissonClient;
+    }
+
+    @Provides
+    org.icij.datashare.asynctasks.bus.amqp.AmqpInterlocutor provideAmqpInterlocutor() {
+        AmqpInterlocutor amqp = null;
+        try {
+            amqp = new AmqpInterlocutor(propertiesProvider);
+        } catch (IOException | URISyntaxException e) {
+            throw new RuntimeException(e);
         }
+        amqp.createAllPublishChannels();
+        addCloseable(amqp);
+        return amqp;
     }
 
-    private void configureBatchQueuesMemory() {
-        bind(new TypeLiteral<BlockingQueue<Task<?>>>(){}).toInstance(new MemoryBlockingQueue<>(DS_TASKS_QUEUE_NAME));
+    @Provides
+    DocumentCollectionFactory<Path> provideScanQueue(final PropertiesProvider propertiesProvider) {
+        return switch (getQueueType(propertiesProvider, QUEUE_TYPE_OPT, QueueType.MEMORY)) {
+            case MEMORY -> new MemoryDocumentCollectionFactory<>();
+            case REDIS, AMQP -> new RedisDocumentCollectionFactory<>(propertiesProvider, get(RedissonClient.class));
+        };
     }
 
-    private void configureBatchQueuesRedis(RedissonClient redissonClient) {
-        bind(new TypeLiteral<BlockingQueue<Task<?>>>(){}).toInstance(new RedisBlockingQueue<>(redissonClient, DS_TASKS_QUEUE_NAME, new org.icij.datashare.asynctasks.TaskManagerRedis.TaskViewCodec()));
+    @Provides
+    DocumentCollectionFactory<String> provideIndexQueue(final PropertiesProvider propertiesProvider) {
+        return switch (getQueueType(propertiesProvider, QUEUE_TYPE_OPT, QueueType.MEMORY)) {
+            case MEMORY -> new MemoryDocumentCollectionFactory<>();
+            case REDIS, AMQP -> new RedisDocumentCollectionFactory<>(propertiesProvider, get(RedissonClient.class));
+        };
+    }
+
+    @Provides
+    protected Indexer provideIndexer() {
+        ElasticsearchIndexer indexer = new ElasticsearchIndexer(createESClient(propertiesProvider), propertiesProvider);
+        addCloseable(indexer);
+        return indexer;
+    }
+
+    @Provides
+    LanguageGuesser provideLanguageGuesser() throws IOException {
+        return new OptimaizeLanguageGuesser();
+    }
+
+    @Provides
+    org.icij.datashare.extension.PipelineRegistry providePipelineRegistry(final PropertiesProvider propertiesProvider) {
+        PipelineRegistry pipelineRegistry = new PipelineRegistry(propertiesProvider);
+        pipelineRegistry.register(EmailPipeline.class);
+        pipelineRegistry.register(Pipeline.Type.CORENLP);
+        return pipelineRegistry;
     }
 
     public Properties properties() {
@@ -245,7 +252,7 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
          if (extensionLoader.extensionsDir != null) {
             try {
                 extensionLoader.load((Consumer<Class<?>>) routes::add, this::isEligibleForLoading);
-                pipelineRegistry.load(extensionLoader);
+                get(PipelineRegistry.class).load(extensionLoader);
             } catch (FileNotFoundException e) {
                 logger.warn("Extensions directory not found: {}", extensionLoader.extensionsDir);
             }
@@ -265,15 +272,6 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
 
     protected boolean hasProperty(QueueType queueType) {
         return propertiesProvider.getProperties().contains(queueType.name());
-    }
-
-    protected PipelineRegistry bindPipelineRegistry(final PropertiesProvider propertiesProvider) {
-        PipelineRegistry pipelineRegistry = new PipelineRegistry(propertiesProvider);
-        pipelineRegistry.register(EmailPipeline.class);
-        pipelineRegistry.register(Pipeline.Type.CORENLP);
-        bind(PipelineRegistry.class).toInstance(pipelineRegistry);
-        bind(LanguageGuesser.class).to(OptimaizeLanguageGuesser.class);
-        return pipelineRegistry;
     }
 
     private Routes defaultRoutes(final Routes routes) {

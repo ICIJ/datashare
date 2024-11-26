@@ -32,6 +32,7 @@ import co.elastic.clients.transport.rest_client.RestClientTransport;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.inject.Inject;
+import com.google.inject.Singleton;
 import org.apache.commons.io.IOUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.entity.ContentType;
@@ -79,7 +80,7 @@ import static org.icij.datashare.text.indexing.elasticsearch.ElasticsearchConfig
 import static org.icij.datashare.text.indexing.elasticsearch.ElasticsearchSearcher.searchHitStream;
 import static org.icij.datashare.utils.JsonUtils.mapObjectTomapJsonData;
 
-
+@Singleton
 public class ElasticsearchIndexer implements Indexer {
     public final ElasticsearchClient client;
     private final ElasticsearchConfiguration esCfg;
