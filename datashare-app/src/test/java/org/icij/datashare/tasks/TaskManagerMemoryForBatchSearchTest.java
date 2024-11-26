@@ -1,6 +1,5 @@
 package org.icij.datashare.tasks;
 
-import java.util.concurrent.BlockingQueue;
 import org.icij.datashare.CollectionUtils;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.asynctasks.CancelException;
@@ -21,7 +20,6 @@ import java.io.IOException;
 import java.util.Date;
 import java.util.LinkedList;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
 import static java.util.Collections.singletonList;
@@ -41,13 +39,11 @@ import static org.mockito.MockitoAnnotations.initMocks;
 public class TaskManagerMemoryForBatchSearchTest {
     @Mock BatchSearchRunner batchSearchRunner;
     @Mock Indexer indexer;
-    @Mock
-    DatashareTaskFactory factory;
+    @Mock DatashareTaskFactory factory;
     @Mock BatchSearchRepository repository;
 
     CountDownLatch startLoop = new CountDownLatch(1);
     MockSearch<Indexer.QueryBuilderSearcher> mockSearch;
-    BlockingQueue<Task<?>> batchSearchQueue = new LinkedBlockingQueue<>();
     TaskManagerMemory taskManager;
     BatchSearch testBatchSearch = new BatchSearch(singletonList(project("test-datashare")), "name", "desc", CollectionUtils.asSet("query") , local(), true, new LinkedList<>(), "queryBody", null, 0);
 
@@ -85,16 +81,16 @@ public class TaskManagerMemoryForBatchSearchTest {
         taskManager.shutdownAndAwaitTermination(1, TimeUnit.SECONDS);
 
         assertThat(DatashareTime.getInstance().now().getTime() - beforeTest.getTime()).isEqualTo(100);
-        assertThat(batchSearchQueue).hasSize(1);
-        assertThat(batchSearchQueue.take().id).isEqualTo(testBatchSearch.uuid);
+        assertThat(taskManager.getTasks()).hasSize(1);
+        assertThat(taskManager.getTasks().get(0).id).isEqualTo(testBatchSearch.uuid);
     }
 
     @Test(timeout = 2000)
     public void test_run_batch_search_failure() throws Exception {
         when(factory.createBatchSearchRunner(any(), any())).thenReturn(batchSearchRunner);
         mockSearch.willThrow(new IOException("io exception"));
-        batchSearchQueue.add(new Task<>(testBatchSearch.uuid, BatchSearchRunner.class.getName(), local(), new Group("TestGroup")));
 
+        taskManager.startTask(new Task<>(testBatchSearch.uuid, BatchSearchRunner.class.getName(), local(), new Group("TestGroup")));
         taskManager.shutdownAndAwaitTermination(1, TimeUnit.SECONDS);
 
         verify(repository).setState(testBatchSearch.uuid, BatchSearch.State.RUNNING);
@@ -119,7 +115,7 @@ public class TaskManagerMemoryForBatchSearchTest {
         Signal.raise(new Signal("TERM"));
         taskManager.waitTasksToBeDone(1, TimeUnit.SECONDS);
 
-        assertThat(batchSearchQueue).hasSize(2);
+        assertThat(taskManager.getTasks()).hasSize(2);
     }
 
     @Test(timeout = 2000)
@@ -140,7 +136,7 @@ public class TaskManagerMemoryForBatchSearchTest {
     @Before
     public void setUp() throws IOException {
         initMocks(this);
-        taskManager = new TaskManagerMemory(batchSearchQueue, factory, new PropertiesProvider(), startLoop);
+        taskManager = new TaskManagerMemory(factory, new PropertiesProvider(), startLoop);
         mockSearch = new MockSearch<>(indexer, Indexer.QueryBuilderSearcher.class);
 
         Task<Object> taskView = new Task<>(testBatchSearch.uuid, BatchSearchRunner.class.getName(), local(), new Group("TestGroup"));

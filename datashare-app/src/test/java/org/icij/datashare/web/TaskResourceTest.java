@@ -1,21 +1,28 @@
 package org.icij.datashare.web;
 
-import net.codestory.http.routes.Routes;
 import net.codestory.rest.Response;
 import net.codestory.rest.RestAssert;
 import net.codestory.rest.ShouldChain;
 import org.icij.datashare.PropertiesProvider;
-import org.icij.datashare.asynctasks.*;
+import org.icij.datashare.asynctasks.Group;
+import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.asynctasks.bus.amqp.TaskCreation;
 import org.icij.datashare.db.JooqRepository;
 import org.icij.datashare.extension.PipelineRegistry;
-import org.icij.datashare.mode.CommonMode;
 import org.icij.datashare.nlp.EmailPipeline;
 import org.icij.datashare.session.LocalUserFilter;
+import org.icij.datashare.tasks.BatchDownloadRunner;
+import org.icij.datashare.tasks.DatashareTaskFactory;
+import org.icij.datashare.tasks.DeduplicateTask;
+import org.icij.datashare.tasks.EnqueueFromIndexTask;
+import org.icij.datashare.tasks.ExtractNlpTask;
+import org.icij.datashare.tasks.IndexTask;
+import org.icij.datashare.tasks.ScanIndexTask;
+import org.icij.datashare.tasks.ScanTask;
 import org.icij.datashare.tasks.TaskManagerMemory;
-import org.icij.datashare.tasks.*;
+import org.icij.datashare.tasks.TestSleepingTask;
+import org.icij.datashare.tasks.TestTask;
 import org.icij.datashare.test.DatashareTimeRule;
-import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.text.nlp.AbstractModels;
 import org.icij.datashare.user.User;
 import org.icij.datashare.web.testhelpers.AbstractProdWebServerTest;
@@ -27,9 +34,11 @@ import org.junit.Test;
 import org.mockito.Mock;
 
 import java.io.IOException;
-import java.util.*;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.BlockingQueue;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.function.Function;
 
 import static java.lang.String.format;
@@ -41,7 +50,12 @@ import static org.icij.datashare.cli.DatashareCliOptions.DATA_DIR_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.REPORT_NAME_OPT;
 import static org.icij.datashare.json.JsonObjectMapper.MAPPER;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.reset;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 import static org.mockito.MockitoAnnotations.initMocks;
 
 public class TaskResourceTest extends AbstractProdWebServerTest {
@@ -50,37 +64,16 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
     @Mock
     JooqRepository jooqRepository;
     private static final DatashareTaskFactoryForTest taskFactory = mock(DatashareTaskFactoryForTest.class);
-    private static final BlockingQueue<Task<?>> taskQueue = new ArrayBlockingQueue<>(3);
-    private static final TaskManagerMemory taskManager = new TaskManagerMemory(taskQueue, taskFactory, new PropertiesProvider());
+    private static final TaskManagerMemory taskManager = new TaskManagerMemory(taskFactory, new PropertiesProvider());
 
     @Before
     public void setUp() {
         initMocks(this);
         when(jooqRepository.getProjects()).thenReturn(new ArrayList<>());
-        final PropertiesProvider propertiesProvider = new PropertiesProvider(new HashMap<>() {{
-            put("mode", "LOCAL");
-        }});
-        PipelineRegistry pipelineRegistry = new PipelineRegistry(propertiesProvider);
+        PipelineRegistry pipelineRegistry = new PipelineRegistry(getDefaultPropertiesProvider());
         pipelineRegistry.register(EmailPipeline.class);
-        LocalUserFilter localUserFilter = new LocalUserFilter(propertiesProvider, jooqRepository);
-        configure(new CommonMode(propertiesProvider.getProperties()) {
-            @Override
-            protected void configure() {
-                bind(DatashareTaskFactory.class).toInstance(taskFactory);
-                bind(Indexer.class).toInstance(mock(Indexer.class));
-                bind(TaskManager.class).toInstance(taskManager);
-                bind(TaskSupplier.class).toInstance(taskManager);
-                bind(TaskModifier.class).toInstance(taskManager);
-                bind(PipelineRegistry.class).toInstance(pipelineRegistry);
-                bind(LocalUserFilter.class).toInstance(localUserFilter);
-                bind(PropertiesProvider.class).toInstance(getDefaultPropertiesProvider());
-            }
-
-            @Override
-            protected Routes addModeConfiguration(Routes routes) {
-                return routes.add(TaskResource.class).filter(LocalUserFilter.class);
-            }
-        }.createWebConfiguration());
+        LocalUserFilter localUserFilter = new LocalUserFilter(getDefaultPropertiesProvider(), jooqRepository);
+        configure(routes -> routes.add(new TaskResource(taskFactory, taskManager, getDefaultPropertiesProvider())).filter(localUserFilter));
         init(taskFactory);
     }
 

@@ -1,5 +1,6 @@
 package org.icij.datashare.nlp;
 
+import com.google.inject.Singleton;
 import com.optimaize.langdetect.LanguageDetector;
 import com.optimaize.langdetect.LanguageDetectorBuilder;
 import com.optimaize.langdetect.i18n.LdLocale;
@@ -12,6 +13,7 @@ import org.icij.datashare.text.indexing.LanguageGuesser;
 
 import java.io.IOException;
 
+@Singleton
 public class OptimaizeLanguageGuesser implements LanguageGuesser {
     private final LanguageDetector languageDetector;
 

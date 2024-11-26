@@ -10,11 +10,6 @@ public class NerMode extends CommonMode {
     NerMode(Properties properties) { super(properties);}
 
     @Override
-    protected void configure() {
-        bindPipelineRegistry(propertiesProvider);
-    }
-
-    @Override
     protected Routes addModeConfiguration(Routes routes) {
         return routes.add(NerResource.class).filter(LocalUserFilter.class);
     }

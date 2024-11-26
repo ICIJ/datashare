@@ -2,6 +2,9 @@ package org.icij.datashare.com.queue;
 
 import java.io.Closeable;
 import java.util.concurrent.TimeUnit;
+
+import com.google.inject.Inject;
+import com.google.inject.Singleton;
 import org.redisson.Redisson;
 import org.redisson.RedissonBlockingQueue;
 import org.redisson.api.RedissonClient;
@@ -10,9 +13,11 @@ import org.redisson.codec.JsonJacksonCodec;
 import org.redisson.command.CommandSyncService;
 import org.redisson.liveobject.core.RedissonObjectBuilder;
 
+@Singleton
 public class RedisBlockingQueue<T> extends RedissonBlockingQueue<T> implements Closeable {
     private final RedissonClient redissonClient;
 
+    @Inject
     public RedisBlockingQueue(RedissonClient redissonClient, String queueName) {
        this(redissonClient, queueName, new JsonJacksonCodec());
     }

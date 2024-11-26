@@ -28,7 +28,6 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.concurrent.ArrayBlockingQueue;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -491,7 +490,7 @@ public class BatchSearchResourceTest extends AbstractProdWebServerTest {
     @Before
     public void setUp() {
         initMocks(this);
-        taskManager = new TaskManagerMemory(new ArrayBlockingQueue<>(5), factory, new PropertiesProvider());
+        taskManager = new TaskManagerMemory(factory, new PropertiesProvider());
         when(factory.createBatchSearchRunner(any(), any())).thenReturn(mock(BatchSearchRunner.class));
         configure(routes -> routes.add(new BatchSearchResource(new PropertiesProvider(), taskManager, batchSearchRepository)).
                 filter(new LocalUserFilter(new PropertiesProvider(), jooqRepository)));

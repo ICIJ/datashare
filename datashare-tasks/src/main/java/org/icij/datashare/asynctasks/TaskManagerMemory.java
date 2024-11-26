@@ -4,7 +4,6 @@ import org.apache.commons.lang3.NotImplementedException;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.asynctasks.bus.amqp.Event;
 import org.icij.datashare.asynctasks.bus.amqp.TaskError;
-import org.icij.datashare.asynctasks.bus.amqp.TaskEvent;
 import org.icij.datashare.user.User;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,12 +32,12 @@ public class TaskManagerMemory implements TaskManager, TaskSupplier {
     private final List<TaskWorkerLoop> loops;
     private final AtomicInteger executedTasks = new AtomicInteger(0);
 
-    public TaskManagerMemory(BlockingQueue<Task<?>> taskQueue, TaskFactory taskFactory) {
-        this(taskQueue, taskFactory, new PropertiesProvider(), new CountDownLatch(1));
+    public TaskManagerMemory(TaskFactory taskFactory) {
+        this(taskFactory, new PropertiesProvider(), new CountDownLatch(1));
     }
 
-    public TaskManagerMemory(BlockingQueue<Task<?>> taskQueue, TaskFactory taskFactory, PropertiesProvider propertiesProvider, CountDownLatch latch) {
-        this.taskQueue = taskQueue;
+    public TaskManagerMemory(TaskFactory taskFactory, PropertiesProvider propertiesProvider, CountDownLatch latch) {
+        this.taskQueue = new LinkedBlockingQueue<>();
         int parallelism = parseInt(propertiesProvider.get("parallelism").orElse("1"));
         logger.info("running TaskManager with {} threads", parallelism);
         executor = Executors.newFixedThreadPool(parallelism);
