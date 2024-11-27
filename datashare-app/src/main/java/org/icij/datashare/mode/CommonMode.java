@@ -26,8 +26,6 @@ import org.icij.datashare.batch.BatchSearchRepository;
 import org.icij.datashare.cli.Mode;
 import org.icij.datashare.cli.QueueType;
 import org.icij.datashare.com.queue.AmqpInterlocutor;
-import org.icij.datashare.com.queue.MemoryBlockingQueue;
-import org.icij.datashare.com.queue.RedisBlockingQueue;
 import org.icij.datashare.db.RepositoryFactoryImpl;
 import org.icij.datashare.extension.ExtensionLoader;
 import org.icij.datashare.extract.DocumentCollectionFactory;
@@ -69,7 +67,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
-import java.util.concurrent.BlockingQueue;
 import java.util.function.Consumer;
 
 import static com.fasterxml.jackson.databind.DeserializationFeature.ACCEPT_EMPTY_STRING_AS_NULL_OBJECT;
@@ -83,7 +80,6 @@ import static org.icij.datashare.text.indexing.elasticsearch.ElasticsearchConfig
 
 public abstract class CommonMode extends AbstractModule implements Closeable {
     protected Logger logger = LoggerFactory.getLogger(getClass());
-    public static final String DS_TASKS_QUEUE_NAME = "ds:task:manager:queue";
     public static final String DS_TASK_MANAGER_MAP_NAME = "ds:task:manager:tasks";
     public static final String DS_TASK_MANAGER_QUEUE_NAME = "ds:task:manager";
 
@@ -194,7 +190,7 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
     }
 
     @Provides
-    protected Indexer provideIndexer() {
+    Indexer provideIndexer() {
         ElasticsearchIndexer indexer = new ElasticsearchIndexer(createESClient(propertiesProvider), propertiesProvider);
         addCloseable(indexer);
         return indexer;
