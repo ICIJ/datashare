@@ -16,7 +16,7 @@ public class TaskSupplierRedis extends org.icij.datashare.asynctasks.TaskSupplie
         super(redissonClient, Utils.getRoutingKey(propertiesProvider));
     }
 
-    TaskSupplierRedis(PropertiesProvider propertiesProvider) {
+   TaskSupplierRedis(PropertiesProvider propertiesProvider) {
         this(new RedissonClientFactory().withOptions(Options.from(propertiesProvider.getProperties())).create(), propertiesProvider);
     }
 }

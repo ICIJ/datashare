@@ -65,7 +65,7 @@ public class BatchSearchRunnerIntTest {
     }
 
     private Task<?> taskView(BatchSearch search) {
-        return new Task<>(search.uuid, BatchSearchRunner.class.getName(), User.local(), new Group("TestGroup"));
+        return DatashareTask.task(search.uuid, BatchSearchRunner.class.getName(), User.local());
     }
 
     @Test

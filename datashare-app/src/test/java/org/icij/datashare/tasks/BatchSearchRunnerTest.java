@@ -64,8 +64,8 @@ public class BatchSearchRunnerTest {
         verify(progressCb).apply( 1.0);
     }
 
-    private Task<?> taskView(BatchSearch search) {
-        return new Task<>(search.uuid, BatchSearchRunner.class.getName(), local(), new Group("TestGroup"));
+    private  Task<?> taskView(BatchSearch search) {
+        return DatashareTask.task(search.uuid, BatchSearchRunner.class.getName(), local());
     }
 
     @Test(expected = RuntimeException.class)

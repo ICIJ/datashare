@@ -22,12 +22,13 @@ import net.codestory.http.payload.Payload;
 import org.apache.commons.lang3.StringUtils;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.asynctasks.Task;
-import org.icij.datashare.asynctasks.TaskManager;
 import org.icij.datashare.batch.BatchDownload;
 import org.icij.datashare.extract.OptionsWrapper;
 import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.tasks.BatchDownloadRunner;
+import org.icij.datashare.tasks.DatashareTask;
 import org.icij.datashare.tasks.DatashareTaskFactory;
+import org.icij.datashare.tasks.DatashareTaskManager;
 import org.icij.datashare.tasks.EnqueueFromIndexTask;
 import org.icij.datashare.tasks.ExtractNlpTask;
 import org.icij.datashare.tasks.IndexTask;
@@ -73,11 +74,11 @@ import static org.icij.datashare.text.nlp.AbstractModels.syncModels;
 @Prefix("/api/task")
 public class TaskResource {
     private final DatashareTaskFactory taskFactory;
-    private final TaskManager taskManager;
+    private final DatashareTaskManager taskManager;
     private final PropertiesProvider propertiesProvider;
 
     @Inject
-    public TaskResource(final DatashareTaskFactory taskFactory, final TaskManager taskManager, final PropertiesProvider propertiesProvider) {
+    public TaskResource(final  DatashareTaskFactory taskFactory, final DatashareTaskManager taskManager, final PropertiesProvider propertiesProvider) {
         this.taskFactory = taskFactory;
         this.taskManager = taskManager;
         this.propertiesProvider = propertiesProvider;
@@ -87,7 +88,7 @@ public class TaskResource {
             parameters = {@Parameter(name = "filter", description = "pattern contained in the task name", in = ParameterIn.QUERY)})
     @ApiResponse(responseCode = "200", description = "returns the list of tasks", useReturnTypeSchema = true)
     @Get("/all")
-    public List<Task<?>> tasks(Context context) throws IOException {
+    public List< Task<?>> tasks(Context context) throws IOException {
         Pattern pattern = Pattern.compile(StringUtils.isEmpty(context.get("filter")) ? ".*": String.format(".*%s.*", context.get("filter")));
         return taskManager.getTasks((User) context.currentUser(), pattern);
     }
@@ -120,7 +121,7 @@ public class TaskResource {
     @ApiResponse(responseCode = "404", description = "returns 404 if the task doesn't exist")
     @Get("/:id/result")
     public Payload getTaskResult(@Parameter(name = "id", description = "task id", in = ParameterIn.PATH) String id, Context context) throws IOException {
-        Task<?> task = forbiddenIfNotSameUser(context, notFoundIfNull(taskManager.getTask(id)));
+         Task<?> task = forbiddenIfNotSameUser(context, ( Task<?>) notFoundIfNull(taskManager.getTask(id)));
         Object result = task.getResult();
         if (result instanceof UriResult uriResult) {
             Path filePath = Path.of(uriResult.uri().getPath());
@@ -191,13 +192,13 @@ public class TaskResource {
         taskIds.add(scanResponse.taskId);
         Properties properties = applyProjectProperties(optionsWrapper);
         User user = (User) context.currentUser();
-        Task<Long> scanIndex;
+         Task<Long> scanIndex;
         // Use a report map only if the request's body contains a "filter" attribute
         if (properties.get("filter") != null && Boolean.parseBoolean(properties.getProperty("filter"))) {
             // TODO remove taskFactory.createScanIndexTask would allow to get rid of taskfactory dependency in taskresource
             // problem for now is that if we call taskManager.startTask(ScanIndexTask.class.getName(), user, propertiesToMap(properties))
             // the task will be run as a background task that will have race conditions with indexTask report loading
-            scanIndex = new Task<>(ScanIndexTask.class.getName(), user, propertiesToMap(properties));
+            scanIndex = DatashareTask.task(ScanIndexTask.class.getName(), user, propertiesToMap(properties));
             taskFactory.createScanIndexTask(scanIndex, (p) -> null).call();
             taskIds.add(scanIndex.id);
         } else {
@@ -232,7 +233,7 @@ public class TaskResource {
     @ApiResponse(responseCode = "403", description = "returns 403 if the task is still in RUNNING state")
     @Delete("/clean/:taskName:")
     public Payload cleanTask(@Parameter(name = "taskName", description = "name of the task to delete", in = ParameterIn.PATH) final String taskId, Context context) throws IOException {
-        Task<?> task = forbiddenIfNotSameUser(context, notFoundIfNull(taskManager.getTask(taskId)));
+         Task<?> task = forbiddenIfNotSameUser(context, notFoundIfNull(( Task<?>) taskManager.getTask(taskId)));
         if (task.getState() == Task.State.RUNNING) {
             return forbidden();
         } else {
@@ -317,8 +318,8 @@ public class TaskResource {
         return "extract:report:" + projectName;
     }
 
-    private static <V> Task<V> forbiddenIfNotSameUser(Context context, Task<V> task) {
-        if (!task.getUser().equals(context.currentUser())) throw new ForbiddenException();
+    private static <V>  Task<V> forbiddenIfNotSameUser(Context context,  Task<V> task) {
+        if (!DatashareTask.getUser(task).equals(context.currentUser())) throw new ForbiddenException();
         return task;
     }
 

@@ -7,7 +7,6 @@ import org.icij.datashare.Stage;
 import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.asynctasks.TaskGroup;
 import org.icij.datashare.extract.DocumentCollectionFactory;
-import org.icij.datashare.function.Pair;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.Project;
 import org.icij.datashare.text.indexing.Indexer;
@@ -20,7 +19,6 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
-import static java.util.Optional.ofNullable;
 import static org.icij.datashare.cli.DatashareCliOptions.ARTIFACT_DIR_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_DEFAULT_PROJECT;
 import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_PROJECT_OPT;
@@ -34,7 +32,7 @@ public class ArtifactTask extends PipelineTask<String> {
 
     @Inject
     public ArtifactTask(DocumentCollectionFactory<String> factory, Indexer indexer, PropertiesProvider propertiesProvider, @Assisted Task<Long> taskView, @Assisted final Function<Double, Void> updateCallback) {
-        super(Stage.ARTIFACT, taskView.getUser(), factory, propertiesProvider, String.class);
+        super(Stage.ARTIFACT, DatashareTask.getUser(taskView), factory, propertiesProvider, String.class);
         this.indexer = indexer;
         project = Project.project(propertiesProvider.get(DEFAULT_PROJECT_OPT).orElse(DEFAULT_DEFAULT_PROJECT));
         artifactDir = Path.of(propertiesProvider.get(ARTIFACT_DIR_OPT).orElseThrow(() -> new IllegalArgumentException(String.format("cannot create artifact task with empty %s", ARTIFACT_DIR_OPT))));

@@ -3,15 +3,13 @@ package org.icij.datashare.tasks;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import org.icij.datashare.PropertiesProvider;
-import org.icij.datashare.cli.DatashareCliOptions;
 import org.icij.datashare.mode.CommonMode;
 import org.icij.extract.redis.RedissonClientFactory;
 import org.icij.task.Options;
-import org.jetbrains.annotations.NotNull;
 import org.redisson.api.RedissonClient;
 
 @Singleton
-public class TaskManagerRedis extends org.icij.datashare.asynctasks.TaskManagerRedis {
+public class TaskManagerRedis extends org.icij.datashare.asynctasks.TaskManagerRedis implements DatashareTaskManager {
 
     // Convenience class made to ease injection and test
     @Inject
@@ -23,11 +21,11 @@ public class TaskManagerRedis extends org.icij.datashare.asynctasks.TaskManagerR
         this(propertiesProvider, CommonMode.DS_TASK_MANAGER_MAP_NAME, null);
     }
 
-    TaskManagerRedis(PropertiesProvider propertiesProvider, String taskMapName, Runnable eventCallback) {
+   TaskManagerRedis(PropertiesProvider propertiesProvider, String taskMapName, Runnable eventCallback) {
         this(new RedissonClientFactory().withOptions(Options.from(propertiesProvider.getProperties())).create(), taskMapName, Utils.getRoutingStrategy(propertiesProvider), eventCallback);
     }
 
-    TaskManagerRedis(RedissonClient redissonClient, String taskMapName, RoutingStrategy routingStrategy, Runnable eventCallback) {
+   TaskManagerRedis(RedissonClient redissonClient, String taskMapName, RoutingStrategy routingStrategy, Runnable eventCallback) {
         super(redissonClient, taskMapName, routingStrategy, eventCallback);
     }
 }

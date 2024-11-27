@@ -28,7 +28,7 @@ public class ArtifactTaskTest {
 
     @Test(expected = IllegalArgumentException.class)
     public void test_missing_artifact_dir() {
-        new ArtifactTask(factory, mockEs, new PropertiesProvider(Map.of()), new Task<>(ArtifactTask.class.getName(), User.local(), Map.of()), null);
+        new ArtifactTask(factory, mockEs, new PropertiesProvider(Map.of()), DatashareTask.task(ArtifactTask.class.getName(), User.local(), Map.of()), null);
     }
 
     @Test
@@ -42,7 +42,7 @@ public class ArtifactTaskTest {
         queue.add("POISON");
 
         Long numberOfDocuments = new ArtifactTask(factory, mockEs, new PropertiesProvider(Map.of("artifactDir", artifactDir.getRoot().toString(), "defaultProject", "prj")),
-                new Task<>(ArtifactTask.class.getName(), User.local(), new HashMap<>()), null)
+                DatashareTask.task(ArtifactTask.class.getName(), User.local(), new HashMap<>()), null)
                 .call();
 
         assertThat(numberOfDocuments).isEqualTo(1);

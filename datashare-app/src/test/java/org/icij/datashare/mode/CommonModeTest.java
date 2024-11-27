@@ -3,11 +3,11 @@ package org.icij.datashare.mode;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
 import org.icij.datashare.PropertiesProvider;
-import org.icij.datashare.asynctasks.TaskManager;
 import org.icij.datashare.asynctasks.TaskModifier;
 import org.icij.datashare.asynctasks.TaskSupplier;
 import org.icij.datashare.cli.Mode;
 import org.icij.datashare.cli.QueueType;
+import org.icij.datashare.tasks.DatashareTaskManager;
 import org.junit.Test;
 
 import java.util.HashMap;
@@ -38,8 +38,8 @@ public class CommonModeTest {
             put("mode", Mode.LOCAL.name());
             put("queueType", QueueType.MEMORY.name());
         }}));
-        assertThat(injector.getInstance(TaskManager.class)).isSameAs(injector.getInstance(TaskModifier.class));
-        assertThat(injector.getInstance(TaskManager.class)).isSameAs(injector.getInstance(TaskSupplier.class));
+        assertThat(injector.getInstance(DatashareTaskManager.class)).isSameAs(injector.getInstance(TaskModifier.class));
+        assertThat(injector.getInstance(DatashareTaskManager.class)).isSameAs(injector.getInstance(TaskSupplier.class));
     }
     @Test
     public void test_check_queue_type_with_default_value() {

@@ -4,7 +4,6 @@ import java.util.concurrent.BlockingQueue;
 import org.icij.datashare.CollectionUtils;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.asynctasks.CancelException;
-import org.icij.datashare.asynctasks.Group;
 import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.batch.BatchSearch;
 import org.icij.datashare.batch.BatchSearchRepository;
@@ -93,7 +92,7 @@ public class TaskManagerMemoryForBatchSearchTest {
     public void test_run_batch_search_failure() throws Exception {
         when(factory.createBatchSearchRunner(any(), any())).thenReturn(batchSearchRunner);
         mockSearch.willThrow(new IOException("io exception"));
-        batchSearchQueue.add(new Task<>(testBatchSearch.uuid, BatchSearchRunner.class.getName(), local(), new Group("TestGroup")));
+        batchSearchQueue.add(DatashareTask.task(testBatchSearch.uuid, BatchSearchRunner.class.getName(), local()));
 
         taskManager.shutdownAndAwaitTermination(1, TimeUnit.SECONDS);
 
@@ -143,7 +142,7 @@ public class TaskManagerMemoryForBatchSearchTest {
         taskManager = new TaskManagerMemory(batchSearchQueue, factory, new PropertiesProvider(), startLoop);
         mockSearch = new MockSearch<>(indexer, Indexer.QueryBuilderSearcher.class);
 
-        Task<Object> taskView = new Task<>(testBatchSearch.uuid, BatchSearchRunner.class.getName(), local(), new Group("TestGroup"));
+         Task<Object> taskView = DatashareTask.task(testBatchSearch.uuid, BatchSearchRunner.class.getName(), local());
         batchSearchRunner = new BatchSearchRunner(indexer, new PropertiesProvider(), repository, taskView, taskView.progress(taskManager::progress));
         when(repository.get(eq(local()), anyString())).thenReturn(testBatchSearch);
         when(factory.createBatchSearchRunner(any(), any())).thenReturn(batchSearchRunner);
@@ -159,7 +158,7 @@ public class TaskManagerMemoryForBatchSearchTest {
         private final CountDownLatch countDownLatch;
 
         public SleepingBatchSearchRunner(int sleepingMilliseconds, CountDownLatch countDownLatch, BatchSearch bs) {
-            super(mock(Indexer.class), new PropertiesProvider(), repository, new Task<>(bs.uuid, BatchSearchRunner.class.getName(), local(), new Group("TestGroup")), (b) -> null);
+            super(mock(Indexer.class), new PropertiesProvider(), repository, DatashareTask.task(bs.uuid, BatchSearchRunner.class.getName(), local()), (b) -> null);
             this.sleepingMilliseconds = sleepingMilliseconds;
             this.countDownLatch = countDownLatch;
         }

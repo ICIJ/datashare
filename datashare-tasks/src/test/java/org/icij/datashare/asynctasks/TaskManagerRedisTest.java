@@ -2,7 +2,6 @@ package org.icij.datashare.asynctasks;
 
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.tasks.RoutingStrategy;
-import org.icij.datashare.user.User;
 import org.icij.extract.redis.RedissonClientFactory;
 import org.icij.task.Options;
 import org.junit.After;
@@ -38,21 +37,34 @@ public class TaskManagerRedisTest {
         taskSupplier = new TaskSupplierRedis(redissonClient);
 
     @Test
-    public void test_save_task() {
-        Task<String> task = new Task<>("name", User.local(), new HashMap<>());
+    public void test_save_task() throws TaskAlreadyExists, IOException {
+        Task<String> task = new Task<>("name", new HashMap<>());
 
-        taskManager.save(task);
+        taskManager.save(task, null);
 
         assertThat(taskManager.getTasks()).hasSize(1);
         assertThat(taskManager.getTask(task.id)).isNotNull();
     }
 
     @Test
+    public void test_update_task() throws TaskAlreadyExists, IOException {
+        // Given
+        Task<?> task = new Task<>("HelloWorld", Map.of("greeted", "world"));
+        TaskMetadata<?> meta = new TaskMetadata<>(task, null);
+        Task<?> update = new Task<>(task.id, task.name, task.getState(), 0.5, null, task.args);
+        // When
+        taskManager.saveMetadata(meta);
+        taskManager.update(update);
+        Task<?> updated = taskManager.getTask(task.id);
+        // Then
+        assertThat(updated).isEqualTo(update);
+    }
+
+    @Test
     public void test_start_task() throws IOException {
-        assertThat(taskManager.startTask("HelloWorld", User.local(),
-            new HashMap<>() {{ put("greeted", "world"); }})).isNotNull();
+        String taskId = taskManager.startTask("HelloWorld", Map.of("greeted", "world"));
+        assertThat(taskId).isNotNull();
         assertThat(taskManager.getTasks()).hasSize(1);
-        assertThat(taskManager.getTasks().get(0).getUser()).isEqualTo(User.local());
     }
 
     @Test
@@ -63,10 +75,10 @@ public class TaskManagerRedisTest {
                 this::callback);
             TaskSupplierRedis taskSupplier = new TaskSupplierRedis(redissonClient, "Group")) {
 
-            assertThat(groupTaskManager.startTask("HelloWorld", User.local(), new Group("Group"),Map.of("greeted", "world"))).isNotNull();
+            assertThat(groupTaskManager.startTask("HelloWorld", new Group("Group"),Map.of("greeted", "world"))).isNotNull();
 
             Task<Serializable> task = taskSupplier.get(2, TimeUnit.SECONDS);
-            assertThat(task.getGroup()).isEqualTo(new Group("Group"));
+            assertThat(groupTaskManager.getTaskGroup(task.id)).isEqualTo(new Group("Group"));
             assertThat(((RedissonBlockingQueue<?>) groupTaskManager.taskQueue(task)).getName()).isEqualTo("TASK.Group");
         }
     }
@@ -78,7 +90,7 @@ public class TaskManagerRedisTest {
                 "test:task:manager", RoutingStrategy.NAME,
                 this::callback);
              TaskSupplierRedis taskSupplier = new TaskSupplierRedis(redissonClient, "HelloWorld")) {
-            assertThat(nameTaskManager.startTask("HelloWorld", User.local(), Map.of("greeted", "world"))).isNotNull();
+            assertThat(nameTaskManager.startTask("HelloWorld", Map.of("greeted", "world"))).isNotNull();
 
             Task<Serializable> task = taskSupplier.get(2, TimeUnit.SECONDS);
             assertThat(((RedissonBlockingQueue<?>) nameTaskManager.taskQueue(task)).getName()).isEqualTo("TASK.HelloWorld");
@@ -88,7 +100,7 @@ public class TaskManagerRedisTest {
     @Test
     @Ignore("remove is async and clearTasks is not always done before the size is changed")
     public void test_done_tasks() throws Exception {
-        String taskViewId = taskManager.startTask("sleep", User.local(), new HashMap<>());
+        String taskViewId = taskManager.startTask("sleep", new HashMap<>());
 
         assertThat(taskManager.getTasks()).hasSize(1);
         System.out.println(taskManager.getTasks());
@@ -104,8 +116,8 @@ public class TaskManagerRedisTest {
     @Test
     @Ignore("remove is async and clearTasks is not always done before the size is changed")
     public void test_clear_task_among_two_tasks() throws Exception {
-        String taskView1Id = taskManager.startTask("sleep", User.local(), new HashMap<>());
-        String taskView2Id = taskManager.startTask("sleep", User.local(), new HashMap<>());
+        String taskView1Id = taskManager.startTask("sleep", new HashMap<>());
+        String taskView2Id = taskManager.startTask("sleep", new HashMap<>());
 
         taskSupplier.result(taskView1Id, 123);
         assertThat(waitForEvent.await(1, TimeUnit.SECONDS)).isTrue();
@@ -120,7 +132,7 @@ public class TaskManagerRedisTest {
 
     @Test(expected = IllegalStateException.class)
     public void test_clear_running_task_should_throw_exception() throws Exception {
-        String taskViewId = taskManager.startTask("sleep", User.local(), new HashMap<>());
+        String taskViewId = taskManager.startTask("sleep", new HashMap<>());
 
         taskSupplier.progress(taskViewId,0.5);
         assertThat(waitForEvent.await(1, TimeUnit.SECONDS)).isTrue();
@@ -131,7 +143,7 @@ public class TaskManagerRedisTest {
 
     @Test
     public void test_done_task_result_for_file() throws Exception {
-        String taskViewId = taskManager.startTask("HelloWorld", User.local(), new HashMap<>() {{
+        String taskViewId = taskManager.startTask("HelloWorld", new HashMap<>() {{
                 put("greeted", "world");
             }});
         String expectedResult = "Hello world !";

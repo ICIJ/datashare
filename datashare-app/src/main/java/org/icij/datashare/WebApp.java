@@ -1,7 +1,6 @@
 package org.icij.datashare;
 
 import net.codestory.http.WebServer;
-import org.icij.datashare.asynctasks.TaskManager;
 import org.icij.datashare.asynctasks.bus.amqp.QpidAmqpServer;
 import org.icij.datashare.batch.BatchSearch;
 import org.icij.datashare.batch.BatchSearchRepository;
@@ -16,6 +15,7 @@ import java.io.IOException;
 import java.net.Socket;
 import java.net.URI;
 import java.util.Properties;
+import org.icij.datashare.tasks.DatashareTaskManager;
 
 import static java.lang.Boolean.parseBoolean;
 import static java.lang.Integer.parseInt;
@@ -48,7 +48,7 @@ public class WebApp {
             waitForServerToBeUp(parseInt(mode.properties().getProperty(PropertiesProvider.TCP_LISTEN_PORT)));
             Desktop.getDesktop().browse(URI.create(new URI("http://localhost:")+mode.properties().getProperty(PropertiesProvider.TCP_LISTEN_PORT)));
         }
-        requeueDatabaseBatchSearches(mode.get(BatchSearchRepository.class), mode.get(TaskManager.class));
+        requeueDatabaseBatchSearches(mode.get(BatchSearchRepository.class), mode.get(DatashareTaskManager.class));
         webServerThread.join();
     }
 
@@ -66,7 +66,7 @@ public class WebApp {
         }
     }
 
-    private static void requeueDatabaseBatchSearches(BatchSearchRepository repository, TaskManager taskManager) throws IOException {
+    private static void requeueDatabaseBatchSearches(BatchSearchRepository repository, DatashareTaskManager taskManager) throws IOException {
         for (String batchSearchUuid: repository.getQueued()) {
             BatchSearch batchSearch = repository.get(batchSearchUuid);
             taskManager.startTask(batchSearchUuid, BatchSearchRunner.class, batchSearch.user);

@@ -25,7 +25,7 @@ public class DeduplicateTask extends PipelineTask<Path> {
 
     @Inject
     public DeduplicateTask(final DocumentCollectionFactory<Path> factory, @Assisted Task<Long> taskView, @Assisted final Function<Double, Void> updateCallback) {
-        super(Stage.DEDUPLICATE, taskView.getUser(), factory, new PropertiesProvider(taskView.args), Path.class);
+        super(Stage.DEDUPLICATE, DatashareTask.getUser(taskView), factory, new PropertiesProvider(taskView.args), Path.class);
         this.factory = factory;
     }
 
