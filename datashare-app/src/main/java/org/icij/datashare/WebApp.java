@@ -152,7 +152,9 @@ public class WebApp {
         Map<String, String> workerConfig = Map.of(
             "type", "amqp",
             "rabbitmq_host", "localhost",
-            "rabbitmq_port", String.valueOf(AMQP_PORT)
+            "rabbitmq_port", String.valueOf(AMQP_PORT),
+            "rabbitmq_user", "admin",
+            "rabbitmq_password", "admin"
         );
         Path workerConfigPath = Files.createTempFile("datashare-spacy-worker-config-", ".json");
         File tempFile = workerConfigPath.toFile();
