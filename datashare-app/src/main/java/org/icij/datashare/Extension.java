@@ -250,8 +250,13 @@ public class Extension implements Deliverable {
         if (extFileName.endsWith(".jar")) {
             return url;
         }
-        String hostSpecificName = name + hostSpecificSuffix() + "-" + version;
-        String hostSpecificFile = url.getFile().replace(extFileName, "") + hostSpecificName;
+        String hostSpecificName = extFileName.replace("-" + version, "") + hostSpecificSuffix() + "-" + version;
+        String urlFile = url.getFile();
+        StringBuilder b = new StringBuilder(urlFile);
+        int last = urlFile.lastIndexOf(extFileName);
+        b.replace(last, last + extFileName.length(), "" );
+        urlFile = b.toString();
+        String hostSpecificFile = urlFile + hostSpecificName;
         return new URL(url.getProtocol(), url.getHost(), hostSpecificFile);
     }
 

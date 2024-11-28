@@ -138,7 +138,7 @@ public abstract class CommonMode extends AbstractModule {
         install(new FactoryModuleBuilder().build(DatashareTaskFactory.class));
 
         RedissonClient redissonClient = null;
-        if ( hasProperty(QueueType.REDIS) ) {
+        if ( hasProperty(QueueType.REDIS) || hasProperty(QueueType.AMQP) ) {
             redissonClient = new RedissonClientFactory().withOptions(Options.from(propertiesProvider.getProperties())).create();
             bind(RedissonClient.class).toInstance(redissonClient);
         }
@@ -152,7 +152,7 @@ public abstract class CommonMode extends AbstractModule {
             }
         }
 
-        QueueType batchQueueType = getQueueType(propertiesProvider, BATCH_QUEUE_TYPE_OPT, QueueType.MEMORY);
+        QueueType batchQueueType = getQueueType(propertiesProvider, QUEUE_TYPE_OPT, QueueType.MEMORY);
         switch ( batchQueueType ) {
             case REDIS:
                 configureBatchQueuesRedis(redissonClient);

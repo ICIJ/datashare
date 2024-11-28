@@ -45,7 +45,7 @@ public class CommonModeTest {
     public void test_check_queue_type_with_default_value() {
         Properties props = new Properties(){{
             put("busType", "REDIS");
-            put("queueType", "amqp");
+            put("ô", "amqp");
             put("otherProp", "badValueQueueType");}};
 
         QueueType normalQueueType =  CommonMode.getQueueType(new PropertiesProvider(props),"busType", QueueType.MEMORY);

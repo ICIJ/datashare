@@ -1,10 +1,7 @@
 package org.icij.datashare;
 
-import static org.icij.datashare.cli.DatashareCliOptions.NLP_PARALLELISM_OPT;
-
 import com.google.inject.Inject;
 import java.io.File;
-import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.List;
@@ -17,30 +14,20 @@ public class ExecutableExtensionHelper {
     protected final Logger logger = LoggerFactory.getLogger(getClass());
     private final ExtensionService extensionService;
     private final String extensionPattern;
-    private final int numWorkers;
 
     @Inject
     public ExecutableExtensionHelper(
-        PropertiesProvider propertiesProvider, ExtensionService extensionService, String extensionPattern
+        ExtensionService extensionService, String extensionPattern
     ) {
         this.extensionService = extensionService;
         this.extensionPattern = extensionPattern;
-        this.numWorkers = propertiesProvider.get(NLP_PARALLELISM_OPT).map(Integer::parseInt).orElse(1);
     }
 
 
-    public Process executeExtension(boolean inheritIO, String... args) throws IOException {
-        logger.info("starting " + numWorkers + " workers...");
+    public ProcessBuilder buildProcess(String... args) {
         Path executablePath = locateExtension();
         List<String> cmd = Stream.concat(Stream.of(executablePath.toString()), Arrays.stream(args)).toList();
-        // TODO: better handle process output redirection
-        ProcessBuilder builder = new ProcessBuilder(cmd);
-        if (inheritIO) {
-            // This could be configurable, here ^C the Java process will also kill the child process which might be
-            // unwanted, logging could be improved too
-            builder.inheritIO();
-        }
-        return builder.start();
+        return new ProcessBuilder(cmd);
     }
 
     String getPidFilePattern() {

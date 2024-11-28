@@ -1,7 +1,7 @@
 package org.icij.datashare;
 
 import static org.fest.assertions.Assertions.assertThat;
-import static org.icij.datashare.WebApp.startNlpWorkers;
+import static org.icij.datashare.WebApp.buildNlpWorkersProcess;
 import static org.icij.datashare.json.JsonObjectMapper.MAPPER;
 import static org.icij.datashare.utils.ProcessHandler.dumpPid;
 import static org.junit.Assert.assertThrows;
@@ -25,13 +25,13 @@ public class WebAppTest {
     @Test
     public void test_nlp_workers_process() throws IOException, InterruptedException {
         // Given
-        String extensionPattern = "^datashare-spacy-worker-[\\d\\.]+$";
+        String extensionPattern = "^datashare-spacy-worker(?:-[\\d\\.]+)?$";
         ExtensionService extensionService = new ExtensionService(Path.of(extDir));
         PropertiesProvider propertiesProvider = new PropertiesProvider(properties);
         ExecutableExtensionHelper extensionHelper = new ExecutableExtensionHelper(
             propertiesProvider, extensionService, extensionPattern);
         // When
-        Process p = startNlpWorkers(extensionHelper, 6, false);
+        Process p = buildNlpWorkersProcess(extensionHelper, 6, false);
         // Then
         int timeout = 2;
         TimeUnit unit = TimeUnit.SECONDS;
@@ -48,7 +48,7 @@ public class WebAppTest {
     @Test(timeout = 20000)
     public void test_nlp_workers_process_should_throw_when_worker_pool_is_running() throws IOException {
         // Given
-        String extensionPattern = "^datashare-spacy-worker-[\\d\\.]+$";
+        String extensionPattern = "^datashare-spacy-worker(?:-[\\d\\.]+)?$";
         ExtensionService extensionService = new ExtensionService(Path.of(extDir));
         PropertiesProvider propertiesProvider = new PropertiesProvider(properties);
         ExecutableExtensionHelper extensionHelper =
@@ -60,7 +60,7 @@ public class WebAppTest {
             dumpPid(pidPath.toFile(), p.pid());
             // When/Then
             assertThat(
-                assertThrows(RuntimeException.class, () -> startNlpWorkers(extensionHelper, 1, false)).getMessage())
+                assertThrows(RuntimeException.class, () -> buildNlpWorkersProcess(extensionHelper, 1, false)).getMessage())
                 .matches("found phantom worker running in process.*");
         } finally {
             if (p != null) {

@@ -1,7 +1,6 @@
 package org.icij.datashare;
 
 import com.google.inject.ConfigurationException;
-import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.asynctasks.TaskManager;
 import org.icij.datashare.cli.CliExtensionService;
 import org.icij.datashare.cli.spi.CliExtension;
@@ -137,12 +136,12 @@ class CliApp {
         }
 
         if (pipeline.has(Stage.CREATENLPBATCHESFROMIDX)) {
-            taskManager.startTask(new Task<>(CreateNlpBatchesFromIndex.class.getName(), nullUser(), propertiesToMap(properties)));
+            taskManager.startTask(DatashareTask.task(CreateNlpBatchesFromIndex.class.getName(), nullUser(), propertiesToMap(properties)));
         }
 
         if (pipeline.has(Stage.BATCHNLP)) {
             taskFactory.createBatchNlpTask(
-                    new Task<>(BatchNlpTask.class.getName(), nullUser(), propertiesToMap(properties)),
+                    DatashareTask.task(BatchNlpTask.class.getName(), nullUser(), propertiesToMap(properties)),
                     (percentage) -> {logger.info("percentage: {}% done", percentage); return null;}).call();
         }
 

@@ -2,6 +2,7 @@ package org.icij.datashare;
 
 import static java.lang.Boolean.parseBoolean;
 import static java.lang.Integer.parseInt;
+import static jodd.util.ThreadUtil.sleep;
 import static org.icij.datashare.cli.DatashareCliOptions.BROWSER_OPEN_LINK_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.NLP_PARALLELISM_OPT;
 import static org.icij.datashare.utils.ProcessHandler.dumpPid;
@@ -20,7 +21,6 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 import net.codestory.http.WebServer;
-import org.icij.datashare.asynctasks.bus.amqp.QpidAmqpServer;
 import org.icij.datashare.batch.BatchSearch;
 import org.icij.datashare.batch.BatchSearchRepository;
 import org.icij.datashare.cli.DatashareCli;
@@ -30,7 +30,6 @@ import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.mode.CommonMode;
 import org.icij.datashare.mode.EmbeddedMode;
 import org.icij.datashare.tasks.BatchSearchRunner;
-import org.icij.datashare.text.indexing.Indexer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -38,29 +37,34 @@ import org.icij.datashare.tasks.DatashareTaskManager;
 
 public class WebApp {
     private static final int AMQP_PORT = 5672;
-    private static final Logger LOGGER = LoggerFactory.getLogger(Indexer.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(WebApp.class);
 
     public static void main(String[] args) throws Exception {
         start(new DatashareCli().parseArguments(args).properties);
     }
 
     static void start(Properties properties) throws Exception {
+        sleep(3 * 1000);
         boolean isEmbeddedAMQP = isEmbeddedAMQP(properties);
-        if (isEmbeddedAMQP) {
-            // before creating mode because AmqpInterlocutor will try to connect the broker
-            new QpidAmqpServer(AMQP_PORT).start();
-        }
+//        if (isEmbeddedAMQP) {
+//            // before creating mode because AmqpInterlocutor will try to connect the broker
+//            new QpidAmqpServer(AMQP_PORT).start();
+//        }
         CommonMode mode = CommonMode.create(properties);
         Process nlpWorkerProcess = null;
         Path nlpWorkersPidPath = null;
-        boolean startNlpWorker = isEmbeddedAMQP && !mode.get(ExtensionService.class)
+        boolean startNlpWorker = !mode.get(ExtensionService.class)
             .listInstalled("datashare-spacy-worker.*")
             .isEmpty();
         if (startNlpWorker) {
-            nlpWorkerProcess = startNlpWorkers((EmbeddedMode) mode, true);
+            nlpWorkerProcess = buildNlpWorkersProcess((EmbeddedMode) mode).start();
             nlpWorkersPidPath = Files.createTempFile("datashare-spacy-worker-", ".pid");
+            // TODO: change to debug
+            LOGGER.info("dumping worker pid to " + nlpWorkersPidPath);
             dumpPid(nlpWorkersPidPath.toFile(), nlpWorkerProcess.pid());
+            LOGGER.info("worker process alive " + nlpWorkerProcess.isAlive());
         }
+
 
         Thread webServerThread = new Thread(() ->
                 new WebServer()
@@ -80,10 +84,10 @@ public class WebApp {
         try {
             webServerThread.join();
         } finally {
-            if (nlpWorkerProcess != null && nlpWorkerProcess.isAlive()) {
-                killProcessById(nlpWorkerProcess.pid());
-                Files.deleteIfExists(nlpWorkersPidPath);
-            }
+//            if (nlpWorkerProcess != null && nlpWorkerProcess.isAlive()) {
+//                killProcessById(nlpWorkerProcess.pid());
+//                Files.deleteIfExists(nlpWorkersPidPath);
+//            }
         }
     }
 
@@ -116,7 +120,7 @@ public class WebApp {
         }
     }
 
-    protected static Process startNlpWorkers(ExecutableExtensionHelper extensionHelper, int nWorkers, boolean inheritIO) throws IOException {
+    protected static ProcessBuilder buildNlpWorkersProcess(ExecutableExtensionHelper extensionHelper, int nWorkers) throws IOException {
         Path tmpRoot = Path.of(System.getProperty("java.io.tmpdir"));
         for (Path p: findPidPaths("regex:" + extensionHelper.getPidFilePattern(), tmpRoot)) {
             if (isProcessRunning(p, 1, TimeUnit.SECONDS)) {
@@ -136,20 +140,18 @@ public class WebApp {
                     throw new RuntimeException(e);
                 }
         }
-        // If not we start them
         Path workerConfigPath = dumpNlpWorkerConfig();
-        return extensionHelper.executeExtension(inheritIO, workerConfigPath.toString(), "-n", String.valueOf(nWorkers));
+        ProcessBuilder builder = extensionHelper.buildProcess(workerConfigPath.toString(), "-n", String.valueOf(nWorkers));
+        builder.redirectErrorStream(true).inheritIO();
+        return builder;
     }
 
-    private static Process startNlpWorkers(EmbeddedMode mode, boolean inheritIO) throws IOException {
-
-        PropertiesProvider propertiesProvider = mode.get(PropertiesProvider.class);
+    private static ProcessBuilder buildNlpWorkersProcess(EmbeddedMode mode) throws IOException {
         ExecutableExtensionHelper nlpExtHelper = new ExecutableExtensionHelper(
-            propertiesProvider, mode.get(ExtensionService.class), "^datashare-spacy-worker-[\\d\\.]+$"
+            mode.get(ExtensionService.class), "^datashare-spacy-worker(?:-[\\d\\.]+)?$"
         );
         int nWorkers = mode.get(PropertiesProvider.class).get(NLP_PARALLELISM_OPT).map(Integer::parseInt).orElse(1);
-        LOGGER.info("starting " + nWorkers + " Python NLP workers !");
-        return startNlpWorkers(nlpExtHelper, nWorkers, inheritIO);
+        return buildNlpWorkersProcess(nlpExtHelper, nWorkers);
     }
 
     private static Path dumpNlpWorkerConfig() throws IOException {
