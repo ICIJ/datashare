@@ -3,7 +3,6 @@ package org.icij.datashare.tasks;
 import com.google.inject.Inject;
 import com.google.inject.assistedinject.Assisted;
 
-import java.util.Optional;
 import java.util.function.Function;
 import org.icij.datashare.Entity;
 import org.icij.datashare.PropertiesProvider;
@@ -12,7 +11,6 @@ import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.asynctasks.TaskGroup;
 import org.icij.datashare.extract.DocumentCollectionFactory;
 import org.icij.datashare.text.Document;
-import org.icij.datashare.text.ProjectProxy;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.text.indexing.SearchQuery;
 import org.icij.datashare.text.nlp.Pipeline;
@@ -33,8 +31,9 @@ import static org.icij.datashare.cli.DatashareCliOptions.NLP_PIPELINE_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.SCROLL_DURATION_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.SCROLL_SIZE_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.SEARCH_QUERY_OPT;
+import static org.icij.datashare.tasks.GroupHelper.JAVA_GROUP;
 
-@TaskGroup("Java")
+@TaskGroup(JAVA_GROUP)
 public class EnqueueFromIndexTask extends PipelineTask<String> {
     private final DocumentCollectionFactory<String> factory;
     private final String searchQuery;
@@ -47,7 +46,7 @@ public class EnqueueFromIndexTask extends PipelineTask<String> {
 
     @Inject
     public EnqueueFromIndexTask(final DocumentCollectionFactory<String> factory, final Indexer indexer,
-                                @Assisted Task<Long> taskView, @Assisted final Function<Double, Void> updateCallback) {
+                                @Assisted Task<Long> taskView, @Assisted final Function<Double, Void> ignored) {
         super(Stage.ENQUEUEIDX, taskView.getUser(), factory, new PropertiesProvider(taskView.args), String.class);
         this.factory = factory;
         this.indexer = indexer;
@@ -69,6 +68,7 @@ public class EnqueueFromIndexTask extends PipelineTask<String> {
             searcher = indexer.search(singletonList(projectName), Document.class, new SearchQuery(searchQuery))
                     .withoutSource("content", "contentTranslated").limit(scrollSize);
         }
+        searcher.sort("language", Indexer.Searcher.SortOrder.ASC);
         logger.info("enqueuing doc ids finding for index {} and {} with {} scroll and size of {} : {} documents found", projectName, nlpPipeline,
                 scrollDuration, scrollSize, searcher.totalHits());
         List<? extends Entity> docsToProcess = searcher.scroll(scrollDuration).collect(toList());
