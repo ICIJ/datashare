@@ -58,7 +58,7 @@ public class TaskManagersIntTest {
                 "messageBusAddress", "amqp://admin:admin@rabbitmq"));
         final RedissonClient redissonClient = new RedissonClientFactory().withOptions(
             Options.from(propertiesProvider.getProperties())).create();
-        Map<String, Task<?>> amqpTasks = new RedissonMap<>(new TaskManagerRedis.TaskViewCodec(),
+        Map<String, TaskMetadata<?>> amqpTasks = new RedissonMap<>(new TaskManagerRedis.RedisCodec<>(TaskMetadata.class),
             new CommandSyncService(((Redisson) redissonClient).getConnectionManager(),
                 new RedissonObjectBuilder(redissonClient)),
             "tasks:queue:test",
@@ -97,7 +97,7 @@ public class TaskManagersIntTest {
     @Test(timeout = 10000)
     public void test_stop_running_task() throws Exception {
         eventWaiter.setWaiter(new CountDownLatch(2)); // 1 progress, 1 cancelled
-        String taskViewId = taskManager.startTask(TestFactory.SleepForever.class, User.local(), new HashMap<>());
+        String taskViewId = taskManager.startTask(TestFactory.SleepForever.class, new HashMap<>());
 
         taskInspector.awaitStatus(taskViewId, Task.State.RUNNING, 1, SECONDS);
         taskManager.stopTask(taskViewId);
@@ -112,8 +112,8 @@ public class TaskManagersIntTest {
     public void test_stop_queued_task() throws Exception {
         eventWaiter.setWaiter(new CountDownLatch(3)); // 1 progress, 2 cancelled
 
-        String tv1Id = taskManager.startTask(TestFactory.SleepForever.class, User.local(), new HashMap<>());
-        String tv2Id = taskManager.startTask(TestFactory.SleepForever.class, User.local(), new HashMap<>());
+        String tv1Id = taskManager.startTask(TestFactory.SleepForever.class, new HashMap<>());
+        String tv2Id = taskManager.startTask(TestFactory.SleepForever.class, new HashMap<>());
 
         taskInspector.awaitStatus(tv1Id, Task.State.RUNNING, 1, SECONDS);
         taskManager.stopTask(tv2Id);

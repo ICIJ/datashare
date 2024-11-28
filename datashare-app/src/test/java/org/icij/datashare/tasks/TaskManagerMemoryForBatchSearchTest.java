@@ -90,7 +90,7 @@ public class TaskManagerMemoryForBatchSearchTest {
         when(factory.createBatchSearchRunner(any(), any())).thenReturn(batchSearchRunner);
         mockSearch.willThrow(new IOException("io exception"));
 
-        taskManager.startTask(new Task<>(testBatchSearch.uuid, BatchSearchRunner.class.getName(), local(), new Group("TestGroup")));
+        taskManager.startTask(DatashareTask.task(testBatchSearch.uuid, BatchSearchRunner.class.getName(), local()), new Group("TestGroup"));
         taskManager.shutdownAndAwaitTermination(1, TimeUnit.SECONDS);
 
         verify(repository).setState(testBatchSearch.uuid, BatchSearch.State.RUNNING);
@@ -108,8 +108,8 @@ public class TaskManagerMemoryForBatchSearchTest {
         when(factory.createBatchSearchRunner(any(), any())).thenReturn(bsr1, bsr2);
         when(repository.get(bs1.uuid)).thenReturn(bs1);
         when(repository.get(bs2.uuid)).thenReturn(bs2);
-        String taskView1Id = taskManager.startTask(bs1.uuid, BatchSearchRunner.class, bs1.user);
-        String taskView2Id = taskManager.startTask(bs2.uuid, BatchSearchRunner.class, bs2.user);
+        taskManager.startTask(bs1.uuid, BatchSearchRunner.class, bs1.user);
+        taskManager.startTask(bs2.uuid, BatchSearchRunner.class, bs2.user);
 
         bs1Started.await();
         Signal.raise(new Signal("TERM"));
@@ -139,7 +139,7 @@ public class TaskManagerMemoryForBatchSearchTest {
         taskManager = new TaskManagerMemory(factory, new PropertiesProvider(), startLoop);
         mockSearch = new MockSearch<>(indexer, Indexer.QueryBuilderSearcher.class);
 
-        Task<Object> taskView = new Task<>(testBatchSearch.uuid, BatchSearchRunner.class.getName(), local(), new Group("TestGroup"));
+         Task<Object> taskView = DatashareTask.task(testBatchSearch.uuid, BatchSearchRunner.class.getName(), local());
         batchSearchRunner = new BatchSearchRunner(indexer, new PropertiesProvider(), repository, taskView, taskView.progress(taskManager::progress));
         when(repository.get(eq(local()), anyString())).thenReturn(testBatchSearch);
         when(factory.createBatchSearchRunner(any(), any())).thenReturn(batchSearchRunner);
@@ -155,7 +155,7 @@ public class TaskManagerMemoryForBatchSearchTest {
         private final CountDownLatch countDownLatch;
 
         public SleepingBatchSearchRunner(int sleepingMilliseconds, CountDownLatch countDownLatch, BatchSearch bs) {
-            super(mock(Indexer.class), new PropertiesProvider(), repository, new Task<>(bs.uuid, BatchSearchRunner.class.getName(), local(), new Group("TestGroup")), (b) -> null);
+            super(mock(Indexer.class), new PropertiesProvider(), repository, DatashareTask.task(bs.uuid, BatchSearchRunner.class.getName(), local()), (b) -> null);
             this.sleepingMilliseconds = sleepingMilliseconds;
             this.countDownLatch = countDownLatch;
         }

@@ -10,12 +10,10 @@ import org.icij.datashare.Entity;
 import org.icij.datashare.asynctasks.bus.amqp.Event;
 import org.icij.datashare.asynctasks.bus.amqp.TaskError;
 import org.icij.datashare.asynctasks.bus.amqp.UriResult;
-import org.icij.datashare.user.User;
 
 import java.io.Serializable;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.Callable;
@@ -28,12 +26,10 @@ import static java.util.UUID.randomUUID;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class Task<V> extends Event implements Entity {
-    public static final String USER_KEY = "user";
-    public static final String GROUP_KEY = "group";
     @JsonIgnore private StateLatch stateLatch;
     @JsonIgnore private final Object lock = new Object();
 
-    public enum State {CREATED, QUEUED, RUNNING, CANCELLED, ERROR, DONE;}
+    public enum State {CREATED, QUEUED, RUNNING, CANCELLED, ERROR, DONE}
     @JsonTypeInfo(use = JsonTypeInfo.Id.CLASS, property = "@type")
     public final Map<String, Object> args;
     public final String id;
@@ -49,20 +45,16 @@ public class Task<V> extends Event implements Entity {
     @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "@type")
     private volatile V result;
 
-    public Task(String name, User user, Map<String, Object> args) {
-        this(randomUUID().toString(), name, user, args);
+    public Task(String name, Map<String, Object> args) {
+        this(randomUUID().toString(), name, State.CREATED, 0, null, args);
     }
 
-    public Task(String name, User user, Group group, Map<String, Object> args) {
-        this(randomUUID().toString(), name, State.CREATED, 0, null, addTo(args, user, group));
+    public Task(String id, String name) {
+        this(id, name, new HashMap<>());
     }
 
-    public Task(String id, String name, User user, Group group) {
-        this(id, name, user,addTo(new HashMap<>(), user, group));
-    }
-
-    public Task(String id, String name, User user, Map<String, Object> args) {
-        this(id, name, State.CREATED, 0, null, addTo(args, user));
+    public Task(String id, String name, Map<String, Object> args) {
+        this(id, name, State.CREATED, 0, null, args);
     }
 
     @JsonCreator
@@ -178,16 +170,6 @@ public class Task<V> extends Event implements Entity {
         return id == null;
     }
 
-    @JsonIgnore
-    public User getUser() {
-        return (User) args.get(USER_KEY);
-    }
-
-    @JsonIgnore
-    public Group getGroup() {
-        return (Group) args.get(GROUP_KEY);
-    }
-
     public static <V> String getId(Callable<V> task) {
         return task.toString();
     }
@@ -208,18 +190,5 @@ public class Task<V> extends Event implements Entity {
     private void setState(State state) {
         this.state = state;
         ofNullable(stateLatch).ifPresent(sl -> sl.setTaskState(state));
-    }
-
-    private static Map<String, Object> addTo(Map<String, Object> properties, User user) {
-        LinkedHashMap<String, Object> result = new LinkedHashMap<>(properties);
-        result.put(USER_KEY, user);
-        return result;
-    }
-
-    private static Map<String, Object> addTo(Map<String, Object> properties, User user, Group group) {
-        LinkedHashMap<String, Object> result = new LinkedHashMap<>(properties);
-        result.put(USER_KEY, user);
-        result.put(GROUP_KEY, group);
-        return result;
     }
 }

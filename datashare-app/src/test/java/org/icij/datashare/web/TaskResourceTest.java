@@ -182,7 +182,6 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         defaultProperties.put("foo", "baz");
         defaultProperties.put("key", "val");
         defaultProperties.put("user", User.local());
-        defaultProperties.put("group", new Group("Java"));
         defaultProperties.remove(REPORT_NAME_OPT);
 
         assertThat(taskManager.getTasks()).hasSize(2);
@@ -203,7 +202,6 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         defaultProperties.put("key1", "val1");
         defaultProperties.put("key2", "val2");
         defaultProperties.put("user", User.local());
-        defaultProperties.put("group", new Group("Java"));
 
         assertThat(taskManager.getTasks()).hasSize(1);
         assertThat(taskManager.getTasks().get(0).name).isEqualTo("org.icij.datashare.tasks.IndexTask");
@@ -464,6 +462,8 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
             "arguments": {"user":{"@type":"org.icij.datashare.user.User", "id":"local","name":null,"email":null,"provider":"local","details":{"uid":"local","groups_by_applications":{"datashare":["local-datashare"]}}
             }}}""", TaskCreation.class.getName()))
                 .should().respond(201);
+        // Cancel the all tasks to avoid side-effects with other tests
+        put("/api/task/stopAll").should().respond(200);
     }
 
     @NotNull
@@ -500,9 +500,9 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         when(taskFactory.createScanIndexTask(any(), any())).thenReturn(mock(ScanIndexTask.class));
         when(taskFactory.createEnqueueFromIndexTask(any(), any())).thenReturn(mock(EnqueueFromIndexTask.class));
         when(taskFactory.createExtractNlpTask(any(), any())).thenReturn(mock(ExtractNlpTask.class));
-        when(taskFactory.createTestTask(any(Task.class), any(Function.class))).thenReturn(new TestTask(10));
-        when(taskFactory.createTestSleepingTask(any(Task.class), any(Function.class))).thenReturn(new TestSleepingTask(100000));
-        when(taskFactory.createTaskCreation(any(Task.class), any(Function.class))).thenReturn(mock(TaskCreation.class));
+        when(taskFactory.createTestTask(any( Task.class), any(Function.class))).thenReturn(new TestTask(10));
+        when(taskFactory.createTestSleepingTask(any( Task.class), any(Function.class))).thenReturn(new TestSleepingTask(100000));
+        when(taskFactory.createTaskCreation(any( Task.class), any(Function.class))).thenReturn(mock(TaskCreation.class));
     }
 
     public interface DatashareTaskFactoryForTest extends DatashareTaskFactory {

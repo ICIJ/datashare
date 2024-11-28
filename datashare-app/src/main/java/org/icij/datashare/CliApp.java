@@ -1,31 +1,5 @@
 package org.icij.datashare;
 
-import com.google.inject.ConfigurationException;
-import org.icij.datashare.asynctasks.Task;
-import org.icij.datashare.asynctasks.TaskManager;
-import org.icij.datashare.cli.CliExtensionService;
-import org.icij.datashare.cli.spi.CliExtension;
-import org.icij.datashare.mode.CommonMode;
-import org.icij.datashare.tasks.ArtifactTask;
-import org.icij.datashare.tasks.CreateNlpBatchesFromIndex;
-import org.icij.datashare.tasks.BatchNlpTask;
-import org.icij.datashare.tasks.DeduplicateTask;
-import org.icij.datashare.tasks.EnqueueFromIndexTask;
-import org.icij.datashare.tasks.ExtractNlpTask;
-import org.icij.datashare.tasks.IndexTask;
-import org.icij.datashare.tasks.ScanIndexTask;
-import org.icij.datashare.tasks.ScanTask;
-import org.icij.datashare.tasks.DatashareTaskFactory;
-import org.icij.datashare.text.indexing.Indexer;
-import org.redisson.api.RedissonClient;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.io.IOException;
-import java.util.List;
-import java.util.Properties;
-
-import static java.util.Optional.ofNullable;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.icij.datashare.PropertiesProvider.propertiesToMap;
 import static org.icij.datashare.cli.DatashareCliOptions.CREATE_INDEX_OPT;
@@ -34,6 +8,28 @@ import static org.icij.datashare.cli.DatashareCliOptions.DEL_API_KEY_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.GET_API_KEY_OPT;
 import static org.icij.datashare.user.User.localUser;
 import static org.icij.datashare.user.User.nullUser;
+
+import java.io.IOException;
+import java.util.List;
+import java.util.Properties;
+import org.icij.datashare.asynctasks.TaskManager;
+import org.icij.datashare.cli.CliExtensionService;
+import org.icij.datashare.cli.spi.CliExtension;
+import org.icij.datashare.mode.CommonMode;
+import org.icij.datashare.tasks.ArtifactTask;
+import org.icij.datashare.tasks.BatchNlpTask;
+import org.icij.datashare.tasks.CreateNlpBatchesFromIndex;
+import org.icij.datashare.tasks.DatashareTask;
+import org.icij.datashare.tasks.DatashareTaskFactory;
+import org.icij.datashare.tasks.DeduplicateTask;
+import org.icij.datashare.tasks.EnqueueFromIndexTask;
+import org.icij.datashare.tasks.ExtractNlpTask;
+import org.icij.datashare.tasks.IndexTask;
+import org.icij.datashare.tasks.ScanIndexTask;
+import org.icij.datashare.tasks.ScanTask;
+import org.icij.datashare.text.indexing.Indexer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 class CliApp {
     private static final Logger logger = LoggerFactory.getLogger(CliApp.class);
@@ -59,13 +55,15 @@ class CliApp {
     private static void process(DeliverableService<?> deliverableService, Properties properties) throws IOException {
         String listPattern = deliverableService.getListOpt(properties);
         if (listPattern != null) {
-            listPattern = listPattern.equalsIgnoreCase("true") ? ".*":listPattern;
+            listPattern = listPattern.equalsIgnoreCase("true") ? ".*" : listPattern;
             deliverableService.list(listPattern).forEach(DeliverablePackage::displayInformation);
-        } else if(deliverableService.getInstallOpt(properties) != null) {
+        } else if (deliverableService.getInstallOpt(properties) != null) {
             deliverableService.downloadAndInstallFromCli(properties);
         } else if (deliverableService.getDeleteOpt(properties) != null) {
             deliverableService.deleteFromCli(properties);
-        } else return;
+        } else {
+            return;
+        }
         System.exit(0);
     }
 
@@ -82,7 +80,9 @@ class CliApp {
         if (properties.getProperty(CRE_API_KEY_OPT) != null) {
             String userName = properties.getProperty(CRE_API_KEY_OPT);
             String secretKey = taskFactory.createGenApiKey(localUser(userName)).call();
-            logger.info("generated secret key for user {} (store it somewhere safe, datashare cannot retrieve it later): {}", userName, secretKey);
+            logger.info(
+                "generated secret key for user {} (store it somewhere safe, datashare cannot retrieve it later): {}",
+                userName, secretKey);
             System.exit(0);
         }
 
@@ -107,47 +107,51 @@ class CliApp {
         logger.info("executing {}", pipeline);
         if (pipeline.has(Stage.DEDUPLICATE)) {
             taskManager.startTask(
-                    new Task<>(DeduplicateTask.class.getName(), nullUser(), propertiesToMap(properties)));
+                DatashareTask.task(DeduplicateTask.class.getName(), nullUser(), propertiesToMap(properties)));
         }
 
         if (pipeline.has(Stage.SCANIDX)) {
             taskManager.startTask(
-                    new Task<>(ScanIndexTask.class.getName(), nullUser(), propertiesToMap(properties)));
+                DatashareTask.task(ScanIndexTask.class.getName(), nullUser(), propertiesToMap(properties)));
         }
 
         if (pipeline.has(Stage.SCAN)) {
             taskManager.startTask(
-                    new Task<>(ScanTask.class.getName(), nullUser(), propertiesToMap(properties)));
+                DatashareTask.task(ScanTask.class.getName(), nullUser(), propertiesToMap(properties)));
         }
 
         if (pipeline.has(Stage.INDEX)) {
             taskManager.startTask(
-                    new Task<>(IndexTask.class.getName(), nullUser(), propertiesToMap(properties)));
+                DatashareTask.task(IndexTask.class.getName(), nullUser(), propertiesToMap(properties)));
         }
 
         if (pipeline.has(Stage.ENQUEUEIDX)) {
             taskManager.startTask(
-                    new Task<>(EnqueueFromIndexTask.class.getName(), nullUser(), propertiesToMap(properties)));
+                DatashareTask.task(EnqueueFromIndexTask.class.getName(), nullUser(), propertiesToMap(properties)));
         }
 
         if (pipeline.has(Stage.CREATENLPBATCHESFROMIDX)) {
-            taskManager.startTask(new Task<>(CreateNlpBatchesFromIndex.class.getName(), nullUser(), propertiesToMap(properties)));
+            taskManager.startTask(
+                DatashareTask.task(CreateNlpBatchesFromIndex.class.getName(), nullUser(), propertiesToMap(properties)));
         }
 
         if (pipeline.has(Stage.BATCHNLP)) {
             taskFactory.createBatchNlpTask(
-                    new Task<>(BatchNlpTask.class.getName(), nullUser(), propertiesToMap(properties)),
-                    (percentage) -> {logger.info("percentage: {}% done", percentage); return null;}).call();
+                DatashareTask.task(BatchNlpTask.class.getName(), nullUser(), propertiesToMap(properties)),
+                (percentage) -> {
+                    logger.info("percentage: {}% done", percentage);
+                    return null;
+                }).call();
         }
 
         if (pipeline.has(Stage.NLP)) {
             taskManager.startTask(
-                    new Task<>(ExtractNlpTask.class.getName(), nullUser(), propertiesToMap(properties)));
+                DatashareTask.task(ExtractNlpTask.class.getName(), nullUser(), propertiesToMap(properties)));
         }
 
         if (pipeline.has(Stage.ARTIFACT)) {
             taskManager.startTask(
-                    new Task<>(ArtifactTask.class.getName(), nullUser(), propertiesToMap(properties)));
+                DatashareTask.task(ArtifactTask.class.getName(), nullUser(), propertiesToMap(properties)));
         }
         taskManager.shutdownAndAwaitTermination(Integer.MAX_VALUE, SECONDS);
     }

@@ -45,9 +45,8 @@ public class EnqueueFromIndexTask extends PipelineTask<String> {
     private final int scrollSize;
 
     @Inject
-    public EnqueueFromIndexTask(final DocumentCollectionFactory<String> factory, final Indexer indexer,
-                                @Assisted Task<Long> taskView, @Assisted final Function<Double, Void> ignored) {
-        super(Stage.ENQUEUEIDX, taskView.getUser(), factory, new PropertiesProvider(taskView.args), String.class);
+    public EnqueueFromIndexTask(final DocumentCollectionFactory<String> factory, final Indexer indexer, @Assisted Task<Long> taskView, @Assisted final Function<Double, Void> ignored) {
+        super(Stage.ENQUEUEIDX, DatashareTask.getUser(taskView), factory, new PropertiesProvider(taskView.args), String.class);
         this.factory = factory;
         this.indexer = indexer;
         this.nlpPipeline = Pipeline.Type.parse((String) taskView.args.getOrDefault(NLP_PIPELINE_OPT, Pipeline.Type.CORENLP.name()));

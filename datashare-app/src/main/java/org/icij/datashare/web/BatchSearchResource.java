@@ -19,11 +19,11 @@ import net.codestory.http.errors.NotFoundException;
 import net.codestory.http.errors.UnauthorizedException;
 import net.codestory.http.payload.Payload;
 import org.icij.datashare.PropertiesProvider;
-import org.icij.datashare.asynctasks.TaskManager;
 import org.icij.datashare.batch.*;
 import org.icij.datashare.db.JooqBatchSearchRepository;
 import org.icij.datashare.session.DatashareUser;
 import org.icij.datashare.tasks.BatchSearchRunner;
+import org.icij.datashare.tasks.DatashareTaskManager;
 import org.icij.datashare.text.Project;
 import org.icij.datashare.text.ProjectProxy;
 import org.icij.datashare.user.User;
@@ -48,13 +48,13 @@ import static org.icij.datashare.function.ThrowingFunctions.parseBoolean;
 @Singleton
 @Prefix("/api/batch")
 public class BatchSearchResource {
-    private final TaskManager taskManager;
+    private final DatashareTaskManager taskManager;
     private final BatchSearchRepository batchSearchRepository;
     private final PropertiesProvider propertiesProvider;
     private final int MAX_BATCH_SIZE = 60000;
 
     @Inject
-    public BatchSearchResource(PropertiesProvider propertiesProvider, TaskManager taskManager, final BatchSearchRepository batchSearchRepository) {
+    public BatchSearchResource(PropertiesProvider propertiesProvider,  DatashareTaskManager taskManager, final BatchSearchRepository batchSearchRepository) {
         this.taskManager = taskManager;
         this.batchSearchRepository = batchSearchRepository;
         this.propertiesProvider = propertiesProvider;

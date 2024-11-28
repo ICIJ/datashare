@@ -33,7 +33,7 @@ public class ArtifactTask extends PipelineTask<String> {
 
     @Inject
     public ArtifactTask(DocumentCollectionFactory<String> factory, Indexer indexer, PropertiesProvider propertiesProvider, @Assisted Task<Long> taskView, @Assisted final Function<Double, Void> updateCallback) {
-        super(Stage.ARTIFACT, taskView.getUser(), factory, propertiesProvider, String.class);
+        super(Stage.ARTIFACT, DatashareTask.getUser(taskView), factory, propertiesProvider, String.class);
         this.indexer = indexer;
         project = Project.project(propertiesProvider.get(DEFAULT_PROJECT_OPT).orElse(DEFAULT_DEFAULT_PROJECT));
         artifactDir = Path.of(propertiesProvider.get(ARTIFACT_DIR_OPT).orElseThrow(() -> new IllegalArgumentException(String.format("cannot create artifact task with empty %s", ARTIFACT_DIR_OPT))));

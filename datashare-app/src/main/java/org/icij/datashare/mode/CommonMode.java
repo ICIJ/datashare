@@ -19,7 +19,6 @@ import net.codestory.http.routes.Routes;
 import org.icij.datashare.PipelineRegistry;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Repository;
-import org.icij.datashare.asynctasks.TaskManager;
 import org.icij.datashare.asynctasks.TaskModifier;
 import org.icij.datashare.asynctasks.TaskSupplier;
 import org.icij.datashare.batch.BatchSearchRepository;
@@ -34,6 +33,7 @@ import org.icij.datashare.extract.RedisDocumentCollectionFactory;
 import org.icij.datashare.nlp.EmailPipeline;
 import org.icij.datashare.nlp.OptimaizeLanguageGuesser;
 import org.icij.datashare.tasks.DatashareTaskFactory;
+import org.icij.datashare.tasks.DatashareTaskManager;
 import org.icij.datashare.tasks.TaskManagerAmqp;
 import org.icij.datashare.tasks.TaskManagerMemory;
 import org.icij.datashare.tasks.TaskManagerRedis;
@@ -137,17 +137,17 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
         QueueType batchQueueType = getQueueType(propertiesProvider, BATCH_QUEUE_TYPE_OPT, QueueType.MEMORY);
         switch ( batchQueueType ) {
             case REDIS:
-                bind(TaskManager.class).to(TaskManagerRedis.class);
+                bind(DatashareTaskManager.class).to(TaskManagerRedis.class);
                 bind(TaskModifier.class).to(TaskSupplierRedis.class);
                 bind(TaskSupplier.class).to(TaskSupplierRedis.class);
                 break;
             case AMQP:
-                bind(TaskManager.class).to(TaskManagerAmqp.class);
+                bind(DatashareTaskManager.class).to(TaskManagerAmqp.class);
                 bind(TaskSupplier.class).to(TaskSupplierAmqp.class);
                 bind(TaskModifier.class).to(TaskSupplierAmqp.class);
                 break;
             default:
-                bind(TaskManager.class).to(TaskManagerMemory.class);
+                bind(DatashareTaskManager.class).to(TaskManagerMemory.class);
                 bind(TaskModifier.class).to(TaskManagerMemory.class);
                 bind(TaskSupplier.class).to(TaskManagerMemory.class);
         }
@@ -162,7 +162,7 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
 
     @Provides
     org.icij.datashare.asynctasks.bus.amqp.AmqpInterlocutor provideAmqpInterlocutor() {
-        AmqpInterlocutor amqp = null;
+        AmqpInterlocutor amqp;
         try {
             amqp = new AmqpInterlocutor(propertiesProvider);
         } catch (IOException | URISyntaxException e) {

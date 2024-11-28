@@ -9,7 +9,6 @@ import net.codestory.http.security.SessionIdStore;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.asynctasks.TaskGroup;
-import org.icij.datashare.asynctasks.TaskManager;
 import org.icij.datashare.asynctasks.TaskModifier;
 import org.icij.datashare.asynctasks.bus.amqp.UriResult;
 import org.icij.datashare.tasks.DatashareTaskFactory;

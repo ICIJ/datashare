@@ -32,7 +32,7 @@ public class TaskWorkerLoopIntTest {
         DatashareTaskFactory factory = mock(DatashareTaskFactory.class);
         BatchDownload batchDownload = new BatchDownload(singletonList(project("prj")), User.local(), "foo");
         Map<String, Object> properties = Map.of("batchDownload", batchDownload);
-        Task<File> taskView = new Task<>(BatchDownloadRunner.class.getName(), batchDownload.user, properties);
+         Task<File> taskView = DatashareTask.task(BatchDownloadRunner.class.getName(), batchDownload.user, properties);
         BatchDownloadRunner runner = new BatchDownloadRunner(mock(Indexer.class), new PropertiesProvider(), taskView, taskView.progress(taskSupplier::progress));
         when(factory.createBatchDownloadRunner(any(), any())).thenReturn(runner);
 
@@ -41,7 +41,7 @@ public class TaskWorkerLoopIntTest {
         Thread worker = new Thread(taskWorkerLoop::call);
         worker.start();
         workerStarted.await();
-        taskManager.startTask(BatchDownloadRunner.class.getName(), User.local(), properties);
+        taskManager.startTask(BatchDownloadRunner.class, User.local(), properties);
         Thread.sleep(100); // this is a symptom of a possible flaky test but for now I can't figure out how to be event driven
 
         taskManager.shutdownAndAwaitTermination(1, TimeUnit.SECONDS);
@@ -51,7 +51,7 @@ public class TaskWorkerLoopIntTest {
         assertThat(taskManager.getTasks().get(0).getError()).isNotNull();
         assertThat(taskManager.getTasks().get(0).getProgress()).isEqualTo(1);
         assertThat(taskManager.getTasks().get(0).args).hasSize(2);
-        assertThat(taskManager.getTasks().get(0).getUser()).isEqualTo(User.local());
+        assertThat(DatashareTask.getUser(taskManager.getTasks().get(0))).isEqualTo(User.local());
     }
 
     @Before
