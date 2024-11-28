@@ -191,12 +191,13 @@ public class CreateNlpBatchesFromIndex extends DefaultTask<Long> implements User
     }
 
     private Map<String, Object> batchTaskArgs() {
-        return Map.of(
+        Map<String, Object> args = new HashMap<>(Map.of(
             "pipeline", this.nlpPipeline.name(),
             "maxLength", this.maxTextLength,
-            GROUP_KEY, nlpGroup(this.nlpPipeline),
-            "extras", pipelineExtras(this.nlpPipeline)
-        );
+            GROUP_KEY, nlpGroup(this.nlpPipeline)
+        ));
+        args.putAll(pipelineExtras(this.nlpPipeline));
+        return args;
     }
 
 }
