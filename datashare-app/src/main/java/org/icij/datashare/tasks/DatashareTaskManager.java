@@ -21,6 +21,10 @@ public interface DatashareTaskManager extends TaskManager {
            TaskGroup.class).value()));
     }
 
+    default String startTask(Class<?> taskClass, User user, Group group, Map<String, Object> properties) throws IOException {
+        return startTask(DatashareTask.task(taskClass.getName(), user, properties), group);
+    }
+
     default  String startTask(String id, Class<?> taskClass, User user) throws IOException {
         return startTask(DatashareTask.task(id, taskClass.getName(), user), new Group(taskClass.getAnnotation(TaskGroup.class).value()));
     }

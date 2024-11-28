@@ -64,7 +64,7 @@ public class BatchNlpTest {
             "group", "JAVA"
         );
         BatchNlpTask nlpTask = new BatchNlpTask(
-            indexer, pipeline, new Task<>(BatchNlpTask.class.getName(), new User("test"), properties), null
+            indexer, pipeline, DatashareTask.task(BatchNlpTask.class.getName(), new User("test"), properties), null
         );
         // When
         nlpTask.call();

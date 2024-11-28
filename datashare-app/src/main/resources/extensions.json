@@ -53,6 +53,15 @@
       "homepage": "https://github.com/ICIJ/datashare-extension-neo4j",
       "version": "0.4.5",
       "type": "WEB"
+    },
+    {
+      "id": "datashare-nlp-spacy",
+      "name": "Datashare Spacy NLP",
+      "description": "Spacy NLP for Datashare",
+      "url": "https://github.com/ICIJ/datashare-spacy-worker/releases/download/0.1.3/datashare-spacy-worker",
+      "homepage": "https://github.com/ICIJ/datashare-spacy-worker",
+      "version": "0.1.3",
+      "type": "NLP"
     }
   ]
 }

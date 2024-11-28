@@ -35,13 +35,13 @@ public class CreateNlpBatchesFromIndexTest {
     public static ElasticsearchRule es = new ElasticsearchRule();
     private static final ElasticsearchIndexer indexer = new ElasticsearchIndexer(es.client, new PropertiesProvider())
         .withRefresh(Refresh.True);
-    private static TaskManager taskManager;
+    private static DatashareTaskManager taskManager;
 
     @Before
     public void setUp() {
         DatashareTaskFactory factory = mock(DatashareTaskFactory.class);
         when(factory.createBatchNlpTask(any(), any())).thenReturn(mock(BatchNlpTask.class));
-        taskManager = new TaskManagerMemory(new LinkedBlockingQueue<>(), factory, new PropertiesProvider());
+        taskManager = new TaskManagerMemory(factory, new PropertiesProvider());
     }
 
     @After
@@ -76,7 +76,7 @@ public class CreateNlpBatchesFromIndexTest {
                 """
         );
         CreateNlpBatchesFromIndex enqueueFromIndex = new CreateNlpBatchesFromIndex(taskManager, indexer,
-            new Task<>(CreateNlpBatchesFromIndex.class.getName(), new User("test"), properties), null);
+            DatashareTask.task(CreateNlpBatchesFromIndex.class.getName(), new User("test"), properties), null);
         // When
         enqueueFromIndex.call();
         List<List<String>> queued = taskManager.getTasks().stream()

@@ -47,6 +47,7 @@ public class WebApp {
         boolean isEmbeddedAMQP = isEmbeddedAMQP(properties);
         if (isEmbeddedAMQP) {
             // before creating mode because AmqpInterlocutor will try to connect the broker
+            LOGGER.info("starting qpid broker on localhost, port " + AMQP_PORT + "...");
             new QpidAmqpServer(AMQP_PORT).start();
         }
 

@@ -45,7 +45,7 @@ public class BatchNlpTask extends DefaultTask<Long> implements UserTask, Cancell
 
     BatchNlpTask(Indexer indexer, Pipeline pipeline, @Assisted Task<Long> taskView,
                  @Assisted final Function<Double, Void> progress) {
-        this.user = taskView.getUser();
+        this.user = DatashareTask.getUser(taskView);
         this.indexer = indexer;
         this.pipeline = pipeline;
         this.docs = (List<CreateNlpBatchesFromIndex.BatchDocument>) taskView.args.get("docs");

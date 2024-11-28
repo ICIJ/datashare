@@ -3,7 +3,6 @@ package org.icij.datashare.tasks;
 import static java.util.Collections.singletonList;
 import static java.util.Optional.ofNullable;
 import static java.util.stream.Collectors.groupingBy;
-import static org.icij.datashare.asynctasks.Task.GROUP_KEY;
 import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_DEFAULT_PROJECT;
 import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_NLP_BATCH_SIZE;
 import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_NLP_MAX_TEXT_LENGTH;
@@ -32,9 +31,9 @@ import java.util.Map;
 import java.util.function.Function;
 import org.icij.datashare.Entity;
 import org.icij.datashare.asynctasks.CancellableTask;
+import org.icij.datashare.asynctasks.Group;
 import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.asynctasks.TaskGroup;
-import org.icij.datashare.asynctasks.TaskManager;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.Language;
 import org.icij.datashare.text.indexing.Indexer;
@@ -53,7 +52,7 @@ public class CreateNlpBatchesFromIndex extends DefaultTask<Long> implements User
 
     private final User user;
     private volatile Thread taskThread;
-    private final TaskManager taskManager;
+    private final DatashareTaskManager taskManager;
     private final String searchQuery;
     private final Map<String, Object> batchTaskArgs;
     private final Pipeline.Type nlpPipeline;
@@ -72,10 +71,10 @@ public class CreateNlpBatchesFromIndex extends DefaultTask<Long> implements User
 
     @Inject
     public CreateNlpBatchesFromIndex(
-        final TaskManager taskManager, final Indexer indexer, @Assisted Task<Long> taskView,
+        final DatashareTaskManager taskManager, final Indexer indexer, @Assisted Task<Long> taskView,
         @Assisted final Function<Double, Void> ignored
     ) {
-        this.user = taskView.getUser();
+        this.user = DatashareTask.getUser(taskView);
         this.taskManager = taskManager;
         this.indexer = indexer;
         this.nlpPipeline = Pipeline.Type.parse((String) taskView.args.getOrDefault(NLP_PIPELINE_OPT, Pipeline.Type.CORENLP.name()));
@@ -173,7 +172,7 @@ public class CreateNlpBatchesFromIndex extends DefaultTask<Long> implements User
             //  bolts to Python, it could be nice to decouple task names from class names since they can change and
             //  are bound to languages
             logger.info("{} - {}", DatashareTime.getNow().getTime(), ((List<BatchDocument>)args.get("docs")).get(0).language());
-            this.taskManager.startTask(BatchNlpTask.class, this.user, args);
+            this.taskManager.startTask(BatchNlpTask.class, this.user, new Group(nlpGroup(nlpPipeline)), args);
         } catch (IOException e) {
             throw new RuntimeException("failed to queue task " + args, e);
         }
@@ -193,8 +192,7 @@ public class CreateNlpBatchesFromIndex extends DefaultTask<Long> implements User
     private Map<String, Object> batchTaskArgs() {
         Map<String, Object> args = new HashMap<>(Map.of(
             "pipeline", this.nlpPipeline.name(),
-            "maxLength", this.maxTextLength,
-            GROUP_KEY, nlpGroup(this.nlpPipeline)
+            "maxLength", this.maxTextLength
         ));
         args.putAll(pipelineExtras(this.nlpPipeline));
         return args;
