@@ -7,7 +7,6 @@ import static org.icij.datashare.cli.DatashareCliOptions.NLP_PARALLELISM_OPT;
 import static org.icij.datashare.utils.ProcessHandler.dumpPid;
 import static org.icij.datashare.utils.ProcessHandler.findPidPaths;
 import static org.icij.datashare.utils.ProcessHandler.isProcessRunning;
-import static org.icij.datashare.utils.ProcessHandler.killProcessById;
 
 import java.awt.Desktop;
 import java.io.File;
@@ -50,15 +49,18 @@ public class WebApp {
             new QpidAmqpServer(AMQP_PORT).start();
         }
         CommonMode mode = CommonMode.create(properties);
-        Process nlpWorkerProcess = null;
-        Path nlpWorkersPidPath = null;
+        Process nlpWorkerProcess;
+        Path nlpWorkersPidPath;
         boolean startNlpWorker = isEmbeddedAMQP && !mode.get(ExtensionService.class)
             .listInstalled("datashare-spacy-worker.*")
             .isEmpty();
         if (startNlpWorker) {
-            nlpWorkerProcess = startNlpWorkers((EmbeddedMode) mode, true);
+            // TODO: we miss a callback to kill the process pool
+            nlpWorkerProcess = buildNlpWorkersProcess((EmbeddedMode) mode)
+                .redirectErrorStream(true).inheritIO().start();
             nlpWorkersPidPath = Files.createTempFile("datashare-spacy-worker-", ".pid");
             dumpPid(nlpWorkersPidPath.toFile(), nlpWorkerProcess.pid());
+            LOGGER.debug("dumping worker pid to " + nlpWorkersPidPath);
         }
 
         Thread webServerThread = new Thread(() ->
@@ -76,14 +78,7 @@ public class WebApp {
             Desktop.getDesktop().browse(URI.create(new URI("http://localhost:")+mode.properties().getProperty(PropertiesProvider.TCP_LISTEN_PORT)));
         }
         requeueDatabaseBatchSearches(mode.get(BatchSearchRepository.class), mode.get(TaskManager.class));
-        try {
-            webServerThread.join();
-        } finally {
-            if (nlpWorkerProcess != null && nlpWorkerProcess.isAlive()) {
-                killProcessById(nlpWorkerProcess.pid());
-                Files.deleteIfExists(nlpWorkersPidPath);
-            }
-        }
+        webServerThread.join();
     }
 
     private static boolean isEmbeddedAMQP(Properties properties) {
@@ -115,7 +110,7 @@ public class WebApp {
         }
     }
 
-    protected static Process startNlpWorkers(ExecutableExtensionHelper extensionHelper, int nWorkers, boolean inheritIO) throws IOException {
+    protected static ProcessBuilder buildNlpWorkersProcess(ExecutableExtensionHelper extensionHelper, int nWorkers) throws IOException {
         Path tmpRoot = Path.of(System.getProperty("java.io.tmpdir"));
         for (Path p: findPidPaths("regex:" + extensionHelper.getPidFilePattern(), tmpRoot)) {
             if (isProcessRunning(p, 1, TimeUnit.SECONDS)) {
@@ -137,18 +132,15 @@ public class WebApp {
         }
         // If not we start them
         Path workerConfigPath = dumpNlpWorkerConfig();
-        return extensionHelper.executeExtension(inheritIO, workerConfigPath.toString(), "-n", String.valueOf(nWorkers));
+        return extensionHelper.buildProcess(workerConfigPath.toString(), "-n", String.valueOf(nWorkers));
     }
 
-    private static Process startNlpWorkers(EmbeddedMode mode, boolean inheritIO) throws IOException {
-
-        PropertiesProvider propertiesProvider = mode.get(PropertiesProvider.class);
+    private static ProcessBuilder buildNlpWorkersProcess(EmbeddedMode mode) throws IOException {
         ExecutableExtensionHelper nlpExtHelper = new ExecutableExtensionHelper(
-            propertiesProvider, mode.get(ExtensionService.class), "^datashare-spacy-worker-[\\d\\.]+$"
+            mode.get(ExtensionService.class),  "datashare-nlp-spacy"
         );
         int nWorkers = mode.get(PropertiesProvider.class).get(NLP_PARALLELISM_OPT).map(Integer::parseInt).orElse(1);
-        LOGGER.info("starting " + nWorkers + " Python NLP workers !");
-        return startNlpWorkers(nlpExtHelper, nWorkers, inheritIO);
+        return buildNlpWorkersProcess(nlpExtHelper, nWorkers);
     }
 
     private static Path dumpNlpWorkerConfig() throws IOException {
