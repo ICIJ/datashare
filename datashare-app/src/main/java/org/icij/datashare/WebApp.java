@@ -37,6 +37,7 @@ import org.slf4j.LoggerFactory;
 
 public class WebApp {
     private static final int AMQP_PORT = 5672;
+    private static final int AMQP_HTTP_PORT = 15672;
     private static final Logger LOGGER = LoggerFactory.getLogger(Indexer.class);
 
     public static void main(String[] args) throws Exception {
@@ -48,7 +49,7 @@ public class WebApp {
         if (isEmbeddedAMQP) {
             // before creating mode because AmqpInterlocutor will try to connect the broker
             LOGGER.info("starting qpid broker on localhost, port " + AMQP_PORT + "...");
-            new QpidAmqpServer(AMQP_PORT).start();
+            new QpidAmqpServer(AMQP_PORT, AMQP_HTTP_PORT).start();
         }
 
         CommonMode mode = CommonMode.create(properties);
@@ -149,12 +150,13 @@ public class WebApp {
     }
 
     private static Path dumpNlpWorkerConfig() throws IOException {
-        Map<String, String> workerConfig = Map.of(
+        Map<String, Object> workerConfig = Map.of(
             "type", "amqp",
             "rabbitmq_host", "localhost",
             "rabbitmq_port", String.valueOf(AMQP_PORT),
             "rabbitmq_user", "admin",
-            "rabbitmq_password", "admin"
+            "rabbitmq_password", "admin",
+            "rabbitmq_is_qpid", true
         );
         Path workerConfigPath = Files.createTempFile("datashare-spacy-worker-config-", ".json");
         File tempFile = workerConfigPath.toFile();
