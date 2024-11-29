@@ -59,13 +59,13 @@ public class WebApp {
         Process nlpWorkerProcess = null;
         Path nlpWorkersPidPath;
         boolean startNlpWorker = isEmbeddedAMQP(properties) && !mode.get(ExtensionService.class)
-            .listInstalled("datashare-spacy-worker.*")
+            .listInstalled("datashare-extension-nlp-spacy.*")
             .isEmpty();
         if (startNlpWorker) {
             // TODO: we miss a callback to kill the process pool
             nlpWorkerProcess = buildNlpWorkersProcess((EmbeddedMode) mode)
                 .redirectErrorStream(true).inheritIO().start();
-            nlpWorkersPidPath = Files.createTempFile("datashare-spacy-worker-", ".pid");
+            nlpWorkersPidPath = Files.createTempFile("datashare-extension-nlp-spacy-", ".pid");
             dumpPid(nlpWorkersPidPath.toFile(), nlpWorkerProcess.pid());
             LOGGER.debug("dumping worker pid to " + nlpWorkersPidPath);
         }
@@ -161,7 +161,7 @@ public class WebApp {
             "rabbitmq_user", "admin",
             "rabbitmq_password", "admin"
         );
-        Path workerConfigPath = Files.createTempFile("datashare-spacy-worker-config-", ".json");
+        Path workerConfigPath = Files.createTempFile("datashare-extension-nlp-spacy-config-", ".json");
         File tempFile = workerConfigPath.toFile();
         // Write the JSON object to the temporary file
         JsonObjectMapper.MAPPER.writeValue(tempFile, workerConfig);
