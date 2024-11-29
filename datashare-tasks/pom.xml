@@ -89,11 +89,6 @@
             <artifactId>amqp-client</artifactId>
             <version>${rabbitmq-version}</version>
         </dependency>
-        <dependency>
-            <groupId>io.netty</groupId>
-            <artifactId>netty-resolver-dns-native-macos</artifactId>
-            <version>4.1.90.Final</version>
-        </dependency>
         <!--
         Redisson is needed for RedisBlockingQueue. Redisson is pulling netty.
         It overrides netty 4.1.49 from datashare-index and avoid blocking Redis tests
