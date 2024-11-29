@@ -58,9 +58,9 @@
       "id": "datashare-nlp-spacy",
       "name": "Datashare Spacy NLP",
       "description": "Spacy NLP for Datashare",
-      "url": "https://github.com/ICIJ/datashare-spacy-worker/releases/download/0.1.3/datashare-spacy-worker",
+      "url": "https://github.com/ICIJ/datashare-spacy-worker/releases/download/0.1.4/datashare-spacy-worker-0.1.4",
       "homepage": "https://github.com/ICIJ/datashare-spacy-worker",
-      "version": "0.1.3",
+      "version": "0.1.4",
       "type": "NLP"
     }
   ]
