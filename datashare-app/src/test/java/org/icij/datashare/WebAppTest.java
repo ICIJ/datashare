@@ -21,15 +21,15 @@ public class WebAppTest {
         WebAppTest.class.getClassLoader().getResource("extensions")).getPath());
 
     public static final String extRepoContent = "{\"deliverableList\": ["
-        + "{\"id\":\"datashare-nlp-spacy\", \"url\": \""
-        + "https://github.com/ICIJ/datashare-spacy-worker/releases/download/0.1.3/datashare-spacy-worker-0.1.3"
+        + "{\"id\":\"datashare-extension-nlp-spacy\", \"url\": \""
+        + "https://github.com/ICIJ/datashare-extension-nlp-spacy/releases/download/0.1.3/datashare-extension-nlp-spacy-0.1.3"
         + "\"}"
         + "]}";
 
     @Test
     public void test_nlp_workers_process() throws IOException, InterruptedException {
         // Given
-        String extensionId = "datashare-nlp-spacy";
+        String extensionId = "datashare-extension-nlp-spacy";
         ExtensionService extensionService = new ExtensionService(extDir, new ByteArrayInputStream(extRepoContent.getBytes()));
         ExecutableExtensionHelper extensionHelper = new ExecutableExtensionHelper(extensionService, extensionId);
         // When
@@ -42,19 +42,19 @@ public class WebAppTest {
         }
         Map<String, Object> output = (Map<String, Object>) MAPPER.readValue(p.getInputStream().readAllBytes(), Map.class);
         assertThat(output.get("n_workers")).isEqualTo(6);
-        assertThat((String) output.get("config_file")).contains("datashare-spacy-worker-config-");
+        assertThat((String) output.get("config_file")).contains("datashare-extension-nlp-spacy-config-");
     }
 
     @Test(timeout = 20000)
     public void test_nlp_workers_process_should_throw_when_worker_pool_is_running() throws IOException {
         // Given
-        String extensionId = "datashare-nlp-spacy";
+        String extensionId = "datashare-extension-nlp-spacy";
         ExtensionService extensionService = new ExtensionService(extDir, new ByteArrayInputStream(extRepoContent.getBytes()));
         ExecutableExtensionHelper extensionHelper = new ExecutableExtensionHelper(extensionService, extensionId);
         Process p = null;
         try {
             p = new ProcessBuilder("sleep", "100000").start();
-            Path pidPath = Files.createTempFile("datashare-spacy-worker-1.9.0", ".pid");
+            Path pidPath = Files.createTempFile("datashare-extension-nlp-spacy-1.9.0", ".pid");
             dumpPid(pidPath.toFile(), p.pid());
             // When/Then
             assertThat(assertThrows(RuntimeException.class, () -> buildNlpWorkersProcess(extensionHelper, 1).start()).getMessage())
