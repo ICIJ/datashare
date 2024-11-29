@@ -18,12 +18,13 @@ public class QpidAmqpServer {
     private final Logger logger = LoggerFactory.getLogger(getClass());
     private final Map<String, Object> config;
 
-    public QpidAmqpServer(int port) {
-        this(port, INITIAL_CONFIGURATION);
+    public QpidAmqpServer(int port, int httpPort) {
+        this(port, httpPort, INITIAL_CONFIGURATION);
     }
 
-    public QpidAmqpServer(int port, String qpidConfigurationFileName) {
+    public QpidAmqpServer(int port, int httpPort, String qpidConfigurationFileName) {
         System.setProperty("qpid.amqp_port", String.valueOf(port));
+        System.setProperty("qpid.http_port", String.valueOf(httpPort));
         config = createSystemConfig(qpidConfigurationFileName);
     }
 
@@ -51,7 +52,7 @@ public class QpidAmqpServer {
     }
 
     public static void main(String[] args) throws Exception {
-        QpidAmqpServer server = new QpidAmqpServer(5672);
+        QpidAmqpServer server = new QpidAmqpServer(5672,15672);
         server.start();
     }
 }
