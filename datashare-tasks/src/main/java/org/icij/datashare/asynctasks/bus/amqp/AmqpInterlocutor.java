@@ -41,7 +41,7 @@ public class AmqpInterlocutor implements Closeable {
 
     Connection createConnection(ConnectionFactory connectionFactory) throws IOException {
         try {
-            logger.info("Trying to connect AMQP on " + configuration.host + ":" + configuration.port + "...");
+            logger.info("Trying to connect AMQP on {}:{}...", configuration.host, configuration.port);
             Connection connection = connectionFactory.newConnection();
             logger.info("...connection to AMQP created");
             return connection;
@@ -88,7 +88,7 @@ public class AmqpInterlocutor implements Closeable {
         AmqpChannel channel = new AmqpChannel(connection.createChannel(), queue);
         channel.initForPublish();
         publishChannels.put(queue, channel);
-        logger.info("publish channel " + channel + " has been created for exchange {}", queue.exchange);
+        logger.info("publish channel {} has been created for exchange {}", channel, queue.exchange);
         return this;
     }
 
