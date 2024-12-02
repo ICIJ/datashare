@@ -52,10 +52,9 @@ public class EsEmbeddedServer implements Closeable {
         }
     }
 
-    public EsEmbeddedServer start() {
+    public void start() {
         try {
             node.start();
-            return this;
         } catch (Exception e) {
             throw new RuntimeException("Encountered exception during embedded node startup", e);
         }
