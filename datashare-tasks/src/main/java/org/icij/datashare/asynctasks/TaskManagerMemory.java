@@ -39,7 +39,7 @@ public class TaskManagerMemory implements TaskManager, TaskSupplier {
     public TaskManagerMemory(TaskFactory taskFactory, PropertiesProvider propertiesProvider, CountDownLatch latch) {
         this.taskQueue = new LinkedBlockingQueue<>();
         int parallelism = parseInt(propertiesProvider.get("parallelism").orElse("1"));
-        logger.info("running TaskManager with {} workers", parallelism);
+        logger.info("running TaskManager with {} threads", parallelism);
         executor = Executors.newFixedThreadPool(parallelism);
         loops = IntStream.range(0, parallelism).mapToObj(i -> new TaskWorkerLoop(taskFactory, this, latch)).collect(Collectors.toList());
         loops.forEach(executor::submit);
