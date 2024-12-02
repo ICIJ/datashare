@@ -24,7 +24,7 @@ jobs:
           POSTGRES_USER: dstest
           POSTGRES_PASSWORD: test
           POSTGRES_DB: dstest
-      - image: rabbitmq:3
+      - image: rabbitmq:3.12
         name: rabbitmq
         environment:
           RABBITMQ_DEFAULT_USER: admin
@@ -446,7 +446,7 @@ jobs:
       - image: cimg/openjdk:17.0.11
       - image: redis:4.0.1-alpine
         name: redis
-      - image: rabbitmq:3
+      - image: rabbitmq:3.12
         name: rabbitmq
         environment:
           RABBITMQ_DEFAULT_USER: admin
