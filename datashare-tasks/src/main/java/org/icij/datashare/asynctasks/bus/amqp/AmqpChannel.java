@@ -88,7 +88,7 @@ public class AmqpChannel {
 					logger.warn("exception while deserializing json. Sending nack without requeue", jsonException);
 					rabbitMqChannel.basicNack(envelope.getDeliveryTag(), false, false);
 				} catch (NackException nackEx) {
-					logger.warn("exception while accepting event. Sending nack with requeue=" + nackEx.requeue, nackEx);
+                    logger.warn("exception while accepting event. Sending nack with requeue={}", nackEx.requeue, nackEx);
 					rabbitMqChannel.basicNack(envelope.getDeliveryTag(), false, nackEx.requeue);
 				}
 				criteria.newEvent();

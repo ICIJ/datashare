@@ -1,8 +1,5 @@
 package org.icij.datashare.asynctasks;
 
-import com.rabbitmq.client.AMQP;
-import com.rabbitmq.client.ShutdownSignalException;
-import org.icij.datashare.asynctasks.bus.amqp.AmqpChannel;
 import org.icij.datashare.asynctasks.bus.amqp.CancelEvent;
 import org.icij.datashare.asynctasks.bus.amqp.CancelledEvent;
 import org.icij.datashare.asynctasks.bus.amqp.ShutdownEvent;
