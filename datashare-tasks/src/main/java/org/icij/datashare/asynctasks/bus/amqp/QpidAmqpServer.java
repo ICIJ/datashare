@@ -4,6 +4,8 @@ import org.apache.qpid.server.SystemLauncher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.Closeable;
+import java.io.IOException;
 import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
@@ -12,7 +14,7 @@ import java.util.Objects;
 /**
  * AMQP memory server for embedded mode and tests.
  */
-public class QpidAmqpServer {
+public class QpidAmqpServer implements Closeable {
     private static final String INITIAL_CONFIGURATION = "qpid-config.json";
     final SystemLauncher systemLauncher = new SystemLauncher();
     private final Logger logger = LoggerFactory.getLogger(getClass());
@@ -27,9 +29,10 @@ public class QpidAmqpServer {
         config = createSystemConfig(qpidConfigurationFileName);
     }
 
-    public void start() {
+    public QpidAmqpServer start() {
         try {
             systemLauncher.startup(config);
+            return this;
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -53,5 +56,10 @@ public class QpidAmqpServer {
     public static void main(String[] args) throws Exception {
         QpidAmqpServer server = new QpidAmqpServer(5672);
         server.start();
+    }
+
+    @Override
+    public void close() throws IOException {
+        shutdown();
     }
 }
