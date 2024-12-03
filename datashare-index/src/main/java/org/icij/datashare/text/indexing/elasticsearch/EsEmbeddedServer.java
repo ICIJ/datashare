@@ -21,6 +21,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import static java.util.Arrays.asList;
+import static java.util.Optional.ofNullable;
+
 /**
  * inspired by :
  * https://github.com/elastic/elasticsearch-hadoop/blob/fefcf8b191d287aca93a04144c67b803c6c81db5/mr/src/itest/java/org/elasticsearch/hadoop/EsEmbeddedServer.java
@@ -29,6 +31,10 @@ public class EsEmbeddedServer implements Closeable {
     private final Node node;
 
     public EsEmbeddedServer(String clusterName, String homePath, String dataPath, String httpPort) {
+        this(clusterName, homePath, dataPath, httpPort, "9300");
+    }
+
+    public EsEmbeddedServer(String clusterName, String homePath, String dataPath, String httpPort, String transportPort) {
         Settings settings = Settings.builder()
                 .put("transport.type", "netty4")
                 .put("http.type", "netty4")
@@ -39,6 +45,7 @@ public class EsEmbeddedServer implements Closeable {
                 .put("path.home", homePath)
                 .put("path.data", dataPath)
                 .put("http.port", httpPort)
+                .put("transport.port", transportPort)
                 .put("cluster.name", clusterName).build();
         try {
             node = createNode(settings);
@@ -52,9 +59,10 @@ public class EsEmbeddedServer implements Closeable {
         }
     }
 
-    public void start() {
+    public EsEmbeddedServer start() {
         try {
             node.start();
+            return this;
         } catch (Exception e) {
             throw new RuntimeException("Encountered exception during embedded node startup", e);
         }
@@ -90,8 +98,11 @@ public class EsEmbeddedServer implements Closeable {
         if (args.length > 1) {
             nbIterations = Integer.parseInt(args[1]);
         }
-        EsEmbeddedServer server = new EsEmbeddedServer("datashare", System.getenv("DS_ELASTICSEARCH_HOME_PATH"),
-                System.getenv("DS_ELASTICSEARCH_DATA_PATH"), "9200");
+        EsEmbeddedServer server = new EsEmbeddedServer("datashare",
+                System.getenv("DS_ELASTICSEARCH_HOME_PATH"),
+                System.getenv("DS_ELASTICSEARCH_DATA_PATH"),
+                ofNullable(System.getenv("DS_ELASTICSEARCH_HTTP_PORT")).orElse("9200"),
+                ofNullable(System.getenv("DS_ELASTICSEARCH_TRANSPORT_PORT")).orElse("9300"));
         server.start();
         while (!server.isClosed() && nbIterations-- != 0) {
             Thread.sleep(1000);
