@@ -1,5 +1,6 @@
 package org.icij.datashare.asynctasks.bus.amqp;
 
+import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
 import org.icij.datashare.PropertiesProvider;
@@ -119,6 +120,16 @@ public class AmqpInterlocutor implements Closeable {
         if (connection.isOpen()) {
             connection.close();
             logger.info("closing connection to {}:{}", configuration.host, configuration.port);
+        }
+    }
+
+    public void deleteQueues(AmqpQueue... amqpQueues) throws IOException {
+        try (Channel channel = connection.createChannel()) {
+            for (AmqpQueue queue : amqpQueues) {
+                channel.queueDelete(queue.name());
+            }
+        } catch (TimeoutException e) {
+            throw new RuntimeException(e);
         }
     }
 
