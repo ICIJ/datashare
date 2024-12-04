@@ -8,6 +8,7 @@ import com.google.inject.Injector;
 import com.google.inject.Key;
 import com.google.inject.Module;
 import com.google.inject.Provides;
+import com.google.inject.Singleton;
 import com.google.inject.assistedinject.FactoryModuleBuilder;
 import net.codestory.http.Configuration;
 import net.codestory.http.annotations.Get;
@@ -153,14 +154,14 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
         }
     }
 
-    @Provides
+    @Provides @Singleton
     RedissonClient provideRedissonClient() {
         CloseableRedissonClient redissonClient = new RedissonClientFactory().withOptions(Options.from(propertiesProvider.getProperties())).createCloseable();
         addCloseable(redissonClient);
         return redissonClient;
     }
 
-    @Provides
+    @Provides @Singleton
     org.icij.datashare.asynctasks.bus.amqp.AmqpInterlocutor provideAmqpInterlocutor() {
         AmqpInterlocutor amqp = null;
         try {
@@ -173,7 +174,7 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
         return amqp;
     }
 
-    @Provides
+    @Provides @Singleton
     DocumentCollectionFactory<Path> provideScanQueue(final PropertiesProvider propertiesProvider) {
         return switch (getQueueType(propertiesProvider, QUEUE_TYPE_OPT, QueueType.MEMORY)) {
             case MEMORY -> new MemoryDocumentCollectionFactory<>();
@@ -181,7 +182,7 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
         };
     }
 
-    @Provides
+    @Provides @Singleton
     DocumentCollectionFactory<String> provideIndexQueue(final PropertiesProvider propertiesProvider) {
         return switch (getQueueType(propertiesProvider, QUEUE_TYPE_OPT, QueueType.MEMORY)) {
             case MEMORY -> new MemoryDocumentCollectionFactory<>();
@@ -189,19 +190,19 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
         };
     }
 
-    @Provides
+    @Provides @Singleton
     Indexer provideIndexer() {
         ElasticsearchIndexer indexer = new ElasticsearchIndexer(createESClient(propertiesProvider), propertiesProvider);
         addCloseable(indexer);
         return indexer;
     }
 
-    @Provides
+    @Provides @Singleton
     LanguageGuesser provideLanguageGuesser() throws IOException {
         return new OptimaizeLanguageGuesser();
     }
 
-    @Provides
+    @Provides @Singleton
     org.icij.datashare.extension.PipelineRegistry providePipelineRegistry(final PropertiesProvider propertiesProvider) {
         PipelineRegistry pipelineRegistry = new PipelineRegistry(propertiesProvider);
         pipelineRegistry.register(EmailPipeline.class);

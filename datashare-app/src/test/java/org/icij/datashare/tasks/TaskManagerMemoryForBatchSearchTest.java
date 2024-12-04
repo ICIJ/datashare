@@ -58,13 +58,13 @@ public class TaskManagerMemoryForBatchSearchTest {
     }
 
     @Test(timeout = 2000)
-    public void test_main_loop_exit_with_sigterm_when_empty_batch_queue() throws InterruptedException {
+    public void test_main_loop_exit_with_sigterm_when_empty_batch_queue() throws Exception {
         startLoop.await();
 
         Signal term = new Signal("TERM");
         Signal.raise(term);
 
-        assertThat(taskManager.awaitTermination(1, TimeUnit.SECONDS)).isTrue();
+        assertThat(taskManager.awaitTermination(1, TimeUnit.SECONDS)).isFalse();
     }
 
     @Test(timeout = 2000)

@@ -31,6 +31,7 @@ public class TaskManagerMemory implements TaskManager, TaskSupplier {
     private final BlockingQueue<Task<?>> taskQueue;
     private final List<TaskWorkerLoop> loops;
     private final AtomicInteger executedTasks = new AtomicInteger(0);
+    private final int pollingInterval;
 
     public TaskManagerMemory(TaskFactory taskFactory) {
         this(taskFactory, new PropertiesProvider(), new CountDownLatch(1));
@@ -39,9 +40,10 @@ public class TaskManagerMemory implements TaskManager, TaskSupplier {
     public TaskManagerMemory(TaskFactory taskFactory, PropertiesProvider propertiesProvider, CountDownLatch latch) {
         this.taskQueue = new LinkedBlockingQueue<>();
         int parallelism = parseInt(propertiesProvider.get("parallelism").orElse("1"));
-        logger.info("running TaskManager with {} workers", parallelism);
+        pollingInterval = Integer.parseInt(propertiesProvider.get("pollingInterval").orElse("60"));
+        logger.info("running TaskManager {} with {} workers", this, parallelism);
         executor = Executors.newFixedThreadPool(parallelism);
-        loops = IntStream.range(0, parallelism).mapToObj(i -> new TaskWorkerLoop(taskFactory, this, latch)).collect(Collectors.toList());
+        loops = IntStream.range(0, parallelism).mapToObj(i -> new TaskWorkerLoop(taskFactory, this, latch, pollingInterval)).collect(Collectors.toList());
         loops.forEach(executor::submit);
     }
 
@@ -113,15 +115,15 @@ public class TaskManagerMemory implements TaskManager, TaskSupplier {
         taskQueue.add(task);
     }
 
-    public boolean awaitTermination(int timeout, TimeUnit timeUnit) throws IOException, InterruptedException {
-        waitTasksToBeDone(timeout, timeUnit);
-        return executor.awaitTermination(timeout, timeUnit);
-    }
-
     @Override
     public boolean shutdown() throws IOException {
         executor.shutdown();
-        return true;
+        loops.forEach(TaskWorkerLoop::exit);
+        try {
+            return executor.awaitTermination(pollingInterval * 2, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public List<Task<?>> clearDoneTasks() {

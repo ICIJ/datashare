@@ -56,7 +56,8 @@ public class CliModeWorkerAcceptanceTest {
         workerApp.start();
         workerStarted.await();
 
-        mode.get(TaskManager.class).awaitTermination(1, TimeUnit.SECONDS); // to send shutdown
+        mode.get(TaskManager.class).shutdown(); // to send shutdown
+        mode.get(TaskManager.class).awaitTermination(1, TimeUnit.SECONDS);
         workerApp.join();
         mode.get(Indexer.class).close();
     }
