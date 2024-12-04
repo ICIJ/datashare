@@ -44,7 +44,7 @@ public class TaskWorkerLoopIntTest {
         taskManager.startTask(BatchDownloadRunner.class.getName(), User.local(), properties);
         Thread.sleep(100); // this is a symptom of a possible flaky test but for now I can't figure out how to be event driven
 
-        taskManager.shutdownAndAwaitTermination(1, TimeUnit.SECONDS);
+        taskManager.awaitTermination(1, TimeUnit.SECONDS);
         eventWaiter.await();
 
         assertThat(taskManager.getTasks()).hasSize(1);

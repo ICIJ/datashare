@@ -88,7 +88,7 @@ public class TaskWorkerLoopForPipelineTasksTest {
 
     private void testTaskWithTaskRunner(Task<Long> task) throws Exception {
         taskSupplier.startTask(task.name, User.local(), task.args);
-        taskSupplier.shutdownAndAwaitTermination(1, TimeUnit.SECONDS);
+        taskSupplier.awaitTermination(1, TimeUnit.SECONDS);
 
         assertThat(taskSupplier.getTasks()).hasSize(1);
         assertThat(taskSupplier.getTasks().get(0).name).isEqualTo(task.name);

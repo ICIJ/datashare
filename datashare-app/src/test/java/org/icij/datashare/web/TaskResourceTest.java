@@ -38,6 +38,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
 
@@ -83,7 +84,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
-    public void test_index_file() {
+    public void test_index_file() throws IOException {
         RestAssert response = post("/api/task/batchUpdate/index/" + getClass().getResource("/docs/doc.txt").getPath().substring(1), "{}");
 
         ShouldChain responseBody = response.should().haveType("application/json");
@@ -107,7 +108,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
-    public void test_index_file_and_filter() {
+    public void test_index_file_and_filter() throws IOException {
         String body = "{\"options\":{\"filter\": true}}";
         RestAssert response = post("/api/task/batchUpdate/index/" + getClass().getResource("/docs/doc.txt").getPath().substring(1), body);
 
@@ -122,7 +123,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
-    public void test_index_file_and_filter_with_custom_report_map() {
+    public void test_index_file_and_filter_with_custom_report_map() throws IOException {
         String body = "{\"options\":{\"filter\": true, \"defaultProject\": \"foo\"}}";
         RestAssert response = post("/api/task/batchUpdate/index/" + getClass().getResource("/docs/doc.txt").getPath().substring(1), body);
 
@@ -137,7 +138,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
-    public void test_index_file_and_filter_with_custom_queue() {
+    public void test_index_file_and_filter_with_custom_queue() throws IOException {
         String body = "{\"options\":{\"filter\": true, \"defaultProject\": \"foo\"}}";
         RestAssert response = post("/api/task/batchUpdate/index/" + getClass().getResource("/docs/doc.txt").getPath().substring(1), body);
 
@@ -149,12 +150,12 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
-    public void test_index_directory() {
+    public void test_index_directory() throws IOException {
         RestAssert response = post("/api/task/batchUpdate/index/file/" + getClass().getResource("/docs/").getPath().substring(1), "{}");
 
         ShouldChain responseBody = response.should().haveType("application/json");
 
-        List<String> taskNames = taskManager.waitTasksToBeDone(1, SECONDS).stream().map(t -> t.id).collect(toList());
+        List<String> taskNames = taskManager.waitTasksToBeDone(1, SECONDS).stream().map(t -> t.id).toList();
         responseBody.should().contain(taskNames.get(0));
         responseBody.should().contain(taskNames.get(1));
     }
@@ -172,7 +173,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
 
     @Test
     public void test_index_and_scan_directory_with_options() {
-        String path = getClass().getResource("/docs").getPath();
+        String path = Objects.requireNonNull(getClass().getResource("/docs")).getPath();
 
         RestAssert response = post("/api/task/batchUpdate/index/" + path.substring(1),
                 "{\"options\":{\"foo\":\"baz\",\"key\":\"val\"}}");
@@ -212,14 +213,14 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
-    public void test_scan_with_options() {
+    public void test_scan_with_options() throws IOException {
         String path = getClass().getResource("/docs").getPath();
         RestAssert response = post("/api/task/batchUpdate/scan/" + path.substring(1),
                 "{\"options\":{\"key\":\"val\",\"foo\":\"qux\"}}");
 
         ShouldChain responseBody = response.should().haveType("application/json");
 
-        List<String> taskNames = taskManager.waitTasksToBeDone(1, SECONDS).stream().map(t -> t.id).collect(toList());
+        List<String> taskNames = taskManager.waitTasksToBeDone(1, SECONDS).stream().map(t -> t.id).toList();
         assertThat(taskNames.size()).isEqualTo(1);
         responseBody.should().contain(taskNames.get(0));
         Map<String, Object> defaultProperties = getDefaultProperties();
@@ -231,48 +232,48 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
-    public void test_scan_queue_is_created_correctly() {
+    public void test_scan_queue_is_created_correctly() throws IOException {
         String body = "{\"options\":{\"filter\": true, \"defaultProject\": \"foo\"}}";
-        String path = getClass().getResource("/docs/").getPath();
+        String path = Objects.requireNonNull(getClass().getResource("/docs/")).getPath();
         RestAssert response = post("/api/task/batchUpdate/scan/" + path.substring(1), body);
         response.should().haveType("application/json");
-        taskManager.waitTasksToBeDone(1, SECONDS).stream().map(t -> t.id).collect(toList());
+        taskManager.waitTasksToBeDone(1, SECONDS).stream().map(t -> t.id).toList();
 
         assertThat(findTask(taskManager, "org.icij.datashare.tasks.ScanTask").get().args).
                 includes(entry("queueName", "extract:queue:foo:1725215461"));
     }
 
     @Test
-    public void test_digest_project_name_is_created_correctly() {
+    public void test_digest_project_name_is_created_correctly() throws IOException {
         String body = "{\"options\":{\"filter\": true, \"defaultProject\": \"foo\"}}";
-        String path = getClass().getResource("/docs/").getPath();
+        String path = Objects.requireNonNull(getClass().getResource("/docs/")).getPath();
         RestAssert response = post("/api/task/batchUpdate/scan/" + path.substring(1), body);
         response.should().haveType("application/json");
-        taskManager.waitTasksToBeDone(1, SECONDS).stream().map(t -> t.id).collect(toList());
+        taskManager.waitTasksToBeDone(1, SECONDS).stream().map(t -> t.id).toList();
 
         assertThat(findTask(taskManager, "org.icij.datashare.tasks.ScanTask").get().args).
                 includes(entry("digestProjectName", "foo"));
     }
 
     @Test
-    public void test_scan_queue_is_created_correctly_and_options_ignored() {
+    public void test_scan_queue_is_created_correctly_and_options_ignored() throws IOException {
         String body = "{\"options\":{\"filter\": true, \"defaultProject\": \"foo\", \"queueName\": \"bar\"}}";
-        String path = getClass().getResource("/docs/").getPath();
+        String path = Objects.requireNonNull(getClass().getResource("/docs/")).getPath();
         RestAssert response = post("/api/task/batchUpdate/scan/" + path.substring(1), body);
         response.should().haveType("application/json");
-        taskManager.waitTasksToBeDone(1, SECONDS).stream().map(t -> t.id).collect(toList());
+        taskManager.waitTasksToBeDone(1, SECONDS).stream().map(t -> t.id).toList();
 
         assertThat(findTask(taskManager, "org.icij.datashare.tasks.ScanTask").get().args).
                 includes(entry("queueName", "extract:queue:foo:1725215461"));
     }
 
     @Test
-    public void test_findNames_should_create_resume() {
+    public void test_findNames_should_create_resume() throws IOException {
         RestAssert response = post("/api/task/findNames/EMAIL", "{\"options\":{\"waitForNlpApp\": false}}");
 
         response.should().haveType("application/json");
 
-        List<String> taskNames = taskManager.waitTasksToBeDone(1, SECONDS).stream().map(t -> t.id).collect(toList());
+        List<String> taskNames = taskManager.waitTasksToBeDone(1, SECONDS).stream().map(t -> t.id).toList();
         assertThat(taskNames.size()).isEqualTo(2);
 
         assertThat(findTask(taskManager, "org.icij.datashare.tasks.EnqueueFromIndexTask")).isNotNull();
@@ -348,9 +349,9 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
-    public void test_clean_tasks() {
+    public void test_clean_tasks() throws IOException {
         post("/api/task/batchUpdate/index/file/" + getClass().getResource("/docs/doc.txt").getPath().substring(1), "{}").response();
-        List<String> taskNames = taskManager.waitTasksToBeDone(1, SECONDS).stream().map(t -> t.id).collect(toList());
+        List<String> taskNames = taskManager.waitTasksToBeDone(1, SECONDS).stream().map(t -> t.id).toList();
 
         ShouldChain responseBody = post("/api/task/clean", "{}").should().haveType("application/json");
 

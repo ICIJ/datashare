@@ -42,7 +42,7 @@ public class UserTaskResourceTest extends AbstractProdWebServerTest {
     private TaskManagerMemory taskManager;
 
     @After
-    public void tearDown() {
+    public void tearDown() throws IOException {
         taskManager.waitTasksToBeDone(1, SECONDS);
         taskManager.clearDoneTasks();
     }

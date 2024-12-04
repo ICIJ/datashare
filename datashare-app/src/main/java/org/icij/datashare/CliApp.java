@@ -134,6 +134,7 @@ class CliApp {
             taskManager.startTask(
                     new Task<>(ArtifactTask.class.getName(), nullUser(), propertiesToMap(properties)));
         }
-        taskManager.shutdownAndAwaitTermination(Integer.MAX_VALUE, SECONDS);
+        taskManager.awaitTermination(Integer.MAX_VALUE, SECONDS);
+        taskManager.shutdown();
     }
 }

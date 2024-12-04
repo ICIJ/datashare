@@ -103,30 +103,25 @@ public class TaskManagerMemory implements TaskManager, TaskSupplier {
         }
     }
 
-    public boolean save(Task<?> taskView) {
+    public <V> boolean save(Task<V> taskView) {
         Task<?> oldTask = tasks.put(taskView.id, taskView);
         return oldTask == null;
     }
 
     @Override
-    public void enqueue(Task<?> task) {
+    public <V> void enqueue(Task<V> task) {
         taskQueue.add(task);
     }
 
-    public boolean shutdownAndAwaitTermination(int timeout, TimeUnit timeUnit) throws InterruptedException {
+    public boolean awaitTermination(int timeout, TimeUnit timeUnit) throws IOException, InterruptedException {
         waitTasksToBeDone(timeout, timeUnit);
-        executor.shutdownNow();
         return executor.awaitTermination(timeout, timeUnit);
     }
 
-    public List<Task<?>> waitTasksToBeDone(int timeout, TimeUnit timeUnit) {
-        return tasks.values().stream().peek(taskView -> {
-            try {
-                taskView.getResult(timeout, timeUnit);
-            } catch (InterruptedException | CancellationException e) {
-                logger.error("task interrupted while running", e);
-            }
-        }).collect(toList());
+    @Override
+    public boolean shutdown() throws IOException {
+        executor.shutdown();
+        return true;
     }
 
     public List<Task<?>> clearDoneTasks() {
