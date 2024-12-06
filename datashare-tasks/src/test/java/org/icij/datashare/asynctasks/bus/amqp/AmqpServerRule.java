@@ -9,7 +9,7 @@ import java.util.concurrent.TimeoutException;
 public class AmqpServerRule extends ExternalResource {
     public final QpidAmqpServer amqpServer;
     public  AmqpServerRule(int port) {
-        amqpServer = new QpidAmqpServer(port, "qpid-config-test.json");
+        amqpServer = new QpidAmqpServer(port,  15672, "qpid-config-test.json");
     }
 
     @Override

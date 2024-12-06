@@ -21,6 +21,7 @@ import net.codestory.http.errors.HttpException;
 import net.codestory.http.payload.Payload;
 import org.apache.commons.lang3.StringUtils;
 import org.icij.datashare.PropertiesProvider;
+import org.icij.datashare.asynctasks.Group;
 import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.batch.BatchDownload;
 import org.icij.datashare.extract.OptionsWrapper;
@@ -105,13 +106,16 @@ public class TaskResource {
     @ApiResponse(responseCode = "201", description = "the task has been created", content = @Content(schema = @Schema(implementation = TaskResponse.class)))
     @ApiResponse(responseCode = "200", description = "the task was already existing")
     @ApiResponse(responseCode = "400", description = "bad request, for example the task payload id is not the same as the url id", content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
-    @Put("/:id")
-    public <V> Payload createTask(@Parameter(name = "id", description = "task id", required = true, in = ParameterIn.PATH) String id,
-                              Task<V> taskView) throws IOException {
+    @Put("/:id?group=:group")
+    public <V> Payload createTask(
+        @Parameter(name = "id", description = "task id", required = true, in = ParameterIn.PATH) String id,
+        @Parameter(name = "group", description = "group id", in = ParameterIn.QUERY) String group,
+        Task<V> taskView
+    ) throws IOException {
         if (taskView == null || id == null || !Objects.equals(taskView.id, id)) {
             return new JsonPayload(400, new ErrorResponse("body should contain a taskView, URL id should be present and equal to body id"));
         }
-        return ofNullable(taskManager.startTask(taskView)).map(sid -> new JsonPayload(201, new TaskResponse(sid))).orElse(new JsonPayload(200));
+        return ofNullable(taskManager.startTask(taskView, new Group(group))).map(sid -> new JsonPayload(201, new TaskResponse(sid))).orElse(new JsonPayload(200));
     }
 
     @Operation(description = "Gets task result with its id")

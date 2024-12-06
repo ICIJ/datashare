@@ -466,6 +466,18 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         put("/api/task/stopAll").should().respond(200);
     }
 
+    @Test
+    public void test_create_new_task_with_group() {
+        put("/api/task/my_json_task_id?group=PYTHON", String.format("""
+            {"@type":"Task","id":"my_json_task_id","name":"%s",
+            "arguments": {"user":{"@type":"org.icij.datashare.user.User", "id":"local","name":null,"email":null,"provider":"local","details":{"uid":"local","groups_by_applications":{"datashare":["local-datashare"]}}
+            }}}""",
+            TaskCreation.class.getName()))
+                .should().respond(201);
+        // Cancel the all tasks to avoid side-effects with other tests
+        put("/api/task/stopAll").should().respond(200);
+    }
+
     @NotNull
     private Map<String, Object> getDefaultProperties() {
         HashMap<String, Object> map = new HashMap<>() {{
