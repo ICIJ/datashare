@@ -20,7 +20,8 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 import net.codestory.http.WebServer;
-import org.icij.datashare.asynctasks.bus.amqp.QpidAmqpServer;
+import org.icij.datashare.asynctasks.TaskSupplier;
+import org.icij.datashare.asynctasks.TaskWorkerLoop;
 import org.icij.datashare.batch.BatchSearch;
 import org.icij.datashare.batch.BatchSearchRepository;
 import org.icij.datashare.cli.DatashareCli;
@@ -34,10 +35,15 @@ import org.icij.datashare.tasks.DatashareTaskManager;
 import org.icij.datashare.text.indexing.Indexer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.icij.datashare.tasks.DatashareTaskFactory;
+import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.stream.IntStream;
+
+import static java.util.Optional.ofNullable;
 
 public class WebApp {
-    private static final int AMQP_PORT = 5672;
-    private static final int AMQP_HTTP_PORT = 15672;
     private static final Logger LOGGER = LoggerFactory.getLogger(Indexer.class);
 
     public static void main(String[] args) throws Exception {
@@ -45,16 +51,25 @@ public class WebApp {
     }
 
     static void start(Properties properties) throws Exception {
-        Thread.sleep(3000);
-        boolean isEmbeddedAMQP = isEmbeddedAMQP(properties);
-        if (isEmbeddedAMQP) {
-            // before creating mode because AmqpInterlocutor will try to connect the broker
-            LOGGER.info("starting qpid broker on localhost, port " + AMQP_PORT + "...");
-            new QpidAmqpServer(AMQP_PORT, AMQP_HTTP_PORT).start();
-        }
+        int parallelism = parseInt((String) ofNullable(properties.get("parallelism")).orElse("1"));
+        ExecutorService executorService = Executors.newFixedThreadPool(parallelism);
 
         CommonMode mode = CommonMode.create(properties);
 
+        new WebServer()
+                .withThreadCount(10)
+                .withSelectThreads(2)
+                .withWebSocketThreads(1)
+                .configure(mode.createWebConfiguration())
+                .start(parseInt(mode.properties().getProperty(PropertiesProvider.TCP_LISTEN_PORT)));
+
+        boolean isEmbeddedAMQP = isEmbeddedAMQP(properties);
+        if (isEmbeddedAMQP) {
+            List<TaskWorkerLoop> workers = IntStream.range(0, parallelism).mapToObj(i -> new TaskWorkerLoop(mode.get(DatashareTaskFactory.class), mode.get(TaskSupplier.class))).toList();
+            workers.forEach(executorService::submit);
+        }
+
+        // TODO: do this via EmbeddedMode and closeable...
         Process nlpWorkerProcess = null;
         Path nlpWorkersPidPath;
         boolean startNlpWorker = isEmbeddedAMQP && !mode.get(ExtensionService.class)
@@ -154,7 +169,7 @@ public class WebApp {
         Map<String, Object> workerConfig = Map.of(
             "type", "amqp",
             "rabbitmq_host", "localhost",
-            "rabbitmq_port", String.valueOf(AMQP_PORT),
+            "rabbitmq_port", String.valueOf(System.getProperty("qpid.amqp_port")),
             "rabbitmq_user", "admin",
             "rabbitmq_password", "admin",
             "rabbitmq_is_qpid", true

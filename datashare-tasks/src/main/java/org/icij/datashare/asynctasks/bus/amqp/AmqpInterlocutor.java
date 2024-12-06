@@ -1,5 +1,6 @@
 package org.icij.datashare.asynctasks.bus.amqp;
 
+import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
 import org.icij.datashare.PropertiesProvider;
@@ -41,7 +42,7 @@ public class AmqpInterlocutor implements Closeable {
 
     Connection createConnection(ConnectionFactory connectionFactory) throws IOException {
         try {
-            logger.info("Trying to connect AMQP on " + configuration.host + ":" + configuration.port + "...");
+            logger.info("Trying to connect AMQP on {}:{}...", configuration.host, configuration.port);
             Connection connection = connectionFactory.newConnection();
             logger.info("...connection to AMQP created");
             return connection;
@@ -88,7 +89,7 @@ public class AmqpInterlocutor implements Closeable {
         AmqpChannel channel = new AmqpChannel(connection.createChannel(), queue);
         channel.initForPublish();
         publishChannels.put(queue, channel);
-        logger.info("publish channel " + channel + " has been created for exchange {}", queue.exchange);
+        logger.info("publish channel {} has been created for exchange {}", channel, queue.exchange);
         return this;
     }
 
@@ -119,6 +120,16 @@ public class AmqpInterlocutor implements Closeable {
         if (connection.isOpen()) {
             connection.close();
             logger.info("closing connection to {}:{}", configuration.host, configuration.port);
+        }
+    }
+
+    public void deleteQueues(AmqpQueue... amqpQueues) throws IOException {
+        try (Channel channel = connection.createChannel()) {
+            for (AmqpQueue queue : amqpQueues) {
+                channel.queueDelete(queue.name());
+            }
+        } catch (TimeoutException e) {
+            throw new RuntimeException(e);
         }
     }
 

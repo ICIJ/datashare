@@ -67,6 +67,7 @@ public class TaskManagersIntTest {
             null
         );
         AMQP = new AmqpInterlocutor(propertiesProvider);
+        AMQP.deleteQueues(AmqpQueue.MANAGER_EVENT, AmqpQueue.WORKER_EVENT, AmqpQueue.TASK);
         AMQP.createAmqpChannelForPublish(AmqpQueue.TASK);
         AMQP.createAmqpChannelForPublish(AmqpQueue.WORKER_EVENT);
         AMQP.createAmqpChannelForPublish(AmqpQueue.MANAGER_EVENT);

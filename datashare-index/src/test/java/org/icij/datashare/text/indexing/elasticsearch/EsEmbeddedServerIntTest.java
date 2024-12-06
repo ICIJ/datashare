@@ -13,16 +13,16 @@ import static org.icij.datashare.test.ElasticsearchRule.TEST_INDEX;
 public class EsEmbeddedServerIntTest {
     private static EsEmbeddedServer server;
     @ClassRule static public TemporaryFolder esDir = new TemporaryFolder();
-    @Rule public ElasticsearchRule es = new ElasticsearchRule(create("http://localhost:9200"));
+    @Rule public ElasticsearchRule es = new ElasticsearchRule(create("http://localhost:9222"));
 
-    @Test
+    @Test(timeout = 10_000)
     public void test_embedded_server_has_a_test_index() throws Exception {
          assertThat(es.client.indices().exists(e -> e.index(TEST_INDEX)).value()).isTrue();
     }
 
     @BeforeClass
     public static void setUp() {
-        server = new EsEmbeddedServer("datashare", esDir.getRoot().getPath(), esDir.getRoot().getPath(), "9200");
+        server = new EsEmbeddedServer("datashare", esDir.getRoot().getPath(), esDir.getRoot().getPath(), "9222", "9333");
         server.start();
     }
 

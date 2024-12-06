@@ -1,13 +1,9 @@
 package org.icij.datashare;
 
-import com.rabbitmq.client.AMQP;
 import org.icij.datashare.asynctasks.TaskWorkerLoop;
 import org.icij.datashare.asynctasks.TaskSupplier;
-import org.icij.datashare.asynctasks.bus.amqp.AmqpInterlocutor;
 import org.icij.datashare.mode.CommonMode;
 import org.icij.datashare.tasks.DatashareTaskFactory;
-import org.icij.datashare.text.indexing.Indexer;
-import org.redisson.api.RedissonClient;
 
 import java.util.Properties;
 

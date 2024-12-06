@@ -162,7 +162,7 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
 
     @Provides
     org.icij.datashare.asynctasks.bus.amqp.AmqpInterlocutor provideAmqpInterlocutor() {
-        AmqpInterlocutor amqp;
+        AmqpInterlocutor amqp = null;
         try {
             amqp = new AmqpInterlocutor(propertiesProvider);
         } catch (IOException | URISyntaxException e) {

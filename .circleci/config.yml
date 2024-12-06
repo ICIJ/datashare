@@ -24,7 +24,7 @@ jobs:
           POSTGRES_USER: dstest
           POSTGRES_PASSWORD: test
           POSTGRES_DB: dstest
-      - image: rabbitmq:3
+      - image: rabbitmq:3.12
         name: rabbitmq
         environment:
           RABBITMQ_DEFAULT_USER: admin
@@ -73,7 +73,7 @@ jobs:
           name: acceptance test for embedded mode
           command: |
             VERSION=$(head pom.xml | grep '<version>[0-9.]\+' | sed 's/<version>\([0-9.]\+\)<\/version>/\1/g' | tr -d '[:space:]')
-            DS_ELASTICSEARCH_DATA_PATH=$HOME java -cp datashare-dist/target/datashare-dist-${VERSION}-all.jar org.icij.datashare.text.indexing.elasticsearch.EsEmbeddedServer -- 5
+            DS_ELASTICSEARCH_DATA_PATH=$HOME DS_ELASTICSEARCH_HTTP_PORT=9222 DS_ELASTICSEARCH_TRANSPORT_PORT=9333 java -cp datashare-dist/target/datashare-dist-${VERSION}-all.jar org.icij.datashare.text.indexing.elasticsearch.EsEmbeddedServer -- 5
       - save_cache:
           paths:
             - ~/.m2
@@ -446,7 +446,7 @@ jobs:
       - image: cimg/openjdk:17.0.11
       - image: redis:4.0.1-alpine
         name: redis
-      - image: rabbitmq:3
+      - image: rabbitmq:3.12
         name: rabbitmq
         environment:
           RABBITMQ_DEFAULT_USER: admin
