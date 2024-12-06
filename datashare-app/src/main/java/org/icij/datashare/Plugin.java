@@ -2,6 +2,9 @@ package org.icij.datashare;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import java.nio.channels.Channels;
+import java.nio.channels.ReadableByteChannel;
+import java.nio.file.Files;
 import org.apache.commons.compress.archivers.ArchiveEntry;
 import org.apache.commons.compress.archivers.ArchiveException;
 import org.apache.commons.compress.archivers.ArchiveInputStream;
@@ -16,9 +19,11 @@ import java.nio.file.Paths;
 import java.util.List;
 import java.util.regex.Pattern;
 import java.util.zip.GZIPInputStream;
+import org.jetbrains.annotations.NotNull;
 
 import static java.util.Optional.ofNullable;
 import static org.apache.commons.io.FilenameUtils.getBaseName;
+import static org.apache.commons.io.FilenameUtils.getExtension;
 
 public class Plugin extends Extension {
     private static final Pattern versionBeginsWithV = Pattern.compile("v[0-9.]*");
@@ -54,6 +59,17 @@ public class Plugin extends Extension {
             FileUtils.deleteDirectory(pluginDirectory.toFile());
         } else {
             logger.info("could not remove plugin base directory {} jar: {}", id, pluginDirectory);
+        }
+    }
+
+    @NotNull
+    public File download() throws IOException {
+        ReadableByteChannel readableByteChannel = Channels.newChannel(url.openStream());
+        File tmpFile = Files.createTempFile(TMP_PREFIX, "." + getExtension(url.toString())).toFile();
+        logger.info("downloading from url {}", url);
+        try (FileOutputStream fileOutputStream = new FileOutputStream(tmpFile)) {
+            fileOutputStream.getChannel().transferFrom(readableByteChannel, 0, Long.MAX_VALUE);
+            return tmpFile;
         }
     }
 
@@ -106,5 +122,9 @@ public class Plugin extends Extension {
             return Paths.get(id + "-" + version);
         }
         return Paths.get(id);
+    }
+
+    protected boolean isHostSpecific() {
+        return false;
     }
 }

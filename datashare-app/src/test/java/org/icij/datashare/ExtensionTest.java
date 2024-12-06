@@ -8,7 +8,6 @@ import java.io.File;
 import java.net.URL;
 import java.util.AbstractMap.SimpleEntry;
 
-import static org.apache.commons.io.FilenameUtils.getBaseName;
 import static org.fest.assertions.Assertions.assertThat;
 
 public class ExtensionTest {
