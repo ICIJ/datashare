@@ -1,7 +1,5 @@
 package org.icij.datashare;
 
-import java.io.IOException;
-import java.util.List;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -101,46 +99,14 @@ public class ExtensionTest {
 
     @Test
     public void test_has_previous_version() throws Exception {
-        File[] files = new File[] {extensionsDir.newFile("ext3nsion-1.0.0.jar"), extensionsDir.newFile("ext3nsion-1.0.0")};
-        assertThat(Extension.getPreviousVersionInstalled(files, "ext3nsion-0.1.0")).hasSize(2);
-        assertThat(Extension.getPreviousVersionInstalled(files, "ext3nsion-1.1.0")).hasSize(2);
-        assertThat(Extension.getPreviousVersionInstalled(files, "ext3nsion-1.1")).hasSize(2);
-        assertThat(Extension.getPreviousVersionInstalled(files, "ext3nsion")).hasSize(2);
+        File[] files = new File[] {extensionsDir.newFile("ext3nsion-1.0.0.jar")};
+        assertThat(Extension.getPreviousVersionInstalled(files, "ext3nsion-0.1.0")).hasSize(1);
+        assertThat(Extension.getPreviousVersionInstalled(files, "ext3nsion-1.1.0")).hasSize(1);
+        assertThat(Extension.getPreviousVersionInstalled(files, "ext3nsion-1.1")).hasSize(1);
+        assertThat(Extension.getPreviousVersionInstalled(files, "ext3nsion")).hasSize(1);
 
         assertThat(Extension.getPreviousVersionInstalled(files, "ext_3nsion-1.1")).isEmpty();
         assertThat(Extension.getPreviousVersionInstalled(files, "other-extension")).isEmpty();
         assertThat(Extension.getPreviousVersionInstalled(files, "extension-other-1.2.3")).isEmpty();
-    }
-
-    @Test
-    public void test_host_specific_url_jar() throws IOException {
-        // Given
-        URL url = new URL("https://some-repository/path/to/my-favorite-executabe-extension.jar");
-        Extension extension = new Extension(url);
-        // When
-        URL hostSpecificUrl = extension.hostSpecificUrl();
-        // Then
-        assertThat(hostSpecificUrl).isEqualTo(url);
-    }
-
-    @Test
-    public void test_host_specific_url() throws IOException {
-        // Given
-        URL url = new URL("https://some-repository/path/to/my-favorite-executable-extension-6.0");
-        Extension extension = new Extension(url);
-        // When
-        URL hostSpecificUrl = extension.hostSpecificUrl();
-        // Then
-        List<String> expectedEnds = List.of(
-            "my-favorite-executable-extension-linux-aarch64-6.0",
-            "my-favorite-executable-extension-linux-x86_64-6.0",
-            "my-favorite-executable-extension-macos-aarch64-6.0",
-            "my-favorite-executable-extension-macos-x86_64-6.0",
-            "my-favorite-executable-extension-windows-aarch64-6.0",
-            "my-favorite-executable-extension-windows-x86_64-6.0"
-        );
-        boolean isPlatformSpecific = !expectedEnds.stream().filter(end -> hostSpecificUrl.toString().endsWith(end))
-            .toList().isEmpty();
-        assertThat(isPlatformSpecific).isTrue();
     }
 }

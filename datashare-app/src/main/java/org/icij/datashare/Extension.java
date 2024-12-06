@@ -4,7 +4,6 @@ import static java.nio.file.Files.copy;
 import static java.util.Objects.requireNonNull;
 import static java.util.Optional.ofNullable;
 import static org.apache.commons.io.FilenameUtils.getBaseName;
-import static org.apache.commons.io.FilenameUtils.getExtension;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -13,7 +12,6 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.FilenameFilter;
 import java.io.IOException;
-import java.net.MalformedURLException;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.channels.Channels;
@@ -48,13 +46,6 @@ public class Extension implements Deliverable {
     public final String version;
     public final Type type;
     protected boolean hostSpecific;
-    private static final String OS = System.getProperty("os.name").toLowerCase();
-    private static final String ARCH = System.getProperty("os.arch").toLowerCase();
-    private static final boolean IS_MACOS = OS.contains("mac");
-    private static final boolean IS_WINDOWS = OS.contains("windows");
-    private static final boolean IS_UNIX = OS.contains("nix") || OS.contains("nux") || OS.indexOf("aix") > 0;
-    private static final boolean IS_X86_64 = ARCH.contains("amd64") || ARCH.contains("x86_64");
-    private static final boolean IS_ARM = ARCH.contains("aarch64") || ARCH.contains("arm64");
 
     @JsonCreator
     public Extension(@JsonProperty("id") String id,
@@ -90,14 +81,18 @@ public class Extension implements Deliverable {
 
     @Override
     public File download() throws IOException {
-        return download(hostSpecificUrl());
+        URL hostSpecificUrl = url;
+        if (isHostSpecific()) {
+            hostSpecificUrl = DeliverableHelper.hostSpecificUrl(url, version);
+        }
+        return download(hostSpecificUrl);
     }
 
     @NotNull
     protected File download(URL url) throws IOException {
         ReadableByteChannel readableByteChannel = Channels.newChannel(url.openStream());
         String suffix = "";
-        String ext = getExtensionFileExt(url.toString());
+        String ext = DeliverableHelper.getExtensionFileExt(url.toString());
         if (!ext.isEmpty()) {
             suffix = "." + ext;
         }
@@ -119,13 +114,13 @@ public class Extension implements Deliverable {
 
     @Override
     public void install(File extensionFile, Path extensionsDir) throws IOException {
-        String ext = this.getExtensionFileExt(extensionFile.getName());
+        String ext = DeliverableHelper.getExtensionFileExt(extensionFile.getName());
         File[] candidateFiles;
         FilenameFilter filenameFilter;
         if (!ext.isEmpty()) {
             filenameFilter = (file, s) -> s.endsWith("." + ext);
         } else {
-            filenameFilter = (file, s) -> getExtensionFileExt(s).isEmpty();
+            filenameFilter = (file, s) -> DeliverableHelper.getExtensionFileExt(s).isEmpty();
         }
         candidateFiles = ofNullable(extensionsDir.toFile().listFiles(filenameFilter)).orElse(new File[0]);
         List<File> previousVersionInstalled = getPreviousVersionInstalled(candidateFiles, getBaseName(getUrlFileName()));
@@ -216,7 +211,7 @@ public class Extension implements Deliverable {
         return null;
     }
 
-    protected String getUrlFileName() { return FilenameUtils.getName(url.getFile().replaceAll("/$",""));}
+    protected String getUrlFileName() { return DeliverableHelper.getUrlFileName(url);}
     protected boolean isTemporaryFile(File extensionFile) { return extensionFile.getName().startsWith(Plugin.TMP_PREFIX);}
 
     @Override
@@ -247,62 +242,6 @@ public class Extension implements Deliverable {
         int idCompare = this.id.compareTo(deliverable.getId());
         return idCompare == 0 ? ofNullable(this.version).orElse("-1").compareTo(ofNullable(deliverable.getVersion()).orElse("-1")) : idCompare;
     }
-
-    protected URL hostSpecificUrl() {
-        if (!hostSpecific) {
-            return url;
-        }
-        String extFileName = getUrlFileName();
-        String hostSpecificName = extFileName.replace("-" + version, "") + hostSpecificSuffix() + "-" + version;
-        String urlFile = url.getFile();
-        StringBuilder b = new StringBuilder(urlFile);
-        int last = urlFile.lastIndexOf(extFileName);
-        b.replace(last, last + extFileName.length(), "" );
-        urlFile = b.toString();
-        String hostSpecificFile = urlFile + hostSpecificName;
-        try {
-            return new URL(url.getProtocol(), url.getHost(), hostSpecificFile);
-        } catch (MalformedURLException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    protected String hostSpecificSuffix() {
-        String arch;
-        if (IS_ARM) {
-            // We assume 64 arch here...
-            arch = "aarch64";
-        } else if (IS_X86_64) {
-            arch = "x86_64";
-        } else {
-            throw new RuntimeException("unsupported architecture " + ARCH);
-        }
-        String os;
-        if (IS_WINDOWS) {
-            os = "windows";
-        } else if (IS_MACOS) {
-            os = "macos";
-        } else if (IS_UNIX) {
-            os = "linux";
-        } else {
-            throw new RuntimeException("unsupported os " + OS);
-        }
-        return "-" + os + "-" + arch;
-    }
-
-    private String getExtensionFileExt(String fileName) {
-        // We have to strip the version otherwise the patch it's identified as the extension for binary ext
-        if (fileName.isEmpty()) {
-            return "";
-        }
-        String[] split = fileName.split("-");
-        String[] lastSplit = split[split.length -1].split("\\.");
-        if (lastSplit.length == 1) {
-            return "";
-        }
-        return getExtension(lastSplit[lastSplit.length - 1]);
-    }
-
     protected boolean isHostSpecific() {
         return !FilenameUtils.getName(this.url.getFile().replaceAll("/$","")).endsWith(".jar");
     }

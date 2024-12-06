@@ -126,10 +126,8 @@ public class ExtensionServiceTest {
 
     @Test
     public void test_delete_previous_extension_if_version_differs_for_executable_ext() throws Exception {
-        Extension extV0 = new Extension(otherFolder.getRoot().toPath().resolve("my-extension-1.2.3").toUri().toURL());
-        Extension extV1 = new Extension(otherFolder.getRoot().toPath().resolve("my-extension-1.2.4").toUri().toURL());
-        String v0Path = "my-extension" + extV0.hostSpecificSuffix() + "-1.2.3";
-        String v1path = "my-extension" + extV1.hostSpecificSuffix() + "-1.2.4";
+        String v0Path = "my-extension" + DeliverableHelper.hostSpecificSuffix() + "-1.2.3";
+        String v1path = "my-extension" + DeliverableHelper.hostSpecificSuffix() + "-1.2.4";
         otherFolder.newFile(v0Path);
         otherFolder.newFile(v1path);
         ExtensionService extensionService = new ExtensionService(extensionFolder.getRoot().toPath());
