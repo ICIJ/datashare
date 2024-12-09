@@ -93,6 +93,7 @@ public interface TaskManager extends Closeable {
         }
         taskView.queue();
         enqueue(taskView);
+        update(taskView);
         return taskView.id;
     }
 
