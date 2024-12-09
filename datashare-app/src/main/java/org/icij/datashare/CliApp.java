@@ -1,6 +1,5 @@
 package org.icij.datashare;
 
-import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.asynctasks.TaskManager;
 import org.icij.datashare.cli.CliExtensionService;
 import org.icij.datashare.cli.spi.CliExtension;
@@ -101,38 +100,31 @@ class CliApp {
         PipelineHelper pipeline = new PipelineHelper(new PropertiesProvider(properties));
         logger.info("executing {}", pipeline);
         if (pipeline.has(Stage.DEDUPLICATE)) {
-            taskManager.startTask(
-                    new Task<>(DeduplicateTask.class.getName(), nullUser(), propertiesToMap(properties)));
+            taskManager.startTask(DeduplicateTask.class, nullUser(), propertiesToMap(properties));
         }
 
         if (pipeline.has(Stage.SCANIDX)) {
-            taskManager.startTask(
-                    new Task<>(ScanIndexTask.class.getName(), nullUser(), propertiesToMap(properties)));
+            taskManager.startTask(ScanIndexTask.class, nullUser(), propertiesToMap(properties));
         }
 
         if (pipeline.has(Stage.SCAN)) {
-            taskManager.startTask(
-                    new Task<>(ScanTask.class.getName(), nullUser(), propertiesToMap(properties)));
+            taskManager.startTask(ScanTask.class, nullUser(), propertiesToMap(properties));
         }
 
         if (pipeline.has(Stage.INDEX)) {
-            taskManager.startTask(
-                    new Task<>(IndexTask.class.getName(), nullUser(), propertiesToMap(properties)));
+            taskManager.startTask(IndexTask.class, nullUser(), propertiesToMap(properties));
         }
 
         if (pipeline.has(Stage.ENQUEUEIDX)) {
-            taskManager.startTask(
-                    new Task<>(EnqueueFromIndexTask.class.getName(), nullUser(), propertiesToMap(properties)));
+            taskManager.startTask(EnqueueFromIndexTask.class, nullUser(), propertiesToMap(properties));
         }
 
         if (pipeline.has(Stage.NLP)) {
-            taskManager.startTask(
-                    new Task<>(ExtractNlpTask.class.getName(), nullUser(), propertiesToMap(properties)));
+            taskManager.startTask(ExtractNlpTask.class, nullUser(), propertiesToMap(properties));
         }
 
         if (pipeline.has(Stage.ARTIFACT)) {
-            taskManager.startTask(
-                    new Task<>(ArtifactTask.class.getName(), nullUser(), propertiesToMap(properties)));
+            taskManager.startTask(ArtifactTask.class, nullUser(), propertiesToMap(properties));
         }
         taskManager.awaitTermination(Integer.MAX_VALUE, SECONDS);
         taskManager.shutdown();
