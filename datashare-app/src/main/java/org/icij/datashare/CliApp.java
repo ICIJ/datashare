@@ -6,6 +6,8 @@ import org.icij.datashare.cli.CliExtensionService;
 import org.icij.datashare.cli.spi.CliExtension;
 import org.icij.datashare.mode.CommonMode;
 import org.icij.datashare.tasks.ArtifactTask;
+import org.icij.datashare.tasks.CreateNlpBatchesFromIndex;
+import org.icij.datashare.tasks.BatchNlpTask;
 import org.icij.datashare.tasks.DatashareTaskFactory;
 import org.icij.datashare.tasks.DeduplicateTask;
 import org.icij.datashare.tasks.EnqueueFromIndexTask;
@@ -13,6 +15,7 @@ import org.icij.datashare.tasks.ExtractNlpTask;
 import org.icij.datashare.tasks.IndexTask;
 import org.icij.datashare.tasks.ScanIndexTask;
 import org.icij.datashare.tasks.ScanTask;
+import org.icij.datashare.tasks.DatashareTaskFactory;
 import org.icij.datashare.text.indexing.Indexer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -123,6 +126,15 @@ class CliApp {
         if (pipeline.has(Stage.ENQUEUEIDX)) {
             taskManager.startTask(
                     new Task<>(EnqueueFromIndexTask.class.getName(), nullUser(), propertiesToMap(properties)));
+        }
+
+        if (pipeline.has(Stage.CREATENLPBATCHESFROMIDX)) {
+            taskManager.startTask(new Task<>(CreateNlpBatchesFromIndex.class.getName(), nullUser(), propertiesToMap(properties)));
+        }
+
+        if (pipeline.has(Stage.BATCHNLP)) {
+            taskManager.startTask(
+                    new Task<>(BatchNlpTask.class.getName(), nullUser(), propertiesToMap(properties)));
         }
 
         if (pipeline.has(Stage.NLP)) {
