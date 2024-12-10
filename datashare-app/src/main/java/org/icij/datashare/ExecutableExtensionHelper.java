@@ -33,7 +33,7 @@ public class ExecutableExtensionHelper {
         return new ProcessBuilder(cmd);
     }
 
-    String getPidFilePattern() {
+    public String getPidFilePattern() {
         return extensionPattern.substring(0, extensionPattern.length() - 1) + "\\.pid";
     }
 
