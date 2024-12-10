@@ -30,7 +30,7 @@ public class Task<V> extends Event implements Entity {
     @JsonIgnore private final Object lock = new Object();
 
     public enum State {CREATED, QUEUED, RUNNING, CANCELLED, ERROR, DONE}
-    @JsonTypeInfo(use = JsonTypeInfo.Id.CLASS, property = "@type")
+//    @JsonTypeInfo(use = JsonTypeInfo.Id.CLASS, property = "@type")
     public final Map<String, Object> args;
     public final String id;
 
@@ -38,11 +38,11 @@ public class Task<V> extends Event implements Entity {
     volatile TaskError error;
     private volatile State state;
     private volatile double progress;
-    @JsonSubTypes({
-        @JsonSubTypes.Type(value = UriResult.class),
-        @JsonSubTypes.Type(value = Long.class)
-    })
-    @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "@type")
+//    @JsonSubTypes({
+//        @JsonSubTypes.Type(value = UriResult.class),
+//        @JsonSubTypes.Type(value = Long.class)
+//    })
+//    @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "@type")
     private volatile V result;
 
     public Task(String name, Map<String, Object> args) {
