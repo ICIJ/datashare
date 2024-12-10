@@ -48,7 +48,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @TaskGroup(JAVA_GROUP)
-public class CreateNlpBatchesFromIndex extends DefaultTask<Long> implements UserTask, CancellableTask {
+public class CreateNlpBatchesFromIndex extends DefaultTask<List<String>> implements UserTask, CancellableTask {
     Logger logger = LoggerFactory.getLogger(getClass());
 
     private final User user;
@@ -63,6 +63,7 @@ public class CreateNlpBatchesFromIndex extends DefaultTask<Long> implements User
     private final Indexer indexer;
     private final String scrollDuration;
     private final int scrollSize;
+    private Language currentLanguage = null;
 
     public record BatchDocument(String id, String rootDocument, String project, Language language) {
         public static BatchDocument fromDocument(Document document) {
@@ -89,7 +90,8 @@ public class CreateNlpBatchesFromIndex extends DefaultTask<Long> implements User
     }
 
     @Override
-    public Long call() throws Exception {
+    public List<String> call() throws Exception {
+        ArrayList<String> taskIds = new ArrayList<>();
         taskThread = Thread.currentThread();
         Indexer.Searcher searcher;
         if (searchQuery == null) {
@@ -110,32 +112,28 @@ public class CreateNlpBatchesFromIndex extends DefaultTask<Long> implements User
             "pushing batches of {} docs ids for index {}, pipeline {} with {} scroll and size of {}",
             totalHits, projectName, nlpPipeline, scrollDuration, scrollSize
         );
-        Language currentLanguage = null;
         do {
             // For each scrolled page, we fill the batch...
-            currentLanguage = this.enqueueScrollBatches(scrolledDocsByLanguage, currentLanguage, batch);
+            taskIds.addAll(this.enqueueScrollBatches(scrolledDocsByLanguage, batch));
             // and keep scrolling...
             scrolledDocsByLanguage = searcher
                 .scroll(scrollDuration)
                 .collect(groupingBy(d -> ((Document) d).getLanguage()));
-            // until we reach a page smaller than the scroll size aka the last page of the scrol
+            // until we reach a page smaller than the scroll size aka the last page of the scroll
         } while (scrolledDocsByLanguage.values().stream().map(List::size).mapToInt(Integer::intValue).sum() >= scrollSize);
         // Let's fill the batches for that last page
-        this.enqueueScrollBatches(scrolledDocsByLanguage, currentLanguage, batch);
+        taskIds.addAll(this.enqueueScrollBatches(scrolledDocsByLanguage, batch));
         // ... and enqueue that last batch if not done yet
         if (!batch.isEmpty()) {
-            this.enqueueBatch(batch);
+            taskIds.add(this.enqueueBatch(batch));
         }
         logger.info("queued batches for {} docs", totalHits);
         searcher.clearScroll();
-        return totalHits;
+        return taskIds;
     }
 
-    private Language enqueueScrollBatches(
-        Map<Language, ? extends List<? extends Entity>> docsByLanguage,
-        Language currentLanguage,
-        ArrayList<Document> batch
-    ) {
+    private List<String> enqueueScrollBatches(Map<Language, ? extends List<? extends Entity>> docsByLanguage, ArrayList<Document> batch) {
+        ArrayList<String> batchTaskIds = new ArrayList<>();
         // Make sure we consume the languages in order
         Iterator<? extends Map.Entry<Language, ? extends List<? extends Entity>>> docsIt = docsByLanguage.entrySet()
             .stream().sorted(Comparator.comparing(e -> e.getKey().name())).iterator();
@@ -145,7 +143,7 @@ public class CreateNlpBatchesFromIndex extends DefaultTask<Long> implements User
             // If we switch language, we need to queue the batch
             if (!language.equals(currentLanguage)) {
                 if (!batch.isEmpty()) {
-                    this.enqueueBatch(batch);
+                    batchTaskIds.add(this.enqueueBatch(batch));
                 }
                 currentLanguage = language;
             }
@@ -157,15 +155,16 @@ public class CreateNlpBatchesFromIndex extends DefaultTask<Long> implements User
                 end = start + Integer.min(batchSize - batch.size(), languageDocs.size() - start);
                 batch.addAll(languageDocs.subList(start, end));
                 if (batch.size() >= batchSize) {
-                    this.enqueueBatch(batch);
+                    batchTaskIds.add(this.enqueueBatch(batch));
                 }
                 start = end;
             }
         }
-        return currentLanguage;
+        return batchTaskIds;
     }
 
-    void enqueueBatch(List<Document> batch) {
+    protected String enqueueBatch(List<Document> batch) {
+        String taskId;
         HashMap<String, Object> args = new HashMap<>(this.batchTaskArgs);
         args.put("docs", batch.stream().map(BatchDocument::fromDocument).toList());
         try {
@@ -173,11 +172,12 @@ public class CreateNlpBatchesFromIndex extends DefaultTask<Long> implements User
             //  bolts to Python, it could be nice to decouple task names from class names since they can change and
             //  are bound to languages
             logger.info("{} - {}", DatashareTime.getNow().getTime(), ((List<BatchDocument>)args.get("docs")).get(0).language());
-            this.taskManager.startTask(BatchNlpTask.class, this.user, args);
+            taskId = this.taskManager.startTask(BatchNlpTask.class, this.user, args);
         } catch (IOException e) {
             throw new RuntimeException("failed to queue task " + args, e);
         }
         batch.clear();
+        return taskId;
     }
 
     @Override

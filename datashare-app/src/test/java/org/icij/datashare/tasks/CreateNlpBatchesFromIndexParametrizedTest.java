@@ -13,7 +13,6 @@ import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.LinkedBlockingQueue;
 import java.util.function.Function;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.asynctasks.Task;
@@ -50,9 +49,9 @@ public class CreateNlpBatchesFromIndexParametrizedTest {
             super(taskManager, indexer, taskView, ignored);
         }
 
-        void enqueueBatch(List<Document> batch) {
+        protected String enqueueBatch(List<Document> batch) {
             DatashareTime.getInstance().addMilliseconds(1);
-            super.enqueueBatch(batch);
+            return super.enqueueBatch(batch);
         }
     }
 
@@ -66,7 +65,7 @@ public class CreateNlpBatchesFromIndexParametrizedTest {
     public void setUp() {
         DatashareTaskFactory factory = mock(DatashareTaskFactory.class);
         when(factory.createBatchNlpTask(any(), any())).thenReturn(mock(BatchNlpTask.class));
-        taskManager = new TaskManagerMemory(new LinkedBlockingQueue<>(), factory, new PropertiesProvider());
+        taskManager = new TaskManagerMemory(factory, new PropertiesProvider());
     }
 
     @After
@@ -131,11 +130,10 @@ public class CreateNlpBatchesFromIndexParametrizedTest {
             "batchSize", this.batchSize,
             "scrollSize", this.scrollSize
         );
-        TestableCreateNlpBatchesFromIndex enqueueFromIndex =
-            new TestableCreateNlpBatchesFromIndex(taskManager, indexer,
+        TestableCreateNlpBatchesFromIndex enqueueFromIndex = new TestableCreateNlpBatchesFromIndex(taskManager, indexer,
                 new Task<>(CreateNlpBatchesFromIndex.class.getName(), new User("test"), properties), null);
         // When
-        enqueueFromIndex.call();
+        List<String> taskIds = enqueueFromIndex.call();
         List<List<Language>> queued = taskManager.getTasks().stream()
             .sorted(Comparator.comparing(t -> t.createdAt))
             .map(t -> ((List<CreateNlpBatchesFromIndex.BatchDocument>) t.args.get("docs")).stream().map(
@@ -143,5 +141,6 @@ public class CreateNlpBatchesFromIndexParametrizedTest {
             .toList();
         // Then
         assertThat(queued).isEqualTo(this.expectedLanguages);
+        assertThat(taskIds.size()).isEqualTo(expectedLanguages.size());
     }
 }

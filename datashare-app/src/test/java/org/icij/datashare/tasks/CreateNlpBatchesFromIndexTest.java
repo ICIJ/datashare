@@ -12,7 +12,6 @@ import co.elastic.clients.elasticsearch._types.Refresh;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.LinkedBlockingQueue;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.asynctasks.TaskManager;
@@ -41,7 +40,7 @@ public class CreateNlpBatchesFromIndexTest {
     public void setUp() {
         DatashareTaskFactory factory = mock(DatashareTaskFactory.class);
         when(factory.createBatchNlpTask(any(), any())).thenReturn(mock(BatchNlpTask.class));
-        taskManager = new TaskManagerMemory(new LinkedBlockingQueue<>(), factory, new PropertiesProvider());
+        taskManager = new TaskManagerMemory(factory, new PropertiesProvider());
     }
 
     @After
