@@ -77,13 +77,11 @@ public class EnqueueFromIndexTask extends PipelineTask<String> {
         try (DocumentQueue<String> outputQueue = factory.createQueue(getOutputQueueName(), String.class)) {
             do {
                 docsToProcess.forEach(doc -> outputQueue.add(doc.getId()));
-                docsToProcess = searcher.scroll(scrollDuration).collect(toList());
+                docsToProcess = searcher.scroll(scrollDuration).toList();
             } while (!docsToProcess.isEmpty());
-            outputQueue.add(STRING_POISON);
-            logger.info("enqueued into {} {} files", outputQueue.getName(), totalHits);
             searcher.clearScroll();
         }
-
+        logger.info("enqueued into {} {} files", outputQueue.getName(), totalHits);
         return totalHits;
     }
 }

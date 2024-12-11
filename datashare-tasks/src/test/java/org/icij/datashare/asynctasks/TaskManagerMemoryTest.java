@@ -9,6 +9,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.slf4j.event.Level;
 
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -40,7 +41,7 @@ public class TaskManagerMemoryTest {
         Task<Integer> task = new Task<>(TestFactory.HelloWorld.class.getName(), User.local(), Map.of("greeted", "world"));
 
         String tid = taskManager.startTask(task);
-        taskManager.shutdownAndAwaitTermination(100, TimeUnit.MILLISECONDS);
+        taskManager.awaitTermination(100, TimeUnit.MILLISECONDS);
 
         assertThat(taskManager.getTask(tid).getState()).isEqualTo(Task.State.DONE);
         assertThat(taskManager.getTask(tid).getResult()).isEqualTo("Hello world!");
@@ -54,7 +55,7 @@ public class TaskManagerMemoryTest {
 
         taskInspector.awaitToBeStarted(taskId, 10000);
         taskManager.stopTask(taskId);
-        taskManager.shutdownAndAwaitTermination(1, TimeUnit.SECONDS);
+        taskManager.awaitTermination(1, TimeUnit.SECONDS);
 
         assertThat(taskManager.getTask(taskId).getState()).isEqualTo(Task.State.CANCELLED);
         assertThat(taskManager.numberOfExecutedTasks()).isEqualTo(0);
@@ -72,7 +73,7 @@ public class TaskManagerMemoryTest {
         taskManager.stopTask(t2.id); // the second is still in the queue
         taskManager.stopTask(t1.id);
 
-        taskManager.shutdownAndAwaitTermination(1, TimeUnit.SECONDS);
+        taskManager.awaitTermination(1, TimeUnit.SECONDS);
         assertThat(t2.getState()).isEqualTo(Task.State.CANCELLED);
         assertThat(taskManager.numberOfExecutedTasks()).isEqualTo(0);
         assertThat(taskManager.getTasks()).hasSize(2);
@@ -83,7 +84,7 @@ public class TaskManagerMemoryTest {
         Task<Integer> task = new Task<>("sleep", User.local(), Map.of("intParameter", 12));
 
         taskManager.startTask(task);
-        taskManager.shutdownAndAwaitTermination(1, TimeUnit.SECONDS);
+        taskManager.awaitTermination(1, TimeUnit.SECONDS);
         assertThat(taskManager.getTasks()).hasSize(1);
 
         taskManager.clearTask(task.id);
@@ -96,7 +97,7 @@ public class TaskManagerMemoryTest {
         Task<Integer> task = new Task<>("sleep", User.local(), Map.of("intParameter", 12));
 
         taskManager.startTask(task);
-        taskManager.shutdownAndAwaitTermination(1, TimeUnit.SECONDS);
+        taskManager.awaitTermination(1, TimeUnit.SECONDS);
         taskManager.progress(task.id, 0.5);
         assertThat(taskManager.getTask(task.id).getState()).isEqualTo(Task.State.RUNNING);
 
@@ -104,21 +105,27 @@ public class TaskManagerMemoryTest {
     }
 
     @Test
-    public void test_progress_on_unknown_task() throws InterruptedException {
-        taskManager.shutdownAndAwaitTermination(1, TimeUnit.SECONDS);
+    public void test_progress_on_unknown_task() throws Exception {
+        taskManager.awaitTermination(1, TimeUnit.SECONDS);
         taskManager.progress("unknownId", 0.5);
         assertThat(logbackCapturingRule.logs(Level.WARN)).contains(
             "unknown task id <unknownId> for progress=0.5 call");
     }
 
     @Test
-    public void test_result_on_unknown_task() throws InterruptedException {
-        taskManager.shutdownAndAwaitTermination(1, TimeUnit.SECONDS);
+    public void test_result_on_unknown_task() throws Exception {
+        taskManager.awaitTermination(1, TimeUnit.SECONDS);
         taskManager.result("unknownId", 0.5);
         assertThat(logbackCapturingRule.logs(Level.WARN)).contains(
             "unknown task id <unknownId> for result=0.5 call");
     }
 
+    @Test
+    public void test_wait_task_to_be_done() throws Exception {
+        taskManager.startTask(TestFactory.Sleep.class, User.local(), Map.of("duration", 100));
+        List<Task<?>> tasks = taskManager.waitTasksToBeDone(200, TimeUnit.MILLISECONDS);
+        assertThat(tasks).hasSize(1);
+    }
 
     @After
     public void tearDown() throws Exception {

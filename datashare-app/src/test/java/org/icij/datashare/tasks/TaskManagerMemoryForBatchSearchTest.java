@@ -51,20 +51,20 @@ public class TaskManagerMemoryForBatchSearchTest {
     public void test_main_loop() throws Exception {
         mockSearch.willReturn(1, createDoc("doc1").build(), createDoc("doc2").build());
         taskManager.startTask(testBatchSearch.uuid, BatchSearchRunner.class, local());
-        taskManager.shutdownAndAwaitTermination(1, TimeUnit.SECONDS);
+        taskManager.awaitTermination(1, TimeUnit.SECONDS);
 
         verify(repository).setState(testBatchSearch.uuid, BatchSearch.State.RUNNING);
         verify(repository).setState(testBatchSearch.uuid, BatchSearch.State.SUCCESS);
     }
 
     @Test(timeout = 2000)
-    public void test_main_loop_exit_with_sigterm_when_empty_batch_queue() throws InterruptedException {
+    public void test_main_loop_exit_with_sigterm_when_empty_batch_queue() throws Exception {
         startLoop.await();
 
         Signal term = new Signal("TERM");
         Signal.raise(term);
 
-        assertThat(taskManager.shutdownAndAwaitTermination(1, TimeUnit.SECONDS)).isTrue();
+        assertThat(taskManager.awaitTermination(1, TimeUnit.SECONDS)).isFalse();
     }
 
     @Test(timeout = 2000)
@@ -78,7 +78,7 @@ public class TaskManagerMemoryForBatchSearchTest {
 
         countDownLatch.await();
         Signal.raise(new Signal("TERM"));
-        taskManager.shutdownAndAwaitTermination(1, TimeUnit.SECONDS);
+        taskManager.awaitTermination(1, TimeUnit.SECONDS);
 
         assertThat(DatashareTime.getInstance().now().getTime() - beforeTest.getTime()).isEqualTo(100);
         assertThat(taskManager.getTasks()).hasSize(1);
@@ -91,7 +91,7 @@ public class TaskManagerMemoryForBatchSearchTest {
         mockSearch.willThrow(new IOException("io exception"));
 
         taskManager.startTask(new Task<>(testBatchSearch.uuid, BatchSearchRunner.class.getName(), local(), new Group("TestGroup")));
-        taskManager.shutdownAndAwaitTermination(1, TimeUnit.SECONDS);
+        taskManager.awaitTermination(1, TimeUnit.SECONDS);
 
         verify(repository).setState(testBatchSearch.uuid, BatchSearch.State.RUNNING);
         verify(repository).setState(eq(testBatchSearch.uuid), any(SearchException.class));
@@ -108,8 +108,8 @@ public class TaskManagerMemoryForBatchSearchTest {
         when(factory.createBatchSearchRunner(any(), any())).thenReturn(bsr1, bsr2);
         when(repository.get(bs1.uuid)).thenReturn(bs1);
         when(repository.get(bs2.uuid)).thenReturn(bs2);
-        String taskView1Id = taskManager.startTask(bs1.uuid, BatchSearchRunner.class, bs1.user);
-        String taskView2Id = taskManager.startTask(bs2.uuid, BatchSearchRunner.class, bs2.user);
+        taskManager.startTask(bs1.uuid, BatchSearchRunner.class, bs1.user);
+        taskManager.startTask(bs2.uuid, BatchSearchRunner.class, bs2.user);
 
         bs1Started.await();
         Signal.raise(new Signal("TERM"));
@@ -129,7 +129,7 @@ public class TaskManagerMemoryForBatchSearchTest {
         Signal term = new Signal("TERM");
         Signal.raise(term);
 
-        assertThat(taskManager.shutdownAndAwaitTermination(1, TimeUnit.SECONDS)).isTrue();
+        assertThat(taskManager.awaitTermination(1, TimeUnit.SECONDS)).isTrue();
         assertThat(batchSearchRunner.cancelAsked).isTrue();
     }
 

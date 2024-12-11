@@ -1,5 +1,6 @@
 package org.icij.datashare.extract;
 
+import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import org.icij.extract.queue.DocumentQueue;
 import org.icij.extract.queue.MemoryDocumentQueue;
@@ -22,8 +23,8 @@ public class MemoryDocumentCollectionFactory<T> implements DocumentCollectionFac
 
     @Override
     public DocumentQueue<T> createQueue(String queueName, Class<T> clazz) {
-        if (!queues.containsKey(queueName)) {
-            synchronized (queues) {
+        synchronized (queues) {
+            if (!queues.containsKey(queueName)) {
                 queues.put(queueName, new MemoryDocumentQueue<>(queueName, QUEUE_CAPACITY));
             }
         }
@@ -32,8 +33,8 @@ public class MemoryDocumentCollectionFactory<T> implements DocumentCollectionFac
 
     @Override
     public ReportMap createMap(String mapName) {
-        if (!maps.containsKey(mapName)) {
-            synchronized (maps) {
+        synchronized (maps) {
+            if (!maps.containsKey(mapName)) {
                 maps.putIfAbsent(mapName, new HashMapReportMap());
             }
         }

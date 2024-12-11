@@ -71,18 +71,18 @@ public class TaskManagerAmqp implements TaskManager {
     }
 
     @Override
-    public boolean shutdownAndAwaitTermination(int timeout, TimeUnit timeUnit) throws InterruptedException, IOException {
+    public boolean shutdown() throws IOException {
         amqp.publish(AmqpQueue.WORKER_EVENT, new ShutdownEvent());
         return true;
     }
 
-    public boolean save(Task<?> task) {
+    public <V> boolean save(Task<V> task) {
         Task<?> oldVal = tasks.put(task.id, task);
         return oldVal == null;
     }
 
     @Override
-    public void enqueue(Task<?> task) throws IOException {
+    public <V> void enqueue(Task<V> task) throws IOException {
         switch (routingStrategy) {
             case GROUP -> amqp.publish(AmqpQueue.TASK, task.getGroup().id(), task);
             case NAME -> amqp.publish(AmqpQueue.TASK, task.name, task);

@@ -41,7 +41,7 @@ public class EnqueueFromIndexTaskTest {
         MemoryDocumentCollectionFactory<String> factory = new MemoryDocumentCollectionFactory<>();
         EnqueueFromIndexTask enqueueFromIndex = new EnqueueFromIndexTask(factory, indexer, new Task<>(EnqueueFromIndexTask.class.getName(), new User("test"), properties), null);
         enqueueFromIndex.call();
-        assertThat(factory.queues.get("test:queue:nlp")).hasSize(21); // with poison
+        assertThat(factory.queues.get("test:queue:nlp")).hasSize(20);
     }
 
     @Test
@@ -63,7 +63,7 @@ public class EnqueueFromIndexTaskTest {
         MemoryDocumentCollectionFactory<String> factory = new MemoryDocumentCollectionFactory<>();
         EnqueueFromIndexTask enqueueFromIndex = new EnqueueFromIndexTask(factory, indexer, new Task<>(EnqueueFromIndexTask.class.getName(), new User("test"), properties), null);
         enqueueFromIndex.call();
-        assertThat(factory.queues.get("test:queue:nlp")).hasSize(2); // with poison
+        assertThat(factory.queues.get("test:queue:nlp")).hasSize(1);
     }
 
     @Test
@@ -79,6 +79,6 @@ public class EnqueueFromIndexTaskTest {
         MemoryDocumentCollectionFactory<String> factory = new MemoryDocumentCollectionFactory<>();
         EnqueueFromIndexTask enqueueFromIndex = new EnqueueFromIndexTask(factory, indexer, new Task<>(EnqueueFromIndexTask.class.getName(), new User("test"), properties), null);
         enqueueFromIndex.call();
-        assertThat(factory.queues.get("test:queue:nlp")).hasSize(2); // with poison
+        assertThat(factory.queues.get("test:queue:nlp")).hasSize(1);
     }
 }

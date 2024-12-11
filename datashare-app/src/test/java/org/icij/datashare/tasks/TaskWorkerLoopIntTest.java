@@ -27,7 +27,7 @@ public class TaskWorkerLoopIntTest {
     TaskManagerRedis taskManager;
     CountDownLatch eventWaiter;
 
-    @Test(timeout = 5000)
+    @Test(timeout = 10000)
     public void test_batch_download_task_view_properties() throws Exception {
         DatashareTaskFactory factory = mock(DatashareTaskFactory.class);
         BatchDownload batchDownload = new BatchDownload(singletonList(project("prj")), User.local(), "foo");
@@ -44,7 +44,7 @@ public class TaskWorkerLoopIntTest {
         taskManager.startTask(BatchDownloadRunner.class.getName(), User.local(), properties);
         Thread.sleep(100); // this is a symptom of a possible flaky test but for now I can't figure out how to be event driven
 
-        taskManager.shutdownAndAwaitTermination(1, TimeUnit.SECONDS);
+        taskManager.awaitTermination(1, TimeUnit.SECONDS);
         eventWaiter.await();
 
         assertThat(taskManager.getTasks()).hasSize(1);
@@ -57,7 +57,7 @@ public class TaskWorkerLoopIntTest {
     @Before
     public void setUp() throws Exception {
         eventWaiter = new CountDownLatch(2); // progress, error
-        taskManager = new TaskManagerRedis(new PropertiesProvider(), "test:task:manager", eventWaiter::countDown);
+        taskManager = new TaskManagerRedis(new PropertiesProvider(), "test:task:manager", eventWaiter::countDown, 100);
     }
 
     @After

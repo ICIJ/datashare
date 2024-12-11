@@ -31,6 +31,7 @@ public class TaskManagerMemory implements TaskManager, TaskSupplier {
     private final BlockingQueue<Task<?>> taskQueue;
     private final List<TaskWorkerLoop> loops;
     private final AtomicInteger executedTasks = new AtomicInteger(0);
+    private final int pollingInterval;
 
     public TaskManagerMemory(TaskFactory taskFactory) {
         this(taskFactory, new PropertiesProvider(), new CountDownLatch(1));
@@ -39,9 +40,10 @@ public class TaskManagerMemory implements TaskManager, TaskSupplier {
     public TaskManagerMemory(TaskFactory taskFactory, PropertiesProvider propertiesProvider, CountDownLatch latch) {
         this.taskQueue = new LinkedBlockingQueue<>();
         int parallelism = parseInt(propertiesProvider.get("parallelism").orElse("1"));
-        logger.info("running TaskManager with {} workers", parallelism);
+        pollingInterval = Integer.parseInt(propertiesProvider.get("pollingInterval").orElse("60"));
+        logger.info("running TaskManager {} with {} workers", this, parallelism);
         executor = Executors.newFixedThreadPool(parallelism);
-        loops = IntStream.range(0, parallelism).mapToObj(i -> new TaskWorkerLoop(taskFactory, this, latch)).collect(Collectors.toList());
+        loops = IntStream.range(0, parallelism).mapToObj(i -> new TaskWorkerLoop(taskFactory, this, latch, pollingInterval)).collect(Collectors.toList());
         loops.forEach(executor::submit);
     }
 
@@ -103,30 +105,25 @@ public class TaskManagerMemory implements TaskManager, TaskSupplier {
         }
     }
 
-    public boolean save(Task<?> taskView) {
+    public <V> boolean save(Task<V> taskView) {
         Task<?> oldTask = tasks.put(taskView.id, taskView);
         return oldTask == null;
     }
 
     @Override
-    public void enqueue(Task<?> task) {
+    public <V> void enqueue(Task<V> task) {
         taskQueue.add(task);
     }
 
-    public boolean shutdownAndAwaitTermination(int timeout, TimeUnit timeUnit) throws InterruptedException {
-        waitTasksToBeDone(timeout, timeUnit);
-        executor.shutdownNow();
-        return executor.awaitTermination(timeout, timeUnit);
-    }
-
-    public List<Task<?>> waitTasksToBeDone(int timeout, TimeUnit timeUnit) {
-        return tasks.values().stream().peek(taskView -> {
-            try {
-                taskView.getResult(timeout, timeUnit);
-            } catch (InterruptedException | CancellationException e) {
-                logger.error("task interrupted while running", e);
-            }
-        }).collect(toList());
+    @Override
+    public boolean shutdown() throws IOException {
+        executor.shutdown();
+        loops.forEach(TaskWorkerLoop::exit);
+        try {
+            return executor.awaitTermination(pollingInterval * 2, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public List<Task<?>> clearDoneTasks() {
@@ -174,6 +171,17 @@ public class TaskManagerMemory implements TaskManager, TaskSupplier {
     @Override
     public void close() throws IOException {
         executor.shutdown();
+    }
+
+    @Override
+    public List<Task<?>> waitTasksToBeDone(int timeout, TimeUnit timeUnit) throws IOException {
+        return getTasks().stream().peek(taskView -> {
+            try {
+                taskView.getResult(timeout, timeUnit);
+            } catch (InterruptedException e) {
+                logger.error("getResult interrupted while waiting for result", e);
+            }
+        }).toList();
     }
 
     int numberOfExecutedTasks() {

@@ -21,25 +21,27 @@ import java.util.stream.Stream;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toMap;
 
+/**
+ * Task manager interface with default methods common for all managers implementations.
+ */
 public interface TaskManager extends Closeable {
+    int POLLING_INTERVAL = 5000;
     Logger logger = LoggerFactory.getLogger(TaskManager.class);
 
-    boolean stopTask(String taskId) throws IOException;
-    <V> Task<V> clearTask(String taskId) throws IOException;
-    boolean shutdownAndAwaitTermination(int timeout, TimeUnit timeUnit) throws InterruptedException, IOException;
     <V> Task<V> getTask(String taskId) throws IOException;
+    <V> Task<V> clearTask(String taskId) throws IOException;
+    boolean stopTask(String taskId) throws IOException;
+
     List<Task<?>> getTasks() throws IOException;
     List<Task<?>> getTasks(User user, Pattern pattern) throws IOException;
     List<Task<?>> clearDoneTasks() throws IOException;
-    void clear() throws IOException;
-    boolean save(Task<?> task) throws IOException;
-    void enqueue(Task<?> task) throws IOException;
 
-    static List<Task<?>> getTasks(Stream<Task<?>> stream, User user, Pattern pattern) {
-        return stream.
-                filter(t -> user.equals(t.getUser())).
-                filter(t -> pattern.matcher(t.name).matches()).
-                collect(toList());
+    boolean shutdown() throws IOException;
+    void clear() throws IOException;
+
+    default int getTerminationPollingInterval() {return POLLING_INTERVAL;}
+    default boolean awaitTermination(int timeout, TimeUnit timeUnit) throws InterruptedException, IOException {
+        return !waitTasksToBeDone(timeout, timeUnit).isEmpty();
     }
 
     default Map<String, Boolean> stopAllTasks(User user) throws IOException {
@@ -56,25 +58,41 @@ public interface TaskManager extends Closeable {
                         }));
     }
 
+    /**
+     * This is a "inner method" that is used in the template method for start(task).
+     * It saves the method in the inner persistent state of TaskManagers implementations.
+     *
+     * @param task to be saved in persistent state
+     * @return true if task has been saved
+     * @throws IOException if a network error occurs
+     */
+    <V> boolean save(Task<V> task) throws IOException;
 
-    // for tests
-    default String startTask(String taskName, User user, Map<String, Object> properties) throws IOException {
-        return startTask(new Task<>(taskName, user, properties));
-    }
+    /**
+     * This is a "inner method" that is used in the template method for start(task).
+     * It put the task in the task queue for workers.
+     * @param task task to be queued
+     * @throws IOException if a network error occurs
+     */
+    <V> void enqueue(Task<V> task) throws IOException;
 
     // TaskResource and pipeline tasks
     default String startTask(Class<?> taskClass, User user, Map<String, Object> properties) throws IOException {
         return startTask(new Task<>(taskClass.getName(), user, new Group(taskClass.getAnnotation(TaskGroup.class).value()), properties));
     }
 
-    // for tests
-    default String startTask(String taskName, User user, Group group, Map<String, Object> properties) throws IOException {
-        return startTask(new Task<>(taskName, user, group, properties));
-    }
-
     // BatchSearchResource and WebApp for batch searches
     default  String startTask(String id, Class<?> taskClass, User user) throws IOException {
         return startTask(new Task<>(id, taskClass.getName(), user, new Group(taskClass.getAnnotation(TaskGroup.class).value())));
+    }
+
+    // for tests
+    default String startTask(String taskName, User user, Map<String, Object> properties) throws IOException {
+        return startTask(new Task<>(taskName, user, properties));
+    }
+    // for tests
+    default String startTask(String taskName, User user, Group group, Map<String, Object> properties) throws IOException {
+        return startTask(new Task<>(taskName, user, group, properties));
     }
 
     /**
@@ -90,8 +108,9 @@ public interface TaskManager extends Closeable {
         if (saved) {
             taskView.queue();
             enqueue(taskView);
+            return taskView.id;
         }
-        return saved ? taskView.id: null;
+        return null;
     }
 
     default <V extends Serializable> Task<V> setResult(ResultEvent<V> e) throws IOException {
@@ -168,9 +187,41 @@ public interface TaskManager extends Closeable {
         }
     }
 
+    /**
+     * wait for all the tasks to have a result.
+     *
+     * This method will poll the task list. So if there are a lot of tasks or if tasks are
+     * containing a lot of information, this method call could be very intensive on network and CPU.
+     *
+     * @param timeout amount for the timeout
+     * @param timeUnit unit of the timeout
+     * @return the list of unfinished/alive tasks
+     * @throws IOException if the task list cannot be retrieved because of a network failure.
+     */
+    default List<Task<?>> waitTasksToBeDone(int timeout, TimeUnit timeUnit) throws IOException {
+        long startTime = System.currentTimeMillis();
+        List<Task<?>> unfinishedTasks = getTasks().stream().filter(t -> !t.isFinished()).toList();
+        while (System.currentTimeMillis() - startTime < timeUnit.toMillis(timeout) && !unfinishedTasks.isEmpty()) {
+            unfinishedTasks = getTasks().stream().filter(t -> !t.isFinished()).toList();
+            try {
+                Thread.sleep(getTerminationPollingInterval());
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+        }
+        return unfinishedTasks;
+    }
+
     // for tests
     default void setLatch(String taskId, StateLatch stateLatch) throws IOException {
         getTask(taskId).setLatch(stateLatch);
+    }
+
+    static List<Task<?>> getTasks(Stream<Task<?>> stream, User user, Pattern pattern) {
+        return stream.
+                filter(t -> user.equals(t.getUser())).
+                filter(t -> pattern.matcher(t.name).matches()).
+                collect(toList());
     }
 
     class TaskEventHandlingException extends RuntimeException {

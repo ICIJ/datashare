@@ -34,7 +34,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Consumer;
 import java.util.regex.Pattern;
 import java.util.stream.StreamSupport;
 
@@ -84,12 +83,12 @@ public class TaskManagerRedis implements TaskManager {
     }
 
     @Override
-    public Task<?> clearTask(String taskId) {
+    public <V> Task<V> clearTask(String taskId) {
         if (tasks.get(taskId).getState() == Task.State.RUNNING) {
             throw new IllegalStateException(String.format("task id <%s> is already in RUNNING state", taskId));
         }
         logger.info("deleting task id <{}>", taskId);
-        return tasks.remove(taskId);
+        return (Task<V>) tasks.remove(taskId);
     }
 
     @Override
@@ -109,7 +108,7 @@ public class TaskManagerRedis implements TaskManager {
     }
 
     @Override
-    public boolean shutdownAndAwaitTermination(int timeout, TimeUnit timeUnit) {
+    public boolean shutdown() throws IOException {
         return eventTopic.publish(new ShutdownEvent()) > 0;
     }
 
@@ -153,13 +152,13 @@ public class TaskManagerRedis implements TaskManager {
                 .forEach(k -> redissonClient.getQueue(k).delete());
     }
 
-    public boolean save(Task<?> task) {
+    public <V> boolean save(Task<V> task) {
         Task<?> oldVal = tasks.put(task.id, task);
         return oldVal == null;
     }
 
     @Override
-    public void enqueue(Task<?> task) {
+    public <V> void enqueue(Task<V> task) {
         taskQueue(task).add(task);
     }
 
@@ -194,9 +193,6 @@ public class TaskManagerRedis implements TaskManager {
                 } catch (IOException e) {
                     out.release();
                     throw e;
-                } catch (Exception e) {
-                    out.release();
-                    throw new IOException(e);
                 }
             }
         };

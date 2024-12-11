@@ -190,6 +190,7 @@ public class DatashareCli {
         DatashareCliOptions.searchQuery(parser);
         DatashareCliOptions.taskRoutingStrategy(parser);
         DatashareCliOptions.taskRoutingKey(parser);
+        DatashareCliOptions.pollingInterval(parser);
         return parser;
     }
 
