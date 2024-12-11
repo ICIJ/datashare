@@ -195,7 +195,7 @@ public interface TaskManager extends Closeable {
      *
      * @param timeout amount for the timeout
      * @param timeUnit unit of the timeout
-     * @return the list of tasks
+     * @return the list of unfinished/alive tasks
      * @throws IOException if the task list cannot be retrieved because of a network failure.
      */
     default List<Task<?>> waitTasksToBeDone(int timeout, TimeUnit timeUnit) throws IOException {
