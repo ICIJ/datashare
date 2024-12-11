@@ -126,7 +126,7 @@ public class TaskManagersIntTest {
         assertThat(taskManager.getTask(tv2Id).getState()).isEqualTo(Task.State.CANCELLED);
     }
 
-    @Test(timeout = 5000)
+    @Test(timeout = 10000)
     public void test_await_tasks_termination() throws Exception {
         String tv1Id = taskManager.startTask(TestFactory.Sleep.class, User.local(), Map.of("duration", 100));
         String tv2Id = taskManager.startTask(TestFactory.Sleep.class, User.local(), Map.of("duration", 200));

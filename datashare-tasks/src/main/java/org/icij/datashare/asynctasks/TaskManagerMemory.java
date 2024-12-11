@@ -173,6 +173,17 @@ public class TaskManagerMemory implements TaskManager, TaskSupplier {
         executor.shutdown();
     }
 
+    @Override
+    public List<Task<?>> waitTasksToBeDone(int timeout, TimeUnit timeUnit) throws IOException {
+        return getTasks().stream().peek(taskView -> {
+            try {
+                taskView.getResult(timeout, timeUnit);
+            } catch (InterruptedException e) {
+                logger.error("getResult interrupted while waiting for result", e);
+            }
+        }).toList();
+    }
+
     int numberOfExecutedTasks() {
         return executedTasks.get();
     }

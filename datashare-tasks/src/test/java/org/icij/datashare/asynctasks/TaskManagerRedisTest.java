@@ -91,7 +91,6 @@ public class TaskManagerRedisTest {
         String taskViewId = taskManager.startTask("sleep", User.local(), new HashMap<>());
 
         assertThat(taskManager.getTasks()).hasSize(1);
-        System.out.println(taskManager.getTasks());
 
         taskSupplier.result(taskViewId, 12);
         assertThat(waitForEvent.await(1, TimeUnit.SECONDS)).isTrue();

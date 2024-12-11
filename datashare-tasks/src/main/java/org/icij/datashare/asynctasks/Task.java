@@ -86,6 +86,16 @@ public class Task<V> extends Event implements Entity {
         return result;
     }
 
+    /**
+     * Beware that the lock is working only on a "local" use.
+     * If the task is serialized/deserialized then the lock won't do anything
+     * because the lock instance will change.
+     *
+     * @param timeout
+     * @param unit
+     * @return
+     * @throws InterruptedException
+     */
     public V getResult(int timeout, TimeUnit unit) throws InterruptedException {
         synchronized (lock) {
             if (!isFinished()) {

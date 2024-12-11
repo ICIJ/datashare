@@ -108,8 +108,8 @@ public class TaskManagerMemoryForBatchSearchTest {
         when(factory.createBatchSearchRunner(any(), any())).thenReturn(bsr1, bsr2);
         when(repository.get(bs1.uuid)).thenReturn(bs1);
         when(repository.get(bs2.uuid)).thenReturn(bs2);
-        String taskView1Id = taskManager.startTask(bs1.uuid, BatchSearchRunner.class, bs1.user);
-        String taskView2Id = taskManager.startTask(bs2.uuid, BatchSearchRunner.class, bs2.user);
+        taskManager.startTask(bs1.uuid, BatchSearchRunner.class, bs1.user);
+        taskManager.startTask(bs2.uuid, BatchSearchRunner.class, bs2.user);
 
         bs1Started.await();
         Signal.raise(new Signal("TERM"));

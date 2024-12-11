@@ -12,7 +12,6 @@ import org.slf4j.LoggerFactory;
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.Serializable;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -26,6 +25,7 @@ import static java.util.stream.Collectors.toMap;
  * Task manager interface with default methods common for all managers implementations.
  */
 public interface TaskManager extends Closeable {
+    int POLLING_INTERVAL = 5000;
     Logger logger = LoggerFactory.getLogger(TaskManager.class);
 
     <V> Task<V> getTask(String taskId) throws IOException;
@@ -39,6 +39,7 @@ public interface TaskManager extends Closeable {
     boolean shutdown() throws IOException;
     void clear() throws IOException;
 
+    default int getTerminationPollingInterval() {return POLLING_INTERVAL;}
     default boolean awaitTermination(int timeout, TimeUnit timeUnit) throws InterruptedException, IOException {
         return !waitTasksToBeDone(timeout, timeUnit).isEmpty();
     }
@@ -187,10 +188,10 @@ public interface TaskManager extends Closeable {
     }
 
     /**
-     * wait for all the tasks to have a result using the thread lock in each task.
+     * wait for all the tasks to have a result.
      *
-     * Note that the timeout provided is used for each task. So in some (very specific) case it could
-     * lead for a total delay of the number of task times the provided timeout.
+     * This method will poll the task list. So if there are a lot of tasks or if tasks are
+     * containing a lot of information, this method call could be very intensive on network and CPU.
      *
      * @param timeout amount for the timeout
      * @param timeUnit unit of the timeout
@@ -198,13 +199,17 @@ public interface TaskManager extends Closeable {
      * @throws IOException if the task list cannot be retrieved because of a network failure.
      */
     default List<Task<?>> waitTasksToBeDone(int timeout, TimeUnit timeUnit) throws IOException {
-        return getTasks().stream().peek(taskView -> {
+        long startTime = System.currentTimeMillis();
+        List<Task<?>> unfinishedTasks = getTasks().stream().filter(t -> !t.isFinished()).toList();
+        while (System.currentTimeMillis() - startTime < timeUnit.toMillis(timeout) && !unfinishedTasks.isEmpty()) {
+            unfinishedTasks = getTasks().stream().filter(t -> !t.isFinished()).toList();
             try {
-                taskView.getResult(timeout, timeUnit);
+                Thread.sleep(getTerminationPollingInterval());
             } catch (InterruptedException e) {
-                logger.error("getResult interrupted while waiting for result", e);
+                throw new RuntimeException(e);
             }
-        }).collect(toList());
+        }
+        return unfinishedTasks;
     }
 
     // for tests
