@@ -1,59 +1,68 @@
 package org.icij.datashare;
 
+import static java.lang.String.format;
+import static java.lang.String.join;
+import static java.util.Arrays.stream;
+import static java.util.Optional.ofNullable;
 import static org.apache.commons.io.FilenameUtils.getExtension;
 
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.regex.Pattern;
+
 import org.apache.commons.io.FilenameUtils;
 
 public class DeliverableHelper {
-    private static final String OS = System.getProperty("os.name").toLowerCase();
-    private static final String ARCH = System.getProperty("os.arch").toLowerCase();
-    private static final boolean IS_MACOS = OS.contains("mac");
-    private static final boolean IS_WINDOWS = OS.contains("windows");
-    private static final boolean IS_UNIX = OS.contains("nix") || OS.contains("nux") || OS.indexOf("aix") > 0;
-    private static final boolean IS_X86_64 = ARCH.contains("amd64") || ARCH.contains("x86_64");
-    private static final boolean IS_ARM = ARCH.contains("aarch64") || ARCH.contains("arm64");
+    enum OS {
+        macos("mac.*"), linux(".*(nux|nix|aix).*"), windows("windows.*");
+        private final Pattern osPattern;
 
+        OS(String regexp) {
+            this.osPattern = Pattern.compile(regexp);
+        }
+
+        static OS fromSystem() {return fromSystemString(System.getProperty("os.name"));}
+        static OS fromSystemString(String osName) {
+            String normalizedOsName = normalize(osName);
+            return stream(values()).filter(os -> os.osPattern.matcher(normalizedOsName).matches())
+                    .findFirst()
+                    .orElseThrow(() -> new IllegalArgumentException(format("Unknown OS: %s", osName)));
+        }
+    }
+    enum ARCH {
+        aarch64("(aarch64|arm64).*"), x86_64("(amd64|x86_64).*");
+        private final Pattern archPattern;
+
+        ARCH(String archPattern) {
+            this.archPattern = Pattern.compile(archPattern);
+        }
+
+        static ARCH fromSystem() {return fromSystemString(System.getProperty("os.arch"));}
+        static ARCH fromSystemString(String archName) {
+            String normalizedArchName = normalize(archName);
+            return stream(values()).filter(os -> os.archPattern.matcher(normalizedArchName).matches())
+                    .findFirst()
+                    .orElseThrow(() -> new IllegalArgumentException(format("Unknown ARCH: %s", archName)));
+        }
+    }
+
+    static String normalize(String string) {
+        return ofNullable(string).orElse("").toLowerCase();
+    }
     static String getUrlFileName(URL url) { return FilenameUtils.getName(url.getFile().replaceAll("/$",""));}
 
     static URL hostSpecificUrl(URL url, String version) {
-        String extFileName = getUrlFileName(url);
-        String hostSpecificName = extFileName.replace("-" + version, "") + hostSpecificSuffix() + "-" + version;
-        String urlFile = url.getFile();
-        StringBuilder b = new StringBuilder(urlFile);
-        int last = urlFile.lastIndexOf(extFileName);
-        b.replace(last, last + extFileName.length(), "");
-        urlFile = b.toString();
-        String hostSpecificFile = urlFile + hostSpecificName;
+        String fileName = url.getFile();
+        String fileNameWithOsAndArch = fileName.replace(version, String.format("%s-%s", osArchSuffix(), version));
         try {
-            return new URL(url.getProtocol(), url.getHost(), hostSpecificFile);
+            return new URL(url.getProtocol(), url.getHost(), fileNameWithOsAndArch);
         } catch (MalformedURLException e) {
             throw new RuntimeException(e);
         }
     }
 
-    static String hostSpecificSuffix() {
-        String arch;
-        if (IS_ARM) {
-            // We assume 64 arch here...
-            arch = "aarch64";
-        } else if (IS_X86_64) {
-            arch = "x86_64";
-        } else {
-            throw new RuntimeException("unsupported architecture " + ARCH);
-        }
-        String os;
-        if (IS_WINDOWS) {
-            os = "windows";
-        } else if (IS_MACOS) {
-            os = "macos";
-        } else if (IS_UNIX) {
-            os = "linux";
-        } else {
-            throw new RuntimeException("unsupported os " + OS);
-        }
-        return "-" + os + "-" + arch;
+    static String osArchSuffix() {
+        return OS.fromSystem() + "-" + ARCH.fromSystem();
     }
 
     static String getExtensionFileExt(String fileName) {
