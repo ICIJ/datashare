@@ -82,8 +82,8 @@ public class Extension implements Deliverable {
     @Override
     public File download() throws IOException {
         URL hostSpecificUrl = url;
-        if (isHostSpecific()) {
-            hostSpecificUrl = DeliverableHelper.hostSpecificUrl(url, version);
+        if (this.hostSpecific) {
+            hostSpecificUrl = DeliverableHelper.hostSpecificUrl(new OsArchDetector(), url, version);
         }
         return download(hostSpecificUrl);
     }
