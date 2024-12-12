@@ -126,8 +126,9 @@ public class ExtensionServiceTest {
 
     @Test
     public void test_delete_previous_extension_if_version_differs_for_executable_ext() throws Exception {
-        String v0Path = "my-extension-" + DeliverableHelper.osArchSuffix() + "-1.2.3";
-        String v1path = "my-extension-" + DeliverableHelper.osArchSuffix() + "-1.2.4";
+        OsArchDetector detector = new OsArchDetector();
+        String v0Path = "my-extension-" + detector.osArchSuffix() + "-1.2.3";
+        String v1path = "my-extension-" + detector.osArchSuffix() + "-1.2.4";
         otherFolder.newFile(v0Path);
         otherFolder.newFile(v1path);
         ExtensionService extensionService = new ExtensionService(extensionFolder.getRoot().toPath());
