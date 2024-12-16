@@ -191,7 +191,7 @@ public class UserTaskResourceTest extends AbstractProdWebServerTest {
     private void setupAppWith(DatashareTaskFactory taskFactory, String... userLogins) {
         final PropertiesProvider propertiesProvider = new PropertiesProvider(Map.of("mode", "LOCAL"));
         taskManager = new TaskManagerMemory(taskFactory, new PropertiesProvider());
-        configure(routes -> routes.add(new TaskResource(taskFactory, taskManager, propertiesProvider))
+        configure(routes -> routes.add(new TaskResource(taskFactory, taskManager, propertiesProvider, null))
                 .filter(new BasicAuthFilter("/", "ds", DatashareUser.users(userLogins))));
     }
 
