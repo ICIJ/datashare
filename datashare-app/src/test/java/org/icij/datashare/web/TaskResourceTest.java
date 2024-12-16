@@ -11,17 +11,10 @@ import org.icij.datashare.db.JooqRepository;
 import org.icij.datashare.extension.PipelineRegistry;
 import org.icij.datashare.nlp.EmailPipeline;
 import org.icij.datashare.session.LocalUserFilter;
-import org.icij.datashare.tasks.BatchDownloadRunner;
-import org.icij.datashare.tasks.DatashareTaskFactory;
-import org.icij.datashare.tasks.DeduplicateTask;
-import org.icij.datashare.tasks.EnqueueFromIndexTask;
-import org.icij.datashare.tasks.ExtractNlpTask;
-import org.icij.datashare.tasks.IndexTask;
-import org.icij.datashare.tasks.ScanIndexTask;
-import org.icij.datashare.tasks.ScanTask;
 import org.icij.datashare.tasks.TaskManagerMemory;
 import org.icij.datashare.tasks.TestSleepingTask;
 import org.icij.datashare.tasks.TestTask;
+import org.icij.datashare.tasks.TestTaskUtils;
 import org.icij.datashare.test.DatashareTimeRule;
 import org.icij.datashare.text.nlp.AbstractModels;
 import org.icij.datashare.user.User;
@@ -40,7 +33,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.function.Function;
 
 import static java.lang.String.format;
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -54,7 +46,6 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.MockitoAnnotations.initMocks;
@@ -64,7 +55,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
     public DatashareTimeRule time = new DatashareTimeRule("2021-07-07T12:23:34Z");
     @Mock
     JooqRepository jooqRepository;
-    private static final DatashareTaskFactoryForTest taskFactory = mock(DatashareTaskFactoryForTest.class);
+    private static final TestTaskUtils.DatashareTaskFactoryForTest taskFactory = mock(TestTaskUtils.DatashareTaskFactoryForTest.class);
     private static final TaskManagerMemory taskManager = new TaskManagerMemory(taskFactory, new PropertiesProvider());
 
     @Before
@@ -74,8 +65,8 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         PipelineRegistry pipelineRegistry = new PipelineRegistry(getDefaultPropertiesProvider());
         pipelineRegistry.register(EmailPipeline.class);
         LocalUserFilter localUserFilter = new LocalUserFilter(getDefaultPropertiesProvider(), jooqRepository);
-        configure(routes -> routes.add(new TaskResource(taskFactory, taskManager, getDefaultPropertiesProvider())).filter(localUserFilter));
-        init(taskFactory);
+        configure(routes -> routes.add(new TaskResource(taskFactory, taskManager, getDefaultPropertiesProvider(), null)).filter(localUserFilter));
+        TestTaskUtils.init(taskFactory);
     }
 
     @After
@@ -490,25 +481,5 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
 
     private Optional<Task<?>> findTask(TaskManagerMemory taskManager, String expectedName) {
         return taskManager.getTasks().stream().filter(t -> expectedName.equals(t.name)).findFirst();
-    }
-
-    private void init(DatashareTaskFactoryForTest taskFactory) {
-        reset(taskFactory);
-        when(taskFactory.createIndexTask(any(), any())).thenReturn(mock(IndexTask.class));
-        when(taskFactory.createScanTask(any(), any())).thenReturn(mock(ScanTask.class));
-        when(taskFactory.createDeduplicateTask(any(), any())).thenReturn(mock(DeduplicateTask.class));
-        when(taskFactory.createBatchDownloadRunner(any(), any())).thenReturn(mock(BatchDownloadRunner.class));
-        when(taskFactory.createScanIndexTask(any(), any())).thenReturn(mock(ScanIndexTask.class));
-        when(taskFactory.createEnqueueFromIndexTask(any(), any())).thenReturn(mock(EnqueueFromIndexTask.class));
-        when(taskFactory.createExtractNlpTask(any(), any())).thenReturn(mock(ExtractNlpTask.class));
-        when(taskFactory.createTestTask(any(Task.class), any(Function.class))).thenReturn(new TestTask(10));
-        when(taskFactory.createTestSleepingTask(any(Task.class), any(Function.class))).thenReturn(new TestSleepingTask(100000));
-        when(taskFactory.createTaskCreation(any(Task.class), any(Function.class))).thenReturn(mock(TaskCreation.class));
-    }
-
-    public interface DatashareTaskFactoryForTest extends DatashareTaskFactory {
-        TestSleepingTask createTestSleepingTask(Task<Integer> task, Function<Double, Void> updateCallback);
-        TestTask createTestTask(Task<Integer> task, Function<Double, Void> updateCallback);
-        TaskCreation createTaskCreation(Task<?> task, Function<Double, Void> updateCallback);
     }
 }

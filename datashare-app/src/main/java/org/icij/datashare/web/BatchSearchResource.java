@@ -6,56 +6,41 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.enums.ParameterIn;
 import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.media.Schema;
-import io.swagger.v3.oas.annotations.media.SchemaProperty;
 import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import net.codestory.http.Context;
-import net.codestory.http.Part;
 import net.codestory.http.annotations.*;
 import net.codestory.http.constants.HttpStatus;
-import net.codestory.http.errors.NotFoundException;
 import net.codestory.http.errors.UnauthorizedException;
 import net.codestory.http.payload.Payload;
 import org.icij.datashare.PropertiesProvider;
-import org.icij.datashare.asynctasks.TaskManager;
 import org.icij.datashare.batch.*;
 import org.icij.datashare.db.JooqBatchSearchRepository;
 import org.icij.datashare.session.DatashareUser;
-import org.icij.datashare.tasks.BatchSearchRunner;
-import org.icij.datashare.text.Project;
 import org.icij.datashare.text.ProjectProxy;
 import org.icij.datashare.user.User;
 import org.icij.datashare.utils.PayloadFormatter;
 
-import java.io.IOException;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import static java.lang.Boolean.FALSE;
-import static java.lang.Boolean.TRUE;
-import static java.lang.Boolean.parseBoolean;
 import static java.lang.Integer.parseInt;
 import static java.lang.String.format;
 import static java.util.Arrays.stream;
 import static java.util.Optional.ofNullable;
 import static net.codestory.http.payload.Payload.*;
-import static org.icij.datashare.CollectionUtils.asSet;
 import static org.icij.datashare.function.ThrowingFunctions.parseBoolean;
 
 @Singleton
 @Prefix("/api/batch")
 public class BatchSearchResource {
-    private final TaskManager taskManager;
     private final BatchSearchRepository batchSearchRepository;
     private final PropertiesProvider propertiesProvider;
-    private final int MAX_BATCH_SIZE = 60000;
 
     @Inject
-    public BatchSearchResource(PropertiesProvider propertiesProvider, TaskManager taskManager, final BatchSearchRepository batchSearchRepository) {
-        this.taskManager = taskManager;
+    public BatchSearchResource(PropertiesProvider propertiesProvider, final BatchSearchRepository batchSearchRepository) {
         this.batchSearchRepository = batchSearchRepository;
         this.propertiesProvider = propertiesProvider;
     }
@@ -200,118 +185,6 @@ public class BatchSearchResource {
         return notFound();
     }
 
-    @Operation(description = "Creates a new batch search. This is a multipart form with 9 fields:<br/>" +
-            "name, description, csvFile, published, fileTypes, paths, fuzziness, phrase_matches, query_template<br>" +
-            "<br/>" +
-            "Queries with less than two characters are filtered.<br>" +
-            "<br>" +
-            "To make a request manually, you can create a file like:<br>" +
-            "<pre>"+
-            "--BOUNDARY<br/>\"" +
-            "Content-Disposition: form-data; name=\"name\"<br/>" +
-            "<br/>" +
-            "my batch search<br/>" +
-            " --BOUNDARY<br/>" +
-            "Content-Disposition: form-data; name=\"description\"<br/>" +
-            "<br/>" +
-            "search description<br/>" +
-            " --BOUNDARY<br/>" +
-            "Content-Disposition: form-data; name=\"csvFile\"; filename=\"search.csv\"<br/>" +
-            "Content-Type: text/csv<br/>" +
-            "<br/>" +
-            "Obama<br/>" +
-            "skype<br/>" +
-            "test<br/>" +
-            "query three<br/>" +
-            "--BOUNDARY--<br/>" +
-            "Content-Disposition: form-data; name=\"published\"<br/>" +
-            "<br/>" +
-            "true<br/>" +
-            "--BOUNDARY--<br/>" +
-            "</pre><br/>" +
-            "<br/>Then curl with" +
-            "<pre>curl -i -XPOST localhost:8080/api/batch/search/prj1,prj2 -H 'Content-Type: multipart/form-data; boundary=BOUNDARY' --data-binary @/home/dev/multipart.txt</pre>" +
-            "you'll maybe have to replace \\n with \\n\\r with <pre>sed -i 's/$/^M/g' ~/multipart.txt</pre>",
-            requestBody = @RequestBody(description = "multipart form", required = true,
-                    content = @Content(mediaType = "multipart/form-data",
-                            schemaProperties = {
-                                    @SchemaProperty(name = "name", schema = @Schema(implementation = String.class)),
-                                    @SchemaProperty(name = "description", schema = @Schema(implementation = String.class)),
-                                    @SchemaProperty(name = "csvFile", schema = @Schema(implementation = String.class)),
-                                    @SchemaProperty(name = "published", schema = @Schema(implementation = Boolean.class)),
-                                    @SchemaProperty(name = "fileTypes", schema = @Schema(implementation = List.class)),
-                                    @SchemaProperty(name = "tags", schema = @Schema(implementation = List.class)),
-                                    @SchemaProperty(name = "paths", schema = @Schema(implementation = List.class)),
-                                    @SchemaProperty(name = "fuzziness", schema = @Schema(implementation = Integer.class)),
-                                    @SchemaProperty(name = "phrase_matches", schema = @Schema(implementation = Boolean.class))
-                            }
-                    )
-            ),
-            parameters = {@Parameter(description = "Coma-separated list of projects",
-                    in = ParameterIn.PATH, examples = @ExampleObject(value = "prj1,prj2"))}
-    )
-    @ApiResponse(responseCode = "413", description = "if the CSV file is more than 60K lines")
-    @ApiResponse(responseCode = "400", description = "if either name or CSV file is missing")
-    @Post("/search/:coma_separated_projects")
-    public Payload search(String comaSeparatedProjects, Context context) throws Exception {
-        List<Part> parts = context.parts();
-        String name = fieldValue("name", parts);
-        String csv = fieldValue("csvFile", parts);
-
-        if (name == null  || csv == null) {
-            return badRequest();
-        }
-
-        String description = fieldValue("description", parts);
-        boolean published = "true".equalsIgnoreCase(fieldValue("published", parts)) ? TRUE: FALSE ;
-        List<String> fileTypes = fieldValues("fileTypes", parts);
-        String queryTemplate = fieldValue("query_template", parts);
-        List<String> paths = fieldValues("paths", parts);
-        Optional<Part> fuzzinessPart = parts.stream().filter(p -> "fuzziness".equals(p.name())).findAny();
-        int fuzziness = fuzzinessPart.isPresent() ? parseInt(fuzzinessPart.get().content()):0;
-        Optional<Part> phraseMatchesPart = parts.stream().filter(p -> "phrase_matches".equals(p.name())).findAny();
-        boolean phraseMatches=phraseMatchesPart.isPresent()?parseBoolean(phraseMatchesPart.get().content()): FALSE;
-        LinkedHashSet<String> queries = getQueries(csv)
-                .stream().map(query -> (phraseMatches && query.contains("\"")) ? query : sanitizeDoubleQuotesInQuery(query)).collect(Collectors.toCollection(LinkedHashSet::new));
-        if(queries.size() >= MAX_BATCH_SIZE)
-            return new Payload(413);
-        BatchSearch batchSearch = new BatchSearch(stream(comaSeparatedProjects.split(",")).map(Project::project).collect(Collectors.toList()), name, description, queries,
-                (User) context.currentUser(), published, fileTypes, queryTemplate, paths, fuzziness,phraseMatches);
-        boolean isSaved = batchSearchRepository.save(batchSearch);
-        if (isSaved) {
-            taskManager.startTask(batchSearch.uuid, BatchSearchRunner.class, (User) context.currentUser());
-        }
-        return isSaved ? new Payload("application/json", batchSearch.uuid, 200) : badRequest();
-    }
-
-    @Operation(description = "Preflight request", method = "OPTION")
-    @ApiResponse(description = "returns POST")
-    @Options("/search/copy/:sourcebatchid")
-    public Payload optionsCopy(String sourceBatchId, Context context) {
-        return ok().withAllowMethods("OPTIONS", "POST");
-    }
-
-    @Operation( description = "Creates a new batch search based on a previous one given its id, and enqueue it for running",
-                parameters = {@Parameter(name = "sourcebatchid", in = ParameterIn.PATH, description = "source batch id")},
-                requestBody = @RequestBody(description = "batch parameters", required = true,
-                        content = @Content( mediaType = "application/json",
-                                            examples = {@ExampleObject(value = "{\"name\": \"my new batch\", \"description\":\"desc\"}")})
-                )
-    )
-    @ApiResponse(responseCode = "404", description = "if the source batch search is not found in database")
-    @ApiResponse(responseCode = "200", description = "returns the id of the created batch search", useReturnTypeSchema = true)
-    @Post("/search/copy/:sourcebatchid")
-    public String copySearch(String sourceBatchId, Context context) throws Exception {
-        BatchSearch sourceBatchSearch = batchSearchRepository.get((User) context.currentUser(), sourceBatchId);
-        if (sourceBatchSearch == null) {
-            throw new NotFoundException();
-        }
-        BatchSearch copy = new BatchSearch(sourceBatchSearch, context.extract(HashMap.class));
-        boolean isSaved = batchSearchRepository.save(copy);
-        if (isSaved) taskManager.startTask(copy.uuid, BatchSearchRunner.class, (User) context.currentUser());
-        return copy.uuid;
-    }
-
     @Operation( description = "Retrieves the results of a batch search as JSON with a list of items and a pagination metadata.<br/>" +
             "If from/size are not given their default values are 0, meaning that all the results are returned.",
                 requestBody = @RequestBody(
@@ -384,10 +257,6 @@ public class BatchSearchResource {
         return path.getParent().toString();
     }
 
-    private LinkedHashSet<String> getQueries(String csv) {
-        return asSet(stream(csv.split("\r?\n")).filter(q -> q.length() >= 2).toArray(String[]::new));
-    }
-
     private WebResponse<SearchResult> getResultsOrThrowUnauthorized(String batchId, User user, BatchSearchRepository.WebQuery webQuery) {
         try {
             return new WebResponse<>(batchSearchRepository.getResults(user, batchId, webQuery), webQuery.from,webQuery.size,
@@ -395,27 +264,5 @@ public class BatchSearchResource {
         } catch (JooqBatchSearchRepository.UnauthorizedUserException unauthorized) {
             throw new UnauthorizedException();
         }
-    }
-
-    private String fieldValue(String field, List<Part> parts) {
-        List<String> values = fieldValues(field, parts);
-        return values.isEmpty() ? null: values.get(0);
-    }
-
-    private List<String> fieldValues(String field, List<Part> parts) {
-        return parts.stream().filter(p -> field.equals(p.name())).map(part -> {
-            try {
-                return part.content();
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-        }).collect(Collectors.toList());
-    }
-
-    private String sanitizeDoubleQuotesInQuery(String query) {
-        if(query.contains("\"\"\"")) {
-            return query.substring(1, query.length() - 1).replaceAll("\"\"","\"");
-        }
-        return query;
     }
 }
