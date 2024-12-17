@@ -62,6 +62,10 @@ public class Task<V> extends Event implements Entity {
         this(id, name, user,addTo(new HashMap<>(), user, group));
     }
 
+    public Task(String id, String name, User user, Group group, Map<String, Object> args) {
+        this(id, name, State.CREATED, 0, null, addTo(args, user, group));
+    }
+
     public Task(String id, String name, User user, Map<String, Object> args) {
         this(id, name, State.CREATED, 0, null, addTo(args, user));
     }

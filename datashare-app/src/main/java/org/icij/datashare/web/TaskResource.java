@@ -29,6 +29,7 @@ import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.asynctasks.TaskManager;
 import org.icij.datashare.batch.BatchDownload;
 import org.icij.datashare.batch.BatchSearch;
+import org.icij.datashare.batch.BatchSearchRecord;
 import org.icij.datashare.batch.BatchSearchRepository;
 import org.icij.datashare.extract.OptionsWrapper;
 import org.icij.datashare.json.JsonObjectMapper;
@@ -226,13 +227,13 @@ public class TaskResource {
         boolean phraseMatches=phraseMatchesPart.isPresent()?parseBoolean(phraseMatchesPart.get().content()): FALSE;
         LinkedHashSet<String> queries = getQueries(csv)
                 .stream().map(query -> (phraseMatches && query.contains("\"")) ? query : sanitizeDoubleQuotesInQuery(query)).collect(Collectors.toCollection(LinkedHashSet::new));
-        if(queries.size() >= MAX_BATCH_SIZE)
-            return new Payload(413);
+        if(queries.size() >= MAX_BATCH_SIZE) return new Payload(413);
+
         BatchSearch batchSearch = new BatchSearch(stream(comaSeparatedProjects.split(",")).map(Project::project).collect(Collectors.toList()), name, description, queries,
                 (User) context.currentUser(), published, fileTypes, queryTemplate, paths, fuzziness,phraseMatches);
         boolean isSaved = batchSearchRepository.save(batchSearch);
         if (isSaved) {
-            taskManager.startTask(batchSearch.uuid, BatchSearchRunner.class, (User) context.currentUser());
+            taskManager.startTask(batchSearch.uuid, BatchSearchRunner.class, (User) context.currentUser(), Map.of("batchRecord", new BatchSearchRecord(batchSearch)));
         }
         return isSaved ? new Payload("application/json", batchSearch.uuid, 200) : badRequest();
     }
@@ -261,7 +262,7 @@ public class TaskResource {
         }
         BatchSearch copy = new BatchSearch(sourceBatchSearch, context.extract(HashMap.class));
         boolean isSaved = batchSearchRepository.save(copy);
-        if (isSaved) taskManager.startTask(copy.uuid, BatchSearchRunner.class, (User) context.currentUser());
+        if (isSaved) taskManager.startTask(copy.uuid, BatchSearchRunner.class, (User) context.currentUser(), Map.of("batchRecord", new BatchSearchRecord(copy)));
         return copy.uuid;
     }
 

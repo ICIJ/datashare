@@ -5,6 +5,7 @@ import org.icij.datashare.asynctasks.TaskManager;
 import org.icij.datashare.asynctasks.TaskSupplier;
 import org.icij.datashare.asynctasks.TaskWorkerLoop;
 import org.icij.datashare.batch.BatchSearch;
+import org.icij.datashare.batch.BatchSearchRecord;
 import org.icij.datashare.batch.BatchSearchRepository;
 import org.icij.datashare.cli.DatashareCli;
 import org.icij.datashare.cli.Mode;
@@ -19,6 +20,7 @@ import java.io.IOException;
 import java.net.Socket;
 import java.net.URI;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -80,7 +82,7 @@ public class WebApp {
     private static void requeueDatabaseBatchSearches(BatchSearchRepository repository, TaskManager taskManager) throws IOException {
         for (String batchSearchUuid: repository.getQueued()) {
             BatchSearch batchSearch = repository.get(batchSearchUuid);
-            taskManager.startTask(batchSearchUuid, BatchSearchRunner.class, batchSearch.user);
+            taskManager.startTask(batchSearchUuid, BatchSearchRunner.class, batchSearch.user, Map.of("batchRecord", new BatchSearchRecord(batchSearch)));
         }
     }
 
