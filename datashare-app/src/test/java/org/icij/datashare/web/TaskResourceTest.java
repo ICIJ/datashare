@@ -33,6 +33,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.regex.Pattern;
 
 import static java.lang.String.format;
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -75,6 +76,16 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
+    public void test_get_tasks_filter() {
+        post("/api/task/batchUpdate/index/" + getClass().getResource("/docs/doc.txt").getPath().substring(1),
+                "{\"options\":{\"reportName\": \"foo\"}}").should().haveType("application/json");
+
+        get("/api/task/all").should().haveType("application/json").contain("IndexTask").contain("ScanTask");
+        get("/api/task/all?name=Index").should().contain("IndexTask").not().contain("ScanTask");
+        get("/api/task/all?args.dataDir=docs").should().contain("ScanTask").not().contain("IndexTask");
+    }
+
+    @Test
     public void test_index_file() throws IOException {
         RestAssert response = post("/api/task/batchUpdate/index/" + getClass().getResource("/docs/doc.txt").getPath().substring(1), "{}");
 
@@ -86,7 +97,6 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
 
         assertThat(findTask(taskManager, "org.icij.datashare.tasks.IndexTask")).isNotNull();
         assertThat(findTask(taskManager, "org.icij.datashare.tasks.IndexTask").get().args).excludes(entry("reportName", "extract:report:map"));
-
     }
 
     @Test

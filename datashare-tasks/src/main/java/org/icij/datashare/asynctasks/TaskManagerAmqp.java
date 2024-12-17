@@ -14,7 +14,6 @@ import java.io.IOException;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.regex.Pattern;
 
@@ -98,11 +97,6 @@ public class TaskManagerAmqp implements TaskManager {
     @Override
     public List<Task<?>> getTasks() {
         return new LinkedList<>(tasks.values());
-    }
-
-    @Override
-    public List<Task<?>> getTasks(User user, Pattern pattern) {
-        return TaskManager.getTasks(tasks.values().stream(), user, pattern);
     }
 
     @Override

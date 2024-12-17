@@ -12,6 +12,7 @@ import java.io.IOException;
 import java.io.Serializable;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
@@ -54,11 +55,6 @@ public class TaskManagerMemory implements TaskManager, TaskSupplier {
     @Override
     public List<Task<?>> getTasks() {
         return new LinkedList<>(tasks.values());
-    }
-
-    @Override
-    public List<Task<?>> getTasks(User user, Pattern pattern) {
-        return TaskManager.getTasks(tasks.values().stream(), user, pattern);
     }
 
     @Override

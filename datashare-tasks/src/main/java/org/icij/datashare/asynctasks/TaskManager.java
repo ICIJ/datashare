@@ -5,6 +5,7 @@ import org.icij.datashare.asynctasks.bus.amqp.ErrorEvent;
 import org.icij.datashare.asynctasks.bus.amqp.ProgressEvent;
 import org.icij.datashare.asynctasks.bus.amqp.ResultEvent;
 import org.icij.datashare.asynctasks.bus.amqp.TaskEvent;
+import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.user.User;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -15,11 +16,13 @@ import java.io.Serializable;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toMap;
+import static org.icij.datashare.text.StringUtils.getValue;
 
 /**
  * Task manager interface with default methods common for all managers implementations.
@@ -33,11 +36,21 @@ public interface TaskManager extends Closeable {
     boolean stopTask(String taskId) throws IOException;
 
     List<Task<?>> getTasks() throws IOException;
-    List<Task<?>> getTasks(User user, Pattern pattern) throws IOException;
     List<Task<?>> clearDoneTasks() throws IOException;
-
     boolean shutdown() throws IOException;
+
     void clear() throws IOException;
+
+    default List<Task<?>> getTasks(User user, Map<String, Pattern> filters) throws IOException {
+        Stream<Task<?>> taskStream = getTasks().stream();
+        for (Map.Entry<String, Pattern> filter : filters.entrySet()) {
+            taskStream = taskStream.filter(task -> {
+                Map<String, Object> objectMap = JsonObjectMapper.getJson(task);
+                return filter.getValue().matcher(String.valueOf(getValue(objectMap, filter.getKey()))).matches();
+            });
+        }
+        return taskStream.filter(t -> user.equals(t.getUser())).collect(toList());
+    }
 
     default int getTerminationPollingInterval() {return POLLING_INTERVAL;}
     default boolean awaitTermination(int timeout, TimeUnit timeUnit) throws InterruptedException, IOException {
@@ -215,13 +228,6 @@ public interface TaskManager extends Closeable {
     // for tests
     default void setLatch(String taskId, StateLatch stateLatch) throws IOException {
         getTask(taskId).setLatch(stateLatch);
-    }
-
-    static List<Task<?>> getTasks(Stream<Task<?>> stream, User user, Pattern pattern) {
-        return stream.
-                filter(t -> user.equals(t.getUser())).
-                filter(t -> pattern.matcher(t.name).matches()).
-                collect(toList());
     }
 
     class TaskEventHandlingException extends RuntimeException {

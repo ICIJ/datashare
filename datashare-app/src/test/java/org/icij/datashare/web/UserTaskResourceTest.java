@@ -134,7 +134,7 @@ public class UserTaskResourceTest extends AbstractProdWebServerTest {
         setupAppWith(new DummyUserTask<>("bar"), "bar");
         String t2Id = taskManager.startTask(DummyUserTask.class, localUser("bar"), new HashMap<>());
 
-        get("/api/task/all?filter=DummyUserTask").withPreemptiveAuthentication("bar", "qux").should().
+        get("/api/task/all?name=DummyUserTask").withPreemptiveAuthentication("bar", "qux").should().
                 contain(format("{\"id\":\"%s\",\"name\":\"%s\",\"state\":\"DONE\",\"progress\":1.0",t2Id, DummyUserTask.class.getName())).
                 contain("\"details\":").
                 contain("\"uid\":\"bar\"").
