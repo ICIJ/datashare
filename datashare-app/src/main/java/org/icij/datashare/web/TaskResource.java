@@ -23,10 +23,10 @@ import net.codestory.http.errors.ForbiddenException;
 import net.codestory.http.errors.HttpException;
 import net.codestory.http.errors.NotFoundException;
 import net.codestory.http.payload.Payload;
-import org.apache.commons.lang3.StringUtils;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.asynctasks.TaskManager;
+import org.icij.datashare.asynctasks.bus.amqp.UriResult;
 import org.icij.datashare.batch.BatchDownload;
 import org.icij.datashare.batch.BatchSearch;
 import org.icij.datashare.batch.BatchSearchRecord;
@@ -41,7 +41,6 @@ import org.icij.datashare.tasks.ExtractNlpTask;
 import org.icij.datashare.tasks.IndexTask;
 import org.icij.datashare.tasks.ScanIndexTask;
 import org.icij.datashare.tasks.ScanTask;
-import org.icij.datashare.asynctasks.bus.amqp.UriResult;
 import org.icij.datashare.text.Project;
 import org.icij.datashare.user.User;
 
@@ -69,6 +68,7 @@ import static java.nio.file.Paths.get;
 import static java.util.Arrays.stream;
 import static java.util.Optional.ofNullable;
 import static java.util.stream.Collectors.toList;
+import static java.util.stream.Collectors.toMap;
 import static net.codestory.http.errors.NotFoundException.notFoundIfNull;
 import static net.codestory.http.payload.Payload.badRequest;
 import static net.codestory.http.payload.Payload.forbidden;
@@ -105,13 +105,15 @@ public class TaskResource {
         this.batchSearchRepository = batchSearchRepository;
     }
     @Operation(description = "Gets all the user tasks.<br>" +
-            "A filter can be added with a pattern contained in the task name.",
-            parameters = {@Parameter(name = "filter", description = "pattern contained in the task name", in = ParameterIn.QUERY)})
+            "Filters can be added with <pre>name=value</pre>. For example if <pre>name=foo</pre> is given in the request url query," +
+            "the tasks containing the term \"foo\" are going to be returned. It can contain also dotted keys. " +
+            "For example if <pre>args.dataDir=bar</pre> is provided, tasks with \"dataDir\" containing \"bar\" are going to be selected.",
+            parameters = {@Parameter(name = "name", description = "pattern contained in the task name", in = ParameterIn.QUERY)})
     @ApiResponse(responseCode = "200", description = "returns the list of tasks", useReturnTypeSchema = true)
     @Get("/all")
     public List<Task<?>> tasks(Context context) throws IOException {
-        Pattern pattern = Pattern.compile(StringUtils.isEmpty(context.get("filter")) ? ".*": String.format(".*%s.*", context.get("filter")));
-        return taskManager.getTasks((User) context.currentUser(), pattern);
+        Map<String, Pattern> filters = context.query().keys().stream().collect(toMap(s -> s,  s -> Pattern.compile(String.format(".*%s.*", context.get(s)))));
+        return taskManager.getTasks((User) context.currentUser(), filters);
     }
 
     @Operation(description = "Gets one task with its id.")
