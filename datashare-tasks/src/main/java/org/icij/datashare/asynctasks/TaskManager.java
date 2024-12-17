@@ -82,8 +82,8 @@ public interface TaskManager extends Closeable {
     }
 
     // BatchSearchResource and WebApp for batch searches
-    default  String startTask(String id, Class<?> taskClass, User user) throws IOException {
-        return startTask(new Task<>(id, taskClass.getName(), user, new Group(taskClass.getAnnotation(TaskGroup.class).value())));
+    default String startTask(String uuid, Class<?> taskClass, User user, Map<String, Object> properties) throws IOException {
+        return startTask(new Task<>(uuid, taskClass.getName(), user, new Group(taskClass.getAnnotation(TaskGroup.class).value()), properties));
     }
 
     // for tests
