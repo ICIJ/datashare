@@ -206,7 +206,7 @@ public class TaskResource {
     )
     @ApiResponse(responseCode = "413", description = "if the CSV file is more than 60K lines")
     @ApiResponse(responseCode = "400", description = "if either name or CSV file is missing")
-    @Post("/search/:coma_separated_projects")
+    @Post("/batchSearch/:coma_separated_projects")
     public Payload search(String comaSeparatedProjects, Context context) throws Exception {
         List<Part> parts = context.parts();
         String name = fieldValue("name", parts);
@@ -240,7 +240,7 @@ public class TaskResource {
 
     @Operation(description = "Preflight request", method = "OPTION")
     @ApiResponse(description = "returns POST")
-    @Options("/search/copy/:sourcebatchid")
+    @Options("/batchSearch/copy/:sourcebatchid")
     public Payload optionsCopy(String sourceBatchId, Context context) {
         return ok().withAllowMethods("OPTIONS", "POST");
     }
@@ -254,7 +254,7 @@ public class TaskResource {
     )
     @ApiResponse(responseCode = "404", description = "if the source batch search is not found in database")
     @ApiResponse(responseCode = "200", description = "returns the id of the created batch search", useReturnTypeSchema = true)
-    @Post("/search/copy/:sourcebatchid")
+    @Post("/batchSearch/copy/:sourcebatchid")
     public String copySearch(String sourceBatchId, Context context) throws Exception {
         BatchSearch sourceBatchSearch = batchSearchRepository.get((User) context.currentUser(), sourceBatchId);
         if (sourceBatchSearch == null) {

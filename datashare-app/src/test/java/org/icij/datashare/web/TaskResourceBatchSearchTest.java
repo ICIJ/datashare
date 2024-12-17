@@ -56,7 +56,7 @@ public class TaskResourceBatchSearchTest extends AbstractProdWebServerTest {
     @Test
     public void test_upload_batch_search_csv_with_all_parameters()  {
         when(batchSearchRepository.save(any())).thenReturn(true);
-        Response response = postRaw("/api/task/search/prj", "multipart/form-data;boundary=AaB03x",
+        Response response = postRaw("/api/task/batchSearch/prj", "multipart/form-data;boundary=AaB03x",
                 new MultipartContentBuilder("AaB03x")
                         .addField("name","my batch search")
                         .addField("description","search description")
@@ -96,7 +96,7 @@ public class TaskResourceBatchSearchTest extends AbstractProdWebServerTest {
     @Test
     public void test_upload_batch_search_csv_without_name_should_send_bad_request() {
         when(batchSearchRepository.save(any())).thenReturn(true);
-        postRaw("/api/task/search/prj", "multipart/form-data;boundary=AaB03x",
+        postRaw("/api/task/batchSearch/prj", "multipart/form-data;boundary=AaB03x",
                 new MultipartContentBuilder("AaB03x")
                         .addFile(new FileUpload("csvFile").withContent("value\r\n")).build()).should().respond(400);
     }
@@ -104,7 +104,7 @@ public class TaskResourceBatchSearchTest extends AbstractProdWebServerTest {
     @Test
     public void test_upload_batch_search_csv_without_csvFile_should_send_bad_request() {
         when(batchSearchRepository.save(any())).thenReturn(true);
-        postRaw("/api/task/search/prj", "multipart/form-data;boundary=AaB03x",
+        postRaw("/api/task/batchSearch/prj", "multipart/form-data;boundary=AaB03x",
                 new MultipartContentBuilder("AaB03x")
                         .addField("name","name").build()).should().respond(400);
     }
@@ -114,7 +114,7 @@ public class TaskResourceBatchSearchTest extends AbstractProdWebServerTest {
         when(batchSearchRepository.save(any())).thenReturn(true);
         StringBuilder content = new StringBuilder();
         IntStream.range(0,60000).boxed().collect(Collectors.toList()).forEach(i -> content.append("Test ").append(i).append("\r\n"));
-        Response response = postRaw("/api/task/search/prj", "multipart/form-data;boundary=AaB03x",
+        Response response = postRaw("/api/task/batchSearch/prj", "multipart/form-data;boundary=AaB03x",
                 new MultipartContentBuilder("AaB03x")
                         .addField("name","nameValue")
                         .addFile(new FileUpload("csvFile").withContent(content.toString())).build()).response();
@@ -124,7 +124,7 @@ public class TaskResourceBatchSearchTest extends AbstractProdWebServerTest {
     @Test
     public void test_upload_batch_search_csv_with_name_and_csvfile_should_send_OK() throws InterruptedException {
         when(batchSearchRepository.save(any())).thenReturn(true);
-        Response response = postRaw("/api/task/search/prj", "multipart/form-data;boundary=AaB03x",
+        Response response = postRaw("/api/task/batchSearch/prj", "multipart/form-data;boundary=AaB03x",
                 new MultipartContentBuilder("AaB03x")
                         .addField("name","nameValue")
                         .addFile(new FileUpload("csvFile").withContent("query\r\néèàç\r\n")).build()).response();
@@ -164,7 +164,7 @@ public class TaskResourceBatchSearchTest extends AbstractProdWebServerTest {
 
     @Test
     public void test_rerun_batch_search_not_found() {
-        post("/api/task/search/copy/bad_uuid", "{}").should().respond(404);
+        post("/api/task/batchSearch/copy/bad_uuid", "{}").should().respond(404);
     }
 
     @Test
@@ -173,7 +173,7 @@ public class TaskResourceBatchSearchTest extends AbstractProdWebServerTest {
         when(batchSearchRepository.get(null, sourceSearch.uuid)).thenReturn(sourceSearch);
         when(batchSearchRepository.save(any())).thenReturn(true);
 
-        post("/api/task/search/copy/" + sourceSearch.uuid,
+        post("/api/task/batchSearch/copy/" + sourceSearch.uuid,
                 "{\"name\": \"test\", \"description\": \"test description\"}").
                 should().respond(200);
 
@@ -194,7 +194,7 @@ public class TaskResourceBatchSearchTest extends AbstractProdWebServerTest {
     @Test
     public void test_upload_batch_search_csv_less_that_2chars_queries_are_filtered() {
         when(batchSearchRepository.save(any())).thenReturn(true);
-        Response response = postRaw("/api/task/search/prj", "multipart/form-data;boundary=AaB03x",
+        Response response = postRaw("/api/task/batchSearch/prj", "multipart/form-data;boundary=AaB03x",
                 new MultipartContentBuilder("AaB03x").
                         addField("name","my batch search").
                         addField("description", "search description").
@@ -209,7 +209,7 @@ public class TaskResourceBatchSearchTest extends AbstractProdWebServerTest {
 
     private void testTripleQuote(Boolean phraseMatch, String query, String tripleQuoteResult) {
         when(batchSearchRepository.save(any())).thenReturn(true);
-        Response response = postRaw("/api/task/search/prj", "multipart/form-data;boundary=AaB03x",
+        Response response = postRaw("/api/task/batchSearch/prj", "multipart/form-data;boundary=AaB03x",
                 new MultipartContentBuilder("AaB03x").
                         addField("name", "my batch search").
                         addFile(
