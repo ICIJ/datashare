@@ -19,75 +19,75 @@ public class FtmDocument implements Document {
     public static final String TARGET_LANGUAGE_KEY = "target_language";
     public static final String TRANSLATED_CONTENT_KEY = "content";
     @JsonIgnore
-    org.icij.datashare.text.Document icjjDoc;
+    org.icij.datashare.text.Document icijDoc;
     public FtmDocument(org.icij.datashare.text.Document doc) {
-        this.icjjDoc = doc;
+        this.icijDoc = doc;
     }
 
     @Override
     public String getFileName() {
-        return icjjDoc.getPath().toString();
+        return icijDoc.getPath().toString();
     }
 
     @Override
     public String getTitle() {
-        return icjjDoc.getTitle();
+        return icijDoc.getTitle();
     }
 
     @Override
     public String getMimeType() {
-        return icjjDoc.getContentType();
+        return icijDoc.getContentType();
     }
 
     @Override
     public String getContentHash() {
-        return icjjDoc.getId();
+        return icijDoc.getId();
     }
 
     @Override
     public String getEncoding() {
-        return icjjDoc.getContentEncoding().toString();
+        return icijDoc.getContentEncoding().toString();
     }
 
     @Override
     public String getBodyText() {
-        return icjjDoc.getContent();
+        return icijDoc.getContent();
     }
 
     @Override
     public int getFileSize() {
-        return Math.toIntExact(icjjDoc.getContentLength());
+        return Math.toIntExact(icijDoc.getContentLength());
     }
 
     @Override
     public String getExtension() {
-        String name = icjjDoc.getPath().toFile().getName();
+        String name = icijDoc.getPath().toFile().getName();
         return name.substring(name.lastIndexOf("."));
     }
 
     @Override
     public String getLanguage() {
-        return icjjDoc.getLanguage().toString();
+        return icijDoc.getLanguage().toString();
     }
 
     @Override
     public String getDate() {
-        return new DateTime(icjjDoc.getCreationDate()).toDateTimeISO().toString();
+        return new DateTime(icijDoc.getCreationDate()).toDateTimeISO().toString();
     }
 
     @Override
     public String getProcessingStatus() {
-        return icjjDoc.getStatus().toString();
+        return icijDoc.getStatus().toString();
     }
 
     @Override
     public String getName() {
-        return icjjDoc.getName();
+        return icijDoc.getName();
     }
 
     @Override
     public String getCountry() {
-        return icjjDoc.getLanguage().toString();
+        return icijDoc.getLanguage().toString();
     }
 
     @Override
@@ -97,17 +97,17 @@ public class FtmDocument implements Document {
 
     @Override
     public String getAuthor() {
-        return (String) icjjDoc.getMetadata().get(TikaCoreProperties.CREATOR.getName());
+        return (String) icijDoc.getMetadata().get(TikaCoreProperties.CREATOR.getName());
     }
 
     @Override
     public String getTranslatedLanguage() {
-        return ofNullable(icjjDoc.getContentTranslated()).filter(l -> !l.isEmpty()).map(maps -> maps.get(0).get(TARGET_LANGUAGE_KEY)).orElse(null);
+        return ofNullable(icijDoc.getContentTranslated()).filter(l -> !l.isEmpty()).map(maps -> maps.get(0).get(TARGET_LANGUAGE_KEY)).orElse(null);
     }
 
     @Override
     public String getTranslatedText() {
-        return ofNullable(icjjDoc.getContentTranslated()).stream().flatMap(List::stream).map(m -> m.get(TRANSLATED_CONTENT_KEY)).collect(Collectors.joining());
+        return ofNullable(icijDoc.getContentTranslated()).stream().flatMap(List::stream).map(m -> m.get(TRANSLATED_CONTENT_KEY)).collect(Collectors.joining());
     }
 
     @Override
