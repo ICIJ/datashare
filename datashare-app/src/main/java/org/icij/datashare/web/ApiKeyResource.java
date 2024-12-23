@@ -55,7 +55,7 @@ public class ApiKeyResource {
         }},200);
     }
 
-    @Operation(description = "Deletes an apikey for current user. Only available in SERVER mode.")
+    @Operation(description = "Deletes an apikey for current user. Only available in `SERVER` mode.")
     @ApiResponse(responseCode = "204", description = "when key has been deleted")
     @Delete("/:userId")
     public Payload deleteKey(@Parameter(name = "userId", description = "user identifier", in = ParameterIn.PATH) String userId,Context context) throws Exception {

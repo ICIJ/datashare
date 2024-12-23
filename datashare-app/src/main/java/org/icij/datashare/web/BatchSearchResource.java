@@ -45,8 +45,10 @@ public class BatchSearchResource {
         this.propertiesProvider = propertiesProvider;
     }
 
-    @Operation(description = "Retrieves the batch search list for the user issuing the request filter with the given criteria, and the total of batch searches matching the criteria.<br>" +
-            "If from/size are not given their default values are 0, meaning that all the results are returned. BatchDate must be a list of 2 items (the first one for the starting date and the second one for the ending date) If defined publishState is a string equals to \"0\" or \"1\"",
+    @Operation(description = """
+            Retrieves the batch search list for the user issuing the request filter with the given criteria, and the total of batch searches matching the criteria.
+            
+            If from/size are not given their default values are 0, meaning that all the results are returned. BatchDate must be a list of 2 items (the first one for the starting date and the second one for the ending date) If defined publishState is a string equals to "0" or "1\"""",
             requestBody = @RequestBody(description = "the json webQuery request body", required = true,  content = @Content(schema = @Schema(implementation = BatchSearchRepository.WebQuery.class)))
     )
     @ApiResponse(responseCode = "200", description = "the list of batch searches with the total batch searches for the query", useReturnTypeSchema = true)
@@ -185,8 +187,10 @@ public class BatchSearchResource {
         return notFound();
     }
 
-    @Operation( description = "Retrieves the results of a batch search as JSON with a list of items and a pagination metadata.<br/>" +
-            "If from/size are not given their default values are 0, meaning that all the results are returned.",
+    @Operation( description = """
+            Retrieves the results of a batch search as JSON with a list of items and a pagination metadata.
+            
+            If from/size are not given their default values are 0, meaning that all the results are returned.""",
                 requestBody = @RequestBody(
                         required = true,
                         description = "filter ",
