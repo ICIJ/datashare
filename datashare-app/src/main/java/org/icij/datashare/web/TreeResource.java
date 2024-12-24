@@ -40,8 +40,12 @@ public class TreeResource {
         this.propertiesProvider = propertiesProvider;
     }
 
-    @Operation(description = "Lists all files and directory for the given path. This endpoint returns a JSON using the same specification than the `tree` command on UNIX. It is roughly the equivalent of:<br>" +
-            "<pre>tree -L 1 -spJ --noreport /home/datashare/data</pre>")
+    @Operation(description = """
+            Lists all files and directory for the given path. This endpoint returns a JSON using the same specification than the `tree` command on UNIX. It is roughly the equivalent of:
+            ```
+            tree -L 1 -spJ --noreport /home/datashare/data
+            ```
+            """)
     @ApiResponse(responseCode = "200", description = "returns the list of files and directory", useReturnTypeSchema = true)
     @Get(":dirPath:")
     public DirectoryReport getTree(@Parameter(name="dirPath", description="directory path in the tree", in = ParameterIn.PATH) final String dirPath, Context context) throws IOException {
