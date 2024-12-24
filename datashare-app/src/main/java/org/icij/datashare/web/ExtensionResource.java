@@ -31,9 +31,11 @@ public class ExtensionResource {
     @Inject
     public ExtensionResource(ExtensionService extensionService) {this.extensionService = extensionService;}
 
-    @Operation(description = "Gets the extension set in JSON.<br>" +
-            "If a request parameter \"filter\" is provided, the regular expression will be applied to the list.<br>" +
-            "See https://docs.oracle.com/javase/8/docs/api/java/util/regex/Pattern.html for pattern syntax.",
+    @Operation(description = """
+            Gets the extension set in JSON.
+            If a request parameter "filter" is provided, the regular expression will be applied to the list.
+            
+            See https://docs.oracle.com/javase/8/docs/api/java/util/regex/Pattern.html for pattern syntax.""",
             parameters = {@Parameter(name = "filter", description = "regular expression to apply", in = ParameterIn.QUERY)})
     @ApiResponse(responseCode = "200", description = "returns the extensions set", useReturnTypeSchema = true)
     @Get()
