@@ -31,9 +31,12 @@ public class PluginResource {
     @Inject
     public PluginResource(PluginService pluginService) { this.pluginService = pluginService; }
 
-    @Operation(description = "Gets the plugins set in JSON.<br>" +
-            "If a request parameter \"filter\" is provided, the regular expression will be applied to the list.<br>" +
-            "See https://docs.oracle.com/javase/8/docs/api/java/util/regex/Pattern.html for pattern syntax.",
+    @Operation(description = """
+            Gets the plugins set in JSON.
+            
+            If a request parameter "filter" is provided, the regular expression will be applied to the list.
+            
+            See [Pattern](https://docs.oracle.com/javase/8/docs/api/java/util/regex/Pattern.html) for pattern syntax.""",
             parameters = {@Parameter(name = "filter", description = "regular expression to apply", in = ParameterIn.QUERY)})
     @ApiResponse(responseCode = "200", description = "returns the plugins set", useReturnTypeSchema = true)
     @Get()
