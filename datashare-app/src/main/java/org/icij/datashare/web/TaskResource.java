@@ -171,11 +171,11 @@ public class TaskResource {
             Content-Disposition: form-data; name="name"
             
             my batch search
-             --BOUNDARY
+            --BOUNDARY
             Content-Disposition: form-data; name="description"
             
             search description
-             --BOUNDARY
+            --BOUNDARY
             Content-Disposition: form-data; name="csvFile"; filename="search.csv"
             Content-Type: text/csv
             
@@ -196,7 +196,7 @@ public class TaskResource {
             curl -i -XPOST localhost:8080/api/batch/search/prj1,prj2 -H 'Content-Type: multipart/form-data; boundary=BOUNDARY' --data-binary @/home/dev/multipart.txt
             ```
             
-            you'll maybe have to replace \\n with \\n\\r with `sed -i 's/$/^M/g' ~/multipart.txt`""",
+            you'll maybe have to replace \\n with \\r\\n with `sed -i 's/$/^M/g' ~/multipart.txt`""",
             requestBody = @RequestBody(description = "multipart form", required = true,
                     content = @Content(mediaType = "multipart/form-data",
                             schemaProperties = {
