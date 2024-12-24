@@ -26,35 +26,44 @@ public class NoteResource {
     @Inject
     public NoteResource(Repository repository) {this.repository = repository;}
 
-    @Operation(description = "Gets the list of notes for a project and a document path.<br/>" +
-            "if we have on disk:" +
-            "<pre>" +
-            "/a/b/doc1<br/>" +
-            "/a/c/doc2<br/>" +
-            "/d/doc3<br/>" +
-            "</pre>" +
-            "And in database:" +
-            "<pre>" +
-            "projectId | path | note | variant<br/>" +
-            "--- | --- | --- | ---<br/>" +
-            "p1 | a | note A | info<br/>" +
-            "p1 | a/b | note B | danger" +
-            "</pre>" +
-            " then :" +
-            "<pre>" +
-            "- `GET /api/p1/notes/a/b/doc1` will return note A and B<br/>" +
-            "- `GET /api/p1/notes/a/c/doc2` will return note A<br/>" +
-            "- `GET /api/p1/notes/d/doc3` will return an empty list<br/>" +
-            "</pre>" +
-            "<br/>" +
-            "Note the <code>:path:</code> it is a greedy parameter at the end of the url<br/>" +
-            "<code>@Get(\"/start/with/:parameter\")</code>" +
-            "will match <code>/start/with/myparameter</code>" +
-            "but not /start/with/myparameter/with/slashes<br/>" +
-            "<br/>" +
-            "<code>@Get(\"/start/with/:parameter:\")</code>" +
-            " will match <code>/start/with/myparameter/with/slashes</code>" +
-            " and the parameter variable will contain <code>myparameter/with/slashes</code>",
+    @Operation(description = """
+            Gets the list of notes for a project and a document path.
+            
+            if we have on disk:
+            ```
+            /a/b/doc1
+            /a/c/doc2
+            /d/doc3
+            ```
+            
+            And in database:
+            ```
+            projectId | path | note | variant
+            --- | --- | --- | ---
+            p1 | a | note A | info
+            p1 | a/b | note B | danger
+            ```
+            
+            then:
+            
+            - `GET /api/p1/notes/a/b/doc1` will return note A and B
+            - `GET /api/p1/notes/a/c/doc2` will return note A
+            - `GET /api/p1/notes/d/doc3` will return an empty list
+           
+            Note the `:path:` it is a greedy parameter at the end of the url
+            
+            ```
+            @Get("/start/with/:parameter")
+            ```
+            
+            matches `/start/with/myparameter` but not `/start/with/myparameter/with/slashes`
+            
+            ```
+            @Get("/start/with/:parameter:")
+            ```
+            
+            matches `/start/with/myparameter/with/slashes` and the parameter variable will contain `myparameter/with/slashes`
+            """,
             parameters = {
                 @Parameter(name = "project", description = "the project id", in = ParameterIn.PATH),
                 @Parameter(name = "path", description = "the path of the document.", in = ParameterIn.PATH),
