@@ -104,9 +104,12 @@ public class UserResource {
         return parseBoolean(desc) || getStringValue(desc).isEmpty() || !desc.equalsIgnoreCase("false");
     }
 
-    @Operation(description = "Add or update an event to user's history. The event's type, the project ids and the uri are passed in the request body.<br>" +
-            "To update the event's name, the eventId is required to retrieve the corresponding event." +
-            "The project list related to the event is stored in database but is never queried (no filters on project)")
+    @Operation(description = """
+            Add or update an event to user's history. The event's type, the project ids and the uri are passed in the request body.
+            
+            To update the event's name, the eventId is required to retrieve the corresponding event.
+            The project list related to the event is stored in database but is never queried (no filters on project).
+            """)
     @ApiResponse(responseCode = "200", description = "returns 200 when event is added or updated.")
     @Put("/me/history")
     public Payload addToUserHistory(@Parameter(name = "query", description = "user history query to save", in = ParameterIn.QUERY) UserHistoryQuery query, Context context) {
