@@ -104,10 +104,12 @@ public class TaskResource {
         this.propertiesProvider = propertiesProvider;
         this.batchSearchRepository = batchSearchRepository;
     }
-    @Operation(description = "Gets all the user tasks.<br>" +
-            "Filters can be added with <pre>name=value</pre>. For example if <pre>name=foo</pre> is given in the request url query," +
-            "the tasks containing the term \"foo\" are going to be returned. It can contain also dotted keys. " +
-            "For example if <pre>args.dataDir=bar</pre> is provided, tasks with \"dataDir\" containing \"bar\" are going to be selected.",
+    @Operation(description = """
+            Gets all the user tasks.
+            
+            Filters can be added with `name=value`. For example if `name=foo` is given in the request url query,
+            the tasks containing the term "foo" are going to be returned. It can contain also dotted keys.
+            For example if `args.dataDir=bar` is provided, tasks with "dataDir" containing "bar" are going to be selected.""",
             parameters = {@Parameter(name = "name", description = "pattern contained in the task name", in = ParameterIn.QUERY)})
     @ApiResponse(responseCode = "200", description = "returns the list of tasks", useReturnTypeSchema = true)
     @Get("/all")
@@ -156,38 +158,45 @@ public class TaskResource {
         return result == null ? new Payload(204) : new Payload(result);
     }
 
-    @Operation(description = "Creates a new batch search. This is a multipart form with 9 fields:<br/>" +
-            "name, description, csvFile, published, fileTypes, paths, fuzziness, phrase_matches, query_template<br>" +
-            "<br/>" +
-            "Queries with less than two characters are filtered.<br>" +
-            "<br>" +
-            "To make a request manually, you can create a file like:<br>" +
-            "<pre>"+
-            "--BOUNDARY<br/>\"" +
-            "Content-Disposition: form-data; name=\"name\"<br/>" +
-            "<br/>" +
-            "my batch search<br/>" +
-            " --BOUNDARY<br/>" +
-            "Content-Disposition: form-data; name=\"description\"<br/>" +
-            "<br/>" +
-            "search description<br/>" +
-            " --BOUNDARY<br/>" +
-            "Content-Disposition: form-data; name=\"csvFile\"; filename=\"search.csv\"<br/>" +
-            "Content-Type: text/csv<br/>" +
-            "<br/>" +
-            "Obama<br/>" +
-            "skype<br/>" +
-            "test<br/>" +
-            "query three<br/>" +
-            "--BOUNDARY--<br/>" +
-            "Content-Disposition: form-data; name=\"published\"<br/>" +
-            "<br/>" +
-            "true<br/>" +
-            "--BOUNDARY--<br/>" +
-            "</pre><br/>" +
-            "<br/>Then curl with" +
-            "<pre>curl -i -XPOST localhost:8080/api/batch/search/prj1,prj2 -H 'Content-Type: multipart/form-data; boundary=BOUNDARY' --data-binary @/home/dev/multipart.txt</pre>" +
-            "you'll maybe have to replace \\n with \\n\\r with <pre>sed -i 's/$/^M/g' ~/multipart.txt</pre>",
+    @Operation(description = """
+            Creates a new batch search. This is a multipart form with 9 fields:
+            
+            name, description, csvFile, published, fileTypes, paths, fuzziness, phrase_matches, query_template.
+            
+            Queries with less than two characters are filtered.
+            
+            To make a request manually, you can create a file like:
+            ```
+            --BOUNDARY
+            Content-Disposition: form-data; name="name"
+            
+            my batch search
+             --BOUNDARY
+            Content-Disposition: form-data; name="description"
+            
+            search description
+             --BOUNDARY
+            Content-Disposition: form-data; name="csvFile"; filename="search.csv"
+            Content-Type: text/csv
+            
+            Obama
+            skype
+            test
+            query three
+            --BOUNDARY--
+            Content-Disposition: form-data; name="published"
+            
+            true
+            --BOUNDARY--
+            ```
+            
+            Then curl with
+            
+            ```
+            curl -i -XPOST localhost:8080/api/batch/search/prj1,prj2 -H 'Content-Type: multipart/form-data; boundary=BOUNDARY' --data-binary @/home/dev/multipart.txt
+            ```
+            
+            you'll maybe have to replace \\n with \\n\\r with `sed -i 's/$/^M/g' ~/multipart.txt`""",
             requestBody = @RequestBody(description = "multipart form", required = true,
                     content = @Content(mediaType = "multipart/form-data",
                             schemaProperties = {
@@ -276,10 +285,17 @@ public class TaskResource {
         return ok().withAllowMethods("OPTIONS", "POST").withAllowHeaders("Content-Type");
     }
 
-    @Operation(description = "Download files from a search query.<br>Expected parameters are :<br>" +
-            "- project: string<br>- query: string or elasticsearch JSON query<br>" +
-            "If the query is a string it is taken as an ES query string, else it is a raw JSON query (without the query part)," +
-            "see org.elasticsearch.index.query.WrapperQueryBuilder that is used to wrap the query",
+    @Operation(description = """
+            Download files from a search query.
+            
+             Expected parameters are:
+            
+            - project: string
+            - query: string or elasticsearch JSON query
+            
+            If the query is a string it is taken as an ES query string, else it is a raw JSON query (without the query part),\
+            see org.elasticsearch.index.query.WrapperQueryBuilder that is used to wrap the query
+            """,
             requestBody = @RequestBody(description = "the json used to wrap the query", required = true,  content = @Content(schema = @Schema(implementation = OptionsWrapper.class))))
     @ApiResponse(responseCode = "200", description = "returns 200 and the json task id", useReturnTypeSchema = true)
     @Post("/batchDownload")
@@ -399,8 +415,10 @@ public class TaskResource {
         return ok().withAllowMethods("OPTIONS", "PUT");
     }
 
-    @Operation(description = "Cancels the running tasks. It returns a map with task name/stop statuses.<br>" +
-            "If the status is false, it means that the thread has not been stopped.")
+    @Operation(description = """
+            Cancels the running tasks. It returns a map with task name/stop statuses.
+            
+            If the status is false, it means that the thread has not been stopped.""")
     @ApiResponse(responseCode = "200", description = "returns 200 and the tasks stop result map", useReturnTypeSchema = true)
     @Put("/stopAll")
     public Map<String, Boolean> stopAllTasks(final Context context) throws IOException {
@@ -414,13 +432,17 @@ public class TaskResource {
         return ok().withAllowMethods("OPTIONS", "PUT");
     }
 
-    @Operation(description = "Find names using the given pipeline :<br><br>" +
-            "- OPENNLP<br>" +
-            "- CORENLP<br>" +
-            "- IXAPIPE<br>" +
-            "- GATENLP<br>" +
-            "- MITIE<br><br>" +
-            "This endpoint is going to find all Documents that are not taggued with the given pipeline and extract named entities for all these documents.",
+    @Operation(description = """
+            Find names using the given pipeline:
+            
+            - OPENNLP
+            - CORENLP
+            - IXAPIPE
+            - GATENLP
+            - MITIE
+            
+            This endpoint is going to find all Documents that are not tagged with the given pipeline and extract named entities for all these documents.
+            """,
             requestBody = @RequestBody(description = "wrapper for options json", required = true,  content = @Content(schema = @Schema(implementation = OptionsWrapper.class))))
     @ApiResponse(responseCode = "200", description = "returns 200 and the created task ids", content = @Content(schema = @Schema(implementation = TasksResponse.class)))
     @Post("/findNames/:pipeline")
