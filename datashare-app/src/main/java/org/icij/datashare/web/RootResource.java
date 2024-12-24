@@ -59,9 +59,13 @@ public class RootResource {
         return content;
     }
 
-    @Operation(description = "Gets the public (i.e. without user's information) datashare settings parameters.<br>" +
-            "These parameters are used for the client app for the init process.<br>" +
-            "The endpoint is removing all fields that contain Address or Secret or Url or Key")
+    @Operation(description = """
+            Gets the public (i.e. without user's information) datashare settings parameters.
+            
+            These parameters are used for the client app for the init process.
+            
+            The endpoint is removing all fields that contain Address or Secret or Url or Key
+            """)
     @ApiResponse(responseCode = "200", description = "returns the list of public settings", useReturnTypeSchema = true)
     @Get("settings")
     public Map<String, Object> getPublicSettings() {
