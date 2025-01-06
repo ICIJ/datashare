@@ -23,6 +23,11 @@ public class FtmResourceTest extends AbstractProdWebServerTest {
                 .not().contain("null");
     }
 
+    @Test
+    public void test_doc_id_not_found() {
+        get("/api/ftm/prj/unknown_doc_id").should().respond(404);
+    }
+
     @Before
     public void setUp() {
         initMocks(this);

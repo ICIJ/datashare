@@ -160,8 +160,7 @@ jobs:
           command: |
             echo "postgres:5432:$PGDB:$PGUSER:$PGPASSWORD" > ~/.pgpass && chmod 600 ~/.pgpass
             createdb -U $PGUSER -h postgres $PGDB
-            mvn -pl commons-test -am install
-            mvn -pl datashare-db liquibase:update
+            mvn -pl datashare-db liquibase:update -Dmaven.test.skip=true
             ./datashare-db/scr/build_db_doc.sh > ~/datashare-docs/developers/backend/database.md
       - run:
           name: Add/Commit changes to the doc
