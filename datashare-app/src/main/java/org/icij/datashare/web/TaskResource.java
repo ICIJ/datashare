@@ -108,8 +108,9 @@ public class TaskResource {
             Gets all the user tasks.
             
             Filters can be added with `name=value`. For example if `name=foo` is given in the request url query,
-            the tasks containing the term "foo" are going to be returned. It can contain also dotted keys.
-            For example if `args.dataDir=bar` is provided, tasks with "dataDir" containing "bar" are going to be selected.""",
+            the tasks containing the term "foo" are going to be returned. It can contain also dotted keys for nested properties matching.
+            
+            For example if `args.dataDir=bar` is provided, tasks with an argument "dataDir" containing "bar" are going to be selected.""",
             parameters = {@Parameter(name = "name", description = "pattern contained in the task name", in = ParameterIn.QUERY)})
     @ApiResponse(responseCode = "200", description = "returns the list of tasks", useReturnTypeSchema = true)
     @Get("/all")

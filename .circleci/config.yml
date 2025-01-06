@@ -591,6 +591,6 @@ workflows:
               ignore: /.*/
 
   publish_doc_workflow:
-    when: false # << pipeline.parameters.publish_backend_doc >>
+    when: << pipeline.parameters.publish_backend_doc >>
     jobs:
       - publish_doc
