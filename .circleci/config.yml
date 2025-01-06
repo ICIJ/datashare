@@ -571,10 +571,6 @@ workflows:
                   only: /^[0-9]+\..*/
               branches:
                   ignore: /.*/
-      - publish_doc_workflow:
-        when: false # << pipeline.parameters.publish_backend_doc >>
-        jobs:
-          - publish_doc
       - deploy_datashare_tasks:
           filters:
             tags:
@@ -593,3 +589,8 @@ workflows:
               only: /^datashare-cli\/[0-9]+\..*/
             branches:
               ignore: /.*/
+
+  publish_doc_workflow:
+    when: false # << pipeline.parameters.publish_backend_doc >>
+    jobs:
+      - publish_doc
