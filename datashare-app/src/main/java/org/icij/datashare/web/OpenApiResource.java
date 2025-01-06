@@ -24,7 +24,13 @@ public class OpenApiResource {
     @Operation(description = "Get the JSON or YAML OpenAPI v3 contract specification",
             parameters = {
                 @Parameter(name = "format",
-                    description = "format of openapi description. Possible values are \"json\" or \"yaml\". Default=\"json\".",
+                    description = """
+                            format of openapi description. Possible values are:
+                            
+                            * json (default)
+                            * yaml
+                            
+                            """,
                     in = ParameterIn.QUERY)
             }
     )
