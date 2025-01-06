@@ -294,8 +294,8 @@ public class TaskResource {
             - project: string
             - query: string or elasticsearch JSON query
             
-            If the query is a string it is taken as an ES query string, else it is a raw JSON query (without the query part),\
-            see org.elasticsearch.index.query.WrapperQueryBuilder that is used to wrap the query
+            If the query is a string it is taken as an ES query string, else it is a raw JSON query (without the query part), 
+            see org.elasticsearch.index.query.WrapperQueryBuilder that is used to wrap the query.
             """,
             requestBody = @RequestBody(description = "the json used to wrap the query", required = true,  content = @Content(schema = @Schema(implementation = OptionsWrapper.class))))
     @ApiResponse(responseCode = "200", description = "returns 200 and the json task id", useReturnTypeSchema = true)
