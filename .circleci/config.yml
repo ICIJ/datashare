@@ -134,14 +134,12 @@ jobs:
           command: ./doc/apigen/datashare_for_apigen.sh
           background: true
       - run:
-          name: Install apigen
+          name: Generate openAPI doc
           command: |
-            sudo apt-get update
-            sudo apt-get install -y python3-pip
-            sudo pip3 install fluent-http-apigen
-      - run:
-          name: Run apigen
-          command: apigen datashare-app/src/main/java/org/icij/datashare/web/*Resource.java > ~/datashare-docs/developers/backend/api.md
+            sudo apt update 
+            sudo apt install -y jq
+            ~/datashare-docs/gen_openapi.sh http://localhost:8080/api/openapi > ~/datashare-docs/developers/backend/api.md
+            curl http://localhost:8080/api/openapi | jq > ~/datashare-docs/developers/backend/ds_openapi.json
       - run:
           name: Install postgres
           command: |
