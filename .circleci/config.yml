@@ -18,7 +18,7 @@ jobs:
         name: elasticsearch
       - image: redis:4.0.1-alpine
         name: redis
-      - image: postgres:11.2
+      - image: postgres:15
         name: postgres
         environment:
           POSTGRES_USER: dstest
@@ -51,7 +51,7 @@ jobs:
             sudo sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt/ $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
             wget --no-check-certificate --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo apt-key add -
             sudo apt-get update
-            sudo apt-get install -y postgresql-client-11
+            sudo apt-get install -y postgresql-client-15
             PGPASSWORD=test psql -h postgres -U dstest dstest -c "CREATE DATABASE datashare_liquibase;"
 
       - run:
@@ -93,7 +93,7 @@ jobs:
            - "cluster.name=datashare"
            - "ES_JAVA_OPTS=-Xms256m -Xmx256m"
         name: elasticsearch
-      - image: postgres:11.2
+      - image: postgres:15
         name: postgres
         environment:
           POSTGRES_USER: dstest
@@ -141,17 +141,15 @@ jobs:
       - run:
           name: Generate openAPI doc
           command: |
-            sudo apt update 
-            sudo apt install -y jq
             ~/datashare-docs/gen_openapi.sh http://localhost:8080/api/openapi > ~/datashare-docs/developers/backend/api.md
-            curl http://localhost:8080/api/openapi | jq > ~/datashare-docs/developers/backend/ds_openapi.json
+            curl -s http://localhost:8080/api/openapi | jq > ~/datashare-docs/developers/backend/ds_openapi.json
       - run:
           name: Install postgres
           command: |
             sudo sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt/ buster-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
             wget --no-check-certificate --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo apt-key add -
             sudo apt-get update
-            sudo apt-get install -y postgresql-client-11
+            sudo apt-get install -y postgresql-client-15
       - run:
           name: Generate db doc
           environment:
