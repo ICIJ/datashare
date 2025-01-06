@@ -7,7 +7,7 @@ CIRCLE_API="https://circleci.com/api"
 if [[ -n "$web_package_has_changed" || -n "$db_package_has_changed" ]]; then
   echo >&2 "Something changed in web package"
   URL="${CIRCLE_API}/v2/project/github/ICIJ/datashare/pipeline"
-  DATA='{"branch": "master", "parameters": { "publish_backend_doc": true}}'
+  DATA='{"branch": "main", "parameters": { "publish_backend_doc": true}}'
   HTTP_RESPONSE=$(curl -s -u "${CIRCLE_API_USER_TOKEN}:" -o response.txt -w "%{http_code}" -X POST --header "Content-Type: application/json" -d "$DATA" "$URL")
 
   if [ "$HTTP_RESPONSE" -ge "200" ] && [ "$HTTP_RESPONSE" -lt "300" ]; then

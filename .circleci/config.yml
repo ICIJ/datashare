@@ -68,6 +68,11 @@ jobs:
       - run:
           name: make install for app and corenlp modules
           command: mvn -s .circleci/maven-release-settings.xml -pl datashare-app -pl datashare-nlp-corenlp -am install -Dmaven.test.skip=true
+      - when:
+          condition:
+            equal: [ main, << pipeline.git.branch >> ]
+          steps:
+            - run: .circleci/publish_doc_if_necessary.sh
       - run: mvn -pl datashare-dist package
       - run:
           name: acceptance test for embedded mode
@@ -566,6 +571,10 @@ workflows:
                   only: /^[0-9]+\..*/
               branches:
                   ignore: /.*/
+      - publish_doc_workflow:
+        when: false # << pipeline.parameters.publish_backend_doc >>
+        jobs:
+          - publish_doc
       - deploy_datashare_tasks:
           filters:
             tags:
