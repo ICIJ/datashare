@@ -419,7 +419,7 @@ public class TaskResource {
     @Operation(description = """
             Cancels the running tasks. It returns a map with task name/stop statuses.
             
-            If the status is false, it means that the thread has not been stopped.""")
+            If the status is false, it means that some threads have not been stopped.""")
     @ApiResponse(responseCode = "200", description = "returns 200 and the tasks stop result map", useReturnTypeSchema = true)
     @Put("/stopAll")
     public Map<String, Boolean> stopAllTasks(final Context context) throws IOException {

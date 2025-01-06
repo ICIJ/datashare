@@ -141,6 +141,7 @@ jobs:
       - run:
           name: Generate openAPI doc
           command: |
+            curl --retry 10 --retry-delay 5 --retry-all-errors -o /dev/null  'http://localhost:8080/api/openapi'
             ~/datashare-docs/gen_openapi.sh http://localhost:8080/api/openapi > ~/datashare-docs/developers/backend/api.md
             curl -s http://localhost:8080/api/openapi | jq > ~/datashare-docs/developers/backend/ds_openapi.json
       - run:
