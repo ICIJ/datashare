@@ -44,7 +44,7 @@ public interface BatchSearchRepository extends Closeable {
 
     boolean reset(String batchId);
     @JsonIgnoreProperties(ignoreUnknown = true)
-    class WebQuery extends WebQueryPagination{
+    class WebQuery extends WebQueryPagination {
         public static final String DEFAULT_SORT_FIELD = "doc_nb";
         public final String query;
         public final String field;
@@ -84,10 +84,7 @@ public interface BatchSearchRepository extends Closeable {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
             WebQuery that = (WebQuery) o;
-            return from == that.from &&
-                    size == that.size &&
-                    Objects.equals(sort, that.sort) &&
-                    Objects.equals(order, that.order) &&
+            return super.equals(that) &&
                     Objects.equals(query,that.query) &&
                     Objects.equals(field,that.field) &&
                     Objects.equals(queries, that.queries) &&
@@ -100,7 +97,7 @@ public interface BatchSearchRepository extends Closeable {
         }
 
         @Override
-        public int hashCode() { return Objects.hash(sort, order, query, field, from, size, queries, project, batchDate, state, publishState, contentTypes, queriesExcluded); }
+        public int hashCode() { return Objects.hash(super.hashCode(), query, field, queries, project, batchDate, state, publishState, contentTypes, queriesExcluded); }
         public boolean hasFilteredContentTypes() { return contentTypes !=null && !contentTypes.isEmpty();}
         public boolean hasFilteredQueries() { return queries !=null && !queries.isEmpty();}
         public boolean hasFilteredProjects() { return project !=null && !project.isEmpty();}

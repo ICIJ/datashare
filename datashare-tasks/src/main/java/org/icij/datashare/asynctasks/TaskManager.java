@@ -5,6 +5,7 @@ import org.icij.datashare.asynctasks.bus.amqp.ErrorEvent;
 import org.icij.datashare.asynctasks.bus.amqp.ProgressEvent;
 import org.icij.datashare.asynctasks.bus.amqp.ResultEvent;
 import org.icij.datashare.asynctasks.bus.amqp.TaskEvent;
+import org.icij.datashare.batch.WebQueryPagination;
 import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.user.User;
 import org.slf4j.Logger;
@@ -16,7 +17,6 @@ import java.io.Serializable;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
@@ -42,14 +42,18 @@ public interface TaskManager extends Closeable {
     void clear() throws IOException;
 
     default List<Task<?>> getTasks(User user, Map<String, Pattern> filters) throws IOException {
-        Stream<Task<?>> taskStream = getTasks().stream();
+        return getTasks(user, filters, WebQueryPagination.fromMap(Map.of()));
+    }
+
+    default List<Task<?>> getTasks(User user, Map<String, Pattern> filters, WebQueryPagination pagination) throws IOException {
+        Stream<Task<?>> taskStream = getTasks().stream().sorted(new Task.Comparator(pagination.sort, pagination.order));
         for (Map.Entry<String, Pattern> filter : filters.entrySet()) {
             taskStream = taskStream.filter(task -> {
                 Map<String, Object> objectMap = JsonObjectMapper.getJson(task);
                 return filter.getValue().matcher(String.valueOf(getValue(objectMap, filter.getKey()))).matches();
             });
         }
-        return taskStream.filter(t -> user.equals(t.getUser())).collect(toList());
+        return taskStream.filter(t -> user.equals(t.getUser())).skip(pagination.from).limit(pagination.size).collect(toList());
     }
 
     default int getTerminationPollingInterval() {return POLLING_INTERVAL;}
