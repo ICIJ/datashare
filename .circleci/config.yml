@@ -363,7 +363,7 @@ jobs:
   build_installers:
     resource_class: large
     docker:
-      - image: cimg/rust:1.80.1
+      - image: cimg/rust:1.81.0
     working_directory: /tmp
     steps:
       - attach_workspace:
