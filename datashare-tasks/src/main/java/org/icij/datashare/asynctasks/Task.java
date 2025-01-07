@@ -229,6 +229,7 @@ public class Task<V> extends Event implements Entity, Comparable<Task<V>> {
         public static Map<String, Function<Task<?>, ?>> SORT_FIELDS = Map.of(
                 "id", Task::getId,
                 "user", Task::getUser,
+                "createdAt", t -> t.createdAt,
                 "name", t -> t.name,
                 "state", Task::getState,
                 "group", Task::getGroup,
