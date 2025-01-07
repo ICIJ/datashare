@@ -16,6 +16,8 @@
     import org.apache.commons.io.FileUtils;
     import org.icij.datashare.PropertiesProvider;
     import org.icij.datashare.Repository;
+    import org.icij.datashare.asynctasks.Task;
+    import org.icij.datashare.asynctasks.TaskManager;
     import org.icij.datashare.cli.DatashareCliOptions;
     import org.icij.datashare.cli.Mode;
     import org.icij.datashare.session.DatashareUser;
@@ -39,6 +41,7 @@
     import java.util.Map;
     import java.util.Objects;
     import java.util.Properties;
+    import java.util.concurrent.TimeUnit;
     import java.util.stream.Collectors;
     import java.util.stream.Stream;
 
@@ -53,15 +56,17 @@
     public class ProjectResource {
         private final Repository repository;
         private final Indexer indexer;
+        private final TaskManager taskManager;
         private final DataDirVerifier dataDirVerifier;
         private final ModeVerifier modeVerifier;
         private final DocumentCollectionFactory<Path> documentCollectionFactory;
         private final PropertiesProvider propertiesProvider;
 
         @Inject
-        public ProjectResource(Repository repository, Indexer indexer, PropertiesProvider propertiesProvider, DocumentCollectionFactory<Path> documentCollectionFactory) {
+        public ProjectResource(Repository repository, Indexer indexer, TaskManager taskManager,PropertiesProvider propertiesProvider, DocumentCollectionFactory<Path> documentCollectionFactory) {
             this.repository = repository;
             this.indexer = indexer;
+            this.taskManager = taskManager;
             this.propertiesProvider = propertiesProvider;
             this.dataDirVerifier = new DataDirVerifier(propertiesProvider);
             this.modeVerifier = new ModeVerifier(propertiesProvider);
@@ -201,6 +206,7 @@
         @Delete("/")
         public Payload deleteProjects(Context context) {
             DatashareUser user = (DatashareUser) context.currentUser();
+            Logger logger = LoggerFactory.getLogger(getClass());
             getUserProjects(user).forEach(project -> {
                 try {
                     deleteProject(project.name, context);
@@ -208,6 +214,11 @@
                     throw new RuntimeException(e);
                 }
             });
+            try {
+                logger.info("Deleted tasks : {}", !taskManager.clearDoneTasks().isEmpty());
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
             return new Payload(204);
         }
 
