@@ -22,7 +22,7 @@ import static java.util.Optional.ofNullable;
 import static org.icij.datashare.json.JsonUtils.deserialize;
 import static org.icij.datashare.text.StringUtils.isEmpty;
 
-public class User implements Entity {
+public class User implements Entity, Comparable<User> {
     public static final String LOCAL = "local";
     public static final String DEFAULT_PROJECTS_KEY = "groups_by_applications.datashare";
     public static final String JVM_PROJECT_KEY = "datashare.user.projects";
@@ -223,5 +223,10 @@ public class User implements Entity {
 
     static String getDefaultProjectsKey() {
         return isEmpty(System.getProperty(JVM_PROJECT_KEY)) ? DEFAULT_PROJECTS_KEY: System.getProperty(JVM_PROJECT_KEY);
+    }
+
+    @Override
+    public int compareTo(User user) {
+        return id.compareTo(user.id);
     }
 }

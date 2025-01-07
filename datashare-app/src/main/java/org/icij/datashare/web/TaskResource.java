@@ -31,6 +31,7 @@ import org.icij.datashare.batch.BatchDownload;
 import org.icij.datashare.batch.BatchSearch;
 import org.icij.datashare.batch.BatchSearchRecord;
 import org.icij.datashare.batch.BatchSearchRepository;
+import org.icij.datashare.batch.WebQueryPagination;
 import org.icij.datashare.extract.OptionsWrapper;
 import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.tasks.BatchDownloadRunner;
@@ -57,6 +58,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Properties;
+import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -67,6 +69,7 @@ import static java.lang.Integer.parseInt;
 import static java.nio.file.Paths.get;
 import static java.util.Arrays.stream;
 import static java.util.Optional.ofNullable;
+import static java.util.function.Predicate.not;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toMap;
 import static net.codestory.http.errors.NotFoundException.notFoundIfNull;
@@ -110,13 +113,32 @@ public class TaskResource {
             Filters can be added with `name=value`. For example if `name=foo` is given in the request url query,
             the tasks containing the term "foo" are going to be returned. It can contain also dotted keys for nested properties matching.
             
-            For example if `args.dataDir=bar` is provided, tasks with an argument "dataDir" containing "bar" are going to be selected.""",
-            parameters = {@Parameter(name = "name", description = "pattern contained in the task name", in = ParameterIn.QUERY)})
+            For example if `args.dataDir=bar` is provided, tasks with an argument "dataDir" containing "bar" are going to be selected.
+            
+            Pagination/order parameters can be added:
+            
+            * sort: task field for sorting
+            * order: order (desc/asc)
+            * from: offset of the slice
+            * size: number of tasks in the slice""",
+            parameters = {
+                @Parameter(name = "name", description = "as an example: pattern contained in the task name", in = ParameterIn.QUERY)})
     @ApiResponse(responseCode = "200", description = "returns the list of tasks", useReturnTypeSchema = true)
     @Get("/all")
     public List<Task<?>> tasks(Context context) throws IOException {
-        Map<String, Pattern> filters = context.query().keys().stream().collect(toMap(s -> s,  s -> Pattern.compile(String.format(".*%s.*", context.get(s)))));
-        return taskManager.getTasks((User) context.currentUser(), filters);
+        Set<String> paginationFields = WebQueryPagination.fields();
+        Map<String, Object> paginationMap = context.query()
+                .keys()
+                .stream()
+                .filter(paginationFields::contains)
+                .collect(toMap(s -> s, context::get));
+        WebQueryPagination pagination = WebQueryPagination.fromMap(paginationMap);
+        Map<String, Pattern> filters = context.query()
+                .keys()
+                .stream()
+                .filter(not(paginationFields::contains))
+                .collect(toMap(s -> s, s -> Pattern.compile(String.format(".*%s.*", context.get(s)))));
+        return taskManager.getTasks((User) context.currentUser(), filters, pagination);
     }
 
     @Operation(description = "Gets one task with its id.")

@@ -1,5 +1,6 @@
 package org.icij.datashare.web;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import net.codestory.rest.Response;
 import net.codestory.rest.RestAssert;
 import net.codestory.rest.ShouldChain;
@@ -9,6 +10,7 @@ import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.asynctasks.bus.amqp.TaskCreation;
 import org.icij.datashare.db.JooqRepository;
 import org.icij.datashare.extension.PipelineRegistry;
+import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.nlp.EmailPipeline;
 import org.icij.datashare.session.LocalUserFilter;
 import org.icij.datashare.tasks.TaskManagerMemory;
@@ -34,6 +36,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.regex.Pattern;
+import java.util.stream.Stream;
 
 import static java.lang.String.format;
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -83,6 +86,33 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         get("/api/task/all").should().haveType("application/json").contain("IndexTask").contain("ScanTask");
         get("/api/task/all?name=Index").should().contain("IndexTask").not().contain("ScanTask");
         get("/api/task/all?args.dataDir=docs").should().contain("ScanTask").not().contain("IndexTask");
+    }
+
+    @Test
+    public void test_get_tasks_paginated() throws Exception {
+        post("/api/task/batchUpdate/index/" + getClass().getResource("/docs/doc.txt").getPath().substring(1),
+                "{\"options\":{\"reportName\": \"foo1\"}}").should().haveType("application/json");
+        post("/api/task/batchUpdate/index/" + getClass().getResource("/docs/embedded_doc.eml").getPath().substring(1),
+                "{\"options\":{\"reportName\": \"foo2\"}}").should().haveType("application/json");
+
+        List<Map<String, Object>> jsonTasks = MAPPER.readValue(get("/api/task/all").response().content(), new TypeReference<>() {});
+        assertThat(jsonTasks).hasSize(4);
+
+        List<Map<String, Object>> twoFirst = MAPPER.readValue(get("/api/task/all?size=2").response().content(), new TypeReference<>() {});
+        assertThat(twoFirst).hasSize(2);
+        List<Map<String, Object>> twoLast = MAPPER.readValue(get("/api/task/all?size=2&from=2").response().content(), new TypeReference<>() {});
+        assertThat(twoLast).hasSize(2);
+        assertThat(twoFirst).isNotEqualTo(twoLast);
+    }
+
+    @Test
+    public void test_get_tasks_sorted() throws Exception {
+        post("/api/task/batchUpdate/index/" + getClass().getResource("/docs/doc.txt").getPath().substring(1),
+                "{\"options\":{\"reportName\": \"foo\"}}").should().haveType("application/json");
+        assertThat(MAPPER.readValue(get("/api/task/all").response().content(), new TypeReference<List<Map<String, Object>>>() {}).stream()
+                .map(t -> t.get("name")).toList()).isEqualTo(List.of("org.icij.datashare.tasks.IndexTask", "org.icij.datashare.tasks.ScanTask"));
+        assertThat(MAPPER.readValue(get("/api/task/all?order=desc").response().content(), new TypeReference<List<Map<String, Object>>>() {}).stream()
+                .map(t -> t.get("name")).toList()).isEqualTo(List.of("org.icij.datashare.tasks.ScanTask", "org.icij.datashare.tasks.IndexTask"));
     }
 
     @Test
