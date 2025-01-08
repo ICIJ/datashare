@@ -42,7 +42,7 @@ public interface TaskManager extends Closeable {
     void clear() throws IOException;
 
     default List<Task<?>> getTasks(User user, Map<String, Pattern> filters) throws IOException {
-        return getTasks(user, filters, WebQueryPagination.fromMap(Map.of()));
+        return getTasks(user, filters, new WebQueryPagination());
     }
 
     default List<Task<?>> getTasks(User user, Map<String, Pattern> filters, WebQueryPagination pagination) throws IOException {

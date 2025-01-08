@@ -18,6 +18,10 @@ public class WebQueryPagination {
     public final int from;
     public final int size;
 
+    public WebQueryPagination() {
+        this(null, null, 0, Integer.MAX_VALUE);
+    }
+
     public WebQueryPagination(String sort, String order, int from, int size) {
         this.sort = ofNullable(sort).orElse("name");
         this.order = OrderDirection.valueOf(ofNullable(order).orElse(ASC.name()).toUpperCase());
