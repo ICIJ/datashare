@@ -323,7 +323,7 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
         when(repository.getProjects(any())).thenReturn(asList(foo, bar));
         when(repository.deleteAll("foo")).thenReturn(true).thenReturn(false);
         when(repository.deleteAll("bar")).thenReturn(true).thenReturn(false);
-        when(taskManager.clearDoneTasks()).thenReturn(List.of(task)).thenReturn(null);
+        when(taskManager.clearDoneTasks()).thenReturn(List.of(task)).thenReturn(List.of());
         delete("/api/project/").should().respond(204);
     }
 
