@@ -68,7 +68,7 @@ public interface TaskManager extends Closeable {
     default Map<String, Boolean> stopAllTasks(User user) throws IOException {
         return getTasks().stream().
                 filter(t -> user.equals(t.getUser())).
-                filter(t -> t.getState() == Task.State.RUNNING || t.getState() == Task.State.QUEUED).collect(
+                filter(t -> t.getState() == Task.State.RUNNING || t.getState() == Task.State.QUEUED || t.getState() == Task.State.CREATED).collect(
                         toMap(t -> t.id, t -> {
                             try {
                                 return stopTask(t.id);
