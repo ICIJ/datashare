@@ -127,6 +127,21 @@ public class TaskManagersIntTest {
     }
 
     @Test(timeout = 10000)
+    public void test_stop_all_tasks() throws Exception {
+        String tv1Id = taskManager.startTask(TestFactory.SleepForever.class, User.local(), new HashMap<>());
+        String tv2Id = taskManager.startTask(TestFactory.SleepForever.class, User.local(), new HashMap<>());
+
+        taskInspector.awaitStatus(tv1Id, Task.State.RUNNING, 1, SECONDS);
+        taskManager.stopAllTasks(User.local());
+        taskInspector.awaitStatus(tv1Id, Task.State.CANCELLED, 1, SECONDS);
+        taskInspector.awaitStatus(tv2Id, Task.State.CANCELLED, 1, SECONDS);
+
+        assertThat(taskManager.getTasks()).hasSize(2);
+        assertThat(taskManager.getTask(tv1Id).getState()).isEqualTo(Task.State.CANCELLED);
+        assertThat(taskManager.getTask(tv2Id).getState()).isEqualTo(Task.State.CANCELLED);
+    }
+
+    @Test(timeout = 10000)
     public void test_await_tasks_termination() throws Exception {
         String tv1Id = taskManager.startTask(TestFactory.Sleep.class, User.local(), Map.of("duration", 100));
         String tv2Id = taskManager.startTask(TestFactory.Sleep.class, User.local(), Map.of("duration", 200));
