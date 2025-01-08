@@ -10,7 +10,12 @@
     import io.swagger.v3.oas.annotations.parameters.RequestBody;
     import io.swagger.v3.oas.annotations.responses.ApiResponse;
     import net.codestory.http.Context;
-    import net.codestory.http.annotations.*;
+    import net.codestory.http.annotations.Delete;
+    import net.codestory.http.annotations.Get;
+    import net.codestory.http.annotations.Options;
+    import net.codestory.http.annotations.Post;
+    import net.codestory.http.annotations.Prefix;
+    import net.codestory.http.annotations.Put;
     import net.codestory.http.constants.HttpStatus;
     import net.codestory.http.payload.Payload;
     import org.apache.commons.io.FileUtils;
@@ -18,8 +23,8 @@
     import org.icij.datashare.Repository;
     import org.icij.datashare.cli.DatashareCliOptions;
     import org.icij.datashare.cli.Mode;
-    import org.icij.datashare.session.DatashareUser;
     import org.icij.datashare.extract.DocumentCollectionFactory;
+    import org.icij.datashare.session.DatashareUser;
     import org.icij.datashare.text.Project;
     import org.icij.datashare.text.indexing.Indexer;
     import org.icij.datashare.utils.DataDirVerifier;
@@ -28,7 +33,6 @@
     import org.icij.datashare.utils.PayloadFormatter;
     import org.icij.extract.queue.DocumentQueue;
     import org.icij.extract.report.ReportMap;
-    import org.jetbrains.annotations.NotNull;
     import org.slf4j.Logger;
     import org.slf4j.LoggerFactory;
 
@@ -92,7 +96,7 @@
         @ApiResponse(responseCode = "409", description = "if project exists")
         @ApiResponse(responseCode = "500", description = "project creation in DB or index creation failed")
         @Post("/")
-        public Payload createProject(Project project, Context context) {
+        public Payload projectCreate(Project project) {
             modeVerifier.checkAllowedMode(Mode.LOCAL, Mode.EMBEDDED);
 
             if (projectExists(project)) {
@@ -108,11 +112,31 @@
             return new Payload(project).withCode(HttpStatus.CREATED);
         }
 
+        @Operation(description = "Preflight project resource option request",
+                parameters = {@Parameter(name = "id", description = "project id")}
+        )
+        @ApiResponse(responseCode = "200", description = "returns 200 with OPTIONS, PUT and DELETE")
+        @Options("/:id")
+        public Payload projectOptions(String id) {return ok().withAllowMethods("OPTIONS", "PUT", "DELETE");}
+
+        @Operation(description = "Gets the project information for the given id",
+                parameters = @Parameter(name = "id", in = ParameterIn.QUERY)
+        )
+        @ApiResponse(responseCode = "200", useReturnTypeSchema = true)
+        @ApiResponse(responseCode = "404", description = "if the project is not found in database")
+        @Get("/:id")
+        public Project projectRead(String id, Context context) {
+            return notFoundIfNull(getUserProject((DatashareUser) context.currentUser(), id));
+        }
+
         @Operation(description = "Updates a project",
                 requestBody = @RequestBody(content = @Content(mediaType = "application/json", contentSchema = @Schema(implementation = Project.class)))
         )
+        @ApiResponse(responseCode = "200", description = "if project has been updated")
+        @ApiResponse(responseCode = "404", description = "if project doesn't exist in database")
+        @ApiResponse(responseCode = "500", description = "if project json id is not the same as the url id or if save failed")
         @Put("/:id")
-        public Payload updateProject(String id, Project project, @NotNull Context context) {
+        public Payload projectUpdate(String id, Project project) {
             modeVerifier.checkAllowedMode(Mode.LOCAL, Mode.EMBEDDED);
             if (!projectExists(project) || !Objects.equals(project.getId(), id)) {
                 return PayloadFormatter.error("Project not found", HttpStatus.NOT_FOUND);
@@ -123,14 +147,31 @@
             return new Payload(project).withCode(HttpStatus.OK);
         }
 
-        @Operation(description = "Gets the project information for the given id",
-                parameters = @Parameter(name = "id", in = ParameterIn.QUERY)
+        @Operation(description = "Deletes the project from database and elasticsearch index.",
+                parameters = {@Parameter(name = "id", description = "project id")}
         )
-        @ApiResponse(responseCode = "200", useReturnTypeSchema = true)
-        @ApiResponse(responseCode = "404", description = "if the project is not found in database")
-        @Get("/:id")
-        public Project getProject(String id, Context context) {
-            return notFoundIfNull(getUserProject((DatashareUser) context.currentUser(), id));
+        @ApiResponse(responseCode = "204", description = "if project is deleted")
+        @ApiResponse(responseCode = "401", description = "if project id is not in the current user's projects")
+        @Delete("/:id")
+        public Payload projectDelete(String id, Context context) throws IOException {
+            modeVerifier.checkAllowedMode(Mode.LOCAL, Mode.EMBEDDED);
+            DatashareUser user = (DatashareUser) context.currentUser();
+            Project project = getUserProject(user, id);
+            Logger logger = LoggerFactory.getLogger(getClass());
+            logger.info("Deleted {}'s record: {}", id, repository.deleteAll(id));
+            logger.info("Deleted {}'s index: {}", id, indexer.deleteAll(id));
+            logger.info("Deleted {}'s queues: {}", id, deleteQueues(project));
+            logger.info("Deleted {}'s report map: {}", id, deleteReportMap(project));
+            propertiesProvider.get(DatashareCliOptions.ARTIFACT_DIR_OPT).ifPresent(dir -> {
+                try {
+                    File projectArtifactDir = Path.of(dir).resolve(id).toFile();
+                    FileUtils.deleteDirectory(projectArtifactDir);
+                    logger.info("Deleted artifacts dir {}", projectArtifactDir);
+                } catch (IOException e) {
+                    logger.error("cannot delete project {} artifact dir", id, e);
+                }
+            });
+            return new Payload(204);
         }
 
         @Operation(description = """
@@ -161,41 +202,6 @@
             return ok();
         }
 
-        @Operation(description = "Preflight option request",
-                parameters = {@Parameter(name = "id", description = "project id")}
-        )
-        @ApiResponse(responseCode = "200", description = "returns 200 with OPTIONS and DELETE")
-        @Options("/:id")
-        public Payload deleteProjectOpt(String id) {return ok().withAllowMethods("OPTIONS", "DELETE");}
-
-
-        @Operation(description = "Deletes the project from database and elasticsearch index.",
-                parameters = {@Parameter(name = "id", description = "project id")}
-        )
-        @ApiResponse(responseCode = "204", description = "if project is deleted")
-        @ApiResponse(responseCode = "401", description = "if project id is not in the current user's projects")
-        @Delete("/:id")
-        public Payload deleteProject(String id, Context context) throws IOException {
-            modeVerifier.checkAllowedMode(Mode.LOCAL, Mode.EMBEDDED);
-            DatashareUser user = (DatashareUser) context.currentUser();
-            Project project = getUserProject(user, id);
-            Logger logger = LoggerFactory.getLogger(getClass());
-            logger.info("Deleted {}'s record: {}", id, repository.deleteAll(id));
-            logger.info("Deleted {}'s index: {}", id, indexer.deleteAll(id));
-            logger.info("Deleted {}'s queues: {}", id, deleteQueues(project));
-            logger.info("Deleted {}'s report map: {}", id, deleteReportMap(project));
-            propertiesProvider.get(DatashareCliOptions.ARTIFACT_DIR_OPT).ifPresent(dir -> {
-                try {
-                    File projectArtifactDir = Path.of(dir).resolve(id).toFile();
-                    FileUtils.deleteDirectory(projectArtifactDir);
-                    logger.info("Deleted artifacts dir {}", projectArtifactDir);
-                } catch (IOException e) {
-                    logger.error("cannot delete project {} artifact dir", id, e);
-                }
-            });
-            return new Payload(204);
-        }
-
         @Operation(description = "Deletes all user's projects from database and elasticsearch index.")
         @ApiResponse(responseCode = "204", description = "if projects are deleted")
         @Delete("/")
@@ -203,7 +209,7 @@
             DatashareUser user = (DatashareUser) context.currentUser();
             getUserProjects(user).forEach(project -> {
                 try {
-                    deleteProject(project.name, context);
+                    projectDelete(project.name, context);
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 }
