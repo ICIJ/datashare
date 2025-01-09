@@ -1,33 +1,6 @@
 {
   "deliverableList": [
     {
-      "id": "datashare-nlp-gate",
-      "name": "NLP Gate Pipeline",
-      "description": "Extension to extract NER entities with Gate",
-      "url": "https://github.com/ICIJ/datashare-extension-nlp-gate/releases/download/8.0.1/datashare-nlp-gate-8.0.1-jar-with-dependencies.jar",
-      "homepage": "https://github.com/ICIJ/datashare-extension-nlp-gate",
-      "version": "8.0.1",
-      "type": "NLP"
-    },
-    {
-      "id": "datashare-nlp-ixapipe",
-      "name": "IXAPIPE Pipeline",
-      "description": "Extension to extract NER entities with ixapipe",
-      "url": "https://github.com/ICIJ/datashare-extension-nlp-ixapipe/releases/download/8.0.2/datashare-nlp-ixapipe-8.0.2-jar-with-dependencies.jar",
-      "homepage": "https://github.com/ICIJ/datashare-extension-nlp-ixapipe",
-      "version": "8.0.2",
-      "type": "NLP"
-    },
-    {
-      "id": "datashare-nlp-mitie",
-      "name": "NLP Mitie Pipeline",
-      "description": "Extension to extract NER entities with Mitie",
-      "url": "https://github.com/ICIJ/datashare-extension-nlp-mitie/releases/download/8.0.2/datashare-nlp-mitie-8.0.2-jar-with-dependencies.jar",
-      "homepage": "https://github.com/ICIJ/datashare-extension-nlp-mitie",
-      "version": "8.0.2",
-      "type": "NLP"
-    },
-    {
       "id": "datashare-nlp-opennlp",
       "name": "OPENNLP Pipeline",
       "description": "Extension to extract NER entities with OPENNLP",
