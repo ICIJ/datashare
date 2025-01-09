@@ -328,7 +328,7 @@ public class TaskResource {
             - project: string
             - query: string or elasticsearch JSON query
             
-            If the query is a string it is taken as an ES query string, else it is a raw JSON query (without the query part), 
+            If the query is a string it is taken as an ES query string, else it is a raw JSON query (without the query part),
             see org.elasticsearch.index.query.WrapperQueryBuilder that is used to wrap the query.
             """,
             requestBody = @RequestBody(description = "the json used to wrap the query", required = true,  content = @Content(schema = @Schema(implementation = OptionsWrapper.class))))
@@ -477,9 +477,7 @@ public class TaskResource {
             
             - OPENNLP
             - CORENLP
-            - IXAPIPE
-            - GATENLP
-            - MITIE
+            - SPACY
             
             This endpoint is going to find all Documents that are not tagged with the given pipeline and extract named entities for all these documents.
             """,

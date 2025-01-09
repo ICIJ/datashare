@@ -2,7 +2,9 @@ package org.icij.datashare.text.indexing.elasticsearch;
 
 import co.elastic.clients.elasticsearch._types.ElasticsearchException;
 import co.elastic.clients.elasticsearch._types.Refresh;
+import co.elastic.clients.elasticsearch.core.GetRequest;
 import jakarta.json.JsonException;
+import java.util.Objects;
 import org.apache.http.ConnectionClosedException;
 import org.elasticsearch.action.update.UpdateRequest;
 import org.elasticsearch.script.Script;
@@ -89,8 +91,8 @@ public class ElasticsearchIndexerTest {
 
         assertThat(((Document) indexer.get(TEST_INDEX, "doc1")).getRootDocument()).isEqualTo(root.getId());
         assertThat(((Document) indexer.get(TEST_INDEX, "doc2")).getRootDocument()).isEqualTo(root.getId());
-        assertThat(es.client.get(co.elastic.clients.elasticsearch.core.GetRequest.of(d -> d.index(TEST_INDEX).id("doc1")), Document.class).source().getRootDocument()).isEqualTo(root.getId());
-        assertThat(es.client.get(co.elastic.clients.elasticsearch.core.GetRequest.of(d -> d.index(TEST_INDEX).id("doc1")), Document.class).source().getRootDocument()).isEqualTo(root.getId());
+        assertThat(Objects.requireNonNull(es.client.get(GetRequest.of(d -> d.index(TEST_INDEX).id("doc1")), Document.class).source()).getRootDocument()).isEqualTo(root.getId());
+        assertThat(Objects.requireNonNull(es.client.get(GetRequest.of(d -> d.index(TEST_INDEX).id("doc1")), Document.class).source()).getRootDocument()).isEqualTo(root.getId());
     }
 
     @Test
@@ -116,7 +118,7 @@ public class ElasticsearchIndexerTest {
         assertThat(indexer.bulkAdd(TEST_INDEX, OPENNLP, emptyList(), doc)).isTrue();
 
         co.elastic.clients.elasticsearch.core.GetResponse<Document> resp = es.client.get(co.elastic.clients.elasticsearch.core.GetRequest.of(d -> d.index(TEST_INDEX).id(doc.getId())), Document.class);
-        assertThat(resp.source().getStatus()).isEqualTo(DONE);
+        assertThat(Objects.requireNonNull(resp.source()).getStatus()).isEqualTo(DONE);
         assertThat(resp.source().getNerTags()).containsOnly(OPENNLP);
     }
 
@@ -198,7 +200,7 @@ public class ElasticsearchIndexerTest {
         indexer.add(TEST_INDEXES[1], doc);
         indexer.add(TEST_INDEXES[2], doc);
 
-        List<? extends Entity> lst = indexer.search(asList(TEST_INDEXES[1], TEST_INDEXES[2]), Document.class).execute().collect(toList());
+        List<? extends Entity> lst = indexer.search(asList(TEST_INDEXES[1], TEST_INDEXES[2]), Document.class).execute().toList();
         assertThat(lst.size()).isEqualTo(2);
     }
 
@@ -213,7 +215,7 @@ public class ElasticsearchIndexerTest {
         Document doc = createDoc("id").with(INDEXED).build();
         indexer.add(TEST_INDEX, doc);
 
-        List<? extends Entity> lst = indexer.search(singletonList(TEST_INDEX), Document.class).ofStatus(INDEXED).execute().collect(toList());
+        List<? extends Entity> lst = indexer.search(singletonList(TEST_INDEX), Document.class).ofStatus(INDEXED).execute().toList();
         assertThat(lst.size()).isEqualTo(1);
         assertThat((int) indexer.search(singletonList(TEST_INDEX), Document.class).ofStatus(DONE).execute().count()).isEqualTo(0);
     }
@@ -224,7 +226,7 @@ public class ElasticsearchIndexerTest {
         indexer.add(TEST_INDEX, doc);
 
         String queryBody = "{\"bool\":{\"must\":[{\"match_all\":{}},{\"bool\":{\"should\":[{\"query_string\":{\"query\":\"*\"}}]}},{\"match\":{\"type\":\"Document\"}}]}}";
-        List<? extends Entity> lst = indexer.search(singletonList(TEST_INDEX),Document.class, new SearchQuery(queryBody)).execute().collect(toList());
+        List<? extends Entity> lst = indexer.search(singletonList(TEST_INDEX),Document.class, new SearchQuery(queryBody)).execute().toList();
         assertThat(lst.size()).isEqualTo(1);
     }
 
@@ -236,11 +238,11 @@ public class ElasticsearchIndexerTest {
         String queryToSearch = "john AND doe";
 
         List<? extends Entity> searchWithPhraseMatch = indexer.search(singletonList(TEST_INDEX),Document.class, new SearchQuery(queryBody)).
-                with(0, true).execute(queryToSearch).collect(toList());
+                with(0, true).execute(queryToSearch).toList();
         assertThat(searchWithPhraseMatch.size()).isEqualTo(0);
 
         List<? extends Entity> searchWithoutPhraseMatch = indexer.search(singletonList(TEST_INDEX),Document.class, new SearchQuery(queryBody)).
-                with(0, false).execute(queryToSearch).collect(toList());
+                with(0, false).execute(queryToSearch).toList();
         assertThat(searchWithoutPhraseMatch.size()).isEqualTo(1);
     }
 
@@ -254,11 +256,11 @@ public class ElasticsearchIndexerTest {
         String queryToSearch = "bar";
 
         List<? extends Entity> searchWithFuzziness0 = indexer.search(singletonList(TEST_INDEX),Document.class, new SearchQuery(queryBody)).
-                with(0, false).execute(queryToSearch).collect(toList());
+                with(0, false).execute(queryToSearch).toList();
         assertThat(searchWithFuzziness0.size()).isEqualTo(1);
 
         List<? extends Entity> searchWithFuzziness1 = indexer.search(singletonList(TEST_INDEX),Document.class, new SearchQuery(queryBody)).
-                with(1, false).execute(queryToSearch).collect(toList());
+                with(1, false).execute(queryToSearch).toList();
         assertThat(searchWithFuzziness1.size()).isEqualTo(2);
     }
 
@@ -270,7 +272,7 @@ public class ElasticsearchIndexerTest {
         assertThat(indexer.tag(project(TEST_INDEX), doc.getId(), doc.getId(), tag("foo"), tag("bar"))).isTrue();
         assertThat(indexer.tag(project(TEST_INDEX), doc.getId(), doc.getId(), tag("foo"))).isFalse();
 
-        List<? extends Entity> lst = indexer.search(singletonList(TEST_INDEX), Document.class).with(tag("foo"), tag("bar")).execute().collect(toList());
+        List<? extends Entity> lst = indexer.search(singletonList(TEST_INDEX), Document.class).with(tag("foo"), tag("bar")).execute().toList();
         assertThat(lst.size()).isEqualTo(1);
         assertThat(((Document)lst.get(0)).getTags()).containsOnly(tag("foo"), tag("bar"));
     }
@@ -340,11 +342,11 @@ public class ElasticsearchIndexerTest {
         assertThat((int) indexer.search(singletonList(TEST_INDEX), Document.class).ofStatus(DONE).without(CORENLP).execute().count()).isEqualTo(0);
         assertThat((int) indexer.search(singletonList(TEST_INDEX), Document.class).ofStatus(DONE).without(CORENLP, OPENNLP).execute().count()).isEqualTo(0);
 
-        assertThat((int) indexer.search(singletonList(TEST_INDEX), Document.class).ofStatus(DONE).without(IXAPIPE).execute().count()).isEqualTo(1);
+        assertThat((int) indexer.search(singletonList(TEST_INDEX), Document.class).ofStatus(DONE).without(SPACY).execute().count()).isEqualTo(1);
         assertThat((int) indexer.search(singletonList(TEST_INDEX), Document.class).ofStatus(DONE).with(CORENLP).execute().count()).isEqualTo(1);
         assertThat((int) indexer.search(singletonList(TEST_INDEX), Document.class).ofStatus(DONE).with(OPENNLP).execute().count()).isEqualTo(1);
         assertThat((int) indexer.search(singletonList(TEST_INDEX), Document.class).ofStatus(DONE).with(CORENLP, OPENNLP).execute().count()).isEqualTo(1);
-        assertThat((int) indexer.search(singletonList(TEST_INDEX), Document.class).ofStatus(DONE).with(CORENLP, IXAPIPE).execute().count()).isEqualTo(1);
+        assertThat((int) indexer.search(singletonList(TEST_INDEX), Document.class).ofStatus(DONE).with(CORENLP, SPACY).execute().count()).isEqualTo(1);
     }
 
     @Test
@@ -360,7 +362,7 @@ public class ElasticsearchIndexerTest {
         Document doc = createDoc("id").ofContentType("application/pdf").build();
         indexer.add(TEST_INDEX,doc);
 
-        Document actualDoc = (Document) indexer.search(singletonList(TEST_INDEX),Document.class).withSource("contentType").execute().collect(toList()).get(0);
+        Document actualDoc = (Document) indexer.search(singletonList(TEST_INDEX),Document.class).withSource("contentType").execute().toList().get(0);
         assertThat(actualDoc.getContentType()).isEqualTo("application/pdf");
         assertThat(actualDoc.getId()).isEqualTo(doc.getId());
         assertThat(actualDoc.getContent()).isEmpty();
@@ -371,7 +373,7 @@ public class ElasticsearchIndexerTest {
         Document doc = createDoc("id").ofContentType("application/pdf").build();
         indexer.add(TEST_INDEX,doc);
 
-        Document actualDoc = (Document) indexer.search(singletonList(TEST_INDEX),Document.class).withSource(false).execute().collect(toList()).get(0);
+        Document actualDoc = (Document) indexer.search(singletonList(TEST_INDEX),Document.class).withSource(false).execute().toList().get(0);
         assertThat(actualDoc.getId()).isNotNull();
     }
 
