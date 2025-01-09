@@ -25,9 +25,6 @@ public interface Pipeline {
     enum Type implements EnumTypeToken {
         TEST((short)-1),
         CORENLP((short)0),
-        GATENLP((short)1),
-        IXAPIPE((short)2),
-        MITIE((short)3),
         OPENNLP((short)4),
         EMAIL((short)5),
         SPACY((short)6);
