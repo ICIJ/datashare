@@ -14,7 +14,6 @@ import org.icij.datashare.asynctasks.bus.amqp.UriResult;
 import org.icij.datashare.batch.WebQueryPagination;
 import org.icij.datashare.user.User;
 
-import java.io.Serial;
 import java.io.Serializable;
 import java.util.Collections;
 import java.util.HashMap;
