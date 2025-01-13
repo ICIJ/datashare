@@ -139,6 +139,7 @@ public class TaskManagerMemory implements TaskManager, TaskSupplier {
         Task<?> taskView = tasks.get(taskId);
         if (taskView != null) {
             switch (taskView.getState()) {
+                case CREATED:
                 case QUEUED:
                     boolean removed = taskQueue.remove(taskView);
                     canceled(taskView, false);
