@@ -7,6 +7,7 @@ import io.swagger.v3.core.util.Yaml31;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.enums.ParameterIn;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.models.OpenAPI;
 import net.codestory.http.annotations.Get;
@@ -31,7 +32,7 @@ public class OpenApiResource {
                             * yaml
                             
                             """,
-                    in = ParameterIn.QUERY)
+                    in = ParameterIn.QUERY, schema = @Schema(implementation = String.class))
             }
     )
     @ApiResponse(responseCode = "200", description="returns the JSON or YAML file")

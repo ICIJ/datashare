@@ -78,7 +78,7 @@
         public Payload rootProjectOpt(String id) {return ok().withAllowMethods("OPTIONS", "POST", "GET", "DELETE");}
 
         @Operation(description = "Get all user's projects",
-                requestBody = @RequestBody(content = @Content(mediaType = "application/json", contentSchema = @Schema(implementation = Project[].class)))
+                requestBody = @RequestBody(content = @Content(mediaType = "application/json", schema = @Schema(implementation = Project[].class)))
         )
         @ApiResponse(responseCode = "200", useReturnTypeSchema = true)
         @Get("/")
@@ -88,7 +88,7 @@
         }
 
         @Operation(description = "Creates a project",
-                requestBody = @RequestBody(content = @Content(mediaType = "application/json", contentSchema = @Schema(implementation = Project.class)))
+                requestBody = @RequestBody(content = @Content(mediaType = "application/json", schema = @Schema(implementation = Project.class)))
         )
         @ApiResponse(responseCode = "201", description = "if project and index have been created")
         @ApiResponse(responseCode = "400", description = "if project name is empty")
@@ -130,7 +130,7 @@
         }
 
         @Operation(description = "Updates a project",
-                requestBody = @RequestBody(content = @Content(mediaType = "application/json", contentSchema = @Schema(implementation = Project.class)))
+                requestBody = @RequestBody(content = @Content(mediaType = "application/json", schema = @Schema(implementation = Project.class)), required = true)
         )
         @ApiResponse(responseCode = "200", description = "if project has been updated")
         @ApiResponse(responseCode = "404", description = "if project doesn't exist in database")
