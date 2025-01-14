@@ -24,6 +24,7 @@ import org.redisson.liveobject.core.RedissonObjectBuilder;
 
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
@@ -31,6 +32,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 import static java.util.Arrays.asList;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.fest.assertions.Assertions.assertThat;
 
@@ -139,6 +141,40 @@ public class TaskManagersIntTest {
         assertThat(taskManager.getTasks()).hasSize(2);
         assertThat(taskManager.getTask(tv1Id).getState()).isEqualTo(Task.State.CANCELLED);
         assertThat(taskManager.getTask(tv2Id).getState()).isEqualTo(Task.State.CANCELLED);
+    }
+
+    @Test(timeout = 10000)
+    public void test_stop_all_wait_clear_done_tasks() throws Exception {
+        String tv1Id = taskManager.startTask(TestFactory.SleepForever.class, User.local(), new HashMap<>());
+        String tv2Id = taskManager.startTask(TestFactory.SleepForever.class, User.local(), new HashMap<>());
+
+        taskInspector.awaitStatus(tv1Id, Task.State.RUNNING, 1, SECONDS);
+        taskManager.stopAllTasks(User.local());
+        taskInspector.awaitStatus(tv1Id, Task.State.CANCELLED, 1, SECONDS);
+
+        assertThat(taskManager.getTask(tv1Id).getState()).isEqualTo(Task.State.CANCELLED);
+        assertThat(taskManager.getTask(tv2Id).getState()).isEqualTo(Task.State.CANCELLED);
+
+        taskManager.clearDoneTasks();
+
+        assertThat(taskManager.getTasks()).isEmpty();
+    }
+
+    @Test()
+    public void test_stop_all_wait_clear_done_tasks_not_cancellable_task() throws Exception {
+        String tv1Id = taskManager.startTask(TestFactory.Sleep.class, User.local(), Map.of("duration", 3000));
+        String tv2Id = taskManager.startTask(TestFactory.SleepForever.class, User.local(), new HashMap<>());
+
+        taskInspector.awaitStatus(tv1Id, Task.State.RUNNING, 1, SECONDS);
+        taskManager.stopAllTasks(User.local());
+        taskInspector.awaitStatus(tv1Id, Task.State.DONE, 1, SECONDS);
+
+        assertThat(taskManager.getTask(tv1Id).getState()).isEqualTo(Task.State.RUNNING);
+        assertThat(taskManager.getTask(tv2Id).getState()).isEqualTo(Task.State.CREATED);
+
+        taskManager.clearDoneTasks();
+
+        assertThat(taskManager.getTasks()).isNotEmpty();
     }
 
     @Test(timeout = 10000)
