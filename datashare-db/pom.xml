@@ -23,6 +23,11 @@
             <artifactId>datashare-api</artifactId>
         </dependency>
         <dependency>
+            <groupId>org.icij.datashare</groupId>
+            <artifactId>datashare-tasks</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
             <groupId>org.icij.extract</groupId>
             <artifactId>extract-lib</artifactId>
         </dependency>
