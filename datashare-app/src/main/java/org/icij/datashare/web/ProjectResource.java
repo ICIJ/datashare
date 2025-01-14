@@ -45,6 +45,8 @@
     import java.util.stream.Collectors;
     import java.util.stream.Stream;
 
+    import static java.util.concurrent.TimeUnit.MILLISECONDS;
+    import static java.util.concurrent.TimeUnit.SECONDS;
     import static net.codestory.http.errors.NotFoundException.notFoundIfNull;
     import static net.codestory.http.payload.Payload.ok;
     import static org.apache.tika.utils.StringUtils.isEmpty;
@@ -215,6 +217,8 @@
                 }
             });
             try {
+                logger.info("Stopping tasks : {}", taskManager.stopAllTasks(user));
+                taskManager.waitTasksToBeDone(TaskManager.POLLING_INTERVAL*2, MILLISECONDS);
                 logger.info("Deleted tasks : {}", !taskManager.clearDoneTasks().isEmpty());
             } catch (IOException e) {
                 throw new RuntimeException(e);
