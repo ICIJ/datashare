@@ -1,5 +1,10 @@
 package org.icij.datashare.asynctasks;
 
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.asynctasks.bus.amqp.AmqpInterlocutor;
 import org.icij.datashare.asynctasks.bus.amqp.AmqpQueue;
@@ -9,7 +14,6 @@ import org.icij.datashare.tasks.RoutingStrategy;
 import org.icij.datashare.user.User;
 import org.icij.extract.redis.RedissonClientFactory;
 import org.icij.task.Options;
-import org.junit.*;
 import org.redisson.Redisson;
 import org.redisson.RedissonMap;
 import org.redisson.api.RedissonClient;
@@ -20,7 +24,12 @@ import java.io.IOException;
 import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.*;
+import org.junit.After;
+import org.junit.AfterClass;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.ClassRule;
+import org.junit.Test;
 
 import static org.fest.assertions.Assertions.assertThat;
 
@@ -53,7 +62,7 @@ public class TaskManagerAmqpTest {
             assertThat(groupTaskManager.getTask(expectedTaskViewId)).isNotNull();
             Task<Serializable> actualTaskView = taskQueue.poll(1, TimeUnit.SECONDS);
             assertThat(actualTaskView).isNotNull();
-            assertThat(actualTaskView.getGroup()).isEqualTo(new Group(key));
+            assertThat(groupTaskManager.getTaskGroup(expectedTaskViewId)).isEqualTo(new Group(key));
         }
     }
 
@@ -168,6 +177,30 @@ public class TaskManagerAmqpTest {
         assertThat(taskManager.getTask(task.id).getState()).isEqualTo(Task.State.CANCELLED);
     }
 
+    @Test
+    public void test_save_task() throws TaskAlreadyExists, IOException {
+        Task<String> task = new Task<>("name", User.local(), new HashMap<>());
+
+        taskManager.save(task, null);
+
+        assertThat(taskManager.getTasks()).hasSize(1);
+        assertThat(taskManager.getTask(task.id)).isNotNull();
+    }
+
+    @Test
+    public void test_update_task() throws TaskAlreadyExists, IOException {
+        // Given
+        Task<?> task = new Task<>("HelloWorld", User.local(), Map.of("greeted", "world"));
+        TaskMetadata<?> meta = new TaskMetadata<>(task, null);
+        Task<?> update = new Task<>(task.id, task.name, task.getState(), 0.5, null, task.args);
+        // When
+        taskManager.saveMetadata(meta);
+        taskManager.update(update);
+        Task<?> updated = taskManager.getTask(task.id);
+        // Then
+        assertThat(updated).isEqualTo(update);
+    }
+
     @BeforeClass
     public static void beforeClass() throws Exception {
         AMQP = new AmqpInterlocutor(new PropertiesProvider(new HashMap<>() {{
@@ -182,7 +215,7 @@ public class TaskManagerAmqpTest {
         nextMessage = new CountDownLatch(1);
         final RedissonClient redissonClient = new RedissonClientFactory().withOptions(
             Options.from(new PropertiesProvider(Map.of("redisAddress", "redis://redis:6379")).getProperties())).create();
-        Map<String, Task<?>> tasks = new RedissonMap<>(new TaskManagerRedis.TaskViewCodec(),
+        Map<String, TaskMetadata<?>> tasks = new RedissonMap<>(new TaskManagerRedis.RedisCodec(TaskMetadata.class),
             new CommandSyncService(((Redisson) redissonClient).getConnectionManager(),
                 new RedissonObjectBuilder(redissonClient)),
             "tasks:queue:test",

@@ -1,34 +1,30 @@
 package org.icij.datashare.asynctasks;
 
+import java.util.Optional;
 import org.apache.commons.lang3.NotImplementedException;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.asynctasks.bus.amqp.Event;
 import org.icij.datashare.asynctasks.bus.amqp.TaskError;
-import org.icij.datashare.user.User;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.Serializable;
-import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import static java.lang.Integer.parseInt;
 import static java.util.stream.Collectors.toList;
-import static org.icij.datashare.asynctasks.Task.State.RUNNING;
 
 
 public class TaskManagerMemory implements TaskManager, TaskSupplier {
     private final Logger logger = LoggerFactory.getLogger(getClass());
     private final ExecutorService executor;
-    private final ConcurrentMap<String, Task<?>> tasks = new ConcurrentHashMap<>();
+    private final ConcurrentMap<String, TaskMetadata<?>> taskMetas = new ConcurrentHashMap<>();
     private final BlockingQueue<Task<?>> taskQueue;
     private final List<TaskWorkerLoop> loops;
     private final AtomicInteger executedTasks = new AtomicInteger(0);
@@ -49,17 +45,17 @@ public class TaskManagerMemory implements TaskManager, TaskSupplier {
     }
 
     public <V> Task<V> getTask(final String taskId) {
-        return (Task<V>) tasks.get(taskId);
+        return (Task<V>) Optional.ofNullable(taskMetas.get(taskId)).map(TaskMetadata::task).orElse(null);
     }
 
     @Override
     public List<Task<?>> getTasks() {
-        return new LinkedList<>(tasks.values());
+        return taskMetas.values().stream().map(TaskMetadata::task).collect(toList());
     }
 
     @Override
     public Void progress(String taskId, double rate) {
-        Task<?> taskView = tasks.get(taskId);
+        Task<?> taskView = getTask(taskId);
         if (taskView != null) {
             taskView.setProgress(rate);
         } else {
@@ -70,7 +66,7 @@ public class TaskManagerMemory implements TaskManager, TaskSupplier {
 
     @Override
     public <V extends Serializable> void result(String taskId, V result) {
-        Task<V> taskView = (Task<V>) tasks.get(taskId);
+        Task<V> taskView = getTask(taskId);
         if (taskView != null) {
             taskView.setResult(result);
             executedTasks.incrementAndGet();
@@ -81,7 +77,7 @@ public class TaskManagerMemory implements TaskManager, TaskSupplier {
 
     @Override
     public void canceled(Task<?> task, boolean requeue) {
-        Task<?> taskView = tasks.get(task.id);
+        Task<?> taskView = taskMetas.get(task.id).task();
         if (taskView != null) {
             taskView.cancel();
             if (requeue) {
@@ -92,7 +88,7 @@ public class TaskManagerMemory implements TaskManager, TaskSupplier {
 
     @Override
     public void error(String taskId, TaskError reason) {
-        Task<?> taskView = tasks.get(taskId);
+        Task<?> taskView = taskMetas.get(taskId).task();
         if (taskView != null) {
             taskView.setError(reason);
             executedTasks.incrementAndGet();
@@ -101,9 +97,28 @@ public class TaskManagerMemory implements TaskManager, TaskSupplier {
         }
     }
 
-    public <V> boolean save(Task<V> taskView) {
-        Task<?> oldTask = tasks.put(taskView.id, taskView);
-        return oldTask == null;
+    @Override
+    public <V> void saveMetadata(TaskMetadata<V> taskMetadata) throws TaskAlreadyExists {
+        String taskId = taskMetadata.taskId();
+        if (taskMetas.containsKey(taskId)) {
+            throw new TaskAlreadyExists(taskId);
+        }
+        this.taskMetas.put(taskId, taskMetadata);
+    }
+
+    @Override
+    public <V> void persistUpdate(Task<V> task) throws UnknownTask {
+        TaskMetadata<V> updated = (TaskMetadata<V>) taskMetas.get(task.id);
+        if (updated == null) {
+            throw new UnknownTask(task.id);
+        }
+        updated = updated.withTask(task);
+        this.taskMetas.put(task.id, updated);
+    }
+
+    @Override
+    public Group getTaskGroup(String taskId) {
+        return taskMetas.get(taskId).group();
     }
 
     @Override
@@ -116,27 +131,28 @@ public class TaskManagerMemory implements TaskManager, TaskSupplier {
         executor.shutdown();
         loops.forEach(TaskWorkerLoop::exit);
         try {
-            return executor.awaitTermination(pollingInterval * 2, TimeUnit.SECONDS);
+            return executor.awaitTermination(pollingInterval * 2L, TimeUnit.SECONDS);
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
     }
 
     public List<Task<?>> clearDoneTasks() {
-        return tasks.values().stream().filter(taskView -> taskView.getState() != RUNNING).map(t -> tasks.remove(t.id)).collect(toList());
+        return taskMetas.values().stream().map(TaskMetadata::task).filter(Task::isFinished)
+            .map(t -> taskMetas.remove(t.id).task()).collect(toList());
     }
 
     @Override
-    public <V> Task<V> clearTask(String taskName) {
-        if (tasks.get(taskName).getState() == Task.State.RUNNING) {
-            throw new IllegalStateException(String.format("task id <%s> is already in RUNNING state", taskName));
+    public <V> Task<V> clearTask(String taskId) {
+        if (getTask(taskId).getState() == Task.State.RUNNING) {
+            throw new IllegalStateException(String.format("task id <%s> is already in RUNNING state", taskId));
         }
-        logger.info("deleting task id <{}>", taskName);
-        return (Task<V>) tasks.remove(taskName);
+        logger.info("deleting task id <{}>", taskId);
+        return (Task<V>) taskMetas.remove(taskId).task();
     }
 
     public boolean stopTask(String taskId) {
-        Task<?> taskView = tasks.get(taskId);
+        Task<?> taskView = getTask(taskId);
         if (taskView != null) {
             switch (taskView.getState()) {
                 case QUEUED:
@@ -188,7 +204,7 @@ public class TaskManagerMemory implements TaskManager, TaskSupplier {
     public void clear() {
         executedTasks.set(0);
         taskQueue.clear();
-        tasks.clear();
+        taskMetas.clear();
     }
 
     @Override

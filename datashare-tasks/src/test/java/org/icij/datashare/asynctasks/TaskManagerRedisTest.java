@@ -38,13 +38,27 @@ public class TaskManagerRedisTest {
         taskSupplier = new TaskSupplierRedis(redissonClient);
 
     @Test
-    public void test_save_task() {
+    public void test_save_task() throws TaskAlreadyExists, IOException {
         Task<String> task = new Task<>("name", User.local(), new HashMap<>());
 
-        taskManager.save(task);
+        taskManager.save(task, null);
 
         assertThat(taskManager.getTasks()).hasSize(1);
         assertThat(taskManager.getTask(task.id)).isNotNull();
+    }
+
+    @Test
+    public void test_update_task() throws TaskAlreadyExists, IOException {
+        // Given
+        Task<?> task = new Task<>("HelloWorld", User.local(), Map.of("greeted", "world"));
+        TaskMetadata<?> meta = new TaskMetadata<>(task, null);
+        Task<?> update = new Task<>(task.id, task.name, task.getState(), 0.5, null, task.args);
+        // When
+        taskManager.saveMetadata(meta);
+        taskManager.update(update);
+        Task<?> updated = taskManager.getTask(task.id);
+        // Then
+        assertThat(updated).isEqualTo(update);
     }
 
     @Test
@@ -66,7 +80,7 @@ public class TaskManagerRedisTest {
             assertThat(groupTaskManager.startTask("HelloWorld", User.local(), new Group("Group"),Map.of("greeted", "world"))).isNotNull();
 
             Task<Serializable> task = taskSupplier.get(2, TimeUnit.SECONDS);
-            assertThat(task.getGroup()).isEqualTo(new Group("Group"));
+            assertThat(taskManager.getTaskGroup(task.id)).isEqualTo(new Group("Group"));
             assertThat(((RedissonBlockingQueue<?>) groupTaskManager.taskQueue(task)).getName()).isEqualTo("TASK.Group");
         }
     }
