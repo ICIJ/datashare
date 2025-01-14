@@ -5,7 +5,7 @@
 
     <groupId>org.icij.datashare</groupId>
     <artifactId>datashare</artifactId>
-    <version>19.0.0</version>
+    <version>19.1.1</version>
     <packaging>pom</packaging>
 
     <name>ICIJ Datashare</name>
@@ -89,7 +89,7 @@
         <guice.version>4.2.3</guice.version>
         <amazon.version>1.12.411</amazon.version>
 
-        <extract.version>7.3.0</extract.version>
+        <extract.version>7.4.0</extract.version>
         <opennlp.version>1.6.0</opennlp.version>
         <elasticsearch.version>7.17.9</elasticsearch.version>
         <lucene.version>8.11.1</lucene.version>
@@ -424,11 +424,6 @@
                 <plugin>
                     <artifactId>maven-assembly-plugin</artifactId>
                     <version>${maven-assembly.version}</version>
-                    <configuration>
-                        <descriptorRefs>
-                            <descriptorRef>jar-with-dependencies</descriptorRef>
-                        </descriptorRefs>
-                    </configuration>
                     <executions>
                         <execution>
                             <id>make-assembly</id>
@@ -436,6 +431,11 @@
                             <goals>
                                 <goal>single</goal>
                             </goals>
+                            <configuration>
+                                <descriptorRefs>
+                                    <descriptorRef>jar-with-dependencies</descriptorRef>
+                                </descriptorRefs>
+                            </configuration>
                         </execution>
                     </executions>
                 </plugin>

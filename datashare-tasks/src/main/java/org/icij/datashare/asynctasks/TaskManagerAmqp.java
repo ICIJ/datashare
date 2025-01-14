@@ -13,9 +13,7 @@ import org.icij.datashare.tasks.RoutingStrategy;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
-import java.util.regex.Pattern;
 
 import static java.util.Optional.ofNullable;
 import static java.util.stream.Collectors.toList;
@@ -70,7 +68,7 @@ public class TaskManagerAmqp implements TaskManager {
     }
 
     @Override
-    public boolean shutdownAndAwaitTermination(int timeout, TimeUnit timeUnit) throws InterruptedException, IOException {
+    public boolean shutdown() throws IOException {
         amqp.publish(AmqpQueue.WORKER_EVENT, new ShutdownEvent());
         return true;
     }
@@ -95,7 +93,7 @@ public class TaskManagerAmqp implements TaskManager {
     }
 
     @Override
-    public void enqueue(Task<?> task) throws IOException {
+    public <V> void enqueue(Task<V> task) throws IOException {
         switch (routingStrategy) {
             case GROUP -> amqp.publish(AmqpQueue.TASK, this.taskMetas.get(task.id).group().id(), task);
             case NAME -> amqp.publish(AmqpQueue.TASK, task.name, task);
@@ -111,11 +109,6 @@ public class TaskManagerAmqp implements TaskManager {
     @Override
     public List<Task<?>> getTasks() {
         return taskMetas.values().stream().map(TaskMetadata::task).collect(toList());
-    }
-
-    @Override
-    public List<Task<?>> getTasks(Pattern pattern) throws IOException {
-        return this.getTasks(taskMetas.values().stream().map(TaskMetadata::task), pattern);
     }
 
     @Override

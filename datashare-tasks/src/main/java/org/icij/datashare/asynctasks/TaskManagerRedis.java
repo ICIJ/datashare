@@ -33,7 +33,6 @@ import java.io.OutputStream;
 import java.nio.charset.Charset;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 import java.util.stream.StreamSupport;
 
@@ -69,11 +68,6 @@ public class TaskManagerRedis implements TaskManager {
     @Override
     public List<Task<?>> getTasks() {
         return taskMetas.values().stream().map(TaskMetadata::task).collect(Collectors.toList());
-    }
-
-    @Override
-    public List<Task<?>> getTasks(Pattern pattern) throws IOException {
-        return this.getTasks(taskMetas.values().stream().map(TaskMetadata::task), pattern);
     }
 
     @Override
@@ -113,7 +107,7 @@ public class TaskManagerRedis implements TaskManager {
     }
 
     @Override
-    public boolean shutdownAndAwaitTermination(int timeout, TimeUnit timeUnit) {
+    public boolean shutdown() throws IOException {
         return eventTopic.publish(new ShutdownEvent()) > 0;
     }
 
@@ -177,7 +171,7 @@ public class TaskManagerRedis implements TaskManager {
     }
 
     @Override
-    public void enqueue(Task<?> task) {
+    public <V> void enqueue(Task<V> task) {
         taskQueue(task).add(task);
     }
 
@@ -214,9 +208,6 @@ public class TaskManagerRedis implements TaskManager {
                 } catch (IOException e) {
                     out.release();
                     throw e;
-                } catch (Exception e) {
-                    out.release();
-                    throw new IOException(e);
                 }
             }
         };

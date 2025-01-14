@@ -7,11 +7,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import org.icij.datashare.asynctasks.Group;
 import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.asynctasks.TaskGroup;
 import org.icij.datashare.asynctasks.TaskManager;
+import org.icij.datashare.batch.WebQueryPagination;
 import org.icij.datashare.user.User;
 
 public interface DatashareTaskManager extends TaskManager {
@@ -21,17 +21,13 @@ public interface DatashareTaskManager extends TaskManager {
            TaskGroup.class).value()));
     }
 
-    default  String startTask(String id, Class<?> taskClass, User user) throws IOException {
-        return startTask(DatashareTask.task(id, taskClass.getName(), user), new Group(taskClass.getAnnotation(TaskGroup.class).value()));
+    default String startTask(String id, Class<?> taskClass, User user, Map<String, Object> properties) throws IOException {
+        return startTask(DatashareTask.task(id, taskClass.getName(), user, properties), new Group(taskClass.getAnnotation(TaskGroup.class).value()));
     }
 
-    default List<Task<?>> getTasks(Stream<Task<?>> stream, User user, Pattern pattern) {
-        return getTasks(stream, pattern).stream().map( t -> ( Task<?> ) t)
+    default List<Task<?>> getTasks(User user, Map<String, Pattern> filters, WebQueryPagination pagination) throws IOException {
+        return getTasks(filters, pagination).stream().map( t -> ( Task<?> ) t)
             .filter(t -> user.equals(DatashareTask.getUser(t))).collect(Collectors.toList());
-    }
-
-    default List<Task<?>> getTasks(User user, Pattern pattern) throws IOException {
-        return getTasks(this.getTasks().stream(), user, pattern);
     }
 
     default Map<String, Boolean> stopAllTasks(User user) throws IOException {

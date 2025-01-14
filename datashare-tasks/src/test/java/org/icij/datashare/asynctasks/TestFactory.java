@@ -45,7 +45,7 @@ public class TestFactory implements TaskFactory {
     }
 
     @TaskGroup("TestGroup")
-    public static class Sleep implements Callable<Void> {
+    public static class Sleep implements Callable<Integer> {
         private final Function<Double, Void> progress;
         private final int duration;
 
@@ -55,9 +55,9 @@ public class TestFactory implements TaskFactory {
             this.duration = (int) taskView.args.get("duration");
         }
         @Override
-        public Void call() throws Exception {
+        public Integer call() throws Exception {
             Thread.sleep(duration);
-            return null;
+            return duration;
         }
     }
 

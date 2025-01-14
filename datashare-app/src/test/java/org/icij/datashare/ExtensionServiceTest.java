@@ -125,13 +125,32 @@ public class ExtensionServiceTest {
     }
 
     @Test
+    public void test_delete_previous_extension_if_version_differs_for_executable_ext() throws Exception {
+        OsArchDetector detector = new OsArchDetector();
+        String v0Path = "my-extension-" + detector.osArchSuffix() + "-1.2.3";
+        String v1path = "my-extension-" + detector.osArchSuffix() + "-1.2.4";
+        otherFolder.newFile(v0Path);
+        otherFolder.newFile(v1path);
+        ExtensionService extensionService = new ExtensionService(extensionFolder.getRoot().toPath());
+
+        extensionService.downloadAndInstall(otherFolder.getRoot().toPath().resolve("my-extension-1.2.3").toUri().toURL());
+        extensionService.downloadAndInstall(otherFolder.getRoot().toPath().resolve("my-extension-1.2.4").toUri().toURL());
+
+        assertThat(extensionFolder.getRoot().toPath().resolve("my-extension-1.2.3").toFile()).doesNotExist();
+        assertThat(extensionFolder.getRoot().toPath().resolve("my-extension-1.2.4").toFile()).exists();
+    }
+
+    @Test
     public void test_list_installed_extensions() throws Exception {
         extensionFolder.newFile("extension-1.jar");
         extensionFolder.newFile("extension-2.jar");
+        extensionFolder.newFile("extension-3");
 
         assertThat(new ExtensionService(extensionFolder.getRoot().toPath()).listInstalled().stream().map(File::toString).collect(Collectors.toSet())).
                 contains(extensionFolder.getRoot().toPath().resolve("extension-1.jar").toString(),
-                        extensionFolder.getRoot().toPath().resolve("extension-2.jar").toString());
+                        extensionFolder.getRoot().toPath().resolve("extension-2.jar").toString(),
+                    extensionFolder.getRoot().toPath().resolve("extension-3").toString()
+                    );
     }
 
     @Test
@@ -151,7 +170,7 @@ public class ExtensionServiceTest {
         assertThat(extensionsIterator.next().isInstalled()).isTrue();
         assertThat(extensionsIterator.next().isInstalled()).isTrue();
     }
-    
+
     @Test
     public void test_list_merges_with_possible_upgrade() throws IOException {
         extensionFolder.newFile( "official-extension-7.0.0.jar");

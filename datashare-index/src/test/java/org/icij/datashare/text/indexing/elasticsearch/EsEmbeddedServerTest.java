@@ -14,7 +14,7 @@ public class EsEmbeddedServerTest {
 
     @Test
     public void launch_with_bad_codec() {
-        try {
+        try  {
             new EsEmbeddedServer("name", "home/path", "data/path", "9876") {
                 @Override
                 EsEmbeddedServer.PluginConfigurableNode createNode(Settings settings) {

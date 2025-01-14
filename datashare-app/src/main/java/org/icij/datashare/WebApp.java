@@ -1,24 +1,34 @@
 package org.icij.datashare;
 
 import net.codestory.http.WebServer;
-import org.icij.datashare.asynctasks.bus.amqp.QpidAmqpServer;
+import org.icij.datashare.asynctasks.TaskSupplier;
+import org.icij.datashare.asynctasks.TaskWorkerLoop;
 import org.icij.datashare.batch.BatchSearch;
+import org.icij.datashare.batch.BatchSearchRecord;
 import org.icij.datashare.batch.BatchSearchRepository;
 import org.icij.datashare.cli.DatashareCli;
 import org.icij.datashare.cli.Mode;
 import org.icij.datashare.cli.QueueType;
 import org.icij.datashare.mode.CommonMode;
 import org.icij.datashare.tasks.BatchSearchRunner;
+import org.icij.datashare.tasks.DatashareTaskFactory;
+import org.slf4j.LoggerFactory;
 
 import java.awt.*;
 import java.io.IOException;
 import java.net.Socket;
 import java.net.URI;
+import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 import org.icij.datashare.tasks.DatashareTaskManager;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.stream.IntStream;
 
 import static java.lang.Boolean.parseBoolean;
 import static java.lang.Integer.parseInt;
+import static java.util.Optional.ofNullable;
 import static org.icij.datashare.cli.DatashareCliOptions.BROWSER_OPEN_LINK_OPT;
 
 public class WebApp {
@@ -28,31 +38,33 @@ public class WebApp {
     }
 
     static void start(Properties properties) throws Exception {
-        if (shouldStartQpid(properties)) {
-            // before creating mode because AmqpInterlocutor will try to connect the broker
-            new QpidAmqpServer(5672).start();
-        }
-        CommonMode mode = CommonMode.create(properties);
+        int parallelism = parseInt((String) ofNullable(properties.get("parallelism")).orElse("1"));
+        ExecutorService executorService = Executors.newFixedThreadPool(parallelism);
 
-        Thread webServerThread = new Thread(() ->
-                new WebServer()
-                        .withThreadCount(10)
-                        .withSelectThreads(2)
-                        .withWebSocketThreads(1)
-                        .configure(mode.createWebConfiguration())
-                        .start(parseInt(mode.properties().getProperty(PropertiesProvider.TCP_LISTEN_PORT)))
-        );
-        webServerThread.start();
+        CommonMode mode = CommonMode.create(properties);
+        Runtime.getRuntime().addShutdownHook(close(mode));
+
+        new WebServer()
+                .withThreadCount(10)
+                .withSelectThreads(2)
+                .withWebSocketThreads(1)
+                .configure(mode.createWebConfiguration())
+                .start(parseInt(mode.properties().getProperty(PropertiesProvider.TCP_LISTEN_PORT)));
+
+        if (shouldStartWorkers(properties)) {
+            List<TaskWorkerLoop> workers = IntStream.range(0, parallelism).mapToObj(i -> new TaskWorkerLoop(mode.get(DatashareTaskFactory.class), mode.get(TaskSupplier.class))).toList();
+            workers.forEach(executorService::submit);
+        }
+
         if (Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(Desktop.Action.BROWSE) &&
                 parseBoolean(properties.getProperty(BROWSER_OPEN_LINK_OPT))) {
             waitForServerToBeUp(parseInt(mode.properties().getProperty(PropertiesProvider.TCP_LISTEN_PORT)));
-            Desktop.getDesktop().browse(URI.create(new URI("http://localhost:")+mode.properties().getProperty(PropertiesProvider.TCP_LISTEN_PORT)));
+            Desktop.getDesktop().browse(URI.create(new URI("http://localhost:") + mode.properties().getProperty(PropertiesProvider.TCP_LISTEN_PORT)));
         }
         requeueDatabaseBatchSearches(mode.get(BatchSearchRepository.class), mode.get(DatashareTaskManager.class));
-        webServerThread.join();
     }
 
-    private static boolean shouldStartQpid(Properties properties) {
+    private static boolean shouldStartWorkers(Properties properties) {
         return CommonMode.getMode(properties) == Mode.EMBEDDED && properties.containsValue(QueueType.AMQP.name());
     }
 
@@ -69,7 +81,7 @@ public class WebApp {
     private static void requeueDatabaseBatchSearches(BatchSearchRepository repository, DatashareTaskManager taskManager) throws IOException {
         for (String batchSearchUuid: repository.getQueued()) {
             BatchSearch batchSearch = repository.get(batchSearchUuid);
-            taskManager.startTask(batchSearchUuid, BatchSearchRunner.class, batchSearch.user);
+            taskManager.startTask(batchSearchUuid, BatchSearchRunner.class, batchSearch.user, Map.of("batchRecord", new BatchSearchRecord(batchSearch)));
         }
     }
 
@@ -79,5 +91,15 @@ public class WebApp {
         } catch (IOException ignored) {
             return false;
         }
+    }
+
+    private static Thread close(CommonMode mode) {
+        return new Thread(() -> {
+            try {
+                mode.close();
+            } catch (IOException e) {
+                LoggerFactory.getLogger(WebApp.class).error("Error closing web app", e);
+            }
+        });
     }
 }

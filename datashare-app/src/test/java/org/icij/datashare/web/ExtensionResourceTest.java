@@ -1,6 +1,5 @@
 package org.icij.datashare.web;
 
-import org.icij.datashare.ExtensionService;
 import org.icij.datashare.ExtensionServiceTest;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.db.JooqRepository;

@@ -14,8 +14,6 @@ import org.mockito.Mock;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
 import static org.fest.assertions.Assertions.assertThat;
@@ -29,8 +27,7 @@ public class TaskWorkerLoopForPipelineTasksTest {
     DatashareTaskFactory taskFactory;
     @Mock Function<Double, Void> updateCallback;
     @Mock ElasticsearchSpewer spewer;
-    private final BlockingQueue<Task<?>> taskQueue = new LinkedBlockingQueue<>();
-    private final TaskManagerMemory taskManager = new TaskManagerMemory(taskQueue, taskFactory, new PropertiesProvider());
+    private final TaskManagerMemory taskManager = new TaskManagerMemory(taskFactory, new PropertiesProvider());
 
     @Test
     public void test_scan_task() throws Exception {
@@ -88,7 +85,7 @@ public class TaskWorkerLoopForPipelineTasksTest {
 
     private void testTaskWithTaskRunner( Task<Long> task) throws Exception {
         taskManager.startTask(task.name, task.args);
-        taskManager.shutdownAndAwaitTermination(1, TimeUnit.SECONDS);
+        taskManager.awaitTermination(1, TimeUnit.SECONDS);
 
         assertThat(taskManager.getTasks()).hasSize(1);
         assertThat(taskManager.getTasks().get(0).name).isEqualTo(task.name);

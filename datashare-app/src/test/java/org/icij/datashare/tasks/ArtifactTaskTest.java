@@ -16,6 +16,7 @@ import org.mockito.Mock;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 import static org.fest.assertions.Assertions.assertThat;
 import static org.mockito.MockitoAnnotations.initMocks;
@@ -31,17 +32,20 @@ public class ArtifactTaskTest {
         new ArtifactTask(factory, mockEs, new PropertiesProvider(Map.of()), DatashareTask.task(ArtifactTask.class.getName(), User.local(), Map.of()), null);
     }
 
-    @Test
+    @Test(timeout = 5000)
     public void test_create_artifact_cache_one_file() throws Exception {
-        Path path = Path.of(getClass().getResource("/docs/embedded_doc.eml").getPath());
+        Path path = Path.of(Objects.requireNonNull(getClass().getResource("/docs/embedded_doc.eml")).getPath());
         String sha256 = "0f95ef97e4619f7bae2a585c6cf24587cd7a3a81a26599c8774d669e5c175e5e";
         mockIndexer.indexFile("prj", sha256, path, "message/rfc822");
 
         DocumentQueue<String> queue = factory.createQueue("extract:queue:artifact", String.class);
         queue.add(sha256);
-        queue.add("POISON");
 
-        Long numberOfDocuments = new ArtifactTask(factory, mockEs, new PropertiesProvider(Map.of("artifactDir", artifactDir.getRoot().toString(), "defaultProject", "prj")),
+        Long numberOfDocuments = new ArtifactTask(factory, mockEs, new PropertiesProvider(Map.of(
+                "artifactDir", artifactDir.getRoot().toString(),
+                "defaultProject", "prj",
+                "pollingInterval", "1"
+                )),
                 DatashareTask.task(ArtifactTask.class.getName(), User.local(), new HashMap<>()), null)
                 .call();
 

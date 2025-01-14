@@ -1,5 +1,6 @@
 package org.icij.datashare;
 
+import com.google.inject.Singleton;
 import org.apache.tika.exception.TikaConfigException;
 import org.apache.tika.parser.ocr.TesseractOCRParser;
 import org.slf4j.Logger;
@@ -7,6 +8,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
 
+@Singleton
 public class TesseractOCRParserWrapper {
     private final static Logger logger = LoggerFactory.getLogger(TesseractOCRParserWrapper.class);
     private final TesseractOCRParser ocrParser;

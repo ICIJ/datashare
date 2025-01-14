@@ -9,8 +9,6 @@ import org.icij.datashare.asynctasks.bus.amqp.Event;
 import org.icij.datashare.asynctasks.bus.amqp.ProgressEvent;
 import org.icij.datashare.asynctasks.bus.amqp.ResultEvent;
 import org.icij.datashare.asynctasks.bus.amqp.TaskError;
-import org.icij.datashare.asynctasks.bus.amqp.TaskEvent;
-import org.icij.datashare.tasks.RoutingStrategy;
 import org.redisson.Redisson;
 import org.redisson.RedissonBlockingQueue;
 import org.redisson.api.RTopic;

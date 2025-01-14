@@ -1,10 +1,13 @@
 package org.icij.datashare.batch;
 
-import org.icij.datashare.text.Project;
 import org.icij.datashare.text.ProjectProxy;
 import org.icij.datashare.user.User;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+import java.util.Objects;
+import java.util.UUID;
 
 import static java.util.Collections.unmodifiableList;
 import static java.util.Optional.ofNullable;
@@ -46,6 +49,15 @@ public class BatchSearchRecord {
         this.state = state;
         this.errorMessage = errorMessage;
         this.errorQuery = errorQuery;
+    }
+
+    /***
+     * copy constructor
+     * @param record to copy
+     */
+    public BatchSearchRecord(BatchSearchRecord record){
+        this(record.uuid, record.projects, record.name, record.description, record.nbQueries, record.date,
+                record.state, record.user, record.nbResults, record.published, record.errorMessage, record.errorQuery);
     }
 
     @Override

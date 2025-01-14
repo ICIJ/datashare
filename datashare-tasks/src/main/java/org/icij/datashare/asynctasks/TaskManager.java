@@ -7,39 +7,64 @@ import org.icij.datashare.asynctasks.bus.amqp.ErrorEvent;
 import org.icij.datashare.asynctasks.bus.amqp.ProgressEvent;
 import org.icij.datashare.asynctasks.bus.amqp.ResultEvent;
 import org.icij.datashare.asynctasks.bus.amqp.TaskEvent;
+import org.icij.datashare.batch.WebQueryPagination;
+import org.icij.datashare.json.JsonObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.Serializable;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
+import static java.util.stream.Collectors.toList;
+import static org.icij.datashare.text.StringUtils.getValue;
 
+/**
+ * Task manager interface with default methods common for all managers implementations.
+ */
 public interface TaskManager extends Closeable {
+    int POLLING_INTERVAL = 5000;
     Logger logger = LoggerFactory.getLogger(TaskManager.class);
 
-    boolean stopTask(String taskId) throws IOException;
-    <V> Task<V> clearTask(String taskId) throws IOException;
-    boolean shutdownAndAwaitTermination(int timeout, TimeUnit timeUnit) throws InterruptedException, IOException;
     <V> Task<V> getTask(String taskId) throws IOException;
-    List<Task<?>> getTasks() throws IOException;
-    List<Task<?>> getTasks(Pattern pattern) throws IOException;
-    Group getTaskGroup(String taskId);
+    <V> Task<V> clearTask(String taskId) throws IOException;
+    boolean stopTask(String taskId) throws IOException;
+
     List<Task<?>> clearDoneTasks() throws IOException;
+    Group getTaskGroup(String taskId);
+    boolean shutdown() throws IOException;
+
     void clear() throws IOException;
+
+    default List<Task<?>> getTasks() throws IOException {
+        return getTasks(new HashMap<>(), new WebQueryPagination());
+    }
+    default List<Task<?>> getTasks(Map<String, Pattern> filters) throws IOException {
+        return getTasks(filters, new WebQueryPagination());
+    }
     <V> void saveMetadata(TaskMetadata<V> taskMetadata) throws IOException, TaskAlreadyExists;
     <V> void persistUpdate(Task<V> task) throws IOException, UnknownTask;
-    void enqueue(Task<?> task) throws IOException;
 
-    default List<Task<?>> getTasks(Stream<Task<?>> stream, Pattern pattern) {
-        return stream
-            .filter(t -> pattern.matcher(t.name).matches())
-            .toList();
+    default List<Task<?>> getTasks(Map<String, Pattern> filters, WebQueryPagination pagination) throws IOException {
+        Stream<Task<?>> taskStream = getTasks().stream().sorted(new Task.Comparator(pagination.sort, pagination.order));
+        for (Map.Entry<String, Pattern> filter : filters.entrySet()) {
+            taskStream = taskStream.filter(task -> {
+                Map<String, Object> objectMap = JsonObjectMapper.getJson(task);
+                return filter.getValue().matcher(String.valueOf(getValue(objectMap, filter.getKey()))).matches();
+            });
+        }
+        return taskStream.skip(pagination.from).limit(pagination.size).collect(toList());
+    }
+
+    default int getTerminationPollingInterval() {return POLLING_INTERVAL;}
+    default boolean awaitTermination(int timeout, TimeUnit timeUnit) throws InterruptedException, IOException {
+        return !waitTasksToBeDone(timeout, timeUnit).isEmpty();
     }
 
     default Map<String, Boolean> stopAllTasks() throws IOException {
@@ -55,15 +80,27 @@ public interface TaskManager extends Closeable {
                         }));
     }
 
-
-    // for tests
-    default String startTask(String taskName, Map<String, Object> properties) throws IOException {
-        return startTask(new Task<>(taskName, properties), null);
-    }
+    /**
+     * This is a "inner method" that is used in the template method for start(task).
+     * It put the task in the task queue for workers.
+     * @param task task to be queued
+     * @throws IOException if a network error occurs
+     */
+    <V> void enqueue(Task<V> task) throws IOException;
 
     // TaskResource and pipeline tasks
     default String startTask(Class<?> taskClass, Map<String, Object> properties) throws IOException {
         return startTask(new Task<>(taskClass.getName(), properties), new Group(taskClass.getAnnotation(TaskGroup.class).value()));
+    }
+
+    // BatchSearchResource and WebApp for batch searches
+    default String startTask(String uuid, Class<?> taskClass, Map<String, Object> properties) throws IOException {
+        return startTask(new Task<>(uuid, taskClass.getName(), properties), new Group(taskClass.getAnnotation(TaskGroup.class).value()));
+    }
+
+    // for tests
+    default String startTask(String taskName, Map<String, Object> properties) throws IOException {
+        return startTask(new Task<>(taskName, properties), null);
     }
 
     // for tests
@@ -89,7 +126,7 @@ public interface TaskManager extends Closeable {
         try {
             save(taskView, group);
         } catch (TaskAlreadyExists ignored) {
-            throw new RuntimeException("task with id " + taskView.id + " was already save !");
+            return null;
         }
         taskView.queue();
         enqueue(taskView);
@@ -184,6 +221,31 @@ public interface TaskManager extends Closeable {
         } catch (IOException ioe) {
             throw new TaskEventHandlingException(ioe);
         }
+    }
+
+    /**
+     * wait for all the tasks to have a result.
+     *
+     * This method will poll the task list. So if there are a lot of tasks or if tasks are
+     * containing a lot of information, this method call could be very intensive on network and CPU.
+     *
+     * @param timeout amount for the timeout
+     * @param timeUnit unit of the timeout
+     * @return the list of unfinished/alive tasks
+     * @throws IOException if the task list cannot be retrieved because of a network failure.
+     */
+    default List<Task<?>> waitTasksToBeDone(int timeout, TimeUnit timeUnit) throws IOException {
+        long startTime = System.currentTimeMillis();
+        List<Task<?>> unfinishedTasks = getTasks().stream().filter(t -> !t.isFinished()).toList();
+        while (System.currentTimeMillis() - startTime < timeUnit.toMillis(timeout) && !unfinishedTasks.isEmpty()) {
+            unfinishedTasks = getTasks().stream().filter(t -> !t.isFinished()).toList();
+            try {
+                Thread.sleep(getTerminationPollingInterval());
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+        }
+        return unfinishedTasks;
     }
 
     // for tests

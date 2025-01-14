@@ -17,6 +17,10 @@ public class DatashareTask {
         return new Task<>(id, name, addTo(new HashMap<>(), user));
     }
 
+    public static <V> Task<V> task(String id, String name, User user, Map<String, Object> args) {
+        return new Task<>(id, name, addTo(args, user));
+    }
+
     public static User getUser(Task<?> task) {
         return (User) task.args.get(USER_KEY);
     }

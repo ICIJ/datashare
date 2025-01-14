@@ -6,7 +6,6 @@ import org.icij.datashare.asynctasks.bus.amqp.AmqpInterlocutor;
 import org.icij.datashare.asynctasks.bus.amqp.AmqpQueue;
 import org.icij.datashare.asynctasks.bus.amqp.AmqpServerRule;
 import org.icij.datashare.tasks.RoutingStrategy;
-import org.icij.datashare.user.User;
 import org.icij.extract.redis.RedissonClientFactory;
 import org.icij.task.Options;
 import org.junit.After;
@@ -67,6 +66,7 @@ public class TaskManagersIntTest {
             null
         );
         AMQP = new AmqpInterlocutor(propertiesProvider);
+        AMQP.deleteQueues(AmqpQueue.MANAGER_EVENT, AmqpQueue.WORKER_EVENT, AmqpQueue.TASK);
         AMQP.createAmqpChannelForPublish(AmqpQueue.TASK);
         AMQP.createAmqpChannelForPublish(AmqpQueue.WORKER_EVENT);
         AMQP.createAmqpChannelForPublish(AmqpQueue.MANAGER_EVENT);
@@ -110,8 +110,6 @@ public class TaskManagersIntTest {
 
     @Test(timeout = 10000)
     public void test_stop_queued_task() throws Exception {
-        eventWaiter.setWaiter(new CountDownLatch(3)); // 1 progress, 2 cancelled
-
         String tv1Id = taskManager.startTask(TestFactory.SleepForever.class, new HashMap<>());
         String tv2Id = taskManager.startTask(TestFactory.SleepForever.class, new HashMap<>());
 
@@ -122,8 +120,18 @@ public class TaskManagersIntTest {
         taskInspector.awaitStatus(tv2Id, Task.State.CANCELLED, 1, SECONDS);
 
         assertThat(taskManager.getTasks()).hasSize(2);
-        assertThat(taskManager.getTasks().get(0).getState()).isEqualTo(Task.State.CANCELLED);
-        assertThat(taskManager.getTasks().get(1).getState()).isEqualTo(Task.State.CANCELLED);
+        assertThat(taskManager.getTask(tv1Id).getState()).isEqualTo(Task.State.CANCELLED);
+        assertThat(taskManager.getTask(tv2Id).getState()).isEqualTo(Task.State.CANCELLED);
+    }
+
+    @Test(timeout = 10000)
+    public void test_await_tasks_termination() throws Exception {
+        String tv1Id = taskManager.startTask(TestFactory.Sleep.class, Map.of("duration", 100));
+        String tv2Id = taskManager.startTask(TestFactory.Sleep.class, Map.of("duration", 200));
+
+        taskManager.awaitTermination(2, SECONDS);
+        assertThat(taskManager.getTask(tv1Id).getState()).isEqualTo(Task.State.DONE);
+        assertThat(taskManager.getTask(tv2Id).getState()).isEqualTo(Task.State.DONE);
     }
 
     @Before

@@ -1,21 +1,18 @@
 package org.icij.datashare;
 
-import com.google.inject.ConfigurationException;
 import org.icij.datashare.cli.CliExtensionService;
 import org.icij.datashare.cli.spi.CliExtension;
 import org.icij.datashare.mode.CommonMode;
 import org.icij.datashare.tasks.ArtifactTask;
-import org.icij.datashare.tasks.DatashareTask;
+import org.icij.datashare.tasks.DatashareTaskFactory;
+import org.icij.datashare.tasks.DatashareTaskManager;
 import org.icij.datashare.tasks.DeduplicateTask;
 import org.icij.datashare.tasks.EnqueueFromIndexTask;
 import org.icij.datashare.tasks.ExtractNlpTask;
 import org.icij.datashare.tasks.IndexTask;
 import org.icij.datashare.tasks.ScanIndexTask;
 import org.icij.datashare.tasks.ScanTask;
-import org.icij.datashare.tasks.DatashareTaskFactory;
-import org.icij.datashare.tasks.TaskManagerMemory;
 import org.icij.datashare.text.indexing.Indexer;
-import org.redisson.api.RedissonClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -23,7 +20,6 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Properties;
 
-import static java.util.Optional.ofNullable;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.icij.datashare.PropertiesProvider.propertiesToMap;
 import static org.icij.datashare.cli.DatashareCliOptions.CREATE_INDEX_OPT;
@@ -40,17 +36,18 @@ class CliApp {
         ExtensionService extensionService = new ExtensionService(new PropertiesProvider(properties));
         process(extensionService, properties);
         process(new PluginService(new PropertiesProvider(properties), extensionService), properties);
-        CommonMode commonMode = CommonMode.create(properties);
-        List<CliExtension> extensions = CliExtensionService.getInstance().getExtensions();
+        try (CommonMode commonMode = CommonMode.create(properties)) {
+            List<CliExtension> extensions = CliExtensionService.getInstance().getExtensions();
 
-        logger.info("found {} CLI extension(s)", extensions.size());
-        if (extensions.size() == 1 && extensions.get(0).identifier().equals(properties.get("ext"))) {
-            CliExtension extension = extensions.get(0);
-            extension.init(commonMode::createChildInjector);
-            extension.run(properties);
-            System.exit(0);
+            logger.info("found {} CLI extension(s)", extensions.size());
+            if (extensions.size() == 1 && extensions.get(0).identifier().equals(properties.get("ext"))) {
+                CliExtension extension = extensions.get(0);
+                extension.init(commonMode::createChildInjector);
+                extension.run(properties);
+                System.exit(0);
+            }
+            runTaskWorker(commonMode, properties);
         }
-        runTaskWorker(commonMode, properties);
     }
 
     private static void process(DeliverableService<?> deliverableService, Properties properties) throws IOException {
@@ -67,16 +64,9 @@ class CliApp {
     }
 
     private static void runTaskWorker(CommonMode mode, Properties properties) throws Exception {
-        TaskManagerMemory taskManager = mode.get(TaskManagerMemory.class);
+        DatashareTaskManager taskManager = mode.get(DatashareTaskManager.class);
         DatashareTaskFactory taskFactory = mode.get(DatashareTaskFactory.class);
         Indexer indexer = mode.get(Indexer.class);
-        RedissonClient redissonClient;
-        try {
-            redissonClient = mode.get(RedissonClient.class);
-        } catch (ConfigurationException ce) {
-            logger.debug("no redisson client found, set up to null");
-            redissonClient = null;
-        }
 
         if (properties.getProperty(CREATE_INDEX_OPT) != null) {
             indexer.createIndex(properties.getProperty(CREATE_INDEX_OPT));
@@ -110,43 +100,33 @@ class CliApp {
         PipelineHelper pipeline = new PipelineHelper(new PropertiesProvider(properties));
         logger.info("executing {}", pipeline);
         if (pipeline.has(Stage.DEDUPLICATE)) {
-            taskManager.startTask(DatashareTask.task(DeduplicateTask.class.getName(), nullUser(), propertiesToMap(properties)));
+            taskManager.startTask(DeduplicateTask.class, nullUser(), propertiesToMap(properties));
         }
 
         if (pipeline.has(Stage.SCANIDX)) {
-            taskManager.startTask(
-                    DatashareTask.task(ScanIndexTask.class.getName(), nullUser(), propertiesToMap(properties)));
+            taskManager.startTask(ScanIndexTask.class, nullUser(), propertiesToMap(properties));
         }
 
         if (pipeline.has(Stage.SCAN)) {
-            taskManager.startTask(
-                    DatashareTask.task(ScanTask.class.getName(), nullUser(), propertiesToMap(properties)));
+            taskManager.startTask(ScanTask.class, nullUser(), propertiesToMap(properties));
         }
 
         if (pipeline.has(Stage.INDEX)) {
-            taskManager.startTask(
-                    DatashareTask.task(IndexTask.class.getName(), nullUser(), propertiesToMap(properties)));
+            taskManager.startTask(IndexTask.class, nullUser(), propertiesToMap(properties));
         }
 
         if (pipeline.has(Stage.ENQUEUEIDX)) {
-            taskManager.startTask(
-                    DatashareTask.task(EnqueueFromIndexTask.class.getName(), nullUser(), propertiesToMap(properties)));
+            taskManager.startTask(EnqueueFromIndexTask.class, nullUser(), propertiesToMap(properties));
         }
 
         if (pipeline.has(Stage.NLP)) {
-            taskManager.startTask(
-                    DatashareTask.task(ExtractNlpTask.class.getName(), nullUser(), propertiesToMap(properties)));
+            taskManager.startTask(ExtractNlpTask.class, nullUser(), propertiesToMap(properties));
         }
 
         if (pipeline.has(Stage.ARTIFACT)) {
-            taskManager.startTask(
-                    DatashareTask.task(ArtifactTask.class.getName(), nullUser(), propertiesToMap(properties)));
+            taskManager.startTask(ArtifactTask.class, nullUser(), propertiesToMap(properties));
         }
-        taskManager.shutdownAndAwaitTermination(Integer.MAX_VALUE, SECONDS);
-        indexer.close();
-        ofNullable(redissonClient).ifPresent(r -> {
-            logger.info("shutting down RedissonClient");
-            r.shutdown();
-        });
+        taskManager.awaitTermination(Integer.MAX_VALUE, SECONDS);
+        taskManager.shutdown();
     }
 }

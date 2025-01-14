@@ -6,6 +6,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import org.apache.commons.lang3.builder.CompareToBuilder;
 import org.icij.datashare.Entity;
 import org.icij.datashare.asynctasks.bus.amqp.Event;
 import org.icij.datashare.asynctasks.bus.amqp.TaskError;
@@ -20,12 +21,14 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
 import java.util.function.Function;
+import org.icij.datashare.batch.WebQueryPagination;
 
 import static java.util.Optional.ofNullable;
 import static java.util.UUID.randomUUID;
+import static org.icij.datashare.batch.WebQueryPagination.OrderDirection.ASC;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class Task<V> extends Event implements Entity {
+public class Task<V> extends Event implements Entity, Comparable<Task<V>>{
     @JsonIgnore private StateLatch stateLatch;
     @JsonIgnore private final Object lock = new Object();
 
@@ -181,6 +184,39 @@ public class Task<V> extends Event implements Entity {
 
     public Function<Double, Void> progress(BiFunction<String, Double, Void> taskSupplierProgress) {
         return (p) -> taskSupplierProgress.apply(this.id, p);
+    }
+
+    @Override
+    public int compareTo(Task<V> task) {
+        return new Comparator("name", ASC).compare(this, task);
+    }
+
+    public record Comparator(String field, WebQueryPagination.OrderDirection order) implements java.util.Comparator<Task<?>> {
+        public static Map<String, Function<Task<?>, ?>> SORT_FIELDS = Map.of(
+                "id", Task::getId,
+                "createdAt", t -> t.createdAt,
+                "name", t -> t.name,
+                "state", Task::getState,
+                "finished", Task::isFinished
+        );
+
+        public Comparator(String field) {this(field, ASC);}
+        public Comparator(String field, WebQueryPagination.OrderDirection order) {
+            this.field = ofNullable(SORT_FIELDS.get(field)).map(f -> field)
+                    .orElseThrow(() -> new IllegalArgumentException("no sort field with name " + field));
+            this.order = order;
+        }
+
+        @Override
+        public int compare(Task<?> t1, Task<?> t2) {
+            CompareToBuilder compareToBuilder = new CompareToBuilder();
+            Object fieldValue1 = SORT_FIELDS.get(field()).apply(t1);
+            Object fieldValue2 = SORT_FIELDS.get(field()).apply(t2);
+            compareToBuilder = order == ASC ?
+                    compareToBuilder.append(fieldValue1, fieldValue2):
+                    compareToBuilder.append(fieldValue2, fieldValue1);
+            return compareToBuilder.toComparison();
+        }
     }
 
     void setLatch(StateLatch stateLatch) {

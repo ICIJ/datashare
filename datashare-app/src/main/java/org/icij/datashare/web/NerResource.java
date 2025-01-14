@@ -41,8 +41,10 @@ public class NerResource {
         return pipelineRegistry.getPipelineTypes();
     }
 
-    @Operation(description = "When datashare is launched in NER mode (without index) it exposes a name finding HTTP API.<br>" +
-            "The text is sent with the HTTP body.")
+    @Operation(description = """
+            When datashare is launched in NER mode (without index) it exposes a name finding HTTP API.
+            
+            The text is sent with the HTTP body.""")
     @ApiResponse(responseCode = "200", description = "returns the list of NamedEntities annotations", useReturnTypeSchema = true)
     @Post("/findNames/:pipeline")
     public List<NamedEntity> getAnnotations(@Parameter(name = "pipeline", description = "pipeline to use", in = ParameterIn.PATH) final String pipeline,

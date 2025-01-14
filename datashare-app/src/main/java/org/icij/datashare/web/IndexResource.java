@@ -66,15 +66,20 @@ public class IndexResource {
         }
     }
 
-    @Operation(description = "The search endpoint is just a proxy in front of Elasticsearch, everything sent is forwarded to Elasticsearch.<br>" +
-            "DELETE method is not allowed.<br>Path can be of the form :<br>" +
-            "- _search/scroll<br>" +
-            "- index_name/_search<br>" +
-            "- index_name1,index_name2/_search<br>" +
-            "- index_name/_count<br>" +
-            "- index_name1,index_name2/_count<br>" +
-            "- index_name/doc/_search<br>" +
-            "- index_name1,index_name2/doc/_search")
+    @Operation(description = """
+            The search endpoint is just a proxy in front of Elasticsearch, everything sent is forwarded to Elasticsearch.
+            
+            DELETE method is not allowed.
+            
+            Path can be of the form :
+            - _search/scroll
+            - index_name/_search
+            - index_name1,index_name2/_search
+            - index_name/_count
+            - index_name1,index_name2/_count
+            - index_name/doc/_search
+            - index_name1,index_name2/doc/_search
+            """)
     @ApiResponse(responseCode = "200", description = "returns 200")
     @ApiResponse(responseCode = "400", description = "returns 400 if there is an error from ElasticSearch")
     @Post("/search/:path:")
@@ -86,9 +91,11 @@ public class IndexResource {
         }
     }
 
-    @Operation(description = "Search GET request to Elasticsearch. As it is a GET method, all paths are accepted.<br>" +
-            "if a body is provided, the body will be sent to ES as source=urlencoded(body)&source_content_type=application%2Fjson<br>" +
-            "In that case, request parameters are not taken into account.")
+    @Operation(description = """
+            Search GET request to Elasticsearch. As it is a GET method, all paths are accepted.
+            
+            if a body is provided, the body will be sent to ES as source=urlencoded(body)&source_content_type=application%2Fjson\
+            In that case, request parameters are not taken into account.""")
     @ApiResponse(responseCode = "200", description = "returns 200")
     @ApiResponse(responseCode = "400", description = "returns 400 if there is an error from ElasticSearch")
     @Get("/search/:path:")

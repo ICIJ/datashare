@@ -6,10 +6,13 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.enums.ParameterIn;
 import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.media.SchemaProperty;
 import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import net.codestory.http.Context;
+import net.codestory.http.Part;
 import net.codestory.http.annotations.Delete;
 import net.codestory.http.annotations.Get;
 import net.codestory.http.annotations.Options;
@@ -18,14 +21,20 @@ import net.codestory.http.annotations.Prefix;
 import net.codestory.http.annotations.Put;
 import net.codestory.http.errors.ForbiddenException;
 import net.codestory.http.errors.HttpException;
+import net.codestory.http.errors.NotFoundException;
 import net.codestory.http.payload.Payload;
-import org.apache.commons.lang3.StringUtils;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.asynctasks.Task;
+import org.icij.datashare.asynctasks.bus.amqp.UriResult;
 import org.icij.datashare.batch.BatchDownload;
+import org.icij.datashare.batch.BatchSearch;
+import org.icij.datashare.batch.BatchSearchRecord;
+import org.icij.datashare.batch.BatchSearchRepository;
+import org.icij.datashare.batch.WebQueryPagination;
 import org.icij.datashare.extract.OptionsWrapper;
 import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.tasks.BatchDownloadRunner;
+import org.icij.datashare.tasks.BatchSearchRunner;
 import org.icij.datashare.tasks.DatashareTask;
 import org.icij.datashare.tasks.DatashareTaskFactory;
 import org.icij.datashare.tasks.DatashareTaskManager;
@@ -34,7 +43,6 @@ import org.icij.datashare.tasks.ExtractNlpTask;
 import org.icij.datashare.tasks.IndexTask;
 import org.icij.datashare.tasks.ScanIndexTask;
 import org.icij.datashare.tasks.ScanTask;
-import org.icij.datashare.asynctasks.bus.amqp.UriResult;
 import org.icij.datashare.text.Project;
 import org.icij.datashare.user.User;
 
@@ -43,21 +51,34 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Properties;
+import java.util.Set;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
+import static java.lang.Boolean.FALSE;
+import static java.lang.Boolean.TRUE;
 import static java.lang.Boolean.parseBoolean;
+import static java.lang.Integer.parseInt;
 import static java.nio.file.Paths.get;
+import static java.util.Arrays.stream;
 import static java.util.Optional.ofNullable;
+import static java.util.function.Predicate.not;
 import static java.util.stream.Collectors.toList;
+import static java.util.stream.Collectors.toMap;
 import static net.codestory.http.errors.NotFoundException.notFoundIfNull;
+import static net.codestory.http.payload.Payload.badRequest;
 import static net.codestory.http.payload.Payload.forbidden;
 import static net.codestory.http.payload.Payload.ok;
 import static org.apache.commons.lang3.SystemUtils.IS_OS_WINDOWS;
+import static org.icij.datashare.CollectionUtils.asSet;
 import static org.icij.datashare.PropertiesProvider.DEFAULT_PROJECT_OPTION;
 import static org.icij.datashare.PropertiesProvider.DIGEST_PROJECT_NAME_OPTION;
 import static org.icij.datashare.PropertiesProvider.MAP_NAME_OPTION;
@@ -76,21 +97,49 @@ public class TaskResource {
     private final DatashareTaskFactory taskFactory;
     private final DatashareTaskManager taskManager;
     private final PropertiesProvider propertiesProvider;
+    private final BatchSearchRepository batchSearchRepository;
+    private final int MAX_BATCH_SIZE = 60000;
 
     @Inject
-    public TaskResource(final  DatashareTaskFactory taskFactory, final DatashareTaskManager taskManager, final PropertiesProvider propertiesProvider) {
+    public TaskResource(final  DatashareTaskFactory taskFactory, final DatashareTaskManager taskManager,
+                        final PropertiesProvider propertiesProvider, final BatchSearchRepository batchSearchRepository) {
         this.taskFactory = taskFactory;
         this.taskManager = taskManager;
         this.propertiesProvider = propertiesProvider;
+        this.batchSearchRepository = batchSearchRepository;
     }
-    @Operation(description = "Gets all the user tasks.<br>" +
-            "A filter can be added with a pattern contained in the task name.",
-            parameters = {@Parameter(name = "filter", description = "pattern contained in the task name", in = ParameterIn.QUERY)})
+    @Operation(description = """
+            Gets all the user tasks.
+            
+            Filters can be added with `name=value`. For example if `name=foo` is given in the request url query,
+            the tasks containing the term "foo" are going to be returned. It can contain also dotted keys for nested properties matching.
+            
+            For example if `args.dataDir=bar` is provided, tasks with an argument "dataDir" containing "bar" are going to be selected.
+            
+            Pagination/order parameters can be added:
+            
+            * sort: task field for sorting
+            * order: order (desc/asc)
+            * from: offset of the slice
+            * size: number of tasks in the slice""",
+            parameters = {
+                @Parameter(name = "name", description = "as an example: pattern contained in the task name", in = ParameterIn.QUERY)})
     @ApiResponse(responseCode = "200", description = "returns the list of tasks", useReturnTypeSchema = true)
     @Get("/all")
     public List< Task<?>> tasks(Context context) throws IOException {
-        Pattern pattern = Pattern.compile(StringUtils.isEmpty(context.get("filter")) ? ".*": String.format(".*%s.*", context.get("filter")));
-        return taskManager.getTasks((User) context.currentUser(), pattern);
+        Set<String> paginationFields = WebQueryPagination.fields();
+        Map<String, Object> paginationMap = context.query()
+                .keys()
+                .stream()
+                .filter(paginationFields::contains)
+                .collect(toMap(s -> s, context::get));
+        WebQueryPagination pagination = WebQueryPagination.fromMap(paginationMap);
+        Map<String, Pattern> filters = context.query()
+                .keys()
+                .stream()
+                .filter(not(paginationFields::contains))
+                .collect(toMap(s -> s, s -> Pattern.compile(String.format(".*%s.*", context.get(s)))));
+        return taskManager.getTasks((User) context.currentUser(), filters, pagination);
     }
 
     @Operation(description = "Gets one task with its id.")
@@ -133,6 +182,126 @@ public class TaskResource {
         return result == null ? new Payload(204) : new Payload(result);
     }
 
+    @Operation(description = """
+            Creates a new batch search. This is a multipart form with 9 fields:
+            
+            name, description, csvFile, published, fileTypes, paths, fuzziness, phrase_matches, query_template.
+            
+            Queries with less than two characters are filtered.
+            
+            To make a request manually, you can create a file like:
+            ```
+            --BOUNDARY
+            Content-Disposition: form-data; name="name"
+            
+            my batch search
+            --BOUNDARY
+            Content-Disposition: form-data; name="description"
+            
+            search description
+            --BOUNDARY
+            Content-Disposition: form-data; name="csvFile"; filename="search.csv"
+            Content-Type: text/csv
+            
+            Obama
+            skype
+            test
+            query three
+            --BOUNDARY--
+            Content-Disposition: form-data; name="published"
+            
+            true
+            --BOUNDARY--
+            ```
+            
+            Then curl with
+            
+            ```
+            curl -i -XPOST localhost:8080/api/batch/search/prj1,prj2 -H 'Content-Type: multipart/form-data; boundary=BOUNDARY' --data-binary @/home/dev/multipart.txt
+            ```
+            
+            you'll maybe have to replace \\n with \\r\\n with `sed -i 's/$/^M/g' ~/multipart.txt`""",
+            requestBody = @RequestBody(description = "multipart form", required = true,
+                    content = @Content(mediaType = "multipart/form-data",
+                            schemaProperties = {
+                                    @SchemaProperty(name = "name", schema = @Schema(implementation = String.class)),
+                                    @SchemaProperty(name = "description", schema = @Schema(implementation = String.class)),
+                                    @SchemaProperty(name = "csvFile", schema = @Schema(implementation = String.class)),
+                                    @SchemaProperty(name = "published", schema = @Schema(implementation = Boolean.class)),
+                                    @SchemaProperty(name = "fileTypes", schema = @Schema(implementation = List.class)),
+                                    @SchemaProperty(name = "tags", schema = @Schema(implementation = List.class)),
+                                    @SchemaProperty(name = "paths", schema = @Schema(implementation = List.class)),
+                                    @SchemaProperty(name = "fuzziness", schema = @Schema(implementation = Integer.class)),
+                                    @SchemaProperty(name = "phrase_matches", schema = @Schema(implementation = Boolean.class))
+                            }
+                    )
+            ),
+            parameters = {@Parameter(description = "Coma-separated list of projects",
+                    in = ParameterIn.PATH, examples = @ExampleObject(value = "prj1,prj2"))}
+    )
+    @ApiResponse(responseCode = "413", description = "if the CSV file is more than 60K lines")
+    @ApiResponse(responseCode = "400", description = "if either name or CSV file is missing")
+    @Post("/batchSearch/:coma_separated_projects")
+    public Payload search(String comaSeparatedProjects, Context context) throws Exception {
+        List<Part> parts = context.parts();
+        String name = fieldValue("name", parts);
+        String csv = fieldValue("csvFile", parts);
+
+        if (name == null  || csv == null) {
+            return badRequest();
+        }
+
+        String description = fieldValue("description", parts);
+        boolean published = "true".equalsIgnoreCase(fieldValue("published", parts)) ? TRUE: FALSE ;
+        List<String> fileTypes = fieldValues("fileTypes", parts);
+        String queryTemplate = fieldValue("query_template", parts);
+        List<String> paths = fieldValues("paths", parts);
+        Optional<Part> fuzzinessPart = parts.stream().filter(p -> "fuzziness".equals(p.name())).findAny();
+        int fuzziness = fuzzinessPart.isPresent() ? parseInt(fuzzinessPart.get().content()):0;
+        Optional<Part> phraseMatchesPart = parts.stream().filter(p -> "phrase_matches".equals(p.name())).findAny();
+        boolean phraseMatches=phraseMatchesPart.isPresent()?parseBoolean(phraseMatchesPart.get().content()): FALSE;
+        LinkedHashSet<String> queries = getQueries(csv)
+                .stream().map(query -> (phraseMatches && query.contains("\"")) ? query : sanitizeDoubleQuotesInQuery(query)).collect(Collectors.toCollection(LinkedHashSet::new));
+        if(queries.size() >= MAX_BATCH_SIZE) return new Payload(413);
+
+        BatchSearch batchSearch = new BatchSearch(stream(comaSeparatedProjects.split(",")).map(Project::project).collect(Collectors.toList()), name, description, queries,
+                (User) context.currentUser(), published, fileTypes, queryTemplate, paths, fuzziness,phraseMatches);
+        boolean isSaved = batchSearchRepository.save(batchSearch);
+        if (isSaved) {
+            taskManager.startTask(batchSearch.uuid, BatchSearchRunner.class, (User) context.currentUser(), Map.of("batchRecord", new BatchSearchRecord(batchSearch)));
+        }
+        return isSaved ? new Payload("application/json", batchSearch.uuid, 200) : badRequest();
+    }
+
+    @Operation(description = "Preflight request", method = "OPTION")
+    @ApiResponse(description = "returns POST")
+    @Options("/batchSearch/copy/:sourcebatchid")
+    public Payload optionsCopy(String sourceBatchId, Context context) {
+        return ok().withAllowMethods("OPTIONS", "POST");
+    }
+
+    @Operation( description = "Creates a new batch search based on a previous one given its id, and enqueue it for running",
+            parameters = {@Parameter(name = "sourcebatchid", in = ParameterIn.PATH, description = "source batch id")},
+            requestBody = @RequestBody(description = "batch parameters", required = true,
+                    content = @Content( mediaType = "application/json",
+                            examples = {@ExampleObject(value = "{\"name\": \"my new batch\", \"description\":\"desc\"}")})
+            )
+    )
+    @ApiResponse(responseCode = "404", description = "if the source batch search is not found in database")
+    @ApiResponse(responseCode = "200", description = "returns the id of the created batch search", useReturnTypeSchema = true)
+    @Post("/batchSearch/copy/:sourcebatchid")
+    public String copySearch(String sourceBatchId, Context context) throws Exception {
+        BatchSearch sourceBatchSearch = batchSearchRepository.get((User) context.currentUser(), sourceBatchId);
+        if (sourceBatchSearch == null) {
+            throw new NotFoundException();
+        }
+        BatchSearch copy = new BatchSearch(sourceBatchSearch, context.extract(HashMap.class));
+        boolean isSaved = batchSearchRepository.save(copy);
+        if (isSaved) taskManager.startTask(copy.uuid, BatchSearchRunner.class, (User) context.currentUser(), Map.of("batchRecord", new BatchSearchRecord(copy)));
+        return copy.uuid;
+    }
+
+
     @Operation(description = "Preflight request for batch download.")
     @ApiResponse(responseCode = "200", description = "returns 200 with OPTIONS and POST")
     @Options("/batchDownload")
@@ -140,10 +309,17 @@ public class TaskResource {
         return ok().withAllowMethods("OPTIONS", "POST").withAllowHeaders("Content-Type");
     }
 
-    @Operation(description = "Download files from a search query.<br>Expected parameters are :<br>" +
-            "- project: string<br>- query: string or elasticsearch JSON query<br>" +
-            "If the query is a string it is taken as an ES query string, else it is a raw JSON query (without the query part)," +
-            "see org.elasticsearch.index.query.WrapperQueryBuilder that is used to wrap the query",
+    @Operation(description = """
+            Download files from a search query.
+            
+             Expected parameters are:
+            
+            - project: string
+            - query: string or elasticsearch JSON query
+            
+            If the query is a string it is taken as an ES query string, else it is a raw JSON query (without the query part), 
+            see org.elasticsearch.index.query.WrapperQueryBuilder that is used to wrap the query.
+            """,
             requestBody = @RequestBody(description = "the json used to wrap the query", required = true,  content = @Content(schema = @Schema(implementation = OptionsWrapper.class))))
     @ApiResponse(responseCode = "200", description = "returns 200 and the json task id", useReturnTypeSchema = true)
     @Post("/batchDownload")
@@ -263,8 +439,10 @@ public class TaskResource {
         return ok().withAllowMethods("OPTIONS", "PUT");
     }
 
-    @Operation(description = "Cancels the running tasks. It returns a map with task name/stop statuses.<br>" +
-            "If the status is false, it means that the thread has not been stopped.")
+    @Operation(description = """
+            Cancels the running tasks. It returns a map with task name/stop statuses.
+            
+            If the status is false, it means that some threads have not been stopped.""")
     @ApiResponse(responseCode = "200", description = "returns 200 and the tasks stop result map", useReturnTypeSchema = true)
     @Put("/stopAll")
     public Map<String, Boolean> stopAllTasks(final Context context) throws IOException {
@@ -278,13 +456,17 @@ public class TaskResource {
         return ok().withAllowMethods("OPTIONS", "PUT");
     }
 
-    @Operation(description = "Find names using the given pipeline :<br><br>" +
-            "- OPENNLP<br>" +
-            "- CORENLP<br>" +
-            "- IXAPIPE<br>" +
-            "- GATENLP<br>" +
-            "- MITIE<br><br>" +
-            "This endpoint is going to find all Documents that are not taggued with the given pipeline and extract named entities for all these documents.",
+    @Operation(description = """
+            Find names using the given pipeline:
+            
+            - OPENNLP
+            - CORENLP
+            - IXAPIPE
+            - GATENLP
+            - MITIE
+            
+            This endpoint is going to find all Documents that are not tagged with the given pipeline and extract named entities for all these documents.
+            """,
             requestBody = @RequestBody(description = "wrapper for options json", required = true,  content = @Content(schema = @Schema(implementation = OptionsWrapper.class))))
     @ApiResponse(responseCode = "200", description = "returns 200 and the created task ids", content = @Content(schema = @Schema(implementation = TasksResponse.class)))
     @Post("/findNames/:pipeline")
@@ -327,4 +509,31 @@ public class TaskResource {
     public record ErrorResponse(String message) {}
     public record TaskResponse(String taskId) {}
     public record TasksResponse(List<String> taskIds) {}
+
+
+    private String fieldValue(String field, List<Part> parts) {
+        List<String> values = fieldValues(field, parts);
+        return values.isEmpty() ? null: values.get(0);
+    }
+
+    private List<String> fieldValues(String field, List<Part> parts) {
+        return parts.stream().filter(p -> field.equals(p.name())).map(part -> {
+            try {
+                return part.content();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }).collect(Collectors.toList());
+    }
+
+    private String sanitizeDoubleQuotesInQuery(String query) {
+        if(query.contains("\"\"\"")) {
+            return query.substring(1, query.length() - 1).replaceAll("\"\"","\"");
+        }
+        return query;
+    }
+
+    private LinkedHashSet<String> getQueries(String csv) {
+        return asSet(stream(csv.split("\r?\n")).filter(q -> q.length() >= 2).toArray(String[]::new));
+    }
 }
