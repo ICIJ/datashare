@@ -30,7 +30,7 @@ public class JooqTaskRepository implements TaskRepository {
     private final DataSource connectionProvider;
     private final SQLDialect dialect;
 
-    JooqTaskRepository(final DataSource connectionProvider, final SQLDialect dialect) {
+    public JooqTaskRepository(final DataSource connectionProvider, final SQLDialect dialect) {
         this.connectionProvider = connectionProvider;
         this.dialect = dialect;
     }
