@@ -23,6 +23,8 @@ import org.icij.datashare.Repository;
 import org.icij.datashare.asynctasks.TaskManager;
 import org.icij.datashare.asynctasks.TaskModifier;
 import org.icij.datashare.asynctasks.TaskRepository;
+import org.icij.datashare.cli.TaskRepositoryType;
+import org.icij.datashare.db.JooqTaskRepository;
 import org.icij.datashare.tasks.TaskRepositoryRedis;
 import org.icij.datashare.asynctasks.TaskSupplier;
 import org.icij.datashare.batch.BatchSearchRepository;
@@ -79,6 +81,7 @@ import static org.icij.datashare.PluginService.PLUGINS_BASE_URL;
 import static org.icij.datashare.cli.DatashareCliOptions.BATCH_QUEUE_TYPE_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.MODE_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.QUEUE_TYPE_OPT;
+import static org.icij.datashare.cli.DatashareCliOptions.TASK_REPOSITORY_OPT;
 import static org.icij.datashare.text.indexing.elasticsearch.ElasticsearchConfiguration.createESClient;
 
 public abstract class CommonMode extends AbstractModule implements Closeable {
@@ -140,13 +143,11 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
         QueueType batchQueueType = getQueueType(propertiesProvider, BATCH_QUEUE_TYPE_OPT, QueueType.MEMORY);
         switch ( batchQueueType ) {
             case REDIS:
-                bind(TaskRepository.class).to(TaskRepositoryRedis.class);
                 bind(TaskManager.class).to(TaskManagerRedis.class);
                 bind(TaskModifier.class).to(TaskSupplierRedis.class);
                 bind(TaskSupplier.class).to(TaskSupplierRedis.class);
                 break;
             case AMQP:
-                bind(TaskRepository.class).to(TaskRepositoryRedis.class);
                 bind(TaskManager.class).to(TaskManagerAmqp.class);
                 bind(TaskSupplier.class).to(TaskSupplierAmqp.class);
                 bind(TaskModifier.class).to(TaskSupplierAmqp.class);
@@ -268,6 +269,16 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
         bind(Repository.class).toInstance(repositoryFactory.createRepository());
         bind(ApiKeyRepository.class).toInstance(repositoryFactory.createApiKeyRepository());
         bind(BatchSearchRepository.class).toInstance(repositoryFactory.createBatchSearchRepository());
+
+        TaskRepositoryType taskRepositoryType = TaskRepositoryType.valueOf(propertiesProvider.get(TASK_REPOSITORY_OPT).orElse("REDIS"));
+        switch ( taskRepositoryType ) {
+            case REDIS -> {
+                bind(TaskRepository.class).to(TaskRepositoryRedis.class);
+            }
+            case DATABASE -> {
+                bind(TaskRepository.class).toInstance(new JooqTaskRepository(repositoryFactory.getDataSource(), repositoryFactory.guessSqlDialect()));
+            }
+        }
         repositoryFactory.initDatabase();
     }
 

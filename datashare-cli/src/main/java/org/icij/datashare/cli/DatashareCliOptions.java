@@ -127,7 +127,7 @@ public final class DatashareCliOptions {
     public static final String TASK_ROUTING_KEY_OPT = "taskRoutingKey";
     public static final String OAUTH_USER_PROJECTS_KEY_OPT = "oauthUserProjectsAttribute";
     public static final String POLLING_INTERVAL_OPT = "pollingInterval";
-
+    public static final String TASK_REPOSITORY_OPT = "taskRepositoryType";
 
     private static final Path DEFAULT_DATASHARE_HOME = Paths.get(System.getProperty("user.home"), ".local/share/datashare");
     private static final Integer DEFAULT_NLP_PARALLELISM = 1;
@@ -835,6 +835,15 @@ public final class DatashareCliOptions {
                 .withRequiredArg()
                 .ofType(String.class).defaultsTo("60");
     }
+
+    public static void taskRepositoryType(OptionParser parser) {
+        parser.acceptsAll(
+                        singletonList(TASK_REPOSITORY_OPT), "type of task repository")
+                .withRequiredArg()
+                .ofType( TaskRepositoryType.class )
+                .defaultsTo(TaskRepositoryType.REDIS);
+    }
+
 
     public static ValueConverter<String> toAbsolute() {
         return new ValueConverter<String>() {
