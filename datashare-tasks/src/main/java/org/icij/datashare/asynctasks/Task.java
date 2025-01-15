@@ -14,7 +14,6 @@ import org.icij.datashare.asynctasks.bus.amqp.UriResult;
 import org.icij.datashare.batch.WebQueryPagination;
 import org.icij.datashare.user.User;
 
-import java.io.Serial;
 import java.io.Serializable;
 import java.util.Collections;
 import java.util.HashMap;
@@ -29,7 +28,6 @@ import java.util.function.Function;
 import static java.util.Optional.ofNullable;
 import static java.util.UUID.randomUUID;
 import static org.icij.datashare.batch.WebQueryPagination.OrderDirection.ASC;
-import static org.icij.datashare.batch.WebQueryPagination.OrderDirection.DESC;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class Task<V> extends Event implements Entity, Comparable<Task<V>> {
@@ -75,7 +73,7 @@ public class Task<V> extends Event implements Entity, Comparable<Task<V>> {
     }
 
     @JsonCreator
-    Task(@JsonProperty("id") String id,
+    public Task(@JsonProperty("id") String id,
          @JsonProperty("name") String name,
          @JsonProperty("state") State state,
          @JsonProperty("progress") double progress,
@@ -164,6 +162,8 @@ public class Task<V> extends Event implements Entity, Comparable<Task<V>> {
     public State getState() {
         return state;
     }
+
+    public int getRetriesLeft() {return retriesLeft;}
 
     @JsonIgnore
     public boolean isFinished() {

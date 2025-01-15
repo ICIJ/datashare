@@ -3,7 +3,6 @@ package org.icij.datashare.db;
 import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.test.DatashareTimeRule;
 import org.icij.datashare.user.User;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -23,13 +22,29 @@ public class JooqTaskRepositoryTest {
     public DbSetupRule dbRule;
     private final JooqTaskRepository repository;
 
-    @Ignore
+    @Test(expected = IllegalArgumentException.class)
+    public void test_put_with_key_different_than_id() {
+        assertThat(repository.put("my_key", new Task<>("foo", User.local(), Map.of())));
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void test_put_with_id_null() {
+        assertThat(repository.put("my_key", new Task<>(null, "foo", User.local(), Map.of())));
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void test_put_with_null_key() {
+        assertThat(repository.put(null, new Task<>("foo", User.local(), Map.of())));
+    }
+
     @Test
-    public void test_get_put() {
+    public void test_put_get() {
         Task<Object> foo = new Task<>("foo", User.local(), Map.of());
-        repository.put("foo", foo);
-        assertThat(repository.get("foo")).isNotSameAs(foo); // not same instance
-        assertThat(repository.get("foo")).isEqualTo(foo); // but equals as defined by Task
+
+        assertThat(repository.put(foo.getId(), foo)).isSameAs(foo);
+
+        assertThat(repository.get(foo.getId())).isNotSameAs(foo); // not same instance
+        assertThat(repository.get(foo.getId())).isEqualTo(foo); // but equals as defined by Task
     }
 
     @Parameterized.Parameters
