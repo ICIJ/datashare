@@ -128,7 +128,7 @@ public class TaskManagerRedisTest {
         taskManager.clearTask(taskViewId);
     }
 
-    @Test
+    @Test(timeout = 10000)
     public void test_done_task_result_for_file() throws Exception {
         String taskViewId = taskManager.startTask("HelloWorld", User.local(), new HashMap<>() {{
                 put("greeted", "world");

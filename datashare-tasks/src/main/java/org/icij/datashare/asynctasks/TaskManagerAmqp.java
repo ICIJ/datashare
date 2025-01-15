@@ -8,33 +8,31 @@ import org.icij.datashare.asynctasks.bus.amqp.ShutdownEvent;
 import org.icij.datashare.asynctasks.bus.amqp.TaskEvent;
 
 import org.icij.datashare.tasks.RoutingStrategy;
-import org.icij.datashare.user.User;
 
 import java.io.IOException;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
-import java.util.regex.Pattern;
 
 import static java.util.Optional.ofNullable;
 import static java.util.stream.Collectors.toList;
 
 public class TaskManagerAmqp implements TaskManager {
-    private final Map<String, Task<?>> tasks;
+    private final TaskRepository tasks;
     private final RoutingStrategy routingStrategy;
     private final AmqpInterlocutor amqp;
     private final AmqpConsumer<TaskEvent, Consumer<TaskEvent>> eventConsumer;
 
-    public TaskManagerAmqp(AmqpInterlocutor amqp, Map<String, Task<?>> tasks) throws IOException {
-        this(amqp, tasks, RoutingStrategy.UNIQUE);
+    public TaskManagerAmqp(AmqpInterlocutor amqp, TaskRepository taskRepository) throws IOException {
+        this(amqp, taskRepository, RoutingStrategy.UNIQUE);
     }
 
-    public TaskManagerAmqp(AmqpInterlocutor amqp, Map<String, Task<?>> tasks, RoutingStrategy routingStrategy) throws IOException {
+    public TaskManagerAmqp(AmqpInterlocutor amqp, TaskRepository tasks, RoutingStrategy routingStrategy) throws IOException {
         this(amqp, tasks, routingStrategy, null);
     }
 
-    public TaskManagerAmqp(AmqpInterlocutor amqp, Map<String, Task<?>> tasks, RoutingStrategy routingStrategy, Runnable eventCallback) throws IOException {
+    public TaskManagerAmqp(AmqpInterlocutor amqp, TaskRepository tasks, RoutingStrategy routingStrategy, Runnable eventCallback) throws IOException {
         this.amqp = amqp;
         this.tasks = tasks;
         this.routingStrategy = routingStrategy;

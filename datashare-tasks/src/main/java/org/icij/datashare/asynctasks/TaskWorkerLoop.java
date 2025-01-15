@@ -42,7 +42,7 @@ public class TaskWorkerLoop implements Callable<Integer>, Closeable {
         this(factory, taskSupplier, countDownLatch, 60_000);
     }
 
-    TaskWorkerLoop(TaskFactory factory, TaskSupplier taskSupplier, CountDownLatch countDownLatch, int pollTimeMillis) {
+    public TaskWorkerLoop(TaskFactory factory, TaskSupplier taskSupplier, CountDownLatch countDownLatch, int pollTimeMillis) {
         this.factory = factory;
         this.taskSupplier = taskSupplier;
         this.waitForMainLoopCalled = countDownLatch;
@@ -95,6 +95,7 @@ public class TaskWorkerLoop implements Callable<Integer>, Closeable {
             }
         }
         logger.info("Exiting loop after {} tasks", nbTasks);
+        loopThread.interrupt();
         return nbTasks;
     }
 

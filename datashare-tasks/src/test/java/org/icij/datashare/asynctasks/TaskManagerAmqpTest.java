@@ -45,7 +45,7 @@ public class TaskManagerAmqpTest {
     @Test(timeout = 2000)
     public void test_new_task_with_group_routing() throws Exception {
         String key = "Key";
-        try (TaskManagerAmqp groupTaskManager = new TaskManagerAmqp(AMQP, new ConcurrentHashMap<>(), RoutingStrategy.GROUP, () -> nextMessage.countDown());
+        try (TaskManagerAmqp groupTaskManager = new TaskManagerAmqp(AMQP, new TaskRepositoryMemory(), RoutingStrategy.GROUP, () -> nextMessage.countDown());
              TaskSupplierAmqp groupTaskSupplier = new TaskSupplierAmqp(AMQP, key)) {
             groupTaskSupplier.consumeTasks(t -> taskQueue.add(t));
             String expectedTaskViewId = groupTaskManager.startTask("taskName", User.local(), new Group(key), Map.of());
@@ -59,7 +59,7 @@ public class TaskManagerAmqpTest {
 
     @Test(timeout = 2000)
     public void test_new_task_with_name_routing() throws Exception {
-        try (TaskManagerAmqp groupTaskManager = new TaskManagerAmqp(AMQP, new ConcurrentHashMap<>(), RoutingStrategy.NAME, () -> nextMessage.countDown());
+        try (TaskManagerAmqp groupTaskManager = new TaskManagerAmqp(AMQP, new TaskRepositoryMemory(), RoutingStrategy.NAME, () -> nextMessage.countDown());
              TaskSupplierAmqp groupTaskSupplier = new TaskSupplierAmqp(AMQP, "TaskName")) {
             groupTaskSupplier.consumeTasks(t -> taskQueue.add(t));
             String expectedTaskViewId = groupTaskManager.startTask("TaskName", User.local(), Map.of());
@@ -181,16 +181,8 @@ public class TaskManagerAmqpTest {
     public void setUp() throws IOException {
         nextMessage = new CountDownLatch(1);
         final RedissonClient redissonClient = new RedissonClientFactory().withOptions(
-            Options.from(new PropertiesProvider(Map.of("redisAddress", "redis://redis:6379")).getProperties())).create();
-        Map<String, Task<?>> tasks = new RedissonMap<>(new TaskManagerRedis.TaskViewCodec(),
-            new CommandSyncService(((Redisson) redissonClient).getConnectionManager(),
-                new RedissonObjectBuilder(redissonClient)),
-            "tasks:queue:test",
-            redissonClient,
-            null,
-            null
-        );
-        taskManager = new TaskManagerAmqp(AMQP, tasks, RoutingStrategy.UNIQUE, () -> nextMessage.countDown());
+                Options.from(new PropertiesProvider(Map.of("redisAddress", "redis://redis:6379")).getProperties())).create();
+        taskManager = new TaskManagerAmqp(AMQP, new TaskRepositoryRedis(redissonClient, "tasks:queue:test"), RoutingStrategy.UNIQUE, () -> nextMessage.countDown());
         taskSupplier = new TaskSupplierAmqp(AMQP);
         taskSupplier.consumeTasks(t -> taskQueue.add(t));
     }
