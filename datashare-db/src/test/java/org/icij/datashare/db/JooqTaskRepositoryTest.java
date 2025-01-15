@@ -1,7 +1,6 @@
 package org.icij.datashare.db;
 
 import org.icij.datashare.asynctasks.Task;
-import org.icij.datashare.test.DatashareTimeRule;
 import org.icij.datashare.user.User;
 import org.junit.After;
 import org.junit.Rule;
@@ -17,8 +16,6 @@ import static org.fest.assertions.Assertions.assertThat;
 
 @RunWith(Parameterized.class)
 public class JooqTaskRepositoryTest {
-    @Rule
-    public DatashareTimeRule time = new DatashareTimeRule("2021-06-30T12:13:14Z");
     @Rule
     public DbSetupRule dbRule;
     private final JooqTaskRepository repository;
