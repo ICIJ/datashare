@@ -22,6 +22,8 @@ import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Repository;
 import org.icij.datashare.asynctasks.TaskManager;
 import org.icij.datashare.asynctasks.TaskModifier;
+import org.icij.datashare.asynctasks.TaskRepository;
+import org.icij.datashare.tasks.TaskRepositoryRedis;
 import org.icij.datashare.asynctasks.TaskSupplier;
 import org.icij.datashare.batch.BatchSearchRepository;
 import org.icij.datashare.cli.Mode;
@@ -138,11 +140,13 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
         QueueType batchQueueType = getQueueType(propertiesProvider, BATCH_QUEUE_TYPE_OPT, QueueType.MEMORY);
         switch ( batchQueueType ) {
             case REDIS:
+                bind(TaskRepository.class).to(TaskRepositoryRedis.class);
                 bind(TaskManager.class).to(TaskManagerRedis.class);
                 bind(TaskModifier.class).to(TaskSupplierRedis.class);
                 bind(TaskSupplier.class).to(TaskSupplierRedis.class);
                 break;
             case AMQP:
+                bind(TaskRepository.class).to(TaskRepositoryRedis.class);
                 bind(TaskManager.class).to(TaskManagerAmqp.class);
                 bind(TaskSupplier.class).to(TaskSupplierAmqp.class);
                 bind(TaskModifier.class).to(TaskSupplierAmqp.class);

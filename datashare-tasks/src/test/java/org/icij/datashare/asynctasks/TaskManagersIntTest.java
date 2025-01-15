@@ -61,14 +61,7 @@ public class TaskManagersIntTest {
                 "messageBusAddress", "amqp://admin:admin@rabbitmq"));
         final RedissonClient redissonClient = new RedissonClientFactory().withOptions(
             Options.from(propertiesProvider.getProperties())).create();
-        Map<String, Task<?>> amqpTasks = new RedissonMap<>(new TaskManagerRedis.TaskViewCodec(),
-            new CommandSyncService(((Redisson) redissonClient).getConnectionManager(),
-                new RedissonObjectBuilder(redissonClient)),
-            "tasks:queue:test",
-            redissonClient,
-            null,
-            null
-        );
+
         AMQP = new AmqpInterlocutor(propertiesProvider);
         AMQP.deleteQueues(AmqpQueue.MANAGER_EVENT, AmqpQueue.WORKER_EVENT, AmqpQueue.TASK);
         AMQP.createAmqpChannelForPublish(AmqpQueue.TASK);
@@ -79,7 +72,7 @@ public class TaskManagersIntTest {
 
         return asList(new Object[][]{
             {
-                (Creator<TaskManager>) () -> new TaskManagerAmqp(AMQP, amqpTasks, RoutingStrategy.UNIQUE, amqpWaiter::countDown),
+                (Creator<TaskManager>) () -> new TaskManagerAmqp(AMQP, new TaskRepositoryRedis(redissonClient), RoutingStrategy.UNIQUE, amqpWaiter::countDown),
                 (Creator<TaskSupplier>) () -> new TaskSupplierAmqp(AMQP),
                 amqpWaiter
             },

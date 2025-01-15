@@ -43,7 +43,7 @@ import static java.util.stream.Collectors.toList;
 public class TaskManagerRedis implements TaskManager {
     private final Runnable eventCallback; // for test
     public static final String EVENT_CHANNEL_NAME = "EVENT";
-    private final RedissonMap<String, Task<?>> tasks;
+    private final TaskRepository tasks;
     private final RTopic eventTopic;
     private final RedissonClient redissonClient;
     private final RoutingStrategy routingStrategy;
@@ -55,8 +55,7 @@ public class TaskManagerRedis implements TaskManager {
     public TaskManagerRedis(RedissonClient redissonClient, String taskMapName, RoutingStrategy routingStrategy, Runnable eventCallback) {
         this.redissonClient = redissonClient;
         this.routingStrategy = routingStrategy;
-        CommandSyncService commandSyncService = getCommandSyncService();
-        this.tasks = new RedissonMap<>(new TaskViewCodec(), commandSyncService, taskMapName, redissonClient, null, null);
+        this.tasks = new TaskRepositoryRedis(redissonClient, taskMapName);
         this.eventTopic = redissonClient.getTopic(EVENT_CHANNEL_NAME);
         this.eventCallback = eventCallback;
         eventTopic.addListener(TaskEvent.class, (channelString, message) -> handleEvent(message));

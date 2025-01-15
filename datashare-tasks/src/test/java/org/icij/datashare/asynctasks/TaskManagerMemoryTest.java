@@ -30,8 +30,7 @@ public class TaskManagerMemoryTest {
 
     @Before
     public void setUp() throws Exception {
-        LinkedBlockingQueue<Task<?>> taskViews = new LinkedBlockingQueue<>();
-        taskManager = new TaskManagerMemory(factory, new PropertiesProvider(), waitForLoop);
+        taskManager = new TaskManagerMemory(factory, new PropertiesProvider(), new TaskRepositoryMemory(), waitForLoop);
         taskInspector = new TaskInspector(taskManager);
         waitForLoop.await();
     }
