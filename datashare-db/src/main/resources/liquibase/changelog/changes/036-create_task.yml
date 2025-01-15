@@ -1,0 +1,86 @@
+databaseChangeLog:
+  - changeSet:
+      id: 36
+      author: bthomas
+      changes:
+         - createTable:
+            tableName: task
+            columns:
+                - column:
+                    name: id
+                    type: varchar(96)
+                    constraints:
+                        primaryKey: true
+                - column:
+                    name: name
+                    type: varchar(128)
+                    constraints:
+                        nullable: false
+                - column:
+                    name: state
+                    type: varchar(16)
+                    constraints:
+                        nullable: false
+                - column:
+                    name: user_id
+                    type: varchar(96)
+                - column:
+                    name: group_id
+                    type: varchar(128)
+                - column:
+                    name: progress
+                    type: float
+                    defaultValue: 0
+                - column:
+                    name: created_at
+                    type: datetime
+                    constraints:
+                        nullable:  false
+                - column:
+                    name: completed_at
+                    type: datetime
+                - column:
+                    name: retries_left
+                    type: int
+                - column:
+                    name: max_retries
+                    type: int
+                - column:
+                    name: args
+                    type: text
+
+         - createIndex:
+               indexName: task_name
+               tableName: task
+               columns:
+                  - column:
+                      name: name
+                      type: varchar(128)
+         - createIndex:
+               indexName: task_created_at
+               tableName: task
+               columns:
+                   - column:
+                         name: created_at
+                         type: datetime
+         - createIndex:
+               indexName: task_state
+               tableName: task
+               columns:
+                   - column:
+                         name: state
+                         type: varchar(16)
+         - createIndex:
+             indexName: task_user_id
+             tableName: task
+             columns:
+               - column:
+                   name: user_id
+                   type: varchar(96)
+         - createIndex:
+             indexName: task_group
+             tableName: task
+             columns:
+               - column:
+                   name: group_id
+                   type: varchar(128)

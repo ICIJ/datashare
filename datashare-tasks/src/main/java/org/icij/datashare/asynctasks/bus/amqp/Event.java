@@ -24,7 +24,8 @@ import java.util.Date;
 		@JsonSubTypes.Type(ErrorEvent.class)})
 public class Event implements Serializable {
 	@Serial private static final long serialVersionUID = -2295266944323500399L;
-	protected int retriesLeft = 3;
+	public static final int MAX_RETRIES_LEFT = 3;
+	protected int retriesLeft = MAX_RETRIES_LEFT;
 	public final Date createdAt;
 
 	public Event() {
