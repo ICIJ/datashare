@@ -206,7 +206,7 @@
         @Operation(description = "Deletes all user's projects from database and elasticsearch index.")
         @ApiResponse(responseCode = "204", description = "if projects are deleted")
         @Delete("/")
-        public Payload deleteProjects(Context context) {
+        public Payload deleteProjects(Context context) throws IOException {
             DatashareUser user = (DatashareUser) context.currentUser();
             Logger logger = LoggerFactory.getLogger(getClass());
             getUserProjects(user).forEach(project -> {
@@ -216,13 +216,9 @@
                     throw new RuntimeException(e);
                 }
             });
-            try {
-                logger.info("Stopping tasks : {}", taskManager.stopAllTasks(user));
-                taskManager.waitTasksToBeDone(TaskManager.POLLING_INTERVAL*2, MILLISECONDS);
-                logger.info("Deleted tasks : {}", !taskManager.clearDoneTasks().isEmpty());
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
+            logger.info("Stopping tasks : {}", taskManager.stopAllTasks(user));
+            taskManager.waitTasksToBeDone(TaskManager.POLLING_INTERVAL*2, MILLISECONDS);
+            logger.info("Deleted tasks : {}", !taskManager.clearDoneTasks().isEmpty());
             return new Payload(204);
         }
 
