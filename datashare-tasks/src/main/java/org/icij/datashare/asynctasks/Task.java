@@ -14,7 +14,6 @@ import org.icij.datashare.asynctasks.bus.amqp.UriResult;
 import org.icij.datashare.batch.WebQueryPagination;
 import org.icij.datashare.user.User;
 
-import java.io.Serial;
 import java.io.Serializable;
 import java.util.Collections;
 import java.util.HashMap;
@@ -29,16 +28,18 @@ import java.util.function.Function;
 import static java.util.Optional.ofNullable;
 import static java.util.UUID.randomUUID;
 import static org.icij.datashare.batch.WebQueryPagination.OrderDirection.ASC;
-import static org.icij.datashare.batch.WebQueryPagination.OrderDirection.DESC;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class Task<V> extends Event implements Entity, Comparable<Task<V>> {
     public static final String USER_KEY = "user";
-    public static final String GROUP_KEY = "group";
-    @JsonIgnore private StateLatch stateLatch;
-    @JsonIgnore private final Object lock = new Object();
 
-    public enum State {CREATED, QUEUED, RUNNING, CANCELLED, ERROR, DONE;}
+    @JsonIgnore
+    private StateLatch stateLatch;
+    @JsonIgnore
+    private final Object lock = new Object();
+
+    public enum State {CREATED, QUEUED, RUNNING, CANCELLED, ERROR, DONE}
+
     @JsonTypeInfo(use = JsonTypeInfo.Id.CLASS, property = "@type")
     public final Map<String, Object> args;
     public final String id;
@@ -58,16 +59,8 @@ public class Task<V> extends Event implements Entity, Comparable<Task<V>> {
         this(randomUUID().toString(), name, user, args);
     }
 
-    public Task(String name, User user, Group group, Map<String, Object> args) {
-        this(randomUUID().toString(), name, State.CREATED, 0, null, addTo(args, user, group));
-    }
-
-    public Task(String id, String name, User user, Group group) {
-        this(id, name, user,addTo(new HashMap<>(), user, group));
-    }
-
-    public Task(String id, String name, User user, Group group, Map<String, Object> args) {
-        this(id, name, State.CREATED, 0, null, addTo(args, user, group));
+    public Task(String id, String name, User user) {
+        this(id, name, user, addTo(new HashMap<>(), user));
     }
 
     public Task(String id, String name, User user, Map<String, Object> args) {
@@ -202,11 +195,6 @@ public class Task<V> extends Event implements Entity, Comparable<Task<V>> {
         return (User) args.get(USER_KEY);
     }
 
-    @JsonIgnore
-    public Group getGroup() {
-        return (Group) args.get(GROUP_KEY);
-    }
-
     public static <V> String getId(Callable<V> task) {
         return task.toString();
     }
@@ -225,21 +213,24 @@ public class Task<V> extends Event implements Entity, Comparable<Task<V>> {
         return new Comparator("name", ASC).compare(this, task);
     }
 
-    public record Comparator(String field, WebQueryPagination.OrderDirection order) implements java.util.Comparator<Task<?>> {
+    public record Comparator(String field, WebQueryPagination.OrderDirection order)
+        implements java.util.Comparator<Task<?>> {
         public static Map<String, Function<Task<?>, ?>> SORT_FIELDS = Map.of(
-                "id", Task::getId,
-                "user", Task::getUser,
-                "createdAt", t -> t.createdAt,
-                "name", t -> t.name,
-                "state", Task::getState,
-                "group", Task::getGroup,
-                "finished", Task::isFinished
+            "id", Task::getId,
+            "user", Task::getUser,
+            "createdAt", t -> t.createdAt,
+            "name", t -> t.name,
+            "state", Task::getState,
+            "finished", Task::isFinished
         );
 
-        public Comparator(String field) {this(field, ASC);}
+        public Comparator(String field) {
+            this(field, ASC);
+        }
+
         public Comparator(String field, WebQueryPagination.OrderDirection order) {
             this.field = ofNullable(SORT_FIELDS.get(field)).map(f -> field)
-                    .orElseThrow(() -> new IllegalArgumentException("no sort field with name " + field));
+                .orElseThrow(() -> new IllegalArgumentException("no sort field with name " + field));
             this.order = order;
         }
 
@@ -249,8 +240,8 @@ public class Task<V> extends Event implements Entity, Comparable<Task<V>> {
             Object fieldValue1 = SORT_FIELDS.get(field()).apply(t1);
             Object fieldValue2 = SORT_FIELDS.get(field()).apply(t2);
             compareToBuilder = order == ASC ?
-                    compareToBuilder.append(fieldValue1, fieldValue2):
-                    compareToBuilder.append(fieldValue2, fieldValue1);
+                compareToBuilder.append(fieldValue1, fieldValue2) :
+                compareToBuilder.append(fieldValue2, fieldValue1);
             return compareToBuilder.toComparison();
         }
     }
@@ -267,13 +258,6 @@ public class Task<V> extends Event implements Entity, Comparable<Task<V>> {
     private static Map<String, Object> addTo(Map<String, Object> properties, User user) {
         LinkedHashMap<String, Object> result = new LinkedHashMap<>(properties);
         result.put(USER_KEY, user);
-        return result;
-    }
-
-    private static Map<String, Object> addTo(Map<String, Object> properties, User user, Group group) {
-        LinkedHashMap<String, Object> result = new LinkedHashMap<>(properties);
-        result.put(USER_KEY, user);
-        result.put(GROUP_KEY, group);
         return result;
     }
 }

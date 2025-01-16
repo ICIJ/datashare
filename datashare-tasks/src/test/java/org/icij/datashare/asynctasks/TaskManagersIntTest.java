@@ -29,7 +29,6 @@ import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 
 import static java.util.Arrays.asList;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
@@ -61,7 +60,7 @@ public class TaskManagersIntTest {
                 "messageBusAddress", "amqp://admin:admin@rabbitmq"));
         final RedissonClient redissonClient = new RedissonClientFactory().withOptions(
             Options.from(propertiesProvider.getProperties())).create();
-        Map<String, Task<?>> amqpTasks = new RedissonMap<>(new TaskManagerRedis.TaskViewCodec(),
+        Map<String, TaskMetadata<?>> amqpTasks = new RedissonMap<>(new TaskManagerRedis.RedisCodec<>(TaskMetadata.class),
             new CommandSyncService(((Redisson) redissonClient).getConnectionManager(),
                 new RedissonObjectBuilder(redissonClient)),
             "tasks:queue:test",

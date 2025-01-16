@@ -5,12 +5,10 @@ import net.codestory.rest.Response;
 import net.codestory.rest.RestAssert;
 import net.codestory.rest.ShouldChain;
 import org.icij.datashare.PropertiesProvider;
-import org.icij.datashare.asynctasks.Group;
 import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.asynctasks.bus.amqp.TaskCreation;
 import org.icij.datashare.db.JooqRepository;
 import org.icij.datashare.extension.PipelineRegistry;
-import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.nlp.EmailPipeline;
 import org.icij.datashare.session.LocalUserFilter;
 import org.icij.datashare.tasks.TaskManagerMemory;
@@ -35,8 +33,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.regex.Pattern;
-import java.util.stream.Stream;
 
 import static java.lang.String.format;
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -121,7 +117,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
 
         ShouldChain responseBody = response.should().haveType("application/json");
 
-        List<String> taskNames = taskManager.waitTasksToBeDone(1, SECONDS).stream().map(t -> t.id).collect(toList());
+        List<String> taskNames = taskManager.waitTasksToBeDone(1, SECONDS).stream().map(t -> t.id).toList();
         responseBody.should().contain(format(taskNames.get(0)));
         responseBody.should().contain(taskNames.get(1));
 
@@ -214,7 +210,6 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         defaultProperties.put("foo", "baz");
         defaultProperties.put("key", "val");
         defaultProperties.put("user", User.local());
-        defaultProperties.put("group", new Group("Java"));
         defaultProperties.remove(REPORT_NAME_OPT);
 
         assertThat(taskManager.getTasks()).hasSize(2);
@@ -235,7 +230,6 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         defaultProperties.put("key1", "val1");
         defaultProperties.put("key2", "val2");
         defaultProperties.put("user", User.local());
-        defaultProperties.put("group", new Group("Java"));
 
         assertThat(taskManager.getTasks()).hasSize(1);
         assertThat(taskManager.getTasks().get(0).name).isEqualTo("org.icij.datashare.tasks.IndexTask");

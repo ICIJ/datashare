@@ -1,5 +1,6 @@
 package org.icij.datashare.asynctasks;
 
+import java.util.Optional;
 import org.icij.datashare.asynctasks.bus.amqp.AmqpConsumer;
 import org.icij.datashare.asynctasks.bus.amqp.AmqpInterlocutor;
 import org.icij.datashare.asynctasks.bus.amqp.AmqpQueue;
@@ -8,35 +9,32 @@ import org.icij.datashare.asynctasks.bus.amqp.ShutdownEvent;
 import org.icij.datashare.asynctasks.bus.amqp.TaskEvent;
 
 import org.icij.datashare.tasks.RoutingStrategy;
-import org.icij.datashare.user.User;
 
 import java.io.IOException;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
-import java.util.regex.Pattern;
 
 import static java.util.Optional.ofNullable;
 import static java.util.stream.Collectors.toList;
 
 public class TaskManagerAmqp implements TaskManager {
-    private final Map<String, Task<?>> tasks;
+    private final Map<String, TaskMetadata<?>> taskMetas;
     private final RoutingStrategy routingStrategy;
     private final AmqpInterlocutor amqp;
     private final AmqpConsumer<TaskEvent, Consumer<TaskEvent>> eventConsumer;
 
-    public TaskManagerAmqp(AmqpInterlocutor amqp, Map<String, Task<?>> tasks) throws IOException {
-        this(amqp, tasks, RoutingStrategy.UNIQUE);
+    public TaskManagerAmqp(AmqpInterlocutor amqp, Map<String, TaskMetadata<?>> taskMetas) throws IOException {
+        this(amqp, taskMetas, RoutingStrategy.UNIQUE);
     }
 
-    public TaskManagerAmqp(AmqpInterlocutor amqp, Map<String, Task<?>> tasks, RoutingStrategy routingStrategy) throws IOException {
-        this(amqp, tasks, routingStrategy, null);
+    public TaskManagerAmqp(AmqpInterlocutor amqp, Map<String, TaskMetadata<?>> taskMetas, RoutingStrategy routingStrategy) throws IOException {
+        this(amqp, taskMetas, routingStrategy, null);
     }
 
-    public TaskManagerAmqp(AmqpInterlocutor amqp, Map<String, Task<?>> tasks, RoutingStrategy routingStrategy, Runnable eventCallback) throws IOException {
+    public TaskManagerAmqp(AmqpInterlocutor amqp, Map<String, TaskMetadata<?>> taskMetas, RoutingStrategy routingStrategy, Runnable eventCallback) throws IOException {
         this.amqp = amqp;
-        this.tasks = tasks;
+        this.taskMetas = taskMetas;
         this.routingStrategy = routingStrategy;
         eventConsumer = new AmqpConsumer<>(amqp, event ->
                 ofNullable(TaskManager.super.handleAck(event)).flatMap(t ->
@@ -45,7 +43,7 @@ public class TaskManagerAmqp implements TaskManager {
 
     @Override
     public boolean stopTask(String taskId) {
-        Task<?> taskView = tasks.get(taskId);
+        Task<?> taskView = this.getTask(taskId);
         if (taskView != null) {
             try {
                 logger.info("sending cancel event for {}", taskId);
@@ -62,11 +60,11 @@ public class TaskManagerAmqp implements TaskManager {
 
     @Override
     public <V> Task<V> clearTask(String taskId) {
-        if (tasks.get(taskId).getState() == Task.State.RUNNING) {
+        if (this.getTask(taskId).getState() == Task.State.RUNNING) {
             throw new IllegalStateException(String.format("task id <%s> is already in RUNNING state", taskId));
         }
         logger.info("deleting task id <{}>", taskId);
-        return (Task<V>) tasks.remove(taskId);
+        return (Task<V>) taskMetas.remove(taskId).task();
     }
 
     @Override
@@ -75,15 +73,29 @@ public class TaskManagerAmqp implements TaskManager {
         return true;
     }
 
-    public <V> boolean save(Task<V> task) {
-        Task<?> oldVal = tasks.put(task.id, task);
-        return oldVal == null;
+    @Override
+    public <V> void saveMetadata(TaskMetadata<V> taskMetadata) throws TaskAlreadyExists {
+        String taskId = taskMetadata.taskId();
+        if (taskMetas.containsKey(taskId)) {
+            throw new TaskAlreadyExists(taskId);
+        }
+        this.taskMetas.put(taskId, taskMetadata);
+    }
+
+    @Override
+    public <V> void persistUpdate(Task<V> task) throws UnknownTask {
+        TaskMetadata<V> updated = (TaskMetadata<V>) taskMetas.get(task.id);
+        if (updated == null) {
+            throw new UnknownTask(task.id);
+        }
+        updated = updated.withTask(task);
+        this.taskMetas.put(task.id, updated);
     }
 
     @Override
     public <V> void enqueue(Task<V> task) throws IOException {
         switch (routingStrategy) {
-            case GROUP -> amqp.publish(AmqpQueue.TASK, task.getGroup().id(), task);
+            case GROUP -> amqp.publish(AmqpQueue.TASK, this.taskMetas.get(task.id).group().id(), task);
             case NAME -> amqp.publish(AmqpQueue.TASK, task.name, task);
             default -> amqp.publish(AmqpQueue.TASK, task);
         }
@@ -91,17 +103,23 @@ public class TaskManagerAmqp implements TaskManager {
 
     @Override
     public <V> Task<V> getTask(String taskId) {
-        return (Task<V>) tasks.get(taskId);
+        return (Task<V>) Optional.ofNullable(taskMetas.get(taskId)).map(TaskMetadata::task).orElse(null);
     }
 
     @Override
     public List<Task<?>> getTasks() {
-        return new LinkedList<>(tasks.values());
+        return taskMetas.values().stream().map(TaskMetadata::task).collect(toList());
+    }
+
+    @Override
+    public Group getTaskGroup(String taskId) {
+        return taskMetas.get(taskId).group();
     }
 
     @Override
     public List<Task<?>> clearDoneTasks() {
-        return tasks.values().stream().filter(f -> f.getState() != Task.State.RUNNING).map(t -> tasks.remove(t.id)).collect(toList());
+        return taskMetas.values().stream().map(TaskMetadata::task).filter(Task::isFinished)
+            .map(t -> taskMetas.remove(t.id).task()).collect(toList());
     }
 
     public void close() throws IOException {
@@ -111,6 +129,6 @@ public class TaskManagerAmqp implements TaskManager {
 
     @Override
     public void clear() {
-        tasks.clear();
+        taskMetas.clear();
     }
 }

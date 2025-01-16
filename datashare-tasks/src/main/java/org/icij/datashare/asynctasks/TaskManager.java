@@ -38,6 +38,7 @@ public interface TaskManager extends Closeable {
 
     List<Task<?>> getTasks() throws IOException;
     List<Task<?>> clearDoneTasks() throws IOException;
+    Group getTaskGroup(String taskId);
     boolean shutdown() throws IOException;
 
     void clear() throws IOException;
@@ -48,6 +49,8 @@ public interface TaskManager extends Closeable {
     default List<Task<?>> getTasks(User user, Map<String, Pattern> filters) throws IOException {
         return getTasks(user, filters, new WebQueryPagination());
     }
+    <V> void saveMetadata(TaskMetadata<V> taskMetadata) throws IOException, TaskAlreadyExists;
+    <V> void persistUpdate(Task<V> task) throws IOException, UnknownTask;
 
     default List<Task<?>> getTasks(User user, Map<String, Pattern> filters, WebQueryPagination pagination) throws IOException {
         Stream<Task<?>> taskStream = getTasks().stream().sorted(new Task.Comparator(pagination.sort, pagination.order));
@@ -81,16 +84,6 @@ public interface TaskManager extends Closeable {
 
     /**
      * This is a "inner method" that is used in the template method for start(task).
-     * It saves the method in the inner persistent state of TaskManagers implementations.
-     *
-     * @param task to be saved in persistent state
-     * @return true if task has been saved
-     * @throws IOException if a network error occurs
-     */
-    <V> boolean save(Task<V> task) throws IOException;
-
-    /**
-     * This is a "inner method" that is used in the template method for start(task).
      * It put the task in the task queue for workers.
      * @param task task to be queued
      * @throws IOException if a network error occurs
@@ -99,12 +92,12 @@ public interface TaskManager extends Closeable {
 
     // TaskResource and pipeline tasks
     default String startTask(Class<?> taskClass, User user, Map<String, Object> properties) throws IOException {
-        return startTask(new Task<>(taskClass.getName(), user, new Group(taskClass.getAnnotation(TaskGroup.class).value()), properties));
+        return startTask(new Task<>(taskClass.getName(), user, properties), new Group(taskClass.getAnnotation(TaskGroup.class).value()));
     }
 
     // BatchSearchResource and WebApp for batch searches
     default String startTask(String uuid, Class<?> taskClass, User user, Map<String, Object> properties) throws IOException {
-        return startTask(new Task<>(uuid, taskClass.getName(), user, new Group(taskClass.getAnnotation(TaskGroup.class).value()), properties));
+        return startTask(new Task<>(uuid, taskClass.getName(), user, properties), new Group(taskClass.getAnnotation(TaskGroup.class).value()));
     }
 
     // for tests
@@ -113,7 +106,7 @@ public interface TaskManager extends Closeable {
     }
     // for tests
     default String startTask(String taskName, User user, Group group, Map<String, Object> properties) throws IOException {
-        return startTask(new Task<>(taskName, user, group, properties));
+        return startTask(new Task<>(taskName, user, properties), group);
     }
 
     /**
@@ -121,17 +114,35 @@ public interface TaskManager extends Closeable {
      * it in the memory/redis/AMQP queue and return the id. Else it will not enqueue the task and return null.
      *
      * @param taskView: the task description.
+     * @param group: task group
      * @return task id if it was new and has been saved else null
      * @throws IOException in case of communication failure with Redis or AMQP broker
      */
-    default <V> String startTask(Task<V> taskView) throws IOException {
-        boolean saved = save(taskView);
-        if (saved) {
-            taskView.queue();
-            enqueue(taskView);
-            return taskView.id;
+    default <V> String startTask(Task<V> taskView, Group group) throws IOException {
+        try {
+            save(taskView, group);
+        } catch (TaskAlreadyExists ignored) {
+            return null;
         }
-        return null;
+        taskView.queue();
+        enqueue(taskView);
+        return taskView.id;
+    }
+
+    default <V> String startTask(Task<V> taskView) throws IOException {
+        return startTask(taskView, null);
+    }
+
+    default void save(Task<?> task, Group group) throws IOException, TaskAlreadyExists {
+        saveMetadata(new TaskMetadata<>(task, group));
+    }
+
+    default void update(Task<?> task) throws IOException {
+        try {
+            persistUpdate(task);
+        } catch (UnknownTask e) {
+            throw new RuntimeException("task " + task.id + " is unknown, save it first !");
+        }
     }
 
     default <V extends Serializable> Task<V> setResult(ResultEvent<V> e) throws IOException {
@@ -139,7 +150,7 @@ public interface TaskManager extends Closeable {
         if (taskView != null) {
             logger.info("result event for {}", e.taskId);
             taskView.setResult(e.result);
-            save(taskView);
+            update(taskView);
         } else {
             logger.warn("no task found for result event {}", e.taskId);
         }
@@ -151,7 +162,7 @@ public interface TaskManager extends Closeable {
         if (taskView != null) {
             logger.info("error event for {}", e.taskId);
             taskView.setError(e.error);
-            save(taskView);
+            update(taskView);
         } else {
             logger.warn("no task found for error event {}", e.taskId);
         }
@@ -163,7 +174,7 @@ public interface TaskManager extends Closeable {
         if (taskView != null) {
             logger.info("canceled event for {}", e.taskId);
             taskView.cancel();
-            save(taskView);
+            update(taskView);
             if (e.requeue) {
                 try {
                     enqueue(taskView);
@@ -182,7 +193,7 @@ public interface TaskManager extends Closeable {
         Task<V> taskView = getTask(e.taskId);
         if (taskView != null) {
             taskView.setProgress(e.progress);
-            save(taskView);
+            update(taskView);
         }
         return taskView;
     }
@@ -210,7 +221,6 @@ public interface TaskManager extends Closeable {
 
     /**
      * wait for all the tasks to have a result.
-     *
      * This method will poll the task list. So if there are a lot of tasks or if tasks are
      * containing a lot of information, this method call could be very intensive on network and CPU.
      *

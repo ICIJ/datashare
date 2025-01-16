@@ -1,5 +1,7 @@
 package org.icij.datashare.asynctasks;
 
+import java.io.IOException;
+import java.util.HashMap;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.test.LogbackCapturingRule;
 import org.icij.datashare.user.User;
@@ -12,7 +14,6 @@ import org.slf4j.event.Level;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
 import static org.fest.assertions.Assertions.assertThat;
@@ -30,7 +31,6 @@ public class TaskManagerMemoryTest {
 
     @Before
     public void setUp() throws Exception {
-        LinkedBlockingQueue<Task<?>> taskViews = new LinkedBlockingQueue<>();
         taskManager = new TaskManagerMemory(factory, new PropertiesProvider(), waitForLoop);
         taskInspector = new TaskInspector(taskManager);
         waitForLoop.await();
@@ -120,6 +120,29 @@ public class TaskManagerMemoryTest {
             "unknown task id <unknownId> for result=0.5 call");
     }
 
+    @Test
+    public void test_save_task() throws TaskAlreadyExists, IOException {
+        Task<String> task = new Task<>("name", User.local(), new HashMap<>());
+
+        taskManager.save(task, null);
+
+        assertThat(taskManager.getTasks()).hasSize(1);
+        assertThat(taskManager.getTask(task.id)).isNotNull();
+    }
+
+    @Test
+    public void test_update_task() throws TaskAlreadyExists, IOException {
+        // Given
+        Task<?> task = new Task<>("HelloWorld", User.local(), Map.of("greeted", "world"));
+        TaskMetadata<?> meta = new TaskMetadata<>(task, null);
+        Task<?> update = new Task<>(task.id, task.name, task.getState(), 0.5, null, task.args);
+        // When
+        taskManager.saveMetadata(meta);
+        taskManager.update(update);
+        Task<?> updated = taskManager.getTask(task.id);
+        // Then
+        assertThat(updated).isEqualTo(update);
+    }
     @Test
     public void test_wait_task_to_be_done() throws Exception {
         taskManager.startTask(TestFactory.Sleep.class, User.local(), Map.of("duration", 100));

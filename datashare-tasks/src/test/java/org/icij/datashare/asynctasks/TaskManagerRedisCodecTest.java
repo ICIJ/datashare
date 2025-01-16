@@ -15,10 +15,9 @@ import java.util.Map;
 
 import static org.fest.assertions.Assertions.assertThat;
 import static org.fest.assertions.MapAssert.entry;
-import static org.icij.datashare.json.JsonObjectMapper.MAPPER;
 
 public class TaskManagerRedisCodecTest {
-    TaskManagerRedis.TaskViewCodec codec = new TaskManagerRedis.TaskViewCodec();
+    TaskManagerRedis.RedisCodec<?> codec = new TaskManagerRedis.RedisCodec<>(Task.class);
 
     @Test
     public void test_json_serialize_deserialize_with_inline_properties_map() throws Exception {
