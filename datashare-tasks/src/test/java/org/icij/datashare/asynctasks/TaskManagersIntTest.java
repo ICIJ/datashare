@@ -160,7 +160,7 @@ public class TaskManagersIntTest {
         assertThat(taskManager.getTasks()).isEmpty();
     }
 
-    @Test()
+    @Test(timeout = 10000)
     public void test_stop_all_wait_clear_done_tasks_not_cancellable_task() throws Exception {
         String tv1Id = taskManager.startTask(TestFactory.Sleep.class, User.local(), Map.of("duration", 3000));
         String tv2Id = taskManager.startTask(TestFactory.SleepForever.class, User.local(), new HashMap<>());
