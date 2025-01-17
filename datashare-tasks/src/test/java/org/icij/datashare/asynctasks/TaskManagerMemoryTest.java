@@ -1,14 +1,19 @@
 package org.icij.datashare.asynctasks;
 
 import org.icij.datashare.PropertiesProvider;
+import org.icij.datashare.tasks.RoutingStrategy;
 import org.icij.datashare.test.LogbackCapturingRule;
 import org.icij.datashare.user.User;
+import org.icij.extract.redis.RedissonClientFactory;
+import org.icij.task.Options;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
+import org.redisson.api.RedissonClient;
 import org.slf4j.event.Level;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
@@ -124,6 +129,18 @@ public class TaskManagerMemoryTest {
         taskManager.startTask(TestFactory.Sleep.class, User.local(), Map.of("duration", 100));
         List<Task<?>> tasks = taskManager.waitTasksToBeDone(200, TimeUnit.MILLISECONDS);
         assertThat(tasks).hasSize(1);
+    }
+
+    @Test
+    public void test_health_ok() {
+        assertThat(taskManager.getHealth()).isTrue();
+    }
+
+    @Test
+    public void test_health_ko() throws IOException {
+        taskManager.shutdown();
+
+        assertThat(taskManager.getHealth()).isFalse();
     }
 
     @After
