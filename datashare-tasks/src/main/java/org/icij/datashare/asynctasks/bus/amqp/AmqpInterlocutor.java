@@ -133,6 +133,18 @@ public class AmqpInterlocutor implements Closeable {
         }
     }
 
+    public boolean getHealth() {
+        if (!connection.isOpen()) {
+            logger.error("TaskManager AMQP Health error : Connection is closed");
+            return false;
+        }
+        if (connection.getHeartbeat() <= 0) {
+            logger.error("TaskManager AMQP Health error : heartbeat equals 0");
+            return false;
+        }
+        return true;
+    }
+
     private static class UnknownChannelException extends RuntimeException {
         public UnknownChannelException(AmqpQueue queue) {
             super("Unknown channel for queue " + queue);

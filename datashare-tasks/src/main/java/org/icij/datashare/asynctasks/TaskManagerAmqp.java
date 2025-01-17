@@ -111,4 +111,9 @@ public class TaskManagerAmqp implements TaskManager {
     public void clear() {
         tasks.clear();
     }
+
+    @Override
+    public boolean getHealth() {
+        return amqp.getHealth();
+    }
 }

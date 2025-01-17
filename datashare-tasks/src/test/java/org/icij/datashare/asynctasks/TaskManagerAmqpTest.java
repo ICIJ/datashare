@@ -168,6 +168,27 @@ public class TaskManagerAmqpTest {
         assertThat(taskManager.getTask(task.id).getState()).isEqualTo(Task.State.CANCELLED);
     }
 
+    @Test
+    public void test_health_ok() {
+        assertThat(taskManager.getHealth()).isTrue();
+    }
+
+    @Test
+    public void test_health_ko() throws Exception {
+        AmqpInterlocutor amqpKo = new AmqpInterlocutor(new PropertiesProvider(new HashMap<>() {{
+            put("messageBusAddress", "amqp://admin:admin@localhost?rabbitMq=false");
+        }}));
+        amqpKo.createAmqpChannelForPublish(AmqpQueue.TASK);
+        amqpKo.createAmqpChannelForPublish(AmqpQueue.MANAGER_EVENT);
+        RedissonClient redissonClientKo = new RedissonClientFactory().withOptions(
+                Options.from(new PropertiesProvider(Map.of("redisAddress", "redis://redis:6379")).getProperties())).create();
+        TaskManagerAmqp taskManagerAmqpKo = new TaskManagerAmqp(amqpKo, new TaskRepositoryRedis(redissonClientKo, "tasks:queue:test"), RoutingStrategy.UNIQUE, () -> nextMessage.countDown());
+
+        amqpKo.close();
+
+        assertThat(taskManagerAmqpKo.getHealth()).isFalse();
+    }
+
     @BeforeClass
     public static void beforeClass() throws Exception {
         AMQP = new AmqpInterlocutor(new PropertiesProvider(new HashMap<>() {{
