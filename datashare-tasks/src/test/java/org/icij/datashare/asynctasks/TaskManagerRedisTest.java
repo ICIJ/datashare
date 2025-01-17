@@ -141,6 +141,22 @@ public class TaskManagerRedisTest {
         assertThat(taskManager.getTasks().get(0).getResult()).isEqualTo(expectedResult);
     }
 
+    @Test
+    public void test_health_ok() {
+        assertThat(taskManager.getHealth()).isTrue();
+    }
+
+    @Test
+    public void test_health_ko(){
+        RedissonClient redissonClientKO = new RedissonClientFactory().withOptions(
+                Options.from(propertiesProvider.getProperties())).create();
+        TaskManagerRedis taskManager = new TaskManagerRedis(
+                redissonClientKO, "test:task:manager", RoutingStrategy.UNIQUE, this::callback);
+        redissonClientKO.shutdown();
+
+        assertThat(taskManager.getHealth()).isFalse();
+    }
+
     private void callback() {
         waitForEvent.countDown();
     }

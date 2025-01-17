@@ -19,6 +19,7 @@ import org.redisson.api.RKeys;
 import org.redisson.api.RTopic;
 import org.redisson.api.RType;
 import org.redisson.api.RedissonClient;
+import org.redisson.client.RedisException;
 import org.redisson.client.codec.BaseCodec;
 import org.redisson.client.handler.State;
 import org.redisson.client.protocol.Decoder;
@@ -135,6 +136,17 @@ public class TaskManagerRedis implements TaskManager {
     public void clear() {
         tasks.clear();
         clearTaskQueues();
+    }
+
+    @Override
+    public boolean getHealth() {
+        try {
+            redissonClient.getKeys().count();
+            return true;
+        } catch (RedisException ex) {
+            logger.error("TaskManager Redis Health error : ", ex);
+            return false;
+        }
     }
 
     private void clearTaskQueues() {
