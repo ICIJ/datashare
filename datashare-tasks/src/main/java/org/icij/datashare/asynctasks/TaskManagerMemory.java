@@ -191,6 +191,11 @@ public class TaskManagerMemory implements TaskManager, TaskSupplier {
     }
 
     @Override
+    public boolean getHealth() {
+        return !executor.isShutdown();
+    }
+
+    @Override
     public void addEventListener(Consumer<Event> callback) {
         // no need for this we use task runner reference for stopping tasks
     }
