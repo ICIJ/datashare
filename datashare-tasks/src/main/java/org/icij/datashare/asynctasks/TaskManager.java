@@ -42,6 +42,8 @@ public interface TaskManager extends Closeable {
 
     void clear() throws IOException;
 
+    boolean getHealth();
+
     default List<Task<?>> getTasks(User user) throws IOException {
         return getTasks(user, new HashMap<>(), new WebQueryPagination());
     }
