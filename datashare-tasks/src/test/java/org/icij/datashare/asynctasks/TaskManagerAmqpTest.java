@@ -10,17 +10,16 @@ import org.icij.datashare.user.User;
 import org.icij.extract.redis.RedissonClientFactory;
 import org.icij.task.Options;
 import org.junit.*;
-import org.redisson.Redisson;
-import org.redisson.RedissonMap;
 import org.redisson.api.RedissonClient;
-import org.redisson.command.CommandSyncService;
-import org.redisson.liveobject.core.RedissonObjectBuilder;
 
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.*;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
 
 import static org.fest.assertions.Assertions.assertThat;
 
@@ -169,7 +168,7 @@ public class TaskManagerAmqpTest {
     }
 
     @Test
-    public void test_health_ok() {
+    public void test_health_ok() throws Exception {
         assertThat(taskManager.getHealth()).isTrue();
     }
 
@@ -180,6 +179,7 @@ public class TaskManagerAmqpTest {
         }}));
         amqpKo.createAmqpChannelForPublish(AmqpQueue.TASK);
         amqpKo.createAmqpChannelForPublish(AmqpQueue.MANAGER_EVENT);
+        amqpKo.createAmqpChannelForPublish(AmqpQueue.MONITORING);
         RedissonClient redissonClientKo = new RedissonClientFactory().withOptions(
                 Options.from(new PropertiesProvider(Map.of("redisAddress", "redis://redis:6379")).getProperties())).create();
         TaskManagerAmqp taskManagerAmqpKo = new TaskManagerAmqp(amqpKo, new TaskRepositoryRedis(redissonClientKo, "tasks:queue:test"), RoutingStrategy.UNIQUE, () -> nextMessage.countDown());
@@ -196,6 +196,7 @@ public class TaskManagerAmqpTest {
         }}));
         AMQP.createAmqpChannelForPublish(AmqpQueue.TASK);
         AMQP.createAmqpChannelForPublish(AmqpQueue.MANAGER_EVENT);
+        AMQP.createAmqpChannelForPublish(AmqpQueue.MONITORING);
     }
 
     @Before
