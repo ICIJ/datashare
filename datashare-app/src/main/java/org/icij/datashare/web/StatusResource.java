@@ -16,13 +16,9 @@ import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Repository;
 import org.icij.datashare.asynctasks.TaskManager;
 import org.icij.datashare.openmetrics.StatusMapper;
-import org.icij.datashare.extract.DocumentCollectionFactory;
 import org.icij.datashare.text.indexing.Indexer;
-import org.icij.extract.queue.DocumentQueue;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-import java.nio.file.Path;
+import java.io.IOException;
 
 @Singleton
 @Prefix("/api")
@@ -46,7 +42,7 @@ public class StatusResource {
     @ApiResponse(responseCode = "504", description = "proxy error when elasticsearch is down", useReturnTypeSchema = true)
     @ApiResponse(responseCode = "503", description = "service unavailable when other services are down", useReturnTypeSchema = true)
     @Get("/status")
-    public Payload getStatus(Context context) {
+    public Payload getStatus(Context context) throws IOException {
         Status status = new Status(repository.getHealth(), indexer.getHealth(), taskManager.getHealth());
         if ("openmetrics".equals(context.request().query().get("format"))) {
             return new Payload("text/plain;version=0.0.4",

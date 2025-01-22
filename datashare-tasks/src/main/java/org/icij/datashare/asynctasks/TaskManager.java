@@ -1,10 +1,6 @@
 package org.icij.datashare.asynctasks;
 
-import org.icij.datashare.asynctasks.bus.amqp.CancelledEvent;
-import org.icij.datashare.asynctasks.bus.amqp.ErrorEvent;
-import org.icij.datashare.asynctasks.bus.amqp.ProgressEvent;
-import org.icij.datashare.asynctasks.bus.amqp.ResultEvent;
-import org.icij.datashare.asynctasks.bus.amqp.TaskEvent;
+import org.icij.datashare.asynctasks.bus.amqp.*;
 import org.icij.datashare.batch.WebQueryPagination;
 import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.user.User;
@@ -42,7 +38,7 @@ public interface TaskManager extends Closeable {
 
     void clear() throws IOException;
 
-    boolean getHealth();
+    boolean getHealth() throws IOException;
 
     default List<Task<?>> getTasks(User user) throws IOException {
         return getTasks(user, new HashMap<>(), new WebQueryPagination());

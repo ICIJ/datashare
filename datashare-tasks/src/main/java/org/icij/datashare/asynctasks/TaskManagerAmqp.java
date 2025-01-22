@@ -1,11 +1,7 @@
 package org.icij.datashare.asynctasks;
 
-import org.icij.datashare.asynctasks.bus.amqp.AmqpConsumer;
-import org.icij.datashare.asynctasks.bus.amqp.AmqpInterlocutor;
-import org.icij.datashare.asynctasks.bus.amqp.AmqpQueue;
-import org.icij.datashare.asynctasks.bus.amqp.CancelEvent;
-import org.icij.datashare.asynctasks.bus.amqp.ShutdownEvent;
-import org.icij.datashare.asynctasks.bus.amqp.TaskEvent;
+import com.rabbitmq.client.ShutdownSignalException;
+import org.icij.datashare.asynctasks.bus.amqp.*;
 
 import org.icij.datashare.tasks.RoutingStrategy;
 
@@ -113,7 +109,14 @@ public class TaskManagerAmqp implements TaskManager {
     }
 
     @Override
-    public boolean getHealth() {
-        return amqp.getHealth();
+    public boolean getHealth() throws IOException {
+        try {
+            logger.info("sending monitoring event");
+            amqp.publish(AmqpQueue.MONITORING, new MonitoringEvent());
+        } catch (ShutdownSignalException e) {
+            logger.error("error sending monitoring event", e);
+            return false;
+        }
+        return true;
     }
 }
