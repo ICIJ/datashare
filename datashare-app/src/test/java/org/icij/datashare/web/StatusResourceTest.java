@@ -31,7 +31,7 @@ public class StatusResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
-    public void test_get_status_ok() {
+    public void test_get_status_ok() throws Exception{
         when(repository.getHealth()).thenReturn(true);
         when(indexer.getHealth()).thenReturn(true);
         when(taskManager.getHealth()).thenReturn(true);
@@ -48,7 +48,7 @@ public class StatusResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
-    public void test_get_database_status_when_down() {
+    public void test_get_database_status_when_down() throws Exception {
         when(repository.getHealth()).thenReturn(false);
         when(indexer.getHealth()).thenReturn(true);
         when(taskManager.getHealth()).thenReturn(true);
@@ -56,7 +56,7 @@ public class StatusResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
-    public void test_get_taskmanager_status_when_down() {
+    public void test_get_taskmanager_status_when_down() throws Exception {
         when(repository.getHealth()).thenReturn(true);
         when(indexer.getHealth()).thenReturn(true);
         when(taskManager.getHealth()).thenReturn(false);
@@ -65,7 +65,7 @@ public class StatusResourceTest extends AbstractProdWebServerTest {
 
 
     @Test
-    public void test_get_index_status_when_down() {
+    public void test_get_index_status_when_down() throws Exception {
         when(indexer.getHealth()).thenReturn(false);
         when(repository.getHealth()).thenReturn(true);
         when(taskManager.getHealth()).thenReturn(true);
