@@ -19,7 +19,7 @@ import org.icij.datashare.text.nlp.AbstractModels;
 import org.icij.datashare.text.nlp.Pipeline;
 
 public class CoreNlpModels extends AbstractModels<StanfordCoreNLP> {
-    static final String VERSION = "4.5.5";
+    static final String VERSION = "4.5.8";
     public static final Set<Language> SUPPORTED_LANGUAGES = Set.of(
         ENGLISH,
         SPANISH,
@@ -68,7 +68,7 @@ public class CoreNlpModels extends AbstractModels<StanfordCoreNLP> {
     }
 
     String getJarFileName(Language language) {
-        return String.join("-", asList("stanford", "corenlp", getVersion(), "models", language.iso6391Code() + ".jar"));
+        return String.join("-", asList("stanford", "corenlp", getVersion(), "models", language.name().toLowerCase() + ".jar"));
     }
 
     private CoreNlpModels() {
