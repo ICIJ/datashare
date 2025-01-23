@@ -111,6 +111,7 @@ public class TaskManagerAmqp implements TaskManager {
     @Override
     public boolean getHealth() throws IOException {
         try {
+            amqp.createAmqpChannelForConsume(AmqpQueue.MONITORING, null);
             logger.info("sending monitoring event");
             amqp.publish(AmqpQueue.MONITORING, new MonitoringEvent());
         } catch (ShutdownSignalException e) {
