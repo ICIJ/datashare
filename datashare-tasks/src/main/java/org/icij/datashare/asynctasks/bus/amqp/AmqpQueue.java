@@ -22,7 +22,7 @@ public enum AmqpQueue {
 	WORKER_EVENT("exchangeWorkerEvents", BuiltinExchangeType.FANOUT, "routingKeyWorkerEvents"),
 	MONITORING("exchangeMonitoring", BuiltinExchangeType.DIRECT, "routingKeyMonitoring", Map.of(
 			"x-message-ttl", 5000,
-			"x-expires", 10000), null);
+			"x-expires", 3600 * 1000), null);
 
 	public final String exchange;
 	public final String routingKey;
