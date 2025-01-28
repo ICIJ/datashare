@@ -45,12 +45,14 @@ public class JooqTaskRepositoryTest {
 
     @Test
     public void test_put_get() {
-        Task<Object> foo = new Task<>("foo", User.local(), Map.of());
+        Task<Object> foo = new Task<>("foo", User.local(), Map.of("user", User.local()));
 
         assertThat(repository.put(foo.getId(), foo)).isSameAs(foo);
 
-        assertThat(repository.get(foo.getId())).isNotSameAs(foo); // not same instance
-        assertThat(repository.get(foo.getId())).isEqualTo(foo); // but equals as defined by Task
+        Task<?> actual = repository.get(foo.getId());
+        assertThat(actual).isNotSameAs(foo); // not same instance
+        assertThat(actual).isEqualTo(foo); // but equals as defined by Task
+        assertThat(actual.getUser()).isEqualTo(User.local());
     }
 
     @Test

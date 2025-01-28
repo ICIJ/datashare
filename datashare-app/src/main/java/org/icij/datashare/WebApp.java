@@ -24,7 +24,6 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.IntStream;
 
 import static java.lang.Boolean.parseBoolean;
@@ -39,8 +38,7 @@ public class WebApp {
     }
 
     static void start(Properties properties) throws Exception {
-        int parallelism = parseInt((String) ofNullable(properties.get("parallelism")).orElse("1"));
-        ExecutorService executorService = Executors.newFixedThreadPool(parallelism);
+        int parallelism = parseInt((String) ofNullable(properties.get("parallelism")).orElse("0"));
 
         CommonMode mode = CommonMode.create(properties);
         Runtime.getRuntime().addShutdownHook(close(mode));
@@ -52,7 +50,8 @@ public class WebApp {
                 .configure(mode.createWebConfiguration())
                 .start(parseInt(mode.properties().getProperty(PropertiesProvider.TCP_LISTEN_PORT)));
 
-        if (shouldStartWorkers(properties)) {
+        if (shouldStartWorkers(properties, parallelism)) {
+            ExecutorService executorService = Executors.newFixedThreadPool(parallelism);
             List<TaskWorkerLoop> workers = IntStream.range(0, parallelism).mapToObj(i -> new TaskWorkerLoop(mode.get(DatashareTaskFactory.class), mode.get(TaskSupplier.class))).toList();
             workers.forEach(executorService::submit);
         }
@@ -65,8 +64,10 @@ public class WebApp {
         requeueDatabaseBatchSearches(mode.get(BatchSearchRepository.class), mode.get(TaskManager.class));
     }
 
-    private static boolean shouldStartWorkers(Properties properties) {
-        return CommonMode.getMode(properties) == Mode.EMBEDDED && properties.containsValue(QueueType.AMQP.name());
+    private static boolean shouldStartWorkers(Properties properties, int parallelism) {
+        return (CommonMode.getMode(properties) == Mode.EMBEDDED || CommonMode.getMode(properties) == Mode.LOCAL)
+                && properties.containsValue(QueueType.AMQP.name())
+                && parallelism > 0;
     }
 
     private static void waitForServerToBeUp(int tcpListenPort) throws InterruptedException {

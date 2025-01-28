@@ -7,6 +7,7 @@ import org.icij.datashare.asynctasks.Group;
 import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.asynctasks.TaskRepository;
 import org.icij.datashare.db.tables.records.TaskRecord;
+import org.icij.datashare.json.JsonObjectMapper;
 import org.jooq.DSLContext;
 import org.jooq.InsertValuesStep10;
 import org.jooq.SQLDialect;
@@ -17,7 +18,6 @@ import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.AbstractMap;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -27,6 +27,7 @@ import static org.icij.datashare.asynctasks.bus.amqp.Event.MAX_RETRIES_LEFT;
 import static org.icij.datashare.db.Tables.TASK;
 
 public class JooqTaskRepository implements TaskRepository {
+    public static final ObjectMapper TYPE_INCLUSION_MAPPER = JsonObjectMapper.createTypeInclusionMapper();
     private final DataSource connectionProvider;
     private final SQLDialect dialect;
 
@@ -114,8 +115,8 @@ public class JooqTaskRepository implements TaskRepository {
         {
             try {
                 return new Task<>(r.getId(), r.getName(), Task.State.valueOf(r.getState()),
-                        r.getProgress(), null, new ObjectMapper().readValue(r.getArgs(), new TypeReference<HashMap<String, Object>>() {
-                }));
+                        r.getProgress(), null,
+                        TYPE_INCLUSION_MAPPER.readValue(r.getArgs(), new TypeReference<Map<String, Object>>() {}));
             } catch (JsonProcessingException e) {
                 throw new RuntimeException(e);
             }
@@ -137,7 +138,7 @@ public class JooqTaskRepository implements TaskRepository {
                     ofNullable(t.getGroup()).map(Group::id).orElse(null),
                     t.getProgress(),
                     new Timestamp(t.createdAt.getTime()).toLocalDateTime(), t.getRetriesLeft(),
-                    MAX_RETRIES_LEFT, new ObjectMapper().writeValueAsString(t.args));
+                    MAX_RETRIES_LEFT, TYPE_INCLUSION_MAPPER.writeValueAsString(t.args)); // to force writing @type fields in the hashmap
         } catch (JsonProcessingException ex) {
             throw new RuntimeException(ex);
         }
