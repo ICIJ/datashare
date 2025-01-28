@@ -11,16 +11,17 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
 
-import java.util.HashMap;
+import java.util.Map;
 
 import static java.util.Collections.emptyList;
+import static org.fest.assertions.Assertions.assertThat;
+import static org.icij.datashare.cli.DatashareCliOptions.POLLING_INTERVAL_SECONDS_OPT;
+import static org.icij.datashare.tasks.ExtractNlpTask.NB_MAX_POLLS;
 import static org.icij.datashare.text.DocumentBuilder.createDoc;
 import static org.icij.datashare.text.Language.ENGLISH;
 import static org.icij.datashare.text.Project.project;
-
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
-
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -35,9 +36,8 @@ public class ExtractNlpTaskTest {
     @Before
     public void setUp() {
         initMocks(this);
-        nlpTask = new ExtractNlpTask(indexer, pipeline, factory, new Task<>(ExtractNlpTask.class.getName(), User.local(), new HashMap<>(){{
-            put("maxContentLength", "32");
-        }}), null);
+        nlpTask = new ExtractNlpTask(indexer, pipeline, factory, new Task<>(ExtractNlpTask.class.getName(), User.local(),
+                Map.of("maxContentLength", "32")), null);
     }
 
     @Test
@@ -46,6 +46,16 @@ public class ExtractNlpTaskTest {
 
         verify(pipeline, never()).initialize(any(Language.class));
         verify(pipeline, never()).process(any());
+    }
+
+    @Test(timeout = 3000)
+    public void test_exit_after_nb_max_attempts()  throws Exception  {
+        ExtractNlpTask nlpTask = new ExtractNlpTask(indexer, pipeline, factory, new Task<>(ExtractNlpTask.class.getName(), User.local(),
+                Map.of(POLLING_INTERVAL_SECONDS_OPT, "0.1")), null);
+        long start = System.currentTimeMillis();
+        nlpTask.call();
+        long end = System.currentTimeMillis();
+        assertThat(end - start).isGreaterThan(NB_MAX_POLLS * 100);
     }
 
     @Test

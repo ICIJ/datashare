@@ -47,12 +47,32 @@ public class JooqTaskRepositoryTest {
     public void test_put_get() {
         Task<Object> foo = new Task<>("foo", User.local(), Map.of("user", User.local()));
 
-        assertThat(repository.put(foo.getId(), foo)).isSameAs(foo);
+        assertThat(repository.put(foo.getId(), foo)).isNull();
 
         Task<?> actual = repository.get(foo.getId());
         assertThat(actual).isNotSameAs(foo); // not same instance
         assertThat(actual).isEqualTo(foo); // but equals as defined by Task
         assertThat(actual.getUser()).isEqualTo(User.local());
+    }
+
+    @Test
+    public void test_upsert_already_exists() {
+        Task<Integer> foo = new Task<>("foo", User.local(), Map.of("user", User.local()));
+
+        repository.save(foo);
+        foo.setProgress(0.5);
+        assertThat(repository.put(foo.getId(), foo).getState()).isEqualTo(Task.State.CREATED);
+
+        Task<?> actual = repository.get(foo.getId());
+        assertThat(actual.getState()).isEqualTo(Task.State.RUNNING);
+        assertThat(actual.getCompletedAt()).isNull();
+
+
+        foo.setResult(1);
+        repository.put(foo.getId(), foo);
+        actual = repository.get(foo.getId());
+        assertThat(actual.getState()).isEqualTo(Task.State.DONE);
+        assertThat(actual.getCompletedAt()).isNotNull();
     }
 
     @Test

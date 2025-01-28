@@ -126,7 +126,7 @@ public final class DatashareCliOptions {
     public static final String TASK_ROUTING_STRATEGY_OPT = "taskRoutingStrategy";
     public static final String TASK_ROUTING_KEY_OPT = "taskRoutingKey";
     public static final String OAUTH_USER_PROJECTS_KEY_OPT = "oauthUserProjectsAttribute";
-    public static final String POLLING_INTERVAL_OPT = "pollingInterval";
+    public static final String POLLING_INTERVAL_SECONDS_OPT = "pollingInterval";
     public static final String TASK_REPOSITORY_OPT = "taskRepositoryType";
 
     private static final Path DEFAULT_DATASHARE_HOME = Paths.get(System.getProperty("user.home"), ".local/share/datashare");
@@ -831,9 +831,9 @@ public final class DatashareCliOptions {
     }
 
     public static void pollingInterval(OptionParser parser) {
-        parser.acceptsAll(singletonList(POLLING_INTERVAL_OPT), "Queue polling interval.")
+        parser.acceptsAll(singletonList(POLLING_INTERVAL_SECONDS_OPT), "Queue polling interval.")
                 .withRequiredArg()
-                .ofType(String.class).defaultsTo("60");
+                .ofType(String.class).defaultsTo(DEFAULT_POLLING_INTERVAL_SEC);
     }
 
     public static void taskRepositoryType(OptionParser parser) {
