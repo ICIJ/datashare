@@ -11,7 +11,7 @@
     </parent>
 
     <artifactId>datashare-api</artifactId>
-    <version>14.3.2</version>
+    <version>14.4.0</version>
     <packaging>jar</packaging>
 
     <dependencies>
