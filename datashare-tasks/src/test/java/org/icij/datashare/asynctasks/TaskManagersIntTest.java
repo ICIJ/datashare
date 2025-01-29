@@ -62,11 +62,9 @@ public class TaskManagersIntTest {
         final RedissonClient redissonClient = new RedissonClientFactory().withOptions(
             Options.from(propertiesProvider.getProperties())).create();
 
-        AMQP = new AmqpInterlocutor(propertiesProvider);
-        AMQP.deleteQueues(AmqpQueue.MANAGER_EVENT, AmqpQueue.WORKER_EVENT, AmqpQueue.TASK);
-        AMQP.createAmqpChannelForPublish(AmqpQueue.TASK);
-        AMQP.createAmqpChannelForPublish(AmqpQueue.WORKER_EVENT);
-        AMQP.createAmqpChannelForPublish(AmqpQueue.MANAGER_EVENT);
+        AmqpQueue[] queues = {AmqpQueue.MANAGER_EVENT, AmqpQueue.WORKER_EVENT, AmqpQueue.TASK};
+        AMQP = new AmqpInterlocutor(propertiesProvider, queues);
+        AMQP.deleteQueues(queues);
         EventWaiter amqpWaiter = new EventWaiter(2); // default: progress, result
         EventWaiter redisWaiter = new EventWaiter(2); // default: progress, result
 

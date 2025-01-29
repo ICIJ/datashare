@@ -30,9 +30,8 @@ public class AmqpTest {
 
     @BeforeClass
     public static void setUp() throws Exception {
-        amqp = new AmqpInterlocutor(new Configuration(new URI("amqp://admin:admin@localhost:12345?nbMessageMax=10&rabbitMq=false")));
-        amqp.createAmqpChannelForPublish(AmqpQueue.EVENT);
-        amqp.createAmqpChannelForPublish(AmqpQueue.MANAGER_EVENT);
+        AmqpQueue[] queues = {AmqpQueue.EVENT, AmqpQueue.MANAGER_EVENT};
+        amqp = new AmqpInterlocutor(new Configuration(new URI("amqp://admin:admin@localhost:12345?nbMessageMax=10&rabbitMq=false")), queues);
     }
 
     @Test
@@ -132,7 +131,7 @@ public class AmqpTest {
             "We don't know for now how to interrupt the QPid Server")
     @Test
     public void test_publish_with_broker_down() throws Exception {
-        AmqpInterlocutor amqpInterlocutor = new AmqpInterlocutor(new Configuration("localhost", 12345, "admin", "admin", 10));
+        AmqpInterlocutor amqpInterlocutor = new AmqpInterlocutor(new Configuration("localhost", 12345, "admin", "admin", 10), AmqpQueue.values());
         AmqpConsumer<TestEvent, TestEventConsumer> consumer = new AmqpConsumer<>(amqp, new TestEventConsumer(), AmqpQueue.EVENT, TestEvent.class);
         consumer.consumeEvents();
 

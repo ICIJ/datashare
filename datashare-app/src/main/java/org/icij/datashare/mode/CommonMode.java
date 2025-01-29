@@ -173,7 +173,6 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
         } catch (IOException | URISyntaxException e) {
             throw new RuntimeException(e);
         }
-        amqp.createAllPublishChannels();
         addCloseable(amqp);
         return amqp;
     }

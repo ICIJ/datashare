@@ -11,7 +11,6 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeoutException;
 
@@ -31,22 +30,20 @@ public class AmqpInterlocutor implements Closeable {
     private final ConcurrentHashMap<AmqpQueue, AmqpChannel> publishChannels = new ConcurrentHashMap<>();
 
 
+    public AmqpInterlocutor(Configuration configuration, AmqpQueue[] queues) throws IOException {
+        this.configuration = configuration;
+        ConnectionFactory connectionFactory = createConnectionFactory(configuration);
+        this.connection = createConnection(connectionFactory);
+        createPublishChannels(queues);
+    }
+
+    public AmqpInterlocutor(PropertiesProvider propertiesProvider, AmqpQueue[] queues) throws IOException, URISyntaxException {
+        this(new Configuration(new URI(propertiesProvider.get("messageBusAddress").orElse("amqp://rabbitmq:5672"))), queues);
+
+    }
+
     public AmqpInterlocutor(PropertiesProvider propertiesProvider) throws IOException, URISyntaxException {
-        this(new Configuration(new URI(propertiesProvider.get("messageBusAddress").orElse("amqp://rabbitmq:5672"))));
-    }
-
-    public AmqpInterlocutor(Configuration configuration, List<AmqpQueue> queues) throws IOException {
-        this.configuration = configuration;
-        ConnectionFactory connectionFactory = createConnectionFactory(configuration);
-        this.connection = createConnection(connectionFactory);
-        createAllPublishChannels();
-    }
-
-    public AmqpInterlocutor(Configuration configuration) throws IOException {
-        this.configuration = configuration;
-        ConnectionFactory connectionFactory = createConnectionFactory(configuration);
-        this.connection = createConnection(connectionFactory);
-        createAllPublishChannels();
+        this(propertiesProvider, AmqpQueue.values());
     }
 
     Connection createConnection(ConnectionFactory connectionFactory) throws IOException {
@@ -83,8 +80,8 @@ public class AmqpInterlocutor implements Closeable {
         return channel;
     }
 
-    public AmqpInterlocutor createAllPublishChannels() {
-        for (AmqpQueue queue: AmqpQueue.values()) {
+    AmqpInterlocutor createPublishChannels(AmqpQueue... amqpQueues) {
+        for (AmqpQueue queue: amqpQueues) {
             try {
                 if (AmqpQueue.MONITORING.equals(queue) && configuration.monitoring) {
                     createAmqpChannelForMonitoring(queue);
@@ -98,7 +95,7 @@ public class AmqpInterlocutor implements Closeable {
         return this;
     }
 
-    public synchronized AmqpInterlocutor createAmqpChannelForMonitoring(AmqpQueue queue) throws IOException {
+    synchronized AmqpInterlocutor createAmqpChannelForMonitoring(AmqpQueue queue) throws IOException {
         AmqpChannel channel = new AmqpChannel(connection.createChannel(), queue);
         channel.initForMonitoring(configuration.rabbitMq, configuration.nbMaxMessages);
         publishChannels.put(queue, channel);
@@ -106,7 +103,7 @@ public class AmqpInterlocutor implements Closeable {
         return this;
     }
 
-    public synchronized AmqpInterlocutor createAmqpChannelForPublish(AmqpQueue queue) throws IOException {
+    synchronized AmqpInterlocutor createAmqpChannelForPublish(AmqpQueue queue) throws IOException {
         AmqpChannel channel = new AmqpChannel(connection.createChannel(), queue);
         channel.initForPublish();
         publishChannels.put(queue, channel);
