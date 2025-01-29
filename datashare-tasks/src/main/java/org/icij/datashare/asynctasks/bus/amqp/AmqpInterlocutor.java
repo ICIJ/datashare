@@ -100,7 +100,7 @@ public class AmqpInterlocutor implements Closeable {
 
     public synchronized AmqpInterlocutor createAmqpChannelForMonitoring(AmqpQueue queue) throws IOException {
         AmqpChannel channel = new AmqpChannel(connection.createChannel(), queue);
-        channel.initForMonitoring(configuration.nbMaxMessages);
+        channel.initForMonitoring(configuration.rabbitMq, configuration.nbMaxMessages);
         publishChannels.put(queue, channel);
         logger.info("monitoring channel {} has been created for exchange {}", channel, queue.exchange);
         return this;

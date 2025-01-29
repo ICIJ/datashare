@@ -128,10 +128,15 @@ public class AmqpChannel {
 		rabbitMqChannel.exchangeDeclare(queue.exchange, queue.exchangeType, durable);
 	}
 
-	void initForMonitoring(int nbMaxMessages) throws IOException {
+	void initForMonitoring(boolean rabbitMq, int nbMaxMessages) throws IOException {
+		Map<String, Object> queueArguments = new HashMap<>() {{
+			if (rabbitMq) {
+				putAll(queue.arguments);
+			}
+		}};
 		String queueName = queueName(null);
 		rabbitMqChannel.exchangeDeclare(queue.exchange, queue.exchangeType, durable);
-		rabbitMqChannel.queueDeclare(queueName, durable, exclusive, autoDelete, queue.arguments);
+		rabbitMqChannel.queueDeclare(queueName, durable, exclusive, autoDelete, queueArguments);
 		rabbitMqChannel.queueBind(queueName, queue.exchange, ofNullable(key).orElse(queue.routingKey));
 		rabbitMqChannel.basicQos(nbMaxMessages);
 	}
