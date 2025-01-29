@@ -15,6 +15,7 @@ import org.redisson.api.RedissonClient;
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CountDownLatch;
@@ -174,12 +175,10 @@ public class TaskManagerAmqpTest {
 
     @Test
     public void test_health_ko() throws Exception {
+        AmqpQueue[] queues = {AmqpQueue.TASK, AmqpQueue.MANAGER_EVENT, AmqpQueue.MONITORING};
         AmqpInterlocutor amqpKo = new AmqpInterlocutor(new PropertiesProvider(new HashMap<>() {{
             put("messageBusAddress", "amqp://admin:admin@localhost?rabbitMq=false&monitoring=true");
-        }}));
-        amqpKo.createAmqpChannelForPublish(AmqpQueue.TASK);
-        amqpKo.createAmqpChannelForPublish(AmqpQueue.MANAGER_EVENT);
-        amqpKo.createAmqpChannelForPublish(AmqpQueue.MONITORING);
+        }}), queues);
         RedissonClient redissonClientKo = new RedissonClientFactory().withOptions(
                 Options.from(new PropertiesProvider(Map.of("redisAddress", "redis://redis:6379")).getProperties())).create();
         TaskManagerAmqp taskManagerAmqpKo = new TaskManagerAmqp(amqpKo, new TaskRepositoryRedis(redissonClientKo, "tasks:queue:test"), RoutingStrategy.UNIQUE, () -> nextMessage.countDown());
@@ -191,12 +190,10 @@ public class TaskManagerAmqpTest {
 
     @BeforeClass
     public static void beforeClass() throws Exception {
+        AmqpQueue[] queues = {AmqpQueue.TASK, AmqpQueue.MANAGER_EVENT, AmqpQueue.MONITORING};
         AMQP = new AmqpInterlocutor(new PropertiesProvider(new HashMap<>() {{
             put("messageBusAddress", "amqp://admin:admin@localhost?rabbitMq=false&monitoring=true");
-        }}));
-        AMQP.createAmqpChannelForPublish(AmqpQueue.TASK);
-        AMQP.createAmqpChannelForPublish(AmqpQueue.MANAGER_EVENT);
-        AMQP.createAmqpChannelForPublish(AmqpQueue.MONITORING);
+        }}), queues);
     }
 
     @Before
