@@ -31,8 +31,9 @@ public class ConfigurationTest {
     @Test
     public void configuration_constructor_url_with_params() throws URISyntaxException {
         Configuration configuration = new Configuration(new URI("amqp://user:pass@localhost:12345?" +
-                "deadLetter=true&nbMaxMessages=10&requeueDelay=123&recoveryDelay=321"));
+                "deadLetter=true&nbMaxMessages=10&requeueDelay=123&recoveryDelay=321&monitoring=true"));
         Assertions.assertThat(configuration.rabbitMq).isTrue();
+        Assertions.assertThat(configuration.monitoring).isTrue();
         Assertions.assertThat(configuration.nbMaxMessages).isEqualTo(10);
         Assertions.assertThat(configuration.requeueDelay).isEqualTo(123);
         Assertions.assertThat(configuration.connectionRecoveryDelay).isEqualTo(321);

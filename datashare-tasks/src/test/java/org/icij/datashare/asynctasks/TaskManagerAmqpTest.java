@@ -175,7 +175,7 @@ public class TaskManagerAmqpTest {
     @Test
     public void test_health_ko() throws Exception {
         AmqpInterlocutor amqpKo = new AmqpInterlocutor(new PropertiesProvider(new HashMap<>() {{
-            put("messageBusAddress", "amqp://admin:admin@localhost?rabbitMq=false");
+            put("messageBusAddress", "amqp://admin:admin@localhost?rabbitMq=false&monitoring=true");
         }}));
         amqpKo.createAmqpChannelForPublish(AmqpQueue.TASK);
         amqpKo.createAmqpChannelForPublish(AmqpQueue.MANAGER_EVENT);
@@ -192,7 +192,7 @@ public class TaskManagerAmqpTest {
     @BeforeClass
     public static void beforeClass() throws Exception {
         AMQP = new AmqpInterlocutor(new PropertiesProvider(new HashMap<>() {{
-            put("messageBusAddress", "amqp://admin:admin@localhost?rabbitMq=false");
+            put("messageBusAddress", "amqp://admin:admin@localhost?rabbitMq=false&monitoring=true");
         }}));
         AMQP.createAmqpChannelForPublish(AmqpQueue.TASK);
         AMQP.createAmqpChannelForPublish(AmqpQueue.MANAGER_EVENT);
