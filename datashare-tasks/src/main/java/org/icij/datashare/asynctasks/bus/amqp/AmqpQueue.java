@@ -21,8 +21,7 @@ public enum AmqpQueue {
 	MANAGER_EVENT  ("exchangeManagerEvents",  BuiltinExchangeType.DIRECT,"routingKeyManagerEvents", new HashMap<>(), MANAGER_EVENT_DLQ),
 	WORKER_EVENT("exchangeWorkerEvents", BuiltinExchangeType.FANOUT, "routingKeyWorkerEvents"),
 	MONITORING("exchangeMonitoring", BuiltinExchangeType.DIRECT, "routingKeyMonitoring", Map.of(
-			"x-message-ttl", 5000,
-			"x-expires", 3600 * 1000), null);
+			"x-message-ttl", 5000), null);
 
 	public final String exchange;
 	public final String routingKey;
