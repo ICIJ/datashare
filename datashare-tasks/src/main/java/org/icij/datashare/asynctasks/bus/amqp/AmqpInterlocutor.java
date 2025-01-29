@@ -78,10 +78,21 @@ public class AmqpInterlocutor implements Closeable {
         for (AmqpQueue queue: AmqpQueue.values()) {
             try {
                 createAmqpChannelForPublish(queue);
+                if (AmqpQueue.MONITORING.equals(queue) && configuration.monitoring) {
+                    createAmqpChannelForMonitoring(queue);
+                }
             } catch (IOException e) {
                 logger.error("cannot create channel for publish for queue {}", queue);
             }
         }
+        return this;
+    }
+
+    public synchronized AmqpInterlocutor createAmqpChannelForMonitoring(AmqpQueue queue) throws IOException {
+        AmqpChannel channel = new AmqpChannel(connection.createChannel(), queue);
+        channel.initForMonitoring(configuration.nbMaxMessages);
+        publishChannels.put(queue, channel);
+        logger.info("monitoring channel {} has been created for exchange {}", channel, queue.exchange);
         return this;
     }
 
