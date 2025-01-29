@@ -11,6 +11,7 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeoutException;
 
@@ -34,10 +35,18 @@ public class AmqpInterlocutor implements Closeable {
         this(new Configuration(new URI(propertiesProvider.get("messageBusAddress").orElse("amqp://rabbitmq:5672"))));
     }
 
+    public AmqpInterlocutor(Configuration configuration, List<AmqpQueue> queues) throws IOException {
+        this.configuration = configuration;
+        ConnectionFactory connectionFactory = createConnectionFactory(configuration);
+        this.connection = createConnection(connectionFactory);
+        createAllPublishChannels();
+    }
+
     public AmqpInterlocutor(Configuration configuration) throws IOException {
         this.configuration = configuration;
         ConnectionFactory connectionFactory = createConnectionFactory(configuration);
         this.connection = createConnection(connectionFactory);
+        createAllPublishChannels();
     }
 
     Connection createConnection(ConnectionFactory connectionFactory) throws IOException {
@@ -77,9 +86,10 @@ public class AmqpInterlocutor implements Closeable {
     public AmqpInterlocutor createAllPublishChannels() {
         for (AmqpQueue queue: AmqpQueue.values()) {
             try {
-                createAmqpChannelForPublish(queue);
                 if (AmqpQueue.MONITORING.equals(queue) && configuration.monitoring) {
                     createAmqpChannelForMonitoring(queue);
+                } else {
+                    createAmqpChannelForPublish(queue);
                 }
             } catch (IOException e) {
                 logger.error("cannot create channel for publish for queue {}", queue);
@@ -104,7 +114,7 @@ public class AmqpInterlocutor implements Closeable {
         return this;
     }
 
-    public AmqpChannel createAmqpChannelForConsume(AmqpQueue queue, String key) throws IOException {
+    AmqpChannel createAmqpChannelForConsume(AmqpQueue queue, String key) throws IOException {
         AmqpChannel channel = new AmqpChannel(connection.createChannel(), queue, key);
         channel.initForConsume(configuration.rabbitMq, configuration.nbMaxMessages);
         logger.info("consume channel {} has been created for queue {}", channel, channel.queueName(AmqpChannel.WORKER_PREFIX));
