@@ -22,6 +22,7 @@ public class Configuration {
 	public final int requeueDelay;
 	public final int connectionRecoveryDelay;
 	public final boolean rabbitMq;
+	public final boolean monitoring;
 
 	public Configuration(URI amqpAddress) {
 		assert "amqp".equals(amqpAddress.getScheme());
@@ -41,6 +42,7 @@ public class Configuration {
 				stream(query.split("&")).
                         collect(Collectors.toMap(kv -> kv.split("=")[0], kv -> kv.split("=")[1]));
 		rabbitMq = Boolean.parseBoolean(ofNullable(properties.get("rabbitMq")).orElse("true"));
+		monitoring = Boolean.parseBoolean(ofNullable(properties.get("monitoring")).orElse("false"));
 		nbMaxMessages = Integer.parseInt(ofNullable(properties.get("nbMaxMessages")).orElse(String.valueOf(DEFAULT_PREFETCH_NUMBER)));
 		requeueDelay = Integer.parseInt(ofNullable(properties.get("requeueDelay")).orElse("30"));
 		String connectionRecoveryDelayStr = properties.get("recoveryDelay");
@@ -57,6 +59,7 @@ public class Configuration {
 		this.requeueDelay = 30;
 		this.connectionRecoveryDelay = DEFAULT_CONNECTION_RECOVERY_DELAY;
 		this.rabbitMq = true;
+		this.monitoring = false;
 	}
 	
 	@Override public String toString() {
