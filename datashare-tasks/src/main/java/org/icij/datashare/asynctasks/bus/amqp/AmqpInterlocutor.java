@@ -85,7 +85,7 @@ public class AmqpInterlocutor implements Closeable {
             try {
                 if (AmqpQueue.MONITORING.equals(queue) && configuration.monitoring) {
                     createAmqpChannelForMonitoring(queue);
-                } else {
+                } else if (!AmqpQueue.MONITORING.equals(queue)) {
                     createAmqpChannelForPublish(queue);
                 }
             } catch (IOException e) {
