@@ -36,32 +36,36 @@ public class AmqpChannel {
 	private final boolean exclusive;
 	private final boolean autoDelete;
 	private final Logger logger = LoggerFactory.getLogger(this.getClass());
-	private final ConcurrentNavigableMap<Long, byte[]> outstandingConfirms = new ConcurrentSkipListMap<>();
+//	private final ConcurrentNavigableMap<Long, byte[]> outstandingConfirms = new ConcurrentSkipListMap<>();
 	final Channel rabbitMqChannel;
 	final AmqpQueue queue;
 	private final int randomQueueNumber;
 	private final String key;
+//
+//	private final ConfirmCallback cleanOutstandingConfirms = (sequenceNumber, multiple) -> {
+//		if (multiple) {
+//			ConcurrentNavigableMap<Long, byte[]> confirmed = outstandingConfirms.headMap(sequenceNumber, true);
+//			confirmed.clear();
+//		} else {
+//			outstandingConfirms.remove(sequenceNumber);
+//		}
+//	};
 
-	private final ConfirmCallback cleanOutstandingConfirms = (sequenceNumber, multiple) -> {
-		if (multiple) {
-			ConcurrentNavigableMap<Long, byte[]> confirmed = outstandingConfirms.headMap(sequenceNumber, true);
-			confirmed.clear();
-		} else {
-			outstandingConfirms.remove(sequenceNumber);
-		}
-	};
-	
-	public AmqpChannel(Channel channel, AmqpQueue queue) {
-		this(channel, queue, null);
+	public AmqpChannel(AmqpInterlocutor amqp, AmqpQueue queue) {
+		this(amqp, queue, null);
 	}
 
-	public AmqpChannel(Channel channel, AmqpQueue queue, String key) {
-		this.rabbitMqChannel = channel;
-		channel.addConfirmListener(cleanOutstandingConfirms, (sequenceNumber, multiple) -> {
-			byte[] body = outstandingConfirms.get(sequenceNumber);
-			logger.error("Message with body {} has been nack-ed. Sequence number: {}, multiple: {}", new String(body), sequenceNumber, multiple);
-			cleanOutstandingConfirms.handle(sequenceNumber, multiple);
-		});
+	public AmqpChannel(AmqpInterlocutor amqp, AmqpQueue queue, String key) {
+		try {
+			this.rabbitMqChannel = amqp.getThreadChannel();
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
+//		channel.addConfirmListener(cleanOutstandingConfirms, (sequenceNumber, multiple) -> {
+//			byte[] body = outstandingConfirms.get(sequenceNumber);
+//			logger.error("Message with body {} has been nack-ed. Sequence number: {}, multiple: {}", new String(body), sequenceNumber, multiple);
+//			cleanOutstandingConfirms.handle(sequenceNumber, multiple);
+//		});
 		this.queue = queue;
 		this.randomQueueNumber = rand.nextInt(1000);
 		this.key = key;
