@@ -83,11 +83,7 @@ public class AmqpInterlocutor implements Closeable {
     AmqpInterlocutor createPublishChannels(AmqpQueue... amqpQueues) {
         for (AmqpQueue queue: amqpQueues) {
             try {
-                if (AmqpQueue.MONITORING.equals(queue) && configuration.monitoring) {
-                    createAmqpChannelForMonitoring(queue);
-                } else if (!AmqpQueue.MONITORING.equals(queue)) {
-                    createAmqpChannelForPublish(queue);
-                }
+                createAmqpChannelForPublish(queue);
             } catch (IOException e) {
                 logger.error("cannot create channel for publish for queue {}", queue);
             }
@@ -95,19 +91,17 @@ public class AmqpInterlocutor implements Closeable {
         return this;
     }
 
-    synchronized AmqpInterlocutor createAmqpChannelForMonitoring(AmqpQueue queue) throws IOException {
-        AmqpChannel channel = new AmqpChannel(connection.createChannel(), queue);
-        channel.initForMonitoring(configuration.rabbitMq, configuration.nbMaxMessages);
-        publishChannels.put(queue, channel);
-        logger.info("monitoring channel {} has been created for exchange {}", channel, queue.exchange);
-        return this;
-    }
-
     synchronized AmqpInterlocutor createAmqpChannelForPublish(AmqpQueue queue) throws IOException {
-        AmqpChannel channel = new AmqpChannel(connection.createChannel(), queue);
-        channel.initForPublish();
-        publishChannels.put(queue, channel);
-        logger.info("publish channel {} has been created for exchange {}", channel, queue.exchange);
+        if (queue != AmqpQueue.MONITORING || hasMonitoringQueue()) {
+            AmqpChannel channel = new AmqpChannel(connection.createChannel(), queue);
+            if (queue == AmqpQueue.MONITORING) {
+                channel.initForConsume(configuration.rabbitMq, configuration.nbMaxMessages); // for creating a queue
+            } else {
+                channel.initForPublish();
+            }
+            publishChannels.put(queue, channel);
+            logger.info("publish channel {} has been created for exchange {}", channel, queue.exchange);
+        }
         return this;
     }
 
@@ -156,4 +150,6 @@ public class AmqpInterlocutor implements Closeable {
             super("Unknown channel for queue " + queue);
         }
     }
+    public boolean hasMonitoringQueue() {return configuration.monitoring;}
+    public boolean isConnectionOpen() {return connection.isOpen();}
 }
