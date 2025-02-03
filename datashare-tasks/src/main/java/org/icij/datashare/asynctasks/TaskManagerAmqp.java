@@ -1,6 +1,5 @@
 package org.icij.datashare.asynctasks;
 
-import com.rabbitmq.client.ShutdownSignalException;
 import org.icij.datashare.asynctasks.bus.amqp.*;
 
 import org.icij.datashare.tasks.RoutingStrategy;
@@ -8,7 +7,6 @@ import org.icij.datashare.tasks.RoutingStrategy;
 import java.io.IOException;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 import java.util.function.Consumer;
 
 import static java.util.Optional.ofNullable;
@@ -109,14 +107,18 @@ public class TaskManagerAmqp implements TaskManager {
     }
 
     @Override
-    public boolean getHealth() throws IOException {
+    public boolean getHealth() {
         try {
-            logger.info("sending monitoring event");
-            amqp.publish(AmqpQueue.MONITORING, new MonitoringEvent());
-        } catch (ShutdownSignalException e) {
+            if (amqp.hasMonitoringQueue()) {
+                logger.info("sending monitoring event");
+                amqp.publish(AmqpQueue.MONITORING, new MonitoringEvent());
+                return true;
+            } else {
+                return amqp.isConnectionOpen();
+            }
+        } catch (RuntimeException|IOException e) {
             logger.error("error sending monitoring event", e);
             return false;
         }
-        return true;
     }
 }
