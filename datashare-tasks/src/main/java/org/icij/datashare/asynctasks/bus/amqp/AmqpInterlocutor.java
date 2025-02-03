@@ -85,7 +85,7 @@ public class AmqpInterlocutor implements Closeable {
             try {
                 createAmqpChannelForPublish(queue);
             } catch (IOException e) {
-                logger.error("cannot create channel for publish for queue {}", queue);
+                logger.error("cannot create channel for publish for queue {}", queue, e);
             }
         }
         return this;
