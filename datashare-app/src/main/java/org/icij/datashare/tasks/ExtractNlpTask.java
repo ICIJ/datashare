@@ -31,9 +31,10 @@ import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_PROJECT_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.MAX_CONTENT_LENGTH_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.NLP_PIPELINE_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.POLLING_INTERVAL_SECONDS_OPT;
+import static org.icij.datashare.tasks.GroupHelper.JAVA_GROUP;
 import static org.icij.extract.document.Identifier.shorten;
 
-@TaskGroup("Java")
+@TaskGroup(JAVA_GROUP)
 public class ExtractNlpTask extends PipelineTask<String> implements Monitorable {
     private static final int DEFAULT_MAX_CONTENT_LENGTH = 1024 * 1024;
     public static final int NB_MAX_POLLS = 3;

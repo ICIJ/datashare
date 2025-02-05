@@ -17,8 +17,9 @@ import java.util.regex.Pattern;
 import static java.util.Arrays.stream;
 import static java.util.Optional.ofNullable;
 import static java.util.regex.Pattern.compile;
+import static org.icij.datashare.tasks.GroupHelper.JAVA_GROUP;
 
-@TaskGroup("Java")
+@TaskGroup(JAVA_GROUP)
 public class BatchDownloadCleaner implements Runnable {
     private final Logger logger = LoggerFactory.getLogger(getClass());
     private final Pattern filePattern = compile(BatchDownload.ZIP_FORMAT.replace("%s", "[a-z0-9\\.:|_Z\\-\\[GMT\\]]+"));

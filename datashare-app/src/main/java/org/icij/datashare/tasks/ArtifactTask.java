@@ -23,9 +23,10 @@ import static org.icij.datashare.cli.DatashareCliOptions.ARTIFACT_DIR_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_DEFAULT_PROJECT;
 import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_POLLING_INTERVAL_SEC;
 import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_PROJECT_OPT;
+import static org.icij.datashare.tasks.GroupHelper.JAVA_GROUP;
 import static org.icij.datashare.cli.DatashareCliOptions.POLLING_INTERVAL_SECONDS_OPT;
 
-@TaskGroup("Java")
+@TaskGroup(JAVA_GROUP)
 public class ArtifactTask extends PipelineTask<String> {
     private final Logger logger = LoggerFactory.getLogger(getClass());
     private final Indexer indexer;
