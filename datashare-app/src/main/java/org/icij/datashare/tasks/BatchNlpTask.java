@@ -5,6 +5,7 @@ import static org.icij.datashare.tasks.GroupHelper.JAVA_GROUP;
 
 import com.google.inject.Inject;
 import com.google.inject.assistedinject.Assisted;
+import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
@@ -51,7 +52,7 @@ public class BatchNlpTask extends DefaultTask<Long> implements UserTask, Cancell
     }
 
     @Override
-    public Long call() throws Exception {
+    public Long call() throws IOException, InterruptedException {
         taskThread = Thread.currentThread();
         if (this.docs.isEmpty()) {
             return 0L;

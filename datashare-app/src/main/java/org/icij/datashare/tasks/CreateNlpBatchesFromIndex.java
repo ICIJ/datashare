@@ -90,7 +90,7 @@ public class CreateNlpBatchesFromIndex extends DefaultTask<List<String>> impleme
     }
 
     @Override
-    public List<String> call() throws Exception {
+    public List<String> call() throws IOException {
         ArrayList<String> taskIds = new ArrayList<>();
         taskThread = Thread.currentThread();
         Indexer.Searcher searcher;
@@ -132,7 +132,7 @@ public class CreateNlpBatchesFromIndex extends DefaultTask<List<String>> impleme
         return taskIds;
     }
 
-    private List<String> enqueueScrollBatches(Map<Language, ? extends List<? extends Entity>> docsByLanguage, ArrayList<Document> batch) {
+    private List<String> enqueueScrollBatches(Map<Language, ? extends List<? extends Entity>> docsByLanguage, ArrayList<Document> batch) throws IOException {
         ArrayList<String> batchTaskIds = new ArrayList<>();
         // Make sure we consume the languages in order
         Iterator<? extends Map.Entry<Language, ? extends List<? extends Entity>>> docsIt = docsByLanguage.entrySet()
@@ -163,19 +163,15 @@ public class CreateNlpBatchesFromIndex extends DefaultTask<List<String>> impleme
         return batchTaskIds;
     }
 
-    protected String enqueueBatch(List<Document> batch) {
+    protected String enqueueBatch(List<Document> batch) throws IOException {
         String taskId;
         HashMap<String, Object> args = new HashMap<>(this.batchTaskArgs);
         args.put("docs", batch.stream().map(BatchDocument::fromDocument).toList());
-        try {
-            // TODO: here we bind the task name to the Java class name which is not ideal since it leaks Java inners
-            //  bolts to Python, it could be nice to decouple task names from class names since they can change and
-            //  are bound to languages
-            logger.info("{} - {}", DatashareTime.getNow().getTime(), ((List<BatchDocument>)args.get("docs")).get(0).language());
-            taskId = this.taskManager.startTask(BatchNlpTask.class, this.user, args);
-        } catch (IOException e) {
-            throw new RuntimeException("failed to queue task " + args, e);
-        }
+        // TODO: here we bind the task name to the Java class name which is not ideal since it leaks Java inners
+        //  bolts to Python, it could be nice to decouple task names from class names since they can change and
+        //  are bound to languages
+        logger.info("{} - {}", DatashareTime.getNow().getTime(), ((List<BatchDocument>)args.get("docs")).get(0).language());
+        taskId = this.taskManager.startTask(BatchNlpTask.class, this.user, args);
         batch.clear();
         return taskId;
     }
