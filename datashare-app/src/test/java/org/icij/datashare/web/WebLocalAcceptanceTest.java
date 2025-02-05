@@ -4,9 +4,9 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import net.codestory.rest.Response;
 import org.icij.datashare.Repository;
-import org.icij.datashare.db.JooqRepository;
 import org.icij.datashare.mode.CommonMode;
 import org.icij.datashare.web.testhelpers.AbstractProdWebServerTest;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
@@ -14,19 +14,20 @@ import org.mockito.Mock;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Properties;
 
 import static java.lang.String.format;
 import static org.fest.assertions.Assertions.assertThat;
 import static org.mockito.Mockito.when;
-import static org.mockito.MockitoAnnotations.initMocks;
+import static org.mockito.MockitoAnnotations.openMocks;
 
 public class WebLocalAcceptanceTest extends AbstractProdWebServerTest {
     @Mock Repository jooqRepository;
 
+    private static AutoCloseable mocks;
+
     @Before
     public void setUp() throws Exception {
-        initMocks(this);
+        mocks = openMocks(this);
         when(jooqRepository.getProjects()).thenReturn(new ArrayList<>());
         HashMap<String, Object> properties = new HashMap<>() {{
             put("mode", "LOCAL");
@@ -36,6 +37,11 @@ public class WebLocalAcceptanceTest extends AbstractProdWebServerTest {
         }};
         configure(CommonMode.create(properties).createWebConfiguration());
         waitForDatashare();
+    }
+
+    @After
+    public void teardown() throws Exception {
+        mocks.close();
     }
 
     @Test
@@ -61,12 +67,12 @@ public class WebLocalAcceptanceTest extends AbstractProdWebServerTest {
     }
 
     @Test
-    public void test_get_extensions_list_installed() throws Exception {
+    public void test_get_extensions_list_installed() {
         get("/api/extensions").should().haveType("application/json").contain("\"installed\":true");
     }
 
     @Test
-    public void test_get_plugins_list_installed() throws Exception {
+    public void test_get_plugins_list_installed() {
         get("/api/plugins").should().haveType("application/json").contain("\"installed\":true");
     }
 

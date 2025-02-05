@@ -2,7 +2,6 @@ package org.icij.datashare;
 
 import java.util.List;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 import static java.util.Arrays.stream;
 import static java.util.stream.Collectors.joining;
