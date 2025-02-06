@@ -49,7 +49,7 @@ public class CreateNlpBatchesFromIndexParametrizedTest {
             super(taskManager, indexer, taskView, ignored);
         }
 
-        protected String enqueueBatch(List<Document> batch) {
+        protected String enqueueBatch(List<Document> batch) throws IOException {
             DatashareTime.getInstance().addMilliseconds(1);
             return super.enqueueBatch(batch);
         }
