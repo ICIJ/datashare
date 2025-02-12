@@ -121,12 +121,6 @@ public class Project extends ProjectProxy {
         return project == null || project.isAllowed(socketAddress);
     }
 
-    @JsonIgnore
-    @Override
-    public String getId() {
-        return name;
-    }
-
     public String getName() {
         return name;
     }

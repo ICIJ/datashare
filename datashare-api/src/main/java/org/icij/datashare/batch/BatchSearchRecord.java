@@ -1,5 +1,8 @@
 package org.icij.datashare.batch;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import org.icij.datashare.text.ProjectProxy;
 import org.icij.datashare.user.User;
 
@@ -8,15 +11,15 @@ import java.util.Date;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
-import static java.util.Collections.unmodifiableList;
 import static java.util.Optional.ofNullable;
 
 public class BatchSearchRecord {
-
-    public enum State {QUEUED, RUNNING, SUCCESS, FAILURE}
+    public enum State {QUEUED, RUNNING, SUCCESS, FAILURE;}
     public final String uuid;
     public final boolean published;
+    @JsonIgnore
     public final List<ProjectProxy> projects;
     public final String name;
     public final String description;
@@ -30,16 +33,27 @@ public class BatchSearchRecord {
 
     // for tests
     public BatchSearchRecord(final List<ProjectProxy> projects, final String name, final String description, final int nbQueries, Date date) {
-        this(UUID.randomUUID().toString(), projects, name, description, nbQueries, date, State.QUEUED, User.local(),
+        this(UUID.randomUUID().toString(), projects.stream().map(ProjectProxy::getId).toList(), name, description, nbQueries, date, State.QUEUED, User.local(),
                 0, false,null, null);
     }
-
-    public BatchSearchRecord(String uuid, List<ProjectProxy> projects, String name, String description, int nbQueries, Date date, State state, User user,
-                             int nbResults, boolean published, String errorMessage, String errorQuery){
+    @JsonCreator
+    public BatchSearchRecord(
+            @JsonProperty("uuid") String uuid,
+            @JsonProperty("projects") List<String> projects,
+            @JsonProperty("name") String name,
+            @JsonProperty("description") String description,
+            @JsonProperty("nbQueries") int nbQueries,
+            @JsonProperty("date") Date date,
+            @JsonProperty("state") State state,
+            @JsonProperty("user") User user,
+            @JsonProperty("nbResults") int nbResults,
+            @JsonProperty("published") boolean published,
+            @JsonProperty("errorMessage") String errorMessage,
+            @JsonProperty("errorQuery") String errorQuery) {
         assert date != null && uuid != null;
         this.uuid = uuid;
         this.published = published;
-        this.projects = unmodifiableList(ofNullable(projects).orElse(new ArrayList<>()));
+        this.projects = ofNullable(projects).orElse(new ArrayList<>()).stream().map(ProjectProxy::new).toList();
         this.name = name;
         this.description = description;
         this.user = user;
@@ -56,8 +70,12 @@ public class BatchSearchRecord {
      * @param record to copy
      */
     public BatchSearchRecord(BatchSearchRecord record){
-        this(record.uuid, record.projects, record.name, record.description, record.nbQueries, record.date,
+        this(record.uuid, record.getProjects(), record.name, record.description, record.nbQueries, record.date,
                 record.state, record.user, record.nbResults, record.published, record.errorMessage, record.errorQuery);
+    }
+
+    List<String> getProjects() {
+        return projects.stream().map(ProjectProxy::getId).collect(Collectors.toList());
     }
 
     @Override

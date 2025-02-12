@@ -36,7 +36,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 import static org.mockito.MockitoAnnotations.initMocks;
 
-public class TaskWorkerIntTest {
+public class BatchDownloadRunnerIntTest {
     @ClassRule public static ElasticsearchRule es = new ElasticsearchRule(TEST_INDEXES);
     @Rule public DatashareTimeRule timeRule = new DatashareTimeRule("2020-05-25T10:11:12Z");
     @Rule public TemporaryFolder fs = new TemporaryFolder();
