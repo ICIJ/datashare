@@ -350,6 +350,10 @@ jobs:
           command: |
             docker run --privileged --rm tonistiigi/binfmt --install all
       - run:
+          name: Check if F is present in flags in output
+          command: |
+            cat /proc/sys/fs/binfmt_misc/qemu-aarch64
+      - run:
           name: Build and push the image for several platform
           command: |
             cd /tmp/datashare/datashare-dist/target/datashare-dist-$CIRCLE_TAG-docker/
