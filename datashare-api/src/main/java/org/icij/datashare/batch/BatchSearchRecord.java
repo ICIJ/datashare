@@ -73,7 +73,7 @@ public class BatchSearchRecord {
         this(record.uuid, record.getProjects(), record.name, record.description, record.nbQueries, record.date,
                 record.state, record.user, record.nbResults, record.published, record.errorMessage, record.errorQuery);
     }
-
+    @JsonProperty("projects")
     List<String> getProjects() {
         return projects.stream().map(ProjectProxy::getId).collect(Collectors.toList());
     }
