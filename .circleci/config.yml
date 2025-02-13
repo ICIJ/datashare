@@ -348,7 +348,7 @@ jobs:
       - run:
           name: Install tonistiigi/binfmt support for additional platforms
           command: |
-            docker run --privileged --rm tonistiigi/binfmt:qemu-v7.0.0.28 --install all
+            docker run --privileged --rm tonistiigi/binfmt:qemu-v7.0.0-28 --install all
       - run:
           name: Build and push the image for several platform
           command: |
