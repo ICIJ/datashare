@@ -351,10 +351,6 @@ jobs:
             docker run --privileged --rm tonistiigi/binfmt:qemu-v9.2.0-51 --uninstall qemu-*
             docker run --privileged --rm tonistiigi/binfmt:qemu-v9.2.0-51 --install all
       - run:
-          name: Check if F is present in flags in output
-          command: |
-            cat /proc/sys/fs/binfmt_misc/qemu-aarch64
-      - run:
           name: Build and push the image for several platform
           command: |
             cd /tmp/datashare/datashare-dist/target/datashare-dist-$CIRCLE_TAG-docker/
