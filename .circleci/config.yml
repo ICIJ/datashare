@@ -346,9 +346,10 @@ jobs:
           command: |
             docker login -u ${DOCKER_USER} -p ${DOCKER_PASS}
       - run:
-          name: Install tonistiigi/binfmt support for additional platforms
+          name: Reinstall qemu
           command: |
-            docker run --privileged --rm tonistiigi/binfmt --install all
+            docker run --privileged --rm tonistiigi/binfmt:qemu-v9.2.0-51 --uninstall qemu-*
+            docker run --privileged --rm tonistiigi/binfmt:qemu-v9.2.0-51 --install all
       - run:
           name: Check if F is present in flags in output
           command: |
