@@ -133,8 +133,8 @@ public class TaskManagerRedisTest {
         String taskViewId = taskManager.startTask("HelloWorld", User.local(), new HashMap<>() {{
                 put("greeted", "world");
             }});
-        String expectedResult = "Hello world !";
-        taskSupplier.result(taskViewId, new TaskResult<>(expectedResult));
+        TaskResult<String> expectedResult = new TaskResult<>("Hello world !");
+        taskSupplier.result(taskViewId, expectedResult);
         assertThat(waitForEvent.await(100, TimeUnit.SECONDS)).isTrue();
 
         assertThat(taskManager.getTasks()).hasSize(1);

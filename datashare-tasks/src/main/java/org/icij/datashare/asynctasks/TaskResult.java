@@ -6,7 +6,8 @@ import org.icij.datashare.asynctasks.bus.amqp.UriResult;
 
 import java.io.Serializable;
 
-public record TaskResult<V extends Serializable>(
+
+public record TaskResult<V extends Serializable> (
         @JsonSubTypes({
                 @JsonSubTypes.Type(value = UriResult.class),
                 @JsonSubTypes.Type(value = Long.class)

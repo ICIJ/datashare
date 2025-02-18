@@ -5,17 +5,23 @@ import org.icij.datashare.asynctasks.bus.amqp.AmqpInterlocutor;
 import org.icij.datashare.asynctasks.bus.amqp.AmqpQueue;
 import org.icij.datashare.asynctasks.bus.amqp.AmqpServerRule;
 import org.icij.datashare.asynctasks.bus.amqp.TaskError;
+import org.icij.datashare.asynctasks.bus.amqp.UriResult;
 import org.icij.datashare.tasks.RoutingStrategy;
 import org.icij.datashare.user.User;
 import org.icij.extract.redis.RedissonClientFactory;
 import org.icij.task.Options;
-import org.junit.*;
+import org.junit.After;
+import org.junit.AfterClass;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.ClassRule;
+import org.junit.Test;
 import org.redisson.api.RedissonClient;
 
 import java.io.IOException;
 import java.io.Serializable;
+import java.net.URI;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CountDownLatch;
@@ -104,11 +110,27 @@ public class TaskManagerAmqpTest {
 
         // in the task runner loop
         Task<Serializable> task = taskQueue.poll(2, TimeUnit.SECONDS); // to sync
-        taskSupplier.result(task.id,new TaskResult<>("result"));
+        TaskResult<String> result = new TaskResult<>("result");
+        taskSupplier.result(task.id, result);
 
         nextMessage.await();
         assertThat(taskManager.getTask(task.id).getState()).isEqualTo(Task.State.DONE);
-        assertThat(taskManager.getTask(task.id).getResult()).isEqualTo("result");
+        assertThat(taskManager.getTask(task.id).getResult()).isEqualTo(result);
+    }
+
+    @Test(timeout = 200000)
+    public void test_task_result_uri_result_type() throws Exception {
+        taskManager.startTask("taskName", User.local(), new HashMap<>());
+
+        // in the task runner loop
+        Task<Serializable> task = taskQueue.poll(2, TimeUnit.SECONDS); // to sync
+        TaskResult<UriResult> taskResult = new TaskResult<>(new UriResult(new URI("file:///my/file"),42));
+        taskSupplier.result(task.id,taskResult);
+
+        nextMessage.await();
+        Task<Serializable> task1 = taskManager.getTask(task.id);
+        TaskResult<Serializable> result = task1.getResult();
+        assertThat(result).isEqualTo(taskResult);
     }
 
     @Test(timeout = 2000)

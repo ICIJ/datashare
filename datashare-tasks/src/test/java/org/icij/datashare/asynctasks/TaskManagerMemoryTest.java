@@ -43,7 +43,7 @@ public class TaskManagerMemoryTest {
         taskManager.awaitTermination(100, TimeUnit.MILLISECONDS);
 
         assertThat(taskManager.getTask(tid).getState()).isEqualTo(Task.State.DONE);
-        assertThat(taskManager.getTask(tid).getResult()).isEqualTo("Hello world!");
+        assertThat(taskManager.getTask(tid).getResult()).isEqualTo(new TaskResult<>("Hello world!"));
         assertThat(taskManager.getTasks()).hasSize(1);
     }
 
@@ -116,7 +116,7 @@ public class TaskManagerMemoryTest {
         taskManager.awaitTermination(1, TimeUnit.SECONDS);
         taskManager.result("unknownId", new TaskResult<>(0.5));
         assertThat(logbackCapturingRule.logs(Level.WARN)).contains(
-            "unknown task id <unknownId> for result=0.5 call");
+            "unknown task id <unknownId> for result=TaskResult[value=0.5] call");
     }
 
     @Test
