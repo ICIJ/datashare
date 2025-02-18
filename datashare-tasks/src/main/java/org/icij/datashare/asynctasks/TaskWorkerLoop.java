@@ -113,7 +113,7 @@ public class TaskWorkerLoop implements Callable<Integer>, Closeable {
                 logger.info("running task {}", currentTask.get());
                 taskSupplier.progress(currentTask.get().id, 0);
                 Serializable result = (Serializable) taskFn.call();
-                taskSupplier.result(currentTask.get().id, result);
+                taskSupplier.result(currentTask.get().id, new TaskResult<>(result));
                 nbTasks++;
             } catch (CancelException cex) {
                 // TODO: this has to be improved/simplified. The cancellation mechanism relies on

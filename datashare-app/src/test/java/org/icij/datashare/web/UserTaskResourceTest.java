@@ -1,24 +1,17 @@
 package org.icij.datashare.web;
 
+import java.io.Serializable;
 import java.util.Map;
 import java.util.function.Function;
-import net.codestory.http.filters.Filter;
 import net.codestory.http.filters.basic.BasicAuthFilter;
-import net.codestory.http.routes.Routes;
-import net.codestory.http.security.SessionIdStore;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.asynctasks.TaskGroup;
 import org.icij.datashare.asynctasks.TaskGroupType;
-import org.icij.datashare.asynctasks.TaskManager;
-import org.icij.datashare.asynctasks.TaskModifier;
 import org.icij.datashare.asynctasks.bus.amqp.UriResult;
 import org.icij.datashare.tasks.DatashareTaskFactory;
-import org.icij.datashare.extension.PipelineRegistry;
-import org.icij.datashare.mode.CommonMode;
 import org.icij.datashare.session.DatashareUser;
 import org.icij.datashare.tasks.*;
-import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.user.User;
 import org.icij.datashare.user.UserTask;
 import org.icij.datashare.web.testhelpers.AbstractProdWebServerTest;
@@ -156,7 +149,7 @@ public class UserTaskResourceTest extends AbstractProdWebServerTest {
     }
 
     @TaskGroup(TaskGroupType.Test)
-    public static class DummyUserTask<V> implements UserTask, Callable<V> {
+    public static class DummyUserTask<V extends Serializable> implements UserTask, Callable<V> {
         private final String user;
         private final Supplier<V> supplier;
         public DummyUserTask(String user) {this(user, () -> null);}
@@ -181,7 +174,7 @@ public class UserTaskResourceTest extends AbstractProdWebServerTest {
 
     private void setupAppWith(DummyUserTask<?> userTask, String... userLogins) {
         DatashareTaskFactoryForTest taskFactory = mock(DatashareTaskFactoryForTest.class);
-        when(taskFactory.createDummyUserTask(any(), any())).thenReturn((DummyUserTask<Object>) userTask);
+        when(taskFactory.createDummyUserTask(any(), any())).thenReturn((DummyUserTask<Serializable>) userTask);
         setupAppWith(taskFactory, userLogins);
     }
     private void setupAppWith(SleepingUserTask c1, SleepingUserTask c2, String... userLogins) {
@@ -197,7 +190,7 @@ public class UserTaskResourceTest extends AbstractProdWebServerTest {
     }
 
     public interface DatashareTaskFactoryForTest extends DatashareTaskFactory {
-        <V> DummyUserTask<V> createDummyUserTask(Task<V> tv, Function<Double, Void> updateCallback);
+        <V extends Serializable> DummyUserTask<V> createDummyUserTask(Task<V> tv, Function<Double, Void> updateCallback);
         SleepingUserTask createSleepingUserTask(Task<?> tv, Function<Double, Void> updateCallback);
     }
 }

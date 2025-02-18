@@ -26,6 +26,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -73,7 +74,7 @@ public class CreateNlpBatchesFromIndex extends DefaultTask<List<String>> impleme
 
     @Inject
     public CreateNlpBatchesFromIndex(
-        final TaskManager taskManager, final Indexer indexer, @Assisted Task<List<String>> taskView,
+        final TaskManager taskManager, final Indexer indexer, @Assisted Task<LinkedList<String>> taskView,
         @Assisted final Function<Double, Void> ignored
     ) {
         this.user = taskView.getUser();

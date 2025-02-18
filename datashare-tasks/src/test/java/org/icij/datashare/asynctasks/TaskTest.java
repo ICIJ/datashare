@@ -28,7 +28,7 @@ public class TaskTest {
             }
         });
 
-        taskView.setResult("foo");
+        taskView.setResult(new TaskResult<>("foo"));
         executor.shutdownNow();
         assertThat(executor.awaitTermination(1, TimeUnit.SECONDS)).isTrue();
         assertThat(taskView.getProgress()).isEqualTo(1);
@@ -39,13 +39,13 @@ public class TaskTest {
     @Test
     public void test_user_group_parameters() {
         TaskGroupType t = TaskGroupType.Test;
-        Task<Object> taskView = new Task<>("foo", User.local(), new Group(t), Map.of("baz", "qux"));
+        Task<String> taskView = new Task<>("foo", User.local(), new Group(t), Map.of("baz", "qux"));
         assertThat(taskView.args).includes(entry("group", new Group(t)), entry("user", User.local()), entry("baz", "qux"));
     }
 
     @Test
     public void test_progress() {
-        Task<Object> taskView = new Task<>("name", User.local(), new Group(TaskGroupType.Test), new HashMap<>());
+        Task<String> taskView = new Task<>("name", User.local(), new Group(TaskGroupType.Test), new HashMap<>());
         assertThat(taskView.getProgress()).isEqualTo(0);
         assertThat(taskView.getState()).isEqualTo(Task.State.CREATED);
 
@@ -77,7 +77,7 @@ public class TaskTest {
 
     @Test
     public void test_serialize_deserialize() throws Exception {
-        Task<Object> taskView = new Task<>("name", User.local(), new Group(TaskGroupType.Test), Map.of("key", "value"));
+        Task<String> taskView = new Task<>("name", User.local(), new Group(TaskGroupType.Test), Map.of("key", "value"));
         String json = JsonObjectMapper.MAPPER.writeValueAsString(taskView);
         assertThat(json).contains("\"@type\":\"Task\"");
         assertThat(json).contains("\"user\":{\"@type\":\"org.icij.datashare.user.User\"");

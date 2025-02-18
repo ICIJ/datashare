@@ -11,6 +11,7 @@ import co.elastic.clients.elasticsearch._types.Refresh;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Comparator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -47,7 +48,7 @@ public class CreateNlpBatchesFromIndexParametrizedTest {
 
     static class TestableCreateNlpBatchesFromIndex extends CreateNlpBatchesFromIndex {
         public TestableCreateNlpBatchesFromIndex(
-            TaskManager taskManager, Indexer indexer, Task<List<String>> taskView, Function<Double, Void> ignored) {
+                TaskManager taskManager, Indexer indexer, Task<LinkedList<String>> taskView, Function<Double, Void> ignored) {
             super(taskManager, indexer, taskView, ignored);
         }
 

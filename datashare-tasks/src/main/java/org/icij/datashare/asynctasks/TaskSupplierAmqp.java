@@ -60,11 +60,9 @@ public class TaskSupplierAmqp implements TaskSupplier {
     }
 
     @Override
-    public <V extends Serializable> void result(String taskId, V result) {
+    public <V extends Serializable> void result(String taskId, TaskResult<V> result) {
         try {
-            amqp.publish(AmqpQueue.MANAGER_EVENT, result.getClass().isAssignableFrom(TaskError.class) ?
-                    new ErrorEvent(taskId, (TaskError) result):
-                    new ResultEvent<>(taskId, result));
+            amqp.publish(AmqpQueue.MANAGER_EVENT, new ResultEvent<>(taskId, result));
         } catch (IOException e) {
             LoggerFactory.getLogger(getClass()).warn("cannot publish result {} for task {}", result, taskId);
         }
@@ -86,7 +84,11 @@ public class TaskSupplierAmqp implements TaskSupplier {
 
     @Override
     public void error(String taskId, TaskError taskError) {
-        result(taskId, taskError);
+        try {
+            amqp.publish(AmqpQueue.MANAGER_EVENT,new ErrorEvent(taskId, taskError));
+        } catch (IOException e) {
+            LoggerFactory.getLogger(getClass()).warn("cannot publish error for task {}", taskId);
+        }
     }
 
     private void handleEvent(Event taskEvent) {
