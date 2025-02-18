@@ -32,7 +32,7 @@ public class TaskTest {
         executor.shutdownNow();
         assertThat(executor.awaitTermination(1, TimeUnit.SECONDS)).isTrue();
         assertThat(taskView.getProgress()).isEqualTo(1);
-        assertThat(taskView.getResult()).isEqualTo("foo");
+        assertThat(taskView.getResult()).isEqualTo(new TaskResult<>("foo"));
         assertThat(taskView.getState()).isEqualTo(Task.State.DONE);
     }
 

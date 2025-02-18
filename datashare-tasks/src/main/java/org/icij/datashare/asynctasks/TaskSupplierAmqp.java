@@ -10,7 +10,6 @@ import org.icij.datashare.asynctasks.bus.amqp.Event;
 import org.icij.datashare.asynctasks.bus.amqp.ProgressEvent;
 import org.icij.datashare.asynctasks.bus.amqp.ResultEvent;
 import org.icij.datashare.asynctasks.bus.amqp.TaskError;
-import org.icij.datashare.asynctasks.bus.amqp.TaskEvent;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;

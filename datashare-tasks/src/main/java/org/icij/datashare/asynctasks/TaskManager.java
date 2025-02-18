@@ -135,7 +135,7 @@ public interface TaskManager extends Closeable {
         Task<V> taskView = getTask(e.taskId);
         if (taskView != null) {
             logger.info("result event for {}", e.taskId);
-            taskView.setResult(new TaskResult<>(e.result));
+            taskView.setResult(e.result);
             save(taskView);
         } else {
             logger.warn("no task found for result event {}", e.taskId);
