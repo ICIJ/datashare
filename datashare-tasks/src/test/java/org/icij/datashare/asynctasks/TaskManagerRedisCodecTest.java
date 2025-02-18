@@ -2,15 +2,11 @@ package org.icij.datashare.asynctasks;
 
 import io.netty.buffer.Unpooled;
 import org.fest.assertions.Assertions;
-import org.icij.datashare.asynctasks.bus.amqp.UriResult;
 import org.icij.datashare.user.User;
 import org.junit.Test;
 import org.redisson.client.handler.State;
 
-import java.io.IOException;
-import java.net.URI;
 import java.nio.charset.Charset;
-import java.util.HashMap;
 import java.util.Map;
 
 import static org.fest.assertions.Assertions.assertThat;
@@ -35,29 +31,4 @@ public class TaskManagerRedisCodecTest {
         Assertions.assertThat(actualTask.getGroup()).isEqualTo(new Group(TaskGroupType.Test));
     }
 
-    @Test
-    public void test_uri_result() throws Exception {
-        Task<?> task = new Task<>("name", User.local(), new Group(TaskGroupType.Test), new HashMap<>());
-        task.setResult(new UriResult(new URI("file://uri"), 123L));
-
-        assertThat(encodeDecode(task).getResult()).isInstanceOf(UriResult.class);
-    }
-
-    @Test
-    public void test_simple_results() throws Exception {
-        Task<?> task = new Task<>("name", User.local(), new Group(TaskGroupType.Test), new HashMap<>());
-        task.setResult(123L);
-        assertThat(encodeDecode(task).getResult()).isInstanceOf(Long.class);
-
-        task.setResult("string");
-        assertThat(encodeDecode(task).getResult()).isInstanceOf(String.class);
-
-        task.setResult(123);
-        assertThat(encodeDecode(task).getResult()).isInstanceOf(Integer.class);
-    }
-
-    private Task<?> encodeDecode(Task<?> task) throws IOException {
-        String json = codec.getValueEncoder().encode(task).toString(Charset.defaultCharset());
-        return (Task<?>) codec.getValueDecoder().decode(Unpooled.wrappedBuffer(json.getBytes()), new State());
-    }
 }

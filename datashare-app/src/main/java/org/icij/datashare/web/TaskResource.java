@@ -28,6 +28,7 @@ import org.icij.datashare.asynctasks.Group;
 import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.asynctasks.TaskGroupType;
 import org.icij.datashare.asynctasks.TaskManager;
+import org.icij.datashare.asynctasks.TaskResult;
 import org.icij.datashare.asynctasks.bus.amqp.UriResult;
 import org.icij.datashare.batch.BatchDownload;
 import org.icij.datashare.batch.BatchSearch;
@@ -50,6 +51,7 @@ import org.icij.datashare.user.User;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.Serializable;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
@@ -156,8 +158,7 @@ public class TaskResource {
     @ApiResponse(responseCode = "200", description = "the task was already existing")
     @ApiResponse(responseCode = "400", description = "bad request, for example the task payload id is not the same as the url id", content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
     @Put("/:id")
-    public <V> Payload createTask(@Parameter(name = "id", description = "task id", required = true, in = ParameterIn.PATH) String id,
-                              Task<V> taskView) throws IOException {
+    public <V extends Serializable> Payload createTask(@Parameter(name = "id", description = "task id", required = true, in = ParameterIn.PATH) String id, Task<V> taskView) throws IOException {
         if (taskView == null || id == null || !Objects.equals(taskView.id, id)) {
             return new JsonPayload(400, new ErrorResponse("body should contain a taskView, URL id should be present and equal to body id"));
         }
@@ -172,7 +173,7 @@ public class TaskResource {
     @Get("/:id/result")
     public Payload getTaskResult(@Parameter(name = "id", description = "task id", in = ParameterIn.PATH) String id, Context context) throws IOException {
         Task<?> task = forbiddenIfNotSameUser(context, notFoundIfNull(taskManager.getTask(id)));
-        Object result = task.getResult();
+        Object result = task.getResult().value();
         if (result instanceof UriResult uriResult) {
             Path filePath = Path.of(uriResult.uri().getPath());
             String fileName = filePath.getFileName().toString();
@@ -501,7 +502,7 @@ public class TaskResource {
         return "extract:report:" + projectName;
     }
 
-    private static <V> Task<V> forbiddenIfNotSameUser(Context context, Task<V> task) {
+    private static <V extends Serializable> Task<V> forbiddenIfNotSameUser(Context context, Task<V> task) {
         if (!task.getUser().equals(context.currentUser())) throw new ForbiddenException();
         return task;
     }

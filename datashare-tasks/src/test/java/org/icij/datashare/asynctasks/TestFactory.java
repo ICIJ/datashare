@@ -7,26 +7,25 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class TestFactory implements TaskFactory {
+    private static final Logger logger = LoggerFactory.getLogger(TestFactory.class);
 
-    private static final Logger logger = LoggerFactory.getLogger(TaskManager.class);
-
-    public static Callable<String> createHelloWorld(Task<Void> taskView, Function<Double, Void> progress) {
+    public static Callable<String> createHelloWorld(Task<String> taskView, Function<Double, String> progress) {
         return new HelloWorld(taskView, progress);
     }
 
-    public SleepForever createSleepForever(Task<Void> taskView, Function<Double, Void> progress) {
+    public SleepForever createSleepForever(Task<String> taskView, Function<Double, String> progress) {
         return new SleepForever(taskView, progress);
     }
 
-    public Sleep createSleep(Task<Void> taskView, Function<Double, Void> progress) {
+    public Sleep createSleep(Task<String> taskView, Function<Double, String> progress) {
         return new Sleep(taskView, progress);
     }
 
     public static class HelloWorld implements Callable<String> {
-        private final Function<Double, Void> progress;
+        private final Function<Double, String> progress;
         private String greeted;
 
-        public HelloWorld(Task<Void> taskView, Function<Double, Void> progress) {
+        public HelloWorld(Task<String> taskView, Function<Double, String> progress) {
             this.progress = progress;
             this.greeted = (String) Objects.requireNonNull(taskView.args.get("greeted"), "missing greeted parameter");
         }
@@ -46,11 +45,11 @@ public class TestFactory implements TaskFactory {
 
     @TaskGroup(TaskGroupType.Test)
     public static class Sleep implements Callable<Integer> {
-        private final Function<Double, Void> progress;
+        private final Function<Double, String> progress;
         private final int duration;
 
 
-        public Sleep(Task<Void> taskView, Function<Double, Void> progress) {
+        public Sleep(Task<String> taskView, Function<Double, String> progress) {
             this.progress = progress;
             this.duration = (int) taskView.args.get("duration");
         }
@@ -62,12 +61,12 @@ public class TestFactory implements TaskFactory {
     }
 
     @TaskGroup(TaskGroupType.Test)
-    public static class SleepForever implements Callable<Void>, CancellableTask {
-        private final Function<Double, Void> progress;
+    public static class SleepForever implements Callable<String>, CancellableTask {
+        private final Function<Double, String> progress;
         Boolean requeue = null;
         Thread taskThread;
 
-        SleepForever(Task<Void> taskView, Function<Double, Void> progress) {
+        SleepForever(Task<String> taskView, Function<Double, String> progress) {
             this.progress = progress;
         }
 
@@ -77,7 +76,7 @@ public class TestFactory implements TaskFactory {
         }
 
         @Override
-        public Void call() throws InterruptedException {
+        public String call() throws InterruptedException {
             taskThread = Thread.currentThread();
             progress.apply(0.1); // Set the progress to mark the task as RUNNING
             while (true) {

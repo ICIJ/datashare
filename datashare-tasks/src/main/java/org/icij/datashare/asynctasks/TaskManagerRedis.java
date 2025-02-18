@@ -11,10 +11,8 @@ import org.icij.datashare.asynctasks.bus.amqp.ShutdownEvent;
 import org.icij.datashare.asynctasks.bus.amqp.TaskEvent;
 import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.tasks.RoutingStrategy;
-import org.icij.datashare.user.User;
 import org.redisson.Redisson;
 import org.redisson.RedissonBlockingQueue;
-import org.redisson.RedissonMap;
 import org.redisson.api.RKeys;
 import org.redisson.api.RTopic;
 import org.redisson.api.RType;
@@ -30,6 +28,7 @@ import org.redisson.liveobject.core.RedissonObjectBuilder;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.Serializable;
 import java.nio.charset.Charset;
 import java.util.LinkedList;
 import java.util.List;
@@ -63,7 +62,7 @@ public class TaskManagerRedis implements TaskManager {
     }
 
     @Override
-    public <V> Task<V> getTask(String id) {
+    public <V extends Serializable> Task<V> getTask(String id) {
         return (Task<V>) tasks.get(id);
     }
 
@@ -78,7 +77,7 @@ public class TaskManagerRedis implements TaskManager {
     }
 
     @Override
-    public <V> Task<V> clearTask(String taskId) {
+    public <V extends Serializable> Task<V> clearTask(String taskId) {
         if (tasks.get(taskId).getState() == Task.State.RUNNING) {
             throw new IllegalStateException(String.format("task id <%s> is already in RUNNING state", taskId));
         }
@@ -158,13 +157,13 @@ public class TaskManagerRedis implements TaskManager {
                 .forEach(k -> redissonClient.getQueue(k).delete());
     }
 
-    public <V> boolean save(Task<V> task) {
+    public <V extends Serializable> boolean save(Task<V> task) {
         Task<?> oldVal = tasks.put(task.id, task);
         return oldVal == null;
     }
 
     @Override
-    public <V> void enqueue(Task<V> task) {
+    public <V extends Serializable> void enqueue(Task<V> task) {
         taskQueue(task).add(task);
     }
 

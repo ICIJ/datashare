@@ -92,7 +92,7 @@ public class TaskManagerRedisTest {
 
         assertThat(taskManager.getTasks()).hasSize(1);
 
-        taskSupplier.result(taskViewId, 12);
+        taskSupplier.result(taskViewId, new TaskResult<>(12));
         assertThat(waitForEvent.await(1, TimeUnit.SECONDS)).isTrue();
 
         assertThat(taskManager.getTasks().get(0).getState()).isEqualTo(Task.State.DONE);
@@ -106,7 +106,7 @@ public class TaskManagerRedisTest {
         String taskView1Id = taskManager.startTask("sleep", User.local(), new HashMap<>());
         String taskView2Id = taskManager.startTask("sleep", User.local(), new HashMap<>());
 
-        taskSupplier.result(taskView1Id, 123);
+        taskSupplier.result(taskView1Id, new TaskResult<>(123));
         assertThat(waitForEvent.await(1, TimeUnit.SECONDS)).isTrue();
 
         assertThat(taskManager.getTasks()).hasSize(2);
@@ -134,7 +134,7 @@ public class TaskManagerRedisTest {
                 put("greeted", "world");
             }});
         String expectedResult = "Hello world !";
-        taskSupplier.result(taskViewId, expectedResult);
+        taskSupplier.result(taskViewId, new TaskResult<>(expectedResult));
         assertThat(waitForEvent.await(100, TimeUnit.SECONDS)).isTrue();
 
         assertThat(taskManager.getTasks()).hasSize(1);

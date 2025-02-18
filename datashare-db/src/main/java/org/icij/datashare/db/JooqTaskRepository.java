@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.icij.datashare.asynctasks.Group;
 import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.asynctasks.TaskRepository;
+import org.icij.datashare.asynctasks.TaskResult;
 import org.icij.datashare.asynctasks.bus.amqp.TaskError;
 import org.icij.datashare.db.tables.records.TaskRecord;
 import org.icij.datashare.json.JsonObjectMapper;
@@ -135,11 +136,10 @@ public class JooqTaskRepository implements TaskRepository {
             Date completedAt = r.getCompletedAt() == null ? null :Date.from(r.getCompletedAt().atZone(ZoneId.systemDefault()).toInstant());;
             try {
                 Map<String, Object> args = TYPE_INCLUSION_MAPPER.readValue(r.getArgs(), new TypeReference<>() {});
-                Object result = r.getResult() == null ? null: TYPE_INCLUSION_MAPPER.readValue(r.getResult(), new TypeReference<>() {});
+                TaskResult<?> result = r.getResult() == null ? null: TYPE_INCLUSION_MAPPER.readValue(r.getResult(), new TypeReference<>() {});
                 TaskError error  = r.getError() == null ? null: TYPE_INCLUSION_MAPPER.readValue(r.getError(), TaskError.class);
                 return new Task<>(r.getId(), r.getName(), Task.State.valueOf(r.getState()),
                         r.getProgress(), createdAt, r.getRetriesLeft(), completedAt, args, result, error);
-
             } catch (JsonProcessingException e) {
                 throw new RuntimeException(e);
             }

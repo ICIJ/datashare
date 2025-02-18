@@ -2,7 +2,6 @@ package org.icij.datashare.asynctasks;
 
 import org.icij.datashare.asynctasks.bus.amqp.Event;
 import org.icij.datashare.asynctasks.bus.amqp.TaskError;
-import org.icij.datashare.asynctasks.bus.amqp.TaskEvent;
 
 import java.io.Closeable;
 import java.io.Serializable;
@@ -32,7 +31,7 @@ public interface TaskSupplier extends TaskModifier, Closeable {
      * @param taskId: id of the task
      * @param result: result of the task
      */
-    <V extends Serializable> void result(String taskId, V result);
+    <V extends Serializable> void result(String taskId, TaskResult<V> result);
     /**
      * method called to send an error in case a task is failing.
      * @param taskId: id of the task

@@ -38,7 +38,7 @@ public class TaskWorkerLoopTest {
         app.exit();
         appThread.join();
 
-        Mockito.verify(supplier).result(eq(taskView.id), eq("Hello world!"));
+        Mockito.verify(supplier).result(eq(taskView.id), eq(new TaskResult<>("Hello world!")));
     }
 
     @Test(timeout = 2000)

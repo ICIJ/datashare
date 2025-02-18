@@ -55,10 +55,8 @@ public class TaskSupplierRedis implements TaskSupplier {
     }
 
     @Override
-    public <V extends Serializable> void result(String taskId, V result) {
-        eventTopic.publish(result.getClass().isAssignableFrom(TaskError.class) ?
-                new ErrorEvent(taskId, (TaskError) result):
-                new ResultEvent<>(taskId, result));
+    public <V extends Serializable> void result(String taskId, TaskResult<V> result) {
+        eventTopic.publish(new ResultEvent<>(taskId, result));
     }
 
     @Override
@@ -68,7 +66,7 @@ public class TaskSupplierRedis implements TaskSupplier {
 
     @Override
     public void error(String taskId, TaskError reason) {
-        result(taskId, reason);
+        eventTopic.publish(new ErrorEvent(taskId, reason));
     }
 
     @Override

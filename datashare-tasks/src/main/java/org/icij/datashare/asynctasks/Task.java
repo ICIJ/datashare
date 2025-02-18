@@ -4,13 +4,11 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import org.apache.commons.lang3.builder.CompareToBuilder;
 import org.icij.datashare.Entity;
 import org.icij.datashare.asynctasks.bus.amqp.Event;
 import org.icij.datashare.asynctasks.bus.amqp.TaskError;
-import org.icij.datashare.asynctasks.bus.amqp.UriResult;
 import org.icij.datashare.batch.WebQueryPagination;
 import org.icij.datashare.time.DatashareTime;
 import org.icij.datashare.user.User;
@@ -32,7 +30,7 @@ import static java.util.UUID.randomUUID;
 import static org.icij.datashare.batch.WebQueryPagination.OrderDirection.ASC;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class Task<V> extends Event implements Entity, Comparable<Task<V>> {
+public class Task<V extends Serializable> extends Event implements Entity, Comparable<Task<V>> {
     public static final String USER_KEY = "user";
     public static final String GROUP_KEY = "group";
     @JsonIgnore private StateLatch stateLatch;
@@ -47,12 +45,7 @@ public class Task<V> extends Event implements Entity, Comparable<Task<V>> {
     private volatile State state;
     private volatile Date completedAt;
     private volatile double progress;
-    @JsonSubTypes({
-        @JsonSubTypes.Type(value = UriResult.class),
-        @JsonSubTypes.Type(value = Long.class)
-    })
-    @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "@type")
-    private volatile V result;
+    private volatile TaskResult<V> result;
 
     public Task(String name, User user, Group group, Map<String, Object> args) {
         this(randomUUID().toString(), name, user, group, args);
@@ -75,7 +68,7 @@ public class Task<V> extends Event implements Entity, Comparable<Task<V>> {
          @JsonProperty("retriesLeft") int retriesLeft,
          @JsonProperty("completedAt") Date completedAt,
          @JsonProperty("args") Map<String, Object> args,
-         @JsonProperty("result") V result,
+         @JsonProperty("result") TaskResult<V> result,
          @JsonProperty("error") TaskError error) {
         super(createdAt, retriesLeft);
         this.id = id;
@@ -89,7 +82,7 @@ public class Task<V> extends Event implements Entity, Comparable<Task<V>> {
         this.args = Collections.unmodifiableMap(ofNullable(args).orElse(new HashMap<>()));
     }
 
-    public V getResult() {
+    public TaskResult<V> getResult() {
         return result;
     }
 
@@ -103,7 +96,7 @@ public class Task<V> extends Event implements Entity, Comparable<Task<V>> {
      * @return
      * @throws InterruptedException
      */
-    public V getResult(int timeout, TimeUnit unit) throws InterruptedException {
+    public TaskResult<V> getResult(int timeout, TimeUnit unit) throws InterruptedException {
         synchronized (lock) {
             if (!isFinished()) {
                 lock.wait(unit.toMillis(timeout));
@@ -112,9 +105,9 @@ public class Task<V> extends Event implements Entity, Comparable<Task<V>> {
         }
     }
 
-    public void setResult(Serializable result) {
+    public void setResult(TaskResult<V> result) {
         synchronized (lock) {
-            this.result = (V) result;
+            this.result =  result;
             setState(State.DONE);
             this.progress = 1;
             this.completedAt = DatashareTime.getNow();

@@ -114,7 +114,7 @@ public class TaskManagerMemoryTest {
     @Test
     public void test_result_on_unknown_task() throws Exception {
         taskManager.awaitTermination(1, TimeUnit.SECONDS);
-        taskManager.result("unknownId", 0.5);
+        taskManager.result("unknownId", new TaskResult<>(0.5));
         assertThat(logbackCapturingRule.logs(Level.WARN)).contains(
             "unknown task id <unknownId> for result=0.5 call");
     }

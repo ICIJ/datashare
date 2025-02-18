@@ -27,9 +27,8 @@ import static org.icij.datashare.text.StringUtils.getValue;
 public interface TaskManager extends Closeable {
     int POLLING_INTERVAL = 5000;
     Logger logger = LoggerFactory.getLogger(TaskManager.class);
-
-    <V> Task<V> getTask(String taskId) throws IOException;
-    <V> Task<V> clearTask(String taskId) throws IOException;
+    <V extends Serializable> Task<V> getTask(String taskId) throws IOException;
+    <V extends Serializable> Task<V> clearTask(String taskId) throws IOException;
     boolean stopTask(String taskId) throws IOException;
 
     List<Task<?>> getTasks() throws IOException;
@@ -85,7 +84,7 @@ public interface TaskManager extends Closeable {
      * @return true if task has been saved
      * @throws IOException if a network error occurs
      */
-    <V> boolean save(Task<V> task) throws IOException;
+    <V extends Serializable> boolean save(Task<V> task) throws IOException;
 
     /**
      * This is a "inner method" that is used in the template method for start(task).
@@ -93,7 +92,7 @@ public interface TaskManager extends Closeable {
      * @param task task to be queued
      * @throws IOException if a network error occurs
      */
-    <V> void enqueue(Task<V> task) throws IOException;
+    <V extends Serializable> void enqueue(Task<V> task) throws IOException;
 
     // TaskResource and pipeline tasks
     default String startTask(Class<?> taskClass, User user, Map<String, Object> properties) throws IOException {
@@ -122,7 +121,7 @@ public interface TaskManager extends Closeable {
      * @return task id if it was new and has been saved else null
      * @throws IOException in case of communication failure with Redis or AMQP broker
      */
-    default <V> String startTask(Task<V> taskView) throws IOException {
+    default <V extends Serializable> String startTask(Task<V> taskView) throws IOException {
         boolean saved = save(taskView);
         if (saved) {
             taskView.queue();
@@ -136,7 +135,7 @@ public interface TaskManager extends Closeable {
         Task<V> taskView = getTask(e.taskId);
         if (taskView != null) {
             logger.info("result event for {}", e.taskId);
-            taskView.setResult(e.result);
+            taskView.setResult(new TaskResult<>(e.result));
             save(taskView);
         } else {
             logger.warn("no task found for result event {}", e.taskId);
@@ -156,7 +155,7 @@ public interface TaskManager extends Closeable {
         return taskView;
     }
 
-    default <V> Task<V> setCanceled(CancelledEvent e) throws IOException {
+    default <V extends Serializable> Task<V> setCanceled(CancelledEvent e) throws IOException {
         Task<V> taskView = getTask(e.taskId);
         if (taskView != null) {
             logger.info("canceled event for {}", e.taskId);
@@ -175,7 +174,7 @@ public interface TaskManager extends Closeable {
         return taskView;
     }
 
-    default <V> Task<V> setProgress(ProgressEvent e) throws IOException {
+    default <V extends Serializable> Task<V> setProgress(ProgressEvent e) throws IOException {
         logger.debug("progress event for {}", e.taskId);
         Task<V> taskView = getTask(e.taskId);
         if (taskView != null) {

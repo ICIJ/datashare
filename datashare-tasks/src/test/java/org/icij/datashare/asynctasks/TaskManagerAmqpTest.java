@@ -104,7 +104,7 @@ public class TaskManagerAmqpTest {
 
         // in the task runner loop
         Task<Serializable> task = taskQueue.poll(2, TimeUnit.SECONDS); // to sync
-        taskSupplier.result(task.id,"result");
+        taskSupplier.result(task.id,new TaskResult<>("result"));
 
         nextMessage.await();
         assertThat(taskManager.getTask(task.id).getState()).isEqualTo(Task.State.DONE);

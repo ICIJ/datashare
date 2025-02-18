@@ -5,6 +5,7 @@ import org.icij.datashare.asynctasks.bus.amqp.*;
 import org.icij.datashare.tasks.RoutingStrategy;
 
 import java.io.IOException;
+import java.io.Serializable;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.function.Consumer;
@@ -53,7 +54,7 @@ public class TaskManagerAmqp implements TaskManager {
     }
 
     @Override
-    public <V> Task<V> clearTask(String taskId) {
+    public <V extends Serializable> Task<V> clearTask(String taskId) {
         if (tasks.get(taskId).getState() == Task.State.RUNNING) {
             throw new IllegalStateException(String.format("task id <%s> is already in RUNNING state", taskId));
         }
@@ -67,13 +68,13 @@ public class TaskManagerAmqp implements TaskManager {
         return true;
     }
 
-    public <V> boolean save(Task<V> task) {
+    public <V extends Serializable> boolean save(Task<V> task) {
         Task<?> oldVal = tasks.put(task.id, task);
         return oldVal == null;
     }
 
     @Override
-    public <V> void enqueue(Task<V> task) throws IOException {
+    public <V extends Serializable> void enqueue(Task<V> task) throws IOException {
         switch (routingStrategy) {
             case GROUP -> amqp.publish(AmqpQueue.TASK, task.getGroup().id().name(), task);
             case NAME -> amqp.publish(AmqpQueue.TASK, task.name, task);
@@ -82,7 +83,7 @@ public class TaskManagerAmqp implements TaskManager {
     }
 
     @Override
-    public <V> Task<V> getTask(String taskId) {
+    public <V extends Serializable> Task<V> getTask(String taskId) {
         return (Task<V>) tasks.get(taskId);
     }
 

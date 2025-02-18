@@ -46,7 +46,7 @@ public class TaskManagerMemory implements TaskManager, TaskSupplier {
         this.tasks = tasks;
     }
 
-    public <V> Task<V> getTask(final String taskId) {
+    public <V extends Serializable> Task<V> getTask(final String taskId) {
         return (Task<V>) tasks.get(taskId);
     }
 
@@ -67,7 +67,7 @@ public class TaskManagerMemory implements TaskManager, TaskSupplier {
     }
 
     @Override
-    public <V extends Serializable> void result(String taskId, V result) {
+    public <V extends Serializable> void result(String taskId, TaskResult<V> result) {
         Task<V> taskView = (Task<V>) tasks.get(taskId);
         if (taskView != null) {
             taskView.setResult(result);
@@ -99,13 +99,13 @@ public class TaskManagerMemory implements TaskManager, TaskSupplier {
         }
     }
 
-    public <V> boolean save(Task<V> taskView) {
+    public <V extends Serializable> boolean save(Task<V> taskView) {
         Task<?> oldTask = tasks.put(taskView.id, taskView);
         return oldTask == null;
     }
 
     @Override
-    public <V> void enqueue(Task<V> task) {
+    public <V extends Serializable> void enqueue(Task<V> task) {
         taskQueue.add(task);
     }
 
@@ -125,7 +125,7 @@ public class TaskManagerMemory implements TaskManager, TaskSupplier {
     }
 
     @Override
-    public <V> Task<V> clearTask(String taskName) {
+    public <V extends Serializable> Task<V> clearTask(String taskName) {
         if (tasks.get(taskName).getState() == Task.State.RUNNING) {
             throw new IllegalStateException(String.format("task id <%s> is already in RUNNING state", taskName));
         }
