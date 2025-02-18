@@ -5,6 +5,7 @@ import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.asynctasks.CancelException;
 import org.icij.datashare.asynctasks.Group;
 import org.icij.datashare.asynctasks.Task;
+import org.icij.datashare.asynctasks.TaskGroupType;
 import org.icij.datashare.batch.BatchSearch;
 import org.icij.datashare.batch.BatchSearchRecord;
 import org.icij.datashare.batch.BatchSearchRepository;
@@ -92,7 +93,7 @@ public class TaskManagerMemoryForBatchSearchTest {
         when(factory.createBatchSearchRunner(any(), any())).thenReturn(batchSearchRunner);
         mockSearch.willThrow(new IOException("io exception"));
 
-        taskManager.startTask(new Task<>(testBatchSearch.uuid, BatchSearchRunner.class.getName(), local(), new Group("TestGroup"), Map.of("batchRecord", new BatchSearchRecord(testBatchSearch))));
+        taskManager.startTask(new Task<>(testBatchSearch.uuid, BatchSearchRunner.class.getName(), local(), new Group(TaskGroupType.Test), Map.of("batchRecord", new BatchSearchRecord(testBatchSearch))));
         taskManager.awaitTermination(1, TimeUnit.SECONDS);
 
         verify(repository).setState(testBatchSearch.uuid, BatchSearch.State.RUNNING);
@@ -141,7 +142,7 @@ public class TaskManagerMemoryForBatchSearchTest {
         taskManager = new TaskManagerMemory(factory, new PropertiesProvider(), startLoop);
         mockSearch = new MockSearch<>(indexer, Indexer.QueryBuilderSearcher.class);
 
-        Task<Object> taskView = new Task<>(testBatchSearch.uuid, BatchSearchRunner.class.getName(), local(), new Group("TestGroup"));
+        Task<Object> taskView = new Task<>(testBatchSearch.uuid, BatchSearchRunner.class.getName(), local(), new Group(TaskGroupType.Test));
         batchSearchRunner = new BatchSearchRunner(indexer, new PropertiesProvider(), repository, taskView, taskView.progress(taskManager::progress));
         when(repository.get(eq(local()), anyString())).thenReturn(testBatchSearch);
         when(factory.createBatchSearchRunner(any(), any())).thenReturn(batchSearchRunner);
@@ -157,7 +158,7 @@ public class TaskManagerMemoryForBatchSearchTest {
         private final CountDownLatch countDownLatch;
 
         public SleepingBatchSearchRunner(int sleepingMilliseconds, CountDownLatch countDownLatch, BatchSearch bs) {
-            super(mock(Indexer.class), new PropertiesProvider(), repository, new Task<>(bs.uuid, BatchSearchRunner.class.getName(), local(), new Group("TestGroup")), (b) -> null);
+            super(mock(Indexer.class), new PropertiesProvider(), repository, new Task<>(bs.uuid, BatchSearchRunner.class.getName(), local(), new Group(TaskGroupType.Test)), (b) -> null);
             this.sleepingMilliseconds = sleepingMilliseconds;
             this.countDownLatch = countDownLatch;
         }

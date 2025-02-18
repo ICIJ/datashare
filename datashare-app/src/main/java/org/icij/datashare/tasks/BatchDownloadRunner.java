@@ -51,9 +51,9 @@ import static java.lang.Integer.parseInt;
 import static java.lang.String.valueOf;
 import static java.util.stream.Collectors.toList;
 import static org.icij.datashare.cli.DatashareCliOptions.*;
-import static org.icij.datashare.tasks.GroupHelper.JAVA_GROUP;
+import org.icij.datashare.asynctasks.TaskGroupType;
 
-@TaskGroup(JAVA_GROUP)
+@TaskGroup(TaskGroupType.Java)
 public class BatchDownloadRunner implements Callable<UriResult>, Monitorable, UserTask, CancellableTask {
     private final static Logger logger = LoggerFactory.getLogger(BatchDownloadRunner.class);
     static final int MAX_SCROLL_SIZE = 3500;

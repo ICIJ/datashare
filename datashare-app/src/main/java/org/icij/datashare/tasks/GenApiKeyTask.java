@@ -1,6 +1,6 @@
 package org.icij.datashare.tasks;
 
-import static org.icij.datashare.tasks.GroupHelper.JAVA_GROUP;
+import org.icij.datashare.asynctasks.TaskGroupType;
 
 import com.google.inject.Inject;
 import com.google.inject.assistedinject.Assisted;
@@ -15,7 +15,7 @@ import org.slf4j.LoggerFactory;
 
 import javax.crypto.SecretKey;
 
-@TaskGroup(JAVA_GROUP)
+@TaskGroup(TaskGroupType.Java)
 public class GenApiKeyTask extends DefaultTask<String> implements UserTask {
     private final Logger logger = LoggerFactory.getLogger(getClass());
     private final ApiKeyRepository apiKeyRepository;

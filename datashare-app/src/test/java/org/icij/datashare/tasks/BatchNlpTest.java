@@ -11,7 +11,10 @@ import static org.mockito.MockitoAnnotations.openMocks;
 
 import java.util.List;
 import java.util.Map;
+
+import org.icij.datashare.asynctasks.Group;
 import org.icij.datashare.asynctasks.Task;
+import org.icij.datashare.asynctasks.TaskGroupType;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.Language;
 import org.icij.datashare.text.indexing.Indexer;
@@ -64,7 +67,7 @@ public class BatchNlpTest {
             "group", "JAVA"
         );
         BatchNlpTask nlpTask = new BatchNlpTask(
-            indexer, pipeline, new Task<>(BatchNlpTask.class.getName(), new User("test"), properties), null
+            indexer, pipeline, new Task<>(BatchNlpTask.class.getName(), new User("test"), new Group(TaskGroupType.Test), properties), null
         );
         // When
         nlpTask.call();

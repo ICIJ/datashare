@@ -5,10 +5,11 @@ import java.util.concurrent.CountDownLatch;
 import org.icij.datashare.asynctasks.CancelException;
 import org.icij.datashare.asynctasks.CancellableTask;
 import org.icij.datashare.asynctasks.TaskGroup;
+import org.icij.datashare.asynctasks.TaskGroupType;
 
 import static java.util.Optional.ofNullable;
 
-@TaskGroup("TestGroup")
+@TaskGroup(TaskGroupType.Test)
 public class TestTask implements CancellableTask, Callable<Integer> {
     private final int value;
     protected volatile Thread callThread = null;

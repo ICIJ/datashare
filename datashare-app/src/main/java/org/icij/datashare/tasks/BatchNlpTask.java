@@ -1,7 +1,7 @@
 package org.icij.datashare.tasks;
 
 import static java.util.Optional.ofNullable;
-import static org.icij.datashare.tasks.GroupHelper.JAVA_GROUP;
+import org.icij.datashare.asynctasks.TaskGroupType;
 
 import com.google.inject.Inject;
 import com.google.inject.assistedinject.Assisted;
@@ -24,7 +24,7 @@ import org.icij.task.DefaultTask;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@TaskGroup(JAVA_GROUP)
+@TaskGroup(TaskGroupType.Java)
 public class BatchNlpTask extends DefaultTask<Long> implements UserTask, CancellableTask {
     private static final List<String> EXCLUDED_SOURCES = List.of("contentTranslated");
     private final Logger logger = LoggerFactory.getLogger(getClass());

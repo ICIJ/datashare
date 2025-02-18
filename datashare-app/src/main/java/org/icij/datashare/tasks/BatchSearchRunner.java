@@ -43,10 +43,10 @@ import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_BATCH_THROTTLE;
 import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_SCROLL_DURATION;
 import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_SCROLL_SIZE;
 import static org.icij.datashare.cli.DatashareCliOptions.SCROLL_SIZE_OPT;
-import static org.icij.datashare.tasks.GroupHelper.JAVA_GROUP;
+import org.icij.datashare.asynctasks.TaskGroupType;
 import static org.icij.datashare.text.ProjectProxy.asCommaConcatNames;
 
-@TaskGroup(JAVA_GROUP)
+@TaskGroup(TaskGroupType.Java)
 public class BatchSearchRunner implements CancellableTask, UserTask, Callable<Integer> {
     private final Logger logger = LoggerFactory.getLogger(getClass());
 

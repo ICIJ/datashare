@@ -9,6 +9,7 @@ import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Stage;
 import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.asynctasks.TaskGroup;
+import org.icij.datashare.asynctasks.TaskGroupType;
 import org.icij.datashare.extract.DocumentCollectionFactory;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.indexing.Indexer;
@@ -31,9 +32,8 @@ import static org.icij.datashare.cli.DatashareCliOptions.NLP_PIPELINE_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.SCROLL_DURATION_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.SCROLL_SIZE_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.SEARCH_QUERY_OPT;
-import static org.icij.datashare.tasks.GroupHelper.JAVA_GROUP;
 
-@TaskGroup(JAVA_GROUP)
+@TaskGroup(TaskGroupType.Java)
 public class EnqueueFromIndexTask extends PipelineTask<String> {
     private final DocumentCollectionFactory<String> factory;
     private final String searchQuery;

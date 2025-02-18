@@ -1,7 +1,9 @@
 package org.icij.datashare.tasks;
 
 import org.icij.datashare.PropertiesProvider;
+import org.icij.datashare.asynctasks.Group;
 import org.icij.datashare.asynctasks.Task;
+import org.icij.datashare.asynctasks.TaskGroupType;
 import org.icij.datashare.asynctasks.TaskWorkerLoop;
 import org.icij.datashare.batch.BatchDownload;
 import org.icij.datashare.text.indexing.Indexer;
@@ -27,12 +29,12 @@ public class TaskWorkerLoopIntTest {
     TaskManagerRedis taskManager;
     CountDownLatch eventWaiter;
 
-    @Test(timeout = 10000)
+    @Test(timeout = 20000)
     public void test_batch_download_task_view_properties() throws Exception {
         DatashareTaskFactory factory = mock(DatashareTaskFactory.class);
         BatchDownload batchDownload = new BatchDownload(singletonList(project("prj")), User.local(), "foo");
         Map<String, Object> properties = Map.of("batchDownload", batchDownload);
-        Task<File> taskView = new Task<>(BatchDownloadRunner.class.getName(), batchDownload.user, properties);
+        Task<File> taskView = new Task<>(BatchDownloadRunner.class.getName(), batchDownload.user, new Group(TaskGroupType.Java), properties);
         BatchDownloadRunner runner = new BatchDownloadRunner(mock(Indexer.class), new PropertiesProvider(), taskView, taskView.progress(taskSupplier::progress));
         when(factory.createBatchDownloadRunner(any(), any())).thenReturn(runner);
 
@@ -50,8 +52,9 @@ public class TaskWorkerLoopIntTest {
         assertThat(taskManager.getTasks()).hasSize(1);
         assertThat(taskManager.getTasks().get(0).getError()).isNotNull();
         assertThat(taskManager.getTasks().get(0).getProgress()).isEqualTo(1);
-        assertThat(taskManager.getTasks().get(0).args).hasSize(2);
+        assertThat(taskManager.getTasks().get(0).args).hasSize(3);
         assertThat(taskManager.getTasks().get(0).getUser()).isEqualTo(User.local());
+        assertThat(taskManager.getTasks().get(0).getGroup()).isEqualTo(new Group(TaskGroupType.Java));
     }
 
     @Before

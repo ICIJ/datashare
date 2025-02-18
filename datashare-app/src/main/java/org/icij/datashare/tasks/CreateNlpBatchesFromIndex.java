@@ -4,6 +4,7 @@ import static java.util.Collections.singletonList;
 import static java.util.Optional.ofNullable;
 import static java.util.stream.Collectors.groupingBy;
 import static org.icij.datashare.asynctasks.Task.GROUP_KEY;
+import static org.icij.datashare.asynctasks.TaskGroupType.nlpGroup;
 import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_DEFAULT_PROJECT;
 import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_NLP_BATCH_SIZE;
 import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_NLP_MAX_TEXT_LENGTH;
@@ -17,8 +18,6 @@ import static org.icij.datashare.cli.DatashareCliOptions.SCROLL_DURATION_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.SCROLL_SIZE_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.SEARCH_QUERY_OPT;
 import static org.icij.datashare.nlp.NlpHelper.pipelineExtras;
-import static org.icij.datashare.tasks.GroupHelper.JAVA_GROUP;
-import static org.icij.datashare.tasks.GroupHelper.nlpGroup;
 
 import com.google.inject.Inject;
 import com.google.inject.assistedinject.Assisted;
@@ -34,6 +33,7 @@ import org.icij.datashare.Entity;
 import org.icij.datashare.asynctasks.CancellableTask;
 import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.asynctasks.TaskGroup;
+import org.icij.datashare.asynctasks.TaskGroupType;
 import org.icij.datashare.asynctasks.TaskManager;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.Language;
@@ -47,7 +47,7 @@ import org.icij.task.DefaultTask;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@TaskGroup(JAVA_GROUP)
+@TaskGroup(TaskGroupType.Java)
 public class CreateNlpBatchesFromIndex extends DefaultTask<List<String>> implements UserTask, CancellableTask {
     Logger logger = LoggerFactory.getLogger(getClass());
 
@@ -190,7 +190,7 @@ public class CreateNlpBatchesFromIndex extends DefaultTask<List<String>> impleme
         Map<String, Object> args = new HashMap<>(Map.of(
             "pipeline", this.nlpPipeline.name(),
             "maxLength", this.maxTextLength,
-            GROUP_KEY, nlpGroup(this.nlpPipeline)
+            GROUP_KEY, nlpGroup(this.nlpPipeline).name()
         ));
         args.putAll(pipelineExtras(this.nlpPipeline));
         return args;

@@ -44,7 +44,7 @@ public class TestFactory implements TaskFactory {
         }
     }
 
-    @TaskGroup("TestGroup")
+    @TaskGroup(TaskGroupType.Test)
     public static class Sleep implements Callable<Integer> {
         private final Function<Double, Void> progress;
         private final int duration;
@@ -61,7 +61,7 @@ public class TestFactory implements TaskFactory {
         }
     }
 
-    @TaskGroup("TestGroup")
+    @TaskGroup(TaskGroupType.Test)
     public static class SleepForever implements Callable<Void>, CancellableTask {
         private final Function<Double, Void> progress;
         Boolean requeue = null;

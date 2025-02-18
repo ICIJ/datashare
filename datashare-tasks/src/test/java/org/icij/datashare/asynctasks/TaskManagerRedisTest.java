@@ -39,7 +39,7 @@ public class TaskManagerRedisTest {
 
     @Test
     public void test_save_task() {
-        Task<String> task = new Task<>("name", User.local(), new HashMap<>());
+        Task<String> task = new Task<>("name", User.local(), new Group(TaskGroupType.Test), new HashMap<>());
 
         taskManager.save(task);
 
@@ -61,13 +61,13 @@ public class TaskManagerRedisTest {
                 redissonClient,
                 "test:task:manager", RoutingStrategy.GROUP,
                 this::callback);
-            TaskSupplierRedis taskSupplier = new TaskSupplierRedis(redissonClient, "Group")) {
+            TaskSupplierRedis taskSupplier = new TaskSupplierRedis(redissonClient, TaskGroupType.Test.name())) {
 
-            assertThat(groupTaskManager.startTask("HelloWorld", User.local(), new Group("Group"),Map.of("greeted", "world"))).isNotNull();
+            assertThat(groupTaskManager.startTask("HelloWorld", User.local(), new Group(TaskGroupType.Test),Map.of("greeted", "world"))).isNotNull();
 
             Task<Serializable> task = taskSupplier.get(2, TimeUnit.SECONDS);
-            assertThat(task.getGroup()).isEqualTo(new Group("Group"));
-            assertThat(((RedissonBlockingQueue<?>) groupTaskManager.taskQueue(task)).getName()).isEqualTo("TASK.Group");
+            assertThat(task.getGroup()).isEqualTo(new Group(TaskGroupType.Test));
+            assertThat(((RedissonBlockingQueue<?>) groupTaskManager.taskQueue(task)).getName()).isEqualTo("TASK.Test");
         }
     }
 

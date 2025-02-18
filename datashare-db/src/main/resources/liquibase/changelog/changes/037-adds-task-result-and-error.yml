@@ -1,0 +1,15 @@
+databaseChangeLog:
+  - changeSet:
+      id: 37
+      author: cdesprat
+      changes:
+        - addColumn:
+            tableName: task
+            column:
+              name: result
+              type: text
+        - addColumn:
+            tableName: task
+            column:
+              name: error
+              type: text
