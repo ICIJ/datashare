@@ -42,7 +42,6 @@ public class Task<V> extends Event implements Entity, Comparable<Task<V>> {
     @JsonTypeInfo(use = JsonTypeInfo.Id.CLASS, property = "@type")
     public final Map<String, Object> args;
     public final String id;
-
     public final String name;
     volatile TaskError error;
     private volatile State state;
@@ -55,24 +54,16 @@ public class Task<V> extends Event implements Entity, Comparable<Task<V>> {
     @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "@type")
     private volatile V result;
 
-    public Task(String name, User user, Map<String, Object> args) {
-        this(randomUUID().toString(), name, user, args);
-    }
-
     public Task(String name, User user, Group group, Map<String, Object> args) {
-        this(randomUUID().toString(), name, State.CREATED, 0, null, addTo(args, user, group));
+        this(randomUUID().toString(), name, user, group, args);
     }
 
     public Task(String id, String name, User user, Group group) {
-        this(id, name, user,addTo(new HashMap<>(), user, group));
+        this(id, name, user, group, new HashMap<>());
     }
 
     public Task(String id, String name, User user, Group group, Map<String, Object> args) {
-        this(id, name, State.CREATED, 0, null, addTo(args, user, group));
-    }
-
-    public Task(String id, String name, User user, Map<String, Object> args) {
-        this(id, name, State.CREATED, 0, null, addTo(args, user));
+        this(id, name, State.CREATED, 0, DatashareTime.getNow(), MAX_RETRIES_LEFT, null, addTo(args, user, group),null,null);
     }
 
     @JsonCreator
@@ -80,32 +71,20 @@ public class Task<V> extends Event implements Entity, Comparable<Task<V>> {
          @JsonProperty("name") String name,
          @JsonProperty("state") State state,
          @JsonProperty("progress") double progress,
+         @JsonProperty("createdAt") Date createdAt,
+         @JsonProperty("retriesLeft") int retriesLeft,
+         @JsonProperty("completedAt") Date completedAt,
+         @JsonProperty("args") Map<String, Object> args,
          @JsonProperty("result") V result,
-         @JsonProperty("args") Map<String, Object> args) {
-        this.id = id;
-        this.name = name;
-        this.state = state;
-        this.progress = progress;
-        this.result = result;
-        // avoids "no default constructor found" for anonymous inline maps
-        this.args = Collections.unmodifiableMap(ofNullable(args).orElse(new HashMap<>()));
-    }
-
-    public Task(String id,
-                String name,
-                State state,
-                double progress,
-                Date createdAt,
-                int retriesLeft,
-                Date completedAt,
-                Map<String, Object> args) {
+         @JsonProperty("error") TaskError error) {
         super(createdAt, retriesLeft);
         this.id = id;
         this.name = name;
         this.state = state;
         this.progress = progress;
-        this.result = null;
         this.completedAt = completedAt;
+        this.result = result;
+        this.error = error;
         // avoids "no default constructor found" for anonymous inline maps
         this.args = Collections.unmodifiableMap(ofNullable(args).orElse(new HashMap<>()));
     }

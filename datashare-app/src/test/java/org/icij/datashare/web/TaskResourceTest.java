@@ -7,6 +7,7 @@ import net.codestory.rest.ShouldChain;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.asynctasks.Group;
 import org.icij.datashare.asynctasks.Task;
+import org.icij.datashare.asynctasks.TaskGroupType;
 import org.icij.datashare.asynctasks.bus.amqp.TaskCreation;
 import org.icij.datashare.db.JooqRepository;
 import org.icij.datashare.extension.PipelineRegistry;
@@ -214,7 +215,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         defaultProperties.put("foo", "baz");
         defaultProperties.put("key", "val");
         defaultProperties.put("user", User.local());
-        defaultProperties.put("group", new Group("Java"));
+        defaultProperties.put("group", new Group(TaskGroupType.Java));
         defaultProperties.remove(REPORT_NAME_OPT);
 
         assertThat(taskManager.getTasks()).hasSize(2);
@@ -235,7 +236,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         defaultProperties.put("key1", "val1");
         defaultProperties.put("key2", "val2");
         defaultProperties.put("user", User.local());
-        defaultProperties.put("group", new Group("Java"));
+        defaultProperties.put("group", new Group(TaskGroupType.Java));
 
         assertThat(taskManager.getTasks()).hasSize(1);
         assertThat(taskManager.getTasks().get(0).name).isEqualTo("org.icij.datashare.tasks.IndexTask");

@@ -3,7 +3,9 @@ package org.icij.datashare.tasks;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.rest.RestStatus;
 import org.icij.datashare.PropertiesProvider;
+import org.icij.datashare.asynctasks.Group;
 import org.icij.datashare.asynctasks.Task;
+import org.icij.datashare.asynctasks.TaskGroupType;
 import org.icij.datashare.asynctasks.TaskModifier;
 import org.icij.datashare.asynctasks.bus.amqp.UriResult;
 import org.icij.datashare.batch.BatchDownload;
@@ -43,7 +45,7 @@ public class BatchDownloadRunnerTest {
 
     @Test(expected = AssertionError.class)
     public void test_task_with_no_batch_download() {
-        new BatchDownloadRunner(indexer, new PropertiesProvider(), new Task<Serializable>("name", User.local(), new HashMap<>()), null);
+        new BatchDownloadRunner(indexer, new PropertiesProvider(), new Task<Serializable>("name", User.local(), new Group(TaskGroupType.Test), new HashMap<>()), null);
     }
 
     @Test
@@ -93,7 +95,7 @@ public class BatchDownloadRunnerTest {
 
     @NotNull
     private static Task<File> getTaskView(BatchDownload batchDownload) {
-        return new Task<>(BatchDownloadRunner.class.toString(), batchDownload.user, new HashMap<>() {{
+        return new Task<>(BatchDownloadRunner.class.toString(), batchDownload.user, new Group(TaskGroupType.Test), new HashMap<>() {{
             put("batchDownload", batchDownload);
         }});
     }

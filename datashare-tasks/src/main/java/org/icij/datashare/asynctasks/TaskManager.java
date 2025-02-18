@@ -107,7 +107,7 @@ public interface TaskManager extends Closeable {
 
     // for tests
     default String startTask(String taskName, User user, Map<String, Object> properties) throws IOException {
-        return startTask(new Task<>(taskName, user, properties));
+        return startTask(new Task<>(taskName, user, new Group(TaskGroupType.Java), properties));
     }
     // for tests
     default String startTask(String taskName, User user, Group group, Map<String, Object> properties) throws IOException {

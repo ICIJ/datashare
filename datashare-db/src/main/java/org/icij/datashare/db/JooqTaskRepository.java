@@ -6,11 +6,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.icij.datashare.asynctasks.Group;
 import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.asynctasks.TaskRepository;
+import org.icij.datashare.asynctasks.bus.amqp.TaskError;
 import org.icij.datashare.db.tables.records.TaskRecord;
 import org.icij.datashare.json.JsonObjectMapper;
 import org.jooq.DSLContext;
 import org.jooq.InsertOnDuplicateSetMoreStep;
-import org.jooq.InsertValuesStep10;
 import org.jooq.InsertValuesStep11;
 import org.jooq.SQLDialect;
 import org.jooq.impl.DSL;
@@ -80,9 +80,12 @@ public class JooqTaskRepository implements TaskRepository {
             InsertValuesStep11<TaskRecord, String, String, String, String, String, Double, LocalDateTime, LocalDateTime, Integer, Integer, String> insertInto = insert(inner);
             insertValues(task, insertInto);
             InsertOnDuplicateSetMoreStep<TaskRecord> onDuplicate = insertInto.onDuplicateKeyUpdate()
+                    .set(TASK.ERROR, TYPE_INCLUSION_MAPPER.writeValueAsString(task.getError()))
+                    .set(TASK.RESULT, TYPE_INCLUSION_MAPPER.writeValueAsString(task.getResult()))
                     .set(TASK.STATE, task.getState().name())
                     .set(TASK.PROGRESS, task.getProgress())
                     .set(TASK.COMPLETED_AT, ofNullable(task.getCompletedAt()).map(d -> new Timestamp(d.getTime()).toLocalDateTime()).orElse(null));
+
             onDuplicate.execute();
             return old;
         });
@@ -131,9 +134,12 @@ public class JooqTaskRepository implements TaskRepository {
             Date createdAt = r.getCreatedAt() == null ? null : Date.from(r.getCreatedAt().atZone(ZoneId.systemDefault()).toInstant());;
             Date completedAt = r.getCompletedAt() == null ? null :Date.from(r.getCompletedAt().atZone(ZoneId.systemDefault()).toInstant());;
             try {
+                Map<String, Object> args = TYPE_INCLUSION_MAPPER.readValue(r.getArgs(), new TypeReference<>() {});
+                Object result = r.getResult() == null ? null: TYPE_INCLUSION_MAPPER.readValue(r.getResult(), new TypeReference<>() {});
+                TaskError error  = r.getError() == null ? null: TYPE_INCLUSION_MAPPER.readValue(r.getError(), TaskError.class);
                 return new Task<>(r.getId(), r.getName(), Task.State.valueOf(r.getState()),
-                        r.getProgress(), createdAt, r.getRetriesLeft(), completedAt,
-                        TYPE_INCLUSION_MAPPER.readValue(r.getArgs(), new TypeReference<>() {}));
+                        r.getProgress(), createdAt, r.getRetriesLeft(), completedAt, args, result, error);
+
             } catch (JsonProcessingException e) {
                 throw new RuntimeException(e);
             }
@@ -151,7 +157,7 @@ public class JooqTaskRepository implements TaskRepository {
             insert.values(t.id, t.name,
                     t.getState().name(),
                     ofNullable(t.getUser()).map(u -> u.id).orElse(null),
-                    ofNullable(t.getGroup()).map(Group::id).orElse(null),
+                    ofNullable(t.getGroup()).map(Group::getId).orElse(null),
                     t.getProgress(),
                     new Timestamp(t.createdAt.getTime()).toLocalDateTime(),
                     ofNullable(t.getCompletedAt()).map(d -> new Timestamp(d.getTime()).toLocalDateTime()).orElse(null),

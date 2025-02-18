@@ -9,6 +9,7 @@ import net.codestory.http.security.SessionIdStore;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.asynctasks.TaskGroup;
+import org.icij.datashare.asynctasks.TaskGroupType;
 import org.icij.datashare.asynctasks.TaskManager;
 import org.icij.datashare.asynctasks.TaskModifier;
 import org.icij.datashare.asynctasks.bus.amqp.UriResult;
@@ -154,7 +155,7 @@ public class UserTaskResourceTest extends AbstractProdWebServerTest {
         put("/api/task/stopAll").withPreemptiveAuthentication("bar", "pass").should().not().contain(t1Id);
     }
 
-    @TaskGroup("TestGroup")
+    @TaskGroup(TaskGroupType.Test)
     public static class DummyUserTask<V> implements UserTask, Callable<V> {
         private final String user;
         private final Supplier<V> supplier;
@@ -167,7 +168,7 @@ public class UserTaskResourceTest extends AbstractProdWebServerTest {
         @Override public User getUser() { return new User(user);}
     }
 
-    @TaskGroup("TestGroup")
+    @TaskGroup(TaskGroupType.Test)
     public static class SleepingUserTask implements UserTask, Callable<String> {
         private final String user;
         public SleepingUserTask(String user) {this.user = user;}

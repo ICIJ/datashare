@@ -110,3 +110,6 @@ databaseChangeLog:
   - include:
       file: changes/036-create_task.yml
       relativeToChangelogFile: true
+  - include:
+      file: changes/037-adds-task-result-and-error.yml
+      relativeToChangelogFile: true

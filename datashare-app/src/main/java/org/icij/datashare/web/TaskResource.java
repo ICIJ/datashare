@@ -24,7 +24,9 @@ import net.codestory.http.errors.HttpException;
 import net.codestory.http.errors.NotFoundException;
 import net.codestory.http.payload.Payload;
 import org.icij.datashare.PropertiesProvider;
+import org.icij.datashare.asynctasks.Group;
 import org.icij.datashare.asynctasks.Task;
+import org.icij.datashare.asynctasks.TaskGroupType;
 import org.icij.datashare.asynctasks.TaskManager;
 import org.icij.datashare.asynctasks.bus.amqp.UriResult;
 import org.icij.datashare.batch.BatchDownload;
@@ -373,7 +375,7 @@ public class TaskResource {
             // TODO remove taskFactory.createScanIndexTask would allow to get rid of taskfactory dependency in taskresource
             // problem for now is that if we call taskManager.startTask(ScanIndexTask.class.getName(), user, propertiesToMap(properties))
             // the task will be run as a background task that will have race conditions with indexTask report loading
-            scanIndex = new Task<>(ScanIndexTask.class.getName(), user, propertiesToMap(properties));
+            scanIndex = new Task<>(ScanIndexTask.class.getName(), user, new Group(TaskGroupType.Test), propertiesToMap(properties));
             taskFactory.createScanIndexTask(scanIndex, (p) -> null).call();
             taskIds.add(scanIndex.id);
         } else {

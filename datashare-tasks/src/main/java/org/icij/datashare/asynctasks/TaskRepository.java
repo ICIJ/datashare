@@ -7,10 +7,6 @@ public interface TaskRepository extends Map<String, Task<?>> {
         return put(task.getId(), task);
     }
 
-    default Task<?> get(String id) {
-        return get((Object)id);
-    }
-
     default boolean isEmpty() {
         return size() == 0;
     }

@@ -75,7 +75,7 @@ public class TaskManagerAmqp implements TaskManager {
     @Override
     public <V> void enqueue(Task<V> task) throws IOException {
         switch (routingStrategy) {
-            case GROUP -> amqp.publish(AmqpQueue.TASK, task.getGroup().id(), task);
+            case GROUP -> amqp.publish(AmqpQueue.TASK, task.getGroup().id().name(), task);
             case NAME -> amqp.publish(AmqpQueue.TASK, task.name, task);
             default -> amqp.publish(AmqpQueue.TASK, task);
         }

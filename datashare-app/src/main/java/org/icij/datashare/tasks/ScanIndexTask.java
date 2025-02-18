@@ -39,10 +39,10 @@ import static org.icij.datashare.cli.DatashareCliOptions.REPORT_NAME_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.SCROLL_DURATION_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.SCROLL_SIZE_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.SCROLL_SLICES_OPT;
-import static org.icij.datashare.tasks.GroupHelper.JAVA_GROUP;
+import org.icij.datashare.asynctasks.TaskGroupType;
 import static org.icij.datashare.text.indexing.ScrollQueryBuilder.createScrollQuery;
 
-@TaskGroup(JAVA_GROUP)
+@TaskGroup(TaskGroupType.Java)
 public class ScanIndexTask extends PipelineTask<Path> {
     private final Logger logger = LoggerFactory.getLogger(getClass());
     private final Indexer indexer;

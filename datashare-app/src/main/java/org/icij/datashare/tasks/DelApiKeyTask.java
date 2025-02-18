@@ -1,6 +1,6 @@
 package org.icij.datashare.tasks;
 
-import static org.icij.datashare.tasks.GroupHelper.JAVA_GROUP;
+import org.icij.datashare.asynctasks.TaskGroupType;
 
 import com.google.inject.Inject;
 import com.google.inject.assistedinject.Assisted;
@@ -12,7 +12,7 @@ import org.icij.task.DefaultTask;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@TaskGroup(JAVA_GROUP)
+@TaskGroup(TaskGroupType.Java)
 public class DelApiKeyTask extends DefaultTask<Boolean> implements UserTask {
     private final Logger logger = LoggerFactory.getLogger(getClass());
     private final ApiKeyRepository apiKeyRepository;

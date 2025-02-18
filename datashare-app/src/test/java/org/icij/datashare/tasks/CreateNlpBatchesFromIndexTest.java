@@ -13,7 +13,9 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import org.icij.datashare.PropertiesProvider;
+import org.icij.datashare.asynctasks.Group;
 import org.icij.datashare.asynctasks.Task;
+import org.icij.datashare.asynctasks.TaskGroupType;
 import org.icij.datashare.asynctasks.TaskManager;
 import org.icij.datashare.test.DatashareTimeRule;
 import org.icij.datashare.test.ElasticsearchRule;
@@ -75,7 +77,7 @@ public class CreateNlpBatchesFromIndexTest {
                 """
         );
         CreateNlpBatchesFromIndex enqueueFromIndex = new CreateNlpBatchesFromIndex(taskManager, indexer,
-            new Task<>(CreateNlpBatchesFromIndex.class.getName(), new User("test"), properties), null);
+            new Task<>(CreateNlpBatchesFromIndex.class.getName(), new User("test"), new Group(TaskGroupType.Test), properties), null);
         // When
         enqueueFromIndex.call();
         List<List<String>> queued = taskManager.getTasks().stream()

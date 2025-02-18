@@ -44,9 +44,9 @@ public class TaskManagerAmqpTest {
 
     @Test(timeout = 2000)
     public void test_new_task_with_group_routing() throws Exception {
-        String key = "Key";
+        TaskGroupType key = TaskGroupType.Test;
         try (TaskManagerAmqp groupTaskManager = new TaskManagerAmqp(AMQP, new TaskRepositoryMemory(), RoutingStrategy.GROUP, () -> nextMessage.countDown());
-             TaskSupplierAmqp groupTaskSupplier = new TaskSupplierAmqp(AMQP, key)) {
+             TaskSupplierAmqp groupTaskSupplier = new TaskSupplierAmqp(AMQP, key.name())) {
             groupTaskSupplier.consumeTasks(t -> taskQueue.add(t));
             String expectedTaskViewId = groupTaskManager.startTask("taskName", User.local(), new Group(key), Map.of());
 

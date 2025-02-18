@@ -1,23 +1,18 @@
 package org.icij.datashare.asynctasks;
 
 import org.icij.datashare.PropertiesProvider;
-import org.icij.datashare.tasks.RoutingStrategy;
 import org.icij.datashare.test.LogbackCapturingRule;
 import org.icij.datashare.user.User;
-import org.icij.extract.redis.RedissonClientFactory;
-import org.icij.task.Options;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
-import org.redisson.api.RedissonClient;
 import org.slf4j.event.Level;
 
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
 import static org.fest.assertions.Assertions.assertThat;
@@ -42,7 +37,7 @@ public class TaskManagerMemoryTest {
 
     @Test
     public void test_run_task() throws Exception {
-        Task<Integer> task = new Task<>(TestFactory.HelloWorld.class.getName(), User.local(), Map.of("greeted", "world"));
+        Task<Integer> task = new Task<>(TestFactory.HelloWorld.class.getName(), User.local(), new Group(TaskGroupType.Test), Map.of("greeted", "world"));
 
         String tid = taskManager.startTask(task);
         taskManager.awaitTermination(100, TimeUnit.MILLISECONDS);
@@ -54,7 +49,7 @@ public class TaskManagerMemoryTest {
 
     @Test
     public void test_stop_current_task() throws Exception {
-        Task<Integer> task = new Task<>(TestFactory.SleepForever.class.getName(), User.local(), Map.of("intParameter", 2000));
+        Task<Integer> task = new Task<>(TestFactory.SleepForever.class.getName(), User.local(), new Group(TaskGroupType.Test), Map.of("intParameter", 2000));
         String taskId = taskManager.startTask(task);
 
         taskInspector.awaitToBeStarted(taskId, 10000);
@@ -67,8 +62,8 @@ public class TaskManagerMemoryTest {
 
     @Test
     public void test_stop_queued_task() throws Exception {
-        Task<Integer> t1 = new Task<>(TestFactory.SleepForever.class.getName(), User.local(), Map.of());
-        Task<Integer> t2 = new Task<>(TestFactory.HelloWorld.class.getName(), User.local(), Map.of("greeted", "stucked task"));
+        Task<Integer> t1 = new Task<>(TestFactory.SleepForever.class.getName(), User.local(), new Group(TaskGroupType.Test), Map.of());
+        Task<Integer> t2 = new Task<>(TestFactory.HelloWorld.class.getName(), User.local(), new Group(TaskGroupType.Test), Map.of("greeted", "stucked task"));
 
         taskManager.startTask(t1);
         taskManager.startTask(t2);
@@ -85,7 +80,7 @@ public class TaskManagerMemoryTest {
 
     @Test
     public void test_clear_the_only_task() throws Exception {
-        Task<Integer> task = new Task<>("sleep", User.local(), Map.of("intParameter", 12));
+        Task<Integer> task = new Task<>("sleep", User.local(), new Group(TaskGroupType.Test), Map.of("intParameter", 12));
 
         taskManager.startTask(task);
         taskManager.awaitTermination(1, TimeUnit.SECONDS);
@@ -98,7 +93,7 @@ public class TaskManagerMemoryTest {
 
     @Test(expected = IllegalStateException.class)
     public void test_clear_running_task_should_throw_exception() throws Exception {
-        Task<Integer> task = new Task<>("sleep", User.local(), Map.of("intParameter", 12));
+        Task<Integer> task = new Task<>("sleep", User.local(), new Group(TaskGroupType.Test), Map.of("intParameter", 12));
 
         taskManager.startTask(task);
         taskManager.awaitTermination(1, TimeUnit.SECONDS);
