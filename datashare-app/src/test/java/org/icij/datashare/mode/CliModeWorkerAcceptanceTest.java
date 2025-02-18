@@ -1,6 +1,7 @@
 package org.icij.datashare.mode;
 
 import org.icij.datashare.asynctasks.TaskManager;
+import org.icij.datashare.asynctasks.TaskModifier;
 import org.icij.datashare.asynctasks.TaskSupplier;
 import org.icij.datashare.asynctasks.TaskWorkerLoop;
 import org.icij.datashare.cli.QueueType;
@@ -25,7 +26,7 @@ public class CliModeWorkerAcceptanceTest {
     public static Collection<Object[]> mode() throws Exception {
         return asList(new Object[][]{
                 {
-                        CommonMode.create(Map.of(
+                    CommonMode.create(Map.of(
                                 "dataDir", "/tmp",
                                 "mode", "TASK_WORKER",
                                 "batchQueueType", QueueType.AMQP.name(),
@@ -51,7 +52,7 @@ public class CliModeWorkerAcceptanceTest {
     @Test(timeout = 30000)
     public void test_task_worker() throws Exception {
         CountDownLatch workerStarted = new CountDownLatch(1);
-        TaskWorkerLoop taskWorkerLoop = new TaskWorkerLoop(mode.get(DatashareTaskFactory.class), mode.get(TaskSupplier.class), workerStarted);
+        TaskWorkerLoop taskWorkerLoop = new TaskWorkerLoop(mode.get(DatashareTaskFactory.class), mode.get(TaskSupplier.class), workerStarted, 1000);
         Thread workerApp = new Thread(taskWorkerLoop::call);
         workerApp.start();
         workerStarted.await();

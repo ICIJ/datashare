@@ -1,40 +1,33 @@
 package org.icij.datashare.asynctasks;
 
-import java.util.Optional;
-import org.icij.datashare.asynctasks.bus.amqp.AmqpConsumer;
-import org.icij.datashare.asynctasks.bus.amqp.AmqpInterlocutor;
-import org.icij.datashare.asynctasks.bus.amqp.AmqpQueue;
-import org.icij.datashare.asynctasks.bus.amqp.CancelEvent;
-import org.icij.datashare.asynctasks.bus.amqp.ShutdownEvent;
-import org.icij.datashare.asynctasks.bus.amqp.TaskEvent;
+import org.icij.datashare.asynctasks.bus.amqp.*;
 
 import org.icij.datashare.tasks.RoutingStrategy;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.Map;
 import java.util.function.Consumer;
 
 import static java.util.Optional.ofNullable;
 import static java.util.stream.Collectors.toList;
 
 public class TaskManagerAmqp implements TaskManager {
-    private final Map<String, TaskMetadata<?>> taskMetas;
+    private final TaskRepository taskRepository;
     private final RoutingStrategy routingStrategy;
     private final AmqpInterlocutor amqp;
     private final AmqpConsumer<TaskEvent, Consumer<TaskEvent>> eventConsumer;
 
-    public TaskManagerAmqp(AmqpInterlocutor amqp, Map<String, TaskMetadata<?>> taskMetas) throws IOException {
-        this(amqp, taskMetas, RoutingStrategy.UNIQUE);
+    public TaskManagerAmqp(AmqpInterlocutor amqp, TaskRepository taskRepository) throws IOException {
+        this(amqp, taskRepository, RoutingStrategy.UNIQUE);
     }
 
-    public TaskManagerAmqp(AmqpInterlocutor amqp, Map<String, TaskMetadata<?>> taskMetas, RoutingStrategy routingStrategy) throws IOException {
-        this(amqp, taskMetas, routingStrategy, null);
+    public TaskManagerAmqp(AmqpInterlocutor amqp, TaskRepository taskRepository, RoutingStrategy routingStrategy) throws IOException {
+        this(amqp, taskRepository, routingStrategy, null);
     }
 
-    public TaskManagerAmqp(AmqpInterlocutor amqp, Map<String, TaskMetadata<?>> taskMetas, RoutingStrategy routingStrategy, Runnable eventCallback) throws IOException {
+    public TaskManagerAmqp(AmqpInterlocutor amqp, TaskRepository taskRepository, RoutingStrategy routingStrategy, Runnable eventCallback) throws IOException {
         this.amqp = amqp;
-        this.taskMetas = taskMetas;
+        this.taskRepository = taskRepository;
         this.routingStrategy = routingStrategy;
         eventConsumer = new AmqpConsumer<>(amqp, event ->
                 ofNullable(TaskManager.super.handleAck(event)).flatMap(t ->
@@ -42,7 +35,7 @@ public class TaskManagerAmqp implements TaskManager {
     }
 
     @Override
-    public boolean stopTask(String taskId) {
+    public boolean stopTask(String taskId) throws IOException {
         Task<?> taskView = this.getTask(taskId);
         if (taskView != null) {
             try {
@@ -59,12 +52,17 @@ public class TaskManagerAmqp implements TaskManager {
     }
 
     @Override
-    public <V> Task<V> clearTask(String taskId) {
+    public <V> Task<V> getTask(String taskId) throws IOException {
+        return (Task<V>) taskRepository.getTask(taskId);
+    }
+
+    @Override
+    public <V> Task<V> clearTask(String taskId) throws IOException {
         if (this.getTask(taskId).getState() == Task.State.RUNNING) {
             throw new IllegalStateException(String.format("task id <%s> is already in RUNNING state", taskId));
         }
         logger.info("deleting task id <{}>", taskId);
-        return (Task<V>) taskMetas.remove(taskId).task();
+        return (Task<V>) taskRepository.remove(taskId).task();
     }
 
     @Override
@@ -74,52 +72,28 @@ public class TaskManagerAmqp implements TaskManager {
     }
 
     @Override
-    public <V> void saveMetadata(TaskMetadata<V> taskMetadata) throws TaskAlreadyExists {
-        String taskId = taskMetadata.taskId();
-        if (taskMetas.containsKey(taskId)) {
-            throw new TaskAlreadyExists(taskId);
-        }
-        this.taskMetas.put(taskId, taskMetadata);
-    }
-
-    @Override
-    public <V> void persistUpdate(Task<V> task) throws UnknownTask {
-        TaskMetadata<V> updated = (TaskMetadata<V>) taskMetas.get(task.id);
-        if (updated == null) {
-            throw new UnknownTask(task.id);
-        }
-        updated = updated.withTask(task);
-        this.taskMetas.put(task.id, updated);
-    }
-
-    @Override
     public <V> void enqueue(Task<V> task) throws IOException {
         switch (routingStrategy) {
-            case GROUP -> amqp.publish(AmqpQueue.TASK, this.taskMetas.get(task.id).group().id(), task);
+            case GROUP -> amqp.publish(AmqpQueue.TASK, this.taskRepository.get(task.id).group().id(), task);
             case NAME -> amqp.publish(AmqpQueue.TASK, task.name, task);
             default -> amqp.publish(AmqpQueue.TASK, task);
         }
     }
 
     @Override
-    public <V> Task<V> getTask(String taskId) {
-        return (Task<V>) Optional.ofNullable(taskMetas.get(taskId)).map(TaskMetadata::task).orElse(null);
-    }
-
-    @Override
     public List<Task<?>> getTasks() {
-        return taskMetas.values().stream().map(TaskMetadata::task).collect(toList());
+        return taskRepository.values().stream().map(TaskMetadata::task).collect(toList());
     }
 
     @Override
     public Group getTaskGroup(String taskId) {
-        return taskMetas.get(taskId).group();
+        return taskRepository.get(taskId).group();
     }
 
     @Override
     public List<Task<?>> clearDoneTasks() {
-        return taskMetas.values().stream().map(TaskMetadata::task).filter(Task::isFinished)
-            .map(t -> taskMetas.remove(t.id).task()).collect(toList());
+        return taskRepository.values().stream().map(TaskMetadata::task).filter(Task::isFinished)
+            .map(t -> taskRepository.remove(t.id).task()).collect(toList());
     }
 
     public void close() throws IOException {
@@ -129,6 +103,32 @@ public class TaskManagerAmqp implements TaskManager {
 
     @Override
     public void clear() {
-        taskMetas.clear();
+        taskRepository.clear();
+    }
+
+    @Override
+    public boolean getHealth() {
+        try {
+            if (amqp.hasMonitoringQueue()) {
+                logger.info("sending monitoring event");
+                amqp.publish(AmqpQueue.MONITORING, new MonitoringEvent());
+                return true;
+            } else {
+                return amqp.isConnectionOpen();
+            }
+        } catch (RuntimeException|IOException e) {
+            logger.error("error sending monitoring event", e);
+            return false;
+        }
+    }
+
+    @Override
+    public <V> void persist(Task<?> task, Group group) throws IOException, TaskAlreadyExists {
+        taskRepository.persist(task, group);
+    }
+
+    @Override
+    public <V> void update(Task<V> task) throws IOException {
+        taskRepository.update(task);
     }
 }

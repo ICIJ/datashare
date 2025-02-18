@@ -77,7 +77,9 @@ public final class DatashareCliOptions {
     public static final String MESSAGE_BUS_OPT = "messageBusAddress";
     public static final String MODE_ABBR_OPT = "m";
     public static final String MODE_OPT = "mode";
+    public static final String NLP_BATCH_SIZE_OPT = "batchSize";
     public static final String NLP_PARALLELISM_ABBR_OPT = "np";
+    public static final String NLP_MAX_TEXT_LENGTH_OPT = "maxTextLength";
     public static final String NLP_PARALLELISM_OPT = "nlpParallelism";
     public static final String NLP_PIPELINE_ABBR_OPT = "nlpp";
     public static final String NLP_PIPELINE_OPT = "nlpPipeline";
@@ -126,8 +128,8 @@ public final class DatashareCliOptions {
     public static final String TASK_ROUTING_STRATEGY_OPT = "taskRoutingStrategy";
     public static final String TASK_ROUTING_KEY_OPT = "taskRoutingKey";
     public static final String OAUTH_USER_PROJECTS_KEY_OPT = "oauthUserProjectsAttribute";
-    public static final String POLLING_INTERVAL_OPT = "pollingInterval";
-
+    public static final String POLLING_INTERVAL_SECONDS_OPT = "pollingInterval";
+    public static final String TASK_REPOSITORY_OPT = "taskRepositoryType";
 
     private static final Path DEFAULT_DATASHARE_HOME = Paths.get(System.getProperty("user.home"), ".local/share/datashare");
     private static final Integer DEFAULT_NLP_PARALLELISM = 1;
@@ -157,6 +159,8 @@ public final class DatashareCliOptions {
     public static final String DEFAULT_LOG_LEVEL = Level.INFO.toString();
     public static final String DEFAULT_MESSAGE_BUS_ADDRESS = "redis://redis:6379";
     public static final String DEFAULT_NLP_PIPELINE = "CORENLP";
+    public static final int DEFAULT_NLP_BATCH_SIZE = 1024;
+    public static final int DEFAULT_NLP_MAX_TEXT_LENGTH = 1024;
     public static final String DEFAULT_PROTECTED_URI_PREFIX = "/api/";
     public static final String DEFAULT_QUEUE_NAME = "extract:queue";
     public static final String DEFAULT_REDIS_ADDRESS = "redis://redis:6379";
@@ -231,7 +235,7 @@ public final class DatashareCliOptions {
                 singletonList(FOLLOW_SYMLINKS_OPT), "Follow symlinks while scanning documents")
                 .withRequiredArg()
                 .ofType(Boolean.class)
-                .defaultsTo(DEFAULT_FOLLOW_SYMLINKS);;
+                .defaultsTo(DEFAULT_FOLLOW_SYMLINKS);
     }
 
     static void cors(OptionParser parser) {
@@ -433,6 +437,24 @@ public final class DatashareCliOptions {
     }
 
     static void nlpParallelism(OptionParser parser) {
+        parser.acceptsAll(
+                asList(NLP_PARALLELISM_ABBR_OPT, NLP_PARALLELISM_OPT),
+                "Number of NLP extraction threads per pipeline.")
+                .withRequiredArg()
+                .ofType( Integer.class )
+                .defaultsTo(DEFAULT_NLP_PARALLELISM);
+    }
+
+    static void nlpBatchSize(OptionParser parser) {
+        parser.acceptsAll(
+                List.of(NLP_BATCH_SIZE_OPT),
+                "Batch size of NLP extraction task in number of documents.")
+                .withRequiredArg()
+                .ofType( Integer.class )
+                .defaultsTo(DEFAULT_NLP_BATCH_SIZE);
+    }
+
+    static void nlpMaxTextLength(OptionParser parser) {
         parser.acceptsAll(
                 asList(NLP_PARALLELISM_ABBR_OPT, NLP_PARALLELISM_OPT),
                 "Number of NLP extraction threads per pipeline.")
@@ -831,13 +853,22 @@ public final class DatashareCliOptions {
     }
 
     public static void pollingInterval(OptionParser parser) {
-        parser.acceptsAll(singletonList(POLLING_INTERVAL_OPT), "Queue polling interval.")
+        parser.acceptsAll(singletonList(POLLING_INTERVAL_SECONDS_OPT), "Queue polling interval.")
                 .withRequiredArg()
-                .ofType(String.class).defaultsTo("60");
+                .ofType(String.class).defaultsTo(DEFAULT_POLLING_INTERVAL_SEC);
     }
 
+    public static void taskRepositoryType(OptionParser parser) {
+        parser.acceptsAll(
+                        singletonList(TASK_REPOSITORY_OPT), "type of task repository")
+                .withRequiredArg()
+                .ofType( TaskRepositoryType.class )
+                .defaultsTo(TaskRepositoryType.REDIS);
+    }
+
+
     public static ValueConverter<String> toAbsolute() {
-        return new ValueConverter<String>() {
+        return new ValueConverter<>() {
             @Override
             public String convert(String value) {
                 Path path = Paths.get(value);

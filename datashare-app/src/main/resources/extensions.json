@@ -31,9 +31,9 @@
       "id": "datashare-nlp-opennlp",
       "name": "OPENNLP Pipeline",
       "description": "Extension to extract NER entities with OPENNLP",
-      "url": "https://github.com/ICIJ/datashare-extension-nlp-opennlp/releases/download/8.0.2/datashare-nlp-opennlp-8.0.2-jar-with-dependencies.jar",
+      "url": "https://github.com/ICIJ/datashare-extension-nlp-opennlp/releases/download/9.0.1/datashare-nlp-opennlp-9.0.1-jar-with-dependencies.jar",
       "homepage": "https://github.com/ICIJ/datashare-extension-nlp-opennlp",
-      "version": "8.0.2",
+      "version": "9.0.1",
       "type": "NLP"
     },
     {

@@ -1,5 +1,6 @@
 package org.icij.datashare.asynctasks.bus.amqp;
 
+import com.rabbitmq.client.AlreadyClosedException;
 import org.icij.datashare.json.JsonObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -116,10 +117,14 @@ public class AmqpConsumer<Evt extends Event, EvtConsumer extends Consumer<Evt>> 
 
     public void shutdown() throws IOException {
         logger.info("shutting down consumer channel");
-        if (!isCanceled()) {
-            cancel();
+        try {
+            if (!isCanceled()) {
+                cancel();
+            }
+            channel.close();
+        } catch (IOException | AlreadyClosedException ioe) {
+            logger.error("exception during close", ioe);
         }
-        channel.close();
     }
 
     public Evt deserialize(byte[] rawJson) {

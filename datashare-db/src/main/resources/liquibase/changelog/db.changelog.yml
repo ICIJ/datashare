@@ -107,3 +107,6 @@ databaseChangeLog:
   - include:
       file: changes/035-batch-search-rename-tag-column-to-query-template.yml
       relativeToChangelogFile: true
+  - include:
+      file: changes/036-create_task.yml
+      relativeToChangelogFile: true

@@ -78,7 +78,7 @@ public class RepositoryFactoryImpl implements RepositoryFactory {
         return constructor.apply(dataSource, guessSqlDialectFrom(getDataSourceUrl()));
     }
 
-    static SQLDialect guessSqlDialectFrom(String dataSourceUrl) {
+    public static SQLDialect guessSqlDialectFrom(String dataSourceUrl) {
         for (SQLDialect dialect: SQLDialect.values()) {
             if (dataSourceUrl.contains(dialect.name().toLowerCase())) {
                 return dialect;
@@ -86,6 +86,9 @@ public class RepositoryFactoryImpl implements RepositoryFactory {
         }
         throw new IllegalArgumentException("unknown SQL dialect for datasource : " + dataSourceUrl);
     }
+
+    public DataSource getDataSource() {return dataSource;}
+    public SQLDialect guessSqlDialect() {return guessSqlDialectFrom(getDataSourceUrl());}
 
     DataSource createDatasource() {
         HikariConfig config = new HikariConfig();

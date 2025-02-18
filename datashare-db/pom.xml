@@ -5,7 +5,7 @@
     <parent>
         <artifactId>datashare</artifactId>
         <groupId>org.icij.datashare</groupId>
-        <version>19.1.1</version>
+        <version>19.3.16</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
@@ -21,6 +21,11 @@
         <dependency>
             <groupId>org.icij.datashare</groupId>
             <artifactId>datashare-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.icij.datashare</groupId>
+            <artifactId>datashare-tasks</artifactId>
+            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.icij.extract</groupId>

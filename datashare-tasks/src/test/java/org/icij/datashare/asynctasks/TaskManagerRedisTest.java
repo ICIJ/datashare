@@ -38,10 +38,10 @@ public class TaskManagerRedisTest {
         taskSupplier = new TaskSupplierRedis(redissonClient);
 
     @Test
-    public void test_save_task() throws TaskAlreadyExists, IOException {
+    public void test_persist_task() throws TaskAlreadyExists {
         Task<String> task = new Task<>("name", User.local(), new HashMap<>());
 
-        taskManager.save(task, null);
+        taskManager.persist(task, null);
 
         assertThat(taskManager.getTasks()).hasSize(1);
         assertThat(taskManager.getTask(task.id)).isNotNull();
@@ -51,10 +51,9 @@ public class TaskManagerRedisTest {
     public void test_update_task() throws TaskAlreadyExists, IOException {
         // Given
         Task<?> task = new Task<>("HelloWorld", User.local(), Map.of("greeted", "world"));
-        TaskMetadata<?> meta = new TaskMetadata<>(task, null);
         Task<?> update = new Task<>(task.id, task.name, task.getState(), 0.5, null, task.args);
         // When
-        taskManager.saveMetadata(meta);
+        taskManager.persist(task, null);
         taskManager.update(update);
         Task<?> updated = taskManager.getTask(task.id);
         // Then
@@ -142,7 +141,7 @@ public class TaskManagerRedisTest {
         taskManager.clearTask(taskViewId);
     }
 
-    @Test
+    @Test(timeout = 10000)
     public void test_done_task_result_for_file() throws Exception {
         String taskViewId = taskManager.startTask("HelloWorld", User.local(), new HashMap<>() {{
                 put("greeted", "world");
@@ -153,6 +152,22 @@ public class TaskManagerRedisTest {
 
         assertThat(taskManager.getTasks()).hasSize(1);
         assertThat(taskManager.getTasks().get(0).getResult()).isEqualTo(expectedResult);
+    }
+
+    @Test
+    public void test_health_ok() {
+        assertThat(taskManager.getHealth()).isTrue();
+    }
+
+    @Test
+    public void test_health_ko(){
+        RedissonClient redissonClientKO = new RedissonClientFactory().withOptions(
+                Options.from(propertiesProvider.getProperties())).create();
+        TaskManagerRedis taskManager = new TaskManagerRedis(
+                redissonClientKO, "test:task:manager", RoutingStrategy.UNIQUE, this::callback);
+        redissonClientKO.shutdown();
+
+        assertThat(taskManager.getHealth()).isFalse();
     }
 
     private void callback() {

@@ -1,9 +1,9 @@
 package org.icij.datashare.text;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import org.icij.datashare.Entity;
-
 
 import java.util.List;
 import java.util.Objects;
@@ -23,6 +23,7 @@ public class ProjectProxy implements Entity {
         this.name  = name;
     }
 
+    @JsonIgnore
     @Override
     public String getId() {
         return this.name;

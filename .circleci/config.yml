@@ -29,7 +29,7 @@ jobs:
         environment:
           RABBITMQ_DEFAULT_USER: admin
           RABBITMQ_DEFAULT_PASS: admin
-      - image: adobe/s3mock:latest
+      - image: adobe/s3mock:3.12.0
         name: s3mock
 
     working_directory: /tmp/datashare
@@ -348,7 +348,7 @@ jobs:
       - run:
           name: Install tonistiigi/binfmt support for additional platforms
           command: |
-            docker run --privileged --rm tonistiigi/binfmt --install all
+            docker run --privileged --rm tonistiigi/binfmt:qemu-v7.0.0-28 --install all
       - run:
           name: Build and push the image for several platform
           command: |
@@ -471,7 +471,7 @@ jobs:
   deploy_datashare_api:
     docker:
       - image: cimg/openjdk:17.0.11
-      - image: adobe/s3mock:latest
+      - image: adobe/s3mock:3.12.0
         name: s3mock
 
     environment:
@@ -492,7 +492,7 @@ jobs:
   deploy_datashare_cli:
     docker:
       - image: cimg/openjdk:17.0.11
-      - image: adobe/s3mock:latest
+      - image: adobe/s3mock:3.12.0
         name: s3mock
 
     environment:

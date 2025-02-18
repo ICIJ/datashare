@@ -24,17 +24,17 @@ import static java.util.stream.Collectors.toList;
 public class TaskManagerMemory implements TaskManager, TaskSupplier {
     private final Logger logger = LoggerFactory.getLogger(getClass());
     private final ExecutorService executor;
-    private final ConcurrentMap<String, TaskMetadata<?>> taskMetas = new ConcurrentHashMap<>();
+    private final TaskRepository taskRepository;
     private final BlockingQueue<Task<?>> taskQueue;
     private final List<TaskWorkerLoop> loops;
     private final AtomicInteger executedTasks = new AtomicInteger(0);
     private final int pollingInterval;
 
     public TaskManagerMemory(TaskFactory taskFactory) {
-        this(taskFactory, new PropertiesProvider(), new CountDownLatch(1));
+        this(taskFactory, new PropertiesProvider(), new TaskRepositoryMemory(), new CountDownLatch(1));
     }
 
-    public TaskManagerMemory(TaskFactory taskFactory, PropertiesProvider propertiesProvider, CountDownLatch latch) {
+    public TaskManagerMemory(TaskFactory taskFactory, PropertiesProvider propertiesProvider, TaskRepository tasks, CountDownLatch latch) {
         this.taskQueue = new LinkedBlockingQueue<>();
         int parallelism = parseInt(propertiesProvider.get("parallelism").orElse("1"));
         pollingInterval = Integer.parseInt(propertiesProvider.get("pollingInterval").orElse("60"));
@@ -42,15 +42,16 @@ public class TaskManagerMemory implements TaskManager, TaskSupplier {
         executor = Executors.newFixedThreadPool(parallelism);
         loops = IntStream.range(0, parallelism).mapToObj(i -> new TaskWorkerLoop(taskFactory, this, latch, pollingInterval)).collect(Collectors.toList());
         loops.forEach(executor::submit);
+        this.taskRepository = tasks;
     }
 
     public <V> Task<V> getTask(final String taskId) {
-        return (Task<V>) Optional.ofNullable(taskMetas.get(taskId)).map(TaskMetadata::task).orElse(null);
+        return (Task<V>) Optional.ofNullable(taskRepository.get(taskId)).map(TaskMetadata::task).orElse(null);
     }
 
     @Override
     public List<Task<?>> getTasks() {
-        return taskMetas.values().stream().map(TaskMetadata::task).collect(toList());
+        return taskRepository.values().stream().map(TaskMetadata::task).collect(toList());
     }
 
     @Override
@@ -77,7 +78,7 @@ public class TaskManagerMemory implements TaskManager, TaskSupplier {
 
     @Override
     public void canceled(Task<?> task, boolean requeue) {
-        Task<?> taskView = taskMetas.get(task.id).task();
+        Task<?> taskView = taskRepository.get(task.id).task();
         if (taskView != null) {
             taskView.cancel();
             if (requeue) {
@@ -88,7 +89,7 @@ public class TaskManagerMemory implements TaskManager, TaskSupplier {
 
     @Override
     public void error(String taskId, TaskError reason) {
-        Task<?> taskView = taskMetas.get(taskId).task();
+        Task<?> taskView = taskRepository.get(taskId).task();
         if (taskView != null) {
             taskView.setError(reason);
             executedTasks.incrementAndGet();
@@ -97,28 +98,10 @@ public class TaskManagerMemory implements TaskManager, TaskSupplier {
         }
     }
 
-    @Override
-    public <V> void saveMetadata(TaskMetadata<V> taskMetadata) throws TaskAlreadyExists {
-        String taskId = taskMetadata.taskId();
-        if (taskMetas.containsKey(taskId)) {
-            throw new TaskAlreadyExists(taskId);
-        }
-        this.taskMetas.put(taskId, taskMetadata);
-    }
-
-    @Override
-    public <V> void persistUpdate(Task<V> task) throws UnknownTask {
-        TaskMetadata<V> updated = (TaskMetadata<V>) taskMetas.get(task.id);
-        if (updated == null) {
-            throw new UnknownTask(task.id);
-        }
-        updated = updated.withTask(task);
-        this.taskMetas.put(task.id, updated);
-    }
 
     @Override
     public Group getTaskGroup(String taskId) {
-        return taskMetas.get(taskId).group();
+        return taskRepository.get(taskId).group();
     }
 
     @Override
@@ -138,8 +121,8 @@ public class TaskManagerMemory implements TaskManager, TaskSupplier {
     }
 
     public List<Task<?>> clearDoneTasks() {
-        return taskMetas.values().stream().map(TaskMetadata::task).filter(Task::isFinished)
-            .map(t -> taskMetas.remove(t.id).task()).collect(toList());
+        return taskRepository.values().stream().map(TaskMetadata::task).filter(Task::isFinished)
+            .map(t -> taskRepository.remove(t.id).task()).collect(toList());
     }
 
     @Override
@@ -148,13 +131,14 @@ public class TaskManagerMemory implements TaskManager, TaskSupplier {
             throw new IllegalStateException(String.format("task id <%s> is already in RUNNING state", taskId));
         }
         logger.info("deleting task id <{}>", taskId);
-        return (Task<V>) taskMetas.remove(taskId).task();
+        return (Task<V>) taskRepository.remove(taskId).task();
     }
 
     public boolean stopTask(String taskId) {
         Task<?> taskView = getTask(taskId);
         if (taskView != null) {
             switch (taskView.getState()) {
+                case CREATED:
                 case QUEUED:
                     boolean removed = taskQueue.remove(taskView);
                     canceled(taskView, false);
@@ -204,7 +188,22 @@ public class TaskManagerMemory implements TaskManager, TaskSupplier {
     public void clear() {
         executedTasks.set(0);
         taskQueue.clear();
-        taskMetas.clear();
+        taskRepository.clear();
+    }
+
+    @Override
+    public boolean getHealth() {
+        return !executor.isShutdown();
+    }
+
+    @Override
+    public <V> void persist(Task<?> task, Group group) throws TaskAlreadyExists {
+        this.taskRepository.persist(task, group);
+    }
+
+    @Override
+    public <V> void update(Task<V> task) throws IOException {
+        this.taskRepository.update(task);
     }
 
     @Override

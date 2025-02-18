@@ -12,7 +12,7 @@ public class Main {
     private static final Logger LOGGER = LoggerFactory.getLogger(Main.class);
     public static void main(String[] args) throws Exception {
         DatashareCli cli = new DatashareCli().parseArguments(args);
-        LOGGER.info("Running datashare " + (cli.isWebServer() ? "web server" : ""));
+        LOGGER.info("Running datashare {}", cli.isWebServer() ? "web server" : "");
         LOGGER.info("JVM version {}", System.getProperty("java.version"));
         LOGGER.info("JVM charset encoding {}", Charset.defaultCharset());
         Level logLevel = Level.toLevel(cli.properties.getProperty("logLevel"));

@@ -9,7 +9,7 @@ clean:
 
 .PHONY: dist
 dist:
-		mvn validate package -Dmaven.test.skip=true
+		mvn validate package -Dmaven.test.skip=true -Dmaven.javadoc.skip=true
 
 build: install validate update-db package
 

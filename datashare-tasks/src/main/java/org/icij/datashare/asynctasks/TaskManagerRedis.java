@@ -15,11 +15,11 @@ import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.tasks.RoutingStrategy;
 import org.redisson.Redisson;
 import org.redisson.RedissonBlockingQueue;
-import org.redisson.RedissonMap;
 import org.redisson.api.RKeys;
 import org.redisson.api.RTopic;
 import org.redisson.api.RType;
 import org.redisson.api.RedissonClient;
+import org.redisson.client.RedisException;
 import org.redisson.client.codec.BaseCodec;
 import org.redisson.client.handler.State;
 import org.redisson.client.protocol.Decoder;
@@ -41,7 +41,7 @@ import static java.util.stream.Collectors.toList;
 public class TaskManagerRedis implements TaskManager {
     private final Runnable eventCallback; // for test
     public static final String EVENT_CHANNEL_NAME = "EVENT";
-    private final RedissonMap<String, TaskMetadata<?>> taskMetas;
+    private final TaskRepository tasksRepo;
     private final RTopic eventTopic;
     private final RedissonClient redissonClient;
     private final RoutingStrategy routingStrategy;
@@ -53,31 +53,30 @@ public class TaskManagerRedis implements TaskManager {
     public TaskManagerRedis(RedissonClient redissonClient, String taskMapName, RoutingStrategy routingStrategy, Runnable eventCallback) {
         this.redissonClient = redissonClient;
         this.routingStrategy = routingStrategy;
-        CommandSyncService commandSyncService = getCommandSyncService();
-        this.taskMetas = new RedissonMap<>(new RedisCodec<>(TaskMetadata.class), commandSyncService, taskMapName, redissonClient, null, null);
+        this.tasksRepo = new TaskRepositoryRedis(redissonClient, taskMapName);
         this.eventTopic = redissonClient.getTopic(EVENT_CHANNEL_NAME);
         this.eventCallback = eventCallback;
         eventTopic.addListener(TaskEvent.class, (channelString, message) -> handleEvent(message));
     }
 
     public <V> Task<V> getTask(final String taskId) {
-        return (Task<V>) Optional.ofNullable(taskMetas.get(taskId)).map(TaskMetadata::task).orElse(null);
+        return (Task<V>) Optional.ofNullable(tasksRepo.get(taskId)).map(TaskMetadata::task).orElse(null);
     }
 
     @Override
     public List<Task<?>> getTasks() {
-        return taskMetas.values().stream().map(TaskMetadata::task).collect(Collectors.toList());
+        return tasksRepo.values().stream().map(TaskMetadata::task).collect(Collectors.toList());
     }
 
     @Override
     public Group getTaskGroup(String taskId) {
-        return taskMetas.get(taskId).group();
+        return tasksRepo.get(taskId).group();
     }
 
     @Override
     public List<Task<?>> clearDoneTasks() {
-        return taskMetas.values().stream().map(TaskMetadata::task).filter(Task::isFinished)
-            .map(t -> taskMetas.remove(t.id).task()).collect(toList());
+        return tasksRepo.values().stream().map(TaskMetadata::task).filter(Task::isFinished)
+            .map(t -> tasksRepo.remove(t.id).task()).collect(toList());
     }
 
     @Override
@@ -86,7 +85,7 @@ public class TaskManagerRedis implements TaskManager {
             throw new IllegalStateException(String.format("task id <%s> is already in RUNNING state", taskId));
         }
         logger.info("deleting task id <{}>", taskId);
-        return (Task<V>) taskMetas.remove(taskId).task();
+        return (Task<V>) tasksRepo.remove(taskId).task();
     }
 
     @Override
@@ -113,7 +112,7 @@ public class TaskManagerRedis implements TaskManager {
     BlockingQueue<Task<?>> taskQueue(Task<?> task) {
         switch (routingStrategy) {
             case GROUP -> {
-                return new RedissonBlockingQueue<>(new RedisCodec<>(Task.class), getCommandSyncService(), String.format("%s.%s", AmqpQueue.TASK.name(), this.taskMetas.get(task.id).group().id()), redissonClient);
+                return new RedissonBlockingQueue<>(new RedisCodec<>(Task.class), getCommandSyncService(), String.format("%s.%s", AmqpQueue.TASK.name(), this.tasksRepo.get(task.id).group().id()), redissonClient);
             }
             case NAME -> {
                 return new RedissonBlockingQueue<>(new RedisCodec<>(Task.class), getCommandSyncService(), String.format("%s.%s", AmqpQueue.TASK.name(), task.name), redissonClient);
@@ -137,8 +136,31 @@ public class TaskManagerRedis implements TaskManager {
 
     @Override
     public void clear() {
-        taskMetas.clear();
+        tasksRepo.clear();
         clearTaskQueues();
+    }
+
+    @Override
+    public boolean getHealth() {
+        try {
+            redissonClient.getKeys().count();
+            return true;
+        } catch (RedisException ex) {
+            logger.error("TaskManager Redis Health error : ", ex);
+            return false;
+        }
+    }
+
+    @Override
+    public <V> void persist(Task<?> task, Group group) throws TaskAlreadyExists {
+        this.tasksRepo.persist(task, group);
+    }
+
+    @Override
+    public <V> void update(Task<V> task) {
+        TaskMetadata<V> updated = (TaskMetadata<V>) tasksRepo.get(task.id);
+        updated = updated.withTask(task);
+        tasksRepo.put(task.id, updated);
     }
 
     private void clearTaskQueues() {
@@ -148,25 +170,6 @@ public class TaskManagerRedis implements TaskManager {
                 .stream(iterable.spliterator(), false)
                 .filter(k -> keys.getType(k) == RType.LIST)
                 .forEach(k -> redissonClient.getQueue(k).delete());
-    }
-
-    @Override
-    public <V> void saveMetadata(TaskMetadata<V> taskMetadata) throws TaskAlreadyExists {
-        String taskId = taskMetadata.taskId();
-        if (taskMetas.containsKey(taskId)) {
-            throw new TaskAlreadyExists(taskId);
-        }
-        this.taskMetas.put(taskId, taskMetadata);
-    }
-
-    @Override
-    public <V> void persistUpdate(Task<V> task) throws UnknownTask {
-        TaskMetadata<V> updated = (TaskMetadata<V>) taskMetas.get(task.id);
-        if (updated == null) {
-            throw new UnknownTask(task.id);
-        }
-        updated = updated.withTask(task);
-        this.taskMetas.put(task.id, updated);
     }
 
     @Override

@@ -5,7 +5,7 @@
 
     <groupId>org.icij.datashare</groupId>
     <artifactId>datashare</artifactId>
-    <version>19.1.1</version>
+    <version>19.3.16</version>
     <packaging>pom</packaging>
 
     <name>ICIJ Datashare</name>
@@ -78,7 +78,7 @@
         <maven.compiler.source>17</maven.compiler.source>
         <maven.compiler.target>17</maven.compiler.target>
 
-        <datashare-api.version>14.3.2</datashare-api.version>
+        <datashare-api.version>14.4.3</datashare-api.version>
         <datashare-cli.version>13.6.1</datashare-cli.version>
         <datashare-tasks.version>15.2.0</datashare-tasks.version>
         <ftm.version>0.3.1</ftm.version>
@@ -116,7 +116,7 @@
         <mockito.version>5.10.0</mockito.version>
 
         <!-- Maven Plugins -->
-        <maven-compiler.version>3.5.1</maven-compiler.version>
+        <maven-compiler.version>3.13.0</maven-compiler.version>
         <maven-surefire.version>3.3.0</maven-surefire.version>
         <maven-jar.version>3.0.2</maven-jar.version>
         <maven-assembly.version>3.7.1</maven-assembly.version>

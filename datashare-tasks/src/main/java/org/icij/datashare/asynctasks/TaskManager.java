@@ -43,14 +43,14 @@ public interface TaskManager extends Closeable {
 
     void clear() throws IOException;
 
+    boolean getHealth() throws IOException;
+
     default List<Task<?>> getTasks(User user) throws IOException {
         return getTasks(user, new HashMap<>(), new WebQueryPagination());
     }
     default List<Task<?>> getTasks(User user, Map<String, Pattern> filters) throws IOException {
         return getTasks(user, filters, new WebQueryPagination());
     }
-    <V> void saveMetadata(TaskMetadata<V> taskMetadata) throws IOException, TaskAlreadyExists;
-    <V> void persistUpdate(Task<V> task) throws IOException, UnknownTask;
 
     default List<Task<?>> getTasks(User user, Map<String, Pattern> filters, WebQueryPagination pagination) throws IOException {
         Stream<Task<?>> taskStream = getTasks().stream().sorted(new Task.Comparator(pagination.sort, pagination.order));
@@ -71,7 +71,7 @@ public interface TaskManager extends Closeable {
     default Map<String, Boolean> stopAllTasks(User user) throws IOException {
         return getTasks().stream().
                 filter(t -> user.equals(t.getUser())).
-                filter(t -> t.getState() == Task.State.RUNNING || t.getState() == Task.State.QUEUED).collect(
+                filter(t -> t.getState() == Task.State.RUNNING || t.getState() == Task.State.QUEUED || t.getState() == Task.State.CREATED).collect(
                         toMap(t -> t.id, t -> {
                             try {
                                 return stopTask(t.id);
@@ -81,6 +81,17 @@ public interface TaskManager extends Closeable {
                             }
                         }));
     }
+
+    /**
+     * This is a "inner method" that is used in the template method for start(task).
+     * It saves the method in the inner persistent state of TaskManagers implementations.
+     *
+     * @param task to be saved in persistent state
+     * @return true if task has been saved
+     * @throws IOException if a network error occurs
+     */
+    <V> void persist(Task<?> task, Group group) throws IOException, TaskAlreadyExists;
+    <V> void update(Task<V> task) throws IOException;
 
     /**
      * This is a "inner method" that is used in the template method for start(task).
@@ -120,7 +131,7 @@ public interface TaskManager extends Closeable {
      */
     default <V> String startTask(Task<V> taskView, Group group) throws IOException {
         try {
-            save(taskView, group);
+            persist(taskView, group);
         } catch (TaskAlreadyExists ignored) {
             return null;
         }
@@ -131,18 +142,6 @@ public interface TaskManager extends Closeable {
 
     default <V> String startTask(Task<V> taskView) throws IOException {
         return startTask(taskView, null);
-    }
-
-    default void save(Task<?> task, Group group) throws IOException, TaskAlreadyExists {
-        saveMetadata(new TaskMetadata<>(task, group));
-    }
-
-    default void update(Task<?> task) throws IOException {
-        try {
-            persistUpdate(task);
-        } catch (UnknownTask e) {
-            throw new RuntimeException("task " + task.id + " is unknown, save it first !");
-        }
     }
 
     default <V extends Serializable> Task<V> setResult(ResultEvent<V> e) throws IOException {
@@ -170,7 +169,7 @@ public interface TaskManager extends Closeable {
     }
 
     default <V> Task<V> setCanceled(CancelledEvent e) throws IOException {
-        Task<V> taskView = getTask(e.taskId);
+        Task<V> taskView = (Task<V>) getTask(e.taskId);
         if (taskView != null) {
             logger.info("canceled event for {}", e.taskId);
             taskView.cancel();
@@ -198,7 +197,7 @@ public interface TaskManager extends Closeable {
         return taskView;
     }
 
-    default <V extends Serializable> Task<V> handleAck(TaskEvent e)  {
+    default <V extends Serializable> Task<V> handleAck(TaskEvent e) {
         try {
             if (e instanceof CancelledEvent ce) {
                 return setCanceled(ce);

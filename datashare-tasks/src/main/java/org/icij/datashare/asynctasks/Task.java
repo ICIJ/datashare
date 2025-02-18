@@ -12,10 +12,12 @@ import org.icij.datashare.asynctasks.bus.amqp.Event;
 import org.icij.datashare.asynctasks.bus.amqp.TaskError;
 import org.icij.datashare.asynctasks.bus.amqp.UriResult;
 import org.icij.datashare.batch.WebQueryPagination;
+import org.icij.datashare.time.DatashareTime;
 import org.icij.datashare.user.User;
 
 import java.io.Serializable;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -47,6 +49,7 @@ public class Task<V> extends Event implements Entity, Comparable<Task<V>> {
     public final String name;
     volatile TaskError error;
     private volatile State state;
+    private volatile Date completedAt;
     private volatile double progress;
     @JsonSubTypes({
         @JsonSubTypes.Type(value = UriResult.class),
@@ -68,7 +71,7 @@ public class Task<V> extends Event implements Entity, Comparable<Task<V>> {
     }
 
     @JsonCreator
-    Task(@JsonProperty("id") String id,
+    public Task(@JsonProperty("id") String id,
          @JsonProperty("name") String name,
          @JsonProperty("state") State state,
          @JsonProperty("progress") double progress,
@@ -79,6 +82,25 @@ public class Task<V> extends Event implements Entity, Comparable<Task<V>> {
         this.state = state;
         this.progress = progress;
         this.result = result;
+        // avoids "no default constructor found" for anonymous inline maps
+        this.args = Collections.unmodifiableMap(ofNullable(args).orElse(new HashMap<>()));
+    }
+
+    public Task(String id,
+                String name,
+                State state,
+                double progress,
+                Date createdAt,
+                int retriesLeft,
+                Date completedAt,
+                Map<String, Object> args) {
+        super(createdAt, retriesLeft);
+        this.id = id;
+        this.name = name;
+        this.state = state;
+        this.progress = progress;
+        this.result = null;
+        this.completedAt = completedAt;
         // avoids "no default constructor found" for anonymous inline maps
         this.args = Collections.unmodifiableMap(ofNullable(args).orElse(new HashMap<>()));
     }
@@ -111,6 +133,7 @@ public class Task<V> extends Event implements Entity, Comparable<Task<V>> {
             this.result = (V) result;
             setState(State.DONE);
             this.progress = 1;
+            this.completedAt = DatashareTime.getNow();
             lock.notify();
         }
     }
@@ -158,6 +181,9 @@ public class Task<V> extends Event implements Entity, Comparable<Task<V>> {
         return state;
     }
 
+    public int getRetriesLeft() {return retriesLeft;}
+    public Date getCompletedAt() {return completedAt;}
+
     @JsonIgnore
     public boolean isFinished() {
         return State.DONE.equals(state) || State.CANCELLED.equals(state) || State.ERROR.equals(state);
@@ -165,19 +191,19 @@ public class Task<V> extends Event implements Entity, Comparable<Task<V>> {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-        Task<?> taskView = (Task<?>) o;
-        return Objects.equals(id, taskView.id);
+        if (o == null || getClass() != o.getClass()) return false;
+        Task<?> task = (Task<?>) o;
+        return Double.compare(progress, task.progress) == 0 &&
+                Objects.equals(id, task.id) &&
+                Objects.equals(name, task.name)
+                && state == task.state &&
+                Objects.equals(createdAt, task.createdAt) &&
+                Objects.equals(completedAt, task.completedAt);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(id);
+        return Objects.hash(id, name, state, completedAt, createdAt, progress);
     }
 
     @Override

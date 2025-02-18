@@ -496,7 +496,7 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
         String projects = (String) record.get("projects");
         org.icij.datashare.db.tables.records.BatchSearchRecord batchSearch = record.into(BATCH_SEARCH);
         return new BatchSearchRecord(batchSearch.getUuid(),
-                getProjects(projects),
+                getProjectNames(projects),
                 batchSearch.getName(),
                 batchSearch.getDescription(),
                 nbQueries,
@@ -507,6 +507,10 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
                 batchSearch.getPublished() > 0,
                 batchSearch.getErrorMessage(),
                 batchSearch.getErrorQuery());
+    }
+
+    private static List<String> getProjectNames(String prj) {
+        return prj == null || prj.isEmpty() ? null : stream(prj.split(LIST_SEPARATOR)).sorted().collect(toList());
     }
 
     private static List<ProjectProxy> getProjects(String prj) {

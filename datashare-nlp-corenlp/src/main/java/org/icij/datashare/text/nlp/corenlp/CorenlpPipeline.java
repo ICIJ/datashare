@@ -1,6 +1,6 @@
 package org.icij.datashare.text.nlp.corenlp;
 
-import static org.icij.datashare.text.nlp.corenlp.models.CoreNlpPipelineModels.SUPPORTED_LANGUAGES;
+import static org.icij.datashare.text.nlp.corenlp.models.CoreNlpModels.SUPPORTED_LANGUAGES;
 
 import com.google.inject.Inject;
 import edu.stanford.nlp.pipeline.CoreDocument;
@@ -16,7 +16,7 @@ import org.icij.datashare.text.NamedEntitiesBuilder;
 import org.icij.datashare.text.NamedEntity;
 import org.icij.datashare.text.nlp.AbstractPipeline;
 import org.icij.datashare.text.nlp.Pipeline;
-import org.icij.datashare.text.nlp.corenlp.models.CoreNlpPipelineModels;
+import org.icij.datashare.text.nlp.corenlp.models.CoreNlpModels;
 
 
 /**
@@ -67,7 +67,7 @@ public final class CorenlpPipeline extends AbstractPipeline {
         super.terminate(language);
         // (Don't) keep pipelines and models
         if (!caching) {
-            CoreNlpPipelineModels.getInstance().unload(language);
+            CoreNlpModels.getInstance().unload(language);
         }
     }
 
@@ -78,7 +78,7 @@ public final class CorenlpPipeline extends AbstractPipeline {
 
 
     private boolean initializePipelineAnnotator(Language language) throws InterruptedException {
-        CoreNlpPipelineModels.getInstance().get(language);
+        CoreNlpModels.getInstance().get(language);
         return true;
     }
 
@@ -94,7 +94,7 @@ public final class CorenlpPipeline extends AbstractPipeline {
         LOGGER.info("name-finding for {} in document {} (offset {})", doc.getLanguage(), Hasher.shorten(doc.getId(), 4),
             contentOffset);
         final StanfordCoreNLP annotator;
-        annotator = CoreNlpPipelineModels.getInstance().get(doc.getLanguage());
+        annotator = CoreNlpModels.getInstance().get(doc.getLanguage());
         String text = doc.getContent()
             .substring(contentOffset, Math.min(contentOffset + contentLength, doc.getContentTextLength()));
         CoreDocument codeDoc = annotator.processToCoreDocument(text);

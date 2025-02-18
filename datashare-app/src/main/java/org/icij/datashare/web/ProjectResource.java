@@ -21,6 +21,8 @@
     import org.apache.commons.io.FileUtils;
     import org.icij.datashare.PropertiesProvider;
     import org.icij.datashare.Repository;
+    import org.icij.datashare.asynctasks.Task;
+    import org.icij.datashare.asynctasks.TaskManager;
     import org.icij.datashare.cli.DatashareCliOptions;
     import org.icij.datashare.cli.Mode;
     import org.icij.datashare.extract.DocumentCollectionFactory;
@@ -43,9 +45,12 @@
     import java.util.Map;
     import java.util.Objects;
     import java.util.Properties;
+    import java.util.concurrent.TimeUnit;
     import java.util.stream.Collectors;
     import java.util.stream.Stream;
 
+    import static java.util.concurrent.TimeUnit.MILLISECONDS;
+    import static java.util.concurrent.TimeUnit.SECONDS;
     import static net.codestory.http.errors.NotFoundException.notFoundIfNull;
     import static net.codestory.http.payload.Payload.ok;
     import static org.apache.tika.utils.StringUtils.isEmpty;
@@ -57,15 +62,17 @@
     public class ProjectResource {
         private final Repository repository;
         private final Indexer indexer;
+        private final TaskManager taskManager;
         private final DataDirVerifier dataDirVerifier;
         private final ModeVerifier modeVerifier;
         private final DocumentCollectionFactory<Path> documentCollectionFactory;
         private final PropertiesProvider propertiesProvider;
 
         @Inject
-        public ProjectResource(Repository repository, Indexer indexer, PropertiesProvider propertiesProvider, DocumentCollectionFactory<Path> documentCollectionFactory) {
+        public ProjectResource(Repository repository, Indexer indexer, TaskManager taskManager,PropertiesProvider propertiesProvider, DocumentCollectionFactory<Path> documentCollectionFactory) {
             this.repository = repository;
             this.indexer = indexer;
+            this.taskManager = taskManager;
             this.propertiesProvider = propertiesProvider;
             this.dataDirVerifier = new DataDirVerifier(propertiesProvider);
             this.modeVerifier = new ModeVerifier(propertiesProvider);
@@ -205,8 +212,9 @@
         @Operation(description = "Deletes all user's projects from database and elasticsearch index.")
         @ApiResponse(responseCode = "204", description = "if projects are deleted")
         @Delete("/")
-        public Payload deleteProjects(Context context) {
+        public Payload deleteProjects(Context context) throws IOException {
             DatashareUser user = (DatashareUser) context.currentUser();
+            Logger logger = LoggerFactory.getLogger(getClass());
             getUserProjects(user).forEach(project -> {
                 try {
                     projectDelete(project.name, context);
@@ -214,6 +222,9 @@
                     throw new RuntimeException(e);
                 }
             });
+            logger.info("Stopping tasks : {}", taskManager.stopAllTasks(user));
+            taskManager.waitTasksToBeDone(TaskManager.POLLING_INTERVAL*2, MILLISECONDS);
+            logger.info("Deleted tasks : {}", !taskManager.clearDoneTasks().isEmpty());
             return new Payload(204);
         }
 

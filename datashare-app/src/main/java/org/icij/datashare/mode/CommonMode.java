@@ -17,18 +17,21 @@ import net.codestory.http.extensions.Extensions;
 import net.codestory.http.injection.GuiceAdapter;
 import net.codestory.http.misc.Env;
 import net.codestory.http.routes.Routes;
-import org.icij.datashare.PipelineRegistry;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Repository;
 import org.icij.datashare.asynctasks.TaskManager;
 import org.icij.datashare.asynctasks.TaskModifier;
+import org.icij.datashare.asynctasks.TaskRepository;
 import org.icij.datashare.asynctasks.TaskSupplier;
 import org.icij.datashare.batch.BatchSearchRepository;
 import org.icij.datashare.cli.Mode;
 import org.icij.datashare.cli.QueueType;
+import org.icij.datashare.cli.TaskRepositoryType;
 import org.icij.datashare.com.queue.AmqpInterlocutor;
+import org.icij.datashare.db.JooqTaskRepository;
 import org.icij.datashare.db.RepositoryFactoryImpl;
 import org.icij.datashare.extension.ExtensionLoader;
+import org.icij.datashare.extension.PipelineRegistry;
 import org.icij.datashare.extract.DocumentCollectionFactory;
 import org.icij.datashare.extract.MemoryDocumentCollectionFactory;
 import org.icij.datashare.extract.RedisDocumentCollectionFactory;
@@ -38,6 +41,7 @@ import org.icij.datashare.tasks.DatashareTaskFactory;
 import org.icij.datashare.tasks.TaskManagerAmqp;
 import org.icij.datashare.tasks.TaskManagerMemory;
 import org.icij.datashare.tasks.TaskManagerRedis;
+import org.icij.datashare.tasks.TaskRepositoryRedis;
 import org.icij.datashare.tasks.TaskSupplierAmqp;
 import org.icij.datashare.tasks.TaskSupplierRedis;
 import org.icij.datashare.text.indexing.Indexer;
@@ -77,12 +81,12 @@ import static org.icij.datashare.PluginService.PLUGINS_BASE_URL;
 import static org.icij.datashare.cli.DatashareCliOptions.BATCH_QUEUE_TYPE_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.MODE_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.QUEUE_TYPE_OPT;
+import static org.icij.datashare.cli.DatashareCliOptions.TASK_REPOSITORY_OPT;
 import static org.icij.datashare.text.indexing.elasticsearch.ElasticsearchConfiguration.createESClient;
 
 public abstract class CommonMode extends AbstractModule implements Closeable {
     protected Logger logger = LoggerFactory.getLogger(getClass());
     public static final String DS_TASK_MANAGER_MAP_NAME = "ds:task:manager:tasks";
-    public static final String DS_TASK_MANAGER_QUEUE_NAME = "ds:task:manager";
 
     protected final PropertiesProvider propertiesProvider;
     protected final Mode mode;
@@ -169,7 +173,6 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
         } catch (IOException | URISyntaxException e) {
             throw new RuntimeException(e);
         }
-        amqp.createAllPublishChannels();
         addCloseable(amqp);
         return amqp;
     }
@@ -203,7 +206,7 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
     }
 
     @Provides @Singleton
-    org.icij.datashare.extension.PipelineRegistry providePipelineRegistry(final PropertiesProvider propertiesProvider) {
+    PipelineRegistry providePipelineRegistry(final PropertiesProvider propertiesProvider) {
         PipelineRegistry pipelineRegistry = new PipelineRegistry(propertiesProvider);
         pipelineRegistry.register(EmailPipeline.class);
         pipelineRegistry.register(Pipeline.Type.CORENLP);
@@ -264,6 +267,16 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
         bind(Repository.class).toInstance(repositoryFactory.createRepository());
         bind(ApiKeyRepository.class).toInstance(repositoryFactory.createApiKeyRepository());
         bind(BatchSearchRepository.class).toInstance(repositoryFactory.createBatchSearchRepository());
+
+        TaskRepositoryType taskRepositoryType = TaskRepositoryType.valueOf(propertiesProvider.get(TASK_REPOSITORY_OPT).orElse("REDIS"));
+        switch ( taskRepositoryType ) {
+            case REDIS -> {
+                bind(TaskRepository.class).to(TaskRepositoryRedis.class);
+            }
+            case DATABASE -> {
+                bind(TaskRepository.class).toInstance(new JooqTaskRepository(repositoryFactory.getDataSource(), repositoryFactory.guessSqlDialect()));
+            }
+        }
         repositoryFactory.initDatabase();
     }
 

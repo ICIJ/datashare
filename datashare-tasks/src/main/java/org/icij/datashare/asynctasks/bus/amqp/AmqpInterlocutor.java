@@ -30,14 +30,20 @@ public class AmqpInterlocutor implements Closeable {
     private final ConcurrentHashMap<AmqpQueue, AmqpChannel> publishChannels = new ConcurrentHashMap<>();
 
 
-    public AmqpInterlocutor(PropertiesProvider propertiesProvider) throws IOException, URISyntaxException {
-        this(new Configuration(new URI(propertiesProvider.get("messageBusAddress").orElse("amqp://rabbitmq:5672"))));
-    }
-
-    public AmqpInterlocutor(Configuration configuration) throws IOException {
+    public AmqpInterlocutor(Configuration configuration, AmqpQueue[] queues) throws IOException {
         this.configuration = configuration;
         ConnectionFactory connectionFactory = createConnectionFactory(configuration);
         this.connection = createConnection(connectionFactory);
+        createPublishChannels(queues);
+    }
+
+    public AmqpInterlocutor(PropertiesProvider propertiesProvider, AmqpQueue[] queues) throws IOException, URISyntaxException {
+        this(new Configuration(new URI(propertiesProvider.get("messageBusAddress").orElse("amqp://rabbitmq:5672"))), queues);
+
+    }
+
+    public AmqpInterlocutor(PropertiesProvider propertiesProvider) throws IOException, URISyntaxException {
+        this(propertiesProvider, AmqpQueue.values());
     }
 
     Connection createConnection(ConnectionFactory connectionFactory) throws IOException {
@@ -74,26 +80,32 @@ public class AmqpInterlocutor implements Closeable {
         return channel;
     }
 
-    public AmqpInterlocutor createAllPublishChannels() {
-        for (AmqpQueue queue: AmqpQueue.values()) {
+    AmqpInterlocutor createPublishChannels(AmqpQueue... amqpQueues) {
+        for (AmqpQueue queue: amqpQueues) {
             try {
                 createAmqpChannelForPublish(queue);
             } catch (IOException e) {
-                logger.error("cannot create channel for publish for queue {}", queue);
+                logger.error("cannot create channel for publish for queue {}", queue, e);
             }
         }
         return this;
     }
 
-    public synchronized AmqpInterlocutor createAmqpChannelForPublish(AmqpQueue queue) throws IOException {
-        AmqpChannel channel = new AmqpChannel(connection.createChannel(), queue);
-        channel.initForPublish();
-        publishChannels.put(queue, channel);
-        logger.info("publish channel {} has been created for exchange {}", channel, queue.exchange);
+    synchronized AmqpInterlocutor createAmqpChannelForPublish(AmqpQueue queue) throws IOException {
+        if (queue != AmqpQueue.MONITORING || hasMonitoringQueue()) {
+            AmqpChannel channel = new AmqpChannel(connection.createChannel(), queue);
+            if (queue == AmqpQueue.MONITORING) {
+                channel.initForConsume(configuration.rabbitMq, configuration.nbMaxMessages); // for creating a queue
+            } else {
+                channel.initForPublish();
+            }
+            publishChannels.put(queue, channel);
+            logger.info("publish channel {} has been created for exchange {}", channel, queue.exchange);
+        }
         return this;
     }
 
-    public AmqpChannel createAmqpChannelForConsume(AmqpQueue queue, String key) throws IOException {
+    AmqpChannel createAmqpChannelForConsume(AmqpQueue queue, String key) throws IOException {
         AmqpChannel channel = new AmqpChannel(connection.createChannel(), queue, key);
         channel.initForConsume(configuration.rabbitMq, configuration.nbMaxMessages);
         logger.info("consume channel {} has been created for queue {}", channel, channel.queueName(AmqpChannel.WORKER_PREFIX));
@@ -138,4 +150,6 @@ public class AmqpInterlocutor implements Closeable {
             super("Unknown channel for queue " + queue);
         }
     }
+    public boolean hasMonitoringQueue() {return configuration.monitoring;}
+    public boolean isConnectionOpen() {return connection.isOpen();}
 }

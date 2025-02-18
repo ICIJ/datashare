@@ -220,8 +220,7 @@ public class JooqRepository implements Repository {
 
     @Override
     public boolean addToUserHistory(List<Project> projects, UserEvent userEvent) {
-        DSLContext ctx = using(connectionProvider, dialect);
-        return ctx.transactionResult(configuration -> {
+        return using(connectionProvider, dialect).transactionResult(configuration -> {
             DSLContext inner = using(configuration);
             InsertValuesStep6<UserHistoryRecord, LocalDateTime, LocalDateTime, String, Short, String, String>
                     insertHistory = inner.
@@ -245,8 +244,6 @@ public class JooqRepository implements Repository {
                     insertInto(USER_HISTORY_PROJECT, USER_HISTORY_PROJECT.USER_HISTORY_ID, USER_HISTORY_PROJECT.PRJ_ID);
             projects.forEach(project -> insertProject.values(insertHistoryRecord.getValue(USER_HISTORY.ID), project.getId()));
             return insertProject.onConflictDoNothing().execute() >= 0;
-
-
         });
     }
 

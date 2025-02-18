@@ -26,19 +26,24 @@ import java.util.concurrent.TimeUnit;
 import static java.lang.String.valueOf;
 import static java.util.Optional.ofNullable;
 import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_DEFAULT_PROJECT;
+import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_POLLING_INTERVAL_SEC;
 import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_PROJECT_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.MAX_CONTENT_LENGTH_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.NLP_PIPELINE_OPT;
+import static org.icij.datashare.cli.DatashareCliOptions.POLLING_INTERVAL_SECONDS_OPT;
+import static org.icij.datashare.tasks.GroupHelper.JAVA_GROUP;
 import static org.icij.extract.document.Identifier.shorten;
 
-@TaskGroup("Java")
+@TaskGroup(JAVA_GROUP)
 public class ExtractNlpTask extends PipelineTask<String> implements Monitorable {
     private static final int DEFAULT_MAX_CONTENT_LENGTH = 1024 * 1024;
+    public static final int NB_MAX_POLLS = 3;
     private final Logger logger = LoggerFactory.getLogger(getClass());
     private final Indexer indexer;
     private final Pipeline nlpPipeline;
     private final Project project;
     private final int maxContentLengthChars;
+    private final float pollingIntervalSeconds;
 
     @Inject
     public ExtractNlpTask(Indexer indexer, PipelineRegistry registry, final DocumentCollectionFactory<String> factory, @Assisted Task<Long> taskView, @Assisted final Function<Double, Void> updateCallback) {
@@ -51,6 +56,7 @@ public class ExtractNlpTask extends PipelineTask<String> implements Monitorable 
         this.nlpPipeline = pipeline;
         project = Project.project(ofNullable((String)taskView.args.get(DEFAULT_PROJECT_OPT)).orElse(DEFAULT_DEFAULT_PROJECT));
         maxContentLengthChars = (int) HumanReadableSize.parse(ofNullable((String)taskView.args.get(MAX_CONTENT_LENGTH_OPT)).orElse(valueOf(DEFAULT_MAX_CONTENT_LENGTH)));
+        pollingIntervalSeconds = Float.parseFloat(ofNullable((String)taskView.args.get(POLLING_INTERVAL_SECONDS_OPT)).orElse(DEFAULT_POLLING_INTERVAL_SEC));
         this.indexer = indexer;
     }
 
@@ -60,11 +66,15 @@ public class ExtractNlpTask extends PipelineTask<String> implements Monitorable 
         logger.info("extracting Named Entities with pipeline {} for {} from queue {}", nlpPipeline.getType(), project, inputQueue.getName());
         String docId;
         long nbMessages = 0;
-        while (!(STRING_POISON.equals(docId = inputQueue.poll(60, TimeUnit.SECONDS)))) {
+        int nbMaxPolls = NB_MAX_POLLS;
+        while (!(STRING_POISON.equals(docId = inputQueue.poll((long) (pollingIntervalSeconds * 1000), TimeUnit.MILLISECONDS)))
+                && nbMaxPolls > 0) {
             try {
                 if (docId != null) {
                     findNamedEntities(project, docId);
                     nbMessages++;
+                } else {
+                    nbMaxPolls--;
                 }
             } catch (Throwable e) {
                 logger.error("error in ExtractNlpTask loop", e);
