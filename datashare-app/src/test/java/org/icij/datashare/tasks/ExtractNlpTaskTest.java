@@ -1,8 +1,6 @@
 package org.icij.datashare.tasks;
 
-import org.icij.datashare.asynctasks.Group;
 import org.icij.datashare.asynctasks.Task;
-import org.icij.datashare.asynctasks.TaskGroupType;
 import org.icij.datashare.extract.MemoryDocumentCollectionFactory;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.Language;
@@ -39,7 +37,7 @@ public class ExtractNlpTaskTest {
     public void setUp() {
         initMocks(this);
         nlpTask = new ExtractNlpTask(indexer, pipeline, factory, new Task<>(ExtractNlpTask.class.getName(), User.local(),
-                new Group(TaskGroupType.Test), Map.of("maxContentLength", "32")), null);
+                Map.of("maxContentLength", "32")), null);
     }
 
     @Test
@@ -53,7 +51,7 @@ public class ExtractNlpTaskTest {
     @Test(timeout = 3000)
     public void test_exit_after_nb_max_attempts()  throws Exception  {
         ExtractNlpTask nlpTask = new ExtractNlpTask(indexer, pipeline, factory, new Task<>(ExtractNlpTask.class.getName(), User.local(),
-                new Group(TaskGroupType.Test), Map.of(POLLING_INTERVAL_SECONDS_OPT, "0.1")), null);
+                Map.of(POLLING_INTERVAL_SECONDS_OPT, "0.1")), null);
         long start = System.currentTimeMillis();
         nlpTask.call();
         long end = System.currentTimeMillis();

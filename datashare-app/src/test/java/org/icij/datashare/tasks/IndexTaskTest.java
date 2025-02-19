@@ -1,8 +1,6 @@
 package org.icij.datashare.tasks;
 
-import org.icij.datashare.asynctasks.Group;
 import org.icij.datashare.asynctasks.Task;
-import org.icij.datashare.asynctasks.TaskGroupType;
 import org.icij.datashare.extract.DocumentCollectionFactory;
 import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchSpewer;
 import org.icij.task.Option;
@@ -26,7 +24,7 @@ public class IndexTaskTest {
     public void test_options_include_ocr() throws Exception {
         ElasticsearchSpewer spewer = mock(ElasticsearchSpewer.class);
         Mockito.when(spewer.configure(Mockito.any())).thenReturn(spewer);
-        IndexTask indexTask = new IndexTask(spewer, mock(DocumentCollectionFactory.class), new Task<>(IndexTask.class.getName(), nullUser(), new Group(TaskGroupType.Test), new HashMap<>(){{
+        IndexTask indexTask = new IndexTask(spewer, mock(DocumentCollectionFactory.class), new Task<>(IndexTask.class.getName(), nullUser(), new HashMap<>(){{
             put("queueName", "test:queue");
         }}), null);
         Options<String> options = indexTask.options();
@@ -37,7 +35,7 @@ public class IndexTaskTest {
     public void test_options_include_ocr_language() throws Exception {
         ElasticsearchSpewer spewer = mock(ElasticsearchSpewer.class);
         Mockito.when(spewer.configure(Mockito.any())).thenReturn(spewer);
-        IndexTask indexTask = new IndexTask(spewer, mock(DocumentCollectionFactory.class), new Task<>(IndexTask.class.getName(), nullUser(), new Group(TaskGroupType.Test), new HashMap<>(){{
+        IndexTask indexTask = new IndexTask(spewer, mock(DocumentCollectionFactory.class), new Task<>(IndexTask.class.getName(), nullUser(), new HashMap<>(){{
             put("queueName", "test:queue");
         }}), null);
         Options<String> options = indexTask.options();
@@ -48,7 +46,7 @@ public class IndexTaskTest {
     public void test_options_include_language() throws Exception {
         ElasticsearchSpewer spewer = mock(ElasticsearchSpewer.class);
         Mockito.when(spewer.configure(Mockito.any())).thenReturn(spewer);
-        IndexTask indexTask = new IndexTask(spewer, mock(DocumentCollectionFactory.class), new Task<>(IndexTask.class.getName(), nullUser(), new Group(TaskGroupType.Test), new HashMap<>(){{
+        IndexTask indexTask = new IndexTask(spewer, mock(DocumentCollectionFactory.class), new Task<>(IndexTask.class.getName(), nullUser(), new HashMap<>(){{
             put("language", "FRENCH");
             put("queueName", "test:queue");
         }}), null);
@@ -62,7 +60,7 @@ public class IndexTaskTest {
         ElasticsearchSpewer spewer = mock(ElasticsearchSpewer.class);
         Mockito.when(spewer.configure(Mockito.any())).thenReturn(spewer);
 
-        new IndexTask(spewer, mock(DocumentCollectionFactory.class), new Task<>(IndexTask.class.getName(), nullUser(), new Group(TaskGroupType.Test), Map.of("charset", "UTF-16")), null);
+        new IndexTask(spewer, mock(DocumentCollectionFactory.class), new Task<>(IndexTask.class.getName(), nullUser(), Map.of("charset", "UTF-16")), null);
 
         ArgumentCaptor<Options> captor = ArgumentCaptor.forClass(Options.class);
         verify(spewer).configure(captor.capture());
@@ -75,7 +73,7 @@ public class IndexTaskTest {
         ElasticsearchSpewer spewer = mock(ElasticsearchSpewer.class);
         Mockito.when(spewer.configure(Mockito.any())).thenReturn(spewer);
 
-        new IndexTask(spewer, mock(DocumentCollectionFactory.class), new Task<>(IndexTask.class.getName(), nullUser(), new Group(TaskGroupType.Test), Map.of("defaultProject", "foo", "projectName", "bar")), null);
+        new IndexTask(spewer, mock(DocumentCollectionFactory.class), new Task<>(IndexTask.class.getName(), nullUser(), Map.of("defaultProject", "foo", "projectName", "bar")), null);
 
         ArgumentCaptor<Options> captor = ArgumentCaptor.forClass(Options.class);
         verify(spewer).configure(captor.capture());

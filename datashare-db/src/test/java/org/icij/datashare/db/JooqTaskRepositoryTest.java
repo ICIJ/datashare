@@ -1,9 +1,13 @@
 package org.icij.datashare.db;
 
+import java.io.IOException;
 import org.icij.datashare.asynctasks.Group;
 import org.icij.datashare.asynctasks.Task;
+import org.icij.datashare.asynctasks.TaskAlreadyExists;
+import org.icij.datashare.asynctasks.TaskMetadata;
 import org.icij.datashare.asynctasks.TaskGroupType;
 import org.icij.datashare.asynctasks.TaskResult;
+import org.icij.datashare.asynctasks.UnknownTask;
 import org.icij.datashare.asynctasks.bus.amqp.TaskError;
 import org.icij.datashare.asynctasks.bus.amqp.UriResult;
 import org.icij.datashare.user.User;
@@ -37,111 +41,115 @@ public class JooqTaskRepositoryTest {
 
     @Test(expected = IllegalArgumentException.class)
     public void test_put_with_key_different_than_id() {
-        assertThat(repository.put("my_key", new Task<>("foo", User.local(), new Group(TaskGroupType.Test), Map.of())));
+        assertThat(repository.put("my_key", new TaskMetadata<>(new Task<>("foo", User.local(), Map.of()), new Group(TaskGroupType.Test))));
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void test_put_with_id_null() {
-        assertThat(repository.put("my_key", new Task<>(null, "foo", User.local(),new Group(TaskGroupType.Test), Map.of())));
+        assertThat(repository.put("my_key", new TaskMetadata<>(new Task<>(null,"foo", User.local(), Map.of()), new Group(TaskGroupType.Test))));
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void test_put_with_null_key() {
-        assertThat(repository.put(null, new Task<>("foo", User.local(), new Group(TaskGroupType.Test), Map.of())));
+        assertThat(repository.put(null, new TaskMetadata<>(new Task<>("foo", User.local(), Map.of()), new Group(TaskGroupType.Test))));
     }
 
     @Test
     public void test_put_get() {
-        Task<?> foo = new Task<>("foo", User.local(), new Group(TaskGroupType.Test), Map.of("user", User.local()));
+        TaskMetadata<?> foo = new TaskMetadata<>(new Task<>("foo", User.local(), Map.of("user", User.local())), new Group(TaskGroupType.Test));
 
-        assertThat(repository.put(foo.getId(), foo)).isNull();
 
-        Task<?> actual = repository.get(foo.getId());
+        assertThat(repository.put(foo.taskId(), foo)).isNull();
+
+        TaskMetadata<?> actual = repository.get(foo.taskId());
         assertThat(actual).isNotSameAs(foo); // not same instance
         assertThat(actual).isEqualTo(foo); // but equals as defined by Task
-        assertThat(actual.getUser()).isEqualTo(User.local());
+        assertThat(actual.task().getUser()).isEqualTo(User.local());
+        assertThat(actual.group().getId()).isEqualTo("Test");
     }
 
     @Test
-    public void test_upsert_already_exists() {
-        Task<Integer> foo = new Task<>("foo", User.local(), new Group(TaskGroupType.Test), Map.of("user", User.local()));
+    public void test_upsert_already_exists() throws TaskAlreadyExists, IOException, UnknownTask {
+        Task<Integer> foo = new Task<>("foo", User.local(), Map.of("user", User.local()));
 
-        repository.save(foo);
+        repository.insert(foo, new Group(TaskGroupType.Test));
+        assertThat(repository.getTask(foo.id).getState()).isEqualTo(Task.State.CREATED);
         foo.setProgress(0.5);
-        assertThat(repository.put(foo.getId(), foo).getState()).isEqualTo(Task.State.CREATED);
+        repository.update(foo);
 
-        Task<?> actual = repository.get(foo.getId());
-        assertThat(actual.getState()).isEqualTo(Task.State.RUNNING);
-        assertThat(actual.getCompletedAt()).isNull();
+        TaskMetadata<?> actual = repository.get(foo.getId());
+        assertThat(actual.group()).isEqualTo(new Group(TaskGroupType.Test));
+        assertThat(actual.task().getState()).isEqualTo(Task.State.RUNNING);
+        assertThat(actual.task().getCompletedAt()).isNull();
 
 
         foo.setResult(new TaskResult<>(1));
-        repository.put(foo.getId(), foo);
+        repository.update(foo);
         actual = repository.get(foo.getId());
-        assertThat(actual.getState()).isEqualTo(Task.State.DONE);
-        assertThat(actual.getCompletedAt()).isNotNull();
+        assertThat(actual.task().getState()).isEqualTo(Task.State.DONE);
+        assertThat(actual.task().getCompletedAt()).isNotNull();
     }
 
     @Test
-    public void test_size() {
+    public void test_size() throws TaskAlreadyExists, IOException {
         assertThat(repository.size()).isEqualTo(0);
-        repository.save(new Task<>("foo", User.local(), new Group(TaskGroupType.Test), Map.of()));
+        repository.insert(new Task<>("foo", User.local(), Map.of()), new Group(TaskGroupType.Test));
         assertThat(repository.size()).isEqualTo(1);
     }
 
     @Test
-    public void test_empty() {
+    public void test_empty() throws TaskAlreadyExists, IOException {
         assertThat(repository.isEmpty()).isTrue();
-        repository.save(new Task<>("foo", User.local(), new Group(TaskGroupType.Test), Map.of()));
+        repository.insert(new Task<>("foo", User.local(), Map.of()), new Group(TaskGroupType.Test));
         assertThat(repository.isEmpty()).isFalse();
     }
 
     @Test
-    public void test_contains_key() {
-        Task<?> foo = new Task<>("foo", User.local(), new Group(TaskGroupType.Test), Map.of());
+    public void test_contains_key() throws TaskAlreadyExists, IOException {
+        Task<?> foo = new Task<>("foo", User.local(), Map.of());
         assertThat(repository.containsKey(foo.getId())).isFalse();
-        repository.save(foo);
+        repository.insert(foo, new Group(TaskGroupType.Test));
         assertThat(repository.containsKey(foo.getId())).isTrue();
     }
 
     @Test
-    public void test_contains_value() {
-        Task<?> foo = new Task<>("foo", User.local(), new Group(TaskGroupType.Test), Map.of());
+    public void test_contains_value() throws TaskAlreadyExists, IOException {
+        Task<?> foo = new Task<>("foo", User.local(), Map.of());
         assertThat(repository.containsValue(foo)).isFalse();
-        repository.save(foo);
+        repository.insert(foo, new Group(TaskGroupType.Test));
         assertThat(repository.containsValue(foo)).isTrue();
     }
 
     @Test
-    public void test_remove() {
-        Task<?> foo = new Task<>("foo", User.local(), new Group(TaskGroupType.Test), Map.of());
+    public void test_remove() throws TaskAlreadyExists, IOException {
+        Task<?> foo = new Task<>("foo", User.local(), Map.of());
         assertThat(repository.remove(foo.getId())).isNull();
-        repository.save(foo);
-        assertThat(repository.remove(foo.getId())).isEqualTo(foo);
+        repository.insert(foo, new Group(TaskGroupType.Test));
+        assertThat(repository.remove(foo.getId())).isEqualTo(new TaskMetadata<>(foo, new Group(TaskGroupType.Test)));
         assertThat(repository.isEmpty()).isTrue();
     }
 
     @Test
-    public void test_get_result() throws URISyntaxException {
-        Task<UriResult> foo = new Task<>("foo", User.local(), new Group(TaskGroupType.Test), Map.of("user", User.local()));
-        repository.save(foo);
+    public void test_get_result() throws URISyntaxException, TaskAlreadyExists, IOException, UnknownTask {
+        Task<UriResult> foo = new Task<>("foo", User.local(), Map.of("user", User.local()));
+        repository.insert(foo,  new Group(TaskGroupType.Test));
 
         TaskResult<UriResult> result = new TaskResult<>(new UriResult(new URI("file:///my/file"), 123));
         foo.setResult(result);
-        repository.save(foo);
-        assertThat(repository.get(foo.getId()).getError()).isNull();
-        assertThat(repository.get(foo.getId()).getResult()).isEqualTo(result);
+        repository.update(foo);
+        assertThat(repository.getTask(foo.getId()).getError()).isNull();
+        assertThat(repository.getTask(foo.getId()).getResult()).isEqualTo(result);
     }
 
     @Test
-    public void test_get_error() {
-        Task<String> foo = new Task<>("foo", User.local(), new Group(TaskGroupType.Test), Map.of("user", User.local()));
-        repository.save(foo);
+    public void test_get_error() throws TaskAlreadyExists, IOException, UnknownTask {
+        Task<String> foo = new Task<>("foo", User.local(), Map.of("user", User.local()));
+        repository.insert(foo,  new Group(TaskGroupType.Test));
 
         foo.setError(new TaskError(new RuntimeException("boom")));
-        repository.save(foo);
-        assertThat(repository.get(foo.getId()).getResult()).isNull();
-        assertThat(repository.get(foo.getId()).getError().getMessage()).isEqualTo("boom");
+        repository.update(foo);
+        assertThat(repository.getTask(foo.getId()).getResult()).isNull();
+        assertThat(repository.getTask(foo.getId()).getError().getMessage()).isEqualTo("boom");
     }
 
     @Test(expected = IllegalArgumentException.class)
@@ -151,7 +159,10 @@ public class JooqTaskRepositoryTest {
 
     @Test
     public void test_putAll() {
-        Map<String, Task<?>> map = Map.of("id_foo", new Task<>("id_foo", "foo", User.local(), new Group(TaskGroupType.Test), Map.of()), "id_bar", new Task<>("id_bar", "bar", User.local(), new Group(TaskGroupType.Test), Map.of()));
+        Map<String, TaskMetadata<?>> map = Map.of(
+            "id_foo", new TaskMetadata<>(new Task<>("id_foo", "foo", User.local(), Map.of()), new Group(TaskGroupType.Test)),
+            "id_bar", new TaskMetadata<>(new Task<>("id_bar", "bar", User.local(), Map.of()), new Group(TaskGroupType.Test))
+        );
         assertThat(repository.isEmpty()).isTrue();
 
         repository.putAll(map);
@@ -163,25 +174,30 @@ public class JooqTaskRepositoryTest {
 
     @Test
     public void test_keySet() {
-        repository.putAll(Map.of("id_foo", new Task<>("id_foo", "foo", User.local(), new Group(TaskGroupType.Test), Map.of()), "id_bar", new Task<>("id_bar", "bar", User.local(), new Group(TaskGroupType.Test), Map.of())));
+        repository.putAll(Map.of("id_foo", new TaskMetadata<>(new Task<>("id_foo", "foo", User.local(), Map.of()), new Group(TaskGroupType.Test)),
+            "id_bar", new TaskMetadata<>(new Task<>("id_bar", "bar", User.local(), Map.of()), new Group(TaskGroupType.Test))));
         assertThat(repository.keySet()).containsOnly("id_foo", "id_bar");
     }
 
     @Test
     public void test_values() {
-        Task<?> taskFoo = new Task<>("id_foo", "foo", User.local(), new Group(TaskGroupType.Test), Map.of());
-        Task<?> taskBar = new Task<>("id_bar", "bar", User.local(), new Group(TaskGroupType.Test), Map.of());
-        repository.putAll(Map.of(taskFoo.getId(), taskFoo, taskBar.getId(), taskBar));
-        assertThat(repository.values()).containsOnly(taskFoo, taskBar);
+        Task<?> taskFoo = new Task<>("id_foo", "foo", User.local(), Map.of());
+        Task<?> taskBar = new Task<>("id_bar", "bar", User.local(), Map.of());
+        TaskMetadata<?> taskMetaFoo = new TaskMetadata<>(taskFoo, new Group(TaskGroupType.Test));
+        TaskMetadata<?> taskMetaBar = new TaskMetadata<>(taskBar, new Group(TaskGroupType.Test));
+        repository.putAll(Map.of(taskFoo.getId(), taskMetaFoo, taskBar.getId(), taskMetaBar));
+        assertThat(repository.values()).containsOnly(taskMetaFoo, taskMetaBar);
     }
 
     @Test
     public void test_entrySet() {
-        Task<?> taskFoo = new Task<>("id_foo", "foo", User.local(), new Group(TaskGroupType.Test), Map.of());
-        Task<?> taskBar = new Task<>("id_bar", "bar", User.local(), new Group(TaskGroupType.Test), Map.of());
-        repository.putAll(Map.of(taskFoo.getId(), taskFoo, taskBar.getId(), taskBar));
+        Task<?> taskFoo = new Task<>("id_foo", "foo", User.local(), Map.of());
+        Task<?> taskBar = new Task<>("id_bar", "bar", User.local(), Map.of());
+        TaskMetadata<?> taskMetaFoo = new TaskMetadata<>(taskFoo, new Group(TaskGroupType.Test));
+        TaskMetadata<?> taskMetaBar = new TaskMetadata<>(taskBar, new Group(TaskGroupType.Test));
+        repository.putAll(Map.of(taskFoo.getId(), taskMetaFoo, taskBar.getId(), taskMetaBar));
         assertThat(repository.entrySet().stream().map(Map.Entry::getKey).toList()).containsOnly(taskFoo.getId(), taskBar.getId());
-        assertThat(repository.entrySet().stream().map(Map.Entry::getValue).toList()).containsOnly(taskFoo, taskBar);
+        assertThat(repository.entrySet().stream().map(Map.Entry::getValue).toList()).containsOnly(taskMetaFoo, taskMetaBar);
     }
 
     @After

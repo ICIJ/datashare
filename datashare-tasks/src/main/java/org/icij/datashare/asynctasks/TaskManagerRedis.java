@@ -5,6 +5,7 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.ByteBufInputStream;
 import io.netty.buffer.ByteBufOutputStream;
+import java.util.stream.Collectors;
 import org.icij.datashare.asynctasks.bus.amqp.AmqpQueue;
 import org.icij.datashare.asynctasks.bus.amqp.CancelEvent;
 import org.icij.datashare.asynctasks.bus.amqp.ShutdownEvent;
@@ -30,11 +31,8 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.Serializable;
 import java.nio.charset.Charset;
-import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.BlockingQueue;
-import java.util.regex.Pattern;
 import java.util.stream.StreamSupport;
 
 import static java.util.Optional.ofNullable;
@@ -61,32 +59,37 @@ public class TaskManagerRedis implements TaskManager {
         eventTopic.addListener(TaskEvent.class, (channelString, message) -> handleEvent(message));
     }
 
-    @Override
-    public <V extends Serializable> Task<V> getTask(String id) {
-        return (Task<V>) tasks.get(id);
+    public <V extends Serializable> Task<V> getTask(final String taskId) throws UnknownTask {
+        return tasks.getTask(taskId);
     }
 
     @Override
     public List<Task<?>> getTasks() {
-        return new LinkedList<>(tasks.values());
+        return tasks.values().stream().map(TaskMetadata::task).collect(Collectors.toList());
+    }
+
+    @Override
+    public Group getTaskGroup(String taskId) {
+        return tasks.get(taskId).group();
     }
 
     @Override
     public List<Task<?>> clearDoneTasks() {
-        return tasks.values().stream().filter(Task::isFinished).map(t -> tasks.remove(t.id)).collect(toList());
+        return tasks.values().stream().map(TaskMetadata::task).filter(Task::isFinished)
+            .map(t -> tasks.remove(t.id).task()).collect(toList());
     }
 
     @Override
-    public <V extends Serializable> Task<V> clearTask(String taskId) {
-        if (tasks.get(taskId).getState() == Task.State.RUNNING) {
+    public <V extends Serializable> Task<V> clearTask(String taskId) throws UnknownTask {
+        if (getTask(taskId).getState() == Task.State.RUNNING) {
             throw new IllegalStateException(String.format("task id <%s> is already in RUNNING state", taskId));
         }
         logger.info("deleting task id <{}>", taskId);
-        return (Task<V>) tasks.remove(taskId);
+        return (Task<V>) tasks.remove(taskId).task();
     }
 
     @Override
-    public boolean stopTask(String taskId) {
+    public boolean stopTask(String taskId) throws UnknownTask {
         Task<?> taskView = getTask(taskId);
         if (taskView != null) {
             logger.info("sending cancel event for {}", taskId);
@@ -109,13 +112,13 @@ public class TaskManagerRedis implements TaskManager {
     BlockingQueue<Task<?>> taskQueue(Task<?> task) {
         switch (routingStrategy) {
             case GROUP -> {
-                return new RedissonBlockingQueue<>(new TaskViewCodec(), getCommandSyncService(), String.format("%s.%s", AmqpQueue.TASK.name(), task.getGroup().id()), redissonClient);
+                return new RedissonBlockingQueue<>(new RedisCodec<>(Task.class), getCommandSyncService(), String.format("%s.%s", AmqpQueue.TASK.name(), tasks.get(task.id).group().id()), redissonClient);
             }
             case NAME -> {
-                return new RedissonBlockingQueue<>(new TaskViewCodec(), getCommandSyncService(), String.format("%s.%s", AmqpQueue.TASK.name(), task.name), redissonClient);
+                return new RedissonBlockingQueue<>(new RedisCodec<>(Task.class), getCommandSyncService(), String.format("%s.%s", AmqpQueue.TASK.name(), task.name), redissonClient);
             }
             default -> {
-                return new RedissonBlockingQueue<>(new TaskViewCodec(), getCommandSyncService(), AmqpQueue.TASK.name(), redissonClient);
+                return new RedissonBlockingQueue<>(new RedisCodec<>(Task.class), getCommandSyncService(), AmqpQueue.TASK.name(), redissonClient);
             }
         }
     }
@@ -148,6 +151,16 @@ public class TaskManagerRedis implements TaskManager {
         }
     }
 
+    @Override
+    public <V extends Serializable> void insert(Task<V> task, Group group) throws TaskAlreadyExists, IOException {
+        tasks.insert(task, group);
+    }
+
+    @Override
+    public <V extends Serializable> void update(Task<V> task) throws IOException, UnknownTask {
+        tasks.update(task);
+    }
+
     private void clearTaskQueues() {
         RKeys keys = redissonClient.getKeys();
         Iterable<String> iterable = keys.getKeysByPattern(AmqpQueue.TASK.name() + "*", 100);
@@ -157,24 +170,21 @@ public class TaskManagerRedis implements TaskManager {
                 .forEach(k -> redissonClient.getQueue(k).delete());
     }
 
-    public <V extends Serializable> boolean save(Task<V> task) {
-        Task<?> oldVal = tasks.put(task.id, task);
-        return oldVal == null;
-    }
-
     @Override
     public <V extends Serializable> void enqueue(Task<V> task) {
         taskQueue(task).add(task);
     }
 
-    public static class TaskViewCodec extends BaseCodec {
+    public  static class RedisCodec<T> extends BaseCodec {
+        private final Class<T> clazz;
         private final Encoder keyEncoder;
         private final Decoder<Object> keyDecoder;
         protected final ObjectMapper mapObjectMapper;
 
-        public TaskViewCodec() {
+        public RedisCodec(Class<T> clazz) {
+            // Ugly but this doesn't work with type ref directly
+            this.clazz = clazz;
             this.mapObjectMapper = JsonObjectMapper.MAPPER;
-
             this.keyEncoder = in -> {
                 ByteBuf out = ByteBufAllocator.DEFAULT.buffer();
                 out.writeCharSequence(in.toString(), Charset.defaultCharset());
@@ -204,8 +214,8 @@ public class TaskManagerRedis implements TaskManager {
 
         private final Decoder<Object> decoder = new Decoder<>() {
             @Override
-            public Object decode(ByteBuf buf, State state) throws IOException {
-                return mapObjectMapper.readValue((InputStream) new ByteBufInputStream(buf), Task.class);
+            public T decode(ByteBuf buf, State state) throws IOException {
+                return mapObjectMapper.readValue((InputStream) new ByteBufInputStream(buf), clazz);
             }
         };
 

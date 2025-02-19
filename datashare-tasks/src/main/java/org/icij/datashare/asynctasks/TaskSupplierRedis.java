@@ -79,8 +79,8 @@ public class TaskSupplierRedis implements TaskSupplier {
 
     private <V extends Serializable> BlockingQueue<Task<V>> taskQueue() {
         return this.taskQueueKey == null ?
-            new RedissonBlockingQueue<>(new TaskManagerRedis.TaskViewCodec(), getCommandSyncService(), AmqpQueue.TASK.name(), redissonClient):
-            new RedissonBlockingQueue<>(new TaskManagerRedis.TaskViewCodec(), getCommandSyncService(), String.format("%s.%s", AmqpQueue.TASK.name(), taskQueueKey), redissonClient);
+            new RedissonBlockingQueue<>(new TaskManagerRedis.RedisCodec<>(Task.class), getCommandSyncService(), AmqpQueue.TASK.name(), redissonClient):
+            new RedissonBlockingQueue<>(new TaskManagerRedis.RedisCodec<>(Task.class), getCommandSyncService(), String.format("%s.%s", AmqpQueue.TASK.name(), taskQueueKey), redissonClient);
     }
 
     private CommandSyncService getCommandSyncService() {

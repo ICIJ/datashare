@@ -16,9 +16,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import org.icij.datashare.PropertiesProvider;
-import org.icij.datashare.asynctasks.Group;
 import org.icij.datashare.asynctasks.Task;
-import org.icij.datashare.asynctasks.TaskGroupType;
 import org.icij.datashare.asynctasks.TaskManager;
 import org.icij.datashare.test.DatashareTimeRule;
 import org.icij.datashare.test.ElasticsearchRule;
@@ -134,7 +132,7 @@ public class CreateNlpBatchesFromIndexParametrizedTest {
             "scrollSize", this.scrollSize
         );
         TestableCreateNlpBatchesFromIndex enqueueFromIndex = new TestableCreateNlpBatchesFromIndex(taskManager, indexer,
-                new Task<>(CreateNlpBatchesFromIndex.class.getName(), new User("test"), new Group(TaskGroupType.Test), properties), null);
+                new Task<>(CreateNlpBatchesFromIndex.class.getName(), new User("test"), properties), null);
         // When
         List<String> taskIds = enqueueFromIndex.call();
         List<List<Language>> queued = taskManager.getTasks().stream()

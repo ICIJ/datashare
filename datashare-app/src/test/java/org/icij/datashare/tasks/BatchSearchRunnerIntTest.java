@@ -1,11 +1,10 @@
 package org.icij.datashare.tasks;
 
 import co.elastic.clients.elasticsearch._types.Refresh;
+import java.util.List;
 import java.util.function.Function;
 import org.icij.datashare.PropertiesProvider;
-import org.icij.datashare.asynctasks.Group;
 import org.icij.datashare.asynctasks.Task;
-import org.icij.datashare.asynctasks.TaskGroupType;
 import org.icij.datashare.batch.BatchSearch;
 import org.icij.datashare.batch.BatchSearchRepository;
 import org.icij.datashare.batch.SearchException;
@@ -28,7 +27,6 @@ import org.mockito.Mock;
 import java.io.IOException;
 import java.util.HashMap;
 
-import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static org.fest.assertions.Assertions.assertThat;
 import static org.icij.datashare.CollectionUtils.asSet;
@@ -66,7 +64,7 @@ public class BatchSearchRunnerIntTest {
     }
 
     private Task<?> taskView(BatchSearch search) {
-        return new Task<>(search.uuid, BatchSearchRunner.class.getName(), User.local(), new Group(TaskGroupType.Test));
+        return new Task<>(search.uuid, BatchSearchRunner.class.getName(), User.local());
     }
 
     @Test
@@ -152,7 +150,7 @@ public class BatchSearchRunnerIntTest {
     public void test_search_with_phraseMatches_with_ner() throws Exception {
         Document mydoc = createDoc("docId").with("anne's doc to find").build();
         indexer.add(TEST_INDEX, mydoc);
-        indexer.add(TEST_INDEX, NamedEntity.create(NamedEntity.Category.PERSON, "anne", asList(12L), mydoc.getId(), mydoc.getRootDocument(), Pipeline.Type.CORENLP, Language.FRENCH));
+        indexer.add(TEST_INDEX, NamedEntity.create(NamedEntity.Category.PERSON, "anne", List.of(12L), mydoc.getId(), mydoc.getRootDocument(), Pipeline.Type.CORENLP, Language.FRENCH));
         BatchSearch searchKo = new BatchSearch(singletonList(project(TEST_INDEX)), "name", "desc", asSet("anne doc"), User.local(),false, null, null,
                 null, true);
         BatchSearch searchOk = new BatchSearch(singletonList(project(TEST_INDEX)), "name", "desc", asSet("anne's doc"), User.local(),false, null, null,

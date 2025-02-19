@@ -1,8 +1,6 @@
 package org.icij.datashare.tasks;
 
-import org.icij.datashare.asynctasks.Group;
 import org.icij.datashare.asynctasks.Task;
-import org.icij.datashare.asynctasks.TaskGroupType;
 import org.icij.datashare.extract.DocumentCollectionFactory;
 import org.icij.datashare.extract.MemoryDocumentCollectionFactory;
 import org.icij.datashare.user.User;
@@ -19,12 +17,12 @@ import static org.icij.datashare.tasks.PipelineTask.PATH_POISON;
 public class DeduplicateTaskTest {
     DocumentCollectionFactory<Path> docCollectionFactory = new MemoryDocumentCollectionFactory<>();
     Map<String, Object> defaultOpts = Map.of("queueName", "test:queue", "stages", "DEDUPLICATE");
-    DeduplicateTask task = new DeduplicateTask(docCollectionFactory, new Task<>(DeduplicateTask.class.getName(), User.local(), new Group(TaskGroupType.Test), defaultOpts), null);
+    DeduplicateTask task = new DeduplicateTask(docCollectionFactory, new Task<>(DeduplicateTask.class.getName(), User.local(), defaultOpts), null);
 
     @Test(timeout = 2000)
     public void test_filter_empty() throws Exception {
         docCollectionFactory.createQueue("test:queue:deduplicate", Path.class).add(PATH_POISON);
-        assertThat(new DeduplicateTask(docCollectionFactory, new Task<>(DeduplicateTask.class.getName(), User.local(), new Group(TaskGroupType.Test), defaultOpts), null).call()).isEqualTo(0);
+        assertThat(new DeduplicateTask(docCollectionFactory, new Task<>(DeduplicateTask.class.getName(), User.local(), defaultOpts), null).call()).isEqualTo(0);
     }
 
     @Test(timeout = 2000)
@@ -33,7 +31,7 @@ public class DeduplicateTaskTest {
         docCollectionFactory.createQueue("test:queue:deduplicate", Path.class).put(get("/path/to/doc"));
         docCollectionFactory.createQueue("test:queue:deduplicate", Path.class).add(PATH_POISON);
 
-        assertThat(new DeduplicateTask(docCollectionFactory,  new Task<>(DeduplicateTask.class.getName(), User.local(), new Group(TaskGroupType.Test), defaultOpts), null).call()).isEqualTo(1);
+        assertThat(new DeduplicateTask(docCollectionFactory,  new Task<>(DeduplicateTask.class.getName(), User.local(), defaultOpts), null).call()).isEqualTo(1);
 
         assertThat(docCollectionFactory.createQueue("test:queue:index", Path.class).size()).isEqualTo(2); // with POISON
     }

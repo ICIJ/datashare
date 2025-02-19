@@ -19,7 +19,7 @@ public class TaskTest {
 
     @Test
     public void test_get_result_sync_when_task_is_running() throws InterruptedException {
-        Task<String> taskView = new Task<>("name", User.local(), new Group(TaskGroupType.Test), new HashMap<>());
+        Task<String> taskView = new Task<>("name", User.local(), new HashMap<>());
         executor.execute(() -> {
             try {
                 taskView.getResult(1, TimeUnit.SECONDS);
@@ -37,15 +37,14 @@ public class TaskTest {
     }
 
     @Test
-    public void test_user_group_parameters() {
-        TaskGroupType t = TaskGroupType.Test;
-        Task<String> taskView = new Task<>("foo", User.local(), new Group(t), Map.of("baz", "qux"));
-        assertThat(taskView.args).includes(entry("group", new Group(t)), entry("user", User.local()), entry("baz", "qux"));
+    public void test_user_parameter() {
+        Task<String> taskView = new Task<>("foo", User.local(), Map.of("baz", "qux"));
+        assertThat(taskView.args).includes(entry("user", User.local()), entry("baz", "qux"));
     }
 
     @Test
     public void test_progress() {
-        Task<String> taskView = new Task<>("name", User.local(), new Group(TaskGroupType.Test), new HashMap<>());
+        Task<String> taskView = new Task<>("name", User.local(), new HashMap<>());
         assertThat(taskView.getProgress()).isEqualTo(0);
         assertThat(taskView.getState()).isEqualTo(Task.State.CREATED);
 
@@ -77,7 +76,7 @@ public class TaskTest {
 
     @Test
     public void test_serialize_deserialize() throws Exception {
-        Task<String> taskView = new Task<>("name", User.local(), new Group(TaskGroupType.Test), Map.of("key", "value"));
+        Task<String> taskView = new Task<>("name", User.local(), Map.of("key", "value"));
         String json = JsonObjectMapper.MAPPER.writeValueAsString(taskView);
         assertThat(json).contains("\"@type\":\"Task\"");
         assertThat(json).contains("\"user\":{\"@type\":\"org.icij.datashare.user.User\"");

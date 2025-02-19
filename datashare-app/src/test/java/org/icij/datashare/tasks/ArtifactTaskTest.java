@@ -2,9 +2,7 @@ package org.icij.datashare.tasks;
 
 
 import org.icij.datashare.PropertiesProvider;
-import org.icij.datashare.asynctasks.Group;
 import org.icij.datashare.asynctasks.Task;
-import org.icij.datashare.asynctasks.TaskGroupType;
 import org.icij.datashare.extract.MemoryDocumentCollectionFactory;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.user.User;
@@ -31,7 +29,7 @@ public class ArtifactTaskTest {
 
     @Test(expected = IllegalArgumentException.class)
     public void test_missing_artifact_dir() {
-        new ArtifactTask(factory, mockEs, new PropertiesProvider(Map.of()), new Task<>(ArtifactTask.class.getName(), User.local(), new Group(TaskGroupType.Test), Map.of()), null);
+        new ArtifactTask(factory, mockEs, new PropertiesProvider(Map.of()), new Task<>(ArtifactTask.class.getName(), User.local(), Map.of()), null);
     }
 
     @Test(timeout = 5000)
@@ -48,7 +46,7 @@ public class ArtifactTaskTest {
                 "defaultProject", "prj",
                 "pollingInterval", "1"
                 )),
-                new Task<>(ArtifactTask.class.getName(), User.local(), new Group(TaskGroupType.Test), new HashMap<>()), null)
+                new Task<>(ArtifactTask.class.getName(), User.local(), new HashMap<>()), null)
                 .call();
 
         assertThat(numberOfDocuments).isEqualTo(1);

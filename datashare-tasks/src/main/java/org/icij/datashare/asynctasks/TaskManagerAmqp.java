@@ -1,14 +1,13 @@
 package org.icij.datashare.asynctasks;
 
+import java.util.function.Consumer;
 import org.icij.datashare.asynctasks.bus.amqp.*;
 
 import org.icij.datashare.tasks.RoutingStrategy;
 
 import java.io.IOException;
 import java.io.Serializable;
-import java.util.LinkedList;
 import java.util.List;
-import java.util.function.Consumer;
 
 import static java.util.Optional.ofNullable;
 import static java.util.stream.Collectors.toList;
@@ -37,8 +36,8 @@ public class TaskManagerAmqp implements TaskManager {
     }
 
     @Override
-    public boolean stopTask(String taskId) {
-        Task<?> taskView = tasks.get(taskId);
+    public boolean stopTask(String taskId) throws IOException, UnknownTask {
+        Task<?> taskView = this.getTask(taskId);
         if (taskView != null) {
             try {
                 logger.info("sending cancel event for {}", taskId);
@@ -54,12 +53,12 @@ public class TaskManagerAmqp implements TaskManager {
     }
 
     @Override
-    public <V extends Serializable> Task<V> clearTask(String taskId) {
-        if (tasks.get(taskId).getState() == Task.State.RUNNING) {
+    public <V extends Serializable> Task<V> clearTask(String taskId) throws IOException, UnknownTask {
+        if (this.getTask(taskId).getState() == Task.State.RUNNING) {
             throw new IllegalStateException(String.format("task id <%s> is already in RUNNING state", taskId));
         }
         logger.info("deleting task id <{}>", taskId);
-        return (Task<V>) tasks.remove(taskId);
+        return (Task<V>) tasks.remove(taskId).task();
     }
 
     @Override
@@ -68,33 +67,44 @@ public class TaskManagerAmqp implements TaskManager {
         return true;
     }
 
-    public <V extends Serializable> boolean save(Task<V> task) {
-        Task<?> oldVal = tasks.put(task.id, task);
-        return oldVal == null;
+    @Override
+    public <V extends Serializable> void insert(Task<V> task, Group group) throws IOException, TaskAlreadyExists {
+        tasks.insert(task, group);
+    }
+
+    @Override
+    public <V extends Serializable> void update(Task<V> task) throws IOException, UnknownTask {
+        tasks.update(task);
     }
 
     @Override
     public <V extends Serializable> void enqueue(Task<V> task) throws IOException {
         switch (routingStrategy) {
-            case GROUP -> amqp.publish(AmqpQueue.TASK, task.getGroup().id().name(), task);
+            case GROUP -> amqp.publish(AmqpQueue.TASK, this.tasks.get(task.id).group().id().name(), task);
             case NAME -> amqp.publish(AmqpQueue.TASK, task.name, task);
             default -> amqp.publish(AmqpQueue.TASK, task);
         }
     }
 
     @Override
-    public <V extends Serializable> Task<V> getTask(String taskId) {
-        return (Task<V>) tasks.get(taskId);
+    public <V extends Serializable> Task<V> getTask(String taskId) throws IOException, UnknownTask {
+        return tasks.getTask(taskId);
     }
 
     @Override
     public List<Task<?>> getTasks() {
-        return new LinkedList<>(tasks.values());
+        return tasks.values().stream().map(TaskMetadata::task).collect(toList());
+    }
+
+    @Override
+    public Group getTaskGroup(String taskId) {
+        return tasks.get(taskId).group();
     }
 
     @Override
     public List<Task<?>> clearDoneTasks() {
-        return tasks.values().stream().filter(f -> f.getState() != Task.State.RUNNING).map(t -> tasks.remove(t.id)).collect(toList());
+        return tasks.values().stream().map(TaskMetadata::task).filter(Task::isFinished)
+            .map(t -> tasks.remove(t.id).task()).collect(toList());
     }
 
     public void close() throws IOException {
