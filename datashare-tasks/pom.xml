@@ -13,7 +13,7 @@
     <artifactId>datashare-tasks</artifactId>
     <name>datashare-tasks</name>
     <packaging>jar</packaging>
-    <version>15.2.0</version>
+    <version>16.0.0</version>
     <description>Datashare asynchronous task execution library</description>
 
     <properties>
