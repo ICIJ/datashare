@@ -2,9 +2,7 @@ package org.icij.datashare.tasks;
 
 import co.elastic.clients.elasticsearch._types.Refresh;
 import org.icij.datashare.PropertiesProvider;
-import org.icij.datashare.asynctasks.Group;
 import org.icij.datashare.asynctasks.Task;
-import org.icij.datashare.asynctasks.TaskGroupType;
 import org.icij.datashare.asynctasks.TaskSupplier;
 import org.icij.datashare.batch.BatchDownload;
 import org.icij.datashare.com.mail.Mail;
@@ -44,7 +42,7 @@ public class BatchDownloadRunnerEncryptedIntTest {
         MailSender mailSender = mock(MailSender.class);
         Task<?> taskView =
             new Task<>(BatchDownloadRunner.class.getName(), batchDownload.user,
-                    new Group(TaskGroupType.Test), new HashMap<>() {{
+                    new HashMap<>() {{
                     put("batchDownload", batchDownload);
                 }});
         new BatchDownloadRunner(indexer, createProvider(), taskView.progress(taskSupplier::progress), taskView, (uri) -> mailSender, new CountDownLatch(1)).call();

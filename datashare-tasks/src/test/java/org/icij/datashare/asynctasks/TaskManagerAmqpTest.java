@@ -1,5 +1,9 @@
 package org.icij.datashare.asynctasks;
 
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.asynctasks.bus.amqp.AmqpInterlocutor;
 import org.icij.datashare.asynctasks.bus.amqp.AmqpQueue;
@@ -7,6 +11,7 @@ import org.icij.datashare.asynctasks.bus.amqp.AmqpServerRule;
 import org.icij.datashare.asynctasks.bus.amqp.TaskError;
 import org.icij.datashare.asynctasks.bus.amqp.UriResult;
 import org.icij.datashare.tasks.RoutingStrategy;
+import org.icij.datashare.time.DatashareTime;
 import org.icij.datashare.user.User;
 import org.icij.extract.redis.RedissonClientFactory;
 import org.icij.task.Options;
@@ -23,12 +28,9 @@ import java.io.Serializable;
 import java.net.URI;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.TimeUnit;
 
 import static org.fest.assertions.Assertions.assertThat;
+import static org.junit.Assert.assertThrows;
 
 public class TaskManagerAmqpTest {
     private static AmqpInterlocutor AMQP;
@@ -59,7 +61,7 @@ public class TaskManagerAmqpTest {
             assertThat(groupTaskManager.getTask(expectedTaskViewId)).isNotNull();
             Task<Serializable> actualTaskView = taskQueue.poll(1, TimeUnit.SECONDS);
             assertThat(actualTaskView).isNotNull();
-            assertThat(actualTaskView.getGroup()).isEqualTo(new Group(key));
+            assertThat(groupTaskManager.getTaskGroup(expectedTaskViewId)).isEqualTo(new Group(key));
         }
     }
 
@@ -157,7 +159,7 @@ public class TaskManagerAmqpTest {
         Task<?> clearedTask = taskManager.clearTask(taskView1Id);
 
         assertThat(taskView1Id).isEqualTo(clearedTask.id);
-        assertThat(taskManager.getTask(taskView1Id)).isNull();
+        assertThrows(UnknownTask.class, () -> taskManager.getTask(taskView1Id));
         assertThat(taskManager.getTasks()).hasSize(1);
     }
 
@@ -188,6 +190,29 @@ public class TaskManagerAmqpTest {
         nextMessage.await();
         assertThat(taskManager.getTask(task.id).getProgress()).isEqualTo(0.0);
         assertThat(taskManager.getTask(task.id).getState()).isEqualTo(Task.State.CANCELLED);
+    }
+
+    @Test
+    public void test_save_task() throws IOException {
+        Task<String> task = new Task<>("name", User.local(), new HashMap<>());
+
+        taskManager.insert(task, null);
+
+        assertThat(taskManager.getTasks()).hasSize(1);
+        assertThat(taskManager.getTask(task.id)).isNotNull();
+    }
+
+    @Test
+    public void test_update_task() throws IOException {
+        // Given
+        Task<?> task = new Task<>("HelloWorld", User.local(), Map.of("greeted", "world"));
+        Task<?> update = new Task<>(task.id, task.name, task.getState(), 0.5, DatashareTime.getNow(),  3,  null, task.args, null, null);
+        // When
+        taskManager.insert(task, null);
+        taskManager.update(update);
+        Task<?> updated = taskManager.getTask(task.id);
+        // Then
+        assertThat(updated).isEqualTo(update);
     }
 
     @Test

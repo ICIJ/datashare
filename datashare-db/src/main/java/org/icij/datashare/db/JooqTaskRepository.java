@@ -5,6 +5,8 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.icij.datashare.asynctasks.Group;
 import org.icij.datashare.asynctasks.Task;
+import org.icij.datashare.asynctasks.TaskGroupType;
+import org.icij.datashare.asynctasks.TaskMetadata;
 import org.icij.datashare.asynctasks.TaskRepository;
 import org.icij.datashare.asynctasks.TaskResult;
 import org.icij.datashare.asynctasks.bus.amqp.TaskError;
@@ -63,29 +65,29 @@ public class JooqTaskRepository implements TaskRepository {
     }
 
     @Override
-    public Task<?> get(Object o) {
+    public TaskMetadata<?> get(Object o) {
         return createTaskFrom(DSL.using(connectionProvider, dialect).selectFrom(TASK).
                 where(TASK.ID.eq((String) o)).fetchOne());
     }
 
     @Override
-    public Task<?> put(String s, Task<?> task) {
-        if (task == null || s == null || !s.equals(task.getId())) {
-            throw new IllegalArgumentException(String.format("task is null or its id (%s) is different than the key (%s)", ofNullable(task).map(Task::getId).orElse(null), s));
+    public TaskMetadata<?> put(String s, TaskMetadata<?> taskMetadata) {
+        if (taskMetadata == null || s == null || !s.equals(taskMetadata.taskId())) {
+            throw new IllegalArgumentException(String.format("task is null or its id (%s) is different than the key (%s)", ofNullable(taskMetadata).map(TaskMetadata::taskId).orElse(null), s));
         }
         return using(connectionProvider, dialect).transactionResult(configuration -> {
             DSLContext inner = using(configuration);
-            Task<?> old = createTaskFrom(inner.selectFrom(TASK).where(TASK.ID.eq(task.getId())).fetchOne());
-            if (old != null && old.equals(task)) return null; // no need to go further
+            TaskMetadata<?> old = createTaskFrom(inner.selectFrom(TASK).where(TASK.ID.eq(taskMetadata.taskId())).fetchOne());
+            if (old != null && old.equals(taskMetadata)) return null; // no need to go further
 
             InsertValuesStep11<TaskRecord, String, String, String, String, String, Double, LocalDateTime, LocalDateTime, Integer, Integer, String> insertInto = insert(inner);
-            insertValues(task, insertInto);
+            insertValues(taskMetadata, insertInto);
             InsertOnDuplicateSetMoreStep<TaskRecord> onDuplicate = insertInto.onDuplicateKeyUpdate()
-                    .set(TASK.ERROR, TYPE_INCLUSION_MAPPER.writeValueAsString(task.getError()))
-                    .set(TASK.RESULT, TYPE_INCLUSION_MAPPER.writeValueAsString(task.getResult()))
-                    .set(TASK.STATE, task.getState().name())
-                    .set(TASK.PROGRESS, task.getProgress())
-                    .set(TASK.COMPLETED_AT, ofNullable(task.getCompletedAt()).map(d -> new Timestamp(d.getTime()).toLocalDateTime()).orElse(null));
+                    .set(TASK.ERROR, TYPE_INCLUSION_MAPPER.writeValueAsString(taskMetadata.task().getError()))
+                    .set(TASK.RESULT, TYPE_INCLUSION_MAPPER.writeValueAsString(taskMetadata.task().getResult()))
+                    .set(TASK.STATE, taskMetadata.task().getState().name())
+                    .set(TASK.PROGRESS, taskMetadata.task().getProgress())
+                    .set(TASK.COMPLETED_AT, ofNullable(taskMetadata.task().getCompletedAt()).map(d -> new Timestamp(d.getTime()).toLocalDateTime()).orElse(null));
 
             onDuplicate.execute();
             return old;
@@ -93,12 +95,12 @@ public class JooqTaskRepository implements TaskRepository {
     }
 
     @Override
-    public Task<?> remove(Object key) {
+    public TaskMetadata<?> remove(Object key) {
         return createTaskFrom(DSL.using(connectionProvider, dialect).deleteFrom(TASK).where(TASK.ID.eq((String) key)).returning().fetchOne());
     }
 
     @Override
-    public void putAll(Map<? extends String, ? extends Task<?>> map) {
+    public void putAll(Map<? extends String, ? extends TaskMetadata<?>> map) {
         ofNullable(map).orElseThrow(() -> new IllegalArgumentException("task(s) map is null"));
         InsertValuesStep11<TaskRecord, String, String, String, String, String, Double, LocalDateTime, LocalDateTime, Integer, Integer, String> insert = insert(using(connectionProvider, dialect));
         map.values().forEach(t -> insertValues(t, insert));
@@ -117,19 +119,19 @@ public class JooqTaskRepository implements TaskRepository {
     }
 
     @Override
-    public Collection<Task<?>> values() {
+    public Collection<TaskMetadata<?>> values() {
         return DSL.using(connectionProvider, dialect).selectFrom(TASK).stream()
                 .map(this::createTaskFrom).collect(Collectors.toList());
     }
 
     @Override
-    public Set<Entry<String, Task<?>>> entrySet() {
+    public Set<Entry<String, TaskMetadata<?>>> entrySet() {
         return DSL.using(connectionProvider, dialect).selectFrom(TASK).stream()
-                .map(t -> new AbstractMap.SimpleEntry<String, Task<?>>(t.getId(), createTaskFrom(t)))
+                .map(t -> new AbstractMap.SimpleEntry<String, TaskMetadata<?>>(t.getId(), createTaskFrom(t)))
                 .collect(Collectors.toSet());
     }
 
-    private Task<?> createTaskFrom(TaskRecord taskRecord) {
+    private TaskMetadata<?> createTaskFrom(TaskRecord taskRecord) {
         return ofNullable(taskRecord).map(r ->
         {
             Date createdAt = r.getCreatedAt() == null ? null : Date.from(r.getCreatedAt().atZone(ZoneId.systemDefault()).toInstant());;
@@ -138,8 +140,9 @@ public class JooqTaskRepository implements TaskRepository {
                 Map<String, Object> args = TYPE_INCLUSION_MAPPER.readValue(r.getArgs(), new TypeReference<>() {});
                 TaskResult<?> result = r.getResult() == null ? null: TYPE_INCLUSION_MAPPER.readValue(r.getResult(), new TypeReference<>() {});
                 TaskError error  = r.getError() == null ? null: TYPE_INCLUSION_MAPPER.readValue(r.getError(), TaskError.class);
-                return new Task<>(r.getId(), r.getName(), Task.State.valueOf(r.getState()),
+                Task<?> task = new Task<>(r.getId(), r.getName(), Task.State.valueOf(r.getState()),
                         r.getProgress(), createdAt, r.getRetriesLeft(), completedAt, args, result, error);
+                return new TaskMetadata<>(task, new Group(TaskGroupType.valueOf(r.getGroupId())));
             } catch (JsonProcessingException e) {
                 throw new RuntimeException(e);
             }
@@ -152,12 +155,13 @@ public class JooqTaskRepository implements TaskRepository {
                         TASK.CREATED_AT, TASK.COMPLETED_AT, TASK.RETRIES_LEFT, TASK.MAX_RETRIES, TASK.ARGS);
     }
 
-    private static void insertValues(Task<?> t, InsertValuesStep11<TaskRecord, String, String, String, String, String, Double, LocalDateTime, LocalDateTime, Integer, Integer, String> insert) {
+    private static void insertValues(TaskMetadata<?> taskMetadata, InsertValuesStep11<TaskRecord, String, String, String, String, String, Double, LocalDateTime, LocalDateTime, Integer, Integer, String> insert) {
+        Task<?> t = taskMetadata.task();
         try {
             insert.values(t.id, t.name,
                     t.getState().name(),
                     ofNullable(t.getUser()).map(u -> u.id).orElse(null),
-                    ofNullable(t.getGroup()).map(Group::getId).orElse(null),
+                    ofNullable(taskMetadata.group()).map(Group::getId).orElse(null),
                     t.getProgress(),
                     new Timestamp(t.createdAt.getTime()).toLocalDateTime(),
                     ofNullable(t.getCompletedAt()).map(d -> new Timestamp(d.getTime()).toLocalDateTime()).orElse(null),
@@ -167,4 +171,5 @@ public class JooqTaskRepository implements TaskRepository {
             throw new RuntimeException(ex);
         }
     }
+
 }

@@ -2,9 +2,7 @@ package org.icij.datashare.tasks;
 
 import co.elastic.clients.elasticsearch._types.Refresh;
 import org.icij.datashare.PropertiesProvider;
-import org.icij.datashare.asynctasks.Group;
 import org.icij.datashare.asynctasks.Task;
-import org.icij.datashare.asynctasks.TaskGroupType;
 import org.icij.datashare.extract.MemoryDocumentCollectionFactory;
 import org.icij.datashare.test.ElasticsearchRule;
 import org.icij.datashare.text.DocumentBuilder;
@@ -41,7 +39,7 @@ public class ScanIndexTaskTest {
     @Test
     public void test_empty_index() throws Exception {
         assertThat(new ScanIndexTask(documentCollectionFactory, indexer, new Task<>(
-                ScanIndexTask.class.getName(), User.nullUser(), new Group(TaskGroupType.Test), propertiesToMap(propertiesProvider.getProperties())), null).call()).isEqualTo(0);
+                ScanIndexTask.class.getName(), User.nullUser(), propertiesToMap(propertiesProvider.getProperties())), null).call()).isEqualTo(0);
     }
 
     @Test
@@ -50,7 +48,7 @@ public class ScanIndexTaskTest {
         indexer.add(TEST_INDEX, DocumentBuilder.createDoc("id2").build());
 
         assertThat(new ScanIndexTask(documentCollectionFactory, indexer,  new Task<>(
-                ScanIndexTask.class.getName(), User.nullUser(), new Group(TaskGroupType.Test), propertiesToMap(propertiesProvider.getProperties())), null).call()).isEqualTo(2);
+                ScanIndexTask.class.getName(), User.nullUser(), propertiesToMap(propertiesProvider.getProperties())), null).call()).isEqualTo(2);
 
         ReportMap actualReportMap = documentCollectionFactory.createMap("test:report");
         assertThat(actualReportMap).includes(

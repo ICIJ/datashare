@@ -9,7 +9,6 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.Serializable;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -19,7 +18,6 @@ import java.util.stream.IntStream;
 
 import static java.lang.Integer.parseInt;
 import static java.util.stream.Collectors.toList;
-import static org.icij.datashare.asynctasks.Task.State.RUNNING;
 
 
 public class TaskManagerMemory implements TaskManager, TaskSupplier {
@@ -46,21 +44,20 @@ public class TaskManagerMemory implements TaskManager, TaskSupplier {
         this.tasks = tasks;
     }
 
-    public <V extends Serializable> Task<V> getTask(final String taskId) {
-        return (Task<V>) tasks.get(taskId);
+    public <V extends Serializable> Task<V> getTask(final String taskId) throws UnknownTask {
+        return tasks.getTask(taskId);
     }
 
     @Override
     public List<Task<?>> getTasks() {
-        return new LinkedList<>(tasks.values());
+        return tasks.values().stream().map(TaskMetadata::task).collect(toList());
     }
 
     @Override
     public Void progress(String taskId, double rate) {
-        Task<?> taskView = tasks.get(taskId);
-        if (taskView != null) {
-            taskView.setProgress(rate);
-        } else {
+        try {
+            tasks.getTask(taskId).setProgress(rate);
+        } catch (UnknownTask ex) {
             logger.warn("unknown task id <{}> for progress={} call", taskId, rate);
         }
         return null;
@@ -68,40 +65,42 @@ public class TaskManagerMemory implements TaskManager, TaskSupplier {
 
     @Override
     public <V extends Serializable> void result(String taskId, TaskResult<V> result) {
-        Task<V> taskView = (Task<V>) tasks.get(taskId);
-        if (taskView != null) {
-            taskView.setResult(result);
+        try {
+            Task<V> task = getTask(taskId);
+            task.setResult(result);
             executedTasks.incrementAndGet();
-        } else {
+        } catch (UnknownTask ex) {
             logger.warn("unknown task id <{}> for result={} call", taskId, result);
         }
     }
 
     @Override
     public void canceled(Task<?> task, boolean requeue) {
-        Task<?> taskView = tasks.get(task.id);
-        if (taskView != null) {
-            taskView.cancel();
-            if (requeue) {
-                taskQueue.offer(task);
-            }
+        Task<?> taskView;
+        try {
+             taskView = tasks.getTask(task.id);
+             taskView.cancel();
+        } catch (UnknownTask ex) {
+            logger.warn("unknown task id <{}> for cancel={} call", task.id, requeue);
+        }
+        if (requeue) {
+            taskQueue.offer(task);
         }
     }
 
     @Override
     public void error(String taskId, TaskError reason) {
-        Task<?> taskView = tasks.get(taskId);
-        if (taskView != null) {
-            taskView.setError(reason);
+        try {
+            tasks.getTask(taskId).setError(reason);
             executedTasks.incrementAndGet();
-        } else {
+        } catch (UnknownTask ex) {
             logger.warn("unknown task id <{}> for error={} call", taskId, reason.toString());
         }
     }
 
-    public <V extends Serializable> boolean save(Task<V> taskView) {
-        Task<?> oldTask = tasks.put(taskView.id, taskView);
-        return oldTask == null;
+    @Override
+    public Group getTaskGroup(String taskId) {
+        return tasks.get(taskId).group();
     }
 
     @Override
@@ -114,27 +113,28 @@ public class TaskManagerMemory implements TaskManager, TaskSupplier {
         executor.shutdown();
         loops.forEach(TaskWorkerLoop::exit);
         try {
-            return executor.awaitTermination(pollingInterval * 2, TimeUnit.SECONDS);
+            return executor.awaitTermination(pollingInterval * 2L, TimeUnit.SECONDS);
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
     }
 
     public List<Task<?>> clearDoneTasks() {
-        return tasks.values().stream().filter(taskView -> taskView.getState() != RUNNING).map(t -> tasks.remove(t.id)).collect(toList());
+        return tasks.values().stream().map(TaskMetadata::task).filter(Task::isFinished)
+            .map(t -> tasks.remove(t.id).task()).collect(toList());
     }
 
     @Override
-    public <V extends Serializable> Task<V> clearTask(String taskName) {
-        if (tasks.get(taskName).getState() == Task.State.RUNNING) {
-            throw new IllegalStateException(String.format("task id <%s> is already in RUNNING state", taskName));
+    public <V extends Serializable> Task<V> clearTask(String taskId) throws UnknownTask {
+        if (getTask(taskId).getState() == Task.State.RUNNING) {
+            throw new IllegalStateException(String.format("task id <%s> is already in RUNNING state", taskId));
         }
-        logger.info("deleting task id <{}>", taskName);
-        return (Task<V>) tasks.remove(taskName);
+        logger.info("deleting task id <{}>", taskId);
+        return (Task<V>) tasks.remove(taskId).task();
     }
 
-    public boolean stopTask(String taskId) {
-        Task<?> taskView = tasks.get(taskId);
+    public boolean stopTask(String taskId) throws UnknownTask {
+        Task<?> taskView = tasks.getTask(taskId);
         if (taskView != null) {
             switch (taskView.getState()) {
                 case CREATED:
@@ -193,6 +193,16 @@ public class TaskManagerMemory implements TaskManager, TaskSupplier {
     @Override
     public boolean getHealth() {
         return !executor.isShutdown();
+    }
+
+    @Override
+    public <V extends Serializable> void insert(Task<V> task, Group group) throws TaskAlreadyExists, IOException {
+        tasks.insert(task, group);
+    }
+
+    @Override
+    public <V extends Serializable> void update(Task<V> task) throws IOException, UnknownTask {
+        tasks.update(task);
     }
 
     @Override

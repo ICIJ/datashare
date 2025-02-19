@@ -4,9 +4,7 @@ import net.codestory.http.filters.basic.BasicAuthFilter;
 import net.codestory.http.security.Users;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Repository;
-import org.icij.datashare.asynctasks.Group;
 import org.icij.datashare.asynctasks.Task;
-import org.icij.datashare.asynctasks.TaskGroupType;
 import org.icij.datashare.asynctasks.TaskManager;
 import org.icij.datashare.cli.Mode;
 import org.icij.datashare.db.JooqRepository;
@@ -320,7 +318,7 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
     public void test_delete_all_projects() throws Exception{
         Project foo = new Project("foo");
         Project bar = new Project("bar");
-        Task<?> task = new Task<>("name", User.local(), new Group(TaskGroupType.Test), new HashMap<>());
+        Task<?> task = new Task<>("name", User.local(), new HashMap<>());
         when(repository.getProjects(any())).thenReturn(asList(foo, bar));
         when(repository.deleteAll("foo")).thenReturn(true).thenReturn(false);
         when(repository.deleteAll("bar")).thenReturn(true).thenReturn(false);

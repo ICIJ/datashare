@@ -32,11 +32,10 @@ import static org.icij.datashare.batch.WebQueryPagination.OrderDirection.ASC;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class Task<V extends Serializable> extends Event implements Entity, Comparable<Task<V>> {
     public static final String USER_KEY = "user";
-    public static final String GROUP_KEY = "group";
     @JsonIgnore private StateLatch stateLatch;
     @JsonIgnore private final Object lock = new Object();
 
-    public enum State {CREATED, QUEUED, RUNNING, CANCELLED, ERROR, DONE;}
+    public enum State {CREATED, QUEUED, RUNNING, CANCELLED, ERROR, DONE}
     @JsonTypeInfo(use = JsonTypeInfo.Id.CLASS, property = "@type")
     public final Map<String, Object> args;
     public final String id;
@@ -47,16 +46,16 @@ public class Task<V extends Serializable> extends Event implements Entity, Compa
     private volatile double progress;
     private volatile TaskResult<V> result;
 
-    public Task(String name, User user, Group group, Map<String, Object> args) {
-        this(randomUUID().toString(), name, user, group, args);
+    public Task(String name, User user, Map<String, Object> args) {
+        this(randomUUID().toString(), name, user, args);
     }
 
-    public Task(String id, String name, User user, Group group) {
-        this(id, name, user, group, new HashMap<>());
+    public Task(String id, String name, User user) {
+        this(id, name, user, addTo(new HashMap<>(), user));
     }
 
-    public Task(String id, String name, User user, Group group, Map<String, Object> args) {
-        this(id, name, State.CREATED, 0, DatashareTime.getNow(), MAX_RETRIES_LEFT, null, addTo(args, user, group),null,null);
+    public Task(String id, String name, User user, Map<String, Object> args) {
+        this(id, name, State.CREATED, 0, DatashareTime.getNow(), MAX_RETRIES_LEFT, null, addTo(args, user), null, null);
     }
 
     @JsonCreator
@@ -198,11 +197,6 @@ public class Task<V extends Serializable> extends Event implements Entity, Compa
         return (User) args.get(USER_KEY);
     }
 
-    @JsonIgnore
-    public Group getGroup() {
-        return (Group) args.get(GROUP_KEY);
-    }
-
     public static <V> String getId(Callable<V> task) {
         return task.toString();
     }
@@ -223,13 +217,12 @@ public class Task<V extends Serializable> extends Event implements Entity, Compa
 
     public record Comparator(String field, WebQueryPagination.OrderDirection order) implements java.util.Comparator<Task<?>> {
         public static Map<String, Function<Task<?>, ?>> SORT_FIELDS = Map.of(
-                "id", Task::getId,
-                "user", Task::getUser,
-                "createdAt", t -> t.createdAt,
-                "name", t -> t.name,
-                "state", Task::getState,
-                "group", Task::getGroup,
-                "finished", Task::isFinished
+            "id", Task::getId,
+            "user", Task::getUser,
+            "createdAt", t -> t.createdAt,
+            "name", t -> t.name,
+            "state", Task::getState,
+            "finished", Task::isFinished
         );
 
         public Comparator(String field) {this(field, ASC);}
@@ -263,13 +256,6 @@ public class Task<V extends Serializable> extends Event implements Entity, Compa
     private static Map<String, Object> addTo(Map<String, Object> properties, User user) {
         LinkedHashMap<String, Object> result = new LinkedHashMap<>(properties);
         result.put(USER_KEY, user);
-        return result;
-    }
-
-    private static Map<String, Object> addTo(Map<String, Object> properties, User user, Group group) {
-        LinkedHashMap<String, Object> result = new LinkedHashMap<>(properties);
-        result.put(USER_KEY, user);
-        result.put(GROUP_KEY, group);
         return result;
     }
 }

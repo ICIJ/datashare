@@ -26,9 +26,11 @@ import net.codestory.http.payload.Payload;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.asynctasks.Group;
 import org.icij.datashare.asynctasks.Task;
+import org.icij.datashare.asynctasks.TaskAlreadyExists;
 import org.icij.datashare.asynctasks.TaskGroupType;
 import org.icij.datashare.asynctasks.TaskManager;
 import org.icij.datashare.asynctasks.TaskResult;
+import org.icij.datashare.asynctasks.UnknownTask;
 import org.icij.datashare.asynctasks.bus.amqp.UriResult;
 import org.icij.datashare.batch.BatchDownload;
 import org.icij.datashare.batch.BatchSearch;
@@ -76,7 +78,6 @@ import static java.util.Optional.ofNullable;
 import static java.util.function.Predicate.not;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toMap;
-import static net.codestory.http.errors.NotFoundException.notFoundIfNull;
 import static net.codestory.http.payload.Payload.badRequest;
 import static net.codestory.http.payload.Payload.forbidden;
 import static net.codestory.http.payload.Payload.ok;
@@ -147,22 +148,30 @@ public class TaskResource {
 
     @Operation(description = "Gets one task with its id.")
     @ApiResponse(responseCode = "200", description = "returns the task from its id", useReturnTypeSchema = true)
+    @ApiResponse(responseCode = "404", description = "returns 404 if the task doesn't exist")
     @Get("/:id")
     public Task<?> getTask(@Parameter(name = "id", description = "task id", in = ParameterIn.PATH) String id) throws IOException {
-        return notFoundIfNull(taskManager.getTask(id));
+        return notFoundIfUnknown(() -> taskManager.getTask(id));
     }
 
     @Operation(description = "Create a task with JSON body",
-            requestBody = @RequestBody(description = "the task creation body", required = true,  content = @Content(schema = @Schema(implementation = Task.class))))
+            requestBody = @RequestBody(description = "the task creation body", required = true,  content = @Content(schema = @Schema(implementation = Task.class))),
+            parameters = { @Parameter(name = "group", description = "group id", in = ParameterIn.QUERY) })
     @ApiResponse(responseCode = "201", description = "the task has been created", content = @Content(schema = @Schema(implementation = TaskResponse.class)))
     @ApiResponse(responseCode = "200", description = "the task was already existing")
     @ApiResponse(responseCode = "400", description = "bad request, for example the task payload id is not the same as the url id", content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    @ApiResponse(responseCode = "404", description = "returns 404 if the task doesn't exist")
     @Put("/:id")
-    public <V extends Serializable> Payload createTask(@Parameter(name = "id", description = "task id", required = true, in = ParameterIn.PATH) String id, Task<V> taskView) throws IOException {
+    public <V extends Serializable> Payload createTask(@Parameter(name = "id", description = "task id", required = true, in = ParameterIn.PATH) String id,  Context context, Task<V> taskView) throws IOException {
+        Group taskGroup = Optional.ofNullable(context.get("group")).map(g -> new Group(TaskGroupType.valueOf(g))).orElse(null);
         if (taskView == null || id == null || !Objects.equals(taskView.id, id)) {
             return new JsonPayload(400, new ErrorResponse("body should contain a taskView, URL id should be present and equal to body id"));
         }
-        return ofNullable(taskManager.startTask(taskView)).map(sid -> new JsonPayload(201, new TaskResponse(sid))).orElse(new JsonPayload(200));
+        try {
+            return new JsonPayload(201, new TaskResponse(notFoundIfUnknown(() -> taskManager.startTask(taskView, taskGroup))));
+        } catch (TaskAlreadyExists e) {
+            return new JsonPayload(200);
+        }
     }
 
     @Operation(description = "Gets task result with its id")
@@ -172,7 +181,7 @@ public class TaskResource {
     @ApiResponse(responseCode = "404", description = "returns 404 if the task doesn't exist")
     @Get("/:id/result")
     public Payload getTaskResult(@Parameter(name = "id", description = "task id", in = ParameterIn.PATH) String id, Context context) throws IOException {
-        Task<?> task = forbiddenIfNotSameUser(context, notFoundIfNull(taskManager.getTask(id)));
+        Task<?> task = forbiddenIfNotSameUser(context, notFoundIfUnknown(() -> taskManager.getTask(id)));
         Object result = ofNullable(task.getResult()).map(TaskResult::value).orElse(null);
         if (result instanceof UriResult uriResult) {
             Path filePath = Path.of(uriResult.uri().getPath());
@@ -244,7 +253,7 @@ public class TaskResource {
     @ApiResponse(responseCode = "413", description = "if the CSV file is more than 60K lines")
     @ApiResponse(responseCode = "400", description = "if either name or CSV file is missing")
     @Post("/batchSearch/:coma_separated_projects")
-    public Payload search(String comaSeparatedProjects, Context context) throws Exception {
+    public Payload search(String comaSeparatedProjects, Context context) throws IOException {
         List<Part> parts = context.parts();
         String name = fieldValue("name", parts);
         String csv = fieldValue("csvFile", parts);
@@ -292,7 +301,7 @@ public class TaskResource {
     @ApiResponse(responseCode = "404", description = "if the source batch search is not found in database")
     @ApiResponse(responseCode = "200", description = "returns the id of the created batch search", useReturnTypeSchema = true)
     @Post("/batchSearch/copy/:sourcebatchid")
-    public String copySearch(String sourceBatchId, Context context) throws Exception {
+    public String copySearch(String sourceBatchId, Context context) throws IOException {
         BatchSearch sourceBatchSearch = batchSearchRepository.get((User) context.currentUser(), sourceBatchId);
         if (sourceBatchSearch == null) {
             throw new NotFoundException();
@@ -325,7 +334,7 @@ public class TaskResource {
             requestBody = @RequestBody(description = "the json used to wrap the query", required = true,  content = @Content(schema = @Schema(implementation = OptionsWrapper.class))))
     @ApiResponse(responseCode = "200", description = "returns 200 and the json task id", useReturnTypeSchema = true)
     @Post("/batchDownload")
-    public TaskResponse batchDownload(final OptionsWrapper<Object> optionsWrapper, Context context) throws Exception {
+    public TaskResponse batchDownload(final OptionsWrapper<Object> optionsWrapper, Context context) throws IOException {
         Map<String, Object> options = optionsWrapper.getOptions();
         Properties properties = applyProjectProperties(optionsWrapper);
         Path downloadDir = get(properties.getProperty(BATCH_DOWNLOAD_DIR_OPT));
@@ -345,7 +354,8 @@ public class TaskResource {
     @ApiResponse(responseCode = "200", description = "returns 200 and the json task id", content = @Content(schema = @Schema(implementation = TaskResponse.class)))
     @ApiResponse(responseCode = "500", description = "returns an error when stat task fails", content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
     @Post("/batchUpdate/index")
-    public Payload indexQueue(final OptionsWrapper<String> optionsWrapper, Context context) throws IOException {
+    public Payload indexQueue(final OptionsWrapper<String> optionsWrapper, Context context)
+        throws IOException {
         Properties properties = applyProjectProperties(optionsWrapper);
         return ofNullable(taskManager.startTask(IndexTask.class, (User) context.currentUser(), propertiesToMap(properties)))
                 .map(id -> new Payload("application/json", String.format("{\"taskId\":\"%s\"}", id), 200))
@@ -364,7 +374,8 @@ public class TaskResource {
             requestBody = @RequestBody(description = "wrapper for options json", required = true,  content = @Content(schema = @Schema(implementation = OptionsWrapper.class))))
     @ApiResponse(responseCode = "200", description = "returns 200 and the list of tasks created", content = @Content(schema = @Schema(implementation = TasksResponse.class)))
     @Post("/batchUpdate/index/:filePath:")
-    public Payload indexFile(@Parameter(name = "filePath", description = "path of the directory", in = ParameterIn.PATH) final String filePath, final OptionsWrapper<String> optionsWrapper, Context context) throws Exception {
+    public Payload indexFile(@Parameter(name = "filePath", description = "path of the directory", in = ParameterIn.PATH) final String filePath, final OptionsWrapper<String> optionsWrapper, Context context)
+        throws Exception {
         TaskResponse scanResponse = scanFile(filePath, optionsWrapper, context);
         List<String> taskIds = new LinkedList<>();
         taskIds.add(scanResponse.taskId);
@@ -376,7 +387,7 @@ public class TaskResource {
             // TODO remove taskFactory.createScanIndexTask would allow to get rid of taskfactory dependency in taskresource
             // problem for now is that if we call taskManager.startTask(ScanIndexTask.class.getName(), user, propertiesToMap(properties))
             // the task will be run as a background task that will have race conditions with indexTask report loading
-            scanIndex = new Task<>(ScanIndexTask.class.getName(), user, new Group(TaskGroupType.Test), propertiesToMap(properties));
+            scanIndex = new Task<>(ScanIndexTask.class.getName(), user, propertiesToMap(properties));
             taskFactory.createScanIndexTask(scanIndex, (p) -> null).call();
             taskIds.add(scanIndex.id);
         } else {
@@ -409,9 +420,11 @@ public class TaskResource {
     @Operation(description = "Cleans a specific task.")
     @ApiResponse(responseCode = "200", description = "returns 200 if the task is removed")
     @ApiResponse(responseCode = "403", description = "returns 403 if the task is still in RUNNING state")
+    @ApiResponse(responseCode = "403", description = "returns 403 if the task is still in RUNNING state")
+    @ApiResponse(responseCode = "404", description = "returns 404 if the task doesn't exist")
     @Delete("/clean/:taskName:")
-    public Payload cleanTask(@Parameter(name = "taskName", description = "name of the task to delete", in = ParameterIn.PATH) final String taskId, Context context) throws IOException {
-        Task<?> task = forbiddenIfNotSameUser(context, notFoundIfNull(taskManager.getTask(taskId)));
+    public Payload cleanTask(@Parameter(name = "taskName", description = "name of the task to delete", in = ParameterIn.PATH) final String taskId, Context context) throws Exception {
+        Task<?> task = forbiddenIfNotSameUser(context, notFoundIfUnknown(() -> taskManager.getTask(taskId)));
         if (task.getState() == Task.State.RUNNING) {
             return forbidden();
         } else {
@@ -429,9 +442,10 @@ public class TaskResource {
 
     @Operation(description = "Cancels the task with the given name.")
     @ApiResponse(responseCode = "200", description = "returns 200 with the cancellation status (true/false)", useReturnTypeSchema = true)
+    @ApiResponse(responseCode = "404", description = "returns 404 if the task doesn't exist")
     @Put("/stop/:taskId:")
     public boolean stopTask(@Parameter(name = "taskName", description = "name of the task to cancel", in = ParameterIn.PATH) final String taskId) throws IOException {
-        return taskManager.stopTask(notFoundIfNull(taskManager.getTask(taskId)).id);
+        return notFoundIfUnknown(() -> taskManager.stopTask(notFoundIfUnknown(() -> taskManager.getTask(taskId)).id));
     }
 
     @Operation(description = "Preflight request to stop tasks.")
@@ -537,5 +551,17 @@ public class TaskResource {
 
     private LinkedHashSet<String> getQueries(String csv) {
         return asSet(stream(csv.split("\r?\n")).filter(q -> q.length() >= 2).toArray(String[]::new));
+    }
+
+    private interface UnknownTaskThrowingSupplier<T>  {
+        T get() throws IOException, UnknownTask;
+    }
+
+    private static <T> T notFoundIfUnknown(UnknownTaskThrowingSupplier<T> supplier) throws IOException {
+        try {
+            return supplier.get();
+        } catch (UnknownTask ex) {
+            throw new NotFoundException();
+        }
     }
 }

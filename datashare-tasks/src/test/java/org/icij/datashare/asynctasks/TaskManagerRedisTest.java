@@ -38,13 +38,26 @@ public class TaskManagerRedisTest {
         taskSupplier = new TaskSupplierRedis(redissonClient);
 
     @Test
-    public void test_save_task() {
-        Task<String> task = new Task<>("name", User.local(), new Group(TaskGroupType.Test), new HashMap<>());
+    public void test_persist_task() throws TaskAlreadyExists, IOException, UnknownTask {
+        Task<String> task = new Task<>("name", User.local(), new HashMap<>());
 
-        taskManager.save(task);
+        taskManager.insert(task, new Group(TaskGroupType.Test));
 
         assertThat(taskManager.getTasks()).hasSize(1);
         assertThat(taskManager.getTask(task.id)).isNotNull();
+    }
+
+    @Test
+    public void test_update_task() throws TaskAlreadyExists, IOException, UnknownTask {
+        // Given
+        Task<?> task = new Task<>("HelloWorld", User.local(), Map.of("greeted", "world"));
+        Task<?> update = new Task<>(task.id, task.name, task.getState(), 0.5, null, 3, null, task.args, null, null);
+        // When
+        taskManager.insert(task, null);
+        taskManager.update(update);
+        Task<?> updated = taskManager.getTask(task.id);
+        // Then
+        assertThat(updated).isEqualTo(update);
     }
 
     @Test
@@ -63,10 +76,10 @@ public class TaskManagerRedisTest {
                 this::callback);
             TaskSupplierRedis taskSupplier = new TaskSupplierRedis(redissonClient, TaskGroupType.Test.name())) {
 
-            assertThat(groupTaskManager.startTask("HelloWorld", User.local(), new Group(TaskGroupType.Test),Map.of("greeted", "world"))).isNotNull();
+            assertThat(groupTaskManager.startTask("HelloWorld", User.local(), new Group(TaskGroupType.Test), Map.of("greeted", "world"))).isNotNull();
 
             Task<Serializable> task = taskSupplier.get(2, TimeUnit.SECONDS);
-            assertThat(task.getGroup()).isEqualTo(new Group(TaskGroupType.Test));
+            assertThat(taskManager.getTaskGroup(task.id)).isEqualTo(new Group(TaskGroupType.Test));
             assertThat(((RedissonBlockingQueue<?>) groupTaskManager.taskQueue(task)).getName()).isEqualTo("TASK.Test");
         }
     }

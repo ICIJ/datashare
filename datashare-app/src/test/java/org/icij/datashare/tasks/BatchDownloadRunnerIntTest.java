@@ -3,9 +3,7 @@ package org.icij.datashare.tasks;
 import co.elastic.clients.elasticsearch._types.Refresh;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.asynctasks.CancelException;
-import org.icij.datashare.asynctasks.Group;
 import org.icij.datashare.asynctasks.Task;
-import org.icij.datashare.asynctasks.TaskGroupType;
 import org.icij.datashare.asynctasks.TaskModifier;
 import org.icij.datashare.asynctasks.bus.amqp.UriResult;
 import org.icij.datashare.batch.BatchDownload;
@@ -251,7 +249,7 @@ public class BatchDownloadRunnerIntTest {
         return new BatchDownload(asList(project(TEST_INDEX)), local(), query, null, fs.getRoot().toPath(), false);
     }
     private Task<File> createTaskView(BatchDownload bd) {
-        return new Task<>(BatchDownloadRunner.class.getName(), bd.user, new Group(TaskGroupType.Test), new HashMap<>() {{
+        return new Task<>(BatchDownloadRunner.class.getName(), bd.user, new HashMap<>() {{
             put("batchDownload", bd);
         }});
     }

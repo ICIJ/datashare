@@ -3,8 +3,6 @@ package org.icij.datashare.tasks;
 import static java.util.Collections.singletonList;
 import static java.util.Optional.ofNullable;
 import static java.util.stream.Collectors.groupingBy;
-import static org.icij.datashare.asynctasks.Task.GROUP_KEY;
-import static org.icij.datashare.asynctasks.TaskGroupType.nlpGroup;
 import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_DEFAULT_PROJECT;
 import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_NLP_BATCH_SIZE;
 import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_NLP_MAX_TEXT_LENGTH;
@@ -190,8 +188,7 @@ public class CreateNlpBatchesFromIndex extends DefaultTask<List<String>> impleme
     private Map<String, Object> batchTaskArgs() {
         Map<String, Object> args = new HashMap<>(Map.of(
             "pipeline", this.nlpPipeline.name(),
-            "maxLength", this.maxTextLength,
-            GROUP_KEY, nlpGroup(this.nlpPipeline).name()
+            "maxLength", this.maxTextLength
         ));
         args.putAll(pipelineExtras(this.nlpPipeline));
         return args;
