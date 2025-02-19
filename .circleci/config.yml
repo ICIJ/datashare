@@ -468,7 +468,9 @@ jobs:
 
       - run:
           name: Build and deploy datashare-tasks
-          command: mvn -s .circleci/maven-release-settings.xml -pl datashare-tasks -am deploy
+          command: |
+            mvn -Dmaven.test.skip=true -pl commons-test -am install
+            mvn -s .circleci/maven-release-settings.xml -pl datashare-tasks -am deploy
 
   deploy_datashare_api:
     docker:
