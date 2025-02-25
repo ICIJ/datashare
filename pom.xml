@@ -5,7 +5,7 @@
 
     <groupId>org.icij.datashare</groupId>
     <artifactId>datashare</artifactId>
-    <version>19.4.1</version>
+    <version>19.5.0</version>
     <packaging>pom</packaging>
 
     <name>ICIJ Datashare</name>
