@@ -380,7 +380,7 @@ jobs:
             wget https://github.com/ICIJ/bomutils/archive/refs/heads/master.zip && unzip master.zip && cd bomutils-master && make && sudo make install
             wget https://github.com/mackyle/xar/archive/refs/tags/xar-1.6.1.tar.gz && tar -zxf xar-1.6.1.tar.gz && cd xar-xar-1.6.1/xar && sed -i 's/OpenSSL_add_all_ciphers/OPENSSL_init_crypto/g' configure.ac && ./autogen.sh && make && sudo make install
             wget https://nsis.sourceforge.io/mediawiki/images/9/9d/Untgz.zip  && unzip Untgz.zip && sudo cp untgz/untgz.dll /usr/share/nsis/Plugins/ && echo "cp untgz.dll done"
-            cargo install apple-codesign@0.27.0
+            cargo install --git https://github.com/indygreg/apple-platform-rs.git apple-codesign --tag apple-codesign/0.29.0 --locked
       - save_cache:
           key: cargo-cache
           paths:
