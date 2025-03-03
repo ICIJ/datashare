@@ -80,7 +80,7 @@
 
         <datashare-api.version>14.5.0</datashare-api.version>
         <datashare-cli.version>13.6.1</datashare-cli.version>
-        <datashare-tasks.version>16.0.8</datashare-tasks.version>
+        <datashare-tasks.version>16.0.9</datashare-tasks.version>
         <ftm.version>0.3.1</ftm.version>
 
         <datashare-mitie.version>${project.version}</datashare-mitie.version>
