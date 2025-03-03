@@ -64,13 +64,6 @@
         </repository>
     </distributionManagement>
 
-    <repositories>
-        <repository>
-            <id>jitpack.io</id>
-            <url>https://jitpack.io</url>
-        </repository>
-    </repositories>
-
     <properties>
         <maven.test.redirectTestOutputToFile>true</maven.test.redirectTestOutputToFile>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
@@ -127,7 +120,7 @@
         <maven-install.version>2.5.2</maven-install.version>
         <maven-release.version>2.5.3</maven-release.version>
         <maven-exec.version>1.5.0</maven-exec.version>
-        <maven-javadoc.version>2.10.4</maven-javadoc.version>
+        <maven-javadoc.version>3.1.0</maven-javadoc.version>
         <git-commit-id-maven-plugin.version>9.0.0</git-commit-id-maven-plugin.version>
     </properties>
 
