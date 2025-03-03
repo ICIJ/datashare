@@ -469,14 +469,10 @@ jobs:
       - run:
           name: Build and deploy datashare-tasks
           command: |
-            export DATASHARE_API_ARTIFACT=$(mvn dependency:tree -pl datashare-tasks -Dmaven.test.skip=true  | grep "datashare-api" | awk '{print $3}')
-            echo $DATASHARE_API_ARTIFACT
+            export DATASHARE_API_ARTIFACT=$(mvn dependency:tree -pl datashare-tasks -Dmaven.test.skip=true  | grep -vi download | grep "datashare-api" | awk '{print $3}')
             export DS_API_GROUP=$(echo "$DATASHARE_API_ARTIFACT" | awk -F ':' '{print $1}')
-            echo $DS_API_GROUP
             export DS_API_ARTIFACT=$(echo "$DATASHARE_API_ARTIFACT" | awk -F ':' '{print $2}')
-            echo $DS_API_ARTIFACT
             export DS_API_VERSION=$(echo "$DATASHARE_API_ARTIFACT" | awk -F ':' '{print $4}')
-            echo $DS_API_VERSION
             ./.circleci/check_if_artifact_is_deployed.sh "$DS_API_GROUP" "$DS_API_ARTIFACT" "$DS_API_VERSION"
             mvn -s .circleci/maven-release-settings.xml -pl commons-test -am install
             mvn -s .circleci/maven-release-settings.xml -pl datashare-tasks deploy
