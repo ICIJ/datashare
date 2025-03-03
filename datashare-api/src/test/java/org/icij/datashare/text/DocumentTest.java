@@ -16,9 +16,6 @@ import static org.icij.datashare.text.DocumentBuilder.createDoc;
 import static org.icij.datashare.text.Project.project;
 import static org.icij.datashare.text.nlp.DocumentMetadataConstants.DEFAULT_VALUE_UNKNOWN;
 import static org.icij.datashare.text.nlp.Pipeline.Type.CORENLP;
-import static org.icij.datashare.text.nlp.Pipeline.Type.GATENLP;
-import static org.icij.datashare.text.nlp.Pipeline.Type.IXAPIPE;
-import static org.icij.datashare.text.nlp.Pipeline.Type.MITIE;
 import static org.icij.datashare.text.nlp.Pipeline.Type.OPENNLP;
 import static org.icij.datashare.text.nlp.Pipeline.set;
 
@@ -67,7 +64,6 @@ public class DocumentTest {
     public void test_ner_mask() {
         assertThat(nerMask(new HashSet<>())).isEqualTo((short) 0);
         assertThat(nerMask(set(CORENLP))).isEqualTo((short) 1);
-        assertThat(nerMask(set(CORENLP, GATENLP))).isEqualTo((short) 3);
         assertThat(nerMask(set(OPENNLP, CORENLP))).isEqualTo((short) 17);
     }
 
@@ -75,8 +71,8 @@ public class DocumentTest {
     public void test_from_mask() {
         assertThat(Document.fromNerMask(0)).isEmpty();
         assertThat(Document.fromNerMask(1)).contains(CORENLP);
-        assertThat(Document.fromNerMask(5)).contains(CORENLP, IXAPIPE);
-        assertThat(Document.fromNerMask(31)).contains(CORENLP, GATENLP, IXAPIPE, MITIE, OPENNLP);
+        assertThat(Document.fromNerMask(5)).contains(CORENLP);
+        assertThat(Document.fromNerMask(31)).contains(CORENLP, OPENNLP);
     }
 
     @Test
@@ -86,19 +82,19 @@ public class DocumentTest {
 
     @Test
     public void test_creation_date_without_zone() {
-        assertThat(createDoc("name").with(new HashMap<String, Object>() {{
+        assertThat(createDoc("name").with(new HashMap<>() {{
             put("tika_metadata_dcterms_created", "2019-02-04T11:37:30.368441317");}}).build().getCreationDate()).isNotNull();
     }
 
     @Test
     public void test_creation_date_zoned() {
-        assertThat(createDoc("name").with(new HashMap<String, Object>() {{
+        assertThat(createDoc("name").with(new HashMap<>() {{
             put("tika_metadata_dcterms_created", "2019-02-04T11:37:30Z");}}).build().getCreationDate()).isNotNull();
     }
 
     @Test
     public void test_creation_date_unparseable() {
-        assertThat(createDoc("name").with(new HashMap<String, Object>() {{
+        assertThat(createDoc("name").with(new HashMap<>() {{
             put("tika_metadata_dcterms_created", "not a date");}}).build().getCreationDate()).isNull();
     }
 

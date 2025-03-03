@@ -90,23 +90,23 @@ public class JooqRepositoryTest {
                 .with(Document.Status.INDEXED)
                 .with(CORENLP, OPENNLP)
                 .withContentLength(432L).build();
-        Document ixaPipe = DocumentBuilder.createDoc("idIxa")
+        Document spacyPipe = DocumentBuilder.createDoc("idSpacy")
                 .with(project("prj"))
-                .with(Paths.get("/path/to/ixaPipe"))
-                .with("ixaPipe")
+                .with(Paths.get("/path/to/spacyPipe"))
+                .with("spacyPipe")
                 .with(FRENCH).with(Charset.defaultCharset())
                 .with("text/plain")
                 .with(new HashMap<>())
                 .with(Document.Status.INDEXED)
-                .with(IXAPIPE)
+                .with(SPACY)
                 .withContentLength(234L).build();
 
         repository.create(coreAndOpenNlp);
-        repository.create(ixaPipe);
+        repository.create(spacyPipe);
 
-        assertThat(repository.getDocumentsNotTaggedWithPipeline(project("prj"), IXAPIPE)).containsExactly(coreAndOpenNlp);
-        assertThat(repository.getDocumentsNotTaggedWithPipeline(project("prj"), CORENLP)).containsExactly(ixaPipe);
-        assertThat(repository.getDocumentsNotTaggedWithPipeline(project("prj"), MITIE)).containsExactly(coreAndOpenNlp, ixaPipe);
+        assertThat(repository.getDocumentsNotTaggedWithPipeline(project("prj"), SPACY)).containsExactly(coreAndOpenNlp);
+        assertThat(repository.getDocumentsNotTaggedWithPipeline(project("prj"), CORENLP)).containsExactly(spacyPipe);
+        assertThat(repository.getDocumentsNotTaggedWithPipeline(project("prj"), TEST)).containsExactly(coreAndOpenNlp, spacyPipe);
     }
 
     @Test
