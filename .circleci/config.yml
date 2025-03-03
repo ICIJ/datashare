@@ -528,7 +528,7 @@ workflows:
       - build_back:
           filters:
               tags:
-                  only: /.*/
+                  ignore: /.*/
       - package_back:
           requires:
             - build_back
