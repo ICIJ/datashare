@@ -92,6 +92,8 @@ public class TaskWorkerLoop implements Callable<Integer>, Closeable {
                 }
             } catch (InterruptedException e) {
                 logger.info("get from task supplier has been interrupted");
+            } catch (NackException nex) {
+                logger.error("fatal error in handle(task)", nex);
             }
         }
         logger.info("Exiting loop after {} tasks", nbTasks);
