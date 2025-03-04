@@ -6,6 +6,7 @@ import org.icij.datashare.asynctasks.CancelException;
 import org.icij.datashare.asynctasks.Group;
 import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.asynctasks.TaskGroupType;
+import org.icij.datashare.asynctasks.TaskRepositoryMemory;
 import org.icij.datashare.batch.BatchSearch;
 import org.icij.datashare.batch.BatchSearchRecord;
 import org.icij.datashare.batch.BatchSearchRepository;
@@ -139,7 +140,7 @@ public class TaskManagerMemoryForBatchSearchTest {
     @Before
     public void setUp() throws IOException {
         initMocks(this);
-        taskManager = new TaskManagerMemory(factory, new PropertiesProvider(), startLoop);
+        taskManager = new TaskManagerMemory(factory, new TaskRepositoryMemory(), new PropertiesProvider(), startLoop);
         mockSearch = new MockSearch<>(indexer, Indexer.QueryBuilderSearcher.class);
 
         Task<?> taskView = new Task<>(testBatchSearch.uuid, BatchSearchRunner.class.getName(), local());

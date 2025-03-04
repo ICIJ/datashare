@@ -30,7 +30,7 @@ public class TaskManagerMemoryTest {
 
     @Before
     public void setUp() throws Exception {
-        taskManager = new TaskManagerMemory(factory, new PropertiesProvider(), new TaskRepositoryMemory(), waitForLoop);
+        taskManager = new TaskManagerMemory(factory, new TaskRepositoryMemory(), new PropertiesProvider(), waitForLoop);
         taskInspector = new TaskInspector(taskManager);
         waitForLoop.await();
     }

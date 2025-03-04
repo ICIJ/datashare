@@ -30,10 +30,10 @@ public class TaskManagerMemory implements TaskManager, TaskSupplier {
     private final int pollingInterval;
 
     public TaskManagerMemory(TaskFactory taskFactory) {
-        this(taskFactory, new PropertiesProvider(), new TaskRepositoryMemory(), new CountDownLatch(1));
+        this(taskFactory, new TaskRepositoryMemory(), new PropertiesProvider(), new CountDownLatch(1));
     }
 
-    public TaskManagerMemory(TaskFactory taskFactory, PropertiesProvider propertiesProvider, TaskRepository tasks, CountDownLatch latch) {
+    public TaskManagerMemory(TaskFactory taskFactory, TaskRepository tasks, PropertiesProvider propertiesProvider, CountDownLatch latch) {
         this.taskQueue = new LinkedBlockingQueue<>();
         int parallelism = parseInt(propertiesProvider.get("parallelism").orElse("1"));
         pollingInterval = Integer.parseInt(propertiesProvider.get("pollingInterval").orElse("60"));
@@ -56,9 +56,13 @@ public class TaskManagerMemory implements TaskManager, TaskSupplier {
     @Override
     public Void progress(String taskId, double rate) {
         try {
-            tasks.getTask(taskId).setProgress(rate);
+            Task<Serializable> task = getTask(taskId);
+            task.setProgress(rate);
+            update(task);
         } catch (UnknownTask ex) {
             logger.warn("unknown task id <{}> for progress={} call", taskId, rate);
+        } catch (IOException e) {
+            logger.error("error while updating progress for task <{}>", taskId, e);
         }
         return null;
     }
@@ -68,9 +72,12 @@ public class TaskManagerMemory implements TaskManager, TaskSupplier {
         try {
             Task<V> task = getTask(taskId);
             task.setResult(result);
+            update(task);
             executedTasks.incrementAndGet();
         } catch (UnknownTask ex) {
             logger.warn("unknown task id <{}> for result={} call", taskId, result);
+        } catch (IOException e) {
+            logger.error("error while updating result for task <{}>", taskId, e);
         }
     }
 
@@ -78,10 +85,13 @@ public class TaskManagerMemory implements TaskManager, TaskSupplier {
     public void canceled(Task<?> task, boolean requeue) {
         Task<?> taskView;
         try {
-             taskView = tasks.getTask(task.id);
+             taskView = getTask(task.id);
              taskView.cancel();
+             update(taskView);
         } catch (UnknownTask ex) {
             logger.warn("unknown task id <{}> for cancel={} call", task.id, requeue);
+        } catch (IOException e) {
+            logger.error("error while canceling task <{}>", task.getId(), e);
         }
         if (requeue) {
             taskQueue.offer(task);
@@ -91,10 +101,14 @@ public class TaskManagerMemory implements TaskManager, TaskSupplier {
     @Override
     public void error(String taskId, TaskError reason) {
         try {
-            tasks.getTask(taskId).setError(reason);
+            Task<Serializable> task = getTask(taskId);
+            task.setError(reason);
+            update(task);
             executedTasks.incrementAndGet();
         } catch (UnknownTask ex) {
             logger.warn("unknown task id <{}> for error={} call", taskId, reason.toString());
+        } catch (IOException e) {
+            logger.error("error while updating error for task <{}>", taskId, e);
         }
     }
 

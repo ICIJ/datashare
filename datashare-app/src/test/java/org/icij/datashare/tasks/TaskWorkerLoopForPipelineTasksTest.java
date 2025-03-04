@@ -3,6 +3,7 @@ package org.icij.datashare.tasks;
 import java.util.function.Function;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.asynctasks.Task;
+import org.icij.datashare.asynctasks.TaskRepositoryMemory;
 import org.icij.datashare.extension.PipelineRegistry;
 import org.icij.datashare.extract.DocumentCollectionFactory;
 import org.icij.datashare.text.indexing.Indexer;
@@ -29,8 +30,7 @@ public class TaskWorkerLoopForPipelineTasksTest {
     DatashareTaskFactory taskFactory;
     @Mock Function<Double, Void> updateCallback;
     @Mock ElasticsearchSpewer spewer;
-    private final BlockingQueue<Task<?>> taskQueue = new LinkedBlockingQueue<>();
-    private final TaskManagerMemory taskSupplier = new TaskManagerMemory(taskFactory, new PropertiesProvider());
+    private final TaskManagerMemory taskSupplier = new TaskManagerMemory(taskFactory, new TaskRepositoryMemory(), new PropertiesProvider());
 
     @Test
     public void test_scan_task() throws Exception {

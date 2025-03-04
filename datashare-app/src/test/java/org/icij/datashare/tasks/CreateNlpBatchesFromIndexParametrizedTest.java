@@ -18,6 +18,7 @@ import java.util.function.Function;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.asynctasks.TaskManager;
+import org.icij.datashare.asynctasks.TaskRepositoryMemory;
 import org.icij.datashare.test.DatashareTimeRule;
 import org.icij.datashare.test.ElasticsearchRule;
 import org.icij.datashare.text.Document;
@@ -66,7 +67,7 @@ public class CreateNlpBatchesFromIndexParametrizedTest {
     public void setUp() {
         DatashareTaskFactory factory = mock(DatashareTaskFactory.class);
         when(factory.createBatchNlpTask(any(), any())).thenReturn(mock(BatchNlpTask.class));
-        taskManager = new TaskManagerMemory(factory, new PropertiesProvider());
+        taskManager = new TaskManagerMemory(factory, new TaskRepositoryMemory(), new PropertiesProvider());
     }
 
     @After

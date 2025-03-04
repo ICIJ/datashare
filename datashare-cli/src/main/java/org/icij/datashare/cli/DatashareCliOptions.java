@@ -860,10 +860,10 @@ public final class DatashareCliOptions {
 
     public static void taskRepositoryType(OptionParser parser) {
         parser.acceptsAll(
-                        singletonList(TASK_REPOSITORY_OPT), "type of task repository")
+                        singletonList(TASK_REPOSITORY_OPT), format("type of task repository (%s)", Arrays.toString(TaskRepositoryType.values())))
                 .withRequiredArg()
                 .ofType( TaskRepositoryType.class )
-                .defaultsTo(TaskRepositoryType.REDIS);
+                .defaultsTo(TaskRepositoryType.MEMORY);
     }
 
 

@@ -8,6 +8,7 @@ import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.asynctasks.TaskGroup;
 import org.icij.datashare.asynctasks.TaskGroupType;
+import org.icij.datashare.asynctasks.TaskRepositoryMemory;
 import org.icij.datashare.asynctasks.bus.amqp.UriResult;
 import org.icij.datashare.tasks.DatashareTaskFactory;
 import org.icij.datashare.session.DatashareUser;
@@ -184,7 +185,7 @@ public class UserTaskResourceTest extends AbstractProdWebServerTest {
     }
     private void setupAppWith(DatashareTaskFactory taskFactory, String... userLogins) {
         final PropertiesProvider propertiesProvider = new PropertiesProvider(Map.of("mode", "LOCAL"));
-        taskManager = new TaskManagerMemory(taskFactory, new PropertiesProvider());
+        taskManager = new TaskManagerMemory(taskFactory, new TaskRepositoryMemory(), new PropertiesProvider());
         configure(routes -> routes.add(new TaskResource(taskFactory, taskManager, propertiesProvider, null))
                 .filter(new BasicAuthFilter("/", "ds", DatashareUser.users(userLogins))));
     }

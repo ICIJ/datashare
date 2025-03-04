@@ -46,14 +46,14 @@ public class TaskManagerRedis implements TaskManager {
     private final RedissonClient redissonClient;
     private final RoutingStrategy routingStrategy;
 
-    public TaskManagerRedis(RedissonClient redissonClient, String taskMapName) {
-        this(redissonClient, taskMapName, RoutingStrategy.UNIQUE, null);
+    public TaskManagerRedis(RedissonClient redissonClient, TaskRepository tasks) {
+        this(redissonClient, tasks, RoutingStrategy.UNIQUE, null);
     }
 
-    public TaskManagerRedis(RedissonClient redissonClient, String taskMapName, RoutingStrategy routingStrategy, Runnable eventCallback) {
+    public TaskManagerRedis(RedissonClient redissonClient, TaskRepository tasks, RoutingStrategy routingStrategy, Runnable eventCallback) {
         this.redissonClient = redissonClient;
         this.routingStrategy = routingStrategy;
-        this.tasks = new TaskRepositoryRedis(redissonClient, taskMapName);
+        this.tasks = tasks;
         this.eventTopic = redissonClient.getTopic(EVENT_CHANNEL_NAME);
         this.eventCallback = eventCallback;
         eventTopic.addListener(TaskEvent.class, (channelString, message) -> handleEvent(message));
