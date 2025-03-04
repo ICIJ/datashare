@@ -29,7 +29,7 @@ public class TaskManagerRedisTest {
         Options.from(propertiesProvider.getProperties())).create();
     private final TaskManagerRedis taskManager = new TaskManagerRedis(
         redissonClient,
-            "test:task:manager", RoutingStrategy.UNIQUE ,
+            new TaskRepositoryRedis(redissonClient, "test:task:manager"), RoutingStrategy.UNIQUE ,
             this::callback);
 
     private final CountDownLatch waitForEvent = new CountDownLatch(1); // result event
@@ -72,7 +72,7 @@ public class TaskManagerRedisTest {
     public void test_start_task_with_group_routing() throws Exception {
         try (TaskManagerRedis groupTaskManager = new TaskManagerRedis(
                 redissonClient,
-                "test:task:manager", RoutingStrategy.GROUP,
+                new TaskRepositoryRedis(redissonClient, "test:task:manager"), RoutingStrategy.GROUP,
                 this::callback);
             TaskSupplierRedis taskSupplier = new TaskSupplierRedis(redissonClient, TaskGroupType.Test.name())) {
 
@@ -88,7 +88,7 @@ public class TaskManagerRedisTest {
     public void test_start_task_with_name_routing() throws Exception {
         try (TaskManagerRedis nameTaskManager = new TaskManagerRedis(
                 redissonClient,
-                "test:task:manager", RoutingStrategy.NAME,
+                new TaskRepositoryRedis(redissonClient, "test:task:manager"), RoutingStrategy.NAME,
                 this::callback);
              TaskSupplierRedis taskSupplier = new TaskSupplierRedis(redissonClient, "HelloWorld")) {
             assertThat(nameTaskManager.startTask("HelloWorld", User.local(), Map.of("greeted", "world"))).isNotNull();
@@ -164,7 +164,7 @@ public class TaskManagerRedisTest {
         RedissonClient redissonClientKO = new RedissonClientFactory().withOptions(
                 Options.from(propertiesProvider.getProperties())).create();
         TaskManagerRedis taskManager = new TaskManagerRedis(
-                redissonClientKO, "test:task:manager", RoutingStrategy.UNIQUE, this::callback);
+                redissonClientKO, new TaskRepositoryRedis(redissonClientKO, "test:task:manager"), RoutingStrategy.UNIQUE, this::callback);
         redissonClientKO.shutdown();
 
         assertThat(taskManager.getHealth()).isFalse();

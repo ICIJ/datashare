@@ -69,7 +69,7 @@ public class TaskManagersIntTest {
             },
             {
                 (Creator<TaskManager>) () -> new TaskManagerRedis(redissonClient,
-                        "tasks:map:test", RoutingStrategy.UNIQUE, redisWaiter::countDown),
+                        new TaskRepositoryRedis(redissonClient, "tasks:map:test"), RoutingStrategy.UNIQUE, redisWaiter::countDown),
                 (Creator<TaskSupplier>) () -> new TaskSupplierRedis(redissonClient),
                 redisWaiter
             }

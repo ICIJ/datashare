@@ -3,7 +3,7 @@ package org.icij.datashare.tasks;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import org.icij.datashare.PropertiesProvider;
-import org.icij.datashare.asynctasks.TaskRepositoryMemory;
+import org.icij.datashare.asynctasks.TaskRepository;
 
 import java.util.concurrent.CountDownLatch;
 
@@ -12,11 +12,11 @@ import java.util.concurrent.CountDownLatch;
 public class TaskManagerMemory extends org.icij.datashare.asynctasks.TaskManagerMemory {
 
     @Inject
-    public TaskManagerMemory(DatashareTaskFactory taskFactory, PropertiesProvider propertiesProvider) {
-        this(taskFactory, propertiesProvider, new CountDownLatch(1));
+    public TaskManagerMemory(DatashareTaskFactory taskFactory, TaskRepository taskRepository, PropertiesProvider propertiesProvider) {
+        this(taskFactory, taskRepository, propertiesProvider, new CountDownLatch(1));
     }
 
-    TaskManagerMemory(DatashareTaskFactory taskFactory, PropertiesProvider propertiesProvider, CountDownLatch latch) {
-        super(taskFactory, propertiesProvider, new TaskRepositoryMemory(), latch);
+    TaskManagerMemory(DatashareTaskFactory taskFactory, TaskRepository taskRepository, PropertiesProvider propertiesProvider, CountDownLatch latch) {
+        super(taskFactory, taskRepository, propertiesProvider, latch);
     }
 }

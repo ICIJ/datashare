@@ -22,6 +22,7 @@ import org.icij.datashare.Repository;
 import org.icij.datashare.asynctasks.TaskManager;
 import org.icij.datashare.asynctasks.TaskModifier;
 import org.icij.datashare.asynctasks.TaskRepository;
+import org.icij.datashare.asynctasks.TaskRepositoryMemory;
 import org.icij.datashare.asynctasks.TaskSupplier;
 import org.icij.datashare.batch.BatchSearchRepository;
 import org.icij.datashare.cli.Mode;
@@ -268,8 +269,11 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
         bind(ApiKeyRepository.class).toInstance(repositoryFactory.createApiKeyRepository());
         bind(BatchSearchRepository.class).toInstance(repositoryFactory.createBatchSearchRepository());
 
-        TaskRepositoryType taskRepositoryType = TaskRepositoryType.valueOf(propertiesProvider.get(TASK_REPOSITORY_OPT).orElse("REDIS"));
+        TaskRepositoryType taskRepositoryType = TaskRepositoryType.valueOf(propertiesProvider.get(TASK_REPOSITORY_OPT).orElse("MEMORY"));
         switch ( taskRepositoryType ) {
+            case MEMORY -> {
+                bind(TaskRepository.class).to(TaskRepositoryMemory.class);
+            }
             case REDIS -> {
                 bind(TaskRepository.class).to(TaskRepositoryRedis.class);
             }

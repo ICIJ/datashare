@@ -2,6 +2,7 @@ package org.icij.datashare.web;
 
 import net.codestory.rest.Response;
 import org.icij.datashare.PropertiesProvider;
+import org.icij.datashare.asynctasks.TaskRepositoryMemory;
 import org.icij.datashare.batch.BatchSearch;
 import org.icij.datashare.batch.BatchSearchRecord;
 import org.icij.datashare.batch.BatchSearchRepository;
@@ -41,7 +42,7 @@ import static org.mockito.MockitoAnnotations.initMocks;
 public class TaskResourceBatchSearchTest extends AbstractProdWebServerTest {
     @Mock BatchSearchRepository batchSearchRepository;
     private static final TestTaskUtils.DatashareTaskFactoryForTest taskFactory = mock(TestTaskUtils.DatashareTaskFactoryForTest.class);
-    private static final TaskManagerMemory taskManager = new TaskManagerMemory(taskFactory, new PropertiesProvider());
+    private static final TaskManagerMemory taskManager = new TaskManagerMemory(taskFactory, new TaskRepositoryMemory(), new PropertiesProvider());
 
     @Before
     public void setUp() throws Exception {
