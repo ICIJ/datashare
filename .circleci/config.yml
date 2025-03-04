@@ -528,7 +528,7 @@ workflows:
       - build_back:
           filters:
               tags:
-                  ignore: /.*/
+                  only: /[0-9.]*/
       - package_back:
           requires:
             - build_back
