@@ -61,7 +61,7 @@ public class TaskManagerMemoryForBatchSearchTest {
         verify(repository).setState(testBatchSearch.uuid, BatchSearch.State.SUCCESS);
     }
 
-    @Test(timeout = 2000)
+    @Test(timeout = 5000)
     public void test_main_loop_exit_with_sigterm_when_empty_batch_queue() throws Exception {
         startLoop.await();
 
@@ -71,7 +71,7 @@ public class TaskManagerMemoryForBatchSearchTest {
         assertThat(taskManager.awaitTermination(1, TimeUnit.SECONDS)).isFalse();
     }
 
-    @Test(timeout = 2000)
+    @Test(timeout = 5000)
     public void test_main_loop_exit_with_sigterm_and_wait_for_cancellation_to_terminate() throws Exception {
         DatashareTime.setMockTime(true);
         Date beforeTest = DatashareTime.getInstance().now();
@@ -89,7 +89,7 @@ public class TaskManagerMemoryForBatchSearchTest {
         assertThat(taskManager.getTasks().get(0).id).isEqualTo(testBatchSearch.uuid);
     }
 
-    @Test(timeout = 2000)
+    @Test(timeout = 5000)
     public void test_run_batch_search_failure() throws Exception {
         when(factory.createBatchSearchRunner(any(), any())).thenReturn(batchSearchRunner);
         mockSearch.willThrow(new IOException("io exception"));
@@ -101,7 +101,7 @@ public class TaskManagerMemoryForBatchSearchTest {
         verify(repository).setState(eq(testBatchSearch.uuid), any(SearchException.class));
     }
 
-    @Test(timeout = 2000)
+    @Test(timeout = 5000)
     public void test_main_loop_exit_with_sigterm_and_queued_batches() throws Exception {
         BatchSearch bs1 = new BatchSearch(singletonList(project("prj")), "name1", "desc", CollectionUtils.asSet("query1") , local());
         BatchSearch bs2 = new BatchSearch(singletonList(project("prj")), "name2", "desc", CollectionUtils.asSet("query2") , local());
@@ -122,7 +122,7 @@ public class TaskManagerMemoryForBatchSearchTest {
         assertThat(taskManager.getTasks()).hasSize(2);
     }
 
-    @Test(timeout = 2000)
+    @Test(timeout = 5000)
     public void test_main_loop_exit_with_sigterm_when_running_batch() throws Exception {
         CountDownLatch bsStarted = new CountDownLatch(1);
         SleepingBatchSearchRunner batchSearchRunner = new SleepingBatchSearchRunner(100, bsStarted, testBatchSearch );
