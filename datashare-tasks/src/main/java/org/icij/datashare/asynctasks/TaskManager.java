@@ -129,9 +129,12 @@ public interface TaskManager extends Closeable {
      * @throws TaskAlreadyExists when the task has already been started
      */
     default <V extends Serializable> String startTask(Task<V> taskView, Group group) throws IOException, TaskAlreadyExists {
+        logger.info("inserting");
         insert(taskView, group);
+        logger.info("queuing");
         taskView.queue();
         enqueue(taskView);
+        logger.info("queued");
         return taskView.id;
     }
 

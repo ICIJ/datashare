@@ -1,8 +1,10 @@
 package org.icij.datashare.tasks;
 
+import static java.lang.Integer.parseInt;
 import static java.util.Collections.singletonList;
 import static java.util.Optional.ofNullable;
 import static java.util.stream.Collectors.groupingBy;
+import static org.icij.datashare.asynctasks.TaskGroupType.nlpGroup;
 import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_DEFAULT_PROJECT;
 import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_NLP_BATCH_SIZE;
 import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_NLP_MAX_TEXT_LENGTH;
@@ -29,7 +31,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import org.icij.datashare.Entity;
+import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.asynctasks.CancellableTask;
+import org.icij.datashare.asynctasks.Group;
 import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.asynctasks.TaskGroup;
 import org.icij.datashare.asynctasks.TaskGroupType;
@@ -75,21 +79,27 @@ public class CreateNlpBatchesFromIndex extends DefaultTask<List<String>> impleme
         final TaskManager taskManager, final Indexer indexer, @Assisted Task<LinkedList<String>> taskView,
         @Assisted final Function<Double, Void> ignored
     ) {
+        // TODO: remove
+        logger.info("in iniit");
+        PropertiesProvider propertiesProvider = new PropertiesProvider(taskView.args);
         this.user = taskView.getUser();
         this.taskManager = taskManager;
         this.indexer = indexer;
         this.nlpPipeline = Pipeline.Type.parse((String) taskView.args.getOrDefault(NLP_PIPELINE_OPT, Pipeline.Type.CORENLP.name()));
         this.batchTaskArgs = batchTaskArgs();
-        this.batchSize = (int) taskView.args.getOrDefault(NLP_BATCH_SIZE_OPT, DEFAULT_NLP_BATCH_SIZE);
-        this.maxTextLength = (int) taskView.args.getOrDefault(NLP_MAX_TEXT_LENGTH_OPT, DEFAULT_NLP_MAX_TEXT_LENGTH);
+        this.batchSize = parseInt(propertiesProvider.get(NLP_BATCH_SIZE_OPT).orElse(String.valueOf(DEFAULT_NLP_BATCH_SIZE)));
+        this.maxTextLength = parseInt(propertiesProvider.get(NLP_MAX_TEXT_LENGTH_OPT).orElse(String.valueOf(DEFAULT_NLP_MAX_TEXT_LENGTH)));
         this.projectName = (String) taskView.args.getOrDefault(DEFAULT_PROJECT_OPT, DEFAULT_DEFAULT_PROJECT);
         this.scrollDuration = (String) taskView.args.getOrDefault(SCROLL_DURATION_OPT, DEFAULT_SCROLL_DURATION);
-        this.scrollSize = (int) taskView.args.getOrDefault(SCROLL_SIZE_OPT, DEFAULT_SCROLL_SIZE);
+        this.scrollSize = parseInt(propertiesProvider.get(SCROLL_SIZE_OPT).orElse(String.valueOf(DEFAULT_SCROLL_SIZE)));
         this.searchQuery = (String) taskView.args.get(SEARCH_QUERY_OPT);
+        // TODO: remove
+        logger.info("init done");
     }
 
     @Override
     public List<String> call() throws IOException {
+        logger.info("scanning index to create batch nlp tasks...");
         ArrayList<String> taskIds = new ArrayList<>();
         taskThread = Thread.currentThread();
         Indexer.Searcher searcher;
@@ -170,7 +180,7 @@ public class CreateNlpBatchesFromIndex extends DefaultTask<List<String>> impleme
         //  bolts to Python, it could be nice to decouple task names from class names since they can change and
         //  are bound to languages
         logger.info("{} - {}", DatashareTime.getNow().getTime(), ((List<BatchDocument>)args.get("docs")).get(0).language());
-        taskId = this.taskManager.startTask(BatchNlpTask.class, this.user, args);
+        taskId = this.taskManager.startTask(BatchNlpTask.class.getName(), this.user, new Group(nlpGroup(Pipeline.Type.SPACY)), args);
         batch.clear();
         return taskId;
     }
