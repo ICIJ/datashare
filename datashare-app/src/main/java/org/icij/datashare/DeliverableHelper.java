@@ -12,7 +12,7 @@ public class DeliverableHelper {
 
     static URL hostSpecificUrl(OsArchDetector osArchDetector, URL url, String version) {
         String fileName = url.getFile();
-        String fileNameWithOsAndArch = fileName.replace(version, String.format("%s-%s", osArchDetector.osArchSuffix(), version));
+        String fileNameWithOsAndArch = fileName.replace("-" + version, String.format("-%s-%s", osArchDetector.osArchSuffix(), version));
         try {
             return new URL(url.getProtocol(), url.getHost(), fileNameWithOsAndArch);
         } catch (MalformedURLException e) {
