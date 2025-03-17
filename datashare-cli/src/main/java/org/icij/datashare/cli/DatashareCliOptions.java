@@ -130,6 +130,7 @@ public final class DatashareCliOptions {
     public static final String OAUTH_USER_PROJECTS_KEY_OPT = "oauthUserProjectsAttribute";
     public static final String POLLING_INTERVAL_SECONDS_OPT = "pollingInterval";
     public static final String TASK_REPOSITORY_OPT = "taskRepositoryType";
+    public static final String TASK_WORKERS_OPT = "taskWorkers";
 
     private static final Path DEFAULT_DATASHARE_HOME = Paths.get(System.getProperty("user.home"), ".local/share/datashare");
     private static final Integer DEFAULT_NLP_PARALLELISM = 1;
@@ -180,6 +181,7 @@ public final class DatashareCliOptions {
     public static final String DEFAULT_MAX_CONTENT_LENGTH = "20000000";
     public static final RoutingStrategy DEFAULT_TASK_ROUTING_STRATEGY = RoutingStrategy.UNIQUE;
     public static final String DEFAULT_POLLING_INTERVAL_SEC = "60";
+    public static final String DEFAULT_TASK_WORKERS = "1";
 
     // A list of aliases for retro-compatibility when an option changed
     public static final Map<String, String> OPT_ALIASES = Map.ofEntries(
@@ -866,6 +868,14 @@ public final class DatashareCliOptions {
                 .defaultsTo(TaskRepositoryType.DATABASE);
     }
 
+    static void taskWorkers(OptionParser parser) {
+        parser.acceptsAll(
+                        singletonList(TASK_WORKERS_OPT),
+                        "Number of task workers (threads).")
+                .withRequiredArg()
+                .ofType( String.class )
+                .defaultsTo(DEFAULT_TASK_WORKERS);
+    }
 
     public static ValueConverter<String> toAbsolute() {
         return new ValueConverter<>() {

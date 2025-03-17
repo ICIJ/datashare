@@ -32,6 +32,8 @@ import java.util.concurrent.Executors;
 import java.util.stream.IntStream;
 
 import static java.util.Optional.ofNullable;
+import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_TASK_WORKERS;
+import static org.icij.datashare.cli.DatashareCliOptions.TASK_WORKERS_OPT;
 
 public class WebApp {
     private static final Logger LOGGER = LoggerFactory.getLogger(WebApp.class);
@@ -41,7 +43,7 @@ public class WebApp {
     }
 
     static void start(Properties properties) throws Exception {
-        int parallelism = parseInt((String) ofNullable(properties.get("parallelism")).orElse("0"));
+        int taskWorkersNb = parseInt((String) ofNullable(properties.get(TASK_WORKERS_OPT)).orElse(DEFAULT_TASK_WORKERS));
 
         CommonMode mode = CommonMode.create(properties);
         Runtime.getRuntime().addShutdownHook(close(mode));
@@ -53,9 +55,9 @@ public class WebApp {
                 .configure(mode.createWebConfiguration())
                 .start(parseInt(mode.properties().getProperty(PropertiesProvider.TCP_LISTEN_PORT)));
 
-        if (isEmbeddedAMQP(properties, parallelism)) {
-            ExecutorService executorService = Executors.newFixedThreadPool(parallelism);
-            List<TaskWorkerLoop> workers = IntStream.range(0, parallelism).mapToObj(i -> new TaskWorkerLoop(mode.get(DatashareTaskFactory.class), mode.get(TaskSupplier.class))).toList();
+        if (isEmbeddedAMQP(properties, taskWorkersNb)) {
+            ExecutorService executorService = Executors.newFixedThreadPool(taskWorkersNb);
+            List<TaskWorkerLoop> workers = IntStream.range(0, taskWorkersNb).mapToObj(i -> new TaskWorkerLoop(mode.get(DatashareTaskFactory.class), mode.get(TaskSupplier.class))).toList();
             workers.forEach(executorService::submit);
         }
 
@@ -67,10 +69,10 @@ public class WebApp {
         requeueDatabaseBatchSearches(mode.get(BatchSearchRepository.class), mode.get(TaskManager.class));
     }
 
-    private static boolean isEmbeddedAMQP(Properties properties, int parallelism) {
+    private static boolean isEmbeddedAMQP(Properties properties, int taskWorkersNb) {
         return (CommonMode.getMode(properties) == Mode.EMBEDDED || CommonMode.getMode(properties) == Mode.LOCAL)
                 && properties.containsValue(QueueType.AMQP.name())
-                && parallelism > 0;
+                && taskWorkersNb > 0;
     }
 
     private static void waitForServerToBeUp(int tcpListenPort) throws InterruptedException {
