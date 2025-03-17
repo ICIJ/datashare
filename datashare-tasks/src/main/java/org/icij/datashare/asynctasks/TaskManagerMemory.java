@@ -134,8 +134,10 @@ public class TaskManagerMemory implements TaskManager, TaskSupplier {
     }
 
     public List<Task<?>> clearDoneTasks() {
-        return tasks.values().stream().map(TaskMetadata::task).filter(Task::isFinished)
-            .map(t -> tasks.remove(t.id).task()).collect(toList());
+        synchronized (tasks) {
+            return tasks.values().stream().map(TaskMetadata::task).filter(Task::isFinished)
+                    .map(t -> tasks.remove(t.id).task()).collect(toList());
+        }
     }
 
     @Override
@@ -144,7 +146,9 @@ public class TaskManagerMemory implements TaskManager, TaskSupplier {
             throw new IllegalStateException(String.format("task id <%s> is already in RUNNING state", taskId));
         }
         logger.info("deleting task id <{}>", taskId);
-        return (Task<V>) tasks.remove(taskId).task();
+        synchronized (tasks) {
+            return (Task<V>) tasks.remove(taskId).task();
+        }
     }
 
     public boolean stopTask(String taskId) throws UnknownTask {
@@ -201,7 +205,9 @@ public class TaskManagerMemory implements TaskManager, TaskSupplier {
     public void clear() {
         executedTasks.set(0);
         taskQueue.clear();
-        tasks.clear();
+        synchronized (tasks) {
+            tasks.clear();
+        }
     }
 
     @Override
@@ -211,12 +217,16 @@ public class TaskManagerMemory implements TaskManager, TaskSupplier {
 
     @Override
     public <V extends Serializable> void insert(Task<V> task, Group group) throws TaskAlreadyExists, IOException {
-        tasks.insert(task, group);
+        synchronized (tasks) {
+            tasks.insert(task, group);
+        }
     }
 
     @Override
     public <V extends Serializable> void update(Task<V> task) throws IOException, UnknownTask {
-        tasks.update(task);
+        synchronized (tasks) {
+            tasks.update(task);
+        }
     }
 
     @Override
