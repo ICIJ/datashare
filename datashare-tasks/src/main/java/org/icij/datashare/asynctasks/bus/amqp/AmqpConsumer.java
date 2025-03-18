@@ -100,8 +100,10 @@ public class AmqpConsumer<Evt extends Event, EvtConsumer extends Consumer<Evt>> 
     }
 
     public void cancel() throws IOException {
-        if (consumerTag.get() != null) {
-            channel.cancel(consumerTag.getAndSet(null));
+        synchronized (channel) {
+            if (consumerTag.get() != null) {
+                channel.cancel(consumerTag.getAndSet(null));
+            }
         }
     }
 
