@@ -33,7 +33,7 @@ public class CoreNlpModels extends AbstractModels<StanfordCoreNLP> {
     private static final Object mutex = new Object();
 
     @Override
-    protected StanfordCoreNLP loadModelFile(Language language) {
+    protected StanfordCoreNLP loadModelFile(Language language) throws InterruptedException {
         LOGGER.info("loading pipeline Annotator for {}", language);
         Properties properties = new Properties();
         properties.setProperty("ner.useSUTime", "false");
@@ -43,7 +43,7 @@ public class CoreNlpModels extends AbstractModels<StanfordCoreNLP> {
         properties.setProperty("ner.applyFineGrained", "false");
 
         if (language != ENGLISH) {
-            loadModelFile(ENGLISH); // english is needed for other languages
+            get(ENGLISH);
         }
         properties.setProperty("ner.model", "edu/stanford/nlp/models/ner/english.all.3class.caseless.distsim.crf.ser.gz");
         super.addResourceToContextClassLoader(getModelFilePath(language));

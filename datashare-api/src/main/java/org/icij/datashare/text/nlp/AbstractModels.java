@@ -36,7 +36,14 @@ public abstract class AbstractModels<T> {
         this.models = new HashMap<>();
     }
 
-    protected abstract T loadModelFile(Language language) throws IOException;
+    /**
+     * generic model file loading
+     * @param language input language
+     * @return the model Object
+     * @throws IOException when we cannot access to model files
+     * @throws InterruptedException because loadModelFile could need to load dependent models of another language (cf CoreNlp) see get-
+     */
+    protected abstract T loadModelFile(Language language) throws IOException, InterruptedException;
     protected abstract String getVersion();
 
     public T get(Language language) throws InterruptedException {
@@ -96,7 +103,7 @@ public abstract class AbstractModels<T> {
             remoteFiles.download(remoteKey, BASE_DIR.toFile());
             LOGGER.info("models successfully downloaded for language {}", language);
         } catch (InterruptedException | IOException e) {
-            LOGGER.error("failed downloading models for " + language, e);
+            LOGGER.error("failed downloading models for {}", language, e);
         } finally {
             remoteFiles.shutdown();
         }
