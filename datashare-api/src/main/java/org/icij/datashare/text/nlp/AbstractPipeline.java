@@ -58,10 +58,10 @@ public abstract class AbstractPipeline implements Pipeline {
 
     public boolean initialize(Language language) throws InterruptedException {
         if (!supports(language)) {
-            LOGGER.info("initializing " + getType() + ", skipping as " + language + " is not supported");
+            LOGGER.info("initializing {}, skipping as {} is not supported", getType(), language);
             return false;
         }
-        LOGGER.info("initializing " + getType());
+        LOGGER.info("initializing {}", getType());
         return true;
     }
 
@@ -74,7 +74,7 @@ public abstract class AbstractPipeline implements Pipeline {
      * Post-processing operations
      */
     public void terminate(Language language) throws InterruptedException {
-        LOGGER.info("ending " + getType() + " " + language);
+        LOGGER.info("ending {} {}", getType(), language);
     }
 
     /**

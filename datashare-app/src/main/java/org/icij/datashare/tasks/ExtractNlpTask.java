@@ -3,6 +3,8 @@ package org.icij.datashare.tasks;
 import com.google.inject.Inject;
 import com.google.inject.assistedinject.Assisted;
 import java.util.function.Function;
+
+import org.checkerframework.checker.units.qual.N;
 import org.icij.datashare.HumanReadableSize;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Stage;
@@ -74,6 +76,7 @@ public class ExtractNlpTask extends PipelineTask<String> implements Monitorable 
                     findNamedEntities(project, docId);
                     nbMessages++;
                 } else {
+                    logger.info("will poll document queue again for pollingInterval={} seconds ({}/{})", pollingIntervalSeconds, nbMaxPolls, NB_MAX_POLLS);
                     nbMaxPolls--;
                 }
             } catch (Throwable e) {
@@ -112,10 +115,10 @@ public class ExtractNlpTask extends PipelineTask<String> implements Monitorable 
                     nlpPipeline.terminate(doc.getLanguage());
                 }
             } else {
-                logger.warn("no document found in index with id " + id);
+                logger.warn("no document found in index with id {}", id);
             }
         } catch (IOException e) {
-            logger.error("cannot extract entities of doc " + id, e);
+            logger.error("cannot extract entities of doc {}", id, e);
         }
     }
 
