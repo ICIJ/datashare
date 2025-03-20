@@ -237,6 +237,7 @@ public class TaskResource {
                             schemaProperties = {
                                     @SchemaProperty(name = "name", schema = @Schema(implementation = String.class)),
                                     @SchemaProperty(name = "description", schema = @Schema(implementation = String.class)),
+                                    @SchemaProperty(name = "uri", schema = @Schema(implementation = String.class)),
                                     @SchemaProperty(name = "csvFile", schema = @Schema(implementation = String.class)),
                                     @SchemaProperty(name = "published", schema = @Schema(implementation = Boolean.class)),
                                     @SchemaProperty(name = "fileTypes", schema = @Schema(implementation = List.class)),
@@ -263,6 +264,7 @@ public class TaskResource {
         }
 
         String description = fieldValue("description", parts);
+        String uri = fieldValue("uri", parts);
         boolean published = "true".equalsIgnoreCase(fieldValue("published", parts)) ? TRUE: FALSE ;
         List<String> fileTypes = fieldValues("fileTypes", parts);
         String queryTemplate = fieldValue("query_template", parts);
@@ -275,7 +277,7 @@ public class TaskResource {
                 .stream().map(query -> (phraseMatches && query.contains("\"")) ? query : sanitizeDoubleQuotesInQuery(query)).collect(Collectors.toCollection(LinkedHashSet::new));
         if(queries.size() >= MAX_BATCH_SIZE) return new Payload(413);
 
-        BatchSearch batchSearch = new BatchSearch(stream(comaSeparatedProjects.split(",")).map(Project::project).collect(Collectors.toList()), name, description, queries,
+        BatchSearch batchSearch = new BatchSearch(stream(comaSeparatedProjects.split(",")).map(Project::project).collect(Collectors.toList()), name, description, queries,uri,
                 (User) context.currentUser(), published, fileTypes, queryTemplate, paths, fuzziness,phraseMatches);
         boolean isSaved = batchSearchRepository.save(batchSearch);
         if (isSaved) {
