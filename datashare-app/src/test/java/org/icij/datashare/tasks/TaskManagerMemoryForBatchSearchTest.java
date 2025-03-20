@@ -49,7 +49,7 @@ public class TaskManagerMemoryForBatchSearchTest {
     CountDownLatch startLoop = new CountDownLatch(1);
     MockSearch<Indexer.QueryBuilderSearcher> mockSearch;
     TaskManagerMemory taskManager;
-    BatchSearch testBatchSearch = new BatchSearch(singletonList(project("test-datashare")), "name", "desc", CollectionUtils.asSet("query") , local(), true, new LinkedList<>(), "queryBody", null, 0);
+    BatchSearch testBatchSearch = new BatchSearch(singletonList(project("test-datashare")), "name", "desc", CollectionUtils.asSet("query"), null , local(), true, new LinkedList<>(), "queryBody", null, 0);
 
     @Test
     public void test_main_loop() throws Exception {
@@ -103,8 +103,8 @@ public class TaskManagerMemoryForBatchSearchTest {
 
     @Test(timeout = 5000)
     public void test_main_loop_exit_with_sigterm_and_queued_batches() throws Exception {
-        BatchSearch bs1 = new BatchSearch(singletonList(project("prj")), "name1", "desc", CollectionUtils.asSet("query1") , local());
-        BatchSearch bs2 = new BatchSearch(singletonList(project("prj")), "name2", "desc", CollectionUtils.asSet("query2") , local());
+        BatchSearch bs1 = new BatchSearch(singletonList(project("prj")), "name1", "desc", CollectionUtils.asSet("query1") , null, local());
+        BatchSearch bs2 = new BatchSearch(singletonList(project("prj")), "name2", "desc", CollectionUtils.asSet("query2") , null, local());
         CountDownLatch bs1Started = new CountDownLatch(1);
         CountDownLatch bs2Started = new CountDownLatch(1);
         SleepingBatchSearchRunner bsr1 = new SleepingBatchSearchRunner(100, bs1Started, bs1);

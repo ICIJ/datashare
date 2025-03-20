@@ -170,7 +170,8 @@ public class TaskResourceBatchSearchTest extends AbstractProdWebServerTest {
 
     @Test
     public void test_rerun_batch_search() {
-        BatchSearch sourceSearch = new BatchSearch(asList(project("prj1"), project("prj2")), "name", "description1", asSet("query 1", "query 2"), User.local());
+        String uri = "/?q=&from=0&size=25&sort=relevance&indices=test&field=all";
+        BatchSearch sourceSearch = new BatchSearch(asList(project("prj1"), project("prj2")), "name", "description1", asSet("query 1", "query 2"), uri, User.local());
         when(batchSearchRepository.get(null, sourceSearch.uuid)).thenReturn(sourceSearch);
         when(batchSearchRepository.save(any())).thenReturn(true);
 
@@ -182,6 +183,7 @@ public class TaskResourceBatchSearchTest extends AbstractProdWebServerTest {
         verify(batchSearchRepository).save(argument.capture());
         assertThat(argument.getValue().name).isEqualTo("test");
         assertThat(argument.getValue().description).isEqualTo("test description");
+        assertThat(argument.getValue().uri).isEqualTo(sourceSearch.uri);
         assertThat(argument.getValue().projects).isEqualTo(sourceSearch.projects);
         assertThat(argument.getValue().queries).isEqualTo(sourceSearch.queries);
         assertThat(argument.getValue().user).isEqualTo(sourceSearch.user);
