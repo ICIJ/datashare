@@ -113,3 +113,6 @@ databaseChangeLog:
   - include:
       file: changes/037-adds-task-result-and-error.yml
       relativeToChangelogFile: true
+  - include:
+      file: changes/038-adds-uri-column-batch-search.yml
+      relativeToChangelogFile: true
