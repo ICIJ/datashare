@@ -16,7 +16,8 @@ public class BatchSearchRecordTest {
     @Test
     public void test_serialize_deserialize() throws JsonProcessingException {
         ObjectMapper typeInclusionMapper = JsonObjectMapper.MAPPER;
-        BatchSearchRecord batchRecord = new BatchSearchRecord(asList(project("project")), "name", "description", 123, new Date());
+        String uri = "/?q=&from=0&size=25&sort=relevance&indices=test&field=all";
+        BatchSearchRecord batchRecord = new BatchSearchRecord(asList(project("project")), "name", "description", 123, new Date(), uri);
         String json = typeInclusionMapper.writeValueAsString(batchRecord);
         BatchSearchRecord actualBatchRecord = typeInclusionMapper.readValue(json, BatchSearchRecord.class);
         assertThat(batchRecord).isEqualTo(actualBatchRecord);

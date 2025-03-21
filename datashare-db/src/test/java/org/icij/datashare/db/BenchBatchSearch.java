@@ -34,7 +34,7 @@ public class BenchBatchSearch {
         long beginTime = System.currentTimeMillis();
         for (int bsIdx = 0; bsIdx < nbBatchSearches; bsIdx++) {
             String[] queries = IntStream.range(0, nbQueries).mapToObj(i -> "query " + i).toArray(String[]::new);
-            BatchSearch batch = new BatchSearch(singletonList(project("test")), "name" + bsIdx, "desc" + bsIdx, asSet(queries), User.local());
+            BatchSearch batch = new BatchSearch(singletonList(project("test")), "name" + bsIdx, "desc" + bsIdx, asSet(queries), null, User.local());
             repository.save(batch);
 
             for (String q: queries) {

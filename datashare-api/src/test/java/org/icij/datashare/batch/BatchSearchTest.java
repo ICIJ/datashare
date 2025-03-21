@@ -18,33 +18,35 @@ import static org.icij.datashare.text.Project.project;
 public class BatchSearchTest {
     @Test(expected = IllegalArgumentException.class)
     public void test_create_batch_search_with_no_queries_throws_exception() {
-        new BatchSearch(singletonList(project("prj")), "name", "desc", new LinkedHashSet<>(), User.local());
+        new BatchSearch(singletonList(project("prj")), "name", "desc", new LinkedHashSet<>(), null, User.local());
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void test_create_batch_search_with_null_queries_throws_exception() {
-        new BatchSearch(singletonList(project("prj")), "name", "desc", null, User.local());
+        new BatchSearch(singletonList(project("prj")), "name", "desc", null, null, User.local());
     }
 
     @Test
     public void test_has_query_template_true() {
         String query = "{\"query\":3}";
         assertThat(new BatchSearch(singletonList(project("prj")), "name", "desc",
-                asSet("q1", "q2"), User.local(), true, singletonList("application/json"), "{\"query\":3}",
-                asList("/path/to/docs", "/path/to/pdfs"), 3,true).hasQueryTemplate()).isTrue();
+                asSet("q1", "q2"), "/?q=&from=0&size=25&sort=relevance&indices=test&field=all", User.local(), true,
+                singletonList("application/json"), "{\"query\":3}", asList("/path/to/docs", "/path/to/pdfs"),
+                3,true).hasQueryTemplate()).isTrue();
     }
     @Test
     public void test_has_query_template_false() {
         assertThat(new BatchSearch(singletonList(project("prj")), "name", "desc",
-                asSet("q1", "q2"), User.local(), true, singletonList("application/json"), null,
+                asSet("q1", "q2"), null, User.local(), true, singletonList("application/json"), null,
                 asList("/path/to/docs", "/path/to/pdfs"), 3,true).hasQueryTemplate()).isFalse();
     }
 
     @Test
     public void test_copy_constructor() {
         DatashareTime.setMockTime(true);
+        String uri = "/?q=&from=0&size=25&sort=relevance&indices=test&field=all";
         BatchSearch batchSearch = new BatchSearch("uuid", singletonList(project("prj")), "name", "desc", new LinkedHashMap<String, Integer>() {{ put("query", 3);}},
-                new Date(), BatchSearchRecord.State.FAILURE, User.local(), 123, true,
+                new Date(), BatchSearchRecord.State.FAILURE, uri, User.local(), 123, true,
                 singletonList("application/pdf"), "{\"test\": 42}",singletonList("path"), 2, true,
                 "error message", "error query");
 
@@ -58,6 +60,7 @@ public class BatchSearchTest {
         assertThat(copy.date).isEqualTo(DatashareTime.getInstance().now());
 
         assertThat(copy.projects).isEqualTo(batchSearch.projects);
+        assertThat(copy.uri).isEqualTo(batchSearch.uri);
         assertThat(copy.user).isEqualTo(batchSearch.user);
         assertThat(copy.name).isEqualTo(batchSearch.name);
         assertThat(copy.description).isEqualTo(batchSearch.description);
@@ -73,7 +76,7 @@ public class BatchSearchTest {
     public void test_copy_constructor_with_overridden_params() {
         DatashareTime.setMockTime(true);
         BatchSearch batchSearch = new BatchSearch("uuid", asList(project("prj1"), project("prj2")), "name", "desc", new LinkedHashMap<String, Integer>() {{ put("query", 3);}},
-                new Date(), BatchSearchRecord.State.FAILURE, User.local(), 123, true,
+                new Date(), BatchSearchRecord.State.FAILURE, "/?q=&from=0&size=25&sort=relevance&indices=test&field=all", User.local(), 123, true,
                 singletonList("application/pdf"), null,singletonList("path"), 2, true,
                 "error message", "error query");
 

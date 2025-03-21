@@ -16,7 +16,7 @@ import java.util.stream.Collectors;
 import static java.util.Optional.ofNullable;
 
 public class BatchSearchRecord {
-    public enum State {QUEUED, RUNNING, SUCCESS, FAILURE;}
+    public enum State {QUEUED, RUNNING, SUCCESS, FAILURE}
     public final String uuid;
     public final boolean published;
     @JsonIgnore
@@ -26,14 +26,15 @@ public class BatchSearchRecord {
     public final User user;
     public final State state;
     public final Date date;
+    public final String uri;
     public final int nbQueries;
     public final int nbResults;
     public final String errorMessage;
     public final String errorQuery;
 
     // for tests
-    public BatchSearchRecord(final List<ProjectProxy> projects, final String name, final String description, final int nbQueries, Date date) {
-        this(UUID.randomUUID().toString(), projects.stream().map(ProjectProxy::getId).toList(), name, description, nbQueries, date, State.QUEUED, User.local(),
+    public BatchSearchRecord(final List<ProjectProxy> projects, final String name, final String description, final int nbQueries, Date date, String uri) {
+        this(UUID.randomUUID().toString(), projects.stream().map(ProjectProxy::getId).toList(), name, description, nbQueries, date, State.QUEUED, uri,User.local(),
                 0, false,null, null);
     }
     @JsonCreator
@@ -45,6 +46,7 @@ public class BatchSearchRecord {
             @JsonProperty("nbQueries") int nbQueries,
             @JsonProperty("date") Date date,
             @JsonProperty("state") State state,
+            @JsonProperty("uri") String uri,
             @JsonProperty("user") User user,
             @JsonProperty("nbResults") int nbResults,
             @JsonProperty("published") boolean published,
@@ -58,6 +60,7 @@ public class BatchSearchRecord {
         this.description = description;
         this.user = user;
         this.date = date;
+        this.uri = uri;
         this.nbResults = nbResults;
         this.nbQueries = nbQueries;
         this.state = state;
@@ -71,7 +74,7 @@ public class BatchSearchRecord {
      */
     public BatchSearchRecord(BatchSearchRecord record){
         this(record.uuid, record.getProjects(), record.name, record.description, record.nbQueries, record.date,
-                record.state, record.user, record.nbResults, record.published, record.errorMessage, record.errorQuery);
+                record.state, record.uri, record.user, record.nbResults, record.published, record.errorMessage, record.errorQuery);
     }
     @JsonProperty("projects")
     List<String> getProjects() {

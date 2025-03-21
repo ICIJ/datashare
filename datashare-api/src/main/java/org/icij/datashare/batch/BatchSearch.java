@@ -24,26 +24,26 @@ public class BatchSearch extends BatchSearchRecord {
     // batch search creation
 
     public BatchSearch(final List<ProjectProxy> projects, final String name, final String description, User user) {
-        this(UUID.randomUUID().toString(), projects, name, description, new LinkedHashMap<>(), DatashareTime.getInstance().now(), State.QUEUED, user,
+        this(UUID.randomUUID().toString(), projects, name, description, new LinkedHashMap<>(), DatashareTime.getInstance().now(), State.QUEUED, null, user,
                 0, false, null, null, null,0,false, null, null);
     }
-    public BatchSearch(final List<ProjectProxy> projects, final String name, final String description, final LinkedHashSet<String> queries, User user) {
-        this(UUID.randomUUID().toString(), projects, name, description, toLinkedHashMap(queries), DatashareTime.getInstance().now(), State.QUEUED, user,
+    public BatchSearch(final List<ProjectProxy> projects, final String name, final String description, final LinkedHashSet<String> queries, String uri, User user) {
+        this(UUID.randomUUID().toString(), projects, name, description, toLinkedHashMap(queries), DatashareTime.getInstance().now(), State.QUEUED, uri, user,
                 0, false, null, null, null, 0,false, null, null);
     }
-    public BatchSearch(final List<ProjectProxy> projects, final String name, final String description, final LinkedHashSet<String> queries, User user, boolean published) {
-        this(UUID.randomUUID().toString(), projects, name, description, toLinkedHashMap(queries), DatashareTime.getInstance().now(), State.QUEUED, user, 0, published, null, null,null, 0,false, null, null);
+    public BatchSearch(final List<ProjectProxy> projects, final String name, final String description, final LinkedHashSet<String> queries, String uri, User user, boolean published) {
+        this(UUID.randomUUID().toString(), projects, name, description, toLinkedHashMap(queries), DatashareTime.getInstance().now(), State.QUEUED, uri, user, 0, published, null, null,null, 0,false, null, null);
     }
-    public BatchSearch(final List<ProjectProxy> projects, final String name, final String description, final LinkedHashSet<String> queries, User user, boolean published, List<String> fileTypes, String queryBody, List<String> paths, int fuzziness) {
-        this(UUID.randomUUID().toString(), projects, name, description, toLinkedHashMap(queries), DatashareTime.getInstance().now(), State.QUEUED, user, 0, published, fileTypes, queryBody, paths, fuzziness,false, null, null);
-    }
-
-    public BatchSearch(final List<ProjectProxy> projects, final String name, final String description, final LinkedHashSet<String> queries, User user, boolean published, List<String> fileTypes, String queryBody,List<String> paths, int fuzziness,boolean phraseMatches) {
-        this(UUID.randomUUID().toString(), projects, name, description, toLinkedHashMap(queries), DatashareTime.getInstance().now(), State.QUEUED, user, 0, published, fileTypes, queryBody, paths, fuzziness,phraseMatches, null, null);
+    public BatchSearch(final List<ProjectProxy> projects, final String name, final String description, final LinkedHashSet<String> queries, String uri, User user, boolean published, List<String> fileTypes, String queryBody, List<String> paths, int fuzziness) {
+        this(UUID.randomUUID().toString(), projects, name, description, toLinkedHashMap(queries), DatashareTime.getInstance().now(), State.QUEUED, uri, user, 0, published, fileTypes, queryBody, paths, fuzziness,false, null, null);
     }
 
-    public BatchSearch(final List<ProjectProxy> projects, final String name, final String description, final LinkedHashSet<String> queries, User user, boolean published, List<String> fileTypes, String queryBody, List<String> paths,boolean phraseMatches) {
-        this(UUID.randomUUID().toString(), projects, name, description, toLinkedHashMap(queries), DatashareTime.getInstance().now(), State.QUEUED, user, 0, published, fileTypes, queryBody, paths, 0,phraseMatches, null, null);
+    public BatchSearch(final List<ProjectProxy> projects, final String name, final String description, final LinkedHashSet<String> queries, String uri, User user, boolean published, List<String> fileTypes, String queryBody,List<String> paths, int fuzziness,boolean phraseMatches) {
+        this(UUID.randomUUID().toString(), projects, name, description, toLinkedHashMap(queries), DatashareTime.getInstance().now(), State.QUEUED, uri, user, 0, published, fileTypes, queryBody, paths, fuzziness,phraseMatches, null, null);
+    }
+
+    public BatchSearch(final List<ProjectProxy> projects, final String name, final String description, final LinkedHashSet<String> queries, String uri, User user, boolean published, List<String> fileTypes, String queryBody, List<String> paths,boolean phraseMatches) {
+        this(UUID.randomUUID().toString(), projects, name, description, toLinkedHashMap(queries), DatashareTime.getInstance().now(), State.QUEUED, uri, user, 0, published, fileTypes, queryBody, paths, 0,phraseMatches, null, null);
     }
 
     // copy constructor
@@ -51,18 +51,18 @@ public class BatchSearch extends BatchSearchRecord {
     public BatchSearch(final BatchSearch toCopy, final Map<String, String> overriddenParameters) {
         this(UUID.randomUUID().toString(), toCopy.projects,
                 ofNullable(overriddenParameters.get("name")).orElse(toCopy.name),
-                ofNullable(overriddenParameters.get("description")).orElse(toCopy.description), toCopy.queries, DatashareTime.getNow(), State.QUEUED,
+                ofNullable(overriddenParameters.get("description")).orElse(toCopy.description), toCopy.queries, DatashareTime.getNow(), State.QUEUED, toCopy.uri,
                 toCopy.user, 0, toCopy.published, toCopy.fileTypes, toCopy.queryTemplate.toString(),toCopy.paths, toCopy.fuzziness, toCopy.phraseMatches, null, null);
     }
 
     public BatchSearch(String uuid, List<ProjectProxy> projects, String name, String description, LinkedHashSet<String> queries, Date date, State state, User user) {
-        this(uuid, projects, name, description, toLinkedHashMap(queries), date, state, user,
+        this(uuid, projects, name, description, toLinkedHashMap(queries), date, state, null, user,
                 0, false, null, null, null, 0,false, null, null);
     }
 
     // for tests
     public BatchSearch(final List<ProjectProxy> projects, final String name, final String description, final LinkedHashSet<String> queries, final Date date, final State state, final boolean published) {
-        this(UUID.randomUUID().toString(), projects, name, description, toLinkedHashMap(queries), date, state, User.local(),
+        this(UUID.randomUUID().toString(), projects, name, description, toLinkedHashMap(queries), date, state, null, User.local(),
                 0, published, null, null, null, 0,false, null, null);
     }
 
@@ -71,9 +71,9 @@ public class BatchSearch extends BatchSearchRecord {
     }
 
     // retrieved from persistence
-    public BatchSearch(String uuid, List<ProjectProxy> projects, String name, String description, LinkedHashMap<String, Integer> queries, Date date, State state, User user,
+    public BatchSearch(String uuid, List<ProjectProxy> projects, String name, String description, LinkedHashMap<String, Integer> queries, Date date, State state, String uri, User user,
                        int nbResults, boolean published, List<String> fileTypes, String queryBody, List<String> paths, int fuzziness, boolean phraseMatches, String errorMessage, String errorQuery) {
-        super(uuid,projects.stream().map(ProjectProxy::getId).toList(),name,description,queries.size(),date,state,user,nbResults,published,errorMessage, errorQuery);
+        super(uuid,projects.stream().map(ProjectProxy::getId).toList(),name,description,queries.size(),date,state,uri,user,nbResults,published,errorMessage, errorQuery);
         if (this.nbQueries == 0) throw new IllegalArgumentException("queries cannot be empty");
         this.queries = queries;
         this.fileTypes = unmodifiableList(ofNullable(fileTypes).orElse(new ArrayList<>()));
@@ -86,10 +86,10 @@ public class BatchSearch extends BatchSearchRecord {
     /**
      * Allow creation of batch search without queries
      */
-    public BatchSearch(String uuid, List<ProjectProxy> projects, String name, String description, Integer nbQueries, Date date, State state, User user,
+    public BatchSearch(String uuid, List<ProjectProxy> projects, String name, String description, Integer nbQueries, Date date, State state, String uri, User user,
                        int nbResults, boolean published, List<String> fileTypes, String queryTemplate, List<String> paths, int fuzziness, boolean phraseMatches,
                        String errorMessage, String errorQuery) {
-        super(uuid,projects.stream().map(ProjectProxy::getId).toList(),name,description,nbQueries,date,state,user,nbResults,published,errorMessage, errorQuery);
+        super(uuid,projects.stream().map(ProjectProxy::getId).toList(),name,description,nbQueries,date,state,uri,user,nbResults,published,errorMessage, errorQuery);
         this.queries = new LinkedHashMap<>();
         this.fileTypes = unmodifiableList(ofNullable(fileTypes).orElse(new ArrayList<>()));
         this.queryTemplate = new SearchQuery(queryTemplate);

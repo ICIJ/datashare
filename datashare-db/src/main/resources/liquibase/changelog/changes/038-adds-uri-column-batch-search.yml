@@ -1,0 +1,10 @@
+databaseChangeLog:
+  - changeSet:
+      id: 38
+      author: mvanza
+      changes:
+        - addColumn:
+            tableName: batch_search
+            column:
+              name: uri
+              type: text

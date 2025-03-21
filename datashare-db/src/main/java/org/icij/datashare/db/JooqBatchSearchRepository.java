@@ -52,10 +52,10 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
         DSLContext context = DSL.using(dataSource, dialect);
             return context.transactionResult(configuration -> {
                 DSLContext inner = DSL.using(configuration);
-                    inner.insertInto(BATCH_SEARCH, BATCH_SEARCH.UUID, BATCH_SEARCH.NAME, BATCH_SEARCH.DESCRIPTION, BATCH_SEARCH.USER_ID,
+                    inner.insertInto(BATCH_SEARCH, BATCH_SEARCH.UUID, BATCH_SEARCH.NAME, BATCH_SEARCH.DESCRIPTION, BATCH_SEARCH.URI, BATCH_SEARCH.USER_ID,
                                     BATCH_SEARCH.BATCH_DATE, BATCH_SEARCH.STATE, BATCH_SEARCH.PUBLISHED, BATCH_SEARCH.FILE_TYPES, BATCH_SEARCH.QUERY_TEMPLATE,
                                     BATCH_SEARCH.PATHS, BATCH_SEARCH.FUZZINESS, BATCH_SEARCH.PHRASE_MATCHES, BATCH_SEARCH.NB_QUERIES).
-                            values(batchSearch.uuid, batchSearch.name, batchSearch.description, batchSearch.user.id,
+                            values(batchSearch.uuid, batchSearch.name, batchSearch.description, batchSearch.uri, batchSearch.user.id,
                                     new Timestamp(batchSearch.date.getTime()).toLocalDateTime(), batchSearch.state.name(), batchSearch.published ? 1 : 0,
                                     join(LIST_SEPARATOR, batchSearch.fileTypes), batchSearch.queryTemplate.toString(),
                                     join(LIST_SEPARATOR, batchSearch.paths), batchSearch.fuzziness, batchSearch.phraseMatches ? 1 : 0, batchSearch.nbQueries).execute();
@@ -197,7 +197,7 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
         DSLContext context = DSL.using(dataSource, dialect);
             cacheNbQueries(webQuery, context);
 
-            SelectConditionStep<Record12<String, String, String, String, LocalDateTime, String, Integer, Integer, String, String, String, Integer>> query = createBatchSearchRecordWithQueriesSelectStatement(context)
+            SelectConditionStep<Record13<String, String, String, String,String, LocalDateTime, String, Integer, Integer, String, String, String, Integer>> query = createBatchSearchRecordWithQueriesSelectStatement(context)
                     .where(BATCH_SEARCH.USER_ID.eq(user.id).or(BATCH_SEARCH.PUBLISHED.greaterThan(0)));
             List<String> filteredProjects = webQuery.hasFilteredProjects() ? asNameList(webQuery.project) : projectsIds;
             addFilterToSelectCondition(webQuery, query);
@@ -346,8 +346,8 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
                                 toMap(Map.Entry::getKey, Map.Entry::getValue,
                                         (u,v) -> { throw new IllegalStateException(String.format("Duplicate key %s", u)); },
                                         LinkedHashMap::new)),
-                        batchSearches.get(0).date,
-                        batchSearches.get(0).state, batchSearches.get(0).user, batchSearches.get(0).nbResults, batchSearches.get(0).published,
+                        batchSearches.get(0).date, batchSearches.get(0).state,
+                        batchSearches.get(0).uri,batchSearches.get(0).user, batchSearches.get(0).nbResults, batchSearches.get(0).published,
                         batchSearches.get(0).fileTypes, batchSearches.get(0).queryTemplate.toString(), batchSearches.get(0).paths, batchSearches.get(0).fuzziness,
                         batchSearches.get(0).phraseMatches, batchSearches.get(0).errorMessage, batchSearches.get(0).errorQuery)).
                 sorted(comparing((BatchSearchRecord bs) -> bs.date).reversed()).collect(toList());
@@ -371,12 +371,13 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
         }
     }
 
-    private SelectJoinStep<Record19<String, String, String, String, LocalDateTime, String, Integer, String, String, String,Integer, Integer, Integer, String, String, String, String, Integer, Integer>>
+    private SelectJoinStep<Record20<String, String, String, String, String, LocalDateTime, String, Integer, String, String, String,Integer, Integer, Integer, String, String, String, String, Integer, Integer>>
     createBatchSearchWithQueriesSelectStatement(DSLContext create) {
         return create.select(
                 BATCH_SEARCH.UUID,
                 BATCH_SEARCH.NAME,
                 BATCH_SEARCH.DESCRIPTION,
+                BATCH_SEARCH.URI,
                 BATCH_SEARCH.USER_ID,
                 BATCH_SEARCH.BATCH_DATE,
                 BATCH_SEARCH.STATE,
@@ -397,12 +398,13 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
                         .join(BATCH_SEARCH_PROJECT).on(BATCH_SEARCH.UUID.eq(BATCH_SEARCH_PROJECT.SEARCH_UUID)));
     }
 
-    private SelectJoinStep<Record17<String, String, String, String, LocalDateTime, String, Integer, String, String, String, Integer, Integer, Integer, String, String, String, Integer>>
+    private SelectJoinStep<Record18<String, String, String, String, String, LocalDateTime, String, Integer, String, String, String, Integer, Integer, Integer, String, String, String, Integer>>
     createBatchSearchWithoutQueriesSelectStatement(DSLContext create) {
         return create.select(
                         BATCH_SEARCH.UUID,
                         BATCH_SEARCH.NAME,
                         BATCH_SEARCH.DESCRIPTION,
+                        BATCH_SEARCH.URI,
                         BATCH_SEARCH.USER_ID,
                         BATCH_SEARCH.BATCH_DATE,
                         BATCH_SEARCH.STATE,
@@ -422,12 +424,13 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
                         .on(BATCH_SEARCH.UUID.eq(BATCH_SEARCH_PROJECT.SEARCH_UUID)));
     }
 
-    private SelectOnConditionStep<Record12<String, String, String, String, LocalDateTime, String, Integer, Integer, String, String, String, Integer>>
+    private SelectOnConditionStep<Record13<String, String, String, String, String, LocalDateTime, String, Integer, Integer, String, String, String, Integer>>
     createBatchSearchRecordWithQueriesSelectStatement(DSLContext create) {
         return create.select(
                 BATCH_SEARCH.UUID,
                 BATCH_SEARCH.NAME,
                 BATCH_SEARCH.DESCRIPTION,
+                BATCH_SEARCH.URI,
                 BATCH_SEARCH.USER_ID,
                 BATCH_SEARCH.BATCH_DATE,
                 BATCH_SEARCH.STATE,
@@ -453,6 +456,7 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
                 }},
                 Date.from(record.get(BATCH_SEARCH.BATCH_DATE).toInstant(ZoneOffset.UTC)),
                 State.valueOf(record.get(BATCH_SEARCH.STATE)),
+                record.get(BATCH_SEARCH.URI),
                 new User(record.get(BATCH_SEARCH.USER_ID)),
                 record.get(BATCH_SEARCH.BATCH_RESULTS),
                 record.get(BATCH_SEARCH.PUBLISHED) > 0,
@@ -475,6 +479,7 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
                 record.get(BATCH_SEARCH.NB_QUERIES),
                 Date.from(record.get(BATCH_SEARCH.BATCH_DATE).toInstant(ZoneOffset.UTC)),
                 State.valueOf(record.get(BATCH_SEARCH.STATE)),
+                record.get(BATCH_SEARCH.URI),
                 new User(record.get(BATCH_SEARCH.USER_ID)),
                 record.get(BATCH_SEARCH.BATCH_RESULTS),
                 record.get(BATCH_SEARCH.PUBLISHED) > 0,
@@ -502,6 +507,7 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
                 nbQueries,
                 Date.from(batchSearch.getBatchDate().toInstant(ZoneOffset.UTC)),
                 State.valueOf(batchSearch.getState()),
+                batchSearch.getUri(),
                 new User(batchSearch.getUserId()),
                 batchSearch.getBatchResults(),
                 batchSearch.getPublished() > 0,
