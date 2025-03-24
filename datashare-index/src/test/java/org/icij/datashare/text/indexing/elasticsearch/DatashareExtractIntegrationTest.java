@@ -17,9 +17,11 @@ import org.junit.Test;
 
 import java.io.IOException;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.text.SimpleDateFormat;
 import java.util.HashMap;
+import java.util.Objects;
 
 import static java.nio.file.Paths.get;
 import static org.fest.assertions.Assertions.assertThat;
@@ -41,7 +43,7 @@ public class DatashareExtractIntegrationTest {
 
     @Test
     public void test_spew_and_read_index() throws Exception {
-        Path path = get(getClass().getResource("/docs/doc.txt").getPath());
+        Path path = get(Objects.requireNonNull(getClass().getResource("/docs/doc.txt")).getPath());
         TikaDocument tikaDocument = createExtractor().extract(path);
 
         spewer.write(tikaDocument);
@@ -55,7 +57,7 @@ public class DatashareExtractIntegrationTest {
         assertThat(doc.getDirname()).contains(get("docs"));
         assertThat(doc.getStatus()).isEqualTo(Document.Status.INDEXED);
         assertThat(doc.getPath()).contains(get("doc.txt"));
-        assertThat(doc.getContentEncoding()).isEqualTo(Charset.forName("iso-8859-1"));
+        assertThat(doc.getContentEncoding()).isEqualTo(StandardCharsets.ISO_8859_1);
         assertThat(doc.getContentType()).isEqualTo("text/plain");
         assertThat(doc.getExtractionLevel()).isEqualTo((short) 0);
         assertThat(doc.getMetadata()).hasSize(7);

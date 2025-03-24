@@ -30,6 +30,7 @@
         <dependency>
             <groupId>org.icij.extract</groupId>
             <artifactId>extract-lib</artifactId>
+            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.yaml</groupId>
