@@ -18,6 +18,7 @@ import static org.icij.datashare.text.ProjectProxy.fromNameStringList;
 public interface BatchSearchRepository extends Closeable {
     boolean save(BatchSearch batchSearch);
     boolean saveResults(String batchSearchId, String query, List<Document> documents);
+    boolean saveResults(String batchSearchId, String query, List<Document> documents, boolean isFirstScroll);
     boolean setState(String batchSearchId, BatchSearch.State state);
     boolean setState(String batchSearchId, SearchException error);
     boolean deleteAll(User user);
