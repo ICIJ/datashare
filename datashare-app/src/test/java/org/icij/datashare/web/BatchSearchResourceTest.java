@@ -271,13 +271,13 @@ public class BatchSearchResourceTest extends AbstractProdWebServerTest {
 
     @Test
     public void test_get_batch_search_without_queries() {
-        BatchSearch search = new BatchSearch("uuid", singletonList(project("prj")), "name", "desc", 2, new Date(), BatchSearchRecord.State.SUCCESS,
+        BatchSearch search = new BatchSearch("uuid", singletonList(project("prj")), "name", "desc", 2, 2, new Date(), BatchSearchRecord.State.SUCCESS,
                 null, User.local(), 3, true, singletonList("application/pdf"), null, List.of("/path"), 0, false, null, null);
         when(batchSearchRepository.get(User.local(), search.uuid, false)).thenReturn(search);
 
         get("/api/batch/search/uuid?withQueries=false").should().
                 respond(200).haveType("application/json").
-                contain("\"nbQueries\":2").contain("\"queries\":{}");
+                contain("\"nbQueries\":2").contain("\"nbQueriesWithoutResults\":2").contain("\"queries\":{}");
     }
 
     @Test
