@@ -45,7 +45,7 @@ public class BatchSearchTest {
     public void test_copy_constructor() {
         DatashareTime.setMockTime(true);
         String uri = "/?q=&from=0&size=25&sort=relevance&indices=test&field=all";
-        BatchSearch batchSearch = new BatchSearch("uuid", singletonList(project("prj")), "name", "desc", new LinkedHashMap<String, Integer>() {{ put("query", 3);}},
+        BatchSearch batchSearch = new BatchSearch("uuid", singletonList(project("prj")), "name", "desc", new LinkedHashMap<String, Integer>() {{ put("query", 3);}}, 0,
                 new Date(), BatchSearchRecord.State.FAILURE, uri, User.local(), 123, true,
                 singletonList("application/pdf"), "{\"test\": 42}",singletonList("path"), 2, true,
                 "error message", "error query");
@@ -70,6 +70,7 @@ public class BatchSearchTest {
         assertThat(copy.paths).isEqualTo(batchSearch.paths);
         assertThat(copy.published).isEqualTo(batchSearch.published);
         assertThat(copy.queries).isEqualTo(batchSearch.queries);
+        assertThat(copy.nbQueriesWithoutResults).isEqualTo(batchSearch.queries.size());
     }
 
     @Test
