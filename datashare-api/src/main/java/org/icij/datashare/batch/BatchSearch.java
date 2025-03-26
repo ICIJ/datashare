@@ -70,10 +70,16 @@ public class BatchSearch extends BatchSearchRecord {
         this(projects, name, description, queries, date, State.QUEUED, false);
     }
 
-    // retrieved from persistence
     public BatchSearch(String uuid, List<ProjectProxy> projects, String name, String description, LinkedHashMap<String, Integer> queries, Date date, State state, String uri, User user,
                        int nbResults, boolean published, List<String> fileTypes, String queryBody, List<String> paths, int fuzziness, boolean phraseMatches, String errorMessage, String errorQuery) {
-        super(uuid,projects.stream().map(ProjectProxy::getId).toList(),name,description,queries.size(),date,state,uri,user,nbResults,published,errorMessage, errorQuery);
+        this(uuid, projects, name, description, queries, queries.size(), date, state, uri, user, nbResults, published,
+                fileTypes, queryBody, paths, fuzziness, phraseMatches, errorMessage,errorQuery);
+    }
+
+    // retrieved from persistence
+    public BatchSearch(String uuid, List<ProjectProxy> projects, String name, String description, LinkedHashMap<String, Integer> queries, int nbQueriesWithoutResults, Date date, State state, String uri, User user,
+                       int nbResults, boolean published, List<String> fileTypes, String queryBody, List<String> paths, int fuzziness, boolean phraseMatches, String errorMessage, String errorQuery) {
+        super(uuid,projects.stream().map(ProjectProxy::getId).toList(),name,description,queries.size(),nbQueriesWithoutResults,date,state,uri,user,nbResults,published,errorMessage, errorQuery);
         if (this.nbQueries == 0) throw new IllegalArgumentException("queries cannot be empty");
         this.queries = queries;
         this.fileTypes = unmodifiableList(ofNullable(fileTypes).orElse(new ArrayList<>()));
@@ -86,10 +92,10 @@ public class BatchSearch extends BatchSearchRecord {
     /**
      * Allow creation of batch search without queries
      */
-    public BatchSearch(String uuid, List<ProjectProxy> projects, String name, String description, Integer nbQueries, Date date, State state, String uri, User user,
+    public BatchSearch(String uuid, List<ProjectProxy> projects, String name, String description, Integer nbQueries, Integer nbQueriesWithoutResults, Date date, State state, String uri, User user,
                        int nbResults, boolean published, List<String> fileTypes, String queryTemplate, List<String> paths, int fuzziness, boolean phraseMatches,
                        String errorMessage, String errorQuery) {
-        super(uuid,projects.stream().map(ProjectProxy::getId).toList(),name,description,nbQueries,date,state,uri,user,nbResults,published,errorMessage, errorQuery);
+        super(uuid,projects.stream().map(ProjectProxy::getId).toList(),name,description,nbQueries,nbQueriesWithoutResults,date,state,uri,user,nbResults,published,errorMessage, errorQuery);
         this.queries = new LinkedHashMap<>();
         this.fileTypes = unmodifiableList(ofNullable(fileTypes).orElse(new ArrayList<>()));
         this.queryTemplate = new SearchQuery(queryTemplate);

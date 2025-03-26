@@ -28,13 +28,14 @@ public class BatchSearchRecord {
     public final Date date;
     public final String uri;
     public final int nbQueries;
+    public final int nbQueriesWithoutResults;
     public final int nbResults;
     public final String errorMessage;
     public final String errorQuery;
 
     // for tests
     public BatchSearchRecord(final List<ProjectProxy> projects, final String name, final String description, final int nbQueries, Date date, String uri) {
-        this(UUID.randomUUID().toString(), projects.stream().map(ProjectProxy::getId).toList(), name, description, nbQueries, date, State.QUEUED, uri,User.local(),
+        this(UUID.randomUUID().toString(), projects.stream().map(ProjectProxy::getId).toList(), name, description, nbQueries, nbQueries, date, State.QUEUED, uri,User.local(),
                 0, false,null, null);
     }
     @JsonCreator
@@ -44,6 +45,7 @@ public class BatchSearchRecord {
             @JsonProperty("name") String name,
             @JsonProperty("description") String description,
             @JsonProperty("nbQueries") int nbQueries,
+            @JsonProperty("nbQueriesWithoutResults") int nbQueriesWithoutResults,
             @JsonProperty("date") Date date,
             @JsonProperty("state") State state,
             @JsonProperty("uri") String uri,
@@ -63,6 +65,7 @@ public class BatchSearchRecord {
         this.uri = uri;
         this.nbResults = nbResults;
         this.nbQueries = nbQueries;
+        this.nbQueriesWithoutResults = nbQueriesWithoutResults;
         this.state = state;
         this.errorMessage = errorMessage;
         this.errorQuery = errorQuery;
@@ -73,7 +76,7 @@ public class BatchSearchRecord {
      * @param record to copy
      */
     public BatchSearchRecord(BatchSearchRecord record){
-        this(record.uuid, record.getProjects(), record.name, record.description, record.nbQueries, record.date,
+        this(record.uuid, record.getProjects(), record.name, record.description, record.nbQueries, record.nbQueriesWithoutResults, record.date,
                 record.state, record.uri, record.user, record.nbResults, record.published, record.errorMessage, record.errorQuery);
     }
     @JsonProperty("projects")
