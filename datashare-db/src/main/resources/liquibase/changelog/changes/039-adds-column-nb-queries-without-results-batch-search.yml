@@ -1,0 +1,10 @@
+databaseChangeLog:
+  - changeSet:
+      id: 39
+      author: mvanza
+      changes:
+        - addColumn:
+            tableName: batch_search
+            column:
+              name: nb_queries_without_results
+              type: int
