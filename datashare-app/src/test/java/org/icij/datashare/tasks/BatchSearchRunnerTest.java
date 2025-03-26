@@ -73,7 +73,7 @@ public class BatchSearchRunnerTest {
         mockSearch.willReturn(1, documents);
         BatchSearch batchSearch = new BatchSearch("uuid1", singletonList(project("test-datashare")), "name1", "desc1", asSet("query1", "query2"), new Date(), BatchSearch.State.QUEUED, local());
         when(repository.get(local(), batchSearch.uuid)).thenReturn(batchSearch);
-        when(repository.saveResults(anyString(), any(), anyList())).thenThrow(new RuntimeException());
+        when(repository.saveResults(anyString(), any(), anyList(), anyBoolean())).thenThrow(new RuntimeException());
 
         new BatchSearchRunner(indexer, new PropertiesProvider(), repository, taskView(batchSearch), progressCb).call();
     }
