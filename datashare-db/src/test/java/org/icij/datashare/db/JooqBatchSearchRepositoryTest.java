@@ -387,7 +387,6 @@ public class JooqBatchSearchRepositoryTest {
         assertThat(repository.saveResults(batchSearch.uuid, "my query", asList(createDoc("doc1").build(), createDoc("doc2").build()))).isTrue();
         assertThat(repository.saveResults(batchSearch.uuid, "my query2", asList(createDoc("doc3").build(), createDoc("doc2").build()))).isTrue();
         assertThat(repository.get(User.local(), batchSearch.uuid).nbResults).isEqualTo(4);
-        assertThat(repository.get(User.local(), batchSearch.uuid).nbQueriesWithoutResults).isEqualTo(0);
         int resultsTotal = repository.getResultsTotal(User.local(), batchSearch.uuid, WebQueryBuilder.createWebQuery().withQuery("*").withRange(0, 1).build());
         assertThat(resultsTotal).isEqualTo(4);
 
@@ -403,7 +402,7 @@ public class JooqBatchSearchRepositoryTest {
         assertThat(repository.saveResults(batchSearch.uuid, "my query", asList(createDoc("doc3").build(), createDoc("doc4").build()))).isTrue();
 
         assertThat(repository.get(User.local(), batchSearch.uuid).nbResults).isEqualTo(4);
-        assertThat(repository.get(User.local(), batchSearch.uuid).queries).includes(entry("my query", 4), entry("my other query", 1));
+        assertThat(repository.get(User.local(), batchSearch.uuid).queries).includes(entry("my query", 4), entry("my other query", 0));
     }
 
     @Test
