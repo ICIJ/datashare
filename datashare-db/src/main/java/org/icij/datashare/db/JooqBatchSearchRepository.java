@@ -457,6 +457,7 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
         Integer query_results = record.getValue(BATCH_SEARCH_QUERY.QUERY_RESULTS);
         Integer nb_queries = query_results == null ? 0: query_results;
         boolean phraseMatches= record.get(BATCH_SEARCH.PHRASE_MATCHES) != 0;
+        int nbQueriesWithoutResults = Optional.ofNullable(record.getValue(BATCH_SEARCH.NB_QUERIES_WITHOUT_RESULTS)).orElse(-1);
         return new BatchSearch(record.get(BATCH_SEARCH.UUID).trim(),
                 singletonList(proxy(record.get(BATCH_SEARCH_PROJECT.PRJ_ID))),
                 record.getValue(BATCH_SEARCH.NAME),
@@ -464,7 +465,7 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
                 new LinkedHashMap<>() {{
                     put(record.getValue(BATCH_SEARCH_QUERY.QUERY), nb_queries);
                 }},
-                record.getValue(BATCH_SEARCH.NB_QUERIES_WITHOUT_RESULTS),
+                nbQueriesWithoutResults,
                 Date.from(record.get(BATCH_SEARCH.BATCH_DATE).toInstant(ZoneOffset.UTC)),
                 State.valueOf(record.get(BATCH_SEARCH.STATE)),
                 record.get(BATCH_SEARCH.URI),
@@ -483,12 +484,13 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
     private BatchSearch createBatchSearchWithoutQueries(final Record record) {
         String projects = (String) record.get("projects");
         boolean phraseMatches= record.get(BATCH_SEARCH.PHRASE_MATCHES) != 0;
+        int nbQueriesWithoutResults = Optional.ofNullable(record.getValue(BATCH_SEARCH.NB_QUERIES_WITHOUT_RESULTS)).orElse(-1);
         return new BatchSearch(record.get(BATCH_SEARCH.UUID).trim(),
                 getProjects(projects),
                 record.getValue(BATCH_SEARCH.NAME),
                 record.getValue(BATCH_SEARCH.DESCRIPTION),
                 record.get(BATCH_SEARCH.NB_QUERIES),
-                record.get(BATCH_SEARCH.NB_QUERIES_WITHOUT_RESULTS),
+                nbQueriesWithoutResults,
                 Date.from(record.get(BATCH_SEARCH.BATCH_DATE).toInstant(ZoneOffset.UTC)),
                 State.valueOf(record.get(BATCH_SEARCH.STATE)),
                 record.get(BATCH_SEARCH.URI),
@@ -510,7 +512,7 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
 
     private BatchSearchRecord createBatchSearchRecordFrom(final Record record) {
         int nbQueries = Optional.ofNullable(record.getValue(BATCH_SEARCH.NB_QUERIES)).orElse(0);
-        int nbQueriesWithoutResults = record.getValue(BATCH_SEARCH.NB_QUERIES_WITHOUT_RESULTS);
+        int nbQueriesWithoutResults = Optional.ofNullable(record.getValue(BATCH_SEARCH.NB_QUERIES_WITHOUT_RESULTS)).orElse(-1);
         String projects = (String) record.get("projects");
         org.icij.datashare.db.tables.records.BatchSearchRecord batchSearch = record.into(BATCH_SEARCH);
         return new BatchSearchRecord(batchSearch.getUuid(),
