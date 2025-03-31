@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.IntStream;
 
 import static java.lang.Integer.parseInt;
@@ -25,6 +26,7 @@ public class TaskWorkerApp {
             ExecutorService executorService = Executors.newFixedThreadPool(taskWorkersNb);
             List<TaskWorkerLoop> workers = IntStream.range(0, taskWorkersNb).mapToObj(i -> new TaskWorkerLoop(mode.get(DatashareTaskFactory.class), mode.get(TaskSupplier.class))).toList();
             workers.forEach(executorService::submit);
+            executorService.awaitTermination(Long.MAX_VALUE, TimeUnit.DAYS); // to wait consumers, else we are closing them all
         }
     }
 }
