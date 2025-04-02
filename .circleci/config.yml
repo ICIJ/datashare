@@ -35,7 +35,7 @@ jobs:
     working_directory: /tmp/datashare
 
     environment:
-      MAVEN_OPTS: "-Xms512m -Xmx512m -Xss10M"
+      MAVEN_OPTS: "-Xms512m -Xmx1g -Xss10M"
 
     steps:
       - checkout
