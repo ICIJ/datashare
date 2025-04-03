@@ -66,23 +66,23 @@ public class BatchSearchRunner implements CancellableTask, UserTask, Callable<In
 
     private final CountDownLatch callWaiterLatch;
     private final BatchSearchRepository repository;
-    protected final Task<String> taskView;
+    protected final DatashareTask<String> taskView;
     protected volatile boolean cancelAsked = false;
     protected volatile Thread callThread;
     protected volatile boolean requeueCancel;
 
     @Inject
     public BatchSearchRunner(Indexer indexer, PropertiesProvider propertiesProvider, BatchSearchRepository repository,
-                             @Assisted Task<?> taskView, @Assisted Function<Double, Void> updateCallback) {
+                             @Assisted DatashareTask<?> taskView, @Assisted Function<Double, Void> updateCallback) {
         this(indexer, propertiesProvider, repository, taskView, updateCallback, new CountDownLatch(1));
     }
 
     BatchSearchRunner(Indexer indexer, PropertiesProvider propertiesProvider, BatchSearchRepository repository,
-                      Task<?> taskView, Function<Double, Void> updateCallback, CountDownLatch latch) {
+                      DatashareTask<?> taskView, Function<Double, Void> updateCallback, CountDownLatch latch) {
         this.indexer = indexer;
         this.propertiesProvider = propertiesProvider;
         this.repository = repository;
-        this.taskView = (Task<String>) taskView;
+        this.taskView = (DatashareTask<String>) taskView;
         this.updateCallback = updateCallback;
         this.callWaiterLatch = latch;
     }

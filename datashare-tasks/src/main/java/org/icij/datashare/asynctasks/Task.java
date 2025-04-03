@@ -4,7 +4,6 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import org.apache.commons.lang3.builder.CompareToBuilder;
 import org.icij.datashare.Entity;
 import org.icij.datashare.asynctasks.bus.amqp.Event;
@@ -36,15 +35,14 @@ public class Task<V extends Serializable> extends Event implements Entity, Compa
     @JsonIgnore private final Object lock = new Object();
 
     public enum State {CREATED, QUEUED, RUNNING, CANCELLED, ERROR, DONE}
-    @JsonTypeInfo(use = JsonTypeInfo.Id.CLASS, property = "@type")
-    public final Map<String, Object> args;
+    protected Map<String, Object> args;
     public final String id;
     public final String name;
     volatile TaskError error;
     private volatile State state;
     private volatile Date completedAt;
     private volatile double progress;
-    private volatile TaskResult<V> result;
+    protected volatile TaskResult<V> result;
 
     public Task(String name, User user, Map<String, Object> args) {
         this(randomUUID().toString(), name, user, args);
@@ -78,7 +76,17 @@ public class Task<V extends Serializable> extends Event implements Entity, Compa
         this.result = result;
         this.error = error;
         // avoids "no default constructor found" for anonymous inline maps
-        this.args = Collections.unmodifiableMap(ofNullable(args).orElse(new HashMap<>()));
+        setArgs(Collections.unmodifiableMap(ofNullable(args).orElse(new HashMap<>())));
+    }
+
+    // We need to define a setter to let users override this method adding their own annotation for deserialization
+    // like: @JsonTypeInfo(use = JsonTypeInfo.Id.CLASS, property = "@type")
+    public void setArgs(Map<String, Object> args) {
+         this.args = args;
+    }
+
+    public Map<String, Object> getArgs() {
+         return this.args;
     }
 
     public TaskResult<V> getResult() {

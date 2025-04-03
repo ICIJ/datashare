@@ -94,7 +94,7 @@ public class TaskManagerMemoryForBatchSearchTest {
         when(factory.createBatchSearchRunner(any(), any())).thenReturn(batchSearchRunner);
         mockSearch.willThrow(new IOException("io exception"));
 
-        taskManager.startTask(new Task<>(testBatchSearch.uuid, BatchSearchRunner.class.getName(), local(), Map.of("batchRecord", new BatchSearchRecord(testBatchSearch))), new Group(TaskGroupType.Test));
+        taskManager.startTask(new DatashareTask<>(testBatchSearch.uuid, BatchSearchRunner.class.getName(), local(), Map.of("batchRecord", new BatchSearchRecord(testBatchSearch))), new Group(TaskGroupType.Test));
         taskManager.awaitTermination(1, TimeUnit.SECONDS);
 
         verify(repository).setState(testBatchSearch.uuid, BatchSearch.State.RUNNING);
@@ -143,7 +143,7 @@ public class TaskManagerMemoryForBatchSearchTest {
         taskManager = new TaskManagerMemory(factory, new TaskRepositoryMemory(), new PropertiesProvider(), startLoop);
         mockSearch = new MockSearch<>(indexer, Indexer.QueryBuilderSearcher.class);
 
-        Task<?> taskView = new Task<>(testBatchSearch.uuid, BatchSearchRunner.class.getName(), local());
+        DatashareTask<?> taskView = new DatashareTask<>(testBatchSearch.uuid, BatchSearchRunner.class.getName(), local());
         batchSearchRunner = new BatchSearchRunner(indexer, new PropertiesProvider(), repository, taskView, taskView.progress(taskManager::progress));
         when(repository.get(eq(local()), anyString())).thenReturn(testBatchSearch);
         when(factory.createBatchSearchRunner(any(), any())).thenReturn(batchSearchRunner);
@@ -160,7 +160,7 @@ public class TaskManagerMemoryForBatchSearchTest {
         private final CountDownLatch countDownLatch;
 
         public SleepingBatchSearchRunner(int sleepingMilliseconds, CountDownLatch countDownLatch, BatchSearch bs) {
-            super(mock(Indexer.class), new PropertiesProvider(), repository, new Task<>(bs.uuid, BatchSearchRunner.class.getName(), local()), (b) -> null);
+            super(mock(Indexer.class), new PropertiesProvider(), repository, new DatashareTask<>(bs.uuid, BatchSearchRunner.class.getName(), local()), (b) -> null);
             this.sleepingMilliseconds = sleepingMilliseconds;
             this.countDownLatch = countDownLatch;
         }

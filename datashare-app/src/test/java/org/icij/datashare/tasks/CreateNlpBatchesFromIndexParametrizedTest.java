@@ -47,7 +47,7 @@ public class CreateNlpBatchesFromIndexParametrizedTest {
 
     static class TestableCreateNlpBatchesFromIndex extends CreateNlpBatchesFromIndex {
         public TestableCreateNlpBatchesFromIndex(
-                TaskManager taskManager, Indexer indexer, Task<LinkedList<String>> taskView, Function<Double, Void> ignored) {
+                TaskManager taskManager, Indexer indexer, DatashareTask<LinkedList<String>> taskView, Function<Double, Void> ignored) {
             super(taskManager, indexer, taskView, ignored);
         }
 
@@ -133,12 +133,12 @@ public class CreateNlpBatchesFromIndexParametrizedTest {
             "scrollSize", this.scrollSize
         );
         TestableCreateNlpBatchesFromIndex enqueueFromIndex = new TestableCreateNlpBatchesFromIndex(taskManager, indexer,
-                new Task<>(CreateNlpBatchesFromIndex.class.getName(), new User("test"), properties), null);
+                new DatashareTask<>(CreateNlpBatchesFromIndex.class.getName(), new User("test"), properties), null);
         // When
         List<String> taskIds = enqueueFromIndex.call();
         List<List<Language>> queued = taskManager.getTasks().stream()
             .sorted(Comparator.comparing(t -> t.createdAt))
-            .map(t -> ((List<CreateNlpBatchesFromIndex.BatchDocument>) t.args.get("docs")).stream().map(
+            .map(t -> ((List<CreateNlpBatchesFromIndex.BatchDocument>) t.getArgs().get("docs")).stream().map(
                 CreateNlpBatchesFromIndex.BatchDocument::language).toList())
             .toList();
         // Then

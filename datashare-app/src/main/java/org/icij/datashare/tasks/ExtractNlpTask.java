@@ -48,17 +48,17 @@ public class ExtractNlpTask extends PipelineTask<String> implements Monitorable 
     private final float pollingIntervalSeconds;
 
     @Inject
-    public ExtractNlpTask(Indexer indexer, PipelineRegistry registry, final DocumentCollectionFactory<String> factory, @Assisted Task<Long> taskView, @Assisted final Function<Double, Void> updateCallback) {
-        this(indexer, registry.get(Pipeline.Type.parse((String)taskView.args.get(NLP_PIPELINE_OPT))), factory, taskView, updateCallback);
+    public ExtractNlpTask(Indexer indexer, PipelineRegistry registry, final DocumentCollectionFactory<String> factory, @Assisted DatashareTask<Long> taskView, @Assisted final Function<Double, Void> updateCallback) {
+        this(indexer, registry.get(Pipeline.Type.parse((String)taskView.getArgs().get(NLP_PIPELINE_OPT))), factory, taskView, updateCallback);
     }
 
 
-    ExtractNlpTask(Indexer indexer, Pipeline pipeline, final DocumentCollectionFactory<String> factory, @Assisted Task<Long> taskView, @Assisted final Function<Double, Void> updateCallback) {
-        super(Stage.NLP, taskView.getUser(), factory, new PropertiesProvider(taskView.args), String.class);
+    ExtractNlpTask(Indexer indexer, Pipeline pipeline, final DocumentCollectionFactory<String> factory, @Assisted DatashareTask<Long> taskView, @Assisted final Function<Double, Void> updateCallback) {
+        super(Stage.NLP, taskView.getUser(), factory, new PropertiesProvider(taskView.getArgs()), String.class);
         this.nlpPipeline = pipeline;
-        project = Project.project(ofNullable((String)taskView.args.get(DEFAULT_PROJECT_OPT)).orElse(DEFAULT_DEFAULT_PROJECT));
-        maxContentLengthChars = (int) HumanReadableSize.parse(ofNullable((String)taskView.args.get(MAX_CONTENT_LENGTH_OPT)).orElse(valueOf(DEFAULT_MAX_CONTENT_LENGTH)));
-        pollingIntervalSeconds = Float.parseFloat(ofNullable((String)taskView.args.get(POLLING_INTERVAL_SECONDS_OPT)).orElse(DEFAULT_POLLING_INTERVAL_SEC));
+        project = Project.project(ofNullable((String)taskView.getArgs().get(DEFAULT_PROJECT_OPT)).orElse(DEFAULT_DEFAULT_PROJECT));
+        maxContentLengthChars = (int) HumanReadableSize.parse(ofNullable((String)taskView.getArgs().get(MAX_CONTENT_LENGTH_OPT)).orElse(valueOf(DEFAULT_MAX_CONTENT_LENGTH)));
+        pollingIntervalSeconds = Float.parseFloat(ofNullable((String)taskView.getArgs().get(POLLING_INTERVAL_SECONDS_OPT)).orElse(DEFAULT_POLLING_INTERVAL_SEC));
         this.indexer = indexer;
     }
 

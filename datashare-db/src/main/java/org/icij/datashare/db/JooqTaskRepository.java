@@ -166,7 +166,7 @@ public class JooqTaskRepository implements TaskRepository {
                     new Timestamp(t.createdAt.getTime()).toLocalDateTime(),
                     ofNullable(t.getCompletedAt()).map(d -> new Timestamp(d.getTime()).toLocalDateTime()).orElse(null),
                     t.getRetriesLeft(),
-                    MAX_RETRIES_LEFT, TYPE_INCLUSION_MAPPER.writeValueAsString(t.args)); // to force writing @type fields in the hashmap
+                    MAX_RETRIES_LEFT, TYPE_INCLUSION_MAPPER.writeValueAsString(t.getArgs())); // to force writing @type fields in the hashmap
         } catch (JsonProcessingException ex) {
             throw new RuntimeException(ex);
         }

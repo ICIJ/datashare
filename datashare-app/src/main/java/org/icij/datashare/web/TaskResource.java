@@ -41,6 +41,7 @@ import org.icij.datashare.extract.OptionsWrapper;
 import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.tasks.BatchDownloadRunner;
 import org.icij.datashare.tasks.BatchSearchRunner;
+import org.icij.datashare.tasks.DatashareTask;
 import org.icij.datashare.tasks.DatashareTaskFactory;
 import org.icij.datashare.tasks.EnqueueFromIndexTask;
 import org.icij.datashare.tasks.ExtractNlpTask;
@@ -150,8 +151,8 @@ public class TaskResource {
     @ApiResponse(responseCode = "200", description = "returns the task from its id", useReturnTypeSchema = true)
     @ApiResponse(responseCode = "404", description = "returns 404 if the task doesn't exist")
     @Get("/:id")
-    public Task<?> getTask(@Parameter(name = "id", description = "task id", in = ParameterIn.PATH) String id) throws IOException {
-        return notFoundIfUnknown(() -> taskManager.getTask(id));
+    public DatashareTask<?> getTask(@Parameter(name = "id", description = "task id", in = ParameterIn.PATH) String id) throws IOException {
+        return notFoundIfUnknown(() -> (DatashareTask<?>) taskManager.getTask(id));
     }
 
     @Operation(description = "Create a task with JSON body",
@@ -162,7 +163,7 @@ public class TaskResource {
     @ApiResponse(responseCode = "400", description = "bad request, for example the task payload id is not the same as the url id", content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
     @ApiResponse(responseCode = "404", description = "returns 404 if the task doesn't exist")
     @Put("/:id")
-    public <V extends Serializable> Payload createTask(@Parameter(name = "id", description = "task id", required = true, in = ParameterIn.PATH) String id,  Context context, Task<V> taskView) throws IOException {
+    public <V extends Serializable> Payload createTask(@Parameter(name = "id", description = "task id", required = true, in = ParameterIn.PATH) String id,  Context context, DatashareTask<V> taskView) throws IOException {
         Group taskGroup = Optional.ofNullable(context.get("group")).map(g -> new Group(TaskGroupType.valueOf(g))).orElse(null);
         if (taskView == null || id == null || !Objects.equals(taskView.id, id)) {
             return new JsonPayload(400, new ErrorResponse("body should contain a taskView, URL id should be present and equal to body id"));
@@ -181,8 +182,8 @@ public class TaskResource {
     @ApiResponse(responseCode = "404", description = "returns 404 if the task doesn't exist")
     @Get("/:id/result")
     public Payload getTaskResult(@Parameter(name = "id", description = "task id", in = ParameterIn.PATH) String id, Context context) throws IOException {
-        Task<?> task = forbiddenIfNotSameUser(context, notFoundIfUnknown(() -> taskManager.getTask(id)));
-        Object result = ofNullable(task.getResult()).map(TaskResult::value).orElse(null);
+        DatashareTask<?> task = forbiddenIfNotSameUser(context, notFoundIfUnknown(() -> (DatashareTask<Serializable>) taskManager.getTask(id)));
+        Object result = ofNullable(task.getResult()).map(TaskResult::getValue).orElse(null);
         if (result instanceof UriResult uriResult) {
             Path filePath = Path.of(uriResult.uri().getPath());
             String fileName = filePath.getFileName().toString();
@@ -383,13 +384,13 @@ public class TaskResource {
         taskIds.add(scanResponse.taskId);
         Properties properties = applyProjectProperties(optionsWrapper);
         User user = (User) context.currentUser();
-        Task<Long> scanIndex;
+        DatashareTask<Long> scanIndex;
         // Use a report map only if the request's body contains a "filter" attribute
         if (properties.get("filter") != null && Boolean.parseBoolean(properties.getProperty("filter"))) {
             // TODO remove taskFactory.createScanIndexTask would allow to get rid of taskfactory dependency in taskresource
             // problem for now is that if we call taskManager.startTask(ScanIndexTask.class.getName(), user, propertiesToMap(properties))
             // the task will be run as a background task that will have race conditions with indexTask report loading
-            scanIndex = new Task<>(ScanIndexTask.class.getName(), user, propertiesToMap(properties));
+            scanIndex = new DatashareTask<>(ScanIndexTask.class.getName(), user, propertiesToMap(properties));
             taskFactory.createScanIndexTask(scanIndex, (p) -> null).call();
             taskIds.add(scanIndex.id);
         } else {
@@ -426,7 +427,7 @@ public class TaskResource {
     @ApiResponse(responseCode = "404", description = "returns 404 if the task doesn't exist")
     @Delete("/clean/:taskName:")
     public Payload cleanTask(@Parameter(name = "taskName", description = "name of the task to delete", in = ParameterIn.PATH) final String taskId, Context context) throws Exception {
-        Task<?> task = forbiddenIfNotSameUser(context, notFoundIfUnknown(() -> taskManager.getTask(taskId)));
+        DatashareTask<?> task = forbiddenIfNotSameUser(context, notFoundIfUnknown(() -> (DatashareTask<Serializable>) taskManager.getTask(taskId)));
         if (task.getState() == Task.State.RUNNING) {
             return forbidden();
         } else {
@@ -516,7 +517,7 @@ public class TaskResource {
         return "extract:report:" + projectName;
     }
 
-    private static <V extends Serializable> Task<V> forbiddenIfNotSameUser(Context context, Task<V> task) {
+    private static <V extends Serializable> DatashareTask<V> forbiddenIfNotSameUser(Context context, DatashareTask<V> task) {
         if (!task.getUser().equals(context.currentUser())) throw new ForbiddenException();
         return task;
     }

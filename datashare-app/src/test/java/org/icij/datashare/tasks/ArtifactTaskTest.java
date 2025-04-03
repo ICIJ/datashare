@@ -29,7 +29,7 @@ public class ArtifactTaskTest {
 
     @Test(expected = IllegalArgumentException.class)
     public void test_missing_artifact_dir() {
-        new ArtifactTask(factory, mockEs, new PropertiesProvider(Map.of()), new Task<>(ArtifactTask.class.getName(), User.local(), Map.of()), null);
+        new ArtifactTask(factory, mockEs, new PropertiesProvider(Map.of()), new DatashareTask<>(ArtifactTask.class.getName(), User.local(), Map.of()), null);
     }
 
     @Test(timeout = 5000)
@@ -46,7 +46,7 @@ public class ArtifactTaskTest {
                 "defaultProject", "prj",
                 "pollingInterval", "1"
                 )),
-                new Task<>(ArtifactTask.class.getName(), User.local(), new HashMap<>()), null)
+                new DatashareTask<>(ArtifactTask.class.getName(), User.local(), new HashMap<>()), null)
                 .call();
 
         assertThat(numberOfDocuments).isEqualTo(1);

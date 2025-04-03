@@ -12,6 +12,7 @@ import org.icij.datashare.session.DatashareUser;
 import org.icij.datashare.session.LocalUserFilter;
 import org.icij.datashare.session.YesBasicAuthFilter;
 import org.icij.datashare.extract.MemoryDocumentCollectionFactory;
+import org.icij.datashare.tasks.DatashareTask;
 import org.icij.datashare.text.Project;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.user.User;
@@ -318,7 +319,7 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
     public void test_delete_all_projects() throws Exception{
         Project foo = new Project("foo");
         Project bar = new Project("bar");
-        Task<?> task = new Task<>("name", User.local(), new HashMap<>());
+        DatashareTask<?> task = new DatashareTask<>("name", User.local(), new HashMap<>());
         when(repository.getProjects(any())).thenReturn(asList(foo, bar));
         when(repository.deleteAll("foo")).thenReturn(true).thenReturn(false);
         when(repository.deleteAll("bar")).thenReturn(true).thenReturn(false);
