@@ -53,12 +53,7 @@ public interface TaskManager extends Closeable {
 
     default List<Task<?>> getTasks(User user, Map<String, Pattern> filters, WebQueryPagination pagination) throws IOException {
         Stream<Task<?>> taskStream = getTasks().stream().sorted(new Task.Comparator(pagination.sort, pagination.order));
-        for (Map.Entry<String, Pattern> filter : filters.entrySet()) {
-            taskStream = taskStream.filter(task -> {
-                Map<String, Object> objectMap = JsonObjectMapper.getJson(task);
-                return filter.getValue().matcher(String.valueOf(getValue(objectMap, filter.getKey()))).matches();
-            });
-        }
+        taskStream = getFilteredTaskStream(filters, taskStream);
         return taskStream.filter(t -> user.equals(t.getUser())).skip(pagination.from).limit(pagination.size).collect(toList());
     }
 
@@ -68,7 +63,13 @@ public interface TaskManager extends Closeable {
     }
 
     default Map<String, Boolean> stopAllTasks(User user) throws IOException {
-        return getTasks().stream().
+        return stopAllTasks(user, new HashMap<>());
+    }
+
+    default Map<String, Boolean> stopAllTasks(User user, Map<String, Pattern> filters) throws IOException {
+        Stream<Task<?>> taskStream = getTasks().stream();
+        taskStream = getFilteredTaskStream(filters, taskStream);
+        return taskStream.
                 filter(t -> user.equals(t.getUser())).
                 filter(t -> t.getState() == Task.State.RUNNING || t.getState() == Task.State.QUEUED || t.getState() == Task.State.CREATED).collect(
                         toMap(t -> t.id, t -> {
@@ -79,6 +80,16 @@ public interface TaskManager extends Closeable {
                                 return false;
                             }
                         }));
+    }
+
+    private Stream<Task<?>> getFilteredTaskStream(Map<String, Pattern> filters, Stream<Task<?>> taskStream) {
+        for (Map.Entry<String, Pattern> filter : filters.entrySet()) {
+            taskStream = taskStream.filter(task -> {
+                Map<String, Object> objectMap = JsonObjectMapper.getJson(task);
+                return filter.getValue().matcher(String.valueOf(getValue(objectMap, filter.getKey()))).matches();
+            });
+        }
+        return taskStream;
     }
 
     /**

@@ -17,6 +17,10 @@ public class TestFactory implements TaskFactory {
         return new SleepForever(taskView, progress);
     }
 
+    public AnotherSleepForever createAnotherSleepForever(Task<String> taskView, Function<Double, String> progress) {
+        return new AnotherSleepForever(taskView, progress);
+    }
+
     public Sleep createSleep(Task<String> taskView, Function<Double, String> progress) {
         return new Sleep(taskView, progress);
     }
@@ -62,7 +66,7 @@ public class TestFactory implements TaskFactory {
 
     @TaskGroup(TaskGroupType.Test)
     public static class SleepForever implements Callable<String>, CancellableTask {
-        private final Function<Double, String> progress;
+        final Function<Double, String> progress;
         Boolean requeue = null;
         Thread taskThread;
 
@@ -85,6 +89,13 @@ public class TestFactory implements TaskFactory {
                 }
                 Thread.sleep(100);
             }
+        }
+    }
+
+    @TaskGroup(TaskGroupType.Test)
+    public static class AnotherSleepForever extends SleepForever {
+        AnotherSleepForever(Task<String> taskView, Function<Double, String> progress) {
+            super(taskView, progress);
         }
     }
 }

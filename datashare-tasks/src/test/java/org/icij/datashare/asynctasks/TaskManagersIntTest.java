@@ -24,6 +24,7 @@ import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.regex.Pattern;
 
 import static java.util.Arrays.asList;
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -126,6 +127,21 @@ public class TaskManagersIntTest {
         assertThat(taskManager.getTask(tv1Id).getState()).isEqualTo(Task.State.CANCELLED);
         assertThat(taskManager.getTask(tv2Id).getState()).isEqualTo(Task.State.CANCELLED);
     }
+
+    @Test(timeout = 10000)
+    public void test_stop_all_tasks_with_filter() throws Exception {
+        String tv1Id = taskManager.startTask(TestFactory.AnotherSleepForever.class, User.local(), new HashMap<>());
+        String tv2Id = taskManager.startTask(TestFactory.SleepForever.class, User.local(), new HashMap<>());
+
+        taskInspector.awaitStatus(tv1Id, Task.State.RUNNING, 1, SECONDS);
+        taskManager.stopAllTasks(User.local(), Map.of("name", Pattern.compile(".*Another.*")));
+        taskInspector.awaitStatus(tv1Id, Task.State.CANCELLED, 1, SECONDS);
+
+        assertThat(taskManager.getTasks()).hasSize(2);
+        assertThat(taskManager.getTask(tv1Id).getState()).isEqualTo(Task.State.CANCELLED);
+        assertThat(taskManager.getTask(tv2Id).getState()).isEqualTo(Task.State.RUNNING);
+    }
+
 
     @Test(timeout = 10000)
     public void test_stop_all_wait_clear_done_tasks() throws Exception {
