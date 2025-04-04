@@ -384,6 +384,17 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
+    public void test_clean_task_filter() throws IOException {
+        post("/api/task/batchUpdate/index/file/" + getClass().getResource("/docs/doc.txt").getPath().substring(1), "{}").response();
+
+        ShouldChain responseBody = post("/api/task/clean?name=Scan", "{}").should().haveType("application/json");
+
+        responseBody.should().contain("ScanTask");
+        responseBody.should().not().contain("IndexTask");
+        assertThat(taskManager.getTasks()).hasSize(1);
+    }
+
+    @Test
     public void test_clean_one_done_task() throws IOException {
         String dummyTaskId = taskManager.startTask(TestTask.class, User.local(), new HashMap<>());
         taskManager.waitTasksToBeDone(1, SECONDS);

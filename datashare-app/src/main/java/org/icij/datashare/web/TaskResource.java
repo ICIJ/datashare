@@ -412,11 +412,16 @@ public class TaskResource {
                 .map(TaskResponse::new).orElseThrow(() -> new HttpException(500));
     }
 
-    @Operation(description = "Cleans all DONE tasks.")
+    @Operation(description = "Cleans all DONE tasks.", parameters = {
+            @Parameter(name = "name", description = "as an example: pattern contained in the task name", in = ParameterIn.QUERY)})
     @ApiResponse(responseCode = "200", description = "returns 200 and the list of removed tasks", useReturnTypeSchema = true)
     @Post("/clean")
-    public List<Task<?>> cleanDoneTasks() throws IOException {
-        return taskManager.clearDoneTasks();
+    public List<Task<?>> cleanDoneTasks(final Context context) throws IOException {
+        Map<String, Pattern> filters = context.query()
+                .keys()
+                .stream()
+                .collect(toMap(s -> s, s -> Pattern.compile(String.format(".*%s.*", context.get(s)))));
+        return taskManager.clearDoneTasks(filters);
     }
 
     @Operation(description = "Cleans a specific task.")

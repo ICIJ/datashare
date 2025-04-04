@@ -9,12 +9,16 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.Serializable;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 import static java.lang.Integer.parseInt;
 import static java.util.stream.Collectors.toList;
@@ -133,9 +137,12 @@ public class TaskManagerMemory implements TaskManager, TaskSupplier {
         }
     }
 
-    public List<Task<?>> clearDoneTasks() {
+    @Override
+    public List<Task<?>> clearDoneTasks(Map<String, Pattern> filters) {
         synchronized (tasks) {
-            return tasks.values().stream().map(TaskMetadata::task).filter(Task::isFinished)
+            Stream<Task<?>> taskStream = tasks.values().stream().map(TaskMetadata::task);
+            taskStream = getFilteredTaskStream(filters, taskStream);
+            return taskStream.filter(Task::isFinished)
                     .map(t -> tasks.remove(t.id).task()).collect(toList());
         }
     }

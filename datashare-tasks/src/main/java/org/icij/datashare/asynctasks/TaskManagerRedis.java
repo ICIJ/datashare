@@ -5,6 +5,10 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.ByteBufInputStream;
 import io.netty.buffer.ByteBufOutputStream;
+
+import java.util.HashMap;
+import java.util.Map;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import org.icij.datashare.asynctasks.bus.amqp.AmqpQueue;
 import org.icij.datashare.asynctasks.bus.amqp.CancelEvent;
@@ -33,6 +37,7 @@ import java.io.Serializable;
 import java.nio.charset.Charset;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
+import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 import static java.util.Optional.ofNullable;
@@ -74,8 +79,10 @@ public class TaskManagerRedis implements TaskManager {
     }
 
     @Override
-    public List<Task<?>> clearDoneTasks() {
-        return tasks.values().stream().map(TaskMetadata::task).filter(Task::isFinished)
+    public List<Task<?>> clearDoneTasks(Map<String, Pattern> filters) {
+        Stream<Task<?>> taskStream = tasks.values().stream().map(TaskMetadata::task);
+        taskStream = getFilteredTaskStream(filters, taskStream);
+        return taskStream.filter(Task::isFinished)
             .map(t -> tasks.remove(t.id).task()).collect(toList());
     }
 

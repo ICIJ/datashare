@@ -36,7 +36,7 @@ public interface TaskManager extends Closeable {
     boolean stopTask(String taskId) throws IOException, UnknownTask;
 
     List<Task<?>> getTasks() throws IOException;
-    List<Task<?>> clearDoneTasks() throws IOException;
+    List<Task<?>> clearDoneTasks(Map<String, Pattern> filters) throws IOException;
     Group getTaskGroup(String taskId);
     boolean shutdown() throws IOException;
 
@@ -82,7 +82,11 @@ public interface TaskManager extends Closeable {
                         }));
     }
 
-    private Stream<Task<?>> getFilteredTaskStream(Map<String, Pattern> filters, Stream<Task<?>> taskStream) {
+    default List<Task<?>> clearDoneTasks() throws IOException {
+        return clearDoneTasks(new HashMap<>());
+    };
+
+    default Stream<Task<?>> getFilteredTaskStream(Map<String, Pattern> filters, Stream<Task<?>> taskStream) {
         for (Map.Entry<String, Pattern> filter : filters.entrySet()) {
             taskStream = taskStream.filter(task -> {
                 Map<String, Object> objectMap = JsonObjectMapper.getJson(task);
