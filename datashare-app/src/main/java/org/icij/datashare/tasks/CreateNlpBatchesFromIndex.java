@@ -72,20 +72,20 @@ public class CreateNlpBatchesFromIndex extends DefaultTask<List<String>> impleme
 
     @Inject
     public CreateNlpBatchesFromIndex(
-        final TaskManager taskManager, final Indexer indexer, @Assisted Task<LinkedList<String>> taskView,
+        final TaskManager taskManager, final Indexer indexer, @Assisted DatashareTask<LinkedList<String>> taskView,
         @Assisted final Function<Double, Void> ignored
     ) {
         this.user = taskView.getUser();
         this.taskManager = taskManager;
         this.indexer = indexer;
-        this.nlpPipeline = Pipeline.Type.parse((String) taskView.args.getOrDefault(NLP_PIPELINE_OPT, Pipeline.Type.CORENLP.name()));
+        this.nlpPipeline = Pipeline.Type.parse((String) taskView.getArgs().getOrDefault(NLP_PIPELINE_OPT, Pipeline.Type.CORENLP.name()));
         this.batchTaskArgs = batchTaskArgs();
-        this.batchSize = (int) taskView.args.getOrDefault(NLP_BATCH_SIZE_OPT, DEFAULT_NLP_BATCH_SIZE);
-        this.maxTextLength = (int) taskView.args.getOrDefault(NLP_MAX_TEXT_LENGTH_OPT, DEFAULT_NLP_MAX_TEXT_LENGTH);
-        this.projectName = (String) taskView.args.getOrDefault(DEFAULT_PROJECT_OPT, DEFAULT_DEFAULT_PROJECT);
-        this.scrollDuration = (String) taskView.args.getOrDefault(SCROLL_DURATION_OPT, DEFAULT_SCROLL_DURATION);
-        this.scrollSize = (int) taskView.args.getOrDefault(SCROLL_SIZE_OPT, DEFAULT_SCROLL_SIZE);
-        this.searchQuery = (String) taskView.args.get(SEARCH_QUERY_OPT);
+        this.batchSize = (int) taskView.getArgs().getOrDefault(NLP_BATCH_SIZE_OPT, DEFAULT_NLP_BATCH_SIZE);
+        this.maxTextLength = (int) taskView.getArgs().getOrDefault(NLP_MAX_TEXT_LENGTH_OPT, DEFAULT_NLP_MAX_TEXT_LENGTH);
+        this.projectName = (String) taskView.getArgs().getOrDefault(DEFAULT_PROJECT_OPT, DEFAULT_DEFAULT_PROJECT);
+        this.scrollDuration = (String) taskView.getArgs().getOrDefault(SCROLL_DURATION_OPT, DEFAULT_SCROLL_DURATION);
+        this.scrollSize = (int) taskView.getArgs().getOrDefault(SCROLL_SIZE_OPT, DEFAULT_SCROLL_SIZE);
+        this.searchQuery = (String) taskView.getArgs().get(SEARCH_QUERY_OPT);
     }
 
     @Override

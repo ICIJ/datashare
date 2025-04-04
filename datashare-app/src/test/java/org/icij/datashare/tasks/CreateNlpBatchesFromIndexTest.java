@@ -76,11 +76,11 @@ public class CreateNlpBatchesFromIndexTest {
                 """
         );
         CreateNlpBatchesFromIndex enqueueFromIndex = new CreateNlpBatchesFromIndex(taskManager, indexer,
-            new Task<>(CreateNlpBatchesFromIndex.class.getName(), new User("test"), properties), null);
+            new DatashareTask<>(CreateNlpBatchesFromIndex.class.getName(), new User("test"), properties), null);
         // When
         enqueueFromIndex.call();
         List<List<String>> queued = taskManager.getTasks().stream()
-            .map(t -> ((List<CreateNlpBatchesFromIndex.BatchDocument>) t.args.get("docs")).stream().map(
+            .map(t -> ((List<CreateNlpBatchesFromIndex.BatchDocument>) t.getArgs().get("docs")).stream().map(
                 CreateNlpBatchesFromIndex.BatchDocument::id).toList())
             .toList();
         // Then

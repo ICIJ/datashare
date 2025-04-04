@@ -59,7 +59,7 @@ public class BatchDownloadRunner implements Callable<UriResult>, Monitorable, Us
     static final int MAX_SCROLL_SIZE = 3500;
     static final int MAX_BATCH_RESULT_SIZE = 10000;
     private final DocumentVerifier documentVerifier;
-    private final Task<File> task;
+    private final DatashareTask<File> task;
     volatile long docsToProcessSize = 0;
     private final AtomicInteger numberOfResults = new AtomicInteger(0);
     private final Indexer indexer;
@@ -72,13 +72,13 @@ public class BatchDownloadRunner implements Callable<UriResult>, Monitorable, Us
     protected volatile Thread callThread;
 
     @Inject
-    public BatchDownloadRunner(Indexer indexer, PropertiesProvider propertiesProvider, @Assisted Task<?> task, @Assisted Function<Double, Void> progressCallback) {
+    public BatchDownloadRunner(Indexer indexer, PropertiesProvider propertiesProvider, @Assisted DatashareTask<?> task, @Assisted Function<Double, Void> progressCallback) {
         this(indexer, propertiesProvider, progressCallback, task, MailSender::new, new CountDownLatch(1));
     }
 
-    BatchDownloadRunner(Indexer indexer, PropertiesProvider provider, Function<Double, Void> progressCallback, Task<?> task, Function<URI, MailSender> mailSenderSupplier, CountDownLatch latch) {
-        assert task.args.get("batchDownload") != null : "'batchDownload' property in task shouldn't be null";
-        this.task = (Task<File>) task;
+    BatchDownloadRunner(Indexer indexer, PropertiesProvider provider, Function<Double, Void> progressCallback, DatashareTask<?> task, Function<URI, MailSender> mailSenderSupplier, CountDownLatch latch) {
+        assert task.getArgs().get("batchDownload") != null : "'batchDownload' property in task shouldn't be null";
+        this.task = (DatashareTask<File>) task;
         this.indexer = indexer;
         this.propertiesProvider = provider;
         this.progressCallback = progressCallback;
@@ -174,7 +174,7 @@ public class BatchDownloadRunner implements Callable<UriResult>, Monitorable, Us
     }
 
     private BatchDownload getBatchDownload() {
-        return (BatchDownload) task.args.get("batchDownload");
+        return (BatchDownload) task.getArgs().get("batchDownload");
     }
 
     @Override

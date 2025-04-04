@@ -54,8 +54,8 @@ public class ScanIndexTask extends PipelineTask<Path> {
 
     @Inject
     public ScanIndexTask(DocumentCollectionFactory<Path> factory, final Indexer indexer,
-                         @Assisted Task<Long> taskView, @Assisted Function<Double, Void> ignored) {
-        super(Stage.SCANIDX, taskView.getUser(), factory, new PropertiesProvider(taskView.args), Path.class);
+                         @Assisted DatashareTask<Long> taskView, @Assisted Function<Double, Void> ignored) {
+        super(Stage.SCANIDX, taskView.getUser(), factory, new PropertiesProvider(taskView.getArgs()), Path.class);
         this.scrollDuration = propertiesProvider.get(SCROLL_DURATION_OPT).orElse(DEFAULT_SCROLL_DURATION);
         this.scrollSize = parseInt(propertiesProvider.get(SCROLL_SIZE_OPT).orElse(valueOf(DEFAULT_SCROLL_SIZE)));
         this.scrollSlices = parseInt(propertiesProvider.get(SCROLL_SLICES_OPT).orElse(valueOf(DEFAULT_SCROLL_SLICES)));

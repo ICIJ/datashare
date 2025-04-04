@@ -35,7 +35,7 @@ public class ArtifactTask extends PipelineTask<String> {
     private final int pollingInterval;
 
     @Inject
-    public ArtifactTask(DocumentCollectionFactory<String> factory, Indexer indexer, PropertiesProvider propertiesProvider, @Assisted Task<Long> taskView, @Assisted final Function<Double, Void> updateCallback) {
+    public ArtifactTask(DocumentCollectionFactory<String> factory, Indexer indexer, PropertiesProvider propertiesProvider, @Assisted DatashareTask<Long> taskView, @Assisted final Function<Double, Void> updateCallback) {
         super(Stage.ARTIFACT, taskView.getUser(), factory, propertiesProvider, String.class);
         this.indexer = indexer;
         project = Project.project(propertiesProvider.get(DEFAULT_PROJECT_OPT).orElse(DEFAULT_DEFAULT_PROJECT));

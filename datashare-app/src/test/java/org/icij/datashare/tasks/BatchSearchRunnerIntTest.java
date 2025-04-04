@@ -65,8 +65,8 @@ public class BatchSearchRunnerIntTest {
         verify(repository).saveResults(search.uuid, "mydoc", singletonList(mydoc), true);
     }
 
-    private Task<?> taskView(BatchSearch search) {
-        return new Task<>(search.uuid, BatchSearchRunner.class.getName(), User.local());
+    private DatashareTask<?> taskView(BatchSearch search) {
+        return new DatashareTask<>(search.uuid, BatchSearchRunner.class.getName(), User.local());
     }
 
     @Test

@@ -26,10 +26,10 @@ public class ScanTask extends PipelineTask<Path> {
     private final Path path;
 
     @Inject
-    public ScanTask(DocumentCollectionFactory<Path> factory, @Assisted Task<Long> task, @Assisted Function<Double, Void> updateCallback) {
-        super(Stage.SCAN, task.getUser(), factory, new PropertiesProvider(task.args), Path.class);
-        scanner = new Scanner(outputQueue).configure(options().createFrom(Options.from(task.args)));
-        path = Paths.get((String)task.args.get(DatashareCliOptions.DATA_DIR_OPT));
+    public ScanTask(DocumentCollectionFactory<Path> factory, @Assisted DatashareTask<Long> task, @Assisted Function<Double, Void> updateCallback) {
+        super(Stage.SCAN, task.getUser(), factory, new PropertiesProvider(task.getArgs()), Path.class);
+        scanner = new Scanner(outputQueue).configure(options().createFrom(Options.from(task.getArgs())));
+        path = Paths.get((String)task.getArgs().get(DatashareCliOptions.DATA_DIR_OPT));
     }
 
     @Override

@@ -1,20 +1,37 @@
 package org.icij.datashare.asynctasks;
 
-import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
-import org.icij.datashare.asynctasks.bus.amqp.UriResult;
-
 import java.io.Serializable;
+import java.util.Objects;
 
 
-public record TaskResult<V extends Serializable> (
-        @JsonSubTypes({
-                @JsonSubTypes.Type(value = UriResult.class),
-                @JsonSubTypes.Type(value = Long.class)
-        })
-        @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "@type")
-        V value) implements Serializable {
+// We can't use a record class here because they are final, and we want to allow inheritance
+@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "@type")
+public class TaskResult<V extends Serializable> implements Serializable {
+    protected V value;
+
     public TaskResult(V value) {
         this.value = value;
+    }
+
+    public V getValue() {
+        return value;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(value);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (!(o instanceof TaskResult<?>)) {
+            return false;
+        }
+
+        return ((TaskResult<?>) o).value.equals(value);
     }
 }
