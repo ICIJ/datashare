@@ -441,7 +441,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         assertThat(taskManager.getTask(t1Id).getState()).isEqualTo(Task.State.CANCELLED);
         assertThat(taskManager.getTask(t2Id).getState()).isEqualTo(Task.State.CANCELLED);
     }
-
+    
     @Test
     public void test_stop_all_filters() throws IOException {
         String t1Id = taskManager.startTask(TestSleepingTask.class, User.local(), new HashMap<>());
@@ -450,6 +450,9 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
 
         assertThat(taskManager.getTask(t1Id).getState()).isEqualTo(Task.State.RUNNING);
         assertThat(taskManager.getTask(t2Id).getState()).isEqualTo(Task.State.CANCELLED);
+
+        put("/api/task/stopAll?name=Sleeping").should().respond(200).contain(t1Id + "\":true");
+        assertThat(taskManager.getTask(t1Id).getState()).isEqualTo(Task.State.CANCELLED);
     }
 
     @Test
