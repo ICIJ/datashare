@@ -413,7 +413,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         delete("/api/task/clean/" + dummyTaskId).should().respond(403);
         assertThat(taskManager.getTasks()).hasSize(1);
         // Cancel the all tasks to avoid side-effects with other tests
-        put("/api/task/stopAll").should().respond(200);
+        put("/api/task/stop").should().respond(200);
     }
 
     @Test
@@ -434,7 +434,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
     public void test_stop_all() throws IOException {
         String t1Id = taskManager.startTask(TestSleepingTask.class, User.local(), new HashMap<>());
         String t2Id = taskManager.startTask(TestSleepingTask.class, User.local(), new HashMap<>());
-        put("/api/task/stopAll").should().respond(200).
+        put("/api/task/stop").should().respond(200).
                 contain(t1Id + "\":true").
                 contain(t2Id + "\":true");
 
@@ -446,12 +446,12 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
     public void test_stop_all_filters() throws IOException {
         String t1Id = taskManager.startTask(TestSleepingTask.class, User.local(), new HashMap<>());
         String t2Id = taskManager.startTask(TestAnotherSleepingTask.class, User.local(), new HashMap<>());
-        put("/api/task/stopAll?name=Another").should().respond(200).contain(t2Id + "\":true");
+        put("/api/task/stop?name=Another").should().respond(200).contain(t2Id + "\":true");
 
         assertThat(taskManager.getTask(t1Id).getState()).isEqualTo(Task.State.RUNNING);
         assertThat(taskManager.getTask(t2Id).getState()).isEqualTo(Task.State.CANCELLED);
 
-        put("/api/task/stopAll?name=Sleeping").should().respond(200).contain(t1Id + "\":true");
+        put("/api/task/stop?name=Sleeping").should().respond(200).contain(t1Id + "\":true");
         assertThat(taskManager.getTask(t1Id).getState()).isEqualTo(Task.State.CANCELLED);
     }
 
@@ -460,7 +460,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         taskManager.startTask(TestTask.class, User.local(), new HashMap<>());
         taskManager.waitTasksToBeDone(1, SECONDS);
 
-        put("/api/task/stopAll").should().respond(200).contain("{}");
+        put("/api/task/stop").should().respond(200).contain("{}");
     }
 
     @Test
@@ -468,7 +468,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         taskManager.startTask(TestTask.class, User.local(), new HashMap<>());
         taskManager.waitTasksToBeDone(1, SECONDS);
 
-        put("/api/task/stopAll").should().respond(200).contain("{}");
+        put("/api/task/stop").should().respond(200).contain("{}");
 
         assertThat(taskManager.clearDoneTasks()).hasSize(1);
         assertThat(taskManager.getTasks()).hasSize(0);

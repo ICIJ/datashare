@@ -458,11 +458,13 @@ public class TaskResource {
     }
 
     @Operation(description = """
+            [DEPRECATED] Will be removed in version 20.0.0. Use `/api/task/stop` instead.
             Cancels the running tasks. It returns a map with task name/stop statuses.
             
             If the status is false, it means that some threads have not been stopped.""",
             parameters = {
-                    @Parameter(name = "name", description = "as an example: pattern contained in the task name", in = ParameterIn.QUERY)})
+                    @Parameter(name = "name", description = "as an example: pattern contained in the task name", in = ParameterIn.QUERY)},
+            deprecated = true)
     @ApiResponse(responseCode = "200", description = "returns 200 and the tasks stop result map", useReturnTypeSchema = true)
     @Put("/stopAll")
     public Map<String, Boolean> stopAllTasks(final Context context) throws IOException {
@@ -470,13 +472,40 @@ public class TaskResource {
                 .keys()
                 .stream()
                 .collect(toMap(s -> s, s -> Pattern.compile(String.format(".*%s.*", context.get(s)))));
-        return taskManager.stopAllTasks((User) context.currentUser(), filters);
+        return taskManager.stopTasks((User) context.currentUser(), filters);
     }
 
-    @Operation(description = "Preflight request to stop all tasks.")
+    @Operation(description = """
+            [DEPRECATED] Will be removed in version 20.0.0. Use `/api/task/stop`instead. 
+            Preflight request to stop all tasks.""", deprecated = true)
     @ApiResponse(responseCode = "200", description = "returns 200 with OPTIONS and PUT")
     @Options("/stopAll")
     public Payload stopAllTasksPreflight() {
+        return ok().withAllowMethods("OPTIONS", "PUT");
+    }
+
+    @Operation(description = """
+            Cancels the running tasks. It returns a map with task name/stop statuses.
+            
+            If the status is false, it means that some threads have not been stopped.""",
+            parameters = {
+                    @Parameter(name = "name", description = "as an example: pattern contained in the task name", in = ParameterIn.QUERY)})
+    @ApiResponse(responseCode = "200", description = "returns 200 and the tasks stop result map", useReturnTypeSchema = true)
+    @Put("/stop")
+    public Map<String, Boolean> stopTasks(final Context context) throws IOException {
+        Map<String, Pattern> filters = context.query()
+                .keys()
+                .stream()
+                .collect(toMap(s -> s, s -> Pattern.compile(String.format(".*%s.*", context.get(s)))));
+        return taskManager.stopTasks((User) context.currentUser(), filters);
+    }
+
+    @Operation(description = """
+            [DEPRECATED] Will be removed in version 20.0.0. Use `/api/task/stop`instead.
+            Preflight request to stop all tasks.""", deprecated = true)
+    @ApiResponse(responseCode = "200", description = "returns 200 with OPTIONS and PUT")
+    @Options("/stop")
+    public Payload stopTasksPreflight() {
         return ok().withAllowMethods("OPTIONS", "PUT");
     }
 

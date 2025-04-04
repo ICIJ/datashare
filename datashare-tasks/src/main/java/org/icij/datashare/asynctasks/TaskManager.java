@@ -62,11 +62,11 @@ public interface TaskManager extends Closeable {
         return !waitTasksToBeDone(timeout, timeUnit).isEmpty();
     }
 
-    default Map<String, Boolean> stopAllTasks(User user) throws IOException {
-        return stopAllTasks(user, new HashMap<>());
+    default Map<String, Boolean> stopTasks(User user) throws IOException {
+        return stopTasks(user, new HashMap<>());
     }
 
-    default Map<String, Boolean> stopAllTasks(User user, Map<String, Pattern> filters) throws IOException {
+    default Map<String, Boolean> stopTasks(User user, Map<String, Pattern> filters) throws IOException {
         Stream<Task<?>> taskStream = getTasks().stream();
         taskStream = getFilteredTaskStream(filters, taskStream);
         return taskStream.

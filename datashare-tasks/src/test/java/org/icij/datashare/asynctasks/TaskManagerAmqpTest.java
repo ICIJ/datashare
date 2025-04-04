@@ -257,7 +257,7 @@ public class TaskManagerAmqpTest {
     public void tearDown() throws Exception {
         taskQueue.clear();
         taskManager.clear();
-        taskManager.stopAllTasks(User.local());
+        taskManager.stopTasks(User.local());
         taskSupplier.close();
         taskManager.close();
     }

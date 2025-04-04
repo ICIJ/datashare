@@ -115,7 +115,7 @@ public class TaskManagersIntTest {
         String tv2Id = taskManager.startTask(TestFactory.SleepForever.class, User.local(), new HashMap<>());
 
         taskInspector.awaitStatus(tv1Id, Task.State.RUNNING, 1, SECONDS);
-        taskManager.stopAllTasks(User.local());
+        taskManager.stopTasks(User.local());
         taskInspector.awaitStatus(tv1Id, Task.State.CANCELLED, 1, SECONDS);
         taskInspector.awaitStatus(tv2Id, Task.State.CANCELLED, 1, SECONDS);
 
@@ -130,14 +130,14 @@ public class TaskManagersIntTest {
         String tv2Id = taskManager.startTask(TestFactory.SleepForever.class, User.local(), new HashMap<>());
 
         taskInspector.awaitStatus(tv1Id, Task.State.RUNNING, 1, SECONDS);
-        taskManager.stopAllTasks(User.local(), Map.of("name", Pattern.compile(".*Another.*")));
+        taskManager.stopTasks(User.local(), Map.of("name", Pattern.compile(".*Another.*")));
         taskInspector.awaitStatus(tv1Id, Task.State.CANCELLED, 1, SECONDS);
 
         assertThat(taskManager.getTasks()).hasSize(2);
         assertThat(taskManager.getTask(tv1Id).getState()).isEqualTo(Task.State.CANCELLED);
         assertThat(taskManager.getTask(tv2Id).getState()).isEqualTo(Task.State.RUNNING);
 
-        taskManager.stopAllTasks(User.local());
+        taskManager.stopTasks(User.local());
         taskInspector.awaitStatus(tv2Id, Task.State.CANCELLED, 1, SECONDS);
     }
 
@@ -148,7 +148,7 @@ public class TaskManagersIntTest {
         String tv2Id = taskManager.startTask(TestFactory.SleepForever.class, User.local(), new HashMap<>());
 
         taskInspector.awaitStatus(tv1Id, Task.State.RUNNING, 1, SECONDS);
-        taskManager.stopAllTasks(User.local());
+        taskManager.stopTasks(User.local());
         taskInspector.awaitStatus(tv1Id, Task.State.CANCELLED, 1, SECONDS);
 
         assertThat(taskManager.getTask(tv1Id).getState()).isEqualTo(Task.State.CANCELLED);
@@ -165,7 +165,7 @@ public class TaskManagersIntTest {
         String tv2Id = taskManager.startTask(TestFactory.SleepForever.class, User.local(), new HashMap<>());
 
         taskInspector.awaitStatus(tv1Id, Task.State.RUNNING, 1, SECONDS);
-        taskManager.stopAllTasks(User.local());
+        taskManager.stopTasks(User.local());
 
         assertThat(taskManager.getTask(tv1Id).getState()).isEqualTo(Task.State.RUNNING);
         assertThat(taskManager.getTask(tv2Id).getState()).isEqualTo(Task.State.CREATED);
