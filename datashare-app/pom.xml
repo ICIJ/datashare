@@ -189,7 +189,6 @@
                 <artifactId>maven-surefire-plugin</artifactId>
                 <configuration>
                     <argLine>-Djava.system.class.loader=org.icij.datashare.DynamicClassLoader -Dslf4j.provider=ch.qos.logback.classic.spi.LogbackServiceProvider -ea --add-opens java.base/java.lang=ALL-UNNAMED --add-opens java.base/java.util.concurrent.locks=ALL-UNNAMED</argLine>
-                    <useSystemClassLoader>false</useSystemClassLoader>
                 </configuration>
             </plugin>
             <plugin>
