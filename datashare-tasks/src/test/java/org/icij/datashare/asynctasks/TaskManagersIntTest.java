@@ -9,11 +9,7 @@ import org.icij.datashare.tasks.RoutingStrategy;
 import org.icij.datashare.user.User;
 import org.icij.extract.redis.RedissonClientFactory;
 import org.icij.task.Options;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.ClassRule;
-import org.junit.Test;
+import org.junit.*;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.redisson.api.RedissonClient;
@@ -140,6 +136,9 @@ public class TaskManagersIntTest {
         assertThat(taskManager.getTasks()).hasSize(2);
         assertThat(taskManager.getTask(tv1Id).getState()).isEqualTo(Task.State.CANCELLED);
         assertThat(taskManager.getTask(tv2Id).getState()).isEqualTo(Task.State.RUNNING);
+
+        taskManager.stopAllTasks(User.local());
+        taskInspector.awaitStatus(tv2Id, Task.State.CANCELLED, 1, SECONDS);
     }
 
 
@@ -167,7 +166,6 @@ public class TaskManagersIntTest {
 
         taskInspector.awaitStatus(tv1Id, Task.State.RUNNING, 1, SECONDS);
         taskManager.stopAllTasks(User.local());
-        taskInspector.awaitStatus(tv1Id, Task.State.DONE, 1, SECONDS);
 
         assertThat(taskManager.getTask(tv1Id).getState()).isEqualTo(Task.State.RUNNING);
         assertThat(taskManager.getTask(tv2Id).getState()).isEqualTo(Task.State.CREATED);
