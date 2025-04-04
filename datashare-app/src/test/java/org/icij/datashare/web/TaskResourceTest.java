@@ -12,10 +12,7 @@ import org.icij.datashare.db.JooqRepository;
 import org.icij.datashare.extension.PipelineRegistry;
 import org.icij.datashare.nlp.EmailPipeline;
 import org.icij.datashare.session.LocalUserFilter;
-import org.icij.datashare.tasks.TaskManagerMemory;
-import org.icij.datashare.tasks.TestSleepingTask;
-import org.icij.datashare.tasks.TestTask;
-import org.icij.datashare.tasks.TestTaskUtils;
+import org.icij.datashare.tasks.*;
 import org.icij.datashare.test.DatashareTimeRule;
 import org.icij.datashare.text.nlp.AbstractModels;
 import org.icij.datashare.user.User;
@@ -442,6 +439,16 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
                 contain(t2Id + "\":true");
 
         assertThat(taskManager.getTask(t1Id).getState()).isEqualTo(Task.State.CANCELLED);
+        assertThat(taskManager.getTask(t2Id).getState()).isEqualTo(Task.State.CANCELLED);
+    }
+
+    @Test
+    public void test_stop_all_filters() throws IOException {
+        String t1Id = taskManager.startTask(TestSleepingTask.class, User.local(), new HashMap<>());
+        String t2Id = taskManager.startTask(TestAnotherSleepingTask.class, User.local(), new HashMap<>());
+        put("/api/task/stopAll?name=Another").should().respond(200).contain(t2Id + "\":true");
+
+        assertThat(taskManager.getTask(t1Id).getState()).isEqualTo(Task.State.RUNNING);
         assertThat(taskManager.getTask(t2Id).getState()).isEqualTo(Task.State.CANCELLED);
     }
 

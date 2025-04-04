@@ -460,11 +460,17 @@ public class TaskResource {
     @Operation(description = """
             Cancels the running tasks. It returns a map with task name/stop statuses.
             
-            If the status is false, it means that some threads have not been stopped.""")
+            If the status is false, it means that some threads have not been stopped.""",
+            parameters = {
+                    @Parameter(name = "name", description = "as an example: pattern contained in the task name", in = ParameterIn.QUERY)})
     @ApiResponse(responseCode = "200", description = "returns 200 and the tasks stop result map", useReturnTypeSchema = true)
     @Put("/stopAll")
     public Map<String, Boolean> stopAllTasks(final Context context) throws IOException {
-        return taskManager.stopAllTasks((User) context.currentUser());
+        Map<String, Pattern> filters = context.query()
+                .keys()
+                .stream()
+                .collect(toMap(s -> s, s -> Pattern.compile(String.format(".*%s.*", context.get(s)))));
+        return taskManager.stopAllTasks((User) context.currentUser(), filters);
     }
 
     @Operation(description = "Preflight request to stop all tasks.")
