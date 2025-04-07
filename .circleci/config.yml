@@ -8,6 +8,7 @@ parameters:
 jobs:
 
   build_back:
+    resource_class: large
     docker:
       - image: cimg/openjdk:17.0.11
       - image: docker.elastic.co/elasticsearch/elasticsearch:7.9.1
