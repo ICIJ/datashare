@@ -229,7 +229,7 @@ jobs:
   build_front:
     resource_class: large
     docker:
-      - image: cimg/node:18.19
+      - image: cimg/node:20.18
       - image: docker.elastic.co/elasticsearch/elasticsearch:7.9.1
         environment:
           - "discovery.type=single-node"
@@ -313,7 +313,7 @@ jobs:
 
   deploy_front:
     docker:
-      - image: cimg/node:18.19
+      - image: cimg/node:20.18
     working_directory: /tmp
     steps:
       - attach_workspace:
