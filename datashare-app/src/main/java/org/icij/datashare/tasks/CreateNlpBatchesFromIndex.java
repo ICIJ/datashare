@@ -72,7 +72,7 @@ public class CreateNlpBatchesFromIndex extends DefaultTask<List<String>> impleme
 
     @Inject
     public CreateNlpBatchesFromIndex(
-        final TaskManager taskManager, final Indexer indexer, @Assisted Task<LinkedList<String>> taskView,
+        final TaskManager taskManager, final Indexer indexer, @Assisted  Task taskView,
         @Assisted final Function<Double, Void> ignored
     ) {
         this.user = taskView.getUser();
