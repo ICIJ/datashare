@@ -1,5 +1,6 @@
 package org.icij.datashare.tasks;
 
+import java.util.Map;
 import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.asynctasks.bus.amqp.TaskCreation;
 
@@ -24,11 +25,13 @@ public class TestTaskUtils {
         when(taskFactory.createTestTask(any(Task.class), any(Function.class))).thenReturn(new TestTask(10));
         when(taskFactory.createTestSleepingTask(any(Task.class), any(Function.class))).thenReturn(new TestSleepingTask(100000));
         when(taskFactory.createTaskCreation(any(Task.class), any(Function.class))).thenReturn(mock(TaskCreation.class));
+        when(taskFactory.createSerializationTestTask(any(Task.class), any(Function.class))).thenReturn(new SerializationTestTask(10));
     }
 
     public interface DatashareTaskFactoryForTest extends DatashareTaskFactory {
-        TestSleepingTask createTestSleepingTask(Task<Integer> task, Function<Double, Void> updateCallback);
-        TestTask createTestTask(Task<Integer> task, Function<Double, Void> updateCallback);
-        TaskCreation createTaskCreation(Task<?> task, Function<Double, Void> updateCallback);
+        TestSleepingTask createTestSleepingTask(Task task, Function<Double, Void> updateCallback);
+        TestTask createTestTask(Task task, Function<Double, Void> updateCallback);
+        TaskCreation createTaskCreation(Task task, Function<Double, Void> updateCallback);
+        SerializationTestTask createSerializationTestTask(Task task, Function<Double, Void> updateCallback);
     }
 }

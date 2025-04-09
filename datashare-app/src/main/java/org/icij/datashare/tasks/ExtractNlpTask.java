@@ -4,7 +4,6 @@ import com.google.inject.Inject;
 import com.google.inject.assistedinject.Assisted;
 import java.util.function.Function;
 
-import org.checkerframework.checker.units.qual.N;
 import org.icij.datashare.HumanReadableSize;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Stage;
@@ -48,12 +47,12 @@ public class ExtractNlpTask extends PipelineTask<String> implements Monitorable 
     private final float pollingIntervalSeconds;
 
     @Inject
-    public ExtractNlpTask(Indexer indexer, PipelineRegistry registry, final DocumentCollectionFactory<String> factory, @Assisted Task<Long> taskView, @Assisted final Function<Double, Void> updateCallback) {
+    public ExtractNlpTask(Indexer indexer, PipelineRegistry registry, final DocumentCollectionFactory<String> factory, @Assisted Task taskView, @Assisted final Function<Double, Void> updateCallback) {
         this(indexer, registry.get(Pipeline.Type.parse((String)taskView.args.get(NLP_PIPELINE_OPT))), factory, taskView, updateCallback);
     }
 
 
-    ExtractNlpTask(Indexer indexer, Pipeline pipeline, final DocumentCollectionFactory<String> factory, @Assisted Task<Long> taskView, @Assisted final Function<Double, Void> updateCallback) {
+    ExtractNlpTask(Indexer indexer, Pipeline pipeline, final DocumentCollectionFactory<String> factory, @Assisted Task taskView, @Assisted final Function<Double, Void> updateCallback) {
         super(Stage.NLP, taskView.getUser(), factory, new PropertiesProvider(taskView.args), String.class);
         this.nlpPipeline = pipeline;
         project = Project.project(ofNullable((String)taskView.args.get(DEFAULT_PROJECT_OPT)).orElse(DEFAULT_DEFAULT_PROJECT));
@@ -63,7 +62,7 @@ public class ExtractNlpTask extends PipelineTask<String> implements Monitorable 
     }
 
     @Override
-    public Long call() throws Exception {
+    public DatashareTaskResult<Long> call() throws Exception {
         super.call();
         logger.info("extracting Named Entities with pipeline {} for {} from queue {}", nlpPipeline.getType(), project, inputQueue.getName());
         String docId;
@@ -84,7 +83,7 @@ public class ExtractNlpTask extends PipelineTask<String> implements Monitorable 
             }
         }
         logger.info("exiting ExtractNlpTask loop after {} messages.", nbMessages);
-        return nbMessages;
+        return new DatashareTaskResult<>(nbMessages);
     }
 
     void findNamedEntities(final Project project, final String id) throws InterruptedException {

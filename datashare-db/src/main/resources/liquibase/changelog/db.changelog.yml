@@ -119,3 +119,6 @@ databaseChangeLog:
   - include:
       file: changes/039-adds-column-nb-queries-without-results-batch-search.yml
       relativeToChangelogFile: true
+  - include:
+      file: changes/040-create-task-results-table.yml
+      relativeToChangelogFile: true

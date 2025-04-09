@@ -44,7 +44,7 @@ public class IndexTask extends PipelineTask<Path> implements Monitorable{
     private final Integer parallelism;
 
     @Inject
-    public IndexTask(final ElasticsearchSpewer spewer, final DocumentCollectionFactory<Path> factory, @Assisted Task<Long> taskView, @Assisted final Function<Double, Void> updateCallback) throws IOException {
+    public IndexTask(final ElasticsearchSpewer spewer, final DocumentCollectionFactory<Path> factory, @Assisted  Task taskView, @Assisted final Function<Double, Void> updateCallback) throws IOException {
         super(Stage.INDEX, taskView.getUser(), factory, new PropertiesProvider(taskView.args), Path.class);
         parallelism = propertiesProvider.get(PARALLELISM_OPT).map(Integer::parseInt).orElse(Runtime.getRuntime().availableProcessors());
 
@@ -63,7 +63,7 @@ public class IndexTask extends PipelineTask<Path> implements Monitorable{
     }
 
     @Override
-    public Long call() throws Exception {
+    public DatashareTaskResult<Long> call() throws Exception {
         super.call();
         logger.info("Processing up to {} file(s) in parallel", parallelism);
         totalToProcess = drainer.drain(PATH_POISON).get();
@@ -79,7 +79,7 @@ public class IndexTask extends PipelineTask<Path> implements Monitorable{
 
         if (consumer.getReporter() != null) consumer.getReporter().close();
         logger.info("exiting");
-        return totalToProcess;
+        return new DatashareTaskResult<>(totalToProcess);
     }
 
     @Override

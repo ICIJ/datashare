@@ -1,5 +1,6 @@
 package org.icij.datashare.asynctasks;
 
+import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 import org.icij.datashare.asynctasks.bus.amqp.*;
@@ -7,8 +8,6 @@ import org.icij.datashare.asynctasks.bus.amqp.*;
 import org.icij.datashare.tasks.RoutingStrategy;
 
 import java.io.IOException;
-import java.io.Serializable;
-import java.util.List;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
@@ -47,7 +46,7 @@ public class TaskManagerAmqp implements TaskManager {
 
     @Override
     public boolean stopTask(String taskId) throws IOException, UnknownTask {
-        Task<?> taskView = this.getTask(taskId);
+        Task taskView = this.getTask(taskId);
         if (taskView != null) {
             try {
                 logger.info("sending cancel event for {}", taskId);
@@ -63,12 +62,12 @@ public class TaskManagerAmqp implements TaskManager {
     }
 
     @Override
-    public <V extends Serializable> Task<V> clearTask(String taskId) throws IOException, UnknownTask {
+    public Task clearTask(String taskId) throws IOException, UnknownTask {
         if (this.getTask(taskId).getState() == Task.State.RUNNING) {
             throw new IllegalStateException(String.format("task id <%s> is already in RUNNING state", taskId));
         }
         logger.info("deleting task id <{}>", taskId);
-        return (Task<V>) tasks.remove(taskId).task();
+        return tasks.remove(taskId).task();
     }
 
     @Override
@@ -78,17 +77,27 @@ public class TaskManagerAmqp implements TaskManager {
     }
 
     @Override
-    public <V extends Serializable> void insert(Task<V> task, Group group) throws IOException, TaskAlreadyExists {
+    public void insert(Task task, Group group) throws IOException, TaskAlreadyExists {
         tasks.insert(task, group);
     }
 
     @Override
-    public <V extends Serializable> void update(Task<V> task) throws IOException, UnknownTask {
+    public void update(Task task) throws IOException, UnknownTask {
         tasks.update(task);
     }
 
     @Override
-    public <V extends Serializable> void enqueue(Task<V> task) throws IOException {
+    public void saveResult(String taskId, byte[] result) throws UnknownTask {
+        tasks.saveResult(taskId, result);
+    }
+
+    @Override
+    public byte[] getResult(String taskId) throws IOException, UnknownTask {
+        return tasks.getResult(taskId);
+    }
+
+    @Override
+    public  void enqueue(Task task) throws IOException {
         switch (routingStrategy) {
             case GROUP -> amqp.publish(AmqpQueue.TASK, this.tasks.get(task.id).group().id().name(), task);
             case NAME -> amqp.publish(AmqpQueue.TASK, task.name, task);
@@ -97,12 +106,12 @@ public class TaskManagerAmqp implements TaskManager {
     }
 
     @Override
-    public <V extends Serializable> Task<V> getTask(String taskId) throws IOException, UnknownTask {
+    public Task getTask(String taskId) throws IOException, UnknownTask {
         return tasks.getTask(taskId);
     }
 
     @Override
-    public List<Task<?>> getTasks() {
+    public List<Task> getTasks() {
         return tasks.values().stream().map(TaskMetadata::task).collect(toList());
     }
 
@@ -112,8 +121,8 @@ public class TaskManagerAmqp implements TaskManager {
     }
 
     @Override
-    public List<Task<?>> clearDoneTasks(Map<String, Pattern> filters) {
-        Stream<Task<?>> taskStream = tasks.values().stream().map(TaskMetadata::task);
+    public List<Task> clearDoneTasks(Map<String, Pattern> filters) {
+        Stream<Task> taskStream = tasks.values().stream().map(TaskMetadata::task);
         taskStream = getFilteredTaskStream(filters, taskStream);
         return taskStream.filter(Task::isFinished)
             .map(t -> tasks.remove(t.id).task()).collect(toList());

@@ -47,7 +47,7 @@ import org.icij.datashare.asynctasks.TaskGroupType;
 import static org.icij.datashare.text.ProjectProxy.asCommaConcatNames;
 
 @TaskGroup(TaskGroupType.Java)
-public class BatchSearchRunner implements CancellableTask, UserTask, Callable<Integer> {
+public class BatchSearchRunner implements CancellableTask, UserTask, Callable<DatashareTaskResult<Integer>> {
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
     /**
@@ -66,29 +66,29 @@ public class BatchSearchRunner implements CancellableTask, UserTask, Callable<In
 
     private final CountDownLatch callWaiterLatch;
     private final BatchSearchRepository repository;
-    protected final Task<String> taskView;
+    protected final  Task taskView;
     protected volatile boolean cancelAsked = false;
     protected volatile Thread callThread;
     protected volatile boolean requeueCancel;
 
     @Inject
     public BatchSearchRunner(Indexer indexer, PropertiesProvider propertiesProvider, BatchSearchRepository repository,
-                             @Assisted Task<?> taskView, @Assisted Function<Double, Void> updateCallback) {
+                             @Assisted  Task taskView, @Assisted Function<Double, Void> updateCallback) {
         this(indexer, propertiesProvider, repository, taskView, updateCallback, new CountDownLatch(1));
     }
 
     BatchSearchRunner(Indexer indexer, PropertiesProvider propertiesProvider, BatchSearchRepository repository,
-                      Task<?> taskView, Function<Double, Void> updateCallback, CountDownLatch latch) {
+                       Task taskView, Function<Double, Void> updateCallback, CountDownLatch latch) {
         this.indexer = indexer;
         this.propertiesProvider = propertiesProvider;
         this.repository = repository;
-        this.taskView = (Task<String>) taskView;
+        this.taskView = taskView;
         this.updateCallback = updateCallback;
         this.callWaiterLatch = latch;
     }
 
     @Override
-    public Integer call() throws Exception {
+    public DatashareTaskResult<Integer> call() throws Exception {
         int numberOfResults = 0;
         int totalProcessed = 0;
 
@@ -104,7 +104,7 @@ public class BatchSearchRunner implements CancellableTask, UserTask, Callable<In
         BatchSearch batchSearch = repository.get(taskView.getUser(), taskView.id);
         if (batchSearch == null) {
             logger.warn("batch search {} not found in database (check that database url is the same as datashare backend)", taskView.id);
-            return 0;
+            return new DatashareTaskResult<>(0);
         }
 
         String query = null;
@@ -162,7 +162,7 @@ public class BatchSearchRunner implements CancellableTask, UserTask, Callable<In
             logger.error("exception while running batch " + taskView.id, ex);
             repository.setState(taskView.id, new SearchException(query, ex));
         }
-        return numberOfResults;
+        return new DatashareTaskResult<>(numberOfResults);
     }
 
     @Override

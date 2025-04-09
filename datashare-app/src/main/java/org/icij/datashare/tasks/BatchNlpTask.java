@@ -37,12 +37,12 @@ public class BatchNlpTask extends DefaultTask<Long> implements UserTask, Cancell
     private final int maxLength;
 
     @Inject
-    public BatchNlpTask(Indexer indexer, PipelineRegistry registry, @Assisted Task<Long> taskView, @Assisted final Function<Double, Void> progress) {
+    public BatchNlpTask(Indexer indexer, PipelineRegistry registry, @Assisted  Task taskView, @Assisted final Function<Double, Void> progress) {
         this(indexer, registry.get(Pipeline.Type.parse((String) taskView.args.get("pipeline"))), taskView, progress);
     }
 
 
-    BatchNlpTask(Indexer indexer, Pipeline pipeline, Task<Long> taskView, final Function<Double, Void> progress) {
+    BatchNlpTask(Indexer indexer, Pipeline pipeline,  Task taskView, final Function<Double, Void> progress) {
         this.user = taskView.getUser();
         this.indexer = indexer;
         this.pipeline = pipeline;

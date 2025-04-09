@@ -1,4 +1,4 @@
-package org.icij.datashare.asynctasks.bus.amqp;
+package org.icij.datashare.tasks;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;

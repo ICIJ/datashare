@@ -14,11 +14,11 @@ public class TestSleepingTask extends TestTask {
     }
 
     @Override
-    public Integer call() throws Exception {
+    public DatashareTaskResult<Integer> call() throws Exception {
         callThread = Thread.currentThread();
-        int ret = super.call();
+        DatashareTaskResult<Integer> ret = super.call();
         try {
-            Thread.sleep(ret);
+            Thread.sleep(ret.value());
             return ret;
         } catch (InterruptedException iex) {
             throw new CancelException(this.requeue);

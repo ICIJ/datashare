@@ -1,0 +1,30 @@
+databaseChangeLog:
+  - changeSet:
+      id: 64
+      author: cdoumouro
+      changes:
+        changes:
+          - renameTable:
+              newTableName: tasks
+              oldTableName: task
+          - createTable:
+              tableName: results
+              columns:
+                - column:
+                    name: task_id
+                    type: varchar(96)
+                    constraints:
+                      columnName: task_id
+                      nullable: false
+                      references: tasks(id)
+                      foreignKeyName: results_task_id_fk
+                      primaryKey: true
+                - column:
+                    name: result
+                    type: character varying
+          - sql:
+              - INSERT INTO results (task_id, result)
+                SELECT id, result FROM tasks;
+          - dropColumn:
+              tableName: tasks
+              columnName: result
