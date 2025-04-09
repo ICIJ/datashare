@@ -19,12 +19,15 @@ import net.codestory.http.constants.HttpStatus;
 import net.codestory.http.errors.ForbiddenException;
 import net.codestory.http.payload.Payload;
 import net.codestory.http.types.ContentTypes;
+import org.apache.commons.lang3.tuple.Pair;
+import org.icij.datashare.Entity;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Repository;
 import org.icij.datashare.Repository.AggregateList;
 import org.icij.datashare.session.DatashareUser;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.FileExtension;
+import org.icij.datashare.text.Hasher;
 import org.icij.datashare.text.Tag;
 import org.icij.datashare.text.indexing.ExtractedText;
 import org.icij.datashare.text.indexing.Indexer;
@@ -33,7 +36,9 @@ import org.icij.datashare.text.indexing.elasticsearch.SourceExtractor;
 import org.icij.datashare.user.User;
 import org.icij.datashare.utils.DocumentVerifier;
 import org.icij.datashare.utils.PayloadFormatter;
+import org.icij.extract.document.DocumentFactory;
 import org.icij.extract.extractor.EmbeddedDocumentExtractor;
+import org.icij.extract.extractor.Extractor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -132,6 +137,29 @@ public class DocumentResource {
             }
         }
         throw new ForbiddenException();
+    }
+
+    @Get("/:project/documents/pages/:id?routing=:routing")
+    @Operation(description = "Fetches original document pages indices of extracted text.",
+            parameters = {
+                    @Parameter(name = "project", description = "the project id", in = ParameterIn.PATH),
+                    @Parameter(name = "id", description = "the document id", in = ParameterIn.PATH),
+                    @Parameter(name = "routing", description = "routing key if not a root document", in = ParameterIn.QUERY)
+            }
+    )
+    @ApiResponse(responseCode = "200", description = "JSON containing pages indices parameters",  useReturnTypeSchema = true)
+    public List<Pair<Long, Long>> getExtractedText(final String project, final String id, final String routing) throws IOException {
+        Document doc = indexer.get(project, id, routing, List.of("content"));
+        Hasher hasher = Hasher.valueOf(doc.getId().length());
+        DocumentFactory documentFactory = new DocumentFactory().configure(org.icij.task.Options.from(Map.of("digestAlgorithm", hasher.toString())));
+        final Extractor extractor = new Extractor(documentFactory);
+        if (doc.isRootDocument()) {
+            return extractor.extractPageIndices(doc.getPath());
+        } else {
+            return extractor.extractPageIndices(doc.getPath(),
+                    metadata -> doc.getTitle().equals(metadata.get("resourceName")) ||
+                            "INLINE".equals(metadata.get("embeddedResourceType")));
+        }
     }
 
     @Operation( description = "Searches for query occurrences in content or translated content (pagination)",
