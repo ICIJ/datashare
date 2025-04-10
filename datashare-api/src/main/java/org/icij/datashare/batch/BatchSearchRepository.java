@@ -39,9 +39,8 @@ public interface BatchSearchRepository extends Closeable {
     BatchSearch get(User user, String batchId);
     BatchSearch get(User user, String batchId, boolean withQueries);
 
-    Map<String,Integer> getQueries(User user, String batchId, int from, int size, String search, String orderBy);
-
-    Map<String,Integer> getQueries(User user, String batchId, int from, int size, String search, String orderBy, int maxResults);
+    Map<String,Integer> getQueries(User user, String batchId, int from, int size, String search, String sort, String order);
+    Map<String,Integer> getQueries(User user, String batchId, int from, int size, String search, String sort, String order, int maxResults);
 
     boolean reset(String batchId);
     @JsonIgnoreProperties(ignoreUnknown = true)

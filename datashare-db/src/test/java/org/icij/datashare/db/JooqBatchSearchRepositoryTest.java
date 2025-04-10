@@ -535,7 +535,7 @@ public class JooqBatchSearchRepositoryTest {
         BatchSearch batchSearch = new BatchSearch("uuid", singletonList(proxy("prj")), "name1", "description1",
                 queryList, new Date(), State.RUNNING, User.local());
         repository.save(batchSearch);
-        Map<String, Integer> queriesNaturalOrder = repository.getQueries(batchSearch.user, batchSearch.uuid, 0, 0, null, null);
+        Map<String, Integer> queriesNaturalOrder = repository.getQueries(batchSearch.user, batchSearch.uuid, 0, 0, null, null, null);
 
         Entry<String, Integer> entry = GetEntry(queriesNaturalOrder,0);
         assertThat(entry.getKey()).isEqualTo("q4");
@@ -549,12 +549,12 @@ public class JooqBatchSearchRepositoryTest {
         assertThat(entry.getKey()).isEqualTo("q2");
         assertThat(entry.getValue()).isEqualTo(0);
 
-        Map<String, Integer> queries = repository.getQueries(batchSearch.user, batchSearch.uuid, 0, 1, null, null);
+        Map<String, Integer> queries = repository.getQueries(batchSearch.user, batchSearch.uuid, 0, 1, null, null, null);
         entry = GetEntry(queries,0);
         assertThat(entry.getValue()).isEqualTo(0);
         assertThat(entry.getKey()).isEqualTo("q4");
 
-        queries = repository.getQueries(batchSearch.user, batchSearch.uuid, 1, 1, null, null);
+        queries = repository.getQueries(batchSearch.user, batchSearch.uuid, 1, 1, null, null, null);
         entry = GetEntry(queries,0);
         assertThat(entry.getValue()).isEqualTo(0);
         assertThat(entry.getKey()).isEqualTo("q3");
@@ -711,7 +711,7 @@ public class JooqBatchSearchRepositoryTest {
         }};
         BatchSearch batchSearch = new BatchSearch("uuid", project, "name1", "description1", bsQueries, new Date(), State.RUNNING, User.local());
         repository.save(batchSearch);
-        Map<String, Integer> queries = repository.getQueries(batchSearch.user, batchSearch.uuid, 0, 2, null, null);
+        Map<String, Integer> queries = repository.getQueries(batchSearch.user, batchSearch.uuid, 0, 2, null, null, null);
 
         assertThat(queries).isNotNull();
         assertThat(queries).hasSize(2);
@@ -719,9 +719,9 @@ public class JooqBatchSearchRepositoryTest {
         assertThat(entrySetIterator.next()).isEqualTo(new AbstractMap.SimpleEntry<>("q2", 0));
         assertThat(entrySetIterator.next()).isEqualTo(new AbstractMap.SimpleEntry<>("q1", 0));
 
-        assertThat(repository.getQueries(batchSearch.user, batchSearch.uuid, 0, 1, null, null)).hasSize(1);
-        assertThat(repository.getQueries(batchSearch.user, batchSearch.uuid, 1, 2, null, null)).hasSize(1);
-        assertThat(repository.getQueries(batchSearch.user, batchSearch.uuid, 0, 0, null, null)).hasSize(2);
+        assertThat(repository.getQueries(batchSearch.user, batchSearch.uuid, 0, 1, null, null, null)).hasSize(1);
+        assertThat(repository.getQueries(batchSearch.user, batchSearch.uuid, 1, 2, null, null, null)).hasSize(1);
+        assertThat(repository.getQueries(batchSearch.user, batchSearch.uuid, 0, 0, null, null, null)).hasSize(2);
     }
 
     @Test
@@ -736,7 +736,7 @@ public class JooqBatchSearchRepositoryTest {
         repository.save(batchSearch);
         repository.saveResults(batchSearch.uuid, "q2", List.of(createDoc("doc1").build()));
         repository.saveResults(batchSearch.uuid, "q3", List.of(createDoc("doc1").build()));
-        Map<String, Integer> queries = repository.getQueries(batchSearch.user, batchSearch.uuid, 0, 0, null, null, 0);
+        Map<String, Integer> queries = repository.getQueries(batchSearch.user, batchSearch.uuid, 0, 0, null, null, null, 0);
         assertThat(queries).isNotNull();
         assertThat(queries).hasSize(1);
         Iterator<Entry<String, Integer>> entrySetIterator = queries.entrySet().iterator();
@@ -755,7 +755,7 @@ public class JooqBatchSearchRepositoryTest {
         repository.saveResults(batchSearch.uuid, "q2", List.of(createDoc("doc1").build()));
         repository.saveResults(batchSearch.uuid, "q2", List.of(createDoc("doc2").build()));
         repository.saveResults(batchSearch.uuid, "q2", List.of(createDoc("doc3").build()));
-        Map<String, Integer> queries = repository.getQueries(batchSearch.user, batchSearch.uuid, 0, 2, null, null, 1);
+        Map<String, Integer> queries = repository.getQueries(batchSearch.user, batchSearch.uuid, 0, 2, null, null, null, 1);
         assertThat(queries).isNotNull();
         assertThat(queries).hasSize(1);
         Iterator<Entry<String, Integer>> entrySetIterator = queries.entrySet().iterator();
@@ -773,7 +773,7 @@ public class JooqBatchSearchRepositoryTest {
         List<Document> matchingDocuments = List.of(createDoc("doc1").build());
         repository.save(batchSearch);
         repository.saveResults(batchSearch.uuid, "q2", matchingDocuments);
-        Map<String, Integer> queries = repository.getQueries(batchSearch.user, batchSearch.uuid, 0, 2, null, null, -1);
+        Map<String, Integer> queries = repository.getQueries(batchSearch.user, batchSearch.uuid, 0, 2, null, null, null, -1);
         assertThat(queries).isNotNull();
         assertThat(queries).hasSize(2);
         Iterator<Entry<String, Integer>> entrySetIterator = queries.entrySet().iterator();
@@ -818,12 +818,12 @@ public class JooqBatchSearchRepositoryTest {
 
     @Test(expected = IllegalArgumentException.class)
     public void test_get_batch_search_queries_with_negative_from_is_illegal() {
-       repository.getQueries(User.local(), "uuid", -1, 2, null, null);
+       repository.getQueries(User.local(), "uuid", -1, 2, null, null, null);
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void test_get_batch_search_queries_with_negative_size_is_illegal() {
-        repository.getQueries(User.local(), "uuid", 2, -1, null, null);
+        repository.getQueries(User.local(), "uuid", 2, -1, null, null, null);
     }
 
     @Test
@@ -834,13 +834,13 @@ public class JooqBatchSearchRepositoryTest {
                     add("def query");
                 }}, new Date(), State.RUNNING, User.local());
         repository.save(batchSearch);
-        assertThat(repository.getQueries(User.local(), "uuid", 0, 0, "query", null)).hasSize(2);
-        assertThat(repository.getQueries(User.local(), "uuid", 0, 0, "def", null)).hasSize(1);
-        assertThat(repository.getQueries(User.local(), "uuid", 0, 0, "abc", null)).hasSize(1);
+        assertThat(repository.getQueries(User.local(), "uuid", 0, 0, "query", null, null)).hasSize(2);
+        assertThat(repository.getQueries(User.local(), "uuid", 0, 0, "def", null, null)).hasSize(1);
+        assertThat(repository.getQueries(User.local(), "uuid", 0, 0, "abc", null, null)).hasSize(1);
     }
 
     @Test
-    public void test_get_batch_search_queries_with_orderBy_param() {
+    public void test_get_batch_search_queries_with_order_sort_param() {
         BatchSearch batchSearch = new BatchSearch("uuid", singletonList(proxy("prj")), "name1", "description1",
                 new LinkedHashSet<>() {{
                     add("q2");
@@ -848,17 +848,25 @@ public class JooqBatchSearchRepositoryTest {
                 }}, new Date(), State.RUNNING, User.local());
         repository.save(batchSearch);
 
-        Map<String, Integer> queries = repository.getQueries(User.local(), "uuid", 0, 0, null, "query");
+        Map<String, Integer> queries = repository.getQueries(User.local(), "uuid", 0, 0, null, "query", "desc");
+        assertThat(queries.entrySet().iterator().next().getKey()).isEqualTo("q2");
+
+        queries = repository.getQueries(User.local(), "uuid", 0, 0, null, "query", "asc");
         assertThat(queries.entrySet().iterator().next().getKey()).isEqualTo("q1");
 
-        queries = repository.getQueries(User.local(), "uuid", 0, 0, null, "query_number");
+        queries = repository.getQueries(User.local(), "uuid", 0, 0, null, "query_number", null);
         assertThat(queries.entrySet().iterator().next().getKey()).isEqualTo("q2");
 
     }
 
     @Test(expected = DataAccessException.class)
-    public void test_get_batch_search_queries_with_unknown_orderBy_field() {
-        repository.getQueries(User.local(), "uuid", 0, 0, null, "unknown_field");
+    public void test_get_batch_search_queries_with_unknown_sort_field() {
+        repository.getQueries(User.local(), "uuid", 0, 0, null, "unknown_field", "asc");
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void test_get_batch_search_queries_with_unknown_order_field() {
+        repository.getQueries(User.local(), "uuid", 0, 0, null, "query_number", "unknown_order");
     }
 
     private SearchResult resultFrom(Document doc, int docNb, String queryName) {
