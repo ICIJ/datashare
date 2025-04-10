@@ -130,7 +130,8 @@ public class BatchSearchResource {
                               @Parameter(name = "size", description = "if not provided all queries are returned from the \"from\" parameter", in = ParameterIn.QUERY),
                               @Parameter(name = "format", description = "if set to csv, it answers with content-disposition attachment (file downloading)", in = ParameterIn.QUERY),
                               @Parameter(name = "search", description = "if provided it will filter the queries accordingly", in = ParameterIn.QUERY),
-                              @Parameter(name = "orderBy", description = "field name to order by asc, \"query_number\" by default (if it does not exist it will return a 500 error)", in = ParameterIn.QUERY),
+                              @Parameter(name = "sort", description = "field name to sort by, \"query_number\" by default (if it does not exist it will return a 500 error)", in = ParameterIn.QUERY),
+                              @Parameter(name = "order", description = "order to sort by, \"asc\" by default (if it does not exist it will return a 500 error)", in = ParameterIn.QUERY),
                               @Parameter(name = "maxResult", description = "number of maximum results for each returned query (-1 means no maxResults)", in = ParameterIn.QUERY)})
     @ApiResponse(responseCode = "200", description = "the batch search queries map [(query, nbResults), ...]")
     @Get("/search/:batchid/queries")
@@ -139,10 +140,11 @@ public class BatchSearchResource {
         int from = Integer.parseInt(ofNullable(context.get("from")).orElse("0"));
         int size = Integer.parseInt(ofNullable(context.get("size")).orElse("0"));
         String search = context.get("search");
-        String orderBy = context.get("orderBy");
+        String sort = context.get("sort");
+        String order = context.get("order");
         int maxResults = Integer.parseInt(ofNullable(context.get("maxResults")).orElse("-1"));
 
-        Map<String, Integer> queries = batchSearchRepository.getQueries(user, batchId, from, size, search, orderBy, maxResults);
+        Map<String, Integer> queries = batchSearchRepository.getQueries(user, batchId, from, size, search, sort, order, maxResults);
 
         if ("csv".equals(context.get("format"))) {
             String contentType = "text/csv;charset=UTF-8";

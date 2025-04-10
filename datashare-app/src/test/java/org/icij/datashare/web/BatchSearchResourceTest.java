@@ -11,6 +11,7 @@ import org.icij.datashare.db.JooqRepository;
 import org.icij.datashare.session.LocalUserFilter;
 import org.icij.datashare.user.User;
 import org.icij.datashare.web.testhelpers.AbstractProdWebServerTest;
+import org.jooq.exception.DataAccessException;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
@@ -230,7 +231,7 @@ public class BatchSearchResourceTest extends AbstractProdWebServerTest {
 
     @Test
     public void test_get_queries_json() {
-        when(batchSearchRepository.getQueries(User.local(), "batchSearchId", 0, 0,null,null, -1)).
+        when(batchSearchRepository.getQueries(User.local(), "batchSearchId", 0, 0,null,null, null, -1)).
                 thenReturn(new HashMap<>() {{
                     put("q1", 1);
                     put("q2", 2);
@@ -243,7 +244,7 @@ public class BatchSearchResourceTest extends AbstractProdWebServerTest {
 
     @Test
     public void test_get_queries_csv() {
-        when(batchSearchRepository.getQueries(User.local(), "batchSearchId",0,0,null,null, -1)).
+        when(batchSearchRepository.getQueries(User.local(), "batchSearchId",0,0,null,null, null, -1)).
                 thenReturn(new HashMap<>() {{
                     put("q1", 1);
                     put("q2", 2);
@@ -256,7 +257,7 @@ public class BatchSearchResourceTest extends AbstractProdWebServerTest {
 
     @Test
     public void test_get_queries_filtered_to_max_results() {
-        when(batchSearchRepository.getQueries(User.local(), "batchSearchId", 0, 0,null,null, 200)).
+        when(batchSearchRepository.getQueries(User.local(), "batchSearchId", 0, 0,null,null, null, 200)).
                 thenReturn(new HashMap<>() {{
                     put("q1", 100);
                     put("q2", 200);
@@ -282,7 +283,7 @@ public class BatchSearchResourceTest extends AbstractProdWebServerTest {
 
     @Test
     public void test_get_batch_search_queries_with_window_from_size() {
-        when(batchSearchRepository.getQueries(User.local(), "batchSearchId", 0, 2,null,null, -1)).thenReturn(new HashMap<String, Integer>() {{put("q1", 1);put("q2", 2);}});
+        when(batchSearchRepository.getQueries(User.local(), "batchSearchId", 0, 2,null,null, null, -1)).thenReturn(new HashMap<>() {{put("q1", 1);put("q2", 2);}});
         get("/api/batch/search/batchSearchId/queries?from=0&size=2").should().
                 respond(200).
                 haveType("application/json").
@@ -290,12 +291,24 @@ public class BatchSearchResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
-    public void test_get_batch_search_queries_with_window_from_size_with_filter_orderby() {
-        when(batchSearchRepository.getQueries(User.local(), "batchSearchId", 0, 2,"foo","bar", -1)).thenReturn(new HashMap<String, Integer>() {{put("query", 1);}});
-        get("/api/batch/search/batchSearchId/queries?from=0&size=2&search=foo&orderBy=bar").should().
+    public void test_get_batch_search_queries_with_window_from_size_with_filter_sort_order() {
+        when(batchSearchRepository.getQueries(User.local(), "batchSearchId", 0, 2,"foo","bar", "desc", -1)).thenReturn(new HashMap<>() {{put("query", 1);}});
+        get("/api/batch/search/batchSearchId/queries?from=0&size=2&search=foo&sort=bar&order=desc").should().
                 respond(200).
                 haveType("application/json").
                 contain("{\"query\":1");
+    }
+
+    @Test
+    public void test_get_batch_search_queries_with_window_from_size_with_unknown_filter_sort() {
+        when(batchSearchRepository.getQueries(User.local(), "batchSearchId", 0, 2,"foo","unknown", "desc", -1)).thenThrow(DataAccessException.class);
+        get("/api/batch/search/batchSearchId/queries?from=0&size=2&search=foo&sort=unknown&order=desc").should().respond(500);
+    }
+
+    @Test
+    public void test_get_batch_search_queries_with_window_from_size_with_unknown_filter_order() {
+        when(batchSearchRepository.getQueries(User.local(), "batchSearchId", 0, 2,"foo","bar", "unknown", -1)).thenThrow(IllegalArgumentException.class);
+        get("/api/batch/search/batchSearchId/queries?from=0&size=2&search=foo&sort=bar&order=unknown").should().respond(500);
     }
 
     @Before
