@@ -251,7 +251,7 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
 
     }
 
-    public Map<String, Integer> getQueries(User user, String batchId, int from, int size, String search, String orderBy, int maxResults) {
+    public Map<String, Integer> getQueries(User user, String batchId, int from, int size, String search, String sort, String order, int maxResults) {
         if(from < 0 || size < 0) {
             throw new IllegalArgumentException("from or size argument cannot be negative");
         }
@@ -264,8 +264,11 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
         if (maxResults > -1) {
             statement.and(BATCH_SEARCH_QUERY.QUERY_RESULTS.lessOrEqual(maxResults));
         }
+        String sortField = (sort != null) ? sort : BATCH_SEARCH_QUERY.QUERY_NUMBER.getName();
+        String sortOrder = (order != null) ? order : SortOrder.ASC.name();
+
         return statement
-                .orderBy(orderBy != null ? field(orderBy).asc() : BATCH_SEARCH_QUERY.QUERY_NUMBER.asc())
+                .orderBy(field(sortField).sort(SortOrder.valueOf(sortOrder.toUpperCase())))
                 .limit(size > 0 ? size : null)
                 .offset(from)
                 .fetch().stream().map(r -> new AbstractMap.SimpleEntry<>(r.get("query", String.class), r.get("query_results", Integer.class))).collect(toMap(Map.Entry::getKey, Map.Entry::getValue, (u, v) -> {
@@ -274,10 +277,9 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
 
     }
 
-
     @Override
-    public Map<String, Integer> getQueries(User user, String batchId, int from, int size, String search, String orderBy) {
-        return getQueries(user, batchId, from, size, search, orderBy, -1);
+    public Map<String, Integer> getQueries(User user, String batchId, int from, int size, String search, String sort, String order) {
+        return getQueries(user, batchId, from, size, search, sort, order, -1);
     }
 
     @Override
