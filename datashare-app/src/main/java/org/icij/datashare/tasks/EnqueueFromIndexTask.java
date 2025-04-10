@@ -46,7 +46,7 @@ public class EnqueueFromIndexTask extends PipelineTask<String> {
 
     @Inject
     public EnqueueFromIndexTask(final DocumentCollectionFactory<String> factory, final Indexer indexer,
-                                @Assisted Task<Long> taskView, @Assisted final Function<Double, Void> ignored) {
+                                @Assisted  Task taskView, @Assisted final Function<Double, Void> ignored) {
         super(Stage.ENQUEUEIDX, taskView.getUser(), factory, new PropertiesProvider(taskView.args), String.class);
         this.factory = factory;
         this.indexer = indexer;
@@ -58,7 +58,7 @@ public class EnqueueFromIndexTask extends PipelineTask<String> {
     }
 
     @Override
-    public Long call() throws Exception {
+    public DatashareTaskResult<Long> call() throws Exception {
         super.call();
         Indexer.Searcher searcher;
         if (searchQuery == null) {
@@ -82,6 +82,6 @@ public class EnqueueFromIndexTask extends PipelineTask<String> {
             searcher.clearScroll();
         }
         logger.info("enqueued into {} {} files", outputQueue.getName(), totalHits);
-        return totalHits;
+        return new DatashareTaskResult<>(totalHits);
     }
 }

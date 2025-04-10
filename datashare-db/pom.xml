@@ -54,6 +54,11 @@
         </dependency>
         <dependency>
             <groupId>org.jooq</groupId>
+            <artifactId>jooq-codegen</artifactId>
+            <version>${jooq.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.jooq</groupId>
             <artifactId>jooq-meta</artifactId>
             <version>${jooq.version}</version>
         </dependency>
@@ -160,6 +165,31 @@
                                 <target>
                                     <packageName>org.icij.datashare.db</packageName>
                                 </target>
+                                <strategy>
+                                    // This is just to keep some record names consistent, we can't drop that
+                                    <name>org.icij.datashare.db.JooqTableNameGeneratorStrategy</name>
+                                    <java>
+                                        package org.icij.datashare.db;
+
+                                        import org.jooq.codegen.DefaultGeneratorStrategy;
+                                        import org.jooq.meta.Definition;
+
+                                        public class JooqTableNameGeneratorStrategy extends DefaultGeneratorStrategy {
+                                            @Override
+                                            public String getJavaClassName(Definition definition, Mode mode) {
+                                                String defaultName = super.getJavaClassName(definition, mode);
+                                                if (mode == Mode.RECORD) {
+                                                    return switch (defaultName) {
+                                                        case "TasksRecord" -> "TaskRecord";
+                                                        case "ResultsRecord" -> "ResultRecord";
+                                                        default -> defaultName;
+                                                    };
+                                                }
+                                                return defaultName;
+                                            }
+                                        }
+                                    </java>
+                                </strategy>
                             </generator>
                             <jdbc>
                                 <driver>org.postgresql.Driver</driver>
