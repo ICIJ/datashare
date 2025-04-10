@@ -187,7 +187,7 @@ public class TaskManagerMemory implements TaskManager, TaskSupplier {
 
     @Override
     public void consumeTasks(Consumer<Task> taskCallback) {
-        throw new NotImplementedException("no loop is provided by memory databus. Use get(int, TimeUnit) method.");
+        throw new UnsupportedOperationException("no loop is provided by memory databus. Use get(int, TimeUnit) method.");
     }
 
     @Override

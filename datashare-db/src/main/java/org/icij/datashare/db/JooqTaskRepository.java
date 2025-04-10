@@ -19,7 +19,6 @@ import org.jooq.InsertOnDuplicateSetMoreStep;
 import org.jooq.InsertValuesStep11;
 import org.jooq.InsertValuesStep2;
 import org.jooq.SQLDialect;
-import org.jooq.exception.IntegrityConstraintViolationException;
 import org.jooq.impl.DSL;
 
 import javax.sql.DataSource;

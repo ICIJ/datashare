@@ -121,7 +121,7 @@ class CliApp {
         }
 
         if (pipeline.has(Stage.CREATENLPBATCHESFROMIDX)) {
-            taskManager.startTask(CreateNlpBatchesFromIndex.class.getName(), nullUser(), propertiesToMap(properties));
+            taskManager.startTask(CreateNlpBatchesFromIndex.class, nullUser(), propertiesToMap(properties));
         }
 
         if (pipeline.has(Stage.NLP)) {

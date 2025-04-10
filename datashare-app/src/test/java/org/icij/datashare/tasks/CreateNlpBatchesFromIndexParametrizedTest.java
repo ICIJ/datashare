@@ -132,7 +132,7 @@ public class CreateNlpBatchesFromIndexParametrizedTest {
             "scrollSize", this.scrollSize
         );
         TestableCreateNlpBatchesFromIndex enqueueFromIndex = new TestableCreateNlpBatchesFromIndex(taskManager, indexer,
-                new  Task(CreateNlpBatchesFromIndex.class.getName(), new User("test"), properties), null);
+                new Task(CreateNlpBatchesFromIndex.class.getName(), new User("test"), properties), null);
         // When
         List<String> taskIds = enqueueFromIndex.call();
         List<List<Language>> queued = taskManager.getTasks().stream()
