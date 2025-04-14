@@ -35,7 +35,7 @@ public class ArtifactTask extends PipelineTask<String> {
     private final int pollingInterval;
 
     @Inject
-    public ArtifactTask(DocumentCollectionFactory<String> factory, Indexer indexer, PropertiesProvider propertiesProvider, @Assisted Task<Long> taskView, @Assisted final Function<Double, Void> updateCallback) {
+    public ArtifactTask(DocumentCollectionFactory<String> factory, Indexer indexer, PropertiesProvider propertiesProvider, @Assisted  Task taskView, @Assisted final Function<Double, Void> updateCallback) {
         super(Stage.ARTIFACT, taskView.getUser(), factory, propertiesProvider, String.class);
         this.indexer = indexer;
         project = Project.project(propertiesProvider.get(DEFAULT_PROJECT_OPT).orElse(DEFAULT_DEFAULT_PROJECT));
@@ -44,7 +44,7 @@ public class ArtifactTask extends PipelineTask<String> {
     }
 
     @Override
-    public Long call() throws Exception {
+    public DatashareTaskResult<Long> call() throws Exception {
         super.call();
         logger.info("creating artifact cache in {} for project {} from queue {} with polling interval {}s", artifactDir, project, inputQueue.getName(), pollingInterval);
         SourceExtractor extractor = new SourceExtractor(propertiesProvider);
@@ -61,6 +61,6 @@ public class ArtifactTask extends PipelineTask<String> {
             }
         }
         logger.info("exiting ArtifactTask loop after processing {} document(s).", nbDocs);
-        return nbDocs;
+        return new DatashareTaskResult<>(nbDocs);
     }
 }

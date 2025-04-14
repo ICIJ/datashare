@@ -17,7 +17,7 @@ public interface TaskSupplier extends TaskModifier, Closeable {
      * @param timeUnit: unit of time
      * @return a Task
      */
-    <V extends Serializable> Task<V> get(int timeOut, TimeUnit timeUnit) throws InterruptedException;
+    <V extends Serializable> Task get(int timeOut, TimeUnit timeUnit) throws InterruptedException;
     /**
      * Inversion of loop control (compared to the {@link #get(int, TimeUnit)} method)
      * for frameworks that provide their own loop like RabbitMq java API
@@ -31,7 +31,7 @@ public interface TaskSupplier extends TaskModifier, Closeable {
      * @param taskId: id of the task
      * @param result: result of the task
      */
-    <V extends Serializable> void result(String taskId, TaskResult<V> result);
+    void result(String taskId, byte[] result);
     /**
      * method called to send an error in case a task is failing.
      * @param taskId: id of the task
@@ -43,7 +43,7 @@ public interface TaskSupplier extends TaskModifier, Closeable {
      * @param task: the task event that has been asked for cancellation
      * @param requeue: requeue the task
      */
-    void canceled(Task<?> task, boolean requeue);
+    void canceled(Task task, boolean requeue);
 
     /**
      * Method to add a listener to the Event sent by the task manager.
