@@ -8,6 +8,7 @@ import co.elastic.clients.elasticsearch.core.GetResponse;
 import co.elastic.clients.elasticsearch.core.SearchRequest;
 import co.elastic.clients.elasticsearch.core.SearchResponse;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import java.util.HashMap;
 import org.apache.tika.metadata.DublinCore;
 import org.apache.tika.metadata.Metadata;
 import org.apache.tika.parser.ParsingReader;
@@ -33,10 +34,8 @@ import org.mockito.Mockito;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Stream;
 
@@ -108,6 +107,24 @@ public class ElasticsearchSpewerTest {
         assertThat(nodeToMap(documentFields.source())).includes(
                 entry("language", "JAPANESE")
         );
+    }
+
+    @Test
+    public void test_write_should_support_multiple_ocr_languages() throws Exception {
+        // Given
+        ElasticsearchIndexer indexer = new ElasticsearchIndexer(es.client, new PropertiesProvider()).withRefresh(Refresh.True);
+        try (ElasticsearchSpewer zhoSpewer = new ElasticsearchSpewer(indexer,
+            documentQueueFactory, text -> Language.CHINESE, new FieldNames(),
+            new PropertiesProvider(Map.of("defaultProject", "test-datashare")))) {
+            Path path = get(requireNonNull(getClass().getResource("/docs/a/b/c/zho.txt")).getPath());
+            Extractor extractor = new Extractor().configure(Options.from(Map.of("ocrLanguage", "eng+zho")));
+            // When
+            TikaDocument document = extractor.extract(path);
+            zhoSpewer.write(document);
+            // Then
+            GetResponse<ObjectNode> documentFields = es.client.get(doc -> doc.index(TEST_INDEX).id(document.getId()), ObjectNode.class);
+            assertThat(nodeToMap(documentFields.source()).get("language")).isEqualTo("CHINESE");
+        }
     }
 
     @Test
@@ -334,7 +351,6 @@ public class ElasticsearchSpewerTest {
         HashMap<String, Object> properties = new HashMap<>() {{
             put("digestAlgorithm", "SHA-256");
             put("digestProjectName", "project");
-            put("defaultProject", "test-datashare");
             put("defaultProject", "test-datashare");
         }};
         ElasticsearchSpewer spewer256 = new ElasticsearchSpewer(new ElasticsearchIndexer(es.client, new PropertiesProvider()),
