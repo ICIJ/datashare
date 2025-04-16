@@ -417,4 +417,17 @@ public class DocumentResourceTest extends AbstractProdWebServerTest {
                 .contain("\"count\":2")
                 .contain("\"offsets\":[1,2]");
     }
+
+    @Test
+    public void test_get_page_indices() {
+        String path = getClass().getResource("/docs/embedded_doc.eml").getPath();
+        mockIndexer.indexFile("local-datashare",
+                "d365f488df3c84ecd6d7aa752ca268b78589f2082e4fe2fbe9f62dff6b3a6b74bedc645ec6df9ae5599dab7631433623",
+                Paths.get(path), "application/pdf", "id_eml", Map.of("tika_metadata_resourcename", "embedded.pdf"));
+
+        get("/api/local-datashare/documents/pages/d365f488df3c84ecd6d7aa752ca268b78589f2082e4fe2fbe9f62dff6b3a6b74bedc645ec6df9ae5599dab7631433623?routing=id_eml")
+                .should().respond(200)
+                .haveType("application/json")
+                .contain("[[0,29],[30,47]]");
+    }
 }
