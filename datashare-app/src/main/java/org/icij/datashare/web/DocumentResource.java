@@ -19,8 +19,6 @@ import net.codestory.http.constants.HttpStatus;
 import net.codestory.http.errors.ForbiddenException;
 import net.codestory.http.payload.Payload;
 import net.codestory.http.types.ContentTypes;
-import org.apache.commons.lang3.tuple.Pair;
-import org.icij.datashare.Entity;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Repository;
 import org.icij.datashare.Repository.AggregateList;
@@ -39,6 +37,7 @@ import org.icij.datashare.utils.PayloadFormatter;
 import org.icij.extract.document.DocumentFactory;
 import org.icij.extract.extractor.EmbeddedDocumentExtractor;
 import org.icij.extract.extractor.Extractor;
+import org.icij.extract.extractor.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -149,7 +148,7 @@ public class DocumentResource {
     )
     @ApiResponse(responseCode = "200", description = "JSON containing pages indices parameters",  useReturnTypeSchema = true)
     public List<Pair<Long, Long>> getExtractedText(final String project, final String id, final String routing) throws IOException {
-        Document doc = indexer.get(project, id, routing, List.of("content"));
+        Document doc = indexer.get(project, id, routing, List.of("content","content_translated"));
         Hasher hasher = Hasher.valueOf(doc.getId().length());
         DocumentFactory documentFactory = new DocumentFactory().configure(org.icij.task.Options.from(Map.of("digestAlgorithm", hasher.toString())));
         final Extractor extractor = new Extractor(documentFactory);

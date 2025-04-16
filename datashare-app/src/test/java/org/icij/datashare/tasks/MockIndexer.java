@@ -10,6 +10,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Map;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.mockito.Mockito.when;
@@ -24,10 +25,16 @@ public class MockIndexer {
     public void indexFile(String index, String _id, Path path, String contentType) {
         indexFile(index, _id, path, contentType, null);
     }
+
     public void indexFile(String index, String _id, Path path, String contentType, String routing) {
+        indexFile(index, _id, path, contentType, routing, Map.of());
+    }
+
+    public void indexFile(String index, String _id, Path path, String contentType, String routing, Map<String, Object> metadata) {
         Document document = DocumentBuilder.createDoc(_id)
                 .with(path)
                 .with(new Project(index))
+                .with(metadata)
                 .ofContentType(contentType)
                 .withParentId(routing)
                 .withRootId(routing)
