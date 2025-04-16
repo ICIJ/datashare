@@ -302,7 +302,7 @@ public class ElasticsearchSpewerTest {
         assertTrue(documentFields.found());
 
         SearchRequest.Builder searchReq = new SearchRequest.Builder().index(TEST_INDEX);
-        searchReq.query(Query.of(q -> q.multiMatch(MultiMatchQuery.of(mmq -> mmq.query("simple.tiff").fields("content")))));
+        searchReq.query(Query.of(q -> q.multiMatch(MultiMatchQuery.of(mmq -> mmq.query("Heavy Metal").fields("content")))));
         SearchResponse<ObjectNode> response = es.client.search(searchReq.build(), ObjectNode.class);
         assertThat(response.hits().total().value()).isGreaterThan(0);
     }
