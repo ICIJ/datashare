@@ -147,7 +147,7 @@ public class DocumentResource {
             }
     )
     @ApiResponse(responseCode = "200", description = "JSON containing pages indices parameters",  useReturnTypeSchema = true)
-    public List<Pair<Long, Long>> getExtractedText(final String project, final String id, final String routing) throws IOException {
+    public List<Pair<Long, Long>> getPages(final String project, final String id, final String routing) throws IOException {
         Document doc = indexer.get(project, id, routing, List.of("content","content_translated"));
         Hasher hasher = Hasher.valueOf(doc.getId().length());
         DocumentFactory documentFactory = new DocumentFactory().configure(org.icij.task.Options.from(Map.of("digestAlgorithm", hasher.toString())));
