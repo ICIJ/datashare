@@ -46,6 +46,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import static java.lang.Boolean.parseBoolean;
 import static java.util.Arrays.stream;
@@ -159,6 +160,18 @@ public class DocumentResource {
                     metadata -> doc.getTitle().equals(metadata.get("resourceName")) ||
                             "INLINE".equals(metadata.get("embeddedResourceType")));
         }
+    }
+
+    @Get("/:project/documents/content/pages/:id?routing=:routing")
+    public Map<Integer, String> getContentByPage(final String project, final String id, final String routing) throws IOException {
+        Document doc = indexer.get(project, id, routing);
+
+        Map<Integer, String> contentByPage = new HashMap<>();
+        List<Pair<Long, Long>> pageIndices = getPages(project, id, routing);
+        IntStream.range(0, pageIndices.size()).forEach(i -> contentByPage.put(i, doc.getContent().substring(
+                Math.min(Math.toIntExact(pageIndices.get(i).getLeft()), doc.getContent().length()),
+                Math.min(Math.toIntExact(pageIndices.get(i).getRight()), doc.getContent().length()))));
+        return contentByPage;
     }
 
     @Operation( description = "Searches for query occurrences in content or translated content (pagination)",
