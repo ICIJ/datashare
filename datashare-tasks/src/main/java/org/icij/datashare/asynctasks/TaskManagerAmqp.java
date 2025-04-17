@@ -17,10 +17,12 @@ import static java.util.Optional.ofNullable;
 import static java.util.stream.Collectors.toList;
 
 public class TaskManagerAmqp implements TaskManager {
+    protected static final int DEFAULT_TASK_POLLING_INTERVAL = 5000;
     private final TaskRepository tasks;
     private final RoutingStrategy routingStrategy;
     private final AmqpInterlocutor amqp;
     private final AmqpConsumer<TaskEvent, Consumer<TaskEvent>> eventConsumer;
+    private final int taskPollingIntervalMs;
 
     public TaskManagerAmqp(AmqpInterlocutor amqp, TaskRepository taskRepository) throws IOException {
         this(amqp, taskRepository, RoutingStrategy.UNIQUE);
@@ -31,9 +33,14 @@ public class TaskManagerAmqp implements TaskManager {
     }
 
     public TaskManagerAmqp(AmqpInterlocutor amqp, TaskRepository tasks, RoutingStrategy routingStrategy, Runnable eventCallback) throws IOException {
+        this(amqp, tasks, routingStrategy, eventCallback, DEFAULT_TASK_POLLING_INTERVAL);
+    }
+
+    public TaskManagerAmqp(AmqpInterlocutor amqp, TaskRepository tasks, RoutingStrategy routingStrategy, Runnable eventCallback, int taskPollingIntervalMs) throws IOException {
         this.amqp = amqp;
         this.tasks = tasks;
         this.routingStrategy = routingStrategy;
+        this.taskPollingIntervalMs = taskPollingIntervalMs;
         eventConsumer = new AmqpConsumer<>(amqp, event ->
                 ofNullable(TaskManager.super.handleAck(event)).flatMap(t ->
                         ofNullable(eventCallback)).ifPresent(Runnable::run), AmqpQueue.MANAGER_EVENT, TaskEvent.class).consumeEvents();
@@ -111,6 +118,11 @@ public class TaskManagerAmqp implements TaskManager {
         taskStream = getFilteredTaskStream(filters, taskStream);
         return taskStream.filter(Task::isFinished)
             .map(t -> tasks.remove(t.id).task()).collect(toList());
+    }
+
+    @Override
+    public int getTerminationPollingInterval() {
+        return taskPollingIntervalMs;
     }
 
     public void close() throws IOException {
