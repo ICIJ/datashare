@@ -5,11 +5,6 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.ByteBufInputStream;
 import io.netty.buffer.ByteBufOutputStream;
-
-import java.util.HashMap;
-import java.util.Map;
-import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 import org.icij.datashare.asynctasks.bus.amqp.AmqpQueue;
 import org.icij.datashare.asynctasks.bus.amqp.CancelEvent;
 import org.icij.datashare.asynctasks.bus.amqp.ShutdownEvent;
@@ -36,7 +31,10 @@ import java.io.OutputStream;
 import java.io.Serializable;
 import java.nio.charset.Charset;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.BlockingQueue;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
@@ -46,21 +44,28 @@ import static java.util.stream.Collectors.toList;
 public class TaskManagerRedis implements TaskManager {
     private final Runnable eventCallback; // for test
     public static final String EVENT_CHANNEL_NAME = "EVENT";
+    protected static final int DEFAULT_TASK_POLLING_INTERVAL = 5000;
     private final TaskRepository tasks;
     private final RTopic eventTopic;
     private final RedissonClient redissonClient;
     private final RoutingStrategy routingStrategy;
+    private final int taskPollingIntervalMs;
 
     public TaskManagerRedis(RedissonClient redissonClient, TaskRepository tasks) {
         this(redissonClient, tasks, RoutingStrategy.UNIQUE, null);
     }
 
     public TaskManagerRedis(RedissonClient redissonClient, TaskRepository tasks, RoutingStrategy routingStrategy, Runnable eventCallback) {
+        this(redissonClient, tasks, routingStrategy, eventCallback, DEFAULT_TASK_POLLING_INTERVAL);
+    }
+
+    public TaskManagerRedis(RedissonClient redissonClient, TaskRepository tasks, RoutingStrategy routingStrategy, Runnable eventCallback, int taskPollingIntervalMs) {
         this.redissonClient = redissonClient;
         this.routingStrategy = routingStrategy;
         this.tasks = tasks;
         this.eventTopic = redissonClient.getTopic(EVENT_CHANNEL_NAME);
         this.eventCallback = eventCallback;
+        this.taskPollingIntervalMs = taskPollingIntervalMs;
         eventTopic.addListener(TaskEvent.class, (channelString, message) -> handleEvent(message));
     }
 
@@ -132,6 +137,11 @@ public class TaskManagerRedis implements TaskManager {
 
     private CommandSyncService getCommandSyncService() {
         return new CommandSyncService(((Redisson) redissonClient).getConnectionManager(), new RedissonObjectBuilder(redissonClient));
+    }
+
+    @Override
+    public int getTerminationPollingInterval() {
+        return taskPollingIntervalMs;
     }
 
     @Override

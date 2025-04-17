@@ -44,9 +44,11 @@ public interface TaskManager extends Closeable {
 
     boolean getHealth() throws IOException;
 
+    int getTerminationPollingInterval();
     default List<Task<?>> getTasks(User user) throws IOException {
         return getTasks(user, new HashMap<>(), new WebQueryPagination());
     }
+
     default List<Task<?>> getTasks(User user, Map<String, Pattern> filters) throws IOException {
         return getTasks(user, filters, new WebQueryPagination());
     }
@@ -56,8 +58,6 @@ public interface TaskManager extends Closeable {
         taskStream = getFilteredTaskStream(filters, taskStream);
         return taskStream.filter(t -> user.equals(t.getUser())).skip(pagination.from).limit(pagination.size).collect(toList());
     }
-
-    default int getTerminationPollingInterval() {return POLLING_INTERVAL;}
     default boolean awaitTermination(int timeout, TimeUnit timeUnit) throws InterruptedException, IOException {
         return !waitTasksToBeDone(timeout, timeUnit).isEmpty();
     }

@@ -17,6 +17,7 @@ public class TaskManagerAmqp extends org.icij.datashare.asynctasks.TaskManagerAm
 
     TaskManagerAmqp(AmqpInterlocutor amqp, TaskRepository taskRepository, PropertiesProvider propertiesProvider,
                     Runnable eventCallback) throws IOException {
-        super(amqp, taskRepository, Utils.getRoutingStrategy(propertiesProvider), eventCallback);
+        super(amqp, taskRepository, Utils.getRoutingStrategy(propertiesProvider), eventCallback,
+                Integer.parseInt(propertiesProvider.get("taskManagerPollingInterval").orElse(String.valueOf(DEFAULT_TASK_POLLING_INTERVAL))));
     }
 }

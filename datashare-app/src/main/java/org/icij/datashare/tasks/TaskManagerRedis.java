@@ -5,37 +5,31 @@ import com.google.inject.Singleton;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.asynctasks.TaskRepository;
 import org.icij.datashare.asynctasks.TaskRepositoryRedis;
-import org.icij.datashare.mode.CommonMode;
 import org.icij.extract.redis.RedissonClientFactory;
 import org.icij.task.Options;
 import org.redisson.api.RedissonClient;
 
 @Singleton
 public class TaskManagerRedis extends org.icij.datashare.asynctasks.TaskManagerRedis {
-    private final int pollingIntervalMs; // for tests
 
     // Convenience class made to ease injection and test
     @Inject
     public TaskManagerRedis(RedissonClient redissonClient, PropertiesProvider propertiesProvider, TaskRepository taskRepository) {
-        this(redissonClient, taskRepository, Utils.getRoutingStrategy(propertiesProvider), null, POLLING_INTERVAL);
+        this(redissonClient, taskRepository, Utils.getRoutingStrategy(propertiesProvider), null,
+                Integer.parseInt(propertiesProvider.get("taskManagerPollingInterval").orElse(String.valueOf(DEFAULT_TASK_POLLING_INTERVAL))));
     }
 
     TaskManagerRedis(PropertiesProvider propertiesProvider, String taskMapName, Runnable eventCallback, int pollingIntervalMs) {
-        this(new RedissonClientFactory().withOptions(Options.from(propertiesProvider.getProperties())).create(), taskMapName, Utils.getRoutingStrategy(propertiesProvider), eventCallback, pollingIntervalMs);
+        this(new RedissonClientFactory().withOptions(Options.from(propertiesProvider.getProperties())).create(), taskMapName,
+                Utils.getRoutingStrategy(propertiesProvider), eventCallback,
+                Integer.parseInt(propertiesProvider.get("taskManagerPollingInterval").orElse(String.valueOf(DEFAULT_TASK_POLLING_INTERVAL))));
     }
 
-    TaskManagerRedis(RedissonClient redissonClient, TaskRepository tasks, RoutingStrategy routingStrategy, Runnable eventCallback, int pollingIntervalMs) {
-        super(redissonClient, tasks, routingStrategy, eventCallback);
-        this.pollingIntervalMs = pollingIntervalMs;
+    TaskManagerRedis(RedissonClient redissonClient, TaskRepository tasks, RoutingStrategy routingStrategy, Runnable eventCallback, int taskPollingIntervalMs) {
+        super(redissonClient, tasks, routingStrategy, eventCallback, taskPollingIntervalMs);
     }
 
-    TaskManagerRedis(RedissonClient redissonClient, String taskMapName, RoutingStrategy routingStrategy, Runnable eventCallback, int pollingIntervalMs) {
-        super(redissonClient, new TaskRepositoryRedis(redissonClient, taskMapName), routingStrategy, eventCallback);
-        this.pollingIntervalMs = pollingIntervalMs;
-    }
-
-    @Override
-    public int getTerminationPollingInterval() {
-        return pollingIntervalMs;
+    TaskManagerRedis(RedissonClient redissonClient, String taskMapName, RoutingStrategy routingStrategy, Runnable eventCallback, int taskPollingIntervalMs) {
+        super(redissonClient, new TaskRepositoryRedis(redissonClient, taskMapName), routingStrategy, eventCallback, taskPollingIntervalMs);
     }
 }

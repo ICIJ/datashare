@@ -54,7 +54,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
     @Mock
     JooqRepository jooqRepository;
     private static final TestTaskUtils.DatashareTaskFactoryForTest taskFactory = mock(TestTaskUtils.DatashareTaskFactoryForTest.class);
-    private static final TaskManagerMemory taskManager = new TaskManagerMemory(taskFactory, new TaskRepositoryMemory(), new PropertiesProvider());
+    private static final TaskManagerMemory taskManager = new TaskManagerMemory(taskFactory, new TaskRepositoryMemory(), new PropertiesProvider(Map.of("taskManagerPollingInterval", "500")));
 
     @Before
     public void setUp() {
@@ -115,7 +115,8 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
 
         ShouldChain responseBody = response.should().haveType("application/json");
 
-        List<String> taskNames = taskManager.waitTasksToBeDone(1, SECONDS).stream().map(t -> t.id).toList();
+        taskManager.waitTasksToBeDone(1, SECONDS);
+        List<String> taskNames = taskManager.getTasks().stream().map(t -> t.id).toList();
         responseBody.should().contain(format(taskNames.get(0)));
         responseBody.should().contain(taskNames.get(1));
 
@@ -139,7 +140,8 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
 
         ShouldChain responseBody = response.should().haveType("application/json");
 
-        List<String> taskNames = taskManager.waitTasksToBeDone(1, SECONDS).stream().map(t -> t.id).toList();
+        taskManager.waitTasksToBeDone(1, SECONDS);
+        List<String> taskNames = taskManager.getTasks().stream().map(t -> t.id).toList();
         responseBody.should().contain(taskNames.get(0));
         responseBody.should().contain(taskNames.get(1));
 
@@ -154,7 +156,8 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
 
         ShouldChain responseBody = response.should().haveType("application/json");
 
-        List<String> taskNames = taskManager.waitTasksToBeDone(1, SECONDS).stream().map(t -> t.id).toList();
+        taskManager.waitTasksToBeDone(1, SECONDS);
+        List<String> taskNames = taskManager.getTasks().stream().map(t -> t.id).toList();
         responseBody.should().contain(taskNames.get(0));
         responseBody.should().contain(taskNames.get(1));
 
@@ -169,7 +172,8 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
 
         ShouldChain responseBody = response.should().haveType("application/json");
 
-        List<String> taskNames = taskManager.waitTasksToBeDone(1, SECONDS).stream().map(t -> t.id).collect(toList());
+        taskManager.waitTasksToBeDone(1, SECONDS);
+        List<String> taskNames = taskManager.getTasks().stream().map(t -> t.id).toList();
         responseBody.should().contain(taskNames.get(0));
         responseBody.should().contain(taskNames.get(1));
     }
@@ -180,7 +184,8 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
 
         ShouldChain responseBody = response.should().haveType("application/json");
 
-        List<String> taskNames = taskManager.waitTasksToBeDone(1, SECONDS).stream().map(t -> t.id).toList();
+        taskManager.waitTasksToBeDone(1, SECONDS);
+        List<String> taskNames = taskManager.getTasks().stream().map(t -> t.id).toList();
         responseBody.should().contain(taskNames.get(0));
         responseBody.should().contain(taskNames.get(1));
     }
@@ -243,7 +248,8 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
 
         ShouldChain responseBody = response.should().haveType("application/json");
 
-        List<String> taskNames = taskManager.waitTasksToBeDone(1, SECONDS).stream().map(t -> t.id).toList();
+        taskManager.waitTasksToBeDone(1, SECONDS);
+        List<String> taskNames = taskManager.getTasks().stream().map(t -> t.id).toList();
         assertThat(taskNames.size()).isEqualTo(1);
         responseBody.should().contain(taskNames.get(0));
         Map<String, Object> defaultProperties = getDefaultProperties();
@@ -296,7 +302,8 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
 
         response.should().haveType("application/json");
 
-        List<String> taskNames = taskManager.waitTasksToBeDone(1, SECONDS).stream().map(t -> t.id).toList();
+        taskManager.waitTasksToBeDone(1, SECONDS);
+        List<String> taskNames = taskManager.getTasks().stream().map(t -> t.id).toList();
         assertThat(taskNames.size()).isEqualTo(2);
 
         assertThat(findTask(taskManager, "org.icij.datashare.tasks.EnqueueFromIndexTask")).isNotNull();
@@ -374,7 +381,8 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
     @Test
     public void test_clean_tasks() throws IOException {
         post("/api/task/batchUpdate/index/file/" + getClass().getResource("/docs/doc.txt").getPath().substring(1), "{}").response();
-        List<String> taskNames = taskManager.waitTasksToBeDone(1, SECONDS).stream().map(t -> t.id).toList();
+        taskManager.waitTasksToBeDone(1, SECONDS);
+        List<String> taskNames = taskManager.getTasks().stream().map(t -> t.id).toList();
 
         ShouldChain responseBody = post("/api/task/clean", "{}").should().haveType("application/json");
 

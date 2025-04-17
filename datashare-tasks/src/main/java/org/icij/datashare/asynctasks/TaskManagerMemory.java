@@ -9,7 +9,6 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.Serializable;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.*;
@@ -25,6 +24,7 @@ import static java.util.stream.Collectors.toList;
 
 
 public class TaskManagerMemory implements TaskManager, TaskSupplier {
+    protected static final int DEFAULT_TASK_POLLING_INTERVAL = 5000;
     private final Logger logger = LoggerFactory.getLogger(getClass());
     private final ExecutorService executor;
     private final TaskRepository tasks;
@@ -32,6 +32,7 @@ public class TaskManagerMemory implements TaskManager, TaskSupplier {
     private final List<TaskWorkerLoop> loops;
     private final AtomicInteger executedTasks = new AtomicInteger(0);
     private final int pollingInterval;
+    private final int taskPollingIntervalMs;
 
     public TaskManagerMemory(TaskFactory taskFactory) {
         this(taskFactory, new TaskRepositoryMemory(), new PropertiesProvider(), new CountDownLatch(1));
@@ -41,6 +42,7 @@ public class TaskManagerMemory implements TaskManager, TaskSupplier {
         this.taskQueue = new LinkedBlockingQueue<>();
         int parallelism = parseInt(propertiesProvider.get("taskWorkers").orElse("1"));
         pollingInterval = Integer.parseInt(propertiesProvider.get("pollingInterval").orElse("60"));
+        taskPollingIntervalMs = Integer.parseInt(propertiesProvider.get("taskManagerPollingInterval").orElse(String.valueOf(DEFAULT_TASK_POLLING_INTERVAL)));
         logger.info("running TaskManager {} with {} workers", this, parallelism);
         executor = Executors.newFixedThreadPool(parallelism);
         loops = IntStream.range(0, parallelism).mapToObj(i -> new TaskWorkerLoop(taskFactory, this, latch, pollingInterval)).collect(Collectors.toList());
@@ -189,19 +191,13 @@ public class TaskManagerMemory implements TaskManager, TaskSupplier {
     }
 
     @Override
-    public void close() throws IOException {
-        executor.shutdown();
+    public int getTerminationPollingInterval() {
+        return taskPollingIntervalMs;
     }
 
     @Override
-    public List<Task<?>> waitTasksToBeDone(int timeout, TimeUnit timeUnit) throws IOException {
-        return getTasks().stream().peek(taskView -> {
-            try {
-                taskView.getResult(timeout, timeUnit);
-            } catch (InterruptedException e) {
-                logger.error("getResult interrupted while waiting for result", e);
-            }
-        }).toList();
+    public void close() throws IOException {
+        executor.shutdown();
     }
 
     int numberOfExecutedTasks() {

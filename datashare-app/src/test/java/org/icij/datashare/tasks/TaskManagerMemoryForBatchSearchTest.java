@@ -140,7 +140,7 @@ public class TaskManagerMemoryForBatchSearchTest {
     @Before
     public void setUp() throws IOException {
         initMocks(this);
-        taskManager = new TaskManagerMemory(factory, new TaskRepositoryMemory(), new PropertiesProvider(), startLoop);
+        taskManager = new TaskManagerMemory(factory, new TaskRepositoryMemory(), new PropertiesProvider(Map.of("taskManagerPollingInterval", "1000")), startLoop);
         mockSearch = new MockSearch<>(indexer, Indexer.QueryBuilderSearcher.class);
 
         Task<?> taskView = new Task<>(testBatchSearch.uuid, BatchSearchRunner.class.getName(), local());
