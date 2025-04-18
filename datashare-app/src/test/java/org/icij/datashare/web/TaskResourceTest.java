@@ -37,8 +37,7 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import static java.util.stream.Collectors.toList;
 import static org.fest.assertions.Assertions.assertThat;
 import static org.fest.assertions.MapAssert.entry;
-import static org.icij.datashare.cli.DatashareCliOptions.DATA_DIR_OPT;
-import static org.icij.datashare.cli.DatashareCliOptions.REPORT_NAME_OPT;
+import static org.icij.datashare.cli.DatashareCliOptions.*;
 import static org.icij.datashare.json.JsonObjectMapper.MAPPER;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.any;
@@ -54,7 +53,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
     @Mock
     JooqRepository jooqRepository;
     private static final TestTaskUtils.DatashareTaskFactoryForTest taskFactory = mock(TestTaskUtils.DatashareTaskFactoryForTest.class);
-    private static final TaskManagerMemory taskManager = new TaskManagerMemory(taskFactory, new TaskRepositoryMemory(), new PropertiesProvider(Map.of("taskManagerPollingInterval", "500")));
+    private static final TaskManagerMemory taskManager = new TaskManagerMemory(taskFactory, new TaskRepositoryMemory(), new PropertiesProvider(Map.of(TASK_MANAGER_POLLING_INTERVAL_OPT, "500")));
 
     @Before
     public void setUp() {

@@ -1,6 +1,5 @@
 package org.icij.datashare.asynctasks;
 
-import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Consumer;
 import org.icij.datashare.asynctasks.bus.amqp.*;
@@ -17,7 +16,7 @@ import static java.util.Optional.ofNullable;
 import static java.util.stream.Collectors.toList;
 
 public class TaskManagerAmqp implements TaskManager {
-    protected static final int DEFAULT_TASK_POLLING_INTERVAL = 5000;
+    protected static final int DEFAULT_TASK_POLLING_INTERVAL_MS = 5000;
     private final TaskRepository tasks;
     private final RoutingStrategy routingStrategy;
     private final AmqpInterlocutor amqp;
@@ -33,7 +32,7 @@ public class TaskManagerAmqp implements TaskManager {
     }
 
     public TaskManagerAmqp(AmqpInterlocutor amqp, TaskRepository tasks, RoutingStrategy routingStrategy, Runnable eventCallback) throws IOException {
-        this(amqp, tasks, routingStrategy, eventCallback, DEFAULT_TASK_POLLING_INTERVAL);
+        this(amqp, tasks, routingStrategy, eventCallback, DEFAULT_TASK_POLLING_INTERVAL_MS);
     }
 
     public TaskManagerAmqp(AmqpInterlocutor amqp, TaskRepository tasks, RoutingStrategy routingStrategy, Runnable eventCallback, int taskPollingIntervalMs) throws IOException {

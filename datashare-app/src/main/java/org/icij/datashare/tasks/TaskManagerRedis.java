@@ -9,6 +9,8 @@ import org.icij.extract.redis.RedissonClientFactory;
 import org.icij.task.Options;
 import org.redisson.api.RedissonClient;
 
+import static org.icij.datashare.cli.DatashareCliOptions.TASK_MANAGER_POLLING_INTERVAL_OPT;
+
 @Singleton
 public class TaskManagerRedis extends org.icij.datashare.asynctasks.TaskManagerRedis {
 
@@ -16,13 +18,13 @@ public class TaskManagerRedis extends org.icij.datashare.asynctasks.TaskManagerR
     @Inject
     public TaskManagerRedis(RedissonClient redissonClient, PropertiesProvider propertiesProvider, TaskRepository taskRepository) {
         this(redissonClient, taskRepository, Utils.getRoutingStrategy(propertiesProvider), null,
-                Integer.parseInt(propertiesProvider.get("taskManagerPollingInterval").orElse(String.valueOf(DEFAULT_TASK_POLLING_INTERVAL))));
+                Integer.parseInt(propertiesProvider.get(TASK_MANAGER_POLLING_INTERVAL_OPT).orElse(String.valueOf(DEFAULT_TASK_POLLING_INTERVAL_MS))));
     }
 
     TaskManagerRedis(PropertiesProvider propertiesProvider, String taskMapName, Runnable eventCallback, int pollingIntervalMs) {
         this(new RedissonClientFactory().withOptions(Options.from(propertiesProvider.getProperties())).create(), taskMapName,
                 Utils.getRoutingStrategy(propertiesProvider), eventCallback,
-                Integer.parseInt(propertiesProvider.get("taskManagerPollingInterval").orElse(String.valueOf(DEFAULT_TASK_POLLING_INTERVAL))));
+                Integer.parseInt(propertiesProvider.get(TASK_MANAGER_POLLING_INTERVAL_OPT).orElse(String.valueOf(DEFAULT_TASK_POLLING_INTERVAL_MS))));
     }
 
     TaskManagerRedis(RedissonClient redissonClient, TaskRepository tasks, RoutingStrategy routingStrategy, Runnable eventCallback, int taskPollingIntervalMs) {

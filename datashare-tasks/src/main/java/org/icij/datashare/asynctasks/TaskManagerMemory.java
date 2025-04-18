@@ -24,7 +24,8 @@ import static java.util.stream.Collectors.toList;
 
 
 public class TaskManagerMemory implements TaskManager, TaskSupplier {
-    protected static final int DEFAULT_TASK_POLLING_INTERVAL = 5000;
+    protected static final int DEFAULT_TASK_POLLING_INTERVAL_MS = 5000;
+    protected static final int DEFAULT_POLLING_INTERVAL_SECONDS = 60;
     private final Logger logger = LoggerFactory.getLogger(getClass());
     private final ExecutorService executor;
     private final TaskRepository tasks;
@@ -42,7 +43,7 @@ public class TaskManagerMemory implements TaskManager, TaskSupplier {
         this.taskQueue = new LinkedBlockingQueue<>();
         int parallelism = parseInt(propertiesProvider.get("taskWorkers").orElse("1"));
         pollingInterval = Integer.parseInt(propertiesProvider.get("pollingInterval").orElse("60"));
-        taskPollingIntervalMs = Integer.parseInt(propertiesProvider.get("taskManagerPollingInterval").orElse(String.valueOf(DEFAULT_TASK_POLLING_INTERVAL)));
+        taskPollingIntervalMs = Integer.parseInt(propertiesProvider.get("taskManagerPollingIntervalMilliseconds").orElse(String.valueOf(DEFAULT_TASK_POLLING_INTERVAL_MS)));
         logger.info("running TaskManager {} with {} workers", this, parallelism);
         executor = Executors.newFixedThreadPool(parallelism);
         loops = IntStream.range(0, parallelism).mapToObj(i -> new TaskWorkerLoop(taskFactory, this, latch, pollingInterval)).collect(Collectors.toList());
