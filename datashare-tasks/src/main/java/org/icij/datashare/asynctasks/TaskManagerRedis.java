@@ -44,7 +44,7 @@ import static java.util.stream.Collectors.toList;
 public class TaskManagerRedis implements TaskManager {
     private final Runnable eventCallback; // for test
     public static final String EVENT_CHANNEL_NAME = "EVENT";
-    protected static final int DEFAULT_TASK_POLLING_INTERVAL = 5000;
+    protected static final int DEFAULT_TASK_POLLING_INTERVAL_MS = 5000;
     private final TaskRepository tasks;
     private final RTopic eventTopic;
     private final RedissonClient redissonClient;
@@ -56,7 +56,7 @@ public class TaskManagerRedis implements TaskManager {
     }
 
     public TaskManagerRedis(RedissonClient redissonClient, TaskRepository tasks, RoutingStrategy routingStrategy, Runnable eventCallback) {
-        this(redissonClient, tasks, routingStrategy, eventCallback, DEFAULT_TASK_POLLING_INTERVAL);
+        this(redissonClient, tasks, routingStrategy, eventCallback, DEFAULT_TASK_POLLING_INTERVAL_MS);
     }
 
     public TaskManagerRedis(RedissonClient redissonClient, TaskRepository tasks, RoutingStrategy routingStrategy, Runnable eventCallback, int taskPollingIntervalMs) {

@@ -28,6 +28,7 @@ import java.util.concurrent.TimeUnit;
 
 import static java.util.Collections.singletonList;
 import static org.fest.assertions.Assertions.assertThat;
+import static org.icij.datashare.cli.DatashareCliOptions.TASK_MANAGER_POLLING_INTERVAL_OPT;
 import static org.icij.datashare.text.DocumentBuilder.createDoc;
 import static org.icij.datashare.text.Project.project;
 import static org.icij.datashare.user.User.local;
@@ -140,7 +141,7 @@ public class TaskManagerMemoryForBatchSearchTest {
     @Before
     public void setUp() throws IOException {
         initMocks(this);
-        taskManager = new TaskManagerMemory(factory, new TaskRepositoryMemory(), new PropertiesProvider(Map.of("taskManagerPollingInterval", "1000")), startLoop);
+        taskManager = new TaskManagerMemory(factory, new TaskRepositoryMemory(), new PropertiesProvider(Map.of(TASK_MANAGER_POLLING_INTERVAL_OPT, "1000")), startLoop);
         mockSearch = new MockSearch<>(indexer, Indexer.QueryBuilderSearcher.class);
 
         Task<?> taskView = new Task<>(testBatchSearch.uuid, BatchSearchRunner.class.getName(), local());
