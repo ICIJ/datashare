@@ -19,15 +19,6 @@
       "type": "PLUGIN"
     },
     {
-      "id": "datashare-plugin-email-filter",
-      "name": "Email filter",
-      "description": "A Datashare plugin to add a new filter about emails.",
-      "url": "https://github.com/ICIJ/datashare-plugin-email-filter/archive/refs/tags/1.1.0.tar.gz",
-      "homepage": "https://github.com/ICIJ/datashare-plugin-email-filter",
-      "version": "1.1.0",
-      "type": "PLUGIN"
-    },
-    {
       "id": "datashare-plugin-sentence-case",
       "name": "Sentence Case",
       "description": "A Datashare plugin to add a sentence case button to the extracted text view.",
