@@ -2,11 +2,7 @@ package org.icij.datashare.tasks;
 
 import org.icij.datashare.CollectionUtils;
 import org.icij.datashare.PropertiesProvider;
-import org.icij.datashare.asynctasks.CancelException;
-import org.icij.datashare.asynctasks.Group;
-import org.icij.datashare.asynctasks.Task;
-import org.icij.datashare.asynctasks.TaskGroupType;
-import org.icij.datashare.asynctasks.TaskRepositoryMemory;
+import org.icij.datashare.asynctasks.*;
 import org.icij.datashare.batch.BatchSearch;
 import org.icij.datashare.batch.BatchSearchRecord;
 import org.icij.datashare.batch.BatchSearchRepository;
@@ -15,6 +11,7 @@ import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.time.DatashareTime;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.Mock;
 import sun.misc.Signal;
@@ -32,12 +29,7 @@ import static org.icij.datashare.cli.DatashareCliOptions.TASK_MANAGER_POLLING_IN
 import static org.icij.datashare.text.DocumentBuilder.createDoc;
 import static org.icij.datashare.text.Project.project;
 import static org.icij.datashare.user.User.local;
-import static org.mockito.Mockito.any;
-import static org.mockito.Mockito.anyString;
-import static org.mockito.Mockito.eq;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 import static org.mockito.MockitoAnnotations.initMocks;
 
 
@@ -121,6 +113,20 @@ public class TaskManagerMemoryForBatchSearchTest {
         taskManager.waitTasksToBeDone(1, TimeUnit.SECONDS);
 
         assertThat(taskManager.getTasks()).hasSize(2);
+    }
+
+    @Ignore
+    @Test(timeout = 5000)
+    public void test_batch_search_failure_should_return_task_error() throws Exception {
+        when(factory.createBatchSearchRunner(any(), any())).thenReturn(batchSearchRunner);
+        mockSearch.willThrow(new IOException("io exception"));
+
+        taskManager.startTask(new Task<>(testBatchSearch.uuid, BatchSearchRunner.class.getName(), local(), Map.of("batchRecord", new BatchSearchRecord(testBatchSearch))), new Group(TaskGroupType.Test));
+        taskManager.awaitTermination(1, TimeUnit.SECONDS);
+
+        verify(repository).setState(testBatchSearch.uuid, BatchSearch.State.RUNNING);
+        verify(repository).setState(eq(testBatchSearch.uuid), any(SearchException.class));
+        assertThat(taskManager.getTasks().get(0).getState()).isEqualTo(Task.State.ERROR);
     }
 
     @Test(timeout = 5000)

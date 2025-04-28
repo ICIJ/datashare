@@ -4,14 +4,9 @@ import co.elastic.clients.elasticsearch._types.ElasticsearchException;
 import com.google.inject.Inject;
 import com.google.inject.assistedinject.Assisted;
 import jakarta.json.JsonException;
-import java.util.concurrent.Callable;
-import java.util.function.Function;
 import org.icij.datashare.Entity;
 import org.icij.datashare.PropertiesProvider;
-import org.icij.datashare.asynctasks.CancelException;
-import org.icij.datashare.asynctasks.CancellableTask;
-import org.icij.datashare.asynctasks.Task;
-import org.icij.datashare.asynctasks.TaskGroup;
+import org.icij.datashare.asynctasks.*;
 import org.icij.datashare.batch.BatchSearch;
 import org.icij.datashare.batch.BatchSearchRecord;
 import org.icij.datashare.batch.BatchSearchRepository;
@@ -28,22 +23,15 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeoutException;
+import java.util.function.Function;
 
 import static java.lang.Integer.min;
 import static java.lang.Integer.parseInt;
 import static java.util.stream.Collectors.toList;
-import static org.icij.datashare.cli.DatashareCliOptions.BATCH_SEARCH_MAX_TIME_OPT;
-import static org.icij.datashare.cli.DatashareCliOptions.BATCH_SEARCH_SCROLL_DURATION_OPT;
-import static org.icij.datashare.cli.DatashareCliOptions.BATCH_SEARCH_SCROLL_SIZE_OPT;
-import static org.icij.datashare.cli.DatashareCliOptions.BATCH_THROTTLE_OPT;
-import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_BATCH_SEARCH_MAX_TIME;
-import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_BATCH_THROTTLE;
-import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_SCROLL_DURATION;
-import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_SCROLL_SIZE;
-import static org.icij.datashare.cli.DatashareCliOptions.SCROLL_SIZE_OPT;
-import org.icij.datashare.asynctasks.TaskGroupType;
+import static org.icij.datashare.cli.DatashareCliOptions.*;
 import static org.icij.datashare.text.ProjectProxy.asCommaConcatNames;
 
 @TaskGroup(TaskGroupType.Java)
@@ -156,11 +144,15 @@ public class BatchSearchRunner implements CancellableTask, UserTask, Callable<In
             logger.info("done batch search {} with success", batchSearch.uuid);
         } catch (ElasticsearchException esEx) {
             logger.error("ES exception while running batch " + taskView.id, esEx);
-            repository.setState(taskView.id, new SearchException(query,
-                    ElasticSearchAdapterException.createFrom(esEx)));
+            SearchException searchException = new SearchException(query,
+                    ElasticSearchAdapterException.createFrom(esEx));
+            repository.setState(taskView.id, searchException);
+            throw searchException;
         } catch (IOException | InterruptedException | JsonException ex) {
             logger.error("exception while running batch " + taskView.id, ex);
-            repository.setState(taskView.id, new SearchException(query, ex));
+            SearchException searchException = new SearchException(query, ex);
+            repository.setState(taskView.id, searchException);
+            throw searchException;
         }
         return numberOfResults;
     }
