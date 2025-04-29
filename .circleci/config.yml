@@ -299,10 +299,16 @@ jobs:
       - restore_cache:
           keys:
             - v1-dependencies-{{ checksum "pom.xml" }}
-
       - run:
-          name: make app link to front
-          command: cp -R /tmp/datashare-client/dist /tmp/datashare/app
+          name: Download the legacy front
+          command: |
+            mkdir -p /tmp/datashare/app
+            curl -sL https://github.com/ICIJ/datashare-client/releases/download/19.8.10/datashare-client-19.8.10.tgz | tar xvz -C /tmp/datashare/app
+      - run:
+          name: make app link to front from a "next" subfolder
+          command: 
+            rm -Rf /tmp/datashare/app/next
+            cp -R /tmp/datashare-client/dist /tmp/datashare/app/next
       - run:
           name: make dist including frontend
           command: mvn -pl datashare-dist package
