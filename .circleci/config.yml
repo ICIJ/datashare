@@ -172,38 +172,6 @@ jobs:
           name: Push changes to the doc
           command: git -C ~/datashare-docs push origin main
 
-  package_back:
-    docker:
-      - image: cimg/openjdk:17.0.11
-    working_directory: /tmp/datashare
-    environment:
-      MAVEN_OPTS: "-Xms512m -Xmx512m -Xss10M"
-    steps:
-      - attach_workspace:
-          at: /tmp/datashare-client
-      - checkout
-
-      - restore_cache:
-          keys:
-            - v1-dependencies-{{ checksum "pom.xml" }}
-
-      - run:
-          name: make app link to front
-          command: cp -R /tmp/datashare-client/dist /tmp/datashare/app
-      - run:
-          name: make dist including frontend
-          command: mvn -pl datashare-dist package
-      - run:
-          name: make tarball for non debian linux
-          command: |
-            cp /tmp/datashare/datashare-dist/src/main/deb/bin/datashare /tmp/datashare/datashare-dist/target
-            cd /tmp/datashare/datashare-dist/target
-            tar cvzf datashare-dist-${CIRCLE_TAG}.tgz datashare datashare-dist-${CIRCLE_TAG}-all.jar
-      - persist_to_workspace:
-          root: /tmp/datashare
-          paths:
-            - datashare-dist
-
   deploy_back:
     docker:
       - image: cimg/openjdk:17.0.11
@@ -224,7 +192,6 @@ jobs:
             curl -X POST -s -m 120 -H "Accept: application/vnd.github.v3+json" -H "Authorization: token $GITHUB_TOKEN" -H "Content-Type: application/json" --data-binary "@datashare_index_mappings.json" "$upload_url?name=datashare_index_mappings.json&label=datashare_index_mappings.json"
             curl -X POST -s -m 120 -H "Accept: application/vnd.github.v3+json" -H "Authorization: token $GITHUB_TOKEN" -H "Content-Type: application/json" --data-binary "@datashare_index_settings.json" "$upload_url?name=datashare_index_settings.json&label=datashare_index_settings.json"
             curl -X POST -s -m 120 -H "Accept: application/vnd.github.v3+json" -H "Authorization: token $GITHUB_TOKEN" -H "Content-Type: application/json" --data-binary "@datashare_index_settings_windows.json" "$upload_url?name=datashare_index_settings_windows.json&label=datashare_index_settings_windows.json"
-
 
   build_front:
     resource_class: large
@@ -290,21 +257,6 @@ jobs:
           command: |
             cd /tmp/datashare-client
             yarn build --outDir dist/
-      - run:
-          name: switch to new design branch
-          command: |
-            cd /tmp/datashare-client
-            git switch feat/new-design
-      - run:
-          name: make install again (package.json changed)
-          command: |
-            cd /tmp/datashare-client
-            make install
-      - run:
-          name: build the front with the new design for distribution
-          command: |
-            cd /tmp/datashare-client
-            yarn build --outDir dist/next/
       - persist_to_workspace:
           root: /tmp/datashare-client
           paths:
@@ -333,6 +285,37 @@ jobs:
             curl -X POST -s -m 120 -H "Accept: application/vnd.github.v3+json" -H "Authorization: token $GITHUB_TOKEN" -H "Content-Type: application/zip" --data-binary "@/tmp/datashare/datashare-client-${CIRCLE_TAG}.zip" "$upload_url?name=datashare-client-${CIRCLE_TAG}.zip&label=datashare-client-${CIRCLE_TAG}.zip"
             curl -X POST -s -m 120 -H "Accept: application/vnd.github.v3+json" -H "Authorization: token $GITHUB_TOKEN" -H "Content-Type: application/gzip" --data-binary "@/tmp/datashare/datashare-client-${CIRCLE_TAG}.tgz" "$upload_url?name=datashare-client-${CIRCLE_TAG}.tgz&label=datashare-client-${CIRCLE_TAG}.tgz"
 
+  package_back:
+    docker:
+      - image: cimg/openjdk:17.0.11
+    working_directory: /tmp/datashare
+    environment:
+      MAVEN_OPTS: "-Xms512m -Xmx512m -Xss10M"
+    steps:
+      - attach_workspace:
+          at: /tmp/datashare-client
+      - checkout
+
+      - restore_cache:
+          keys:
+            - v1-dependencies-{{ checksum "pom.xml" }}
+
+      - run:
+          name: make app link to front
+          command: cp -R /tmp/datashare-client/dist /tmp/datashare/app
+      - run:
+          name: make dist including frontend
+          command: mvn -pl datashare-dist package
+      - run:
+          name: make tarball for non debian linux
+          command: |
+            cp /tmp/datashare/datashare-dist/src/main/deb/bin/datashare /tmp/datashare/datashare-dist/target
+            cd /tmp/datashare/datashare-dist/target
+            tar cvzf datashare-dist-${CIRCLE_TAG}.tgz datashare datashare-dist-${CIRCLE_TAG}-all.jar
+      - persist_to_workspace:
+          root: /tmp/datashare
+          paths:
+            - datashare-dist
 
   build_docker:
     docker:
@@ -359,7 +342,6 @@ jobs:
               --platform linux/amd64,linux/arm64 \
               -t icij/datashare:${CIRCLE_TAG} \
               --push .
-
 
   build_installers:
     resource_class: large
@@ -529,15 +511,6 @@ workflows:
           filters:
               tags:
                   only: /[0-9.]*/
-      - package_back:
-          requires:
-            - build_back
-            - build_front
-          filters:
-            tags:
-              only: /^[0-9]+\..*/
-            branches:
-              ignore: /.*/
       - deploy_back:
           requires:
             - package_back
@@ -556,6 +529,15 @@ workflows:
                   ignore: /.*/
       - deploy_front:
           requires:
+            - build_front
+          filters:
+            tags:
+              only: /^[0-9]+\..*/
+            branches:
+              ignore: /.*/
+      - package_back:
+          requires:
+            - build_back
             - build_front
           filters:
             tags:
