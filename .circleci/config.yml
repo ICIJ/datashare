@@ -532,8 +532,11 @@ workflows:
             branches:
               ignore: /.*/
       - build_front:
-          requires:
-            - build_back
+          filters:
+            tags:
+              only: /^[0-9]+\..*/
+            branches:
+              ignore: /.*/
       - deploy_front:
           requires:
             - build_front
