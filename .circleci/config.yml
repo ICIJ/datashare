@@ -564,7 +564,7 @@ workflows:
                   ignore: /.*/
       - build_installers:
           requires:
-            - build_docker
+            - package_back
           filters:
               tags:
                   only: /^[0-9]+\..*/
