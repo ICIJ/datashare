@@ -50,7 +50,7 @@ jobs:
           - v1-dependencies-{{ checksum "pom.xml" }}
 
       - run:
-          name: create a bootstrap datashare DB for jooq code generation
+          name: Create a bootstrap datashare DB for jooq code generation
           command: |
             sudo sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt/ $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
             wget --no-check-certificate --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo apt-key add -
@@ -70,7 +70,7 @@ jobs:
       - run: mvn -pl datashare-db liquibase:update
       - run: mvn test
       - run:
-          name: make install for app and corenlp modules
+          name: Make install for app and corenlp modules
           command: mvn -s .circleci/maven-release-settings.xml -pl datashare-app -pl datashare-nlp-corenlp -am install -Dmaven.test.skip=true
       - when:
           condition:
@@ -79,7 +79,7 @@ jobs:
             - run: .circleci/publish_doc_if_necessary.sh
       - run: mvn -pl datashare-dist package
       - run:
-          name: acceptance test for embedded mode
+          name: Acceptance test for embedded mode
           command: |
             VERSION=$(head pom.xml | grep '<version>[0-9.]\+' | sed 's/<version>\([0-9.]\+\)<\/version>/\1/g' | tr -d '[:space:]')
             DS_ELASTICSEARCH_DATA_PATH=$HOME DS_ELASTICSEARCH_HTTP_PORT=9222 DS_ELASTICSEARCH_TRANSPORT_PORT=9333 java -cp datashare-dist/target/datashare-dist-${VERSION}-all.jar org.icij.datashare.text.indexing.elasticsearch.EsEmbeddedServer -- 5
@@ -186,7 +186,7 @@ jobs:
       - attach_workspace:
           at: /tmp/datashare
       - run:
-          name: deploy datashare dist and es mappings/settings jar to github release
+          name: Deploy datashare dist and es mappings/settings jar to github release
           command: |
             upload_url=$(curl -X POST -s -H "Accept: application/vnd.github.v3+json" -H "Authorization: token $GITHUB_TOKEN" -d "{\"tag_name\":\"${CIRCLE_TAG}\", \"name\":\"${CIRCLE_TAG}\",\"body\":\"release ${CIRCLE_TAG}\"}" "https://api.github.com/repos/ICIJ/datashare/releases" | jq -r '.upload_url')
             upload_url="${upload_url%\{*}"
@@ -225,17 +225,17 @@ jobs:
           fingerprints:
             - "b3:e6:7c:f3:86:9e:e9:88:d1:cf:22:8c:97:3e:93:54"
       - run:
-          name: clone
+          name: Clone
           command: |
             ssh-keyscan github.com >> ~/.ssh/known_hosts
             git clone git@github.com:ICIJ/datashare-client.git
       - run:
-          name: release client on GitHub
+          name: Release client on GitHub
           command: |
             upload_url=$(curl -X POST -s -H "Accept: application/vnd.github.v3+json" -H "Authorization: token $GITHUB_TOKEN" -d "{ \"tag_name\": \"${CIRCLE_TAG}\", \"target_commitish\": \"main\", \"name\": \"${CIRCLE_TAG}\", \"body\": \"Released by Circle CI\", \"draft\": false, \"prerelease\": false }" "https://api.github.com/repos/ICIJ/datashare-client/releases")
             echo $upload_url > /tmp/datashare-client/datashare-client.url
       - run:
-          name: checkout tag
+          name: Checkout tag
           command: |
             cd datashare-client
             git pull origin main --tags
@@ -245,7 +245,7 @@ jobs:
             - dependency-cache-{{ checksum "/tmp/datashare-client/package.json" }}
             - dependency-cache-
       - run:
-          name: make install
+          name: Make install
           command: |
             cd /tmp/datashare-client
             make install
@@ -254,12 +254,12 @@ jobs:
           paths:
             - /tmp/datashare-client/node_modules
       - run:
-          name: run tests
+          name: Run tests
           command: |
             cd /tmp/datashare-client
             yarn test:unit --silent --minWorkers 1 --maxWorkers 2  
       - run:
-          name: build the front for distribution
+          name: Build the front for distribution
           command: |
             cd /tmp/datashare-client
             yarn build --outDir dist/
@@ -277,7 +277,7 @@ jobs:
       - attach_workspace:
           at: /tmp/datashare
       - run:
-          name: deploy datashare-client dist to github release
+          name: Deploy datashare-client dist to github release
           command: |
             cd /tmp/datashare/dist
             tar czf ../datashare-client-${CIRCLE_TAG}.tgz .
@@ -306,20 +306,21 @@ jobs:
           keys:
             - v1-dependencies-{{ checksum "pom.xml" }}
       - run:
-          name: download the legacy front from a past release
+          name: Download the legacy front from a past release
           command: |
             mkdir -p /tmp/datashare/app
             curl -sL https://github.com/ICIJ/datashare-client/releases/download/19.8.10/datashare-client-19.8.10.tgz | tar xvz -C /tmp/datashare/app
+
       - run:
-          name: make app link to front from a "next" subfolder
+          name: Make app link to front from a "next" subfolder
           command: |
             rm -Rf /tmp/datashare/app/next
             cp -R /tmp/datashare-client/dist /tmp/datashare/app/next
       - run:
-          name: make dist including frontend
+          name: Make dist including frontend
           command: mvn -pl datashare-dist package
       - run:
-          name: make tarball for non debian linux
+          name: Make tarball for non debian linux
           command: |
             cp /tmp/datashare/datashare-dist/src/main/deb/bin/datashare /tmp/datashare/datashare-dist/target
             cd /tmp/datashare/datashare-dist/target
