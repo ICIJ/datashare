@@ -163,6 +163,14 @@ public class DocumentResource {
     }
 
     @Get("/:project/documents/content/pages/:id?routing=:routing")
+    @Operation(description = "Fetches document extracted text paginated.",
+            parameters = {
+                    @Parameter(name = "project", description = "the project id", in = ParameterIn.PATH),
+                    @Parameter(name = "id", description = "the document id", in = ParameterIn.PATH),
+                    @Parameter(name = "routing", description = "routing key if not a root document", in = ParameterIn.QUERY)
+            }
+    )
+    @ApiResponse(responseCode = "200", description = "JSON containing text pages array",  useReturnTypeSchema = true)
     public Map<Integer, String> getContentByPage(final String project, final String id, final String routing) throws IOException {
         Document doc = indexer.get(project, id, routing);
 
