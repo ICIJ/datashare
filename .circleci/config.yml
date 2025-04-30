@@ -11,11 +11,14 @@ jobs:
     resource_class: large
     docker:
       - image: cimg/openjdk:17.0.11
-      - image: docker.elastic.co/elasticsearch/elasticsearch:7.9.1
+      - image: docker.elastic.co/elasticsearch/elasticsearch:7.17.7
         environment:
-          - "discovery.type=single-node"
-          - "cluster.name=datashare"
-          - "ES_JAVA_OPTS=-Xms256m -Xmx256m"
+          ES_JAVA_OPTS: -Xms256m -Xmx256m
+          discovery.type: single-node
+          cluster.name: datashare
+          http.cors.enabled: "true"
+          http.cors.allow-origin: "*"
+          http.cors.allow-methods: OPTIONS, HEAD, GET, POST, PUT, DELETE
         name: elasticsearch
       - image: redis:4.0.1-alpine
         name: redis
@@ -88,11 +91,14 @@ jobs:
   publish_doc:
     docker:
       - image: cimg/openjdk:17.0.11
-      - image: docker.elastic.co/elasticsearch/elasticsearch:7.9.1
+      - image: docker.elastic.co/elasticsearch/elasticsearch:7.17.7
         environment:
-           - "discovery.type=single-node"
-           - "cluster.name=datashare"
-           - "ES_JAVA_OPTS=-Xms256m -Xmx256m"
+          ES_JAVA_OPTS: -Xms256m -Xmx256m
+          discovery.type: single-node
+          cluster.name: datashare
+          http.cors.enabled: "true"
+          http.cors.allow-origin: "*"
+          http.cors.allow-methods: OPTIONS, HEAD, GET, POST, PUT, DELETE
         name: elasticsearch
       - image: postgres:15
         name: postgres
@@ -197,14 +203,14 @@ jobs:
     resource_class: large
     docker:
       - image: cimg/node:20.18
-      - image: docker.elastic.co/elasticsearch/elasticsearch:7.9.1
+      - image: docker.elastic.co/elasticsearch/elasticsearch:7.17.7
         environment:
-          - "discovery.type=single-node"
-          - "cluster.name=datashare"
-          - "ES_JAVA_OPTS=-Xms256m -Xmx256m"
-          - "http.cors.enabled=true"
-          - "http.cors.allow-origin=*"
-          - "http.cors.allow-methods=OPTIONS, HEAD, GET, POST, PUT, DELETE"
+          ES_JAVA_OPTS: -Xms256m -Xmx256m
+          discovery.type: single-node
+          cluster.name: datashare
+          http.cors.enabled: "true"
+          http.cors.allow-origin: "*"
+          http.cors.allow-methods: OPTIONS, HEAD, GET, POST, PUT, DELETE
         name: elasticsearch
     working_directory: /tmp
     steps:
@@ -528,11 +534,6 @@ workflows:
       - build_front:
           requires:
             - build_back
-          filters:
-              tags:
-                  only: /^[0-9]+\..*/
-              branches:
-                  ignore: /.*/
       - deploy_front:
           requires:
             - build_front
