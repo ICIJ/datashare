@@ -65,6 +65,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.Set;
+import java.util.function.Predicate;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -152,8 +153,12 @@ public class TaskResource {
     @ApiResponse(responseCode = "200", description = "returns the task from its id", useReturnTypeSchema = true)
     @ApiResponse(responseCode = "404", description = "returns 404 if the task doesn't exist")
     @Get("/:id")
-    public Task<?> getTask(@Parameter(name = "id", description = "task id", in = ParameterIn.PATH) String id) throws IOException {
-        return notFoundIfUnknown(() -> taskManager.getTask(id));
+    public Task<?> getTask(@Parameter(name = "id", description = "task id", in = ParameterIn.PATH) String id, Context context) throws IOException {
+        User user = (User) context.currentUser();
+        List<BatchSearchRecord> batchSearchRecords = batchSearchRepository.getRecords(user, user.getProjectNames());
+        List<Task<?>> tasks = taskManager.getTasks(user, batchSearchRecords);
+        Predicate<Task<?>> predicate = t -> t.getId().equals(id);
+        return tasks.stream().filter(predicate).findFirst().orElseThrow(NotFoundException::new);
     }
 
     @Operation(description = "Create a task with JSON body",
