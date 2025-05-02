@@ -1,15 +1,24 @@
 package org.icij.datashare.asynctasks;
 
+import static java.util.Arrays.asList;
 import static org.fest.assertions.Assertions.assertThat;
+import static org.icij.datashare.text.Project.project;
 
 import java.io.IOException;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Pattern;
+
 import org.icij.datashare.PropertiesProvider;
+import org.icij.datashare.batch.BatchSearchRecord;
+import org.icij.datashare.batch.WebQueryPagination;
 import org.icij.datashare.test.LogbackCapturingRule;
+import org.icij.datashare.text.Project;
+import org.icij.datashare.text.ProjectProxy;
 import org.icij.datashare.time.DatashareTime;
 import org.icij.datashare.user.User;
 import org.junit.After;
@@ -129,6 +138,63 @@ public class TaskManagerMemoryTest {
         assertThat(taskManager.getTasks()).hasSize(1);
         assertThat(taskManager.getTask(task.id)).isNotNull();
     }
+
+    @Test
+    public void test_get_one_proxy_task() throws IOException {
+        String uri = "/?q=&from=0&size=25&sort=relevance&indices=test&field=all";
+        User user = User.local();
+        List<ProjectProxy> projects = List.of(project("project"));
+        BatchSearchRecord batchSearchRecord = new BatchSearchRecord(projects, "name", "description", 123, new Date(), uri);
+
+        List<Task<?>> tasks = taskManager.getTasks(user, Map.of(), new WebQueryPagination(), List.of(batchSearchRecord));
+        assertThat(tasks).hasSize(1);
+        assertThat(tasks.get(0).id).isEqualTo(batchSearchRecord.uuid);
+        assertThat(tasks.get(0).getUser()).isEqualTo(user);
+    }
+
+    @Test
+    public void test_get_tasks_and_proxy_task() throws IOException {
+        String uri = "/?q=&from=0&size=25&sort=relevance&indices=test&field=all";
+        User user = User.local();
+        List<ProjectProxy> projects = List.of(project("project"));
+        BatchSearchRecord batchSearchRecord = new BatchSearchRecord(projects, "name", "description", 123, new Date(), uri);
+        Task<String> task = new Task<>("name", User.local(), new HashMap<>());
+        taskManager.insert(task, null);
+
+        List<Task<?>> tasks = taskManager.getTasks(user, Map.of(), new WebQueryPagination(), List.of(batchSearchRecord));
+        assertThat(tasks).hasSize(2);
+        assertThat(tasks.get(0).id).isEqualTo(batchSearchRecord.uuid);
+        assertThat(tasks.get(0).getUser()).isEqualTo(user);
+    }
+
+    @Test
+    public void test_get_unique_proxy_task() throws IOException {
+        String uri = "/?q=&from=0&size=25&sort=relevance&indices=test&field=all";
+        User user = User.local();
+        List<ProjectProxy> projects = List.of(project("project"));
+        BatchSearchRecord batchSearchRecord = new BatchSearchRecord(projects, "name", "description", 123, new Date(), uri);
+        List<BatchSearchRecord> batchSearchRecords = asList(batchSearchRecord, batchSearchRecord);
+
+        List<Task<?>> tasks = taskManager.getTasks(user, Map.of(), new WebQueryPagination(), batchSearchRecords);
+        assertThat(tasks).hasSize(1);
+        assertThat(tasks.get(0).name).isEqualTo("org.icij.datashare.tasks.BatchSearchRunnerProxy");
+    }
+
+    @Test
+    public void test_get_unique_proxy_task_not_in_priority() throws IOException {
+        String uri = "/?q=&from=0&size=25&sort=relevance&indices=test&field=all";
+        User user = User.local();
+        List<ProjectProxy> projects = List.of(project("project"));
+        BatchSearchRecord batchSearchRecord = new BatchSearchRecord(projects, "name", "description", 123, new Date(), uri);
+
+        Task<String> task = new Task<>(batchSearchRecord.uuid, "name", User.local());
+        taskManager.insert(task, null);
+
+        List<Task<?>> tasks = taskManager.getTasks(user, Map.of(), new WebQueryPagination(), List.of(batchSearchRecord));
+        assertThat(tasks).hasSize(1);
+        assertThat(tasks.get(0).name).isEqualTo("name");
+    }
+
 
     @Test
     public void test_update_task() throws TaskAlreadyExists, IOException, UnknownTask {
