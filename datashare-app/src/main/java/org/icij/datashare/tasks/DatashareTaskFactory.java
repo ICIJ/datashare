@@ -1,7 +1,6 @@
 package org.icij.datashare.tasks;
 
 import java.util.LinkedList;
-import java.util.List;
 import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.user.User;
 
