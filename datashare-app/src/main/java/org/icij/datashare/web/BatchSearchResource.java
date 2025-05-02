@@ -26,9 +26,7 @@ import java.nio.file.Path;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import static java.lang.Integer.parseInt;
 import static java.lang.String.format;
-import static java.util.Arrays.stream;
 import static java.util.Optional.ofNullable;
 import static net.codestory.http.payload.Payload.*;
 import static org.icij.datashare.function.ThrowingFunctions.parseBoolean;
