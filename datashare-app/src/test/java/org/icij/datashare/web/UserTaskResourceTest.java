@@ -1,6 +1,7 @@
 package org.icij.datashare.web;
 
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.Map;
 import java.util.function.Function;
 import net.codestory.http.filters.basic.BasicAuthFilter;
@@ -10,6 +11,7 @@ import org.icij.datashare.asynctasks.TaskGroup;
 import org.icij.datashare.asynctasks.TaskGroupType;
 import org.icij.datashare.asynctasks.TaskRepositoryMemory;
 import org.icij.datashare.asynctasks.bus.amqp.UriResult;
+import org.icij.datashare.batch.BatchSearchRepository;
 import org.icij.datashare.tasks.DatashareTaskFactory;
 import org.icij.datashare.session.DatashareUser;
 import org.icij.datashare.tasks.*;
@@ -17,7 +19,9 @@ import org.icij.datashare.user.User;
 import org.icij.datashare.user.UserTask;
 import org.icij.datashare.web.testhelpers.AbstractProdWebServerTest;
 import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mock;
 
 import java.io.File;
 import java.io.IOException;
@@ -32,9 +36,20 @@ import static org.icij.datashare.user.User.localUser;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import static org.mockito.MockitoAnnotations.initMocks;
 
 public class UserTaskResourceTest extends AbstractProdWebServerTest {
     private TaskManagerMemory taskManager;
+
+    @Mock
+    BatchSearchRepository batchSearchRepository;
+
+    @Before
+    public void setUp() {
+        initMocks(this);
+        when(batchSearchRepository.getRecords(any(), any())).thenReturn(new ArrayList<>());
+    }
+
 
     @After
     public void tearDown() throws IOException {
@@ -178,15 +193,17 @@ public class UserTaskResourceTest extends AbstractProdWebServerTest {
         when(taskFactory.createDummyUserTask(any(), any())).thenReturn((DummyUserTask<Serializable>) userTask);
         setupAppWith(taskFactory, userLogins);
     }
+
     private void setupAppWith(SleepingUserTask c1, SleepingUserTask c2, String... userLogins) {
         DatashareTaskFactoryForTest taskFactory = mock(DatashareTaskFactoryForTest.class);
         when(taskFactory.createSleepingUserTask(any(), any())).thenReturn(c1, c2);
         setupAppWith(taskFactory, userLogins);
     }
+
     private void setupAppWith(DatashareTaskFactory taskFactory, String... userLogins) {
         final PropertiesProvider propertiesProvider = new PropertiesProvider(Map.of("mode", "LOCAL"));
         taskManager = new TaskManagerMemory(taskFactory, new TaskRepositoryMemory(), new PropertiesProvider());
-        configure(routes -> routes.add(new TaskResource(taskFactory, taskManager, propertiesProvider, null))
+        configure(routes -> routes.add(new TaskResource(taskFactory, taskManager, propertiesProvider, batchSearchRepository))
                 .filter(new BasicAuthFilter("/", "ds", DatashareUser.users(userLogins))));
     }
 
