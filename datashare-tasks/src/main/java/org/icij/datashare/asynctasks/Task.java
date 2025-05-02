@@ -104,6 +104,11 @@ public class Task<V extends Serializable> extends Event implements Entity, Compa
         }
     }
 
+    public void setState(State state) {
+        this.state = state;
+        ofNullable(stateLatch).ifPresent(sl -> sl.setTaskState(state));
+    }
+
     public void setResult(TaskResult<V> result) {
         synchronized (lock) {
             this.result =  result;
@@ -246,11 +251,6 @@ public class Task<V extends Serializable> extends Event implements Entity, Compa
 
     void setLatch(StateLatch stateLatch) {
         this.stateLatch = stateLatch;
-    }
-
-    private void setState(State state) {
-        this.state = state;
-        ofNullable(stateLatch).ifPresent(sl -> sl.setTaskState(state));
     }
 
     private static Map<String, Object> addTo(Map<String, Object> properties, User user) {
