@@ -89,6 +89,10 @@ public interface TaskManager extends Closeable {
         return getFilteredTaskStream(filters, taskStream).skip(pagination.from).limit(pagination.size).collect(toList());
     }
 
+    default List<Task<?>> getTasks(User user, List<BatchSearchRecord> batchSearchRecords) throws IOException {
+        return getTasks(user, Map.of(), new WebQueryPagination(), batchSearchRecords);
+    }
+
 
     default boolean awaitTermination(int timeout, TimeUnit timeUnit) throws InterruptedException, IOException {
         return !waitTasksToBeDone(timeout, timeUnit).isEmpty();
