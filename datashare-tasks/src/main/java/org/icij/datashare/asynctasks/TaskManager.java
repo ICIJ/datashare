@@ -1,10 +1,12 @@
 package org.icij.datashare.asynctasks;
 
+import org.apache.commons.collections4.ListUtils;
 import org.icij.datashare.asynctasks.bus.amqp.CancelledEvent;
 import org.icij.datashare.asynctasks.bus.amqp.ErrorEvent;
 import org.icij.datashare.asynctasks.bus.amqp.ProgressEvent;
 import org.icij.datashare.asynctasks.bus.amqp.ResultEvent;
 import org.icij.datashare.asynctasks.bus.amqp.TaskEvent;
+import org.icij.datashare.batch.BatchSearchRecord;
 import org.icij.datashare.batch.WebQueryPagination;
 import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.user.User;
@@ -14,11 +16,15 @@ import org.slf4j.LoggerFactory;
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.EnumMap;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static java.util.stream.Collectors.toList;
@@ -45,6 +51,7 @@ public interface TaskManager extends Closeable {
     boolean getHealth() throws IOException;
 
     int getTerminationPollingInterval();
+
     default List<Task<?>> getTasks(User user) throws IOException {
         return getTasks(user, new HashMap<>(), new WebQueryPagination());
     }
@@ -58,6 +65,31 @@ public interface TaskManager extends Closeable {
         taskStream = getFilteredTaskStream(filters, taskStream);
         return taskStream.filter(t -> user.equals(t.getUser())).skip(pagination.from).limit(pagination.size).collect(toList());
     }
+
+    default List<Task<?>> getTasks(User user, Map<String, Pattern> filters, WebQueryPagination pagination, List<BatchSearchRecord> batchSearchRecords) throws IOException {
+        // Filter the task to only get the one launched by the current user
+        List<Task<?>> userTasks = getTasks().stream().filter(t -> user.equals(t.getUser())).toList();
+        // Convert the received batch search records to "proxy tasks"
+        List<? extends Task<?>> batchSearchTasks = batchSearchRecords.stream().map(TaskManager::taskify).toList();
+        // Merge the to list of tasks and deduplicate them by id
+        List<Task<?>> tasks = new ArrayList<>(ListUtils.union(userTasks, batchSearchTasks)
+                .stream()
+                .collect(Collectors.toMap(
+                        // We deduplicate tasks by id
+                        task -> (String) task.getId(),
+                        task -> task,
+                        // Get the first in priority
+                        (first, second) -> first,
+                        LinkedHashMap::new
+                ))
+                .values());
+        // Sort/order the tasks together
+        Stream<Task<?>> taskStream = tasks.stream().sorted(new Task.Comparator(pagination.sort, pagination.order));
+        // Finally, filter then paginate the tasks
+        return getFilteredTaskStream(filters, taskStream).skip(pagination.from).limit(pagination.size).collect(toList());
+    }
+
+
     default boolean awaitTermination(int timeout, TimeUnit timeUnit) throws InterruptedException, IOException {
         return !waitTasksToBeDone(timeout, timeUnit).isEmpty();
     }
@@ -261,5 +293,25 @@ public interface TaskManager extends Closeable {
         public TaskEventHandlingException(Exception cause) {
             super(cause);
         }
+    }
+
+    static Task<?> taskify(BatchSearchRecord batchSearchRecord) {
+        String name = "org.icij.datashare.tasks.BatchSearchRunnerProxy";
+        Map<String, Object> batchRecord = Map.of("batchRecord", batchSearchRecord);
+        Task<Integer> task = new Task<>(batchSearchRecord.uuid, name, batchSearchRecord.user, batchRecord);
+        // Build a state map between task and batch search record
+        Map<BatchSearchRecord.State, Task.State> stateMap = new EnumMap<>(BatchSearchRecord.State.class);
+        stateMap.put(BatchSearchRecord.State.QUEUED, Task.State.QUEUED);
+        stateMap.put(BatchSearchRecord.State.RUNNING, Task.State.RUNNING);
+        stateMap.put(BatchSearchRecord.State.SUCCESS, Task.State.DONE);
+        stateMap.put(BatchSearchRecord.State.FAILURE, Task.State.ERROR);
+        // Set the task state to the same state as the batch search record
+        task.setState(stateMap.get(batchSearchRecord.state));
+        // Set the task result
+        TaskResult<Integer> result = new TaskResult<>(batchSearchRecord.nbResults);
+        task.setResult(result);
+        // Set the correct creation date
+        task.setCreatedAt(batchSearchRecord.date);
+        return task;
     }
 }
