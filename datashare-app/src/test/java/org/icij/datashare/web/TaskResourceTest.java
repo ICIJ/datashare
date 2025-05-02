@@ -8,6 +8,7 @@ import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.asynctasks.TaskRepositoryMemory;
 import org.icij.datashare.asynctasks.bus.amqp.TaskCreation;
+import org.icij.datashare.batch.BatchSearchRepository;
 import org.icij.datashare.db.JooqRepository;
 import org.icij.datashare.extension.PipelineRegistry;
 import org.icij.datashare.nlp.EmailPipeline;
@@ -52,6 +53,9 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
     public DatashareTimeRule time = new DatashareTimeRule("2021-07-07T12:23:34Z");
     @Mock
     JooqRepository jooqRepository;
+    @Mock
+    BatchSearchRepository batchSearchRepository;
+
     private static final TestTaskUtils.DatashareTaskFactoryForTest taskFactory = mock(TestTaskUtils.DatashareTaskFactoryForTest.class);
     private static final TaskManagerMemory taskManager = new TaskManagerMemory(taskFactory, new TaskRepositoryMemory(), new PropertiesProvider(Map.of(TASK_MANAGER_POLLING_INTERVAL_OPT, "500")));
 
@@ -59,10 +63,11 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
     public void setUp() {
         initMocks(this);
         when(jooqRepository.getProjects()).thenReturn(new ArrayList<>());
+        when(batchSearchRepository.getRecords(any(), any())).thenReturn(new ArrayList<>());
         PipelineRegistry pipelineRegistry = new PipelineRegistry(getDefaultPropertiesProvider());
         pipelineRegistry.register(EmailPipeline.class);
         LocalUserFilter localUserFilter = new LocalUserFilter(getDefaultPropertiesProvider(), jooqRepository);
-        configure(routes -> routes.add(new TaskResource(taskFactory, taskManager, getDefaultPropertiesProvider(), null)).filter(localUserFilter));
+        configure(routes -> routes.add(new TaskResource(taskFactory, taskManager, getDefaultPropertiesProvider(), batchSearchRepository)).filter(localUserFilter));
         TestTaskUtils.init(taskFactory);
     }
 
