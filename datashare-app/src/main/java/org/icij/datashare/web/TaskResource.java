@@ -143,7 +143,9 @@ public class TaskResource {
                 .stream()
                 .filter(not(paginationFields::contains))
                 .collect(toMap(s -> s, s -> Pattern.compile(String.format(".*%s.*", context.get(s)))));
-        return taskManager.getTasks((User) context.currentUser(), filters, pagination);
+        User user = (User) context.currentUser();
+        List<BatchSearchRecord> batchSearchRecords = batchSearchRepository.getRecords(user, user.getProjectNames());
+        return taskManager.getTasks(user, filters, pagination, batchSearchRecords);
     }
 
     @Operation(description = "Gets one task with its id.")
