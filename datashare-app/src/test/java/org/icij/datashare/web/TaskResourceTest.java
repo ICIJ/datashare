@@ -89,6 +89,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
     @Test
     public void test_get_tasks_paginated_with_zero_tasks() {
         get("/api/task?size=10").should().haveType("application/json")
+                .contain("\"count\":0")
                 .contain("\"total\":0")
                 .contain("\"from\":0")
                 .contain("\"size\":10");
@@ -101,6 +102,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         post("/api/task/batchUpdate/index/" + subpath, body).should().haveType("application/json");
 
         get("/api/task?size=4").should().haveType("application/json")
+                .contain("\"count\":2")
                 .contain("\"total\":2")
                 .contain("\"from\":0")
                 .contain("\"size\":4");
@@ -114,6 +116,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         post("/api/task/batchUpdate/index/" + subpath, body).should().haveType("application/json");
 
         get("/api/task?size=2").should().haveType("application/json")
+                .contain("\"count\":2")
                 .contain("\"total\":4")
                 .contain("\"from\":0")
                 .contain("\"size\":2");
