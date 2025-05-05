@@ -35,7 +35,6 @@ import java.util.Optional;
 
 import static java.lang.String.format;
 import static java.util.concurrent.TimeUnit.SECONDS;
-import static java.util.stream.Collectors.toList;
 import static org.fest.assertions.Assertions.assertThat;
 import static org.fest.assertions.MapAssert.entry;
 import static org.icij.datashare.cli.DatashareCliOptions.*;
@@ -77,7 +76,64 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
-    public void test_get_tasks_filter() {
+    public void test_get_tasks() {
+        String subpath = getClass().getResource("/docs/doc.txt").getPath().substring(1);
+        String body = "{\"options\":{\"reportName\": \"foo\"}}";
+        post("/api/task/batchUpdate/index/" + subpath, body).should().haveType("application/json");
+
+        get("/api/task").should().haveType("application/json").contain("IndexTask").contain("ScanTask");
+        get("/api/task?name=Index").should().contain("IndexTask").not().contain("ScanTask");
+        get("/api/task?args.dataDir=docs").should().contain("ScanTask").not().contain("IndexTask");
+    }
+
+    @Test
+    public void test_get_tasks_paginated_with_zero_tasks() {
+        get("/api/task?size=10").should().haveType("application/json")
+                .contain("\"total\":0")
+                .contain("\"from\":0")
+                .contain("\"size\":10");
+    }
+
+    @Test
+    public void test_get_tasks_paginated_with_two_tasks() {
+        String subpath = getClass().getResource("/docs/doc.txt").getPath().substring(1);
+        String body = "{\"options\":{\"reportName\": \"foo\"}}";
+        post("/api/task/batchUpdate/index/" + subpath, body).should().haveType("application/json");
+
+        get("/api/task?size=4").should().haveType("application/json")
+                .contain("\"total\":2")
+                .contain("\"from\":0")
+                .contain("\"size\":4");
+    }
+
+    @Test
+    public void test_get_tasks_paginated_with_four_tasks_from_first_page() {
+        String subpath = getClass().getResource("/docs/doc.txt").getPath().substring(1);
+        String body = "{\"options\":{\"reportName\": \"foo\"}}";
+        post("/api/task/batchUpdate/index/" + subpath, body).should().haveType("application/json");
+        post("/api/task/batchUpdate/index/" + subpath, body).should().haveType("application/json");
+
+        get("/api/task?size=2").should().haveType("application/json")
+                .contain("\"total\":4")
+                .contain("\"from\":0")
+                .contain("\"size\":2");
+    }
+
+    @Test
+    public void test_get_tasks_paginated_with_four_tasks_from_second_page() {
+        String subpath = getClass().getResource("/docs/doc.txt").getPath().substring(1);
+        String body = "{\"options\":{\"reportName\": \"foo\"}}";
+        post("/api/task/batchUpdate/index/" + subpath, body).should().haveType("application/json");
+        post("/api/task/batchUpdate/index/" + subpath, body).should().haveType("application/json");
+
+        get("/api/task?size=2&from=1").should().haveType("application/json")
+                .contain("\"total\":4")
+                .contain("\"from\":1")
+                .contain("\"size\":2");
+    }
+
+    @Test
+    public void test_get_all_tasks_filter() {
         post("/api/task/batchUpdate/index/" + getClass().getResource("/docs/doc.txt").getPath().substring(1),
                 "{\"options\":{\"reportName\": \"foo\"}}").should().haveType("application/json");
 
@@ -87,7 +143,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
-    public void test_get_tasks_paginated() throws Exception {
+    public void test_get_all_tasks_paginated() throws Exception {
         post("/api/task/batchUpdate/index/" + getClass().getResource("/docs/doc.txt").getPath().substring(1),
                 "{\"options\":{\"reportName\": \"foo1\"}}").should().haveType("application/json");
         post("/api/task/batchUpdate/index/" + getClass().getResource("/docs/embedded_doc.eml").getPath().substring(1),
@@ -104,7 +160,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
-    public void test_get_tasks_sorted() throws Exception {
+    public void test_get_all_tasks_sorted() throws Exception {
         post("/api/task/batchUpdate/index/" + getClass().getResource("/docs/doc.txt").getPath().substring(1),
                 "{\"options\":{\"reportName\": \"foo\"}}").should().haveType("application/json");
         assertThat(MAPPER.readValue(get("/api/task/all").response().content(), new TypeReference<List<Map<String, Object>>>() {}).stream()
@@ -383,7 +439,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
-    public void test_clean_tasks() throws IOException {
+    public void test_clean_getAllTasks() throws IOException {
         post("/api/task/batchUpdate/index/file/" + getClass().getResource("/docs/doc.txt").getPath().substring(1), "{}").response();
         taskManager.waitTasksToBeDone(1, SECONDS);
         List<String> taskNames = taskManager.getTasks().stream().map(t -> t.id).toList();
@@ -479,7 +535,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
-    public void test_stop_all_filters_running_tasks() throws IOException {
+    public void test_stop_all_filters_running_getAllTasks() throws IOException {
         taskManager.startTask(TestTask.class, User.local(), new HashMap<>());
         taskManager.waitTasksToBeDone(1, SECONDS);
 
@@ -487,7 +543,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
-    public void test_clear_done_tasks() throws IOException {
+    public void test_clear_done_getAllTasks() throws IOException {
         taskManager.startTask(TestTask.class, User.local(), new HashMap<>());
         taskManager.waitTasksToBeDone(1, SECONDS);
 

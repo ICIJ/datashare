@@ -68,6 +68,7 @@ import java.util.Set;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static java.lang.Boolean.FALSE;
 import static java.lang.Boolean.TRUE;
@@ -105,6 +106,7 @@ public class TaskResource {
     private final BatchSearchRepository batchSearchRepository;
     private final int MAX_BATCH_SIZE = 60000;
 
+
     @Inject
     public TaskResource(final DatashareTaskFactory taskFactory, final TaskManager taskManager,
                         final PropertiesProvider propertiesProvider, final BatchSearchRepository batchSearchRepository) {
@@ -113,6 +115,38 @@ public class TaskResource {
         this.propertiesProvider = propertiesProvider;
         this.batchSearchRepository = batchSearchRepository;
     }
+
+    @Operation(description = """
+            Gets the tasks.
+            
+            Filters can be added with `name=value`. For example if `name=foo` is given in the request url query,
+            the tasks containing the term "foo" are going to be returned. It can contain also dotted keys for nested properties matching.""",
+            parameters = {
+                @Parameter(name = "from", description = "the offset of the list, starting from 0", in = ParameterIn.QUERY),
+                @Parameter(name = "size", description = "the number of element retrieved", in = ParameterIn.QUERY), @Parameter(name = "sort", description = "the name of the parameter to sort on (default: modificationDate)", in = ParameterIn.QUERY),
+                @Parameter(name = "name", description = "example: org.icij.datashare.tasks.BatchSearchRunner", in = ParameterIn.QUERY),
+                @Parameter(name = "sort", description = "the name of the parameter to use for sort", in = ParameterIn.QUERY),
+                @Parameter(name = "order", description = "desc or asc (default)", in = ParameterIn.QUERY)
+            })
+    @ApiResponse(responseCode = "200", description = "returns the list of tasks", useReturnTypeSchema = true)
+    @Get()
+    public Payload getTasks(Context context) throws IOException {
+        WebQueryPagination pagination = getPagination(context);
+        Map<String, Pattern> filters = getArbitraryFilters(context);
+        User user = (User) context.currentUser();
+        // We need the batch search records of the user to merge them into the tasks
+        List<BatchSearchRecord> batchSearchRecords = batchSearchRepository.getRecords(user, user.getProjectNames());
+        // We need ALL the tasks to paginate accordingly
+        List<Task<?>> tasks = taskManager.getTasks(user, batchSearchRecords);
+        // Sort the tasks before applying the filter and the pagination
+        Stream<Task<?>> taskStream = tasks.stream().sorted(new Task.Comparator(pagination.sort, pagination.order));
+        // Filter the tasks before the pagination
+        List<Task<?>> filteredTasks = taskManager.getFilteredTaskStream(filters, taskStream).toList();
+        // Then finally, use WebResponse to take care of the pagination for us
+        WebResponse<Task<?>> tasksWebResponse = new WebResponse<>(filteredTasks, pagination.from, pagination.size, tasks.size());
+        return new Payload(tasksWebResponse);
+    }
+
     @Operation(description = """
             Gets all the user tasks.
             
@@ -131,19 +165,10 @@ public class TaskResource {
                 @Parameter(name = "name", description = "as an example: pattern contained in the task name", in = ParameterIn.QUERY)})
     @ApiResponse(responseCode = "200", description = "returns the list of tasks", useReturnTypeSchema = true)
     @Get("/all")
-    public List<Task<?>> tasks(Context context) throws IOException {
-        Set<String> paginationFields = WebQueryPagination.fields();
-        Map<String, Object> paginationMap = context.query()
-                .keys()
-                .stream()
-                .filter(paginationFields::contains)
-                .collect(toMap(s -> s, context::get));
-        WebQueryPagination pagination = WebQueryPagination.fromMap(paginationMap);
-        Map<String, Pattern> filters = context.query()
-                .keys()
-                .stream()
-                .filter(not(paginationFields::contains))
-                .collect(toMap(s -> s, s -> Pattern.compile(String.format(".*%s.*", context.get(s)))));
+    @Deprecated
+    public List<Task<?>> getAllTasks(Context context) throws IOException {
+        WebQueryPagination pagination = getPagination(context);
+        Map<String, Pattern> filters = getArbitraryFilters(context);
         User user = (User) context.currentUser();
         List<BatchSearchRecord> batchSearchRecords = batchSearchRepository.getRecords(user, user.getProjectNames());
         return taskManager.getTasks(user, filters, pagination, batchSearchRecords);
@@ -572,6 +597,27 @@ public class TaskResource {
     public record ErrorResponse(String message) {}
     public record TaskResponse(String taskId) {}
     public record TasksResponse(List<String> taskIds) {}
+
+    private WebQueryPagination getPagination(Context context) {
+        Set<String> paginationFields = WebQueryPagination.fields();
+        Map<String, Object> paginationMap = context
+                .query()
+                .keys()
+                .stream()
+                .filter(paginationFields::contains)
+                .collect(toMap(s -> s, context::get));
+        return WebQueryPagination.fromMap(paginationMap);
+    }
+
+    private Map<String, Pattern> getArbitraryFilters(Context context) {
+        Set<String> paginationFields = WebQueryPagination.fields();
+        return context
+                .query()
+                .keys()
+                .stream()
+                .filter(not(paginationFields::contains))
+                .collect(toMap(s -> s, s -> Pattern.compile(String.format(".*%s.*", context.get(s)))));
+    }
 
 
     private String fieldValue(String field, List<Part> parts) {
