@@ -56,6 +56,25 @@ public interface TaskManager extends Closeable {
         return getTasks(user, new HashMap<>(), new WebQueryPagination());
     }
 
+    default List<Task<?>> getTasks(User user, List<BatchSearchRecord> batchSearchRecords) throws IOException {
+        // Filter the task to only get the one launched by the current user
+        List<Task<?>> userTasks = getTasks().stream().filter(t -> user.equals(t.getUser())).toList();
+        // Convert the received batch search records to "proxy tasks"
+        List<? extends Task<?>> batchSearchTasks = batchSearchRecords.stream().map(TaskManager::taskify).toList();
+        // Merge the to list of tasks and deduplicate them by id
+        return new ArrayList<>(ListUtils.union(userTasks, batchSearchTasks)
+                .stream()
+                .collect(Collectors.toMap(
+                        // We deduplicate tasks by id
+                        task -> (String) task.getId(),
+                        task -> task,
+                        // Get the first in priority
+                        (first, second) -> first,
+                        LinkedHashMap::new
+                ))
+                .values());
+    }
+
     default List<Task<?>> getTasks(User user, Map<String, Pattern> filters) throws IOException {
         return getTasks(user, filters, new WebQueryPagination());
     }
@@ -67,32 +86,12 @@ public interface TaskManager extends Closeable {
     }
 
     default List<Task<?>> getTasks(User user, Map<String, Pattern> filters, WebQueryPagination pagination, List<BatchSearchRecord> batchSearchRecords) throws IOException {
-        // Filter the task to only get the one launched by the current user
-        List<Task<?>> userTasks = getTasks().stream().filter(t -> user.equals(t.getUser())).toList();
-        // Convert the received batch search records to "proxy tasks"
-        List<? extends Task<?>> batchSearchTasks = batchSearchRecords.stream().map(TaskManager::taskify).toList();
-        // Merge the to list of tasks and deduplicate them by id
-        List<Task<?>> tasks = new ArrayList<>(ListUtils.union(userTasks, batchSearchTasks)
-                .stream()
-                .collect(Collectors.toMap(
-                        // We deduplicate tasks by id
-                        task -> (String) task.getId(),
-                        task -> task,
-                        // Get the first in priority
-                        (first, second) -> first,
-                        LinkedHashMap::new
-                ))
-                .values());
+        List<Task<?>> tasks = getTasks(user, batchSearchRecords);
         // Sort/order the tasks together
         Stream<Task<?>> taskStream = tasks.stream().sorted(new Task.Comparator(pagination.sort, pagination.order));
         // Finally, filter then paginate the tasks
         return getFilteredTaskStream(filters, taskStream).skip(pagination.from).limit(pagination.size).collect(toList());
     }
-
-    default List<Task<?>> getTasks(User user, List<BatchSearchRecord> batchSearchRecords) throws IOException {
-        return getTasks(user, Map.of(), new WebQueryPagination(), batchSearchRecords);
-    }
-
 
     default boolean awaitTermination(int timeout, TimeUnit timeUnit) throws InterruptedException, IOException {
         return !waitTasksToBeDone(timeout, timeUnit).isEmpty();
