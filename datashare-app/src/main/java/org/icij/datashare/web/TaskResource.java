@@ -141,8 +141,12 @@ public class TaskResource {
         // Sort the tasks before applying the filter and the pagination
         Stream<Task<?>> taskStream = tasks.stream().sorted(new Task.Comparator(pagination.sort, pagination.order));
         // Filter the tasks before the pagination
-        List<Task<?>> filteredTasks = taskManager.getFilteredTaskStream(filters, taskStream).toList();
-        // Then finally, use WebResponse to take care of the pagination for us
+        List<Task<?>> filteredTasks = taskManager
+                .getFilteredTaskStream(filters, taskStream)
+                .skip(pagination.from)
+                .limit(pagination.size)
+                .toList();
+        // Then finally, use WebResponse to take display the pagination for us
         WebResponse<Task<?>> tasksWebResponse = new WebResponse<>(filteredTasks, pagination.from, pagination.size, tasks.size());
         return new Payload(tasksWebResponse);
     }
