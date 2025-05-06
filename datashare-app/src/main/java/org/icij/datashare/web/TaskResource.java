@@ -603,26 +603,6 @@ public class TaskResource {
     public record TaskResponse(String taskId) {}
     public record TasksResponse(List<String> taskIds) {}
 
-    private WebQueryPagination getPagination(Context context) {
-        Map<String, Object> paginationMap = context
-                .query()
-                .keys()
-                .stream()
-                .filter(PAGINATION_FIELDS::contains)
-                .collect(toMap(s -> s, context::get));
-        return WebQueryPagination.fromMap(paginationMap);
-    }
-
-    private Map<String, Pattern> getArbitraryFilters(Context context) {
-        return context
-                .query()
-                .keys()
-                .stream()
-                .filter(not(PAGINATION_FIELDS::contains))
-                .collect(toMap(s -> s, s -> Pattern.compile(String.format(".*%s.*", context.get(s)))));
-    }
-
-
     private String fieldValue(String field, List<Part> parts) {
         List<String> values = fieldValues(field, parts);
         return values.isEmpty() ? null: values.get(0);
@@ -659,5 +639,24 @@ public class TaskResource {
         } catch (UnknownTask ex) {
             throw new NotFoundException();
         }
+    }
+
+    private static WebQueryPagination getPagination(Context context) {
+        Map<String, Object> paginationMap = context
+                .query()
+                .keys()
+                .stream()
+                .filter(PAGINATION_FIELDS::contains)
+                .collect(toMap(s -> s, context::get));
+        return WebQueryPagination.fromMap(paginationMap);
+    }
+
+    private static Map<String, Pattern> getArbitraryFilters(Context context) {
+        return context
+                .query()
+                .keys()
+                .stream()
+                .filter(not(PAGINATION_FIELDS::contains))
+                .collect(toMap(s -> s, s -> Pattern.compile(String.format(".*%s.*", context.get(s)))));
     }
 }
