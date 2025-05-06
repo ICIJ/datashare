@@ -1,6 +1,7 @@
 package org.icij.datashare.web;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import java.util.HashMap;
 import net.codestory.rest.Response;
 import net.codestory.rest.RestAssert;
 import net.codestory.rest.ShouldChain;
@@ -14,6 +15,7 @@ import org.icij.datashare.db.JooqRepository;
 import org.icij.datashare.extension.PipelineRegistry;
 import org.icij.datashare.nlp.EmailPipeline;
 import org.icij.datashare.session.LocalUserFilter;
+import org.icij.datashare.tasks.SerializationTestTask;
 import org.icij.datashare.tasks.*;
 import org.icij.datashare.test.DatashareTimeRule;
 import org.icij.datashare.text.nlp.AbstractModels;
@@ -28,16 +30,15 @@ import org.mockito.Mock;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
-import static java.lang.String.format;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.fest.assertions.Assertions.assertThat;
 import static org.fest.assertions.MapAssert.entry;
+import static org.icij.datashare.asynctasks.Task.State.DONE;
 import static org.icij.datashare.asynctasks.Task.State.RUNNING;
 import static org.icij.datashare.cli.DatashareCliOptions.*;
 import static org.icij.datashare.json.JsonObjectMapper.MAPPER;
@@ -58,7 +59,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
     BatchSearchRepository batchSearchRepository;
 
     private static final TestTaskUtils.DatashareTaskFactoryForTest taskFactory = mock(TestTaskUtils.DatashareTaskFactoryForTest.class);
-    private static final TaskManagerMemory taskManager = new TaskManagerMemory(taskFactory, new TaskRepositoryMemory(), new PropertiesProvider(Map.of(TASK_MANAGER_POLLING_INTERVAL_OPT, "500")));
+    private static final TaskManagerMemory taskManager = new TaskManagerMemory(taskFactory, new TaskRepositoryMemory(), new PropertiesProvider(Map.of(TASK_MANAGER_POLLING_INTERVAL_OPT, "100")));
 
     @Before
     public void setUp() {
@@ -80,7 +81,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
 
     @Test
     public void test_get_tasks_with_correct_id() throws IOException {
-        String dummyTaskId = taskManager.startTask(TestSleepingTask.class, User.local(), new HashMap<>());
+        String dummyTaskId = taskManager.startTask(TestSleepingTask.class, User.local(), Map.of());
         get("/api/task").should()
                 .respond(200)
                 .contain("\"id\":\"" + dummyTaskId + "\"")
@@ -222,16 +223,18 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
                 .map(t -> t.get("name")).toList()).isEqualTo(List.of("org.icij.datashare.tasks.ScanTask", "org.icij.datashare.tasks.IndexTask"));
     }
 
-    @Test
+    @Test(timeout = 5000)
     public void test_index_file() throws IOException {
         RestAssert response = post("/api/task/batchUpdate/index/" + getClass().getResource("/docs/doc.txt").getPath().substring(1), "{}");
 
-        ShouldChain responseBody = response.should().haveType("application/json");
+        response.should().haveType("application/json");
 
-        taskManager.waitTasksToBeDone(1, SECONDS);
-        List<String> taskNames = taskManager.getTasks().stream().map(t -> t.id).toList();
-        responseBody.should().contain(format(taskNames.get(0)));
-        responseBody.should().contain(taskNames.get(1));
+        taskManager.waitTasksToBeDone(10, SECONDS);
+        TaskResource.TasksResponse res = MAPPER.readValue(response.response().content(), TaskResource.TasksResponse.class);
+        List<String> taskIds = res.taskIds();
+        assertThat(taskIds.size()).isEqualTo(2);
+        assertThat(taskManager.getTask(taskIds.get(0)).getState()).isEqualTo(DONE);
+        assertThat(taskManager.getTask(taskIds.get(1)).getState()).isEqualTo(DONE);
 
         assertThat(findTask(taskManager, "org.icij.datashare.tasks.IndexTask")).isNotNull();
         assertThat(findTask(taskManager, "org.icij.datashare.tasks.IndexTask").get().args).excludes(entry("reportName", "extract:report:map"));
@@ -246,61 +249,69 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         assertThat(findTask(taskManager, "org.icij.datashare.tasks.IndexTask").get().args).excludes(entry("reportName", "foo"));
     }
 
-    @Test
+    @Test(timeout = 5000)
     public void test_index_file_and_filter() throws IOException {
         String body = "{\"options\":{\"filter\": true}}";
         RestAssert response = post("/api/task/batchUpdate/index/" + getClass().getResource("/docs/doc.txt").getPath().substring(1), body);
 
-        ShouldChain responseBody = response.should().haveType("application/json");
+        response.should().haveType("application/json");
 
-        taskManager.waitTasksToBeDone(1, SECONDS);
-        List<String> taskNames = taskManager.getTasks().stream().map(t -> t.id).toList();
-        responseBody.should().contain(taskNames.get(0));
-        responseBody.should().contain(taskNames.get(1));
-
+        taskManager.waitTasksToBeDone(10, SECONDS);
+        TaskResource.TasksResponse res = MAPPER.readValue(response.response().content(), TaskResource.TasksResponse.class);
+        List<String> taskIds = res.taskIds();
+        assertThat(taskIds.size()).isEqualTo(3);
+        assertThat(taskManager.getTask(taskIds.get(0)).getState()).isEqualTo(DONE);
+        assertThat(taskManager.getTask(taskIds.get(2)).getState()).isEqualTo(DONE);
         assertThat(findTask(taskManager, "org.icij.datashare.tasks.IndexTask")).isNotNull();
         assertThat(findTask(taskManager, "org.icij.datashare.tasks.IndexTask").get().args).includes(entry("reportName", "extract:report:local-datashare"));
     }
 
-    @Test
+    @Test(timeout = 5000)
     public void test_index_file_and_filter_with_custom_report_map() throws IOException {
         String body = "{\"options\":{\"filter\": true, \"defaultProject\": \"foo\"}}";
         RestAssert response = post("/api/task/batchUpdate/index/" + getClass().getResource("/docs/doc.txt").getPath().substring(1), body);
 
-        ShouldChain responseBody = response.should().haveType("application/json");
+        response.should().haveType("application/json");
 
-        taskManager.waitTasksToBeDone(1, SECONDS);
-        List<String> taskNames = taskManager.getTasks().stream().map(t -> t.id).toList();
-        responseBody.should().contain(taskNames.get(0));
-        responseBody.should().contain(taskNames.get(1));
-
+        taskManager.waitTasksToBeDone(10, SECONDS);
+        TaskResource.TasksResponse res = MAPPER.readValue(response.response().content(), TaskResource.TasksResponse.class);
+        List<String> taskIds = res.taskIds();
+        assertThat(taskIds.size()).isEqualTo(3);
+        assertThat(taskManager.getTask(taskIds.get(0)).getState()).isEqualTo(DONE);
+        assertThat(taskManager.getTask(taskIds.get(2)).getState()).isEqualTo(DONE);
         assertThat(findTask(taskManager, "org.icij.datashare.tasks.IndexTask")).isNotNull();
         assertThat(findTask(taskManager, "org.icij.datashare.tasks.IndexTask").get().args).includes(entry("reportName", "extract:report:foo"));
     }
 
-    @Test
+    @Test(timeout = 5000)
     public void test_index_file_and_filter_with_custom_queue() throws IOException {
         String body = "{\"options\":{\"filter\": true, \"defaultProject\": \"foo\"}}";
         RestAssert response = post("/api/task/batchUpdate/index/" + getClass().getResource("/docs/doc.txt").getPath().substring(1), body);
 
-        ShouldChain responseBody = response.should().haveType("application/json");
+        response.should().haveType("application/json");
 
-        taskManager.waitTasksToBeDone(1, SECONDS);
-        List<String> taskNames = taskManager.getTasks().stream().map(t -> t.id).toList();
-        responseBody.should().contain(taskNames.get(0));
-        responseBody.should().contain(taskNames.get(1));
+        taskManager.waitTasksToBeDone(10, SECONDS);
+        TaskResource.TasksResponse res = MAPPER.readValue(response.response().content(), TaskResource.TasksResponse.class);
+        List<String> taskIds = res.taskIds();
+        assertThat(taskIds.size()).isEqualTo(3);
+        assertThat(taskManager.getTask(taskIds.get(0)).getState()).isEqualTo(DONE);
+        assertThat(taskManager.getTask(taskIds.get(2)).getState()).isEqualTo(DONE);
     }
 
-    @Test
+    @Test(timeout = 5000)
     public void test_index_directory() throws IOException {
-        RestAssert response = post("/api/task/batchUpdate/index/file/" + getClass().getResource("/docs/").getPath().substring(1), "{}");
+        RestAssert res = post("/api/task/batchUpdate/index/file/" + getClass().getResource("/docs/").getPath().substring(1), "{}");
+        res.should().haveType("application/json");
+        String resContent = res.response().content();
 
-        ShouldChain responseBody = response.should().haveType("application/json");
+        List<String> taskIds = MAPPER.readValue(resContent, TaskResource.TasksResponse.class).taskIds();
 
-        taskManager.waitTasksToBeDone(1, SECONDS);
-        List<String> taskNames = taskManager.getTasks().stream().map(t -> t.id).toList();
-        responseBody.should().contain(taskNames.get(0));
-        responseBody.should().contain(taskNames.get(1));
+        List<Task> alive = taskManager.waitTasksToBeDone(10, SECONDS);
+        assertThat(alive).isEmpty();
+
+        assertThat(taskIds.size()).isEqualTo(2);
+        assertThat(taskManager.getTask(taskIds.get(0)).getState()).isEqualTo(DONE);
+        assertThat(taskManager.getTask(taskIds.get(1)).getState()).isEqualTo(DONE);
     }
 
     @Test(timeout = 2000)
@@ -328,7 +339,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         defaultProperties.put("user", User.local());
         defaultProperties.remove(REPORT_NAME_OPT);
 
-        assertThat(taskManager.getTasks()).hasSize(2);
+        assertThat(taskManager.getTasks().toList()).hasSize(2);
         assertThat(findTask(taskManager, "org.icij.datashare.tasks.ScanTask")).isNotNull();
         assertThat(findTask(taskManager, "org.icij.datashare.tasks.ScanTask").get().args.get(DATA_DIR_OPT)).isEqualTo(path);
 
@@ -347,24 +358,25 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         defaultProperties.put("key2", "val2");
         defaultProperties.put("user", User.local());
 
-        assertThat(taskManager.getTasks()).hasSize(1);
-        assertThat(taskManager.getTasks().get(0).name).isEqualTo("org.icij.datashare.tasks.IndexTask");
+        List<Task> tasks = taskManager.getTasks().toList();
+        assertThat(tasks).hasSize(1);
+        assertThat(tasks.get(0).name).isEqualTo("org.icij.datashare.tasks.IndexTask");
 
-        assertThat(taskManager.getTasks().get(0).args).isEqualTo(defaultProperties);
+        assertThat(tasks.get(0).args).isEqualTo(defaultProperties);
     }
 
     @Test
     public void test_scan_with_options() throws IOException {
         String path = getClass().getResource("/docs").getPath();
-        RestAssert response = post("/api/task/batchUpdate/scan/" + path.substring(1),
-                "{\"options\":{\"key\":\"val\",\"foo\":\"qux\"}}");
+        Response response = post("/api/task/batchUpdate/scan/" + path.substring(1),
+                "{\"options\":{\"key\":\"val\",\"foo\":\"qux\"}}").response();
 
-        ShouldChain responseBody = response.should().haveType("application/json");
+        assertThat(response.contentType()).contains("application/json");
 
         taskManager.waitTasksToBeDone(1, SECONDS);
-        List<String> taskNames = taskManager.getTasks().stream().map(t -> t.id).toList();
-        assertThat(taskNames.size()).isEqualTo(1);
-        responseBody.should().contain(taskNames.get(0));
+        TaskResource.TaskResponse res = MAPPER.readValue(response.content(), TaskResource.TaskResponse.class);
+        String taskId = res.taskId();
+        assertThat(taskManager.getTask(taskId).getState()).isEqualTo(DONE);
         Map<String, Object> defaultProperties = getDefaultProperties();
         defaultProperties.put("key", "val");
         defaultProperties.put("foo", "qux");
@@ -416,8 +428,9 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         response.should().haveType("application/json");
 
         taskManager.waitTasksToBeDone(1, SECONDS);
-        List<String> taskNames = taskManager.getTasks().stream().map(t -> t.id).toList();
-        assertThat(taskNames.size()).isEqualTo(2);
+        TaskResource.TasksResponse res = MAPPER.readValue(response.response().content(), TaskResource.TasksResponse.class);
+        List<String> taskIds = res.taskIds();
+        assertThat(taskIds.size()).isEqualTo(2);
 
         assertThat(findTask(taskManager, "org.icij.datashare.tasks.EnqueueFromIndexTask")).isNotNull();
         assertThat(findTask(taskManager, "org.icij.datashare.tasks.ExtractNlpTask")).isNotNull();
@@ -495,36 +508,36 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
     public void test_clean_getAllTasks() throws IOException {
         post("/api/task/batchUpdate/index/file/" + getClass().getResource("/docs/doc.txt").getPath().substring(1), "{}").response();
         taskManager.waitTasksToBeDone(1, SECONDS);
-        List<String> taskNames = taskManager.getTasks().stream().map(t -> t.id).toList();
+        assertThat(taskManager.getTasks().toList().size()).isGreaterThan(0);
 
-        ShouldChain responseBody = post("/api/task/clean", "{}").should().haveType("application/json");
-
-        responseBody.should().contain(taskNames.get(0));
-        responseBody.should().contain(taskNames.get(1));
-        assertThat(taskManager.getTasks()).isEmpty();
+        Response response = post("/api/task/clean", "{}").response();
+        assertThat(response.contentType()).contains("application/json");
+        List<Task> tasks = MAPPER.readValue(response.content(), List.class);
+        assertThat(tasks.size()).isEqualTo(2);
+        assertThat(taskManager.getTasks().toList()).isEmpty();
     }
 
     @Test
-    public void test_clean_task_filter() throws IOException {
+    public void test_clean_task_filter() {
         post("/api/task/batchUpdate/index/file/" + getClass().getResource("/docs/doc.txt").getPath().substring(1), "{}").response();
 
         ShouldChain responseBody = post("/api/task/clean?name=Scan", "{}").should().haveType("application/json");
 
         responseBody.should().contain("ScanTask");
         responseBody.should().not().contain("IndexTask");
-        assertThat(taskManager.getTasks()).hasSize(1);
+        assertThat(taskManager.getTasks().toList()).hasSize(1);
     }
 
     @Test
     public void test_clean_one_done_task() throws IOException {
-        String dummyTaskId = taskManager.startTask(TestTask.class, User.local(), new HashMap<>());
+        String dummyTaskId = taskManager.startTask(TestTask.class, User.local(), Map.of());
         taskManager.waitTasksToBeDone(1, SECONDS);
-        assertThat(taskManager.getTasks()).hasSize(1);
-        assertThat(taskManager.getTask(dummyTaskId).getState()).isEqualTo(Task.State.DONE);
+        assertThat(taskManager.getTasks().toList()).hasSize(1);
+        assertThat(taskManager.getTask(dummyTaskId).getState()).isEqualTo(DONE);
 
         delete("/api/task/clean/" + dummyTaskId).should().respond(200);
 
-        assertThat(taskManager.getTasks()).hasSize(0);
+        assertThat(taskManager.getTasks().toList()).hasSize(0);
     }
     @Test
     public void test_cannot_clean_unknown_task() {
@@ -533,22 +546,22 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
 
     @Test
     public void test_clean_task_preflight() throws IOException {
-        String dummyTaskId = taskManager.startTask(TestTask.class, User.local(), new HashMap<>());
+        String dummyTaskId = taskManager.startTask(TestTask.class, User.local(), Map.of());
         taskManager.waitTasksToBeDone(1, SECONDS);
         options("/api/task/clean/" + dummyTaskId).should().respond(200);
     }
 
     @Test
     public void test_cannot_clean_running_task() throws Exception {
-        String dummyTaskId = taskManager.startTask(TestSleepingTask.class, User.local(), new HashMap<>());
+        String dummyTaskId = taskManager.startTask(TestSleepingTask.class, User.local(), Map.of());
         assertHasState(dummyTaskId, RUNNING, taskManager, 5000, 100);
         delete("/api/task/clean/" + dummyTaskId).should().respond(403);
-        assertThat(taskManager.getTasks()).hasSize(1);
+        assertThat(taskManager.getTasks().toList()).hasSize(1);
     }
 
     @Test
     public void test_stop_task() throws IOException {
-        String dummyTaskId = taskManager.startTask(TestSleepingTask.class, User.local(), new HashMap<>());
+        String dummyTaskId = taskManager.startTask(TestSleepingTask.class, User.local(), Map.of());
         put("/api/task/stop/" + dummyTaskId).should().respond(200).contain("true");
 
         assertThat(taskManager.getTask(dummyTaskId).getState()).isEqualTo(Task.State.CANCELLED);
@@ -560,25 +573,27 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         put("/api/task/stop/foobar").should().respond(404);
     }
 
-    @Test
+    @Test(timeout = 5000)
     public void test_stop_all() throws IOException {
-        String t1Id = taskManager.startTask(TestSleepingTask.class, User.local(), new HashMap<>());
-        String t2Id = taskManager.startTask(TestSleepingTask.class, User.local(), new HashMap<>());
-        put("/api/task/stop").should().respond(200).
-                contain(t1Id + "\":true").
-                contain(t2Id + "\":true");
+        String t1Id = taskManager.startTask(TestSleepingTask.class, User.local(), Map.of("value", 10000));
+        String t2Id = taskManager.startTask(TestSleepingTask.class, User.local(), Map.of("value", 10000));
+        Response res = put("/api/task/stop").response();
+        assertThat(res.code()).isEqualTo(200);
 
         assertThat(taskManager.getTask(t1Id).getState()).isEqualTo(Task.State.CANCELLED);
         assertThat(taskManager.getTask(t2Id).getState()).isEqualTo(Task.State.CANCELLED);
+
+        assertThat(res.content()).contains(t1Id + "\":true");
+        assertThat(res.content()).contains(t2Id + "\":true");
     }
-    
+
     @Test
     public void test_stop_all_filters() throws IOException {
-        String t1Id = taskManager.startTask(TestSleepingTask.class, User.local(), new HashMap<>());
-        String t2Id = taskManager.startTask(TestAnotherSleepingTask.class, User.local(), new HashMap<>());
+        String t1Id = taskManager.startTask(TestSleepingTask.class, User.local(), Map.of());
+        String t2Id = taskManager.startTask(TestAnotherSleepingTask.class, User.local(), Map.of());
         put("/api/task/stop?name=Another").should().respond(200).contain(t2Id + "\":true");
 
-        assertThat(taskManager.getTask(t1Id).getState()).isEqualTo(Task.State.RUNNING);
+        assertThat(taskManager.getTask(t1Id).getState()).isEqualTo(RUNNING);
         assertThat(taskManager.getTask(t2Id).getState()).isEqualTo(Task.State.CANCELLED);
 
         put("/api/task/stop?name=Sleeping").should().respond(200).contain(t1Id + "\":true");
@@ -587,7 +602,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
 
     @Test
     public void test_stop_all_filters_running_getAllTasks() throws IOException {
-        taskManager.startTask(TestTask.class, User.local(), new HashMap<>());
+        taskManager.startTask(TestTask.class, User.local(), Map.of());
         taskManager.waitTasksToBeDone(1, SECONDS);
 
         put("/api/task/stop").should().respond(200).contain("{}");
@@ -595,13 +610,13 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
 
     @Test
     public void test_clear_done_getAllTasks() throws IOException {
-        taskManager.startTask(TestTask.class, User.local(), new HashMap<>());
+        taskManager.startTask(TestTask.class, User.local(), Map.of());
         taskManager.waitTasksToBeDone(1, SECONDS);
 
         put("/api/task/stop").should().respond(200).contain("{}");
 
         assertThat(taskManager.clearDoneTasks()).hasSize(1);
-        assertThat(taskManager.getTasks()).hasSize(0);
+        assertThat(taskManager.getTasks().toList()).hasSize(0);
     }
 
     @Test
@@ -642,17 +657,41 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
                 .should().respond(201);
     }
 
+    @Test
+    public void test_get_datashare_result() throws IOException {
+        // Given
+        String taskId = taskManager.startTask(TestTask.class, User.local(), Map.of());
+        taskManager.waitTasksToBeDone(1, SECONDS);
+        // When
+        String content = get("/api/task/" + taskId + "/result").response().content();
+        int taskRes = MAPPER.readValue(content, int.class);
+        // Then
+        assertThat(taskRes).isEqualTo(10);
+    }
+
+    @Test
+    public void test_get_language_agnostic_result() throws IOException {
+        // Given
+        String taskId = taskManager.startTask(SerializationTestTask.class, User.local(), Map.of());
+        taskManager.waitTasksToBeDone(1, SECONDS);
+        // When
+        String content = get("/api/task/" + taskId + "/result").response().content();
+        // Then
+        String expectedResult = "{\"value\":10,\"whatever\":{\"any\":\"extra\"}}";
+        assertThat(content).isEqualTo(expectedResult);
+    }
+
     @NotNull
     private Map<String, Object> getDefaultProperties() {
-        HashMap<String, Object> map = new HashMap<>() {{
-            put("dataDir", "/default/data/dir");
-            put("foo", "bar");
-            put("batchDownloadDir", "app/tmp");
-            put("defaultProject", "local-datashare");
-            put("queueName", "extract:queue");
-            put("reportName", "extract:report:local-datashare");
-            put("digestProjectName", "local-datashare");
-        }};
+        Map<String, Object> map = new HashMap<>(Map.of(
+            "dataDir", "/default/data/dir",
+            "foo", "bar",
+            "batchDownloadDir", "app/tmp",
+            "defaultProject", "local-datashare",
+            "queueName", "extract:queue",
+            "reportName", "extract:report:local-datashare",
+            "digestProjectName", "local-datashare"
+        ));
         // Override the queueName with
         map.put("queueName", new PropertiesProvider(PropertiesProvider.fromMap(map)).queueNameWithHash());
         return map;
@@ -663,8 +702,8 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         return new PropertiesProvider(getDefaultProperties());
     }
 
-    private Optional<Task<?>> findTask(TaskManagerMemory taskManager, String expectedName) {
-        return taskManager.getTasks().stream().filter(t -> expectedName.equals(t.name)).findFirst();
+    private Optional<Task> findTask(TaskManagerMemory taskManager, String expectedName) {
+        return taskManager.getTasks().filter(t -> expectedName.equals(t.name)).findFirst();
     }
 
     private void assertHasState(String taskId, Task.State expectedState, TaskManager taskManager, int timeoutMs, int pollIntervalMs)
@@ -679,4 +718,5 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         String msg = "failed to get state " + expectedState + " for task " + taskId + " in less than " + timeoutMs + "ms";
         throw new AssertionError(msg);
     }
+
 }

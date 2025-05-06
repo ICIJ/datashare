@@ -40,8 +40,8 @@ public class BatchDownloadRunnerEncryptedIntTest {
         new IndexerHelper(es.client).indexFile("mydoc.txt", "content", fs);
         BatchDownload batchDownload = createBatchDownload("*");
         MailSender mailSender = mock(MailSender.class);
-        Task<?> taskView =
-            new Task<>(BatchDownloadRunner.class.getName(), batchDownload.user,
+        Task taskView =
+            new Task(BatchDownloadRunner.class.getName(), batchDownload.user,
                     new HashMap<>() {{
                     put("batchDownload", batchDownload);
                 }});

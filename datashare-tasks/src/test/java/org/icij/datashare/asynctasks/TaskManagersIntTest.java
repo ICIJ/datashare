@@ -1,6 +1,8 @@
 package org.icij.datashare.asynctasks;
 
 
+import java.util.List;
+import java.util.stream.Stream;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.asynctasks.bus.amqp.AmqpInterlocutor;
 import org.icij.datashare.asynctasks.bus.amqp.AmqpQueue;
@@ -89,8 +91,9 @@ public class TaskManagersIntTest {
         taskInspector.awaitStatus(taskViewId, Task.State.CANCELLED, 1, SECONDS);
         eventWaiter.await();
 
-        assertThat(taskManager.getTasks()).hasSize(1);
-        assertThat(taskManager.getTasks().get(0).getState()).isEqualTo(Task.State.CANCELLED);
+        List<Task> tasks = taskManager.getTasks().toList();
+        assertThat(tasks).hasSize(1);
+        assertThat(tasks.get(0).getState()).isEqualTo(Task.State.CANCELLED);
     }
 
     @Test(timeout = 10000)
@@ -104,7 +107,7 @@ public class TaskManagersIntTest {
         taskInspector.awaitStatus(tv1Id, Task.State.CANCELLED, 1, SECONDS);
         taskInspector.awaitStatus(tv2Id, Task.State.CANCELLED, 1, SECONDS);
 
-        assertThat(taskManager.getTasks()).hasSize(2);
+        assertThat(taskManager.getTasks().toList()).hasSize(2);
         assertThat(taskManager.getTask(tv1Id).getState()).isEqualTo(Task.State.CANCELLED);
         assertThat(taskManager.getTask(tv2Id).getState()).isEqualTo(Task.State.CANCELLED);
     }
@@ -119,7 +122,7 @@ public class TaskManagersIntTest {
         taskInspector.awaitStatus(tv1Id, Task.State.CANCELLED, 1, SECONDS);
         taskInspector.awaitStatus(tv2Id, Task.State.CANCELLED, 1, SECONDS);
 
-        assertThat(taskManager.getTasks()).hasSize(2);
+        assertThat(taskManager.getTasks().toList()).hasSize(2);
         assertThat(taskManager.getTask(tv1Id).getState()).isEqualTo(Task.State.CANCELLED);
         assertThat(taskManager.getTask(tv2Id).getState()).isEqualTo(Task.State.CANCELLED);
     }
@@ -133,7 +136,7 @@ public class TaskManagersIntTest {
         taskManager.stopTasks(User.local(), Map.of("name", Pattern.compile(".*Another.*")));
         taskInspector.awaitStatus(tv1Id, Task.State.CANCELLED, 1, SECONDS);
 
-        assertThat(taskManager.getTasks()).hasSize(2);
+        assertThat(taskManager.getTasks().toList()).hasSize(2);
         assertThat(taskManager.getTask(tv1Id).getState()).isEqualTo(Task.State.CANCELLED);
         assertThat(taskManager.getTask(tv2Id).getState()).isEqualTo(Task.State.RUNNING);
 
@@ -156,7 +159,7 @@ public class TaskManagersIntTest {
 
         taskManager.clearDoneTasks();
 
-        assertThat(taskManager.getTasks()).isEmpty();
+        assertThat(taskManager.getTasks().toList()).isEmpty();
     }
 
     @Test(timeout = 10000)
@@ -172,7 +175,7 @@ public class TaskManagersIntTest {
 
         taskManager.clearDoneTasks();
 
-        assertThat(taskManager.getTasks()).isNotEmpty();
+        assertThat(taskManager.getTasks().toList()).isNotEmpty();
     }
 
     @Test(timeout = 10000)

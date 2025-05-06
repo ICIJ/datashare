@@ -13,7 +13,6 @@ import org.icij.datashare.asynctasks.bus.amqp.TaskError;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.io.Serializable;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -49,8 +48,8 @@ public class TaskSupplierAmqp implements TaskSupplier {
     }
 
     @Override
-    public <V extends Serializable> Task<V> get(int timeOut, TimeUnit timeUnit) throws InterruptedException {
-        throw new NotImplementedException("no get method for AMQP, use consumeTasks(Consumer<Task<V>>");
+    public Task get(int timeOut, TimeUnit timeUnit) throws InterruptedException {
+        throw new NotImplementedException("no get method for AMQP, use consumeTasks(Consumer<Task>");
     }
 
     @Override
@@ -59,16 +58,16 @@ public class TaskSupplierAmqp implements TaskSupplier {
     }
 
     @Override
-    public <V extends Serializable> void result(String taskId, TaskResult<V> result) {
+    public void result(String taskId, byte[] result) {
         try {
-            amqp.publish(AmqpQueue.MANAGER_EVENT, new ResultEvent<>(taskId, result));
+            amqp.publish(AmqpQueue.MANAGER_EVENT, new ResultEvent(taskId, result));
         } catch (IOException e) {
             LoggerFactory.getLogger(getClass()).warn("cannot publish result {} for task {}", result, taskId);
         }
     }
 
     @Override
-    public void canceled(Task<?> task, boolean requeue) {
+    public void canceled(Task task, boolean requeue) {
         try {
             // TODO: align behavior here with Python where calling this directly nacks the task
             //  instead of sending a message to the taskManager which is then responsible to handle

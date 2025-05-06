@@ -1,5 +1,9 @@
 package org.icij.datashare.web;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.exc.MismatchedInputException;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import io.swagger.v3.oas.annotations.Operation;
@@ -29,31 +33,29 @@ import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.asynctasks.TaskAlreadyExists;
 import org.icij.datashare.asynctasks.TaskGroupType;
 import org.icij.datashare.asynctasks.TaskManager;
-import org.icij.datashare.asynctasks.TaskResult;
 import org.icij.datashare.asynctasks.UnknownTask;
-import org.icij.datashare.asynctasks.bus.amqp.UriResult;
 import org.icij.datashare.batch.BatchDownload;
 import org.icij.datashare.batch.BatchSearch;
 import org.icij.datashare.batch.BatchSearchRecord;
 import org.icij.datashare.batch.BatchSearchRepository;
 import org.icij.datashare.batch.WebQueryPagination;
 import org.icij.datashare.extract.OptionsWrapper;
-import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.tasks.BatchDownloadRunner;
 import org.icij.datashare.tasks.BatchSearchRunner;
 import org.icij.datashare.tasks.DatashareTaskFactory;
+import org.icij.datashare.tasks.DatashareTaskResult;
 import org.icij.datashare.tasks.EnqueueFromIndexTask;
 import org.icij.datashare.tasks.ExtractNlpTask;
 import org.icij.datashare.tasks.IndexTask;
 import org.icij.datashare.tasks.ScanIndexTask;
 import org.icij.datashare.tasks.ScanTask;
+import org.icij.datashare.tasks.UriResult;
 import org.icij.datashare.text.Project;
 import org.icij.datashare.user.User;
 
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.Serializable;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
@@ -96,6 +98,7 @@ import static org.icij.datashare.PropertiesProvider.propertiesToMap;
 import static org.icij.datashare.cli.DatashareCliOptions.BATCH_DOWNLOAD_DIR_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.DATA_DIR_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.NLP_PIPELINE_OPT;
+import static org.icij.datashare.json.JsonObjectMapper.MAPPER;
 import static org.icij.datashare.text.nlp.AbstractModels.syncModels;
 
 @Singleton
@@ -107,11 +110,14 @@ public class TaskResource {
     private final PropertiesProvider propertiesProvider;
     private final BatchSearchRepository batchSearchRepository;
     private final int MAX_BATCH_SIZE = 60000;
+    protected static final ObjectMapper mapper =
+        MAPPER.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, true);
 
 
     @Inject
     public TaskResource(final DatashareTaskFactory taskFactory, final TaskManager taskManager,
-                        final PropertiesProvider propertiesProvider, final BatchSearchRepository batchSearchRepository) {
+                        final PropertiesProvider propertiesProvider,
+                        final BatchSearchRepository batchSearchRepository) {
         this.taskFactory = taskFactory;
         this.taskManager = taskManager;
         this.propertiesProvider = propertiesProvider;
@@ -139,10 +145,10 @@ public class TaskResource {
         // We need the batch search records of the user to merge them into the tasks
         List<BatchSearchRecord> batchSearchRecords = batchSearchRepository.getRecords(user, user.getProjectNames());
         // We need ALL the tasks to paginate accordingly
-        List<Task<?>> tasks = taskManager.getTasks(user, batchSearchRecords);
-        Stream<Task<?>> sortedTasksStream = tasks.stream().sorted(new Task.Comparator(pagination.sort, pagination.order));
-        Stream<Task<?>> filteredTasksStream = taskManager.getFilteredTaskStream(filters, sortedTasksStream);
-        WebResponse<Task<?>> paginatedTasks = WebResponse.fromStream(filteredTasksStream, pagination.from, pagination.size);
+        Stream<Task> tasks = taskManager.getTasks(user, batchSearchRecords)
+            .sorted(new Task.Comparator(pagination.sort, pagination.order));
+        tasks = taskManager.getFilteredTaskStream(filters, tasks);
+        WebResponse<Task> paginatedTasks = WebResponse.fromStream(tasks, pagination.from, pagination.size);
         // Then finally, use WebResponse to take display the pagination for us
         return new Payload(paginatedTasks);
     }
@@ -166,41 +172,45 @@ public class TaskResource {
     @ApiResponse(responseCode = "200", description = "returns the list of tasks", useReturnTypeSchema = true)
     @Get("/all")
     @Deprecated
-    public List<Task<?>> getAllTasks(Context context) throws IOException {
+    public List<Task> getAllTasks(Context context) throws IOException {
         WebQueryPagination pagination = getPagination(context);
         Map<String, Pattern> filters = getArbitraryFilters(context);
         User user = (User) context.currentUser();
         List<BatchSearchRecord> batchSearchRecords = batchSearchRepository.getRecords(user, user.getProjectNames());
-        return taskManager.getTasks(user, filters, pagination, batchSearchRecords);
+        return taskManager.getTasks(user, filters, pagination, batchSearchRecords).toList();
     }
 
     @Operation(description = "Gets one task with its id.")
     @ApiResponse(responseCode = "200", description = "returns the task from its id", useReturnTypeSchema = true)
     @ApiResponse(responseCode = "404", description = "returns 404 if the task doesn't exist")
     @Get("/:id")
-    public Task<?> getTask(@Parameter(name = "id", description = "task id", in = ParameterIn.PATH) String id, Context context) throws IOException {
+    public Task getTask(@Parameter(name = "id", description = "task id", in = ParameterIn.PATH) String id, Context context) throws IOException {
         User user = (User) context.currentUser();
         List<BatchSearchRecord> batchSearchRecords = batchSearchRepository.getRecords(user, user.getProjectNames());
-        List<Task<?>> tasks = taskManager.getTasks(user, batchSearchRecords);
-        Predicate<Task<?>> predicate = t -> t.getId().equals(id);
-        return tasks.stream().filter(predicate).findFirst().orElseThrow(NotFoundException::new);
+        Predicate<Task> predicate = t -> t.getId().equals(id);
+        return taskManager.getTasks(user, batchSearchRecords).filter(predicate).findFirst().orElseThrow(NotFoundException::new);
     }
 
     @Operation(description = "Create a task with JSON body",
-            requestBody = @RequestBody(description = "the task creation body", required = true,  content = @Content(schema = @Schema(implementation = Task.class))),
-            parameters = { @Parameter(name = "group", description = "group id", in = ParameterIn.QUERY) })
+        requestBody = @RequestBody(description = "the task creation body", required = true, content = @Content(schema = @Schema(implementation = Task.class))),
+        parameters = {@Parameter(name = "group", description = "group id", in = ParameterIn.QUERY)})
     @ApiResponse(responseCode = "201", description = "the task has been created", content = @Content(schema = @Schema(implementation = TaskResponse.class)))
     @ApiResponse(responseCode = "200", description = "the task was already existing")
     @ApiResponse(responseCode = "400", description = "bad request, for example the task payload id is not the same as the url id", content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
     @ApiResponse(responseCode = "404", description = "returns 404 if the task doesn't exist")
     @Put("/:id")
-    public <V extends Serializable> Payload createTask(@Parameter(name = "id", description = "task id", required = true, in = ParameterIn.PATH) String id,  Context context, Task<V> taskView) throws IOException {
-        Group taskGroup = Optional.ofNullable(context.get("group")).map(g -> new Group(TaskGroupType.valueOf(g))).orElse(null);
+    public Payload createTask(
+        @Parameter(name = "id", description = "task id", required = true, in = ParameterIn.PATH) String id,
+        Context context, Task taskView) throws IOException {
+        Group taskGroup =
+            Optional.ofNullable(context.get("group")).map(g -> new Group(TaskGroupType.valueOf(g))).orElse(null);
         if (taskView == null || id == null || !Objects.equals(taskView.id, id)) {
-            return new JsonPayload(400, new ErrorResponse("body should contain a taskView, URL id should be present and equal to body id"));
+            return new JsonPayload(400,
+                new ErrorResponse("body should contain a taskView, URL id should be present and equal to body id"));
         }
         try {
-            return new JsonPayload(201, new TaskResponse(notFoundIfUnknown(() -> taskManager.startTask(taskView, taskGroup))));
+            return new JsonPayload(201,
+                new TaskResponse(notFoundIfUnknown(() -> taskManager.startTask(taskView, taskGroup))));
         } catch (TaskAlreadyExists e) {
             return new JsonPayload(200);
         }
@@ -208,21 +218,34 @@ public class TaskResource {
 
     @Operation(description = "Gets task result with its id")
     @ApiResponse(responseCode = "200", description = "returns 200 and the result")
-    @ApiResponse(responseCode = "204", description = "returns 204 if there is no result")
     @ApiResponse(responseCode = "403", description = "returns 403 if the task is not belonging to current user")
-    @ApiResponse(responseCode = "404", description = "returns 404 if the task doesn't exist")
+    @ApiResponse(responseCode = "404", description = "returns 404 if the task doesn't exist or has no result yet")
     @Get("/:id/result")
-    public Payload getTaskResult(@Parameter(name = "id", description = "task id", in = ParameterIn.PATH) String id, Context context) throws IOException {
-        Task<?> task = forbiddenIfNotSameUser(context, notFoundIfUnknown(() -> taskManager.getTask(id)));
-        Object result = ofNullable(task.getResult()).map(TaskResult::value).orElse(null);
-        if (result instanceof UriResult uriResult) {
-            Path filePath = Path.of(uriResult.uri().getPath());
-            String fileName = filePath.getFileName().toString();
-            String contentDisposition = "attachment;filename=\"" + fileName + "\"";
-            InputStream fileInputStream = Files.newInputStream(filePath);
-            return new Payload(fileInputStream).withHeader("Content-Disposition", contentDisposition);
+    public Payload getTaskResult(@Parameter(name = "id", description = "task id", in = ParameterIn.PATH) String id,
+                                 Context context) throws IOException {
+        forbiddenIfNotSameUser(context, notFoundIfUnknown(() -> taskManager.getTask(id)));
+        byte[] result;
+        try {
+            result = taskManager.getResult(id);
+        } catch (UnknownTask e) {
+            return new Payload(404);
         }
-        return result == null ? new Payload(204) : new Payload(result);
+        Object deserializedRes;
+        try {
+            DatashareTaskResult<?> res = mapper.readValue(result, new TypeReference<>() {
+            });
+            deserializedRes = res.value();
+            if (deserializedRes instanceof UriResult uriResult) {
+                Path filePath = Path.of(uriResult.uri().getPath());
+                String fileName = filePath.getFileName().toString();
+                String contentDisposition = "attachment;filename=\"" + fileName + "\"";
+                InputStream fileInputStream = Files.newInputStream(filePath);
+                return new Payload(fileInputStream).withHeader("Content-Disposition", contentDisposition);
+            }
+        } catch (MismatchedInputException e) {
+            deserializedRes = result;
+        }
+        return new Payload("application/json", deserializedRes);
     }
 
     @Operation(description = """
@@ -291,20 +314,20 @@ public class TaskResource {
         String name = fieldValue("name", parts);
         String csv = fieldValue("csvFile", parts);
 
-        if (name == null  || csv == null) {
+        if (name == null || csv == null) {
             return badRequest();
         }
 
         String description = fieldValue("description", parts);
         String uri = fieldValue("uri", parts);
-        boolean published = "true".equalsIgnoreCase(fieldValue("published", parts)) ? TRUE: FALSE ;
+        boolean published = "true".equalsIgnoreCase(fieldValue("published", parts)) ? TRUE : FALSE;
         List<String> fileTypes = fieldValues("fileTypes", parts);
         String queryTemplate = fieldValue("query_template", parts);
         List<String> paths = fieldValues("paths", parts);
         Optional<Part> fuzzinessPart = parts.stream().filter(p -> "fuzziness".equals(p.name())).findAny();
-        int fuzziness = fuzzinessPart.isPresent() ? parseInt(fuzzinessPart.get().content()):0;
+        int fuzziness = fuzzinessPart.isPresent() ? parseInt(fuzzinessPart.get().content()) : 0;
         Optional<Part> phraseMatchesPart = parts.stream().filter(p -> "phrase_matches".equals(p.name())).findAny();
-        boolean phraseMatches=phraseMatchesPart.isPresent()?parseBoolean(phraseMatchesPart.get().content()): FALSE;
+        boolean phraseMatches = phraseMatchesPart.isPresent() ? parseBoolean(phraseMatchesPart.get().content()) : FALSE;
         LinkedHashSet<String> queries = getQueries(csv)
                 .stream().map(query -> (phraseMatches && query.contains("\"")) ? query : sanitizeDoubleQuotesInQuery(query)).collect(Collectors.toCollection(LinkedHashSet::new));
         if(queries.size() >= MAX_BATCH_SIZE) return new Payload(413);
@@ -373,7 +396,7 @@ public class TaskResource {
         Properties properties = applyProjectProperties(optionsWrapper);
         Path downloadDir = get(properties.getProperty(BATCH_DOWNLOAD_DIR_OPT));
         if (!downloadDir.toFile().exists()) downloadDir.toFile().mkdirs();
-        String query = options.get("query") instanceof Map ? JsonObjectMapper.MAPPER.writeValueAsString(options.get("query")): (String)options.get("query");
+        String query = options.get("query") instanceof Map ? mapper.writeValueAsString(options.get("query")): (String)options.get("query");
         String uri = (String) options.get("uri");
         boolean batchDownloadEncrypt = parseBoolean(properties.getOrDefault("batchDownloadEncrypt", "false").toString());
         List<String> projectIds = (List<String>) options.get("projectIds");
@@ -384,7 +407,7 @@ public class TaskResource {
     }
 
     @Operation(description = "Indexes files from the queue.",
-            requestBody = @RequestBody(description = "wrapper for options json", required = true,  content = @Content(schema = @Schema(implementation = OptionsWrapper.class))))
+        requestBody = @RequestBody(description = "wrapper for options json", required = true, content = @Content(schema = @Schema(implementation = OptionsWrapper.class))))
     @ApiResponse(responseCode = "200", description = "returns 200 and the json task id", content = @Content(schema = @Schema(implementation = TaskResponse.class)))
     @ApiResponse(responseCode = "500", description = "returns an error when stat task fails", content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
     @Post("/batchUpdate/index")
@@ -397,7 +420,7 @@ public class TaskResource {
     }
 
     @Operation(description = "Indexes files in a directory (with docker, it is the mounted directory that is scanned).",
-            requestBody = @RequestBody(description = "wrapper for options json", required = true,  content = @Content(schema = @Schema(implementation = OptionsWrapper.class))))
+        requestBody = @RequestBody(description = "wrapper for options json", required = true, content = @Content(schema = @Schema(implementation = OptionsWrapper.class))))
     @ApiResponse(responseCode = "200", description = "returns 200 and the list of tasks created", useReturnTypeSchema = true)
     @Post("/batchUpdate/index/file")
     public Payload indexDefault(final OptionsWrapper<String> optionsWrapper, Context context) throws Exception {
@@ -405,7 +428,7 @@ public class TaskResource {
     }
 
     @Operation(description = "Indexes all files of a directory with the given path.",
-            requestBody = @RequestBody(description = "wrapper for options json", required = true,  content = @Content(schema = @Schema(implementation = OptionsWrapper.class))))
+        requestBody = @RequestBody(description = "wrapper for options json", required = true, content = @Content(schema = @Schema(implementation = OptionsWrapper.class))))
     @ApiResponse(responseCode = "200", description = "returns 200 and the list of tasks created", content = @Content(schema = @Schema(implementation = TasksResponse.class)))
     @Post("/batchUpdate/index/:filePath:")
     public Payload indexFile(@Parameter(name = "filePath", description = "path of the directory", in = ParameterIn.PATH) final String filePath, final OptionsWrapper<String> optionsWrapper, Context context)
@@ -415,13 +438,13 @@ public class TaskResource {
         taskIds.add(scanResponse.taskId);
         Properties properties = applyProjectProperties(optionsWrapper);
         User user = (User) context.currentUser();
-        Task<Long> scanIndex;
+        Task scanIndex;
         // Use a report map only if the request's body contains a "filter" attribute
         if (properties.get("filter") != null && Boolean.parseBoolean(properties.getProperty("filter"))) {
             // TODO remove taskFactory.createScanIndexTask would allow to get rid of taskfactory dependency in taskresource
             // problem for now is that if we call taskManager.startTask(ScanIndexTask.class.getName(), user, propertiesToMap(properties))
             // the task will be run as a background task that will have race conditions with indexTask report loading
-            scanIndex = new Task<>(ScanIndexTask.class.getName(), user, propertiesToMap(properties));
+            scanIndex = new Task(ScanIndexTask.class.getName(), user, propertiesToMap(properties));
             taskFactory.createScanIndexTask(scanIndex, (p) -> null).call();
             taskIds.add(scanIndex.id);
         } else {
@@ -432,12 +455,14 @@ public class TaskResource {
     }
 
     @Operation(description = "Scans recursively a directory with the given path.",
-            requestBody = @RequestBody(description = "wrapper for options json", required = true,  content = @Content(schema = @Schema(implementation = OptionsWrapper.class))))
+        requestBody = @RequestBody(description = "wrapper for options json", required = true, content = @Content(schema = @Schema(implementation = OptionsWrapper.class))))
     @ApiResponse(responseCode = "200", description = "returns 200 and the created task", content = @Content(schema = @Schema(implementation = TaskResponse.class)))
     @ApiResponse(responseCode = "500", description = "returns 500 if startTask fails", content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
     @Post("/batchUpdate/scan/:filePath:")
-    public TaskResponse scanFile(@Parameter(name = "filePath", description = "path of the directory", in = ParameterIn.PATH) final String filePath, final OptionsWrapper<String> optionsWrapper, Context context) throws IOException {
-        Path path = IS_OS_WINDOWS ?  get(filePath) : get(File.separator, filePath);
+    public TaskResponse scanFile(
+        @Parameter(name = "filePath", description = "path of the directory", in = ParameterIn.PATH)
+        final String filePath, final OptionsWrapper<String> optionsWrapper, Context context) throws IOException {
+        Path path = IS_OS_WINDOWS ? get(filePath) : get(File.separator, filePath);
         Properties properties = applyProjectProperties(optionsWrapper);
         properties.setProperty(DATA_DIR_OPT, path.toString());
         return ofNullable(taskManager.startTask(ScanTask.class, (User) context.currentUser(), propertiesToMap(properties)))
@@ -448,7 +473,7 @@ public class TaskResource {
             @Parameter(name = "name", description = "as an example: pattern contained in the task name", in = ParameterIn.QUERY)})
     @ApiResponse(responseCode = "200", description = "returns 200 and the list of removed tasks", useReturnTypeSchema = true)
     @Post("/clean")
-    public List<Task<?>> cleanDoneTasks(final Context context) throws IOException {
+    public List<Task> cleanDoneTasks(final Context context) throws IOException {
         Map<String, Pattern> filters = context.query()
                 .keys()
                 .stream()
@@ -459,11 +484,12 @@ public class TaskResource {
     @Operation(description = "Cleans a specific task.")
     @ApiResponse(responseCode = "200", description = "returns 200 if the task is removed")
     @ApiResponse(responseCode = "403", description = "returns 403 if the task is still in RUNNING state")
-    @ApiResponse(responseCode = "403", description = "returns 403 if the task is still in RUNNING state")
     @ApiResponse(responseCode = "404", description = "returns 404 if the task doesn't exist")
     @Delete("/clean/:taskName:")
-    public Payload cleanTask(@Parameter(name = "taskName", description = "name of the task to delete", in = ParameterIn.PATH) final String taskId, Context context) throws Exception {
-        Task<?> task = forbiddenIfNotSameUser(context, notFoundIfUnknown(() -> taskManager.getTask(taskId)));
+    public Payload cleanTask(
+        @Parameter(name = "taskName", description = "name of the task to delete", in = ParameterIn.PATH)
+        final String taskId, Context context) throws Exception {
+        Task task = forbiddenIfNotSameUser(context, notFoundIfUnknown(() -> taskManager.getTask(taskId)));
         if (task.getState() == Task.State.RUNNING) {
             return forbidden();
         } else {
@@ -483,7 +509,9 @@ public class TaskResource {
     @ApiResponse(responseCode = "200", description = "returns 200 with the cancellation status (true/false)", useReturnTypeSchema = true)
     @ApiResponse(responseCode = "404", description = "returns 404 if the task doesn't exist")
     @Put("/stop/:taskId:")
-    public boolean stopTask(@Parameter(name = "taskName", description = "name of the task to cancel", in = ParameterIn.PATH) final String taskId) throws IOException {
+    public boolean stopTask(
+        @Parameter(name = "taskName", description = "name of the task to cancel", in = ParameterIn.PATH)
+        final String taskId) throws IOException {
         return notFoundIfUnknown(() -> taskManager.stopTask(notFoundIfUnknown(() -> taskManager.getTask(taskId)).id));
     }
 
@@ -558,7 +586,9 @@ public class TaskResource {
             requestBody = @RequestBody(description = "wrapper for options json", required = true,  content = @Content(schema = @Schema(implementation = OptionsWrapper.class))))
     @ApiResponse(responseCode = "200", description = "returns 200 and the created task ids", content = @Content(schema = @Schema(implementation = TasksResponse.class)))
     @Post("/findNames/:pipeline")
-    public Payload extractNlp(@Parameter(name = "pipeline", description = "name of the NLP pipeline to use", in = ParameterIn.PATH) final String pipelineName, final OptionsWrapper<String> optionsWrapper, Context context) throws IOException {
+    public Payload extractNlp(
+        @Parameter(name = "pipeline", description = "name of the NLP pipeline to use", in = ParameterIn.PATH)
+        final String pipelineName, final OptionsWrapper<String> optionsWrapper, Context context) throws IOException {
         Properties properties = applyProjectProperties(optionsWrapper);
         properties.put(NLP_PIPELINE_OPT, pipelineName);
         syncModels(parseBoolean(properties.getProperty(SYNC_MODELS_OPTION, "true")));
@@ -588,8 +618,10 @@ public class TaskResource {
         return "extract:report:" + projectName;
     }
 
-    private static <V extends Serializable> Task<V> forbiddenIfNotSameUser(Context context, Task<V> task) {
-        if (!task.getUser().equals(context.currentUser())) throw new ForbiddenException();
+    private static Task forbiddenIfNotSameUser(Context context, Task task) {
+        if (!task.getUser().equals(context.currentUser())) {
+            throw new ForbiddenException();
+        }
         return task;
     }
 
@@ -600,7 +632,7 @@ public class TaskResource {
 
     private String fieldValue(String field, List<Part> parts) {
         List<String> values = fieldValues(field, parts);
-        return values.isEmpty() ? null: values.get(0);
+        return values.isEmpty() ? null : values.get(0);
     }
 
     private List<String> fieldValues(String field, List<Part> parts) {
@@ -614,8 +646,8 @@ public class TaskResource {
     }
 
     private String sanitizeDoubleQuotesInQuery(String query) {
-        if(query.contains("\"\"\"")) {
-            return query.substring(1, query.length() - 1).replaceAll("\"\"","\"");
+        if (query.contains("\"\"\"")) {
+            return query.substring(1, query.length() - 1).replaceAll("\"\"", "\"");
         }
         return query;
     }
@@ -624,7 +656,7 @@ public class TaskResource {
         return asSet(stream(csv.split("\r?\n")).filter(q -> q.length() >= 2).toArray(String[]::new));
     }
 
-    private interface UnknownTaskThrowingSupplier<T>  {
+    private interface UnknownTaskThrowingSupplier<T> {
         T get() throws IOException, UnknownTask;
     }
 

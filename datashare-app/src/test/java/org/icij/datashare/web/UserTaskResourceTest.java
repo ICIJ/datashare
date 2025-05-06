@@ -10,7 +10,6 @@ import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.asynctasks.TaskGroup;
 import org.icij.datashare.asynctasks.TaskGroupType;
 import org.icij.datashare.asynctasks.TaskRepositoryMemory;
-import org.icij.datashare.asynctasks.bus.amqp.UriResult;
 import org.icij.datashare.batch.BatchSearchRepository;
 import org.icij.datashare.tasks.DatashareTaskFactory;
 import org.icij.datashare.session.DatashareUser;
@@ -27,11 +26,11 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.util.HashMap;
-import java.util.concurrent.Callable;
 import java.util.function.Supplier;
 
 import static java.lang.String.format;
 import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.icij.datashare.cli.DatashareCliOptions.TASK_MANAGER_POLLING_INTERVAL_OPT;
 import static org.icij.datashare.user.User.localUser;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -72,7 +71,7 @@ public class UserTaskResourceTest extends AbstractProdWebServerTest {
                 contain("\"details\":").
                 contain("\"uid\":\"foo\"").
                 contain("\"groups_by_applications\":{\"datashare\":[\"foo-datashare\"]}").
-                contain("\"args\":{\"user\":{\"@type\":\"org.icij.datashare.user.User\",\"id\":\"foo\"");
+                contain("\"args\":{\"user\":{\"id\":\"foo\"");
     }
 
     @Test
@@ -91,9 +90,9 @@ public class UserTaskResourceTest extends AbstractProdWebServerTest {
 
     @Test
     public void test_get_task_result_with_no_result() throws IOException {
-        setupAppWith(new DummyUserTask<>("foo"), "foo");
+        setupAppWith(new SleepingUserTask("foo"), new SleepingUserTask("bar"), "foo", "bar");
         String tId = taskManager.startTask(DummyUserTask.class, localUser("foo"), new HashMap<>());
-        get("/api/task/" + tId + "/result").withPreemptiveAuthentication("foo", "qux").should().respond(204);
+        get("/api/task/" + tId + "/result").withPreemptiveAuthentication("foo", "qux").should().respond(404);
     }
 
     @Test
@@ -113,6 +112,7 @@ public class UserTaskResourceTest extends AbstractProdWebServerTest {
         setupAppWith(new DummyUserTask<>("foo", () -> indexHtml), "foo");
 
         String tId = taskManager.startTask(DummyUserTask.class, localUser("foo"), new HashMap<>());
+        taskManager.awaitTermination(1, SECONDS);
         get("/api/task/" + tId + "/result").withPreemptiveAuthentication("foo", "qux").
                 should().respond(200).
                 should().haveType("application/octet-stream").
@@ -126,16 +126,16 @@ public class UserTaskResourceTest extends AbstractProdWebServerTest {
         UriResult indexHtml = new UriResult(file.toURI(), Files.size(file.toPath()));
         setupAppWith(new DummyUserTask<>("foo", () -> indexHtml), "foo");
         String tId = taskManager.startTask(DummyUserTask.class, localUser("foo"), new HashMap<>());
-
+        taskManager.awaitTermination(1, SECONDS);
         get("/api/task/" + tId + "/result").withPreemptiveAuthentication("foo", "qux").should().respond(200);
     }
 
     @Test
-    public void test_get_task_result_when_task_threw_exception__should_show_error() throws IOException {
+    public void test_get_task_result_when_task_threw_exception_should_show_error() throws IOException {
         setupAppWith(new DummyUserTask<>("foo", () -> {throw new RuntimeException("error blah");}), "foo");
         String tId = taskManager.startTask(DummyUserTask.class, localUser("foo"), new HashMap<>());
 
-        get("/api/task/" + tId + "/result").withPreemptiveAuthentication("foo", "qux").should().respond(204);
+        get("/api/task/" + tId + "/result").withPreemptiveAuthentication("foo", "qux").should().respond(404);
         get("/api/task/" + tId).withPreemptiveAuthentication("foo", "qux").should().contain("error blah");
     }
 
@@ -149,7 +149,7 @@ public class UserTaskResourceTest extends AbstractProdWebServerTest {
                 contain("\"details\":").
                 contain("\"uid\":\"bar\"").
                 contain("\"groups_by_applications\":{\"datashare\":[\"bar-datashare\"]}").
-                contain("\"args\":{\"user\":{\"@type\":\"org.icij.datashare.user.User\",\"id\":\"bar\"");
+                contain("\"args\":{\"user\":{\"id\":\"bar\",");
         get("/api/task/all?filter=foo").withPreemptiveAuthentication("bar", "qux").should().contain("[]");
     }
 
@@ -165,7 +165,7 @@ public class UserTaskResourceTest extends AbstractProdWebServerTest {
     }
 
     @TaskGroup(TaskGroupType.Test)
-    public static class DummyUserTask<V extends Serializable> implements UserTask, Callable<V> {
+    public static class DummyUserTask<V extends Serializable> extends DatashareTask<V> implements UserTask {
         private final String user;
         private final Supplier<V> supplier;
         public DummyUserTask(String user) {this(user, () -> null);}
@@ -173,15 +173,15 @@ public class UserTaskResourceTest extends AbstractProdWebServerTest {
             this.user = user;
             this.supplier = supplier;
         }
-        @Override public V call() throws Exception { return supplier.get(); }
+        @Override public V runTask() { return supplier.get(); }
         @Override public User getUser() { return new User(user);}
     }
 
     @TaskGroup(TaskGroupType.Test)
-    public static class SleepingUserTask implements UserTask, Callable<String> {
+    public static class SleepingUserTask extends DatashareTask<String> implements UserTask {
         private final String user;
         public SleepingUserTask(String user) {this.user = user;}
-        @Override public String call() throws Exception {
+        @Override public String runTask() throws Exception {
             Thread.sleep(10000);
             return "run";
         }
@@ -201,14 +201,14 @@ public class UserTaskResourceTest extends AbstractProdWebServerTest {
     }
 
     private void setupAppWith(DatashareTaskFactory taskFactory, String... userLogins) {
-        final PropertiesProvider propertiesProvider = new PropertiesProvider(Map.of("mode", "LOCAL"));
+        final PropertiesProvider propertiesProvider = new PropertiesProvider(Map.of("mode", "LOCAL", TASK_MANAGER_POLLING_INTERVAL_OPT, "100"));
         taskManager = new TaskManagerMemory(taskFactory, new TaskRepositoryMemory(), new PropertiesProvider());
         configure(routes -> routes.add(new TaskResource(taskFactory, taskManager, propertiesProvider, batchSearchRepository))
                 .filter(new BasicAuthFilter("/", "ds", DatashareUser.users(userLogins))));
     }
 
     public interface DatashareTaskFactoryForTest extends DatashareTaskFactory {
-        <V extends Serializable> DummyUserTask<V> createDummyUserTask(Task<V> tv, Function<Double, Void> updateCallback);
-        SleepingUserTask createSleepingUserTask(Task<?> tv, Function<Double, Void> updateCallback);
+        <V extends Serializable> DummyUserTask<V> createDummyUserTask(Task tv, Function<Double, Void> updateCallback);
+        SleepingUserTask createSleepingUserTask(Task tv, Function<Double, Void> updateCallback);
     }
 }

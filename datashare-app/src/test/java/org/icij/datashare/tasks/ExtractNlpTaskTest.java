@@ -36,7 +36,7 @@ public class ExtractNlpTaskTest {
     @Before
     public void setUp() {
         initMocks(this);
-        nlpTask = new ExtractNlpTask(indexer, pipeline, factory, new Task<>(ExtractNlpTask.class.getName(), User.local(),
+        nlpTask = new ExtractNlpTask(indexer, pipeline, factory, new Task(ExtractNlpTask.class.getName(), User.local(),
                 Map.of("maxContentLength", "32")), null);
     }
 
@@ -50,7 +50,7 @@ public class ExtractNlpTaskTest {
 
     @Test(timeout = 3000)
     public void test_exit_after_nb_max_attempts()  throws Exception  {
-        ExtractNlpTask nlpTask = new ExtractNlpTask(indexer, pipeline, factory, new Task<>(ExtractNlpTask.class.getName(), User.local(),
+        ExtractNlpTask nlpTask = new ExtractNlpTask(indexer, pipeline, factory, new Task(ExtractNlpTask.class.getName(), User.local(),
                 Map.of(POLLING_INTERVAL_SECONDS_OPT, "0.1")), null);
         long start = System.currentTimeMillis();
         nlpTask.call();

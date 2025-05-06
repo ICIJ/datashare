@@ -1,5 +1,7 @@
 package org.icij.datashare.tasks;
 
+import java.util.List;
+import java.util.stream.Stream;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.asynctasks.TaskWorkerLoop;
@@ -10,7 +12,6 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.io.File;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -32,7 +33,7 @@ public class TaskWorkerLoopIntTest {
         DatashareTaskFactory factory = mock(DatashareTaskFactory.class);
         BatchDownload batchDownload = new BatchDownload(singletonList(project("prj")), User.local(), "foo");
         Map<String, Object> properties = Map.of("batchDownload", batchDownload);
-        Task<File> taskView = new Task<>(BatchDownloadRunner.class.getName(), batchDownload.user, properties);
+        Task taskView = new Task(BatchDownloadRunner.class.getName(), batchDownload.user, properties);
         BatchDownloadRunner runner = new BatchDownloadRunner(mock(Indexer.class), new PropertiesProvider(), taskView, taskView.progress(taskSupplier::progress));
         when(factory.createBatchDownloadRunner(any(), any())).thenReturn(runner);
 
@@ -47,11 +48,12 @@ public class TaskWorkerLoopIntTest {
         taskManager.awaitTermination(1, TimeUnit.SECONDS);
         eventWaiter.await();
 
-        assertThat(taskManager.getTasks()).hasSize(1);
-        assertThat(taskManager.getTasks().get(0).getError()).isNotNull();
-        assertThat(taskManager.getTasks().get(0).getProgress()).isEqualTo(1);
-        assertThat(taskManager.getTasks().get(0).args).hasSize(2);
-        assertThat(taskManager.getTasks().get(0).getUser()).isEqualTo(User.local());
+        List<Task> tasks = taskManager.getTasks().toList();
+        assertThat(tasks).hasSize(1);
+        assertThat(tasks.get(0).getError()).isNotNull();
+        assertThat(tasks.get(0).getProgress()).isEqualTo(1);
+        assertThat(tasks.get(0).args).hasSize(2);
+        assertThat(tasks.get(0).getUser()).isEqualTo(User.local());
     }
 
     @Before

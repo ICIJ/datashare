@@ -1,7 +1,6 @@
 package org.icij.datashare.mode;
 
 import org.icij.datashare.asynctasks.TaskManager;
-import org.icij.datashare.asynctasks.TaskModifier;
 import org.icij.datashare.asynctasks.TaskSupplier;
 import org.icij.datashare.asynctasks.TaskWorkerLoop;
 import org.icij.datashare.cli.QueueType;

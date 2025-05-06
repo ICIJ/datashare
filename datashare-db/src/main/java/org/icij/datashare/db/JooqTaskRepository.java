@@ -3,12 +3,13 @@ package org.icij.datashare.db;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.Optional;
 import org.icij.datashare.asynctasks.Group;
 import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.asynctasks.TaskGroupType;
 import org.icij.datashare.asynctasks.TaskMetadata;
 import org.icij.datashare.asynctasks.TaskRepository;
-import org.icij.datashare.asynctasks.TaskResult;
+import org.icij.datashare.asynctasks.UnknownTask;
 import org.icij.datashare.asynctasks.bus.amqp.TaskError;
 import org.icij.datashare.db.tables.records.TaskRecord;
 import org.icij.datashare.json.JsonObjectMapper;
@@ -61,30 +62,29 @@ public class JooqTaskRepository implements TaskRepository {
 
     @Override
     public boolean containsValue(Object o) {
-        return containsKey(((Task<?>) o).getId());
+        return containsKey(((Task) o).getId());
     }
 
     @Override
-    public TaskMetadata<?> get(Object o) {
+    public TaskMetadata get(Object o) {
         return createTaskFrom(DSL.using(connectionProvider, dialect).selectFrom(TASK).
                 where(TASK.ID.eq((String) o)).fetchOne());
     }
 
     @Override
-    public TaskMetadata<?> put(String s, TaskMetadata<?> taskMetadata) {
+    public TaskMetadata put(String s, TaskMetadata taskMetadata) {
         if (taskMetadata == null || s == null || !s.equals(taskMetadata.taskId())) {
             throw new IllegalArgumentException(String.format("task is null or its id (%s) is different than the key (%s)", ofNullable(taskMetadata).map(TaskMetadata::taskId).orElse(null), s));
         }
         return using(connectionProvider, dialect).transactionResult(configuration -> {
             DSLContext inner = using(configuration);
-            TaskMetadata<?> old = createTaskFrom(inner.selectFrom(TASK).where(TASK.ID.eq(taskMetadata.taskId())).fetchOne());
+            TaskMetadata old = createTaskFrom(inner.selectFrom(TASK).where(TASK.ID.eq(taskMetadata.taskId())).fetchOne());
             if (old != null && old.equals(taskMetadata)) return null; // no need to go further
 
             InsertValuesStep11<TaskRecord, String, String, String, String, String, Double, LocalDateTime, LocalDateTime, Integer, Integer, String> insertInto = insert(inner);
             insertValues(taskMetadata, insertInto);
             InsertOnDuplicateSetMoreStep<TaskRecord> onDuplicate = insertInto.onDuplicateKeyUpdate()
                     .set(TASK.ERROR, TYPE_INCLUSION_MAPPER.writeValueAsString(taskMetadata.task().getError()))
-                    .set(TASK.RESULT, TYPE_INCLUSION_MAPPER.writeValueAsString(taskMetadata.task().getResult()))
                     .set(TASK.STATE, taskMetadata.task().getState().name())
                     .set(TASK.PROGRESS, taskMetadata.task().getProgress())
                     .set(TASK.COMPLETED_AT, ofNullable(taskMetadata.task().getCompletedAt()).map(d -> new Timestamp(d.getTime()).toLocalDateTime()).orElse(null));
@@ -95,12 +95,12 @@ public class JooqTaskRepository implements TaskRepository {
     }
 
     @Override
-    public TaskMetadata<?> remove(Object key) {
+    public TaskMetadata remove(Object key) {
         return createTaskFrom(DSL.using(connectionProvider, dialect).deleteFrom(TASK).where(TASK.ID.eq((String) key)).returning().fetchOne());
     }
 
     @Override
-    public void putAll(Map<? extends String, ? extends TaskMetadata<?>> map) {
+    public void putAll(Map<? extends String, ? extends TaskMetadata> map) {
         ofNullable(map).orElseThrow(() -> new IllegalArgumentException("task(s) map is null"));
         InsertValuesStep11<TaskRecord, String, String, String, String, String, Double, LocalDateTime, LocalDateTime, Integer, Integer, String> insert = insert(using(connectionProvider, dialect));
         map.values().forEach(t -> insertValues(t, insert));
@@ -119,30 +119,29 @@ public class JooqTaskRepository implements TaskRepository {
     }
 
     @Override
-    public Collection<TaskMetadata<?>> values() {
+    public Collection<TaskMetadata> values() {
         return DSL.using(connectionProvider, dialect).selectFrom(TASK).stream()
                 .map(this::createTaskFrom).collect(Collectors.toList());
     }
 
     @Override
-    public Set<Entry<String, TaskMetadata<?>>> entrySet() {
+    public Set<Entry<String, TaskMetadata>> entrySet() {
         return DSL.using(connectionProvider, dialect).selectFrom(TASK).stream()
-                .map(t -> new AbstractMap.SimpleEntry<String, TaskMetadata<?>>(t.getId(), createTaskFrom(t)))
+                .map(t -> new AbstractMap.SimpleEntry<String, TaskMetadata>(t.getId(), createTaskFrom(t)))
                 .collect(Collectors.toSet());
     }
 
-    private TaskMetadata<?> createTaskFrom(TaskRecord taskRecord) {
+    private TaskMetadata createTaskFrom(TaskRecord taskRecord) {
         return ofNullable(taskRecord).map(r ->
         {
             Date createdAt = r.getCreatedAt() == null ? null : Date.from(r.getCreatedAt().atZone(ZoneId.systemDefault()).toInstant());;
             Date completedAt = r.getCompletedAt() == null ? null :Date.from(r.getCompletedAt().atZone(ZoneId.systemDefault()).toInstant());;
             try {
                 Map<String, Object> args = TYPE_INCLUSION_MAPPER.readValue(r.getArgs(), new TypeReference<>() {});
-                TaskResult<?> result = r.getResult() == null ? null: TYPE_INCLUSION_MAPPER.readValue(r.getResult(), new TypeReference<>() {});
                 TaskError error  = r.getError() == null ? null: TYPE_INCLUSION_MAPPER.readValue(r.getError(), TaskError.class);
-                Task<?> task = new Task<>(r.getId(), r.getName(), Task.State.valueOf(r.getState()),
-                        r.getProgress(), createdAt, r.getRetriesLeft(), completedAt, args, result, error);
-                return new TaskMetadata<>(task, new Group(TaskGroupType.valueOf(r.getGroupId())));
+                Task task = new Task(r.getId(), r.getName(), Task.State.valueOf(r.getState()),
+                        r.getProgress(), createdAt, r.getRetriesLeft(), completedAt, args, error);
+                return new TaskMetadata(task, new Group(TaskGroupType.valueOf(r.getGroupId())));
             } catch (JsonProcessingException e) {
                 throw new RuntimeException(e);
             }
@@ -155,8 +154,8 @@ public class JooqTaskRepository implements TaskRepository {
                         TASK.CREATED_AT, TASK.COMPLETED_AT, TASK.RETRIES_LEFT, TASK.MAX_RETRIES, TASK.ARGS);
     }
 
-    private static void insertValues(TaskMetadata<?> taskMetadata, InsertValuesStep11<TaskRecord, String, String, String, String, String, Double, LocalDateTime, LocalDateTime, Integer, Integer, String> insert) {
-        Task<?> t = taskMetadata.task();
+    private static void insertValues(TaskMetadata taskMetadata, InsertValuesStep11<TaskRecord, String, String, String, String, String, Double, LocalDateTime, LocalDateTime, Integer, Integer, String> insert) {
+        Task t = taskMetadata.task();
         try {
             insert.values(t.id, t.name,
                     t.getState().name(),
@@ -172,4 +171,28 @@ public class JooqTaskRepository implements TaskRepository {
         }
     }
 
+    @Override
+    public void saveResult(String taskId, byte[] result) throws UnknownTask {
+        // TODO: see if we can improve this bit, using a transaction would be nice, but it fails with SQLite
+        TaskRecord taskRecord = DSL.using(connectionProvider, dialect).update(TASK)
+                .set(TASK.RESULT, new String(result))
+                .where(TASK.ID.eq(taskId), TASK.RESULT.isNull())
+                .returning(TASK.ID)
+                .fetchOne();
+        if (taskRecord == null) {
+            if (! containsKey(taskId)) {
+                throw new UnknownTask(taskId);
+            }
+            throw new RuntimeException("result for task " + taskId + " was already saved !");
+        }
+    }
+
+    @Override
+    public byte[] getResult(String taskId) throws UnknownTask {
+        return Optional.ofNullable(using(connectionProvider, dialect)
+                .select(TASK.RESULT).from(TASK).where(TASK.ID.eq(taskId)).fetchOne())
+            .map(r -> r.get(TASK.RESULT))
+            .map(String::getBytes)
+            .orElseThrow(() -> new UnknownTask(taskId, "task is unknown or without result"));
+    }
 }
