@@ -259,7 +259,7 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
         DSLContext context = DSL.using(dataSource, dialect);
         SelectConditionStep<Record> statement = context.select().from(BATCH_SEARCH_QUERY).where(BATCH_SEARCH_QUERY.SEARCH_UUID.eq(batchId));
         if (search != null) {
-            statement.and(BATCH_SEARCH_QUERY.QUERY.contains(search));
+            statement.and(DSL.lower(BATCH_SEARCH_QUERY.QUERY).contains(search.toLowerCase()));
         }
         if (maxResults > -1) {
             statement.and(BATCH_SEARCH_QUERY.QUERY_RESULTS.lessOrEqual(maxResults));
