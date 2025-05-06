@@ -166,6 +166,21 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         get("/api/task?size=1&args.defaultProject=ice").should().contain("\"count\":0").contain("\"total\":0");
     }
 
+    @Test
+    public void test_get_tasks_filter_case_insensitive() {
+        String subpath = getClass().getResource("/docs/doc.txt").getPath().substring(1);
+        String bodyFoo = "{\"options\":{\"defaultProject\": \"foo\"}}";
+        String bodyBar = "{\"options\":{\"defaultProject\": \"bar\"}}";
+        post("/api/task/batchUpdate/index/" + subpath, bodyFoo).should().haveType("application/json");
+        post("/api/task/batchUpdate/index/" + subpath, bodyBar).should().haveType("application/json");
+
+        get("/api/task?size=1").should().contain("\"count\":1").contain("\"total\":4");
+        get("/api/task?size=1&args.defaultProject=FOO")
+                .should()
+                .contain("\"count\":1")
+                .contain("\"total\":2")
+                .contain("\"defaultProject\":\"foo\"");
+    }
 
     @Test
     public void test_get_all_tasks_filter() {

@@ -65,6 +65,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -451,7 +452,7 @@ public class TaskResource {
         Map<String, Pattern> filters = context.query()
                 .keys()
                 .stream()
-                .collect(toMap(s -> s, s -> Pattern.compile(String.format(".*%s.*", context.get(s)))));
+                .collect(toMap(Function.identity(), s -> Pattern.compile(String.format(".*%s.*", context.get(s)))));
         return taskManager.clearDoneTasks(filters);
     }
 
@@ -507,7 +508,7 @@ public class TaskResource {
         Map<String, Pattern> filters = context.query()
                 .keys()
                 .stream()
-                .collect(toMap(s -> s, s -> Pattern.compile(String.format(".*%s.*", context.get(s)))));
+                .collect(toMap(Function.identity(), s -> Pattern.compile(String.format(".*%s.*", context.get(s)))));
         return taskManager.stopTasks((User) context.currentUser(), filters);
     }
 
@@ -532,7 +533,7 @@ public class TaskResource {
         Map<String, Pattern> filters = context.query()
                 .keys()
                 .stream()
-                .collect(toMap(s -> s, s -> Pattern.compile(String.format(".*%s.*", context.get(s)))));
+                .collect(toMap(Function.identity(), s -> Pattern.compile(String.format(".*%s.*", context.get(s)))));
         return taskManager.stopTasks((User) context.currentUser(), filters);
     }
 
@@ -641,16 +642,15 @@ public class TaskResource {
                 .keys()
                 .stream()
                 .filter(PAGINATION_FIELDS::contains)
-                .collect(toMap(s -> s, context::get));
+                .collect(toMap(Function.identity(), context::get));
         return WebQueryPagination.fromMap(paginationMap);
     }
 
     private static Map<String, Pattern> getArbitraryFilters(Context context) {
-        return context
-                .query()
-                .keys()
-                .stream()
-                .filter(not(PAGINATION_FIELDS::contains))
-                .collect(toMap(s -> s, s -> Pattern.compile(String.format(".*%s.*", context.get(s)))));
+        // Collect request's query parameters that are not pagination fields
+        Set<String> keys = context .query().keys().stream().filter(not(PAGINATION_FIELDS::contains)).collect(Collectors.toSet());
+        // Build a function that match any value that contained in the key (case-insensitive)
+        Function<String, Pattern> matchPattern = k -> Pattern.compile(".*" + Pattern.quote(context.get(k)) + ".*", Pattern.CASE_INSENSITIVE);
+        return keys.stream().collect(toMap(Function.identity(), matchPattern));
     }
 }
