@@ -100,6 +100,7 @@ import static org.icij.datashare.text.nlp.AbstractModels.syncModels;
 @Singleton
 @Prefix("/api/task")
 public class TaskResource {
+    public static final Set<String> PAGINATION_FIELDS = WebQueryPagination.fields();
     private final DatashareTaskFactory taskFactory;
     private final TaskManager taskManager;
     private final PropertiesProvider propertiesProvider;
@@ -603,23 +604,21 @@ public class TaskResource {
     public record TasksResponse(List<String> taskIds) {}
 
     private WebQueryPagination getPagination(Context context) {
-        Set<String> paginationFields = WebQueryPagination.fields();
         Map<String, Object> paginationMap = context
                 .query()
                 .keys()
                 .stream()
-                .filter(paginationFields::contains)
+                .filter(PAGINATION_FIELDS::contains)
                 .collect(toMap(s -> s, context::get));
         return WebQueryPagination.fromMap(paginationMap);
     }
 
     private Map<String, Pattern> getArbitraryFilters(Context context) {
-        Set<String> paginationFields = WebQueryPagination.fields();
         return context
                 .query()
                 .keys()
                 .stream()
-                .filter(not(paginationFields::contains))
+                .filter(not(PAGINATION_FIELDS::contains))
                 .collect(toMap(s -> s, s -> Pattern.compile(String.format(".*%s.*", context.get(s)))));
     }
 
