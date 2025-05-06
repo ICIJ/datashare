@@ -76,6 +76,22 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
+    public void test_get_tasks_with_correct_id() throws IOException {
+        String dummyTaskId = taskManager.startTask(TestSleepingTask.class, User.local(), new HashMap<>());
+        get("/api/task").should()
+                .respond(200)
+                .contain("\"id\":\"" + dummyTaskId + "\"")
+                .contain("\"state\":\"RUNNING\"");
+        put("/api/task/stop/" + dummyTaskId).should()
+                .respond(200)
+                .contain("true");
+        get("/api/task").should()
+                .respond(200)
+                .contain("\"id\":\"" + dummyTaskId + "\"")
+                .contain("\"state\":\"CANCELLED\"");
+    }
+
+    @Test
     public void test_get_tasks() {
         String subpath = getClass().getResource("/docs/doc.txt").getPath().substring(1);
         String body = "{\"options\":{\"reportName\": \"foo\"}}";
