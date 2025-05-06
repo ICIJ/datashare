@@ -140,7 +140,7 @@ public class TaskResource {
         // We need ALL the tasks to paginate accordingly
         List<Task<?>> tasks = taskManager.getTasks(user, batchSearchRecords);
         Stream<Task<?>> sortedTasksStream = tasks.stream().sorted(new Task.Comparator(pagination.sort, pagination.order));
-        Stream<Task<?>>filteredTasksStream = taskManager.getFilteredTaskStream(filters, sortedTasksStream);
+        Stream<Task<?>> filteredTasksStream = taskManager.getFilteredTaskStream(filters, sortedTasksStream);
         WebResponse<Task<?>> paginatedTasks = WebResponse.fromStream(filteredTasksStream, pagination.from, pagination.size);
         // Then finally, use WebResponse to take display the pagination for us
         return new Payload(paginatedTasks);
