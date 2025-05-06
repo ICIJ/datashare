@@ -139,17 +139,11 @@ public class TaskResource {
         List<BatchSearchRecord> batchSearchRecords = batchSearchRepository.getRecords(user, user.getProjectNames());
         // We need ALL the tasks to paginate accordingly
         List<Task<?>> tasks = taskManager.getTasks(user, batchSearchRecords);
-        // Sort the tasks before applying the filter and the pagination
-        Stream<Task<?>> taskStream = tasks.stream().sorted(new Task.Comparator(pagination.sort, pagination.order));
-        // Filter the tasks before the pagination
-        List<Task<?>> filteredTasks = taskManager
-                .getFilteredTaskStream(filters, taskStream)
-                .skip(pagination.from)
-                .limit(pagination.size)
-                .toList();
+        Stream<Task<?>> sortedTasksStream = tasks.stream().sorted(new Task.Comparator(pagination.sort, pagination.order));
+        Stream<Task<?>>filteredTasksStream = taskManager.getFilteredTaskStream(filters, sortedTasksStream);
+        WebResponse<Task<?>> paginatedTasks = WebResponse.fromStream(filteredTasksStream, pagination.from, pagination.size);
         // Then finally, use WebResponse to take display the pagination for us
-        WebResponse<Task<?>> tasksWebResponse = new WebResponse<>(filteredTasks, pagination.from, pagination.size, tasks.size());
-        return new Payload(tasksWebResponse);
+        return new Payload(paginatedTasks);
     }
 
     @Operation(description = """
