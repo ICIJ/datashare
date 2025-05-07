@@ -6,6 +6,7 @@ import net.codestory.rest.RestAssert;
 import net.codestory.rest.ShouldChain;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.asynctasks.Task;
+import org.icij.datashare.asynctasks.TaskManager;
 import org.icij.datashare.asynctasks.TaskRepositoryMemory;
 import org.icij.datashare.asynctasks.bus.amqp.TaskCreation;
 import org.icij.datashare.batch.BatchSearchRepository;
@@ -37,6 +38,7 @@ import static java.lang.String.format;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.fest.assertions.Assertions.assertThat;
 import static org.fest.assertions.MapAssert.entry;
+import static org.icij.datashare.asynctasks.Task.State.RUNNING;
 import static org.icij.datashare.cli.DatashareCliOptions.*;
 import static org.icij.datashare.json.JsonObjectMapper.MAPPER;
 import static org.mockito.ArgumentMatchers.eq;
@@ -71,7 +73,8 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
     }
 
     @After
-    public void tearDown() {
+    public void tearDown() throws IOException {
+        taskManager.stopTasks(User.local());
         taskManager.clear();
     }
 
@@ -536,13 +539,11 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
-    public void test_cannot_clean_running_task() throws IOException {
+    public void test_cannot_clean_running_task() throws Exception {
         String dummyTaskId = taskManager.startTask(TestSleepingTask.class, User.local(), new HashMap<>());
-        assertThat(taskManager.getTask(dummyTaskId).getState()).isNotEqualTo(Task.State.DONE);
+        assertHasState(dummyTaskId, RUNNING, taskManager, 5000, 100);
         delete("/api/task/clean/" + dummyTaskId).should().respond(403);
         assertThat(taskManager.getTasks()).hasSize(1);
-        // Cancel the all tasks to avoid side-effects with other tests
-        put("/api/task/stop").should().respond(200);
     }
 
     @Test
@@ -664,5 +665,18 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
 
     private Optional<Task<?>> findTask(TaskManagerMemory taskManager, String expectedName) {
         return taskManager.getTasks().stream().filter(t -> expectedName.equals(t.name)).findFirst();
+    }
+
+    private void assertHasState(String taskId, Task.State expectedState, TaskManager taskManager, int timeoutMs, int pollIntervalMs)
+        throws IOException, InterruptedException {
+        long start = System.currentTimeMillis();
+        while (System.currentTimeMillis() - start < timeoutMs) {
+            if (taskManager.getTask(taskId).getState() == expectedState) {
+                return;
+            }
+            Thread.sleep(pollIntervalMs);
+        }
+        String msg = "failed to get state " + expectedState + " for task " + taskId + " in less than " + timeoutMs + "ms";
+        throw new AssertionError(msg);
     }
 }
