@@ -5,7 +5,10 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.ByteBufInputStream;
 import io.netty.buffer.ByteBufOutputStream;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
+import java.util.Set;
 import org.icij.datashare.asynctasks.bus.amqp.AmqpQueue;
 import org.icij.datashare.asynctasks.bus.amqp.CancelEvent;
 import org.icij.datashare.asynctasks.bus.amqp.ShutdownEvent;
@@ -31,13 +34,12 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.Serializable;
 import java.nio.charset.Charset;
-import java.util.Map;
 import java.util.concurrent.BlockingQueue;
-import java.util.regex.Pattern;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 import static java.util.Optional.ofNullable;
+import static org.icij.datashare.asynctasks.Task.State.FINAL_STATES;
 
 public class TaskManagerRedis implements TaskManager {
     private final Runnable eventCallback; // for test
@@ -67,40 +69,46 @@ public class TaskManagerRedis implements TaskManager {
         eventTopic.addListener(TaskEvent.class, (channelString, message) -> handleEvent(message));
     }
 
-    public <V extends Serializable> Task<V> getTask(final String taskId) throws UnknownTask {
+    public <V extends Serializable> Task<V> getTask(final String taskId) throws UnknownTask, IOException {
         return tasks.getTask(taskId);
     }
 
     @Override
-    public Stream<Task<?>> getTasks() {
-        return tasks.values().stream().map(TaskMetadata::task);
+    public Stream<Task<?>> getTasks(TaskFilters filters) throws IOException {
+        return tasks.getTasks(filters);
     }
 
     @Override
-    public Group getTaskGroup(String taskId) {
-        return tasks.get(taskId).group();
+    public Group getTaskGroup(String taskId) throws IOException {
+        return tasks.getTaskGroup(taskId);
     }
 
     @Override
-    public List<Task<?>> clearDoneTasks(Map<String, Pattern> filters) {
-        Stream<? extends Task<?>> tasks =
-            getFilteredTaskStream(filters, this.tasks.values().stream().map(TaskMetadata::task))
-                .filter(Task::isFinished)
-                .map(t -> this.tasks.remove(t.id).task());
-        return (List<Task<?>>) tasks.toList();
+    public List<Task<?>> clearDoneTasks(TaskFilters filters) throws IOException {
+        Set<Task.State> stateFilter = new HashSet<>(FINAL_STATES);
+        stateFilter.addAll(Optional.ofNullable(filters.getStates()).orElse(Set.of()));
+        Stream<Task<?>> taskStream = tasks.getTasks(filters.withStates(stateFilter))
+            .map(t -> {
+                try {
+                    return tasks.delete(t.id);
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            });
+        return taskStream.toList();
     }
 
     @Override
-    public <V extends Serializable> Task<V> clearTask(String taskId) throws UnknownTask {
+    public <V extends Serializable> Task<V> clearTask(String taskId) throws UnknownTask, IOException {
         if (getTask(taskId).getState() == Task.State.RUNNING) {
             throw new IllegalStateException(String.format("task id <%s> is already in RUNNING state", taskId));
         }
         logger.info("deleting task id <{}>", taskId);
-        return (Task<V>) tasks.remove(taskId).task();
+        return tasks.delete(taskId);
     }
 
     @Override
-    public boolean stopTask(String taskId) throws UnknownTask {
+    public boolean stopTask(String taskId) throws UnknownTask, IOException {
         Task<?> taskView = getTask(taskId);
         if (taskView != null) {
             logger.info("sending cancel event for {}", taskId);
@@ -120,10 +128,10 @@ public class TaskManagerRedis implements TaskManager {
         return eventTopic.publish(new ShutdownEvent()) > 0;
     }
 
-    BlockingQueue<Task<?>> taskQueue(Task<?> task) {
+    BlockingQueue<Task<?>> taskQueue(Task<?> task) throws IOException {
         switch (routingStrategy) {
             case GROUP -> {
-                return new RedissonBlockingQueue<>(new RedisCodec<>(Task.class), getCommandSyncService(), String.format("%s.%s", AmqpQueue.TASK.name(), tasks.get(task.id).group().id()), redissonClient);
+                return new RedissonBlockingQueue<>(new RedisCodec<>(Task.class), getCommandSyncService(), String.format("%s.%s", AmqpQueue.TASK.name(), tasks.getTaskGroup(task.id).id()), redissonClient);
             }
             case NAME -> {
                 return new RedissonBlockingQueue<>(new RedisCodec<>(Task.class), getCommandSyncService(), String.format("%s.%s", AmqpQueue.TASK.name(), task.name), redissonClient);
@@ -151,8 +159,8 @@ public class TaskManagerRedis implements TaskManager {
     }
 
     @Override
-    public void clear() {
-        tasks.clear();
+    public void clear() throws IOException {
+        tasks.deleteAll();
         clearTaskQueues();
     }
 
@@ -187,7 +195,7 @@ public class TaskManagerRedis implements TaskManager {
     }
 
     @Override
-    public <V extends Serializable> void enqueue(Task<V> task) {
+    public <V extends Serializable> void enqueue(Task<V> task) throws IOException {
         taskQueue(task).add(task);
     }
 

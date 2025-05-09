@@ -193,7 +193,7 @@ public class TaskManagerAmqpTest {
     }
 
     @Test
-    public void test_save_task() throws IOException {
+    public void test_insert_task() throws IOException {
         Task<String> task = new Task<>("name", User.local(), new HashMap<>());
 
         taskManager.insert(task, null);

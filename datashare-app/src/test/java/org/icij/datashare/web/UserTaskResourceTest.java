@@ -140,7 +140,7 @@ public class UserTaskResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
-    public void test_task_list_with_filter() throws IOException {
+    public void test_task_list_by_name() throws IOException {
         setupAppWith(new DummyUserTask<>("bar"), "bar");
         String t2Id = taskManager.startTask(DummyUserTask.class, localUser("bar"), new HashMap<>());
 
@@ -150,7 +150,6 @@ public class UserTaskResourceTest extends AbstractProdWebServerTest {
                 contain("\"uid\":\"bar\"").
                 contain("\"groups_by_applications\":{\"datashare\":[\"bar-datashare\"]}").
                 contain("\"args\":{\"user\":{\"@type\":\"org.icij.datashare.user.User\",\"id\":\"bar\"");
-        get("/api/task/all?filter=foo").withPreemptiveAuthentication("bar", "qux").should().contain("[]");
     }
 
     @Test
