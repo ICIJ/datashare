@@ -1,5 +1,9 @@
 package org.icij.datashare.asynctasks;
 
+import java.util.HashSet;
+import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Stream;
 import org.apache.commons.lang3.NotImplementedException;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.asynctasks.bus.amqp.Event;
@@ -10,16 +14,14 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import java.util.stream.Stream;
 
 import static java.lang.Integer.parseInt;
+import static org.icij.datashare.asynctasks.Task.State.FINAL_STATES;
 
 
 public class TaskManagerMemory implements TaskManager, TaskSupplier {
@@ -49,13 +51,13 @@ public class TaskManagerMemory implements TaskManager, TaskSupplier {
         this.tasks = tasks;
     }
 
-    public <V extends Serializable> Task<V> getTask(final String taskId) throws UnknownTask {
+    public <V extends Serializable> Task<V> getTask(final String taskId) throws UnknownTask, IOException {
         return tasks.getTask(taskId);
     }
 
     @Override
-    public Stream<Task<?>> getTasks() {
-        return tasks.values().stream().map(TaskMetadata::task);
+    public Stream<Task<?>> getTasks(TaskFilters filters) throws IOException {
+        return tasks.getTasks(filters);
     }
 
     @Override
@@ -118,8 +120,8 @@ public class TaskManagerMemory implements TaskManager, TaskSupplier {
     }
 
     @Override
-    public Group getTaskGroup(String taskId) {
-        return tasks.get(taskId).group();
+    public Group getTaskGroup(String taskId) throws IOException {
+        return tasks.getTaskGroup(taskId);
     }
 
     @Override
@@ -139,28 +141,34 @@ public class TaskManagerMemory implements TaskManager, TaskSupplier {
     }
 
     @Override
-    public List<Task<?>> clearDoneTasks(Map<String, Pattern> filters) {
+    public List<Task<?>> clearDoneTasks(TaskFilters filters) throws IOException {
         synchronized (tasks) {
-            Stream<? extends Task<?>> tasks =
-                getFilteredTaskStream(filters, this.tasks.values().stream().map(TaskMetadata::task))
-                    .filter(Task::isFinished)
-                    .map(t -> this.tasks.remove(t.id).task());
-            return (List<Task<?>>) tasks.toList();
+            Set<Task.State> stateFilter = new HashSet<>(FINAL_STATES);
+            stateFilter.addAll(Optional.ofNullable(filters.getStates()).orElse(Set.of()));
+            Stream<Task<?>> taskStream = tasks.getTasks(filters.withStates(stateFilter))
+                .map(t -> {
+                    try {
+                        return tasks.delete(t.id);
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                });
+            return taskStream.toList();
         }
     }
 
     @Override
-    public <V extends Serializable> Task<V> clearTask(String taskId) throws UnknownTask {
+    public <V extends Serializable> Task<V> clearTask(String taskId) throws UnknownTask, IOException {
         if (getTask(taskId).getState() == Task.State.RUNNING) {
             throw new IllegalStateException(String.format("task id <%s> is already in RUNNING state", taskId));
         }
         logger.info("deleting task id <{}>", taskId);
         synchronized (tasks) {
-            return (Task<V>) tasks.remove(taskId).task();
+            return tasks.delete(taskId);
         }
     }
 
-    public boolean stopTask(String taskId) throws UnknownTask {
+    public boolean stopTask(String taskId) throws UnknownTask, IOException {
         Task<?> taskView = tasks.getTask(taskId);
         if (taskView != null) {
             switch (taskView.getState()) {
@@ -205,11 +213,11 @@ public class TaskManagerMemory implements TaskManager, TaskSupplier {
     }
 
     @Override
-    public void clear() {
+    public void clear() throws IOException {
         executedTasks.set(0);
         taskQueue.clear();
         synchronized (tasks) {
-            tasks.clear();
+            tasks.deleteAll();
         }
     }
 

@@ -128,7 +128,7 @@ public class TaskManagerMemoryTest {
     }
 
     @Test
-    public void test_persist_task() throws TaskAlreadyExists, IOException, UnknownTask {
+    public void test_insert_task() throws TaskAlreadyExists, IOException, UnknownTask {
         Task<String> task = new Task<>("name", User.local(), new HashMap<>());
 
         taskManager.insert(task, null);
@@ -144,7 +144,7 @@ public class TaskManagerMemoryTest {
         List<ProjectProxy> projects = List.of(project("project"));
         BatchSearchRecord batchSearchRecord = new BatchSearchRecord(projects, "name", "description", 123, new Date(), uri);
 
-        List<Task<?>> tasks = taskManager.getTasks(user, Stream.of(batchSearchRecord)).toList();
+        List<Task<?>> tasks = taskManager.getTasks(TaskFilters.empty().withUser(user), Stream.of(batchSearchRecord)).toList();
         assertThat(tasks).hasSize(1);
         assertThat(tasks.get(0).id).isEqualTo(batchSearchRecord.uuid);
         assertThat(tasks.get(0).getUser()).isEqualTo(user);
@@ -159,7 +159,7 @@ public class TaskManagerMemoryTest {
         Task<String> task = new Task<>("name", User.local(), new HashMap<>());
         taskManager.insert(task, null);
 
-        List<Task<?>> tasks = taskManager.getTasks(user, Stream.of(batchSearchRecord)).toList();
+        List<Task<?>> tasks = taskManager.getTasks(TaskFilters.empty().withUser(user), Stream.of(batchSearchRecord)).toList();
         assertThat(tasks).hasSize(2);
         assertThat(tasks.get(1).id).isEqualTo(batchSearchRecord.uuid);
         assertThat(tasks.get(1).getUser()).isEqualTo(user);
@@ -173,7 +173,7 @@ public class TaskManagerMemoryTest {
         BatchSearchRecord batchSearchRecord = new BatchSearchRecord(projects, "name", "description", 123, new Date(), uri);
         List<BatchSearchRecord> batchSearchRecords = asList(batchSearchRecord, batchSearchRecord);
 
-        List<Task<?>> tasks = taskManager.getTasks(user, batchSearchRecords.stream()).toList();
+        List<Task<?>> tasks = taskManager.getTasks(TaskFilters.empty().withUser(user), batchSearchRecords.stream()).toList();
         assertThat(tasks).hasSize(1);
         assertThat(tasks.get(0).name).isEqualTo("org.icij.datashare.tasks.BatchSearchRunnerProxy");
     }
@@ -188,7 +188,7 @@ public class TaskManagerMemoryTest {
         Task<String> task = new Task<>(batchSearchRecord.uuid, "name", User.local());
         taskManager.insert(task, null);
 
-        List<Task<?>> tasks = taskManager.getTasks(user, Stream.of(batchSearchRecord)).toList();
+        List<Task<?>> tasks = taskManager.getTasks(TaskFilters.empty().withUser(user), Stream.of(batchSearchRecord)).toList();
         assertThat(tasks).hasSize(1);
         assertThat(tasks.get(0).name).isEqualTo("name");
     }

@@ -13,12 +13,14 @@ import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import net.codestory.http.Context;
 import net.codestory.http.Part;
+import net.codestory.http.Query;
 import net.codestory.http.annotations.Delete;
 import net.codestory.http.annotations.Get;
 import net.codestory.http.annotations.Options;
 import net.codestory.http.annotations.Post;
 import net.codestory.http.annotations.Prefix;
 import net.codestory.http.annotations.Put;
+import net.codestory.http.errors.BadRequestException;
 import net.codestory.http.errors.ForbiddenException;
 import net.codestory.http.errors.HttpException;
 import net.codestory.http.errors.NotFoundException;
@@ -27,6 +29,7 @@ import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.asynctasks.Group;
 import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.asynctasks.TaskAlreadyExists;
+import org.icij.datashare.asynctasks.TaskFilters;
 import org.icij.datashare.asynctasks.TaskGroupType;
 import org.icij.datashare.asynctasks.TaskManager;
 import org.icij.datashare.asynctasks.TaskResult;
@@ -49,7 +52,6 @@ import org.icij.datashare.tasks.ScanIndexTask;
 import org.icij.datashare.tasks.ScanTask;
 import org.icij.datashare.text.Project;
 import org.icij.datashare.user.User;
-import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
 import java.io.IOException;
@@ -57,12 +59,21 @@ import java.io.InputStream;
 import java.io.Serializable;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.*;
+import java.util.HashMap;
+import java.util.LinkedHashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Properties;
+import java.util.Set;
 import java.util.function.Function;
-import java.util.function.Predicate;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static java.lang.Boolean.FALSE;
 import static java.lang.Boolean.TRUE;
@@ -95,11 +106,14 @@ import static org.icij.datashare.text.nlp.AbstractModels.syncModels;
 @Prefix("/api/task")
 public class TaskResource {
     public static final Set<String> PAGINATION_FIELDS = WebQueryPagination.fields();
+    public static final Set<String> TASK_FILTER_FIELDS = Set.of("args", "name", "state", "user");
     private final DatashareTaskFactory taskFactory;
     private final TaskManager taskManager;
     private final PropertiesProvider propertiesProvider;
     private final BatchSearchRepository batchSearchRepository;
     private final int MAX_BATCH_SIZE = 60000;
+
+    private static final Logger logger = LoggerFactory.getLogger(TaskResource.class);
 
 
     @Inject
@@ -127,14 +141,12 @@ public class TaskResource {
     @Get()
     public Payload getTasks(Context context) throws IOException {
         WebQueryPagination pagination = getPagination(context);
-        Map<String, Pattern> filters = getArbitraryFilters(context);
         User user = (User) context.currentUser();
         // We need the batch search records of the user to merge them into the tasks
         List<BatchSearchRecord> batchSearchRecords = batchSearchRepository.getRecords(user, user.getProjectNames());
         // We need ALL the tasks to paginate accordingly
-        Stream<Task<?>> tasks = taskManager.getTasks(user, batchSearchRecords.stream());
-        tasks = tasks.sorted(new Task.Comparator(pagination.sort, pagination.order));
-        tasks = taskManager.getFilteredTaskStream(filters, tasks);
+        Stream<Task<?>> tasks = taskManager.getTasks(taskFiltersFromContext(context, Pattern.CASE_INSENSITIVE), batchSearchRecords.stream())
+            .sorted(new Task.Comparator(pagination.sort, pagination.order));
         WebResponse<Task<?>> paginatedTasks = WebResponse.fromStream(tasks, pagination.from, pagination.size);
         // Then finally, use WebResponse to take display the pagination for us
         return new Payload(paginatedTasks);
@@ -160,11 +172,12 @@ public class TaskResource {
     @Get("/all")
     @Deprecated
     public List<Task<?>> getAllTasks(Context context) throws IOException {
-        WebQueryPagination pagination = getPagination(context);
-        Map<String, Pattern> filters = getArbitraryFilters(context);
         User user = (User) context.currentUser();
         List<BatchSearchRecord> batchSearchRecords = batchSearchRepository.getRecords(user, user.getProjectNames());
-        return taskManager.getTasks(user, filters, pagination, batchSearchRecords.stream()).toList();
+        Stream<Task<?>> tasks = taskManager.getTasks(
+            taskFiltersFromContext(context, Pattern.CASE_INSENSITIVE), batchSearchRecords.stream()
+        );
+        return getPagination(context).paginate(tasks, p -> new Task.Comparator(p.sort, p.order)).toList();
     }
 
     @Operation(description = "Gets one task with its id.")
@@ -173,10 +186,15 @@ public class TaskResource {
     @Get("/:id")
     public Task<?> getTask(@Parameter(name = "id", description = "task id", in = ParameterIn.PATH) String id, Context context) throws IOException {
         User user = (User) context.currentUser();
-        List<BatchSearchRecord> batchSearchRecords = batchSearchRepository.getRecords(user, user.getProjectNames());
-        Stream<Task<?>> tasks = taskManager.getTasks(user, batchSearchRecords.stream());
-        Predicate<Task<?>> predicate = t -> t.getId().equals(id);
-        return tasks.filter(predicate).findFirst().orElseThrow(NotFoundException::new);
+        try {
+            return taskManager.getTask(id);
+        } catch (UnknownTask e) {
+            List<BatchSearchRecord> batchSearchRecords = batchSearchRepository.getRecords(user, user.getProjectNames());
+            return batchSearchRecords.stream()
+                .filter(r -> r.user.getId().equals(user.id))
+                .findFirst().map(TaskManager::taskify)
+                .orElseThrow(NotFoundException::new);
+        }
     }
 
     @Operation(description = "Create a task with JSON body",
@@ -442,11 +460,7 @@ public class TaskResource {
     @ApiResponse(responseCode = "200", description = "returns 200 and the list of removed tasks", useReturnTypeSchema = true)
     @Post("/clean")
     public List<Task<?>> cleanDoneTasks(final Context context) throws IOException {
-        Map<String, Pattern> filters = context.query()
-                .keys()
-                .stream()
-                .collect(toMap(Function.identity(), s -> Pattern.compile(String.format(".*%s.*", context.get(s)))));
-        return taskManager.clearDoneTasks(filters);
+        return taskManager.clearDoneTasks(taskFiltersFromContext(context));
     }
 
     @Operation(description = "Cleans a specific task.")
@@ -498,11 +512,7 @@ public class TaskResource {
     @ApiResponse(responseCode = "200", description = "returns 200 and the tasks stop result map", useReturnTypeSchema = true)
     @Put("/stopAll")
     public Map<String, Boolean> stopAllTasks(final Context context) throws IOException {
-        Map<String, Pattern> filters = context.query()
-                .keys()
-                .stream()
-                .collect(toMap(Function.identity(), s -> Pattern.compile(String.format(".*%s.*", context.get(s)))));
-        return taskManager.stopTasks((User) context.currentUser(), filters);
+        return taskManager.stopTasks(taskFiltersFromContext(context));
     }
 
     @Operation(description = """
@@ -523,11 +533,8 @@ public class TaskResource {
     @ApiResponse(responseCode = "200", description = "returns 200 and the tasks stop result map", useReturnTypeSchema = true)
     @Put("/stop")
     public Map<String, Boolean> stopTasks(final Context context) throws IOException {
-        Map<String, Pattern> filters = context.query()
-                .keys()
-                .stream()
-                .collect(toMap(Function.identity(), s -> Pattern.compile(String.format(".*%s.*", context.get(s)))));
-        return taskManager.stopTasks((User) context.currentUser(), filters);
+        TaskFilters filters = taskFiltersFromContext(context);
+        return taskManager.stopTasks(filters);
     }
 
     @Operation(description = """
@@ -639,22 +646,53 @@ public class TaskResource {
         return WebQueryPagination.fromMap(paginationMap);
     }
 
-    private static Map<String, Pattern> getArbitraryFilters(Context context) {
-        // Collect request's query parameters that are not pagination fields
-        Set<String> keys = context .query().keys().stream().filter(not(PAGINATION_FIELDS::contains)).collect(Collectors.toSet());
-        Function<String, Pattern> matchPattern = getMatchPattern(context);
-        return keys.stream().collect(toMap(Function.identity(), matchPattern));
+    private static TaskFilters taskFiltersFromContext(Context context) throws BadRequestException {
+        return taskFiltersFromContext(context, null);
     }
 
-    private static @NotNull Function<String, Pattern> getMatchPattern(Context context) {
-        // Build a function that match any value seperated by a pipe that is contained in the key (case-insensitive)
-        return k -> {
-            String rawValue = context.get(k);
-            String[] values = rawValue.split("\\s*\\|\\s*");
-            String pattern = Arrays.stream(values)
-                    .map(Pattern::quote)
-                    .collect(Collectors.joining("|")); // literal alternation
-            return Pattern.compile(".*(" + pattern + ").*", Pattern.CASE_INSENSITIVE);
-        };
+    // TODO: this is for backwards compatibility, we should updated APIs to use TaskFilters instead
+    protected static TaskFilters taskFiltersFromContext(Context context, Integer regexFlags) throws BadRequestException {
+        TaskFilters filters = TaskFilters.empty();
+        Query query = context.query();
+        validatedFilterKeys(query);
+        // User
+        filters = Optional.ofNullable((User) context.currentUser()).map(filters::withUser).orElse(filters);
+        // States
+        // We had regexes for state matching, probably not used as such. In case they were used we expect the user to
+        // provide a single state or multiple state joined with "|". This is a hacks.
+        Set<Task.State> states = query.keys().stream().filter(k -> k.equals("state")).findAny()
+            .map(k -> stream(query.get(k).split("\\|")).map(Task.State::valueOf).collect(Collectors.toSet()))
+            .orElse(Set.of());
+        filters = filters.withStates(states);
+        // Names
+        Optional<String> maybeName = query.keys().stream().filter(k -> k.equals("name")).findAny()
+            .map(k -> ".*" + query.get(k) + ".*");
+        if (maybeName.isPresent()) {
+            filters = filters.withNames(maybeName.get());
+        }
+        // Args
+        List<TaskFilters.ArgsFilter> args = query.keys().stream().filter(k -> k.startsWith("args."))
+            .map(k -> new TaskFilters.ArgsFilter(k.substring(5), ".*" + query.get(k) + ".*"))
+            .toList();
+        filters = filters.withArgs(args);
+        if (regexFlags != null) {
+            filters = filters.withFlag(regexFlags);
+        }
+        return filters;
+    }
+
+    private static void validatedFilterKeys(Query query) throws BadRequestException {
+        Set<String> extraKeys = query.keys().stream()
+            .filter(not(PAGINATION_FIELDS::contains))
+            .filter(not(TASK_FILTER_FIELDS::contains))
+            // We allows nested args search
+            .filter(not(k -> k.startsWith("args.")))
+            .collect(Collectors.toSet());
+        if (!extraKeys.isEmpty()) {
+            String msg = "invalid task filter keys " + extraKeys.stream().sorted().toList() + ".";
+            msg += " Allowed keys" + TASK_FILTER_FIELDS.stream().sorted().toList();
+            logger.error(msg);
+            throw new BadRequestException();
+        }
     }
 }

@@ -7,8 +7,6 @@ import org.icij.datashare.asynctasks.bus.amqp.ProgressEvent;
 import org.icij.datashare.asynctasks.bus.amqp.ResultEvent;
 import org.icij.datashare.asynctasks.bus.amqp.TaskEvent;
 import org.icij.datashare.batch.BatchSearchRecord;
-import org.icij.datashare.batch.WebQueryPagination;
-import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.user.User;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -17,16 +15,14 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.EnumMap;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
-import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 import static java.util.stream.Collectors.toMap;
-import static org.icij.datashare.text.StringUtils.getValue;
+import static org.icij.datashare.asynctasks.Task.State.NON_FINAL_STATES;
 
 /**
  * Task manager interface with default methods common for all managers implementations.
@@ -38,10 +34,10 @@ public interface TaskManager extends Closeable {
     <V extends Serializable> Task<V> clearTask(String taskId) throws IOException, UnknownTask;
     boolean stopTask(String taskId) throws IOException, UnknownTask;
 
-    Stream<Task<?>> getTasks() throws IOException;
+    Stream<Task<?>> getTasks(TaskFilters filters) throws IOException;
     // clearDoneTasks keeps a List return type otherwise tasks are cleared unless the stream is consumed
-    List<Task<?>> clearDoneTasks(Map<String, Pattern> filters) throws IOException;
-    Group getTaskGroup(String taskId);
+    List<Task<?>> clearDoneTasks(TaskFilters filter) throws IOException;
+    Group getTaskGroup(String taskId) throws IOException, UnknownTask;
     boolean shutdown() throws IOException;
 
     void clear() throws IOException;
@@ -50,13 +46,12 @@ public interface TaskManager extends Closeable {
 
     int getTerminationPollingInterval();
 
-    default Stream<Task<?>> getTasks(User user) throws IOException {
-        return getTasks(user, new HashMap<>(), new WebQueryPagination());
+    default Stream<Task<?>> getTasks() throws IOException {
+        return getTasks(TaskFilters.empty());
     }
 
-    default Stream<Task<?>> getTasks(User user, Stream<BatchSearchRecord> batchSearchRecords) throws IOException {
-        // Filter the task to only get the one launched by the current user
-        Stream<Task<? extends Serializable>> userTasks = getTasks().filter(t -> user.equals(t.getUser()));
+    default Stream<Task<?>> getTasks(TaskFilters filters, Stream<BatchSearchRecord> batchSearchRecords) throws IOException {
+        Stream<Task<? extends Serializable>> userTasks = getTasks(filters);
         // Convert the received batch search records to "proxy tasks"
         Stream<Task<Integer>> batchSearchTasks = batchSearchRecords.map(TaskManager::taskify);
         // Merge the to list of tasks and deduplicate them by id
@@ -72,60 +67,29 @@ public interface TaskManager extends Closeable {
             .values().stream().map(t -> (Task<?>)t);
     }
 
-    default Stream<Task<?>> getTasks(User user, Map<String, Pattern> filters) throws IOException {
-        return getTasks(user, filters, new WebQueryPagination());
-    }
-
-    default Stream<Task<?>> getTasks(User user, Map<String, Pattern> filters, WebQueryPagination pagination) throws IOException {
-        Stream<Task<?>> taskStream = getTasks().sorted(new Task.Comparator(pagination.sort, pagination.order));
-        taskStream = getFilteredTaskStream(filters, taskStream);
-        return taskStream.filter(t -> user.equals(t.getUser())).skip(pagination.from).limit(pagination.size);
-    }
-
-    default Stream<Task<?>> getTasks(User user, Map<String, Pattern> filters, WebQueryPagination pagination, Stream<BatchSearchRecord> batchSearchRecords) throws IOException {
-        Stream<Task<?>> tasks = getTasks(user, batchSearchRecords);
-        // Sort/order the tasks together
-        Stream<Task<?>> taskStream = tasks.sorted(new Task.Comparator(pagination.sort, pagination.order));
-        // Finally, filter then paginate the tasks
-        return getFilteredTaskStream(filters, taskStream).skip(pagination.from).limit(pagination.size);
-    }
-
     default boolean awaitTermination(int timeout, TimeUnit timeUnit) throws InterruptedException, IOException {
         return !waitTasksToBeDone(timeout, timeUnit).isEmpty();
     }
 
     default Map<String, Boolean> stopTasks(User user) throws IOException {
-        return stopTasks(user, new HashMap<>());
+        return stopTasks(TaskFilters.empty().withUser(user));
     }
 
-    default Map<String, Boolean> stopTasks(User user, Map<String, Pattern> filters) throws IOException {
-        Stream<Task<?>> taskStream = getTasks();
-        taskStream = getFilteredTaskStream(filters, taskStream);
-        return taskStream.
-                filter(t -> user.equals(t.getUser())).
-                filter(t -> t.getState() == Task.State.RUNNING || t.getState() == Task.State.QUEUED || t.getState() == Task.State.CREATED).collect(
-                        toMap(t -> t.id, t -> {
-                            try {
-                                return stopTask(t.id);
-                            } catch (IOException | UnknownTask e) {
-                                logger.error("cannot stop task {}", t.id, e);
-                                return false;
-                            }
-                        }));
+    default Map<String, Boolean> stopTasks(TaskFilters filters) throws IOException {
+        TaskFilters filterNotCompleted = filters.withStates(NON_FINAL_STATES);
+        Stream<Task<?>> taskStream = getTasks(filterNotCompleted);
+        return taskStream.collect(toMap(t -> t.id, t -> {
+            try {
+                return stopTask(t.id);
+            } catch (IOException | UnknownTask e) {
+                logger.error("cannot stop task {}", t.id, e);
+                return false;
+            }
+        }));
     }
 
     default List<Task<?>> clearDoneTasks() throws IOException {
-        return clearDoneTasks(Map.of());
-    };
-
-    default Stream<Task<?>> getFilteredTaskStream(Map<String, Pattern> filters, Stream<Task<?>> taskStream) {
-        for (Map.Entry<String, Pattern> filter : filters.entrySet()) {
-            taskStream = taskStream.filter(task -> {
-                Map<String, Object> objectMap = JsonObjectMapper.getJson(task);
-                return filter.getValue().matcher(String.valueOf(getValue(objectMap, filter.getKey()))).matches();
-            });
-        }
-        return taskStream;
+        return clearDoneTasks(TaskFilters.empty());
     }
 
     /**

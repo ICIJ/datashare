@@ -178,11 +178,11 @@ public class TaskManagerRedisTest {
     }
 
     @After
-    public void tearDown() {
+    public void tearDown() throws IOException {
         taskManager.clear();
     }
     @Before
-    public void setUp() {
+    public void setUp() throws IOException {
         taskManager.clear();
     }
 }
