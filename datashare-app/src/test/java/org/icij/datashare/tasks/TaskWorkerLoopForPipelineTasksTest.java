@@ -1,5 +1,6 @@
 package org.icij.datashare.tasks;
 
+import java.util.List;
 import java.util.function.Function;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.asynctasks.Task;
@@ -15,8 +16,6 @@ import org.mockito.Mock;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
 import static org.fest.assertions.Assertions.assertThat;
@@ -90,8 +89,9 @@ public class TaskWorkerLoopForPipelineTasksTest {
         taskSupplier.startTask(task.name, User.local(), task.args);
         taskSupplier.awaitTermination(1, TimeUnit.SECONDS);
 
-        assertThat(taskSupplier.getTasks()).hasSize(1);
-        assertThat(taskSupplier.getTasks().get(0).name).isEqualTo(task.name);
+        List<Task<?>> tasks = taskSupplier.getTasks().toList();
+        assertThat(tasks).hasSize(1);
+        assertThat(tasks.get(0).name).isEqualTo(task.name);
     }
 
     @Before

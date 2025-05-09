@@ -79,7 +79,7 @@ public class CreateNlpBatchesFromIndexTest {
             new Task<>(CreateNlpBatchesFromIndex.class.getName(), new User("test"), properties), null);
         // When
         enqueueFromIndex.call();
-        List<List<String>> queued = taskManager.getTasks().stream()
+        List<List<String>> queued = taskManager.getTasks()
             .map(t -> ((List<CreateNlpBatchesFromIndex.BatchDocument>) t.args.get("docs")).stream().map(
                 CreateNlpBatchesFromIndex.BatchDocument::id).toList())
             .toList();

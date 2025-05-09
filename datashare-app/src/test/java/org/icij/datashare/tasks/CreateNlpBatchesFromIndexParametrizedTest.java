@@ -136,7 +136,7 @@ public class CreateNlpBatchesFromIndexParametrizedTest {
                 new Task<>(CreateNlpBatchesFromIndex.class.getName(), new User("test"), properties), null);
         // When
         List<String> taskIds = enqueueFromIndex.call();
-        List<List<Language>> queued = taskManager.getTasks().stream()
+        List<List<Language>> queued = taskManager.getTasks()
             .sorted(Comparator.comparing(t -> t.createdAt))
             .map(t -> ((List<CreateNlpBatchesFromIndex.BatchDocument>) t.args.get("docs")).stream().map(
                 CreateNlpBatchesFromIndex.BatchDocument::language).toList())

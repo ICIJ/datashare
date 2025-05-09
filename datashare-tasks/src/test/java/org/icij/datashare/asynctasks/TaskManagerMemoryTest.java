@@ -11,13 +11,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
-import java.util.regex.Pattern;
 
+import java.util.stream.Stream;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.batch.BatchSearchRecord;
-import org.icij.datashare.batch.WebQueryPagination;
 import org.icij.datashare.test.LogbackCapturingRule;
-import org.icij.datashare.text.Project;
 import org.icij.datashare.text.ProjectProxy;
 import org.icij.datashare.time.DatashareTime;
 import org.icij.datashare.user.User;
@@ -53,7 +51,7 @@ public class TaskManagerMemoryTest {
 
         assertThat(taskManager.getTask(tid).getState()).isEqualTo(Task.State.DONE);
         assertThat(taskManager.getTask(tid).getResult()).isEqualTo(new TaskResult<>("Hello world!"));
-        assertThat(taskManager.getTasks()).hasSize(1);
+        assertThat(taskManager.getTasks().toList()).hasSize(1);
     }
 
     @Test
@@ -85,7 +83,7 @@ public class TaskManagerMemoryTest {
         taskManager.awaitTermination(1, TimeUnit.SECONDS);
         assertThat(t2.getState()).isEqualTo(Task.State.CANCELLED);
         assertThat(taskManager.numberOfExecutedTasks()).isEqualTo(0);
-        assertThat(taskManager.getTasks()).hasSize(2);
+        assertThat(taskManager.getTasks().toList()).hasSize(2);
     }
 
     @Test
@@ -94,11 +92,11 @@ public class TaskManagerMemoryTest {
 
         taskManager.startTask(task, new Group(TaskGroupType.Test));
         taskManager.awaitTermination(1, TimeUnit.SECONDS);
-        assertThat(taskManager.getTasks()).hasSize(1);
+        assertThat(taskManager.getTasks().toList()).hasSize(1);
 
         taskManager.clearTask(task.id);
 
-        assertThat(taskManager.getTasks()).hasSize(0);
+        assertThat(taskManager.getTasks().toList()).hasSize(0);
     }
 
     @Test(expected = IllegalStateException.class)
@@ -135,7 +133,7 @@ public class TaskManagerMemoryTest {
 
         taskManager.insert(task, null);
 
-        assertThat(taskManager.getTasks()).hasSize(1);
+        assertThat(taskManager.getTasks().toList()).hasSize(1);
         assertThat(taskManager.getTask(task.id)).isNotNull();
     }
 
@@ -146,7 +144,7 @@ public class TaskManagerMemoryTest {
         List<ProjectProxy> projects = List.of(project("project"));
         BatchSearchRecord batchSearchRecord = new BatchSearchRecord(projects, "name", "description", 123, new Date(), uri);
 
-        List<Task<?>> tasks = taskManager.getTasks(user, List.of(batchSearchRecord));
+        List<Task<?>> tasks = taskManager.getTasks(user, Stream.of(batchSearchRecord)).toList();
         assertThat(tasks).hasSize(1);
         assertThat(tasks.get(0).id).isEqualTo(batchSearchRecord.uuid);
         assertThat(tasks.get(0).getUser()).isEqualTo(user);
@@ -161,7 +159,7 @@ public class TaskManagerMemoryTest {
         Task<String> task = new Task<>("name", User.local(), new HashMap<>());
         taskManager.insert(task, null);
 
-        List<Task<?>> tasks = taskManager.getTasks(user, List.of(batchSearchRecord));
+        List<Task<?>> tasks = taskManager.getTasks(user, Stream.of(batchSearchRecord)).toList();
         assertThat(tasks).hasSize(2);
         assertThat(tasks.get(1).id).isEqualTo(batchSearchRecord.uuid);
         assertThat(tasks.get(1).getUser()).isEqualTo(user);
@@ -175,7 +173,7 @@ public class TaskManagerMemoryTest {
         BatchSearchRecord batchSearchRecord = new BatchSearchRecord(projects, "name", "description", 123, new Date(), uri);
         List<BatchSearchRecord> batchSearchRecords = asList(batchSearchRecord, batchSearchRecord);
 
-        List<Task<?>> tasks = taskManager.getTasks(user, batchSearchRecords);
+        List<Task<?>> tasks = taskManager.getTasks(user, batchSearchRecords.stream()).toList();
         assertThat(tasks).hasSize(1);
         assertThat(tasks.get(0).name).isEqualTo("org.icij.datashare.tasks.BatchSearchRunnerProxy");
     }
@@ -190,7 +188,7 @@ public class TaskManagerMemoryTest {
         Task<String> task = new Task<>(batchSearchRecord.uuid, "name", User.local());
         taskManager.insert(task, null);
 
-        List<Task<?>> tasks = taskManager.getTasks(user, List.of(batchSearchRecord));
+        List<Task<?>> tasks = taskManager.getTasks(user, Stream.of(batchSearchRecord)).toList();
         assertThat(tasks).hasSize(1);
         assertThat(tasks.get(0).name).isEqualTo("name");
     }

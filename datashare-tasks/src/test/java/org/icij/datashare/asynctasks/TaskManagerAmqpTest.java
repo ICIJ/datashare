@@ -154,20 +154,20 @@ public class TaskManagerAmqpTest {
         String taskView1Id = taskManager.startTask("taskName1", User.local(), new HashMap<>());
         taskManager.startTask("taskName2", User.local(), new HashMap<>());
 
-        assertThat(taskManager.getTasks()).hasSize(2);
+        assertThat(taskManager.getTasks().toList()).hasSize(2);
 
         Task<?> clearedTask = taskManager.clearTask(taskView1Id);
 
         assertThat(taskView1Id).isEqualTo(clearedTask.id);
         assertThrows(UnknownTask.class, () -> taskManager.getTask(taskView1Id));
-        assertThat(taskManager.getTasks()).hasSize(1);
+        assertThat(taskManager.getTasks().toList()).hasSize(1);
     }
 
     @Test(expected = IllegalStateException.class)
     public void test_clear_running_task_should_throw_exception() throws Exception {
         taskManager.startTask("taskName", User.local(), new HashMap<>());
 
-        assertThat(taskManager.getTasks()).hasSize(1);
+        assertThat(taskManager.getTasks().toList()).hasSize(1);
 
         // in the task runner loop
         Task<Serializable> task = taskQueue.poll(1, TimeUnit.SECONDS); // to sync
@@ -198,7 +198,7 @@ public class TaskManagerAmqpTest {
 
         taskManager.insert(task, null);
 
-        assertThat(taskManager.getTasks()).hasSize(1);
+        assertThat(taskManager.getTasks().toList()).hasSize(1);
         assertThat(taskManager.getTask(task.id)).isNotNull();
     }
 
@@ -216,7 +216,7 @@ public class TaskManagerAmqpTest {
     }
 
     @Test
-    public void test_health_ok() throws Exception {
+    public void test_health_ok() {
         assertThat(taskManager.getHealth()).isTrue();
     }
 
