@@ -1,6 +1,8 @@
 package org.icij.datashare.tasks;
 
 import co.elastic.clients.elasticsearch._types.Refresh;
+import java.util.List;
+import java.util.function.Function;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.batch.BatchSearch;
@@ -14,18 +16,22 @@ import org.icij.datashare.text.NamedEntity;
 import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchIndexer;
 import org.icij.datashare.text.nlp.Pipeline;
 import org.icij.datashare.user.User;
-import org.junit.*;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.ClassRule;
+import org.junit.Rule;
+import org.junit.Test;
 import org.mockito.Mock;
 
 import java.io.IOException;
 import java.util.HashMap;
-import java.util.List;
-import java.util.function.Function;
 
 import static java.util.Collections.singletonList;
 import static org.fest.assertions.Assertions.assertThat;
 import static org.icij.datashare.CollectionUtils.asSet;
-import static org.icij.datashare.cli.DatashareCliOptions.*;
+import static org.icij.datashare.cli.DatashareCliOptions.BATCH_SEARCH_SCROLL_DURATION_OPT;
+import static org.icij.datashare.cli.DatashareCliOptions.BATCH_SEARCH_SCROLL_SIZE_OPT;
+import static org.icij.datashare.cli.DatashareCliOptions.SCROLL_SIZE_OPT;
 import static org.icij.datashare.test.ElasticsearchRule.TEST_INDEX;
 import static org.icij.datashare.text.DocumentBuilder.createDoc;
 import static org.icij.datashare.text.Project.project;
@@ -33,7 +39,11 @@ import static org.icij.datashare.user.User.local;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.anyList;
+import static org.mockito.Mockito.eq;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 import static org.mockito.MockitoAnnotations.initMocks;
 
 public class BatchSearchRunnerIntTest {
@@ -56,8 +66,8 @@ public class BatchSearchRunnerIntTest {
         verify(repository).saveResults(search.uuid, "mydoc", singletonList(mydoc), true);
     }
 
-    private Task<?> taskView(BatchSearch search) {
-        return new Task<>(search.uuid, BatchSearchRunner.class.getName(), User.local());
+    private Task taskView(BatchSearch search) {
+        return new Task(search.uuid, BatchSearchRunner.class.getName(), User.local());
     }
 
     @Test
@@ -242,7 +252,7 @@ public class BatchSearchRunnerIntTest {
     }
 
     @Test
-    public void test_use_batch_search_scroll_size_value_over_scroll_size_value() throws Exception {
+    public void test_use_batch_search_scroll_size_value_over_scroll_size_value() {
         PropertiesProvider propertiesProvider = new PropertiesProvider(new HashMap<>() {{
             put(SCROLL_SIZE_OPT, "100");
             put(BATCH_SEARCH_SCROLL_SIZE_OPT, "0");
@@ -256,7 +266,7 @@ public class BatchSearchRunnerIntTest {
     }
 
     @Test
-    public void test_use_scroll_size_value() throws Exception {
+    public void test_use_scroll_size_value() {
         PropertiesProvider propertiesProvider = new PropertiesProvider(new HashMap<>() {{
             put(SCROLL_SIZE_OPT, "0");
         }});
@@ -269,7 +279,7 @@ public class BatchSearchRunnerIntTest {
     }
 
     @Test
-    public void test_use_scroll_duration_value() throws Exception {
+    public void test_use_scroll_duration_value() {
         PropertiesProvider propertiesProvider = new PropertiesProvider(new HashMap<>() {{
             put(BATCH_SEARCH_SCROLL_DURATION_OPT, "foo");
         }});

@@ -4,7 +4,8 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import java.io.IOException;
+import java.util.LinkedHashMap;
 import org.apache.commons.lang3.builder.CompareToBuilder;
 import org.icij.datashare.Entity;
 import org.icij.datashare.asynctasks.bus.amqp.Event;
@@ -13,30 +14,38 @@ import org.icij.datashare.batch.WebQueryPagination;
 import org.icij.datashare.time.DatashareTime;
 import org.icij.datashare.user.User;
 
-import java.io.Serializable;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.Callable;
-import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
 import static java.util.Optional.ofNullable;
 import static java.util.UUID.randomUUID;
 import static org.icij.datashare.batch.WebQueryPagination.OrderDirection.ASC;
+import static org.icij.datashare.json.JsonObjectMapper.MAPPER;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class Task<V extends Serializable> extends Event implements Entity, Comparable<Task<V>> {
+public class Task extends Event implements Entity, Comparable<Task>{
     public static final String USER_KEY = "user";
     @JsonIgnore private StateLatch stateLatch;
     @JsonIgnore private final Object lock = new Object();
 
-    public enum State {CREATED, QUEUED, RUNNING, CANCELLED, ERROR, DONE}
-    @JsonTypeInfo(use = JsonTypeInfo.Id.CLASS, property = "@type")
+    public enum State {
+        CREATED, QUEUED, RUNNING, CANCELLED, ERROR, DONE;
+
+        public boolean isFinal() {
+            return switch (this) {
+                case ERROR -> true;
+                case DONE -> true;
+                case CANCELLED -> true;
+                default -> false;
+            };
+        }
+    }
     public final Map<String, Object> args;
     public final String id;
     public final String name;
@@ -44,7 +53,6 @@ public class Task<V extends Serializable> extends Event implements Entity, Compa
     private volatile State state;
     private volatile Date completedAt;
     private volatile double progress;
-    private volatile TaskResult<V> result;
 
     public Task(String name, User user, Map<String, Object> args) {
         this(randomUUID().toString(), name, user, args);
@@ -55,7 +63,7 @@ public class Task<V extends Serializable> extends Event implements Entity, Compa
     }
 
     public Task(String id, String name, User user, Map<String, Object> args) {
-        this(id, name, State.CREATED, 0, DatashareTime.getNow(), MAX_RETRIES_LEFT, null, addTo(args, user), null, null);
+        this(id, name, State.CREATED, 0, DatashareTime.getNow(), MAX_RETRIES_LEFT, null, addTo(args, user), null);
     }
 
     @JsonCreator
@@ -67,7 +75,6 @@ public class Task<V extends Serializable> extends Event implements Entity, Compa
          @JsonProperty("retriesLeft") int retriesLeft,
          @JsonProperty("completedAt") Date completedAt,
          @JsonProperty("args") Map<String, Object> args,
-         @JsonProperty("result") TaskResult<V> result,
          @JsonProperty("error") TaskError error) {
         super(createdAt, retriesLeft);
         this.id = id;
@@ -75,43 +82,18 @@ public class Task<V extends Serializable> extends Event implements Entity, Compa
         this.state = state;
         this.progress = progress;
         this.completedAt = completedAt;
-        this.result = result;
         this.error = error;
         // avoids "no default constructor found" for anonymous inline maps
         this.args = Collections.unmodifiableMap(ofNullable(args).orElse(new HashMap<>()));
     }
 
-    public TaskResult<V> getResult() {
-        return result;
-    }
-
-    /**
-     * Beware that the lock is working only on a "local" use.
-     * If the task is serialized/deserialized then the lock won't do anything
-     * because the lock instance will change.
-     *
-     * @param timeout
-     * @param unit
-     * @return
-     * @throws InterruptedException
-     */
-    public TaskResult<V> getResult(int timeout, TimeUnit unit) throws InterruptedException {
-        synchronized (lock) {
-            if (!isFinished()) {
-                lock.wait(unit.toMillis(timeout));
-            }
-            return result;
-        }
-    }
-
-    public void setState(State state) {
+    protected void setState(State state) {
         this.state = state;
         ofNullable(stateLatch).ifPresent(sl -> sl.setTaskState(state));
     }
 
-    public void setResult(TaskResult<V> result) {
+    public void setDone() {
         synchronized (lock) {
-            this.result =  result;
             setState(State.DONE);
             this.progress = 1;
             this.completedAt = DatashareTime.getNow();
@@ -167,13 +149,13 @@ public class Task<V extends Serializable> extends Event implements Entity, Compa
 
     @JsonIgnore
     public boolean isFinished() {
-        return State.DONE.equals(state) || State.CANCELLED.equals(state) || State.ERROR.equals(state);
+        return state.isFinal();
     }
 
     @Override
     public boolean equals(Object o) {
         if (o == null || getClass() != o.getClass()) return false;
-        Task<?> task = (Task<?>) o;
+        Task task = (Task) o;
         return Double.compare(progress, task.progress) == 0 &&
                 Objects.equals(id, task.id) &&
                 Objects.equals(name, task.name)
@@ -199,7 +181,14 @@ public class Task<V extends Serializable> extends Event implements Entity, Compa
 
     @JsonIgnore
     public User getUser() {
-        return (User) args.get(USER_KEY);
+        // Ugly hack to avoid serializing the user with Java type info... We could have remove the user from the task
+        // and move it to datashare task however, it's useful to keep it to index task by user
+        // (faster task retrieval/filtering in the taskRepo)
+        try {
+            return MAPPER.readValue(MAPPER.writeValueAsBytes(args.get(USER_KEY)), User.class);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public static <V> String getId(Callable<V> task) {
@@ -216,12 +205,12 @@ public class Task<V extends Serializable> extends Event implements Entity, Compa
     }
 
     @Override
-    public int compareTo(Task<V> task) {
+    public int compareTo(Task task) {
         return new Comparator("name", ASC).compare(this, task);
     }
 
-    public record Comparator(String field, WebQueryPagination.OrderDirection order) implements java.util.Comparator<Task<?>> {
-        public static Map<String, Function<Task<?>, ?>> SORT_FIELDS = Map.of(
+    public record Comparator(String field, WebQueryPagination.OrderDirection order) implements java.util.Comparator<Task> {
+        public static Map<String, Function<Task, ?>> SORT_FIELDS = Map.of(
             "id", Task::getId,
             "user", Task::getUser,
             "createdAt", t -> t.createdAt,
@@ -238,7 +227,7 @@ public class Task<V extends Serializable> extends Event implements Entity, Compa
         }
 
         @Override
-        public int compare(Task<?> t1, Task<?> t2) {
+        public int compare(Task t1, Task t2) {
             CompareToBuilder compareToBuilder = new CompareToBuilder();
             Object fieldValue1 = SORT_FIELDS.get(field()).apply(t1);
             Object fieldValue2 = SORT_FIELDS.get(field()).apply(t2);

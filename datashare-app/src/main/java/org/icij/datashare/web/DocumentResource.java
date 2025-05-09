@@ -79,7 +79,7 @@ public class DocumentResource {
                     @Parameter(name = "routing", description = "routing key if not a root document", in = ParameterIn.QUERY),
                     @Parameter(name = "inline", description = "if true returns the document as attachment", in = ParameterIn.QUERY),
                     @Parameter(name = "filter_metadata", description = "if true, do not send document metadata", in = ParameterIn.QUERY),
-                } 
+                }
     )
     @ApiResponse(responseCode = "200", content = {@Content(mediaType = "document mime type (from the contentType field or file extension).")},
                  description = "returns the source of the document.")

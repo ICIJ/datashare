@@ -1,7 +1,9 @@
 package org.icij.datashare.web;
 
+import java.util.stream.Stream;
 import net.codestory.rest.Response;
 import org.icij.datashare.PropertiesProvider;
+import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.asynctasks.TaskRepositoryMemory;
 import org.icij.datashare.batch.BatchSearch;
 import org.icij.datashare.batch.BatchSearchRecord;
@@ -134,8 +136,9 @@ public class TaskResourceBatchSearchTest extends AbstractProdWebServerTest {
                 singletonList(project("prj")), "nameValue", null,
                 asSet("query", "éèàç"), new Date(), BatchSearch.State.QUEUED, User.local());
         verify(batchSearchRepository).save(eq(expected));
-        assertThat(taskManager.getTasks()).hasSize(1);
-        assertThat(taskManager.getTasks().get(0).name).isEqualTo(BatchSearchRunner.class.getName());
+        List<Task> tasks = taskManager.getTasks().toList();
+        assertThat(tasks).hasSize(1);
+        assertThat(tasks.get(0).name).isEqualTo(BatchSearchRunner.class.getName());
     }
 
     @Test
@@ -190,8 +193,9 @@ public class TaskResourceBatchSearchTest extends AbstractProdWebServerTest {
         assertThat(argument.getValue().queryTemplate).isEqualTo(sourceSearch.queryTemplate);
 
         assertThat(argument.getValue().state).isEqualTo(BatchSearchRecord.State.QUEUED);
-        assertThat(taskManager.getTasks()).hasSize(1);
-        assertThat(taskManager.getTasks().get(0).name).isEqualTo(BatchSearchRunner.class.getName());
+        List<Task> tasks = taskManager.getTasks().toList();
+        assertThat(tasks).hasSize(1);
+        assertThat(tasks.get(0).name).isEqualTo(BatchSearchRunner.class.getName());
     }
 
     @Test
