@@ -49,6 +49,7 @@ import org.icij.datashare.tasks.ScanIndexTask;
 import org.icij.datashare.tasks.ScanTask;
 import org.icij.datashare.text.Project;
 import org.icij.datashare.user.User;
+import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
 import java.io.IOException;
@@ -56,15 +57,7 @@ import java.io.InputStream;
 import java.io.Serializable;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.HashMap;
-import java.util.LinkedHashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Properties;
-import java.util.Set;
+import java.util.*;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
@@ -649,8 +642,19 @@ public class TaskResource {
     private static Map<String, Pattern> getArbitraryFilters(Context context) {
         // Collect request's query parameters that are not pagination fields
         Set<String> keys = context .query().keys().stream().filter(not(PAGINATION_FIELDS::contains)).collect(Collectors.toSet());
-        // Build a function that match any value that contained in the key (case-insensitive)
-        Function<String, Pattern> matchPattern = k -> Pattern.compile(".*" + Pattern.quote(context.get(k)) + ".*", Pattern.CASE_INSENSITIVE);
+        Function<String, Pattern> matchPattern = getMatchPattern(context);
         return keys.stream().collect(toMap(Function.identity(), matchPattern));
+    }
+
+    private static @NotNull Function<String, Pattern> getMatchPattern(Context context) {
+        // Build a function that match any value seperated by a pipe that is contained in the key (case-insensitive)
+        return k -> {
+            String rawValue = context.get(k);
+            String[] values = rawValue.split("\\s*\\|\\s*");
+            String pattern = Arrays.stream(values)
+                    .map(Pattern::quote)
+                    .collect(Collectors.joining("|")); // literal alternation
+            return Pattern.compile(".*(" + pattern + ").*", Pattern.CASE_INSENSITIVE);
+        };
     }
 }

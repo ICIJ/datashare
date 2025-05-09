@@ -106,6 +106,16 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
+    public void test_get_tasks_filtered_on_multiple_names() {
+        String subpath = getClass().getResource("/docs/doc.txt").getPath().substring(1);
+        String body = "{\"options\":{\"reportName\": \"foo\"}}";
+        post("/api/task/batchUpdate/index/" + subpath, body).should().haveType("application/json");
+
+        get("/api/task").should().haveType("application/json").contain("IndexTask").contain("ScanTask");
+        get("/api/task?name=scan|index").should().contain("ScanTask").contain("IndexTask");
+    }
+
+    @Test
     public void test_get_tasks_paginated_with_zero_tasks() {
         get("/api/task?size=10").should().haveType("application/json")
                 .contain("\"count\":0")
