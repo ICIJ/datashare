@@ -77,7 +77,7 @@ public class TaskManagerRedis implements TaskManager {
 
     @Override
     public Group getTaskGroup(String taskId) {
-        return tasks.get(taskId).group();
+        return tasks.getTask(taskId).group();
     }
 
     @Override
@@ -120,7 +120,7 @@ public class TaskManagerRedis implements TaskManager {
     BlockingQueue<Task<?>> taskQueue(Task<?> task) {
         switch (routingStrategy) {
             case GROUP -> {
-                return new RedissonBlockingQueue<>(new RedisCodec<>(Task.class), getCommandSyncService(), String.format("%s.%s", AmqpQueue.TASK.name(), tasks.get(task.id).group().id()), redissonClient);
+                return new RedissonBlockingQueue<>(new RedisCodec<>(Task.class), getCommandSyncService(), String.format("%s.%s", AmqpQueue.TASK.name(), tasks.getTask(task.id).group().id()), redissonClient);
             }
             case NAME -> {
                 return new RedissonBlockingQueue<>(new RedisCodec<>(Task.class), getCommandSyncService(), String.format("%s.%s", AmqpQueue.TASK.name(), task.name), redissonClient);

@@ -61,7 +61,7 @@ public class JooqTaskRepositoryTest {
 
         assertThat(repository.put(foo.taskId(), foo)).isNull();
 
-        TaskMetadata<?> actual = repository.get(foo.taskId());
+        TaskMetadata<?> actual = repository.getTask(foo.taskId());
         assertThat(actual).isNotSameAs(foo); // not same instance
         assertThat(actual).isEqualTo(foo); // but equals as defined by Task
         assertThat(actual.task().getUser()).isEqualTo(User.local());
@@ -77,7 +77,7 @@ public class JooqTaskRepositoryTest {
         foo.setProgress(0.5);
         repository.update(foo);
 
-        TaskMetadata<?> actual = repository.get(foo.getId());
+        TaskMetadata<?> actual = repository.getTask(foo.getId());
         assertThat(actual.group()).isEqualTo(new Group(TaskGroupType.Test));
         assertThat(actual.task().getState()).isEqualTo(Task.State.RUNNING);
         assertThat(actual.task().getCompletedAt()).isNull();
@@ -85,7 +85,7 @@ public class JooqTaskRepositoryTest {
 
         foo.setResult(new TaskResult<>(1));
         repository.update(foo);
-        actual = repository.get(foo.getId());
+        actual = repository.getTask(foo.getId());
         assertThat(actual.task().getState()).isEqualTo(Task.State.DONE);
         assertThat(actual.task().getCompletedAt()).isNotNull();
     }

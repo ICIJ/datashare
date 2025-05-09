@@ -20,6 +20,7 @@ import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import static java.lang.Integer.parseInt;
+import static org.icij.datashare.asynctasks.Task.State.FINAL_STATES;
 
 
 public class TaskManagerMemory implements TaskManager, TaskSupplier {
@@ -49,13 +50,13 @@ public class TaskManagerMemory implements TaskManager, TaskSupplier {
         this.tasks = tasks;
     }
 
-    public <V extends Serializable> Task<V> getTask(final String taskId) throws UnknownTask {
+    public <V extends Serializable> Task<V> getTask(final String taskId) throws UnknownTask, IOException {
         return tasks.getTask(taskId);
     }
 
     @Override
-    public Stream<Task<?>> getTasks() {
-        return tasks.values().stream().map(TaskMetadata::task);
+    public Stream<Task<?>> getTasks() throws IOException {
+        return tasks.getTasks();
     }
 
     @Override
@@ -118,8 +119,8 @@ public class TaskManagerMemory implements TaskManager, TaskSupplier {
     }
 
     @Override
-    public Group getTaskGroup(String taskId) {
-        return tasks.get(taskId).group();
+    public Group getTaskGroup(String taskId) throws IOException {
+        return tasks.getTaskGroup(taskId);
     }
 
     @Override
@@ -139,26 +140,31 @@ public class TaskManagerMemory implements TaskManager, TaskSupplier {
     }
 
     @Override
-    public Stream<Task<?>> clearDoneTasks(Map<String, Pattern> filters) {
+    public Stream<Task<?>> clearDoneTasks(Map<String, Pattern> filters) throws IOException {
         synchronized (tasks) {
-            return getFilteredTaskStream(filters, tasks.values().stream().map(TaskMetadata::task))
-                .filter(Task::isFinished)
-                .map(t -> tasks.remove(t.id).task());
+            return tasks.getTasks(filters, FINAL_STATES)
+                .map(t -> {
+                    try {
+                        return tasks.delete(t.id);
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                });
         }
     }
 
     @Override
-    public <V extends Serializable> Task<V> clearTask(String taskId) throws UnknownTask {
+    public <V extends Serializable> Task<V> clearTask(String taskId) throws UnknownTask, IOException {
         if (getTask(taskId).getState() == Task.State.RUNNING) {
             throw new IllegalStateException(String.format("task id <%s> is already in RUNNING state", taskId));
         }
         logger.info("deleting task id <{}>", taskId);
         synchronized (tasks) {
-            return (Task<V>) tasks.remove(taskId).task();
+            return tasks.delete(taskId);
         }
     }
 
-    public boolean stopTask(String taskId) throws UnknownTask {
+    public boolean stopTask(String taskId) throws UnknownTask, IOException {
         Task<?> taskView = tasks.getTask(taskId);
         if (taskView != null) {
             switch (taskView.getState()) {
@@ -203,11 +209,11 @@ public class TaskManagerMemory implements TaskManager, TaskSupplier {
     }
 
     @Override
-    public void clear() {
+    public void clear() throws IOException {
         executedTasks.set(0);
         taskQueue.clear();
         synchronized (tasks) {
-            tasks.clear();
+            tasks.deleteAll();
         }
     }
 

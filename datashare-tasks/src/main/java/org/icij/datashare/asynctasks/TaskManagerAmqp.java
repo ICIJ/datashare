@@ -12,6 +12,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 import static java.util.Optional.ofNullable;
+import static org.icij.datashare.asynctasks.Task.State.FINAL_STATES;
 
 public class TaskManagerAmqp implements TaskManager {
     protected static final int DEFAULT_TASK_POLLING_INTERVAL_MS = 5000;
@@ -66,7 +67,7 @@ public class TaskManagerAmqp implements TaskManager {
             throw new IllegalStateException(String.format("task id <%s> is already in RUNNING state", taskId));
         }
         logger.info("deleting task id <{}>", taskId);
-        return (Task<V>) tasks.remove(taskId).task();
+        return tasks.delete(taskId);
     }
 
     @Override
@@ -88,7 +89,7 @@ public class TaskManagerAmqp implements TaskManager {
     @Override
     public <V extends Serializable> void enqueue(Task<V> task) throws IOException {
         switch (routingStrategy) {
-            case GROUP -> amqp.publish(AmqpQueue.TASK, this.tasks.get(task.id).group().id().name(), task);
+            case GROUP -> amqp.publish(AmqpQueue.TASK, this.tasks.getTaskGroup(task.id).id().name(), task);
             case NAME -> amqp.publish(AmqpQueue.TASK, task.name, task);
             default -> amqp.publish(AmqpQueue.TASK, task);
         }
@@ -100,19 +101,25 @@ public class TaskManagerAmqp implements TaskManager {
     }
 
     @Override
-    public Stream<Task<?>> getTasks() {
-        return tasks.values().stream().map(TaskMetadata::task);
+    public Stream<Task<?>> getTasks() throws IOException {
+        return tasks.getTasks();
     }
 
     @Override
-    public Group getTaskGroup(String taskId) {
-        return tasks.get(taskId).group();
+    public Group getTaskGroup(String taskId) throws IOException {
+        return tasks.getTaskGroup(taskId);
     }
 
     @Override
-    public Stream<Task<?>> clearDoneTasks(Map<String, Pattern> filters) {
-        return getFilteredTaskStream(filters, tasks.values().stream().map(TaskMetadata::task))
-            .filter(Task::isFinished).map(t -> tasks.remove(t.id).task());
+    public Stream<Task<?>> clearDoneTasks(Map<String, Pattern> filters) throws IOException {
+        return tasks.getTasks(filters, FINAL_STATES)
+            .map(t -> {
+                try {
+                    return tasks.delete(t.id);
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            });
     }
 
     @Override
@@ -126,8 +133,8 @@ public class TaskManagerAmqp implements TaskManager {
     }
 
     @Override
-    public void clear() {
-        tasks.clear();
+    public void clear() throws IOException {
+        tasks.deleteAll();
     }
 
     @Override

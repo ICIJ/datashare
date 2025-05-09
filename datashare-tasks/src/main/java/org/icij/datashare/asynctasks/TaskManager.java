@@ -8,7 +8,6 @@ import org.icij.datashare.asynctasks.bus.amqp.ResultEvent;
 import org.icij.datashare.asynctasks.bus.amqp.TaskEvent;
 import org.icij.datashare.batch.BatchSearchRecord;
 import org.icij.datashare.batch.WebQueryPagination;
-import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.user.User;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,7 +25,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 import static java.util.stream.Collectors.toMap;
-import static org.icij.datashare.text.StringUtils.getValue;
+import static org.icij.datashare.asynctasks.TaskStreamUtils.getFilteredTaskStream;
 
 /**
  * Task manager interface with default methods common for all managers implementations.
@@ -40,7 +39,7 @@ public interface TaskManager extends Closeable {
 
     Stream<Task<?>> getTasks() throws IOException;
     Stream<Task<?>> clearDoneTasks(Map<String, Pattern> filters) throws IOException;
-    Group getTaskGroup(String taskId);
+    Group getTaskGroup(String taskId) throws IOException, UnknownTask;
     boolean shutdown() throws IOException;
 
     void clear() throws IOException;
@@ -50,7 +49,25 @@ public interface TaskManager extends Closeable {
     int getTerminationPollingInterval();
 
     default Stream<Task<?>> getTasks(User user) throws IOException {
-        return getTasks(user, new HashMap<>(), new WebQueryPagination());
+        return getTasks().filter(t -> user.equals(t.getUser()));
+    }
+
+    default Stream<Task<?>> getTasks(User user, Map<String, Pattern> filters) throws IOException {
+        return getFilteredTaskStream(filters, getTasks(user));
+    }
+
+    default Stream<Task<?>> getTasks(User user, Map<String, Pattern> filters, WebQueryPagination pagination) throws IOException {
+        return getFilteredTaskStream(filters, getTasks(user))
+            .sorted(new Task.Comparator(pagination.sort, pagination.order))
+            .skip(pagination.from).limit(pagination.size);
+    }
+
+    default Stream<Task<?>> getTasks(User user, Map<String, Pattern> filters, WebQueryPagination pagination, Stream<BatchSearchRecord> batchSearchRecords) throws IOException {
+        // Sort/order the tasks together
+        Stream<Task<?>> tasks = getTasks(user, batchSearchRecords)
+            .sorted(new Task.Comparator(pagination.sort, pagination.order));
+        // Finally, filter then paginate the tasks
+        return getFilteredTaskStream(filters, tasks).skip(pagination.from).limit(pagination.size);
     }
 
     default Stream<Task<?>> getTasks(User user, Stream<BatchSearchRecord> batchSearchRecords) throws IOException {
@@ -69,24 +86,6 @@ public interface TaskManager extends Closeable {
                 LinkedHashMap::new
             ))
             .values().stream().map(t -> (Task<?>)t);
-    }
-
-    default Stream<Task<?>> getTasks(User user, Map<String, Pattern> filters) throws IOException {
-        return getTasks(user, filters, new WebQueryPagination());
-    }
-
-    default Stream<Task<?>> getTasks(User user, Map<String, Pattern> filters, WebQueryPagination pagination) throws IOException {
-        Stream<Task<?>> taskStream = getTasks().sorted(new Task.Comparator(pagination.sort, pagination.order));
-        taskStream = getFilteredTaskStream(filters, taskStream);
-        return taskStream.filter(t -> user.equals(t.getUser())).skip(pagination.from).limit(pagination.size);
-    }
-
-    default Stream<Task<?>> getTasks(User user, Map<String, Pattern> filters, WebQueryPagination pagination, Stream<BatchSearchRecord> batchSearchRecords) throws IOException {
-        Stream<Task<?>> tasks = getTasks(user, batchSearchRecords);
-        // Sort/order the tasks together
-        Stream<Task<?>> taskStream = tasks.sorted(new Task.Comparator(pagination.sort, pagination.order));
-        // Finally, filter then paginate the tasks
-        return getFilteredTaskStream(filters, taskStream).skip(pagination.from).limit(pagination.size);
     }
 
     default boolean awaitTermination(int timeout, TimeUnit timeUnit) throws InterruptedException, IOException {
@@ -115,16 +114,6 @@ public interface TaskManager extends Closeable {
 
     default Stream<Task<?>> clearDoneTasks() throws IOException {
         return clearDoneTasks(Map.of());
-    };
-
-    default Stream<Task<?>> getFilteredTaskStream(Map<String, Pattern> filters, Stream<Task<?>> taskStream) {
-        for (Map.Entry<String, Pattern> filter : filters.entrySet()) {
-            taskStream = taskStream.filter(task -> {
-                Map<String, Object> objectMap = JsonObjectMapper.getJson(task);
-                return filter.getValue().matcher(String.valueOf(getValue(objectMap, filter.getKey()))).matches();
-            });
-        }
-        return taskStream;
     }
 
     /**
