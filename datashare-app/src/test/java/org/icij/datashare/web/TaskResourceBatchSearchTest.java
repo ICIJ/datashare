@@ -124,7 +124,8 @@ public class TaskResourceBatchSearchTest extends AbstractProdWebServerTest {
     }
 
     @Test
-    public void test_upload_batch_search_csv_with_name_and_csvfile_should_send_OK() throws InterruptedException {
+    public void test_upload_batch_search_csv_with_name_and_csvfile_should_send_OK()
+        throws InterruptedException, IOException {
         when(batchSearchRepository.save(any())).thenReturn(true);
         Response response = postRaw("/api/task/batchSearch/prj", "multipart/form-data;boundary=AaB03x",
                 new MultipartContentBuilder("AaB03x")
@@ -171,7 +172,7 @@ public class TaskResourceBatchSearchTest extends AbstractProdWebServerTest {
     }
 
     @Test
-    public void test_rerun_batch_search() {
+    public void test_rerun_batch_search() throws IOException {
         String uri = "/?q=&from=0&size=25&sort=relevance&indices=test&field=all";
         BatchSearch sourceSearch = new BatchSearch(asList(project("prj1"), project("prj2")), "name", "description1", asSet("query 1", "query 2"), uri, User.local());
         when(batchSearchRepository.get(null, sourceSearch.uuid)).thenReturn(sourceSearch);

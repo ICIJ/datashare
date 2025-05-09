@@ -21,7 +21,6 @@ import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.regex.Pattern;
 
 import static java.util.Arrays.asList;
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -132,7 +131,7 @@ public class TaskManagersIntTest {
         String tv2Id = taskManager.startTask(TestFactory.SleepForever.class, User.local(), new HashMap<>());
 
         taskInspector.awaitStatus(tv1Id, Task.State.RUNNING, 1, SECONDS);
-        taskManager.stopTasks(User.local(), Map.of("name", Pattern.compile(".*Another.*")));
+        taskManager.stopTasks(TaskFilters.empty().withUser(User.local()).withNames(".*Another.*"));
         taskInspector.awaitStatus(tv1Id, Task.State.CANCELLED, 1, SECONDS);
 
         assertThat(taskManager.getTasks().toList()).hasSize(2);

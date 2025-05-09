@@ -1,11 +1,22 @@
 package org.icij.datashare.web;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import java.io.InputStream;
+import java.net.InetSocketAddress;
+import java.util.Collection;
+import java.util.Set;
+import net.codestory.http.Context;
+import net.codestory.http.Cookies;
+import net.codestory.http.Part;
+import net.codestory.http.Query;
+import net.codestory.http.Request;
+import net.codestory.http.errors.BadRequestException;
 import net.codestory.rest.Response;
 import net.codestory.rest.RestAssert;
 import net.codestory.rest.ShouldChain;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.asynctasks.Task;
+import org.icij.datashare.asynctasks.TaskFilters;
 import org.icij.datashare.asynctasks.TaskManager;
 import org.icij.datashare.asynctasks.TaskRepositoryMemory;
 import org.icij.datashare.asynctasks.bus.amqp.TaskCreation;
@@ -38,9 +49,13 @@ import static java.lang.String.format;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.fest.assertions.Assertions.assertThat;
 import static org.fest.assertions.MapAssert.entry;
+import static org.icij.datashare.asynctasks.Task.State.DONE;
 import static org.icij.datashare.asynctasks.Task.State.RUNNING;
 import static org.icij.datashare.cli.DatashareCliOptions.*;
 import static org.icij.datashare.json.JsonObjectMapper.MAPPER;
+import static org.icij.datashare.user.User.localUser;
+import static org.icij.datashare.web.TaskResource.taskFiltersFromContext;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.mock;
@@ -100,9 +115,9 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         String body = "{\"options\":{\"reportName\": \"foo\"}}";
         post("/api/task/batchUpdate/index/" + subpath, body).should().haveType("application/json");
 
+        get("/api/task?args.dataDir=docs").should().contain("ScanTask").not().contain("IndexTask");
         get("/api/task").should().haveType("application/json").contain("IndexTask").contain("ScanTask");
         get("/api/task?name=Index").should().contain("IndexTask").not().contain("ScanTask");
-        get("/api/task?args.dataDir=docs").should().contain("ScanTask").not().contain("IndexTask");
     }
 
     @Test
@@ -248,7 +263,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
-    public void test_index_file_without_filter_should_not_pass_report_map_to_task() {
+    public void test_index_file_without_filter_should_not_pass_report_map_to_task() throws IOException {
         String body = "{\"options\":{\"reportName\": \"foo\"}}";
         post("/api/task/batchUpdate/index/" + getClass().getResource("/docs/doc.txt").getPath().substring(1), body).should().haveType("application/json");
 
@@ -314,7 +329,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test(timeout = 2000)
-    public void test_index_and_scan_default_directory() {
+    public void test_index_and_scan_default_directory() throws IOException {
         RestAssert response = post("/api/task/batchUpdate/index/file", "{}");
         Map<String, Object> properties = getDefaultProperties();
         properties.put("foo", "bar");
@@ -325,7 +340,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
-    public void test_index_and_scan_directory_with_options() {
+    public void test_index_and_scan_directory_with_options() throws IOException {
         String path = Objects.requireNonNull(getClass().getResource("/docs")).getPath();
 
         RestAssert response = post("/api/task/batchUpdate/index/" + path.substring(1),
@@ -347,7 +362,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
-    public void test_index_queue_with_options() {
+    public void test_index_queue_with_options() throws IOException {
         String body = "{\"options\":{\"key1\":\"val1\",\"key2\":\"val2\"}}";
         RestAssert response = post("/api/task/batchUpdate/index", body);
         response.should().haveType("application/json");
@@ -436,7 +451,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
-    public void test_findNames_with_options_should_merge_with_property_provider() {
+    public void test_findNames_with_options_should_merge_with_property_provider() throws IOException {
         RestAssert response = post("/api/task/findNames/EMAIL", "{\"options\":{\"waitForNlpApp\": false, \"key\":\"val\",\"foo\":\"loo\"}}");
         response.should().haveType("application/json");
 
@@ -653,6 +668,93 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
                 .should().respond(201);
     }
 
+    @Test
+    public void test_task_list_by_unsupported_filter_should_return_400() {
+        get("/api/task/all?filter=foo").should().respond(400);
+    }
+
+    @Test
+    public void test_task_filters_from_context_should_throw_for_unsupported_filter() {
+        Request request = new MockRequest(Map.of("unknown", "field"));
+        Context ctx = new Context(request, null, null, null, null);
+        assertThrows(BadRequestException.class, () -> taskFiltersFromContext(ctx, null));
+    }
+
+    @Test
+    public void test_task_filters_from_context_should_not_filter() {
+        // Given
+        Request request = new MockRequest(Map.of());
+        Context ctx = new Context(request, null, null, null, null);
+        // When
+        TaskFilters filters = taskFiltersFromContext(ctx, null);
+        // Then
+        TaskFilters expectedFilters = TaskFilters.empty().withStates(Set.of()).withArgs(List.of());
+        assertThat(filters).isEqualTo(expectedFilters);
+    }
+
+    @Test
+    public void test_task_filters_from_context_should_filter_task_by_names() {
+        // Given
+        Request request = new MockRequest(Map.of("name", "someTask|someOtherTask"));
+        Context ctx = new Context(request, null, null, null, null);
+        // When
+        TaskFilters filters = taskFiltersFromContext(ctx, null);
+        // Then
+        TaskFilters expectedFilters = TaskFilters.empty().withStates(Set.of()).withArgs(List.of())
+            .withNames(".*someTask|someOtherTask.*");
+        assertThat(filters).isEqualTo(expectedFilters);
+    }
+
+    @Test
+    public void test_task_filters_from_context_should_filter_task_by_user() {
+        // Given
+        class MockUser extends User implements net.codestory.http.security.User {
+            public MockUser() {
+                super("some-id", "some-name", "", "", "{}");
+            }
+            @Override
+            public String login() { return null; }
+            @Override
+            public String[] roles() { return new String[0];}
+        }
+
+        MockUser mockUser = new MockUser();
+        Request request = new MockRequest(Map.of());
+        Context ctx = new Context(request, null, null, null, null);
+        ctx.setCurrentUser(mockUser);
+        // When
+        TaskFilters filters = taskFiltersFromContext(ctx, null);
+        // Then
+        TaskFilters expectedFilters = TaskFilters.empty().withStates(Set.of()).withArgs(List.of())
+            .withUser(mockUser);
+        assertThat(filters).isEqualTo(expectedFilters);
+    }
+
+    @Test
+    public void test_task_filters_from_context_should_filter_task_by_args() {
+        // Given
+        Request request = new MockRequest(Map.of("args.nested.attribute", "someregex"));
+        Context ctx = new Context(request, null, null, null, null);
+        // When
+        TaskFilters filters = taskFiltersFromContext(ctx, null);
+        // Then
+        TaskFilters expectedFilters = TaskFilters.empty().withStates(Set.of())
+            .withArgs(List.of(new TaskFilters.ArgsFilter("nested.attribute", ".*someregex.*")));
+        assertThat(filters).isEqualTo(expectedFilters);
+    }
+
+    @Test
+    public void test_task_filters_from_context_should_filter_task_by_state() {
+        // Given
+        Request request = new MockRequest(Map.of("state", "DONE"));
+        Context ctx = new Context(request, null, null, null, null);
+        // When
+        TaskFilters filters = taskFiltersFromContext(ctx, null);
+        // Then
+        TaskFilters expectedFilters = TaskFilters.empty().withStates(Set.of(DONE)).withArgs(List.of());
+        assertThat(filters).isEqualTo(expectedFilters);
+    }
+
     @NotNull
     private Map<String, Object> getDefaultProperties() {
         HashMap<String, Object> map = new HashMap<>() {{
@@ -674,7 +776,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         return new PropertiesProvider(getDefaultProperties());
     }
 
-    private Optional<Task<?>> findTask(TaskManagerMemory taskManager, String expectedName) {
+    private Optional<Task<?>> findTask(TaskManagerMemory taskManager, String expectedName) throws IOException {
         return taskManager.getTasks().filter(t -> expectedName.equals(t.name)).findFirst();
     }
 
@@ -689,5 +791,81 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         }
         String msg = "failed to get state " + expectedState + " for task " + taskId + " in less than " + timeoutMs + "ms";
         throw new AssertionError(msg);
+    }
+
+
+    static class MockRequest implements Request {
+        private final MockQueryImpl query;
+        MockRequest(Map<String, String> query) {
+            this.query = new MockQueryImpl(query);
+        }
+
+        @Override
+        public Query query() {
+        return this.query;
+        }
+
+        @Override
+        public String uri() {return null;}
+
+        @Override
+        public String method() { return null;}
+
+        @Override
+        public String content() throws IOException { return null;}
+
+        @Override
+        public String contentType() { return null;}
+
+        @Override
+        public InputStream inputStream() { return null;}
+
+        @Override
+        public List<String> headerNames() { return null;}
+
+        @Override
+        public List<String> headers(String name) { return null;}
+
+        @Override
+        public String header(String name) { return null; }
+
+        @Override
+        public InetSocketAddress clientAddress() { return null; }
+
+        @Override
+        public boolean isSecure() {return true;}
+
+        @Override
+        public Cookies cookies() { return null; }
+
+
+        @Override
+        public List<Part> parts() { return null; }
+
+        @Override
+        public <T> T unwrap(Class<T> type) { return null; }
+    }
+
+    static class MockQueryImpl implements Query {
+        Map<String, String> query;
+
+        MockQueryImpl(Map<String, String> query) {
+            this.query = query;
+        }
+
+        @Override
+        public Collection<String> keys() {
+            return query.keySet();
+        }
+
+        @Override
+        public Iterable<String> all(String s) {
+            return Optional.ofNullable(this.query.get(s)).stream().toList();
+        }
+
+        @Override
+        public <T> T unwrap(Class<T> aClass) {
+            return null;
+        }
     }
 }

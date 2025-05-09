@@ -2,10 +2,13 @@ package org.icij.datashare.batch;
 
 
 import java.lang.reflect.Field;
+import java.util.Comparator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static java.util.Arrays.stream;
 import static java.util.Optional.ofNullable;
@@ -39,6 +42,10 @@ public class WebQueryPagination {
                 (String) paginationMap.get("order"),
                 Integer.parseInt(ofNullable(paginationMap.get("from")).orElse("0").toString()),
                 Integer.parseInt(ofNullable(paginationMap.get("size")).orElse(Integer.MAX_VALUE).toString()));
+    }
+
+    public <T> Stream<T> paginate(Stream<T> stream, Function<WebQueryPagination, Comparator<T>> comparatorFactory) {
+        return stream.sorted(comparatorFactory.apply(this)).skip(from).limit(size);
     }
 
     @Override

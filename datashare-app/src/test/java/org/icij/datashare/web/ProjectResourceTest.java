@@ -1,6 +1,5 @@
 package org.icij.datashare.web;
 
-import java.util.stream.Stream;
 import net.codestory.http.filters.basic.BasicAuthFilter;
 import net.codestory.http.security.Users;
 import org.icij.datashare.PropertiesProvider;
@@ -323,7 +322,7 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
         when(repository.getProjects(any())).thenReturn(asList(foo, bar));
         when(repository.deleteAll("foo")).thenReturn(true).thenReturn(false);
         when(repository.deleteAll("bar")).thenReturn(true).thenReturn(false);
-        when(taskManager.clearDoneTasks()).thenReturn(Stream.of(task)).thenReturn(Stream.of());
+        when(taskManager.clearDoneTasks()).thenReturn(List.of(task)).thenReturn(List.of());
         delete("/api/project/").should().respond(204);
     }
 
