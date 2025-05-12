@@ -5,6 +5,7 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.ByteBufInputStream;
 import io.netty.buffer.ByteBufOutputStream;
+import java.util.List;
 import org.icij.datashare.asynctasks.bus.amqp.AmqpQueue;
 import org.icij.datashare.asynctasks.bus.amqp.CancelEvent;
 import org.icij.datashare.asynctasks.bus.amqp.ShutdownEvent;
@@ -30,16 +31,13 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.Serializable;
 import java.nio.charset.Charset;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 import static java.util.Optional.ofNullable;
-import static java.util.stream.Collectors.toList;
 
 public class TaskManagerRedis implements TaskManager {
     private final Runnable eventCallback; // for test
@@ -74,8 +72,8 @@ public class TaskManagerRedis implements TaskManager {
     }
 
     @Override
-    public List<Task<?>> getTasks() {
-        return tasks.values().stream().map(TaskMetadata::task).collect(Collectors.toList());
+    public Stream<Task<?>> getTasks() {
+        return tasks.values().stream().map(TaskMetadata::task);
     }
 
     @Override
@@ -85,10 +83,11 @@ public class TaskManagerRedis implements TaskManager {
 
     @Override
     public List<Task<?>> clearDoneTasks(Map<String, Pattern> filters) {
-        Stream<Task<?>> taskStream = tasks.values().stream().map(TaskMetadata::task);
-        taskStream = getFilteredTaskStream(filters, taskStream);
-        return taskStream.filter(Task::isFinished)
-            .map(t -> tasks.remove(t.id).task()).collect(toList());
+        Stream<? extends Task<?>> tasks =
+            getFilteredTaskStream(filters, this.tasks.values().stream().map(TaskMetadata::task))
+                .filter(Task::isFinished)
+                .map(t -> this.tasks.remove(t.id).task());
+        return (List<Task<?>>) tasks.toList();
     }
 
     @Override

@@ -239,7 +239,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         ShouldChain responseBody = response.should().haveType("application/json");
 
         taskManager.waitTasksToBeDone(1, SECONDS);
-        List<String> taskNames = taskManager.getTasks().stream().map(t -> t.id).toList();
+        List<String> taskNames = taskManager.getTasks().map(t -> t.id).toList();
         responseBody.should().contain(format(taskNames.get(0)));
         responseBody.should().contain(taskNames.get(1));
 
@@ -264,7 +264,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         ShouldChain responseBody = response.should().haveType("application/json");
 
         taskManager.waitTasksToBeDone(1, SECONDS);
-        List<String> taskNames = taskManager.getTasks().stream().map(t -> t.id).toList();
+        List<String> taskNames = taskManager.getTasks().map(t -> t.id).toList();
         responseBody.should().contain(taskNames.get(0));
         responseBody.should().contain(taskNames.get(1));
 
@@ -280,7 +280,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         ShouldChain responseBody = response.should().haveType("application/json");
 
         taskManager.waitTasksToBeDone(1, SECONDS);
-        List<String> taskNames = taskManager.getTasks().stream().map(t -> t.id).toList();
+        List<String> taskNames = taskManager.getTasks().map(t -> t.id).toList();
         responseBody.should().contain(taskNames.get(0));
         responseBody.should().contain(taskNames.get(1));
 
@@ -296,7 +296,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         ShouldChain responseBody = response.should().haveType("application/json");
 
         taskManager.waitTasksToBeDone(1, SECONDS);
-        List<String> taskNames = taskManager.getTasks().stream().map(t -> t.id).toList();
+        List<String> taskNames = taskManager.getTasks().map(t -> t.id).toList();
         responseBody.should().contain(taskNames.get(0));
         responseBody.should().contain(taskNames.get(1));
     }
@@ -308,7 +308,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         ShouldChain responseBody = response.should().haveType("application/json");
 
         taskManager.waitTasksToBeDone(1, SECONDS);
-        List<String> taskNames = taskManager.getTasks().stream().map(t -> t.id).toList();
+        List<String> taskNames = taskManager.getTasks().map(t -> t.id).toList();
         responseBody.should().contain(taskNames.get(0));
         responseBody.should().contain(taskNames.get(1));
     }
@@ -338,7 +338,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         defaultProperties.put("user", User.local());
         defaultProperties.remove(REPORT_NAME_OPT);
 
-        assertThat(taskManager.getTasks()).hasSize(2);
+        assertThat(taskManager.getTasks().toList()).hasSize(2);
         assertThat(findTask(taskManager, "org.icij.datashare.tasks.ScanTask")).isNotNull();
         assertThat(findTask(taskManager, "org.icij.datashare.tasks.ScanTask").get().args.get(DATA_DIR_OPT)).isEqualTo(path);
 
@@ -357,10 +357,11 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         defaultProperties.put("key2", "val2");
         defaultProperties.put("user", User.local());
 
-        assertThat(taskManager.getTasks()).hasSize(1);
-        assertThat(taskManager.getTasks().get(0).name).isEqualTo("org.icij.datashare.tasks.IndexTask");
+        List<Task<?>> tasks = taskManager.getTasks().toList();
+        assertThat(tasks).hasSize(1);
+        assertThat(tasks.get(0).name).isEqualTo("org.icij.datashare.tasks.IndexTask");
 
-        assertThat(taskManager.getTasks().get(0).args).isEqualTo(defaultProperties);
+        assertThat(tasks.get(0).args).isEqualTo(defaultProperties);
     }
 
     @Test
@@ -372,7 +373,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         ShouldChain responseBody = response.should().haveType("application/json");
 
         taskManager.waitTasksToBeDone(1, SECONDS);
-        List<String> taskNames = taskManager.getTasks().stream().map(t -> t.id).toList();
+        List<String> taskNames = taskManager.getTasks().map(t -> t.id).toList();
         assertThat(taskNames.size()).isEqualTo(1);
         responseBody.should().contain(taskNames.get(0));
         Map<String, Object> defaultProperties = getDefaultProperties();
@@ -426,7 +427,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         response.should().haveType("application/json");
 
         taskManager.waitTasksToBeDone(1, SECONDS);
-        List<String> taskNames = taskManager.getTasks().stream().map(t -> t.id).toList();
+        List<String> taskNames = taskManager.getTasks().map(t -> t.id).toList();
         assertThat(taskNames.size()).isEqualTo(2);
 
         assertThat(findTask(taskManager, "org.icij.datashare.tasks.EnqueueFromIndexTask")).isNotNull();
@@ -505,13 +506,13 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
     public void test_clean_getAllTasks() throws IOException {
         post("/api/task/batchUpdate/index/file/" + getClass().getResource("/docs/doc.txt").getPath().substring(1), "{}").response();
         taskManager.waitTasksToBeDone(1, SECONDS);
-        List<String> taskNames = taskManager.getTasks().stream().map(t -> t.id).toList();
+        List<String> taskNames = taskManager.getTasks().map(t -> t.id).toList();
 
         ShouldChain responseBody = post("/api/task/clean", "{}").should().haveType("application/json");
 
         responseBody.should().contain(taskNames.get(0));
         responseBody.should().contain(taskNames.get(1));
-        assertThat(taskManager.getTasks()).isEmpty();
+        assertThat(taskManager.getTasks().findAny());
     }
 
     @Test
@@ -522,19 +523,19 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
 
         responseBody.should().contain("ScanTask");
         responseBody.should().not().contain("IndexTask");
-        assertThat(taskManager.getTasks()).hasSize(1);
+        assertThat(taskManager.getTasks().toList()).hasSize(1);
     }
 
     @Test
     public void test_clean_one_done_task() throws IOException {
         String dummyTaskId = taskManager.startTask(TestTask.class, User.local(), new HashMap<>());
         taskManager.waitTasksToBeDone(1, SECONDS);
-        assertThat(taskManager.getTasks()).hasSize(1);
+        assertThat(taskManager.getTasks().toList()).hasSize(1);
         assertThat(taskManager.getTask(dummyTaskId).getState()).isEqualTo(Task.State.DONE);
 
         delete("/api/task/clean/" + dummyTaskId).should().respond(200);
 
-        assertThat(taskManager.getTasks()).hasSize(0);
+        assertThat(taskManager.getTasks().toList()).hasSize(0);
     }
     @Test
     public void test_cannot_clean_unknown_task() {
@@ -553,7 +554,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         String dummyTaskId = taskManager.startTask(TestSleepingTask.class, User.local(), new HashMap<>());
         assertHasState(dummyTaskId, RUNNING, taskManager, 5000, 100);
         delete("/api/task/clean/" + dummyTaskId).should().respond(403);
-        assertThat(taskManager.getTasks()).hasSize(1);
+        assertThat(taskManager.getTasks().toList()).hasSize(1);
     }
 
     @Test
@@ -611,7 +612,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         put("/api/task/stop").should().respond(200).contain("{}");
 
         assertThat(taskManager.clearDoneTasks()).hasSize(1);
-        assertThat(taskManager.getTasks()).hasSize(0);
+        assertThat(taskManager.getTasks().toList()).hasSize(0);
     }
 
     @Test
@@ -674,7 +675,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
     }
 
     private Optional<Task<?>> findTask(TaskManagerMemory taskManager, String expectedName) {
-        return taskManager.getTasks().stream().filter(t -> expectedName.equals(t.name)).findFirst();
+        return taskManager.getTasks().filter(t -> expectedName.equals(t.name)).findFirst();
     }
 
     private void assertHasState(String taskId, Task.State expectedState, TaskManager taskManager, int timeoutMs, int pollIntervalMs)

@@ -1,5 +1,6 @@
 package org.icij.datashare.tasks;
 
+import java.util.List;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.asynctasks.TaskWorkerLoop;
@@ -47,11 +48,12 @@ public class TaskWorkerLoopIntTest {
         taskManager.awaitTermination(1, TimeUnit.SECONDS);
         eventWaiter.await();
 
-        assertThat(taskManager.getTasks()).hasSize(1);
-        assertThat(taskManager.getTasks().get(0).getError()).isNotNull();
-        assertThat(taskManager.getTasks().get(0).getProgress()).isEqualTo(1);
-        assertThat(taskManager.getTasks().get(0).args).hasSize(2);
-        assertThat(taskManager.getTasks().get(0).getUser()).isEqualTo(User.local());
+        List<Task<?>> tasks = taskManager.getTasks().toList();
+        assertThat(tasks).hasSize(1);
+        assertThat(tasks.get(0).getError()).isNotNull();
+        assertThat(tasks.get(0).getProgress()).isEqualTo(1);
+        assertThat(tasks.get(0).args).hasSize(2);
+        assertThat(tasks.get(0).getUser()).isEqualTo(User.local());
     }
 
     @Before

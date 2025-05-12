@@ -2,6 +2,7 @@ package org.icij.datashare.web;
 
 import net.codestory.rest.Response;
 import org.icij.datashare.PropertiesProvider;
+import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.asynctasks.TaskRepositoryMemory;
 import org.icij.datashare.batch.BatchSearch;
 import org.icij.datashare.batch.BatchSearchRecord;
@@ -114,7 +115,7 @@ public class TaskResourceBatchSearchTest extends AbstractProdWebServerTest {
     public void test_upload_batch_search_csv_with_csvFile_with_60K_queries_should_send_request_too_large() throws IOException {
         when(batchSearchRepository.save(any())).thenReturn(true);
         StringBuilder content = new StringBuilder();
-        IntStream.range(0,60000).boxed().collect(Collectors.toList()).forEach(i -> content.append("Test ").append(i).append("\r\n"));
+        IntStream.range(0,60000).boxed().toList().forEach(i -> content.append("Test ").append(i).append("\r\n"));
         Response response = postRaw("/api/task/batchSearch/prj", "multipart/form-data;boundary=AaB03x",
                 new MultipartContentBuilder("AaB03x")
                         .addField("name","nameValue")
@@ -134,8 +135,9 @@ public class TaskResourceBatchSearchTest extends AbstractProdWebServerTest {
                 singletonList(project("prj")), "nameValue", null,
                 asSet("query", "éèàç"), new Date(), BatchSearch.State.QUEUED, User.local());
         verify(batchSearchRepository).save(eq(expected));
-        assertThat(taskManager.getTasks()).hasSize(1);
-        assertThat(taskManager.getTasks().get(0).name).isEqualTo(BatchSearchRunner.class.getName());
+        List<Task<?>> tasks = taskManager.getTasks().toList();
+        assertThat(tasks).hasSize(1);
+        assertThat(tasks.get(0).name).isEqualTo(BatchSearchRunner.class.getName());
     }
 
     @Test
@@ -190,8 +192,9 @@ public class TaskResourceBatchSearchTest extends AbstractProdWebServerTest {
         assertThat(argument.getValue().queryTemplate).isEqualTo(sourceSearch.queryTemplate);
 
         assertThat(argument.getValue().state).isEqualTo(BatchSearchRecord.State.QUEUED);
-        assertThat(taskManager.getTasks()).hasSize(1);
-        assertThat(taskManager.getTasks().get(0).name).isEqualTo(BatchSearchRunner.class.getName());
+        List<Task<?>> tasks = taskManager.getTasks().toList();
+        assertThat(tasks).hasSize(1);
+        assertThat(tasks.get(0).name).isEqualTo(BatchSearchRunner.class.getName());
     }
 
     @Test

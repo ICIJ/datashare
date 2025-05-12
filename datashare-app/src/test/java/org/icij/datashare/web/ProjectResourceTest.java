@@ -1,5 +1,6 @@
 package org.icij.datashare.web;
 
+import java.util.stream.Stream;
 import net.codestory.http.filters.basic.BasicAuthFilter;
 import net.codestory.http.security.Users;
 import org.icij.datashare.PropertiesProvider;
