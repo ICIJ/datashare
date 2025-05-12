@@ -1,5 +1,6 @@
 package org.icij.datashare.asynctasks;
 
+import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 import org.icij.datashare.asynctasks.bus.amqp.*;
@@ -8,12 +9,10 @@ import org.icij.datashare.tasks.RoutingStrategy;
 
 import java.io.IOException;
 import java.io.Serializable;
-import java.util.List;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 import static java.util.Optional.ofNullable;
-import static java.util.stream.Collectors.toList;
 
 public class TaskManagerAmqp implements TaskManager {
     protected static final int DEFAULT_TASK_POLLING_INTERVAL_MS = 5000;
@@ -102,8 +101,8 @@ public class TaskManagerAmqp implements TaskManager {
     }
 
     @Override
-    public List<Task<?>> getTasks() {
-        return tasks.values().stream().map(TaskMetadata::task).collect(toList());
+    public Stream<Task<?>> getTasks() {
+        return tasks.values().stream().map(TaskMetadata::task);
     }
 
     @Override
@@ -113,10 +112,10 @@ public class TaskManagerAmqp implements TaskManager {
 
     @Override
     public List<Task<?>> clearDoneTasks(Map<String, Pattern> filters) {
-        Stream<Task<?>> taskStream = tasks.values().stream().map(TaskMetadata::task);
-        taskStream = getFilteredTaskStream(filters, taskStream);
-        return taskStream.filter(Task::isFinished)
-            .map(t -> tasks.remove(t.id).task()).collect(toList());
+        Stream<? extends Task<?>> tasks =
+            getFilteredTaskStream(filters, this.tasks.values().stream().map(TaskMetadata::task))
+                .filter(Task::isFinished).map(t -> this.tasks.remove(t.id).task());
+        return (List<Task<?>>) tasks.toList();
     }
 
     @Override

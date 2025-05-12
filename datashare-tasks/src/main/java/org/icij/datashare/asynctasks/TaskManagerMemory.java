@@ -20,12 +20,10 @@ import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import static java.lang.Integer.parseInt;
-import static java.util.stream.Collectors.toList;
 
 
 public class TaskManagerMemory implements TaskManager, TaskSupplier {
     protected static final int DEFAULT_TASK_POLLING_INTERVAL_MS = 5000;
-    protected static final int DEFAULT_POLLING_INTERVAL_SECONDS = 60;
     private final Logger logger = LoggerFactory.getLogger(getClass());
     private final ExecutorService executor;
     private final TaskRepository tasks;
@@ -56,8 +54,8 @@ public class TaskManagerMemory implements TaskManager, TaskSupplier {
     }
 
     @Override
-    public List<Task<?>> getTasks() {
-        return tasks.values().stream().map(TaskMetadata::task).collect(toList());
+    public Stream<Task<?>> getTasks() {
+        return tasks.values().stream().map(TaskMetadata::task);
     }
 
     @Override
@@ -143,10 +141,11 @@ public class TaskManagerMemory implements TaskManager, TaskSupplier {
     @Override
     public List<Task<?>> clearDoneTasks(Map<String, Pattern> filters) {
         synchronized (tasks) {
-            Stream<Task<?>> taskStream = tasks.values().stream().map(TaskMetadata::task);
-            taskStream = getFilteredTaskStream(filters, taskStream);
-            return taskStream.filter(Task::isFinished)
-                    .map(t -> tasks.remove(t.id).task()).collect(toList());
+            Stream<? extends Task<?>> tasks =
+                getFilteredTaskStream(filters, this.tasks.values().stream().map(TaskMetadata::task))
+                    .filter(Task::isFinished)
+                    .map(t -> this.tasks.remove(t.id).task());
+            return (List<Task<?>>) tasks.toList();
         }
     }
 

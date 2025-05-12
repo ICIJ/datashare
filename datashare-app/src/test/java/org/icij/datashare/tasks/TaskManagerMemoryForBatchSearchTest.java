@@ -1,5 +1,6 @@
 package org.icij.datashare.tasks;
 
+import java.util.List;
 import org.icij.datashare.CollectionUtils;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.asynctasks.*;
@@ -78,8 +79,9 @@ public class TaskManagerMemoryForBatchSearchTest {
         taskManager.awaitTermination(1, TimeUnit.SECONDS);
 
         assertThat(DatashareTime.getInstance().now().getTime() - beforeTest.getTime()).isEqualTo(100);
-        assertThat(taskManager.getTasks()).hasSize(1);
-        assertThat(taskManager.getTasks().get(0).id).isEqualTo(testBatchSearch.uuid);
+        List<Task<?>> tasks = taskManager.getTasks().toList();
+        assertThat(tasks).hasSize(1);
+        assertThat(tasks.get(0).id).isEqualTo(testBatchSearch.uuid);
     }
 
     @Test(timeout = 5000)
@@ -112,7 +114,7 @@ public class TaskManagerMemoryForBatchSearchTest {
         Signal.raise(new Signal("TERM"));
         taskManager.waitTasksToBeDone(1, TimeUnit.SECONDS);
 
-        assertThat(taskManager.getTasks()).hasSize(2);
+        assertThat(taskManager.getTasks().toList()).hasSize(2);
     }
 
     @Ignore
@@ -126,7 +128,7 @@ public class TaskManagerMemoryForBatchSearchTest {
 
         verify(repository).setState(testBatchSearch.uuid, BatchSearch.State.RUNNING);
         verify(repository).setState(eq(testBatchSearch.uuid), any(SearchException.class));
-        assertThat(taskManager.getTasks().get(0).getState()).isEqualTo(Task.State.ERROR);
+        assertThat(taskManager.getTasks().toList().get(0).getState()).isEqualTo(Task.State.ERROR);
     }
 
     @Test(timeout = 5000)

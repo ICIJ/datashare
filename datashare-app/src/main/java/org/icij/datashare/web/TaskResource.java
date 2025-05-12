@@ -139,10 +139,10 @@ public class TaskResource {
         // We need the batch search records of the user to merge them into the tasks
         List<BatchSearchRecord> batchSearchRecords = batchSearchRepository.getRecords(user, user.getProjectNames());
         // We need ALL the tasks to paginate accordingly
-        List<Task<?>> tasks = taskManager.getTasks(user, batchSearchRecords);
-        Stream<Task<?>> sortedTasksStream = tasks.stream().sorted(new Task.Comparator(pagination.sort, pagination.order));
-        Stream<Task<?>> filteredTasksStream = taskManager.getFilteredTaskStream(filters, sortedTasksStream);
-        WebResponse<Task<?>> paginatedTasks = WebResponse.fromStream(filteredTasksStream, pagination.from, pagination.size);
+        Stream<Task<?>> tasks = taskManager.getTasks(user, batchSearchRecords.stream());
+        tasks = tasks.sorted(new Task.Comparator(pagination.sort, pagination.order));
+        tasks = taskManager.getFilteredTaskStream(filters, tasks);
+        WebResponse<Task<?>> paginatedTasks = WebResponse.fromStream(tasks, pagination.from, pagination.size);
         // Then finally, use WebResponse to take display the pagination for us
         return new Payload(paginatedTasks);
     }
@@ -171,7 +171,7 @@ public class TaskResource {
         Map<String, Pattern> filters = getArbitraryFilters(context);
         User user = (User) context.currentUser();
         List<BatchSearchRecord> batchSearchRecords = batchSearchRepository.getRecords(user, user.getProjectNames());
-        return taskManager.getTasks(user, filters, pagination, batchSearchRecords);
+        return taskManager.getTasks(user, filters, pagination, batchSearchRecords.stream()).toList();
     }
 
     @Operation(description = "Gets one task with its id.")
@@ -181,9 +181,9 @@ public class TaskResource {
     public Task<?> getTask(@Parameter(name = "id", description = "task id", in = ParameterIn.PATH) String id, Context context) throws IOException {
         User user = (User) context.currentUser();
         List<BatchSearchRecord> batchSearchRecords = batchSearchRepository.getRecords(user, user.getProjectNames());
-        List<Task<?>> tasks = taskManager.getTasks(user, batchSearchRecords);
+        Stream<Task<?>> tasks = taskManager.getTasks(user, batchSearchRecords.stream());
         Predicate<Task<?>> predicate = t -> t.getId().equals(id);
-        return tasks.stream().filter(predicate).findFirst().orElseThrow(NotFoundException::new);
+        return tasks.filter(predicate).findFirst().orElseThrow(NotFoundException::new);
     }
 
     @Operation(description = "Create a task with JSON body",
