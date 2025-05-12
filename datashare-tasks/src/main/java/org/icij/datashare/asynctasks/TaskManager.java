@@ -1,6 +1,6 @@
 package org.icij.datashare.asynctasks;
 
-import org.apache.commons.collections4.ListUtils;
+import org.icij.datashare.Entity;
 import org.icij.datashare.asynctasks.bus.amqp.CancelledEvent;
 import org.icij.datashare.asynctasks.bus.amqp.ErrorEvent;
 import org.icij.datashare.asynctasks.bus.amqp.ProgressEvent;
@@ -16,7 +16,6 @@ import org.slf4j.LoggerFactory;
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.Serializable;
-import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -24,10 +23,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toMap;
 import static org.icij.datashare.text.StringUtils.getValue;
 
@@ -41,7 +38,8 @@ public interface TaskManager extends Closeable {
     <V extends Serializable> Task<V> clearTask(String taskId) throws IOException, UnknownTask;
     boolean stopTask(String taskId) throws IOException, UnknownTask;
 
-    List<Task<?>> getTasks() throws IOException;
+    Stream<Task<?>> getTasks() throws IOException;
+    // clearDoneTasks keeps a List return type otherwise tasks are cleared unless the stream is consumed
     List<Task<?>> clearDoneTasks(Map<String, Pattern> filters) throws IOException;
     Group getTaskGroup(String taskId);
     boolean shutdown() throws IOException;
@@ -52,45 +50,44 @@ public interface TaskManager extends Closeable {
 
     int getTerminationPollingInterval();
 
-    default List<Task<?>> getTasks(User user) throws IOException {
+    default Stream<Task<?>> getTasks(User user) throws IOException {
         return getTasks(user, new HashMap<>(), new WebQueryPagination());
     }
 
-    default List<Task<?>> getTasks(User user, List<BatchSearchRecord> batchSearchRecords) throws IOException {
+    default Stream<Task<?>> getTasks(User user, Stream<BatchSearchRecord> batchSearchRecords) throws IOException {
         // Filter the task to only get the one launched by the current user
-        List<Task<?>> userTasks = getTasks().stream().filter(t -> user.equals(t.getUser())).toList();
+        Stream<Task<? extends Serializable>> userTasks = getTasks().filter(t -> user.equals(t.getUser()));
         // Convert the received batch search records to "proxy tasks"
-        List<? extends Task<?>> batchSearchTasks = batchSearchRecords.stream().map(TaskManager::taskify).toList();
+        Stream<Task<Integer>> batchSearchTasks = batchSearchRecords.map(TaskManager::taskify);
         // Merge the to list of tasks and deduplicate them by id
-        return new ArrayList<>(ListUtils.union(userTasks, batchSearchTasks)
-                .stream()
-                .collect(Collectors.toMap(
-                        // We deduplicate tasks by id
-                        task -> (String) task.getId(),
-                        task -> task,
-                        // Get the first in priority
-                        (first, second) -> first,
-                        LinkedHashMap::new
-                ))
-                .values());
+        return Stream.concat(userTasks, batchSearchTasks)
+            .collect(toMap(
+                // We deduplicate tasks by id
+                Entity::getId,
+                task -> task,
+                // Get the first in priority
+                (first, second) -> first,
+                LinkedHashMap::new
+            ))
+            .values().stream().map(t -> (Task<?>)t);
     }
 
-    default List<Task<?>> getTasks(User user, Map<String, Pattern> filters) throws IOException {
+    default Stream<Task<?>> getTasks(User user, Map<String, Pattern> filters) throws IOException {
         return getTasks(user, filters, new WebQueryPagination());
     }
 
-    default List<Task<?>> getTasks(User user, Map<String, Pattern> filters, WebQueryPagination pagination) throws IOException {
-        Stream<Task<?>> taskStream = getTasks().stream().sorted(new Task.Comparator(pagination.sort, pagination.order));
+    default Stream<Task<?>> getTasks(User user, Map<String, Pattern> filters, WebQueryPagination pagination) throws IOException {
+        Stream<Task<?>> taskStream = getTasks().sorted(new Task.Comparator(pagination.sort, pagination.order));
         taskStream = getFilteredTaskStream(filters, taskStream);
-        return taskStream.filter(t -> user.equals(t.getUser())).skip(pagination.from).limit(pagination.size).collect(toList());
+        return taskStream.filter(t -> user.equals(t.getUser())).skip(pagination.from).limit(pagination.size);
     }
 
-    default List<Task<?>> getTasks(User user, Map<String, Pattern> filters, WebQueryPagination pagination, List<BatchSearchRecord> batchSearchRecords) throws IOException {
-        List<Task<?>> tasks = getTasks(user, batchSearchRecords);
+    default Stream<Task<?>> getTasks(User user, Map<String, Pattern> filters, WebQueryPagination pagination, Stream<BatchSearchRecord> batchSearchRecords) throws IOException {
+        Stream<Task<?>> tasks = getTasks(user, batchSearchRecords);
         // Sort/order the tasks together
-        Stream<Task<?>> taskStream = tasks.stream().sorted(new Task.Comparator(pagination.sort, pagination.order));
+        Stream<Task<?>> taskStream = tasks.sorted(new Task.Comparator(pagination.sort, pagination.order));
         // Finally, filter then paginate the tasks
-        return getFilteredTaskStream(filters, taskStream).skip(pagination.from).limit(pagination.size).collect(toList());
+        return getFilteredTaskStream(filters, taskStream).skip(pagination.from).limit(pagination.size);
     }
 
     default boolean awaitTermination(int timeout, TimeUnit timeUnit) throws InterruptedException, IOException {
@@ -102,7 +99,7 @@ public interface TaskManager extends Closeable {
     }
 
     default Map<String, Boolean> stopTasks(User user, Map<String, Pattern> filters) throws IOException {
-        Stream<Task<?>> taskStream = getTasks().stream();
+        Stream<Task<?>> taskStream = getTasks();
         taskStream = getFilteredTaskStream(filters, taskStream);
         return taskStream.
                 filter(t -> user.equals(t.getUser())).
@@ -118,7 +115,7 @@ public interface TaskManager extends Closeable {
     }
 
     default List<Task<?>> clearDoneTasks() throws IOException {
-        return clearDoneTasks(new HashMap<>());
+        return clearDoneTasks(Map.of());
     };
 
     default Stream<Task<?>> getFilteredTaskStream(Map<String, Pattern> filters, Stream<Task<?>> taskStream) {
@@ -275,9 +272,9 @@ public interface TaskManager extends Closeable {
      */
     default List<Task<?>> waitTasksToBeDone(int timeout, TimeUnit timeUnit) throws IOException {
         long startTime = System.currentTimeMillis();
-        List<Task<?>> unfinishedTasks = getTasks().stream().filter(t -> !t.isFinished()).toList();
+        List<Task<?>> unfinishedTasks = getTasks().filter(t -> !t.isFinished()).toList();
         while (System.currentTimeMillis() - startTime < timeUnit.toMillis(timeout) && !unfinishedTasks.isEmpty()) {
-            unfinishedTasks = getTasks().stream().filter(t -> !t.isFinished()).toList();
+            unfinishedTasks = getTasks().filter(t -> !t.isFinished()).toList();
             try {
                 Thread.sleep(getTerminationPollingInterval());
             } catch (InterruptedException e) {
@@ -298,7 +295,7 @@ public interface TaskManager extends Closeable {
         }
     }
 
-    static Task<?> taskify(BatchSearchRecord batchSearchRecord) {
+    static Task<Integer> taskify(BatchSearchRecord batchSearchRecord) {
         String name = "org.icij.datashare.tasks.BatchSearchRunnerProxy";
         Map<String, Object> batchRecord = Map.of("batchRecord", batchSearchRecord);
         Task<Integer> task = new Task<>(batchSearchRecord.uuid, name, batchSearchRecord.user, batchRecord);

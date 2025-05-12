@@ -1,5 +1,6 @@
 package org.icij.datashare.asynctasks;
 
+import java.util.List;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.tasks.RoutingStrategy;
 import org.icij.datashare.user.User;
@@ -43,7 +44,7 @@ public class TaskManagerRedisTest {
 
         taskManager.insert(task, new Group(TaskGroupType.Test));
 
-        assertThat(taskManager.getTasks()).hasSize(1);
+        assertThat(taskManager.getTasks().toList()).hasSize(1);
         assertThat(taskManager.getTask(task.id)).isNotNull();
     }
 
@@ -64,8 +65,9 @@ public class TaskManagerRedisTest {
     public void test_start_task() throws IOException {
         assertThat(taskManager.startTask("HelloWorld", User.local(),
             new HashMap<>() {{ put("greeted", "world"); }})).isNotNull();
-        assertThat(taskManager.getTasks()).hasSize(1);
-        assertThat(taskManager.getTasks().get(0).getUser()).isEqualTo(User.local());
+        List<Task<?>> tasks = taskManager.getTasks().toList();
+        assertThat(tasks).hasSize(1);
+        assertThat(tasks.get(0).getUser()).isEqualTo(User.local());
     }
 
     @Test
@@ -103,14 +105,14 @@ public class TaskManagerRedisTest {
     public void test_done_tasks() throws Exception {
         String taskViewId = taskManager.startTask("sleep", User.local(), new HashMap<>());
 
-        assertThat(taskManager.getTasks()).hasSize(1);
+        assertThat(taskManager.getTasks().toList()).hasSize(1);
 
         taskSupplier.result(taskViewId, new TaskResult<>(12));
         assertThat(waitForEvent.await(1, TimeUnit.SECONDS)).isTrue();
 
-        assertThat(taskManager.getTasks().get(0).getState()).isEqualTo(Task.State.DONE);
+        assertThat(taskManager.getTasks().toList().get(0).getState()).isEqualTo(Task.State.DONE);
         assertThat(taskManager.clearDoneTasks()).hasSize(1);
-        assertThat(taskManager.getTasks()).hasSize(0);
+        assertThat(taskManager.getTasks().toList()).hasSize(0);
     }
 
     @Test
@@ -122,10 +124,10 @@ public class TaskManagerRedisTest {
         taskSupplier.result(taskView1Id, new TaskResult<>(123));
         assertThat(waitForEvent.await(1, TimeUnit.SECONDS)).isTrue();
 
-        assertThat(taskManager.getTasks()).hasSize(2);
+        assertThat(taskManager.getTasks().toList()).hasSize(2);
         Task<?> clearedTask = taskManager.clearTask(taskView1Id);
         assertThat(taskView1Id).isEqualTo(clearedTask.id);
-        assertThat(taskManager.getTasks()).hasSize(1);
+        assertThat(taskManager.getTasks().toList()).hasSize(1);
         assertThat(taskManager.getTask(taskView1Id)).isNull();
         assertThat(taskManager.getTask(taskView2Id)).isNotNull();
     }
@@ -150,8 +152,9 @@ public class TaskManagerRedisTest {
         taskSupplier.result(taskViewId, expectedResult);
         assertThat(waitForEvent.await(100, TimeUnit.SECONDS)).isTrue();
 
-        assertThat(taskManager.getTasks()).hasSize(1);
-        assertThat(taskManager.getTasks().get(0).getResult()).isEqualTo(expectedResult);
+        List<Task<?>> tasks = taskManager.getTasks().toList();
+        assertThat(tasks).hasSize(1);
+        assertThat(tasks.get(0).getResult()).isEqualTo(expectedResult);
     }
 
     @Test
