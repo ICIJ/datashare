@@ -176,7 +176,7 @@ public class Task<V extends Serializable> extends Event implements Entity, Compa
 
     @JsonIgnore
     public boolean isFinished() {
-        return State.DONE.equals(state) || State.CANCELLED.equals(state) || State.ERROR.equals(state);
+        return State.FINAL_STATES.contains(state);
     }
 
     @Override
