@@ -85,9 +85,8 @@ public class TaskManagerRedis implements TaskManager {
 
     @Override
     public List<Task<?>> clearDoneTasks(TaskFilters filters) throws IOException {
-        Set<Task.State> stateFilter = new HashSet<>(FINAL_STATES);
-        stateFilter.addAll(Optional.ofNullable(filters.getStates()).orElse(Set.of()));
-        Stream<Task<?>> taskStream = tasks.getTasks(filters.withStates(stateFilter))
+        // Require tasks to be in final state and apply user filters
+        Stream<Task<?>> taskStream = tasks.getTasks(filters.withStates(FINAL_STATES))
             .map(t -> {
                 try {
                     return tasks.delete(t.id);
