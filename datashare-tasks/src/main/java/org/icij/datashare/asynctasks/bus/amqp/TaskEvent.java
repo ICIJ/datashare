@@ -2,8 +2,6 @@ package org.icij.datashare.asynctasks.bus.amqp;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.annotation.JsonSubTypes;
-
 import java.util.Date;
 
 public abstract class TaskEvent extends Event {
