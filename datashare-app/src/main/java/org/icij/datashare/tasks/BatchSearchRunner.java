@@ -23,7 +23,6 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeoutException;
@@ -36,7 +35,7 @@ import static org.icij.datashare.cli.DatashareCliOptions.*;
 import static org.icij.datashare.text.ProjectProxy.asCommaConcatNames;
 
 @TaskGroup(TaskGroupType.Java)
-public class BatchSearchRunner implements CancellableTask, UserTask, Callable<Integer> {
+public class BatchSearchRunner implements CancellableTask, UserTask, Callable<BatchSearchRunnerResult> {
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
     /**
@@ -77,7 +76,7 @@ public class BatchSearchRunner implements CancellableTask, UserTask, Callable<In
     }
 
     @Override
-    public Integer call() throws Exception {
+    public BatchSearchRunnerResult call() throws Exception {
         int numberOfResults = 0;
         int totalProcessed = 0;
 
@@ -93,7 +92,7 @@ public class BatchSearchRunner implements CancellableTask, UserTask, Callable<In
         BatchSearch batchSearch = repository.get(taskView.getUser(), taskView.id);
         if (batchSearch == null) {
             logger.warn("batch search {} not found in database (check that database url is the same as datashare backend)", taskView.id);
-            return 0;
+            return new BatchSearchRunnerResult(0, 0);
         }
 
         String query = null;
@@ -155,7 +154,7 @@ public class BatchSearchRunner implements CancellableTask, UserTask, Callable<In
             repository.setState(taskView.id, searchException);
             throw searchException;
         }
-        return numberOfResults;
+        return new BatchSearchRunnerResult(numberOfResults, batchSearch.nbQueriesWithoutResults);
     }
 
     @Override
@@ -177,4 +176,5 @@ public class BatchSearchRunner implements CancellableTask, UserTask, Callable<In
             logger.warn("batch search interrupted during cancel check status for {}", taskView.id);
         }
     }
+
 }
