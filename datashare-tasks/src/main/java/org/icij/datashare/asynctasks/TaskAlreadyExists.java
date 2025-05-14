@@ -6,4 +6,9 @@ public class TaskAlreadyExists extends RuntimeException {
     public TaskAlreadyExists(String taskId) {
         this.taskId = taskId;
     }
+
+    public TaskAlreadyExists(String taskId, Throwable cause) {
+        super(cause);
+        this.taskId = taskId;
+    }
 }

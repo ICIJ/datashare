@@ -68,7 +68,7 @@ public class JooqTaskRepository implements TaskRepository {
             } catch (IntegrityConstraintViolationException e) {
                 String cause = e.getCause().getMessage();
                 if (cause.contains("SQLITE_CONSTRAINT_PRIMARYKEY") || cause.contains("task_pkey")) {
-                    throw new TaskAlreadyExists(task.id);
+                    throw new TaskAlreadyExists(task.id, e);
                 }
                 throw e;
             }
