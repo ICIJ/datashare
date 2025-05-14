@@ -175,7 +175,7 @@ public class TaskManagerMemoryForBatchSearchTest {
         }
 
         @Override
-        public Integer call() {
+        public BatchSearchRunnerResult call() {
             countDownLatch.countDown();
             callThread = Thread.currentThread();
             while(!cancelAsked) {
