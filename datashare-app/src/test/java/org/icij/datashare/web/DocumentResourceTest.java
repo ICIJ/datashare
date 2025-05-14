@@ -1,8 +1,12 @@
 package org.icij.datashare.web;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import net.codestory.rest.Response;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Repository;
 import org.icij.datashare.db.JooqRepository;
+import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.session.LocalUserFilter;
 import org.icij.datashare.tasks.MockIndexer;
 import org.icij.datashare.test.LogbackCapturingRule;
@@ -429,5 +433,22 @@ public class DocumentResourceTest extends AbstractProdWebServerTest {
                 .should().respond(200)
                 .haveType("application/json")
                 .contain("[[0,29],[30,47]]");
+    }
+
+    // TODO: hmm there are 3 pages but 2 for the previous test.
+    @Test
+    public void test_get_pages() throws JsonProcessingException {
+        String path = getClass().getResource("/docs/embedded_doc.eml").getPath();
+        mockIndexer.indexFile("local-datashare",
+                "d365f488df3c84ecd6d7aa752ca268b78589f2082e4fe2fbe9f62dff6b3a6b74bedc645ec6df9ae5599dab7631433623",
+                Paths.get(path), "application/pdf", "id_eml", Map.of("tika_metadata_resourcename", "embedded.pdf"));
+
+        Response response = get("/api/local-datashare/documents/content/pages/d365f488df3c84ecd6d7aa752ca268b78589f2082e4fe2fbe9f62dff6b3a6b74bedc645ec6df9ae5599dab7631433623?routing=id_eml").response();
+        assertThat(response.code()).isEqualTo(200);
+        assertThat(response.contentType()).isEqualTo("application/json;charset=UTF-8");
+        List<String> json = JsonObjectMapper.MAPPER.readValue(response.content(), new TypeReference<>() {});
+        assertThat(json).hasSize(3);
+        assertThat(json.get(1)).contains("HEAVY\nMETAL");
+        assertThat(json.get(2)).contains("HEAVY\nMETAL");
     }
 }
