@@ -2,7 +2,6 @@ package org.icij.datashare.db;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.ArrayList;
@@ -19,7 +18,6 @@ import org.icij.datashare.asynctasks.TaskResult;
 import org.icij.datashare.asynctasks.UnknownTask;
 import org.icij.datashare.asynctasks.bus.amqp.TaskError;
 import org.icij.datashare.db.tables.records.TaskRecord;
-import org.icij.datashare.json.JsonObjectMapper;
 import org.jooq.Condition;
 import org.jooq.DSLContext;
 import org.jooq.InsertValuesStep11;
@@ -42,7 +40,6 @@ import static org.jooq.impl.DSL.trueCondition;
 import static org.jooq.impl.DSL.using;
 
 public class JooqTaskRepository implements TaskRepository {
-    public static final ObjectMapper TYPE_INCLUSION_MAPPER = JsonObjectMapper.createTypeInclusionMapper();
     private final DataSource connectionProvider;
     private final SQLDialect dialect;
 

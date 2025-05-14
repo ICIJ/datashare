@@ -172,6 +172,18 @@ public class JooqTaskRepositoryTest {
         assertThat(tasks.get(0).id).isEqualTo(foo.id);
     }
 
+    @Test
+    public void test_get_task_with_external_type() throws IOException {
+        repository.registerTaskResultTypes(ResultRecord.class);
+        Task<ResultRecord> task = new Task<>("id", "foo", User.local(), Map.of());
+        repository.insert(task, new Group(TaskGroupType.Test));
+        task.setResult(new TaskResult<>(new ResultRecord(1, "baz")));
+        repository.update(task);
+
+
+        assertThat(repository.getTask(task.getId()).getResult().value()).isEqualTo(new ResultRecord(1, "baz"));
+    }
+
     @After
     public void tearDown() throws Exception {
         repository.deleteAll();
@@ -181,4 +193,6 @@ public class JooqTaskRepositoryTest {
         dbRule = rule;
         repository = rule.createTaskRepository();
     }
+
+    record ResultRecord(int foo, String bar) implements Serializable { }
 }
