@@ -7,7 +7,7 @@ import java.util.concurrent.Callable;
 import java.util.function.Function;
 
 public class TaskFactoryHelper {
-    public static Callable<?> createTaskCallable(TaskFactory factory, String name, Task<?> taskView, Function<Double, Void> progress)
+    public static Callable<?> createTaskCallable(TaskFactory factory, String name, Task taskView, Function<Double, Void> progress)
     throws ReflectiveOperationException {
         Callable<?> taskFn;
             Class<? extends Callable<?>> taskClass = (Class<? extends Callable<?>>) Class.forName(name);

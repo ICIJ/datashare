@@ -1,5 +1,6 @@
-package org.icij.datashare.asynctasks;
+package org.icij.datashare.tasks;
 
+import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.user.User;
 import org.junit.Test;
 
@@ -12,7 +13,7 @@ import static org.fest.assertions.Assertions.assertThat;
 import static org.icij.datashare.batch.WebQueryPagination.OrderDirection.ASC;
 import static org.icij.datashare.batch.WebQueryPagination.OrderDirection.DESC;
 
-public class TaskComparatorTest {
+public class DatashareTaskComparatorTest {
     @Test
     public void test_default_comparator() {
         assertThat(Stream.of(

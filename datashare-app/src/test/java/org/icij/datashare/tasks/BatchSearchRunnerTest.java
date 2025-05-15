@@ -10,6 +10,7 @@ import org.icij.datashare.test.DatashareTimeRule;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.user.User;
+import org.jooq.impl.QOM;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -48,7 +49,7 @@ public class BatchSearchRunnerTest {
     @Test
     public void test_run_null_batch_search() throws Exception {
         BatchSearch search = new BatchSearch("uuid", singletonList(project("test-datashare")), "name1", "desc1", asSet("query1", "query2"), new Date(), BatchSearch.State.QUEUED, local());
-        assertThat(new BatchSearchRunner(indexer, new PropertiesProvider(), repository, taskView(search), progressCb).call()).isEqualTo(0);
+        assertThat(new BatchSearchRunner(indexer, new PropertiesProvider(), repository, taskView(search), progressCb).call().value()).isEqualTo(0);
     }
 
     @Test
@@ -58,13 +59,13 @@ public class BatchSearchRunnerTest {
         BatchSearch search = new BatchSearch("uuid1", singletonList(project("test-datashare")), "name1", "desc1", asSet("query1", "query2"), new Date(), BatchSearch.State.QUEUED, User.local());
         when(repository.get(local(), search.uuid)).thenReturn(search);
 
-        assertThat(new BatchSearchRunner(indexer, new PropertiesProvider(), repository, taskView(search), progressCb).call()).isEqualTo(2);
+        assertThat(new BatchSearchRunner(indexer, new PropertiesProvider(), repository, taskView(search), progressCb).call().value()).isEqualTo(2);
 
         verify(progressCb).apply( 1.0);
     }
 
-    private Task<?> taskView(BatchSearch search) {
-        return new Task<>(search.uuid, BatchSearchRunner.class.getName(), local());
+    private Task taskView(BatchSearch search) {
+        return new Task(search.uuid, BatchSearchRunner.class.getName(), local());
     }
 
     @Test(expected = RuntimeException.class)
@@ -85,7 +86,7 @@ public class BatchSearchRunnerTest {
         BatchSearch batchSearch = new BatchSearch("uuid1", singletonList(project("test-datashare")), "name", "desc", asSet("query"), new Date(), BatchSearch.State.QUEUED, local());
         when(repository.get(local(), batchSearch.uuid)).thenReturn(batchSearch);
 
-        assertThat(new BatchSearchRunner(indexer, new PropertiesProvider(), repository, taskView(batchSearch), progressCb).call()).isLessThan(60000);
+        assertThat((int)new BatchSearchRunner(indexer, new PropertiesProvider(), repository, taskView(batchSearch), progressCb).call().value()).isLessThan(60000);
     }
 
     @Test
@@ -128,7 +129,7 @@ public class BatchSearchRunnerTest {
         when(repository.get(local(), search.uuid)).thenReturn(search);
         BatchSearchRunner batchSearchRunner = new BatchSearchRunner(indexer, new PropertiesProvider(), repository, taskView(search), progressCb, countDownLatch);
 
-        Future<Integer> result = executor.submit(batchSearchRunner);
+        Future<DatashareTask<Integer>> result = executor.submit(batchSearchRunner);
         executor.shutdown();
         countDownLatch.await();
         batchSearchRunner.cancel(false);

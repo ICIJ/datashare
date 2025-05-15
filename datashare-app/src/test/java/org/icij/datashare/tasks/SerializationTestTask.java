@@ -1,5 +1,6 @@
 package org.icij.datashare.tasks;
 
+import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
 import org.icij.datashare.asynctasks.CancelException;
@@ -10,21 +11,26 @@ import org.icij.datashare.asynctasks.TaskGroupType;
 import static java.util.Optional.ofNullable;
 
 @TaskGroup(TaskGroupType.Test)
-public class TestTask extends DatashareTask<Integer> implements CancellableTask {
+public class SerializationTestTask implements CancellableTask, Callable<SerializationTestTask.UnknownResultType> {
     private final int value;
     protected volatile Thread callThread = null;
     protected volatile Boolean requeue = null;
     private final CountDownLatch waitForTask = new CountDownLatch(1);
 
-    public TestTask(int value) {
+    public SerializationTestTask(int value) {
         this.value = value;
     }
 
+    // This represents any unknown result type defined outside of Datashare app, which should however be properly
+    // handled by the app
+    public record UnknownResultType(int value, Map<String, Object> whatever) {}
+
     @Override
-    public Integer runTask() {
+    public UnknownResultType call() throws Exception {
         waitForTask.countDown();
         ofNullable(this.requeue).ifPresent(CancelException::new);
-        return value;
+
+        return new UnknownResultType(value, Map.of("any", "extra"));
     }
 
     @Override

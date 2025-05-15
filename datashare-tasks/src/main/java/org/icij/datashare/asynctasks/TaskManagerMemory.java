@@ -1,8 +1,5 @@
 package org.icij.datashare.asynctasks;
 
-import java.util.HashSet;
-import java.util.Optional;
-import java.util.Set;
 import java.util.stream.Stream;
 import org.apache.commons.lang3.NotImplementedException;
 import org.icij.datashare.PropertiesProvider;
@@ -12,7 +9,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.io.Serializable;
 import java.util.List;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -29,7 +25,7 @@ public class TaskManagerMemory implements TaskManager, TaskSupplier {
     private final Logger logger = LoggerFactory.getLogger(getClass());
     private final ExecutorService executor;
     private final TaskRepository tasks;
-    private final BlockingQueue<Task<?>> taskQueue;
+    private final BlockingQueue<Task> taskQueue;
     private final List<TaskWorkerLoop> loops;
     private final AtomicInteger executedTasks = new AtomicInteger(0);
     private final int pollingInterval;
@@ -51,19 +47,19 @@ public class TaskManagerMemory implements TaskManager, TaskSupplier {
         this.tasks = tasks;
     }
 
-    public <V extends Serializable> Task<V> getTask(final String taskId) throws UnknownTask, IOException {
+    public Task getTask(final String taskId) throws UnknownTask, IOException {
         return tasks.getTask(taskId);
     }
 
     @Override
-    public Stream<Task<?>> getTasks(TaskFilters filters) throws IOException {
+    public Stream<Task> getTasks(TaskFilters filters) throws IOException {
         return tasks.getTasks(filters);
     }
 
     @Override
     public Void progress(String taskId, double rate) {
         try {
-            Task<Serializable> task = getTask(taskId);
+            Task task = getTask(taskId);
             task.setProgress(rate);
             update(task);
         } catch (UnknownTask ex) {
@@ -75,22 +71,22 @@ public class TaskManagerMemory implements TaskManager, TaskSupplier {
     }
 
     @Override
-    public <V extends Serializable> void result(String taskId, TaskResult<V> result) {
+    public void result(String taskId, byte[] result) {
         try {
-            Task<V> task = getTask(taskId);
+            Task task = getTask(taskId);
             task.setResult(result);
             update(task);
             executedTasks.incrementAndGet();
         } catch (UnknownTask ex) {
-            logger.warn("unknown task id <{}> for result={} call", taskId, result);
+            logger.warn("unknown task id <{}> for result={} call", taskId, new String(result));
         } catch (IOException e) {
             logger.error("error while updating result for task <{}>", taskId, e);
         }
     }
 
     @Override
-    public void canceled(Task<?> task, boolean requeue) {
-        Task<?> taskView;
+    public void canceled(Task task, boolean requeue) {
+        Task taskView;
         try {
              taskView = getTask(task.id);
              taskView.cancel();
@@ -108,7 +104,7 @@ public class TaskManagerMemory implements TaskManager, TaskSupplier {
     @Override
     public void error(String taskId, TaskError reason) {
         try {
-            Task<Serializable> task = getTask(taskId);
+            Task task = getTask(taskId);
             task.setError(reason);
             update(task);
             executedTasks.incrementAndGet();
@@ -125,7 +121,7 @@ public class TaskManagerMemory implements TaskManager, TaskSupplier {
     }
 
     @Override
-    public <V extends Serializable> void enqueue(Task<V> task) {
+    public void enqueue(Task task) {
         taskQueue.add(task);
     }
 
@@ -141,10 +137,10 @@ public class TaskManagerMemory implements TaskManager, TaskSupplier {
     }
 
     @Override
-    public List<Task<?>> clearDoneTasks(TaskFilters filters) throws IOException {
+    public List<Task> clearDoneTasks(TaskFilters filters) throws IOException {
         synchronized (tasks) {
             // Require tasks to be in final state and apply user filters
-            Stream<Task<?>> taskStream = tasks.getTasks(filters.withStates(FINAL_STATES))
+            Stream<Task> taskStream = tasks.getTasks(filters.withStates(FINAL_STATES))
                 .map(t -> {
                     try {
                         return tasks.delete(t.id);
@@ -157,7 +153,7 @@ public class TaskManagerMemory implements TaskManager, TaskSupplier {
     }
 
     @Override
-    public <V extends Serializable> Task<V> clearTask(String taskId) throws UnknownTask, IOException {
+    public Task clearTask(String taskId) throws UnknownTask, IOException {
         if (getTask(taskId).getState() == Task.State.RUNNING) {
             throw new IllegalStateException(String.format("task id <%s> is already in RUNNING state", taskId));
         }
@@ -168,7 +164,7 @@ public class TaskManagerMemory implements TaskManager, TaskSupplier {
     }
 
     public boolean stopTask(String taskId) throws UnknownTask, IOException {
-        Task<?> taskView = tasks.getTask(taskId);
+        Task taskView = tasks.getTask(taskId);
         if (taskView != null) {
             switch (taskView.getState()) {
                 case CREATED:
@@ -188,8 +184,8 @@ public class TaskManagerMemory implements TaskManager, TaskSupplier {
     }
 
     @Override
-    public <V extends Serializable> Task<V> get(int timeOut, TimeUnit timeUnit) throws InterruptedException {
-        return (Task<V>) taskQueue.poll(timeOut, timeUnit);
+    public Task get(int timeOut, TimeUnit timeUnit) throws InterruptedException {
+        return taskQueue.poll(timeOut, timeUnit);
     }
 
     @Override
@@ -226,14 +222,14 @@ public class TaskManagerMemory implements TaskManager, TaskSupplier {
     }
 
     @Override
-    public <V extends Serializable> void insert(Task<V> task, Group group) throws TaskAlreadyExists, IOException {
+    public void insert(Task task, Group group) throws TaskAlreadyExists, IOException {
         synchronized (tasks) {
             tasks.insert(task, group);
         }
     }
 
     @Override
-    public <V extends Serializable> void update(Task<V> task) throws IOException, UnknownTask {
+    public void update(Task task) throws IOException, UnknownTask {
         synchronized (tasks) {
             tasks.update(task);
         }

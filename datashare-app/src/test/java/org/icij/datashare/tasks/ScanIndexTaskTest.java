@@ -38,8 +38,8 @@ public class ScanIndexTaskTest {
 
     @Test
     public void test_empty_index() throws Exception {
-        assertThat(new ScanIndexTask(documentCollectionFactory, indexer, new Task<>(
-                ScanIndexTask.class.getName(), User.nullUser(), propertiesToMap(propertiesProvider.getProperties())), null).call()).isEqualTo(0);
+        assertThat(new ScanIndexTask(documentCollectionFactory, indexer, new Task(
+                ScanIndexTask.class.getName(), User.nullUser(), propertiesToMap(propertiesProvider.getProperties())), null).call().value()).isEqualTo(0L);
     }
 
     @Test
@@ -47,8 +47,8 @@ public class ScanIndexTaskTest {
         indexer.add(TEST_INDEX, DocumentBuilder.createDoc("id1").build());
         indexer.add(TEST_INDEX, DocumentBuilder.createDoc("id2").build());
 
-        assertThat(new ScanIndexTask(documentCollectionFactory, indexer,  new Task<>(
-                ScanIndexTask.class.getName(), User.nullUser(), propertiesToMap(propertiesProvider.getProperties())), null).call()).isEqualTo(2);
+        assertThat(new ScanIndexTask(documentCollectionFactory, indexer,  new Task(
+                ScanIndexTask.class.getName(), User.nullUser(), propertiesToMap(propertiesProvider.getProperties())), null).call().value()).isEqualTo(2L);
 
         ReportMap actualReportMap = documentCollectionFactory.createMap("test:report");
         assertThat(actualReportMap).includes(

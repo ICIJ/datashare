@@ -16,7 +16,6 @@ import org.redisson.command.CommandSyncService;
 import org.redisson.liveobject.core.RedissonObjectBuilder;
 
 import java.io.IOException;
-import java.io.Serializable;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
@@ -39,8 +38,8 @@ public class TaskSupplierRedis implements TaskSupplier {
     }
 
     @Override
-    public <V extends Serializable> Task<V> get(int timeOut, TimeUnit timeUnit) throws InterruptedException {
-        return (Task<V>) taskQueue().poll(timeOut, timeUnit);
+    public Task get(int timeOut, TimeUnit timeUnit) throws InterruptedException {
+        return taskQueue().poll(timeOut, timeUnit);
     }
 
     @Override
@@ -55,12 +54,12 @@ public class TaskSupplierRedis implements TaskSupplier {
     }
 
     @Override
-    public <V extends Serializable> void result(String taskId, TaskResult<V> result) {
-        eventTopic.publish(new ResultEvent<>(taskId, result));
+    public void result(String taskId, byte[] result) {
+        eventTopic.publish(new ResultEvent(taskId, result));
     }
 
     @Override
-    public void canceled(Task<?> task, boolean requeue) {
+    public void canceled(Task task, boolean requeue) {
         eventTopic.publish(new CancelledEvent(task.id, requeue));
     }
 
@@ -77,7 +76,7 @@ public class TaskSupplierRedis implements TaskSupplier {
     @Override
     public void waitForConsumer() {}
 
-    private <V extends Serializable> BlockingQueue<Task<V>> taskQueue() {
+    private BlockingQueue<Task> taskQueue() {
         return this.taskQueueKey == null ?
             new RedissonBlockingQueue<>(new TaskManagerRedis.RedisCodec<>(Task.class), getCommandSyncService(), AmqpQueue.TASK.name(), redissonClient):
             new RedissonBlockingQueue<>(new TaskManagerRedis.RedisCodec<>(Task.class), getCommandSyncService(), String.format("%s.%s", AmqpQueue.TASK.name(), taskQueueKey), redissonClient);

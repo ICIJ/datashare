@@ -33,7 +33,7 @@ public class TaskWorkerLoopIntTest {
         DatashareTaskFactory factory = mock(DatashareTaskFactory.class);
         BatchDownload batchDownload = new BatchDownload(singletonList(project("prj")), User.local(), "foo");
         Map<String, Object> properties = Map.of("batchDownload", batchDownload);
-        Task<File> taskView = new Task<>(BatchDownloadRunner.class.getName(), batchDownload.user, properties);
+        Task taskView = new Task(BatchDownloadRunner.class.getName(), batchDownload.user, properties);
         BatchDownloadRunner runner = new BatchDownloadRunner(mock(Indexer.class), new PropertiesProvider(), taskView, taskView.progress(taskSupplier::progress));
         when(factory.createBatchDownloadRunner(any(), any())).thenReturn(runner);
 
@@ -48,7 +48,7 @@ public class TaskWorkerLoopIntTest {
         taskManager.awaitTermination(1, TimeUnit.SECONDS);
         eventWaiter.await();
 
-        List<Task<?>> tasks = taskManager.getTasks().toList();
+        List<Task> tasks = taskManager.getTasks().toList();
         assertThat(tasks).hasSize(1);
         assertThat(tasks.get(0).getError()).isNotNull();
         assertThat(tasks.get(0).getProgress()).isEqualTo(1);

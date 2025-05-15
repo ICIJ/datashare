@@ -9,19 +9,19 @@ import org.icij.datashare.user.User;
 import org.junit.Test;
 
 public class TaskFilterTest {
-    static final Task<String> t1 = new Task<>("someTask", User.local(), Map.of());
-    static Task<String> t2 = new Task<>("someOtherTask", null, Map.of("nested", Map.of("attribute","nestedvalue")));
+    static final Task t1 = new Task("someTask", User.local(), Map.of());
+    static Task t2 = new Task("someOtherTask", null, Map.of("nested", Map.of("attribute","nestedvalue")));
     static {
         t2.setState(Task.State.DONE);
     }
-    static List<Task<?>> tasks = List.of(t1, t2);
+    static List<Task> tasks = List.of(t1, t2);
 
     @Test
     public void test_task_empty_filters() {
         // Given
         TaskFilters filters = TaskFilters.empty();
         // When
-        List<Task<?>> filtered = tasks.stream().filter(filters::filter).toList();
+        List<Task> filtered = tasks.stream().filter(filters::filter).toList();
         // Then
         assertThat(filtered).isEqualTo(tasks);
     }
@@ -31,7 +31,7 @@ public class TaskFilterTest {
         // Given
         TaskFilters filters = TaskFilters.empty().withArgs(List.of());
         // When
-        List<Task<?>> filtered = tasks.stream().filter(filters::filter).toList();
+        List<Task> filtered = tasks.stream().filter(filters::filter).toList();
         // Then
         assertThat(filtered).isEqualTo(tasks);
     }
@@ -41,7 +41,7 @@ public class TaskFilterTest {
         // Given
         TaskFilters filters = TaskFilters.empty().withStates(Set.of());
         // When
-        List<Task<?>> filtered = tasks.stream().filter(filters::filter).toList();
+        List<Task> filtered = tasks.stream().filter(filters::filter).toList();
         // Then
         assertThat(filtered).isEqualTo(tasks);
     }
@@ -51,7 +51,7 @@ public class TaskFilterTest {
         // Given
         TaskFilters filters = TaskFilters.empty().withNames("someT.*");
         // When
-        List<Task<?>> filtered = tasks.stream().filter(filters::filter).toList();
+        List<Task> filtered = tasks.stream().filter(filters::filter).toList();
         // Then
         assertThat(filtered).isEqualTo(List.of(t1));
     }
@@ -61,7 +61,7 @@ public class TaskFilterTest {
         // Given
         TaskFilters filters = TaskFilters.empty().withNames(".*some|someOther.*");
         // When
-        List<Task<?>> filtered = tasks.stream().filter(filters::filter).toList();
+        List<Task> filtered = tasks.stream().filter(filters::filter).toList();
         // Then
         assertThat(filtered).isEqualTo(List.of(t1, t2));
     }
@@ -71,7 +71,7 @@ public class TaskFilterTest {
         // Given
         TaskFilters filters = TaskFilters.empty().withUser(User.local());
         // When
-        List<Task<?>> filtered = tasks.stream().filter(filters::filter).toList();
+        List<Task> filtered = tasks.stream().filter(filters::filter).toList();
         // Then
         assertThat(filtered).isEqualTo(List.of(t1));
     }
@@ -82,7 +82,7 @@ public class TaskFilterTest {
         TaskFilters.ArgsFilter argsFilter = new TaskFilters.ArgsFilter("nested.attribute", "nestedv.*");
         TaskFilters filters = TaskFilters.empty().withArgs(List.of(argsFilter));
         // When
-        List<Task<?>> filtered = tasks.stream().filter(filters::filter).toList();
+        List<Task> filtered = tasks.stream().filter(filters::filter).toList();
         // Then
         assertThat(filtered).isEqualTo(List.of(t2));
     }
@@ -93,7 +93,7 @@ public class TaskFilterTest {
         TaskFilters.ArgsFilter argsFilter = new TaskFilters.ArgsFilter("nested.attribute", "foo.*");
         TaskFilters filters = TaskFilters.empty().withArgs(List.of(argsFilter));
         // When
-        List<Task<?>> filtered = tasks.stream().filter(filters::filter).toList();
+        List<Task> filtered = tasks.stream().filter(filters::filter).toList();
         // Then
         assertThat(filtered).isEqualTo(List.of());
     }
@@ -104,7 +104,7 @@ public class TaskFilterTest {
         TaskFilters.ArgsFilter argsFilter = new TaskFilters.ArgsFilter("nested.attribute", ".*ed.*");
         TaskFilters filters = TaskFilters.empty().withArgs(List.of(argsFilter));
         // When
-        List<Task<?>> filtered = tasks.stream().filter(filters::filter).toList();
+        List<Task> filtered = tasks.stream().filter(filters::filter).toList();
         // Then
         assertThat(filtered).isEqualTo(List.of(t2));
     }
@@ -116,7 +116,7 @@ public class TaskFilterTest {
         TaskFilters.ArgsFilter argsFilter = new TaskFilters.ArgsFilter("nested.attribute", ".*foo.*");
         TaskFilters filters = TaskFilters.empty().withArgs(List.of(argsFilter));
         // When
-        List<Task<?>> filtered = tasks.stream().filter(filters::filter).toList();
+        List<Task> filtered = tasks.stream().filter(filters::filter).toList();
         // Then
         assertThat(filtered).isEqualTo(List.of());
     }
@@ -126,7 +126,7 @@ public class TaskFilterTest {
         // Given
         TaskFilters filters = TaskFilters.empty().withStates(Set.of(Task.State.DONE));
         // When
-        List<Task<?>> filtered = tasks.stream().filter(filters::filter).toList();
+        List<Task> filtered = tasks.stream().filter(filters::filter).toList();
         // Then
         assertThat(filtered).isEqualTo(List.of(t2));
     }

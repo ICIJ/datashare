@@ -9,27 +9,27 @@ import org.slf4j.LoggerFactory;
 public class TestFactory implements TaskFactory {
     private static final Logger logger = LoggerFactory.getLogger(TestFactory.class);
 
-    public static Callable<String> createHelloWorld(Task<String> taskView, Function<Double, String> progress) {
+    public static Callable<String> createHelloWorld(Task taskView, Function<Double, String> progress) {
         return new HelloWorld(taskView, progress);
     }
 
-    public SleepForever createSleepForever(Task<String> taskView, Function<Double, String> progress) {
+    public SleepForever createSleepForever(Task taskView, Function<Double, String> progress) {
         return new SleepForever(taskView, progress);
     }
 
-    public AnotherSleepForever createAnotherSleepForever(Task<String> taskView, Function<Double, String> progress) {
+    public AnotherSleepForever createAnotherSleepForever(Task taskView, Function<Double, String> progress) {
         return new AnotherSleepForever(taskView, progress);
     }
 
-    public Sleep createSleep(Task<String> taskView, Function<Double, String> progress) {
+    public Sleep createSleep(Task taskView, Function<Double, String> progress) {
         return new Sleep(taskView, progress);
     }
 
     public static class HelloWorld implements Callable<String> {
         private final Function<Double, String> progress;
-        private String greeted;
+        private final String greeted;
 
-        public HelloWorld(Task<String> taskView, Function<Double, String> progress) {
+        public HelloWorld(Task taskView, Function<Double, String> progress) {
             this.progress = progress;
             this.greeted = (String) Objects.requireNonNull(taskView.args.get("greeted"), "missing greeted parameter");
         }
@@ -53,7 +53,7 @@ public class TestFactory implements TaskFactory {
         private final int duration;
 
 
-        public Sleep(Task<String> taskView, Function<Double, String> progress) {
+        public Sleep(Task taskView, Function<Double, String> progress) {
             this.progress = progress;
             this.duration = (int) taskView.args.get("duration");
         }
@@ -70,7 +70,7 @@ public class TestFactory implements TaskFactory {
         Boolean requeue = null;
         Thread taskThread;
 
-        SleepForever(Task<String> taskView, Function<Double, String> progress) {
+        SleepForever(Task taskView, Function<Double, String> progress) {
             this.progress = progress;
         }
 
@@ -94,7 +94,7 @@ public class TestFactory implements TaskFactory {
 
     @TaskGroup(TaskGroupType.Test)
     public static class AnotherSleepForever extends SleepForever {
-        AnotherSleepForever(Task<String> taskView, Function<Double, String> progress) {
+        AnotherSleepForever(Task taskView, Function<Double, String> progress) {
             super(taskView, progress);
         }
     }

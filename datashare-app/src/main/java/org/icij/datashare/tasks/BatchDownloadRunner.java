@@ -15,7 +15,6 @@ import org.icij.datashare.asynctasks.CancelException;
 import org.icij.datashare.asynctasks.CancellableTask;
 import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.asynctasks.TaskGroup;
-import org.icij.datashare.asynctasks.bus.amqp.UriResult;
 import org.icij.datashare.batch.BatchDownload;
 import org.icij.datashare.com.mail.Mail;
 import org.icij.datashare.com.mail.MailException;
@@ -40,7 +39,6 @@ import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.util.HashMap;
 import java.util.List;
-import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
@@ -54,12 +52,12 @@ import static org.icij.datashare.cli.DatashareCliOptions.*;
 import org.icij.datashare.asynctasks.TaskGroupType;
 
 @TaskGroup(TaskGroupType.Java)
-public class BatchDownloadRunner implements Callable<UriResult>, Monitorable, UserTask, CancellableTask {
+public class BatchDownloadRunner extends DatashareTask<UriResult> implements Monitorable, UserTask, CancellableTask {
     private final static Logger logger = LoggerFactory.getLogger(BatchDownloadRunner.class);
     static final int MAX_SCROLL_SIZE = 3500;
     static final int MAX_BATCH_RESULT_SIZE = 10000;
     private final DocumentVerifier documentVerifier;
-    private final Task<File> task;
+    private final Task task;
     volatile long docsToProcessSize = 0;
     private final AtomicInteger numberOfResults = new AtomicInteger(0);
     private final Indexer indexer;
@@ -72,13 +70,13 @@ public class BatchDownloadRunner implements Callable<UriResult>, Monitorable, Us
     protected volatile Thread callThread;
 
     @Inject
-    public BatchDownloadRunner(Indexer indexer, PropertiesProvider propertiesProvider, @Assisted Task<?> task, @Assisted Function<Double, Void> progressCallback) {
+    public BatchDownloadRunner(Indexer indexer, PropertiesProvider propertiesProvider, @Assisted Task task, @Assisted Function<Double, Void> progressCallback) {
         this(indexer, propertiesProvider, progressCallback, task, MailSender::new, new CountDownLatch(1));
     }
 
-    BatchDownloadRunner(Indexer indexer, PropertiesProvider provider, Function<Double, Void> progressCallback, Task<?> task, Function<URI, MailSender> mailSenderSupplier, CountDownLatch latch) {
+    BatchDownloadRunner(Indexer indexer, PropertiesProvider provider, Function<Double, Void> progressCallback, Task task, Function<URI, MailSender> mailSenderSupplier, CountDownLatch latch) {
         assert task.args.get("batchDownload") != null : "'batchDownload' property in task shouldn't be null";
-        this.task = (Task<File>) task;
+        this.task = task;
         this.indexer = indexer;
         this.propertiesProvider = provider;
         this.progressCallback = progressCallback;
@@ -88,7 +86,7 @@ public class BatchDownloadRunner implements Callable<UriResult>, Monitorable, Us
     }
 
     @Override
-    public UriResult call() throws Exception {
+    public UriResult runTask() throws Exception {
         int throttleMs = parseInt(propertiesProvider.get(BATCH_THROTTLE_OPT).orElse(DEFAULT_BATCH_THROTTLE));
         int maxResultSize = parseInt(propertiesProvider.get(BATCH_DOWNLOAD_MAX_NB_FILES_OPT).orElse(valueOf(MAX_BATCH_RESULT_SIZE)));
         String scrollDuration = propertiesProvider.get(BATCH_DOWNLOAD_SCROLL_DURATION_OPT).orElse(DEFAULT_SCROLL_DURATION);

@@ -26,14 +26,14 @@ public class DeduplicateTask extends PipelineTask<Path> {
     private final DocumentCollectionFactory<Path> factory;
 
     @Inject
-    public DeduplicateTask(final DocumentCollectionFactory<Path> factory, @Assisted Task<Long> taskView, @Assisted final Function<Double, Void> updateCallback) {
+    public DeduplicateTask(final DocumentCollectionFactory<Path> factory, @Assisted Task taskView, @Assisted final Function<Double, Void> ignored) {
         super(Stage.DEDUPLICATE, taskView.getUser(), factory, new PropertiesProvider(taskView.args), Path.class);
         this.factory = factory;
     }
 
     @Override
-    public Long call() throws Exception {
-        super.call();
+    public Long runTask() throws Exception {
+        super.runTask();
         int duplicates = inputQueue.removeDuplicates();
         transferToOutputQueue();
         logger.info("removed {} duplicate paths in inputQueue {}", duplicates, inputQueue.getName());

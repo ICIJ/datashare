@@ -5,7 +5,6 @@ import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.asynctasks.CancelException;
 import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.asynctasks.TaskModifier;
-import org.icij.datashare.asynctasks.bus.amqp.UriResult;
 import org.icij.datashare.batch.BatchDownload;
 import org.icij.datashare.test.DatashareTimeRule;
 import org.icij.datashare.test.ElasticsearchRule;
@@ -47,7 +46,7 @@ public class BatchDownloadRunnerIntTest {
     @Test
     public void test_empty_response() throws Exception {
         BatchDownload bd = createBatchDownload("query");
-        Task<File> taskView = createTaskView(bd);
+        Task taskView = createTaskView(bd);
         new BatchDownloadRunner(indexer, createProvider(), taskView, taskView.progress(taskModifier::progress)).call();
         assertThat(bd.filename.toFile()).doesNotExist();
         verify(taskModifier, never()).progress(any(), anyDouble());
@@ -59,7 +58,7 @@ public class BatchDownloadRunnerIntTest {
         File file = new IndexerHelper(es.client).indexFile("mydoc.txt", content, fs);
         BatchDownload bd = createBatchDownload("fox");
 
-        Task<File> taskView = createTaskView(bd);
+        Task taskView = createTaskView(bd);
         new BatchDownloadRunner(indexer, createProvider(), taskView, taskView.progress(taskModifier::progress)).call();
 
         assertThat(bd.filename.toFile()).isFile();
@@ -75,7 +74,7 @@ public class BatchDownloadRunnerIntTest {
         new IndexerHelper(es.client).indexFile("mydoc.txt", content, fs);
         BatchDownload bd = createBatchDownload("{\"match_all\":{}}");
 
-        Task<File> taskView = createTaskView(bd);
+        Task taskView = createTaskView(bd);
         new BatchDownloadRunner(indexer, createProvider(), taskView, taskView.progress(taskModifier::progress)).call();
 
         assertThat(bd.filename.toFile()).isFile();
@@ -88,7 +87,7 @@ public class BatchDownloadRunnerIntTest {
         new IndexerHelper(es.client).indexFile("doc2.txt", "Portez ce vieux whisky au juge blond qui fume", fs);
 
         BatchDownload bd = createBatchDownload("*");
-        Task<File> taskView = createTaskView(bd);
+        Task taskView = createTaskView(bd);
         new BatchDownloadRunner(indexer, createProvider(), taskView, taskView.progress(taskModifier::progress)).call();
 
         assertThat(bd.filename.toFile()).isFile();
@@ -102,8 +101,8 @@ public class BatchDownloadRunnerIntTest {
         new IndexerHelper(es.client).indexFile("doc2.txt", "Portez ce vieux whisky au juge blond qui fume", fs);
 
         BatchDownload bd = createBatchDownload("*");
-        Task<File> taskView = createTaskView(bd);
-        UriResult result = new BatchDownloadRunner(indexer, createProvider(), taskView, taskView.progress(taskModifier::progress)).call();
+        Task taskView = createTaskView(bd);
+        UriResult result = new BatchDownloadRunner(indexer, createProvider(), taskView, taskView.progress(taskModifier::progress)).call().value();
 
         assertThat(result.size()).isGreaterThan(0);
     }
@@ -114,7 +113,7 @@ public class BatchDownloadRunnerIntTest {
         new IndexerHelper(es.client).indexFile("doc2.txt", "Portez ce vieux whisky au juge blond qui fume", fs);
 
         BatchDownload bd = createBatchDownload("juge");
-        Task<File> taskView = createTaskView(bd);
+        Task taskView = createTaskView(bd);
         new BatchDownloadRunner(indexer, createProvider(), taskView, taskView.progress(taskModifier::progress)).call();
 
         assertThat(bd.filename.toFile()).isFile();
@@ -127,7 +126,7 @@ public class BatchDownloadRunnerIntTest {
         File doc2 = new IndexerHelper(es.client).indexFile("dir2/doc2.txt", "Portez ce vieux whisky au juge blond qui fume", fs);
 
         BatchDownload bd = createBatchDownload("*");
-        Task<File> taskView = createTaskView(bd);
+        Task taskView = createTaskView(bd);
         new BatchDownloadRunner(indexer, createProvider(), taskView, taskView.progress(taskModifier::progress)).call();
 
         assertThat(bd.filename.toFile()).isFile();
@@ -142,7 +141,7 @@ public class BatchDownloadRunnerIntTest {
         File doc2 = new IndexerHelper(es.client).indexFile("dir2/doc2.txt", "Portez ce vieux whisky au juge blond qui fume", fs, TEST_INDEXES[2]);
 
         BatchDownload bd = createBatchDownload(asList(project(TEST_INDEXES[1]), project(TEST_INDEXES[2])),"*");
-        Task<File> taskView = createTaskView(bd);
+        Task taskView = createTaskView(bd);
         new BatchDownloadRunner(indexer, createProvider(), taskView, taskView.progress(taskModifier::progress)).call();
 
         assertThat(bd.filename.toFile()).isFile();
@@ -154,7 +153,7 @@ public class BatchDownloadRunnerIntTest {
     @Test
     public void test_progress_rate() throws Exception {
         new IndexerHelper(es.client).indexFile("mydoc.txt", "content", fs);
-        Task<File> taskView = createTaskView(createBatchDownload("*"));
+        Task taskView = createTaskView(createBatchDownload("*"));
         BatchDownloadRunner batchDownloadRunner = new BatchDownloadRunner(indexer, createProvider(), taskView, taskView.progress(taskModifier::progress));
         assertThat(batchDownloadRunner.getProgressRate()).isEqualTo(0);
         batchDownloadRunner.call();
@@ -166,7 +165,7 @@ public class BatchDownloadRunnerIntTest {
         File file = new IndexerHelper(es.client).indexEmbeddedFile(TEST_INDEX, "/docs/embedded_doc.eml");
 
         BatchDownload bd = createBatchDownload("*");
-        Task<File> taskView = createTaskView(bd);
+        Task taskView = createTaskView(bd);
         new BatchDownloadRunner(indexer, createProvider(), taskView, taskView.progress(taskModifier::progress)).call();
 
         assertThat(new ZipFile(bd.filename.toFile()).size()).isEqualTo(2);
@@ -178,7 +177,7 @@ public class BatchDownloadRunnerIntTest {
         new IndexerHelper(es.client).indexEmbeddedFile("bad_project_name", "/docs/embedded_doc.eml");
 
         BatchDownload bd = createBatchDownload("*");
-        Task<File> taskView = createTaskView(bd);
+        Task taskView = createTaskView(bd);
         new BatchDownloadRunner(indexer, createProvider(), taskView, taskView.progress(taskModifier::progress)).call();
 
         assertThat(new ZipFile(bd.filename.toFile()).size()).isEqualTo(1);
@@ -187,7 +186,7 @@ public class BatchDownloadRunnerIntTest {
     @Test
     public void test_to_string_contains_batch_download_uuid() {
         BatchDownload bd = createBatchDownload("*");
-        Task<File> taskView = createTaskView(bd);
+        Task taskView = createTaskView(bd);
         BatchDownloadRunner batchDownloadRunner = new BatchDownloadRunner(indexer, createProvider(), taskView, taskView.progress(taskModifier::progress));
 
         assertThat(batchDownloadRunner.toString()).startsWith("BatchDownloadRunner@");
@@ -199,10 +198,10 @@ public class BatchDownloadRunnerIntTest {
         new IndexerHelper(es.client).indexFile("mydoc.txt", "content", fs);
         ExecutorService executor = Executors.newFixedThreadPool(1);
         CountDownLatch countDownLatch = new CountDownLatch(1);
-        Task<File> taskView = createTaskView(createBatchDownload("*"));
+        Task taskView = createTaskView(createBatchDownload("*"));
         BatchDownloadRunner batchDownloadRunner = new BatchDownloadRunner(indexer, createProvider(), taskView.progress(taskModifier::progress), taskView, null, countDownLatch);
 
-        Future<UriResult> result = executor.submit(batchDownloadRunner);
+        Future<DatashareTaskResult<UriResult>> result = executor.submit(batchDownloadRunner);
         executor.shutdown();
         countDownLatch.await();
         batchDownloadRunner.cancel(false);
@@ -214,7 +213,7 @@ public class BatchDownloadRunnerIntTest {
     @Test(expected = ElasticSearchAdapterException.class)
     public void test_use_batch_download_scroll_size_value_over_scroll_size_value() throws Exception {
         BatchDownload bd = createBatchDownload("*");
-        Task<File> taskView = createTaskView(bd);
+        Task taskView = createTaskView(bd);
         PropertiesProvider propertiesProvider = new PropertiesProvider(new HashMap<>() {{
             put("downloadFolder", fs.getRoot().toString());
             put(SCROLL_SIZE_OPT, "100");
@@ -230,7 +229,7 @@ public class BatchDownloadRunnerIntTest {
             put("downloadFolder", fs.getRoot().toString());
             put(SCROLL_SIZE_OPT, "0");
         }});
-        Task<File> taskView = createTaskView(bd);
+        Task taskView = createTaskView(bd);
         new BatchDownloadRunner(indexer, propertiesProvider, taskView, taskView.progress(taskModifier::progress)).call();
     }
 
@@ -240,7 +239,7 @@ public class BatchDownloadRunnerIntTest {
         PropertiesProvider propertiesProvider = new PropertiesProvider(
                 Map.of("downloadFolder", "/unused",
                 BATCH_DOWNLOAD_SCROLL_DURATION_OPT, "10foo"));
-        Task<File> taskView = createTaskView(bd);
+        Task taskView = createTaskView(bd);
         new BatchDownloadRunner(indexer, propertiesProvider, taskView, taskView.progress(taskModifier::progress)).call();
     }
 
@@ -248,8 +247,8 @@ public class BatchDownloadRunnerIntTest {
     private BatchDownload createBatchDownload(String query) {
         return new BatchDownload(asList(project(TEST_INDEX)), local(), query, null, fs.getRoot().toPath(), false);
     }
-    private Task<File> createTaskView(BatchDownload bd) {
-        return new Task<>(BatchDownloadRunner.class.getName(), bd.user, new HashMap<>() {{
+    private Task createTaskView(BatchDownload bd) {
+        return new Task(BatchDownloadRunner.class.getName(), bd.user, new HashMap<>() {{
             put("batchDownload", bd);
         }});
     }

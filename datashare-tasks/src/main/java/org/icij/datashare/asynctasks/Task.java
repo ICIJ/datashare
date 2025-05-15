@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -16,7 +17,6 @@ import org.icij.datashare.batch.WebQueryPagination;
 import org.icij.datashare.time.DatashareTime;
 import org.icij.datashare.user.User;
 
-import java.io.Serializable;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
@@ -31,9 +31,10 @@ import java.util.function.Function;
 import static java.util.Optional.ofNullable;
 import static java.util.UUID.randomUUID;
 import static org.icij.datashare.batch.WebQueryPagination.OrderDirection.ASC;
+import static org.icij.datashare.json.JsonObjectMapper.MAPPER;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class Task<V extends Serializable> extends Event implements Entity, Comparable<Task<V>> {
+public class Task extends Event implements Entity, Comparable<Task>{
     public static final String USER_KEY = "user";
     @JsonIgnore private StateLatch stateLatch;
     @JsonIgnore private final Object lock = new Object();
@@ -45,7 +46,6 @@ public class Task<V extends Serializable> extends Event implements Entity, Compa
         public static final Set<State> NON_FINAL_STATES = Arrays.stream(State.values()).filter(s -> !FINAL_STATES.contains(s))
             .collect(Collectors.toSet());
     }
-    @JsonTypeInfo(use = JsonTypeInfo.Id.CLASS, property = "@type")
     public final Map<String, Object> args;
     public final String id;
     public final String name;
@@ -53,7 +53,7 @@ public class Task<V extends Serializable> extends Event implements Entity, Compa
     private volatile State state;
     private volatile Date completedAt;
     private volatile double progress;
-    private volatile TaskResult<V> result;
+    private volatile byte[] result;
 
     public Task(String name, User user, Map<String, Object> args) {
         this(randomUUID().toString(), name, user, args);
@@ -76,7 +76,7 @@ public class Task<V extends Serializable> extends Event implements Entity, Compa
          @JsonProperty("retriesLeft") int retriesLeft,
          @JsonProperty("completedAt") Date completedAt,
          @JsonProperty("args") Map<String, Object> args,
-         @JsonProperty("result") TaskResult<V> result,
+         @JsonProperty("result") byte[] result,
          @JsonProperty("error") TaskError error) {
         super(createdAt, retriesLeft);
         this.id = id;
@@ -90,7 +90,7 @@ public class Task<V extends Serializable> extends Event implements Entity, Compa
         this.args = Collections.unmodifiableMap(ofNullable(args).orElse(new HashMap<>()));
     }
 
-    public TaskResult<V> getResult() {
+    public byte[] getResult() {
         return result;
     }
 
@@ -104,7 +104,7 @@ public class Task<V extends Serializable> extends Event implements Entity, Compa
      * @return
      * @throws InterruptedException
      */
-    public TaskResult<V> getResult(int timeout, TimeUnit unit) throws InterruptedException {
+    public byte[] getResult(int timeout, TimeUnit unit) throws InterruptedException {
         synchronized (lock) {
             if (!isFinished()) {
                 lock.wait(unit.toMillis(timeout));
@@ -118,7 +118,7 @@ public class Task<V extends Serializable> extends Event implements Entity, Compa
         ofNullable(stateLatch).ifPresent(sl -> sl.setTaskState(state));
     }
 
-    public void setResult(TaskResult<V> result) {
+    public void setResult(byte[] result) {
         synchronized (lock) {
             this.result =  result;
             setState(State.DONE);
@@ -182,7 +182,7 @@ public class Task<V extends Serializable> extends Event implements Entity, Compa
     @Override
     public boolean equals(Object o) {
         if (o == null || getClass() != o.getClass()) return false;
-        Task<?> task = (Task<?>) o;
+        Task task = (Task) o;
         return Double.compare(progress, task.progress) == 0 &&
                 Objects.equals(id, task.id) &&
                 Objects.equals(name, task.name)
@@ -208,7 +208,14 @@ public class Task<V extends Serializable> extends Event implements Entity, Compa
 
     @JsonIgnore
     public User getUser() {
-        return (User) args.get(USER_KEY);
+        // Ugly hack to avoid serializing the user with Java type info... We could have remove the user from the task
+        // and move it to datashare task however, it's useful to keep it to index task by user
+        // (faster task retrieval/filtering in the taskRepo)
+        try {
+            return MAPPER.readValue(MAPPER.writeValueAsBytes(args.get(USER_KEY)), User.class);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public static <V> String getId(Callable<V> task) {
@@ -225,12 +232,12 @@ public class Task<V extends Serializable> extends Event implements Entity, Compa
     }
 
     @Override
-    public int compareTo(Task<V> task) {
+    public int compareTo(Task task) {
         return new Comparator("name", ASC).compare(this, task);
     }
 
-    public record Comparator(String field, WebQueryPagination.OrderDirection order) implements java.util.Comparator<Task<?>> {
-        public static Map<String, Function<Task<?>, ?>> SORT_FIELDS = Map.of(
+    public record Comparator(String field, WebQueryPagination.OrderDirection order) implements java.util.Comparator<Task> {
+        public static Map<String, Function<Task, ?>> SORT_FIELDS = Map.of(
             "id", Task::getId,
             "user", Task::getUser,
             "createdAt", t -> t.createdAt,
@@ -247,7 +254,7 @@ public class Task<V extends Serializable> extends Event implements Entity, Compa
         }
 
         @Override
-        public int compare(Task<?> t1, Task<?> t2) {
+        public int compare(Task t1, Task t2) {
             CompareToBuilder compareToBuilder = new CompareToBuilder();
             Object fieldValue1 = SORT_FIELDS.get(field()).apply(t1);
             Object fieldValue2 = SORT_FIELDS.get(field()).apply(t2);

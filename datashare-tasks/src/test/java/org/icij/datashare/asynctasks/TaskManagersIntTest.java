@@ -2,6 +2,7 @@ package org.icij.datashare.asynctasks;
 
 
 import java.util.List;
+import java.util.stream.Stream;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.asynctasks.bus.amqp.AmqpInterlocutor;
 import org.icij.datashare.asynctasks.bus.amqp.AmqpQueue;
@@ -21,6 +22,7 @@ import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.regex.Pattern;
 
 import static java.util.Arrays.asList;
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -89,7 +91,7 @@ public class TaskManagersIntTest {
         taskInspector.awaitStatus(taskViewId, Task.State.CANCELLED, 1, SECONDS);
         eventWaiter.await();
 
-        List<Task<?>> tasks = taskManager.getTasks().toList();
+        List<Task> tasks = taskManager.getTasks().toList();
         assertThat(tasks).hasSize(1);
         assertThat(tasks.get(0).getState()).isEqualTo(Task.State.CANCELLED);
     }
@@ -151,7 +153,9 @@ public class TaskManagersIntTest {
         taskInspector.awaitStatus(tv1Id, Task.State.RUNNING, 1, SECONDS);
         taskManager.stopTasks(User.local());
         taskInspector.awaitStatus(tv1Id, Task.State.CANCELLED, 1, SECONDS);
-        taskInspector.awaitStatus(tv2Id, Task.State.CANCELLED, 1, SECONDS);
+
+        assertThat(taskManager.getTask(tv1Id).getState()).isEqualTo(Task.State.CANCELLED);
+        assertThat(taskManager.getTask(tv2Id).getState()).isEqualTo(Task.State.CANCELLED);
 
         taskManager.clearDoneTasks();
 

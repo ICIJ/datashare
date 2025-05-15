@@ -42,7 +42,7 @@ public class IndexTaskIntTest {
         DocumentQueue<Path> queue = inputQueueFactory.createQueue(new PipelineHelper(propertiesProvider).getQueueNameFor(Stage.INDEX), Path.class);
         queue.add(Paths.get(ClassLoader.getSystemResource("docs/doc.txt").getPath()));
 
-        Long nbDocs = new IndexTask(spewer, inputQueueFactory, new Task<>(IndexTask.class.getName(), User.local(), map), null).call();
+        Long nbDocs = new IndexTask(spewer, inputQueueFactory, new Task(IndexTask.class.getName(), User.local(), map), null).runTask();
 
         assertThat(nbDocs).isEqualTo(1);
         DocumentQueue<String> outputQueue = outputQueueFactory.createQueue(new PipelineHelper(propertiesProvider).getOutputQueueNameFor(Stage.INDEX), String.class);

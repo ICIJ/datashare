@@ -46,7 +46,7 @@ public class EnqueueFromIndexTask extends PipelineTask<String> {
 
     @Inject
     public EnqueueFromIndexTask(final DocumentCollectionFactory<String> factory, final Indexer indexer,
-                                @Assisted Task<Long> taskView, @Assisted final Function<Double, Void> ignored) {
+                                @Assisted Task taskView, @Assisted final Function<Double, Void> ignored) {
         super(Stage.ENQUEUEIDX, taskView.getUser(), factory, new PropertiesProvider(taskView.args), String.class);
         this.factory = factory;
         this.indexer = indexer;
@@ -58,8 +58,8 @@ public class EnqueueFromIndexTask extends PipelineTask<String> {
     }
 
     @Override
-    public Long call() throws Exception {
-        super.call();
+    public Long runTask() throws Exception {
+        super.runTask();
         Indexer.Searcher searcher;
         if (searchQuery == null) {
             searcher = indexer.search(singletonList(projectName), Document.class)
