@@ -162,7 +162,7 @@ public class DocumentResource {
     }
 
     @Get("/:project/documents/content/pages/:id?routing=:routing")
-    @Operation(description = "Fetches document extracted text paginated.",
+    @Operation(description = "Fetches document extracted text paginated in a json list of texts.",
             parameters = {
                     @Parameter(name = "project", description = "the project id", in = ParameterIn.PATH),
                     @Parameter(name = "id", description = "the document id", in = ParameterIn.PATH),
