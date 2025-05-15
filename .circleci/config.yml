@@ -137,7 +137,7 @@ jobs:
             git clone git@github.com:ICIJ/datashare-docs.git ~/datashare-docs
       - run:
           name: Make dist without frontend
-          command: mvn -pl datashare-dist package -am
+          command: mvn -pl datashare-dist package -am -Dmaven.test.skip=true
       - run:
           name: Populate apigen index
           command: ./doc/apigen/populate_apigen.sh
