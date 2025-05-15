@@ -32,6 +32,7 @@ import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static org.fest.assertions.Assertions.assertThat;
 import static org.icij.datashare.CollectionUtils.asSet;
+import static org.icij.datashare.json.JsonObjectMapper.MAPPER;
 import static org.icij.datashare.text.Project.project;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -49,7 +50,7 @@ public class TaskResourceBatchSearchTest extends AbstractProdWebServerTest {
     public void setUp() throws Exception {
         initMocks(this);
         TestTaskUtils.init(taskFactory);
-        configure(routes -> routes.add(new TaskResource(taskFactory, taskManager, new PropertiesProvider(), batchSearchRepository)));
+        configure(routes -> routes.add(new TaskResource(taskFactory, taskManager, new PropertiesProvider(), batchSearchRepository, MAPPER)));
     }
 
     @After
@@ -136,7 +137,7 @@ public class TaskResourceBatchSearchTest extends AbstractProdWebServerTest {
                 singletonList(project("prj")), "nameValue", null,
                 asSet("query", "éèàç"), new Date(), BatchSearch.State.QUEUED, User.local());
         verify(batchSearchRepository).save(eq(expected));
-        List<Task<?>> tasks = taskManager.getTasks().toList();
+        List<Task> tasks = taskManager.getTasks().toList();
         assertThat(tasks).hasSize(1);
         assertThat(tasks.get(0).name).isEqualTo(BatchSearchRunner.class.getName());
     }
@@ -193,7 +194,7 @@ public class TaskResourceBatchSearchTest extends AbstractProdWebServerTest {
         assertThat(argument.getValue().queryTemplate).isEqualTo(sourceSearch.queryTemplate);
 
         assertThat(argument.getValue().state).isEqualTo(BatchSearchRecord.State.QUEUED);
-        List<Task<?>> tasks = taskManager.getTasks().toList();
+        List<Task> tasks = taskManager.getTasks().toList();
         assertThat(tasks).hasSize(1);
         assertThat(tasks.get(0).name).isEqualTo(BatchSearchRunner.class.getName());
     }
