@@ -8,7 +8,6 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 
-import java.io.Serializable;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -28,7 +27,7 @@ public class TaskWorkerLoopTest {
     @Test(timeout = 2000)
     public void test_loop() throws Exception {
         TaskWorkerLoop app = new TaskWorkerLoop(registry, supplier);
-        Task<Serializable> taskView = new Task<>(TestFactory.HelloWorld.class.getName(), User.local(), Map.of("greeted", "world"));
+        Task taskView = new Task(TestFactory.HelloWorld.class.getName(), User.local(), Map.of("greeted", "world"));
         Mockito.when(supplier.get(ArgumentMatchers.anyInt(), ArgumentMatchers.any())).thenReturn(taskView);
         CountDownLatch taskStarted = whenTaskHasStarted(taskView.id);
 
@@ -38,13 +37,13 @@ public class TaskWorkerLoopTest {
         app.exit();
         appThread.join();
 
-        Mockito.verify(supplier).result(eq(taskView.id), eq(new TaskResult<>("Hello world!")));
+        Mockito.verify(supplier).result(eq(taskView.id), eq(app.mapper.writeValueAsBytes("Hello world!")));
     }
 
     @Test(timeout = 2000)
     public void test_unknown_task() throws Exception {
         TaskWorkerLoop app = new TaskWorkerLoop(registry, supplier);
-        Task<Serializable> taskView = new Task<>("unknown_task", User.local(), Map.of());
+        Task taskView = new Task("unknown_task", User.local(), Map.of());
 
         try {
             app.handle(taskView);
@@ -57,7 +56,7 @@ public class TaskWorkerLoopTest {
     @Test(timeout = 2000)
     public void test_cancel_task() throws Exception {
         TaskWorkerLoop app = new TaskWorkerLoop(registry, supplier);
-        Task<Serializable> taskView = new Task<>(TestFactory.SleepForever.class.getName(), User.local(), Map.of());
+        Task taskView = new Task(TestFactory.SleepForever.class.getName(), User.local(), Map.of());
         Mockito.when(supplier.get(ArgumentMatchers.anyInt(), ArgumentMatchers.any())).thenReturn(taskView);
         boolean requeue = false;
         CountDownLatch taskStarted = whenTaskHasStarted(taskView.id);
@@ -75,7 +74,7 @@ public class TaskWorkerLoopTest {
     @Test(timeout = 2000)
     public void test_cancel_task_and_requeue() throws Exception {
         TaskWorkerLoop app = new TaskWorkerLoop(registry, supplier);
-        Task<Serializable> taskView = new Task<>(TestFactory.SleepForever.class.getName(), User.local(), Map.of());
+        Task taskView = new Task(TestFactory.SleepForever.class.getName(), User.local(), Map.of());
         Mockito.when(supplier.get(ArgumentMatchers.anyInt(), ArgumentMatchers.any())).thenReturn(taskView);
         boolean requeue = true;
         CountDownLatch taskStarted = whenTaskHasStarted(taskView.id);
@@ -93,7 +92,7 @@ public class TaskWorkerLoopTest {
     @Test(timeout = 2000)
     public void test_task_interrupted() throws Exception {
         TaskWorkerLoop app = new TaskWorkerLoop(registry, supplier);
-        Task<Serializable> taskView = new Task<>(TestFactory.SleepForever.class.getName(), User.local(), Map.of());
+        Task taskView = new Task(TestFactory.SleepForever.class.getName(), User.local(), Map.of());
         Mockito.when(supplier.get(ArgumentMatchers.anyInt(), ArgumentMatchers.any())).thenReturn(taskView);
         CountDownLatch taskStarted = whenTaskHasStarted(taskView.id);
 

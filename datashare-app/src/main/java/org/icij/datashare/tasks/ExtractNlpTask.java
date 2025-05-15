@@ -51,12 +51,12 @@ public class ExtractNlpTask extends PipelineTask<String> implements Monitorable 
     private final AtomicInteger processed = new AtomicInteger(0);
 
     @Inject
-    public ExtractNlpTask(Indexer indexer, PipelineRegistry registry, final DocumentCollectionFactory<String> factory, @Assisted Task<Long> taskView, @Assisted final Function<Double, Void> progressCallback) {
+    public ExtractNlpTask(Indexer indexer, PipelineRegistry registry, final DocumentCollectionFactory<String> factory, @Assisted Task taskView, @Assisted final Function<Double, Void> progressCallback) {
         this(indexer, registry.get(Pipeline.Type.parse((String)taskView.args.get(NLP_PIPELINE_OPT))), factory, taskView, progressCallback);
     }
 
 
-    ExtractNlpTask(Indexer indexer, Pipeline pipeline, final DocumentCollectionFactory<String> factory, @Assisted Task<Long> taskView, @Assisted final Function<Double, Void> progressCallback) {
+    ExtractNlpTask(Indexer indexer, Pipeline pipeline, final DocumentCollectionFactory<String> factory, @Assisted Task taskView, @Assisted final Function<Double, Void> progressCallback) {
         super(Stage.NLP, taskView.getUser(), factory, new PropertiesProvider(taskView.args), String.class);
         this.nlpPipeline = pipeline;
         project = Project.project(ofNullable((String)taskView.args.get(DEFAULT_PROJECT_OPT)).orElse(DEFAULT_DEFAULT_PROJECT));
@@ -67,8 +67,8 @@ public class ExtractNlpTask extends PipelineTask<String> implements Monitorable 
     }
 
     @Override
-    public Long call() throws Exception {
-        super.call();
+    public Long runTask() throws Exception {
+        super.runTask();
         logger.info("extracting Named Entities with pipeline {} for {} from queue {}", nlpPipeline.getType(), project, inputQueue.getName());
         String docId;
         long nbMessages = 0;

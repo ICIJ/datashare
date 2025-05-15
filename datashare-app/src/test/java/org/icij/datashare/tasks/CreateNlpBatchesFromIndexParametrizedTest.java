@@ -11,7 +11,6 @@ import co.elastic.clients.elasticsearch._types.Refresh;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Comparator;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -47,7 +46,7 @@ public class CreateNlpBatchesFromIndexParametrizedTest {
 
     static class TestableCreateNlpBatchesFromIndex extends CreateNlpBatchesFromIndex {
         public TestableCreateNlpBatchesFromIndex(
-                TaskManager taskManager, Indexer indexer, Task<LinkedList<String>> taskView, Function<Double, Void> ignored) {
+                TaskManager taskManager, Indexer indexer, Task taskView, Function<Double, Void> ignored) {
             super(taskManager, indexer, taskView, ignored);
         }
 
@@ -133,9 +132,9 @@ public class CreateNlpBatchesFromIndexParametrizedTest {
             "scrollSize", this.scrollSize
         );
         TestableCreateNlpBatchesFromIndex enqueueFromIndex = new TestableCreateNlpBatchesFromIndex(taskManager, indexer,
-                new Task<>(CreateNlpBatchesFromIndex.class.getName(), new User("test"), properties), null);
+                new Task(CreateNlpBatchesFromIndex.class.getName(), new User("test"), properties), null);
         // When
-        List<String> taskIds = enqueueFromIndex.call();
+        List<String> taskIds = enqueueFromIndex.runTask();
         List<List<Language>> queued = taskManager.getTasks()
             .sorted(Comparator.comparing(t -> t.createdAt))
             .map(t -> ((List<CreateNlpBatchesFromIndex.BatchDocument>) t.args.get("docs")).stream().map(

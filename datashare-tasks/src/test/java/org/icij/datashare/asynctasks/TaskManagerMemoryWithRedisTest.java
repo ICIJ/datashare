@@ -7,10 +7,8 @@ import org.icij.task.Options;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.Mock;
 import org.redisson.api.RedissonClient;
 
-import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 
@@ -41,8 +39,9 @@ public class TaskManagerMemoryWithRedisTest {
 
         taskManager.waitTasksToBeDone(1, SECONDS);
 
-        assertThat(taskManager.getTask(tid).getState()).isEqualTo(Task.State.DONE);
-        assertThat(taskManager.getTask(tid).getResult()).isEqualTo(new TaskResult<>(10));
+        Task task = taskManager.getTask(tid);
+        assertThat(task.getState()).isEqualTo(Task.State.DONE);
+        assertThat(task.getResult()).isEqualTo("10".getBytes());
     }
 
     @After

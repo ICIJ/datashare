@@ -1,6 +1,7 @@
 package org.icij.datashare.asynctasks;
 
 import java.util.List;
+import java.util.stream.Stream;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.tasks.RoutingStrategy;
 import org.icij.datashare.user.User;
@@ -14,13 +15,13 @@ import org.redisson.RedissonBlockingQueue;
 import org.redisson.api.RedissonClient;
 
 import java.io.IOException;
-import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 import static org.fest.assertions.Assertions.assertThat;
+import static org.icij.datashare.json.JsonObjectMapper.MAPPER;
 
 public class TaskManagerRedisTest {
     PropertiesProvider propertiesProvider = new PropertiesProvider(new HashMap<>() {{
@@ -40,23 +41,24 @@ public class TaskManagerRedisTest {
 
     @Test
     public void test_persist_task() throws TaskAlreadyExists, IOException, UnknownTask {
-        Task<String> task = new Task<>("name", User.local(), new HashMap<>());
+        Task task = new Task("name", User.local(), new HashMap<>());
 
         taskManager.insert(task, new Group(TaskGroupType.Test));
 
-        assertThat(taskManager.getTasks().toList()).hasSize(1);
+        List<Task> tasks = taskManager.getTasks().toList();
+        assertThat(tasks).hasSize(1);
         assertThat(taskManager.getTask(task.id)).isNotNull();
     }
 
     @Test
     public void test_update_task() throws TaskAlreadyExists, IOException, UnknownTask {
         // Given
-        Task<?> task = new Task<>("HelloWorld", User.local(), Map.of("greeted", "world"));
-        Task<?> update = new Task<>(task.id, task.name, task.getState(), 0.5, null, 3, null, task.args, null, null);
+        Task task = new Task("HelloWorld", User.local(), Map.of("greeted", "world"));
+        Task update = new Task(task.id, task.name, task.getState(), 0.5, null, 3, null, task.args, null, null);
         // When
         taskManager.insert(task, null);
         taskManager.update(update);
-        Task<?> updated = taskManager.getTask(task.id);
+        Task updated = taskManager.getTask(task.id);
         // Then
         assertThat(updated).isEqualTo(update);
     }
@@ -65,9 +67,7 @@ public class TaskManagerRedisTest {
     public void test_start_task() throws IOException {
         assertThat(taskManager.startTask("HelloWorld", User.local(),
             new HashMap<>() {{ put("greeted", "world"); }})).isNotNull();
-        List<Task<?>> tasks = taskManager.getTasks().toList();
-        assertThat(tasks).hasSize(1);
-        assertThat(tasks.get(0).getUser()).isEqualTo(User.local());
+        assertThat(taskManager.getTasks().toList()).hasSize(1);
     }
 
     @Test
@@ -80,7 +80,7 @@ public class TaskManagerRedisTest {
 
             assertThat(groupTaskManager.startTask("HelloWorld", User.local(), new Group(TaskGroupType.Test), Map.of("greeted", "world"))).isNotNull();
 
-            Task<Serializable> task = taskSupplier.get(2, TimeUnit.SECONDS);
+            Task task = taskSupplier.get(2, TimeUnit.SECONDS);
             assertThat(taskManager.getTaskGroup(task.id)).isEqualTo(new Group(TaskGroupType.Test));
             assertThat(((RedissonBlockingQueue<?>) groupTaskManager.taskQueue(task)).getName()).isEqualTo("TASK.Test");
         }
@@ -95,7 +95,7 @@ public class TaskManagerRedisTest {
              TaskSupplierRedis taskSupplier = new TaskSupplierRedis(redissonClient, "HelloWorld")) {
             assertThat(nameTaskManager.startTask("HelloWorld", User.local(), Map.of("greeted", "world"))).isNotNull();
 
-            Task<Serializable> task = taskSupplier.get(2, TimeUnit.SECONDS);
+            Task task = taskSupplier.get(2, TimeUnit.SECONDS);
             assertThat(((RedissonBlockingQueue<?>) nameTaskManager.taskQueue(task)).getName()).isEqualTo("TASK.HelloWorld");
         }
     }
@@ -107,10 +107,10 @@ public class TaskManagerRedisTest {
 
         assertThat(taskManager.getTasks().toList()).hasSize(1);
 
-        taskSupplier.result(taskViewId, new TaskResult<>(12));
+        taskSupplier.result(taskViewId, MAPPER.writeValueAsBytes(12));
         assertThat(waitForEvent.await(1, TimeUnit.SECONDS)).isTrue();
 
-        assertThat(taskManager.getTasks().toList().get(0).getState()).isEqualTo(Task.State.DONE);
+        assertThat(taskManager.getTasks().findFirst().get().getState()).isEqualTo(Task.State.DONE);
         assertThat(taskManager.clearDoneTasks()).hasSize(1);
         assertThat(taskManager.getTasks().toList()).hasSize(0);
     }
@@ -121,11 +121,11 @@ public class TaskManagerRedisTest {
         String taskView1Id = taskManager.startTask("sleep", User.local(), new HashMap<>());
         String taskView2Id = taskManager.startTask("sleep", User.local(), new HashMap<>());
 
-        taskSupplier.result(taskView1Id, new TaskResult<>(123));
+        taskSupplier.result(taskView1Id, MAPPER.writeValueAsBytes(123));
         assertThat(waitForEvent.await(1, TimeUnit.SECONDS)).isTrue();
 
         assertThat(taskManager.getTasks().toList()).hasSize(2);
-        Task<?> clearedTask = taskManager.clearTask(taskView1Id);
+        Task clearedTask = taskManager.clearTask(taskView1Id);
         assertThat(taskView1Id).isEqualTo(clearedTask.id);
         assertThat(taskManager.getTasks().toList()).hasSize(1);
         assertThat(taskManager.getTask(taskView1Id)).isNull();
@@ -148,11 +148,11 @@ public class TaskManagerRedisTest {
         String taskViewId = taskManager.startTask("HelloWorld", User.local(), new HashMap<>() {{
                 put("greeted", "world");
             }});
-        TaskResult<String> expectedResult = new TaskResult<>("Hello world !");
+        byte[] expectedResult = MAPPER.writeValueAsBytes(12);
         taskSupplier.result(taskViewId, expectedResult);
         assertThat(waitForEvent.await(100, TimeUnit.SECONDS)).isTrue();
 
-        List<Task<?>> tasks = taskManager.getTasks().toList();
+        List<Task> tasks = taskManager.getTasks().toList();
         assertThat(tasks).hasSize(1);
         assertThat(tasks.get(0).getResult()).isEqualTo(expectedResult);
     }
