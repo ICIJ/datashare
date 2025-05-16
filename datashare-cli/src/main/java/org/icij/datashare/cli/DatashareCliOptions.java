@@ -51,6 +51,7 @@ public final class DatashareCliOptions {
     public static final String DATA_DIR_ABBR_OPT = "d";
     public static final String DATA_DIR_OPT = "dataDir";
     public static final String DATA_SOURCE_URL_OPT = "dataSourceUrl";
+    public static final String DEFAULT_OCR_TYPE = "TESSERACT";
     public static final String DEFAULT_PROJECT_ABBR_OPT = "p";
     public static final String DEFAULT_PROJECT_OPT = "defaultProject";
     public static final String DEFAULT_USER_NAME_ABBR_OPT = "u";
@@ -600,7 +601,7 @@ public final class DatashareCliOptions {
         parser.acceptsAll(List.of(OCR_TYPE_OPT), "OCR implementation: TESSERACT or TESS4J")
             .withRequiredArg()
             .ofType(String.class)
-            .defaultsTo("TESSERACT");
+            .defaultsTo(DEFAULT_OCR_TYPE);
     }
 
     static void nlpPipeline(OptionParser parser) {
