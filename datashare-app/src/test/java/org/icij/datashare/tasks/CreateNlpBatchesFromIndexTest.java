@@ -76,7 +76,7 @@ public class CreateNlpBatchesFromIndexTest {
                 """
         );
         CreateNlpBatchesFromIndex enqueueFromIndex = new CreateNlpBatchesFromIndex(taskManager, indexer,
-            new Task<>(CreateNlpBatchesFromIndex.class.getName(), new User("test"), properties), null);
+            new Task(CreateNlpBatchesFromIndex.class.getName(), new User("test"), properties), null);
         // When
         enqueueFromIndex.call();
         List<List<String>> queued = taskManager.getTasks()

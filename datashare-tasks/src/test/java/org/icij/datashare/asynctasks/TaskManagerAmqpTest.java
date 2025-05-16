@@ -9,7 +9,6 @@ import org.icij.datashare.asynctasks.bus.amqp.AmqpInterlocutor;
 import org.icij.datashare.asynctasks.bus.amqp.AmqpQueue;
 import org.icij.datashare.asynctasks.bus.amqp.AmqpServerRule;
 import org.icij.datashare.asynctasks.bus.amqp.TaskError;
-import org.icij.datashare.asynctasks.bus.amqp.UriResult;
 import org.icij.datashare.tasks.RoutingStrategy;
 import org.icij.datashare.time.DatashareTime;
 import org.icij.datashare.user.User;
@@ -24,18 +23,17 @@ import org.junit.Test;
 import org.redisson.api.RedissonClient;
 
 import java.io.IOException;
-import java.io.Serializable;
-import java.net.URI;
 import java.util.HashMap;
 import java.util.Map;
 
 import static org.fest.assertions.Assertions.assertThat;
+import static org.icij.datashare.json.JsonObjectMapper.MAPPER;
 import static org.junit.Assert.assertThrows;
 
 public class TaskManagerAmqpTest {
     private static AmqpInterlocutor AMQP;
     @ClassRule static public AmqpServerRule qpid = new AmqpServerRule(5672);
-    BlockingQueue<Task<Serializable>> taskQueue = new LinkedBlockingQueue<>();
+    BlockingQueue<Task> taskQueue = new LinkedBlockingQueue<>();
     TaskManagerAmqp taskManager;
     TaskSupplierAmqp taskSupplier;
     CountDownLatch nextMessage;
@@ -45,7 +43,7 @@ public class TaskManagerAmqpTest {
         String expectedTaskViewId = taskManager.startTask("taskName", User.local(), Map.of("key", "value"));
 
         assertThat(taskManager.getTask(expectedTaskViewId)).isNotNull();
-        Task<Serializable> actualTaskView = taskQueue.poll(1, TimeUnit.SECONDS);
+        Task actualTaskView = taskQueue.poll(1, TimeUnit.SECONDS);
         assertThat(actualTaskView).isNotNull();
         assertThat(actualTaskView.id).isEqualTo(expectedTaskViewId);
     }
@@ -59,7 +57,7 @@ public class TaskManagerAmqpTest {
             String expectedTaskViewId = groupTaskManager.startTask("taskName", User.local(), new Group(key), Map.of());
 
             assertThat(groupTaskManager.getTask(expectedTaskViewId)).isNotNull();
-            Task<Serializable> actualTaskView = taskQueue.poll(1, TimeUnit.SECONDS);
+            Task actualTaskView = taskQueue.poll(1, TimeUnit.SECONDS);
             assertThat(actualTaskView).isNotNull();
             assertThat(groupTaskManager.getTaskGroup(expectedTaskViewId)).isEqualTo(new Group(key));
         }
@@ -73,7 +71,7 @@ public class TaskManagerAmqpTest {
             String expectedTaskViewId = groupTaskManager.startTask("TaskName", User.local(), Map.of());
 
             assertThat(groupTaskManager.getTask(expectedTaskViewId)).isNotNull();
-            Task<Serializable> actualTaskView = taskQueue.poll(1, TimeUnit.SECONDS);
+            Task actualTaskView = taskQueue.poll(1, TimeUnit.SECONDS);
             assertThat(actualTaskView).isNotNull();
             assertThat(actualTaskView.name).isEqualTo("TaskName");
         }
@@ -86,8 +84,8 @@ public class TaskManagerAmqpTest {
             taskManager.startTask("taskName1", User.local(), new HashMap<>());
             taskManager.startTask("taskName2", User.local(), new HashMap<>());
 
-            Task<Serializable> actualTask1 = taskQueue.poll(1, TimeUnit.SECONDS);
-            Task<Serializable> actualTask2 = taskQueue.poll(1, TimeUnit.SECONDS);
+            Task actualTask1 = taskQueue.poll(1, TimeUnit.SECONDS);
+            Task actualTask2 = taskQueue.poll(1, TimeUnit.SECONDS);
 
             assertThat(actualTask1).isNotNull();
             assertThat(actualTask2).isNotNull();
@@ -99,7 +97,7 @@ public class TaskManagerAmqpTest {
         taskManager.startTask("taskName", User.local(), new HashMap<>());
 
         // in the task runner loop
-        Task<Serializable> task = taskQueue.poll(2, TimeUnit.SECONDS); // to sync
+        Task task = taskQueue.poll(2, TimeUnit.SECONDS); // to sync
         taskSupplier.progress(task.id,0.5);
 
         nextMessage.await();
@@ -111,28 +109,14 @@ public class TaskManagerAmqpTest {
         taskManager.startTask("taskName", User.local(), new HashMap<>());
 
         // in the task runner loop
-        Task<Serializable> task = taskQueue.poll(2, TimeUnit.SECONDS); // to sync
-        TaskResult<String> result = new TaskResult<>("result");
-        taskSupplier.result(task.id, result);
+        Task task = taskQueue.poll(2, TimeUnit.SECONDS); // to sync
+        byte[] encodedResult = MAPPER.writeValueAsBytes("result");
+        taskSupplier.result(task.id, encodedResult);
 
         nextMessage.await();
-        assertThat(taskManager.getTask(task.id).getState()).isEqualTo(Task.State.DONE);
-        assertThat(taskManager.getTask(task.id).getResult()).isEqualTo(result);
-    }
-
-    @Test(timeout = 200000)
-    public void test_task_result_uri_result_type() throws Exception {
-        taskManager.startTask("taskName", User.local(), new HashMap<>());
-
-        // in the task runner loop
-        Task<Serializable> task = taskQueue.poll(2, TimeUnit.SECONDS); // to sync
-        TaskResult<UriResult> taskResult = new TaskResult<>(new UriResult(new URI("file:///my/file"),42));
-        taskSupplier.result(task.id,taskResult);
-
-        nextMessage.await();
-        Task<Serializable> task1 = taskManager.getTask(task.id);
-        TaskResult<Serializable> result = task1.getResult();
-        assertThat(result).isEqualTo(taskResult);
+        Task storedTask = taskManager.getTask(task.id);
+        assertThat(storedTask.getState()).isEqualTo(Task.State.DONE);
+        assertThat(storedTask.getResult()).isEqualTo(encodedResult);
     }
 
     @Test(timeout = 2000)
@@ -140,13 +124,14 @@ public class TaskManagerAmqpTest {
         taskManager.startTask("taskName", User.local(), new HashMap<>());
 
         // in the task runner loop
-        Task<Serializable> task = taskQueue.poll(2, TimeUnit.SECONDS); // to sync
+        Task task = taskQueue.poll(2, TimeUnit.SECONDS); // to sync
         taskSupplier.error(task.id,new TaskError(new RuntimeException("error in runner")));
 
         nextMessage.await();
-        assertThat(taskManager.getTask(task.id).getResult()).isNull();
-        assertThat(taskManager.getTask(task.id).getState()).isEqualTo(Task.State.ERROR);
-        assertThat(taskManager.getTask(task.id).error.getMessage()).isEqualTo("error in runner");
+        Task storedTask = taskManager.getTask(task.id);
+        assertThat(storedTask.getResult()).isNull();
+        assertThat(storedTask.getState()).isEqualTo(Task.State.ERROR);
+        assertThat(storedTask.error.getMessage()).isEqualTo("error in runner");
     }
 
     @Test
@@ -156,7 +141,7 @@ public class TaskManagerAmqpTest {
 
         assertThat(taskManager.getTasks().toList()).hasSize(2);
 
-        Task<?> clearedTask = taskManager.clearTask(taskView1Id);
+        Task clearedTask = taskManager.clearTask(taskView1Id);
 
         assertThat(taskView1Id).isEqualTo(clearedTask.id);
         assertThrows(UnknownTask.class, () -> taskManager.getTask(taskView1Id));
@@ -170,7 +155,7 @@ public class TaskManagerAmqpTest {
         assertThat(taskManager.getTasks().toList()).hasSize(1);
 
         // in the task runner loop
-        Task<Serializable> task = taskQueue.poll(1, TimeUnit.SECONDS); // to sync
+        Task task = taskQueue.poll(1, TimeUnit.SECONDS); // to sync
         taskSupplier.progress(task.id,0.5);
         nextMessage.await();
 
@@ -184,7 +169,7 @@ public class TaskManagerAmqpTest {
         taskManager.startTask("taskName", User.local(), new HashMap<>());
 
         // in the task runner loop
-        Task<Serializable> task = taskQueue.poll(2, TimeUnit.SECONDS); // to sync
+        Task task = taskQueue.poll(2, TimeUnit.SECONDS); // to sync
         taskSupplier.canceled(task,false);
 
         nextMessage.await();
@@ -193,8 +178,8 @@ public class TaskManagerAmqpTest {
     }
 
     @Test
-    public void test_insert_task() throws IOException {
-        Task<String> task = new Task<>("name", User.local(), new HashMap<>());
+    public void test_save_task() throws IOException {
+        Task task = new Task("name", User.local(), new HashMap<>());
 
         taskManager.insert(task, null);
 
@@ -205,12 +190,12 @@ public class TaskManagerAmqpTest {
     @Test
     public void test_update_task() throws IOException {
         // Given
-        Task<?> task = new Task<>("HelloWorld", User.local(), Map.of("greeted", "world"));
-        Task<?> update = new Task<>(task.id, task.name, task.getState(), 0.5, DatashareTime.getNow(),  3,  null, task.args, null, null);
+        Task task = new Task("HelloWorld", User.local(), Map.of("greeted", "world"));
+        Task update = new Task(task.id, task.name, task.getState(), 0.5, DatashareTime.getNow(),  3,  null, task.args, null, null);
         // When
         taskManager.insert(task, null);
         taskManager.update(update);
-        Task<?> updated = taskManager.getTask(task.id);
+        Task updated = taskManager.getTask(task.id);
         // Then
         assertThat(updated).isEqualTo(update);
     }
