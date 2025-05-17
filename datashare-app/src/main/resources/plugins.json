@@ -4,9 +4,9 @@
       "id": "datashare-plugin-site-alert",
       "name": "Site Alert",
       "description": "A plugin to display an alert banner.",
-      "url": "https://github.com/ICIJ/datashare-plugin-site-alert/releases/download/v2.0.0/datashare-plugin-site-alert-v2.0.0.tgz",
+      "url": "https://github.com/ICIJ/datashare-plugin-site-alert/releases/download/v2.1.0/datashare-plugin-site-alert-v2.1.0.tgz",
       "homepage": "https://github.com/ICIJ/datashare-plugin-site-alert",
-      "version": "2.0.0",
+      "version": "2.1.0",
       "type": "PLUGIN"
     },
     {
@@ -22,36 +22,36 @@
       "id": "datashare-plugin-sentence-case",
       "name": "Sentence Case",
       "description": "A Datashare plugin to add a sentence case button to the extracted text view.",
-      "url": "https://github.com/ICIJ/datashare-plugin-sentence-case/releases/download/v1.0.1/datashare-plugin-sentence-case-v1.0.1.tgz",
+      "url": "https://github.com/ICIJ/datashare-plugin-sentence-case/releases/download/v1.1.0/datashare-plugin-sentence-case-v1.1.0.tgz",
       "homepage": "https://github.com/ICIJ/datashare-plugin-sentence-case",
-      "version": "1.0.1",
+      "version": "1.1.0",
       "type": "PLUGIN"
     },
     { 
       "id": "datashare-plugin-dataconnect",
       "name": "Dataconnect",
       "description": "A Datashare plugin to create Dataconnect, a bridge between Datashare and ICIJ I-Hub.",
-      "url": "https://github.com/ICIJ/datashare-plugin-dataconnect/releases/download/v2.0.2/datashare-plugin-dataconnect-v2.0.2.tgz",
+      "url": "https://github.com/ICIJ/datashare-plugin-dataconnect/releases/download/v3.0.0/datashare-plugin-dataconnect-v3.0.0.tgz",
       "homepage": "https://github.com/ICIJ/datashare-plugin-dataconnect",
-      "version": "2.0.2",
+      "version": "3.0.0",
       "type": "PLUGIN"
     },
     {
       "id": "datashare-plugin-tour",
       "name": "Tour",
       "description": "A Datashare plugin to build a tour guide on it.",
-      "url": "https://github.com/ICIJ/datashare-plugin-tour/releases/download/v1.0.0/datashare-plugin-tour-v1.0.0.tgz",
+      "url": "https://github.com/ICIJ/datashare-plugin-tour/releases/download/v2.0.0/datashare-plugin-tour-v2.0.0.tgz",
       "homepage": "https://github.com/ICIJ/datashare-plugin-tour",
-      "version": "1.0.0",
+      "version": "2.0.0",
       "type": "PLUGIN"
     },
     {
       "id": "datashare-plugin-neo4j-graph-widget",
       "name": "Neo4j Graph Widget",
       "description": "A Datashare plugin to create a neo4j graph from Datashare's projects",
-      "url": "https://github.com/ICIJ/datashare-extension-neo4j/releases/download/0.4.5/datashare-plugin-neo4j-graph-widget-0.4.5.tgz",
+      "url": "https://github.com/ICIJ/datashare-extension-neo4j/releases/download/1.0.0/datashare-plugin-neo4j-graph-widget-1.0.0.tgz",
       "homepage": "https://github.com/ICIJ/datashare-extension-neo4j",
-      "version": "0.4.5",
+      "version": "1.0.0",
       "extensions": ["datashare-extension-neo4j"],
       "type": "PLUGIN"
     }
