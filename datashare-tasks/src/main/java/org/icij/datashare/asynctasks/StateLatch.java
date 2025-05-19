@@ -18,7 +18,7 @@ public class StateLatch {
         this.sync.acquireSharedInterruptibly(state.ordinal());
     }
 
-    public boolean await(Task.State state, long timeout, TimeUnit unit) throws InterruptedException {
+    public boolean  await(Task.State state, long timeout, TimeUnit unit) throws InterruptedException {
         return this.sync.tryAcquireSharedNanos(state.ordinal(), unit.toNanos(timeout));
     }
 

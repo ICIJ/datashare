@@ -3,7 +3,6 @@ package org.icij.datashare.asynctasks;
 import static java.util.stream.Collectors.toMap;
 import static org.icij.datashare.text.StringUtils.getValue;
 
-import java.io.Serializable;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -76,7 +75,7 @@ public final class TaskFilters {
     public record ArgsFilter(String argLocation, String pattern) {
     }
 
-    public boolean filter(Task<? extends Serializable> task) {
+    public boolean filter(Task task) {
         return byName(task.name) && byUser(task.getUser()) && byState(task.getState()) && byArgs(task.args);
     }
 
