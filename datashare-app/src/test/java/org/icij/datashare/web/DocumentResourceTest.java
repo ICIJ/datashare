@@ -435,7 +435,6 @@ public class DocumentResourceTest extends AbstractProdWebServerTest {
                 .contain("[[0,29],[30,47]]");
     }
 
-    // TODO: hmm there are 3 pages but 2 for the previous test.
     @Test
     public void test_get_pages() throws JsonProcessingException {
         String path = getClass().getResource("/docs/embedded_doc.eml").getPath();
@@ -447,8 +446,8 @@ public class DocumentResourceTest extends AbstractProdWebServerTest {
         assertThat(response.code()).isEqualTo(200);
         assertThat(response.contentType()).isEqualTo("application/json;charset=UTF-8");
         List<String> json = JsonObjectMapper.MAPPER.readValue(response.content(), new TypeReference<>() {});
-        assertThat(json).hasSize(3);
+        assertThat(json).hasSize(2);
+        assertThat(json.get(0)).contains("HEAVY\nMETAL");
         assertThat(json.get(1)).contains("HEAVY\nMETAL");
-        assertThat(json.get(2)).contains("HEAVY\nMETAL");
     }
 }

@@ -38,6 +38,7 @@ import org.icij.extract.document.DocumentFactory;
 import org.icij.extract.extractor.EmbeddedDocumentExtractor;
 import org.icij.extract.extractor.Extractor;
 import org.icij.extract.extractor.Pair;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -149,9 +150,7 @@ public class DocumentResource {
     @ApiResponse(responseCode = "200", description = "JSON containing pages indices parameters",  useReturnTypeSchema = true)
     public List<Pair<Long, Long>> getPages(final String project, final String id, final String routing) throws IOException {
         Document doc = indexer.get(project, id, routing, List.of("content","content_translated"));
-        Hasher hasher = Hasher.valueOf(doc.getId().length());
-        DocumentFactory documentFactory = new DocumentFactory().configure(org.icij.task.Options.from(Map.of("digestAlgorithm", hasher.toString())));
-        final Extractor extractor = new Extractor(documentFactory);
+        final Extractor extractor = getExtractor(doc);
         if (doc.isRootDocument()) {
             return extractor.extractPageIndices(doc.getPath());
         } else {
@@ -172,10 +171,14 @@ public class DocumentResource {
     @ApiResponse(responseCode = "200", description = "JSON containing text pages array",  useReturnTypeSchema = true)
     public List<String> getContentByPage(final String project, final String id, final String routing) throws IOException {
         Document doc = indexer.get(project, id, routing, List.of("content","content_translated"));
-        Hasher hasher = Hasher.valueOf(doc.getId().length());
-        DocumentFactory documentFactory = new DocumentFactory().configure(org.icij.task.Options.from(Map.of("digestAlgorithm", hasher.toString())));
-        final Extractor extractor = new Extractor(documentFactory);
-        return extractor.extractPages(doc.getPath());
+        final Extractor extractor = getExtractor(doc);
+        if (doc.isRootDocument()) {
+            return extractor.extractPages(doc.getPath());
+        } else {
+            return extractor.extractPages(doc.getPath(),
+                    metadata -> doc.getTitle().equals(metadata.get("resourceName")) ||
+                            "INLINE".equals(metadata.get("embeddedResourceType")));
+        }
     }
 
     @Operation( description = "Searches for query occurrences in content or translated content (pagination)",
@@ -425,6 +428,14 @@ public class DocumentResource {
     @Post("/:project/documents/batchUpdate/unrecommend")
     public Result<Integer> groupUnrecommend(final String projectId, final List<String> docIds, Context context) {
         return new Result<>(repository.unrecommend(project(projectId), (DatashareUser)context.currentUser(), docIds));
+    }
+
+    @NotNull
+    private static Extractor getExtractor(Document doc) {
+        Hasher hasher = Hasher.valueOf(doc.getId().length());
+        DocumentFactory documentFactory = new DocumentFactory().configure(org.icij.task.Options.from(Map.of("digestAlgorithm", hasher.toString())));
+        final Extractor extractor = new Extractor(documentFactory);
+        return extractor;
     }
 
     private ExtractedText getAllExtractedText(final String id, final String targetLanguage) throws IllegalArgumentException {
