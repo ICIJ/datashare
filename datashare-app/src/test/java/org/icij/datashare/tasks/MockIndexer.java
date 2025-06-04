@@ -59,6 +59,7 @@ public class MockIndexer {
     public void indexFile(String index, Document document) {
         List<String> sourceExcludes = List.of("content", "content_translated");
         when(mockIndexer.get(index, document.getId())).thenReturn(document);
+        when(mockIndexer.get(index, document.getId(), document.getId())).thenReturn(document);
         when(mockIndexer.get(index, document.getId(), sourceExcludes)).thenReturn(document);
         when(mockIndexer.get(index, document.getId(), document.getId(), sourceExcludes)).thenReturn(document);
     }
