@@ -1,7 +1,6 @@
 package org.icij.datashare.db;
 
 import com.zaxxer.hikari.HikariConfig;
-import com.zaxxer.hikari.HikariDataSource;
 import liquibase.Scope;
 import liquibase.command.CommandScope;
 import liquibase.command.core.UpdateCommandStep;
@@ -97,7 +96,7 @@ public class RepositoryFactoryImpl implements RepositoryFactory {
         if (dataSourceUrl.contains("sqlite")) {
             config.setDriverClassName("org.sqlite.JDBC");
         }
-        return new HikariDataSource(config);
+        return new ExtendedHikariDatasource(config);
     }
 
     private String getDataSourceUrl() {

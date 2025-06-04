@@ -2,9 +2,11 @@ package org.icij.datashare.db;
 
 import java.io.IOException;
 import java.io.Serializable;
+import java.util.List;
 import org.icij.datashare.asynctasks.Group;
 import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.asynctasks.TaskAlreadyExists;
+import org.icij.datashare.asynctasks.TaskFilters;
 import org.icij.datashare.asynctasks.TaskGroupType;
 import org.icij.datashare.asynctasks.TaskResult;
 import org.icij.datashare.asynctasks.UnknownTask;
@@ -135,6 +137,34 @@ public class JooqTaskRepositoryTest {
         repository.update(foo);
         assertThat(repository.getTask(foo.getId()).getResult()).isNull();
         assertThat(repository.getTask(foo.getId()).getError().getMessage()).isEqualTo("boom");
+    }
+
+    @Test
+    public void test_get_tasks() throws Exception {
+        Task<String> foo = new Task<>("foo", User.local(), Map.of("user", User.local()));
+        Task<String> bar = new Task<>("bar", User.local(), Map.of("user", User.local()));
+        repository.insert(foo,  new Group(TaskGroupType.Test));
+        repository.insert(bar,  new Group(TaskGroupType.Test));
+        TaskFilters filter = TaskFilters.empty();
+
+        List<Task<? extends Serializable>> tasks = repository.getTasks(filter).toList();
+
+        assertThat(tasks.size()).isEqualTo(2);
+        assertThat(tasks.stream().map(Task::getId).toList()).isEqualTo(List.of(foo.id, bar.id));
+    }
+
+    @Test
+    public void test_get_tasks_with_filter() throws Exception {
+        Task<String> foo = new Task<>("foo", User.local(), Map.of("user", User.local()));
+        Task<String> bar = new Task<>("bar", User.local(), Map.of("user", User.local()));
+        repository.insert(foo,  new Group(TaskGroupType.Test));
+        repository.insert(bar,  new Group(TaskGroupType.Test));
+        TaskFilters filter = TaskFilters.empty().withNames("foo");
+
+        List<Task<? extends Serializable>> tasks = repository.getTasks(filter).toList();
+
+        assertThat(tasks.size()).isEqualTo(1);
+        assertThat(tasks.get(0).id).isEqualTo(foo.id);
     }
 
     @After
