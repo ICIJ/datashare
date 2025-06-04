@@ -41,7 +41,7 @@ public class MockIndexer {
                 .withRootId(routing)
                 .withContentLength(10)
                 .build();
-        if (routing == null) {
+        if (routing == null || routing.equals(_id)) {
             indexFile(index, document);
         } else {
             Document rootDocument = DocumentBuilder.createDoc(routing).with(path).with(new Project(index)).build();

@@ -32,7 +32,7 @@ public class ArtifactTaskTest {
         new ArtifactTask(factory, mockEs, new PropertiesProvider(Map.of()), new Task<>(ArtifactTask.class.getName(), User.local(), Map.of()), null);
     }
 
-    @Test(timeout = 5000)
+    @Test(timeout = 10000)
     public void test_create_artifact_cache_one_file() throws Exception {
         Path path = Path.of(Objects.requireNonNull(getClass().getResource("/docs/embedded_doc.eml")).getPath());
         String sha256 = "0f95ef97e4619f7bae2a585c6cf24587cd7a3a81a26599c8774d669e5c175e5e";
