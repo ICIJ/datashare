@@ -31,6 +31,7 @@ public interface DocumentMetadataConstants {
     String TITLE = "dc:title";
     String TYPE = "dc:type";
     String RESOURCE_NAME_KEY = "resourceName";
+    String TIKA_VERSION = "Tika-Version";
 
     default String getField(String key) {
         final String normalizedName = fieldName.matcher(key).replaceAll("_").toLowerCase(Locale.ROOT);

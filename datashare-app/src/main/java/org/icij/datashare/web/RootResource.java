@@ -9,6 +9,8 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import net.codestory.http.Context;
 import net.codestory.http.annotations.Get;
 import net.codestory.http.annotations.Prefix;
+import org.apache.tika.Tika;
+import org.apache.tika.config.TikaConfig;
 import org.icij.datashare.ExtensionService;
 import org.icij.datashare.PluginService;
 import org.icij.datashare.PropertiesProvider;
@@ -77,21 +79,18 @@ public class RootResource {
     @Operation(description = "Gets the versions (front/back/docker) of datashare.")
     @ApiResponse(responseCode = "200", description = "returns the list of versions of datashare", useReturnTypeSchema = true)
     @Get("version")
-    public Properties getGitVersions() {
+    public Properties getVersions() throws IOException {
         return getVersionProperties();
     }
 
-    static Properties getVersionProperties() {
-        try {
-            Properties properties = new Properties();
-            InputStream gitProperties = RootResource.class.getResourceAsStream("/git.properties");
-            if (gitProperties != null) {
-                properties.load(gitProperties);
-            }
-            return properties;
-        } catch (IOException e) {
-            throw new RuntimeException(e);
+    static Properties getVersionProperties() throws IOException {
+        Properties properties = new Properties();
+        properties.put("ds.extractorVersion", Tika.getString());
+        InputStream gitProperties = RootResource.class.getResourceAsStream("/git.properties");
+        if (gitProperties != null) {
+            properties.load(gitProperties);
         }
+        return properties;
     }
 
     private boolean hasPluginsDir() {

@@ -14,7 +14,11 @@ import io.swagger.v3.oas.annotations.media.SchemaProperty;
 import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import net.codestory.http.Context;
-import net.codestory.http.annotations.*;
+import net.codestory.http.annotations.Get;
+import net.codestory.http.annotations.Options;
+import net.codestory.http.annotations.Post;
+import net.codestory.http.annotations.Prefix;
+import net.codestory.http.annotations.Put;
 import net.codestory.http.constants.HttpStatus;
 import net.codestory.http.errors.ForbiddenException;
 import net.codestory.http.payload.Payload;
@@ -45,12 +49,17 @@ import org.slf4j.LoggerFactory;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.*;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import static java.lang.Boolean.parseBoolean;
 import static java.util.Arrays.stream;
 import static java.util.Optional.ofNullable;
+import static net.codestory.http.errors.NotFoundException.notFoundIfNull;
 import static net.codestory.http.payload.Payload.ok;
 import static org.icij.datashare.text.Project.isAllowed;
 import static org.icij.datashare.text.Project.project;
@@ -70,6 +79,19 @@ public class DocumentResource {
         this.indexer = indexer;
         this.propertiesProvider = propertiesProvider;
         this.documentVerifier = new DocumentVerifier(indexer, propertiesProvider);
+    }
+
+    @Get("/:project/documents/:id?routing=:routing")
+    @Operation(description = "Fetches original datashare document json.",
+            parameters = {
+                    @Parameter(name = "project", description = "the project id", in = ParameterIn.PATH),
+                    @Parameter(name = "id", description = "the document id", in = ParameterIn.PATH),
+                    @Parameter(name = "routing", description = "routing key if not a root document", in = ParameterIn.QUERY)
+            }
+    )
+    @ApiResponse(responseCode = "200", description = "Datashare Document JSON",  useReturnTypeSchema = true)
+    public Document getDoc(String project, String id, String routing) {
+        return notFoundIfNull(indexer.get(project, id, ofNullable(routing).orElse(id)));
     }
 
     @Operation( description = " Returns the file from the index with the index id and the root document (if embedded document).",

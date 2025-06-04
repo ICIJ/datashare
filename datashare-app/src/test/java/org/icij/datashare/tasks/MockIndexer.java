@@ -23,7 +23,8 @@ public class MockIndexer {
     }
 
     public void indexFile(String index, String _id, Path path, String contentType) {
-        indexFile(index, _id, path, contentType, null);
+        // if routing is not given, it is logically the same as the document id (for shard selection)
+        indexFile(index, _id, path, contentType, _id);
     }
 
     public void indexFile(String index, String _id, Path path, String contentType, String routing) {

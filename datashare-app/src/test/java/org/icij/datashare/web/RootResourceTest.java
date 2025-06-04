@@ -1,6 +1,8 @@
 package org.icij.datashare.web;
 
 
+import org.apache.tika.Tika;
+import org.apache.tika.config.TikaConfig;
 import org.icij.datashare.web.testhelpers.AbstractProdWebServerTest;
 import org.junit.Before;
 import org.junit.Test;
@@ -42,6 +44,8 @@ public class RootResourceTest extends AbstractProdWebServerTest {
 
     @Test
     public void test_get_version() {
-        get("/version").should().respond(200);
+        get("/version").should().respond(200).
+                contain(Tika.getString()).
+                contain("ds.extractorVersion");
     }
 }

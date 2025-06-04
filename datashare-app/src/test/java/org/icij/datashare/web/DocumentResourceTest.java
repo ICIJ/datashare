@@ -301,6 +301,26 @@ public class DocumentResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
+    public void test_get_document() throws Exception {
+        mockIndexer.indexFile("local-datashare", "id_txt", Paths.get("/path/to/file"), "application/pdf");
+
+        get("/api/local-datashare/documents/id_txt").should().respond(200).
+                haveType("application/json").
+                contain("/path/to/file").
+                contain("id_txt");
+    }
+
+    @Test
+    public void test_get_document_with_routing() throws Exception {
+        mockIndexer.indexFile("local-datashare", "id_txt", Paths.get("/path/to/file"), "application/pdf", "routing");
+
+        get("/api/local-datashare/documents/id_txt?routing=routing").should().respond(200).
+                haveType("application/json").
+                contain("/path/to/file").
+                contain("id_txt");
+    }
+
+    @Test
     public void test_get_document_source_with_unknown_project() throws IOException {
         File txtFile = new File(temp.getRoot(), "file.txt");
         List<String> sourceExcludes = List.of("content", "content_translated");
