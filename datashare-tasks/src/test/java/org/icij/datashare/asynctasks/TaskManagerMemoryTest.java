@@ -179,6 +179,30 @@ public class TaskManagerMemoryTest {
     }
 
     @Test
+    public void test_skip_proxy_task_when_filter_by_name_is_given() throws IOException {
+        String uri = "/?q=&from=0&size=25&sort=relevance&indices=test&field=all";
+        User user = User.local();
+        List<ProjectProxy> projects = List.of(project("project"));
+        BatchSearchRecord batchSearchRecord = new BatchSearchRecord(projects, "name", "description", 123, new Date(), uri);
+        List<BatchSearchRecord> batchSearchRecords = asList(batchSearchRecord, batchSearchRecord);
+
+        List<Task<?>> tasks = taskManager.getTasks(TaskFilters.empty().withUser(user).withNames("org.icij.datashare.tasks.IndexTask"), batchSearchRecords.stream()).toList();
+        assertThat(tasks).hasSize(0);
+    }
+
+    @Test
+    public void test_not_skip_proxy_task_when_filter_by_name_is_given_with_correct_value() throws IOException {
+        String uri = "/?q=&from=0&size=25&sort=relevance&indices=test&field=all";
+        User user = User.local();
+        List<ProjectProxy> projects = List.of(project("project"));
+        BatchSearchRecord batchSearchRecord = new BatchSearchRecord(projects, "name", "description", 123, new Date(), uri);
+        List<BatchSearchRecord> batchSearchRecords = asList(batchSearchRecord, batchSearchRecord);
+
+        List<Task<?>> tasks = taskManager.getTasks(TaskFilters.empty().withUser(user).withNames("org.icij.datashare.tasks.BatchSearchRunnerProxy"), batchSearchRecords.stream()).toList();
+        assertThat(tasks).hasSize(1);
+    }
+
+    @Test
     public void test_get_unique_proxy_task_not_in_priority() throws IOException {
         String uri = "/?q=&from=0&size=25&sort=relevance&indices=test&field=all";
         User user = User.local();
