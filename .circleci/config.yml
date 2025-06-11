@@ -306,16 +306,10 @@ jobs:
           keys:
             - v1-dependencies-{{ checksum "pom.xml" }}
       - run:
-          name: Download the legacy front from a past release
+          name: Copy the app from the front to an "app" subfolder
           command: |
-            mkdir -p /tmp/datashare/app
-            curl -sL https://github.com/ICIJ/datashare-client/releases/download/19.8.10/datashare-client-19.8.10.tgz | tar xvz -C /tmp/datashare/app
-
-      - run:
-          name: Make app link to front from a "next" subfolder
-          command: |
-            rm -Rf /tmp/datashare/app/next
-            cp -R /tmp/datashare-client/dist /tmp/datashare/app/next
+            rm -Rf /tmp/datashare/app
+            cp -R /tmp/datashare-client/dist /tmp/datashare/app
       - run:
           name: Make dist including frontend
           command: mvn -pl datashare-dist package
