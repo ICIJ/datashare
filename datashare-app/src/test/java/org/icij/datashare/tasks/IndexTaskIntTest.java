@@ -64,7 +64,7 @@ public class IndexTaskIntTest {
         inputQueue.add(Paths.get(ClassLoader.getSystemResource("docs/embedded_doc.eml").getPath()));
         inputQueue.add(Paths.get(ClassLoader.getSystemResource("docs/foo/bar.txt").getPath()));
 
-        IndexTask indexTask = new IndexTask(spewer, inputQueueFactory, new Task<>(IndexTask.class.getName(), User.local(), map), callback);
+        IndexTask indexTask = new IndexTask(spewer, inputQueueFactory, new Task(IndexTask.class.getName(), User.local(), map), callback);
         indexTask.call();
         assertThat(progressValues.size()).isGreaterThan(1);
         assertThat(progressValues.get(0)).isLessThan(progressValues.get(progressValues.size() - 1));
