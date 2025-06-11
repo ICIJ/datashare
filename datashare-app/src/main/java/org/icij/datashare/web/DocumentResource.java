@@ -81,7 +81,6 @@ public class DocumentResource {
         this.documentVerifier = new DocumentVerifier(indexer, propertiesProvider);
     }
 
-    @Get("/:project/documents/:id?routing=:routing")
     @Operation(description = "Fetches original datashare document json.",
             parameters = {
                     @Parameter(name = "project", description = "the project id", in = ParameterIn.PATH),
@@ -90,6 +89,7 @@ public class DocumentResource {
             }
     )
     @ApiResponse(responseCode = "200", description = "Datashare Document JSON",  useReturnTypeSchema = true)
+    @Get("/:project/documents/:id?routing=:routing")
     public Document getDoc(String project, String id, String routing) {
         return notFoundIfNull(indexer.get(project, id, ofNullable(routing).orElse(id)));
     }
@@ -161,7 +161,6 @@ public class DocumentResource {
         throw new ForbiddenException();
     }
 
-    @Get("/:project/documents/pages/:id?routing=:routing")
     @Operation(description = "Fetches original document pages indices of extracted text.",
             parameters = {
                     @Parameter(name = "project", description = "the project id", in = ParameterIn.PATH),
@@ -170,6 +169,7 @@ public class DocumentResource {
             }
     )
     @ApiResponse(responseCode = "200", description = "JSON containing pages indices parameters",  useReturnTypeSchema = true)
+    @Get("/:project/documents/pages/:id?routing=:routing")
     public List<Pair<Long, Long>> getPages(final String project, final String id, final String routing) throws IOException {
         Document doc = indexer.get(project, id, routing, List.of("content","content_translated"));
         final Extractor extractor = getExtractor(doc);
@@ -182,7 +182,6 @@ public class DocumentResource {
         }
     }
 
-    @Get("/:project/documents/content/pages/:id?routing=:routing")
     @Operation(description = "Fetches document extracted text paginated in a json list of texts. It will use the source document and not the indexed extracted content.",
             parameters = {
                     @Parameter(name = "project", description = "the project id", in = ParameterIn.PATH),
@@ -191,6 +190,7 @@ public class DocumentResource {
             }
     )
     @ApiResponse(responseCode = "200", description = "JSON containing text pages array",  useReturnTypeSchema = true)
+    @Get("/:project/documents/content/pages/:id?routing=:routing")
     public List<String> getContentByPage(final String project, final String id, final String routing) throws IOException {
         Document doc = indexer.get(project, id, routing, List.of("content","content_translated"));
         final Extractor extractor = getExtractor(doc);
