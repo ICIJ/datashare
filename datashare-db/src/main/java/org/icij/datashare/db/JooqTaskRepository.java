@@ -52,9 +52,9 @@ public class JooqTaskRepository implements TaskRepository {
     }
 
     @Override
-    public <V extends Serializable> Task<V> getTask(String taskId) throws IOException, UnknownTask {
-        return (Task<V>) createTaskFrom(DSL.using(connectionProvider, dialect).selectFrom(TASK).
-                where(TASK.ID.eq(taskId)).fetchOne());
+    public Task getTask(String taskId) throws IOException, UnknownTask {
+        return Optional.ofNullable(createTaskFrom(DSL.using(connectionProvider, dialect).selectFrom(TASK)
+            .where(TASK.ID.eq(taskId)).fetchOne())).orElseThrow(() -> new UnknownTask(taskId));
     }
 
     @Override
