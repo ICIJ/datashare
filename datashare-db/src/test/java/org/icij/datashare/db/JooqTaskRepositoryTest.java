@@ -117,6 +117,11 @@ public class JooqTaskRepositoryTest {
     }
 
     @Test
+    public void test_get_unknown_task_should_thrown_unknown_task_error() {
+        assertThrows(UnknownTask.class, () -> repository.getTask("unknown"));
+    }
+
+    @Test
     public void test_get_result() throws Exception {
         Task<UriResult> foo = new Task<>("foo", User.local(), Map.of("user", User.local()));
         repository.insert(foo,  new Group(TaskGroupType.Test));
