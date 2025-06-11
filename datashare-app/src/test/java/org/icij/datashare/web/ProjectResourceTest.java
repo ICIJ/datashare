@@ -269,6 +269,14 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
+    public void test_delete_project_even_without_index() throws IOException {
+        Project foo = new Project("foo");
+        when(repository.getProjects(any())).thenReturn(List.of(foo));
+        when(indexer.deleteAll(foo.getId())).thenReturn(false);
+        delete("/api/project/foo").should().respond(204);
+    }
+
+    @Test
     public void test_delete_project_only_delete_index() throws Exception {
         Project foo = new Project("local-datashare");
         when(repository.getProjects(any())).thenReturn(List.of(foo));

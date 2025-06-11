@@ -8,18 +8,7 @@ import co.elastic.clients.elasticsearch._types.Refresh;
 import co.elastic.clients.elasticsearch._types.Result;
 import co.elastic.clients.elasticsearch._types.ScriptField;
 import co.elastic.clients.elasticsearch._types.query_dsl.Query;
-import co.elastic.clients.elasticsearch.core.BulkRequest;
-import co.elastic.clients.elasticsearch.core.BulkResponse;
-import co.elastic.clients.elasticsearch.core.ExistsRequest;
-import co.elastic.clients.elasticsearch.core.GetRequest;
-import co.elastic.clients.elasticsearch.core.GetResponse;
-import co.elastic.clients.elasticsearch.core.IndexRequest;
-import co.elastic.clients.elasticsearch.core.SearchRequest;
-import co.elastic.clients.elasticsearch.core.SearchResponse;
-import co.elastic.clients.elasticsearch.core.UpdateByQueryRequest;
-import co.elastic.clients.elasticsearch.core.UpdateByQueryResponse;
-import co.elastic.clients.elasticsearch.core.UpdateRequest;
-import co.elastic.clients.elasticsearch.core.UpdateResponse;
+import co.elastic.clients.elasticsearch.core.*;
 import co.elastic.clients.elasticsearch.core.bulk.BulkOperation;
 import co.elastic.clients.elasticsearch.core.bulk.BulkResponseItem;
 import co.elastic.clients.elasticsearch.core.bulk.IndexOperation;
@@ -202,6 +191,15 @@ public class ElasticsearchIndexer implements Indexer {
     }
 
     @Override
+    public boolean exists(String indexName) throws IOException {
+        co.elastic.clients.elasticsearch.indices.ExistsRequest request =
+                new co.elastic.clients.elasticsearch.indices.ExistsRequest.Builder()
+                        .index(indexName)
+                        .build();
+        return client.indices().exists(request).value();
+    }
+
+    @Override
     public boolean exists(String indexName, String id) throws IOException {
         ExistsRequest.Builder getRequest = new ExistsRequest.Builder().index(indexName).id(id);
         getRequest.source(SourceConfigParam.of(scp -> scp.fetch(false)));
@@ -275,7 +273,6 @@ public class ElasticsearchIndexer implements Indexer {
     public <T extends Entity> T get(String indexName, String id, String root) {
         return get(indexName, id, root, List.of());
     }
-
 
     @Override
     public <T extends Entity> T get(String indexName, String id, String root, List<String> sourceExcludes) {
@@ -531,6 +528,7 @@ public class ElasticsearchIndexer implements Indexer {
 
     @Override
     public boolean deleteAll(String indexName) throws IOException {
+        if (!exists(indexName)) return false;
         Request post = new Request("POST", indexName + "/_delete_by_query?refresh");
         post.setEntity(new NStringEntity("{\"query\":{\"match_all\": {}}}", ContentType.APPLICATION_JSON));
         RestClient restClient = ((RestClientTransport) client._transport()).restClient();

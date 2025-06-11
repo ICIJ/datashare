@@ -205,6 +205,18 @@ public class ElasticsearchIndexerTest {
     }
 
     @Test
+    public void test_index_exists() throws IOException {
+        Boolean exists = indexer.exists(TEST_INDEX);
+        assertThat(exists).isTrue();
+    }
+
+    @Test
+    public void test_index_doesnt_exist() throws IOException {
+        Boolean exists = indexer.exists("non_existing_index");
+        assertThat(exists).isFalse();
+    }
+
+    @Test
     public void test_duplicate() throws IOException {
         indexer.add(TEST_INDEX, new Duplicate(Paths.get("duplicate"), "docId"));
         assertThat(indexer.search(singletonList(TEST_INDEX), Duplicate.class)).isNotNull();
@@ -494,6 +506,11 @@ public class ElasticsearchIndexerTest {
 
         Object[] documents = indexer.search(singletonList(TEST_INDEX), Document.class).execute().toArray();
         assertThat(documents.length).isEqualTo(0);
+    }
+
+    @Test
+    public void test_delete_all_non_existing_index() throws Exception {
+        assertThat(indexer.deleteAll("non_existing_index")).isFalse();
     }
 
     @Test

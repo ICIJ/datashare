@@ -33,6 +33,8 @@ public interface Indexer extends Closeable {
     <T extends Entity> boolean bulkUpdate(String indexName, List<T> entities) throws IOException;
     <T extends Entity> void add(String indexName, T obj) throws IOException;
     <T extends Entity> void update(String indexName, T obj) throws IOException;
+
+    boolean exists(String indexName) throws IOException;
     boolean exists(String indexName, String id) throws IOException;
 
     <T extends Entity> T get(String indexName, String id);
