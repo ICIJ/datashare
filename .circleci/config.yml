@@ -136,6 +136,14 @@ jobs:
             ssh-keyscan github.com >> ~/.ssh/known_hosts
             git clone git@github.com:ICIJ/datashare-docs.git ~/datashare-docs
       - run:
+          name: Install postgres
+          command: |
+            sudo sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt/ $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
+            wget --no-check-certificate --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo apt-key add -
+            sudo apt-get update
+            sudo apt-get install -y postgresql-client-15
+            PGPASSWORD=test psql -h postgres -U dstest dstest -c "CREATE DATABASE datashare_liquibase;"
+      - run:
           name: Make dist without frontend
           command: mvn -pl datashare-dist package -am -Dmaven.test.skip=true
       - run:
@@ -151,13 +159,6 @@ jobs:
             curl --retry 10 --retry-delay 5 --retry-all-errors -o /dev/null  'http://localhost:8080/api/openapi'
             ~/datashare-docs/gen_openapi.sh http://localhost:8080/api/openapi > ~/datashare-docs/developers/backend/api.md
             curl -s http://localhost:8080/api/openapi | jq > ~/datashare-docs/developers/backend/ds_openapi.json
-      - run:
-          name: Install postgres
-          command: |
-            sudo sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt/ $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
-            wget --no-check-certificate --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo apt-key add -
-            sudo apt-get update
-            sudo apt-get install -y postgresql-client-15
       - run:
           name: Generate db doc
           environment:
