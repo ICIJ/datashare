@@ -99,10 +99,15 @@ public final class TaskFilters {
 
     private boolean byArgs(Map<String, Object> taskArgs) {
         return Optional.ofNullable(getArgsPatterns())
-            .map(patterns -> patterns.entrySet()
-                .stream()
-                .allMatch(e -> e.getValue().matcher(String.valueOf(getValue(taskArgs, e.getKey()))).find()
-                ))
+            .map(patterns -> {
+                return patterns.entrySet()
+                                .stream()
+                                .allMatch(e -> {
+                                    return e.getValue()
+                                            .matcher(String.valueOf(getValue(taskArgs, e.getKey())))
+                                            .find();
+                                });
+            })
             .orElse(true);
     }
 
