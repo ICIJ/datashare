@@ -3,8 +3,8 @@ package org.icij.datashare.web;
 import com.fasterxml.jackson.core.type.TypeReference;
 import java.io.InputStream;
 import java.net.InetSocketAddress;
-import java.util.Collection;
-import java.util.Set;
+import java.util.*;
+
 import net.codestory.http.Context;
 import net.codestory.http.Cookies;
 import net.codestory.http.Part;
@@ -20,6 +20,7 @@ import org.icij.datashare.asynctasks.TaskFilters;
 import org.icij.datashare.asynctasks.TaskManager;
 import org.icij.datashare.asynctasks.TaskRepositoryMemory;
 import org.icij.datashare.asynctasks.bus.amqp.TaskCreation;
+import org.icij.datashare.batch.BatchSearchRecord;
 import org.icij.datashare.batch.BatchSearchRepository;
 import org.icij.datashare.db.JooqRepository;
 import org.icij.datashare.extension.PipelineRegistry;
@@ -27,6 +28,7 @@ import org.icij.datashare.nlp.EmailPipeline;
 import org.icij.datashare.session.LocalUserFilter;
 import org.icij.datashare.tasks.*;
 import org.icij.datashare.test.DatashareTimeRule;
+import org.icij.datashare.text.ProjectProxy;
 import org.icij.datashare.text.nlp.AbstractModels;
 import org.icij.datashare.user.User;
 import org.icij.datashare.web.testhelpers.AbstractProdWebServerTest;
@@ -38,12 +40,6 @@ import org.junit.Test;
 import org.mockito.Mock;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
 
 import static java.lang.String.format;
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -53,7 +49,7 @@ import static org.icij.datashare.asynctasks.Task.State.DONE;
 import static org.icij.datashare.asynctasks.Task.State.RUNNING;
 import static org.icij.datashare.cli.DatashareCliOptions.*;
 import static org.icij.datashare.json.JsonObjectMapper.MAPPER;
-import static org.icij.datashare.user.User.localUser;
+import static org.icij.datashare.text.Project.project;
 import static org.icij.datashare.web.TaskResource.taskFiltersFromContext;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.eq;
@@ -128,6 +124,28 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
 
         get("/api/task").should().haveType("application/json").contain("IndexTask").contain("ScanTask");
         get("/api/task?name=scan|index").should().contain("ScanTask").contain("IndexTask");
+    }
+
+    @Test
+    public void test_get_tasks_including_batch_search_runner_proxy() {
+        List<ProjectProxy> projects = List.of(project("project"));
+        BatchSearchRecord batchSearchRecord = new BatchSearchRecord(projects, "name", "description", 123, new Date(), "/");
+
+        when(batchSearchRepository.getRecords(any(), any())).thenReturn(List.of(batchSearchRecord));
+
+        get("/api/task").should().contain("BatchSearchRunnerProxy");
+    }
+
+    @Test
+    public void test_get_tasks_including_filtered_batch_search_runner_proxy() {
+        List<ProjectProxy> projects = List.of(project("project"));
+        BatchSearchRecord batchSearchRecord = new BatchSearchRecord(projects, "foo", "bar", 123, new Date(), "/");
+
+        when(batchSearchRepository.getRecords(any(), any())).thenReturn(List.of(batchSearchRecord));
+
+        get("/api/task").should().contain("BatchSearchRunnerProxy");
+        get("/api/task?args.batchRecord.name=foo").should().contain("BatchSearchRunnerProxy");
+        get("/api/task?args.batchRecord.name=oo").should().contain("BatchSearchRunnerProxy");
     }
 
     @Test

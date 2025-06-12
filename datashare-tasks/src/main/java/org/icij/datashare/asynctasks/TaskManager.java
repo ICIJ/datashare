@@ -66,7 +66,9 @@ public interface TaskManager extends Closeable {
                 (first, second) -> first,
                 LinkedHashMap::new
             ))
-            .values().stream().map(t -> (Task<?>)t);
+            .values()
+                .stream()
+                .map(t -> (Task<?>)t);
     }
 
     default boolean awaitTermination(int timeout, TimeUnit timeUnit) throws InterruptedException, IOException {
