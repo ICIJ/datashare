@@ -189,11 +189,12 @@ public class TaskResource {
         try {
             return taskManager.getTask(id);
         } catch (UnknownTask e) {
-            List<BatchSearchRecord> batchSearchRecords = batchSearchRepository.getRecords(user, user.getProjectNames());
-            return batchSearchRecords.stream()
-                .filter(r -> r.user.getId().equals(user.id))
-                .findFirst().map(TaskManager::taskify)
-                .orElseThrow(NotFoundException::new);
+            return batchSearchRepository
+                    .getRecords(user, user.getProjectNames())
+                    .stream()
+                        .filter(r -> r.uuid.equals(id))
+                        .findFirst().map(TaskManager::taskify)
+                        .orElseThrow(NotFoundException::new);
         }
     }
 
