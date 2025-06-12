@@ -52,9 +52,11 @@ public interface TaskManager extends Closeable {
 
     default Stream<Task<?>> getTasks(TaskFilters filters, Stream<BatchSearchRecord> batchSearchRecords) throws IOException {
         Stream<Task<? extends Serializable>> userTasks = getTasks(filters);
-        // Convert the received batch search records to "proxy tasks"
-        Stream<Task<Integer>> batchSearchTasks = batchSearchRecords.map(TaskManager::taskify).filter(filters::filter);
-        // Merge the to list of tasks and deduplicate them by id
+        // Remove any filter on task's user. This allows to display batch search records from other users.
+        TaskFilters filtersWithoutUser = filters.withUser(null);
+        // The list of batch search records must be converted to a list of task which allow us to apply the same task filters.
+        Stream<Task<Integer>> batchSearchTasks = batchSearchRecords.map(TaskManager::taskify).filter(filtersWithoutUser::filter);
+        // Merge the list of tasks and deduplicate them by id
         return Stream.concat(userTasks, batchSearchTasks)
             .collect(toMap(
                 // We deduplicate tasks by id

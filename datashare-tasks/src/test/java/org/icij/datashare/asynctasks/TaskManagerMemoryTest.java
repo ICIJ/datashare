@@ -166,6 +166,23 @@ public class TaskManagerMemoryTest {
     }
 
     @Test
+    public void test_get_tasks_and_proxy_task_from_other_user() throws IOException {
+        String uri = "/?q=&from=0&size=25&sort=relevance&indices=test&field=all";
+        User userLocal = User.local();
+        User userOtherLocal = User.localUser("jdoe");
+        List<ProjectProxy> projects = List.of(project("project"));
+        BatchSearchRecord batchSearchRecord = new BatchSearchRecord(projects, "name", "description", 123, new Date(), uri);
+        Task<String> task = new Task<>("name", User.local(), new HashMap<>());
+        taskManager.insert(task, null);
+
+        TaskFilters filters = TaskFilters.empty().withUser(userOtherLocal);
+        List<Task<?>> tasks = taskManager.getTasks(filters, Stream.of(batchSearchRecord)).toList();
+        assertThat(tasks).hasSize(1);
+        assertThat(tasks.get(0).id).isEqualTo(batchSearchRecord.uuid);
+        assertThat(tasks.get(0).getUser()).isEqualTo(userLocal);
+    }
+
+    @Test
     public void test_get_unique_proxy_task() throws IOException {
         String uri = "/?q=&from=0&size=25&sort=relevance&indices=test&field=all";
         User user = User.local();
@@ -216,7 +233,6 @@ public class TaskManagerMemoryTest {
         assertThat(tasks).hasSize(1);
         assertThat(tasks.get(0).name).isEqualTo("name");
     }
-
 
     @Test
     public void test_update_task() throws TaskAlreadyExists, IOException, UnknownTask {
