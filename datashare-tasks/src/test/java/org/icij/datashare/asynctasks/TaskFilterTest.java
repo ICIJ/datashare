@@ -77,7 +77,7 @@ public class TaskFilterTest {
     }
 
     @Test
-    public void test_task_filters_by_args() {
+    public void test_task_filters_by_args_and_starting_pattern() {
         // Given
         TaskFilters.ArgsFilter argsFilter = new TaskFilters.ArgsFilter("nested.attribute", "nestedv.*");
         TaskFilters filters = TaskFilters.empty().withArgs(List.of(argsFilter));
@@ -85,6 +85,40 @@ public class TaskFilterTest {
         List<Task<?>> filtered = tasks.stream().filter(filters::filter).toList();
         // Then
         assertThat(filtered).isEqualTo(List.of(t2));
+    }
+
+    @Test
+    public void test_task_filters_by_args_and_starting_pattern_without_matches() {
+        // Given
+        TaskFilters.ArgsFilter argsFilter = new TaskFilters.ArgsFilter("nested.attribute", "foo.*");
+        TaskFilters filters = TaskFilters.empty().withArgs(List.of(argsFilter));
+        // When
+        List<Task<?>> filtered = tasks.stream().filter(filters::filter).toList();
+        // Then
+        assertThat(filtered).isEqualTo(List.of());
+    }
+
+    @Test
+    public void test_task_filters_by_args_and_containing_pattern() {
+        // Given
+        TaskFilters.ArgsFilter argsFilter = new TaskFilters.ArgsFilter("nested.attribute", ".*ed.*");
+        TaskFilters filters = TaskFilters.empty().withArgs(List.of(argsFilter));
+        // When
+        List<Task<?>> filtered = tasks.stream().filter(filters::filter).toList();
+        // Then
+        assertThat(filtered).isEqualTo(List.of(t2));
+    }
+
+
+    @Test
+    public void test_task_filters_by_args_and_containing_pattern_without_matches() {
+        // Given
+        TaskFilters.ArgsFilter argsFilter = new TaskFilters.ArgsFilter("nested.attribute", ".*foo.*");
+        TaskFilters filters = TaskFilters.empty().withArgs(List.of(argsFilter));
+        // When
+        List<Task<?>> filtered = tasks.stream().filter(filters::filter).toList();
+        // Then
+        assertThat(filtered).isEqualTo(List.of());
     }
 
     @Test
