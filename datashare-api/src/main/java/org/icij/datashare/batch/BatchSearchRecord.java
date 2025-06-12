@@ -33,11 +33,26 @@ public class BatchSearchRecord {
     public final String errorMessage;
     public final String errorQuery;
 
-    // for tests
+    // This constructor interface is mostly used in tests
     public BatchSearchRecord(final List<ProjectProxy> projects, final String name, final String description, final int nbQueries, Date date, String uri) {
-        this(UUID.randomUUID().toString(), projects.stream().map(ProjectProxy::getId).toList(), name, description, nbQueries, nbQueries, date, State.QUEUED, uri,User.local(),
-                0, false,null, null);
+        this(
+                UUID.randomUUID().toString(),
+                projects.stream().map(ProjectProxy::getId).toList(),
+                name,
+                description,
+                nbQueries,
+                nbQueries,
+                date,
+                State.QUEUED,
+                uri,
+                User.local(),
+                0,
+                false,
+                null,
+                null
+        );
     }
+
     @JsonCreator
     public BatchSearchRecord(
             @JsonProperty("uuid") String uuid,
