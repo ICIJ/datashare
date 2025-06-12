@@ -7,7 +7,7 @@
     <parent>
         <artifactId>datashare</artifactId>
         <groupId>org.icij.datashare</groupId>
-        <version>20.0.1</version>
+        <version>20.0.2</version>
     </parent>
 
     <artifactId>datashare-nlp-corenlp</artifactId>
