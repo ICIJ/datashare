@@ -200,6 +200,34 @@ jobs:
             curl -X POST -s -m 120 -H "Accept: application/vnd.github.v3+json" -H "Authorization: token $GITHUB_TOKEN" -H "Content-Type: application/json" --data-binary "@datashare_index_settings.json" "$upload_url?name=datashare_index_settings.json&label=datashare_index_settings.json"
             curl -X POST -s -m 120 -H "Accept: application/vnd.github.v3+json" -H "Authorization: token $GITHUB_TOKEN" -H "Content-Type: application/json" --data-binary "@datashare_index_settings_windows.json" "$upload_url?name=datashare_index_settings_windows.json&label=datashare_index_settings_windows.json"
 
+  deploy_openapi_json:
+    docker:
+      - image: cimg/openjdk:17.0.11
+    working_directory: /tmp
+    steps:
+      - attach_workspace:
+          at: /tmp/datashare
+      - run:
+          name: Deploy datashare dist and es mappings/settings jar to github release
+          command: |
+            VERSION=$(head pom.xml | grep '<version>[0-9.]\+' | sed 's/<version>\([0-9.]\+\)<\/version>/\1/g' | tr -d '[:space:]')
+      - run:
+          name: Launch datashare
+          command: ./launchBack.sh
+          background: true
+      - run:
+          name: Generate openAPI json file
+          command: |
+            curl --retry 10 --retry-delay 5 --retry-all-errors -o /dev/null  'http://localhost:8080/api/openapi'
+            curl -s http://localhost:8080/api/openapi | jq > ds_openapi.json
+      - run:
+          name: upload openAPI json file to release
+          command: |
+            upload_url=$(curl -X POST -s -H "Accept:application/vnd.github.v3+json" -H "Authorization: token $GITHUB_TOKEN" -d "{\"tag_name\":\"${CIRCLE_TAG}\", \"name\":\"${CIRCLE_TAG}\",\"body\":\"release ${CIRCLE_TAG}\"}" "https://api.github.com/repos/ICIJ/datashare/releases" | jq -r '.upload_url')
+            upload_url="${upload_url%\{*}"
+            echo "uploading ds_openapi.json to release url: $upload_url"
+            curl -X POST -s -m 120 -H "Accept: application/vnd.github.v3+json" -H "Authorization: token $GITHUB_TOKEN" -H "Content-Type: application/json" --data-binary "@ds_openapi.json" "$upload_url?name=ds_openapi.json&label=ds_openapi.json"
+
   build_front:
     resource_class: large
     docker:
@@ -519,6 +547,14 @@ workflows:
           filters:
               tags:
                   only: /[0-9.]*/
+      - deploy_openapi_json:
+          requires:
+            - build_back
+          filters:
+            tags:
+              only: /^[0-9]+\..*/
+            branches:
+              ignore: /.*/
       - deploy_back:
           requires:
             - package_back
