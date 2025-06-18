@@ -47,7 +47,7 @@ jobs:
       # Download and cache dependencies
       - restore_cache:
           keys:
-          - v1-dependencies-{{ checksum "pom.xml" }}
+            - v1-dependencies-{{ checksum "pom.xml" }}
 
       - run:
           name: Create a bootstrap datashare DB for jooq code generation
@@ -216,12 +216,12 @@ jobs:
     working_directory: /tmp
     steps:
       - attach_workspace:
-           at: /tmp/datashare
+          at: /tmp/datashare
       - run:
-           name: adds_ssh_dir
-           command: |
-             mkdir -p ~/.ssh
-             chmod 700 ~/.ssh
+          name: adds_ssh_dir
+          command: |
+            mkdir -p ~/.ssh
+            chmod 700 ~/.ssh
       - add_ssh_keys:
           fingerprints:
             - "b3:e6:7c:f3:86:9e:e9:88:d1:cf:22:8c:97:3e:93:54"
@@ -331,7 +331,7 @@ jobs:
     working_directory: /tmp
     steps:
       - attach_workspace:
-           at: /tmp/datashare
+          at: /tmp/datashare
       - setup_remote_docker
       - run:
           name: Login to Docker hub
@@ -383,7 +383,7 @@ jobs:
             chmod 700 ~/.ssh
       - add_ssh_keys:
           fingerprints:
-          - "b3:e6:7c:f3:86:9e:e9:88:d1:cf:22:8c:97:3e:93:54"
+            - "b3:e6:7c:f3:86:9e:e9:88:d1:cf:22:8c:97:3e:93:54"
       - run:
           name: Configure Git identity
           command: |
@@ -421,7 +421,7 @@ jobs:
           command: git -C /tmp/datashare-installer/ push origin main
       - run:
           name: Create git tag
-          command: | 
+          command: |
             curl -s -H "Authorization: token $GITHUB_TOKEN" -d "{\"tag_name\":\"${CIRCLE_TAG}\", \"name\":\"${CIRCLE_TAG}\",\"body\":\"release ${CIRCLE_TAG}\",\"prerelease\":true}" "https://api.github.com/repos/ICIJ/datashare-installer/releases"
       - run:
           name: Deploy installers on github
@@ -432,30 +432,6 @@ jobs:
             upload_url="${upload_url%\{*}"
             curl -X POST -s -m 120 -H "Accept: application/vnd.github.v3+json" -H "Authorization: token $GITHUB_TOKEN" -H "Content-Type: application/vnd.debian.binary-package" --data-binary "@/tmp/datashare/datashare-dist/target/datashare-dist-${CIRCLE_TAG}.deb" "$upload_url?name=datashare-${CIRCLE_TAG}.deb&label=datashare-${CIRCLE_TAG}.deb"
             curl -X POST -s -m 120 -H "Accept: application/vnd.github.v3+json" -H "Authorization: token $GITHUB_TOKEN" -H "Content-Type: application/gzip" --data-binary "@/tmp/datashare/datashare-dist/target/datashare-dist-${CIRCLE_TAG}.tgz" "$upload_url?name=datashare-${CIRCLE_TAG}.tgz&label=datashare-${CIRCLE_TAG}.tgz"
-
-  deploy_openapi_json:
-    docker:
-      - image: cimg/openjdk:17.0.11
-    working_directory: /tmp
-    steps:
-      - attach_workspace:
-          at: /tmp/datashare
-      - run:
-          name: Launch datashare
-          command: ./launchBack.sh
-          background: true
-      - run:
-          name: Generate openAPI json file
-          command: |
-            curl --retry 10 --retry-delay 5 --retry-all-errors -o /dev/null  'http://localhost:8080/api/openapi'
-            curl -s http://localhost:8080/api/openapi | jq > ds_openapi.json
-      - run:
-          name: upload openAPI json file to release
-          command: |
-            upload_url=$(curl -X POST -s -H "Accept:application/vnd.github.v3+json" -H "Authorization: token $GITHUB_TOKEN" -d "{\"tag_name\":\"${CIRCLE_TAG}\", \"name\":\"${CIRCLE_TAG}\",\"body\":\"release ${CIRCLE_TAG}\"}" "https://api.github.com/repos/ICIJ/datashare/releases" | jq -r '.upload_url')
-            upload_url="${upload_url%\{*}"
-            echo "uploading ds_openapi.json to release url: $upload_url"
-            curl -X POST -s -m 120 -H "Accept: application/vnd.github.v3+json" -H "Authorization: token $GITHUB_TOKEN" -H "Content-Type: application/json" --data-binary "@ds_openapi.json" "$upload_url?name=ds_openapi.json&label=ds_openapi.json"
 
   deploy_datashare_tasks:
     docker:
