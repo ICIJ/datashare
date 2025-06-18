@@ -208,10 +208,6 @@ jobs:
       - attach_workspace:
           at: /tmp/datashare
       - run:
-          name: Deploy datashare dist and es mappings/settings jar to github release
-          command: |
-            VERSION=$(head pom.xml | grep '<version>[0-9.]\+' | sed 's/<version>\([0-9.]\+\)<\/version>/\1/g' | tr -d '[:space:]')
-      - run:
           name: Launch datashare
           command: ./launchBack.sh
           background: true
@@ -548,8 +544,13 @@ workflows:
               tags:
                   only: /[0-9.]*/
       - deploy_openapi_json:
-          requires:
-            - build_back
+        requires:
+          - package_back
+        filters:
+          tags:
+            only: /^[0-9]+\..*/
+          branches:
+            ignore: /.*/
       - deploy_back:
           requires:
             - package_back
