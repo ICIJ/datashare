@@ -47,7 +47,7 @@ jobs:
       # Download and cache dependencies
       - restore_cache:
           keys:
-            - v1-dependencies-{{ checksum "pom.xml" }}
+          - v1-dependencies-{{ checksum "pom.xml" }}
 
       - run:
           name: Create a bootstrap datashare DB for jooq code generation
@@ -216,12 +216,12 @@ jobs:
     working_directory: /tmp
     steps:
       - attach_workspace:
-          at: /tmp/datashare
+           at: /tmp/datashare
       - run:
-          name: adds_ssh_dir
-          command: |
-            mkdir -p ~/.ssh
-            chmod 700 ~/.ssh
+           name: adds_ssh_dir
+           command: |
+             mkdir -p ~/.ssh
+             chmod 700 ~/.ssh
       - add_ssh_keys:
           fingerprints:
             - "b3:e6:7c:f3:86:9e:e9:88:d1:cf:22:8c:97:3e:93:54"
@@ -331,7 +331,7 @@ jobs:
     working_directory: /tmp
     steps:
       - attach_workspace:
-          at: /tmp/datashare
+           at: /tmp/datashare
       - setup_remote_docker
       - run:
           name: Login to Docker hub
@@ -383,7 +383,7 @@ jobs:
             chmod 700 ~/.ssh
       - add_ssh_keys:
           fingerprints:
-            - "b3:e6:7c:f3:86:9e:e9:88:d1:cf:22:8c:97:3e:93:54"
+          - "b3:e6:7c:f3:86:9e:e9:88:d1:cf:22:8c:97:3e:93:54"
       - run:
           name: Configure Git identity
           command: |
@@ -421,7 +421,7 @@ jobs:
           command: git -C /tmp/datashare-installer/ push origin main
       - run:
           name: Create git tag
-          command: |
+          command: | 
             curl -s -H "Authorization: token $GITHUB_TOKEN" -d "{\"tag_name\":\"${CIRCLE_TAG}\", \"name\":\"${CIRCLE_TAG}\",\"body\":\"release ${CIRCLE_TAG}\",\"prerelease\":true}" "https://api.github.com/repos/ICIJ/datashare-installer/releases"
       - run:
           name: Deploy installers on github
@@ -562,10 +562,10 @@ workflows:
           requires:
             - package_back
           filters:
-            tags:
-                only: /^[0-9]+\..*/
-            branches:
-                ignore: /.*/
+              tags:
+                  only: /^[0-9]+\..*/
+              branches:
+                  ignore: /.*/
       - deploy_datashare_tasks:
           filters:
             tags:
