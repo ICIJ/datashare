@@ -442,7 +442,7 @@ jobs:
           at: /tmp/datashare
       - run:
           name: Launch datashare
-          command: java -cp datashare-dist/target/datashare-dist-${CIRCLE_TAG}-all.jar --add-opens java.base/java.lang=ALL-UNNAMED --add-opens java.base/java.util=ALL-UNNAMED     --add-opens java.base/java.util.concurrent.locks=ALL-UNNAMED     --add-opens java.base/java.net=ALL-UNNAMED  org.icij.datashare.Main --dataSourceUrl 'jdbc:sqlite:file:memorydb.db?mode=memory&cache=shared' -m EMBEDDED
+          command: java -jar datashare-dist/target/datashare-dist-${CIRCLE_TAG}-all.jar --dataSourceUrl 'jdbc:sqlite:file:memorydb.db?mode=memory&cache=shared' -m EMBEDDED
           background: true
       - run:
           name: Generate openAPI json file
