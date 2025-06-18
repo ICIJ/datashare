@@ -552,7 +552,7 @@ workflows:
             - build_back
           filters:
             tags:
-              only: /^[0-9]+\..*/
+              only: /[0-9.]*/
             branches:
               ignore: /.*/
       - deploy_back:
