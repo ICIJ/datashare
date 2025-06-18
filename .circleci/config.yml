@@ -436,7 +436,7 @@ jobs:
   deploy_openapi_json:
     docker:
       - image: cimg/openjdk:17.0.11
-    working_directory: /tmp
+    working_directory: /tmp/datashare
     steps:
       - attach_workspace:
           at: /tmp/datashare
