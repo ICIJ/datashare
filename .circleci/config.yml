@@ -544,13 +544,13 @@ workflows:
               tags:
                   only: /[0-9.]*/
       - deploy_openapi_json:
-        requires:
-          - package_back
-        filters:
-          tags:
-            only: /^[0-9]+\..*/
-          branches:
-            ignore: /.*/
+          requires:
+            - package_back
+          filters:
+            tags:
+              only: /^[0-9]+\..*/
+            branches:
+              ignore: /.*/
       - deploy_back:
           requires:
             - package_back
