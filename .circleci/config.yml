@@ -550,11 +550,6 @@ workflows:
       - deploy_openapi_json:
           requires:
             - build_back
-          filters:
-            tags:
-              only: /[0-9.]*/
-            branches:
-              ignore: /.*/
       - deploy_back:
           requires:
             - package_back
