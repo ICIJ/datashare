@@ -543,14 +543,6 @@ workflows:
           filters:
               tags:
                   only: /[0-9.]*/
-      - deploy_openapi_json:
-          requires:
-            - package_back
-          filters:
-            tags:
-              only: /^[0-9]+\..*/
-            branches:
-              ignore: /.*/
       - deploy_back:
           requires:
             - package_back
@@ -594,10 +586,18 @@ workflows:
           requires:
             - package_back
           filters:
-              tags:
-                  only: /^[0-9]+\..*/
-              branches:
-                  ignore: /.*/
+            tags:
+                only: /^[0-9]+\..*/
+            branches:
+                ignore: /.*/
+      - deploy_openapi_json:
+          requires:
+            - package_back
+          filters:
+            tags:
+              only: /^[0-9]+\..*/
+            branches:
+              ignore: /.*/
       - deploy_datashare_tasks:
           filters:
             tags:
