@@ -5,7 +5,7 @@
     <parent>
         <artifactId>datashare</artifactId>
         <groupId>org.icij.datashare</groupId>
-        <version>20.0.7-alpha2</version>
+        <version>20.0.7-alpha3</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
