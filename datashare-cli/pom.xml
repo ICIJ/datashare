@@ -11,6 +11,7 @@
     </parent>
 
     <artifactId>datashare-cli</artifactId>
+    <name>datashare-cli</name>
     <packaging>jar</packaging>
     <version>13.6.1</version>
 
