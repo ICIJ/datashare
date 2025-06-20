@@ -484,7 +484,7 @@ jobs:
           command: |
             export DATASHARE_API_ARTIFACT=$(mvn dependency:tree -pl datashare-tasks -Dmaven.test.skip=true  | grep -vi download | grep "datashare-api" | awk '{print $3}')
             ./.circleci/check_if_artifact_is_deployed.sh "$DATASHARE_API_ARTIFACT"
-            export DATASHARE_VERSION=$(head pom.xml | grep '<version>[0-9.]\+' | sed sed 's/<version>\([0-9.]\+\..*\)<\/version>/\1/g' | tr -d '[:space:]')
+            export DATASHARE_VERSION=$(head pom.xml | grep '<version>[0-9.]\+' | sed 's/<version>\([0-9.]\+\..*\)<\/version>/\1/g' | tr -d '[:space:]')
             curl -f "https://search.maven.org/remotecontent?filepath=org/icij/datashare/datashare/$DATASHARE_VERSION/datashare-$DATASHARE_VERSION.pom" || mvn -s .circleci/maven-release-settings.xml -pl . deploy  
             mvn -s .circleci/maven-release-settings.xml -pl commons-test -am install
             mvn -s .circleci/maven-release-settings.xml -pl datashare-tasks deploy
