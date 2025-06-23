@@ -1,6 +1,7 @@
 # Datashare [![CircleCI](https://circleci.com/gh/ICIJ/datashare.svg?style=shield)](https://circleci.com/gh/ICIJ/datashare) [![Crowdin](https://badges.crowdin.net/datashare/localized.svg)](https://crowdin.com/project/datashare)
 
-![Banner](https://github.com/user-attachments/assets/ce1aaeb1-64cf-484d-bed9-e846c94c5478)
+![Banner](https://github.com/user-attachments/assets/56ef1e92-c01a-43c8-b1b5-8e98dbf37740)
+
 
 <p align="center">
 <a href="https://datashare-demo.icij.org">Demo</a> |
