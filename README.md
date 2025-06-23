@@ -1,6 +1,6 @@
 # Datashare [![CircleCI](https://circleci.com/gh/ICIJ/datashare.svg?style=shield)](https://circleci.com/gh/ICIJ/datashare) [![Crowdin](https://badges.crowdin.net/datashare/localized.svg)](https://crowdin.com/project/datashare)
 
-![Datashare: Better analyze information, in all its forms](https://i.imgur.com/9SPU1x2.png)
+![Banner](https://github.com/user-attachments/assets/ce1aaeb1-64cf-484d-bed9-e846c94c5478)
 
 <p align="center">
 <a href="https://datashare-demo.icij.org">Demo</a> |
@@ -15,9 +15,6 @@ Datashare is an open-source software developed by the International Consortium o
 
 https://datashare.icij.org/
 
-## Follow new updates and features
-
-[@ICIJorg](https://twitter.com/ICIJorg) publishes video tweets of new features with the hashtag [#ICIJDatashare](https://twitter.com/hashtag/ICIJDatashare).
 
 ## Frontend
 
