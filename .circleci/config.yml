@@ -158,7 +158,7 @@ jobs:
           command: |
             curl --retry 10 --retry-delay 5 --retry-all-errors -o /dev/null  'http://localhost:8080/api/openapi'
             ~/datashare-docs/gen_openapi.sh http://localhost:8080/api/openapi > ~/datashare-docs/developers/backend/api.md
-            curl -s http://localhost:8080/api/openapi | jq > ~/datashare-docs/developers/backend/datashare_openapi.json.json
+            curl -s http://localhost:8080/api/openapi | jq > ~/datashare-docs/developers/backend/datashare_openapi.json
       - run:
           name: Generate db doc
           environment:
@@ -199,7 +199,7 @@ jobs:
             curl -X POST -s -m 120 -H "Accept: application/vnd.github.v3+json" -H "Authorization: token $GITHUB_TOKEN" -H "Content-Type: application/json" --data-binary "@datashare_index_mappings.json" "$upload_url?name=datashare_index_mappings.json&label=datashare_index_mappings.json"
             curl -X POST -s -m 120 -H "Accept: application/vnd.github.v3+json" -H "Authorization: token $GITHUB_TOKEN" -H "Content-Type: application/json" --data-binary "@datashare_index_settings.json" "$upload_url?name=datashare_index_settings.json&label=datashare_index_settings.json"
             curl -X POST -s -m 120 -H "Accept: application/vnd.github.v3+json" -H "Authorization: token $GITHUB_TOKEN" -H "Content-Type: application/json" --data-binary "@datashare_index_settings_windows.json" "$upload_url?name=datashare_index_settings_windows.json&label=datashare_index_settings_windows.json"
-            curl -X POST -s -m 120 -H "Accept: application/vnd.github.v3+json" -H "Authorization: token $GITHUB_TOKEN" -H "Content-Type: application/json" --data-binary "@datashare/datashare_openapi.json.json" "$upload_url?name=datashare_openapi.json.json&label=datashare_openapi.json.json"
+            curl -X POST -s -m 120 -H "Accept: application/vnd.github.v3+json" -H "Authorization: token $GITHUB_TOKEN" -H "Content-Type: application/json" --data-binary "@datashare/datashare_openapi.json" "$upload_url?name=datashare_openapi.json&label=datashare_openapi.json"
 
   build_front:
     resource_class: large
@@ -449,11 +449,11 @@ jobs:
           name: Generate openAPI json file
           command: |
             curl --retry 10 --retry-delay 5 --retry-all-errors -o /dev/null  'http://localhost:8080/api/openapi'
-            curl -s http://localhost:8080/api/openapi | jq > datashare_openapi.json.json
+            curl -s http://localhost:8080/api/openapi | jq > datashare_openapi.json
       - persist_to_workspace:
           root: /tmp/datashare
           paths:
-            - datashare_openapi.json.json
+            - datashare_openapi.json
 
   deploy_datashare_tasks:
     docker:
