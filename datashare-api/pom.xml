@@ -12,7 +12,7 @@
 
     <artifactId>datashare-api</artifactId>
     <name>datashare-api</name>
-    <version>14.7.0</version>
+    <version>14.7.1</version>
     <packaging>jar</packaging>
 
     <dependencies>
