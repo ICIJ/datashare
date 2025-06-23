@@ -481,6 +481,7 @@ jobs:
 
       - run:
           name: Build and deploy datashare-tasks
+          no_output_timeout: 1h
           command: |
             export DATASHARE_API_ARTIFACT=$(mvn dependency:tree -pl datashare-tasks -Dmaven.test.skip=true  | grep -vi download | grep "datashare-api" | awk '{print $3}')
             ./.circleci/check_if_artifact_is_deployed.sh "$DATASHARE_API_ARTIFACT"
@@ -510,6 +511,7 @@ jobs:
 
       - run:
           name: Build and deploy datashare-api
+          no_output_timeout: 1h
           command: |
             export DATASHARE_VERSION=$(head pom.xml | grep '<version>[0-9.]\+' | sed 's/<version>\([0-9.]\+\..*\)<\/version>/\1/g' | tr -d '[:space:]')
             if ! ./.circleci/check_if_artifact_is_deployed.sh "org.icij.datashare:datashare:pom:${DATASHARE_VERSION}:provided"; then
@@ -536,6 +538,7 @@ jobs:
 
       - run:
           name: Build and deploy datashare-cli
+          no_output_timeout: 1h
           command: |
             export DATASHARE_VERSION=$(head pom.xml | grep '<version>[0-9.]\+' | sed 's/<version>\([0-9.]\+\..*\)<\/version>/\1/g' | tr -d '[:space:]')
             if ! ./.circleci/check_if_artifact_is_deployed.sh "org.icij.datashare:datashare:pom:${DATASHARE_VERSION}:provided"; then
