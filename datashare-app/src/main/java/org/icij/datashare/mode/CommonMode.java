@@ -301,8 +301,8 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
                         return defaultObjectMapper;
                     }
                 });
-        addModeConfiguration(routes);
         addExtensionsConfiguration(routes);
+        addModeConfiguration(routes);
         addPluginsConfiguration(routes);
         return routes;
     }
