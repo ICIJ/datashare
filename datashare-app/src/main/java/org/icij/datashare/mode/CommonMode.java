@@ -98,6 +98,17 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
         propertiesProvider = properties == null ? new PropertiesProvider() :
                 new PropertiesProvider(properties.getProperty(PropertiesProvider.SETTINGS_FILE_PARAMETER_KEY)).overrideWith(properties);
         this.mode = getMode(properties);
+        
+        // Eager load extension JARs before Guice injector creation
+        String extensionsDir = getExtensionsDir();
+        if (extensionsDir != null) {
+            try {
+                new ExtensionLoader(Paths.get(extensionsDir)).eagerLoadJars();
+            } catch (FileNotFoundException e) {
+                logger.warn("Failed to eager load extensions: {}", e.getMessage());
+            }
+        }
+        
         try {
             this.injector = Guice.createInjector(this);
         } catch (CreationException e) {
