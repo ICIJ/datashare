@@ -517,7 +517,7 @@ jobs:
             if ! ./.circleci/check_if_artifact_is_deployed.sh "org.icij.datashare:datashare:pom:${DATASHARE_VERSION}:provided"; then
               curl -f "https://search.maven.org/remotecontent?filepath=org/icij/datashare/datashare/$DATASHARE_VERSION/datashare-$DATASHARE_VERSION.pom" || mvn -s .circleci/maven-release-settings.xml -pl . deploy 
             fi
-            mvn -s .circleci/maven-release-settings.xml -pl datashare-api -am deploy
+            mvn -s .circleci/maven-release-settings.xml -pl datashare-api deploy
 
   deploy_datashare_cli:
     docker:
@@ -544,7 +544,7 @@ jobs:
             if ! ./.circleci/check_if_artifact_is_deployed.sh "org.icij.datashare:datashare:pom:${DATASHARE_VERSION}:provided"; then
               curl -f "https://search.maven.org/remotecontent?filepath=org/icij/datashare/datashare/$DATASHARE_VERSION/datashare-$DATASHARE_VERSION.pom" || mvn -s .circleci/maven-release-settings.xml -pl . deploy 
             fi
-            mvn -s .circleci/maven-release-settings.xml -pl datashare-cli -am deploy
+            mvn -s .circleci/maven-release-settings.xml -pl datashare-cli deploy
 
 workflows:
   version: 2
