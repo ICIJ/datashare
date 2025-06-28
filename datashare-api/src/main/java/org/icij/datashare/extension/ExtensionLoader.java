@@ -29,20 +29,25 @@ public class ExtensionLoader {
         this.extensionsDir = extensionsDir;
     }
 
-    public synchronized <T> void load(Consumer<T> registerFunc, Predicate<Class<?>> predicate) throws FileNotFoundException {
+    public synchronized void eagerLoadJars() throws FileNotFoundException {
         if (ClassLoader.getSystemClassLoader() instanceof DynamicClassLoader) {
             DynamicClassLoader classLoader = (DynamicClassLoader) ClassLoader.getSystemClassLoader();
-                if (jars == null) {
-                    jars = getJars();
-                    loadJars(classLoader, jars);
-                }
-                for (File jar : jars) {
-                    registerClassesInJar(registerFunc, predicate, jar);
-                }
-
+            if (jars == null) {
+                jars = getJars();
+                loadJars(classLoader, jars);
+            }
         } else {
             LOGGER.info("system class loader {} is not an instance of {} extension loading is disabled",
                     ClassLoader.getSystemClassLoader(), DynamicClassLoader.class);
+        }
+    }
+
+    public synchronized <T> void load(Consumer<T> registerFunc, Predicate<Class<?>> predicate) throws FileNotFoundException {
+        eagerLoadJars();
+        if (jars != null) {
+            for (File jar : jars) {
+                registerClassesInJar(registerFunc, predicate, jar);
+            }
         }
     }
 
