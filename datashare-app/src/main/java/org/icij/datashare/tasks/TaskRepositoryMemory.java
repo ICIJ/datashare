@@ -2,14 +2,13 @@ package org.icij.datashare.tasks;
 
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
-import org.icij.datashare.asynctasks.TaskResult;
 import org.redisson.api.RedissonClient;
 
 @Singleton
-public class TaskRepositoryRedis extends org.icij.datashare.asynctasks.TaskRepositoryRedis{
+public class TaskRepositoryMemory extends org.icij.datashare.asynctasks.TaskRepositoryMemory{
     @Inject
-    public TaskRepositoryRedis(RedissonClient redisson) {
-        super(redisson);
+    public TaskRepositoryMemory() {
+        super();
         this.registerTaskResultTypes(TaskResultSubtypes.getClasses());
     }
 }
