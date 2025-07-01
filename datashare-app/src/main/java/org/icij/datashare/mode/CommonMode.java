@@ -22,7 +22,6 @@ import org.icij.datashare.Repository;
 import org.icij.datashare.asynctasks.TaskManager;
 import org.icij.datashare.asynctasks.TaskModifier;
 import org.icij.datashare.asynctasks.TaskRepository;
-import org.icij.datashare.asynctasks.TaskRepositoryMemory;
 import org.icij.datashare.asynctasks.TaskSupplier;
 import org.icij.datashare.asynctasks.TaskWorkerLoop;
 import org.icij.datashare.batch.BatchSearchRepository;
@@ -39,13 +38,7 @@ import org.icij.datashare.extract.MemoryDocumentCollectionFactory;
 import org.icij.datashare.extract.RedisDocumentCollectionFactory;
 import org.icij.datashare.nlp.EmailPipeline;
 import org.icij.datashare.nlp.OptimaizeLanguageGuesser;
-import org.icij.datashare.tasks.DatashareTaskFactory;
-import org.icij.datashare.tasks.TaskManagerAmqp;
-import org.icij.datashare.tasks.TaskManagerMemory;
-import org.icij.datashare.tasks.TaskManagerRedis;
-import org.icij.datashare.tasks.TaskRepositoryRedis;
-import org.icij.datashare.tasks.TaskSupplierAmqp;
-import org.icij.datashare.tasks.TaskSupplierRedis;
+import org.icij.datashare.tasks.*;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.text.indexing.LanguageGuesser;
 import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchIndexer;
@@ -316,7 +309,9 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
                 bind(TaskRepository.class).to(TaskRepositoryRedis.class);
             }
             case DATABASE -> {
-                bind(TaskRepository.class).toInstance(new JooqTaskRepository(repositoryFactory.getDataSource(), repositoryFactory.guessSqlDialect()));
+                JooqTaskRepository jooqTaskRepository = new JooqTaskRepository(repositoryFactory.getDataSource(), repositoryFactory.guessSqlDialect());
+                jooqTaskRepository.registerTaskResultTypes(TaskResultSubtypes.getClasses());
+                bind(TaskRepository.class).toInstance(jooqTaskRepository);
             }
         }
         repositoryFactory.initDatabase();
