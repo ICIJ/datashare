@@ -130,13 +130,13 @@ public class TaskManagerRedis implements TaskManager {
     BlockingQueue<Task<?>> taskQueue(Task<?> task) throws IOException {
         switch (routingStrategy) {
             case GROUP -> {
-                return new RedissonBlockingQueue<>(new RedisCodec<>(Task.class), getCommandSyncService(), String.format("%s.%s", AmqpQueue.TASK.name(), tasks.getTaskGroup(task.id).id()), redissonClient);
+                return new RedissonBlockingQueue<>(new RedisCodec<>(Task.class, TaskRepository.TYPE_INCLUSION_MAPPER), getCommandSyncService(), String.format("%s.%s", AmqpQueue.TASK.name(), tasks.getTaskGroup(task.id).id()), redissonClient);
             }
             case NAME -> {
-                return new RedissonBlockingQueue<>(new RedisCodec<>(Task.class), getCommandSyncService(), String.format("%s.%s", AmqpQueue.TASK.name(), task.name), redissonClient);
+                return new RedissonBlockingQueue<>(new RedisCodec<>(Task.class, TaskRepository.TYPE_INCLUSION_MAPPER), getCommandSyncService(), String.format("%s.%s", AmqpQueue.TASK.name(), task.name), redissonClient);
             }
             default -> {
-                return new RedissonBlockingQueue<>(new RedisCodec<>(Task.class), getCommandSyncService(), AmqpQueue.TASK.name(), redissonClient);
+                return new RedissonBlockingQueue<>(new RedisCodec<>(Task.class, TaskRepository.TYPE_INCLUSION_MAPPER), getCommandSyncService(), AmqpQueue.TASK.name(), redissonClient);
             }
         }
     }
@@ -205,9 +205,13 @@ public class TaskManagerRedis implements TaskManager {
         protected final ObjectMapper mapObjectMapper;
 
         public RedisCodec(Class<T> clazz) {
+            this(clazz, JsonObjectMapper.MAPPER);
+        }
+
+        public RedisCodec(Class<T> clazz, ObjectMapper objectMapper) {
             // Ugly but this doesn't work with type ref directly
             this.clazz = clazz;
-            this.mapObjectMapper = JsonObjectMapper.MAPPER;
+            this.mapObjectMapper = objectMapper;
             this.keyEncoder = in -> {
                 ByteBuf out = ByteBufAllocator.DEFAULT.buffer();
                 out.writeCharSequence(in.toString(), Charset.defaultCharset());

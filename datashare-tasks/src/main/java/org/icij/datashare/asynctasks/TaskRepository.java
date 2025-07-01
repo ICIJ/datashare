@@ -25,7 +25,7 @@ public interface TaskRepository {
 
     Stream<Task<? extends Serializable>> getTasks(TaskFilters filters) throws IOException, UnknownTask;
 
-    default void registerTaskResultTypes(Class<?> ...classesToRegister) {
+    default void registerTaskResultTypes(Class<? extends Serializable> ...classesToRegister) {
         TYPE_INCLUSION_MAPPER.registerSubtypes(classesToRegister);
     }
 }
