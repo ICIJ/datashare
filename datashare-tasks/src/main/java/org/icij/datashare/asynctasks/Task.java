@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import com.fasterxml.jackson.annotation.JsonUnwrapped;
 import java.util.Arrays;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -53,6 +54,7 @@ public class Task<V extends Serializable> extends Event implements Entity, Compa
     private volatile State state;
     private volatile Date completedAt;
     private volatile double progress;
+    @JsonUnwrapped
     private volatile TaskResult<V> result;
 
     public Task(String name, User user, Map<String, Object> args) {
