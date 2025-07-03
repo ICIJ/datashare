@@ -13,8 +13,8 @@ public record TaskResult<V extends Serializable> (
                 @JsonSubTypes.Type(value = Long.class)
         })
         @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "@type")
-        V value) implements Serializable {
-    public TaskResult(V value) {
-        this.value = value;
+        V result) implements Serializable {
+    public TaskResult(V result) {
+        this.result = result;
     }
 }
