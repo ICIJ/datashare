@@ -181,7 +181,7 @@ public class JooqTaskRepositoryTest {
         repository.update(task);
 
 
-        assertThat(repository.getTask(task.getId()).getResult().value()).isEqualTo(new ResultRecord(1, "baz"));
+        assertThat(repository.getTask(task.getId()).getResult().result()).isEqualTo(new ResultRecord(1, "baz"));
     }
 
     @After

@@ -231,7 +231,7 @@ public class TaskResource {
     @Get("/:id/result")
     public Payload getTaskResult(@Parameter(name = "id", description = "task id", in = ParameterIn.PATH) String id, Context context) throws IOException {
         Task<?> task = forbiddenIfNotSameUser(context, notFoundIfUnknown(() -> taskManager.getTask(id)));
-        Object result = ofNullable(task.getResult()).map(TaskResult::value).orElse(null);
+        Object result = ofNullable(task.getResult()).map(TaskResult::result).orElse(null);
         if (result instanceof UriResult uriResult) {
             Path filePath = Path.of(uriResult.uri().getPath());
             String fileName = filePath.getFileName().toString();
