@@ -10,6 +10,10 @@
 <a href="https://icij.gitbook.io/datashare/">User Guide</a>
 </p>
 
+## User survey
+
+Fill our [user survey](https://forms.gle/PYgusFsoBaMyzUec9) about the next Structured Content Datashare features.
+
 ## Download
 
 Datashare is an open-source software developed by the International Consortium of Investigative Journalists (ICIJ). You can use it for free on your computer or install it on your server and analyse your documents with collaborative features.
