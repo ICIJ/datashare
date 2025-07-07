@@ -40,6 +40,7 @@ import org.icij.datashare.batch.BatchSearch;
 import org.icij.datashare.batch.BatchSearchRecord;
 import org.icij.datashare.batch.BatchSearchRepository;
 import org.icij.datashare.batch.WebQueryPagination;
+import org.icij.datashare.cli.Mode;
 import org.icij.datashare.extract.OptionsWrapper;
 import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.tasks.BatchDownloadRunner;
@@ -72,6 +73,8 @@ import java.util.function.Function;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
+import org.icij.datashare.utils.ModeVerifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -110,7 +113,8 @@ public class TaskResource {
     private final DatashareTaskFactory taskFactory;
     private final TaskManager taskManager;
     private final PropertiesProvider propertiesProvider;
-    private final BatchSearchRepository batchSearchRepository;
+    private final BatchSearchRepository batchSearchRepository;;
+    private final ModeVerifier modeVerifier;
     private final int MAX_BATCH_SIZE = 60000;
 
     private static final Logger logger = LoggerFactory.getLogger(TaskResource.class);
@@ -123,6 +127,7 @@ public class TaskResource {
         this.taskManager = taskManager;
         this.propertiesProvider = propertiesProvider;
         this.batchSearchRepository = batchSearchRepository;
+        this.modeVerifier = new ModeVerifier(propertiesProvider);
     }
 
     @Operation(description = """
@@ -402,6 +407,7 @@ public class TaskResource {
     @Post("/batchUpdate/index")
     public Payload indexQueue(final OptionsWrapper<String> optionsWrapper, Context context)
         throws IOException {
+        modeVerifier.checkAllowedMode(Mode.LOCAL, Mode.EMBEDDED);
         Properties properties = applyProjectProperties(optionsWrapper);
         return ofNullable(taskManager.startTask(IndexTask.class, (User) context.currentUser(), propertiesToMap(properties)))
                 .map(id -> new Payload("application/json", String.format("{\"taskId\":\"%s\"}", id), 200))
@@ -422,6 +428,7 @@ public class TaskResource {
     @Post("/batchUpdate/index/:filePath:")
     public Payload indexFile(@Parameter(name = "filePath", description = "path of the directory", in = ParameterIn.PATH) final String filePath, final OptionsWrapper<String> optionsWrapper, Context context)
         throws Exception {
+        modeVerifier.checkAllowedMode(Mode.LOCAL, Mode.EMBEDDED);
         TaskResponse scanResponse = scanFile(filePath, optionsWrapper, context);
         List<String> taskIds = new LinkedList<>();
         taskIds.add(scanResponse.taskId);
@@ -449,6 +456,7 @@ public class TaskResource {
     @ApiResponse(responseCode = "500", description = "returns 500 if startTask fails", content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
     @Post("/batchUpdate/scan/:filePath:")
     public TaskResponse scanFile(@Parameter(name = "filePath", description = "path of the directory", in = ParameterIn.PATH) final String filePath, final OptionsWrapper<String> optionsWrapper, Context context) throws IOException {
+        modeVerifier.checkAllowedMode(Mode.LOCAL, Mode.EMBEDDED);
         Path path = IS_OS_WINDOWS ?  get(filePath) : get(File.separator, filePath);
         Properties properties = applyProjectProperties(optionsWrapper);
         properties.setProperty(DATA_DIR_OPT, path.toString());
@@ -513,6 +521,7 @@ public class TaskResource {
     @ApiResponse(responseCode = "200", description = "returns 200 and the tasks stop result map", useReturnTypeSchema = true)
     @Put("/stopAll")
     public Map<String, Boolean> stopAllTasks(final Context context) throws IOException {
+        modeVerifier.checkAllowedMode(Mode.LOCAL, Mode.EMBEDDED);
         return taskManager.stopTasks(taskFiltersFromContext(context));
     }
 
@@ -534,6 +543,7 @@ public class TaskResource {
     @ApiResponse(responseCode = "200", description = "returns 200 and the tasks stop result map", useReturnTypeSchema = true)
     @Put("/stop")
     public Map<String, Boolean> stopTasks(final Context context) throws IOException {
+        modeVerifier.checkAllowedMode(Mode.LOCAL, Mode.EMBEDDED);
         TaskFilters filters = taskFiltersFromContext(context);
         return taskManager.stopTasks(filters);
     }
@@ -560,6 +570,7 @@ public class TaskResource {
     @ApiResponse(responseCode = "200", description = "returns 200 and the created task ids", content = @Content(schema = @Schema(implementation = TasksResponse.class)))
     @Post("/findNames/:pipeline")
     public Payload extractNlp(@Parameter(name = "pipeline", description = "name of the NLP pipeline to use", in = ParameterIn.PATH) final String pipelineName, final OptionsWrapper<String> optionsWrapper, Context context) throws IOException {
+        modeVerifier.checkAllowedMode(Mode.LOCAL, Mode.EMBEDDED);
         Properties properties = applyProjectProperties(optionsWrapper);
         properties.put(NLP_PIPELINE_OPT, pipelineName);
         syncModels(parseBoolean(properties.getProperty(SYNC_MODELS_OPTION, "true")));

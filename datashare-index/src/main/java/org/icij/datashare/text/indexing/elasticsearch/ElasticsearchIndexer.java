@@ -299,6 +299,7 @@ public class ElasticsearchIndexer implements Indexer {
         }
         return null;
     }
+
     public static String readScriptFile(String painlessFilename) throws IOException {
         InputStream inputStream = ElasticsearchIndexer.class.getClassLoader().getResourceAsStream(painlessFilename);
         if (inputStream != null) {

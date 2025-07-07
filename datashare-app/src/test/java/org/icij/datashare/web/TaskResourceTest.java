@@ -11,6 +11,7 @@ import net.codestory.http.Part;
 import net.codestory.http.Query;
 import net.codestory.http.Request;
 import net.codestory.http.errors.BadRequestException;
+import net.codestory.http.filters.basic.BasicAuthFilter;
 import net.codestory.rest.Response;
 import net.codestory.rest.RestAssert;
 import net.codestory.rest.ShouldChain;
@@ -22,6 +23,7 @@ import org.icij.datashare.asynctasks.TaskRepositoryMemory;
 import org.icij.datashare.asynctasks.bus.amqp.TaskCreation;
 import org.icij.datashare.batch.BatchSearchRecord;
 import org.icij.datashare.batch.BatchSearchRepository;
+import org.icij.datashare.cli.Mode;
 import org.icij.datashare.db.JooqRepository;
 import org.icij.datashare.extension.PipelineRegistry;
 import org.icij.datashare.nlp.EmailPipeline;
@@ -49,7 +51,9 @@ import static org.icij.datashare.asynctasks.Task.State.DONE;
 import static org.icij.datashare.asynctasks.Task.State.RUNNING;
 import static org.icij.datashare.cli.DatashareCliOptions.*;
 import static org.icij.datashare.json.JsonObjectMapper.MAPPER;
+import static org.icij.datashare.session.DatashareUser.singleUser;
 import static org.icij.datashare.text.Project.project;
+import static org.icij.datashare.user.User.local;
 import static org.icij.datashare.web.TaskResource.taskFiltersFromContext;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.eq;
@@ -281,6 +285,35 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
+    public void test_index_file_forbidden_in_server_mode() {
+        configure(routes -> {
+            PropertiesProvider propertiesProvider = new PropertiesProvider(Map.of("mode", Mode.SERVER.name()));
+            TaskResource taskResource = new TaskResource(taskFactory, taskManager, propertiesProvider, batchSearchRepository);
+            BasicAuthFilter basicAuthFilter = new BasicAuthFilter("/", "icij", singleUser(local()));
+            routes.filter(basicAuthFilter).add(taskResource);
+        });
+
+        String path = "/api/task/batchUpdate/index/" + getClass().getResource("/docs/doc.txt").getPath().substring(1);
+        RestAssert response = post(path, "{}").withPreemptiveAuthentication("local", "pass");
+        response.should().respond(403);
+    }
+
+    @Test
+    public void test_index_forbidden_in_server_mode() {
+        configure(routes -> {
+            PropertiesProvider propertiesProvider = new PropertiesProvider(Map.of("mode", Mode.SERVER.name()));
+            TaskResource taskResource = new TaskResource(taskFactory, taskManager, propertiesProvider, batchSearchRepository);
+            BasicAuthFilter basicAuthFilter = new BasicAuthFilter("/", "icij", singleUser(local()));
+            routes.filter(basicAuthFilter).add(taskResource);
+        });
+
+        String path = "/api/task/batchUpdate/index";
+        RestAssert response = post(path, "{}").withPreemptiveAuthentication("local", "pass");
+        response.should().respond(403);
+    }
+
+
+    @Test
     public void test_index_file_without_filter_should_not_pass_report_map_to_task() throws IOException {
         String body = "{\"options\":{\"reportName\": \"foo\"}}";
         post("/api/task/batchUpdate/index/" + getClass().getResource("/docs/doc.txt").getPath().substring(1), body).should().haveType("application/json");
@@ -418,6 +451,20 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
+    public void test_scan_forbidden_in_server_mode() {
+        configure(routes -> {
+            PropertiesProvider propertiesProvider = new PropertiesProvider(Map.of("mode", Mode.SERVER.name()));
+            TaskResource taskResource = new TaskResource(taskFactory, taskManager, propertiesProvider, batchSearchRepository);
+            BasicAuthFilter basicAuthFilter = new BasicAuthFilter("/", "icij", singleUser(local()));
+            routes.filter(basicAuthFilter).add(taskResource);
+        });
+
+        String path = "/api/task/batchUpdate/scan/" + getClass().getResource("/docs").getPath().substring(1);
+        RestAssert response = post(path, "{}").withPreemptiveAuthentication("local", "pass");
+        response.should().respond(403);
+    }
+
+    @Test
     public void test_scan_queue_is_created_correctly() throws IOException {
         String body = "{\"options\":{\"filter\": true, \"defaultProject\": \"foo\"}}";
         String path = Objects.requireNonNull(getClass().getResource("/docs/")).getPath();
@@ -466,6 +513,20 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         assertThat(findTask(taskManager, "org.icij.datashare.tasks.EnqueueFromIndexTask")).isNotNull();
         assertThat(findTask(taskManager, "org.icij.datashare.tasks.ExtractNlpTask")).isNotNull();
         assertThat(findTask(taskManager, "org.icij.datashare.tasks.ExtractNlpTask").get().args).includes(entry("nlpPipeline", "EMAIL"));
+    }
+
+    @Test
+    public void test_findNames_forbidden_in_server_mode() {
+        configure(routes -> {
+            PropertiesProvider propertiesProvider = new PropertiesProvider(Map.of("mode", Mode.SERVER.name()));
+            TaskResource taskResource = new TaskResource(taskFactory, taskManager, propertiesProvider, batchSearchRepository);
+            BasicAuthFilter basicAuthFilter = new BasicAuthFilter("/", "icij", singleUser(local()));
+            routes.filter(basicAuthFilter).add(taskResource);
+        });
+
+        RestAssert response = post("/api/task/findNames/EMAIL", "{}")
+                .withPreemptiveAuthentication("local", "pass");
+        response.should().respond(403);
     }
 
     @Test
