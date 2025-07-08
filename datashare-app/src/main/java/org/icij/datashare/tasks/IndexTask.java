@@ -36,7 +36,7 @@ import static org.icij.datashare.cli.DatashareCliOptions.*;
 @Option(name = DEFAULT_PROJECT_OPT, description = "the default project name")
 @Option(name = "projectName", description = "task project name")
 @TaskGroup(TaskGroupType.Java)
-public class IndexTask extends PipelineTask<Path> implements Monitorable{
+public class IndexTask extends PipelineTask<Path> implements Monitorable {
     private final Logger logger = LoggerFactory.getLogger(getClass());
     private final DocumentQueueDrainer<Path> drainer;
     private final DocumentConsumer consumer;
@@ -44,7 +44,7 @@ public class IndexTask extends PipelineTask<Path> implements Monitorable{
     private final Integer parallelism;
 
     @Inject
-    public IndexTask(final ElasticsearchSpewer spewer, final DocumentCollectionFactory<Path> factory, @Assisted Task<Long> taskView, @Assisted final Function<Double, Void> updateCallback) throws IOException {
+    public IndexTask(final ElasticsearchSpewer spewer, final DocumentCollectionFactory<Path> factory, @Assisted Task taskView, @Assisted final Function<Double, Void> ignored) throws IOException {
         super(Stage.INDEX, taskView.getUser(), factory, new PropertiesProvider(taskView.args), Path.class);
         parallelism = propertiesProvider.get(PARALLELISM_OPT).map(Integer::parseInt).orElse(Runtime.getRuntime().availableProcessors());
 
@@ -63,8 +63,8 @@ public class IndexTask extends PipelineTask<Path> implements Monitorable{
     }
 
     @Override
-    public Long call() throws Exception {
-        super.call();
+    public Long runTask() throws Exception {
+        super.runTask();
         logger.info("Processing up to {} file(s) in parallel", parallelism);
         totalToProcess = drainer.drain(PATH_POISON).get();
         drainer.shutdown();

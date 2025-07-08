@@ -83,6 +83,7 @@ import static org.icij.datashare.cli.DatashareCliOptions.BATCH_QUEUE_TYPE_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.MODE_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.QUEUE_TYPE_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.TASK_REPOSITORY_OPT;
+import static org.icij.datashare.json.JsonObjectMapper.MAPPER;
 import static org.icij.datashare.text.indexing.elasticsearch.ElasticsearchConfiguration.createESClient;
 
 public abstract class CommonMode extends AbstractModule implements Closeable {
@@ -223,6 +224,11 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
         pipelineRegistry.register(EmailPipeline.class);
         pipelineRegistry.register(Pipeline.Type.CORENLP);
         return pipelineRegistry;
+    }
+
+    @Provides @Singleton
+    ObjectMapper provideObjectMapper() {
+        return MAPPER;
     }
 
     public Properties properties() {

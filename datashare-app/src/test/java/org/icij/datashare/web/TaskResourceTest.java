@@ -83,7 +83,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         PipelineRegistry pipelineRegistry = new PipelineRegistry(getDefaultPropertiesProvider());
         pipelineRegistry.register(EmailPipeline.class);
         LocalUserFilter localUserFilter = new LocalUserFilter(getDefaultPropertiesProvider(), jooqRepository);
-        configure(routes -> routes.add(new TaskResource(taskFactory, taskManager, getDefaultPropertiesProvider(), batchSearchRepository)).filter(localUserFilter));
+        configure(routes -> routes.add(new TaskResource(taskFactory, taskManager, getDefaultPropertiesProvider(), batchSearchRepository, MAPPER)).filter(localUserFilter));
         TestTaskUtils.init(taskFactory);
     }
 
@@ -288,7 +288,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
     public void test_index_file_forbidden_in_server_mode() {
         configure(routes -> {
             PropertiesProvider propertiesProvider = new PropertiesProvider(Map.of("mode", Mode.SERVER.name()));
-            TaskResource taskResource = new TaskResource(taskFactory, taskManager, propertiesProvider, batchSearchRepository);
+            TaskResource taskResource = new TaskResource(taskFactory, taskManager, propertiesProvider, batchSearchRepository, MAPPER);
             BasicAuthFilter basicAuthFilter = new BasicAuthFilter("/", "icij", singleUser(local()));
             routes.filter(basicAuthFilter).add(taskResource);
         });
@@ -302,7 +302,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
     public void test_index_forbidden_in_server_mode() {
         configure(routes -> {
             PropertiesProvider propertiesProvider = new PropertiesProvider(Map.of("mode", Mode.SERVER.name()));
-            TaskResource taskResource = new TaskResource(taskFactory, taskManager, propertiesProvider, batchSearchRepository);
+            TaskResource taskResource = new TaskResource(taskFactory, taskManager, propertiesProvider, batchSearchRepository, MAPPER);
             BasicAuthFilter basicAuthFilter = new BasicAuthFilter("/", "icij", singleUser(local()));
             routes.filter(basicAuthFilter).add(taskResource);
         });
@@ -423,7 +423,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         defaultProperties.put("key2", "val2");
         defaultProperties.put("user", User.local());
 
-        List<Task<?>> tasks = taskManager.getTasks().toList();
+        List<Task> tasks = taskManager.getTasks().toList();
         assertThat(tasks).hasSize(1);
         assertThat(tasks.get(0).name).isEqualTo("org.icij.datashare.tasks.IndexTask");
 
@@ -454,7 +454,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
     public void test_scan_forbidden_in_server_mode() {
         configure(routes -> {
             PropertiesProvider propertiesProvider = new PropertiesProvider(Map.of("mode", Mode.SERVER.name()));
-            TaskResource taskResource = new TaskResource(taskFactory, taskManager, propertiesProvider, batchSearchRepository);
+            TaskResource taskResource = new TaskResource(taskFactory, taskManager, propertiesProvider, batchSearchRepository, MAPPER);
             BasicAuthFilter basicAuthFilter = new BasicAuthFilter("/", "icij", singleUser(local()));
             routes.filter(basicAuthFilter).add(taskResource);
         });
@@ -519,7 +519,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
     public void test_findNames_forbidden_in_server_mode() {
         configure(routes -> {
             PropertiesProvider propertiesProvider = new PropertiesProvider(Map.of("mode", Mode.SERVER.name()));
-            TaskResource taskResource = new TaskResource(taskFactory, taskManager, propertiesProvider, batchSearchRepository);
+            TaskResource taskResource = new TaskResource(taskFactory, taskManager, propertiesProvider, batchSearchRepository, MAPPER);
             BasicAuthFilter basicAuthFilter = new BasicAuthFilter("/", "icij", singleUser(local()));
             routes.filter(basicAuthFilter).add(taskResource);
         });
@@ -667,14 +667,16 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
 
     @Test
     public void test_stop_all() throws IOException {
-        String t1Id = taskManager.startTask(TestSleepingTask.class, User.local(), new HashMap<>());
-        String t2Id = taskManager.startTask(TestSleepingTask.class, User.local(), new HashMap<>());
-        put("/api/task/stop").should().respond(200).
-                contain(t1Id + "\":true").
-                contain(t2Id + "\":true");
+        String t1Id = taskManager.startTask(TestSleepingTask.class, User.local(), Map.of("value", 10000));
+        String t2Id = taskManager.startTask(TestSleepingTask.class, User.local(), Map.of("value", 10000));
+        Response res = put("/api/task/stop").response();
+        assertThat(res.code()).isEqualTo(200);
 
         assertThat(taskManager.getTask(t1Id).getState()).isEqualTo(Task.State.CANCELLED);
         assertThat(taskManager.getTask(t2Id).getState()).isEqualTo(Task.State.CANCELLED);
+
+        assertThat(res.content()).contains(t1Id + "\":true");
+        assertThat(res.content()).contains(t2Id + "\":true");
     }
     
     @Test
@@ -745,6 +747,30 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
             "arguments": {"user":{"@type":"org.icij.datashare.user.User", "id":"local","name":null,"email":null,"provider":"local","details":{"uid":"local","groups_by_applications":{"datashare":["local-datashare"]}}
             }}}""", TaskCreation.class.getName()))
                 .should().respond(201);
+    }
+
+    @Test
+    public void test_get_datashare_result() throws IOException {
+        // Given
+        String taskId = taskManager.startTask(TestTask.class, User.local(), Map.of());
+        taskManager.waitTasksToBeDone(1, SECONDS);
+        // When
+        String content = get("/api/task/" + taskId + "/result").response().content();
+        int taskRes = MAPPER.readValue(content, int.class);
+        // Then
+        assertThat(taskRes).isEqualTo(10);
+    }
+
+    @Test
+    public void test_get_language_agnostic_result() throws IOException {
+        // Given
+        String taskId = taskManager.startTask(SerializationTestTask.class, User.local(), Map.of());
+        taskManager.waitTasksToBeDone(1, SECONDS);
+        // When
+        String content = get("/api/task/" + taskId + "/result").response().content();
+        // Then
+        String expectedResult = "{\"value\":10,\"whatever\":{\"any\":\"extra\"}}";
+        assertThat(content).isEqualTo(expectedResult);
     }
 
     @Test
@@ -836,15 +862,15 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
 
     @NotNull
     private Map<String, Object> getDefaultProperties() {
-        HashMap<String, Object> map = new HashMap<>() {{
-            put("dataDir", "/default/data/dir");
-            put("foo", "bar");
-            put("batchDownloadDir", "app/tmp");
-            put("defaultProject", "local-datashare");
-            put("queueName", "extract:queue");
-            put("reportName", "extract:report:local-datashare");
-            put("digestProjectName", "local-datashare");
-        }};
+        Map<String, Object> map = new HashMap<>(Map.of(
+            "dataDir", "/default/data/dir",
+            "foo", "bar",
+            "batchDownloadDir", "app/tmp",
+            "defaultProject", "local-datashare",
+            "queueName", "extract:queue",
+            "reportName", "extract:report:local-datashare",
+            "digestProjectName", "local-datashare"
+        ));
         // Override the queueName with
         map.put("queueName", new PropertiesProvider(PropertiesProvider.fromMap(map)).queueNameWithHash());
         return map;
@@ -855,7 +881,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         return new PropertiesProvider(getDefaultProperties());
     }
 
-    private Optional<Task<?>> findTask(TaskManagerMemory taskManager, String expectedName) throws IOException {
+    private Optional<Task> findTask(TaskManagerMemory taskManager, String expectedName) throws IOException {
         return taskManager.getTasks().filter(t -> expectedName.equals(t.name)).findFirst();
     }
 
