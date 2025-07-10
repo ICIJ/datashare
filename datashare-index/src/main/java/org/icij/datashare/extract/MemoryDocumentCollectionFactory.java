@@ -2,6 +2,7 @@ package org.icij.datashare.extract;
 
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
+import org.icij.datashare.PropertiesProvider;
 import org.icij.extract.queue.DocumentQueue;
 import org.icij.extract.queue.MemoryDocumentQueue;
 import org.icij.extract.report.HashMapReportMap;
@@ -13,19 +14,29 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 import static org.apache.commons.io.FilenameUtils.wildcardMatch;
+import static org.icij.datashare.PropertiesProvider.DEFAULT_QUEUE_CAPACITY;
 
 @Singleton
 public class MemoryDocumentCollectionFactory<T> implements DocumentCollectionFactory<T> {
     public final Map<String, DocumentQueue<T>> queues = new ConcurrentHashMap<>();
     final Map<String, ReportMap> maps = new ConcurrentHashMap<>();
-    // The size of the internal file path buffer used by the queue
-    final int QUEUE_CAPACITY = (int) 1e6;
+    private final int queueCapacity;
+
+    @Inject
+    public MemoryDocumentCollectionFactory() {
+        this.queueCapacity = DEFAULT_QUEUE_CAPACITY;
+    }
+
+    @Inject
+    public MemoryDocumentCollectionFactory(final PropertiesProvider propertiesProvider) {
+        this.queueCapacity = propertiesProvider.queueCapacity() ;
+    }
 
     @Override
     public DocumentQueue<T> createQueue(String queueName, Class<T> clazz) {
         synchronized (queues) {
             if (!queues.containsKey(queueName)) {
-                queues.put(queueName, new MemoryDocumentQueue<>(queueName, QUEUE_CAPACITY));
+                queues.put(queueName, new MemoryDocumentQueue<>(queueName, queueCapacity));
             }
         }
         return queues.get(queueName);
