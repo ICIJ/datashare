@@ -108,6 +108,7 @@ public final class DatashareCliOptions {
     public static final String PROTECTED_URI_PREFIX_OPT = "protectedUriPrefix";
     public static final String QUEUE_NAME_OPT = "queueName";
     public static final String QUEUE_TYPE_OPT = "queueType";
+    public static final String QUEUE_CAPACITY_OPT = "queueCapacity";
     public static final String REDIS_ADDRESS_OPT = "redisAddress";
     public static final String REDIS_POOL_SIZE_OPT = "redisPoolSize";
     public static final String REPORT_NAME_OPT = "reportName";
@@ -167,6 +168,7 @@ public final class DatashareCliOptions {
     public static final int DEFAULT_NLP_MAX_TEXT_LENGTH = 1024;
     public static final String DEFAULT_PROTECTED_URI_PREFIX = "/api/";
     public static final String DEFAULT_QUEUE_NAME = "extract:queue";
+    public static final int DEFAULT_QUEUE_CAPACITY = (int) 1e6;
     public static final String DEFAULT_REDIS_ADDRESS = "redis://redis:6379";
     public static final String DEFAULT_USER = "local";
     public static final boolean DEFAULT_BROWSER_OPEN_LINK = false;
@@ -431,6 +433,13 @@ public final class DatashareCliOptions {
                     "Backend queues and sets type.")
                     .withRequiredArg().ofType(QueueType.class)
                     .defaultsTo(DEFAULT_QUEUE_TYPE);
+        }
+    static void queueCapacity(OptionParser parser) {
+            parser.acceptsAll(
+                    singletonList(QUEUE_CAPACITY_OPT),
+                    "Queue capacity is the size of the internal file path buffer used by the queue.")
+                    .withRequiredArg().ofType(Integer.class)
+                    .defaultsTo(DEFAULT_QUEUE_CAPACITY);
         }
 
     static void fileParserParallelism(OptionParser parser) {

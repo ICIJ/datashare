@@ -192,7 +192,7 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
     @Provides @Singleton
     DocumentCollectionFactory<Path> provideScanQueue(final PropertiesProvider propertiesProvider) {
         return switch (getQueueType(propertiesProvider, QUEUE_TYPE_OPT, QueueType.MEMORY)) {
-            case MEMORY -> new MemoryDocumentCollectionFactory<>();
+            case MEMORY -> new MemoryDocumentCollectionFactory<>(propertiesProvider);
             case REDIS, AMQP -> new RedisDocumentCollectionFactory<>(propertiesProvider, get(RedissonClient.class));
         };
     }
@@ -200,7 +200,7 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
     @Provides @Singleton
     DocumentCollectionFactory<String> provideIndexQueue(final PropertiesProvider propertiesProvider) {
         return switch (getQueueType(propertiesProvider, QUEUE_TYPE_OPT, QueueType.MEMORY)) {
-            case MEMORY -> new MemoryDocumentCollectionFactory<>();
+            case MEMORY -> new MemoryDocumentCollectionFactory<>(propertiesProvider);
             case REDIS, AMQP -> new RedisDocumentCollectionFactory<>(propertiesProvider, get(RedissonClient.class));
         };
     }
