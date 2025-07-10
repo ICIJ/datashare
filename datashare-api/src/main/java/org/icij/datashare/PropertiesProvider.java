@@ -20,6 +20,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static java.lang.Character.toUpperCase;
+import static java.lang.Integer.parseInt;
 import static java.lang.System.getenv;
 import static java.util.Arrays.stream;
 import static java.util.stream.Collectors.joining;
@@ -42,9 +43,10 @@ public class PropertiesProvider {
     public static final String SYNC_MODELS_OPTION = "syncModels";
     public static final List<String> QUEUE_HASH_PROPERTIES = List.of(DATA_DIR_OPTION);
     public static final String QUEUE_SEPARATOR = ":";
+    public static final String QUEUE_CAPACITY_OPT = "queueCapacity";
+    public static final int DEFAULT_QUEUE_CAPACITY = (int) 1e6;
 
-
-    private Logger logger = LoggerFactory.getLogger(getClass());
+    private final Logger logger = LoggerFactory.getLogger(getClass());
     private final Path settingsPath;
     private volatile Properties cachedProperties;
 
@@ -201,6 +203,13 @@ public class PropertiesProvider {
         return get(QUEUE_NAME_OPTION).orElse("extract:queue");
     }
 
+    public int queueCapacity() {
+        try {
+            return parseInt(get(QUEUE_CAPACITY_OPT).orElse(String.valueOf(DEFAULT_QUEUE_CAPACITY)));
+        } catch (NumberFormatException e) {
+            return  DEFAULT_QUEUE_CAPACITY;
+        }
+    }
 
     private void putAllIfIsAbsent(Properties dest, Properties propertiesToMerge) {
         for (Map.Entry entry: propertiesToMerge.entrySet()) {

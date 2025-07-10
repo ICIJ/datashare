@@ -164,8 +164,9 @@ public class DatashareCli {
         DatashareCliOptions.oauthClaimIdAttribute(parser);
         DatashareCliOptions.esHost(parser);
         DatashareCliOptions.queueName(parser);
-        DatashareCliOptions.cors(parser);
         DatashareCliOptions.queueType(parser);
+        DatashareCliOptions.queueCapacity(parser);
+        DatashareCliOptions.cors(parser);
         DatashareCliOptions.busType(parser);
         DatashareCliOptions.messageBusAddress(parser);
         DatashareCliOptions.redisAddress(parser);

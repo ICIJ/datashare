@@ -23,6 +23,8 @@ import static java.lang.String.format;
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static joptsimple.util.RegexMatcher.regex;
+import static org.icij.datashare.PropertiesProvider.DEFAULT_QUEUE_CAPACITY;
+import static org.icij.datashare.PropertiesProvider.QUEUE_CAPACITY_OPT;
 
 
 public final class DatashareCliOptions {
@@ -427,6 +429,14 @@ public final class DatashareCliOptions {
                     .defaultsTo(DEFAULT_REDIS_ADDRESS);
         }
 
+    static void queueName(OptionParser parser) {
+        parser.acceptsAll(
+                        singletonList(QUEUE_NAME_OPT), "Extract queue name")
+                .withRequiredArg()
+                .ofType(String.class)
+                .defaultsTo(DEFAULT_QUEUE_NAME);
+    }
+
     static void queueType(OptionParser parser) {
             parser.acceptsAll(
                     singletonList(QUEUE_TYPE_OPT),
@@ -434,6 +444,14 @@ public final class DatashareCliOptions {
                     .withRequiredArg().ofType(QueueType.class)
                     .defaultsTo(DEFAULT_QUEUE_TYPE);
         }
+    static void queueCapacity(OptionParser parser) {
+            parser.acceptsAll(
+                    singletonList(QUEUE_CAPACITY_OPT),
+                    "Queue capacity is the size of the internal file path buffer used by the queue.")
+                    .withRequiredArg().ofType(Integer.class)
+                    .defaultsTo(DEFAULT_QUEUE_CAPACITY);
+        }
+
     static void queueCapacity(OptionParser parser) {
             parser.acceptsAll(
                     singletonList(QUEUE_CAPACITY_OPT),
@@ -662,13 +680,6 @@ public final class DatashareCliOptions {
                 .defaultsTo(DEFAULT_CLUSTER_NAME);
     }
 
-    static void queueName(OptionParser parser) {
-        parser.acceptsAll(
-                singletonList(QUEUE_NAME_OPT), "Extract queue name")
-                .withRequiredArg()
-                .ofType(String.class)
-                .defaultsTo(DEFAULT_QUEUE_NAME);
-    }
 
     static OptionSpec<Void> help(OptionParser parser) {
         return parser.acceptsAll(asList(HELP_OPT, HELP_ABBR_OPT, "?")).forHelp();

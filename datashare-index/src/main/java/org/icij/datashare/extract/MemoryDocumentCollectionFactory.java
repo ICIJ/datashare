@@ -8,16 +8,13 @@ import org.icij.extract.queue.MemoryDocumentQueue;
 import org.icij.extract.report.HashMapReportMap;
 import org.icij.extract.report.ReportMap;
 
-import static java.lang.Integer.parseInt;
-import static java.lang.String.valueOf;
-
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 import static org.apache.commons.io.FilenameUtils.wildcardMatch;
-import static org.icij.datashare.cli.DatashareCliOptions.*;
+import static org.icij.datashare.PropertiesProvider.DEFAULT_QUEUE_CAPACITY;
 
 @Singleton
 public class MemoryDocumentCollectionFactory<T> implements DocumentCollectionFactory<T> {
@@ -26,8 +23,13 @@ public class MemoryDocumentCollectionFactory<T> implements DocumentCollectionFac
     private final int queueCapacity;
 
     @Inject
+    public MemoryDocumentCollectionFactory() {
+        this.queueCapacity = DEFAULT_QUEUE_CAPACITY;
+    }
+
+    @Inject
     public MemoryDocumentCollectionFactory(final PropertiesProvider propertiesProvider) {
-        this.queueCapacity = parseInt(propertiesProvider.get(QUEUE_CAPACITY_OPT).orElse(valueOf(DEFAULT_QUEUE_CAPACITY)));
+        this.queueCapacity = propertiesProvider.queueCapacity() ;
     }
 
     @Override

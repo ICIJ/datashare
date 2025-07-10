@@ -295,8 +295,15 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
         repositoryFactory.initDatabase();
     }
 
-    protected boolean hasProperty(QueueType queueType) {
+    protected boolean hasQueueType(QueueType queueType) {
         return propertiesProvider.getProperties().contains(queueType.name());
+    }
+
+    protected int getQueueCapacity() {
+        if(hasQueueType(QueueType.MEMORY)) {
+            return propertiesProvider.queueCapacity();
+        }
+        return -1;
     }
 
     private Routes defaultRoutes(final Routes routes) {

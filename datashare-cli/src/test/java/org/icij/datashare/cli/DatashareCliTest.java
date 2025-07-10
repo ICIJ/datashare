@@ -219,4 +219,12 @@ public class DatashareCliTest {
         cli.parseArguments(new String[] {});
         assertThat(cli.properties).includes(entry("pluginsDir", "/home/datashare/.local/share/datashare/plugins"));
     }
+
+    @Test
+    public void test_queue_capacity_exists() {
+        cli.parseArguments(new String[] {});
+        assertThat(cli.properties).includes(entry("queueCapacity", "1000000")); // 1e6
+        cli.parseArguments(new String[] {"--queueCapacity", "10"});
+        assertThat(cli.properties).includes(entry("queueCapacity", "10"));
+    }
 }
