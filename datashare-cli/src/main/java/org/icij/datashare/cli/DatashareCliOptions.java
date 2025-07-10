@@ -23,6 +23,8 @@ import static java.lang.String.format;
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static joptsimple.util.RegexMatcher.regex;
+import static org.icij.datashare.PropertiesProvider.DEFAULT_QUEUE_CAPACITY;
+import static org.icij.datashare.PropertiesProvider.QUEUE_CAPACITY_OPT;
 
 
 public final class DatashareCliOptions {
@@ -108,6 +110,7 @@ public final class DatashareCliOptions {
     public static final String PROTECTED_URI_PREFIX_OPT = "protectedUriPrefix";
     public static final String QUEUE_NAME_OPT = "queueName";
     public static final String QUEUE_TYPE_OPT = "queueType";
+    public static final String QUEUE_CAPACITY_OPT = "queueCapacity";
     public static final String REDIS_ADDRESS_OPT = "redisAddress";
     public static final String REDIS_POOL_SIZE_OPT = "redisPoolSize";
     public static final String REPORT_NAME_OPT = "reportName";
@@ -167,6 +170,7 @@ public final class DatashareCliOptions {
     public static final int DEFAULT_NLP_MAX_TEXT_LENGTH = 1024;
     public static final String DEFAULT_PROTECTED_URI_PREFIX = "/api/";
     public static final String DEFAULT_QUEUE_NAME = "extract:queue";
+    public static final int DEFAULT_QUEUE_CAPACITY = (int) 1e6;
     public static final String DEFAULT_REDIS_ADDRESS = "redis://redis:6379";
     public static final String DEFAULT_USER = "local";
     public static final boolean DEFAULT_BROWSER_OPEN_LINK = false;
@@ -425,12 +429,27 @@ public final class DatashareCliOptions {
                     .defaultsTo(DEFAULT_REDIS_ADDRESS);
         }
 
+    static void queueName(OptionParser parser) {
+        parser.acceptsAll(
+                        singletonList(QUEUE_NAME_OPT), "Extract queue name")
+                .withRequiredArg()
+                .ofType(String.class)
+                .defaultsTo(DEFAULT_QUEUE_NAME);
+    }
+
     static void queueType(OptionParser parser) {
             parser.acceptsAll(
                     singletonList(QUEUE_TYPE_OPT),
                     "Backend queues and sets type.")
                     .withRequiredArg().ofType(QueueType.class)
                     .defaultsTo(DEFAULT_QUEUE_TYPE);
+        }
+    static void queueCapacity(OptionParser parser) {
+            parser.acceptsAll(
+                    singletonList(QUEUE_CAPACITY_OPT),
+                    "Queue capacity is the size of the internal file path buffer used by the queue.")
+                    .withRequiredArg().ofType(Integer.class)
+                    .defaultsTo(DEFAULT_QUEUE_CAPACITY);
         }
 
     static void fileParserParallelism(OptionParser parser) {
@@ -653,13 +672,6 @@ public final class DatashareCliOptions {
                 .defaultsTo(DEFAULT_CLUSTER_NAME);
     }
 
-    static void queueName(OptionParser parser) {
-        parser.acceptsAll(
-                singletonList(QUEUE_NAME_OPT), "Extract queue name")
-                .withRequiredArg()
-                .ofType(String.class)
-                .defaultsTo(DEFAULT_QUEUE_NAME);
-    }
 
     static OptionSpec<Void> help(OptionParser parser) {
         return parser.acceptsAll(asList(HELP_OPT, HELP_ABBR_OPT, "?")).forHelp();
