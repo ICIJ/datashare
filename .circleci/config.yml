@@ -142,7 +142,6 @@ jobs:
             wget --no-check-certificate --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo apt-key add -
             sudo apt-get update
             sudo apt-get install -y postgresql-client-15
-            PGPASSWORD=test psql -h postgres -U dstest dstest -c "CREATE DATABASE datashare_liquibase;"
       - run:
           name: Generate db doc
           environment:
