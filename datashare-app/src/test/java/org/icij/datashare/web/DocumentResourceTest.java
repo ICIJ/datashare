@@ -33,6 +33,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Properties;
 import java.util.stream.Collectors;
 
 import static java.util.Arrays.asList;
@@ -63,6 +64,7 @@ public class DocumentResourceTest extends AbstractProdWebServerTest {
         initMocks(this);
         mockIndexer = new MockIndexer(indexer);
         when(propertiesProvider.get(EMBEDDED_DOCUMENT_DOWNLOAD_MAX_SIZE_OPT)).thenReturn(Optional.of("1G"));
+        when(propertiesProvider.getProperties()).thenReturn(new Properties());
         configure(routes -> {
             routes.add(new DocumentResource(jooqRepository, indexer, propertiesProvider))
                     .filter(new LocalUserFilter(new PropertiesProvider(), jooqRepository));

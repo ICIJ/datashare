@@ -1,6 +1,5 @@
 package org.icij.datashare.tasks;
 
-import java.util.List;
 import org.icij.datashare.PipelineHelper;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Stage;

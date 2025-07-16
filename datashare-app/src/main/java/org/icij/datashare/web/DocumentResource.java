@@ -2,6 +2,7 @@ package org.icij.datashare.web;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import io.swagger.v3.oas.annotations.Operation;
@@ -41,7 +42,8 @@ import org.icij.datashare.utils.PayloadFormatter;
 import org.icij.extract.document.DocumentFactory;
 import org.icij.extract.extractor.EmbeddedDocumentExtractor;
 import org.icij.extract.extractor.Extractor;
-import org.icij.extract.extractor.Pair;
+import org.icij.extract.extractor.PageIndices;
+import org.icij.task.DefaultTask;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -67,7 +69,7 @@ import static org.icij.datashare.text.Project.project;
 @Singleton
 @Prefix("/api")
 public class DocumentResource {
-    private Logger logger = LoggerFactory.getLogger(getClass());
+    private final Logger logger = LoggerFactory.getLogger(getClass());
     private final Repository repository;
     private final Indexer indexer;
     private final PropertiesProvider propertiesProvider;
@@ -170,15 +172,15 @@ public class DocumentResource {
     )
     @ApiResponse(responseCode = "200", description = "JSON containing pages indices parameters",  useReturnTypeSchema = true)
     @Get("/:project/documents/pages/:id?routing=:routing")
-    public List<Pair<Long, Long>> getPages(final String project, final String id, final String routing) throws IOException {
+    public PageIndices getPages(final String project, final String id, final String routing) throws IOException {
         Document doc = indexer.get(project, id, routing, List.of("content","content_translated"));
         final Extractor extractor = getExtractor(doc);
         if (doc.isRootDocument()) {
-            return extractor.extractPageIndices(doc.getPath());
+            return extractor.extractPageIndices(doc.getPath(), metadata -> true, doc.getId());
         } else {
             return extractor.extractPageIndices(doc.getPath(),
                     metadata -> doc.getTitle().equals(metadata.get("resourceName")) ||
-                            "INLINE".equals(metadata.get("embeddedResourceType")));
+                            "INLINE".equals(metadata.get("embeddedResourceType")), doc.getId());
         }
     }
 
@@ -453,11 +455,10 @@ public class DocumentResource {
     }
 
     @NotNull
-    private static Extractor getExtractor(Document doc) {
+    private Extractor getExtractor(Document doc) {
         Hasher hasher = Hasher.valueOf(doc.getId().length());
         DocumentFactory documentFactory = new DocumentFactory().configure(org.icij.task.Options.from(Map.of("digestAlgorithm", hasher.toString())));
-        final Extractor extractor = new Extractor(documentFactory);
-        return extractor;
+        return new Extractor(documentFactory).configure(org.icij.task.Options.from(propertiesProvider.getProperties()));
     }
 
     private ExtractedText getAllExtractedText(final String id, final String targetLanguage) throws IllegalArgumentException {
