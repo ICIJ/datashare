@@ -144,22 +144,6 @@ jobs:
             sudo apt-get install -y postgresql-client-15
             PGPASSWORD=test psql -h postgres -U dstest dstest -c "CREATE DATABASE datashare_liquibase;"
       - run:
-          name: Make dist without frontend
-          command: mvn -pl datashare-dist package -am -Dmaven.test.skip=true
-      - run:
-          name: Populate apigen index
-          command: ./doc/apigen/populate_apigen.sh
-      - run:
-          name: Launch datashare apigen
-          command: ./doc/apigen/datashare_for_apigen.sh
-          background: true
-      - run:
-          name: Generate openAPI doc
-          command: |
-            curl --retry 10 --retry-delay 5 --retry-all-errors -o /dev/null  'http://localhost:8080/api/openapi'
-            ~/datashare-docs/gen_openapi.sh http://localhost:8080/api/openapi > ~/datashare-docs/developers/backend/api.md
-            curl -s http://localhost:8080/api/openapi | jq > ~/datashare-docs/developers/backend/datashare_openapi.json
-      - run:
           name: Generate db doc
           environment:
             PGDB: datashare_liquibase
