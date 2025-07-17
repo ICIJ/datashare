@@ -27,10 +27,12 @@ import net.codestory.http.types.ContentTypes;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Repository;
 import org.icij.datashare.Repository.AggregateList;
+import org.icij.datashare.cli.DatashareCliOptions;
 import org.icij.datashare.session.DatashareUser;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.FileExtension;
 import org.icij.datashare.text.Hasher;
+import org.icij.datashare.text.Project;
 import org.icij.datashare.text.Tag;
 import org.icij.datashare.text.indexing.ExtractedText;
 import org.icij.datashare.text.indexing.Indexer;
@@ -51,10 +53,12 @@ import org.slf4j.LoggerFactory;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Path;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Properties;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -63,6 +67,7 @@ import static java.util.Arrays.stream;
 import static java.util.Optional.ofNullable;
 import static net.codestory.http.errors.NotFoundException.notFoundIfNull;
 import static net.codestory.http.payload.Payload.ok;
+import static org.icij.datashare.cli.DatashareCliOptions.ARTIFACT_DIR_OPT;
 import static org.icij.datashare.text.Project.isAllowed;
 import static org.icij.datashare.text.Project.project;
 
@@ -458,7 +463,14 @@ public class DocumentResource {
     private Extractor getExtractor(Document doc) {
         Hasher hasher = Hasher.valueOf(doc.getId().length());
         DocumentFactory documentFactory = new DocumentFactory().configure(org.icij.task.Options.from(Map.of("digestAlgorithm", hasher.toString())));
-        return new Extractor(documentFactory).configure(org.icij.task.Options.from(propertiesProvider.getProperties()));
+        // we need to set the embedOutput from the project
+        Properties props = new Properties() {{
+            put("embedOutput", getArtifactPath(doc.getProject()));
+        }};
+        Properties merged = propertiesProvider.createMerged(props);
+        org.icij.task.Options<String> options = org.icij.task.Options.from(merged);
+
+        return new Extractor(documentFactory).configure(options);
     }
 
     private ExtractedText getAllExtractedText(final String id, final String targetLanguage) throws IllegalArgumentException {
@@ -507,5 +519,9 @@ public class DocumentResource {
         Tag[] tagsAsArray(User user) {
             return tags.stream().map(label -> new Tag(label, user)).toArray(Tag[]::new);
         }
+    }
+
+    private Path getArtifactPath(Project project) {
+        return propertiesProvider.get(DatashareCliOptions.ARTIFACT_DIR_OPT).map(dir -> Path.of(dir).resolve(project.name)).orElse(null);
     }
 }
