@@ -22,6 +22,7 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.slf4j.event.Level;
 
@@ -39,6 +40,7 @@ import java.util.stream.Collectors;
 import static java.util.Arrays.asList;
 import static java.util.stream.Stream.of;
 import static org.fest.assertions.Assertions.assertThat;
+import static org.icij.datashare.cli.DatashareCliOptions.ARTIFACT_DIR_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.EMBEDDED_DOCUMENT_DOWNLOAD_MAX_SIZE_OPT;
 import static org.icij.datashare.text.DocumentBuilder.createDoc;
 import static org.icij.datashare.text.Project.project;
@@ -65,6 +67,7 @@ public class DocumentResourceTest extends AbstractProdWebServerTest {
         mockIndexer = new MockIndexer(indexer);
         when(propertiesProvider.get(EMBEDDED_DOCUMENT_DOWNLOAD_MAX_SIZE_OPT)).thenReturn(Optional.of("1G"));
         when(propertiesProvider.getProperties()).thenReturn(new Properties());
+        when(propertiesProvider.createMerged(any())).thenCallRealMethod();
         configure(routes -> {
             routes.add(new DocumentResource(jooqRepository, indexer, propertiesProvider))
                     .filter(new LocalUserFilter(new PropertiesProvider(), jooqRepository));
@@ -455,6 +458,21 @@ public class DocumentResourceTest extends AbstractProdWebServerTest {
                 .should().respond(200)
                 .haveType("application/json")
                 .contain("[[0,16],[17,33]]");
+    }
+
+    @Test
+    public void test_get_page_indices_creates_cache() {
+        when(propertiesProvider.get(ARTIFACT_DIR_OPT)).thenReturn(Optional.of(temp.getRoot().toString()));
+        String path = getClass().getResource("/docs/embedded_doc.eml").getPath();
+        mockIndexer.indexFile("local-datashare",
+                "d365f488df3c84ecd6d7aa752ca268b78589f2082e4fe2fbe9f62dff6b3a6b74bedc645ec6df9ae5599dab7631433623",
+                Paths.get(path), "application/pdf", "id_eml", Map.of("tika_metadata_resourcename", "embedded.pdf"));
+
+        get("/api/local-datashare/documents/pages/d365f488df3c84ecd6d7aa752ca268b78589f2082e4fe2fbe9f62dff6b3a6b74bedc645ec6df9ae5599dab7631433623?routing=id_eml")
+                .should().respond(200);
+        System.out.println(temp.getRoot().toPath().resolve("local-datashare/d365f488df3c84ecd6d7aa752ca268b78589f2082e4fe2fbe9f62dff6b3a6b74bedc645ec6df9ae5599dab7631433623").toFile().listFiles());
+        assertThat(temp.getRoot().toPath().resolve("local-datashare/d365f488df3c84ecd6d7aa752ca268b78589f2082e4fe2fbe9f62dff6b3a6b74bedc645ec6df9ae5599dab7631433623").toFile())
+                .isFile();
     }
 
     @Test
