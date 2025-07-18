@@ -22,7 +22,6 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
-import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.slf4j.event.Level;
 
@@ -451,10 +450,10 @@ public class DocumentResourceTest extends AbstractProdWebServerTest {
     public void test_get_page_indices() {
         String path = getClass().getResource("/docs/embedded_doc.eml").getPath();
         mockIndexer.indexFile("local-datashare",
-                "d365f488df3c84ecd6d7aa752ca268b78589f2082e4fe2fbe9f62dff6b3a6b74bedc645ec6df9ae5599dab7631433623",
+                "0b1d64039d870e3a067027ff2c321ee238bb39bbf2598ed8aa77016156bfad59",
                 Paths.get(path), "application/pdf", "id_eml", Map.of("tika_metadata_resourcename", "embedded.pdf"));
 
-        get("/api/local-datashare/documents/pages/d365f488df3c84ecd6d7aa752ca268b78589f2082e4fe2fbe9f62dff6b3a6b74bedc645ec6df9ae5599dab7631433623?routing=id_eml")
+        get("/api/local-datashare/documents/pages/0b1d64039d870e3a067027ff2c321ee238bb39bbf2598ed8aa77016156bfad59?routing=id_eml")
                 .should().respond(200)
                 .haveType("application/json")
                 .contain("[[0,16],[17,33]]");
@@ -465,24 +464,23 @@ public class DocumentResourceTest extends AbstractProdWebServerTest {
         when(propertiesProvider.get(ARTIFACT_DIR_OPT)).thenReturn(Optional.of(temp.getRoot().toString()));
         String path = getClass().getResource("/docs/embedded_doc.eml").getPath();
         mockIndexer.indexFile("local-datashare",
-                "d365f488df3c84ecd6d7aa752ca268b78589f2082e4fe2fbe9f62dff6b3a6b74bedc645ec6df9ae5599dab7631433623",
+                "0b1d64039d870e3a067027ff2c321ee238bb39bbf2598ed8aa77016156bfad59",
                 Paths.get(path), "application/pdf", "id_eml", Map.of("tika_metadata_resourcename", "embedded.pdf"));
 
-        get("/api/local-datashare/documents/pages/d365f488df3c84ecd6d7aa752ca268b78589f2082e4fe2fbe9f62dff6b3a6b74bedc645ec6df9ae5599dab7631433623?routing=id_eml")
-                .should().respond(200);
-        System.out.println(temp.getRoot().toPath().resolve("local-datashare/d365f488df3c84ecd6d7aa752ca268b78589f2082e4fe2fbe9f62dff6b3a6b74bedc645ec6df9ae5599dab7631433623").toFile().listFiles());
-        assertThat(temp.getRoot().toPath().resolve("local-datashare/d365f488df3c84ecd6d7aa752ca268b78589f2082e4fe2fbe9f62dff6b3a6b74bedc645ec6df9ae5599dab7631433623").toFile())
-                .isFile();
+        get("/api/local-datashare/documents/pages/0b1d64039d870e3a067027ff2c321ee238bb39bbf2598ed8aa77016156bfad59?routing=id_eml").should().respond(200);
+        File cacheDir = temp.getRoot().toPath().resolve("local-datashare/0b/1d/0b1d64039d870e3a067027ff2c321ee238bb39bbf2598ed8aa77016156bfad59").toFile();
+        assertThat(cacheDir).isDirectory();
+        assertThat(cacheDir.listFiles()).isNotEmpty();
     }
 
     @Test
     public void test_get_pages() throws JsonProcessingException {
         String path = getClass().getResource("/docs/embedded_doc.eml").getPath();
         mockIndexer.indexFile("local-datashare",
-                "d365f488df3c84ecd6d7aa752ca268b78589f2082e4fe2fbe9f62dff6b3a6b74bedc645ec6df9ae5599dab7631433623",
+                "0b1d64039d870e3a067027ff2c321ee238bb39bbf2598ed8aa77016156bfad59",
                 Paths.get(path), "application/pdf", "id_eml", Map.of("tika_metadata_resourcename", "embedded.pdf"));
 
-        Response response = get("/api/local-datashare/documents/content/pages/d365f488df3c84ecd6d7aa752ca268b78589f2082e4fe2fbe9f62dff6b3a6b74bedc645ec6df9ae5599dab7631433623?routing=id_eml").response();
+        Response response = get("/api/local-datashare/documents/content/pages/0b1d64039d870e3a067027ff2c321ee238bb39bbf2598ed8aa77016156bfad59?routing=id_eml").response();
         assertThat(response.code()).isEqualTo(200);
         assertThat(response.contentType()).isEqualTo("application/json;charset=UTF-8");
         List<String> json = JsonObjectMapper.MAPPER.readValue(response.content(), new TypeReference<>() {});
