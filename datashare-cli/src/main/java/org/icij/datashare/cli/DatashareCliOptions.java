@@ -441,14 +441,6 @@ public final class DatashareCliOptions {
                     .defaultsTo(DEFAULT_QUEUE_CAPACITY);
         }
 
-    static void queueCapacity(OptionParser parser) {
-            parser.acceptsAll(
-                    singletonList(QUEUE_CAPACITY_OPT),
-                    "Queue capacity is the size of the internal file path buffer used by the queue.")
-                    .withRequiredArg().ofType(Integer.class)
-                    .defaultsTo(DEFAULT_QUEUE_CAPACITY);
-        }
-
     static void fileParserParallelism(OptionParser parser) {
         parser.acceptsAll(
                 asList(PARSER_PARALLELISM_ABBR_OPT, PARSER_PARALLELISM_OPT),
