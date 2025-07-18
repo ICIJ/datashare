@@ -12,7 +12,7 @@ import org.redisson.api.RedissonClient;
 
 import java.nio.charset.Charset;
 
-import static org.icij.datashare.PropertiesProvider.QUEUE_NAME_OPTION;
+import static org.icij.datashare.PropertiesProvider.QUEUE_NAME_OPT;
 
 public class RedisUserDocumentQueue<T> extends RedisDocumentQueue<T> {
     private final String queueName;
@@ -25,7 +25,7 @@ public class RedisUserDocumentQueue<T> extends RedisDocumentQueue<T> {
 
     public RedisUserDocumentQueue(final User user, PropertiesProvider propertiesProvider, Class<T> clazz) {
         this(propertiesProvider, new RedissonClientFactory().withOptions(Options.from(propertiesProvider.getProperties())).create(),
-                getQueueName(user, propertiesProvider.get(QUEUE_NAME_OPTION).orElse("extract:queue")), clazz);
+                getQueueName(user, propertiesProvider.get(QUEUE_NAME_OPT).orElse("extract:queue")), clazz);
     }
 
     @Override

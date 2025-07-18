@@ -28,7 +28,7 @@ public class PluginService extends DeliverableService<Plugin> {
 
     @Inject
     public PluginService(PropertiesProvider propertiesProvider, ExtensionService  extensionService) {
-        this(Paths.get(propertiesProvider.get(PropertiesProvider.PLUGINS_DIR).orElse("." + PLUGINS_BASE_URL)), extensionService);
+        this(Paths.get(propertiesProvider.get(PropertiesProvider.PLUGINS_DIR_OPT).orElse("." + PLUGINS_BASE_URL)), extensionService);
     }
 
     public PluginService(Path pluginsDir) { this(pluginsDir, ClassLoader.getSystemResourceAsStream(DEFAULT_PLUGIN_REGISTRY_FILENAME));}

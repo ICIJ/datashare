@@ -19,6 +19,8 @@ import org.icij.task.annotation.OptionsClass;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
+import static org.icij.datashare.PropertiesProvider.DATA_DIR_OPT;
+
 @OptionsClass(Scanner.class)
 @TaskGroup(TaskGroupType.Java)
 public class ScanTask extends PipelineTask<Path> {
@@ -29,7 +31,7 @@ public class ScanTask extends PipelineTask<Path> {
     public ScanTask(DocumentCollectionFactory<Path> factory, @Assisted Task<Long> task, @Assisted Function<Double, Void> updateCallback) {
         super(Stage.SCAN, task.getUser(), factory, new PropertiesProvider(task.args), Path.class);
         scanner = new Scanner(outputQueue).configure(options().createFrom(Options.from(task.args)));
-        path = Paths.get((String)task.args.get(DatashareCliOptions.DATA_DIR_OPT));
+        path = Paths.get((String)task.args.get(DATA_DIR_OPT));
     }
 
     @Override

@@ -11,8 +11,8 @@ import java.nio.file.Paths;
 import java.util.Map;
 
 import static org.fest.assertions.Assertions.assertThat;
-import static org.icij.datashare.cli.DatashareCliOptions.DATA_DIR_OPT;
-import static org.icij.datashare.cli.DatashareCliOptions.QUEUE_NAME_OPT;
+import static org.icij.datashare.PropertiesProvider.DATA_DIR_OPT;
+import static org.icij.datashare.PropertiesProvider.QUEUE_NAME_OPT;
 
 public class ScanTaskTest extends TestCase {
     private final MemoryDocumentCollectionFactory<Path> documentCollectionFactory = new MemoryDocumentCollectionFactory<>();

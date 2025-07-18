@@ -17,7 +17,7 @@ import java.util.stream.Collectors;
 
 import static org.fest.assertions.Assertions.assertThat;
 import static org.icij.datashare.Deliverable.Type.WEB;
-import static org.icij.datashare.PropertiesProvider.EXTENSIONS_DIR;
+import static org.icij.datashare.PropertiesProvider.EXTENSIONS_DIR_OPT;
 
 public class ExtensionServiceTest {
     @Rule public TemporaryFolder extensionFolder = new TemporaryFolder();
@@ -58,7 +58,7 @@ public class ExtensionServiceTest {
     @Test
     public void test_extension_service_from_properties() {
         ExtensionService extensionService = new ExtensionService(new PropertiesProvider(new HashMap<>() {{
-            put(EXTENSIONS_DIR, extensionFolder.getRoot().getPath());
+            put(EXTENSIONS_DIR_OPT, extensionFolder.getRoot().getPath());
         }}));
         assertThat(extensionService.deliverablesDir.toString()).isEqualTo(extensionFolder.getRoot().getPath());
     }

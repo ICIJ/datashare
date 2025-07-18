@@ -23,6 +23,7 @@ import static java.lang.String.format;
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static joptsimple.util.RegexMatcher.regex;
+import static org.icij.datashare.PropertiesProvider.*;
 
 
 public final class DatashareCliOptions {
@@ -49,20 +50,16 @@ public final class DatashareCliOptions {
     public static final String CRE_API_KEY_ABBR_OPT = "k";
     public static final String CRE_API_KEY_OPT = "createApiKey";
     public static final String DATA_DIR_ABBR_OPT = "d";
-    public static final String DATA_DIR_OPT = "dataDir";
     public static final String DATA_SOURCE_URL_OPT = "dataSourceUrl";
     public static final String DEFAULT_OCR_TYPE = "TESSERACT";
     public static final String DEFAULT_PROJECT_ABBR_OPT = "p";
-    public static final String DEFAULT_PROJECT_OPT = "defaultProject";
     public static final String DEFAULT_USER_NAME_ABBR_OPT = "u";
     public static final String DEFAULT_USER_NAME_OPT = "defaultUserName";
     public static final String DEL_API_KEY_OPT = "deleteApiKey";
     public static final String DIGEST_ALGORITHM_OPT = "digestAlgorithm";
-    public static final String DIGEST_PROJECT_NAME_OPT = "digestProjectName";
     public static final String ELASTICSEARCH_ADDRESS_OPT = "elasticsearchAddress";
     public static final String ELASTICSEARCH_DATA_PATH_OPT = "elasticsearchDataPath";
     public static final String EMBEDDED_DOCUMENT_DOWNLOAD_MAX_SIZE_OPT = "embeddedDocumentDownloadMaxSize";
-    public static final String EXTENSIONS_DIR_OPT = "extensionsDir";
     public static final String EXTENSION_DELETE_OPT = "extensionDelete";
     public static final String EXTENSION_INSTALL_OPT = "extensionInstall";
     public static final String EXTENSION_LIST_OPT = "extensionList";
@@ -100,29 +97,24 @@ public final class DatashareCliOptions {
     public static final String PARALLELISM_OPT = "parallelism";
     public static final String PARSER_PARALLELISM_ABBR_OPT = "pp";
     public static final String PARSER_PARALLELISM_OPT = "parserParallelism";
-    public static final String PLUGINS_DIR_OPT = "pluginsDir";
     public static final String PLUGIN_DELETE_OPT = "pluginDelete";
     public static final String PLUGIN_INSTALL_OPT = "pluginInstall";
     public static final String PLUGIN_LIST_OPT = "pluginList";
     public static final String PORT_OPT = "port";
     public static final String PROTECTED_URI_PREFIX_OPT = "protectedUriPrefix";
-    public static final String QUEUE_NAME_OPT = "queueName";
     public static final String QUEUE_TYPE_OPT = "queueType";
+    public static final String QUEUE_CAPACITY_OPT = "queueCapacity";
     public static final String REDIS_ADDRESS_OPT = "redisAddress";
     public static final String REDIS_POOL_SIZE_OPT = "redisPoolSize";
-    public static final String REPORT_NAME_OPT = "reportName";
     public static final String RESUME_ABBR_OPT = "r";
-    public static final String RESUME_OPT = "resume";
     public static final String ROOT_HOST_OPT = "rootHost";
     public static final String SCROLL_DURATION_OPT = "scroll";
     public static final String SCROLL_SIZE_OPT = "scrollSize";
     public static final String SCROLL_SLICES_OPT = "scrollSlices";
     public static final String SESSION_STORE_TYPE_OPT = "sessionStoreType";
     public static final String SESSION_TTL_SECONDS_OPT = "sessionTtlSeconds";
-    public static final String SETTINGS_OPT = "settings";
     public static final String SETTING_ABBR_OPT = "s";
     public static final String SMTP_URL_OPT = "smtpUrl";
-    public static final String TCP_LISTEN_PORT_OPT = "tcpListenPort";
     public static final String VERSION_ABBR_OPT = "v";
     public static final String VERSION_OPT = "version";
     public static final String ARTIFACT_DIR_OPT = "artifactDir";
@@ -167,6 +159,7 @@ public final class DatashareCliOptions {
     public static final int DEFAULT_NLP_MAX_TEXT_LENGTH = 1024;
     public static final String DEFAULT_PROTECTED_URI_PREFIX = "/api/";
     public static final String DEFAULT_QUEUE_NAME = "extract:queue";
+    public static final int DEFAULT_QUEUE_CAPACITY = (int) 1e6;
     public static final String DEFAULT_REDIS_ADDRESS = "redis://redis:6379";
     public static final String DEFAULT_USER = "local";
     public static final boolean DEFAULT_BROWSER_OPEN_LINK = false;
@@ -425,12 +418,27 @@ public final class DatashareCliOptions {
                     .defaultsTo(DEFAULT_REDIS_ADDRESS);
         }
 
+    static void queueName(OptionParser parser) {
+        parser.acceptsAll(
+                        singletonList(QUEUE_NAME_OPT), "Extract queue name")
+                .withRequiredArg()
+                .ofType(String.class)
+                .defaultsTo(DEFAULT_QUEUE_NAME);
+    }
+
     static void queueType(OptionParser parser) {
             parser.acceptsAll(
                     singletonList(QUEUE_TYPE_OPT),
                     "Backend queues and sets type.")
                     .withRequiredArg().ofType(QueueType.class)
                     .defaultsTo(DEFAULT_QUEUE_TYPE);
+        }
+    static void queueCapacity(OptionParser parser) {
+            parser.acceptsAll(
+                    singletonList(QUEUE_CAPACITY_OPT),
+                    "Queue capacity is the size of the internal file path buffer used by the queue.")
+                    .withRequiredArg().ofType(Integer.class)
+                    .defaultsTo(DEFAULT_QUEUE_CAPACITY);
         }
 
     static void fileParserParallelism(OptionParser parser) {
@@ -653,13 +661,6 @@ public final class DatashareCliOptions {
                 .defaultsTo(DEFAULT_CLUSTER_NAME);
     }
 
-    static void queueName(OptionParser parser) {
-        parser.acceptsAll(
-                singletonList(QUEUE_NAME_OPT), "Extract queue name")
-                .withRequiredArg()
-                .ofType(String.class)
-                .defaultsTo(DEFAULT_QUEUE_NAME);
-    }
 
     static OptionSpec<Void> help(OptionParser parser) {
         return parser.acceptsAll(asList(HELP_OPT, HELP_ABBR_OPT, "?")).forHelp();

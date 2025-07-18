@@ -44,7 +44,7 @@ public class PipelineHelper {
     }
 
     static String getInputQueueName(PropertiesProvider propertiesProvider) {
-        return propertiesProvider.get(PropertiesProvider.QUEUE_NAME_OPTION).orElse("extract:queue");
+        return propertiesProvider.get(PropertiesProvider.QUEUE_NAME_OPT).orElse("extract:queue");
     }
 
     @Override
