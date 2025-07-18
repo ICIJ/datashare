@@ -27,24 +27,24 @@ import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toMap;
 
 public class PropertiesProvider {
-    public static final String PLUGINS_DIR = "pluginsDir";
-    public static final String EXTENSIONS_DIR = "extensionsDir";
-    public static final String TCP_LISTEN_PORT = "tcpListenPort";
-    private static final String PREFIX = "DS_DOCKER_";
     private static final String DEFAULT_DATASHARE_PROPERTIES_FILE_NAME = "datashare.properties";
-    public static final String SETTINGS_FILE_PARAMETER_KEY = "settings";
-    public static final String QUEUE_NAME_OPTION = "queueName";
+    private static final String PREFIX = "DS_DOCKER_";
     public static final String SET_NAME_OPTION = "filterSet";
-    public static final String MAP_NAME_OPTION = "reportName";
-    public static final String DATA_DIR_OPTION = "dataDir";
-    public static final String DEFAULT_PROJECT_OPTION = "defaultProject";
-    public static final String DIGEST_PROJECT_NAME_OPTION = "digestProjectName";
-    public static final String RESUME_OPTION = "resume";
     public static final String SYNC_MODELS_OPTION = "syncModels";
-    public static final List<String> QUEUE_HASH_PROPERTIES = List.of(DATA_DIR_OPTION);
-    public static final String QUEUE_SEPARATOR = ":";
+    public static final String DATA_DIR_OPT = "dataDir";
+    public static final String DEFAULT_PROJECT_OPT = "defaultProject";
+    public static final String DIGEST_PROJECT_NAME_OPT = "digestProjectName";
+    public static final String EXTENSIONS_DIR_OPT = "extensionsDir";
+    public static final String PLUGINS_DIR_OPT = "pluginsDir";
+    public static final String QUEUE_NAME_OPT = "queueName";
     public static final String QUEUE_CAPACITY_OPT = "queueCapacity";
     public static final int DEFAULT_QUEUE_CAPACITY = (int) 1e6;
+    public static final List<String> QUEUE_HASH_PROPERTIES = List.of(DATA_DIR_OPT);
+    public static final String QUEUE_SEPARATOR = ":";
+    public static final String REPORT_NAME_OPT = "reportName";
+    public static final String RESUME_OPT = "resume";
+    public static final String SETTINGS_OPT = "settings";
+    public static final String TCP_LISTEN_PORT_OPT = "tcpListenPort";
 
     private final Logger logger = LoggerFactory.getLogger(getClass());
     private final Path settingsPath;
@@ -132,12 +132,12 @@ public class PropertiesProvider {
     }
 
     public PropertiesProvider overrideQueueNameWithHash() {
-        Map<String, String> map = Map.of(QUEUE_NAME_OPTION, queueNameWithHash());
+        Map<String, String> map = Map.of(QUEUE_NAME_OPT, queueNameWithHash());
         return new PropertiesProvider(createOverriddenWith(map));
     }
 
     public PropertiesProvider overrideQueueNameWithHash(String defaultProject) {
-        Properties properties = createOverriddenWith(Map.of(DEFAULT_PROJECT_OPTION, defaultProject));
+        Properties properties = createOverriddenWith(Map.of(DEFAULT_PROJECT_OPT, defaultProject));
         PropertiesProvider propertiesProvider = new PropertiesProvider(properties);
         return propertiesProvider.overrideQueueNameWithHash();
     }
@@ -190,7 +190,7 @@ public class PropertiesProvider {
     }
 
     public String queueHash() {
-        String defaultProject = get(DEFAULT_PROJECT_OPTION).orElse("-");
+        String defaultProject = get(DEFAULT_PROJECT_OPT).orElse("-");
         return Stream.concat(Stream.of(defaultProject), queueHashProperties().stream())
                 .collect(Collectors.joining(QUEUE_SEPARATOR));
     }
@@ -200,7 +200,7 @@ public class PropertiesProvider {
     }
 
     public String queueName() {
-        return get(QUEUE_NAME_OPTION).orElse("extract:queue");
+        return get(QUEUE_NAME_OPT).orElse("extract:queue");
     }
 
     public int queueCapacity() {
