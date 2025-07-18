@@ -17,8 +17,8 @@ import java.util.Map;
 import java.util.Properties;
 
 import static java.util.Optional.ofNullable;
-import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_PROJECT_OPT;
-import static org.icij.datashare.cli.DatashareCliOptions.DIGEST_PROJECT_NAME_OPT;
+import static org.icij.datashare.PropertiesProvider.DEFAULT_PROJECT_OPT;
+import static org.icij.datashare.PropertiesProvider.DIGEST_PROJECT_NAME_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.NO_DIGEST_PROJECT_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.OAUTH_USER_PROJECTS_KEY_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.OPT_ALIASES;

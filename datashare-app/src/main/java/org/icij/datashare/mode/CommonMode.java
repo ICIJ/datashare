@@ -96,7 +96,7 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
 
     protected CommonMode(Properties properties) {
         propertiesProvider = properties == null ? new PropertiesProvider() :
-                new PropertiesProvider(properties.getProperty(PropertiesProvider.SETTINGS_FILE_PARAMETER_KEY)).overrideWith(properties);
+                new PropertiesProvider(properties.getProperty(PropertiesProvider.SETTINGS_OPT)).overrideWith(properties);
         this.mode = getMode(properties);
         
         // Eager load extension JARs before Guice injector creation
@@ -326,11 +326,11 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
     }
 
     private String getExtensionsDir() {
-        return propertiesProvider.getProperties().getProperty(PropertiesProvider.EXTENSIONS_DIR);
+        return propertiesProvider.getProperties().getProperty(PropertiesProvider.EXTENSIONS_DIR_OPT);
     }
 
     private String getPluginsDir() {
-        return propertiesProvider.getProperties().getProperty(PropertiesProvider.PLUGINS_DIR);
+        return propertiesProvider.getProperties().getProperty(PropertiesProvider.PLUGINS_DIR_OPT);
     }
 
     private boolean isEligibleForLoading(Class<?> c) {

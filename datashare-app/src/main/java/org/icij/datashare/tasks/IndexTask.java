@@ -28,6 +28,8 @@ import java.nio.file.Path;
 import static java.lang.Math.max;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.icij.datashare.PropertiesProvider.DEFAULT_PROJECT_OPT;
+import static org.icij.datashare.PropertiesProvider.REPORT_NAME_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.*;
 
 @OptionsClass(Extractor.class)

@@ -51,7 +51,7 @@
     import static net.codestory.http.errors.NotFoundException.notFoundIfNull;
     import static net.codestory.http.payload.Payload.ok;
     import static org.apache.tika.utils.StringUtils.isEmpty;
-    import static org.icij.datashare.PropertiesProvider.QUEUE_NAME_OPTION;
+    import static org.icij.datashare.PropertiesProvider.QUEUE_NAME_OPT;
     import static org.icij.datashare.text.Project.isAllowed;
 
     @Singleton
@@ -253,7 +253,7 @@
         List<DocumentQueue<Path>> getQueues(Project project) {
             String name = project.getName();
             Properties properties = propertiesProvider.createOverriddenWith(Map.of("defaultProject", name));
-            String defaultQueueName = properties.getOrDefault(QUEUE_NAME_OPTION, "extract:queue").toString();
+            String defaultQueueName = properties.getOrDefault(QUEUE_NAME_OPT, "extract:queue").toString();
             String queuePrefix =  defaultQueueName + PropertiesProvider.QUEUE_SEPARATOR + name;
             String queuePattern = queuePrefix + PropertiesProvider.QUEUE_SEPARATOR + "*";
             return Stream.concat(

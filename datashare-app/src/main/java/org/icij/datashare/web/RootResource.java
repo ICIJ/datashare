@@ -10,7 +10,6 @@ import net.codestory.http.Context;
 import net.codestory.http.annotations.Get;
 import net.codestory.http.annotations.Prefix;
 import org.apache.tika.Tika;
-import org.apache.tika.config.TikaConfig;
 import org.icij.datashare.ExtensionService;
 import org.icij.datashare.PluginService;
 import org.icij.datashare.PropertiesProvider;
@@ -29,8 +28,8 @@ import java.util.Map;
 import java.util.Properties;
 
 import static org.apache.commons.io.IOUtils.copy;
-import static org.icij.datashare.PropertiesProvider.EXTENSIONS_DIR;
-import static org.icij.datashare.PropertiesProvider.PLUGINS_DIR;
+import static org.icij.datashare.PropertiesProvider.EXTENSIONS_DIR_OPT;
+import static org.icij.datashare.PropertiesProvider.PLUGINS_DIR_OPT;
 
 @Singleton
 @OpenAPIDefinition(info = @Info(title = "Datashare HTTP API", version = "v1"))
@@ -94,12 +93,12 @@ public class RootResource {
     }
 
     private boolean hasPluginsDir() {
-        String pluginsDir = propertiesProvider.get(PLUGINS_DIR).orElse(null);
+        String pluginsDir = propertiesProvider.get(PLUGINS_DIR_OPT).orElse(null);
         return pluginsDir != null && new File(pluginsDir).isDirectory();
     }
 
     private boolean hasExtensionsDir() {
-        String pluginsDir = propertiesProvider.get(EXTENSIONS_DIR).orElse(null);
+        String pluginsDir = propertiesProvider.get(EXTENSIONS_DIR_OPT).orElse(null);
         return pluginsDir != null && new File(pluginsDir).isDirectory();
     }
 

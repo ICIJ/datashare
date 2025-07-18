@@ -53,7 +53,7 @@ public class WebApp {
                 .withSelectThreads(2)
                 .withWebSocketThreads(1)
                 .configure(mode.createWebConfiguration())
-                .start(parseInt(mode.properties().getProperty(PropertiesProvider.TCP_LISTEN_PORT)));
+                .start(parseInt(mode.properties().getProperty(PropertiesProvider.TCP_LISTEN_PORT_OPT)));
 
         if (isEmbeddedAMQP(properties, taskWorkersNb)) {
             ExecutorService executorService = Executors.newFixedThreadPool(taskWorkersNb);
@@ -63,8 +63,8 @@ public class WebApp {
 
         if (Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(Desktop.Action.BROWSE) &&
                 parseBoolean(properties.getProperty(BROWSER_OPEN_LINK_OPT))) {
-            waitForServerToBeUp(parseInt(mode.properties().getProperty(PropertiesProvider.TCP_LISTEN_PORT)));
-            Desktop.getDesktop().browse(URI.create(new URI("http://localhost:") + mode.properties().getProperty(PropertiesProvider.TCP_LISTEN_PORT)));
+            waitForServerToBeUp(parseInt(mode.properties().getProperty(PropertiesProvider.TCP_LISTEN_PORT_OPT)));
+            Desktop.getDesktop().browse(URI.create(new URI("http://localhost:") + mode.properties().getProperty(PropertiesProvider.TCP_LISTEN_PORT_OPT)));
         }
         requeueDatabaseBatchSearches(mode.get(BatchSearchRepository.class), mode.get(TaskManager.class));
     }
