@@ -31,9 +31,8 @@ import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
-import static org.icij.datashare.PropertiesProvider.DEFAULT_PROJECT_OPTION;
+import static org.icij.datashare.PropertiesProvider.DEFAULT_PROJECT_OPT;
 
 
 public class SourceExtractor {
@@ -138,7 +137,7 @@ public class SourceExtractor {
     }
 
     private String getDefaultProject() {
-        return this.propertiesProvider.get(DEFAULT_PROJECT_OPTION).orElse("local-datashare");
+        return this.propertiesProvider.get(DEFAULT_PROJECT_OPT).orElse("local-datashare");
     }
 
     private boolean isServerMode() {

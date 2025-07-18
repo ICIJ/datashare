@@ -47,6 +47,8 @@ import static java.lang.String.format;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.fest.assertions.Assertions.assertThat;
 import static org.fest.assertions.MapAssert.entry;
+import static org.icij.datashare.PropertiesProvider.DATA_DIR_OPT;
+import static org.icij.datashare.PropertiesProvider.REPORT_NAME_OPT;
 import static org.icij.datashare.asynctasks.Task.State.DONE;
 import static org.icij.datashare.asynctasks.Task.State.RUNNING;
 import static org.icij.datashare.cli.DatashareCliOptions.*;

@@ -27,9 +27,9 @@ import java.util.concurrent.TimeUnit;
 
 import static java.lang.String.valueOf;
 import static java.util.Optional.ofNullable;
+import static org.icij.datashare.PropertiesProvider.DEFAULT_PROJECT_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_DEFAULT_PROJECT;
 import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_POLLING_INTERVAL_SEC;
-import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_PROJECT_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.MAX_CONTENT_LENGTH_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.NLP_PIPELINE_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.POLLING_INTERVAL_SECONDS_OPT;
