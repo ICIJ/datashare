@@ -79,15 +79,11 @@ import static com.fasterxml.jackson.databind.DeserializationFeature.ACCEPT_EMPTY
 import static java.util.Optional.ofNullable;
 import static org.icij.datashare.LambdaExceptionUtils.rethrowConsumer;
 import static org.icij.datashare.PluginService.PLUGINS_BASE_URL;
-import static org.icij.datashare.cli.DatashareCliOptions.BATCH_QUEUE_TYPE_OPT;
-import static org.icij.datashare.cli.DatashareCliOptions.MODE_OPT;
-import static org.icij.datashare.cli.DatashareCliOptions.QUEUE_TYPE_OPT;
-import static org.icij.datashare.cli.DatashareCliOptions.TASK_REPOSITORY_OPT;
+import static org.icij.datashare.cli.DatashareCliOptions.*;
 import static org.icij.datashare.text.indexing.elasticsearch.ElasticsearchConfiguration.createESClient;
 
 public abstract class CommonMode extends AbstractModule implements Closeable {
     protected Logger logger = LoggerFactory.getLogger(getClass());
-    public static final String DS_TASK_MANAGER_MAP_NAME = "ds:task:manager:tasks";
 
     protected final PropertiesProvider propertiesProvider;
     protected final Mode mode;
@@ -151,7 +147,7 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
         bind(PropertiesProvider.class).toInstance(propertiesProvider);
         install(new FactoryModuleBuilder().build(DatashareTaskFactory.class));
 
-        QueueType batchQueueType = getQueueType(propertiesProvider, BATCH_QUEUE_TYPE_OPT, QueueType.MEMORY);
+        QueueType batchQueueType = getQueueType(propertiesProvider, BATCH_QUEUE_TYPE_OPT, DEFAULT_BATCH_QUEUE_TYPE);
         switch ( batchQueueType ) {
             case REDIS:
                 bind(TaskManager.class).to(TaskManagerRedis.class);
@@ -191,7 +187,7 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
 
     @Provides @Singleton
     DocumentCollectionFactory<Path> provideScanQueue(final PropertiesProvider propertiesProvider) {
-        return switch (getQueueType(propertiesProvider, QUEUE_TYPE_OPT, QueueType.MEMORY)) {
+        return switch (getQueueType(propertiesProvider, QUEUE_TYPE_OPT, DEFAULT_QUEUE_TYPE)) {
             case MEMORY -> new MemoryDocumentCollectionFactory<>(propertiesProvider);
             case REDIS, AMQP -> new RedisDocumentCollectionFactory<>(propertiesProvider, get(RedissonClient.class));
         };
@@ -199,7 +195,7 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
 
     @Provides @Singleton
     DocumentCollectionFactory<String> provideIndexQueue(final PropertiesProvider propertiesProvider) {
-        return switch (getQueueType(propertiesProvider, QUEUE_TYPE_OPT, QueueType.MEMORY)) {
+        return switch (getQueueType(propertiesProvider, QUEUE_TYPE_OPT, DEFAULT_QUEUE_TYPE)) {
             case MEMORY -> new MemoryDocumentCollectionFactory<>(propertiesProvider);
             case REDIS, AMQP -> new RedisDocumentCollectionFactory<>(propertiesProvider, get(RedissonClient.class));
         };
