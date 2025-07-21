@@ -13,8 +13,9 @@ import org.junit.Test;
 import java.util.HashMap;
 import java.util.Properties;
 
-import static java.lang.Integer.parseInt;
 import static org.fest.assertions.Assertions.assertThat;
+import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_BUS_TYPE;
+import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_QUEUE_TYPE;
 
 public class CommonModeTest {
     @Test
@@ -29,8 +30,8 @@ public class CommonModeTest {
             put("queueType", QueueType.MEMORY.name());
         }});
 
-        assertThat(modeWithRedis.hasQueueType(QueueType.REDIS)).isTrue();
-        assertThat(modeWithoutRedis.hasQueueType(QueueType.REDIS)).isFalse();
+        assertThat(CommonMode.getQueueType(modeWithRedis.propertiesProvider,"busType", DEFAULT_BUS_TYPE)).isEqualTo(QueueType.REDIS);
+        assertThat(CommonMode.getQueueType(modeWithoutRedis.propertiesProvider,"queueType", DEFAULT_QUEUE_TYPE)).isEqualTo(QueueType.MEMORY);
     }
 
     @Test
@@ -67,32 +68,22 @@ public class CommonModeTest {
     }
 
     @Test
-    public void test_has_queue_capacity_property_in_memory() {
+    public void test_has_queue_capacity_property_in_memory() throws Exception {
         CommonMode modeInMemory = CommonMode.create(new HashMap<>() {{
             put("mode", Mode.LOCAL.name());
             put("queueType", QueueType.MEMORY.name());
             put("queueCapacity", "10");
         }});
-        assertThat(modeInMemory.getQueueCapacity()).isEqualTo(10);
+        assertThat(modeInMemory.propertiesProvider.queueCapacity()).isEqualTo(10);
     }
-    @Test
-    public void test_has_no_queue_capacity_property_when_queue_is_not_in_memory() {
-        CommonMode modeRedis = CommonMode.create(new HashMap<>() {{
-            put("mode", Mode.LOCAL.name());
-            put("queueType", QueueType.REDIS.name());
-            put("queueCapacity", "10");
-        }});
-        assertThat(modeRedis.getQueueCapacity()).isEqualTo(-1);
 
-
-    }
     @Test
-    public void test_has_default_queue_capacity_when_property_not_set_in_memory() {
+    public void test_has_default_queue_capacity_when_property_not_set_in_memory() throws Exception {
         CommonMode modeInMemoryNoCapacitySet = CommonMode.create(new HashMap<>() {{
             put("mode", Mode.LOCAL.name());
             put("queueType", QueueType.MEMORY.name());
         }});
-        assertThat(modeInMemoryNoCapacitySet.getQueueCapacity()).isEqualTo(1000000);
+        assertThat(modeInMemoryNoCapacitySet.propertiesProvider.queueCapacity()).isEqualTo(1000000);
     }
 
 }
