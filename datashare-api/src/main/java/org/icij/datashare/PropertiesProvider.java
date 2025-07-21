@@ -203,12 +203,12 @@ public class PropertiesProvider {
         return get(QUEUE_NAME_OPT).orElse("extract:queue");
     }
 
-    public int queueCapacity() {
-        try {
-            return parseInt(get(QUEUE_CAPACITY_OPT).orElse(String.valueOf(DEFAULT_QUEUE_CAPACITY)));
-        } catch (NumberFormatException e) {
-            return  DEFAULT_QUEUE_CAPACITY;
-        }
+    public int queueCapacity() throws IllegalArgumentException {
+            int qC = parseInt(get(QUEUE_CAPACITY_OPT).orElse(String.valueOf(DEFAULT_QUEUE_CAPACITY)));
+            if( qC < 1 ){
+                throw new IllegalArgumentException("Queue capacity must be a positive integer");
+            }
+            return qC;
     }
 
     private void putAllIfIsAbsent(Properties dest, Properties propertiesToMerge) {

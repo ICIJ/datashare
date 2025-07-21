@@ -225,6 +225,27 @@ public class PropertiesProviderTest {
         assertThat(foo.queueNameWithHash()).startsWith("extract:queue:foo:");
         assertThat(bar.queueNameWithHash()).startsWith("extract:queue:bar:");
     }
+    @Test(expected = NumberFormatException.class)
+    public void test_queue_capacity_is_a_number() {
+        PropertiesProvider foo = new PropertiesProvider(Map.of("queueCapacity", "foo"));
+        foo.queueCapacity();
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void test_queue_capacity_throw_an_exception_when_negative_number() {
+        PropertiesProvider foo = new PropertiesProvider(Map.of("queueCapacity", "-1"));
+        foo.queueCapacity();
+    }
+    @Test
+    public void test_queue_capacity_positive_number() {
+        PropertiesProvider foo = new PropertiesProvider(Map.of("queueCapacity", "1"));
+        assertThat(foo.queueCapacity()).isEqualTo(1);
+    }
+    @Test
+    public void test_queue_capacity_default_number_is_1e6() {
+        PropertiesProvider foo = new PropertiesProvider();
+        assertThat(foo.queueCapacity()).isEqualTo(1000000);
+    }
 
     @Test
     public void test_properties_to_map() {
