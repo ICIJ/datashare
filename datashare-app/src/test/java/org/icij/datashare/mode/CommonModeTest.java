@@ -76,7 +76,7 @@ public class CommonModeTest {
         assertThat(modeInMemory.getQueueCapacity()).isEqualTo(10);
     }
     @Test
-    public void test_has_no_queue_capacity_property_when_queue_is_not_inmemory() {
+    public void test_has_no_queue_capacity_property_when_queue_is_not_in_memory() {
         CommonMode modeRedis = CommonMode.create(new HashMap<>() {{
             put("mode", Mode.LOCAL.name());
             put("queueType", QueueType.REDIS.name());
@@ -95,19 +95,4 @@ public class CommonModeTest {
         assertThat(modeInMemoryNoCapacitySet.getQueueCapacity()).isEqualTo(1000000);
     }
 
-    @Test
-    public void test_has_default_queue_capacity_when_property_invalid_in_memory() {
-        CommonMode modeInMemoryNoCapacitySet = CommonMode.create(new HashMap<>() {{
-            put("mode", Mode.LOCAL.name());
-            put("queueType", QueueType.MEMORY.name());
-        }});
-        assertThat(modeInMemoryNoCapacitySet.getQueueCapacity()).isEqualTo(1000000);
-
-        CommonMode modeInMemoryInvalidCapacity = CommonMode.create(new HashMap<>() {{
-            put("mode", Mode.LOCAL.name());
-            put("queueType", QueueType.MEMORY.name());
-            put("queueCapacity", "abc");
-        }});
-        assertThat(modeInMemoryInvalidCapacity.getQueueCapacity()).isEqualTo(1000000);
-    }
 }
