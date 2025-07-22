@@ -68,6 +68,7 @@ public final class DatashareCliOptions {
     public static final String GET_API_KEY_OPT = "apiKey";
     public static final String HELP_ABBR_OPT = "h";
     public static final String HELP_OPT = "help";
+    public static final String INDEX_TIMEOUT_OPT = "indexTimeout";
     public static final String LANGUAGE_ABBR_OPT = "l";
     public static final String LANGUAGE_OPT = "language";
     public static final String LOG_LEVEL_OPT = "logLevel";
@@ -151,6 +152,7 @@ public final class DatashareCliOptions {
     public static final String DEFAULT_ELASTICSEARCH_DATA_PATH = DEFAULT_DATASHARE_HOME.resolve("es").toString();
     public static final String DEFAULT_EMBEDDED_DOCUMENT_DOWNLOAD_MAX_SIZE = "1G";
     public static final String DEFAULT_EXTENSIONS_DIR = DEFAULT_DATASHARE_HOME.resolve("extensions").toString();
+    public static final int DEFAULT_INDEX_TIMEOUT = 30;
     public static final boolean DEFAULT_FOLLOW_SYMLINKS = true;
     public static final String DEFAULT_LOG_LEVEL = Level.INFO.toString();
     public static final String DEFAULT_MESSAGE_BUS_ADDRESS = "redis://redis:6379";
@@ -337,6 +339,13 @@ public final class DatashareCliOptions {
                 .ofType(String.class);
     }
 
+    static void indexTimeout(OptionParser parser) {
+        parser.acceptsAll(singletonList(INDEX_TIMEOUT_OPT), "Time to wait in minutes before consumer termination during document indexing (Default 30m)")
+                .withRequiredArg()
+                .withValuesConvertedBy(new PositiveIntegerConverter())
+                .defaultsTo(DEFAULT_INDEX_TIMEOUT);
+    }
+
     static void genApiKey(OptionParser parser) {
         parser.acceptsAll(asList(CRE_API_KEY_ABBR_OPT, CRE_API_KEY_OPT), "Generate and store api key for user defaultUser (see opt)")
                 .withRequiredArg()
@@ -438,6 +447,7 @@ public final class DatashareCliOptions {
                     singletonList(QUEUE_CAPACITY_OPT),
                     "Queue capacity is the size of the internal file path buffer used by the queue.")
                     .withRequiredArg().ofType(Integer.class)
+                    .withValuesConvertedBy(new PositiveIntegerConverter())
                     .defaultsTo(DEFAULT_QUEUE_CAPACITY);
         }
 
