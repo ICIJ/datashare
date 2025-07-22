@@ -163,6 +163,7 @@ public class DatashareCli {
         DatashareCliOptions.defaultProject(parser);
         DatashareCliOptions.oauthClaimIdAttribute(parser);
         DatashareCliOptions.esHost(parser);
+        DatashareCliOptions.indexTimeout(parser);
         DatashareCliOptions.queueName(parser);
         DatashareCliOptions.queueType(parser);
         DatashareCliOptions.queueCapacity(parser);

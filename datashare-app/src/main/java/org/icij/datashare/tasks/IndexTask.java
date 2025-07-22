@@ -26,6 +26,7 @@ import java.io.IOException;
 import java.nio.file.Path;
 
 import static java.lang.Math.max;
+import static java.lang.String.valueOf;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.icij.datashare.PropertiesProvider.DEFAULT_PROJECT_OPT;
@@ -44,11 +45,13 @@ public class IndexTask extends PipelineTask<Path> implements Monitorable{
     private final DocumentConsumer consumer;
     private long totalToProcess;
     private final Integer parallelism;
+    private final Integer indexTimeout;
 
     @Inject
     public IndexTask(final ElasticsearchSpewer spewer, final DocumentCollectionFactory<Path> factory, @Assisted Task<Long> taskView, @Assisted final Function<Double, Void> updateCallback) throws IOException {
         super(Stage.INDEX, taskView.getUser(), factory, new PropertiesProvider(taskView.args), Path.class);
         parallelism = propertiesProvider.get(PARALLELISM_OPT).map(Integer::parseInt).orElse(Runtime.getRuntime().availableProcessors());
+        indexTimeout = getIndexTimeout();
 
         Options<String> allTaskOptions = options().createFrom(Options.from(taskView.args));
         ((ElasticsearchSpewer) spewer.configure(allTaskOptions)).createIndexIfNotExists();
@@ -75,7 +78,7 @@ public class IndexTask extends PipelineTask<Path> implements Monitorable{
 
         consumer.shutdown();
         // documents could be currently processed
-        while (!consumer.awaitTermination(30, MINUTES)) {
+        while (!consumer.awaitTermination(indexTimeout, MINUTES)) {
             logger.info("Consumer has not terminated yet.");
         }
 
@@ -83,6 +86,16 @@ public class IndexTask extends PipelineTask<Path> implements Monitorable{
         logger.info("exiting");
         return totalToProcess;
     }
+
+    /**
+     * Retrieves the index timeout option in minutes based on app properties.
+     *
+     * @return The number of minutes.
+     */
+    private int getIndexTimeout() {
+        return Integer.parseInt(propertiesProvider.get(INDEX_TIMEOUT_OPT).orElse(valueOf(DEFAULT_INDEX_TIMEOUT)));
+    }
+
 
     @Override
     public double getProgressRate() {

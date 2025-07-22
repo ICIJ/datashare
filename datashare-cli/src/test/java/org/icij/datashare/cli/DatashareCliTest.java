@@ -197,6 +197,19 @@ public class DatashareCliTest {
     }
 
     @Test
+    public void test_index_timeout_option_exists() {
+        cli.parseArguments(new String[]{});
+        assertThat(cli.properties).includes(entry("indexTimeout","30"));
+        cli.parseArguments(new String[] {"--indexTimeout", "10"});
+        assertThat(cli.properties).includes(entry("indexTimeout","10"));
+    }
+
+    @Test(expected = OptionException.class)
+    public void test_index_timeout_option_is_invalid() {
+        cli.asProperties(cli.createParser().parse("--indexTimeout", "-10"), null);
+    }
+
+    @Test
     public void test_data_dir_is_based_on_current_user_dir() {
         cli.parseArguments(new String[] {});
         assertThat(cli.properties).includes(entry("dataDir", "/home/datashare/Datashare"));
