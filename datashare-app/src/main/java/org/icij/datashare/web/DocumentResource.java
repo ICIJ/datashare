@@ -465,8 +465,7 @@ public class DocumentResource {
         DocumentFactory documentFactory = new DocumentFactory().configure(org.icij.task.Options.from(Map.of("digestAlgorithm", hasher.toString())));
         // we need to set the embedOutput from the project
         Properties props = new Properties() {{
-            Path artifactPath = getArtifactPath(doc.getProject());
-            put("embedOutput", artifactPath == null ? "" : artifactPath);
+            ofNullable(getArtifactPath(doc.getProject())).ifPresent(p -> put("embedOutput", p));
         }};
         Properties merged = propertiesProvider.createMerged(props);
         org.icij.task.Options<String> options = org.icij.task.Options.from(merged);

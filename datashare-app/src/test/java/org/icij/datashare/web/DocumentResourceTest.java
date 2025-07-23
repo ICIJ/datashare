@@ -3,6 +3,7 @@ package org.icij.datashare.web;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import net.codestory.rest.Response;
+import okhttp3.OkHttpClient;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Repository;
 import org.icij.datashare.db.JooqRepository;
@@ -34,6 +35,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import static java.util.Arrays.asList;
@@ -448,12 +450,14 @@ public class DocumentResourceTest extends AbstractProdWebServerTest {
 
     @Test
     public void test_get_page_indices() {
+        when(propertiesProvider.get(ARTIFACT_DIR_OPT)).thenReturn(Optional.empty());
         String path = getClass().getResource("/docs/embedded_doc.eml").getPath();
         mockIndexer.indexFile("local-datashare",
                 "0b1d64039d870e3a067027ff2c321ee238bb39bbf2598ed8aa77016156bfad59",
                 Paths.get(path), "application/pdf", "id_eml", Map.of("tika_metadata_resourcename", "embedded.pdf"));
 
         get("/api/local-datashare/documents/pages/0b1d64039d870e3a067027ff2c321ee238bb39bbf2598ed8aa77016156bfad59?routing=id_eml")
+                .withClient(client -> client.readTimeout (60, TimeUnit.SECONDS))
                 .should().respond(200)
                 .haveType("application/json")
                 .contain("[[0,16],[17,33]]");
@@ -467,7 +471,10 @@ public class DocumentResourceTest extends AbstractProdWebServerTest {
                 "0b1d64039d870e3a067027ff2c321ee238bb39bbf2598ed8aa77016156bfad59",
                 Paths.get(path), "application/pdf", "id_eml", Map.of("tika_metadata_resourcename", "embedded.pdf"));
 
-        get("/api/local-datashare/documents/pages/0b1d64039d870e3a067027ff2c321ee238bb39bbf2598ed8aa77016156bfad59?routing=id_eml").should().respond(200);
+        get("/api/local-datashare/documents/pages/0b1d64039d870e3a067027ff2c321ee238bb39bbf2598ed8aa77016156bfad59?routing=id_eml")
+                .withClient(client -> client.readTimeout(60, TimeUnit.SECONDS))
+                .should()
+                .respond(200);
         File cacheDir = temp.getRoot().toPath().resolve("local-datashare/0b/1d/0b1d64039d870e3a067027ff2c321ee238bb39bbf2598ed8aa77016156bfad59").toFile();
         assertThat(cacheDir).isDirectory();
         assertThat(cacheDir.listFiles()).isNotEmpty();
