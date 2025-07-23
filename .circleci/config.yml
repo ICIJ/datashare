@@ -187,7 +187,7 @@ jobs:
   build_front:
     resource_class: large
     docker:
-      - image: cimg/node:20.18
+      - image: cimg/node:20.19
       - image: docker.elastic.co/elasticsearch/elasticsearch:7.17.7
         environment:
           ES_JAVA_OPTS: -Xms256m -Xmx256m
@@ -256,7 +256,7 @@ jobs:
 
   deploy_front:
     docker:
-      - image: cimg/node:20.18
+      - image: cimg/node:20.19
     working_directory: /tmp
     steps:
       - attach_workspace:
