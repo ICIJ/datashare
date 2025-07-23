@@ -11,12 +11,13 @@
   
 | | Status |
 | --: | :-- |
-| **CI checks** | [![CircleCI](https://circleci.com/gh/ICIJ/datashare.svg?style=shield)](https://circleci.com/gh/ICIJ/datashare) |
+| **Download** | [![Download](https://img.shields.io/badge/datashare.icij.org-FFF?style=flat)](https://datashare.icij.org)|
+| **CI checks** | [![CircleCI](https://img.shields.io/circleci/build/gh/ICIJ/datashare.svg?style=flat)](https://circleci.com/gh/ICIJ/datashare) |
 | **Translations** | [![Crowdin](https://badges.crowdin.net/datashare/localized.svg)](https://crowdin.com/project/datashare) |
-| **Latest version** | [![Latest version](https://img.shields.io/github/v/tag/icij/datashare?style=shield)](https://github.com/ICIJ/datashare/releases/latest) |
-| **Release date** | [![Release date](https://img.shields.io/github/release-date/icij/datashare?style=shield)](https://github.com/ICIJ/datashare/releases/latest) |
-| **Open issues** | [![Open issues](https://img.shields.io/github/issues/icij/datashare?style=shield&color=success)](https://github.com/ICIJ/datashare/issues/) |
-| **Documentation** | [![User Guide](https://img.shields.io/badge/User%20Guide-193D87)](https://icij.gitbook.io/datashare/developers/frontend/api) [![Storybook](https://img.shields.io/badge/Storybook-FA4070)](https://icij.github.io/datashare-client/) |
+| **Latest version** | [![Latest version](https://img.shields.io/github/v/tag/icij/datashare?style=flat)](https://github.com/ICIJ/datashare/releases/latest) |
+| **Release date** | [![Release date](https://img.shields.io/github/release-date/icij/datashare?style=flat)](https://github.com/ICIJ/datashare/releases/latest) |
+| **Open issues** | [![Open issues](https://img.shields.io/github/issues/icij/datashare?style=flat&color=success)](https://github.com/ICIJ/datashare/issues/) |
+| **Documentation** | [![User Guide](https://img.shields.io/badge/User%20Guide-193D87?style=flat)](https://icij.gitbook.io/datashare/developers/frontend/api) [![Storybook](https://img.shields.io/badge/Storybook-FA4070?style=flat)](https://icij.github.io/datashare-client/) |
 
 </div>
 
