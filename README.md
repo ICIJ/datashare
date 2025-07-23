@@ -59,7 +59,7 @@ This section explains how to set up a development environment, build the project
 
 * **JDK 17** (or 11 if you are on an older branch): use SDKMAN!/asdf to keep versions tidy
 * **Apache Maven 3.8+**: primary build tool for the backend
-* **GNU Make** (optional but recommended): convenient shortcuts (`make update-db`, etc.)
+* **GNU Make** (optional but recommended): convenient shortcuts (`make dist`, `make update-db`, etc.)
 
 **Services**
 
@@ -103,10 +103,10 @@ Datashare has both unit and integration tests. Integration tests expect Postgres
 mvn test
 
 # Or run a single module
-mvn -pl datashare-server test
+mvn -pl datashare-api test
 
 # Or a single test class
-mvn -Dtest=com.icij.datashare.SomeTest test
+mvn -pl datashare-api -Dtest=org.icij.datashare.PropertiesProviderTest test
 ```
 
 ### Database Migrations
@@ -133,15 +133,13 @@ mvn -pl datashare-db liquibase:update
 3. Run `make update-db` locally to verify
 4. Commit both the changeset and updated master file
 
-Pro tip: keep changesets idempotent and small; avoid raw SQL when Liquibase has a refactor operation for it.
-
 ## Frontend
 
 The web UI is built with Vue 3 and maintained in a [separate repository](https://github.com/ICIJ/datashare-client). When building the backend, you must also build the client and copy its compiled files into the `./app` directory. The backend bundles these static assets using [FluentHTTP](https://github.com/CodeStory/fluent-http), which serves resources from `./app` (relative to the repo root). If this folder is missing or empty, only the API will be available, no UI.
 
 ### Prerequisites for Frontend Dev
 
-* **Node.js 20.19+** (strict minimum; use `nvm use 20.19.0` or similar)
+* **Node.js 20.19+**
 * **Yarn 1**
 
 ### Build workflow
