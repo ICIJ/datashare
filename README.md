@@ -1,209 +1,186 @@
-# Datashare [![CircleCI](https://circleci.com/gh/ICIJ/datashare.svg?style=shield)](https://circleci.com/gh/ICIJ/datashare) [![Crowdin](https://badges.crowdin.net/datashare/localized.svg)](https://crowdin.com/project/datashare)
-
-![Banner](https://github.com/user-attachments/assets/56ef1e92-c01a-43c8-b1b5-8e98dbf37740)
-
-
 <p align="center">
-<a href="https://datashare-demo.icij.org">Demo</a> |
-<a href="https://datashare.icij.org">Download</a> |
-<a href="https://github.com/ICIJ/datashare/wiki">Documentation</a> |
-<a href="https://icij.gitbook.io/datashare/">User Guide</a>
+  <a href="https://datashare.icij.org/">
+    <img src="https://datashare.icij.org/android-chrome-512x512.png" width="158px">
+  </a>
 </p>
 
-## User survey
+<h3 align="center">Datashare</h3>
 
-Fill our [user survey](https://forms.gle/PYgusFsoBaMyzUec9) about the next Structured Content Datashare features.
+<div align="center">
+<p>A self-hosted search engine to find stories in any files.</p>
+  
+| | Status |
+| --: | :-- |
+| **CI checks** | [![CircleCI](https://circleci.com/gh/ICIJ/datashare.svg?style=shield)](https://circleci.com/gh/ICIJ/datashare) |
+| **Translations** | [![Crowdin](https://badges.crowdin.net/datashare/localized.svg)](https://crowdin.com/project/datashare) |
+| **Latest version** | [![Latest version](https://img.shields.io/github/v/tag/icij/datashare?style=shield)](https://github.com/ICIJ/datashare/releases/latest) |
+| **Release date** | [![Release date](https://img.shields.io/github/release-date/icij/datashare?style=shield)](https://github.com/ICIJ/datashare/releases/latest) |
+| **Open issues** | [![Open issues](https://img.shields.io/github/issues/icij/datashare?style=shield&color=success)](https://github.com/ICIJ/datashare/issues/) |
+| **Documentation** | [![User Guide](https://img.shields.io/badge/User%20Guide-193D87)](https://icij.gitbook.io/datashare/developers/frontend/api) [![Storybook](https://img.shields.io/badge/Storybook-FA4070)](https://icij.github.io/datashare-client/) |
 
-## Download
+</div>
 
-Datashare is an open-source software developed by the International Consortium of Investigative Journalists (ICIJ). You can use it for free on your computer or install it on your server and analyse your documents with collaborative features.
+# Datashare
 
-https://datashare.icij.org/
+**Datashare** is an open‑source, self‑hosted document search and analysis platform built by the International Consortium of Investigative Journalists (ICIJ). It ingests heterogeneous data (PDFs, emails, spreadsheets, images, archives, etc.), extracts text (including via OCR), enriches it with metadata and named entities, and exposes everything through a powerful search UI and REST API. Because Datashare runs on your own machines, you keep full control over sensitive material—no external cloud services required.
 
+> 📣 **Help shape the next content extraction features in Datashare!** Please take 10 minutes to fill out our [user survey](https://forms.gle/PYgusFsoBaMyzUec9), it will directly influences our roadmap, and lets you opt‑in for early previews/beta testing.
+
+## Table of Contents
+
+* [Main Features](#main-features)
+* [Developer Guide](#developer-guide)
+  * [Requirements](#requirements)
+  * [Build](#build)
+  * [Run Tests](#run-tests)
+  * [Database Migrations](#database-migrations)
+* [Frontend](#frontend)
+* [License](#license)
+* [About ICIJ](#about-icij)
+
+## Main Features
+
+* 🔍 **Full‑text search**: Index & query PDFs, emails, office docs, images, archives, and more.
+* 🖼️ **OCR on scans & images**: Turn visual text into searchable text.
+* 🧠 **Named‑entity extraction**: Auto-detect people, orgs, locations, emails, etc.
+* ⭐ **Stars & tags**: Mark and organize key documents.
+* 🧰 **Advanced filters & operators**: Combine facets with boolean, wildcard, and fuzzy queries.
+* 🤝 **Team/server mode**: Multi-user deployment with shared tags and recommendations.
+* 🔌 **Plugin architecture**: Extend Datashare with custom modules.
+
+## Developer Guide
+
+This section explains how to set up a development environment, build the project, run tests, and manage database migrations. It assumes you are comfortable with Java/Maven projects and basic service orchestration.
+
+### Requirements
+
+**Languages & tooling**
+
+* **JDK 17** (or 11 if you are on an older branch): use SDKMAN!/asdf to keep versions tidy
+* **Apache Maven 3.8+**: primary build tool for the backend
+* **GNU Make** (optional but recommended): convenient shortcuts (`make update-db`, etc.)
+
+**Services**
+
+Those services must be running to have a complete developer environement. You might want 
+
+* **PostgreSQL 13+**
+  * Available on host `postgres:5432`
+  * Two DBs expected by default: `datashare` (dev) and `test` (tests)
+  * A role with privileges, e.g. user: `test`, password: `test`
+* **Elasticsearch 7.x** 
+  * Available on host `elasticsearch:9200`
+  * 8.x is not officially supported 
+* **Redis 5+**
+  * Available on host `redis:6379`
+  * Used to store session and orchestrate async tasks.
+
+### Build
+
+The project is modular. Typical steps:
+
+```bash
+# 1. Validate the build and resolve deps
+mvn validate
+
+# 2. Build shared testing utilities (some modules depend on these)
+mvn -pl commons-test -am install
+
+# 3. Apply DB migrations so your dev DB schema matches the code
+mvn -pl datashare-db liquibase:update
+
+# 4. Build everything (excluding tests)
+mvn package -Dmaven.test.skip=true
+```
+
+### Run Tests
+
+Datashare has both unit and integration tests. Integration tests expect Postgres, Elasticsearch, and Redis to be reachable.
+
+```bash
+# Run the whole test suite
+mvn test
+
+# Or run a single module
+mvn -pl datashare-server test
+
+# Or a single test class
+mvn -Dtest=com.icij.datashare.SomeTest test
+```
+
+### Database Migrations
+
+Datashare uses **Liquibase** to version and apply schema changes.
+
+**Apply latest migrations:**
+
+```bash
+make update-db
+```
+
+**Start from scratch (danger: drops data):**
+
+```bash
+bash datashare-db/scr/reset_datashare_db.sh
+mvn -pl datashare-db liquibase:update
+```
+
+**Adding a new changeset:**
+
+1. Create a new XML/YAML changeset under `datashare-db/src/main/resources/db/changelog/`
+2. Reference it in the master changelog file
+3. Run `make update-db` locally to verify
+4. Commit both the changeset and updated master file
+
+Pro tip: keep changesets idempotent and small; avoid raw SQL when Liquibase has a refactor operation for it.
 
 ## Frontend
 
-This repository is only the backend part of Datashare.
+The web UI is built with Vue 3 and maintained in a [separate repository](https://github.com/ICIJ/datashare-client). When building the backend, you must also build the client and copy its compiled files into the `./app` directory. The backend bundles these static assets using [FluentHTTP](https://github.com/CodeStory/fluent-http), which serves resources from `./app` (relative to the repo root). If this folder is missing or empty, only the API will be available, no UI.
 
-Please find the frontend here : https://github.com/ICIJ/datashare-client.
+### Prerequisites for Frontend Dev
 
+* **Node.js 20.19+** (strict minimum; use `nvm use 20.19.0` or similar)
+* **Yarn 1**
 
-## Description
+### Build workflow
 
-Datashare is a free open-source desktop application developed by non-profit International Consortium of Investigative Journalists (ICIJ). 
+1. **Clone & enter the client repo**
 
-Datashare allows investigative journalists to:
-- access all their documents in one place locally on their computer while securing them from potential third-party interferences
-- search pdfs, images, texts, spreadsheets, slides and any files, simultaneously
-- automatically detect and filter by people, organizations and locations
+   ```bash
+   git clone https://github.com/ICIJ/datashare-client.git
+   cd datashare-client
+   ```
+2. **Install and build**
 
-## Translation of the interface
+   ```bash
+   yarn
+   yarn build
+   ```
 
-You're welcome to suggest translations on Datashare's Crowdin https://crwd.in/datashare. Please contact us if you would like to add a language.
+   The build outputs a production bundle into `dist/`.
+3. **Copy (or symlink) into backend**
 
-## Installing and using
-
-### Using with elasticsearch
-
-You can download the script at datashare.icij.org.
-
-To access web GUI, go in your documents folder and launch `path/to/datashare.sh` then connect datashare on http://localhost:8080
-
-### Using only Named Entity Recognition
-
-You can use the datashare docker container only for HTTP exposed name finding API.
-
-Just run : 
-
-    docker run -ti -p 8080:8080 -v /path/to/dist/:/home/datashare/dist icij/datashare:0.10 -m NER
-
-A bit of explanation : 
-- `-p 8080:8080` maps the 8080 to 8080, the you could access datashare at localhost:8080 (If you want to access it at localhost:8081, the change to `-p 8081:8080`)
-- `-m NER` runs datashare without index at all on a stateless mode
-- `-v /path/to/dist:/home/datashare/dist` maps the directory where the NLP models will be read (and downloaded if they don't exist)
-
-Then query with curl the server with : 
-
-    curl -i localhost:8080/api/ner/findNames/CORENLP --data-binary @path/to/a/file.txt
-
-The last path part (CORENLP) is the framework. You can choose it among CORENLP, IXAPIPE, MITIE or OPENNLP.    
-
-### **Extract Text from Files** 
-  
-*Implementations*
-  
-  - [TikaDocument](https://github.com/ICIJ/extract/blob/extractlib/extract-lib/src/main/java/org/icij/extract/document/TikaDocument.java) from ICIJ/extract 
-  
-    [Apache Tika](https://tika.apache.org/) v1.18 (Apache Licence v2.0)
-  
-    with [Tesseract](https://github.com/tesseract-ocr/tesseract/wiki/4.0-with-LSTM) v4.0 alpha 
-
-
-*Support*
-
-  [Tika File Formats](https://tika.apache.org/1.18/formats.html)
-
-  
-### **Extract Persons, Organizations or Locations from Text** 
-
-Info: other languages than the ones listed below are not supported. We encourage you to reach out to the maintainers of the original NLP projects to support your preferred language.
-   
-*Implementations*
-  
-  - `org.icij.datashare.text.nlp.corenlp.CorenlpPipeline` 
-  
-    [Stanford CoreNLP](http://stanfordnlp.github.io/CoreNLP) v3.8.0, 
-    (Conditional Random Fields), 
-    *Composite GPL v3+* 
-
-  - `org.icij.datashare.text.nlp.ixapipe.IxapipePipeline` 
-  
-    [Ixa Pipes Nerc](https://github.com/ixa-ehu/ixa-pipe-nerc) v1.6.1, 
-    (Perceptron), 
-    *Apache Licence v2.0*
-
-  - `org.icij.datashare.text.nlp.mitie.MitiePipeline` 
-  
-    [MIT Information Extraction](https://github.com/mit-nlp/MITIE) v0.8, 
-    (Structural Support Vector Machines), 
-    *Boost Software License v1.0*
-
-  - `org.icij.datashare.text.nlp.opennlp.OpennlpPipeline` 
-  
-    [Apache OpenNLP](https://opennlp.apache.org/) v1.6.0, 
-    (Maximum Entropy), 
-    *Apache Licence v2.0*
-
-  
-*Natural Language Processing Stages Support*
-
-| `NlpStage`       |
-|------------------|
-| `TOKEN`          |
-| `SENTENCE`       |
-| `POS`            |
-| `NER`            |
-
-*Named Entity Recognition Language Support*
-
-| *`NlpStage.NER`*           | `ENGLISH`  | `SPANISH`  | `GERMAN`  | `FRENCH`  | `CHINESE` |
-|---------------------------:|:----------:|:----------:|:---------:|:---------:|:---------:|
-| `NlpPipeline.Type.CORENLP` |     X      |      X     |      X    |  (w/ EN)  |     X     |
-| `NlpPipeline.Type.OPENNLP` |     X      |      X     |      -    |     X     |     -     |
-| `NlpPipeline.Type.IXAPIPE` |     X      |      X     |      X    |     -     |     -     |
-| `NlpPipeline.Type.MITIE`   |     X      |      X     |      X    |     -     |     -     |
-
-*Named Entity Categories Support*
-
-| `NamedEntity.Category` |
-|----------------------  |
-| `ORGANIZATION`         |
-| `PERSON`               |
-| `LOCATION`             |
-
-*Parts-of-Speech Language Support*
-
-|  *`NlpStage.POS`*          | `ENGLISH`  | `SPANISH`  | `GERMAN`  | `FRENCH`  |
-|---------------------------:|:----------:|:----------:|:---------:|:---------:|
-| `NlpPipeline.Type.CORE`    |     X      |      X     |     X     |     X     |
-| `NlpPipeline.Type.OPEN`    |     X      |      X     |     X     |     X     |
-| `NlpPipeline.Type.IXA`     |     X      |      X     |     X     |     X     |
-| `NlpPipeline.Type.MITIE`   |     -      |      -     |      -    |     -     |
-
-
-### **Store and Search Documents and Named Entities**
-
- *Implementations*
-  
- - `org.icij.datashare.text.indexing.elasticsearch.ElasticsearchIndexer`
- 
-   [Elasticsearch](https://www.elastic.co/products/elasticsearch) v7.9.1, *Apache Licence v2.0*
-
-
-
-## Compilation / Build
-
-Requires 
-[JDK 11](https://www.oracle.com/java/technologies/javase-jdk11-downloads.html),
-[Maven 3](http://maven.apache.org/download.cgi) and a running [PostgreSQL](https://www.postgresql.org/) database (hostname `postgres`) 
-with two databases `datashare` and `test` with write access for user `test` / password `test`. You'll need also a running
-elasticsearch instance with `elasticsearch` as hostname ; and a redis server named `redis` as well.
-
-```
-mvn validate
-mvn -pl commons-test -am install
-mvn -pl datashare-db liquibase:update
-mvn test
-```
-
-## Keeping the development environment up to date
-
-It is important to keep `datashare` and `datashare-client` up to date by pulling from each repository's master branch. 
-
-To ensure that updates are registered, `make clean dist` must be run locally from each repository. 
-
-If dependencies have been updated on `datashare-client`, run `yarn` **before** `make clean dist`.
-
-If the database models have changed within `datashare`, run the following commands **before** `make clean dist`:
-
-```
-sh datashare-db/scr/reset_datashare_db.sh
-mvn -pl commons-test -am install
-mvn -pl datashare-db liquibase:update
-mvn test
-```
+   ```bash
+   rm -rf ../datashare/app
+   mkdir -p ../datashare/app
+   cp -r dist/* ../datashare/app/
+   ```
 
 ## License
 
-Datashare is released under the [GNU Affero General Public License](https://www.gnu.org/licenses/agpl-3.0.en.html)
+Datashare is distributed under the **GNU Affero General Public License v3.0 (AGPL‑3.0)**.
 
+## About ICIJ
 
-## Bug report, comment or (pull) request
+The **International Consortium of Investigative Journalists (ICIJ)** is a global network of reporters and media organizations collaborating on cross‑border investigations (e.g., *Panama Papers*, *Luanda Leaks*, *Uber Files*, *Pandora Papers*). The tech team at ICIJ builds tools like Datashare to empower investigative journalism at scale—handling millions of documents securely and efficiently. We open‑sourced Datashare to empower solo reporters and small newsrooms with advanced investigative tools, enable larger organizations to audit, extend, and self‑host the platform, and foster collaboration within the investigative community to continually improve the software.
 
-We welcome feedback as well as contributions!
+**Contact & Community**
 
-For any bug, question, comment or (pull) request, 
+* Issues & feature requests: [GitHub Issues](https://github.com/ICIJ/datashare/issues)
+* Email: `datashare@icij.org`
+* Security reports: please email us and avoid filing public issues for vulnerabilities.
 
-please contact us at datashare@icij.org
- 
- 
+---
+
+Questions? Open an issue or contact the team at `datashare@icij.org`.
