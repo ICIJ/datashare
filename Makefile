@@ -29,6 +29,10 @@ update-db:
 		mvn -pl commons-test -am install
 		mvn -pl datashare-db liquibase:update
 
+reset-db:
+		bash datashare-db/scr/reset_datashare_db.sh
+		mvn -pl datashare-db liquibase:update
+
 help-db:
 		mvn help:describe -DgroupId=org.liquibase -DartifactId=liquibase-maven-plugin -Dversion=2.0.1 -Dfull=true
 

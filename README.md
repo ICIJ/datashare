@@ -122,8 +122,7 @@ make update-db
 **Start from scratch (danger: drops data):**
 
 ```bash
-bash datashare-db/scr/reset_datashare_db.sh
-mvn -pl datashare-db liquibase:update
+make reset-db
 ```
 
 **Adding a new changeset:**
