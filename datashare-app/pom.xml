@@ -151,7 +151,7 @@
         <dependency>
             <groupId>com.github.CodeStory</groupId>
             <artifactId>fluent-rest-test</artifactId>
-            <version>6844aca</version>
+            <version>466cf50</version>
             <scope>test</scope>
         </dependency>
         <dependency>
