@@ -167,7 +167,7 @@ The web UI is built with Vue 3 and maintained in a [separate repository](https:/
 
 ## License
 
-Datashare is distributed under the **GNU Affero General Public License v3.0 (AGPL‑3.0)**.
+Datashare is distributed under the [GNU Affero General Public License v3.0](LICENSE.txt).
 
 ## About ICIJ
 
