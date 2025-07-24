@@ -57,7 +57,7 @@ This section explains how to set up a development environment, build the project
 
 **Languages & tooling**
 
-* **JDK 17** (or 11 if you are on an older branch): use SDKMAN!/asdf to keep versions tidy
+* **JDK 17**
 * **Apache Maven 3.8+**: primary build tool for the backend
 * **GNU Make** (optional but recommended): convenient shortcuts (`make dist`, `make update-db`, etc.)
 
