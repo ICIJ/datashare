@@ -178,7 +178,3 @@ The **International Consortium of Investigative Journalists (ICIJ)** is a global
 * Issues & feature requests: [GitHub Issues](https://github.com/ICIJ/datashare/issues)
 * Email: `datashare@icij.org`
 * Security reports: please email us and avoid filing public issues for vulnerabilities.
-
----
-
-Questions? Open an issue or contact the team at `datashare@icij.org`.
