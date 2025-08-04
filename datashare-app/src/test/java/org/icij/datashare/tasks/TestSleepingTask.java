@@ -1,22 +1,21 @@
 package org.icij.datashare.tasks;
 
+import java.util.Optional;
 import org.icij.datashare.asynctasks.CancelException;
-import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.asynctasks.TaskGroup;
 import org.icij.datashare.asynctasks.TaskGroupType;
 
-import java.util.function.Function;
 
 @TaskGroup(TaskGroupType.Test)
 public class TestSleepingTask extends TestTask {
-    public TestSleepingTask(int value) {
+    public TestSleepingTask(Integer value) {
         super(value);
     }
 
     @Override
-    public Integer call() throws Exception {
+    public Integer runTask() {
         callThread = Thread.currentThread();
-        int ret = super.call();
+        Integer ret = Optional.ofNullable(super.runTask()).orElse(Integer.MAX_VALUE);
         try {
             Thread.sleep(ret);
             return ret;

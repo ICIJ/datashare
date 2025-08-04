@@ -326,7 +326,7 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
     public void test_delete_all_projects() throws Exception{
         Project foo = new Project("foo");
         Project bar = new Project("bar");
-        Task<?> task = new Task<>("name", User.local(), new HashMap<>());
+        Task task = new Task("name", User.local(), new HashMap<>());
         when(repository.getProjects(any())).thenReturn(asList(foo, bar));
         when(repository.deleteAll("foo")).thenReturn(true).thenReturn(false);
         when(repository.deleteAll("bar")).thenReturn(true).thenReturn(false);

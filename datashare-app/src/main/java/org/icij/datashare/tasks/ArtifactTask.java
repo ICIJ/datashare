@@ -35,7 +35,7 @@ public class ArtifactTask extends PipelineTask<String> {
     private final int pollingInterval;
 
     @Inject
-    public ArtifactTask(DocumentCollectionFactory<String> factory, Indexer indexer, PropertiesProvider propertiesProvider, @Assisted Task<Long> taskView, @Assisted final Function<Double, Void> updateCallback) {
+    public ArtifactTask(DocumentCollectionFactory<String> factory, Indexer indexer, PropertiesProvider propertiesProvider, @Assisted Task taskView, @Assisted final Function<Double, Void> ignored) {
         super(Stage.ARTIFACT, taskView.getUser(), factory, propertiesProvider, String.class);
         this.indexer = indexer;
         project = Project.project(propertiesProvider.get(DEFAULT_PROJECT_OPT).orElse(DEFAULT_DEFAULT_PROJECT));
@@ -44,8 +44,8 @@ public class ArtifactTask extends PipelineTask<String> {
     }
 
     @Override
-    public Long call() throws Exception {
-        super.call();
+    public Long runTask() throws Exception {
+        super.runTask();
         logger.info("creating artifact cache in {} for project {} from queue {} with polling interval {}s", artifactDir, project, inputQueue.getName(), pollingInterval);
         SourceExtractor extractor = new SourceExtractor(propertiesProvider);
         List<String> sourceExcludes = List.of("content", "content_translated");
