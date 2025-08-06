@@ -2,6 +2,10 @@ package org.icij.datashare.tasks;
 
 import com.google.inject.Inject;
 import com.google.inject.assistedinject.Assisted;
+
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Stage;
@@ -43,15 +47,20 @@ public class IndexTask extends PipelineTask<Path> implements Monitorable{
     private final Logger logger = LoggerFactory.getLogger(getClass());
     private final DocumentQueueDrainer<Path> drainer;
     private final DocumentConsumer consumer;
+    private final Function<Double, Void> progressCallback;
+    private final Consumer<Path> progressTrackConsumer;
     private long totalToProcess;
+
+    private final AtomicInteger processed = new AtomicInteger(0);
     private final Integer parallelism;
     private final Integer indexTimeout;
 
     @Inject
-    public IndexTask(final ElasticsearchSpewer spewer, final DocumentCollectionFactory<Path> factory, @Assisted Task<Long> taskView, @Assisted final Function<Double, Void> updateCallback) throws IOException {
+    public IndexTask(final ElasticsearchSpewer spewer, final DocumentCollectionFactory<Path> factory, @Assisted Task<Long> taskView, @Assisted final Function<Double, Void> progressCallback) throws IOException {
         super(Stage.INDEX, taskView.getUser(), factory, new PropertiesProvider(taskView.args), Path.class);
         parallelism = propertiesProvider.get(PARALLELISM_OPT).map(Integer::parseInt).orElse(Runtime.getRuntime().availableProcessors());
         indexTimeout = getIndexTimeout();
+        this.progressCallback = progressCallback;
 
         Options<String> allTaskOptions = options().createFrom(Options.from(taskView.args));
         ((ElasticsearchSpewer) spewer.configure(allTaskOptions)).createIndexIfNotExists();
@@ -60,11 +69,18 @@ public class IndexTask extends PipelineTask<Path> implements Monitorable{
         Extractor extractor = new Extractor(documentFactory).configure(allTaskOptions);
 
         consumer = new DocumentConsumer(spewer, extractor, this.parallelism);
+        progressTrackConsumer = path -> {
+            consumer.accept(path);
+            processed.incrementAndGet();
+            if (progressCallback != null) {
+                progressCallback.apply(getProgressRate());
+            }
+        };
         if (propertiesProvider.getProperties().get(REPORT_NAME_OPT) != null) {
             logger.info("report map enabled with name set to {}", propertiesProvider.getProperties().get(REPORT_NAME_OPT));
             consumer.setReporter(new Reporter(factory.createMap(propertiesProvider.getProperties().get(REPORT_NAME_OPT).toString())));
         }
-        drainer = new DocumentQueueDrainer<>(inputQueue, consumer).configure(allTaskOptions);
+        drainer = new DocumentQueueDrainer<>(inputQueue, progressTrackConsumer).configure(allTaskOptions);
     }
 
     @Override
