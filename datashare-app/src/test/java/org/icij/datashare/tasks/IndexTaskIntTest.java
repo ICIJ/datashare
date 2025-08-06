@@ -2,27 +2,37 @@ package org.icij.datashare.tasks;
 
 import co.elastic.clients.elasticsearch._types.Refresh;
 import org.icij.datashare.PipelineHelper;
+import org.icij.datashare.PluginService;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Stage;
 import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.extract.MemoryDocumentCollectionFactory;
+import org.icij.datashare.session.LocalUserFilter;
 import org.icij.datashare.test.ElasticsearchRule;
 import org.icij.datashare.text.Language;
 import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchIndexer;
 import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchSpewer;
 import org.icij.datashare.user.User;
+import org.icij.datashare.web.PluginResource;
 import org.icij.extract.queue.DocumentQueue;
 import org.icij.spewer.FieldNames;
+import org.icij.spewer.Spewer;
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 
+import java.io.ByteArrayInputStream;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
+import java.util.concurrent.CountDownLatch;
+import java.util.function.Function;
 
 import static org.fest.assertions.Assertions.assertThat;
 import static org.icij.datashare.tasks.PipelineTask.STRING_POISON;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
+import static org.mockito.MockitoAnnotations.initMocks;
 
 public class IndexTaskIntTest {
     @Rule public ElasticsearchRule es = new ElasticsearchRule();
@@ -50,4 +60,26 @@ public class IndexTaskIntTest {
         assertThat(outputQueue.poll()).isEqualTo("bc6852541ef5200206a7a9740f3d2d62178a1f53b1aa5417ab426c6ec1f7cbc7");
         assertThat(outputQueue.poll()).isEqualTo(STRING_POISON);
     }
+
+    @Test
+    public void index_task_update_progress() throws Exception {
+        List<Double> progressValues = Collections.synchronizedList(new ArrayList<>());
+        Function<Double, Void> callback = progress -> {
+            progressValues.add(progress);
+            return null;
+        };
+
+        DocumentQueue<Path> inputQueue = inputQueueFactory.createQueue(new PipelineHelper(propertiesProvider).getQueueNameFor(Stage.INDEX), Path.class);
+        inputQueue.add(Paths.get(ClassLoader.getSystemResource("docs/doc.txt").getPath()));
+        inputQueue.add(Paths.get(ClassLoader.getSystemResource("docs/embedded_doc.eml").getPath()));
+        inputQueue.add(Paths.get(ClassLoader.getSystemResource("docs/foo/bar.txt").getPath()));
+
+        IndexTask indexTask = new IndexTask(spewer, inputQueueFactory, new Task<>(IndexTask.class.getName(), User.local(), map), callback);
+        indexTask.call();
+        assertThat(progressValues.size()).isGreaterThan(1);
+        assertThat(progressValues.get(0)).isLessThan(progressValues.get(progressValues.size() - 1));
+        assertThat(progressValues).contains(0.5);
+    }
+
+
 }
