@@ -2,37 +2,27 @@ package org.icij.datashare.tasks;
 
 import co.elastic.clients.elasticsearch._types.Refresh;
 import org.icij.datashare.PipelineHelper;
-import org.icij.datashare.PluginService;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Stage;
 import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.extract.MemoryDocumentCollectionFactory;
-import org.icij.datashare.session.LocalUserFilter;
 import org.icij.datashare.test.ElasticsearchRule;
 import org.icij.datashare.text.Language;
 import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchIndexer;
 import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchSpewer;
 import org.icij.datashare.user.User;
-import org.icij.datashare.web.PluginResource;
 import org.icij.extract.queue.DocumentQueue;
 import org.icij.spewer.FieldNames;
-import org.icij.spewer.Spewer;
-import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 
-import java.io.ByteArrayInputStream;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
-import java.util.concurrent.CountDownLatch;
 import java.util.function.Function;
 
 import static org.fest.assertions.Assertions.assertThat;
 import static org.icij.datashare.tasks.PipelineTask.STRING_POISON;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
-import static org.mockito.MockitoAnnotations.initMocks;
 
 public class IndexTaskIntTest {
     @Rule public ElasticsearchRule es = new ElasticsearchRule();
