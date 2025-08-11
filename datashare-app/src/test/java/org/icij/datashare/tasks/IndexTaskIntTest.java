@@ -70,6 +70,4 @@ public class IndexTaskIntTest {
         assertThat(progressValues.get(0)).isLessThan(progressValues.get(progressValues.size() - 1));
         assertThat(progressValues).contains(0.5);
     }
-
-
 }
