@@ -25,17 +25,17 @@ import org.redisson.Redisson;
 import org.redisson.api.RedissonClient;
 import org.redisson.config.Config;
 
-import java.util.Collection;
-import java.util.HashMap;
+import java.util.*;
+import java.util.function.Function;
 
 import static java.util.Arrays.asList;
+import static org.fest.assertions.Assertions.assertThat;
 import static org.icij.datashare.text.DocumentBuilder.createDoc;
 import static org.icij.datashare.text.Language.ENGLISH;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 import static org.mockito.MockitoAnnotations.initMocks;
 
 @RunWith(Parameterized.class)
@@ -65,6 +65,41 @@ public class ExtractNlpTaskIntTest {
 
         verify(pipeline).initialize(ENGLISH);
         verify(pipeline).process(doc);
+    }
+
+    @Test(timeout = 2000)
+    public void test_progress() throws Exception {
+        List<Double> progressValues = Collections.synchronizedList(new ArrayList<>());
+        Function<Double, Void> callback = progress -> {
+            progressValues.add(progress);
+            return null;
+        };
+        when(pipeline.getType()).thenReturn(Pipeline.Type.CORENLP);
+        when(pipeline.initialize(any())).thenReturn(true);
+        Document doc1 = createDoc("docId1").build();
+        Document doc2 = createDoc("docId2").build();
+        Document doc3 = createDoc("docId3").build();
+        when(indexer.get(anyString(), eq("docId1"))).thenReturn(doc1);
+        when(indexer.get(anyString(), eq("docId2"))).thenReturn(doc2);
+        when(indexer.get(anyString(), eq("docId3"))).thenReturn(doc3);
+
+        String queueName = new PipelineHelper(new PropertiesProvider()).getQueueNameFor(Stage.NLP);
+        DocumentQueue<String> queue = factory.createQueue(queueName, String.class);
+        queue.add("docId1");
+        queue.add("docId2");
+        queue.add("docId3");
+        queue.add(PipelineTask.STRING_POISON);
+
+
+
+        new ExtractNlpTask(indexer, pipeline, factory, new Task<>(ExtractNlpTask.class.getName(), User.local(), new HashMap<>() {{
+            put("maxContentLength", "32");
+        }}), callback).call();
+
+        verify(pipeline, times(3)).initialize(ENGLISH);
+        assertThat(progressValues.size()).isGreaterThan(1);
+        assertThat(progressValues.get(0)).isLessThan(progressValues.get(progressValues.size() - 1));
+        assertThat(progressValues).contains(0.5);
     }
 
     @Parameterized.Parameters
