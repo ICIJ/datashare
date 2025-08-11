@@ -2,6 +2,8 @@ package org.icij.datashare.tasks;
 
 import com.google.inject.Inject;
 import com.google.inject.assistedinject.Assisted;
+
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 
 import org.icij.datashare.HumanReadableSize;
@@ -45,20 +47,23 @@ public class ExtractNlpTask extends PipelineTask<String> implements Monitorable 
     private final Project project;
     private final int maxContentLengthChars;
     private final float pollingIntervalSeconds;
+    private final Function<Double, Void> progressCallback;
+    private final AtomicInteger processed = new AtomicInteger(0);
 
     @Inject
-    public ExtractNlpTask(Indexer indexer, PipelineRegistry registry, final DocumentCollectionFactory<String> factory, @Assisted Task<Long> taskView, @Assisted final Function<Double, Void> updateCallback) {
-        this(indexer, registry.get(Pipeline.Type.parse((String)taskView.args.get(NLP_PIPELINE_OPT))), factory, taskView, updateCallback);
+    public ExtractNlpTask(Indexer indexer, PipelineRegistry registry, final DocumentCollectionFactory<String> factory, @Assisted Task<Long> taskView, @Assisted final Function<Double, Void> progressCallback) {
+        this(indexer, registry.get(Pipeline.Type.parse((String)taskView.args.get(NLP_PIPELINE_OPT))), factory, taskView, progressCallback);
     }
 
 
-    ExtractNlpTask(Indexer indexer, Pipeline pipeline, final DocumentCollectionFactory<String> factory, @Assisted Task<Long> taskView, @Assisted final Function<Double, Void> updateCallback) {
+    ExtractNlpTask(Indexer indexer, Pipeline pipeline, final DocumentCollectionFactory<String> factory, @Assisted Task<Long> taskView, @Assisted final Function<Double, Void> progressCallback) {
         super(Stage.NLP, taskView.getUser(), factory, new PropertiesProvider(taskView.args), String.class);
         this.nlpPipeline = pipeline;
         project = Project.project(ofNullable((String)taskView.args.get(DEFAULT_PROJECT_OPT)).orElse(DEFAULT_DEFAULT_PROJECT));
         maxContentLengthChars = (int) HumanReadableSize.parse(ofNullable((String)taskView.args.get(MAX_CONTENT_LENGTH_OPT)).orElse(valueOf(DEFAULT_MAX_CONTENT_LENGTH)));
         pollingIntervalSeconds = Float.parseFloat(ofNullable((String)taskView.args.get(POLLING_INTERVAL_SECONDS_OPT)).orElse(DEFAULT_POLLING_INTERVAL_SEC));
         this.indexer = indexer;
+        this.progressCallback = progressCallback;
     }
 
     @Override
@@ -74,6 +79,8 @@ public class ExtractNlpTask extends PipelineTask<String> implements Monitorable 
                 if (docId != null) {
                     findNamedEntities(project, docId);
                     nbMessages++;
+                    processed.incrementAndGet();
+                    progressCallback.apply(getProgressRate());
                 } else {
                     logger.info("will poll document queue again for pollingInterval={} seconds ({}/{})", pollingIntervalSeconds, nbMaxPolls, NB_MAX_POLLS);
                     nbMaxPolls--;
@@ -123,6 +130,8 @@ public class ExtractNlpTask extends PipelineTask<String> implements Monitorable 
 
     @Override
     public double getProgressRate() {
-        return 0;
+        int done = processed.get();
+        int totalToProcess = done + inputQueue.size();
+        return totalToProcess == 0 ? 0 : (double) done / totalToProcess;
     }
 }
