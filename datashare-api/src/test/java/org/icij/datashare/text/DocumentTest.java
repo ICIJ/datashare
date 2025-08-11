@@ -176,6 +176,12 @@ public class DocumentTest {
     }
 
     @Test
+    public void test_get_extraction_date() {
+        Document document = createDoc("document").extractedAt(null).build();
+        assertThat(document.getExtractionDate()).isEqualTo(new Date(0));
+    }
+
+    @Test
     public void test_serialize_contains_content_translated() throws Exception {
         assertThat(JsonObjectMapper.MAPPER.writeValueAsString(createDoc("content").build())).contains("\"content_translated\":[]");
     }

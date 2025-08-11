@@ -182,7 +182,7 @@ public class Document implements Entity, DocumentMetadataConstants {
     public int getContentTextLength() { return content.length();}
     public Path getPath() { return path;}
     public Path getDirname() { return dirname;}
-    public Date getExtractionDate() { return extractionDate;}
+    public Date getExtractionDate() { return ofNullable(extractionDate).orElse(new Date(0));} // quick fix for getTikaVersion()
     public Charset getContentEncoding() { return contentEncoding; }
     public Long getContentLength() { return contentLength; }
     public String getContentType() { return contentType; }
