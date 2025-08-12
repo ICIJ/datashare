@@ -1,0 +1,27 @@
+{
+  "name": "IndexTask",
+  "description": "Indexing task",
+  "ownerEmail": "datashare@icij.org",
+  "inputKeys": [
+    "digestAlgorithm",
+    "digestProjectName",
+    "outputFormat",
+    "embedHandling",
+    "embedOutput",
+    "ocrCache",
+    "ocrLanguage",
+    "ocrTimeout",
+    "ocr",
+    "ocrType",
+    "idMethod",
+    "charset",
+    "language",
+    "queuePoll"
+  ],
+  "retryLogic": "EXPONENTIAL_BACKOFF",
+  "retryCount": 3,
+  "retryDelaySeconds": 1,
+  "timeoutPolicy": "RETRY",
+  "timeoutSeconds": 36000,
+  "responseTimeoutSeconds": 600
+}

@@ -1,0 +1,21 @@
+{
+  "name": "ScanTask",
+  "description": "Simple scan workflow",
+  "ownerEmail": "datashare@icij.org",
+  "schemaVersion": 2,
+  "version": 6,
+  "inputParameters": [
+    "dataDir"
+  ],
+  "tasks": [
+    {
+      "name": "ScanTask",
+      "taskReferenceName": "ScanTask",
+      "type": "SIMPLE",
+      "inputParameters": {
+        "dataDir": "${workflow.input.dataDir}"
+      }
+    }
+  ],
+  "timeoutPolicy": "TIME_OUT_WF"
+}

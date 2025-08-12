@@ -13,7 +13,8 @@ public enum Stage {
     NLP(true),
     CREATENLPBATCHESFROMIDX(false),
     BATCHNLP(false),
-    ARTIFACT(false);
+    ARTIFACT(false),
+    SCAN_INDEX_NLP(true);
 
     public static final Comparator<Stage> comparator = Comparator.comparing(Stage::ordinal);
     private final boolean isMainStage;

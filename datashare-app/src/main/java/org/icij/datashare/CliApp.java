@@ -6,12 +6,12 @@ import org.icij.datashare.cli.spi.CliExtension;
 import org.icij.datashare.mode.CommonMode;
 import org.icij.datashare.tasks.ArtifactTask;
 import org.icij.datashare.tasks.CreateNlpBatchesFromIndex;
-import org.icij.datashare.tasks.BatchNlpTask;
 import org.icij.datashare.tasks.DatashareTaskFactory;
 import org.icij.datashare.tasks.DeduplicateTask;
 import org.icij.datashare.tasks.EnqueueFromIndexTask;
 import org.icij.datashare.tasks.ExtractNlpTask;
 import org.icij.datashare.tasks.IndexTask;
+import org.icij.datashare.tasks.ScanIndexNlpTask;
 import org.icij.datashare.tasks.ScanIndexTask;
 import org.icij.datashare.tasks.ScanTask;
 import org.icij.datashare.text.indexing.Indexer;
@@ -132,7 +132,11 @@ class CliApp {
         if (pipeline.has(Stage.ARTIFACT)) {
             taskManager.startTask(ArtifactTask.class, nullUser(), propertiesToMap(properties));
         }
+        if (pipeline.has(Stage.SCAN_INDEX_NLP)) {
+            taskManager.startTask(ScanIndexNlpTask.class, nullUser(), propertiesToMap(properties));
+        }
         taskManager.awaitTermination(Integer.MAX_VALUE, SECONDS);
+        Thread.sleep(1000); // Necessary until https://github.com/conductor-oss/conductor/pull/571 is merged
         taskManager.shutdown();
     }
 }

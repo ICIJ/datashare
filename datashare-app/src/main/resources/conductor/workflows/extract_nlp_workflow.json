@@ -1,0 +1,27 @@
+{
+  "name": "ExtractNlpTask",
+  "description": "NLP task workflow",
+  "ownerEmail": "datashare@icij.org",
+  "schemaVersion": 2,
+  "version": 6,
+  "inputParameters": [
+    "nlpPipeline",
+    "defaultProject",
+    "maxContentLength",
+    "pollingInterval"
+  ],
+  "tasks": [
+    {
+      "name": "ExtractNlpTask",
+      "taskReferenceName": "ExtractNlpTask",
+      "type": "SIMPLE",
+      "inputParameters": {
+        "nlpPipeline": "${workflow.input.nlpPipeline}",
+        "defaultProject": "${workflow.input.defaultProject}",
+        "maxContentLength": "${workflow.input.maxContentLength}",
+        "pollingInterval": "${workflow.input.pollingInterval}"
+      }
+    }
+  ],
+  "timeoutPolicy": "TIME_OUT_WF"
+}

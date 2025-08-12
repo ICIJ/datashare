@@ -4,10 +4,10 @@ import com.google.inject.Inject;
 import com.google.inject.assistedinject.Assisted;
 import java.util.function.Function;
 
-import org.checkerframework.checker.units.qual.N;
 import org.icij.datashare.HumanReadableSize;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Stage;
+import org.icij.datashare.asynctasks.ConductorTask;
 import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.asynctasks.TaskGroup;
 import org.icij.datashare.extension.PipelineRegistry;
@@ -36,6 +36,7 @@ import static org.icij.datashare.cli.DatashareCliOptions.POLLING_INTERVAL_SECOND
 import org.icij.datashare.asynctasks.TaskGroupType;
 import static org.icij.extract.document.Identifier.shorten;
 
+@ConductorTask(name ="ExtractNlpTask")
 @TaskGroup(TaskGroupType.Java)
 public class ExtractNlpTask extends PipelineTask<String> implements Monitorable {
     private static final int DEFAULT_MAX_CONTENT_LENGTH = 1024 * 1024;
@@ -54,7 +55,7 @@ public class ExtractNlpTask extends PipelineTask<String> implements Monitorable 
 
 
     ExtractNlpTask(Indexer indexer, Pipeline pipeline, final DocumentCollectionFactory<String> factory, @Assisted Task<Long> taskView, @Assisted final Function<Double, Void> updateCallback) {
-        super(Stage.NLP, taskView.getUser(), factory, new PropertiesProvider(taskView.args), String.class);
+        super(Stage.NLP, taskView.getUser(), factory, PropertiesProvider.ofNullable(taskView.args), String.class);
         this.nlpPipeline = pipeline;
         project = Project.project(ofNullable((String)taskView.args.get(DEFAULT_PROJECT_OPT)).orElse(DEFAULT_DEFAULT_PROJECT));
         maxContentLengthChars = (int) HumanReadableSize.parse(ofNullable((String)taskView.args.get(MAX_CONTENT_LENGTH_OPT)).orElse(valueOf(DEFAULT_MAX_CONTENT_LENGTH)));

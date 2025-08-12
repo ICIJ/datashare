@@ -13,6 +13,7 @@ import org.icij.datashare.HumanReadableSize;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.asynctasks.CancelException;
 import org.icij.datashare.asynctasks.CancellableTask;
+import org.icij.datashare.asynctasks.ConductorTask;
 import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.asynctasks.TaskGroup;
 import org.icij.datashare.asynctasks.bus.amqp.UriResult;
@@ -54,6 +55,7 @@ import static org.icij.datashare.cli.DatashareCliOptions.*;
 import org.icij.datashare.asynctasks.TaskGroupType;
 
 @TaskGroup(TaskGroupType.Java)
+@ConductorTask(name ="BatchDownloadRunner")
 public class BatchDownloadRunner implements Callable<UriResult>, Monitorable, UserTask, CancellableTask {
     private final static Logger logger = LoggerFactory.getLogger(BatchDownloadRunner.class);
     static final int MAX_SCROLL_SIZE = 3500;

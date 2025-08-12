@@ -1,0 +1,14 @@
+{
+  "name": "ScanTask",
+  "description": "Scan task",
+  "ownerEmail": "datashare@icij.org",
+  "inputKeys": [
+    "dataDir"
+  ],
+  "retryLogic": "EXPONENTIAL_BACKOFF",
+  "retryCount": 3,
+  "retryDelaySeconds": 1,
+  "timeoutPolicy": "RETRY",
+  "timeoutSeconds": 36000,
+  "responseTimeoutSeconds": 600
+}

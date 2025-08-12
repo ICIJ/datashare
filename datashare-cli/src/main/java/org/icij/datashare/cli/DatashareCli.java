@@ -168,6 +168,7 @@ public class DatashareCli {
         DatashareCliOptions.queueType(parser);
         DatashareCliOptions.busType(parser);
         DatashareCliOptions.messageBusAddress(parser);
+        DatashareCliOptions.conductorAddress(parser);
         DatashareCliOptions.redisAddress(parser);
         DatashareCliOptions.dataSourceUrl(parser);
         DatashareCliOptions.rootHost(parser);

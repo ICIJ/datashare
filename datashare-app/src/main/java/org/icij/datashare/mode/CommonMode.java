@@ -10,6 +10,7 @@ import com.google.inject.Module;
 import com.google.inject.Provides;
 import com.google.inject.Singleton;
 import com.google.inject.assistedinject.FactoryModuleBuilder;
+import com.netflix.conductor.client.http.ConductorClient;
 import net.codestory.http.Configuration;
 import net.codestory.http.annotations.Get;
 import net.codestory.http.annotations.Prefix;
@@ -40,6 +41,7 @@ import org.icij.datashare.nlp.EmailPipeline;
 import org.icij.datashare.nlp.OptimaizeLanguageGuesser;
 import org.icij.datashare.tasks.DatashareTaskFactory;
 import org.icij.datashare.tasks.TaskManagerAmqp;
+import org.icij.datashare.tasks.TaskManagerConductor;
 import org.icij.datashare.tasks.TaskManagerMemory;
 import org.icij.datashare.tasks.TaskManagerRedis;
 import org.icij.datashare.tasks.TaskRepositoryRedis;
@@ -80,6 +82,8 @@ import static java.util.Optional.ofNullable;
 import static org.icij.datashare.LambdaExceptionUtils.rethrowConsumer;
 import static org.icij.datashare.PluginService.PLUGINS_BASE_URL;
 import static org.icij.datashare.cli.DatashareCliOptions.BATCH_QUEUE_TYPE_OPT;
+import static org.icij.datashare.cli.DatashareCliOptions.CONDUCTOR_ADDRESS_OPT;
+import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_CONDUCTOR_ADDRESS;
 import static org.icij.datashare.cli.DatashareCliOptions.MODE_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.QUEUE_TYPE_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.TASK_REPOSITORY_OPT;
@@ -93,6 +97,23 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
     protected final Mode mode;
     private final Injector injector;
     private final List<Closeable> closeables = new LinkedList<>();
+
+    public static class ClosableConductorClientWrapper implements Closeable {
+        private final ConductorClient client;
+
+        public ClosableConductorClientWrapper(ConductorClient client) {
+            this.client = client;
+        }
+
+        public ConductorClient getClient() {
+            return client;
+        }
+
+        @Override
+        public void close() {
+            client.shutdown();
+        }
+    }
 
     protected CommonMode(Properties properties) {
         propertiesProvider = properties == null ? new PropertiesProvider() :
@@ -163,6 +184,12 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
                 bind(TaskSupplier.class).to(TaskSupplierAmqp.class);
                 bind(TaskModifier.class).to(TaskSupplierAmqp.class);
                 break;
+            case CONDUCTOR:
+                bind(TaskManager.class).to(TaskManagerConductor.class);
+                // Just no to break things we provide implems
+                bind(TaskModifier.class).to(TaskManagerMemory.class);
+                bind(TaskSupplier.class).to(TaskManagerMemory.class);
+                break;
             default:
                 bind(TaskManager.class).to(TaskManagerMemory.class);
                 bind(TaskModifier.class).to(TaskManagerMemory.class);
@@ -190,10 +217,19 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
     }
 
     @Provides @Singleton
+    ConductorClient provideConductorClient() {
+        ConductorClient.Builder<?> builder = new ConductorClient.Builder<>();
+        builder.basePath(propertiesProvider.get(CONDUCTOR_ADDRESS_OPT).orElse(DEFAULT_CONDUCTOR_ADDRESS) + "/api");
+        ClosableConductorClientWrapper conductorClientWrapper = new ClosableConductorClientWrapper(builder.build());
+        addCloseable(conductorClientWrapper);
+        return conductorClientWrapper.getClient();
+    }
+
+    @Provides @Singleton
     DocumentCollectionFactory<Path> provideScanQueue(final PropertiesProvider propertiesProvider) {
         return switch (getQueueType(propertiesProvider, QUEUE_TYPE_OPT, QueueType.MEMORY)) {
             case MEMORY -> new MemoryDocumentCollectionFactory<>();
-            case REDIS, AMQP -> new RedisDocumentCollectionFactory<>(propertiesProvider, get(RedissonClient.class));
+            case REDIS, AMQP, CONDUCTOR -> new RedisDocumentCollectionFactory<>(propertiesProvider, get(RedissonClient.class));
         };
     }
 
@@ -201,7 +237,7 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
     DocumentCollectionFactory<String> provideIndexQueue(final PropertiesProvider propertiesProvider) {
         return switch (getQueueType(propertiesProvider, QUEUE_TYPE_OPT, QueueType.MEMORY)) {
             case MEMORY -> new MemoryDocumentCollectionFactory<>();
-            case REDIS, AMQP -> new RedisDocumentCollectionFactory<>(propertiesProvider, get(RedissonClient.class));
+            case REDIS, AMQP, CONDUCTOR -> new RedisDocumentCollectionFactory<>(propertiesProvider, get(RedissonClient.class));
         };
     }
 

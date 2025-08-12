@@ -44,6 +44,7 @@ public final class DatashareCliOptions {
     public static final String BUS_TYPE_OPT = "busType";
     public static final String CHARSET_OPT = "charset";
     public static final String CLUSTER_NAME_OPT = "clusterName";
+    public static final String CONDUCTOR_ADDRESS_OPT = "conductorAddress";
     public static final String CORS_OPT = "cors";
     public static final String CREATE_INDEX_OPT = "createIndex";
     public static final String CRE_API_KEY_ABBR_OPT = "k";
@@ -51,6 +52,7 @@ public final class DatashareCliOptions {
     public static final String DATA_DIR_ABBR_OPT = "d";
     public static final String DATA_DIR_OPT = "dataDir";
     public static final String DATA_SOURCE_URL_OPT = "dataSourceUrl";
+    public static final String DEFAULT_CONDUCTOR_ADDRESS = "http://localhost:8000";
     public static final String DEFAULT_OCR_TYPE = "TESSERACT";
     public static final String DEFAULT_PROJECT_ABBR_OPT = "p";
     public static final String DEFAULT_PROJECT_OPT = "defaultProject";
@@ -391,6 +393,14 @@ public final class DatashareCliOptions {
                 "Message bus address")
                 .withRequiredArg()
                 .defaultsTo(DEFAULT_MESSAGE_BUS_ADDRESS);
+    }
+
+    static void conductorAddress(OptionParser parser) {
+        parser.acceptsAll(
+                singletonList(CONDUCTOR_ADDRESS_OPT),
+                "Conductor HTTP address")
+                .withRequiredArg()
+                .defaultsTo(DEFAULT_CONDUCTOR_ADDRESS);
     }
 
     public static void busType(OptionParser parser) {

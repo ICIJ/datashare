@@ -6,6 +6,7 @@ import java.util.function.Function;
 import org.icij.datashare.Entity;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Stage;
+import org.icij.datashare.asynctasks.ConductorTask;
 import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.asynctasks.TaskGroup;
 import org.icij.datashare.extract.DocumentCollectionFactory;
@@ -42,6 +43,7 @@ import static org.icij.datashare.cli.DatashareCliOptions.SCROLL_SLICES_OPT;
 import org.icij.datashare.asynctasks.TaskGroupType;
 import static org.icij.datashare.text.indexing.ScrollQueryBuilder.createScrollQuery;
 
+@ConductorTask(name ="ScanIndexTask")
 @TaskGroup(TaskGroupType.Java)
 public class ScanIndexTask extends PipelineTask<Path> {
     private final Logger logger = LoggerFactory.getLogger(getClass());

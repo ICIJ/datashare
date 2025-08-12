@@ -23,7 +23,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.Map;
+import org.icij.datashare.asynctasks.ConductorTask;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeoutException;
@@ -35,6 +35,7 @@ import static java.util.stream.Collectors.toList;
 import static org.icij.datashare.cli.DatashareCliOptions.*;
 import static org.icij.datashare.text.ProjectProxy.asCommaConcatNames;
 
+@ConductorTask(name ="BatchSearchRunner")
 @TaskGroup(TaskGroupType.Java)
 public class BatchSearchRunner implements CancellableTask, UserTask, Callable<Integer> {
     private final Logger logger = LoggerFactory.getLogger(getClass());

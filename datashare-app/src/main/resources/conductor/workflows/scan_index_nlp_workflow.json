@@ -1,0 +1,72 @@
+{
+  "name": "ScanIndexNlpTask",
+  "description": "Pipelined scan index NLP",
+  "ownerEmail": "datashare@icij.org",
+  "schemaVersion": 2,
+  "version": 7,
+  "inputParameters": [
+    "dataDir",
+    "digestAlgorithm",
+    "digestProjectName",
+    "outputFormat",
+    "embedHandling",
+    "embedOutput",
+    "ocrCache",
+    "ocrLanguage",
+    "ocrTimeout",
+    "ocr",
+    "ocrType",
+    "idMethod",
+    "charset",
+    "language",
+    "queuePoll",
+    "nlpPipeline",
+    "defaultProject",
+    "maxContentLength",
+    "pollingInterval"
+  ],
+  "tasks": [
+    {
+      "name": "ScanTask",
+      "taskReferenceName": "ScanTask",
+      "type": "SIMPLE",
+      "inputParameters": {
+        "dataDir": "${workflow.input.dataDir}"
+      }
+    },
+    {
+      "name": "IndexTask",
+      "taskReferenceName": "IndexTask",
+      "type": "SIMPLE",
+      "inputParameters": {
+        "defaultProject": "${workflow.input.defaultProject}",
+        "digestAlgorithm": "${workflow.input.digestAlgorithm}",
+        "digestProjectName": "${workflow.input.digestProjectName}",
+        "outputFormat": "${workflow.input.outputFormat}",
+        "embedHandling": "${workflow.input.embedHandling}",
+        "embedOutput": "${workflow.input.embedOutput}",
+        "ocrCache": "${workflow.input.ocrCache}",
+        "ocrLanguage": "${workflow.input.ocrLanguage}",
+        "ocrTimeout": "${workflow.input.ocrTimeout}",
+        "ocr": "${workflow.input.ocr}",
+        "ocrType": "${workflow.input.ocrType}",
+        "idMethod": "${workflow.input.idMethod}",
+        "charset": "${workflow.input.charset}",
+        "language": "${workflow.input.language}",
+        "queuePoll": "${workflow.input.queuePoll}"
+      }
+    },
+    {
+      "name": "ExtractNlpTask",
+      "taskReferenceName": "ExtractNlpTask",
+      "type": "SIMPLE",
+      "inputParameters": {
+        "nlpPipeline": "${workflow.input.nlpPipeline}",
+        "defaultProject": "${workflow.input.defaultProject}",
+        "maxContentLength": "${workflow.input.maxContentLength}",
+        "pollingInterval": "${workflow.input.pollingInterval}"
+      }
+    }
+  ],
+  "timeoutPolicy": "TIME_OUT_WF"
+}

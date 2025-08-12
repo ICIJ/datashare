@@ -7,6 +7,7 @@ import java.util.function.Function;
 import org.icij.datashare.Entity;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Stage;
+import org.icij.datashare.asynctasks.ConductorTask;
 import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.asynctasks.TaskGroup;
 import org.icij.datashare.asynctasks.TaskGroupType;
@@ -33,6 +34,7 @@ import static org.icij.datashare.cli.DatashareCliOptions.SCROLL_DURATION_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.SCROLL_SIZE_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.SEARCH_QUERY_OPT;
 
+@ConductorTask(name ="EnqueueFromIndexTask")
 @TaskGroup(TaskGroupType.Java)
 public class EnqueueFromIndexTask extends PipelineTask<String> {
     private final DocumentCollectionFactory<String> factory;

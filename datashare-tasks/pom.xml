@@ -53,6 +53,21 @@
             <artifactId>amqp-client</artifactId>
             <version>${rabbitmq-version}</version>
         </dependency>
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-lang3</artifactId>
+            <version>3.18.0</version>
+        </dependency>
+        <dependency>
+            <groupId>org.conductoross</groupId>
+            <artifactId>conductor-client</artifactId>
+            <version>4.0.0</version>
+        </dependency>
+        <dependency>
+            <groupId>org.conductoross</groupId>
+            <artifactId>java-sdk</artifactId>
+            <version>4.0.14</version>
+        </dependency>
         <!--
         Redisson is needed for RedisBlockingQueue. Redisson is pulling netty.
         It overrides netty 4.1.49 from datashare-index and avoid blocking Redis tests

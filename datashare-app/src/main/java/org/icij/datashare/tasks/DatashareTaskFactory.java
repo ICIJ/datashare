@@ -8,6 +8,9 @@ import java.util.function.Function;
 
 
 public interface DatashareTaskFactory extends org.icij.datashare.asynctasks.TaskFactory {
+    // TODO: ideally we'd like to decorate task functions here using the @ConductorTask
+    //  but during inject Guice creates proxy classes which loose the below annotations, instead we has to put
+    //  @ConductorTask annotations in each task class, see if this can be improved
     BatchSearchRunner createBatchSearchRunner(Task<?> taskView, Function<Double, Void> updateCallback);
     BatchDownloadRunner createBatchDownloadRunner(Task<?> taskView, Function<Double, Void> updateCallback);
 

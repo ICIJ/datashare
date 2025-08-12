@@ -1,5 +1,6 @@
 package org.icij.datashare.tasks;
 
+import org.icij.datashare.asynctasks.ConductorTask;
 import org.icij.datashare.asynctasks.TaskGroupType;
 
 import com.google.inject.Inject;
@@ -19,6 +20,7 @@ import org.icij.task.annotation.OptionsClass;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
+@ConductorTask(name ="ScanTask")
 @OptionsClass(Scanner.class)
 @TaskGroup(TaskGroupType.Java)
 public class ScanTask extends PipelineTask<Path> {

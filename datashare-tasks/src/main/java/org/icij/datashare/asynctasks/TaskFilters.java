@@ -111,7 +111,7 @@ public final class TaskFilters {
             .orElse(true);
     }
 
-    private Pattern getNamePattern() {
+    public Pattern getNamePattern() {
         if (name == null) {
             return null;
         }

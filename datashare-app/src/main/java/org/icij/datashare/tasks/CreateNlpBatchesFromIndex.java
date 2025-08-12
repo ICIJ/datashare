@@ -30,6 +30,7 @@ import java.util.Map;
 import java.util.function.Function;
 import org.icij.datashare.Entity;
 import org.icij.datashare.asynctasks.CancellableTask;
+import org.icij.datashare.asynctasks.ConductorTask;
 import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.asynctasks.TaskGroup;
 import org.icij.datashare.asynctasks.TaskGroupType;
@@ -46,6 +47,7 @@ import org.icij.task.DefaultTask;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+@ConductorTask(name ="CreateNlpBatchesFromIndex")
 @TaskGroup(TaskGroupType.Java)
 public class CreateNlpBatchesFromIndex extends DefaultTask<List<String>> implements UserTask, CancellableTask {
     Logger logger = LoggerFactory.getLogger(getClass());

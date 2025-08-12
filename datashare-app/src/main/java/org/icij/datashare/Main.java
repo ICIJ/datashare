@@ -11,6 +11,7 @@ import java.nio.charset.Charset;
 public class Main {
     private static final Logger LOGGER = LoggerFactory.getLogger(Main.class);
     public static void main(String[] args) throws Exception {
+        Thread.sleep(5000);
         DatashareCli cli = new DatashareCli().parseArguments(args);
         LOGGER.info("Running datashare {}", cli.isWebServer() ? "web server" : "");
         LOGGER.info("JVM version {}", System.getProperty("java.version"));

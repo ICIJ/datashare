@@ -1,0 +1,47 @@
+{
+  "name": "IndexTask",
+  "description": "Indexing task workflow",
+  "ownerEmail": "datashare@icij.org",
+  "schemaVersion": 2,
+  "version": 6,
+  "inputParameters": [
+    "digestAlgorithm",
+    "digestProjectName",
+    "outputFormat",
+    "embedHandling",
+    "embedOutput",
+    "ocrCache",
+    "ocrLanguage",
+    "ocrTimeout",
+    "ocr",
+    "ocrType",
+    "idMethod",
+    "charset",
+    "language",
+    "queuePoll"
+  ],
+  "tasks": [
+    {
+      "name": "IndexTask",
+      "taskReferenceName": "IndexTask",
+      "type": "SIMPLE",
+      "inputParameters": {
+        "digestAlgorithm": "${workflow.input.digestAlgorithm}",
+        "digestProjectName": "${workflow.input.digestProjectName}",
+        "outputFormat": "${workflow.input.outputFormat}",
+        "embedHandling": "${workflow.input.embedHandling}",
+        "embedOutput": "${workflow.input.embedOutput}",
+        "ocrCache": "${workflow.input.ocrCache}",
+        "ocrLanguage": "${workflow.input.ocrLanguage}",
+        "ocrTimeout": "${workflow.input.ocrTimeout}",
+        "ocr": "${workflow.input.:}",
+        "ocrType": "${workflow.input.ocrType}",
+        "idMethod": "${workflow.input.idMethod}",
+        "charset": "${workflow.input.charset}",
+        "language": "${workflow.input.language}",
+        "queuePoll": "${workflow.input.queuePoll}"
+      }
+    }
+  ],
+  "timeoutPolicy": "TIME_OUT_WF"
+}

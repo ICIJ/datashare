@@ -1,0 +1,17 @@
+{
+  "name": "ExtractNlpTask",
+  "description": "NLP task",
+  "ownerEmail": "datashare@icij.org",
+  "inputKeys": [
+    "nlpPipeline",
+    "defaultProject",
+    "maxContentLength",
+    "pollingInterval"
+  ],
+  "retryLogic": "EXPONENTIAL_BACKOFF",
+  "retryCount": 3,
+  "retryDelaySeconds": 1,
+  "timeoutPolicy": "RETRY",
+  "timeoutSeconds": 36000,
+  "responseTimeoutSeconds": 600
+}

@@ -63,6 +63,12 @@ public class PropertiesProvider {
         settingsPath = null;
     }
 
+    public static PropertiesProvider ofNullable(final Map<String, Object> hashMap) {
+        Map<String, Object> collect = hashMap.entrySet().stream().filter(e -> e.getValue() != null)
+            .collect(toMap(Map.Entry::getKey, Map.Entry::getValue));
+        return new PropertiesProvider(collect);
+    }
+
     public static Map<String, Object> propertiesToMap(final Properties properties) {
         return properties.entrySet().stream().collect(
                 Collectors.toMap(
