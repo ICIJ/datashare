@@ -5,7 +5,6 @@ import com.ninja_squad.dbsetup.destination.DataSourceDestination;
 import com.ninja_squad.dbsetup.operation.Operation;
 import com.ninja_squad.dbsetup.operation.SqlOperation;
 import org.icij.datashare.PropertiesProvider;
-import org.icij.datashare.batch.BatchSearchRepository;
 import org.junit.rules.ExternalResource;
 
 import javax.sql.DataSource;

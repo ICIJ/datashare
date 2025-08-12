@@ -1,0 +1,8 @@
+databaseChangeLog:
+  - changeSet:
+      id: 40
+      author: mvanza
+      dbms: sqlite
+      runInTransaction: false
+      changes:
+        - sql: PRAGMA journal_mode = WAL;
