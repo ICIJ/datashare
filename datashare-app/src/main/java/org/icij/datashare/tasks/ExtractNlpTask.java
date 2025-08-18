@@ -39,7 +39,7 @@ import static org.icij.extract.document.Identifier.shorten;
 @ConductorTask(name ="ExtractNlpTask")
 @TaskGroup(TaskGroupType.Java)
 public class ExtractNlpTask extends PipelineTask<String> implements Monitorable {
-    private static final int DEFAULT_MAX_CONTENT_LENGTH = 1024 * 1024;
+    static final int DEFAULT_NLP_MAX_CONTENT_LENGTH = 1024 * 1024;
     public static final int NB_MAX_POLLS = 3;
     private final Logger logger = LoggerFactory.getLogger(getClass());
     private final Indexer indexer;
@@ -58,7 +58,8 @@ public class ExtractNlpTask extends PipelineTask<String> implements Monitorable 
         super(Stage.NLP, taskView.getUser(), factory, PropertiesProvider.ofNullable(taskView.args), String.class);
         this.nlpPipeline = pipeline;
         project = Project.project(ofNullable((String)taskView.args.get(DEFAULT_PROJECT_OPT)).orElse(DEFAULT_DEFAULT_PROJECT));
-        maxContentLengthChars = (int) HumanReadableSize.parse(ofNullable((String)taskView.args.get(MAX_CONTENT_LENGTH_OPT)).orElse(valueOf(DEFAULT_MAX_CONTENT_LENGTH)));
+        maxContentLengthChars = (int) HumanReadableSize.parse(ofNullable((String)taskView.args.get(MAX_CONTENT_LENGTH_OPT)).orElse(valueOf(
+            DEFAULT_NLP_MAX_CONTENT_LENGTH)));
         pollingIntervalSeconds = Float.parseFloat(ofNullable((String)taskView.args.get(POLLING_INTERVAL_SECONDS_OPT)).orElse(DEFAULT_POLLING_INTERVAL_SEC));
         this.indexer = indexer;
     }

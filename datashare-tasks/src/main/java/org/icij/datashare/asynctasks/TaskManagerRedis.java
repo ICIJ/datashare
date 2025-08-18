@@ -5,10 +5,7 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.ByteBufInputStream;
 import io.netty.buffer.ByteBufOutputStream;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Optional;
-import java.util.Set;
 import org.icij.datashare.asynctasks.bus.amqp.AmqpQueue;
 import org.icij.datashare.asynctasks.bus.amqp.CancelEvent;
 import org.icij.datashare.asynctasks.bus.amqp.ShutdownEvent;
@@ -69,7 +66,8 @@ public class TaskManagerRedis implements TaskManager {
         eventTopic.addListener(TaskEvent.class, (channelString, message) -> handleEvent(message));
     }
 
-    public <V extends Serializable> Task<V> getTask(final String taskId) throws UnknownTask, IOException {
+    @Override
+    public <V extends Serializable> Task<V> getTask(final String taskId, boolean includeSubtask) throws UnknownTask, IOException {
         return tasks.getTask(taskId);
     }
 

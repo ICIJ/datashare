@@ -3,8 +3,9 @@
   "description": "Pipelined scan index NLP",
   "ownerEmail": "datashare@icij.org",
   "schemaVersion": 2,
-  "version": 7,
+  "version": 9,
   "inputParameters": [
+    "parallelism",
     "dataDir",
     "digestAlgorithm",
     "digestProjectName",
@@ -39,6 +40,7 @@
       "taskReferenceName": "IndexTask",
       "type": "SIMPLE",
       "inputParameters": {
+        "parallelism": "${workflow.input.parallelism}",
         "defaultProject": "${workflow.input.defaultProject}",
         "digestAlgorithm": "${workflow.input.digestAlgorithm}",
         "digestProjectName": "${workflow.input.digestProjectName}",

@@ -45,7 +45,7 @@ public class CreateNlpBatchesFromIndexParametrizedTest {
     @Rule
     public DatashareTimeRule time = new DatashareTimeRule();
 
-    static class TestableCreateNlpBatchesFromIndex extends CreateNlpBatchesFromIndex {
+    static class TestableCreateNlpBatchesFromIndex extends CreateNlpBatchesFromIndexWithHandlerTask {
         public TestableCreateNlpBatchesFromIndex(
                 TaskManager taskManager, Indexer indexer, Task<LinkedList<String>> taskView, Function<Double, Void> ignored) {
             super(taskManager, indexer, taskView, ignored);
@@ -66,7 +66,7 @@ public class CreateNlpBatchesFromIndexParametrizedTest {
     @Before
     public void setUp() {
         DatashareTaskFactory factory = mock(DatashareTaskFactory.class);
-        when(factory.createBatchNlpTask(any(), any())).thenReturn(mock(BatchNlpTask.class));
+        when(factory.createBatchNlpTask(any(), any())).thenReturn(mock(AbstractBatchNlpTask.class));
         taskManager = new TaskManagerMemory(factory, new TaskRepositoryMemory(), new PropertiesProvider());
     }
 
@@ -133,13 +133,13 @@ public class CreateNlpBatchesFromIndexParametrizedTest {
             "scrollSize", this.scrollSize
         );
         TestableCreateNlpBatchesFromIndex enqueueFromIndex = new TestableCreateNlpBatchesFromIndex(taskManager, indexer,
-                new Task<>(CreateNlpBatchesFromIndex.class.getName(), new User("test"), properties), null);
+                new Task<>(CreateNlpBatchesFromIndexWithHandlerTask.class.getName(), new User("test"), properties), null);
         // When
         List<String> taskIds = enqueueFromIndex.call();
         List<List<Language>> queued = taskManager.getTasks()
             .sorted(Comparator.comparing(t -> t.createdAt))
-            .map(t -> ((List<CreateNlpBatchesFromIndex.BatchDocument>) t.args.get("docs")).stream().map(
-                CreateNlpBatchesFromIndex.BatchDocument::language).toList())
+            .map(t -> ((List<CreateNlpBatchesFromIndexWithHandlerTask.BatchDocument>) t.args.get("docs")).stream().map(
+                CreateNlpBatchesFromIndexWithHandlerTask.BatchDocument::language).toList())
             .toList();
         // Then
         assertThat(queued).isEqualTo(this.expectedLanguages);

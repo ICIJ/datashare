@@ -39,7 +39,9 @@ import org.icij.datashare.extract.MemoryDocumentCollectionFactory;
 import org.icij.datashare.extract.RedisDocumentCollectionFactory;
 import org.icij.datashare.nlp.EmailPipeline;
 import org.icij.datashare.nlp.OptimaizeLanguageGuesser;
+import org.icij.datashare.tasks.BatchHandler;
 import org.icij.datashare.tasks.DatashareTaskFactory;
+import org.icij.datashare.tasks.MemoryBatchHandler;
 import org.icij.datashare.tasks.TaskManagerAmqp;
 import org.icij.datashare.tasks.TaskManagerConductor;
 import org.icij.datashare.tasks.TaskManagerMemory;
@@ -223,6 +225,11 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
         ClosableConductorClientWrapper conductorClientWrapper = new ClosableConductorClientWrapper(builder.build());
         addCloseable(conductorClientWrapper);
         return conductorClientWrapper.getClient();
+    }
+
+    @Provides @Singleton
+    BatchHandler<String> provideBatchHandler() {
+        return new MemoryBatchHandler<>();
     }
 
     @Provides @Singleton

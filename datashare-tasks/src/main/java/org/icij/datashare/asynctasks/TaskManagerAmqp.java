@@ -1,21 +1,21 @@
 package org.icij.datashare.asynctasks;
 
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.function.Consumer;
-import org.icij.datashare.asynctasks.bus.amqp.*;
-
-import org.icij.datashare.tasks.RoutingStrategy;
+import static java.util.Optional.ofNullable;
+import static org.icij.datashare.asynctasks.Task.State.FINAL_STATES;
 
 import java.io.IOException;
 import java.io.Serializable;
+import java.util.List;
+import java.util.function.Consumer;
 import java.util.stream.Stream;
-
-import static java.util.Optional.ofNullable;
-import static org.icij.datashare.asynctasks.Task.State.FINAL_STATES;
+import org.icij.datashare.asynctasks.bus.amqp.AmqpConsumer;
+import org.icij.datashare.asynctasks.bus.amqp.AmqpInterlocutor;
+import org.icij.datashare.asynctasks.bus.amqp.AmqpQueue;
+import org.icij.datashare.asynctasks.bus.amqp.CancelEvent;
+import org.icij.datashare.asynctasks.bus.amqp.MonitoringEvent;
+import org.icij.datashare.asynctasks.bus.amqp.ShutdownEvent;
+import org.icij.datashare.asynctasks.bus.amqp.TaskEvent;
+import org.icij.datashare.tasks.RoutingStrategy;
 
 public class TaskManagerAmqp implements TaskManager {
     protected static final int DEFAULT_TASK_POLLING_INTERVAL_MS = 5000;
@@ -29,22 +29,26 @@ public class TaskManagerAmqp implements TaskManager {
         this(amqp, taskRepository, RoutingStrategy.UNIQUE);
     }
 
-    public TaskManagerAmqp(AmqpInterlocutor amqp, TaskRepository tasks, RoutingStrategy routingStrategy) throws IOException {
+    public TaskManagerAmqp(AmqpInterlocutor amqp, TaskRepository tasks, RoutingStrategy routingStrategy)
+        throws IOException {
         this(amqp, tasks, routingStrategy, null);
     }
 
-    public TaskManagerAmqp(AmqpInterlocutor amqp, TaskRepository tasks, RoutingStrategy routingStrategy, Runnable eventCallback) throws IOException {
+    public TaskManagerAmqp(AmqpInterlocutor amqp, TaskRepository tasks, RoutingStrategy routingStrategy,
+                           Runnable eventCallback) throws IOException {
         this(amqp, tasks, routingStrategy, eventCallback, DEFAULT_TASK_POLLING_INTERVAL_MS);
     }
 
-    public TaskManagerAmqp(AmqpInterlocutor amqp, TaskRepository tasks, RoutingStrategy routingStrategy, Runnable eventCallback, int taskPollingIntervalMs) throws IOException {
+    public TaskManagerAmqp(AmqpInterlocutor amqp, TaskRepository tasks, RoutingStrategy routingStrategy,
+                           Runnable eventCallback, int taskPollingIntervalMs) throws IOException {
         this.amqp = amqp;
         this.tasks = tasks;
         this.routingStrategy = routingStrategy;
         this.taskPollingIntervalMs = taskPollingIntervalMs;
         eventConsumer = new AmqpConsumer<>(amqp, event ->
-                ofNullable(TaskManager.super.handleAck(event)).flatMap(t ->
-                        ofNullable(eventCallback)).ifPresent(Runnable::run), AmqpQueue.MANAGER_EVENT, TaskEvent.class).consumeEvents();
+            ofNullable(TaskManager.super.handleAck(event)).flatMap(t ->
+                ofNullable(eventCallback)).ifPresent(Runnable::run), AmqpQueue.MANAGER_EVENT,
+            TaskEvent.class).consumeEvents();
     }
 
     @Override
@@ -99,7 +103,8 @@ public class TaskManagerAmqp implements TaskManager {
     }
 
     @Override
-    public <V extends Serializable> Task<V> getTask(String taskId) throws IOException, UnknownTask {
+    public <V extends Serializable> Task<V> getTask(String taskId, boolean includeSubtasks)
+        throws IOException, UnknownTask {
         return tasks.getTask(taskId);
     }
 
@@ -152,7 +157,7 @@ public class TaskManagerAmqp implements TaskManager {
             } else {
                 return amqp.isConnectionOpen();
             }
-        } catch (RuntimeException|IOException e) {
+        } catch (RuntimeException | IOException e) {
             logger.error("error sending monitoring event", e);
             return false;
         }

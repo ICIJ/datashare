@@ -54,9 +54,9 @@ public class BatchNlpTest {
         when(pipeline.initialize(any())).thenReturn(true);
 
         when(indexer.get(anyString(), anyString(), any(List.class))).thenReturn(doc0, doc1);
-        List<CreateNlpBatchesFromIndex.BatchDocument> batchDocs = List.of(
-            new CreateNlpBatchesFromIndex.BatchDocument(doc0.getId(), doc0.getRootDocument(), TEST_INDEX, language),
-            new CreateNlpBatchesFromIndex.BatchDocument(doc1.getId(), doc1.getRootDocument(), TEST_INDEX, language)
+        List<CreateNlpBatchesFromIndexWithHandlerTask.BatchDocument> batchDocs = List.of(
+            new CreateNlpBatchesFromIndexWithHandlerTask.BatchDocument(doc0.getId(), doc0.getRootDocument(), TEST_INDEX, language),
+            new CreateNlpBatchesFromIndexWithHandlerTask.BatchDocument(doc1.getId(), doc1.getRootDocument(), TEST_INDEX, language)
         );
         Map<String, Object> properties = Map.of(
             "docs", batchDocs,
@@ -64,8 +64,8 @@ public class BatchNlpTest {
             "maxLength", maxLength,
             "group", "JAVA"
         );
-        BatchNlpTask nlpTask = new BatchNlpTask(
-            indexer, pipeline, new Task<>(BatchNlpTask.class.getName(), new User("test"), properties), null
+        AbstractBatchNlpTask nlpTask = new AbstractBatchNlpTask(
+            indexer, pipeline, new Task<>(AbstractBatchNlpTask.class.getName(), new User("test"), properties), null
         );
         // When
         nlpTask.call();

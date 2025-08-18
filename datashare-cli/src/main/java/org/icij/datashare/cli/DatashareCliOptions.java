@@ -166,7 +166,6 @@ public final class DatashareCliOptions {
     public static final String DEFAULT_MESSAGE_BUS_ADDRESS = "redis://redis:6379";
     public static final String DEFAULT_NLP_PIPELINE = "CORENLP";
     public static final int DEFAULT_NLP_BATCH_SIZE = 1024;
-    public static final int DEFAULT_NLP_MAX_TEXT_LENGTH = 1024;
     public static final String DEFAULT_PROTECTED_URI_PREFIX = "/api/";
     public static final String DEFAULT_QUEUE_NAME = "extract:queue";
     public static final String DEFAULT_REDIS_ADDRESS = "redis://redis:6379";

@@ -1,0 +1,16 @@
+{
+  "name": "BatchNlpTask",
+  "description": "Processed a batch of document and run NER on them",
+  "ownerEmail": "datashare@icij.org",
+  "inputKeys": [
+    "pipeline",
+    "docs",
+    "maxLength"
+  ],
+  "retryLogic": "EXPONENTIAL_BACKOFF",
+  "retryCount": 3,
+  "retryDelaySeconds": 1,
+  "timeoutPolicy": "RETRY",
+  "timeoutSeconds": 36000,
+  "responseTimeoutSeconds": 600
+}

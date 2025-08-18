@@ -95,7 +95,10 @@ public class TaskManagerConductor implements TaskManager {
         try {
             workflowClient.getWorkflow(task.id, false);
         } catch (ConductorClientException e) {
-            throw new UnknownTask(task.id);
+            if (e.getMessage().contains("exists")) {
+                throw new UnknownTask(task.id, e);
+            }
+            throw e;
         }
     }
 
@@ -118,9 +121,9 @@ public class TaskManagerConductor implements TaskManager {
     }
 
     @Override
-    public <V extends Serializable> Task<V> getTask(String taskId) throws IOException, UnknownTask {
+    public <V extends Serializable> Task<V> getTask(String taskId, boolean includeSubtasks) throws IOException, UnknownTask {
         Workflow wf;
-        wf = getWorkflow(taskId);
+        wf = getWorkflow(taskId, includeSubtasks);
         return taskFromWorkflow(wf);
     }
 
@@ -141,7 +144,7 @@ public class TaskManagerConductor implements TaskManager {
 
     @Override
     public Group getTaskGroup(String taskId) throws IOException {
-        Workflow wf = getWorkflow(taskId);
+        Workflow wf = getWorkflow(taskId, false);
         TaskGroupType id = TaskGroupType.valueOf(wf.getTaskToDomain().get(TASK_GROUP));
         return new Group(id);
     }
@@ -245,10 +248,10 @@ public class TaskManagerConductor implements TaskManager {
         return conductorState;
     }
 
-    private Workflow getWorkflow(String taskId) {
+    private Workflow getWorkflow(String taskId, boolean includeTasks) throws UnknownTask {
         Workflow wf;
         try {
-            wf = workflowClient.getWorkflow(taskId, false);
+            wf = workflowClient.getWorkflow(taskId, includeTasks);
         } catch (ConductorClientException e) { // TODO: we should probably be more specific here
             throw new UnknownTask(taskId);
         }

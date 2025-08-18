@@ -1,10 +1,10 @@
 package org.icij.datashare.tasks;
 
-import java.util.LinkedList;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.function.Function;
 import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.user.User;
-
-import java.util.function.Function;
 
 
 public interface DatashareTaskFactory extends org.icij.datashare.asynctasks.TaskFactory {
@@ -12,19 +12,45 @@ public interface DatashareTaskFactory extends org.icij.datashare.asynctasks.Task
     //  but during inject Guice creates proxy classes which loose the below annotations, instead we has to put
     //  @ConductorTask annotations in each task class, see if this can be improved
     BatchSearchRunner createBatchSearchRunner(Task<?> taskView, Function<Double, Void> updateCallback);
+
     BatchDownloadRunner createBatchDownloadRunner(Task<?> taskView, Function<Double, Void> updateCallback);
 
     ScanTask createScanTask(Task<Long> taskView, Function<Double, Void> updateCallback);
+
     IndexTask createIndexTask(Task<Long> taskView, Function<Double, Void> updateCallback);
+
     ScanIndexTask createScanIndexTask(Task<Long> taskView, Function<Double, Void> updateCallback);
+
     ExtractNlpTask createExtractNlpTask(Task<Long> taskView, Function<Double, Void> updateCallback);
+
     EnqueueFromIndexTask createEnqueueFromIndexTask(Task<Long> taskView, Function<Double, Void> updateCallback);
-    CreateNlpBatchesFromIndex createBatchEnqueueFromIndexTask(Task<LinkedList<String>> taskView, Function<Double, Void> updateCallback);
-    BatchNlpTask createBatchNlpTask(Task<Long> taskView, Function<Double, Void> updateCallback);
+
+    //    CreateNlpBatchesFromIndexWithHandlerTask createBatchEnqueueFromIndexTask(Task<LinkedList<String>> taskView, Function<Double, Void> updateCallback);
     DeduplicateTask createDeduplicateTask(Task<Long> taskView, Function<Double, Void> updateCallback);
+
     ArtifactTask createArtifactTask(Task<Long> taskView, Function<Double, Void> updateCallback);
 
+    // Batch stuff
+    BatchScanTask createBatchScanTask(Task<ArrayList<List<String>>> taskView, Function<Double, Void> updateCallback);
+
+    BatchIndexTask createBatchIndexTask(Task<Long> taskView, Function<Double, Void> updateCallback);
+
+    CreateNlpBatchesFromIndexTask createCreateNlpBatchesFromIndexTask(
+        Task<ArrayList<List<AbstractCreateNlpBatchesFromIndexTask.BatchDocument>>> taskView,
+        Function<Double, Void> updateCallback);
+
+    BatchNlpTask createBatchNlpTask(Task<Long> taskView, Function<Double, Void> updateCallback);
+
+//    // Batch stuff with handler
+//    BatchScanWithHandlerTask createBatchScanWithHandlerTask(Task<Long> taskView, Function<Double, Void> updateCallback);
+//    BatchIndexWithHandlerTask createBatchIndexWithHandlerTask(Task<Long> taskView, Function<Double, Void> updateCallback);
+//    CreateNlpBatchesFromIndexWithHandlerTask createCreateNlpBatchesFromIndexWithHandlerTask(Task<Long> taskView, Function<Double, Void> updateCallback);
+//    BatchNlpWithHandlerTask createBatchNlpWithHandlerTask(Task<Long> taskView, Function<Double, Void> updateCallback);
+
+
     GenApiKeyTask createGenApiKey(User user);
+
     DelApiKeyTask createDelApiKey(User user);
+
     GetApiKeyTask createGetApiKey(User user);
 }

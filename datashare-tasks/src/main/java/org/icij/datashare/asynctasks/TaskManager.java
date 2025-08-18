@@ -30,7 +30,11 @@ import static org.icij.datashare.asynctasks.Task.State.NON_FINAL_STATES;
 public interface TaskManager extends Closeable {
     int POLLING_INTERVAL = 5000;
     Logger logger = LoggerFactory.getLogger(TaskManager.class);
-    <V extends Serializable> Task<V> getTask(String taskId) throws IOException, UnknownTask;
+    default <V extends Serializable> Task<V> getTask(String taskId) throws IOException, UnknownTask {
+        return getTask(taskId, false);
+    }
+    <V extends Serializable> Task<V> getTask(String taskId, boolean includeSubtasks) throws IOException, UnknownTask;
+
     <V extends Serializable> Task<V> clearTask(String taskId) throws IOException, UnknownTask;
     boolean stopTask(String taskId) throws IOException, UnknownTask;
 

@@ -1,8 +1,21 @@
 package org.icij.datashare.asynctasks;
 
-import java.util.HashSet;
-import java.util.Optional;
-import java.util.Set;
+import static java.lang.Integer.parseInt;
+import static org.icij.datashare.asynctasks.Task.State.FINAL_STATES;
+
+import java.io.IOException;
+import java.io.Serializable;
+import java.util.List;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Consumer;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import org.apache.commons.lang3.NotImplementedException;
 import org.icij.datashare.PropertiesProvider;
@@ -10,18 +23,6 @@ import org.icij.datashare.asynctasks.bus.amqp.Event;
 import org.icij.datashare.asynctasks.bus.amqp.TaskError;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.io.IOException;
-import java.io.Serializable;
-import java.util.List;
-import java.util.concurrent.*;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Consumer;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
-
-import static java.lang.Integer.parseInt;
-import static org.icij.datashare.asynctasks.Task.State.FINAL_STATES;
 
 
 public class TaskManagerMemory implements TaskManager, TaskSupplier {
@@ -39,19 +40,25 @@ public class TaskManagerMemory implements TaskManager, TaskSupplier {
         this(taskFactory, new TaskRepositoryMemory(), new PropertiesProvider(), new CountDownLatch(1));
     }
 
-    public TaskManagerMemory(TaskFactory taskFactory, TaskRepository tasks, PropertiesProvider propertiesProvider, CountDownLatch latch) {
+    public TaskManagerMemory(TaskFactory taskFactory, TaskRepository tasks, PropertiesProvider propertiesProvider,
+                             CountDownLatch latch) {
         this.taskQueue = new LinkedBlockingQueue<>();
         int parallelism = parseInt(propertiesProvider.get("taskWorkers").orElse("1"));
         pollingInterval = Integer.parseInt(propertiesProvider.get("pollingInterval").orElse("60"));
-        taskPollingIntervalMs = Integer.parseInt(propertiesProvider.get("taskManagerPollingIntervalMilliseconds").orElse(String.valueOf(DEFAULT_TASK_POLLING_INTERVAL_MS)));
+        taskPollingIntervalMs = Integer.parseInt(propertiesProvider.get("taskManagerPollingIntervalMilliseconds")
+            .orElse(String.valueOf(DEFAULT_TASK_POLLING_INTERVAL_MS)));
         logger.info("running TaskManager {} with {} workers", this, parallelism);
         executor = Executors.newFixedThreadPool(parallelism);
-        loops = IntStream.range(0, parallelism).mapToObj(i -> new TaskWorkerLoop(taskFactory, this, latch, pollingInterval)).collect(Collectors.toList());
+        loops =
+            IntStream.range(0, parallelism).mapToObj(i -> new TaskWorkerLoop(taskFactory, this, latch, pollingInterval))
+                .collect(Collectors.toList());
         loops.forEach(executor::submit);
         this.tasks = tasks;
     }
 
-    public <V extends Serializable> Task<V> getTask(final String taskId) throws UnknownTask, IOException {
+    @Override
+    public <V extends Serializable> Task<V> getTask(final String taskId, boolean includeSubtasks)
+        throws UnknownTask, IOException {
         return tasks.getTask(taskId);
     }
 
@@ -92,9 +99,9 @@ public class TaskManagerMemory implements TaskManager, TaskSupplier {
     public void canceled(Task<?> task, boolean requeue) {
         Task<?> taskView;
         try {
-             taskView = getTask(task.id);
-             taskView.cancel();
-             update(taskView);
+            taskView = getTask(task.id);
+            taskView.cancel();
+            update(taskView);
         } catch (UnknownTask ex) {
             logger.warn("unknown task id <{}> for cancel={} call", task.id, requeue);
         } catch (IOException e) {
@@ -245,5 +252,6 @@ public class TaskManagerMemory implements TaskManager, TaskSupplier {
     }
 
     @Override
-    public void waitForConsumer() {}
+    public void waitForConsumer() {
+    }
 }

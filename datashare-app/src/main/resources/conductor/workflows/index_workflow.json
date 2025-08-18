@@ -3,7 +3,7 @@
   "description": "Indexing task workflow",
   "ownerEmail": "datashare@icij.org",
   "schemaVersion": 2,
-  "version": 6,
+  "version": 9,
   "inputParameters": [
     "digestAlgorithm",
     "digestProjectName",

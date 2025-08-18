@@ -1,8 +1,9 @@
 {
-  "name": "IndexTask",
-  "description": "Indexing task",
+  "name": "BatchIndexTask",
+  "description": "Indexing DS documents by batch",
   "ownerEmail": "datashare@icij.org",
   "inputKeys": [
+    "paths",
     "parallelism",
     "digestAlgorithm",
     "digestProjectName",

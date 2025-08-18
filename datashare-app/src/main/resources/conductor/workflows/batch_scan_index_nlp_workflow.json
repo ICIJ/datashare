@@ -1,0 +1,142 @@
+{
+  "name": "BatchScanIndexNlpTask",
+  "description": "Pipelined scan index NLP",
+  "ownerEmail": "datashare@icij.org",
+  "schemaVersion": 2,
+  "version": 9,
+  "inputParameters": [
+    "parallelism",
+    "dataDir",
+    "digestAlgorithm",
+    "digestProjectName",
+    "outputFormat",
+    "embedHandling",
+    "embedOutput",
+    "ocrCache",
+    "ocrLanguage",
+    "ocrTimeout",
+    "ocr",
+    "ocrType",
+    "idMethod",
+    "charset",
+    "language",
+    "queuePoll",
+    "nlpPipeline",
+    "defaultProject",
+    "maxContentLength",
+    "pollingInterval",
+    "batchSize",
+    "maxTextLength",
+    "scroll",
+    "scrollSizeOpt",
+    "searchQuery"
+  ],
+  "outputParameters": {
+    "result": "${aggregate-nlp.output.result}"
+  },
+  "tasks": [
+    {
+      "name": "BatchScanTask",
+      "taskReferenceName": "BatchScanTask",
+      "type": "SIMPLE",
+      "inputParameters": {
+        "dataDir": "${workflow.input.dataDir}",
+        "batchSize": "${workflow.input.batchSize}"
+      }
+    },
+    {
+      "name": "zip-index-args",
+      "taskReferenceName": "zip-index-args",
+      "inputParameters": {
+        "fromWorkflow": {
+          "parallelism": "${workflow.input.parallelism}",
+          "defaultProject": "${workflow.input.defaultProject}",
+          "digestAlgorithm": "${workflow.input.digestAlgorithm}",
+          "digestProjectName": "${workflow.input.digestProjectName}",
+          "outputFormat": "${workflow.input.outputFormat}",
+          "embedHandling": "${workflow.input.embedHandling}",
+          "embedOutput": "${workflow.input.embedOutput}",
+          "ocrCache": "${workflow.input.ocrCache}",
+          "ocrLanguage": "${workflow.input.ocrLanguage}",
+          "ocrTimeout": "${workflow.input.ocrTimeout}",
+          "ocr": "${workflow.input.ocr}",
+          "ocrType": "${workflow.input.ocrType}",
+          "idMethod": "${workflow.input.idMethod}",
+          "charset": "${workflow.input.charset}",
+          "language": "${workflow.input.language}",
+          "queuePoll": "${workflow.input.queuePoll}"
+        },
+        "paths": "${BatchScanTask.output.result}",
+        "queryExpression": "[.fromWorkflow as $args | .paths[]  | {paths: .} + $args]"
+      },
+      "type": "JSON_JQ_TRANSFORM"
+    },
+    {
+      "name": "index-dynamic-fork",
+      "taskReferenceName": "index-dynamic-fork",
+      "inputParameters": {
+        "forkTaskName": "BatchIndexTask",
+        "forkTaskInputs": "${zip-index-args.output.result}"
+      },
+      "type": "FORK_JOIN_DYNAMIC",
+      "dynamicForkTasksParam": "",
+      "dynamicForkTasksInputParamName": ""
+    },
+    {
+      "name": "index-join",
+      "taskReferenceName": "index-join",
+      "type": "JOIN",
+      "inputParameters": {}
+    },
+    {
+      "name": "CreateNlpBatchesFromIndexTask",
+      "taskReferenceName": "CreateNlpBatchesFromIndexTask",
+      "type": "SIMPLE",
+      "inputParameters": {
+        "nlpPipeline": "${workflow.input.nlpPipeline}",
+        "defaultProject": "${workflow.input.defaultProject}",
+        "batchSize": "${workflow.input.batchSize}"
+      }
+    },
+    {
+      "name": "zip-nlp-args",
+      "taskReferenceName": "zip-nlp-args",
+      "inputParameters": {
+        "fromWorkflow": {
+          "pipeline": "${workflow.input.nlpPipeline}",
+          "maxLength": "${workflow.input.maxContentLength}"
+        },
+        "docs": "${CreateNlpBatchesFromIndexTask.output.result}",
+        "queryExpression": "[.fromWorkflow as $args | .docs[]  | {docs: .} + $args]"
+      },
+      "type": "JSON_JQ_TRANSFORM"
+    },
+    {
+      "name": "nlp-dynamic-fork",
+      "taskReferenceName": "nlp-dynamic-fork",
+      "inputParameters": {
+        "forkTaskName": "BatchNlpTask",
+        "forkTaskInputs": "${zip-nlp-args.output.result}"
+      },
+      "type": "FORK_JOIN_DYNAMIC",
+      "dynamicForkTasksParam": "",
+      "dynamicForkTasksInputParamName": ""
+    },
+    {
+      "name": "nlp-join",
+      "taskReferenceName": "nlp-join",
+      "type": "JOIN",
+      "inputParameters": {}
+    },
+    {
+      "name": "aggregate-nlp",
+      "taskReferenceName": "aggregate-nlp",
+      "inputParameters": {
+        "nlp_results": "${nlp-join.output}",
+        "queryExpression": "[.nlp_results[].result] | add"
+      },
+      "type": "JSON_JQ_TRANSFORM"
+    }
+  ],
+  "timeoutPolicy": "TIME_OUT_WF"
+}

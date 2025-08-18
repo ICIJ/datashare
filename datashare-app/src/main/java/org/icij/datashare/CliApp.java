@@ -5,7 +5,8 @@ import org.icij.datashare.cli.CliExtensionService;
 import org.icij.datashare.cli.spi.CliExtension;
 import org.icij.datashare.mode.CommonMode;
 import org.icij.datashare.tasks.ArtifactTask;
-import org.icij.datashare.tasks.CreateNlpBatchesFromIndex;
+import org.icij.datashare.tasks.BatchScanIndexNlpTask;
+import org.icij.datashare.tasks.CreateNlpBatchesFromIndexWithHandlerTask;
 import org.icij.datashare.tasks.DatashareTaskFactory;
 import org.icij.datashare.tasks.DeduplicateTask;
 import org.icij.datashare.tasks.EnqueueFromIndexTask;
@@ -122,7 +123,7 @@ class CliApp {
         }
 
         if (pipeline.has(Stage.CREATENLPBATCHESFROMIDX)) {
-            taskManager.startTask(CreateNlpBatchesFromIndex.class.getName(), nullUser(), propertiesToMap(properties));
+            taskManager.startTask(CreateNlpBatchesFromIndexWithHandlerTask.class.getName(), nullUser(), propertiesToMap(properties));
         }
 
         if (pipeline.has(Stage.NLP)) {
@@ -134,6 +135,9 @@ class CliApp {
         }
         if (pipeline.has(Stage.SCAN_INDEX_NLP)) {
             taskManager.startTask(ScanIndexNlpTask.class, nullUser(), propertiesToMap(properties));
+        }
+        if (pipeline.has(Stage.BATCH_SCAN_INDEX_NLP)) {
+            taskManager.startTask(BatchScanIndexNlpTask.class, nullUser(), propertiesToMap(properties));
         }
         taskManager.awaitTermination(Integer.MAX_VALUE, SECONDS);
         Thread.sleep(1000); // Necessary until https://github.com/conductor-oss/conductor/pull/571 is merged

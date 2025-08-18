@@ -1,0 +1,20 @@
+{
+  "name": "NlpBatchesFromIndex",
+  "description": "Create batches of docs to be processed by NLP workers",
+  "ownerEmail": "datashare@icij.org",
+  "inputKeys": [
+    "nlpPipeline",
+    "batchSize",
+    "maxTextLength",
+    "defaultProject",
+    "scroll",
+    "scrollSizeOpt",
+    "searchQuery"
+  ],
+  "retryLogic": "EXPONENTIAL_BACKOFF",
+  "retryCount": 3,
+  "retryDelaySeconds": 1,
+  "timeoutPolicy": "RETRY",
+  "timeoutSeconds": 36000,
+  "responseTimeoutSeconds": 600
+}

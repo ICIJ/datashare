@@ -40,7 +40,7 @@ public class CreateNlpBatchesFromIndexTest {
     @Before
     public void setUp() {
         DatashareTaskFactory factory = mock(DatashareTaskFactory.class);
-        when(factory.createBatchNlpTask(any(), any())).thenReturn(mock(BatchNlpTask.class));
+        when(factory.createBatchNlpTask(any(), any())).thenReturn(mock(AbstractBatchNlpTask.class));
         taskManager = new TaskManagerMemory(factory, new TaskRepositoryMemory(), new PropertiesProvider());
     }
 
@@ -75,13 +75,14 @@ public class CreateNlpBatchesFromIndexTest {
                 }
                 """
         );
-        CreateNlpBatchesFromIndex enqueueFromIndex = new CreateNlpBatchesFromIndex(taskManager, indexer,
-            new Task<>(CreateNlpBatchesFromIndex.class.getName(), new User("test"), properties), null);
+        CreateNlpBatchesFromIndexWithHandlerTask
+            enqueueFromIndex = new CreateNlpBatchesFromIndexWithHandlerTask(taskManager, indexer,
+            new Task<>(CreateNlpBatchesFromIndexWithHandlerTask.class.getName(), new User("test"), properties), null);
         // When
         enqueueFromIndex.call();
         List<List<String>> queued = taskManager.getTasks()
-            .map(t -> ((List<CreateNlpBatchesFromIndex.BatchDocument>) t.args.get("docs")).stream().map(
-                CreateNlpBatchesFromIndex.BatchDocument::id).toList())
+            .map(t -> ((List<CreateNlpBatchesFromIndexWithHandlerTask.BatchDocument>) t.args.get("docs")).stream().map(
+                CreateNlpBatchesFromIndexWithHandlerTask.BatchDocument::id).toList())
             .toList();
         // Then
         List<List<String>> expected = List.of(List.of("my_id"));
