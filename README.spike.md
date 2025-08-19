@@ -59,14 +59,10 @@ spring.datasource.url=jdbc:postgresql://host.docker.internal:5432/postgres
 spring.datasource.username=admin
 spring.datasource.password=admin
 
-# logs
-logging.level.root=debug
-logging.level.org.springframework.web=debug
-logging.level.org.hibernate=error
-
 # Elastic search instance indexing is enabled.
 conductor.indexing.enabled=true
 conductor.app.asyncIndexingEnabled=false
+conductor.app.ownerEmailMandatory=false
 conductor.elasticsearch.url=http://host.docker.internal:9200
 conductor.elasticsearch.indexName=conductor
 conductor.elasticsearch.version=7
@@ -81,6 +77,7 @@ management.endpoints.web.exposure.include=prometheus
 
 # Load sample kitchen-sink workflow
 loadSample=true
+
 ```
 
 Then start conductor:
@@ -90,13 +87,16 @@ docker compose -f docker-compose-spike.yaml up --build
 
 ## Spike 1: pipelined SCAN/INDEX/NLP
 
+`<conductor-address>` is `http://localhost:9080` if you're running outside of the devenv, otherwise you have to find
+the address of the docker host running conductor and use `<your-conductor-docker-host:9080>`
+
 After building the branch, run the worker:
 ```console
-JDWP_TRANSPORT_PORT=5005 ./launchBack.sh --mode TASK_WORKER --batchQueueType CONDUCTOR  --conductorAddress http://localhost:9080  --dataSourceUrl "jdbc:postgresql://postgres:5432/?user=admin&password=admin"
+JDWP_TRANSPORT_PORT=5005 ./launchBack.sh --mode TASK_WORKER --batchQueueType CONDUCTOR  --conductorAddress <conductor-address>  --dataSourceUrl "jdbc:postgresql://postgres:5432/?user=admin&password=admin"
 ```
 and queue a sequential (scan/index/nlp) `SCAN_INDEX_NLP` task:
 ```console
-./launchBack.sh --mode CLI --batchQueueType CONDUCTOR --messageBusAddress amqp://guest:guest@localhost:5672 --stage SCAN_INDEX_NLP --conductorAddress http://localhost:9080  --nlpPipeline SPACY --dataSourceUrl "jdbc:postgresql://postgres:5432/?user=admin&password=admin" --dataDir <myDataDir> --nlpp CORENLP
+./launchBack.sh --mode CLI --batchQueueType CONDUCTOR --messageBusAddress amqp://guest:guest@localhost:5672 --stage SCAN_INDEX_NLP --conductorAddress <conductor-address>  --nlpPipeline SPACY --dataSourceUrl "jdbc:postgresql://postgres:5432/?user=admin&password=admin" --dataDir <myDataDir> --nlpp CORENLP
 ```
 
 You can monitor the progress at [http://localhost:8127/](http://localhost:8127/).
@@ -114,5 +114,5 @@ Batches are created **and processed dynamically (1 INDEX and NLP subtask per bat
 (here a single one with 3 threads), we use
 conductor to handle the batches rather than posting docs on queue:
 ```
- ./launchBack.sh --mode CLI --batchQueueType CONDUCTOR --messageBusAddress amqp://guest:guest@localhost:5672 --stage BATCH_SCAN_INDEX_NLP --conductorAddress http://localhost:9080 --dataSourceUrl "jdbc:postgresql://postgres:5432/?user=admin&password=admin" --dataDir ~/Datashare/toy_dataset --nlpp CORENLP --batchSize 5 --parallelism 3 --defaultProject local-datashare
+ ./launchBack.sh --mode CLI --batchQueueType CONDUCTOR --messageBusAddress amqp://guest:guest@localhost:5672 --stage BATCH_SCAN_INDEX_NLP --conductorAddress <conductor-address> --dataSourceUrl "jdbc:postgresql://postgres:5432/?user=admin&password=admin" --dataDir ~/Datashare/toy_dataset --nlpp CORENLP --batchSize 5 --parallelism 3 --defaultProject local-datashare
 ```
