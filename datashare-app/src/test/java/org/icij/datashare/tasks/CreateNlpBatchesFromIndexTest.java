@@ -75,14 +75,14 @@ public class CreateNlpBatchesFromIndexTest {
                 }
                 """
         );
-        CreateNlpBatchesFromIndexWithHandlerTask
-            enqueueFromIndex = new CreateNlpBatchesFromIndexWithHandlerTask(taskManager, indexer,
-            new Task<>(CreateNlpBatchesFromIndexWithHandlerTask.class.getName(), new User("test"), properties), null);
+        CreateNlpBatchesFromIndexWithSerializerTask
+            enqueueFromIndex = new CreateNlpBatchesFromIndexWithSerializerTask(taskManager, indexer,
+            new Task<>(CreateNlpBatchesFromIndexWithSerializerTask.class.getName(), new User("test"), properties), null);
         // When
         enqueueFromIndex.call();
         List<List<String>> queued = taskManager.getTasks()
-            .map(t -> ((List<CreateNlpBatchesFromIndexWithHandlerTask.BatchDocument>) t.args.get("docs")).stream().map(
-                CreateNlpBatchesFromIndexWithHandlerTask.BatchDocument::id).toList())
+            .map(t -> ((List<CreateNlpBatchesFromIndexWithSerializerTask.BatchDocument>) t.args.get("docs")).stream().map(
+                CreateNlpBatchesFromIndexWithSerializerTask.BatchDocument::id).toList())
             .toList();
         // Then
         List<List<String>> expected = List.of(List.of("my_id"));

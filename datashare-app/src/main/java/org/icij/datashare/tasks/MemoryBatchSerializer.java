@@ -6,7 +6,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Stream;
 
-public class MemoryBatchHandler<V> extends HashMap<String, List<?>> implements BatchHandler<String> {
+public class MemoryBatchSerializer<V> extends HashMap<String, List<?>> implements BatchSerializer<String> {
     // Is it really needed ?
     private final ConcurrentHashMap<String, String> batchToTaskId = new ConcurrentHashMap<>();
 

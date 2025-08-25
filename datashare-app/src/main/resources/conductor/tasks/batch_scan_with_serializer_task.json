@@ -1,5 +1,5 @@
 {
-  "name": "BatchScanWithHandlerTask",
+  "name": "BatchScanWithSerializerTask",
   "description": "Scan files and creates batches of files to be scanned",
   "ownerEmail": "datashare@icij.org",
   "inputKeys": [

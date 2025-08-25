@@ -197,3 +197,10 @@ conductor to handle the batches rather than posting docs on queue:
 ```
  ./launchBack.sh --mode CLI --batchQueueType CONDUCTOR --messageBusAddress amqp://guest:guest@localhost:5672 --stage BATCH_SCAN_INDEX_NLP --conductorAddress <conductor-address> --dataSourceUrl "jdbc:postgresql://postgres:5432/?user=admin&password=admin" --dataDir ~/Datashare/toy_dataset --nlpp CORENLP --batchSize 5 --parallelism 3 --defaultProject local-datashare
 ```
+
+To launch the same task using a redis batch serializer use:
+
+```
+ ./launchBack.sh --mode CLI --batchQueueType CONDUCTOR --messageBusAddress amqp://guest:guest@localhost:5672 --stage BATCH_SCAN_INDEX_NLP_WITH_SERIALIZER --conductorAddress <conductor-address> --dataSourceUrl "jdbc:postgresql://postgres:5432/?user=admin&password=admin" --dataDir ~/Datashare/toy_dataset --nlpp CORENLP --batchSize 5 --parallelism 3 --defaultProject local-datashare --redisAddress redis://localhost:6379
+```
+

@@ -1,5 +1,5 @@
 {
-  "name": "BatchNlpWithHandlerTask",
+  "name": "BatchNlpWithSerializerTask",
   "description": "Processed a batch of document and run NER on them",
   "ownerEmail": "datashare@icij.org",
   "inputKeys": [

@@ -54,9 +54,9 @@ public class BatchNlpTest {
         when(pipeline.initialize(any())).thenReturn(true);
 
         when(indexer.get(anyString(), anyString(), any(List.class))).thenReturn(doc0, doc1);
-        List<CreateNlpBatchesFromIndexWithHandlerTask.BatchDocument> batchDocs = List.of(
-            new CreateNlpBatchesFromIndexWithHandlerTask.BatchDocument(doc0.getId(), doc0.getRootDocument(), TEST_INDEX, language),
-            new CreateNlpBatchesFromIndexWithHandlerTask.BatchDocument(doc1.getId(), doc1.getRootDocument(), TEST_INDEX, language)
+        List<CreateNlpBatchesFromIndexWithSerializerTask.BatchDocument> batchDocs = List.of(
+            new CreateNlpBatchesFromIndexWithSerializerTask.BatchDocument(doc0.getId(), doc0.getRootDocument(), TEST_INDEX, language),
+            new CreateNlpBatchesFromIndexWithSerializerTask.BatchDocument(doc1.getId(), doc1.getRootDocument(), TEST_INDEX, language)
         );
         Map<String, Object> properties = Map.of(
             "docs", batchDocs,

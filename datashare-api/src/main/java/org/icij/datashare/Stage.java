@@ -16,7 +16,7 @@ public enum Stage {
     ARTIFACT(false),
     SCAN_INDEX_NLP(true),
     BATCH_SCAN_INDEX_NLP(true),
-    BATCH_SCAN_INDEX_NLP_WITH_HANDLER(true);
+    BATCH_SCAN_INDEX_NLP_WITH_SERIALIZER(true);
 
     public static final Comparator<Stage> comparator = Comparator.comparing(Stage::ordinal);
     private final boolean isMainStage;

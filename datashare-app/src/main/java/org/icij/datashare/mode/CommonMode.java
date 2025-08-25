@@ -39,10 +39,10 @@ import org.icij.datashare.extract.MemoryDocumentCollectionFactory;
 import org.icij.datashare.extract.RedisDocumentCollectionFactory;
 import org.icij.datashare.nlp.EmailPipeline;
 import org.icij.datashare.nlp.OptimaizeLanguageGuesser;
-import org.icij.datashare.tasks.BatchHandler;
+import org.icij.datashare.tasks.BatchSerializer;
 import org.icij.datashare.tasks.DatashareTaskFactory;
-import org.icij.datashare.tasks.MemoryBatchHandler;
-import org.icij.datashare.tasks.RedisBatchHandler;
+import org.icij.datashare.tasks.MemoryBatchSerializer;
+import org.icij.datashare.tasks.RedisBatchSerializer;
 import org.icij.datashare.tasks.TaskManagerAmqp;
 import org.icij.datashare.tasks.TaskManagerConductor;
 import org.icij.datashare.tasks.TaskManagerMemory;
@@ -230,13 +230,13 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
     }
 
     @Provides @Singleton
-    BatchHandler<String> provideBatchHandler() {
+    BatchSerializer<String> provideBatchHandler() {
         // TODO: do better than this
         boolean hasRedis = propertiesProvider.get(REDIS_ADDRESS_OPT).isPresent();
         if (hasRedis) {
-            return new RedisBatchHandler(get(RedissonClient.class));
+            return new RedisBatchSerializer(get(RedissonClient.class));
         }
-        return new MemoryBatchHandler<>();
+        return new MemoryBatchSerializer<>();
     }
 
     @Provides @Singleton

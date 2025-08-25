@@ -6,7 +6,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.stream.Stream;
 
-public interface BatchHandler<K> {
+public interface BatchSerializer<K> {
     K addBatch(String collectionId, List<?> batch) throws IOException;
 
     default <V> Stream<K> addBatches(String taskId, Stream<List<V>> batches) throws IOException {

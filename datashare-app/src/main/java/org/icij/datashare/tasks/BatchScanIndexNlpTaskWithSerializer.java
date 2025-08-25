@@ -4,7 +4,7 @@ import org.icij.datashare.asynctasks.ConductorTask;
 import org.icij.datashare.asynctasks.TaskGroup;
 import org.icij.datashare.asynctasks.TaskGroupType;
 
-@ConductorTask(name = "BatchScanIndexNlpTaskWithHandler")
+@ConductorTask(name = "BatchScanIndexNlpTaskWithSerializer")
 @TaskGroup(TaskGroupType.Java)
-public class BatchScanIndexNlpTaskWithHandler {
+public class BatchScanIndexNlpTaskWithSerializer {
 }

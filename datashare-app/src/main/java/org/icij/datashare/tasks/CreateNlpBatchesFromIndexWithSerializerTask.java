@@ -12,24 +12,24 @@ import org.icij.datashare.asynctasks.TaskGroupType;
 import org.icij.datashare.function.ThrowingFunction;
 import org.icij.datashare.text.indexing.Indexer;
 
-@ConductorTask(name = "CreateNlpBatchesFromIndexWithHandlerTask")
+@ConductorTask(name = "CreateNlpBatchesFromIndexWithSerializerTask")
 @TaskGroup(TaskGroupType.Java)
-public class CreateNlpBatchesFromIndexWithHandlerTask extends AbstractCreateNlpBatchesFromIndexTask<String> {
-    private final BatchHandler<String> batchHandler;
+public class CreateNlpBatchesFromIndexWithSerializerTask extends AbstractCreateNlpBatchesFromIndexTask<String> {
+    private final BatchSerializer<String> batchSerializer;
 
     @Inject
-    public CreateNlpBatchesFromIndexWithHandlerTask(
+    public CreateNlpBatchesFromIndexWithSerializerTask(
         final Indexer indexer,
-        final BatchHandler<String> batchHandler,
+        final BatchSerializer<String> batchSerializer,
         @Assisted final Task<ArrayList<String>> taskView,
         @Assisted final Function<Double, Void> ignored
     ) {
         super(indexer, taskView);
-        this.batchHandler = batchHandler;
+        this.batchSerializer = batchSerializer;
     }
 
 
     protected ThrowingFunction<List<BatchDocument>, String> getCreateNlpBatchFunction() {
-        return b -> batchHandler.addBatch(task.id, b);
+        return b -> batchSerializer.addBatch(task.id, b);
     }
 }

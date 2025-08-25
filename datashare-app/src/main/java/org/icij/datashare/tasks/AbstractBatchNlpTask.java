@@ -65,7 +65,7 @@ public abstract class AbstractBatchNlpTask extends DefaultTask<Long> implements 
         // TODO: we could improve perfs by fetching docs and processing them concurrently...
         int nProcessed = 0;
 //        Optional.ofNullable(this.progress).ifPresent(p -> p.apply(0.0));
-        for (CreateNlpBatchesFromIndexWithHandlerTask.BatchDocument doc : docs) {
+        for (CreateNlpBatchesFromIndexWithSerializerTask.BatchDocument doc : docs) {
             try {
                 String project = doc.project();
                 Document indexDoc = indexer.get(project, doc.id(), doc.rootDocument(), EXCLUDED_SOURCES);

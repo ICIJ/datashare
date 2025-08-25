@@ -3,22 +3,20 @@ package org.icij.datashare.tasks;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Stream;
-import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.asynctasks.TaskManagerRedis;
 import org.redisson.Redisson;
 import org.redisson.RedissonMap;
 import org.redisson.api.RedissonClient;
-import org.redisson.codec.JsonJacksonCodec;
 import org.redisson.command.CommandSyncService;
 import org.redisson.liveobject.core.RedissonObjectBuilder;
 
-public class RedisBatchHandler extends RedissonMap<String, List<?>> implements BatchHandler<String> {
+public class RedisBatchSerializer extends RedissonMap<String, List<?>> implements BatchSerializer<String> {
     public static final String BATCH_MAP_NAME = "ds:batches";
     public static final String BATCH_TO_TASK_MAP_NAME = "ds:batchToTask";
 
     private final RedissonMap<String, String> batchToTaskId;
 
-    public RedisBatchHandler(RedissonClient redisson) {
+    public RedisBatchSerializer(RedissonClient redisson) {
         super(new TaskManagerRedis.RedisCodec<>(List.class), new CommandSyncService(((Redisson) redisson).getConnectionManager(), new RedissonObjectBuilder(redisson)),
             BATCH_MAP_NAME, redisson, null, null);
         batchToTaskId = new RedissonMap<>(new TaskManagerRedis.RedisCodec<>(String.class),

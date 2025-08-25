@@ -25,7 +25,6 @@ public interface DatashareTaskFactory extends org.icij.datashare.asynctasks.Task
 
     EnqueueFromIndexTask createEnqueueFromIndexTask(Task<Long> taskView, Function<Double, Void> updateCallback);
 
-    //    CreateNlpBatchesFromIndexWithHandlerTask createBatchEnqueueFromIndexTask(Task<LinkedList<String>> taskView, Function<Double, Void> updateCallback);
     DeduplicateTask createDeduplicateTask(Task<Long> taskView, Function<Double, Void> updateCallback);
 
     ArtifactTask createArtifactTask(Task<Long> taskView, Function<Double, Void> updateCallback);
@@ -41,12 +40,11 @@ public interface DatashareTaskFactory extends org.icij.datashare.asynctasks.Task
 
     BatchNlpTask createBatchNlpTask(Task<Long> taskView, Function<Double, Void> updateCallback);
 
-//    // Batch stuff with handler
-    BatchScanWithHandlerTask createBatchScanWithHandlerTask(Task<ArrayList<String>> taskView, Function<Double, Void> updateCallback);
-    BatchIndexWithHandlerTask createBatchIndexWithHandlerTask(Task<Long> taskView, Function<Double, Void> updateCallback);
-    CreateNlpBatchesFromIndexWithHandlerTask createCreateNlpBatchesFromIndexWithHandlerTask(
+    BatchScanWithSerializerTask createBatchScanWithSerializerTask(Task<ArrayList<String>> taskView, Function<Double, Void> updateCallback);
+    BatchIndexWithSerializerTask createBatchIndexWithSerializerTask(Task<Long> taskView, Function<Double, Void> updateCallback);
+    CreateNlpBatchesFromIndexWithSerializerTask createCreateNlpBatchesFromIndexWithSerializerTask(
         Task<ArrayList<String>> taskView, Function<Double, Void> updateCallback);
-    BatchNlpWithHandlerTask createBatchNlpWithHandlerTask(Task<Long> taskView, Function<Double, Void> updateCallback);
+    BatchNlpWithSerializerTask createBatchNlpWithSerializerTask(Task<Long> taskView, Function<Double, Void> updateCallback);
 
 
     GenApiKeyTask createGenApiKey(User user);

@@ -14,28 +14,28 @@ import org.icij.datashare.asynctasks.TaskGroup;
 import org.icij.datashare.asynctasks.TaskGroupType;
 import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchSpewer;
 
-@ConductorTask(name = "BatchIndexWithHandlerTask")
+@ConductorTask(name = "BatchIndexWithSerializerTask")
 @TaskGroup(TaskGroupType.Java)
-public class BatchIndexWithHandlerTask extends AbstractBatchIndexTask {
-    private final BatchHandler<String> batchHandler;
+public class BatchIndexWithSerializerTask extends AbstractBatchIndexTask {
+    private final BatchSerializer<String> batchSerializer;
     private final String batchId;
 
     @Inject
-    public BatchIndexWithHandlerTask(
+    public BatchIndexWithSerializerTask(
         final ElasticsearchSpewer spewer,
-        BatchHandler<String> batchHandler,
+        BatchSerializer<String> batchSerializer,
         final PropertiesProvider propertiesProvider,
         @Assisted Task<Long> task,
         @Assisted final Function<Double, Void> ignored
     ) throws IOException {
         super(spewer, propertiesProvider, task);
-        this.batchHandler = batchHandler;
+        this.batchSerializer = batchSerializer;
         this.batchId = (String) Optional.ofNullable(this.task.args.get("batchId"))
             .orElseThrow(() -> new NullPointerException("missing batchId task args"));
     }
 
     @Override
     List<Path> getFilePaths() throws IOException {
-        return batchHandler.getBatch(batchId).stream().map(s -> Path.of((String)s)).toList();
+        return batchSerializer.getBatch(batchId).stream().map(s -> Path.of((String)s)).toList();
     }
 }

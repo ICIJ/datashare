@@ -45,7 +45,7 @@ public class CreateNlpBatchesFromIndexParametrizedTest {
     @Rule
     public DatashareTimeRule time = new DatashareTimeRule();
 
-    static class TestableCreateNlpBatchesFromIndex extends CreateNlpBatchesFromIndexWithHandlerTask {
+    static class TestableCreateNlpBatchesFromIndex extends CreateNlpBatchesFromIndexWithSerializerTask {
         public TestableCreateNlpBatchesFromIndex(
                 TaskManager taskManager, Indexer indexer, Task<LinkedList<String>> taskView, Function<Double, Void> ignored) {
             super(taskManager, indexer, taskView, ignored);
@@ -133,13 +133,13 @@ public class CreateNlpBatchesFromIndexParametrizedTest {
             "scrollSize", this.scrollSize
         );
         TestableCreateNlpBatchesFromIndex enqueueFromIndex = new TestableCreateNlpBatchesFromIndex(taskManager, indexer,
-                new Task<>(CreateNlpBatchesFromIndexWithHandlerTask.class.getName(), new User("test"), properties), null);
+                new Task<>(CreateNlpBatchesFromIndexWithSerializerTask.class.getName(), new User("test"), properties), null);
         // When
         List<String> taskIds = enqueueFromIndex.call();
         List<List<Language>> queued = taskManager.getTasks()
             .sorted(Comparator.comparing(t -> t.createdAt))
-            .map(t -> ((List<CreateNlpBatchesFromIndexWithHandlerTask.BatchDocument>) t.args.get("docs")).stream().map(
-                CreateNlpBatchesFromIndexWithHandlerTask.BatchDocument::language).toList())
+            .map(t -> ((List<CreateNlpBatchesFromIndexWithSerializerTask.BatchDocument>) t.args.get("docs")).stream().map(
+                CreateNlpBatchesFromIndexWithSerializerTask.BatchDocument::language).toList())
             .toList();
         // Then
         assertThat(queued).isEqualTo(this.expectedLanguages);
