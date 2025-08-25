@@ -1,5 +1,5 @@
 {
-  "name": "BatchScanIndexNlpTask",
+  "name": "BatchScanIndexNlpTaskWithHandler",
   "description": "Pipelined scan index NLP",
   "ownerEmail": "datashare@icij.org",
   "schemaVersion": 2,
@@ -36,8 +36,8 @@
   },
   "tasks": [
     {
-      "name": "BatchScanTask",
-      "taskReferenceName": "BatchScanTask",
+      "name": "BatchScanWithHandlerTask",
+      "taskReferenceName": "BatchScanWithHandlerTask",
       "type": "SIMPLE",
       "inputParameters": {
         "dataDir": "${workflow.input.dataDir}",
@@ -66,8 +66,8 @@
           "language": "${workflow.input.language}",
           "queuePoll": "${workflow.input.queuePoll}"
         },
-        "paths": "${BatchScanTask.output.result}",
-        "queryExpression": "[.fromWorkflow as $args | .paths[]  | {paths: .} + $args]"
+        "batchIds": "${BatchScanWithHandlerTask.output.result}",
+        "queryExpression": "[.fromWorkflow as $args | .batchIds[]  | {batchId: .} + $args]"
       },
       "type": "JSON_JQ_TRANSFORM"
     },
@@ -75,7 +75,7 @@
       "name": "index-dynamic-fork",
       "taskReferenceName": "index-dynamic-fork",
       "inputParameters": {
-        "forkTaskName": "BatchIndexTask",
+        "forkTaskName": "BatchIndexWithHandlerTask",
         "forkTaskInputs": "${zip-index-args.output.result}"
       },
       "type": "FORK_JOIN_DYNAMIC",
@@ -89,8 +89,8 @@
       "inputParameters": {}
     },
     {
-      "name": "CreateNlpBatchesFromIndexTask",
-      "taskReferenceName": "CreateNlpBatchesFromIndexTask",
+      "name": "CreateNlpBatchesFromIndexWithHandlerTask",
+      "taskReferenceName": "CreateNlpBatchesFromIndexWithHandlerTask",
       "type": "SIMPLE",
       "inputParameters": {
         "nlpPipeline": "${workflow.input.nlpPipeline}",
@@ -106,8 +106,8 @@
           "pipeline": "${workflow.input.nlpPipeline}",
           "maxLength": "${workflow.input.maxContentLength}"
         },
-        "docs": "${CreateNlpBatchesFromIndexTask.output.result}",
-        "queryExpression": "[.fromWorkflow as $args | .docs[]  | {docs: .} + $args]"
+        "docs": "${CreateNlpBatchesFromIndexWithHandlerTask.output.result}",
+        "queryExpression": "[.fromWorkflow as $args | .docs[]  | {batchId: .} + $args]"
       },
       "type": "JSON_JQ_TRANSFORM"
     },
@@ -115,7 +115,7 @@
       "name": "nlp-dynamic-fork",
       "taskReferenceName": "nlp-dynamic-fork",
       "inputParameters": {
-        "forkTaskName": "BatchNlpTask",
+        "forkTaskName": "BatchNlpWithHandlerTask",
         "forkTaskInputs": "${zip-nlp-args.output.result}"
       },
       "type": "FORK_JOIN_DYNAMIC",

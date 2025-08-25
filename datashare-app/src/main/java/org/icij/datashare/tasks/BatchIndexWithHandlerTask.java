@@ -36,6 +36,6 @@ public class BatchIndexWithHandlerTask extends AbstractBatchIndexTask {
 
     @Override
     List<Path> getFilePaths() throws IOException {
-        return (List<Path>) batchHandler.getBatch(batchId);
+        return batchHandler.getBatch(batchId).stream().map(s -> Path.of((String)s)).toList();
     }
 }

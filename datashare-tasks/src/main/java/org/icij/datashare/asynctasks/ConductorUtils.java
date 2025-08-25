@@ -2,6 +2,7 @@ package org.icij.datashare.asynctasks;
 
 import static org.icij.datashare.LambdaExceptionUtils.rethrowConsumer;
 
+import com.netflix.conductor.client.config.DefaultConductorClientConfiguration;
 import com.netflix.conductor.client.exception.ConductorClientException;
 import com.netflix.conductor.client.http.ConductorClient;
 import com.netflix.conductor.client.http.MetadataClient;
@@ -29,7 +30,8 @@ public class ConductorUtils {
         return new WorkflowExecutor(taskClient, wfClient, metadataClient, factoryExecutor);
     }
 
-    public static void declareTasksAndWorkflows(WorkflowExecutor executor, List<Path> taskDeclarationPaths, List<Path> workflowDeclarationPaths)
+    public static void declareTasksAndWorkflows(WorkflowExecutor executor, List<Path> taskDeclarationPaths,
+                                                List<Path> workflowDeclarationPaths)
         throws IOException {
         // Declare tasks first
         taskDeclarationPaths.forEach(rethrowConsumer(taskDefPath -> {
@@ -55,5 +57,15 @@ public class ConductorUtils {
                 }
             }
         ));
+    }
+
+    private static class ExternalPayloadClientConfiguration extends DefaultConductorClientConfiguration {
+        public boolean isExternalPayloadStorageEnabled() {
+            return true;
+        }
+
+        public boolean isEnforceThresholds() {
+            return true;
+        }
     }
 }

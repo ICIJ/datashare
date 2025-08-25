@@ -119,6 +119,7 @@ public abstract class AbstractBatchScanTask<V extends Serializable> extends Defa
             this.currentBatch = new ArrayList<>(batchSize);
         }
 
+        @Override
         @NotNull
         public FileVisitResult preVisitDirectory(@NotNull Path directory, @NotNull BasicFileAttributes attributes) {
             if (Thread.currentThread().isInterrupted()) {
@@ -132,6 +133,7 @@ public abstract class AbstractBatchScanTask<V extends Serializable> extends Defa
             return FileVisitResult.CONTINUE;
         }
 
+        @Override
         @NotNull
         public FileVisitResult visitFile(@NotNull Path file, @NotNull BasicFileAttributes attributes) {
             if (Thread.currentThread().isInterrupted()) {
@@ -158,6 +160,7 @@ public abstract class AbstractBatchScanTask<V extends Serializable> extends Defa
             return FileVisitResult.CONTINUE;
         }
 
+        @Override
         @NotNull
         public FileVisitResult visitFileFailed(@NotNull Path file, @NotNull IOException e) {
             if (!this.shouldExclude(file)) {
@@ -167,7 +170,6 @@ public abstract class AbstractBatchScanTask<V extends Serializable> extends Defa
         }
 
         public void consumeBatches(Consumer<List<String>> batchConsumer) throws IOException {
-
             Set<FileVisitOption> options;
             if (this.followLinks) {
                 options = EnumSet.of(FileVisitOption.FOLLOW_LINKS);
@@ -181,9 +183,14 @@ public abstract class AbstractBatchScanTask<V extends Serializable> extends Defa
                 this.logger.error("Error while scanning path: {}.", this.rootPath, e);
                 throw e;
             }
+            // Empty the last batch
+            if (!currentBatch.isEmpty()) {
+                batches.add(this.currentBatch.stream().map(Path::toString).toList());
+                this.currentBatch = new ArrayList<>(batchSize);
+            }
             this.logger.info("Completed scan of: {}, writing batches !", this.rootPath);
             batches.forEach(batchConsumer);
-
+            batches.clear();
         }
 
         void exclude(PathMatcher matcher) {

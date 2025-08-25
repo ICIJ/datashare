@@ -109,7 +109,8 @@ public class TaskWorkerLoop implements Callable<Integer>, Closeable {
             taskSupplier.canceled(currentTask.get(), cancelledTasks.remove(currentTask.get().id));
         } else {
             try {
-                Callable<?> taskFn = TaskFactoryHelper.createTaskCallable(factory, currentTask.get().name, currentTask.get(),
+                String taskName = "org.icij.datashare.tasks." + currentTask.get().name;
+                Callable<?> taskFn = TaskFactoryHelper.createTaskCallable(factory, taskName, currentTask.get(),
                         currentTask.get().progress(taskSupplier::progress));
                 currentTaskReference.set(taskFn);
                 logger.info("running task {}", currentTask.get());

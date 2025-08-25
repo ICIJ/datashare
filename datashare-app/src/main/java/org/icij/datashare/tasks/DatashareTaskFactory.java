@@ -42,10 +42,11 @@ public interface DatashareTaskFactory extends org.icij.datashare.asynctasks.Task
     BatchNlpTask createBatchNlpTask(Task<Long> taskView, Function<Double, Void> updateCallback);
 
 //    // Batch stuff with handler
-//    BatchScanWithHandlerTask createBatchScanWithHandlerTask(Task<Long> taskView, Function<Double, Void> updateCallback);
-//    BatchIndexWithHandlerTask createBatchIndexWithHandlerTask(Task<Long> taskView, Function<Double, Void> updateCallback);
-//    CreateNlpBatchesFromIndexWithHandlerTask createCreateNlpBatchesFromIndexWithHandlerTask(Task<Long> taskView, Function<Double, Void> updateCallback);
-//    BatchNlpWithHandlerTask createBatchNlpWithHandlerTask(Task<Long> taskView, Function<Double, Void> updateCallback);
+    BatchScanWithHandlerTask createBatchScanWithHandlerTask(Task<ArrayList<String>> taskView, Function<Double, Void> updateCallback);
+    BatchIndexWithHandlerTask createBatchIndexWithHandlerTask(Task<Long> taskView, Function<Double, Void> updateCallback);
+    CreateNlpBatchesFromIndexWithHandlerTask createCreateNlpBatchesFromIndexWithHandlerTask(
+        Task<ArrayList<String>> taskView, Function<Double, Void> updateCallback);
+    BatchNlpWithHandlerTask createBatchNlpWithHandlerTask(Task<Long> taskView, Function<Double, Void> updateCallback);
 
 
     GenApiKeyTask createGenApiKey(User user);

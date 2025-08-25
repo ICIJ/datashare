@@ -9,12 +9,128 @@ Then clone the Conductor repo:
 git clone https://github.com/conductor-oss/conductor.git
 ```
 
-add the following `docker-compose-spike.yaml` to the `docker` directory of the repo:
+add the following `docker-compose-spike.yaml` to the `docker` directory of the repo. 
+
+To avoid re-building an image for each config change, we set the config as an Spring runtime env var below:
 ```yaml
 services:
   conductor-server:
     environment:
-      - CONFIG_PROP=config-spike.properties
+      - |
+        SPRING_APPLICATION_JSON={
+            "spring":
+            {
+                "datasource":
+                {
+                    "url": "jdbc:postgresql://host.docker.internal:5432/postgres",
+                    "username": "admin",
+                    "password": "admin"
+                }
+            },
+            "workflow":
+            {
+                "dyno":
+                {
+                    "queue":
+                    {
+                        "sharding":
+                        {
+                            "strategy": "localOnly"
+                        }
+                    }
+                }
+            },
+            "conductor":
+            {
+                "external-payload-storage":
+                {
+                    "type": "postgres",
+                    "postgres":
+                    {
+                        "conductor-url": "http://localhost:9080",
+                        "url": "http://host.docker.internal:5432",
+                        "username": "admin",
+                        "password": "admin"
+                    }
+                },
+                "db":
+                {
+                    "type": "postgres"
+                },
+                "queue":
+                {
+                    "type": "postgres"
+                },
+                "elasticsearch": {
+                  "version": 7,
+                  "url": "http://host.docker.internal:9200",
+                  "indexName": "conductor",
+                  "clusterHealthColor": "yellow"
+                },
+                "workflow-execution-lock":
+                {
+                    "type": "postgres"
+                },
+                "app":
+                {
+                    "workflowExecutionLockEnabled": false,
+                    "lockTimeToTry": "50ms",
+                    "lockLeaseTime": "10s",
+                    "ownerEmailMandatory": false,
+                    "systemTaskWorkerCallbackDuration": "1s",
+                    "maxPostponeDurationSeconds": "10s",
+                    "executorServiceMaxThreadCount": 100,
+                    "systemTaskWorkerThreadCount": 40,
+                    "systemTaskMaxPollCount": 40,
+                    "maxTaskInputPayloadSizeThreshold": 10485760,
+                    "maxTaskOutputPayloadSizeThreshold": 10485760
+                },
+                "indexing":
+                {
+                    "enabled": true 
+                },
+                "metrics-prometheus":
+                {
+                    "enabled": true
+                }
+            },
+            "logging":
+            {
+                "level":
+                {
+                    "root": "warn",
+                    "org":
+                    {
+                        "springframework":
+                        {
+                            "web": "info"
+                        },
+                        "hibernate": "error"
+                    },
+                    "com":
+                    {
+                        "netflix":
+                        {
+                            "conductor": "info"
+                        }
+                    }
+                }
+            },
+            "management":
+            {
+                "endpoints":
+                {
+                    "web":
+                    {
+                        "exposure":
+                        {
+                            "include": "prometheus"
+                        }
+                    }
+                }
+            },
+            "loadSample": false
+        }
     image: conductor:server
     container_name: conductor-server
     extra_hosts:
@@ -42,41 +158,6 @@ services:
 
 networks:
   internal:
-```
-
-add this `config-spike.properties` configuration file to the `docker/server/config` file:
-```properties
-# Database persistence type.
-conductor.db.type=postgres
-conductor.queue.type=postgres
-conductor.external-payload-storage.type=postgres
-
-# Restrict the size of task execution logs. Default is set to 10.
-# conductor.app.taskExecLogSizeLimit=10
-
-# postgres
-spring.datasource.url=jdbc:postgresql://host.docker.internal:5432/postgres
-spring.datasource.username=admin
-spring.datasource.password=admin
-
-# Elastic search instance indexing is enabled.
-conductor.indexing.enabled=true
-conductor.app.asyncIndexingEnabled=false
-conductor.app.ownerEmailMandatory=false
-conductor.elasticsearch.url=http://host.docker.internal:9200
-conductor.elasticsearch.indexName=conductor
-conductor.elasticsearch.version=7
-conductor.elasticsearch.clusterHealthColor=yellow
-
-# Restrict the number of task log results that will be returned in the response. Default is set to 10.
-# conductor.elasticsearch.taskLogResultLimit=10
-
-# Additional modules for metrics collection exposed to Prometheus (optional)
-conductor.metrics-prometheus.enabled=true
-management.endpoints.web.exposure.include=prometheus
-
-# Load sample kitchen-sink workflow
-loadSample=true
 
 ```
 

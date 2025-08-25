@@ -1,5 +1,7 @@
 package org.icij.datashare.tasks;
 
+import static org.icij.datashare.json.JsonObjectMapper.MAPPER;
+
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.google.inject.Inject;
 import com.google.inject.assistedinject.Assisted;
@@ -17,9 +19,6 @@ import org.icij.datashare.text.indexing.Indexer;
 @ConductorTask(name = "BatchNlpWithHandlerTask")
 @TaskGroup(TaskGroupType.Java)
 public class BatchNlpWithHandlerTask extends AbstractBatchNlpTask {
-    private static final TypeReference<List<AbstractCreateNlpBatchesFromIndexTask.BatchDocument>> typeRef =
-        new TypeReference<>() {
-        };
     private final BatchHandler<String> batchHandler;
 
     @Inject
@@ -29,7 +28,7 @@ public class BatchNlpWithHandlerTask extends AbstractBatchNlpTask {
         PipelineRegistry registry,
         @Assisted Task<Long> task,
         @Assisted final Function<Double, Void> progress
-    ) throws IOException {
+    ) {
         super(indexer, registry, task, progress);
         this.batchHandler = batchHandler;
     }
@@ -38,6 +37,6 @@ public class BatchNlpWithHandlerTask extends AbstractBatchNlpTask {
     List<AbstractCreateNlpBatchesFromIndexTask.BatchDocument> fetchDocFromTask(Task<Long> task) throws IOException {
         String batchId = (String) Optional.ofNullable(task.args.get("batchId"))
             .orElseThrow(() -> new NullPointerException("missing batchId arg"));
-        return (List<AbstractCreateNlpBatchesFromIndexTask.BatchDocument>) batchHandler.getBatch(batchId);
+        return batchHandler.getBatch(batchId).stream().map(e -> MAPPER.convertValue(e, AbstractCreateNlpBatchesFromIndexTask.BatchDocument.class)).toList();
     }
 }

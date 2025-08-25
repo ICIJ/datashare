@@ -1,0 +1,15 @@
+{
+  "name": "BatchScanWithHandlerTask",
+  "description": "Scan files and creates batches of files to be scanned",
+  "ownerEmail": "datashare@icij.org",
+  "inputKeys": [
+    "dataDir",
+    "batchSize"
+  ],
+  "retryLogic": "EXPONENTIAL_BACKOFF",
+  "retryCount": 3,
+  "retryDelaySeconds": 1,
+  "timeoutPolicy": "RETRY",
+  "timeoutSeconds": 36000,
+  "responseTimeoutSeconds": 600
+}

@@ -3,7 +3,7 @@
   "description": "Pipelined scan index NLP",
   "ownerEmail": "datashare@icij.org",
   "schemaVersion": 2,
-  "version": 9,
+  "version": 11,
   "inputParameters": [
     "parallelism",
     "dataDir",

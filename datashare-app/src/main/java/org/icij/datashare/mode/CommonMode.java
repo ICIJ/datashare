@@ -42,6 +42,7 @@ import org.icij.datashare.nlp.OptimaizeLanguageGuesser;
 import org.icij.datashare.tasks.BatchHandler;
 import org.icij.datashare.tasks.DatashareTaskFactory;
 import org.icij.datashare.tasks.MemoryBatchHandler;
+import org.icij.datashare.tasks.RedisBatchHandler;
 import org.icij.datashare.tasks.TaskManagerAmqp;
 import org.icij.datashare.tasks.TaskManagerConductor;
 import org.icij.datashare.tasks.TaskManagerMemory;
@@ -88,6 +89,7 @@ import static org.icij.datashare.cli.DatashareCliOptions.CONDUCTOR_ADDRESS_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_CONDUCTOR_ADDRESS;
 import static org.icij.datashare.cli.DatashareCliOptions.MODE_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.QUEUE_TYPE_OPT;
+import static org.icij.datashare.cli.DatashareCliOptions.REDIS_ADDRESS_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.TASK_REPOSITORY_OPT;
 import static org.icij.datashare.text.indexing.elasticsearch.ElasticsearchConfiguration.createESClient;
 
@@ -229,6 +231,11 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
 
     @Provides @Singleton
     BatchHandler<String> provideBatchHandler() {
+        // TODO: do better than this
+        boolean hasRedis = propertiesProvider.get(REDIS_ADDRESS_OPT).isPresent();
+        if (hasRedis) {
+            return new RedisBatchHandler(get(RedissonClient.class));
+        }
         return new MemoryBatchHandler<>();
     }
 
