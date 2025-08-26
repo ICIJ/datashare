@@ -5,10 +5,7 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.ByteBufInputStream;
 import io.netty.buffer.ByteBufOutputStream;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Optional;
-import java.util.Set;
 import org.icij.datashare.asynctasks.bus.amqp.AmqpQueue;
 import org.icij.datashare.asynctasks.bus.amqp.CancelEvent;
 import org.icij.datashare.asynctasks.bus.amqp.ShutdownEvent;
@@ -32,7 +29,6 @@ import org.redisson.liveobject.core.RedissonObjectBuilder;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.io.Serializable;
 import java.nio.charset.Charset;
 import java.util.concurrent.BlockingQueue;
 import java.util.stream.Stream;
@@ -69,12 +65,12 @@ public class TaskManagerRedis implements TaskManager {
         eventTopic.addListener(TaskEvent.class, (channelString, message) -> handleEvent(message));
     }
 
-    public <V extends Serializable> Task<V> getTask(final String taskId) throws UnknownTask, IOException {
+    public Task getTask(final String taskId) throws UnknownTask, IOException {
         return tasks.getTask(taskId);
     }
 
     @Override
-    public Stream<Task<?>> getTasks(TaskFilters filters) throws IOException {
+    public Stream<Task> getTasks(TaskFilters filters) throws IOException {
         return tasks.getTasks(filters);
     }
 
@@ -84,9 +80,9 @@ public class TaskManagerRedis implements TaskManager {
     }
 
     @Override
-    public List<Task<?>> clearDoneTasks(TaskFilters filters) throws IOException {
+    public List<Task> clearDoneTasks(TaskFilters filters) throws IOException {
         // Require tasks to be in final state and apply user filters
-        Stream<Task<?>> taskStream = tasks.getTasks(filters.withStates(FINAL_STATES))
+        Stream<Task> taskStream = tasks.getTasks(filters.withStates(FINAL_STATES))
             .map(t -> {
                 try {
                     return tasks.delete(t.id);
@@ -98,7 +94,7 @@ public class TaskManagerRedis implements TaskManager {
     }
 
     @Override
-    public <V extends Serializable> Task<V> clearTask(String taskId) throws UnknownTask, IOException {
+    public Task clearTask(String taskId) throws UnknownTask, IOException {
         if (getTask(taskId).getState() == Task.State.RUNNING) {
             throw new IllegalStateException(String.format("task id <%s> is already in RUNNING state", taskId));
         }
@@ -108,7 +104,7 @@ public class TaskManagerRedis implements TaskManager {
 
     @Override
     public boolean stopTask(String taskId) throws UnknownTask, IOException {
-        Task<?> taskView = getTask(taskId);
+        Task taskView = getTask(taskId);
         if (taskView != null) {
             logger.info("sending cancel event for {}", taskId);
             return eventTopic.publish(new CancelEvent(taskId, false)) > 0;
@@ -127,7 +123,7 @@ public class TaskManagerRedis implements TaskManager {
         return eventTopic.publish(new ShutdownEvent()) > 0;
     }
 
-    BlockingQueue<Task<?>> taskQueue(Task<?> task) throws IOException {
+    BlockingQueue<Task> taskQueue(Task task) throws IOException {
         switch (routingStrategy) {
             case GROUP -> {
                 return new RedissonBlockingQueue<>(new RedisCodec<>(Task.class), getCommandSyncService(), String.format("%s.%s", AmqpQueue.TASK.name(), tasks.getTaskGroup(task.id).id()), redissonClient);
@@ -175,12 +171,12 @@ public class TaskManagerRedis implements TaskManager {
     }
 
     @Override
-    public <V extends Serializable> void insert(Task<V> task, Group group) throws TaskAlreadyExists, IOException {
+    public void insert(Task task, Group group) throws TaskAlreadyExists, IOException {
         tasks.insert(task, group);
     }
 
     @Override
-    public <V extends Serializable> void update(Task<V> task) throws IOException, UnknownTask {
+    public void update(Task task) throws IOException, UnknownTask {
         tasks.update(task);
     }
 
@@ -194,7 +190,7 @@ public class TaskManagerRedis implements TaskManager {
     }
 
     @Override
-    public <V extends Serializable> void enqueue(Task<V> task) throws IOException {
+    public void enqueue(Task task) throws IOException {
         taskQueue(task).add(task);
     }
 

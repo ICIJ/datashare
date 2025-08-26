@@ -2,6 +2,7 @@ package org.icij.datashare.asynctasks;
 
 import static java.util.Arrays.asList;
 import static org.fest.assertions.Assertions.assertThat;
+import static org.icij.datashare.json.JsonObjectMapper.MAPPER;
 import static org.icij.datashare.text.Project.project;
 
 import java.io.IOException;
@@ -44,19 +45,21 @@ public class TaskManagerMemoryTest {
 
     @Test
     public void test_run_task() throws Exception {
-        Task<Integer> task = new Task<>(TestFactory.HelloWorld.class.getName(), User.local(), Map.of("greeted", "world"));
+        Task task = new Task(TestFactory.HelloWorld.class.getName(), User.local(), Map.of("greeted", "world"));
 
         String tid = taskManager.startTask(task, new Group(TaskGroupType.Test));
         taskManager.awaitTermination(100, TimeUnit.MILLISECONDS);
 
-        assertThat(taskManager.getTask(tid).getState()).isEqualTo(Task.State.DONE);
-        assertThat(taskManager.getTask(tid).getResult()).isEqualTo(new TaskResult<>("Hello world!"));
+        Task storedTask = taskManager.getTask(tid);
+        assertThat(storedTask.getState()).isEqualTo(Task.State.DONE);
+        byte[] expectedResult = MAPPER.writeValueAsBytes("Hello world!");
+        assertThat(storedTask.getResult()).isEqualTo(expectedResult);
         assertThat(taskManager.getTasks().toList()).hasSize(1);
     }
 
     @Test
     public void test_stop_current_task() throws Exception {
-        Task<Integer> task = new Task<>(TestFactory.SleepForever.class.getName(), User.local(), Map.of("intParameter", 2000));
+        Task task = new Task(TestFactory.SleepForever.class.getName(), User.local(), Map.of("intParameter", 2000));
         String taskId = taskManager.startTask(task, new Group(TaskGroupType.Test));
 
         taskInspector.awaitToBeStarted(taskId, 10000);
@@ -69,8 +72,8 @@ public class TaskManagerMemoryTest {
 
     @Test
     public void test_stop_queued_task() throws Exception {
-        Task<Integer> t1 = new Task<>(TestFactory.SleepForever.class.getName(), User.local(), Map.of());
-        Task<Integer> t2 = new Task<>(TestFactory.HelloWorld.class.getName(), User.local(), Map.of("greeted", "stucked task"));
+        Task t1 = new Task(TestFactory.SleepForever.class.getName(), User.local(), Map.of());
+        Task t2 = new Task(TestFactory.HelloWorld.class.getName(), User.local(), Map.of("greeted", "stucked task"));
 
         Group group = new Group(TaskGroupType.Test);
         taskManager.startTask(t1, group);
@@ -88,7 +91,7 @@ public class TaskManagerMemoryTest {
 
     @Test
     public void test_clear_the_only_task() throws Exception {
-        Task<Integer> task = new Task<>("sleep", User.local(), Map.of("intParameter", 12));
+        Task task = new Task("sleep", User.local(), Map.of("intParameter", 12));
 
         taskManager.startTask(task, new Group(TaskGroupType.Test));
         taskManager.awaitTermination(1, TimeUnit.SECONDS);
@@ -101,7 +104,7 @@ public class TaskManagerMemoryTest {
 
     @Test(expected = IllegalStateException.class)
     public void test_clear_running_task_should_throw_exception() throws Exception {
-        Task<Integer> task = new Task<>("sleep", User.local(), Map.of("intParameter", 12));
+        Task task = new Task("sleep", User.local(), Map.of("intParameter", 12));
 
         taskManager.startTask(task, new Group(TaskGroupType.Test));
         taskManager.awaitTermination(1, TimeUnit.SECONDS);
@@ -122,14 +125,14 @@ public class TaskManagerMemoryTest {
     @Test
     public void test_result_on_unknown_task() throws Exception {
         taskManager.awaitTermination(1, TimeUnit.SECONDS);
-        taskManager.result("unknownId", new TaskResult<>(0.5));
+        taskManager.result("unknownId", MAPPER.writeValueAsBytes(0.5));
         assertThat(logbackCapturingRule.logs(Level.WARN)).contains(
-            "unknown task id <unknownId> for result=TaskResult[value=0.5] call");
+            "unknown task id <unknownId> for result=0.5 call");
     }
 
     @Test
-    public void test_insert_task() throws TaskAlreadyExists, IOException, UnknownTask {
-        Task<String> task = new Task<>("name", User.local(), new HashMap<>());
+    public void test_persist_task() throws TaskAlreadyExists, IOException, UnknownTask {
+        Task task = new Task("name", User.local(), new HashMap<>());
 
         taskManager.insert(task, null);
 
@@ -144,7 +147,7 @@ public class TaskManagerMemoryTest {
         List<ProjectProxy> projects = List.of(project("project"));
         BatchSearchRecord batchSearchRecord = new BatchSearchRecord(projects, "name", "description", 123, new Date(), uri);
 
-        List<Task<?>> tasks = taskManager.getTasks(TaskFilters.empty().withUser(user), Stream.of(batchSearchRecord)).toList();
+        List<Task> tasks = taskManager.getTasks(TaskFilters.empty().withUser(user), Stream.of(batchSearchRecord)).toList();
         assertThat(tasks).hasSize(1);
         assertThat(tasks.get(0).id).isEqualTo(batchSearchRecord.uuid);
         assertThat(tasks.get(0).getUser()).isEqualTo(user);
@@ -156,10 +159,10 @@ public class TaskManagerMemoryTest {
         User user = User.local();
         List<ProjectProxy> projects = List.of(project("project"));
         BatchSearchRecord batchSearchRecord = new BatchSearchRecord(projects, "name", "description", 123, new Date(), uri);
-        Task<String> task = new Task<>("name", User.local(), new HashMap<>());
+        Task task = new Task("name", User.local(), new HashMap<>());
         taskManager.insert(task, null);
 
-        List<Task<?>> tasks = taskManager.getTasks(TaskFilters.empty().withUser(user), Stream.of(batchSearchRecord)).toList();
+        List<Task> tasks = taskManager.getTasks(TaskFilters.empty().withUser(user), Stream.of(batchSearchRecord)).toList();
         assertThat(tasks).hasSize(2);
         assertThat(tasks.get(1).id).isEqualTo(batchSearchRecord.uuid);
         assertThat(tasks.get(1).getUser()).isEqualTo(user);
@@ -172,11 +175,11 @@ public class TaskManagerMemoryTest {
         User userOtherLocal = User.localUser("jdoe");
         List<ProjectProxy> projects = List.of(project("project"));
         BatchSearchRecord batchSearchRecord = new BatchSearchRecord(projects, "name", "description", 123, new Date(), uri);
-        Task<String> task = new Task<>("name", User.local(), new HashMap<>());
+        Task task = new Task("name", User.local(), Map.of());
         taskManager.insert(task, null);
 
         TaskFilters filters = TaskFilters.empty().withUser(userOtherLocal);
-        List<Task<?>> tasks = taskManager.getTasks(filters, Stream.of(batchSearchRecord)).toList();
+        List<Task> tasks = taskManager.getTasks(filters, Stream.of(batchSearchRecord)).toList();
         assertThat(tasks).hasSize(1);
         assertThat(tasks.get(0).id).isEqualTo(batchSearchRecord.uuid);
         assertThat(tasks.get(0).getUser()).isEqualTo(userLocal);
@@ -190,7 +193,7 @@ public class TaskManagerMemoryTest {
         BatchSearchRecord batchSearchRecord = new BatchSearchRecord(projects, "name", "description", 123, new Date(), uri);
         List<BatchSearchRecord> batchSearchRecords = asList(batchSearchRecord, batchSearchRecord);
 
-        List<Task<?>> tasks = taskManager.getTasks(TaskFilters.empty().withUser(user), batchSearchRecords.stream()).toList();
+        List<Task> tasks = taskManager.getTasks(TaskFilters.empty().withUser(user), batchSearchRecords.stream()).toList();
         assertThat(tasks).hasSize(1);
         assertThat(tasks.get(0).name).isEqualTo("org.icij.datashare.tasks.BatchSearchRunnerProxy");
     }
@@ -203,7 +206,7 @@ public class TaskManagerMemoryTest {
         BatchSearchRecord batchSearchRecord = new BatchSearchRecord(projects, "name", "description", 123, new Date(), uri);
         List<BatchSearchRecord> batchSearchRecords = asList(batchSearchRecord, batchSearchRecord);
 
-        List<Task<?>> tasks = taskManager.getTasks(TaskFilters.empty().withUser(user).withNames("org.icij.datashare.tasks.IndexTask"), batchSearchRecords.stream()).toList();
+        List<Task> tasks = taskManager.getTasks(TaskFilters.empty().withUser(user).withNames("org.icij.datashare.tasks.IndexTask"), batchSearchRecords.stream()).toList();
         assertThat(tasks).hasSize(0);
     }
 
@@ -215,7 +218,7 @@ public class TaskManagerMemoryTest {
         BatchSearchRecord batchSearchRecord = new BatchSearchRecord(projects, "name", "description", 123, new Date(), uri);
         List<BatchSearchRecord> batchSearchRecords = asList(batchSearchRecord, batchSearchRecord);
 
-        List<Task<?>> tasks = taskManager.getTasks(TaskFilters.empty().withUser(user).withNames("org.icij.datashare.tasks.BatchSearchRunnerProxy"), batchSearchRecords.stream()).toList();
+        List<Task> tasks = taskManager.getTasks(TaskFilters.empty().withUser(user).withNames("org.icij.datashare.tasks.BatchSearchRunnerProxy"), batchSearchRecords.stream()).toList();
         assertThat(tasks).hasSize(1);
     }
 
@@ -226,10 +229,10 @@ public class TaskManagerMemoryTest {
         List<ProjectProxy> projects = List.of(project("project"));
         BatchSearchRecord batchSearchRecord = new BatchSearchRecord(projects, "name", "description", 123, new Date(), uri);
 
-        Task<String> task = new Task<>(batchSearchRecord.uuid, "name", User.local());
+        Task task = new Task(batchSearchRecord.uuid, "name", User.local());
         taskManager.insert(task, null);
 
-        List<Task<?>> tasks = taskManager.getTasks(TaskFilters.empty().withUser(user), Stream.of(batchSearchRecord)).toList();
+        List<Task> tasks = taskManager.getTasks(TaskFilters.empty().withUser(user), Stream.of(batchSearchRecord)).toList();
         assertThat(tasks).hasSize(1);
         assertThat(tasks.get(0).name).isEqualTo("name");
     }
@@ -237,12 +240,12 @@ public class TaskManagerMemoryTest {
     @Test
     public void test_update_task() throws TaskAlreadyExists, IOException, UnknownTask {
         // Given
-        Task<?> task = new Task<>("HelloWorld", User.local(), Map.of("greeted", "world"));
-        Task<?> update = new Task<>(task.id, task.name, task.getState(), 0.5, DatashareTime.getNow(), 3, null, task.args, null, null);
+        Task task = new Task("HelloWorld", User.local(), Map.of("greeted", "world"));
+        Task update = new Task(task.id, task.name, task.getState(), 0.5, DatashareTime.getNow(), 3, null, task.args, null, null);
         // When
         taskManager.insert(task, null);
         taskManager.update(update);
-        Task<?> updated = taskManager.getTask(task.id);
+        Task updated = taskManager.getTask(task.id);
         // Then
         assertThat(updated).isEqualTo(update);
     }
@@ -250,7 +253,7 @@ public class TaskManagerMemoryTest {
     @Test
     public void test_wait_task_to_be_done() throws Exception {
         taskManager.startTask(TestFactory.Sleep.class, User.local(), Map.of("duration", 100));
-        List<Task<?>> tasks = taskManager.waitTasksToBeDone(200, TimeUnit.MILLISECONDS);
+        List<Task> tasks = taskManager.waitTasksToBeDone(200, TimeUnit.MILLISECONDS);
         assertThat(tasks).hasSize(1);
     }
 

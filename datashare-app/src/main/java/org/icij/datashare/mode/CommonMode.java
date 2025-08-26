@@ -80,6 +80,7 @@ import static java.util.Optional.ofNullable;
 import static org.icij.datashare.LambdaExceptionUtils.rethrowConsumer;
 import static org.icij.datashare.PluginService.PLUGINS_BASE_URL;
 import static org.icij.datashare.cli.DatashareCliOptions.*;
+import static org.icij.datashare.json.JsonObjectMapper.MAPPER;
 import static org.icij.datashare.text.indexing.elasticsearch.ElasticsearchConfiguration.createESClient;
 
 public abstract class CommonMode extends AbstractModule implements Closeable {
@@ -219,6 +220,11 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
         pipelineRegistry.register(EmailPipeline.class);
         pipelineRegistry.register(Pipeline.Type.CORENLP);
         return pipelineRegistry;
+    }
+
+    @Provides @Singleton
+    ObjectMapper provideObjectMapper() {
+        return MAPPER;
     }
 
     public Properties properties() {

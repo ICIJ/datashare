@@ -92,7 +92,7 @@ public class ExtractNlpTaskIntTest {
 
 
 
-        new ExtractNlpTask(indexer, pipeline, factory, new Task<>(ExtractNlpTask.class.getName(), User.local(), new HashMap<>() {{
+        new ExtractNlpTask(indexer, pipeline, factory, new Task(ExtractNlpTask.class.getName(), User.local(), new HashMap<>() {{
             put("maxContentLength", "32");
         }}), callback).call();
 
@@ -127,7 +127,7 @@ public class ExtractNlpTaskIntTest {
     @Before
     public void setUp() {
         initMocks(this);
-        nlpTask = new ExtractNlpTask(indexer, pipeline, factory, new Task<>(ExtractNlpTask.class.getName(), User.local(), new HashMap<>(){{
+        nlpTask = new ExtractNlpTask(indexer, pipeline, factory, new Task(ExtractNlpTask.class.getName(), User.local(), new HashMap<>(){{
             put("maxContentLength", "32");
         }}), null);
     }

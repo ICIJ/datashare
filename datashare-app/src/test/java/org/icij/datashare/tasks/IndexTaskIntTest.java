@@ -42,7 +42,7 @@ public class IndexTaskIntTest {
         DocumentQueue<Path> queue = inputQueueFactory.createQueue(new PipelineHelper(propertiesProvider).getQueueNameFor(Stage.INDEX), Path.class);
         queue.add(Paths.get(ClassLoader.getSystemResource("docs/doc.txt").getPath()));
 
-        Long nbDocs = new IndexTask(spewer, inputQueueFactory, new Task<>(IndexTask.class.getName(), User.local(), map), null).call();
+        Long nbDocs = new IndexTask(spewer, inputQueueFactory, new Task(IndexTask.class.getName(), User.local(), map), null).runTask();
 
         assertThat(nbDocs).isEqualTo(1);
         DocumentQueue<String> outputQueue = outputQueueFactory.createQueue(new PipelineHelper(propertiesProvider).getOutputQueueNameFor(Stage.INDEX), String.class);
@@ -64,7 +64,7 @@ public class IndexTaskIntTest {
         inputQueue.add(Paths.get(ClassLoader.getSystemResource("docs/embedded_doc.eml").getPath()));
         inputQueue.add(Paths.get(ClassLoader.getSystemResource("docs/foo/bar.txt").getPath()));
 
-        IndexTask indexTask = new IndexTask(spewer, inputQueueFactory, new Task<>(IndexTask.class.getName(), User.local(), map), callback);
+        IndexTask indexTask = new IndexTask(spewer, inputQueueFactory, new Task(IndexTask.class.getName(), User.local(), map), callback);
         indexTask.call();
         assertThat(progressValues.size()).isGreaterThan(1);
         assertThat(progressValues.get(0)).isLessThan(progressValues.get(progressValues.size() - 1));
