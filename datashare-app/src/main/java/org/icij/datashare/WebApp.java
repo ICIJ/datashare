@@ -11,6 +11,7 @@ import java.net.URI;
 import java.util.Map;
 import java.util.Properties;
 import net.codestory.http.WebServer;
+import org.icij.datashare.asynctasks.TaskAlreadyExists;
 import org.icij.datashare.asynctasks.TaskManager;
 import org.icij.datashare.asynctasks.TaskSupplier;
 import org.icij.datashare.asynctasks.TaskWorkerLoop;
@@ -88,7 +89,11 @@ public class WebApp {
     private static void requeueDatabaseBatchSearches(BatchSearchRepository repository, TaskManager taskManager) throws IOException {
         for (String batchSearchUuid: repository.getQueued()) {
             BatchSearch batchSearch = repository.get(batchSearchUuid);
-            taskManager.startTask(batchSearchUuid, BatchSearchRunner.class, batchSearch.user, Map.of("batchRecord", new BatchSearchRecord(batchSearch)));
+            try {
+                taskManager.startTask(batchSearchUuid, BatchSearchRunner.class, batchSearch.user, Map.of("batchRecord", new BatchSearchRecord(batchSearch)));
+            } catch (TaskAlreadyExists e) {
+                LOGGER.info("ignoring already started task <{}>", batchSearchUuid);
+            }
         }
     }
 
