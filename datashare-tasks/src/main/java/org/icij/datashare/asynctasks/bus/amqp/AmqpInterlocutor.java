@@ -3,6 +3,7 @@ package org.icij.datashare.asynctasks.bus.amqp;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
+import com.rabbitmq.client.impl.ForgivingExceptionHandler;
 import org.icij.datashare.PropertiesProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -122,6 +123,7 @@ public class AmqpInterlocutor implements Closeable {
         factory.setRequestedHeartbeat(60);
         factory.setAutomaticRecoveryEnabled(true);
         factory.setNetworkRecoveryInterval(configuration.connectionRecoveryDelay);
+        factory.setExceptionHandler(new ForgivingExceptionHandler()); // avoid chanel close when exception in handleDelivery
         return factory;
     }
 
