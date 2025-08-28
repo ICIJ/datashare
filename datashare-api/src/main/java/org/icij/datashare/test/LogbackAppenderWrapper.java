@@ -4,12 +4,13 @@ import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.encoder.PatternLayoutEncoder;
 import ch.qos.logback.core.AppenderBase;
 import ch.qos.logback.core.Context;
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import org.slf4j.ILoggerFactory;
 import org.slf4j.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -57,7 +58,7 @@ public class LogbackAppenderWrapper {
     }
 
     private static class TestAppender extends AppenderBase<ILoggingEvent> {
-        List<ILoggingEvent> events = new ArrayList<>();
+        Queue<ILoggingEvent> events = new ConcurrentLinkedQueue<>();
 
         @Override
         protected void append(ILoggingEvent iLoggingEvent) {
