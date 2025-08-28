@@ -33,7 +33,9 @@ import java.util.concurrent.Executors;
 import java.util.stream.IntStream;
 
 import static java.util.Optional.ofNullable;
+import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_TASK_PROGRESS_INTERVAL_SECONDS;
 import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_TASK_WORKERS;
+import static org.icij.datashare.cli.DatashareCliOptions.TASK_PROGRESS_INTERVAL_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.TASK_WORKERS_OPT;
 
 public class WebApp {
@@ -58,7 +60,9 @@ public class WebApp {
 
         if (isEmbeddedAMQP(properties, taskWorkersNb)) {
             ExecutorService executorService = Executors.newFixedThreadPool(taskWorkersNb);
-            List<TaskWorkerLoop> workers = IntStream.range(0, taskWorkersNb).mapToObj(i -> new TaskWorkerLoop(mode.get(DatashareTaskFactory.class), mode.get(TaskSupplier.class))).toList();
+            double progressMinIntervalS = (double) ofNullable(properties.get(TASK_PROGRESS_INTERVAL_OPT))
+                .orElse(DEFAULT_TASK_PROGRESS_INTERVAL_SECONDS);
+            List<TaskWorkerLoop> workers = IntStream.range(0, taskWorkersNb).mapToObj(i -> new TaskWorkerLoop(mode.get(DatashareTaskFactory.class), mode.get(TaskSupplier.class), progressMinIntervalS)).toList();
             workers.forEach(executorService::submit);
         }
 

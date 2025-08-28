@@ -127,6 +127,7 @@ public final class DatashareCliOptions {
     public static final String TASK_REPOSITORY_OPT = "taskRepositoryType";
     public static final String TASK_MANAGER_POLLING_INTERVAL_OPT = "taskManagerPollingIntervalMilliseconds";
     public static final String TASK_WORKERS_OPT = "taskWorkers";
+    public static final String TASK_PROGRESS_INTERVAL_OPT = "taskProgressUpdateIntervalSeconds";
 
     private static final Path DEFAULT_DATASHARE_HOME = Paths.get(System.getProperty("user.home"), ".local/share/datashare");
     private static final Integer DEFAULT_NLP_PARALLELISM = 1;
@@ -181,6 +182,7 @@ public final class DatashareCliOptions {
     public static final String DEFAULT_POLLING_INTERVAL_SEC = "60";
     public static final int DEFAULT_TASK_MANAGER_POLLING_INTERVAL = 5000;
     public static final String DEFAULT_TASK_WORKERS = "1";
+    public static final double DEFAULT_TASK_PROGRESS_INTERVAL_SECONDS = 10;
 
     // A list of aliases for retro-compatibility when an option changed
     public static final Map<String, String> OPT_ALIASES = Map.ofEntries(
@@ -896,6 +898,14 @@ public final class DatashareCliOptions {
                 .withRequiredArg()
                 .ofType(Integer.class)
                 .defaultsTo(DEFAULT_TASK_MANAGER_POLLING_INTERVAL);
+    }
+
+    static void taskProgressUpdateInterval(OptionParser parser) {
+        parser.acceptsAll(
+                        singletonList(TASK_PROGRESS_INTERVAL_OPT), "Minimum interval between progress updates for the same task in seconds.")
+                .withRequiredArg()
+                .ofType(Double.class)
+                .defaultsTo(DEFAULT_TASK_PROGRESS_INTERVAL_SECONDS);
     }
 
     static void taskWorkers(OptionParser parser) {

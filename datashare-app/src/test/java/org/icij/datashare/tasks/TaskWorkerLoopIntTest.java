@@ -38,7 +38,7 @@ public class TaskWorkerLoopIntTest {
         when(factory.createBatchDownloadRunner(any(), any())).thenReturn(runner);
 
         CountDownLatch workerStarted = new CountDownLatch(1);
-        TaskWorkerLoop taskWorkerLoop = new TaskWorkerLoop(factory, taskSupplier, workerStarted);
+        TaskWorkerLoop taskWorkerLoop = new TaskWorkerLoop(factory, taskSupplier, workerStarted, 10);
         Thread worker = new Thread(taskWorkerLoop::call);
         worker.start();
         workerStarted.await();
