@@ -27,13 +27,13 @@
       "version": "1.1.0",
       "type": "PLUGIN"
     },
-    { 
+    {
       "id": "datashare-plugin-dataconnect",
       "name": "Dataconnect",
       "description": "A Datashare plugin to create Dataconnect, a bridge between Datashare and ICIJ I-Hub.",
-      "url": "https://github.com/ICIJ/datashare-plugin-dataconnect/releases/download/v3.0.1/datashare-plugin-dataconnect-v3.0.1.tgz",
+      "url": "https://github.com/ICIJ/datashare-plugin-dataconnect/releases/download/v3.0.2/datashare-plugin-dataconnect-v3.0.2.tgz",
       "homepage": "https://github.com/ICIJ/datashare-plugin-dataconnect",
-      "version": "3.0.1",
+      "version": "3.0.2",
       "type": "PLUGIN"
     },
     {
