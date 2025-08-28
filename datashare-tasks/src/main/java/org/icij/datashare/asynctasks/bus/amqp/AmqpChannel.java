@@ -90,6 +90,12 @@ public class AmqpChannel {
 				} catch (NackException nackEx) {
                     logger.warn("exception while accepting event. Sending nack with requeue={}", nackEx.requeue, nackEx);
 					rabbitMqChannel.basicNack(envelope.getDeliveryTag(), false, nackEx.requeue);
+				} catch (Exception ex) {
+					logger.error(
+						"Consumer ({}) threw an exception while handling message {} for channel {}. Requeuing this message by default",
+						consumerTag, envelope.getDeliveryTag(), rabbitMqChannel
+					);
+					rabbitMqChannel.basicNack(envelope.getDeliveryTag(), false, true);
 				}
 				criteria.newEvent();
 				if (!criteria.isValid()) {
