@@ -18,7 +18,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
 import static org.fest.assertions.Assertions.assertThat;
@@ -116,7 +115,6 @@ public class AmqpTest {
     }
 
     @Test(timeout = 5000)
-    @Ignore("TODO : this should pass")
     public void test_consume_uncaught_exception_should_not_close_channel() throws Exception {
         ExceptionConsumer exceptionConsumer = new ExceptionConsumer(2);
         new AmqpConsumer<>(amqp, exceptionConsumer, AmqpQueue.EVENT, TestEvent.class).consumeEvents(2);
@@ -218,15 +216,20 @@ public class AmqpTest {
 
     static class ExceptionConsumer implements Consumer<TestEvent> {
         volatile CountDownLatch latch;
+        private final int nbEvents;
 
         public ExceptionConsumer(int nbEvents) {
             this.latch = new CountDownLatch(nbEvents);
+            this.nbEvents = nbEvents;
         }
 
         @Override
         public void accept(TestEvent event) {
+            if (latch.getCount() == nbEvents) {
+                latch.countDown();
+                throw new RuntimeException("consumer fails '%s'".formatted(event.field));
+            }
             latch.countDown();
-            throw new RuntimeException("consumer fails '%s'".formatted(event.field));
         }
 
         public void await() throws InterruptedException {
