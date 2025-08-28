@@ -2,7 +2,9 @@ package org.icij.datashare.asynctasks.bus.amqp;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import java.util.function.Predicate;
 import org.icij.datashare.asynctasks.NackException;
+import org.icij.datashare.function.ThrowingConsumer;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -116,7 +118,7 @@ public class AmqpTest {
 
     @Test(timeout = 5000)
     public void test_consume_uncaught_exception_should_not_close_channel() throws Exception {
-        ExceptionConsumer exceptionConsumer = new ExceptionConsumer(2);
+        ExceptionConsumer exceptionConsumer = new ExceptionConsumer(2, (s) -> s.contains("boom"));
         new AmqpConsumer<>(amqp, exceptionConsumer, AmqpQueue.EVENT, TestEvent.class).consumeEvents(2);
 
         amqp.publish(AmqpQueue.EVENT, new TestEvent("boom!!"));
@@ -216,20 +218,19 @@ public class AmqpTest {
 
     static class ExceptionConsumer implements Consumer<TestEvent> {
         volatile CountDownLatch latch;
-        private final int nbEvents;
+        private final Predicate<String> failurePredicate;
 
-        public ExceptionConsumer(int nbEvents) {
+        public ExceptionConsumer(int nbEvents, Predicate<String> failurePredicate) {
             this.latch = new CountDownLatch(nbEvents);
-            this.nbEvents = nbEvents;
+            this.failurePredicate = failurePredicate;
         }
 
         @Override
         public void accept(TestEvent event) {
-            if (latch.getCount() == nbEvents) {
-                latch.countDown();
+            latch.countDown();
+            if (failurePredicate.test(event.field)) {
                 throw new RuntimeException("consumer fails '%s'".formatted(event.field));
             }
-            latch.countDown();
         }
 
         public void await() throws InterruptedException {
