@@ -29,24 +29,30 @@ public class TaskWorkerLoop implements Callable<Integer>, Closeable {
     final AtomicReference<Task<?>> currentTask = new AtomicReference<>();
     private final CountDownLatch waitForMainLoopCalled; // for tests only
     private final int pollTimeMillis;
+    private final double progressMinIntervalS;
     private final ConcurrentHashMap<String, Boolean> cancelledTasks;
     private volatile boolean exitAsked = false;
     private volatile Thread loopThread;
     private int nbTasks = 0;
 
     public TaskWorkerLoop(TaskFactory factory, TaskSupplier taskSupplier) {
-        this(factory, taskSupplier, new CountDownLatch(1));
+        this(factory, taskSupplier, new CountDownLatch(1), 10F);
     }
 
-    public TaskWorkerLoop(TaskFactory factory, TaskSupplier taskSupplier, CountDownLatch countDownLatch) {
-        this(factory, taskSupplier, countDownLatch, 60_000);
+    public TaskWorkerLoop(TaskFactory factory, TaskSupplier taskSupplier, double progressMinIntervalS) {
+        this(factory, taskSupplier, new CountDownLatch(1), progressMinIntervalS);
     }
 
-    public TaskWorkerLoop(TaskFactory factory, TaskSupplier taskSupplier, CountDownLatch countDownLatch, int pollTimeMillis) {
+    public TaskWorkerLoop(TaskFactory factory, TaskSupplier taskSupplier, CountDownLatch countDownLatch, double progressMinIntervalS) {
+        this(factory, taskSupplier, countDownLatch, 60_000, progressMinIntervalS);
+    }
+
+    public TaskWorkerLoop(TaskFactory factory, TaskSupplier taskSupplier, CountDownLatch countDownLatch, int pollTimeMillis, double progressMinIntervalS) {
         this.factory = factory;
         this.taskSupplier = taskSupplier;
         this.waitForMainLoopCalled = countDownLatch;
         this.pollTimeMillis = pollTimeMillis;
+        this.progressMinIntervalS = progressMinIntervalS;
         this.cancelledTasks = new ConcurrentHashMap<>();
         Signal.handle(new Signal("TERM"), signal -> {
             exit();
@@ -109,8 +115,9 @@ public class TaskWorkerLoop implements Callable<Integer>, Closeable {
             taskSupplier.canceled(currentTask.get(), cancelledTasks.remove(currentTask.get().id));
         } else {
             try {
+                ProgressSmoother smoothedProgress = new ProgressSmoother(taskSupplier::progress, progressMinIntervalS);
                 Callable<?> taskFn = TaskFactoryHelper.createTaskCallable(factory, currentTask.get().name, currentTask.get(),
-                        currentTask.get().progress(taskSupplier::progress));
+                        currentTask.get().progress(smoothedProgress));
                 currentTaskReference.set(taskFn);
                 logger.info("running task {}", currentTask.get());
                 taskSupplier.progress(currentTask.get().id, 0);

@@ -198,6 +198,7 @@ public class DatashareCli {
         DatashareCliOptions.pollingInterval(parser);
         DatashareCliOptions.taskRepositoryType(parser);
         DatashareCliOptions.taskManagerPollingInterval(parser);
+        DatashareCliOptions.taskProgressUpdateInterval(parser);
         DatashareCliOptions.taskWorkers(parser);
         return parser;
     }
