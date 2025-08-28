@@ -199,12 +199,16 @@ public interface TaskManager extends Closeable {
 
     default <V extends Serializable> Task<V> setProgress(ProgressEvent e) throws IOException, UnknownTask {
         logger.debug("progress event for {}", e.taskId);
-        Task<V> taskView = getTask(e.taskId);
-        if (taskView != null) {
-            taskView.setProgress(e.progress);
-            update(taskView);
+        try {
+            Task<V> taskView = getTask(e.taskId);
+            if (taskView != null) {
+                taskView.setProgress(e.progress);
+                update(taskView);
+            }
+            return taskView;
+        } catch (UnknownTask ex) {
+            throw new NackException(ex, false);
         }
-        return taskView;
     }
 
     default <V extends Serializable> Task<V> handleAck(TaskEvent e) {

@@ -18,6 +18,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
 import static org.fest.assertions.Assertions.assertThat;
@@ -92,26 +93,38 @@ public class AmqpTest {
 
     @Test(timeout = 2000)
     public void test_consume_nack_with_requeue() throws Exception {
-        FailingConsumer failingConsumer = new FailingConsumer(true);
-        new AmqpConsumer<>(amqp, failingConsumer, AmqpQueue.MANAGER_EVENT, TestEvent.class).consumeEvents(1);
+        NackExceptionConsumer nackExceptionConsumer = new NackExceptionConsumer(true);
+        new AmqpConsumer<>(amqp, nackExceptionConsumer, AmqpQueue.MANAGER_EVENT, TestEvent.class).consumeEvents(1);
         new AmqpConsumer<>(amqp, new TestEventConsumer(), AmqpQueue.MANAGER_EVENT, TestEvent.class).consumeEvents(1);
 
         amqp.publish(AmqpQueue.MANAGER_EVENT, new TestEvent("boom!!"));
 
         assertThat(eventQueue.take().field).isEqualTo("boom!!");
-        assertThat(failingConsumer.hasBeenCalled).isTrue();
+        assertThat(nackExceptionConsumer.hasBeenCalled).isTrue();
     }
 
     @Test
     public void test_consume_nack_without_requeue() throws Exception {
-        FailingConsumer failingConsumer = new FailingConsumer(false);
-        new AmqpConsumer<>(amqp, failingConsumer, AmqpQueue.EVENT, TestEvent.class ).consumeEvents(1);
+        NackExceptionConsumer nackExceptionConsumer = new NackExceptionConsumer(false);
+        new AmqpConsumer<>(amqp, nackExceptionConsumer, AmqpQueue.EVENT, TestEvent.class ).consumeEvents(1);
         new AmqpConsumer<>(amqp, new TestEventConsumer(), AmqpQueue.MANAGER_EVENT, TestEvent.class).consumeEvents(1);
 
         amqp.publish(AmqpQueue.EVENT, new TestEvent("boom!!"));
 
         assertThat(eventQueue.poll(1, TimeUnit.SECONDS)).isNull();
-        assertThat(failingConsumer.hasBeenCalled).isTrue();
+        assertThat(nackExceptionConsumer.hasBeenCalled).isTrue();
+    }
+
+    @Test(timeout = 5000)
+    @Ignore("TODO : this should pass")
+    public void test_consume_uncaught_exception_should_not_close_channel() throws Exception {
+        ExceptionConsumer exceptionConsumer = new ExceptionConsumer(2);
+        new AmqpConsumer<>(amqp, exceptionConsumer, AmqpQueue.EVENT, TestEvent.class).consumeEvents(2);
+
+        amqp.publish(AmqpQueue.EVENT, new TestEvent("boom!!"));
+        amqp.publish(AmqpQueue.EVENT, new TestEvent("should be received (channel is not closed)"));
+
+        exceptionConsumer.await(); // should not timeout
     }
 
     @Test
@@ -188,11 +201,11 @@ public class AmqpTest {
         }
     }
 
-    static class FailingConsumer implements Consumer<TestEvent> {
+    static class NackExceptionConsumer implements Consumer<TestEvent> {
         public volatile boolean hasBeenCalled = false;
         public final boolean requeue;
 
-        FailingConsumer(boolean requeue) {
+        NackExceptionConsumer(boolean requeue) {
             this.requeue = requeue;
         }
 
@@ -200,6 +213,24 @@ public class AmqpTest {
         public void accept(TestEvent event) {
             hasBeenCalled = true;
             throw new NackException(new RuntimeException("consumer fails"), requeue);
+        }
+    }
+
+    static class ExceptionConsumer implements Consumer<TestEvent> {
+        volatile CountDownLatch latch;
+
+        public ExceptionConsumer(int nbEvents) {
+            this.latch = new CountDownLatch(nbEvents);
+        }
+
+        @Override
+        public void accept(TestEvent event) {
+            latch.countDown();
+            throw new RuntimeException("consumer fails '%s'".formatted(event.field));
+        }
+
+        public void await() throws InterruptedException {
+            latch.await();
         }
     }
 }

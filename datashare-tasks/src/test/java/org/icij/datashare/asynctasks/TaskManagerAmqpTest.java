@@ -98,7 +98,7 @@ public class TaskManagerAmqpTest {
     public void test_task_progress() throws Exception {
         taskManager.startTask("taskName", User.local(), new HashMap<>());
 
-        // in the task runner loop
+        // in the task worker loop
         Task<Serializable> task = taskQueue.poll(2, TimeUnit.SECONDS); // to sync
         taskSupplier.progress(task.id,0.5);
 
@@ -110,7 +110,7 @@ public class TaskManagerAmqpTest {
     public void test_task_result() throws Exception {
         taskManager.startTask("taskName", User.local(), new HashMap<>());
 
-        // in the task runner loop
+        // in the task worker loop
         Task<Serializable> task = taskQueue.poll(2, TimeUnit.SECONDS); // to sync
         TaskResult<String> result = new TaskResult<>("result");
         taskSupplier.result(task.id, result);
@@ -124,7 +124,7 @@ public class TaskManagerAmqpTest {
     public void test_task_result_uri_result_type() throws Exception {
         taskManager.startTask("taskName", User.local(), new HashMap<>());
 
-        // in the task runner loop
+        // in the task worker loop
         Task<Serializable> task = taskQueue.poll(2, TimeUnit.SECONDS); // to sync
         TaskResult<UriResult> taskResult = new TaskResult<>(new UriResult(new URI("file:///my/file"),42));
         taskSupplier.result(task.id,taskResult);
@@ -139,14 +139,14 @@ public class TaskManagerAmqpTest {
     public void test_task_error() throws Exception {
         taskManager.startTask("taskName", User.local(), new HashMap<>());
 
-        // in the task runner loop
+        // in the task worker loop
         Task<Serializable> task = taskQueue.poll(2, TimeUnit.SECONDS); // to sync
-        taskSupplier.error(task.id,new TaskError(new RuntimeException("error in runner")));
+        taskSupplier.error(task.id,new TaskError(new RuntimeException("error in worker")));
 
         nextMessage.await();
         assertThat(taskManager.getTask(task.id).getResult()).isNull();
         assertThat(taskManager.getTask(task.id).getState()).isEqualTo(Task.State.ERROR);
-        assertThat(taskManager.getTask(task.id).error.getMessage()).isEqualTo("error in runner");
+        assertThat(taskManager.getTask(task.id).error.getMessage()).isEqualTo("error in worker");
     }
 
     @Test
@@ -169,7 +169,7 @@ public class TaskManagerAmqpTest {
 
         assertThat(taskManager.getTasks().toList()).hasSize(1);
 
-        // in the task runner loop
+        // in the task worker loop
         Task<Serializable> task = taskQueue.poll(1, TimeUnit.SECONDS); // to sync
         taskSupplier.progress(task.id,0.5);
         nextMessage.await();
@@ -183,7 +183,7 @@ public class TaskManagerAmqpTest {
     public void test_task_canceled() throws Exception {
         taskManager.startTask("taskName", User.local(), new HashMap<>());
 
-        // in the task runner loop
+        // in the task worker loop
         Task<Serializable> task = taskQueue.poll(2, TimeUnit.SECONDS); // to sync
         taskSupplier.canceled(task,false);
 
