@@ -26,8 +26,9 @@ public class TaskWorkerApp {
 
         try (CommonMode mode = CommonMode.create(properties)) {
             ExecutorService executorService = Executors.newFixedThreadPool(taskWorkersNb);
-            double progressMinIntervalS = (double) ofNullable(properties.get(TASK_PROGRESS_INTERVAL_OPT))
-                .orElse(DEFAULT_TASK_PROGRESS_INTERVAL_SECONDS);
+            double progressMinIntervalS = ofNullable(properties.getProperty(TASK_PROGRESS_INTERVAL_OPT))
+                    .map(Double::parseDouble)
+                    .orElse(DEFAULT_TASK_PROGRESS_INTERVAL_SECONDS);
             List<TaskWorkerLoop> workers = IntStream.range(0, taskWorkersNb).mapToObj(i -> new TaskWorkerLoop(mode.get(DatashareTaskFactory.class), mode.get(TaskSupplier.class), progressMinIntervalS)).toList();
             workers.forEach(executorService::submit);
             executorService.awaitTermination(Long.MAX_VALUE, TimeUnit.DAYS); // to wait consumers, else we are closing them all
