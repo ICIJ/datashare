@@ -50,7 +50,6 @@ public class Task<V extends Serializable> extends Event implements Entity, Compa
     private volatile State state;
     private volatile Date completedAt;
     private volatile double progress;
-    @JsonUnwrapped
     private volatile TaskResult<V> result;
 
     public Task(String name, User user, Map<String, Object> args) {

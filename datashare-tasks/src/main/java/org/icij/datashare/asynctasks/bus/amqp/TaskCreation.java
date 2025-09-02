@@ -14,7 +14,6 @@ import java.util.Date;
 
 @JsonDeserialize(using = TaskCreation.TaskCreationDeserializer.class)
 public class TaskCreation extends Event {
-    @JsonUnwrapped // to avoid nested object
     public final Task<?> taskView;
 
     public TaskCreation(Task<?> taskView) {
