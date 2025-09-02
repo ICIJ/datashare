@@ -18,8 +18,14 @@ public enum AmqpQueue {
 			"x-delivery-limit", 10,
 			"x-consumer-timeout", 3600 * 1000), TASK_DLQ),
 	MANAGER_EVENT_DLQ  ("exchangeDLQManagerEvents",  BuiltinExchangeType.DIRECT,"routingKeyDLQManagerEvents"),
-	MANAGER_EVENT  ("exchangeManagerEvents",  BuiltinExchangeType.DIRECT,"routingKeyManagerEvents", new HashMap<>(), MANAGER_EVENT_DLQ),
-	WORKER_EVENT("exchangeWorkerEvents", BuiltinExchangeType.FANOUT, "routingKeyWorkerEvents"),
+	MANAGER_EVENT  ("exchangeManagerEvents",  BuiltinExchangeType.DIRECT,"routingKeyManagerEvents", Map.of(), MANAGER_EVENT_DLQ),
+	WORKER_EVENT(
+		"exchangeWorkerEvents",
+		BuiltinExchangeType.FANOUT,
+		"routingKeyWorkerEvents",
+		Map.of("x-expires", 10 * 60 * 1000),
+		null
+	),
 	MONITORING("exchangeMonitoring", BuiltinExchangeType.DIRECT, "routingKeyMonitoring", Map.of(
 			"x-message-ttl", 5000), null);
 
