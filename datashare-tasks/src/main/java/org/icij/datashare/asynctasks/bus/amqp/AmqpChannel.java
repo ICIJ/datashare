@@ -93,7 +93,7 @@ public class AmqpChannel {
 				} catch (Exception ex) {
 					logger.error(
 						"Consumer ({}) threw an exception while handling message {} for channel {}. Requeuing this message by default",
-						consumerTag, envelope.getDeliveryTag(), rabbitMqChannel
+						consumerTag, envelope.getDeliveryTag(), rabbitMqChannel, ex
 					);
 					rabbitMqChannel.basicNack(envelope.getDeliveryTag(), false, true);
 				}
