@@ -12,7 +12,6 @@ public enum TaskResultSubtypes {
 
     private final Class<? extends Serializable> type;
 
-
     public Class<? extends Serializable> getType() {
         return type;
     }

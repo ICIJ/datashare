@@ -3,6 +3,7 @@ package org.icij.datashare.asynctasks.bus.amqp;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import com.fasterxml.jackson.annotation.JsonTypeName;
 
 import java.io.Serializable;
 import java.net.URI;
