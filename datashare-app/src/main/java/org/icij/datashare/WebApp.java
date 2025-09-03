@@ -1,7 +1,9 @@
 package org.icij.datashare;
 
 import static java.lang.Boolean.parseBoolean;
+import static java.lang.Double.parseDouble;
 import static java.lang.Integer.parseInt;
+import static java.lang.String.valueOf;
 import static org.icij.datashare.cli.DatashareCliOptions.BROWSER_OPEN_LINK_OPT;
 
 import java.awt.Desktop;
@@ -60,8 +62,9 @@ public class WebApp {
 
         if (isEmbeddedAMQP(properties, taskWorkersNb)) {
             ExecutorService executorService = Executors.newFixedThreadPool(taskWorkersNb);
-            double progressMinIntervalS = (double) ofNullable(properties.get(TASK_PROGRESS_INTERVAL_OPT))
-                .orElse(DEFAULT_TASK_PROGRESS_INTERVAL_SECONDS);
+            double progressMinIntervalS = ofNullable(properties.getProperty(TASK_PROGRESS_INTERVAL_OPT))
+                    .map(Double::parseDouble)
+                    .orElse(DEFAULT_TASK_PROGRESS_INTERVAL_SECONDS);
             List<TaskWorkerLoop> workers = IntStream.range(0, taskWorkersNb).mapToObj(i -> new TaskWorkerLoop(mode.get(DatashareTaskFactory.class), mode.get(TaskSupplier.class), progressMinIntervalS)).toList();
             workers.forEach(executorService::submit);
         }
