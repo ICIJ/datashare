@@ -92,10 +92,10 @@ public class AmqpChannel {
 					rabbitMqChannel.basicNack(envelope.getDeliveryTag(), false, nackEx.requeue);
 				} catch (Exception ex) {
 					logger.error(
-						"Consumer ({}) threw an exception while handling message {} for channel {}. Requeuing this message by default",
+						"consumer ({}) can't process message {} for channel {}, rejecting the message due to unhandled exception",
 						consumerTag, envelope.getDeliveryTag(), rabbitMqChannel, ex
 					);
-					rabbitMqChannel.basicNack(envelope.getDeliveryTag(), false, true);
+					rabbitMqChannel.basicNack(envelope.getDeliveryTag(), false, false);
 				}
 				criteria.newEvent();
 				if (!criteria.isValid()) {
