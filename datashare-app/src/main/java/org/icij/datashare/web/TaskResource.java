@@ -405,13 +405,18 @@ public class TaskResource {
     @ApiResponse(responseCode = "200", description = "returns 200 and the json task id", content = @Content(schema = @Schema(implementation = TaskResponse.class)))
     @ApiResponse(responseCode = "500", description = "returns an error when stat task fails", content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
     @Post("/batchUpdate/index")
-    public Payload indexQueue(final OptionsWrapper<String> optionsWrapper, Context context)
-        throws IOException {
+    public Payload indexQueue(final OptionsWrapper<String> optionsWrapper, Context context) throws Exception {
         modeVerifier.checkAllowedMode(Mode.LOCAL, Mode.EMBEDDED);
+        String path = optionsWrapper.getOptions().getOrDefault("path", null);
+        if (path != null) {
+            return indexPath(path, optionsWrapper, context);
+        }
         Properties properties = applyProjectProperties(optionsWrapper);
-        return ofNullable(taskManager.startTask(IndexTask.class, (User) context.currentUser(), propertiesToMap(properties)))
-                .map(id -> new Payload("application/json", String.format("{\"taskId\":\"%s\"}", id), 200))
-                .orElse(new Payload("application/json", "{\"message\":\"unknown error\"}", 500));
+        String taskId = taskManager.startTask(IndexTask.class, (User) context.currentUser(), propertiesToMap(properties));
+        if (taskId != null) {
+            return new JsonPayload(Map.of("taskId", taskId));
+        }
+        return new JsonPayload(500, Map.of("message", "unknown error"));
     }
 
     @Operation(description = "Indexes files in a directory (with docker, it is the mounted directory that is scanned).",
@@ -419,17 +424,21 @@ public class TaskResource {
     @ApiResponse(responseCode = "200", description = "returns 200 and the list of tasks created", useReturnTypeSchema = true)
     @Post("/batchUpdate/index/file")
     public Payload indexDefault(final OptionsWrapper<String> optionsWrapper, Context context) throws Exception {
-        return indexFile(propertiesProvider.get("dataDir").orElse("/home/datashare/data"), optionsWrapper, context);
+        return indexPath(propertiesProvider.get("dataDir").orElse("/home/datashare/data"), optionsWrapper, context);
     }
 
-    @Operation(description = "Indexes all files of a directory with the given path.",
+    @Operation(description = """
+            [DEPRECATED] Use `/batchUpdate/index` with a `path` option instead.
+            
+            Indexes all files of a directory with the given path.
+            """,
             requestBody = @RequestBody(description = "wrapper for options json", required = true,  content = @Content(schema = @Schema(implementation = OptionsWrapper.class))))
     @ApiResponse(responseCode = "200", description = "returns 200 and the list of tasks created", content = @Content(schema = @Schema(implementation = TasksResponse.class)))
-    @Post("/batchUpdate/index/:filePath:")
-    public Payload indexFile(@Parameter(name = "filePath", description = "path of the directory", in = ParameterIn.PATH) final String filePath, final OptionsWrapper<String> optionsWrapper, Context context)
+    @Post("/batchUpdate/index/:path:")
+    public Payload indexPath(@Parameter(name = "path", description = "path of the directory", in = ParameterIn.PATH) final String path, final OptionsWrapper<String> optionsWrapper, Context context)
         throws Exception {
         modeVerifier.checkAllowedMode(Mode.LOCAL, Mode.EMBEDDED);
-        TaskResponse scanResponse = scanFile(filePath, optionsWrapper, context);
+        TaskResponse scanResponse = scanFile(path, optionsWrapper, context);
         List<String> taskIds = new LinkedList<>();
         taskIds.add(scanResponse.taskId);
         Properties properties = applyProjectProperties(optionsWrapper);
