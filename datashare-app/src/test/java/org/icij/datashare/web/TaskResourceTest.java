@@ -287,6 +287,23 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
+    public void test_index_file_with_post_option() throws IOException {
+        String path = getClass().getResource("/docs/doc.txt").getPath();
+        String body = String.format("{ \"options\":{\"path\": \"%s\"}} }", path);
+        RestAssert response = post("/api/task/batchUpdate/index", body);
+
+        ShouldChain responseBody = response.should().haveType("application/json");
+
+        taskManager.waitTasksToBeDone(1, SECONDS);
+        List<String> taskNames = taskManager.getTasks().map(t -> t.id).toList();
+        responseBody.should().contain(format(taskNames.get(0)));
+        responseBody.should().contain(taskNames.get(1));
+
+        assertThat(findTask(taskManager, "org.icij.datashare.tasks.IndexTask")).isNotNull();
+        assertThat(findTask(taskManager, "org.icij.datashare.tasks.IndexTask").get().args).excludes(entry("reportName", "extract:report:map"));
+    }
+
+    @Test
     public void test_index_file_forbidden_in_server_mode() {
         configure(routes -> {
             PropertiesProvider propertiesProvider = new PropertiesProvider(Map.of("mode", Mode.SERVER.name()));
@@ -395,14 +412,35 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
     @Test
     public void test_index_and_scan_directory_with_options() throws IOException {
         String path = Objects.requireNonNull(getClass().getResource("/docs")).getPath();
-
-        RestAssert response = post("/api/task/batchUpdate/index/" + path.substring(1),
-                "{\"options\":{\"foo\":\"baz\",\"key\":\"val\"}}");
+        String filePath = path.substring(1);
+        String body = "{\"options\":{\"foo\":\"baz\",\"key\":\"val\"}}";
+        RestAssert response = post("/api/task/batchUpdate/index/" + filePath, body);
 
         response.should().haveType("application/json");
         Map<String, Object> defaultProperties = getDefaultProperties();
         defaultProperties.put("foo", "baz");
         defaultProperties.put("key", "val");
+        defaultProperties.put("user", User.local());
+        defaultProperties.remove(REPORT_NAME_OPT);
+
+        assertThat(taskManager.getTasks().toList()).hasSize(2);
+        assertThat(findTask(taskManager, "org.icij.datashare.tasks.ScanTask")).isNotNull();
+        assertThat(findTask(taskManager, "org.icij.datashare.tasks.ScanTask").get().args.get(DATA_DIR_OPT)).isEqualTo(path);
+
+        assertThat(findTask(taskManager, "org.icij.datashare.tasks.IndexTask")).isNotNull();
+        assertThat(findTask(taskManager, "org.icij.datashare.tasks.IndexTask").get().args).isEqualTo(defaultProperties);
+    }
+
+    @Test
+    public void test_index_and_scan_directory_with_options_including_filepath() throws IOException {
+        String path = Objects.requireNonNull(getClass().getResource("/docs")).getPath();
+        String body = String.format("{\"options\":{\"foo\":\"baz\",\"path\":\"%s\"}}", path);
+        RestAssert response = post("/api/task/batchUpdate/index", body);
+
+        response.should().haveType("application/json");
+        Map<String, Object> defaultProperties = getDefaultProperties();
+        defaultProperties.put("foo", "baz");
+        defaultProperties.put("path", path);
         defaultProperties.put("user", User.local());
         defaultProperties.remove(REPORT_NAME_OPT);
 

@@ -3,6 +3,8 @@ package org.icij.datashare.web;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import org.junit.Test;
 
+import java.util.Map;
+
 import static org.fest.assertions.Assertions.assertThat;
 
 public class JsonPayloadTest {
@@ -26,6 +28,14 @@ public class JsonPayloadTest {
         assertThat(emptyPayload.code()).isEqualTo(201);
         assertThat(emptyPayload.rawContentType()).isEqualTo("application/json");
         assertThat(emptyPayload.rawContent()).isEqualTo("{}");
+    }
+
+    @Test
+    public void test_with_map() {
+        JsonPayload payload = new JsonPayload(200, Map.of("foo", "bar"));
+        assertThat(payload.code()).isEqualTo(200);
+        assertThat(payload.rawContentType()).isEqualTo("application/json");
+        assertThat(payload.rawContent()).isEqualTo("{\"foo\":\"bar\"}");
     }
 
     record IntContent(int value) {}
