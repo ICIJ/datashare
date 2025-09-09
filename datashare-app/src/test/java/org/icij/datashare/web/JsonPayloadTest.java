@@ -1,6 +1,5 @@
 package org.icij.datashare.web;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import org.junit.Test;
 
 import java.util.Map;

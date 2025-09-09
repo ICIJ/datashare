@@ -1,15 +1,7 @@
 package org.icij.datashare.web;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import java.io.InputStream;
-import java.net.InetSocketAddress;
-import java.util.*;
-
-import net.codestory.http.Context;
-import net.codestory.http.Cookies;
-import net.codestory.http.Part;
-import net.codestory.http.Query;
-import net.codestory.http.Request;
+import net.codestory.http.*;
 import net.codestory.http.errors.BadRequestException;
 import net.codestory.http.filters.basic.BasicAuthFilter;
 import net.codestory.rest.Response;
@@ -42,6 +34,9 @@ import org.junit.Test;
 import org.mockito.Mock;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.net.InetSocketAddress;
+import java.util.*;
 
 import static java.lang.String.format;
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -51,7 +46,7 @@ import static org.icij.datashare.PropertiesProvider.DATA_DIR_OPT;
 import static org.icij.datashare.PropertiesProvider.REPORT_NAME_OPT;
 import static org.icij.datashare.asynctasks.Task.State.DONE;
 import static org.icij.datashare.asynctasks.Task.State.RUNNING;
-import static org.icij.datashare.cli.DatashareCliOptions.*;
+import static org.icij.datashare.cli.DatashareCliOptions.TASK_MANAGER_POLLING_INTERVAL_OPT;
 import static org.icij.datashare.json.JsonObjectMapper.MAPPER;
 import static org.icij.datashare.session.DatashareUser.singleUser;
 import static org.icij.datashare.text.Project.project;
@@ -59,11 +54,7 @@ import static org.icij.datashare.user.User.local;
 import static org.icij.datashare.web.TaskResource.taskFiltersFromContext;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 import static org.mockito.MockitoAnnotations.initMocks;
 
 public class TaskResourceTest extends AbstractProdWebServerTest {
