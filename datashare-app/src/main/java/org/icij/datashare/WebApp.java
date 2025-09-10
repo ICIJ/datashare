@@ -43,16 +43,7 @@ import static org.icij.datashare.cli.DatashareCliOptions.TASK_WORKERS_OPT;
 public class WebApp {
     private static final Logger LOGGER = LoggerFactory.getLogger(WebApp.class);
 
-    public static void main(String[] args) throws Exception {
-        start(new DatashareCli().parseArguments(args).properties);
-    }
-
-    static void start(Properties properties) throws Exception {
-        int taskWorkersNb = parseInt((String) ofNullable(properties.get(TASK_WORKERS_OPT)).orElse(DEFAULT_TASK_WORKERS));
-
-        CommonMode mode = CommonMode.create(properties);
-        Runtime.getRuntime().addShutdownHook(close(mode));
-
+    static void start(CommonMode mode) throws Exception {
         new WebServer()
                 .withThreadCount(10)
                 .withSelectThreads(2)
@@ -60,27 +51,16 @@ public class WebApp {
                 .configure(mode.createWebConfiguration())
                 .start(parseInt(mode.properties().getProperty(PropertiesProvider.TCP_LISTEN_PORT_OPT)));
 
-        if (isEmbeddedAMQP(properties, taskWorkersNb)) {
-            ExecutorService executorService = Executors.newFixedThreadPool(taskWorkersNb);
-            double progressMinIntervalS = ofNullable(properties.getProperty(TASK_PROGRESS_INTERVAL_OPT))
-                    .map(Double::parseDouble)
-                    .orElse(DEFAULT_TASK_PROGRESS_INTERVAL_SECONDS);
-            List<TaskWorkerLoop> workers = IntStream.range(0, taskWorkersNb).mapToObj(i -> new TaskWorkerLoop(mode.get(DatashareTaskFactory.class), mode.get(TaskSupplier.class), progressMinIntervalS)).toList();
-            workers.forEach(executorService::submit);
+        if (mode.isEmbeddedAMQP()) {
+            mode.createWorkers();
         }
 
         if (Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(Desktop.Action.BROWSE) &&
-                parseBoolean(properties.getProperty(BROWSER_OPEN_LINK_OPT))) {
+                parseBoolean(mode.properties().getProperty(BROWSER_OPEN_LINK_OPT))) {
             waitForServerToBeUp(parseInt(mode.properties().getProperty(PropertiesProvider.TCP_LISTEN_PORT_OPT)));
             Desktop.getDesktop().browse(URI.create(new URI("http://localhost:") + mode.properties().getProperty(PropertiesProvider.TCP_LISTEN_PORT_OPT)));
         }
         requeueDatabaseBatchSearches(mode.get(BatchSearchRepository.class), mode.get(TaskManager.class));
-    }
-
-    private static boolean isEmbeddedAMQP(Properties properties, int taskWorkersNb) {
-        return (CommonMode.getMode(properties) == Mode.EMBEDDED || CommonMode.getMode(properties) == Mode.LOCAL)
-                && properties.containsValue(QueueType.AMQP.name())
-                && taskWorkersNb > 0;
     }
 
     private static void waitForServerToBeUp(int tcpListenPort) throws InterruptedException {
@@ -110,15 +90,5 @@ public class WebApp {
         } catch (IOException ignored) {
             return false;
         }
-    }
-
-    private static Thread close(CommonMode mode) {
-        return new Thread(() -> {
-            try {
-                mode.close();
-            } catch (IOException e) {
-                LOGGER.error("Error closing web app", e);
-            }
-        });
     }
 }

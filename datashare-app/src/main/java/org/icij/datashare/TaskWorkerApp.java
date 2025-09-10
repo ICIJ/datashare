@@ -24,33 +24,8 @@ import static org.icij.datashare.cli.DatashareCliOptions.TASK_WORKERS_OPT;
 
 
 public class TaskWorkerApp {
-    static Logger logger = LoggerFactory.getLogger(TaskWorkerApp.class);
-
-    public static void start(Properties properties) throws Exception {
-        int taskWorkersNb = parseInt((String) ofNullable(properties.get(TASK_WORKERS_OPT)).orElse(DEFAULT_TASK_WORKERS));
-
-        try (CommonMode mode = CommonMode.create(properties)) {
-            ExecutorService executorService = Executors.newFixedThreadPool(taskWorkersNb);
-            double progressMinIntervalS = ofNullable(properties.getProperty(TASK_PROGRESS_INTERVAL_OPT))
-                    .map(Double::parseDouble)
-                    .orElse(DEFAULT_TASK_PROGRESS_INTERVAL_SECONDS);
-            List<TaskWorkerLoop> workers = IntStream.range(0, taskWorkersNb).mapToObj(i -> new TaskWorkerLoop(mode.get(DatashareTaskFactory.class), mode.get(TaskSupplier.class), progressMinIntervalS)).toList();
-            workers.forEach(executorService::submit);
-            Runtime.getRuntime().addShutdownHook(closeThread(workers));
-            executorService.awaitTermination(Long.MAX_VALUE, TimeUnit.DAYS); // to wait consumers, else we are closing them all
-        }
-    }
-
-    private static Thread closeThread(List<TaskWorkerLoop> workers) {
-        return new Thread(() -> {
-            logger.info("main shutdown hook is gracefully closing worker loop");
-            for (TaskWorkerLoop worker : workers) {
-                try {
-                    worker.close();
-                } catch (IOException e) {
-                    logger.error("Error closing worker", e);
-                }
-            }
-        });
+    public static void start(CommonMode mode) throws Exception {
+        ExecutorService workers = mode.createWorkers();
+        workers.awaitTermination(Long.MAX_VALUE, TimeUnit.DAYS); // to wait consumers, else we are closing them all
     }
 }
