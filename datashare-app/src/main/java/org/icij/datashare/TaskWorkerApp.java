@@ -4,7 +4,10 @@ import org.icij.datashare.asynctasks.TaskSupplier;
 import org.icij.datashare.asynctasks.TaskWorkerLoop;
 import org.icij.datashare.mode.CommonMode;
 import org.icij.datashare.tasks.DatashareTaskFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.ExecutorService;
@@ -21,17 +24,8 @@ import static org.icij.datashare.cli.DatashareCliOptions.TASK_WORKERS_OPT;
 
 
 public class TaskWorkerApp {
-    public static void start(Properties properties) throws Exception {
-        int taskWorkersNb = parseInt((String) ofNullable(properties.get(TASK_WORKERS_OPT)).orElse(DEFAULT_TASK_WORKERS));
-
-        try (CommonMode mode = CommonMode.create(properties)) {
-            ExecutorService executorService = Executors.newFixedThreadPool(taskWorkersNb);
-            double progressMinIntervalS = ofNullable(properties.getProperty(TASK_PROGRESS_INTERVAL_OPT))
-                    .map(Double::parseDouble)
-                    .orElse(DEFAULT_TASK_PROGRESS_INTERVAL_SECONDS);
-            List<TaskWorkerLoop> workers = IntStream.range(0, taskWorkersNb).mapToObj(i -> new TaskWorkerLoop(mode.get(DatashareTaskFactory.class), mode.get(TaskSupplier.class), progressMinIntervalS)).toList();
-            workers.forEach(executorService::submit);
-            executorService.awaitTermination(Long.MAX_VALUE, TimeUnit.DAYS); // to wait consumers, else we are closing them all
-        }
+    public static void start(CommonMode mode) throws Exception {
+        ExecutorService workers = mode.createWorkers();
+        workers.awaitTermination(Long.MAX_VALUE, TimeUnit.DAYS); // to wait consumers, else we are closing them all
     }
 }

@@ -2,11 +2,18 @@ package org.icij.datashare;
 
 import org.icij.datashare.cli.DatashareCli;
 import org.icij.datashare.cli.Mode;
+import org.icij.datashare.mode.CommonMode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import ch.qos.logback.classic.Level;
 
+import java.io.IOException;
 import java.nio.charset.Charset;
+
+import static java.lang.Integer.parseInt;
+import static java.util.Optional.ofNullable;
+import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_TASK_WORKERS;
+import static org.icij.datashare.cli.DatashareCliOptions.TASK_WORKERS_OPT;
 
 public class Main {
     private static final Logger LOGGER = LoggerFactory.getLogger(Main.class);
@@ -21,10 +28,13 @@ public class Main {
         ch.qos.logback.classic.Logger root = (ch.qos.logback.classic.Logger) LoggerFactory.getLogger(Logger.ROOT_LOGGER_NAME);
         root.setLevel(logLevel);
 
+        CommonMode mode = CommonMode.create(cli.properties);
+        Runtime.getRuntime().addShutdownHook(mode.closeThread());
+
         if (cli.isWebServer()) {
-            WebApp.start(cli.properties);
+            WebApp.start(mode);
         } else if (cli.mode() == Mode.TASK_WORKER) {
-            TaskWorkerApp.start(cli.properties);
+            TaskWorkerApp.start(mode);
         } else {
             CliApp.start(cli.properties);
         }

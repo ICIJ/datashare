@@ -6,7 +6,6 @@ import org.icij.datashare.asynctasks.bus.amqp.ShutdownEvent;
 import org.icij.datashare.asynctasks.bus.amqp.TaskError;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import sun.misc.Signal;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -54,11 +53,7 @@ public class TaskWorkerLoop implements Callable<Integer>, Closeable {
         this.pollTimeMillis = pollTimeMillis;
         this.progressMinIntervalS = progressMinIntervalS;
         this.cancelledTasks = new ConcurrentHashMap<>();
-        Signal.handle(new Signal("TERM"), signal -> {
-            exit();
-            cancel(null, true);
-            ofNullable(loopThread).ifPresent(Thread::interrupt); // for interrupting poll
-        });
+
         taskSupplier.addEventListener((event -> {
             if (event instanceof ShutdownEvent) {
                 closeAsync(); // for sending ack
@@ -166,8 +161,8 @@ public class TaskWorkerLoop implements Callable<Integer>, Closeable {
     @Override
     public void close() throws IOException {
         exit();
-        taskSupplier.close();
         ofNullable(loopThread).ifPresent(Thread::interrupt);
+        taskSupplier.close();
     }
 
     public void cancel(String taskId, boolean requeue) {

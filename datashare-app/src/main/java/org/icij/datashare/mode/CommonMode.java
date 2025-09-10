@@ -24,6 +24,7 @@ import org.icij.datashare.asynctasks.TaskModifier;
 import org.icij.datashare.asynctasks.TaskRepository;
 import org.icij.datashare.asynctasks.TaskRepositoryMemory;
 import org.icij.datashare.asynctasks.TaskSupplier;
+import org.icij.datashare.asynctasks.TaskWorkerLoop;
 import org.icij.datashare.batch.BatchSearchRepository;
 import org.icij.datashare.cli.Mode;
 import org.icij.datashare.cli.QueueType;
@@ -73,9 +74,14 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
+import java.util.stream.IntStream;
 
 import static com.fasterxml.jackson.databind.DeserializationFeature.ACCEPT_EMPTY_STRING_AS_NULL_OBJECT;
+import static java.lang.Integer.parseInt;
 import static java.util.Optional.ofNullable;
 import static org.icij.datashare.LambdaExceptionUtils.rethrowConsumer;
 import static org.icij.datashare.PluginService.PLUGINS_BASE_URL;
@@ -89,6 +95,7 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
     protected final Mode mode;
     private final Injector injector;
     private final List<Closeable> closeables = new LinkedList<>();
+    private final ExecutorService executorService;
 
     protected CommonMode(Properties properties) {
         propertiesProvider = properties == null ? new PropertiesProvider() :
@@ -104,7 +111,7 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
                 logger.warn("Failed to eager load extensions: {}", e.getMessage());
             }
         }
-        
+        executorService = Executors.newFixedThreadPool(Math.max(getTaskWorkersNb(), 1));
         try {
             this.injector = Guice.createInjector(this);
         } catch (CreationException e) {
@@ -140,6 +147,30 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
     public <T> T get(Key<T> key) {return injector.getInstance(key);}
     public Injector createChildInjector(Module... modules) {
         return injector.createChildInjector(modules);
+    }
+    public boolean isEmbeddedAMQP() {
+        return (CommonMode.getMode(this.properties()) == Mode.EMBEDDED || getMode() == Mode.LOCAL)
+                && properties().containsValue(QueueType.AMQP.name())
+                && getTaskWorkersNb() > 0;
+    }
+    int getTaskWorkersNb() {
+        return parseInt((String) ofNullable(properties().get(TASK_WORKERS_OPT)).orElse(DEFAULT_TASK_WORKERS));
+    }
+    double getProgressMinIntervalS() {
+        return ofNullable(properties().getProperty(TASK_PROGRESS_INTERVAL_OPT))
+                .map(Double::parseDouble)
+                .orElse(DEFAULT_TASK_PROGRESS_INTERVAL_SECONDS);
+    }
+
+    public ExecutorService createWorkers() {
+        if (getTaskWorkersNb()>0) {
+            List<TaskWorkerLoop> workers = IntStream.range(0, getTaskWorkersNb())
+                    .mapToObj(i -> new TaskWorkerLoop(get(DatashareTaskFactory.class), get(TaskSupplier.class),
+                            getProgressMinIntervalS())).toList();
+            workers.forEach(this::addCloseable);
+            workers.forEach(executorService::submit);
+        }
+        return executorService;
     }
 
     @Override
@@ -291,9 +322,6 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
         repositoryFactory.initDatabase();
     }
 
-
-
-
     private Routes defaultRoutes(final Routes routes) {
         routes.setIocAdapter(new GuiceAdapter(injector))
                 .add(RootResource.class)
@@ -336,11 +364,21 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
                 get(propertyName).orElse(defaultQueueType.name()).toUpperCase());
     }
 
-    protected void addCloseable(Closeable client) {
+    public void addCloseable(Closeable client) {
         closeables.add(client);
     }
 
     public void close() throws IOException {
         closeables.forEach(rethrowConsumer(Closeable::close));
+    }
+
+    public Thread closeThread() {
+        return new Thread(() -> {
+            try {
+                close();
+            } catch (IOException e) {
+                logger.error("Error closing app", e);
+            }
+        });
     }
 }
