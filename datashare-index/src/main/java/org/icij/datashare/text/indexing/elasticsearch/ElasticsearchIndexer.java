@@ -48,6 +48,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -205,6 +206,18 @@ public class ElasticsearchIndexer implements Indexer {
         getRequest.source(SourceConfigParam.of(scp -> scp.fetch(false)));
         getRequest.storedFields("_none_");
         return client.exists(getRequest.build()).value();
+    }
+
+    @Override
+    public boolean exists(String indexName, String id, Path path)  throws IOException {
+        GetRequest req = new GetRequest.Builder()
+                .index(indexName)
+                .id(id)
+                .sourceIncludes(List.of("path"))
+                .build();
+        GetResponse<ObjectNode> resp = client.get(req, ObjectNode.class);
+        String respPath = ofNullable(resp.source()).map(s -> s.get("path").asText()).orElse("");
+        return respPath.equals(path.toString());
     }
 
     @Override

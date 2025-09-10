@@ -11,6 +11,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.stream.Stream;
 
@@ -36,6 +37,7 @@ public interface Indexer extends Closeable {
 
     boolean exists(String indexName) throws IOException;
     boolean exists(String indexName, String id) throws IOException;
+    boolean exists(String indexName, String id, Path path) throws IOException;
 
     <T extends Entity> T get(String indexName, String id);
     <T extends Entity> T get(String indexName, String id, List<String> sourceExcludes);

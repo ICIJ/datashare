@@ -205,6 +205,54 @@ public class ElasticsearchIndexerTest {
     }
 
     @Test
+    public void test_document_with_id_exists()  throws IOException {
+        Document doc = createDoc("id")
+                .with(Paths.get("doc.txt"))
+                .with("content")
+                .with(Language.FRENCH)
+                .with("application/pdf")
+                .with(INDEXED).build();
+        indexer.add(TEST_INDEX, doc);
+
+        Boolean exists = indexer.exists(TEST_INDEX, "id");
+        assertThat(exists).isTrue();
+    }
+
+    @Test
+    public void test_document_with_id_doesnt_exist()  throws IOException {
+        Boolean exists = indexer.exists(TEST_INDEX, "id");
+        assertThat(exists).isFalse();
+    }
+
+    @Test
+    public void test_document_with_same_id_and_path_exists()  throws IOException {
+        Document doc = createDoc("id")
+                .with(Paths.get("doc.txt"))
+                .with("content")
+                .with(Language.FRENCH)
+                .with("application/pdf")
+                .with(INDEXED).build();
+        indexer.add(TEST_INDEX, doc);
+
+        Boolean exists = indexer.exists(TEST_INDEX, "id", Paths.get("doc.txt"));
+        assertThat(exists).isTrue();
+    }
+
+    @Test
+    public void test_document_with_same_id_and_different_path_doesnt_exist()  throws IOException {
+        Document doc = createDoc("id")
+                .with(Paths.get("doc.txt"))
+                .with("content")
+                .with(Language.FRENCH)
+                .with("application/pdf")
+                .with(INDEXED).build();
+        indexer.add(TEST_INDEX, doc);
+
+        Boolean exists = indexer.exists(TEST_INDEX, "id", Paths.get("report.txt"));
+        assertThat(exists).isFalse();
+    }
+
+    @Test
     public void test_index_exists() throws IOException {
         Boolean exists = indexer.exists(TEST_INDEX);
         assertThat(exists).isTrue();
