@@ -20,6 +20,7 @@ import java.io.OutputStream;
 import java.io.Serializable;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
 
 import static java.lang.System.currentTimeMillis;
 import static java.util.Optional.ofNullable;
@@ -58,7 +59,7 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
         }
         long before = currentTimeMillis();
         String docType = parent == null ? "Document" : "Child";
-        if (parent == null && isDuplicate(doc.getId())) {
+        if (parent == null && isDuplicate(doc.getId(), doc.getPath())) {
             doc.setDuplicate(true);
             copy(doc.getReader(), OutputStream.nullOutputStream()); // flush document content reader
             indexer.add(indexName, new Duplicate(doc.getPath(), doc.getId(), digestAlgorithm));
@@ -76,6 +77,14 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
 
     private boolean isDuplicate(String docId) throws IOException {
         return indexer.exists(indexName, docId);
+    }
+
+    private boolean isDuplicate(String docId, Path path) throws IOException {
+        // The report map is already in charge of avoiding a reindexing of the same document.
+        // For this reason, we consider a document to be a "Duplicate" of another document only
+        // if it has the same id (based on its hash) and a different path. This allows us
+        // to re-index an existing document while ensuring duplicates are detected.
+        return !indexer.exists(indexName, docId, path) && isDuplicate(docId);
     }
 
     Document getDocument(TikaDocument document, TikaDocument root, TikaDocument parent, short level) throws IOException {

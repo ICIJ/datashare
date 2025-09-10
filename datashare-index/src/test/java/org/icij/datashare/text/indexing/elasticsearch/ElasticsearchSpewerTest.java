@@ -373,6 +373,33 @@ public class ElasticsearchSpewerTest {
     }
 
     @Test
+    public void test_non_duplicate_file_on_same_path() throws Exception {
+        HashMap<String, Object> properties = new HashMap<>() {{
+            put("digestAlgorithm", "SHA-256");
+            put("digestProjectName", "project");
+            put("defaultProject", "test-datashare");
+        }};
+        ElasticsearchSpewer spewer256 = new ElasticsearchSpewer(new ElasticsearchIndexer(es.client, new PropertiesProvider()),
+                documentQueueFactory, text -> Language.ENGLISH, new FieldNames(), new PropertiesProvider(properties));
+        Options<String> from = Options.from(properties);
+        DocumentFactory tikaFactory = new DocumentFactory().configure(from);
+        Extractor extractor = new Extractor(tikaFactory).configure(from);
+
+        final TikaDocument document = extractor.extract(get(requireNonNull(getClass().getResource("/docs/doc.txt")).getPath()));
+        final TikaDocument document2 = extractor.extract(get(requireNonNull(getClass().getResource("/docs/doc.txt")).getPath()));
+
+        spewer256.write(document);
+        spewer256.write(document2);
+
+        GetResponse<Document> actualDocument = es.client.get(doc -> doc.index(TEST_INDEX).id(document.getId()), Document.class);
+        GetResponse<Document> actualDocument2 = es.client.get(doc -> doc.index(TEST_INDEX).id(document2.getId()), Document.class);
+        GetResponse<Duplicate> duplicate = es.client.get(doc -> doc.index(TEST_INDEX).id(Hasher.SHA_256.hash(document2.getPath().toString())), Duplicate.class);
+        assertThat(actualDocument.found()).isTrue();
+        assertThat(actualDocument2.found()).isTrue();
+        assertThat(duplicate.found()).isFalse();
+    }
+
+    @Test
     public void test_duplicate_embedded_documents() throws Exception {
         Options<String> digestAlgorithm = Options.from(new HashMap<>() {{
             put("digestAlgorithm", Document.DEFAULT_DIGESTER.toString());
