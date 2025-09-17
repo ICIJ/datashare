@@ -188,7 +188,7 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <configuration>
-                    <argLine>-Xmx2048m -XX:MaxPermSize=256m -Djava.system.class.loader=org.icij.datashare.DynamicClassLoader -Dslf4j.provider=ch.qos.logback.classic.spi.LogbackServiceProvider -ea --add-opens java.base/java.lang=ALL-UNNAMED --add-opens java.base/java.util.concurrent.locks=ALL-UNNAMED</argLine>
+                    <argLine>-Djava.system.class.loader=org.icij.datashare.DynamicClassLoader -Dslf4j.provider=ch.qos.logback.classic.spi.LogbackServiceProvider -ea --add-opens java.base/java.lang=ALL-UNNAMED --add-opens java.base/java.util.concurrent.locks=ALL-UNNAMED</argLine>
                 </configuration>
             </plugin>
             <plugin>
