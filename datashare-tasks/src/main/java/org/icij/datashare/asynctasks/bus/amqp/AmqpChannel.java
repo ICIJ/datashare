@@ -106,7 +106,11 @@ public class AmqpChannel {
 	}
 
 	void cancel(String consumerTag) throws IOException {
-		this.rabbitMqChannel.basicCancel(consumerTag);
+		if (rabbitMqChannel.isOpen()) {
+			this.rabbitMqChannel.basicCancel(consumerTag);
+		} else {
+			logger.warn("basic cancel not sent because ({}) is closed", rabbitMqChannel);
+		}
 	}
 
 	public void close() throws IOException {
