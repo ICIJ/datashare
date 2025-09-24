@@ -1,6 +1,7 @@
 package org.icij.datashare.asynctasks;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.jsontype.NamedType;
 import org.icij.datashare.json.JsonObjectMapper;
 
 import java.io.IOException;
@@ -26,6 +27,10 @@ public interface TaskRepository {
     Stream<Task<? extends Serializable>> getTasks(TaskFilters filters) throws IOException, UnknownTask;
 
     default void registerTaskResultTypes(Class<? extends Serializable> ...classesToRegister) {
+        TYPE_INCLUSION_MAPPER.registerSubtypes(classesToRegister);
+    }
+
+    default void registerTaskResultTypes(NamedType ...classesToRegister) {
         TYPE_INCLUSION_MAPPER.registerSubtypes(classesToRegister);
     }
 }

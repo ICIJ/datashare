@@ -4,6 +4,8 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
+
+import com.fasterxml.jackson.databind.jsontype.NamedType;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.asynctasks.bus.amqp.AmqpInterlocutor;
 import org.icij.datashare.asynctasks.bus.amqp.AmqpQueue;
@@ -37,6 +39,7 @@ public class TaskManagerAmqpTest {
     @ClassRule static public AmqpServerRule qpid = new AmqpServerRule(5672);
     BlockingQueue<Task<Serializable>> taskQueue = new LinkedBlockingQueue<>();
     TaskManagerAmqp taskManager;
+    TaskRepositoryRedis taskRepository;
     TaskSupplierAmqp taskSupplier;
     CountDownLatch nextMessage;
 
@@ -120,7 +123,7 @@ public class TaskManagerAmqpTest {
         assertThat(taskManager.getTask(task.id).getResult()).isEqualTo(result);
     }
 
-    @Test(timeout = 200000)
+    @Test(timeout = 20000)
     public void test_task_result_uri_result_type() throws Exception {
         taskManager.startTask("taskName", User.local(), new HashMap<>());
 
@@ -248,7 +251,9 @@ public class TaskManagerAmqpTest {
         nextMessage = new CountDownLatch(1);
         final RedissonClient redissonClient = new RedissonClientFactory().withOptions(
                 Options.from(new PropertiesProvider(Map.of("redisAddress", "redis://redis:6379")).getProperties())).create();
-        taskManager = new TaskManagerAmqp(AMQP, new TaskRepositoryRedis(redissonClient, "tasks:queue:test"), RoutingStrategy.UNIQUE, () -> nextMessage.countDown());
+        taskRepository = new TaskRepositoryRedis(redissonClient, "tasks:queue:test");
+        taskRepository.registerTaskResultTypes(new NamedType(UriResult.class, "UriResult"));
+        taskManager = new TaskManagerAmqp(AMQP, taskRepository, RoutingStrategy.UNIQUE, () -> nextMessage.countDown());
         taskSupplier = new TaskSupplierAmqp(AMQP);
         taskSupplier.consumeTasks(t -> taskQueue.add(t));
     }
@@ -256,6 +261,7 @@ public class TaskManagerAmqpTest {
     @After
     public void tearDown() throws Exception {
         taskQueue.clear();
+        taskRepository.clear();
         taskManager.clear();
         taskManager.stopTasks(User.local());
         taskSupplier.close();
