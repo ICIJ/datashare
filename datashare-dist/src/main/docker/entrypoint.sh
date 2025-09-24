@@ -12,7 +12,7 @@ if [ "$1" = 'sh' ];
 then
     exec "$@"
 else
-    $java_bin $java_opts \
+    exec $java_bin $java_opts \
       --add-opens java.base/java.lang=ALL-UNNAMED \
       --add-opens java.base/java.util=ALL-UNNAMED \
       --add-opens java.base/java.util.concurrent.locks=ALL-UNNAMED \
