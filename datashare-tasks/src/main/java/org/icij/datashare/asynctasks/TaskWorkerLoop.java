@@ -1,5 +1,6 @@
 package org.icij.datashare.asynctasks;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.icij.datashare.asynctasks.bus.amqp.CancelEvent;
 import org.icij.datashare.asynctasks.bus.amqp.CancelledEvent;
 import org.icij.datashare.asynctasks.bus.amqp.ShutdownEvent;
@@ -9,7 +10,6 @@ import org.slf4j.LoggerFactory;
 
 import java.io.Closeable;
 import java.io.IOException;
-import java.io.Serializable;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
@@ -18,14 +18,16 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static java.util.Optional.ofNullable;
+import static org.icij.datashare.json.JsonObjectMapper.MAPPER;
 
 
 public class TaskWorkerLoop implements Callable<Integer>, Closeable {
     private final Logger logger = LoggerFactory.getLogger(getClass());
     private final TaskFactory factory;
     private final TaskSupplier taskSupplier;
+    protected final ObjectMapper mapper;
     final AtomicReference<Callable<?>> currentTaskReference = new AtomicReference<>();
-    final AtomicReference<Task<?>> currentTask = new AtomicReference<>();
+    final AtomicReference<Task> currentTask = new AtomicReference<>();
     private final CountDownLatch waitForMainLoopCalled; // for tests only
     private final int pollTimeMillis;
     private final double progressMinIntervalS;
@@ -35,7 +37,11 @@ public class TaskWorkerLoop implements Callable<Integer>, Closeable {
     private int nbTasks = 0;
 
     public TaskWorkerLoop(TaskFactory factory, TaskSupplier taskSupplier) {
-        this(factory, taskSupplier, new CountDownLatch(1), 10F);
+        this(factory, taskSupplier, MAPPER, new CountDownLatch(1));
+    }
+
+    public TaskWorkerLoop(TaskFactory factory, TaskSupplier taskSupplier, ObjectMapper mapper) {
+        this(factory, taskSupplier, mapper, new CountDownLatch(1), 60_000,10F);
     }
 
     public TaskWorkerLoop(TaskFactory factory, TaskSupplier taskSupplier, double progressMinIntervalS) {
@@ -43,12 +49,21 @@ public class TaskWorkerLoop implements Callable<Integer>, Closeable {
     }
 
     public TaskWorkerLoop(TaskFactory factory, TaskSupplier taskSupplier, CountDownLatch countDownLatch, double progressMinIntervalS) {
-        this(factory, taskSupplier, countDownLatch, 60_000, progressMinIntervalS);
+        this(factory, taskSupplier, MAPPER, countDownLatch, 60_000, progressMinIntervalS);
+    }
+
+    public TaskWorkerLoop(TaskFactory factory, TaskSupplier taskSupplier, ObjectMapper mapper, CountDownLatch countDownLatch) {
+        this(factory, taskSupplier, mapper, countDownLatch, 60_000, 10F);
     }
 
     public TaskWorkerLoop(TaskFactory factory, TaskSupplier taskSupplier, CountDownLatch countDownLatch, int pollTimeMillis, double progressMinIntervalS) {
+        this(factory, taskSupplier, MAPPER, countDownLatch, pollTimeMillis, progressMinIntervalS);
+    }
+
+    public TaskWorkerLoop(TaskFactory factory, TaskSupplier taskSupplier, ObjectMapper mapper, CountDownLatch countDownLatch, int pollTimeMillis, double progressMinIntervalS) {
         this.factory = factory;
         this.taskSupplier = taskSupplier;
+        this.mapper = mapper;
         this.waitForMainLoopCalled = countDownLatch;
         this.pollTimeMillis = pollTimeMillis;
         this.progressMinIntervalS = progressMinIntervalS;
@@ -83,7 +98,7 @@ public class TaskWorkerLoop implements Callable<Integer>, Closeable {
 
     private Integer mainLoop() {
         loopThread = Thread.currentThread();
-        Task<Serializable> task;
+        Task task;
         logger.info("Waiting tasks from supplier ({})", taskSupplier.getClass());
         while (!exitAsked) {
             try {
@@ -102,7 +117,7 @@ public class TaskWorkerLoop implements Callable<Integer>, Closeable {
         return nbTasks;
     }
 
-    void handle(Task<?> task) {
+    void handle(Task task) {
         loopThread = Thread.currentThread();
         currentTask.set(task);
         if (cancelledTasks.get(currentTask.get().id) != null) {
@@ -116,8 +131,8 @@ public class TaskWorkerLoop implements Callable<Integer>, Closeable {
                 currentTaskReference.set(taskFn);
                 logger.info("running task {}", currentTask.get());
                 taskSupplier.progress(currentTask.get().id, 0);
-                Serializable result = (Serializable) taskFn.call();
-                taskSupplier.result(currentTask.get().id, new TaskResult<>(result));
+                byte[] result = mapper.writeValueAsBytes(taskFn.call());
+                taskSupplier.result(currentTask.get().id, result);
                 nbTasks++;
             } catch (CancelException cex) {
                 // TODO: this has to be improved/simplified. The cancellation mechanism relies on
