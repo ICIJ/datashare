@@ -52,7 +52,7 @@ public class TaskManagerRedisTest {
     public void test_update_task() throws TaskAlreadyExists, IOException, UnknownTask {
         // Given
         Task<?> task = new Task<>("HelloWorld", User.local(), Map.of("greeted", "world"));
-        Task<?> update = new Task<>(task.id, task.name, task.getState(), 0.5, null, 3, null, task.args, null, null);
+        Task<?> update = new Task<>(task.id, task.getName(), task.getState(), 0.5, null, 3, null, task.args, null, null);
         // When
         taskManager.insert(task, null);
         taskManager.update(update);

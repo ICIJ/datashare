@@ -18,7 +18,7 @@ import static java.util.Optional.ofNullable;
  * @param <Evt>         The event class that are going to be consumed by the consumer
  * @param <EvtConsumer> The class for handling the received event class
  */
-public class AmqpConsumer<Evt extends Event, EvtConsumer extends Consumer<Evt>> implements Deserializer<Evt> {
+public class AmqpConsumer<Evt, EvtConsumer extends Consumer<Evt>> implements Deserializer<Evt> {
     private static final int WAIT_CLOSED_CHANNEL_DELAY_MS = 1000;
     private final Logger logger = LoggerFactory.getLogger(this.getClass());
     protected final AmqpInterlocutor amqpInterlocutor;

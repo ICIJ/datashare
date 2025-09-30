@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import org.icij.datashare.asynctasks.model.Created;
 import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.time.DatashareTime;
 
@@ -22,7 +23,7 @@ import java.util.Date;
 		@JsonSubTypes.Type(ProgressEvent.class), @JsonSubTypes.Type(CancelEvent.class),
 		@JsonSubTypes.Type(CancelledEvent.class), @JsonSubTypes.Type(ResultEvent.class),
 		@JsonSubTypes.Type(ErrorEvent.class)})
-public class Event implements Serializable {
+public class Event implements Serializable, Created {
 	@Serial private static final long serialVersionUID = -2295266944323500399L;
 	public static final int MAX_RETRIES_LEFT = 3;
 	protected int retriesLeft = MAX_RETRIES_LEFT;
@@ -50,7 +51,13 @@ public class Event implements Serializable {
 		return JsonObjectMapper.MAPPER.writeValueAsBytes(this);
 	}
 
-	public void setCreatedAt(Date createdAt) {
+    @Override
+    public Date getCreatedAt() {
+        return createdAt;
+    }
+
+    @Override
+    public void setCreatedAt(Date createdAt) {
 		this.createdAt = createdAt;
 	}
 }

@@ -77,7 +77,7 @@ public final class TaskFilters {
     }
 
     public boolean filter(Task<? extends Serializable> task) {
-        return byName(task.name) && byUser(task.getUser()) && byState(task.getState()) && byArgs(task.args);
+        return byName(task.getName()) && byUser(task.getUser()) && byState(task.getState()) && byArgs(task.args);
     }
 
     private boolean byState(Task.State taskState) {

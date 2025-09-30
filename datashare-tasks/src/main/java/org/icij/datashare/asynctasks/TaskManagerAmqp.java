@@ -93,7 +93,7 @@ public class TaskManagerAmqp implements TaskManager {
     public <V extends Serializable> void enqueue(Task<V> task) throws IOException {
         switch (routingStrategy) {
             case GROUP -> amqp.publish(AmqpQueue.TASK, this.tasks.getTaskGroup(task.id).id().name(), task);
-            case NAME -> amqp.publish(AmqpQueue.TASK, task.name, task);
+            case NAME -> amqp.publish(AmqpQueue.TASK, task.getName(), task);
             default -> amqp.publish(AmqpQueue.TASK, task);
         }
     }

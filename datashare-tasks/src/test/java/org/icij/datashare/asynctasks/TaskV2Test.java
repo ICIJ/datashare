@@ -14,7 +14,7 @@ import java.util.concurrent.TimeUnit;
 import static org.fest.assertions.Assertions.assertThat;
 import static org.fest.assertions.MapAssert.entry;
 
-public class TaskTest {
+public class TaskV2Test {
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
 
     @Test
@@ -83,6 +83,6 @@ public class TaskTest {
 
         Task<?> taskCreation = JsonObjectMapper.MAPPER.readValue(json, Task.class);
         assertThat(taskCreation).isEqualTo(taskView);
-        assertThat(taskCreation.createdAt).isEqualTo(taskCreation.createdAt);
+        assertThat(taskCreation.getCreatedAt()).isEqualTo(taskCreation.getCreatedAt());
     }
 }

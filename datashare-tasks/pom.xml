@@ -63,6 +63,24 @@
             <artifactId>redisson</artifactId>
             <version>${redisson.version}</version>
         </dependency>
+<!--        TODO: define dependencies version the top monorepo level-->
+        <dependency>
+            <groupId>commons-beanutils</groupId>
+            <artifactId>commons-beanutils</artifactId>
+            <version>1.11.0</version>
+        </dependency>
+
+        <dependency>
+            <groupId>jakarta.validation</groupId>
+            <artifactId>jakarta.validation-api</artifactId>
+            <version>3.1.1</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.jayway.jsonpath</groupId>
+            <artifactId>json-path</artifactId>
+            <version>2.9.0</version>
+        </dependency>
 
         <!-- tests dependencies -->
         <dependency>

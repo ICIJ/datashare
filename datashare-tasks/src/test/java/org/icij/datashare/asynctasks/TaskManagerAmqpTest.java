@@ -75,7 +75,7 @@ public class TaskManagerAmqpTest {
             assertThat(groupTaskManager.getTask(expectedTaskViewId)).isNotNull();
             Task<Serializable> actualTaskView = taskQueue.poll(1, TimeUnit.SECONDS);
             assertThat(actualTaskView).isNotNull();
-            assertThat(actualTaskView.name).isEqualTo("TaskName");
+            assertThat(actualTaskView.getName()).isEqualTo("TaskName");
         }
     }
 
@@ -206,7 +206,7 @@ public class TaskManagerAmqpTest {
     public void test_update_task() throws IOException {
         // Given
         Task<?> task = new Task<>("HelloWorld", User.local(), Map.of("greeted", "world"));
-        Task<?> update = new Task<>(task.id, task.name, task.getState(), 0.5, DatashareTime.getNow(),  3,  null, task.args, null, null);
+        Task<?> update = new Task<>(task.id, task.getName(), task.getState(), 0.5, DatashareTime.getNow(),  3,  null, task.args, null, null);
         // When
         taskManager.insert(task, null);
         taskManager.update(update);

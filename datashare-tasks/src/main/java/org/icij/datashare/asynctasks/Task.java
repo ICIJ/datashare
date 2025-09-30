@@ -12,6 +12,7 @@ import org.apache.commons.lang3.builder.CompareToBuilder;
 import org.icij.datashare.Entity;
 import org.icij.datashare.asynctasks.bus.amqp.Event;
 import org.icij.datashare.asynctasks.bus.amqp.TaskError;
+import org.icij.datashare.asynctasks.model.Created;
 import org.icij.datashare.batch.WebQueryPagination;
 import org.icij.datashare.time.DatashareTime;
 import org.icij.datashare.user.User;
@@ -33,7 +34,7 @@ import static java.util.UUID.randomUUID;
 import static org.icij.datashare.batch.WebQueryPagination.OrderDirection.ASC;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class Task<V extends Serializable> extends Event implements Entity, Comparable<Task<V>> {
+public class Task<V extends Serializable> extends Event implements Entity, Comparable<Task<V>>, Created {
     public static final String USER_KEY = "user";
     @JsonIgnore private StateLatch stateLatch;
     @JsonIgnore private final Object lock = new Object();
@@ -46,12 +47,12 @@ public class Task<V extends Serializable> extends Event implements Entity, Compa
             .collect(Collectors.toSet());
     }
     @JsonTypeInfo(use = JsonTypeInfo.Id.CLASS, property = "@type")
-    public final Map<String, Object> args;
+    public Map<String, Object> args;
     public final String id;
-    public final String name;
+    protected String name;
     volatile TaskError error;
     private volatile State state;
-    private volatile Date completedAt;
+    protected volatile Date completedAt;
     private volatile double progress;
     private volatile TaskResult<V> result;
 
@@ -88,6 +89,10 @@ public class Task<V extends Serializable> extends Event implements Entity, Compa
         this.error = error;
         // avoids "no default constructor found" for anonymous inline maps
         this.args = Collections.unmodifiableMap(ofNullable(args).orElse(new HashMap<>()));
+    }
+
+    public String getName() {
+        return name;
     }
 
     public TaskResult<V> getResult() {
