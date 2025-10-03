@@ -357,24 +357,7 @@ public class ElasticsearchIndexer implements Indexer {
         }
         sourceBuilder.query(Query.of(q -> q.bool(bq -> bq.must(qt -> qt.term(t -> t.field("_id").value(id))))));
         InlineScript script = getExtractedTextScript(offset, limit, targetLanguage);
-        sourceBuilder.scriptFields("pagination", ScriptField.of(sf -> sf.script(scr -> scr.inline(script))));
-        SearchResponse<ObjectNode> search = client.search(sourceBuilder.routing(routing).build(), ObjectNode.class);
-        List<Hit<ObjectNode>> tHits = searchHitStream(() -> search.hits().hits().iterator()).collect(toList());
-        if(tHits.isEmpty()){
-            throw new IllegalArgumentException("Document not found");
-        }
-        ArrayList<Map<String,Object>> tHitsPaginationArray = tHits.get(0).fields().get("pagination")
-                .to(MAPPER.getTypeFactory().constructCollectionType(ArrayList.class, Map.class));
-        Map<String,Object> pagination = tHitsPaginationArray.get(0);
-        if(pagination.get("error") != null ){
-            int code= ((Integer)pagination.get("code"));
-            if (code == 400){
-                throw new StringIndexOutOfBoundsException((String)pagination.get("error"));
-            }
-            else{
-                throw new IllegalArgumentException((String)pagination.get("error"));
-            }
-        }
+        Map<String, Object> pagination = getPagination(routing, sourceBuilder, script);
         ExtractedText extractedText;
         if (targetLanguage != null){
             extractedText = new ExtractedText((String) pagination.get("content"), (Integer) pagination.get("offset"),
@@ -416,6 +399,26 @@ public class ElasticsearchIndexer implements Indexer {
         }
         sourceBuilder.query(Query.of(q -> q.bool(bq -> bq.must(qt -> qt.term(t -> t.field("_id").value(id))))));
         InlineScript script = searchQueryOccurrencesScript(query, targetLanguage);
+        Map<String, Object> pagination = getPagination(routing, sourceBuilder, script);;
+        SearchedText searchedText;
+        List<Integer> l = MAPPER.convertValue(pagination.get("offsets"), new TypeReference<>() {});
+        int[] offsets = l.stream().mapToInt(i-> i).toArray();
+        if (targetLanguage != null){
+            searchedText = new SearchedText(
+                    offsets,
+                    (Integer) pagination.get("count"),
+                    (String) pagination.get("query"),
+                    (String) pagination.get("targetLanguage"));
+        } else {
+            searchedText = new SearchedText(
+                    offsets,
+                    (Integer) pagination.get("count"),
+                    (String) pagination.get("query"));
+        }
+        return searchedText;
+    }
+
+    private Map<String, Object> getPagination(String routing, SearchRequest.Builder sourceBuilder, InlineScript script) throws IOException {
         sourceBuilder.scriptFields("pagination", ScriptField.of(sf -> sf.script(scr -> scr.inline(script))));
         SearchResponse<ObjectNode> search = client.search(sourceBuilder.routing(routing).build(), ObjectNode.class);
         List<Hit<ObjectNode>> tHits = searchHitStream(() -> search.hits().hits().iterator()).collect(toList());
@@ -434,22 +437,7 @@ public class ElasticsearchIndexer implements Indexer {
                 throw new IllegalArgumentException((String)pagination.get("error"));
             }
         }
-        SearchedText searchedText;
-        List<Integer> l = MAPPER.convertValue(pagination.get("offsets"), new TypeReference<>() {});
-        int[] offsets = l.stream().mapToInt(i-> i).toArray();
-        if (targetLanguage != null){
-            searchedText = new SearchedText(
-                    offsets,
-                    (Integer) pagination.get("count"),
-                    (String) pagination.get("query"),
-                    (String) pagination.get("targetLanguage"));
-        } else {
-            searchedText = new SearchedText(
-                    offsets,
-                    (Integer) pagination.get("count"),
-                    (String) pagination.get("query"));
-        }
-        return searchedText;
+        return pagination;
     }
 
     @Override
