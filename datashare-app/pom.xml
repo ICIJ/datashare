@@ -34,6 +34,13 @@
             </exclusions>
         </dependency>
         <dependency>
+            <groupId>com.aspose</groupId>
+            <artifactId>aspose-email</artifactId>
+            <version>25.8</version>
+            <classifier>jdk16</classifier>
+        </dependency>
+
+        <dependency>
             <groupId>com.github.scribejava</groupId>
             <artifactId>scribejava-core</artifactId>
             <version>5.5.0</version>

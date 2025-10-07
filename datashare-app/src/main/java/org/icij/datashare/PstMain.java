@@ -1,5 +1,10 @@
 package org.icij.datashare;
 
+import com.aspose.email.FolderInfo;
+import com.aspose.email.MapiMessage;
+import com.aspose.email.MessageInfo;
+import com.aspose.email.MessageInfoCollection;
+import com.aspose.email.PersonalStorage;
 import com.pff.PSTAttachment;
 import com.pff.PSTException;
 import com.pff.PSTFile;
@@ -9,7 +14,6 @@ import com.pff.PSTMessage;
 import javax.activation.DataHandler;
 import javax.activation.DataSource;
 import javax.activation.FileDataSource;
-import javax.mail.Address;
 import javax.mail.Message;
 import javax.mail.MessagingException;
 import javax.mail.Multipart;
@@ -40,11 +44,48 @@ public class PstMain {
         try {
             PSTFile pstFile = new PSTFile(filename);
             System.out.println(pstFile.getMessageStore().getDisplayName());
+            new File("extracted").mkdirs();
             processFolder(pstFile.getRootFolder());
             System.out.printf("read :%d%n", nbMail);
 
         } catch (Exception err) {
             err.printStackTrace();
+        }
+    }
+
+    /**
+     * needs Aspose.Email library. Installed from
+     * <a href="https://releases.aspose.com/java/repo/com/aspose/aspose-email/25.8/">Aspose.Email</a>
+     *
+     * @param filename pst file path
+     */
+    public static void pstMainAspose(String filename) {
+        try (PersonalStorage personalStorage = PersonalStorage.fromFile(filename)) {
+            // Get the list of subfolders in PST file
+            FolderInfo rootFolder = personalStorage.getRootFolder();
+
+            new File("extracted").mkdirs();
+            // Traverse through all folders in the PST file
+            // This is not recursive
+            processFolder(rootFolder, personalStorage);
+        }
+    }
+
+    public static void processFolder(FolderInfo folder, PersonalStorage personalStorage) {
+        for (FolderInfo sub: folder.getSubFolders()) {
+            MessageInfoCollection messageInfoCollection = sub.getContents();
+            // Loop through all the messages in this folder
+            for (MessageInfo messageInfo : messageInfoCollection) {
+                // Extract the message in MapiMessage instance
+                MapiMessage message = personalStorage.extractMessage(messageInfo);
+
+                System.out.println("Saving message " + message.getSubject() + " ...");
+
+                // Save the message to disk in MSG format
+                // TODO: File name may contain invalid characters [\ / : * ? " < > |]
+                message.save("extracted/" + message.getInternetMessageId() + ".msg");
+            }
+            processFolder(sub, personalStorage);
         }
     }
 
