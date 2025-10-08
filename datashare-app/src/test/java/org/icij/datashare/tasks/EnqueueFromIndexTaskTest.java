@@ -39,7 +39,7 @@ public class EnqueueFromIndexTaskTest {
                 "queueName", "test:queue",
                 NLP_PIPELINE_OPT, Pipeline.Type.OPENNLP.name());
         MemoryDocumentCollectionFactory<String> factory = new MemoryDocumentCollectionFactory<>();
-        EnqueueFromIndexTask enqueueFromIndex = new EnqueueFromIndexTask(factory, indexer, new Task<>(EnqueueFromIndexTask.class.getName(), new User("test"), properties), null);
+        EnqueueFromIndexTask enqueueFromIndex = new EnqueueFromIndexTask(factory, indexer, new Task(EnqueueFromIndexTask.class.getName(), new User("test"), properties), null);
         enqueueFromIndex.call();
         assertThat(factory.queues.get("test:queue:nlp")).hasSize(20);
     }
@@ -61,7 +61,7 @@ public class EnqueueFromIndexTaskTest {
                         """);
 
         MemoryDocumentCollectionFactory<String> factory = new MemoryDocumentCollectionFactory<>();
-        EnqueueFromIndexTask enqueueFromIndex = new EnqueueFromIndexTask(factory, indexer, new Task<>(EnqueueFromIndexTask.class.getName(), new User("test"), properties), null);
+        EnqueueFromIndexTask enqueueFromIndex = new EnqueueFromIndexTask(factory, indexer, new Task(EnqueueFromIndexTask.class.getName(), new User("test"), properties), null);
         enqueueFromIndex.call();
         assertThat(factory.queues.get("test:queue:nlp")).hasSize(1);
     }
@@ -77,7 +77,7 @@ public class EnqueueFromIndexTaskTest {
                 "searchQuery", "extractionLevel:0");
 
         MemoryDocumentCollectionFactory<String> factory = new MemoryDocumentCollectionFactory<>();
-        EnqueueFromIndexTask enqueueFromIndex = new EnqueueFromIndexTask(factory, indexer, new Task<>(EnqueueFromIndexTask.class.getName(), new User("test"), properties), null);
+        EnqueueFromIndexTask enqueueFromIndex = new EnqueueFromIndexTask(factory, indexer, new Task(EnqueueFromIndexTask.class.getName(), new User("test"), properties), null);
         enqueueFromIndex.call();
         assertThat(factory.queues.get("test:queue:nlp")).hasSize(1);
     }
