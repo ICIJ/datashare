@@ -30,6 +30,7 @@ public class NoteResourceTest extends AbstractProdWebServerTest {
         when(jooqRepository.getNotes(project("local-datashare"), "url")).thenReturn(singletonList(note));
         get("/api/local-datashare/notes/url").should().respond(200).
                 contain("\"path\":\"/path/to/note\"").
+                contain("\"variant\":\"info\"").
                 contain("\"blurSensitiveMedia\":false").
                 contain("\"note\":\"this is a note\"");
     }
@@ -45,6 +46,7 @@ public class NoteResourceTest extends AbstractProdWebServerTest {
         when(jooqRepository.getNotes(project("local-datashare"))).thenReturn(singletonList(note));
         get("/api/local-datashare/notes").should().respond(200).
                 contain("\"path\":\"/path/to/note\"").
+                contain("\"variant\":\"info\"").
                 contain("\"blurSensitiveMedia\":false").
                 contain("\"note\":\"this is a note\"");
     }
@@ -55,6 +57,7 @@ public class NoteResourceTest extends AbstractProdWebServerTest {
         when(jooqRepository.getNotes(project("local-datashare"))).thenReturn(singletonList(note));
         get("/api/local-datashare/notes").should().respond(200).
                 contain("\"path\":\"/path/to/note\"").
+                contain("\"variant\":\"danger\"").
                 contain("\"blurSensitiveMedia\":true").
                 contain("\"note\":\"this is a note\"");
     }
