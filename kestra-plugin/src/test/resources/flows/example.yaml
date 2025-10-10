@@ -1,0 +1,12 @@
+id: scan_workflow
+namespace: org.icij.datashare
+
+inputs:
+  - id: path
+    type: STRING
+
+tasks:
+  - id: scan
+    type: org.icij.datashare.kestra.plugin.ScanTask
+    name: scan_files
+    inputs: "{{ inputs }}"

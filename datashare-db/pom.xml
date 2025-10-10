@@ -13,7 +13,7 @@
     <packaging>jar</packaging>
 
     <properties>
-        <liquibase.version>4.27.0</liquibase.version>
+        <liquibase.version>4.32.0</liquibase.version>
         <jooq.version>3.19.10</jooq.version>
     </properties>
 
