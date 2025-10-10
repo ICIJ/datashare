@@ -26,10 +26,12 @@ public class NoteResourceTest extends AbstractProdWebServerTest {
 
     @Test
     public void test_get_notes_for_path() {
-        when(jooqRepository.getNotes(project("local-datashare"), "url")).thenReturn(singletonList(new Note(project("local-datashare"), Paths.get("/path/to/note"), "this is a note")));
+        Note note = new Note(project("local-datashare"), Paths.get("/path/to/note"), "this is a note");
+        when(jooqRepository.getNotes(project("local-datashare"), "url")).thenReturn(singletonList(note));
         get("/api/local-datashare/notes/url").should().respond(200).
-                contain("/path/to/note").
-                contain("this is a note");
+                contain("\"path\":\"/path/to/note\"").
+                contain("\"blurSensitiveMedia\":false").
+                contain("\"note\":\"this is a note\"");
     }
 
     @Test
@@ -39,11 +41,24 @@ public class NoteResourceTest extends AbstractProdWebServerTest {
 
     @Test
     public void test_get_notes_for_project() {
-        when(jooqRepository.getNotes(project("local-datashare"))).thenReturn(singletonList(new Note(project("local-datashare"), Paths.get("/path/to/note"), "this is a note")));
+        Note note = new Note(project("local-datashare"), Paths.get("/path/to/note"), "this is a note");
+        when(jooqRepository.getNotes(project("local-datashare"))).thenReturn(singletonList(note));
         get("/api/local-datashare/notes").should().respond(200).
-                contain("/path/to/note").
-                contain("this is a note");
+                contain("\"path\":\"/path/to/note\"").
+                contain("\"blurSensitiveMedia\":false").
+                contain("\"note\":\"this is a note\"");
     }
+
+    @Test
+    public void test_get_notes_for_project_with_blured_sensitive_media() {
+        Note note = new Note(project("local-datashare"), Paths.get("/path/to/note"), "this is a note");
+        when(jooqRepository.getNotes(project("local-datashare"))).thenReturn(singletonList(note));
+        get("/api/local-datashare/notes").should().respond(200).
+                contain("\"path\":\"/path/to/note\"").
+                contain("\"blurSensitiveMedia\":true").
+                contain("\"note\":\"this is a note\"");
+    }
+
 
     @Before
     public void setUp() {
