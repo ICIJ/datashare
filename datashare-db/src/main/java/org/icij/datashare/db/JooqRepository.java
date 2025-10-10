@@ -45,13 +45,13 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.function.Predicate;
 
 import static java.nio.charset.Charset.forName;
 import static java.util.Arrays.asList;
 import static java.util.Arrays.stream;
+import static java.util.Optional.ofNullable;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toSet;
 import static org.icij.datashare.Entity.LOGGER;
@@ -250,8 +250,8 @@ public class JooqRepository implements Repository {
     @Override
     public List<UserEvent> getUserHistory(User user, UserEvent.Type type, int from, int size, String sort, boolean desc, String... projectIds) {
         DSLContext ctx = using(connectionProvider, dialect);
-        String sortName = Optional.ofNullable(sort).filter(Predicate.not(String::isBlank)).orElse(USER_HISTORY.MODIFICATION_DATE.getName());
-        Field<?> sortBy = Optional.ofNullable(USER_HISTORY.field(sortName)).orElseThrow(() -> new IllegalArgumentException(String.format("Invalid sort attribute: %s", sortName)));
+        String sortName = ofNullable(sort).filter(Predicate.not(String::isBlank)).orElse(USER_HISTORY.MODIFICATION_DATE.getName());
+        Field<?> sortBy = ofNullable(USER_HISTORY.field(sortName)).orElseThrow(() -> new IllegalArgumentException(String.format("Invalid sort attribute: %s", sortName)));
         SortField<?> order = desc ? sortBy.desc() : sortBy.asc();
         if (projectIds.length > 0) {
 
@@ -627,7 +627,8 @@ public class JooqRepository implements Repository {
         return new Note(project(noteRecord.getProjectId()),
                 Paths.get(noteRecord.getPath()),
                 noteRecord.getNote(),
-                Note.Variant.valueOf(noteRecord.getVariant()));
+                Note.Variant.valueOf(noteRecord.getVariant()),
+                ofNullable(noteRecord.getBlurSensitiveContent()).orElse(false));
     }
 
     private Project createProjectFrom(ProjectRecord record) {
