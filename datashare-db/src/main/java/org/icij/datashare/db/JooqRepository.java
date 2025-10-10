@@ -628,7 +628,7 @@ public class JooqRepository implements Repository {
                 Paths.get(noteRecord.getPath()),
                 noteRecord.getNote(),
                 Note.Variant.valueOf(noteRecord.getVariant()),
-                ofNullable(noteRecord.getBlurSensitiveContent()).orElse(false));
+                ofNullable(noteRecord.getBlurSensitiveMedia()).orElse(false));
     }
 
     private Project createProjectFrom(ProjectRecord record) {
