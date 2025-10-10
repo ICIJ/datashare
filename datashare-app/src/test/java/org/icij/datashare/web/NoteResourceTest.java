@@ -51,7 +51,7 @@ public class NoteResourceTest extends AbstractProdWebServerTest {
 
     @Test
     public void test_get_notes_for_project_with_blured_sensitive_media() {
-        Note note = new Note(project("local-datashare"), Paths.get("/path/to/note"), "this is a note", true);
+        Note note = new Note(project("local-datashare"), Paths.get("/path/to/note"), "this is a note",  Note.Variant.danger, true);
         when(jooqRepository.getNotes(project("local-datashare"))).thenReturn(singletonList(note));
         get("/api/local-datashare/notes").should().respond(200).
                 contain("\"path\":\"/path/to/note\"").
