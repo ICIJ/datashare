@@ -14,21 +14,23 @@ import static org.fest.assertions.Assertions.assertThat;
 public class NoteTest {
     @Test
     public void serialize_note() throws JsonProcessingException {
-        Note note = new Note(Project.project("projet"), Paths.get("toto/tata"),"This is a test");
+        Note note = new Note(Project.project("foo"), Paths.get("toto/tata"),"This is a test");
         assertThat(JsonObjectMapper.MAPPER.writeValueAsString(note))
-                .contains("\"name\":\"projet\"")
-                .contains("\"label\":\"projet\"")
-                .contains("\"sourcePath\":\"file:///vault/projet\"")
+                .contains("\"name\":\"foo\"")
+                .contains("\"label\":\"foo\"")
+                .contains("\"sourcePath\":\"file:///vault/foo\"")
                 .contains("\"note\":\"This is a test\"")
+                .contains("\"blurSensitiveMedia\":false")
                 .contains("\"variant\":\"info\"");
     }
 
     @Test
     public void deserialize_note() throws IOException {
-        Note note = JsonObjectMapper.MAPPER.readValue("{\"project\":{\"name\":\"project\",\"sourcePath\":\"file:///vault/projet\",\"id\":\"projet\"},\"note\":\"This is a test\",\"path\":\"toto/tata\",\"variant\":\"info\"}", Note.class);
+        Note note = JsonObjectMapper.MAPPER.readValue("{\"project\":{\"name\":\"project\",\"sourcePath\":\"file:///vault/foo\",\"id\":\"foo\"},\"note\":\"This is a test\",\"path\":\"toto/tata\",\"variant\":\"info\", \"blurSensitiveMedia\":false}", Note.class);
         assertThat(note.path.toString()).isEqualTo("toto/tata");
         assertThat(note.project.getId()).isEqualTo("project");
         assertThat(note.note).isEqualTo("This is a test");
+        assertThat(note.blurSensitiveMedia).isEqualTo(false);
         assertThat(note.variant).isEqualTo(Note.Variant.info);
     }
 }

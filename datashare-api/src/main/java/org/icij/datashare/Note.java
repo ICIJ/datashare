@@ -22,20 +22,27 @@ public class Note {
     @JsonDeserialize(using = PathDeserializer.class)
     public final Path path;
     public final Variant variant;
+    public final Boolean blurSensitiveMedia;
 
     public Note(Project project, Path path, String note) {
-        this(project, path, note, Variant.info);
+        this(project, path, note, Variant.info, false);
+    }
+
+    public Note(Project project, Path path, String note, Variant variant) {
+        this(project, path, note, variant, false);
     }
 
     @JsonCreator
     public Note(@JsonProperty("project") Project project,
                 @JsonProperty("path") Path path,
                 @JsonProperty("note") String note,
-                @JsonProperty("variant") Variant variant) {
+                @JsonProperty("variant") Variant variant,
+                @JsonProperty("blurSensitiveMedia") Boolean blurSensitiveMedia) {
         this.project = project;
         this.note = note;
         this.path = path;
         this.variant = variant;
+        this.blurSensitiveMedia = blurSensitiveMedia;
     }
 
     @Override

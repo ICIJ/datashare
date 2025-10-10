@@ -122,3 +122,6 @@ databaseChangeLog:
   - include:
       file: changes/040-sqlite-pragma-journal-wal.yml
       relativeToChangelogFile: true
+  - include:
+      file: changes/041-adds-column-blur-sensitive-to-note.yml
+      relativeToChangelogFile: true

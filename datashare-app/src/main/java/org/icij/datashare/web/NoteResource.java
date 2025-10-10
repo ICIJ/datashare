@@ -38,10 +38,10 @@ public class NoteResource {
             
             And in database:
             ```
-            projectId | path | note | variant
-            --- | --- | --- | ---
-            p1 | a | note A | info
-            p1 | a/b | note B | danger
+            projectId | path | note | variant | blur_sensitive_media  
+            --- | --- | --- | --- | ---
+            p1 | a | note A | info | false
+            p1 | a/b | note B | danger | true
             ```
             
             then:

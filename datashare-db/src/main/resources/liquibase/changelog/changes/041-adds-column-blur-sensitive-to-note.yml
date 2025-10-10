@@ -1,0 +1,13 @@
+databaseChangeLog:
+  - changeSet:
+      id: 41
+      author: promera
+      changes:
+        - addColumn:
+            tableName: note
+            column:
+              name: blur_sensitive_media
+              type: boolean
+              defaultValueBoolean: false
+              constraints:
+                nullable: false
