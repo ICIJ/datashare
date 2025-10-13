@@ -1,0 +1,40 @@
+databaseChangeLog:
+  - changeSet:
+      id: 42
+      author: mvanza
+      dbms: postgresql
+      changes:
+        - sql: >
+            UPDATE task
+            SET result = json_strip_nulls(
+              json_build_object(
+                'value', json_build_object(
+                    '@type', 'BatchSearchRunnerResult',
+                    'nbResults', b.batch_results,
+                    'nbQueriesWithoutResults', COALESCE(b.nb_queries_without_results, -1)
+                )
+              )
+            )
+            FROM batch_search b
+            WHERE task.id = b.uuid
+              AND task.name LIKE '%BatchSearchRunner%';
+
+  - changeSet:
+      id: 43
+      author: mvanza
+      dbms: sqlite
+      changes:
+        - sql: >
+            UPDATE task
+            SET result = (
+              SELECT json_object(
+                'value', json_object(
+                  '@type', 'BatchSearchRunnerResult',
+                  'nbResults', b.batch_results,
+                  'nbQueriesWithoutResults', COALESCE(b.nb_queries_without_results, -1)
+                )
+              )
+              FROM batch_search b
+              WHERE b.uuid = task.id
+            )
+            WHERE name LIKE '%BatchSearchRunner%';
