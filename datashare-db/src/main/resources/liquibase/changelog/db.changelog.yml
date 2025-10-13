@@ -125,3 +125,6 @@ databaseChangeLog:
   - include:
       file: changes/041-adds-column-blur-sensitive-to-note.yml
       relativeToChangelogFile: true
+  - include:
+      file: changes/042-task-result-batch-search-migration.yml
+      relativeToChangelogFile: true
