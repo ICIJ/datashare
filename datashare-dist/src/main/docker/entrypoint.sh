@@ -7,6 +7,7 @@ datashare_home=${DATASHARE_HOME:-$HOME/.local/share/datashare}
 datashare_jars=$(find $datashare_home/lib/ -name '*.jar' | xargs | sed 's/ /:/g')
 datashare_jna_tmpdir=${DATASHARE_JNA_TMPDIR:-$datashare_home/index/tmp}
 datashare_sync_nlp_models=${DATASHARE_SYNC_NLP_MODELS:-true}
+datashare_class_path="$datashare_home/dist:$datashare_home/extensions/*:$datashare_jars${CLASSPATH:+:$CLASSPATH}"
 
 if [ "$1" = 'sh' ];
 then
@@ -22,6 +23,6 @@ else
       -Djava.system.class.loader=org.icij.datashare.DynamicClassLoader \
       -Djna.tmpdir=$datashare_jna_tmpdir \
       -DDS_SYNC_NLP_MODELS=$datashare_sync_nlp_models \
-      -cp $datashare_home/dist:$datashare_jars org.icij.datashare.Main \
+      -cp "$datashare_class_path" org.icij.datashare.Main \
         "$@"
 fi
