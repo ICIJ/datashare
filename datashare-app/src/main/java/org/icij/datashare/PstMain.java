@@ -10,6 +10,7 @@ import com.pff.PSTException;
 import com.pff.PSTFile;
 import com.pff.PSTFolder;
 import com.pff.PSTMessage;
+import com.pff.PSTObject;
 
 import javax.activation.DataHandler;
 import javax.activation.DataSource;
@@ -38,6 +39,7 @@ import static org.icij.datashare.text.StringUtils.isEmpty;
 public class PstMain {
     public static void main(String[] args) {
         new PstMain("/home/dev/pst/Glenda's Keepers.pst");
+        //pstMainAspose("/home/dev/pst/Glenda's Keepers.pst");
     }
 
     public PstMain(String filename) {
@@ -112,15 +114,17 @@ public class PstMain {
         // and now the emails for this folder
         if (folder.getContentCount() > 0) {
             depth++;
-            PSTMessage email = (PSTMessage) folder.getNextChild();
+            PSTObject pstObject = folder.getNextChild();
+            PSTMessage email = (PSTMessage) pstObject;
             while (email != null) {
                 printDepth();
                 System.out.println("Email: " + email.getSubject());
                 Path tempDirectory = Files.createTempDirectory("datashare-pst");
                 tempDirectory.toFile().deleteOnExit();
-                Message emlMessage = createMessage(email.getSenderEmailAddress(), email.getOriginalDisplayTo(),
+                Message emlMessage = createMessage(email.getInternetMessageId(), email.getSenderEmailAddress(), email.getOriginalDisplayTo(),
                             email.getOriginalDisplayCc(), email.getOriginalDisplayBcc(), email.getSubject(),
                             email.getBody(), getAttachments(email, tempDirectory));
+
                 emlMessage.writeTo(new FileOutputStream(String.format("%d.eml", email.getDescriptorNodeId())));
                 email = (PSTMessage) folder.getNextChild();
                 nbMail++;
@@ -130,12 +134,13 @@ public class PstMain {
         depth--;
     }
 
-    public Message createMessage(String from, String to, String cc, String bcc, String subject, String body, List<File> attachments) throws MessagingException {
+    public Message createMessage(String id, String from, String to, String cc, String bcc, String subject, String body, List<File> attachments) throws MessagingException {
         Message message = new MimeMessage(Session.getInstance(System.getProperties()));
+        message.setHeader("Message-Id", id);
         message.setFrom(new InternetAddress(from));
-        message.setRecipients(Message.RecipientType.TO, InternetAddress.parse(to));
-        message.setRecipients(Message.RecipientType.CC, InternetAddress.parse(cc));
-        message.setRecipients(Message.RecipientType.BCC, InternetAddress.parse(bcc));
+        message.setRecipients(Message.RecipientType.TO, InternetAddress.parseHeader(to, false));
+        message.setRecipients(Message.RecipientType.CC, InternetAddress.parseHeader(cc, false));
+        message.setRecipients(Message.RecipientType.BCC, InternetAddress.parseHeader(bcc, false));
         message.setSubject(subject);
 
         MimeBodyPart content = new MimeBodyPart();
@@ -199,4 +204,5 @@ public class PstMain {
         }
         System.out.print(" |- ");
     }
+
 }
