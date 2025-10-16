@@ -117,7 +117,8 @@ public class ElasticsearchSpewerTest {
             documentQueueFactory, text -> Language.CHINESE, new FieldNames(),
             new PropertiesProvider(Map.of("defaultProject", "test-datashare")))) {
             Path path = get(requireNonNull(getClass().getResource("/docs/a/b/c/zho.txt")).getPath());
-            Extractor extractor = new Extractor().configure(Options.from(Map.of("ocrLanguage", "eng+zho")));
+            Options<String> options = Options.from(Map.of("ocrLanguage", "eng+zho"));
+            Extractor extractor = new Extractor(options);
             // When
             TikaDocument document = extractor.extract(path);
             zhoSpewer.write(document);
@@ -331,7 +332,7 @@ public class ElasticsearchSpewerTest {
             put("digestProjectName", "project");
         }});
         DocumentFactory tikaFactory = new DocumentFactory().configure(digestAlgorithm);
-        Extractor extractor = new Extractor(tikaFactory).configure(digestAlgorithm);
+        Extractor extractor = new Extractor(tikaFactory, digestAlgorithm);
 
         final TikaDocument extractDocument = extractor.extract(get(requireNonNull(getClass().getResource("/docs/embedded_doc.eml")).getPath()));
         Document document = createDoc(Project.project("project"),get(requireNonNull(getClass().getResource("/docs/embedded_doc.eml")).getPath()))
@@ -357,7 +358,7 @@ public class ElasticsearchSpewerTest {
                 documentQueueFactory, text -> Language.ENGLISH, new FieldNames(), new PropertiesProvider(properties));
         Options<String> from = Options.from(properties);
         DocumentFactory tikaFactory = new DocumentFactory().configure(from);
-        Extractor extractor = new Extractor(tikaFactory).configure(from);
+        Extractor extractor = new Extractor(tikaFactory, from);
 
         final TikaDocument document = extractor.extract(get(requireNonNull(getClass().getResource("/docs/doc.txt")).getPath()));
         final TikaDocument document2 = extractor.extract(get(requireNonNull(getClass().getResource("/docs/doc-duplicate.txt")).getPath()));
@@ -383,7 +384,7 @@ public class ElasticsearchSpewerTest {
                 documentQueueFactory, text -> Language.ENGLISH, new FieldNames(), new PropertiesProvider(properties));
         Options<String> from = Options.from(properties);
         DocumentFactory tikaFactory = new DocumentFactory().configure(from);
-        Extractor extractor = new Extractor(tikaFactory).configure(from);
+        Extractor extractor = new Extractor(tikaFactory, from);
 
         final TikaDocument document = extractor.extract(get(requireNonNull(getClass().getResource("/docs/doc.txt")).getPath()));
         final TikaDocument document2 = extractor.extract(get(requireNonNull(getClass().getResource("/docs/doc.txt")).getPath()));
@@ -406,7 +407,7 @@ public class ElasticsearchSpewerTest {
         }});
         Path path1 = get(requireNonNull(getClass().getResource("/docs/embedded_doc.eml")).getPath());
         Path path2 = get(requireNonNull(getClass().getResource("/docs/embedded_doc_duplicate.eml")).getPath());
-        Extractor extractor = new Extractor(new DocumentFactory().configure(digestAlgorithm)).configure(digestAlgorithm);
+        Extractor extractor = new Extractor(new DocumentFactory().configure(digestAlgorithm), digestAlgorithm);
         final TikaDocument document1 = extractor.extract(path1);
         final TikaDocument document2 = extractor.extract(path2);
 
