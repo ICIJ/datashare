@@ -518,4 +518,35 @@ public class ElasticsearchSpewerTest {
         }
         return map;
     }
+
+    @Test
+    public void test_ocr_parser_exists_when_tesseract_parser_detected() throws Exception {
+        final TikaDocument document = new DocumentFactory().withIdentifier(new PathIdentifier()).create(get("ocr-file.txt"));
+        final ParsingReader reader = new ParsingReader(new ByteArrayInputStream("dummy".getBytes()));
+        document.setReader(reader);
+        document.getMetadata().set("Content-Type", "text/plain");
+        document.getMetadata().set("ocr:parser", "org.icij.extract.ocr.Tess4JOCRParser");
+
+        spewer.write(document);
+
+        GetResponse<ObjectNode> documentFields = es.client.get(doc -> doc.index(TEST_INDEX).id(document.getId()), ObjectNode.class);
+        assertThat(documentFields.found()).isTrue();
+        Map<String, Object> src = nodeToMap(documentFields.source());
+        assertThat(src.get("ocrParser")).isEqualTo("org.icij.extract.ocr.Tess4JOCRParser");
+    }
+
+    @Test
+    public void test_ocr_parser_is_null_when_no_tesseract_parser() throws Exception {
+        final TikaDocument document = new DocumentFactory().withIdentifier(new PathIdentifier()).create(get("no-ocr-file.txt"));
+        final ParsingReader reader = new ParsingReader(new ByteArrayInputStream("dummy".getBytes()));
+        document.setReader(reader);
+        document.getMetadata().set("Content-Type", "text/plain");
+
+        spewer.write(document);
+
+        GetResponse<ObjectNode> documentFields = es.client.get(doc -> doc.index(TEST_INDEX).id(document.getId()), ObjectNode.class);
+        assertThat(documentFields.found()).isTrue();
+        Map<String, Object> src = nodeToMap(documentFields.source());
+        assertThat(src.get("ocrParser")).isNull();
+    }
 }

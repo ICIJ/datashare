@@ -25,7 +25,7 @@ public class DocumentTest {
     @Test
     public void test_json_deserialize() throws Exception {
         assertThat(JsonObjectMapper.MAPPER.writeValueAsString(createDoc("content").build())).contains("\"projectId\":\"prj\"");
-        assertThat(JsonObjectMapper.MAPPER.readValue(("{\"id\":\"45a0a224c2836b4c558f3b56e2a1c69c21fcc8b3f9f4f99f2bc49946acfb28d8\"," +
+        Document d = JsonObjectMapper.MAPPER.readValue(("{\"id\":\"45a0a224c2836b4c558f3b56e2a1c69c21fcc8b3f9f4f99f2bc49946acfb28d8\"," +
                         "\"path\":\"file:///home/dev/src/datashare/datashare-api/path\"," +
                         "\"dirname\":\"/home/dev/src/datashare/datashare:api/\"," +
                         "\"content\":\"content\",\"language\":\"FRENCH\"," +
@@ -33,8 +33,10 @@ public class DocumentTest {
                         "\"contentType\":\"text/plain\",\"extractionLevel\":0," +
                         "\"metadata\":{},\"status\":\"INDEXED\",\"nerTags\":[]," +
                         "\"parentDocument\":null,\"rootDocument\":\"45a0a224c2836b4c558f3b56e2a1c69c21fcc8b3f9f4f99f2bc49946acfb28d8\"," +
-                        "\"contentLength\":123,\"projectId\":\"prj\", \"tags\": [\"foo\", \"bar\"]}").getBytes(),
-                Document.class).getProject()).isEqualTo(project("prj"));
+                        "\"contentLength\":123,\"projectId\":\"prj\", \"tags\": [\"foo\", \"bar\"], \"ocrParser\": \"Tesseract\"}").getBytes(),
+                Document.class);
+        assertThat(d.getProject()).isEqualTo(project("prj"));
+        assertThat(d.getOcrParser()).isEqualTo("Tesseract");
     }
 
     @Test
@@ -184,5 +186,23 @@ public class DocumentTest {
     @Test
     public void test_serialize_contains_content_translated() throws Exception {
         assertThat(JsonObjectMapper.MAPPER.writeValueAsString(createDoc("content").build())).contains("\"content_translated\":[]");
+    }
+
+    @Test
+    public void test_serialize_deserialize_ocr_parser() throws Exception {
+        Document src = createDoc("ocrTrue").withOcrParser("Tess4j").build();
+        String json = JsonObjectMapper.MAPPER.writeValueAsString(src);
+        assertThat(json).contains("\"ocrParser\":\"Tess4j\"");
+        Document dst = JsonObjectMapper.MAPPER.readValue(json, Document.class);
+        assertThat(dst.getOcrParser()).isEqualTo("Tess4j");
+    }
+
+    @Test
+    public void test_serialize_deserialize_no_ocr_parser() throws Exception {
+        Document src = createDoc("ocrTrue").build();
+        String json = JsonObjectMapper.MAPPER.writeValueAsString(src);
+        assertThat(json).contains("\"ocrParser\":null");
+        Document dst = JsonObjectMapper.MAPPER.readValue(json, Document.class);
+        assertThat(dst.getOcrParser()).isNull();
     }
 }

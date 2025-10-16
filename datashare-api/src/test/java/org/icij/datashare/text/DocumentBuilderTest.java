@@ -28,6 +28,7 @@ public class DocumentBuilderTest {
         String mimeType = "SOME/MIME";
         List<Map<String, String>> contentTranslated = List.of(Map.of("french", "ducontenu"));
         Map<String, Object> metadata = Map.of("some", "metadata");
+        String ocrParser = "org.apache.tika.parser.ocr.TesseractOCRParser";
         DocumentBuilder builder = DocumentBuilder.createDoc()
             .withDefaultValues(docId)
             .withRootId(rootId)
@@ -45,7 +46,8 @@ public class DocumentBuilderTest {
             .with(metadata)
             .with(Language.ENGLISH)
             .with(Path.of("some/path"))
-            .with("somecontent");
+            .with("somecontent")
+            .withOcrParser(ocrParser);
         // When
         Document doc = builder.build();
         // Then
@@ -60,5 +62,6 @@ public class DocumentBuilderTest {
         assertThat(doc.getExtractionDate()).isEqualTo(extractionDate);
         assertThat(doc.getContentTranslated()).isEqualTo(contentTranslated);
         assertThat(doc.getMetadata()).isEqualTo(metadata);
+        assertThat(doc.getOcrParser()).isEqualTo(ocrParser);
     }
 }
