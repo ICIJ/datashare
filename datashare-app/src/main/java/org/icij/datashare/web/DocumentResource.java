@@ -470,7 +470,7 @@ public class DocumentResource {
         Properties merged = propertiesProvider.createMerged(props);
         org.icij.task.Options<String> options = org.icij.task.Options.from(merged);
 
-        return new Extractor(documentFactory).configure(options);
+        return new Extractor(documentFactory, options);
     }
 
     private ExtractedText getAllExtractedText(final String id, final String targetLanguage) throws IllegalArgumentException {

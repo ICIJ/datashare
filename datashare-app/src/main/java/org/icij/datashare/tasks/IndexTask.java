@@ -63,7 +63,7 @@ public class IndexTask extends PipelineTask<Path> implements Monitorable{
         ((ElasticsearchSpewer) spewer.configure(allTaskOptions)).createIndexIfNotExists();
 
         DocumentFactory documentFactory = new DocumentFactory().configure(allTaskOptions);
-        Extractor extractor = new Extractor(documentFactory).configure(allTaskOptions);
+        Extractor extractor = new Extractor(documentFactory, allTaskOptions);
 
         consumer = new DocumentConsumer(spewer, extractor, this.parallelism);
         progressTrackConsumer = path -> {
