@@ -57,14 +57,14 @@ public class TreeResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
-    public void test_get_files_tree_in_docs_directory_returns_a_json_object() throws ParseException {
+    public void test_get_files_tree_in_docs_directory_returns_a_json_object() {
         String dirName = getClass().getResource("/docs/").getPath();
         get("/api/tree" + dirName).should().haveType("application/json").
                 should().not().contain("bar.txt");
     }
 
     @Test
-    public void test_get_files_tree_in_docs_directory_as_object_with_depth () throws ParseException {
+    public void test_get_files_tree_in_docs_directory_as_object_with_depth (){
         String dirName = getClass().getResource("/docs/").getPath();
         get("/api/tree" + dirName + "?depth=2").should().contain("bar.txt");
     }

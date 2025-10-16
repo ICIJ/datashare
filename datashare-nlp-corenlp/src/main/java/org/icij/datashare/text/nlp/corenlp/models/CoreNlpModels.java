@@ -9,8 +9,9 @@ import static org.icij.datashare.text.Language.HUNGARIAN;
 import static org.icij.datashare.text.Language.ITALIAN;
 import static org.icij.datashare.text.Language.SPANISH;
 
+import edu.stanford.nlp.pipeline.LanguageInfo;
 import edu.stanford.nlp.pipeline.StanfordCoreNLP;
-
+import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Properties;
 import java.util.Set;
@@ -19,7 +20,8 @@ import org.icij.datashare.text.nlp.AbstractModels;
 import org.icij.datashare.text.nlp.Pipeline;
 
 public class CoreNlpModels extends AbstractModels<StanfordCoreNLP> {
-    static final String VERSION = "4.5.8";
+    static final String VERSION = "4.5.10";
+
     public static final Set<Language> SUPPORTED_LANGUAGES = Set.of(
         ENGLISH,
         SPANISH,
@@ -29,24 +31,26 @@ public class CoreNlpModels extends AbstractModels<StanfordCoreNLP> {
         HUNGARIAN,
         ITALIAN
     );
+
     private static volatile CoreNlpModels instance;
     private static final Object mutex = new Object();
 
     @Override
-    protected StanfordCoreNLP loadModelFile(Language language) throws InterruptedException {
-        LOGGER.info("loading pipeline Annotator for {}", language);
+    protected StanfordCoreNLP loadModelFile(Language language) throws IOException {
+        LOGGER.info("loading pipeline Annotator for " + language);
+        super.addResourceToContextClassLoader(getModelFilePath(language));
+        // Load base model
+        String propertyFileName = LanguageInfo.getLanguagePropertiesFile(language.name().toLowerCase());
         Properties properties = new Properties();
+        properties.load(ClassLoader.getSystemClassLoader().getResourceAsStream(propertyFileName));
+        // Override some props
         properties.setProperty("ner.useSUTime", "false");
         properties.setProperty("ner.applyNumericClassifiers", "false");
+        // Without numeric classifier, pos and lemma are not needed, additionally since 4.5, sentence split is included
+        // in the tokenize step
         properties.setProperty("annotators", "tokenize,ner");
-        properties.setProperty("tokenize.language", language.iso6391Code());
         properties.setProperty("ner.applyFineGrained", "false");
 
-        if (language != ENGLISH) {
-            get(ENGLISH);
-        }
-        properties.setProperty("ner.model", "edu/stanford/nlp/models/ner/english.all.3class.caseless.distsim.crf.ser.gz");
-        super.addResourceToContextClassLoader(getModelFilePath(language));
         return new StanfordCoreNLP(properties, true);
     }
 
@@ -63,12 +67,24 @@ public class CoreNlpModels extends AbstractModels<StanfordCoreNLP> {
         return instance;
     }
 
+    @Override
+    public Path getModelsBasePath(Language language) {
+        Path path = BASE_CLASSPATH.
+            resolve(type.name().toLowerCase()).
+            resolve(getVersion().replace('.', '-'));
+        if (Language.ENGLISH.equals(language)) {
+            return path;
+        }
+        return path.resolve(language.iso6391Code());
+    }
+
     private Path getModelFilePath(Language language) {
         return getModelsBasePath(language).resolve(getJarFileName(language));
     }
 
     String getJarFileName(Language language) {
-        return String.join("-", asList("stanford", "corenlp", getVersion(), "models", language.name().toLowerCase() + ".jar"));
+        String filename = language.equals(Language.ENGLISH) ? "" : language.name().toLowerCase() + ".jar";
+        return String.join("-", asList("stanford", "corenlp", getVersion(), "models", filename));
     }
 
     private CoreNlpModels() {
