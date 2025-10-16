@@ -1,17 +1,22 @@
 package org.icij.datashare.nlp;
 
+import edu.stanford.nlp.pipeline.StanfordCoreNLP;
+import java.util.Arrays;
 import org.icij.datashare.DynamicClassLoader;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.text.DocumentBuilder;
 import org.icij.datashare.text.Language;
 import org.icij.datashare.text.NamedEntity;
 import org.icij.datashare.text.nlp.corenlp.CorenlpPipeline;
+import org.icij.datashare.text.nlp.corenlp.models.CoreNlpModels;
 import org.junit.Test;
 
 import java.io.File;
 import java.util.List;
 
 import static org.fest.assertions.Assertions.assertThat;
+import static org.icij.datashare.LambdaExceptionUtils.rethrowConsumer;
+import static org.icij.datashare.text.nlp.corenlp.models.CoreNlpModels.SUPPORTED_LANGUAGES;
 
 // this test is not executed by CI because it doesn't end with "Test"
 // its goal is to test manually the core NLP pipeline
@@ -39,5 +44,20 @@ public class CoreNlpTestManual {
         corenlpPipeline.initialize(Language.FRENCH);
         List<NamedEntity> process = corenlpPipeline.process(DocumentBuilder.createDoc("my_doc_id").with("C'est un document à Jean.").build());
         assertThat(process.size()).isGreaterThan(0);
+    }
+
+    @Test
+    public void test_should_load_language_specific_ner() throws Exception {
+        DynamicClassLoader systemClassLoader = (DynamicClassLoader)ClassLoader.getSystemClassLoader();
+        File distDir = new File("dist");
+        assertThat(distDir).exists();
+        systemClassLoader.add(distDir.toURI().toURL());
+        SUPPORTED_LANGUAGES.stream().filter(l -> !l.equals(Language.ENGLISH))
+            .forEach(rethrowConsumer(language -> {
+            StanfordCoreNLP loadedModel =  CoreNlpModels.getInstance().get(language);
+            String modelName = Arrays.stream(((String)loadedModel.getProperties().get("ner.model")).split("/"))
+                .reduce((a, b) -> b).orElse("");
+            assertThat(modelName).contains(language.name().toLowerCase());
+        }));
     }
 }
