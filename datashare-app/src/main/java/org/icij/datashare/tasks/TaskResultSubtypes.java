@@ -1,5 +1,6 @@
 package org.icij.datashare.tasks;
 
+import com.fasterxml.jackson.databind.jsontype.NamedType;
 import org.icij.datashare.asynctasks.bus.amqp.UriResult;
 
 import java.io.Serializable;
@@ -17,8 +18,8 @@ public enum TaskResultSubtypes {
         return type;
     }
 
-    public static Class<? extends Serializable>[] getClasses() {
-        return Arrays.stream(values()).map(TaskResultSubtypes::getType).toArray(Class[]::new);
+    public static NamedType[] getClasses() {
+        return Arrays.stream(values()).map(type -> new NamedType(type.getType())).toArray(NamedType[]::new);
     }
 
     TaskResultSubtypes(Class<? extends Serializable> type) {

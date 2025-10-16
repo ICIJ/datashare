@@ -3,6 +3,8 @@ package org.icij.datashare.db;
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.List;
+
+import com.fasterxml.jackson.databind.jsontype.NamedType;
 import org.icij.datashare.asynctasks.Group;
 import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.asynctasks.TaskAlreadyExists;
@@ -174,7 +176,7 @@ public class JooqTaskRepositoryTest {
 
     @Test
     public void test_get_task_with_external_type() throws IOException {
-        repository.registerTaskResultTypes(ResultRecord.class);
+        repository.registerTaskResultTypes(new NamedType(ResultRecord.class));
         Task<ResultRecord> task = new Task<>("id", "foo", User.local(), Map.of());
         repository.insert(task, new Group(TaskGroupType.Test));
         task.setResult(new TaskResult<>(new ResultRecord(1, "baz")));

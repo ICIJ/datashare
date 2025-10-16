@@ -5,6 +5,9 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.databind.jsontype.NamedType;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.asynctasks.bus.amqp.AmqpInterlocutor;
@@ -22,6 +25,7 @@ import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.redisson.api.RedissonClient;
 
@@ -123,13 +127,28 @@ public class TaskManagerAmqpTest {
         assertThat(taskManager.getTask(task.id).getResult()).isEqualTo(result);
     }
 
-    @Test(timeout = 20000)
+    @Test(timeout = 2000)
     public void test_task_result_uri_result_type() throws Exception {
         taskManager.startTask("taskName", User.local(), new HashMap<>());
 
         // in the task worker loop
         Task<Serializable> task = taskQueue.poll(2, TimeUnit.SECONDS); // to sync
         TaskResult<UriResult> taskResult = new TaskResult<>(new UriResult(new URI("file:///my/file"),42));
+        taskSupplier.result(task.id,taskResult);
+
+        nextMessage.await();
+        Task<Serializable> task1 = taskManager.getTask(task.id);
+        TaskResult<Serializable> result = task1.getResult();
+        assertThat(result).isEqualTo(taskResult);
+    }
+
+    @Ignore // To Fix : pass but not with surefire
+    @Test(timeout = 2000)
+    public void test_additionnal_subtype_result_type() throws Exception {
+        taskManager.startTask("taskName", User.local(), new HashMap<>());
+
+        Task<Serializable> task = taskQueue.poll(2, TimeUnit.SECONDS); // to sync
+        TaskResult<TestResult> taskResult = new TaskResult<>(new TestResult(1,"foo"));
         taskSupplier.result(task.id,taskResult);
 
         nextMessage.await();
@@ -252,7 +271,7 @@ public class TaskManagerAmqpTest {
         final RedissonClient redissonClient = new RedissonClientFactory().withOptions(
                 Options.from(new PropertiesProvider(Map.of("redisAddress", "redis://redis:6379")).getProperties())).create();
         taskRepository = new TaskRepositoryRedis(redissonClient, "tasks:queue:test");
-        taskRepository.registerTaskResultTypes(new NamedType(UriResult.class, "UriResult"));
+        taskRepository.registerTaskResultTypes(new NamedType(TestResult.class)); // for test_additionnal_subtype_result_type
         taskManager = new TaskManagerAmqp(AMQP, taskRepository, RoutingStrategy.UNIQUE, () -> nextMessage.countDown());
         taskSupplier = new TaskSupplierAmqp(AMQP);
         taskSupplier.consumeTasks(t -> taskQueue.add(t));
@@ -271,5 +290,14 @@ public class TaskManagerAmqpTest {
     @AfterClass
     public static void afterClass() throws Exception {
         AMQP.close();
+    }
+
+    @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "@type")
+    public record TestResult(int num, String str) implements Serializable {
+        @JsonCreator
+        public TestResult(@JsonProperty("num") int num, @JsonProperty("str") String str) {
+            this.num = num;
+            this.str = str;
+        }
     }
 }
