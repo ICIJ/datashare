@@ -3,7 +3,6 @@ package org.icij.datashare.text.indexing.elasticsearch;
 import com.google.inject.Inject;
 import org.icij.datashare.*;
 import org.icij.datashare.extract.DocumentCollectionFactory;
-import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.text.*;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.text.indexing.LanguageGuesser;
@@ -97,7 +96,8 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
                 .ofContentType(ofNullable(document.getMetadata().get(CONTENT_TYPE)).orElse(DEFAULT_VALUE_UNKNOWN).split(";")[0])
                 .withContentLength(Long.parseLong(ofNullable(document.getMetadata().get(CONTENT_LENGTH)).orElse("-1")))
                 .with(charset)
-                .withExtractionLevel(level);
+                .withExtractionLevel(level)
+                .withOcrParser(document.getMetadata().get("ocr:parser"));
 
         String content = toString(document.getReader()).trim();
         if (maxContentLength != -1 && content.length() > maxContentLength) {

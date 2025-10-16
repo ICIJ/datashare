@@ -21,14 +21,7 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeParseException;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.function.Supplier;
 
@@ -112,6 +105,7 @@ public class Document implements Entity, DocumentMetadataConstants {
     private final Status status;
     private final Set<Pipeline.Type> nerTags;
     private final Set<Tag> tags;
+    private final String ocrParser;
 
     @IndexParent
     private final String parentDocument;
@@ -120,7 +114,7 @@ public class Document implements Entity, DocumentMetadataConstants {
 
 
     Document(Project project, String id, Path filePath, String content, Language language, Charset charset, String mimetype, Map<String, Object> metadata, Status status, Set<Pipeline.Type> nerTags, Date extractionDate, String parentDocument, String rootDocument, Short extractionLevel, Long contentLength) {
-        this(project, id, filePath, content,null, language, extractionDate, charset, mimetype, extractionLevel, metadata, status, nerTags, parentDocument, rootDocument, contentLength, new HashSet<>());
+        this(project, id, filePath, content,null, language, extractionDate, charset, mimetype, extractionLevel, metadata, status, nerTags, parentDocument, rootDocument, contentLength, new HashSet<>(), null);
     }
 
     Document(Project project, String id, Path filePath, String content, List<Map<String,String>> content_translated, Language language, Charset charset,
@@ -130,7 +124,17 @@ public class Document implements Entity, DocumentMetadataConstants {
         this(project, id, filePath, content, content_translated, language, extractionDate, charset,
                 contentType, extractionLevel, metadata, status, nerTags,
                 parentDocument, rootDocument, contentLength,
-                tags);
+                tags, null);
+    }
+
+    Document(Project project, String id, Path filePath, String content, List<Map<String,String>> content_translated, Language language, Charset charset,
+             String contentType, Map<String, Object> metadata, Status status, Set<Pipeline.Type> nerTags,
+             Date extractionDate, String parentDocument, String rootDocument, Short extractionLevel,
+             Long contentLength, Set<Tag> tags, String ocrParser) {
+        this(project, id, filePath, content, content_translated, language, extractionDate, charset,
+                contentType, extractionLevel, metadata, status, nerTags,
+                parentDocument, rootDocument, contentLength,
+                tags, ocrParser);
     }
 
     @JsonCreator
@@ -146,7 +150,8 @@ public class Document implements Entity, DocumentMetadataConstants {
                      @JsonProperty("parentDocument") String parentDocument,
                      @JsonProperty("rootDocument") String rootDocument,
                      @JsonProperty("contentLength") Long contentLength,
-                     @JsonProperty("tags") Set<Tag> tags) {
+                     @JsonProperty("tags") Set<Tag> tags,
+                     @JsonProperty("ocrParser") String ocrParser) {
         this.id = id;
         this.project = project;
         this.path = path;
@@ -165,6 +170,7 @@ public class Document implements Entity, DocumentMetadataConstants {
         this.parentDocument = parentDocument;
         this.rootDocument = rootDocument;
         this.tags = tags;
+        this.ocrParser = ocrParser;
     }
 
     static String getHash(Project project, Path path) {
@@ -195,6 +201,8 @@ public class Document implements Entity, DocumentMetadataConstants {
     public Status getStatus() { return status;}
     public Set<Pipeline.Type> getNerTags() { return nerTags;}
     public Set<Tag> getTags() { return tags;}
+    public String getOcrParser() { return ocrParser; }
+
     public Date getCreationDate() {
         String creationDate = (String) ofNullable(metadata).orElse(new HashMap<>()).get("tika_metadata_dcterms_created");
         if (creationDate == null) return null;

@@ -29,6 +29,7 @@ public class DocumentBuilder {
     private Document.Status documentStatus;
     private Date extractionDate;
     private Long contentLength;
+    private String ocrParser;
 
     private DocumentBuilder() {}
     public static DocumentBuilder createDoc() {
@@ -54,6 +55,7 @@ public class DocumentBuilder {
         this.pipelines = new HashSet<>();
         this.project = project("prj");
         this.tags = new HashSet<>();
+        this.ocrParser = null;
         return this;
     }
 
@@ -134,6 +136,11 @@ public class DocumentBuilder {
         this.parentId = parentId;
         return this;
     }
+    public DocumentBuilder withOcrParser(String ocrParser) {
+        this.ocrParser = ocrParser;
+        return this;
+    }
+
     public Document build() {
         if(id == null && project == null && path == null && content == null){
             throw new NullPointerException("Id, Project, Path or content are missing.");
@@ -141,7 +148,7 @@ public class DocumentBuilder {
         return new Document(project, id, path, content, content_translated, language,
                 charset, contentType, metadata, documentStatus,
                 pipelines, extractionDate, parentId, rootId, extractionLevel,
-                contentLength, tags);
+                contentLength, tags, ocrParser);
     }
 
 }
