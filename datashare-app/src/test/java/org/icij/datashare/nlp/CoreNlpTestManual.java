@@ -52,7 +52,8 @@ public class CoreNlpTestManual {
         File distDir = new File("dist");
         assertThat(distDir).exists();
         systemClassLoader.add(distDir.toURI().toURL());
-        SUPPORTED_LANGUAGES.stream().filter(l -> !l.equals(Language.ENGLISH))
+        CoreNlpModels.getInstance().get(Language.ENGLISH); // Test EN loading
+        SUPPORTED_LANGUAGES.stream().sorted().filter(l -> !l.equals(Language.ENGLISH))
             .forEach(rethrowConsumer(language -> {
             StanfordCoreNLP loadedModel =  CoreNlpModels.getInstance().get(language);
             String modelName = Arrays.stream(((String)loadedModel.getProperties().get("ner.model")).split("/"))
