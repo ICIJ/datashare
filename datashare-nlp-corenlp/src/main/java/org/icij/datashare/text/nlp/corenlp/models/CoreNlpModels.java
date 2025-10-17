@@ -13,6 +13,7 @@ import edu.stanford.nlp.pipeline.LanguageInfo;
 import edu.stanford.nlp.pipeline.StanfordCoreNLP;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.Properties;
 import java.util.Set;
 import org.icij.datashare.text.Language;
@@ -38,7 +39,8 @@ public class CoreNlpModels extends AbstractModels<StanfordCoreNLP> {
     @Override
     protected StanfordCoreNLP loadModelFile(Language language) throws IOException {
         LOGGER.info("loading pipeline Annotator for " + language);
-        super.addResourceToContextClassLoader(getModelFilePath(language));
+        Path modelFilePath = getModelFilePath(language);
+        super.addResourceToContextClassLoader(modelFilePath);
         // Load base model
         String propertyFileName = LanguageInfo.getLanguagePropertiesFile(language.name().toLowerCase());
         Properties properties = new Properties();
@@ -69,13 +71,10 @@ public class CoreNlpModels extends AbstractModels<StanfordCoreNLP> {
 
     @Override
     public Path getModelsBasePath(Language language) {
-        Path path = BASE_CLASSPATH.
-            resolve(type.name().toLowerCase()).
-            resolve(getVersion().replace('.', '-'));
-        if (Language.ENGLISH.equals(language)) {
-            return path;
+        if (!Language.ENGLISH.equals(language)) {
+            return super.getModelsBasePath(language);
         }
-        return path.resolve(language.iso6391Code());
+        return super.getModelsBasePath(language).getParent();
     }
 
     private Path getModelFilePath(Language language) {
@@ -83,8 +82,13 @@ public class CoreNlpModels extends AbstractModels<StanfordCoreNLP> {
     }
 
     String getJarFileName(Language language) {
-        String filename = language.equals(Language.ENGLISH) ? "" : language.name().toLowerCase() + ".jar";
-        return String.join("-", asList("stanford", "corenlp", getVersion(), "models", filename));
+        List<String> filename;
+        if (language.equals(ENGLISH)) {
+            filename = List.of("stanford", "corenlp", getVersion(), "models.jar");
+        } else {
+            filename = List.of("stanford", "corenlp", "models", language.name().toLowerCase() + ".jar");
+        }
+        return String.join("-", filename);
     }
 
     private CoreNlpModels() {
