@@ -2,7 +2,6 @@ package org.icij.datashare.web;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import io.swagger.v3.oas.annotations.Operation;
@@ -172,7 +171,7 @@ public class DocumentResource {
             parameters = {
                     @Parameter(name = "project", description = "the project id", in = ParameterIn.PATH),
                     @Parameter(name = "id", description = "the document id", in = ParameterIn.PATH),
-                    @Parameter(name = "routing", description = "routing key if not a root document", in = ParameterIn.QUERY),
+                    @Parameter(name = "routing", description = "routing key if not a root document", in = ParameterIn.QUERY)
             }
     )
     @ApiResponse(responseCode = "200", description = "JSON containing pages indices parameters",  useReturnTypeSchema = true)
@@ -196,13 +195,12 @@ public class DocumentResource {
             parameters = {
                     @Parameter(name = "project", description = "the project id", in = ParameterIn.PATH),
                     @Parameter(name = "id", description = "the document id", in = ParameterIn.PATH),
-                    @Parameter(name = "routing", description = "routing key if not a root document", in = ParameterIn.QUERY),
-                    @Parameter(name = "ocr", description = "enable OCR when extracting pages (default: true)", in = ParameterIn.QUERY)
+                    @Parameter(name = "routing", description = "routing key if not a root document", in = ParameterIn.QUERY)
             }
     )
     @ApiResponse(responseCode = "200", description = "JSON containing text pages array",  useReturnTypeSchema = true)
     @Get("/:project/documents/content/pages/:id?routing=:routing")
-    public List<String> getContentByPage(final String project, final String id, final String routing, final String ocr) throws IOException {
+    public List<String> getContentByPage(final String project, final String id, final String routing) throws IOException {
         Document doc = indexer.get(project, id, routing, List.of("content","content_translated"));
         final Extractor extractor = getExtractor(doc);
         if(doc.getOcrParser() == null){
