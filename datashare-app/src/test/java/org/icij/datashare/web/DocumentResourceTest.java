@@ -453,7 +453,7 @@ public class DocumentResourceTest extends AbstractProdWebServerTest {
         String path = getClass().getResource("/docs/embedded_doc.eml").getPath();
         mockIndexer.indexFile("local-datashare",
                 "0b1d64039d870e3a067027ff2c321ee238bb39bbf2598ed8aa77016156bfad59",
-                Paths.get(path), "application/pdf", "id_eml", Map.of("tika_metadata_resourcename", "embedded.pdf","ocr_parser","tesseract"));
+                Paths.get(path), "application/pdf", "id_eml", Map.of("tika_metadata_resourcename", "embedded.pdf", "ocr_parser","tesseract"));
 
         get("/api/local-datashare/documents/pages/0b1d64039d870e3a067027ff2c321ee238bb39bbf2598ed8aa77016156bfad59?routing=id_eml")
                 .withClient(client -> client.readTimeout (60, TimeUnit.SECONDS))
@@ -500,7 +500,7 @@ public class DocumentResourceTest extends AbstractProdWebServerTest {
         String path = getClass().getResource("/docs/embedded_doc.eml").getPath();
         mockIndexer.indexFile("local-datashare",
                 "0b1d64039d870e3a067027ff2c321ee238bb39bbf2598ed8aa77016156bfad59",
-                Paths.get(path), "application/pdf", "id_eml", Map.of("tika_metadata_resourcename", "embedded.pdf","ocr_parser","tesseract"));
+                Paths.get(path), "application/pdf", "id_eml", Map.of("tika_metadata_resourcename", "embedded.pdf", "ocr_parser","tesseract"));
 
         Response response = get("/api/local-datashare/documents/content/pages/0b1d64039d870e3a067027ff2c321ee238bb39bbf2598ed8aa77016156bfad59?routing=id_eml").response();
         assertThat(response.code()).isEqualTo(200);
