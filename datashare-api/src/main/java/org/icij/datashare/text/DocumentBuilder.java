@@ -29,7 +29,6 @@ public class DocumentBuilder {
     private Document.Status documentStatus;
     private Date extractionDate;
     private Long contentLength;
-    private String ocrParser;
 
     private DocumentBuilder() {}
     public static DocumentBuilder createDoc() {
@@ -55,7 +54,6 @@ public class DocumentBuilder {
         this.pipelines = new HashSet<>();
         this.project = project("prj");
         this.tags = new HashSet<>();
-        this.ocrParser = null;
         return this;
     }
 
@@ -137,7 +135,8 @@ public class DocumentBuilder {
         return this;
     }
     public DocumentBuilder withOcrParser(String ocrParser) {
-        this.ocrParser = ocrParser;
+        this.metadata = new HashMap<>(this.metadata);
+        this.metadata.put("ocr_parser", ocrParser);
         return this;
     }
 
@@ -148,7 +147,7 @@ public class DocumentBuilder {
         return new Document(project, id, path, content, content_translated, language,
                 charset, contentType, metadata, documentStatus,
                 pipelines, extractionDate, parentId, rootId, extractionLevel,
-                contentLength, tags, ocrParser);
+                contentLength, tags);
     }
 
 }
