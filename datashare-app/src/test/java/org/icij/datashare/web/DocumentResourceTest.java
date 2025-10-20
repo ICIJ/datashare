@@ -510,6 +510,7 @@ public class DocumentResourceTest extends AbstractProdWebServerTest {
         assertThat(json.get(0)).contains("HEAVY\nMETAL");
         assertThat(json.get(1)).contains("HEAVY\nMETAL");
     }
+
     @Test
     public void test_get_pages_of_document_without_OCR() throws JsonProcessingException {
         String path = getClass().getResource("/docs/embedded_doc.eml").getPath();
@@ -524,7 +525,6 @@ public class DocumentResourceTest extends AbstractProdWebServerTest {
         assertThat(json).hasSize(2);
         assertThat(json.get(0)).contains("");
         assertThat(json.get(1)).contains("");
-
     }
 
 }

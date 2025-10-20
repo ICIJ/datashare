@@ -7,6 +7,7 @@ import org.icij.datashare.text.*;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.text.indexing.LanguageGuesser;
 import org.icij.extract.document.TikaDocument;
+import org.icij.extract.ocr.OCRParser;
 import org.icij.extract.queue.DocumentQueue;
 import org.icij.spewer.FieldNames;
 import org.icij.spewer.Spewer;
@@ -97,7 +98,7 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
                 .withContentLength(Long.parseLong(ofNullable(document.getMetadata().get(CONTENT_LENGTH)).orElse("-1")))
                 .with(charset)
                 .withExtractionLevel(level)
-                .withOcrParser(document.getMetadata().get("ocr:parser"));
+                .withOcrParser(document.getMetadata().get(OCRParser.OCR_PARSER));
 
         String content = toString(document.getReader()).trim();
         if (maxContentLength != -1 && content.length() > maxContentLength) {

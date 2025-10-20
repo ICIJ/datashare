@@ -218,7 +218,7 @@ public class SourceExtractorTest {
     private static ElasticsearchIndexer indexDocument(Map<String, Object> properties, Path path, Map<String, Object> spewerProperties) throws IOException {
         Options<String> options = Options.from(properties);
         DocumentFactory tikaFactory = new DocumentFactory().configure(options);
-        Extractor extractor = new Extractor(tikaFactory,options);
+        Extractor extractor = new Extractor(tikaFactory, options);
 
         final TikaDocument document = extractor.extract(path);
         ElasticsearchIndexer indexer = createIndexer(TEST_INDEX);
