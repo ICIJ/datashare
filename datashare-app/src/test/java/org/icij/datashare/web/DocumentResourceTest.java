@@ -3,7 +3,6 @@ package org.icij.datashare.web;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import net.codestory.rest.Response;
-import okhttp3.OkHttpClient;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Repository;
 import org.icij.datashare.db.JooqRepository;
@@ -28,7 +27,6 @@ import org.slf4j.event.Level;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -43,7 +41,6 @@ import static java.util.Arrays.asList;
 import static java.util.stream.Stream.of;
 import static org.fest.assertions.Assertions.assertThat;
 import static org.icij.datashare.cli.DatashareCliOptions.ARTIFACT_DIR_OPT;
-import static org.icij.datashare.cli.DatashareCliOptions.OCR_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.EMBEDDED_DOCUMENT_DOWNLOAD_MAX_SIZE_OPT;
 import static org.icij.datashare.text.DocumentBuilder.createDoc;
 import static org.icij.datashare.text.Project.project;
@@ -54,9 +51,7 @@ import static org.mockito.Mockito.anyString;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.MockitoAnnotations.initMocks;
-import org.mockito.ArgumentCaptor;
 
 public class DocumentResourceTest extends AbstractProdWebServerTest {
     @Rule public TemporaryFolder temp = new TemporaryFolder();
@@ -453,7 +448,22 @@ public class DocumentResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
-    public void test_get_page_indices() {
+    public void test_get_page_indices_of_document_with_OCR() {
+        when(propertiesProvider.get(ARTIFACT_DIR_OPT)).thenReturn(Optional.empty());
+        String path = getClass().getResource("/docs/embedded_doc.eml").getPath();
+        mockIndexer.indexFile("local-datashare",
+                "0b1d64039d870e3a067027ff2c321ee238bb39bbf2598ed8aa77016156bfad59",
+                Paths.get(path), "application/pdf", "id_eml", Map.of("tika_metadata_resourcename", "embedded.pdf","ocr_parser","tesseract"));
+
+        get("/api/local-datashare/documents/pages/0b1d64039d870e3a067027ff2c321ee238bb39bbf2598ed8aa77016156bfad59?routing=id_eml")
+                .withClient(client -> client.readTimeout (60, TimeUnit.SECONDS))
+                .should().respond(200)
+                .haveType("application/json")
+                .contain("[[0,16],[17,33]]");
+    }
+
+    @Test
+    public void test_get_page_indices_of_document_without_OCR() {
         when(propertiesProvider.get(ARTIFACT_DIR_OPT)).thenReturn(Optional.empty());
         String path = getClass().getResource("/docs/embedded_doc.eml").getPath();
         mockIndexer.indexFile("local-datashare",
@@ -464,7 +474,7 @@ public class DocumentResourceTest extends AbstractProdWebServerTest {
                 .withClient(client -> client.readTimeout (60, TimeUnit.SECONDS))
                 .should().respond(200)
                 .haveType("application/json")
-                .contain("[[0,16],[17,33]]");
+                .contain("[[0,1],[2,3]]");
     }
 
     @Test
@@ -486,11 +496,11 @@ public class DocumentResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
-    public void test_get_pages() throws JsonProcessingException {
+    public void test_get_pages_of_document_with_OCR() throws JsonProcessingException {
         String path = getClass().getResource("/docs/embedded_doc.eml").getPath();
         mockIndexer.indexFile("local-datashare",
                 "0b1d64039d870e3a067027ff2c321ee238bb39bbf2598ed8aa77016156bfad59",
-                Paths.get(path), "application/pdf", "id_eml", Map.of("tika_metadata_resourcename", "embedded.pdf"));
+                Paths.get(path), "application/pdf", "id_eml", Map.of("tika_metadata_resourcename", "embedded.pdf","ocr_parser","tesseract"));
 
         Response response = get("/api/local-datashare/documents/content/pages/0b1d64039d870e3a067027ff2c321ee238bb39bbf2598ed8aa77016156bfad59?routing=id_eml").response();
         assertThat(response.code()).isEqualTo(200);
@@ -501,34 +511,13 @@ public class DocumentResourceTest extends AbstractProdWebServerTest {
         assertThat(json.get(1)).contains("HEAVY\nMETAL");
     }
     @Test
-    public void test_get_pages_ocr_enabled() throws JsonProcessingException {
+    public void test_get_pages_of_document_without_OCR() throws JsonProcessingException {
         String path = getClass().getResource("/docs/embedded_doc.eml").getPath();
         mockIndexer.indexFile("local-datashare",
                 "0b1d64039d870e3a067027ff2c321ee238bb39bbf2598ed8aa77016156bfad59",
                 Paths.get(path), "application/pdf", "id_eml", Map.of("tika_metadata_resourcename", "embedded.pdf"));
 
-        Response response = get("/api/local-datashare/documents/content/pages/0b1d64039d870e3a067027ff2c321ee238bb39bbf2598ed8aa77016156bfad59?routing=id_eml&ocr=true").response();
-        assertThat(response.code()).isEqualTo(200);
-        assertThat(response.contentType()).isEqualTo("application/json;charset=UTF-8");
-        List<String> json = JsonObjectMapper.MAPPER.readValue(response.content(), new TypeReference<>() {});
-        assertThat(json).hasSize(2);
-        assertThat(json.get(0)).contains("HEAVY\nMETAL");
-        assertThat(json.get(1)).contains("HEAVY\nMETAL");
-
-        ArgumentCaptor<Properties> captor = ArgumentCaptor.forClass(Properties.class);
-        verify(propertiesProvider, atLeastOnce()).createMerged(captor.capture());
-        boolean found = captor.getAllValues().stream().anyMatch(p -> "true".equals(p.getProperty(OCR_OPT)));
-        assertThat(found).isTrue();
-    }
-
-    @Test
-    public void test_get_pages_ocr_disabled() throws JsonProcessingException {
-        String path = getClass().getResource("/docs/embedded_doc.eml").getPath();
-        mockIndexer.indexFile("local-datashare",
-                "0b1d64039d870e3a067027ff2c321ee238bb39bbf2598ed8aa77016156bfad59",
-                Paths.get(path), "application/pdf", "id_eml", Map.of("tika_metadata_resourcename", "embedded.pdf"));
-
-        Response response = get("/api/local-datashare/documents/content/pages/0b1d64039d870e3a067027ff2c321ee238bb39bbf2598ed8aa77016156bfad59?routing=id_eml&ocr=false").response();
+        Response response = get("/api/local-datashare/documents/content/pages/0b1d64039d870e3a067027ff2c321ee238bb39bbf2598ed8aa77016156bfad59?routing=id_eml").response();
         assertThat(response.code()).isEqualTo(200);
         assertThat(response.contentType()).isEqualTo("application/json;charset=UTF-8");
         List<String> json = JsonObjectMapper.MAPPER.readValue(response.content(), new TypeReference<>() {});
@@ -536,9 +525,6 @@ public class DocumentResourceTest extends AbstractProdWebServerTest {
         assertThat(json.get(0)).contains("");
         assertThat(json.get(1)).contains("");
 
-        ArgumentCaptor<Properties> captor = ArgumentCaptor.forClass(Properties.class);
-        verify(propertiesProvider, atLeastOnce()).createMerged(captor.capture());
-        boolean found = captor.getAllValues().stream().anyMatch(p -> "false".equals(p.getProperty(OCR_OPT)));
-        assertThat(found).isTrue();
     }
+
 }

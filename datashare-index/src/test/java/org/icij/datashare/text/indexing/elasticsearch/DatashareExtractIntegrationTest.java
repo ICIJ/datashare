@@ -60,7 +60,8 @@ public class DatashareExtractIntegrationTest {
         assertThat(doc.getContentEncoding()).isEqualTo(StandardCharsets.ISO_8859_1);
         assertThat(doc.getContentType()).isEqualTo("text/plain");
         assertThat(doc.getExtractionLevel()).isEqualTo((short) 0);
-        assertThat(doc.getMetadata()).hasSize(10);
+        assertThat(doc.getMetadata()).hasSize(11);
+        assertThat(doc.getOcrParser()).isNull();
         assertThat(doc.getParentDocument()).isNull();
         assertThat(doc.getRootDocument()).isEqualTo(doc.getId());
         assertThat(doc.getCreationDate()).isNull();
@@ -77,6 +78,7 @@ public class DatashareExtractIntegrationTest {
         assertThat(doc).isNotNull();
         assertThat(doc.getId()).isNotEqualTo(doc.getRootDocument());
         assertThat(doc.getRootDocument()).isEqualTo(tikaDocument.getId());
+        assertThat(doc.getOcrParser()).isEqualTo("org.apache.tika.parser.ocr.TesseractOCRParser");
         assertThat(doc.getCreationDate()).isNotNull();
         assertThat(new SimpleDateFormat("HH:mm:ss").format(doc.getCreationDate())).isEqualTo("23:22:36");
     }

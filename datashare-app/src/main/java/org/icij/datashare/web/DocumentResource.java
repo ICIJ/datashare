@@ -173,14 +173,16 @@ public class DocumentResource {
                     @Parameter(name = "project", description = "the project id", in = ParameterIn.PATH),
                     @Parameter(name = "id", description = "the document id", in = ParameterIn.PATH),
                     @Parameter(name = "routing", description = "routing key if not a root document", in = ParameterIn.QUERY),
-                    @Parameter(name = "ocr", description = "enable OCR when extracting pages (default: true)", in = ParameterIn.QUERY)
             }
     )
     @ApiResponse(responseCode = "200", description = "JSON containing pages indices parameters",  useReturnTypeSchema = true)
-    @Get("/:project/documents/pages/:id?routing=:routing&ocr=:ocr")
-    public PageIndices getPages(final String project, final String id, final String routing, final String ocr) throws IOException {
+    @Get("/:project/documents/pages/:id?routing=:routing")
+    public PageIndices getPages(final String project, final String id, final String routing) throws IOException {
         Document doc = indexer.get(project, id, routing, List.of("content","content_translated"));
-        final Extractor extractor = getExtractor(doc, ocr == null ? null : parseBoolean(ocr));
+        final Extractor extractor = getExtractor(doc);
+        if(doc.getOcrParser() == null){
+            extractor.disableOcr();
+        }
         if (doc.isRootDocument()) {
             return extractor.extractPageIndices(doc.getPath(), metadata -> true, doc.getId());
         } else {
@@ -199,10 +201,13 @@ public class DocumentResource {
             }
     )
     @ApiResponse(responseCode = "200", description = "JSON containing text pages array",  useReturnTypeSchema = true)
-    @Get("/:project/documents/content/pages/:id?routing=:routing&ocr=:ocr")
+    @Get("/:project/documents/content/pages/:id?routing=:routing")
     public List<String> getContentByPage(final String project, final String id, final String routing, final String ocr) throws IOException {
         Document doc = indexer.get(project, id, routing, List.of("content","content_translated"));
-        final Extractor extractor = getExtractor(doc, ocr == null ? null : parseBoolean(ocr));
+        final Extractor extractor = getExtractor(doc);
+        if(doc.getOcrParser() == null){
+            extractor.disableOcr();
+        }
         if (doc.isRootDocument()) {
             return extractor.extractPages(doc.getPath());
         } else {
@@ -462,15 +467,12 @@ public class DocumentResource {
     }
 
     @NotNull
-    private Extractor getExtractor(Document doc, Boolean ocr) {
+    private Extractor getExtractor(Document doc) {
         Hasher hasher = Hasher.valueOf(doc.getId().length());
         DocumentFactory documentFactory = new DocumentFactory().configure(org.icij.task.Options.from(Map.of("digestAlgorithm", hasher.toString())));
         // we need to set the embedOutput from the project
         Properties props = new Properties() {{
             ofNullable(getArtifactPath(doc.getProject())).ifPresent(p -> put("embedOutput", p));
-            if (ocr != null) {
-                put(DatashareCliOptions.OCR_OPT, String.valueOf(ocr));
-            }
         }};
         Properties merged = propertiesProvider.createMerged(props);
         org.icij.task.Options<String> options = org.icij.task.Options.from(merged);

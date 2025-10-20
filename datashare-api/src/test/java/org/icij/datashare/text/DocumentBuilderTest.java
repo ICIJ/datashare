@@ -1,15 +1,14 @@
 package org.icij.datashare.text;
 
 import static org.fest.assertions.Assertions.assertThat;
+import static org.fest.assertions.MapAssert.entry;
 import static org.icij.datashare.text.nlp.Pipeline.Type.CORENLP;
 
 import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.time.Instant;
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
+
 import org.junit.Test;
 
 public class DocumentBuilderTest {
@@ -61,7 +60,7 @@ public class DocumentBuilderTest {
         assertThat(doc.getStatus()).isEqualTo(status);
         assertThat(doc.getExtractionDate()).isEqualTo(extractionDate);
         assertThat(doc.getContentTranslated()).isEqualTo(contentTranslated);
-        assertThat(doc.getMetadata()).isEqualTo(metadata);
+        assertThat(doc.getMetadata()).includes(entry("some", "metadata"));
         assertThat(doc.getOcrParser()).isEqualTo(ocrParser);
     }
 }

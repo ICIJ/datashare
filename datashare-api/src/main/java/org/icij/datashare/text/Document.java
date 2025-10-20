@@ -105,7 +105,6 @@ public class Document implements Entity, DocumentMetadataConstants {
     private final Status status;
     private final Set<Pipeline.Type> nerTags;
     private final Set<Tag> tags;
-    private final String ocrParser;
 
     @IndexParent
     private final String parentDocument;
@@ -114,7 +113,7 @@ public class Document implements Entity, DocumentMetadataConstants {
 
 
     Document(Project project, String id, Path filePath, String content, Language language, Charset charset, String mimetype, Map<String, Object> metadata, Status status, Set<Pipeline.Type> nerTags, Date extractionDate, String parentDocument, String rootDocument, Short extractionLevel, Long contentLength) {
-        this(project, id, filePath, content,null, language, extractionDate, charset, mimetype, extractionLevel, metadata, status, nerTags, parentDocument, rootDocument, contentLength, new HashSet<>(), null);
+        this(project, id, filePath, content,null, language, extractionDate, charset, mimetype, extractionLevel, metadata, status, nerTags, parentDocument, rootDocument, contentLength, new HashSet<>());
     }
 
     Document(Project project, String id, Path filePath, String content, List<Map<String,String>> content_translated, Language language, Charset charset,
@@ -124,7 +123,7 @@ public class Document implements Entity, DocumentMetadataConstants {
         this(project, id, filePath, content, content_translated, language, extractionDate, charset,
                 contentType, extractionLevel, metadata, status, nerTags,
                 parentDocument, rootDocument, contentLength,
-                tags, null);
+                tags);
     }
 
     Document(Project project, String id, Path filePath, String content, List<Map<String,String>> content_translated, Language language, Charset charset,
@@ -134,7 +133,7 @@ public class Document implements Entity, DocumentMetadataConstants {
         this(project, id, filePath, content, content_translated, language, extractionDate, charset,
                 contentType, extractionLevel, metadata, status, nerTags,
                 parentDocument, rootDocument, contentLength,
-                tags, ocrParser);
+                tags);
     }
 
     @JsonCreator
@@ -150,8 +149,7 @@ public class Document implements Entity, DocumentMetadataConstants {
                      @JsonProperty("parentDocument") String parentDocument,
                      @JsonProperty("rootDocument") String rootDocument,
                      @JsonProperty("contentLength") Long contentLength,
-                     @JsonProperty("tags") Set<Tag> tags,
-                     @JsonProperty("ocrParser") String ocrParser) {
+                     @JsonProperty("tags") Set<Tag> tags) {
         this.id = id;
         this.project = project;
         this.path = path;
@@ -170,7 +168,6 @@ public class Document implements Entity, DocumentMetadataConstants {
         this.parentDocument = parentDocument;
         this.rootDocument = rootDocument;
         this.tags = tags;
-        this.ocrParser = ocrParser;
     }
 
     static String getHash(Project project, Path path) {
@@ -201,7 +198,9 @@ public class Document implements Entity, DocumentMetadataConstants {
     public Status getStatus() { return status;}
     public Set<Pipeline.Type> getNerTags() { return nerTags;}
     public Set<Tag> getTags() { return tags;}
-    public String getOcrParser() { return ocrParser; }
+    public String getOcrParser() {
+        return (String) ofNullable(metadata).orElse(new HashMap<>()).get("ocr_parser");
+    }
 
     public Date getCreationDate() {
         String creationDate = (String) ofNullable(metadata).orElse(new HashMap<>()).get("tika_metadata_dcterms_created");
