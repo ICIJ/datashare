@@ -9,9 +9,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 
 import static org.fest.assertions.Assertions.assertThat;
-import static org.junit.Assert.*;
 import static org.mockito.ArgumentCaptor.forClass;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.MockitoAnnotations.initMocks;

@@ -2,7 +2,6 @@ package org.icij.datashare.web;
 
 import org.icij.datashare.PluginService;
 import org.icij.datashare.PropertiesProvider;
-import org.icij.datashare.Repository;
 import org.icij.datashare.db.JooqRepository;
 import org.icij.datashare.session.LocalUserFilter;
 import org.icij.datashare.web.testhelpers.AbstractProdWebServerTest;

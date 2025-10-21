@@ -44,7 +44,6 @@ import org.icij.extract.document.DocumentFactory;
 import org.icij.extract.extractor.EmbeddedDocumentExtractor;
 import org.icij.extract.extractor.Extractor;
 import org.icij.extract.extractor.PageIndices;
-import org.icij.task.DefaultTask;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -66,7 +65,6 @@ import static java.util.Arrays.stream;
 import static java.util.Optional.ofNullable;
 import static net.codestory.http.errors.NotFoundException.notFoundIfNull;
 import static net.codestory.http.payload.Payload.ok;
-import static org.icij.datashare.cli.DatashareCliOptions.ARTIFACT_DIR_OPT;
 import static org.icij.datashare.text.Project.isAllowed;
 import static org.icij.datashare.text.Project.project;
 

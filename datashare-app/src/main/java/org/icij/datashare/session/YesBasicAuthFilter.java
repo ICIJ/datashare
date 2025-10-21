@@ -6,7 +6,6 @@ import net.codestory.http.security.User;
 import net.codestory.http.security.Users;
 import org.icij.datashare.PropertiesProvider;
 
-import java.util.Arrays;
 import java.util.HashMap;
 
 import static java.util.Collections.singletonList;

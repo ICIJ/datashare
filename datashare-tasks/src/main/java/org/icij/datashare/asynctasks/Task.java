@@ -1,4 +1,4 @@
-    package org.icij.datashare.asynctasks;
+package org.icij.datashare.asynctasks;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;

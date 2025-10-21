@@ -7,13 +7,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import ch.qos.logback.classic.Level;
 
-import java.io.IOException;
 import java.nio.charset.Charset;
-
-import static java.lang.Integer.parseInt;
-import static java.util.Optional.ofNullable;
-import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_TASK_WORKERS;
-import static org.icij.datashare.cli.DatashareCliOptions.TASK_WORKERS_OPT;
 
 public class Main {
     private static final Logger LOGGER = LoggerFactory.getLogger(Main.class);

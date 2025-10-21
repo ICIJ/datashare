@@ -1,6 +1,5 @@
 package org.icij.datashare.text.nlp.corenlp.models;
 
-import static java.util.Arrays.asList;
 import static org.icij.datashare.text.Language.CHINESE;
 import static org.icij.datashare.text.Language.ENGLISH;
 import static org.icij.datashare.text.Language.FRENCH;

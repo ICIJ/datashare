@@ -1,8 +1,5 @@
 package org.icij.datashare.asynctasks;
 
-import java.util.HashSet;
-import java.util.Optional;
-import java.util.Set;
 import java.util.stream.Stream;
 import org.apache.commons.lang3.NotImplementedException;
 import org.icij.datashare.PropertiesProvider;

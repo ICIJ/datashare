@@ -9,7 +9,6 @@ import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Stage;
 import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.asynctasks.TaskGroup;
-import org.icij.datashare.cli.DatashareCliOptions;
 import org.icij.datashare.extract.DocumentCollectionFactory;
 import org.icij.extract.Scanner;
 import org.icij.extract.ScannerVisitor;

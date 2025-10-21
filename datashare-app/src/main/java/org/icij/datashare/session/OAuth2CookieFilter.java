@@ -20,7 +20,6 @@ import net.codestory.http.filters.auth.CookieAuthFilter;
 import net.codestory.http.payload.Payload;
 import net.codestory.http.security.SessionIdStore;
 import net.codestory.http.security.User;
-import net.codestory.http.security.Users;
 import org.icij.datashare.PropertiesProvider;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;

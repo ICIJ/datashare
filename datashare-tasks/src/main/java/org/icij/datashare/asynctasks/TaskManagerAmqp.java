@@ -1,10 +1,6 @@
 package org.icij.datashare.asynctasks;
 
-import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
 import java.util.function.Consumer;
 import org.icij.datashare.asynctasks.bus.amqp.*;
 

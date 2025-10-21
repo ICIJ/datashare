@@ -1,6 +1,5 @@
 package org.icij.datashare.utils;
 
-
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.junit.Test;

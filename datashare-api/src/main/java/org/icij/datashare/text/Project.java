@@ -3,13 +3,11 @@ package org.icij.datashare.text;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import org.icij.datashare.Entity;
 
 import java.net.InetSocketAddress;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Date;
-import java.util.Objects;
 import java.util.regex.Pattern;
 
 import static com.fasterxml.jackson.annotation.JsonCreator.Mode.DELEGATING;

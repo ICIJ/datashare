@@ -3,7 +3,6 @@ package org.icij.datashare;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import org.icij.datashare.text.Document;
-import org.icij.datashare.text.Project;
 import org.icij.datashare.text.ProjectProxy;
 import org.icij.datashare.time.DatashareTime;
 import org.icij.datashare.user.User;

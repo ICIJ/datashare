@@ -3,7 +3,6 @@ package org.icij.datashare.batch;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.databind.JsonNode;
 import org.icij.datashare.text.Project;
 import org.icij.datashare.text.indexing.SearchQuery;

@@ -10,7 +10,6 @@ import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.db.JooqRepository;
 import org.icij.datashare.text.Project;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.stream.Collectors;
 

@@ -1,12 +1,9 @@
 package org.icij.datashare.text;
 
-import org.icij.datashare.text.Project;
 import org.junit.Test;
 
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Date;
-import java.util.Iterator;
 
 import static org.fest.assertions.Assertions.assertThat;
 

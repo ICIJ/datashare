@@ -1,7 +1,5 @@
 package org.icij.datashare.text.nlp.corenlp.models;
 
-import java.nio.file.Path;
-import org.icij.datashare.text.Language;
 import org.junit.Test;
 
 import static org.fest.assertions.Assertions.assertThat;

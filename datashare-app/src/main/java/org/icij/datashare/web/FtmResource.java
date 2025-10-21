@@ -5,17 +5,12 @@ import com.google.inject.Singleton;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.enums.ParameterIn;
-import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import net.codestory.http.annotations.Get;
 import net.codestory.http.annotations.Prefix;
-import org.icij.datashare.Entity;
 import org.icij.datashare.ftm.FtmDocument;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.indexing.Indexer;
-
-import java.util.Objects;
 
 import static java.util.Optional.ofNullable;
 import static net.codestory.http.errors.NotFoundException.notFoundIfNull;

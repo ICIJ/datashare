@@ -4,7 +4,6 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.function.Predicate;
 import org.icij.datashare.asynctasks.NackException;
-import org.icij.datashare.function.ThrowingConsumer;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;

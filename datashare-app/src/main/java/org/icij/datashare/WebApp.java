@@ -1,9 +1,7 @@
 package org.icij.datashare;
 
 import static java.lang.Boolean.parseBoolean;
-import static java.lang.Double.parseDouble;
 import static java.lang.Integer.parseInt;
-import static java.lang.String.valueOf;
 import static org.icij.datashare.cli.DatashareCliOptions.BROWSER_OPEN_LINK_OPT;
 
 import java.awt.Desktop;
@@ -11,34 +9,16 @@ import java.io.IOException;
 import java.net.Socket;
 import java.net.URI;
 import java.util.Map;
-import java.util.Properties;
 import net.codestory.http.WebServer;
 import org.icij.datashare.asynctasks.TaskAlreadyExists;
 import org.icij.datashare.asynctasks.TaskManager;
-import org.icij.datashare.asynctasks.TaskSupplier;
-import org.icij.datashare.asynctasks.TaskWorkerLoop;
 import org.icij.datashare.batch.BatchSearch;
 import org.icij.datashare.batch.BatchSearchRecord;
 import org.icij.datashare.batch.BatchSearchRepository;
-import org.icij.datashare.cli.DatashareCli;
-import org.icij.datashare.cli.Mode;
-import org.icij.datashare.cli.QueueType;
 import org.icij.datashare.mode.CommonMode;
 import org.icij.datashare.tasks.BatchSearchRunner;
-import org.icij.datashare.tasks.DatashareTaskFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.List;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.stream.IntStream;
-
-import static java.util.Optional.ofNullable;
-import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_TASK_PROGRESS_INTERVAL_SECONDS;
-import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_TASK_WORKERS;
-import static org.icij.datashare.cli.DatashareCliOptions.TASK_PROGRESS_INTERVAL_OPT;
-import static org.icij.datashare.cli.DatashareCliOptions.TASK_WORKERS_OPT;
 
 public class WebApp {
     private static final Logger LOGGER = LoggerFactory.getLogger(WebApp.class);

@@ -18,7 +18,6 @@ import java.util.HashMap;
 import static java.lang.String.format;
 import static java.util.Arrays.asList;
 import static java.util.Optional.ofNullable;
-import static org.fest.assertions.Assertions.assertThat;
 import static org.icij.datashare.test.JarUtil.createJar;
 
 @RunWith(Parameterized.class)

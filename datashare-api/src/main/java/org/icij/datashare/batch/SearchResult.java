@@ -4,12 +4,10 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import org.icij.datashare.text.PathSerializer;
-import org.icij.datashare.text.Project;
 import org.icij.datashare.text.ProjectProxy;
 
 import java.nio.file.Path;
 import java.util.Date;
-import java.util.List;
 import java.util.Objects;
 
 public class SearchResult {
