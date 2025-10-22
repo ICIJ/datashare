@@ -50,13 +50,12 @@ public class TaskErrorTest {
     public void test_json_serialize_deserialize_task_error() throws Exception {
         RuntimeException throwable = new RuntimeException("this is an error", new RuntimeException("this is the cause"));
         TaskError taskError = new TaskError(throwable);
-        ObjectMapper jsonMapper = JsonObjectMapper.MAPPER;
-        String jsonError = jsonMapper.writeValueAsString(taskError);
+        String jsonError = JsonObjectMapper.writeValueAsString(taskError);
         assertThat(jsonError).contains("\"@type\":\"TaskError\"");
         assertThat(jsonError).contains("this is an error");
         assertThat(jsonError).contains("this is the cause");
 
-        TaskError deserializedTaskError = jsonMapper.readValue(jsonError, new TypeReference<>() {});
+        TaskError deserializedTaskError = JsonObjectMapper.readValue(jsonError, new TypeReference<>() {});
         assertThat(deserializedTaskError).isEqualTo(taskError);
     }
 }

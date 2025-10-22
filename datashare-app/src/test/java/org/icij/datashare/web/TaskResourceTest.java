@@ -16,6 +16,7 @@ import org.icij.datashare.batch.BatchSearchRepository;
 import org.icij.datashare.cli.Mode;
 import org.icij.datashare.db.JooqRepository;
 import org.icij.datashare.extension.PipelineRegistry;
+import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.nlp.EmailPipeline;
 import org.icij.datashare.session.LocalUserFilter;
 import org.icij.datashare.tasks.*;
@@ -46,7 +47,6 @@ import static org.icij.datashare.PropertiesProvider.REPORT_NAME_OPT;
 import static org.icij.datashare.asynctasks.Task.State.DONE;
 import static org.icij.datashare.asynctasks.Task.State.RUNNING;
 import static org.icij.datashare.cli.DatashareCliOptions.TASK_MANAGER_POLLING_INTERVAL_OPT;
-import static org.icij.datashare.json.JsonObjectMapper.MAPPER;
 import static org.icij.datashare.session.DatashareUser.singleUser;
 import static org.icij.datashare.text.Project.project;
 import static org.icij.datashare.user.User.local;
@@ -241,12 +241,12 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         post("/api/task/batchUpdate/index/" + getClass().getResource("/docs/embedded_doc.eml").getPath().substring(1),
                 "{\"options\":{\"reportName\": \"foo2\"}}").should().haveType("application/json");
 
-        List<Map<String, Object>> jsonTasks = MAPPER.readValue(get("/api/task/all").response().content(), new TypeReference<>() {});
+        List<Map<String, Object>> jsonTasks = JsonObjectMapper.readValue(get("/api/task/all").response().content(), new TypeReference<>() {});
         assertThat(jsonTasks).hasSize(4);
 
-        List<Map<String, Object>> twoFirst = MAPPER.readValue(get("/api/task/all?size=2").response().content(), new TypeReference<>() {});
+        List<Map<String, Object>> twoFirst = JsonObjectMapper.readValue(get("/api/task/all?size=2").response().content(), new TypeReference<>() {});
         assertThat(twoFirst).hasSize(2);
-        List<Map<String, Object>> twoLast = MAPPER.readValue(get("/api/task/all?size=2&from=2").response().content(), new TypeReference<>() {});
+        List<Map<String, Object>> twoLast = JsonObjectMapper.readValue(get("/api/task/all?size=2&from=2").response().content(), new TypeReference<>() {});
         assertThat(twoLast).hasSize(2);
         assertThat(twoFirst).isNotEqualTo(twoLast);
     }
@@ -255,9 +255,9 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
     public void test_get_all_tasks_sorted() throws Exception {
         post("/api/task/batchUpdate/index/" + getClass().getResource("/docs/doc.txt").getPath().substring(1),
                 "{\"options\":{\"reportName\": \"foo\"}}").should().haveType("application/json");
-        assertThat(MAPPER.readValue(get("/api/task/all").response().content(), new TypeReference<List<Map<String, Object>>>() {}).stream()
+        assertThat(JsonObjectMapper.readValue(get("/api/task/all").response().content(), new TypeReference<List<Map<String, Object>>>() {}).stream()
                 .map(t -> t.get("name")).toList()).isEqualTo(List.of("org.icij.datashare.tasks.IndexTask", "org.icij.datashare.tasks.ScanTask"));
-        assertThat(MAPPER.readValue(get("/api/task/all?order=desc").response().content(), new TypeReference<List<Map<String, Object>>>() {}).stream()
+        assertThat(JsonObjectMapper.readValue(get("/api/task/all?order=desc").response().content(), new TypeReference<List<Map<String, Object>>>() {}).stream()
                 .map(t -> t.get("name")).toList()).isEqualTo(List.of("org.icij.datashare.tasks.ScanTask", "org.icij.datashare.tasks.IndexTask"));
     }
 
@@ -595,7 +595,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         Response response = post("/api/task/batchDownload", "{\"options\":{ \"projectIds\":[\"test-datashare\"], \"query\": \"*\" }}").response();
 
         assertThat(response.contentType()).startsWith("application/json");
-        TaskResource.TaskResponse taskResponse = MAPPER.readValue(response.content(), TaskResource.TaskResponse.class);
+        TaskResource.TaskResponse taskResponse = JsonObjectMapper.readValue(response.content(), TaskResource.TaskResponse.class);
         assertThat(taskManager.getTask(taskResponse.taskId())).isNotNull();
     }
 
@@ -604,7 +604,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         Response response = post("/api/task/batchDownload", "{\"options\":{ \"projectIds\":[\"project1\", \"project2\"], \"query\": \"*\" }}").response();
 
         assertThat(response.contentType()).startsWith("application/json");
-        TaskResource.TaskResponse taskResponse = MAPPER.readValue(response.content(), TaskResource.TaskResponse.class);
+        TaskResource.TaskResponse taskResponse = JsonObjectMapper.readValue(response.content(), TaskResource.TaskResponse.class);
         assertThat(taskManager.getTask(taskResponse.taskId())).isNotNull();
     }
 
@@ -613,7 +613,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         Response response = post("/api/task/batchDownload", "{\"options\":{ \"projectIds\":[\"test-datashare\"], \"query\": \"*\", \"uri\": \"/an%20url-encoded%20uri\" }}").response();
 
         assertThat(response.contentType()).startsWith("application/json");
-        TaskResource.TaskResponse taskResponse = MAPPER.readValue(response.content(), TaskResource.TaskResponse.class);
+        TaskResource.TaskResponse taskResponse = JsonObjectMapper.readValue(response.content(), TaskResource.TaskResponse.class);
         assertThat(taskManager.getTask(taskResponse.taskId())).isNotNull();
     }
 
@@ -622,7 +622,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         Response response = post("/api/task/batchDownload", "{\"options\":{ \"projectIds\":[\"test-datashare\"], \"query\": {\"match_all\":{}} }}").response();
 
         assertThat(response.contentType()).startsWith("application/json");
-        TaskResource.TaskResponse taskResponse = MAPPER.readValue(response.content(), TaskResource.TaskResponse.class);
+        TaskResource.TaskResponse taskResponse = JsonObjectMapper.readValue(response.content(), TaskResource.TaskResponse.class);
         assertThat(taskManager.getTask(taskResponse.taskId())).isNotNull();
     }
 

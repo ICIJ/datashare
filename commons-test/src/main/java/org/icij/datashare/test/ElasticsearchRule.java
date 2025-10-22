@@ -59,7 +59,7 @@ public class ElasticsearchRule extends ExternalResource {
         RestClient rest = RestClient.builder(elasticHost)
                 .setHttpClientConfigCallback(xElasticProductCallback)
                 .build();
-        client = new ElasticsearchClient(new RestClientTransport(rest, new JacksonJsonpMapper(JsonObjectMapper.MAPPER)));
+        client = new ElasticsearchClient(new RestClientTransport(rest, new JacksonJsonpMapper(JsonObjectMapper.getMapper())));
     }
 
     @Override

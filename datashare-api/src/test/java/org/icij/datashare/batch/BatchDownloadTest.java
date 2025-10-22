@@ -76,13 +76,13 @@ public class BatchDownloadTest {
         DatashareTime.getInstance().setMockDate("2021-07-07T14:53:47Z");
         BatchDownload bd = new BatchDownload(asList(project("prj1"),
                 project("prj2")),  local(), "query", null ,tmpPath ,false);
-        String json = JsonObjectMapper.MAPPER.writeValueAsString(bd);
+        String json = JsonObjectMapper.writeValueAsString(bd);
         assertThat(json).contains("\"filename\":\"file://"+ tmpPath + "/archive_local_2021-07-07T14_53_47Z%5BGMT%5D.zip\"");
         assertThat(json).contains("\"exists\":true");
         assertThat(bd.getExists()).isTrue();
 
         if(tempFile.delete()){
-            String jsonWithFileDeleted = JsonObjectMapper.MAPPER.writeValueAsString(bd);
+            String jsonWithFileDeleted = JsonObjectMapper.writeValueAsString(bd);
             assertThat(jsonWithFileDeleted).contains("\"exists\":false");
             assertThat(bd.getExists()).isFalse();
         }
@@ -112,12 +112,12 @@ public class BatchDownloadTest {
     public void test_serialize_deserialize() throws Exception {
         DatashareTime.getInstance().setMockDate("2021-07-07T14:53:47Z");
 
-        String json = JsonObjectMapper.MAPPER.writeValueAsString(new BatchDownload(asList(project("prj1"),
+        String json = JsonObjectMapper.writeValueAsString(new BatchDownload(asList(project("prj1"),
                 project("prj2")), local(), "query"));
         assertThat(json).contains("\"filename\":\"file:///tmp/archive_local_2021-07-07T14_53_47Z%5BGMT%5D.zip\"");
         assertThat(json).contains("\"exists\":false");
 
-        BatchDownload batchDownload = JsonObjectMapper.MAPPER.readValue(json, BatchDownload.class);
+        BatchDownload batchDownload = JsonObjectMapper.readValue(json, BatchDownload.class);
         assertThat(batchDownload).isNotNull();
     }
 

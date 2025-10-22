@@ -4,6 +4,8 @@ import java.io.IOException;
 import java.io.Serializable;
 import java.util.Optional;
 import java.util.stream.Stream;
+
+import org.icij.datashare.json.JsonObjectMapper;
 import org.redisson.Redisson;
 import org.redisson.RedissonMap;
 import org.redisson.api.RedissonClient;
@@ -16,7 +18,7 @@ public class TaskRepositoryRedis extends RedissonMap<String, TaskMetadata<?>> im
     }
 
     public TaskRepositoryRedis(RedissonClient redisson, String name) {
-        super(new TaskManagerRedis.RedisCodec<>(TaskMetadata.class, TYPE_INCLUSION_MAPPER), new CommandSyncService(((Redisson) redisson).getConnectionManager(), new RedissonObjectBuilder(redisson)),
+        super(new TaskManagerRedis.RedisCodec<>(TaskMetadata.class, JsonObjectMapper.getMapper()), new CommandSyncService(((Redisson) redisson).getConnectionManager(), new RedissonObjectBuilder(redisson)),
                 name, redisson, null, null);
     }
 

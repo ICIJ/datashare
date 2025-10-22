@@ -61,7 +61,6 @@ import static java.lang.String.format;
 import static java.util.Arrays.stream;
 import static java.util.Optional.ofNullable;
 import static java.util.stream.Collectors.toList;
-import static org.icij.datashare.json.JsonObjectMapper.MAPPER;
 import static org.icij.datashare.json.JsonObjectMapper.getJson;
 import static org.icij.datashare.json.JsonObjectMapper.getParent;
 import static org.icij.datashare.json.JsonObjectMapper.getRoot;
@@ -299,7 +298,7 @@ public class ElasticsearchIndexer implements Indexer {
                     .build();
             GetResponse<ObjectNode> resp = client.get(req, ObjectNode.class);
             if (resp.found()) {
-                Map<String, Object> sourceAsMap = MAPPER.readValue(MAPPER.writeValueAsString(resp.source()), new TypeReference<>() {});
+                Map<String, Object> sourceAsMap = JsonObjectMapper.readValue(JsonObjectMapper.writeValueAsString(resp.source()), new TypeReference<>() {});
                 sourceAsMap.put("rootDocument", ofNullable(resp.routing()).orElse(id));
                 type = (String) sourceAsMap.get(esCfg.docTypeField);
                 Class<T> tClass = (Class<T>) Class.forName("org.icij.datashare.text." + type);
@@ -401,7 +400,7 @@ public class ElasticsearchIndexer implements Indexer {
         InlineScript script = searchQueryOccurrencesScript(query, targetLanguage);
         Map<String, Object> pagination = getPagination(routing, sourceBuilder, script);;
         SearchedText searchedText;
-        List<Integer> l = MAPPER.convertValue(pagination.get("offsets"), new TypeReference<>() {});
+        List<Integer> l = JsonObjectMapper.convertValue(pagination.get("offsets"), new TypeReference<>() {});
         int[] offsets = l.stream().mapToInt(i-> i).toArray();
         if (targetLanguage != null){
             searchedText = new SearchedText(
@@ -426,7 +425,7 @@ public class ElasticsearchIndexer implements Indexer {
             throw new IllegalArgumentException("Document not found");
         }
         ArrayList<Map<String,Object>> tHitsPaginationArray = tHits.get(0).fields().get("pagination")
-                .to(MAPPER.getTypeFactory().constructCollectionType(ArrayList.class, Map.class));
+                .to(JsonObjectMapper.constructCollectionType(ArrayList.class, Map.class));
         Map<String,Object> pagination = tHitsPaginationArray.get(0);
         if(pagination.get("error") != null ){
             int code= ((Integer)pagination.get("code"));

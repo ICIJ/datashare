@@ -496,7 +496,7 @@ public class DocumentResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
-    public void test_get_pages_of_document_with_OCR() throws JsonProcessingException {
+    public void test_get_pages_of_document_with_OCR() throws IOException {
         String path = getClass().getResource("/docs/embedded_doc.eml").getPath();
         mockIndexer.indexFile("local-datashare",
                 "0b1d64039d870e3a067027ff2c321ee238bb39bbf2598ed8aa77016156bfad59",
@@ -505,14 +505,14 @@ public class DocumentResourceTest extends AbstractProdWebServerTest {
         Response response = get("/api/local-datashare/documents/content/pages/0b1d64039d870e3a067027ff2c321ee238bb39bbf2598ed8aa77016156bfad59?routing=id_eml").response();
         assertThat(response.code()).isEqualTo(200);
         assertThat(response.contentType()).isEqualTo("application/json;charset=UTF-8");
-        List<String> json = JsonObjectMapper.MAPPER.readValue(response.content(), new TypeReference<>() {});
+        List<String> json = JsonObjectMapper.readValue(response.content(), new TypeReference<>() {});
         assertThat(json).hasSize(2);
         assertThat(json.get(0)).contains("HEAVY\nMETAL");
         assertThat(json.get(1)).contains("HEAVY\nMETAL");
     }
 
     @Test
-    public void test_get_pages_of_document_without_OCR() throws JsonProcessingException {
+    public void test_get_pages_of_document_without_OCR() throws IOException {
         String path = getClass().getResource("/docs/embedded_doc.eml").getPath();
         mockIndexer.indexFile("local-datashare",
                 "0b1d64039d870e3a067027ff2c321ee238bb39bbf2598ed8aa77016156bfad59",
@@ -521,7 +521,7 @@ public class DocumentResourceTest extends AbstractProdWebServerTest {
         Response response = get("/api/local-datashare/documents/content/pages/0b1d64039d870e3a067027ff2c321ee238bb39bbf2598ed8aa77016156bfad59?routing=id_eml").response();
         assertThat(response.code()).isEqualTo(200);
         assertThat(response.contentType()).isEqualTo("application/json;charset=UTF-8");
-        List<String> json = JsonObjectMapper.MAPPER.readValue(response.content(), new TypeReference<>() {});
+        List<String> json = JsonObjectMapper.readValue(response.content(), new TypeReference<>() {});
         assertThat(json).hasSize(2);
         assertThat(json.get(0)).contains("");
         assertThat(json.get(1)).contains("");

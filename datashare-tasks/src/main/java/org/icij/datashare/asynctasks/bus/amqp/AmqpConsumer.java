@@ -131,7 +131,7 @@ public class AmqpConsumer<Evt extends Event, EvtConsumer extends Consumer<Evt>> 
 
     public Evt deserialize(byte[] rawJson) {
         try {
-            return JsonObjectMapper.MAPPER.readValue(rawJson, evtClass);
+            return JsonObjectMapper.readValue(rawJson, evtClass);
         } catch (IOException e) {
             throw new DeserializeException(e);
         }

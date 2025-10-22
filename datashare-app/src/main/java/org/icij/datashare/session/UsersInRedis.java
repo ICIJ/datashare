@@ -3,7 +3,7 @@ package org.icij.datashare.session;
 import com.google.inject.Inject;
 import net.codestory.http.security.User;
 import org.icij.datashare.PropertiesProvider;
-import org.icij.datashare.json.JsonUtils;
+import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.text.Hasher;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
@@ -49,7 +49,7 @@ public class UsersInRedis implements UsersWritable {
     public boolean saveOrUpdate(User user) {
         try (Jedis jedis = redis.getResource()) {
             Transaction transaction = jedis.multi();
-            transaction.set(user.login(), JsonUtils.serialize(((DatashareUser)user).details));
+            transaction.set(user.login(), JsonObjectMapper.serialize(((DatashareUser)user).details));
             transaction.expire(user.login(), this.ttl);
             List<Object> exec = transaction.exec();
             return exec.size() == 2;

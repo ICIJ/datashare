@@ -1,7 +1,6 @@
 package org.icij.datashare.nlp;
 
 import static org.fest.assertions.Assertions.assertThat;
-import static org.icij.datashare.json.JsonObjectMapper.MAPPER;
 import static org.icij.datashare.utils.ProcessHandler.dumpPid;
 import static org.junit.Assert.assertThrows;
 
@@ -12,8 +11,11 @@ import java.nio.file.Path;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
+
+import com.fasterxml.jackson.core.type.TypeReference;
 import org.icij.datashare.ExtensionService;
 import org.icij.datashare.PropertiesProvider;
+import org.icij.datashare.json.JsonObjectMapper;
 import org.junit.After;
 import org.junit.Test;
 
@@ -55,7 +57,7 @@ public class PythonNlpWorkerPoolTest {
         if (!p.waitFor(timeout, unit)) {
             throw new AssertionError("failed to get process output in less than " + timeout + unit.name().toLowerCase());
         }
-        Map<String, Object> output = (Map<String, Object>) MAPPER.readValue(p.getInputStream().readAllBytes(), Map.class);
+        Map<String, Object> output = JsonObjectMapper.readValue(p.getInputStream().readAllBytes(), new TypeReference<>(){});
         assertThat(output.get("n_workers")).isEqualTo(6);
         assertThat((String) output.get("config_file")).contains("datashare-extension-nlp-spacy-config-");
     }

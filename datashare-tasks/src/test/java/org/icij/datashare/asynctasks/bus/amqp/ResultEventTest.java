@@ -14,13 +14,12 @@ public class ResultEventTest {
         RuntimeException throwable = new RuntimeException("this is an error", new RuntimeException("this is the cause"));
         ErrorEvent taskError = new ErrorEvent("task_id", new TaskError(throwable));
 
-        ObjectMapper jsonMapper = JsonObjectMapper.MAPPER;
-        String jsonError = jsonMapper.writeValueAsString(taskError);
+        String jsonError = JsonObjectMapper.writeValueAsString(taskError);
         assertThat(jsonError).contains("\"@type\":\"TaskError\"");
         assertThat(jsonError).contains("this is an error");
         assertThat(jsonError).contains("this is the cause");
 
-        ErrorEvent deserializedTaskErrorEvent = jsonMapper.readValue(jsonError, new TypeReference<>() {});
+        ErrorEvent deserializedTaskErrorEvent = JsonObjectMapper.readValue(jsonError, new TypeReference<>() {});
         assertThat(deserializedTaskErrorEvent.error).isEqualTo(taskError.error);
         assertThat(deserializedTaskErrorEvent.taskId).isEqualTo(taskError.taskId);
     }
@@ -29,10 +28,9 @@ public class ResultEventTest {
     public void test_json_serialize_deserialize_result_event_int() throws Exception {
         ResultEvent<Integer> intResult = new ResultEvent<>("task_id", new TaskResult<>(12));
 
-        ObjectMapper jsonMapper = JsonObjectMapper.MAPPER;
-        String jsonResult = jsonMapper.writeValueAsString(intResult);
+        String jsonResult = JsonObjectMapper.writeValueAsString(intResult);
 
-        ResultEvent<Integer> deserializedIntResult = jsonMapper.readValue(jsonResult, new TypeReference<>() {});
+        ResultEvent<Integer> deserializedIntResult = JsonObjectMapper.readValue(jsonResult, new TypeReference<>() {});
         assertThat(deserializedIntResult.result).isEqualTo(intResult.result);
         assertThat(deserializedIntResult.taskId).isEqualTo(intResult.taskId);
     }

@@ -15,7 +15,7 @@ public class NoteTest {
     @Test
     public void serialize_note() throws JsonProcessingException {
         Note note = new Note(Project.project("foo"), Paths.get("toto/tata"),"This is a test");
-        assertThat(JsonObjectMapper.MAPPER.writeValueAsString(note))
+        assertThat(JsonObjectMapper.writeValueAsString(note))
                 .contains("\"name\":\"foo\"")
                 .contains("\"label\":\"foo\"")
                 .contains("\"sourcePath\":\"file:///vault/foo\"")
@@ -26,7 +26,7 @@ public class NoteTest {
 
     @Test
     public void deserialize_note() throws IOException {
-        Note note = JsonObjectMapper.MAPPER.readValue("{\"project\":{\"name\":\"project\",\"sourcePath\":\"file:///vault/foo\",\"id\":\"foo\"},\"note\":\"This is a test\",\"path\":\"toto/tata\",\"variant\":\"info\", \"blurSensitiveMedia\":false}", Note.class);
+        Note note = JsonObjectMapper.readValue("{\"project\":{\"name\":\"project\",\"sourcePath\":\"file:///vault/foo\",\"id\":\"foo\"},\"note\":\"This is a test\",\"path\":\"toto/tata\",\"variant\":\"info\", \"blurSensitiveMedia\":false}", Note.class);
         assertThat(note.path.toString()).isEqualTo("toto/tata");
         assertThat(note.project.getId()).isEqualTo("project");
         assertThat(note.note).isEqualTo("This is a test");

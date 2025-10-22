@@ -23,7 +23,7 @@ public class DocumentUserRecommendationTest {
 
         DocumentUserRecommendation recommendation = new DocumentUserRecommendation(document, project, user);
 
-        assertThat(JsonObjectMapper.MAPPER.writeValueAsString(recommendation))
+        assertThat(JsonObjectMapper.writeValueAsString(recommendation))
                 .contains("\"name\":\"uber-files\"")
                 .contains("\"id\":\"foo\"")
                 .contains("\"id\":\"bar\"");
@@ -32,7 +32,7 @@ public class DocumentUserRecommendationTest {
     @Test
     public void deserialize_document_user_recommendation() throws IOException {
         String json = "{\"project\":\"uber-files\",\"user\":{\"id\":\"bar\",\"name\":\"Jane Doe\",\"details\":{}},\"document\":{\"id\":\"foo\"}}";
-        DocumentUserRecommendation recomendation = JsonObjectMapper.MAPPER.readValue(json, DocumentUserRecommendation.class);
+        DocumentUserRecommendation recomendation = JsonObjectMapper.readValue(json, DocumentUserRecommendation.class);
         assertThat(recomendation.project.getId()).isEqualTo("uber-files");
         assertThat(recomendation.document.getId()).isEqualTo("foo");
         assertThat(recomendation.user.getId()).isEqualTo("bar");

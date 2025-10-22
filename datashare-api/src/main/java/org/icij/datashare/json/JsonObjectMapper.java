@@ -1,12 +1,19 @@
 package org.icij.datashare.json;
 
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import com.fasterxml.jackson.core.JsonFactory;
+import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.StreamReadConstraints;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.JavaType;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.jsontype.NamedType;
 import com.fasterxml.jackson.databind.jsontype.TypeResolverBuilder;
 import com.fasterxml.jackson.databind.jsontype.impl.LaissezFaireSubTypeValidator;
+import com.fasterxml.jackson.databind.type.CollectionType;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.fasterxml.jackson.module.paramnames.ParameterNamesModule;
 import org.icij.datashare.Entity;
@@ -15,10 +22,10 @@ import org.icij.datashare.text.indexing.IndexParent;
 import org.icij.datashare.text.indexing.IndexRoot;
 import org.icij.datashare.text.indexing.IndexType;
 
+import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Field;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 import static com.fasterxml.jackson.annotation.JsonAutoDetect.Visibility.ANY;
 import static com.fasterxml.jackson.annotation.PropertyAccessor.FIELD;
@@ -39,7 +46,8 @@ import static com.fasterxml.jackson.annotation.PropertyAccessor.FIELD;
 public class JsonObjectMapper {
 
     // JSON - Object mapper
-    public static final ObjectMapper MAPPER = new ObjectMapper();
+    private static final ObjectMapper MAPPER = new ObjectMapper();
+    private static final ObjectMapper TYPE_INCLUSION_MAPPER;
 
     public static final int MAX_NESTING_DEPTH = 20;
 
@@ -48,22 +56,31 @@ public class JsonObjectMapper {
     public static final int MAX_STRING_LENGTH = 1000000000;
 
     static {
-        // Handle Optional and other JDK 8 only features
-        MAPPER.registerModule(new Jdk8Module());
-        // Avoid annotations on domain entities by
-        // using compiled methods' metadata
-        MAPPER.registerModule(new ParameterNamesModule());
-        //  Making domain entities' private fields visible to Jackson
-        MAPPER.setVisibility(FIELD, ANY);
-        MAPPER.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-        MAPPER.getFactory().setStreamReadConstraints(StreamReadConstraints.builder()
-                .maxNestingDepth(MAX_NESTING_DEPTH)
-                .maxNumberLength(MAX_NUMBER_LENGTH)
-                .maxStringLength(MAX_STRING_LENGTH).build());
+        synchronized (JsonObjectMapper.class) {
+            // Handle Optional and other JDK 8 only features
+            MAPPER.registerModule(new Jdk8Module());
+            // Avoid annotations on domain entities by
+            // using compiled methods' metadata
+            MAPPER.registerModule(new ParameterNamesModule());
+            //  Making domain entities' private fields visible to Jackson
+            MAPPER.setVisibility(FIELD, ANY);
+            MAPPER.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+            MAPPER.getFactory().setStreamReadConstraints(StreamReadConstraints.builder()
+                    .maxNestingDepth(MAX_NESTING_DEPTH)
+                    .maxNumberLength(MAX_NUMBER_LENGTH)
+                    .maxStringLength(MAX_STRING_LENGTH).build());
+            TYPE_INCLUSION_MAPPER = MAPPER.copy();
+            TypeResolverBuilder<?> mapTyper = new ObjectMapper.DefaultTypeResolverBuilder(
+                    ObjectMapper.DefaultTyping.NON_FINAL, LaissezFaireSubTypeValidator.instance)
+                    .init(JsonTypeInfo.Id.CLASS, null)
+                    .typeProperty("@type")
+                    .inclusion(JsonTypeInfo.As.PROPERTY);
+            TYPE_INCLUSION_MAPPER.setDefaultTyping(mapTyper);
+        }
     }
 
     /**
-     * Get JSON representation (as a Map) of an Object instance
+     * Get JSON representation (as a Map) of an Obsject instance
      *
      * @param obj the object to convert to JSON
      * @param <T> the concrete type of entity
@@ -72,8 +89,8 @@ public class JsonObjectMapper {
     public static <T extends Entity> Map<String, Object> getJson(T obj) {
         String json;
         try {
-            json = MAPPER.writeValueAsString(obj);
-            return MAPPER.readValue(json, new TypeReference<HashMap<String, Object>>(){});
+            json = TYPE_INCLUSION_MAPPER.writeValueAsString(obj);
+            return TYPE_INCLUSION_MAPPER.readValue(json, new TypeReference<HashMap<String, Object>>(){});
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -98,28 +115,10 @@ public class JsonObjectMapper {
 
     public static <T extends Entity> T getObject(Map<String, Object> source, Class<T> type) {
         try {
-            return MAPPER.readValue(MAPPER.writeValueAsString(source), type);
+            return TYPE_INCLUSION_MAPPER.readValue(TYPE_INCLUSION_MAPPER.writeValueAsString(source), type);
         } catch (IOException e) {
             throw new IllegalArgumentException("cannot deserialize object map " + source, e);
         }
-    }
-
-    /**
-     * Get a type inclusion mapper i.e. a mapper that adds the class value in JSON.
-     * An attribute "@type" is added for each object.
-     * It is used for example to serialize/deserialize exceptions.
-     *
-     * @return ObjectMapper instance
-     */
-    public static ObjectMapper createTypeInclusionMapper() {
-        ObjectMapper defaultMapper = MAPPER.copy();
-        TypeResolverBuilder<?> mapTyper = new ObjectMapper.DefaultTypeResolverBuilder(
-                ObjectMapper.DefaultTyping.NON_FINAL, LaissezFaireSubTypeValidator.instance)
-                .init(JsonTypeInfo.Id.CLASS, null)
-                .typeProperty("@type")
-                .inclusion(JsonTypeInfo.As.PROPERTY);
-        defaultMapper.setDefaultTyping(mapTyper);
-        return defaultMapper;
     }
 
     /**
@@ -198,5 +197,120 @@ public class JsonObjectMapper {
             }
         }
         return null;
+    }
+
+    public static JsonNode readTree(byte[] rawJson) throws IOException {
+        return TYPE_INCLUSION_MAPPER.readTree(rawJson);
+    }
+
+    public static boolean isValidJson(String json) {
+        try {
+            TYPE_INCLUSION_MAPPER.readTree(json);
+        } catch (IOException e) {
+            return false;
+        }
+        return true;
+    }
+
+    public static Map<String, Object> deserialize(String jsonMap) {
+        try {
+            return new ObjectMapper().readValue(jsonMap, new TypeReference<HashMap<String, Object>>() {});
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public static String serialize(Map<String, Object> map) {
+        try {
+            return new ObjectMapper().writeValueAsString(map);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    /**
+     * this should not be called except for initialization (Elasticsearch, Redis, ...)
+     * to avoid side effects.
+     *
+     * prefer using delegating methods from this class.
+     * @return ObjectMapper
+     */
+    public static ObjectMapper getMapper() {
+        return MAPPER;
+    }
+
+    /**
+     * this should not be called except for initialization (Elasticsearch, Redis, ...)
+     * to avoid side effects.
+     *
+     * prefer using delegating methods from this class.
+     * @return
+     */
+    public static ObjectMapper getTypeInclusionMapper() {
+        return TYPE_INCLUSION_MAPPER;
+    }
+
+    public static void registerSubtypes(NamedType... classesToRegister) {
+        TYPE_INCLUSION_MAPPER.registerSubtypes(classesToRegister);
+    }
+
+    public static byte[] writeValueAsBytes(Class<?> clazz) throws JsonProcessingException {
+        return TYPE_INCLUSION_MAPPER.writeValueAsBytes(clazz);
+    }
+
+    public static byte[] writeValueAsBytes(Object obj) throws JsonProcessingException {
+        return TYPE_INCLUSION_MAPPER.writeValueAsBytes(obj);
+    }
+
+    public static <T> T readValue(byte[] rawJson, Class<T> type) throws IOException {
+        return MAPPER.readValue(rawJson, type);
+    }
+
+    public static <T> T readValue(byte[] rawJson, TypeReference<T> type) throws IOException {
+        return TYPE_INCLUSION_MAPPER.readValue(rawJson, type);
+    }
+
+    public static <T> T readValue(String rawJson, TypeReference<T> type) throws IOException {
+        return TYPE_INCLUSION_MAPPER.readValue(rawJson, type);
+    }
+
+    public static <T> T readValue(String rawJson, Class<T> type) throws IOException {
+        return MAPPER.readValue(rawJson, type);
+    }
+
+    public static <T> T readValueTyped(String rawJson, Class<T> type) throws IOException {
+        return TYPE_INCLUSION_MAPPER.readValue(rawJson, type);
+    }
+
+    public static <T> T readValue(String rawJson, JavaType type) throws IOException {
+        return TYPE_INCLUSION_MAPPER.readValue(rawJson, type);
+    }
+
+    public static String writeValueAsString(Object obj) throws JsonProcessingException {
+        return MAPPER.writeValueAsString(obj);
+    }
+
+    public static String writeValueAsStringTyped(Object obj) throws JsonProcessingException {
+        return TYPE_INCLUSION_MAPPER.writeValueAsString(obj);
+    }
+
+    public static CollectionType constructCollectionType(Class<? extends Collection> arrayListClass, Class<?> mapClass) {
+        return TYPE_INCLUSION_MAPPER.getTypeFactory().constructCollectionType(arrayListClass, mapClass);
+    }
+
+    public static <T> T convertValue(Object obj, TypeReference<T> typeReference) {
+        return TYPE_INCLUSION_MAPPER.convertValue(obj, typeReference);
+    }
+
+    public static JsonFactory getFactory() {
+        return TYPE_INCLUSION_MAPPER.getFactory();
+    }
+
+    public static void writeValue(File file, Object obj) throws IOException {
+        TYPE_INCLUSION_MAPPER.writeValue(file, obj);
+    }
+
+    public static JavaType constructParametricType(Class<?> parametrized, Class<?> parameterClass) {
+        return TYPE_INCLUSION_MAPPER.getTypeFactory().constructParametricType(parametrized, parameterClass);
     }
 }

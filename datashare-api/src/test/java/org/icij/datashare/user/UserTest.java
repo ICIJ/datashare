@@ -33,7 +33,7 @@ public class UserTest {
 
     @Test
     public void test_local_user_with_mapper() throws Exception {
-        User user = JsonObjectMapper.MAPPER.readValue("{\"id\":\"local\",\"name\":null,\"email\":null,\"provider\":\"test\"}", User.class);
+        User user = JsonObjectMapper.readValue("{\"id\":\"local\",\"name\":null,\"email\":null,\"provider\":\"test\"}", User.class);
         assertThat(user.provider).isEqualTo("test");
         assertThat(user.id).isEqualTo("local");
     }
