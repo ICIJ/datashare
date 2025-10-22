@@ -69,7 +69,7 @@ public class TaskTest {
                 "\"filename\":\"file:///home/dev/src/datashare/datashare-app/app/tmp/archive_local_2021-07-07T12_23_34Z%5BGMT%5D.zip\"," +
                 "\"query\":\"*\",\"uri\":null,\"user\":{\"id\":\"local\",\"name\":null,\"email\":null,\"provider\":\"local\"}," +
                 "\"encrypted\":false,\"zipSize\":0,\"exists\":false}}}";
-        Task<?> taskView = JsonObjectMapper.MAPPER.readValue(json, Task.class);
+        Task<?> taskView = JsonObjectMapper.readValue(json, Task.class);
         Assertions.assertThat(taskView.name).isEqualTo("HelloWorld");
         Assertions.assertThat(taskView.id).isEqualTo("d605de70-dc8d-429f-8b22-1cc3e9157756");
     }
@@ -77,11 +77,11 @@ public class TaskTest {
     @Test
     public void test_serialize_deserialize() throws Exception {
         Task<String> taskView = new Task<>("name", User.local(), Map.of("key", "value"));
-        String json = JsonObjectMapper.MAPPER.writeValueAsString(taskView);
+        String json = JsonObjectMapper.writeValueAsString(taskView);
         assertThat(json).contains("\"@type\":\"Task\"");
         assertThat(json).contains("\"user\":{\"@type\":\"org.icij.datashare.user.User\"");
 
-        Task<?> taskCreation = JsonObjectMapper.MAPPER.readValue(json, Task.class);
+        Task<?> taskCreation = JsonObjectMapper.readValue(json, Task.class);
         assertThat(taskCreation).isEqualTo(taskView);
         assertThat(taskCreation.createdAt).isEqualTo(taskCreation.createdAt);
     }

@@ -26,7 +26,6 @@ import static java.util.Arrays.asList;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.fest.assertions.Assertions.assertThat;
 
-
 @RunWith(Parameterized.class)
 public class TaskManagersIntTest {
     private static AmqpInterlocutor AMQP;

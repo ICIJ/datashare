@@ -47,7 +47,7 @@ public class Event implements Serializable {
 	}
 
 	public byte[] serialize() throws IOException {
-		return JsonObjectMapper.MAPPER.writeValueAsBytes(this);
+		return JsonObjectMapper.writeValueAsBytes(this);
 	}
 
 	public void setCreatedAt(Date createdAt) {

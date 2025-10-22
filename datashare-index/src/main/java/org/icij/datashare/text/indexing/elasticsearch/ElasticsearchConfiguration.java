@@ -104,7 +104,7 @@ public class ElasticsearchConfiguration {
                     .setRequestConfigCallback(requestConfigBuilder -> requestConfigBuilder
                             .setConnectTimeout(5000)
                             .setSocketTimeout(60000))
-                    .setHttpClientConfigCallback(clientConfigCallback).build(), new JacksonJsonpMapper(JsonObjectMapper.MAPPER));
+                    .setHttpClientConfigCallback(clientConfigCallback).build(), new JacksonJsonpMapper(JsonObjectMapper.getMapper()));
             ElasticsearchClient client = new ElasticsearchClient(transport);
             String clusterName = propertiesProvider.get(CLUSTER_PROP).orElse(ES_CLUSTER_NAME);
             return client;

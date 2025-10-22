@@ -390,7 +390,7 @@ public class TaskResource {
         Properties properties = applyProjectProperties(optionsWrapper);
         Path downloadDir = get(properties.getProperty(BATCH_DOWNLOAD_DIR_OPT));
         if (!downloadDir.toFile().exists()) downloadDir.toFile().mkdirs();
-        String query = options.get("query") instanceof Map ? JsonObjectMapper.MAPPER.writeValueAsString(options.get("query")): (String)options.get("query");
+        String query = options.get("query") instanceof Map ? JsonObjectMapper.writeValueAsString(options.get("query")): (String)options.get("query");
         String uri = (String) options.get("uri");
         boolean batchDownloadEncrypt = parseBoolean(properties.getOrDefault("batchDownloadEncrypt", "false").toString());
         List<String> projectIds = (List<String>) options.get("projectIds");

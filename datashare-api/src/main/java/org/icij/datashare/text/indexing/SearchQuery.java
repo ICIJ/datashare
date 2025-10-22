@@ -23,7 +23,7 @@ public class SearchQuery {
     @JsonIgnore
     public JsonNode asJson() {
         try {
-            return JsonObjectMapper.MAPPER.readTree(
+            return JsonObjectMapper.readTree(
                     ofNullable(query).orElseThrow(() -> new IllegalStateException("null query")).
                             getBytes(StandardCharsets.UTF_8));
         } catch (IOException e) { // should be a JsonParseException

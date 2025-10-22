@@ -1,6 +1,7 @@
 package org.icij.datashare.db;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import org.icij.datashare.DocumentUserRecommendation;
 import org.icij.datashare.Note;
 import org.icij.datashare.Repository;
@@ -15,7 +16,7 @@ import org.icij.datashare.db.tables.records.ProjectRecord;
 import org.icij.datashare.db.tables.records.UserHistoryProjectRecord;
 import org.icij.datashare.db.tables.records.UserHistoryRecord;
 import org.icij.datashare.db.tables.records.UserInventoryRecord;
-import org.icij.datashare.json.JsonUtils;
+import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.DocumentBuilder;
 import org.icij.datashare.text.Language;
@@ -66,7 +67,6 @@ import static org.icij.datashare.db.tables.Note.NOTE;
 import static org.icij.datashare.db.tables.Project.PROJECT;
 import static org.icij.datashare.db.tables.UserHistory.USER_HISTORY;
 import static org.icij.datashare.db.tables.UserInventory.USER_INVENTORY;
-import static org.icij.datashare.json.JsonObjectMapper.MAPPER;
 import static org.icij.datashare.text.Document.Status.fromCode;
 import static org.icij.datashare.text.Language.parse;
 import static org.icij.datashare.text.Project.project;
@@ -102,7 +102,7 @@ public class JooqRepository implements Repository {
         neList.forEach(ne -> {
             try {
                 insertQuery.values(
-                        ne.getId(), ne.getMention(), MAPPER.writeValueAsString(ne.getOffsets()), ne.getExtractor().code,
+                        ne.getId(), ne.getMention(), JsonObjectMapper.writeValueAsString(ne.getOffsets()), ne.getExtractor().code,
                         ne.getCategory().getAbbreviation(), ne.getDocumentId(), ne.getRootDocument(),
                         ne.getExtractorLanguage().iso6391Code(), ne.isHidden());
             } catch (JsonProcessingException e) {
@@ -131,7 +131,7 @@ public class JooqRepository implements Repository {
                             doc.getContentEncoding().toString(), doc.getLanguage().iso6391Code(), doc.getContentType(),
                             new Timestamp(doc.getExtractionDate().getTime()).toLocalDateTime(), doc.getParentDocument(), doc.getRootDocument(),
                             doc.getExtractionLevel(), doc.getContentLength(),
-                            MAPPER.writeValueAsString(doc.getMetadata()), doc.getNerMask()).execute();
+                            JsonObjectMapper.writeValueAsString(doc.getMetadata()), doc.getNerMask()).execute();
         } catch (JsonProcessingException e) {
             throw new RuntimeException(e);
         }
@@ -549,12 +549,12 @@ public class JooqRepository implements Repository {
         InsertOnDuplicateSetMoreStep<UserInventoryRecord> innerSet = using(connectionProvider, dialect).insertInto(
                         USER_INVENTORY, USER_INVENTORY.ID, USER_INVENTORY.EMAIL,
                         USER_INVENTORY.NAME, USER_INVENTORY.PROVIDER, USER_INVENTORY.DETAILS).
-                values(user.id, user.email, user.name, user.provider, JsonUtils.serialize(user.details)).
+                values(user.id, user.email, user.name, user.provider, JsonObjectMapper.serialize(user.details)).
                 onConflict(USER_INVENTORY.ID).
                 doUpdate().
                 set(USER_INVENTORY.EMAIL, user.email);
         return innerSet.
-                set(USER_INVENTORY.DETAILS, JsonUtils.serialize(user.details)).
+                set(USER_INVENTORY.DETAILS, JsonObjectMapper.serialize(user.details)).
                 set(USER_INVENTORY.NAME, user.name).
                 set(USER_INVENTORY.PROVIDER, user.provider).
                 execute() > 0;
@@ -675,7 +675,7 @@ public class JooqRepository implements Repository {
     private NamedEntity createFrom(NamedEntityRecord record) {
         try {
             return NamedEntity.create(NamedEntity.Category.parse(record.getCategory()),
-                    record.getMention(), MAPPER.readValue(record.getOffsets(), List.class),
+                    record.getMention(), JsonObjectMapper.readValue(record.getOffsets(), List.class),
                     record.getDocId(), record.getRootId(), Pipeline.Type.fromCode(record.getExtractor()),
                     Language.parse(record.getExtractorLanguage()));
         } catch (IOException e) {
@@ -687,8 +687,7 @@ public class JooqRepository implements Repository {
         DocumentRecord documentRecord = result.into(DOCUMENT);
         Map<String, Object> metadata;
         try {
-            // type check
-            metadata = MAPPER.readValue(documentRecord.getMetadata(), HashMap.class);
+            metadata = JsonObjectMapper.readValue(documentRecord.getMetadata(), new TypeReference<>() {});
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

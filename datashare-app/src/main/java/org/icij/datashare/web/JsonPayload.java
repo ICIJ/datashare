@@ -42,7 +42,7 @@ public class JsonPayload extends Payload {
     private static String toJson(Object content) {
         try {
             if (content == null) return "{}";
-            return JsonObjectMapper.MAPPER.writeValueAsString(content);
+            return JsonObjectMapper.writeValueAsString(content);
         } catch (JsonProcessingException e) {
             LOGGER.error("error serializing {}, returning empty object", content, e);
             return "{}";

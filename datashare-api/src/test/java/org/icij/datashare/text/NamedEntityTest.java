@@ -11,7 +11,7 @@ import static org.fest.assertions.Assertions.assertThat;
 public class NamedEntityTest {
     @Test
     public void test_serialize() throws Exception {
-        assertThat(JsonObjectMapper.MAPPER.writeValueAsString(NamedEntity.create(
+        assertThat(JsonObjectMapper.writeValueAsString(NamedEntity.create(
                 NamedEntity.Category.PERSON, "mention", asList(123L), "docId", "rootId",
                 Pipeline.Type.CORENLP, Language.ENGLISH))).
                 isEqualTo("{\"category\":\"PERSON\",\"mention\":\"mention\",\"offsets\":[123]," +
@@ -22,7 +22,7 @@ public class NamedEntityTest {
 
     @Test
     public void test_serialize_contains_mention_norm_text_length() throws Exception {
-        assertThat(JsonObjectMapper.MAPPER.writeValueAsString(NamedEntity.create(
+        assertThat(JsonObjectMapper.writeValueAsString(NamedEntity.create(
                 NamedEntity.Category.PERSON, "猫", asList(123L), "docId", "rootId",
                 Pipeline.Type.CORENLP, Language.JAPANESE)))
                     .contains("\"mentionNormTextLength\":3")
@@ -32,7 +32,7 @@ public class NamedEntityTest {
     @Test
     public void test_serialize_with_metadata() throws Exception {
         Map<String, Object> meta = Map.of("some", "metadata");
-        assertThat(JsonObjectMapper.MAPPER.writeValueAsString(NamedEntity.create(
+        assertThat(JsonObjectMapper.writeValueAsString(NamedEntity.create(
                 NamedEntity.Category.PERSON, "mention", asList(123L), "docId", "rootId",
                 Pipeline.Type.CORENLP, Language.ENGLISH, meta))).
                 isEqualTo("{\"category\":\"PERSON\",\"mention\":\"mention\",\"offsets\":[123]," +

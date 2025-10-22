@@ -7,6 +7,7 @@ import com.fasterxml.jackson.databind.jsontype.BasicPolymorphicTypeValidator;
 import org.icij.datashare.json.JsonObjectMapper;
 import org.junit.Test;
 
+import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.Date;
 import java.util.Map;
@@ -16,8 +17,8 @@ import static org.fest.assertions.Assertions.assertThat;
 
 public class PathDeserializerTest {
     @Test
-    public void test_deserialize() throws JsonProcessingException {
-        assertThat(JsonObjectMapper.MAPPER.readValue("{\"projectId\":\"prj\",\"id\":\"id\",\"path\":\"/tmp/file.txt\",\"content\":\"id\",\"language\":\"ENGLISH\",\"extractionDate\":\"2021-09-01T14:50:25.096Z\",\"contentEncoding\":\"UTF-8\",\"contentType\":\"text/plain\",\"extractionLevel\":0,\"metadata\":{},\"status\":\"INDEXED\",\"nerTags\":[],\"parentDocument\":null,\"rootDocument\":\"id\",\"contentLength\":2,\"tags\":[],\"dirname\":\"/tmp\",\"contentTextLength\":2,\"creationDate\":null}",
+    public void test_deserialize() throws IOException {
+        assertThat(JsonObjectMapper.readValue("{\"projectId\":\"prj\",\"id\":\"id\",\"path\":\"/tmp/file.txt\",\"content\":\"id\",\"language\":\"ENGLISH\",\"extractionDate\":\"2021-09-01T14:50:25.096Z\",\"contentEncoding\":\"UTF-8\",\"contentType\":\"text/plain\",\"extractionLevel\":0,\"metadata\":{},\"status\":\"INDEXED\",\"nerTags\":[],\"parentDocument\":null,\"rootDocument\":\"id\",\"contentLength\":2,\"tags\":[],\"dirname\":\"/tmp\",\"contentTextLength\":2,\"creationDate\":null}",
                 Document.class)).isNotNull();
     }
 

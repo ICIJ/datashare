@@ -4,7 +4,7 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import org.icij.datashare.Entity;
-import org.icij.datashare.json.JsonUtils;
+import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.text.Project;
 
 import java.util.ArrayList;
@@ -18,7 +18,7 @@ import java.util.stream.Collectors;
 import static java.util.Collections.singletonList;
 import static java.util.Collections.unmodifiableMap;
 import static java.util.Optional.ofNullable;
-import static org.icij.datashare.json.JsonUtils.deserialize;
+import static org.icij.datashare.json.JsonObjectMapper.deserialize;
 import static org.icij.datashare.text.StringUtils.isEmpty;
 
 public class User implements Entity, Comparable<User> {
@@ -178,7 +178,7 @@ public class User implements Entity, Comparable<User> {
 
     @JsonIgnore
     public String getJsonDetails() {
-        return JsonUtils.serialize(getDetails());
+        return JsonObjectMapper.serialize(getDetails());
     }
 
     public boolean isGranted(String projectName) {

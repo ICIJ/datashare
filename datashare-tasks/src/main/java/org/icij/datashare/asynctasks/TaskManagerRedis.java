@@ -202,7 +202,7 @@ public class TaskManagerRedis implements TaskManager {
         protected final ObjectMapper mapObjectMapper;
 
         public RedisCodec(Class<T> clazz) {
-            this(clazz, JsonObjectMapper.MAPPER);
+            this(clazz, JsonObjectMapper.getMapper());
         }
 
         public RedisCodec(Class<T> clazz, ObjectMapper objectMapper) {

@@ -24,8 +24,8 @@ import static org.icij.datashare.text.nlp.Pipeline.set;
 public class DocumentTest {
     @Test
     public void test_json_deserialize() throws Exception {
-        assertThat(JsonObjectMapper.MAPPER.writeValueAsString(createDoc("content").build())).contains("\"projectId\":\"prj\"");
-        Document d = JsonObjectMapper.MAPPER.readValue(("{\"id\":\"45a0a224c2836b4c558f3b56e2a1c69c21fcc8b3f9f4f99f2bc49946acfb28d8\"," +
+        assertThat(JsonObjectMapper.writeValueAsString(createDoc("content").build())).contains("\"projectId\":\"prj\"");
+        Document d = JsonObjectMapper.readValue(("{\"id\":\"45a0a224c2836b4c558f3b56e2a1c69c21fcc8b3f9f4f99f2bc49946acfb28d8\"," +
                         "\"path\":\"file:///home/dev/src/datashare/datashare-api/path\"," +
                         "\"dirname\":\"/home/dev/src/datashare/datashare:api/\"," +
                         "\"content\":\"content\",\"language\":\"FRENCH\"," +
@@ -41,14 +41,14 @@ public class DocumentTest {
 
     @Test
     public void test_serialize_contains_content_text_length() throws Exception {
-        assertThat(JsonObjectMapper.MAPPER.writeValueAsString(createDoc("content").build())).contains("\"contentTextLength\":7");
+        assertThat(JsonObjectMapper.writeValueAsString(createDoc("content").build())).contains("\"contentTextLength\":7");
     }
 
     @Test
     public void test_json_deserialize_path_and_dirname_with_special_chars() throws Exception {
         String path = "/dir/to/docs/shared/foo/Data/2018-05/My Administrations/TGA_BAR/htmls/responses3/3#19221-Arrow CVC SET: 3-CORP 4FR X 8CM - Qux, blah, infusion, central portal|Pouet International Inc.html";
 
-        Document document = JsonObjectMapper.MAPPER.readValue(("{\"id\":\"45a0a224c2836b4c558f3b56e2a1c69c21fcc8b3f9f4f99f2bc49946acfb28d8\"," +
+        Document document = JsonObjectMapper.readValue(("{\"id\":\"45a0a224c2836b4c558f3b56e2a1c69c21fcc8b3f9f4f99f2bc49946acfb28d8\"," +
                         "\"path\":\"" + path + "\"," +
                         "\"dirname\":\"" + get(path).getParent() + "\"," +
                         "\"content\":\"content\",\"language\":\"FRENCH\"," +
@@ -153,7 +153,7 @@ public class DocumentTest {
         List<Map<String,String>> content_translated = new ArrayList<>(){{add(english); }};
         Document doc = createDoc("name").with(content_translated).build();
         assertThat(doc.getContentTranslated()).isNotNull();
-        assertThat(JsonObjectMapper.MAPPER.writeValueAsString(doc)).contains("\"content_translated\":[{\"target_language\":\"ENGLISH\",\"content\":\"hello world\"}]");
+        assertThat(JsonObjectMapper.writeValueAsString(doc)).contains("\"content_translated\":[{\"target_language\":\"ENGLISH\",\"content\":\"hello world\"}]");
     }
 
     @Test
@@ -185,24 +185,24 @@ public class DocumentTest {
 
     @Test
     public void test_serialize_contains_content_translated() throws Exception {
-        assertThat(JsonObjectMapper.MAPPER.writeValueAsString(createDoc("content").build())).contains("\"content_translated\":[]");
+        assertThat(JsonObjectMapper.writeValueAsString(createDoc("content").build())).contains("\"content_translated\":[]");
     }
 
     @Test
     public void test_serialize_deserialize_ocr_parser() throws Exception {
         Document src = createDoc("ocrTrue").withOcrParser("Tess4j").build();
-        String json = JsonObjectMapper.MAPPER.writeValueAsString(src);
+        String json = JsonObjectMapper.writeValueAsString(src);
         assertThat(json).contains("\"ocrParser\":\"Tess4j\"");
-        Document dst = JsonObjectMapper.MAPPER.readValue(json, Document.class);
+        Document dst = JsonObjectMapper.readValue(json, Document.class);
         assertThat(dst.getOcrParser()).isEqualTo("Tess4j");
     }
 
     @Test
     public void test_serialize_deserialize_no_ocr_parser() throws Exception {
         Document src = createDoc("ocrTrue").build();
-        String json = JsonObjectMapper.MAPPER.writeValueAsString(src);
+        String json = JsonObjectMapper.writeValueAsString(src);
         assertThat(json).contains("\"ocrParser\":null");
-        Document dst = JsonObjectMapper.MAPPER.readValue(json, Document.class);
+        Document dst = JsonObjectMapper.readValue(json, Document.class);
         assertThat(dst.getOcrParser()).isNull();
     }
 }
