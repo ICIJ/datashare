@@ -85,6 +85,7 @@ public class PstMain {
 
                 // Save the message to disk in MSG format
                 // TODO: File name may contain invalid characters [\ / : * ? " < > |]
+                // ~1200 msg files for Glenda's Keepers.pst
                 message.save("extracted/" + message.getInternetMessageId() + ".msg");
             }
             processFolder(sub, personalStorage);
