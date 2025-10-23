@@ -96,6 +96,7 @@
         <guice.version>4.2.3</guice.version>
         <amazon.version>1.12.411</amazon.version>
 
+        <aws-s3.version>2.35.10</aws-s3.version>
         <extract.version>9.4.12</extract.version>
         <opennlp.version>1.6.0</opennlp.version>
         <elasticsearch.version>7.17.9</elasticsearch.version>
