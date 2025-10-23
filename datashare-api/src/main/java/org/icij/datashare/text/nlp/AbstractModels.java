@@ -1,5 +1,6 @@
 package org.icij.datashare.text.nlp;
 
+import java.io.File;
 import org.icij.datashare.DynamicClassLoader;
 import org.icij.datashare.io.RemoteFiles;
 import org.icij.datashare.text.Language;
@@ -96,11 +97,12 @@ public abstract class AbstractModels<T> {
         String remoteKey = getModelsFilesystemPath(language).toString().replace("\\", "/");
         RemoteFiles remoteFiles = getRemoteFiles();
         try {
-            if (isPresent(language) && remoteFiles.isSync(remoteKey, BASE_DIR.toFile())) {
+            File dest = isFile(remoteKey) ? BASE_DIR.resolve(remoteKey).toFile() : BASE_DIR.toFile();
+            if (isPresent(language) && remoteFiles.isSync(remoteKey, dest)) {
                 return;
             }
             LOGGER.info("downloading models for language {} under {}", language, remoteKey);
-            remoteFiles.download(remoteKey, BASE_DIR.toFile());
+            remoteFiles.download(remoteKey, dest);
             LOGGER.info("models successfully downloaded for language {}", language);
         } catch (InterruptedException | IOException e) {
             LOGGER.error("failed downloading models for {}", language, e);
@@ -108,7 +110,7 @@ public abstract class AbstractModels<T> {
             remoteFiles.shutdown();
         }
     }
-
+    
     public void unload(Language language) throws InterruptedException {
         Semaphore l = modelLock.get(language);
         l.acquire();
@@ -128,4 +130,10 @@ public abstract class AbstractModels<T> {
 
     public boolean isLoaded(Language language) { return models.containsKey(language);}
     protected RemoteFiles getRemoteFiles() { return RemoteFiles.getDefault();}
+    
+    private boolean isFile(String remoteKey) {
+        // We make the false assumption that files will have extension
+        return Path.of(remoteKey).getFileName().toString().split("\\.").length > 0;
+    }
+
 }

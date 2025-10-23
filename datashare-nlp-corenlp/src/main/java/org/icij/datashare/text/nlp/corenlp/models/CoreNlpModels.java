@@ -80,6 +80,10 @@ public class CoreNlpModels extends AbstractModels<StanfordCoreNLP> {
         return getModelsBasePath(language).resolve(getJarFileName(language));
     }
 
+    public Path getModelsFilesystemPath(Language language) {
+        return super.getModelsFilesystemPath(language).resolve(getJarFileName(language));
+    }
+
     String getJarFileName(Language language) {
         List<String> filename;
         if (language.equals(ENGLISH)) {

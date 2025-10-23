@@ -112,6 +112,9 @@ public class RemoteFiles {
             }
         } else {
             GetObjectRequest getObjectRequest = GetObjectRequest.builder().bucket(bucket).key(remoteKey).build();
+            if (!localFile.getParentFile().exists()) {
+                localFile.getParentFile().mkdirs();
+            }
             s3Client.getObject(getObjectRequest, localFile.toPath()).join();
         }
     }
