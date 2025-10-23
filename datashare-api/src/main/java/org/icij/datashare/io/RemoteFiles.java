@@ -15,6 +15,7 @@ import java.util.Map;
 import java.util.concurrent.CompletionException;
 import java.util.regex.Pattern;
 import org.slf4j.LoggerFactory;
+import software.amazon.awssdk.auth.credentials.AnonymousCredentialsProvider;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.http.nio.netty.NettyNioAsyncHttpClient;
@@ -63,10 +64,8 @@ public class RemoteFiles {
         NettyNioAsyncHttpClient.Builder httpClientBuilder = NettyNioAsyncHttpClient.builder()
             .connectionTimeout(Duration.ofMillis(CONNECTION_TIMEOUT_MS))
             .readTimeout(Duration.ofMillis(READ_TIMEOUT_MS));
-        StaticCredentialsProvider provider = StaticCredentialsProvider.create(
-            AwsBasicCredentials.builder().validateCredentials(false).build());
         S3AsyncClientBuilder s3ClientBuilder = S3AsyncClient.builder()
-            .credentialsProvider(provider)
+            .credentialsProvider(AnonymousCredentialsProvider.create())
             .httpClientBuilder(httpClientBuilder)
             .endpointOverride(URI.create(endPoint))
             .region(Region.of(S3_REGION))
