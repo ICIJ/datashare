@@ -125,7 +125,7 @@ public class JsonObjectMapper {
 
     public static <T extends Entity> T getObject(Map<String, Object> source, Class<T> type) {
         try {
-            return TYPE_INCLUSION_MAPPER.readValue(TYPE_INCLUSION_MAPPER.writeValueAsString(source), type);
+            return MAPPER.readValue(MAPPER.writeValueAsString(source), type);
         } catch (IOException e) {
             throw new IllegalArgumentException("cannot deserialize object map " + source, e);
         }
