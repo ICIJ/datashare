@@ -6,13 +6,20 @@ if [ "$#" -ne 1 ]; then
   exit 1
 fi
 
-ARTIFACT_ID=$(echo "$1" | awk -F ':' '{print $1":"$2":"$4":"$3}')
+GROUP_ID=$(echo "$1" | awk -F ':' '{print $1}')
+ARTIFACT_ID=$(echo "$1" | awk -F ':' '{print $2}')
+PACKAGING=$(echo "$1" | awk -F ':' '{print $3}')
+VERSION=$(echo "$1" | awk -F ':' '{print $4}')
+GROUP_PATH=$(echo "$GROUP_ID" | tr '.' '/')
+
+URL="https://repo1.maven.org/maven2/${GROUP_PATH}/${ARTIFACT_ID}/${VERSION}/${ARTIFACT_ID}-${VERSION}.pom"
+status_code=$(curl -s -o /dev/null -I -w "%{http_code}" "$URL")
 
 
-if mvn dependency:get -Dartifact="$ARTIFACT_ID" > /dev/null 2>&1; then
-  echo "$ARTIFACT_ID is already deployed."
+if [[ "$status_code" -eq 200 ]]; then
+  echo "$GROUP_ID:$ARTIFACT_ID:$PACKAGING:$VERSION is already deployed."
   exit 0
 else
-  echo "$ARTIFACT_ID is not deployed. Please make sure that $ARTIFACT_ID has been deployed before."
+  echo "$GROUP_ID:$ARTIFACT_ID:$PACKAGING:$VERSION is not deployed. Please make sure that it has been deployed before."
   exit 1
 fi
