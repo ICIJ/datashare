@@ -80,13 +80,23 @@ public class JsonObjectMapper {
     }
 
     /**
-     * Get JSON representation (as a Map) of an Obsject instance
+     * Get JSON representation (as a Map) of an Object instance
      *
      * @param obj the object to convert to JSON
      * @param <T> the concrete type of entity
      * @return JSON representation of {@code obj}
      */
     public static <T extends Entity> Map<String, Object> getJson(T obj) {
+        String json;
+        try {
+            json = MAPPER.writeValueAsString(obj);
+            return MAPPER.readValue(json, new TypeReference<HashMap<String, Object>>(){});
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public static <T extends Entity> Map<String, Object> getJsonTyped(T obj) {
         String json;
         try {
             json = TYPE_INCLUSION_MAPPER.writeValueAsString(obj);
@@ -271,6 +281,10 @@ public class JsonObjectMapper {
     }
 
     public static <T> T readValue(String rawJson, TypeReference<T> type) throws IOException {
+        return MAPPER.readValue(rawJson, type);
+    }
+
+    public static <T> T readValueTyped(String rawJson, TypeReference<T> type) throws IOException {
         return TYPE_INCLUSION_MAPPER.readValue(rawJson, type);
     }
 

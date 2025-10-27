@@ -13,10 +13,10 @@ import static org.icij.datashare.json.JsonObjectMapper.*;
 public class JsonObjectMapperTest {
     @Test
     public void test_type_inclusion_mapper() throws Exception {
-        String json = JsonObjectMapper.writeValueAsString(new ExceptionWrapper(new RuntimeException("hello")));
+        String json = JsonObjectMapper.writeValueAsStringTyped(new ExceptionWrapper(new RuntimeException("hello")));
         assertThat(json).contains("\"@type\":\"java.lang.RuntimeException\"");
 
-        ExceptionWrapper wrapper = JsonObjectMapper.readValue(json, ExceptionWrapper.class);
+        ExceptionWrapper wrapper = JsonObjectMapper.readValueTyped(json, ExceptionWrapper.class);
         assertThat(wrapper.throwable.getClass()).isEqualTo(RuntimeException.class);
         assertThat(wrapper.throwable.getMessage()).isEqualTo("hello");
     }

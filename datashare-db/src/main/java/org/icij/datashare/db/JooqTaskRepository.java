@@ -79,8 +79,8 @@ public class JooqTaskRepository implements TaskRepository {
         using(connectionProvider, dialect).transactionResult(configuration -> {
             TaskRecord r = using(configuration)
                 .update(TASK)
-                .set(TASK.ERROR, JsonObjectMapper.writeValueAsString(task.getError()))
-                .set(TASK.RESULT, JsonObjectMapper.writeValueAsString(task.getResult()))
+                .set(TASK.ERROR, JsonObjectMapper.writeValueAsStringTyped(task.getError()))
+                .set(TASK.RESULT, JsonObjectMapper.writeValueAsStringTyped(task.getResult()))
                 .set(TASK.STATE, task.getState().name())
                 .set(TASK.PROGRESS, task.getProgress())
                 .set(TASK.COMPLETED_AT, ofNullable(task.getCompletedAt()).map(d -> new Timestamp(d.getTime()).toLocalDateTime()).orElse(null))
@@ -143,9 +143,9 @@ public class JooqTaskRepository implements TaskRepository {
             Date createdAt = r.getCreatedAt() == null ? null : Date.from(r.getCreatedAt().atZone(ZoneId.systemDefault()).toInstant());
             Date completedAt = r.getCompletedAt() == null ? null :Date.from(r.getCompletedAt().atZone(ZoneId.systemDefault()).toInstant());
             try {
-                Map<String, Object> args = JsonObjectMapper.readValue(r.getArgs(), new TypeReference<>() {});
-                TaskResult<?> result = r.getResult() == null ? null: JsonObjectMapper.readValue(r.getResult(), new TypeReference<>() {});
-                TaskError error  = r.getError() == null ? null: JsonObjectMapper.readValue(r.getError(), TaskError.class);
+                Map<String, Object> args = JsonObjectMapper.readValueTyped(r.getArgs(), new TypeReference<>() {});
+                TaskResult<?> result = r.getResult() == null ? null: JsonObjectMapper.readValueTyped(r.getResult(), new TypeReference<>() {});
+                TaskError error  = r.getError() == null ? null: JsonObjectMapper.readValueTyped(r.getError(), TaskError.class);
                 Task<?> task = new Task<>(r.getId(), r.getName(), Task.State.valueOf(r.getState()),
                         r.getProgress(), createdAt, r.getRetriesLeft(), completedAt, args, result, error);
                 return task;
@@ -190,7 +190,7 @@ public class JooqTaskRepository implements TaskRepository {
                     new Timestamp(task.createdAt.getTime()).toLocalDateTime(),
                     ofNullable(task.getCompletedAt()).map(d -> new Timestamp(d.getTime()).toLocalDateTime()).orElse(null),
                     task.getRetriesLeft(),
-                    MAX_RETRIES_LEFT, JsonObjectMapper.writeValueAsString(task.args)); // to force writing @type fields in the hashmap
+                    MAX_RETRIES_LEFT, JsonObjectMapper.writeValueAsStringTyped(task.args)); // to force writing @type fields in the hashmap
         } catch (JsonProcessingException ex) {
             throw new RuntimeException(ex);
         }
