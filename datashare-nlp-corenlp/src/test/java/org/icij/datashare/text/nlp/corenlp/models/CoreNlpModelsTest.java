@@ -1,9 +1,9 @@
 package org.icij.datashare.text.nlp.corenlp.models;
 
-import org.junit.Test;
-
 import static org.fest.assertions.Assertions.assertThat;
 import static org.icij.datashare.text.Language.ITALIAN;
+
+import org.junit.Test;
 
 public class CoreNlpModelsTest {
     @Test

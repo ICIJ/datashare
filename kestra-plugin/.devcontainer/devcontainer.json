@@ -1,0 +1,38 @@
+{
+  "name": "plugin-template",
+  "build": {
+    "context": ".",
+    "dockerfile": "Dockerfile"
+  },
+  "workspaceFolder": "/workspaces/plugin-template",
+  "forwardPorts": [8080],
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "terminal.integrated.profiles.linux": {
+          "zsh": {
+            "path": "/bin/zsh"
+          }
+        },
+        "workbench.iconTheme": "vscode-icons",
+        "editor.tabSize": 4,
+        "editor.formatOnSave": true,
+        "files.insertFinalNewline": true,
+        "editor.defaultFormatter": "redhat.java",
+        "telemetry.telemetryLevel": "off",
+        "editor.bracketPairColorization.enabled": true,
+        "editor.guides.bracketPairs": "active"
+      },
+      "extensions": [
+        "redhat.vscode-yaml",
+        "vscode-icons-team.vscode-icons",
+        "eamodio.gitlens",
+        "oderwat.indent-rainbow",
+        "evondev.indent-rainbow-palettes",
+        "IronGeek.vscode-env",
+        "github.vscode-github-actions",
+        "vscjava.vscode-java-pack"
+      ]
+    }
+  }
+}

@@ -13,7 +13,6 @@ public class TaskFactoryHelper {
             Class<? extends Callable<?>> taskClass = (Class<? extends Callable<?>>) Class.forName(name);
             Method method = factory.getClass().getMethod(format("create%s", taskClass.getSimpleName()), Task.class, Function.class);
             taskFn = (Callable<?>) method.invoke(factory, taskView, progress);
-
         if (taskFn == null) {
             throw new NullPointerException("Task named " + name + " return a null callable");
         }

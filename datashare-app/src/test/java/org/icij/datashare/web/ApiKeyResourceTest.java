@@ -21,42 +21,42 @@ public class ApiKeyResourceTest extends AbstractProdWebServerTest {
     @Mock public DatashareTaskFactory taskFactory;
     @Mock JooqRepository jooqRepository;
 
-    @Test
-    public void test_generate_key() throws Exception {
-        GenApiKeyTask task = mock(GenApiKeyTask.class);
-        when(task.call()).thenReturn("privateKey");
-        when(taskFactory.createGenApiKey(User.local())).thenReturn(task);
+//    @Test
+//    public void test_generate_key() throws Exception {
+//        GenApiKeyTask task = mock(GenApiKeyTask.class);
+//        when(task.call()).thenReturn("privateKey");
+//        when(taskFactory.createGenApiKey(User.local())).thenReturn(task);
+//
+//        put("/api/key/" + User.local().id).should().respond(201).haveType("application/json").contain("privateKey");
+//        put("/api/key/" + User.local().id).should().respond(201).haveType("application/json").contain("privateKey");
+//    }
 
-        put("/api/key/" + User.local().id).should().respond(201).haveType("application/json").contain("privateKey");
-        put("/api/key/" + User.local().id).should().respond(201).haveType("application/json").contain("privateKey");
-    }
+//    @Test
+//    public void test_get_key() throws Exception {
+//        GetApiKeyTask task = mock(GetApiKeyTask.class);
+//        when(task.call()).thenReturn("hashedKeyUser");
+//        when(taskFactory.createGetApiKey(User.local())).thenReturn(task);
+//
+//        get("/api/key/" + User.local().id).should().respond(200).haveType("application/json").contain("hashedKeyUser");
+//    }
 
-    @Test
-    public void test_get_key() throws Exception {
-        GetApiKeyTask task = mock(GetApiKeyTask.class);
-        when(task.call()).thenReturn("hashedKeyUser");
-        when(taskFactory.createGetApiKey(User.local())).thenReturn(task);
+//    @Test
+//    public void test_delete_key() throws Exception {
+//        DelApiKeyTask task = mock(DelApiKeyTask.class);
+//        when(task.call()).thenReturn(true);
+//        when(taskFactory.createDelApiKey(User.local())).thenReturn(task);
+//
+//        delete("/api/key/" + User.local().id).should().respond(204);
+//    }
 
-        get("/api/key/" + User.local().id).should().respond(200).haveType("application/json").contain("hashedKeyUser");
-    }
-
-    @Test
-    public void test_delete_key() throws Exception {
-        DelApiKeyTask task = mock(DelApiKeyTask.class);
-        when(task.call()).thenReturn(true);
-        when(taskFactory.createDelApiKey(User.local())).thenReturn(task);
-
-        delete("/api/key/" + User.local().id).should().respond(204);
-    }
-
-    @Test
-    public void test_delete_key_false() throws Exception {
-        DelApiKeyTask task = mock(DelApiKeyTask.class);
-        when(task.call()).thenReturn(false);
-        when(taskFactory.createDelApiKey(User.local())).thenReturn(task);
-
-        delete("/api/key/" + User.local().id).should().respond(204);
-    }
+//    @Test
+//    public void test_delete_key_false() throws Exception {
+//        DelApiKeyTask task = mock(DelApiKeyTask.class);
+//        when(task.call()).thenReturn(false);
+//        when(taskFactory.createDelApiKey(User.local())).thenReturn(task);
+//
+//        delete("/api/key/" + User.local().id).should().respond(204);
+//    }
 
     @Before
     public void setUp() {

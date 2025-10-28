@@ -76,14 +76,18 @@
                 <enabled>true</enabled>
             </snapshots>
         </repository>
+        <repository>
+		    <id>jitpack.io</id>
+		    <url>https://jitpack.io</url>
+		</repository>
     </repositories>
 
     <properties>
         <maven.test.redirectTestOutputToFile>true</maven.test.redirectTestOutputToFile>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <maven.compiler.source>17</maven.compiler.source>
-        <maven.compiler.target>17</maven.compiler.target>
+        <maven.compiler.source>21</maven.compiler.source>
+        <maven.compiler.target>21</maven.compiler.target>
 
         <datashare-api.version>14.7.6</datashare-api.version>
         <datashare-cli.version>13.6.1</datashare-cli.version>
@@ -93,7 +97,7 @@
         <datashare-mitie.version>${project.version}</datashare-mitie.version>
         <datashare-elasticsearch.version>${project.version}</datashare-elasticsearch.version>
         <datashare-corenlp.version>${project.version}</datashare-corenlp.version>
-        <guice.version>4.2.3</guice.version>
+        <guice.version>5.1.0</guice.version>
         <amazon.version>1.12.411</amazon.version>
 
         <aws-s3.version>2.35.10</aws-s3.version>

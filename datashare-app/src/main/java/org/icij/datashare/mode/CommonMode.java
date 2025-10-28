@@ -296,7 +296,7 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
 
     protected abstract Routes addModeConfiguration(final Routes routes);
 
-    void configurePersistence() {
+    protected void configurePersistence() {
         RepositoryFactoryImpl repositoryFactory = new RepositoryFactoryImpl(propertiesProvider);
         bind(Repository.class).toInstance(repositoryFactory.createRepository());
         bind(ApiKeyRepository.class).toInstance(repositoryFactory.createApiKeyRepository());

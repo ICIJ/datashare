@@ -74,29 +74,29 @@ class CliApp {
             System.exit(0);
         }
 
-        if (properties.getProperty(CRE_API_KEY_OPT) != null) {
-            String userName = properties.getProperty(CRE_API_KEY_OPT);
-            String secretKey = taskFactory.createGenApiKey(localUser(userName)).call();
-            logger.info("generated secret key for user {} (store it somewhere safe, datashare cannot retrieve it later): {}", userName, secretKey);
-            System.exit(0);
-        }
-
-        if (properties.getProperty(GET_API_KEY_OPT) != null) {
-            String userName = properties.getProperty(GET_API_KEY_OPT);
-            String hashedKey = taskFactory.createGetApiKey(localUser(userName)).call();
-            if ((hashedKey == null)) {
-                logger.info("no user {} exists", userName);
-            } else {
-                logger.info("hashed key for user {} is {}", userName, hashedKey);
-            }
-            System.exit(0);
-        }
-
-        if (properties.getProperty(DEL_API_KEY_OPT) != null) {
-            String userName = properties.getProperty(DEL_API_KEY_OPT);
-            taskFactory.createDelApiKey(localUser(userName)).call();
-            System.exit(0);
-        }
+//        if (properties.getProperty(CRE_API_KEY_OPT) != null) {
+//            String userName = properties.getProperty(CRE_API_KEY_OPT);
+//            String secretKey = taskFactory.createGenApiKey(localUser(userName)).call();
+//            logger.info("generated secret key for user {} (store it somewhere safe, datashare cannot retrieve it later): {}", userName, secretKey);
+//            System.exit(0);
+//        }
+//
+//        if (properties.getProperty(GET_API_KEY_OPT) != null) {
+//            String userName = properties.getProperty(GET_API_KEY_OPT);
+//            String hashedKey = taskFactory.createGetApiKey(localUser(userName)).call();
+//            if ((hashedKey == null)) {
+//                logger.info("no user {} exists", userName);
+//            } else {
+//                logger.info("hashed key for user {} is {}", userName, hashedKey);
+//            }
+//            System.exit(0);
+//        }
+//
+//        if (properties.getProperty(DEL_API_KEY_OPT) != null) {
+//            String userName = properties.getProperty(DEL_API_KEY_OPT);
+//            taskFactory.createDelApiKey(localUser(userName)).call();
+//            System.exit(0);
+//        }
 
         PipelineHelper pipeline = new PipelineHelper(new PropertiesProvider(properties));
         logger.info("executing {}", pipeline);
