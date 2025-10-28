@@ -1,0 +1,32 @@
+namespace: org.icij.datashare
+id: scan_index_nlp_workflow
+
+inputs:
+  - id: dataDir
+    type: STRING
+    defaults: "src/test/resources/flows"
+  - id: defaultProject
+    type: STRING
+    defaults: datashare-local
+  - id: nlpPipeline
+    required: false
+    type: STRING
+  - id: maxContentLength
+    required: false
+    type: INT
+  - id: pollingInterval
+    required: false
+    type: FLOAT
+
+tasks:
+  - id: scan
+    type: org.icij.datashare.kestra.plugin.ScanTask
+    dataDir: "{{ inputs.dataDir }}"
+  - id: index
+    type: org.icij.datashare.kestra.plugin.IndexTask
+    defaultProject: "{{ inputs.defaultProject }}"
+  - id: nlp
+    type: org.icij.datashare.kestra.plugin.ExtractNlpTask
+    defaultProject: "{{ inputs.defaultProject }}"
+    maxContentLength: "{{ inputs.maxContentLength ?? null }}"
+    pollingInterval: "{{ inputs.pollingInterval ?? null }}"

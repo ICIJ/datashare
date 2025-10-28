@@ -1,0 +1,274 @@
+plugins {
+    id "com.vanniktech.maven.publish" version "0.34.0"
+    id "io.kestra.gradle.inject-bom-versions" version "1.0.0"
+    id 'java-library'
+    id "idea"
+//    id 'jacoco'
+    id "com.adarshr.test-logger" version "4.0.0"
+    id "com.gradleup.shadow" version "9.2.2"
+    id 'signing'
+    id "com.github.ben-manes.versions" version "0.53.0"
+    id 'net.researchgate.release' version '3.1.0'
+}
+
+def isBuildSnapshot = version.toString().endsWith("-SNAPSHOT")
+
+repositories {
+    mavenLocal()
+    mavenCentral()
+    if (isBuildSnapshot) {
+        maven { url "https://central.sonatype.com/repository/maven-snapshots/" }
+    }
+}
+final targetJavaVersion = JavaVersion.VERSION_21
+
+java {
+    sourceCompatibility = targetJavaVersion
+    targetCompatibility = targetJavaVersion
+}
+
+
+group = "io.kestra.plugin"
+description = 'Plugin template for Kestra'
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = "UTF-8"
+    options.compilerArgs.add("-parameters")
+}
+
+// TODO: dirty trick so that the system classloader can find corenlp downloaded models
+//afterEvaluate {
+//    sourceSets {
+//        main {
+//            resources {
+//                srcDir 'dist'
+//            }
+//        }
+//    }
+//}
+
+tasks.register('showSourceSets') {
+    doLast {
+        sourceSets.main.resources.srcDirs.each { println it }
+    }
+}
+
+
+/**********************************************************************************************************************\
+ * DS deps build
+ **********************************************************************************************************************/
+dependencies {
+    // Datashare
+    implementation "org.icij.datashare:datashare-api:$datashareApiVersion"
+    implementation "org.icij.datashare:datashare-app:$datashareVersion" // TODO: implementation really ???
+    implementation "org.icij.datashare:datashare-tasks:$datashareTaskVersion" // TODO: implementation really ???
+    implementation "org.icij.datashare:datashare-cli:$datashareCliVersion"   // TODO: implementation really ???
+    runtimeOnly "org.icij.datashare:datashare-nlp-corenlp:$datashareVersion"
+    runtimeOnly "org.icij.datashare:datashare-index:$datashareVersion"
+    runtimeOnly "org.icij.datashare:datashare-db:$datashareVersion"
+    runtimeOnly "org.icij.extract:extract-lib:$extractVersion"
+    runtimeOnly "org.liquibase:liquibase-core:$liquibaseVersion" // TODO: check why this is needed...
+    runtimeOnly "co.elastic.clients:elasticsearch-java:$elasticSearchVersion" // TODO: check why this is needed...
+
+
+    runtimeOnly "org.postgresql:postgresql:42.4.4"  // TODO: why is it needed ?
+
+
+    // Injection
+    annotationProcessor "io.micronaut:micronaut-inject-java:4.10.2" // TODO: remove if tests pass ?
+
+    implementation "com.google.inject.extensions:guice-assistedinject:$guiceVersion" // TODO: remove if tests pass ?
+
+    // TODO: remove, this shouldn't be required if so some deps is using javax instead of jakarta, we should find it
+    //  and upgrade it to a newer version, could be guice....
+    implementation "javax.inject:javax.inject:1"
+
+    // Platform
+    annotationProcessor enforcedPlatform("io.kestra:platform:$kestraVersion")
+    implementation enforcedPlatform("io.kestra:platform:$kestraVersion")
+
+    // lombok
+    annotationProcessor "org.projectlombok:lombok"
+    compileOnly "org.projectlombok:lombok"
+
+    // kestra
+    annotationProcessor group: "io.kestra", name: "processor", version: kestraVersion
+    compileOnly group: "io.kestra", name: "core", version: kestraVersion
+    compileOnly group: "io.kestra", name: "script", version: kestraVersion
+}
+
+configurations.configureEach {
+    resolutionStrategy {
+        force "co.elastic.clients:elasticsearch-java:$elasticSearchVersion"
+        force "org.elasticsearch.client:elasticsearch-rest-client:$elasticSearchVersion"
+    }
+}
+
+/**********************************************************************************************************************\
+ * Test
+ **********************************************************************************************************************/
+test {
+    useJUnitPlatform()
+}
+
+testlogger {
+    theme = "mocha-parallel"
+    showExceptions = true
+    showFullStackTraces = true
+    showStandardStreams = true
+    showPassedStandardStreams = false
+    showSkippedStandardStreams = true
+}
+
+dependencies {
+    // Platform
+    testAnnotationProcessor enforcedPlatform("io.kestra:platform:$kestraVersion")
+    testImplementation enforcedPlatform("io.kestra:platform:$kestraVersion")
+
+    // lombok
+    testAnnotationProcessor "org.projectlombok:lombok"
+    testCompileOnly 'org.projectlombok:lombok'
+
+    // micronaut
+    testAnnotationProcessor "io.micronaut:micronaut-inject-java"
+    testAnnotationProcessor "io.micronaut.validation:micronaut-validation-processor"
+    testImplementation "io.micronaut.test:micronaut-test-junit5"
+    testImplementation "io.micronaut:micronaut-jackson-databind"
+
+    // test deps needed only for to have a runner
+    testAnnotationProcessor group: "io.kestra", name: "processor", version: kestraVersion
+    testImplementation group: "io.kestra", name: "core", version: kestraVersion
+    testImplementation group: "io.kestra", name: "tests", version: kestraVersion
+    testImplementation group: "io.kestra", name: "script", version: kestraVersion
+    testImplementation group: "io.kestra", name: "repository-memory", version: kestraVersion
+    testImplementation group: "io.kestra", name: "runner-memory", version: kestraVersion
+    testImplementation group: "io.kestra", name: "storage-local", version: kestraVersion
+
+    // TODO: remove me
+    testImplementation "org.icij.datashare:datashare-nlp-corenlp:$datashareVersion"
+
+    // test
+    testImplementation "org.junit.jupiter:junit-jupiter-engine"
+    testImplementation "org.hamcrest:hamcrest"
+    testImplementation "org.hamcrest:hamcrest-library"
+}
+
+/**********************************************************************************************************************\
+ * Allure Reports
+ **********************************************************************************************************************/
+dependencies {
+    testImplementation enforcedPlatform("io.kestra:platform:$kestraVersion")
+    testImplementation "io.qameta.allure:allure-junit5"
+}
+
+configurations {
+    agent {
+        canBeResolved = true
+        canBeConsumed = true
+    }
+}
+
+configurations.configureEach {
+    exclude group: 'org.slf4j', module: 'slf4j-simple'
+}
+
+dependencies {
+    agent "org.aspectj:aspectjweaver:1.9.24"
+}
+
+test {
+    jvmArgs = ["-javaagent:${configurations.agent.singleFile}"]
+}
+
+///**********************************************************************************************************************\
+// * Jacoco
+// **********************************************************************************************************************/
+//test {
+//    finalizedBy jacocoTestReport
+//}
+//
+//jacocoTestReport {
+//    dependsOn test
+//    reports {
+//        xml.required.set(true)
+//    }
+//}
+
+/**********************************************************************************************************************\
+ * Publish
+ **********************************************************************************************************************/
+mavenPublishing {
+    publishToMavenCentral(true)
+    signAllPublications()
+    coordinates("${project.group}", "${project.name}", "${project.version}")
+    pom {
+        name = "${project.name}"
+        description = "${project.group}:${project.name}:${project.version}"
+        url = "https://github.com/kestra-io/${project.name}"
+        licenses {
+            license {
+                name = 'The Apache License, Version 2.0'
+                url = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+            }
+        }
+        developers {
+            developer {
+                id = 'tchiotludo'
+                name = 'Dehon'
+                email = 'ldehon@kestra.io'
+            }
+        }
+        scm {
+            connection = 'scm:git:'
+            url = "https://github.com/kestra-io/${project.name}"
+        }
+    }
+}
+
+tasks.withType(GenerateModuleMetadata).configureEach {
+    // Suppression this validation error as we want to enforce the Kestra platform
+    suppressedValidationErrors.add('enforced-platform')
+}
+
+jar {
+    manifest {
+        attributes(
+            "X-Kestra-Name": project.name,
+            "X-Kestra-Title": "Template",
+            "X-Kestra-Group": project.group + ".templates",
+            "X-Kestra-Description": project.description,
+            "X-Kestra-Version": project.version
+        )
+    }
+}
+
+shadowJar {
+    archiveClassifier.set(null)
+    mergeServiceFiles()
+    zip64 true
+}
+
+/**********************************************************************************************************************\
+ * Version
+ **********************************************************************************************************************/
+release {
+    preCommitText = 'chore(version):'
+    preTagCommitMessage = 'update to version'
+    tagCommitMessage = 'tag version'
+    newVersionCommitMessage = 'update snapshot version'
+    tagTemplate = 'v${version}'
+    buildTasks = ['classes']
+    git {
+        requireBranch.set('main')
+    }
+}
+
+/**********************************************************************************************************************\
+ * Dev
+ **********************************************************************************************************************/
+idea {
+    module {
+        downloadJavadoc = true
+        downloadSources = true
+    }
+}

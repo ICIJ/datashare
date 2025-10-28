@@ -1,0 +1,33 @@
+name: Release Plugin
+
+on:
+  workflow_dispatch:
+    inputs:
+      releaseVersion:
+        description: "Release version (e.g. 1.2.0)"
+        required: true
+      nextVersion:
+        description: "Next version (e.g. 1.3.0-SNAPSHOT)"
+        required: false
+      dryRun:
+        description: "If true, simulate the release without pushing or tagging"
+        required: false
+        default: "false"
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Release plugin using reusable action
+        uses: kestra-io/actions/composite/plugin-release@main
+        with:
+          releaseVersion: ${{ github.event.inputs.releaseVersion }}
+          nextVersion: ${{ github.event.inputs.nextVersion }}
+          dryRun: ${{ github.event.inputs.dryRun }}
+        env:
+          GITHUB_PAT: ${{ secrets.GH_PERSONAL_TOKEN }}

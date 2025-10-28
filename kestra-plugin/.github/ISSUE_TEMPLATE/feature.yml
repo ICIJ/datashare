@@ -1,0 +1,12 @@
+name: Feature request
+description: Create a new feature request
+body:
+  - type: textarea
+    attributes:
+      label: Feature description
+      placeholder: Tell us more about your feature request
+    validations:
+      required: true
+labels:
+  - enhancement
+  - area/plugin
