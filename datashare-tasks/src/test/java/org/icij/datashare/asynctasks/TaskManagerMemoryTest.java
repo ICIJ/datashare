@@ -99,6 +99,35 @@ public class TaskManagerMemoryTest {
         assertThat(taskManager.getTasks().toList()).hasSize(0);
     }
 
+    @Test
+    public void test_clear_cancelled_tasks() throws Exception {
+        Task<Integer> queuedTask = new Task<>("sleep", User.local(), Map.of("intParameter", 12));
+        Task<Integer> cancelledTask = new Task<>("sleep", User.local(), Map.of("intParameter", 0));
+
+        taskManager.startTask(queuedTask, new Group(TaskGroupType.Test));
+        taskManager.startTask(cancelledTask, new Group(TaskGroupType.Test));
+        taskManager.stopTask(cancelledTask.getId());
+
+        assertThat(taskManager.getTasks().toList()).hasSize(2);
+        taskManager.clearDoneTasks();
+        assertThat(taskManager.getTasks().toList()).hasSize(1);
+    }
+
+    @Test
+    public void test_clear_cancelled_tasks_with_filter() throws Exception {
+        Task<Integer> queuedTask = new Task<>("sleep", User.local(), Map.of("intParameter", 12));
+        Task<Integer> cancelledTask = new Task<>("sleep", User.local(), Map.of("intParameter", 0));
+        TaskFilters filters = TaskFilters.empty().withNames("sleep");
+
+        taskManager.startTask(queuedTask, new Group(TaskGroupType.Test));
+        taskManager.startTask(cancelledTask, new Group(TaskGroupType.Test));
+        taskManager.stopTask(cancelledTask.getId());
+
+        assertThat(taskManager.getTasks().toList()).hasSize(2);
+        taskManager.clearDoneTasks(filters);
+        assertThat(taskManager.getTasks().toList()).hasSize(1);
+    }
+
     @Test(expected = IllegalStateException.class)
     public void test_clear_running_task_should_throw_exception() throws Exception {
         Task<Integer> task = new Task<>("sleep", User.local(), Map.of("intParameter", 12));
