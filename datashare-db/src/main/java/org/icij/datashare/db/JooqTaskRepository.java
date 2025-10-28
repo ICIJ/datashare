@@ -36,7 +36,7 @@ import static java.util.Optional.ofNullable;
 import static org.icij.datashare.asynctasks.bus.amqp.Event.MAX_RETRIES_LEFT;
 import static org.icij.datashare.db.Tables.TASK;
 import static org.jooq.impl.DSL.selectFrom;
-import static org.jooq.impl.DSL.trueCondition;
+import static org.jooq.impl.DSL.falseCondition;
 import static org.jooq.impl.DSL.using;
 
 public class JooqTaskRepository implements TaskRepository {
@@ -157,10 +157,12 @@ public class JooqTaskRepository implements TaskRepository {
     private Stream<Task<? extends Serializable>> selectTasks(DSLContext ctx, TaskFilters filters) {
         List<Condition> conditions = new ArrayList<>();
         if (filters.getStates() != null && !filters.getStates().isEmpty()) {
-            Condition hasState = trueCondition();
-            for (Task.State s : filters.getStates()) {
-                hasState.and(TASK.STATE.eq(s.name()));
-            }
+            Condition hasState = filters.getStates().stream()
+                    .map(s -> TASK.STATE.eq(s.name()))
+                    // Starting with falseCondition() ensures the OR chain only
+                    // becomes true if at least one condition matches.
+                    .reduce(falseCondition(), Condition::or);
+
             conditions.add(hasState);
         }
         if (filters.getName() != null) {

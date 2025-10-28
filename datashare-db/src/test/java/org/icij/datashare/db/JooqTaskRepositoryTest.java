@@ -160,18 +160,35 @@ public class JooqTaskRepositoryTest {
         assertThat(tasks.stream().map(Task::getId).toList()).isEqualTo(List.of(foo.id, bar.id));
     }
 
+
     @Test
-    public void test_get_tasks_with_filter() throws Exception {
+    public void test_get_tasks_with_names_filter() throws Exception {
         Task<String> foo = new Task<>("foo", User.local(), Map.of("user", User.local()));
         Task<String> bar = new Task<>("bar", User.local(), Map.of("user", User.local()));
-        repository.insert(foo,  new Group(TaskGroupType.Test));
-        repository.insert(bar,  new Group(TaskGroupType.Test));
+        repository.insert(foo, new Group(TaskGroupType.Test));
+        repository.insert(bar, new Group(TaskGroupType.Test));
         TaskFilters filter = TaskFilters.empty().withNames("foo");
 
         List<Task<? extends Serializable>> tasks = repository.getTasks(filter).toList();
 
         assertThat(tasks.size()).isEqualTo(1);
         assertThat(tasks.get(0).id).isEqualTo(foo.id);
+    }
+
+    @Test
+    public void test_get_task_with_status_filter() throws Exception {
+        Task<String> foo = new Task<>("foo", User.local(), Map.of("user", User.local()));
+        Task<String> bar = new Task<>("bar", User.local(), Map.of("user", User.local()));
+        // Bar must have a result to be considered as "DONE"
+        bar.setResult(new TaskResult<>("1"));
+        repository.insert(foo, new Group(TaskGroupType.Test));
+        repository.insert(bar, new Group(TaskGroupType.Test));
+        TaskFilters filter = TaskFilters.empty().withStates(Task.State.FINAL_STATES);
+
+        List<Task<? extends Serializable>> tasks = repository.getTasks(filter).toList();
+
+        assertThat(tasks.size()).isEqualTo(1);
+        assertThat(tasks.get(0).id).isEqualTo(bar.id);
     }
 
     @Test
