@@ -96,16 +96,6 @@ public class JsonObjectMapper {
         }
     }
 
-    public static <T extends Entity> Map<String, Object> getJsonTyped(T obj) {
-        String json;
-        try {
-            json = TYPE_INCLUSION_MAPPER.writeValueAsString(obj);
-            return TYPE_INCLUSION_MAPPER.readValue(json, new TypeReference<HashMap<String, Object>>(){});
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
     public static <T extends Entity> T getObject(String id, String projectId, Map<String, Object> source, Class<T> type) {
         HashMap<String, Object> map;
         if (source == null) {
@@ -249,26 +239,11 @@ public class JsonObjectMapper {
         return MAPPER;
     }
 
-    /**
-     * this should not be called except for initialization (Elasticsearch, Redis, ...)
-     * to avoid side effects.
-     *
-     * prefer using delegating methods from this class.
-     * @return
-     */
-    public static ObjectMapper getTypeInclusionMapper() {
-        return TYPE_INCLUSION_MAPPER;
-    }
-
     public static void registerSubtypes(NamedType... classesToRegister) {
         TYPE_INCLUSION_MAPPER.registerSubtypes(classesToRegister);
     }
 
-    public static byte[] writeValueAsBytes(Class<?> clazz) throws JsonProcessingException {
-        return TYPE_INCLUSION_MAPPER.writeValueAsBytes(clazz);
-    }
-
-    public static byte[] writeValueAsBytes(Object obj) throws JsonProcessingException {
+    public static byte[] writeValueAsBytesTyped(Object obj) throws JsonProcessingException {
         return TYPE_INCLUSION_MAPPER.writeValueAsBytes(obj);
     }
 
@@ -313,18 +288,18 @@ public class JsonObjectMapper {
     }
 
     public static CollectionType constructCollectionType(Class<? extends Collection> arrayListClass, Class<?> mapClass) {
-        return TYPE_INCLUSION_MAPPER.getTypeFactory().constructCollectionType(arrayListClass, mapClass);
+        return MAPPER.getTypeFactory().constructCollectionType(arrayListClass, mapClass);
     }
 
     public static <T> T convertValue(Object obj, TypeReference<T> typeReference) {
-        return TYPE_INCLUSION_MAPPER.convertValue(obj, typeReference);
+        return MAPPER.convertValue(obj, typeReference);
     }
 
     public static JsonFactory getFactory() {
-        return TYPE_INCLUSION_MAPPER.getFactory();
+        return MAPPER.getFactory();
     }
 
-    public static void writeValue(File file, Object obj) throws IOException {
+    public static void writeValueTyped(File file, Object obj) throws IOException {
         TYPE_INCLUSION_MAPPER.writeValue(file, obj);
     }
 
