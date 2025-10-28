@@ -628,7 +628,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
-    public void test_clean_getAllTasks() throws IOException {
+    public void test_clean_tasks() throws IOException {
         post("/api/task/batchUpdate/index/file/" + getClass().getResource("/docs/doc.txt").getPath().substring(1), "{}").response();
         taskManager.waitTasksToBeDone(1, SECONDS);
         List<String> taskNames = taskManager.getTasks().map(t -> t.id).toList();
@@ -722,7 +722,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
-    public void test_stop_all_filters_running_getAllTasks() throws IOException {
+    public void test_stop_all_filters_running_tasks() throws IOException {
         taskManager.startTask(TestTask.class, User.local(), new HashMap<>());
         taskManager.waitTasksToBeDone(1, SECONDS);
 
@@ -730,7 +730,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
-    public void test_clear_done_getAllTasks() throws IOException {
+    public void test_clear_done_tasks() throws IOException {
         taskManager.startTask(TestTask.class, User.local(), new HashMap<>());
         taskManager.waitTasksToBeDone(1, SECONDS);
 
