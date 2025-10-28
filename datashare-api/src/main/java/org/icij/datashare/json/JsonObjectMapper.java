@@ -241,6 +241,7 @@ public class JsonObjectMapper {
 
     public static void registerSubtypes(NamedType... classesToRegister) {
         TYPE_INCLUSION_MAPPER.registerSubtypes(classesToRegister);
+        MAPPER.registerSubtypes(classesToRegister);
     }
 
     public static byte[] writeValueAsBytesTyped(Object obj) throws JsonProcessingException {
