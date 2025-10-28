@@ -10,7 +10,7 @@ import org.junit.Test;
 
 public class TaskFilterTest {
     static final Task<String> t1 = new Task<>("someTask", User.local(), Map.of());
-    static Task<String> t2 = new Task<>("someOtherTask", null, Map.of("nested", Map.of("attribute","nestedvalue")));
+    static Task<String> t2 = new Task<>("someOtherTask", User.localUser("jdoe"), Map.of("nested", Map.of("attribute","nestedvalue")));
     static {
         t2.setState(Task.State.DONE);
     }
@@ -65,6 +65,20 @@ public class TaskFilterTest {
         // Then
         assertThat(filtered).isEqualTo(List.of(t1, t2));
     }
+
+    @Test
+    public void test_task_filters_for_user_by_names_with_regex_pattern_and_final_states() {
+        // Given
+        TaskFilters filters = TaskFilters.empty()
+                .withUser( User.localUser("jdoe"))
+                .withNames(".*some|someOther.*")
+                .withStates(Task.State.FINAL_STATES);
+        // When
+        List<Task<?>> filtered = tasks.stream().filter(filters::filter).toList();
+        // Then
+        assertThat(filtered).isEqualTo(List.of(t2));
+    }
+
 
     @Test
     public void test_task_filters_by_user() {
