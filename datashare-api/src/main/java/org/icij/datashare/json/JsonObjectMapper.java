@@ -281,7 +281,7 @@ public class JsonObjectMapper {
     }
 
     public static <T> T readValue(byte[] rawJson, TypeReference<T> type) throws IOException {
-        return TYPE_INCLUSION_MAPPER.readValue(rawJson, type);
+        return MAPPER.readValue(rawJson, type);
     }
 
     public static <T> T readValue(String rawJson, TypeReference<T> type) throws IOException {
@@ -300,7 +300,7 @@ public class JsonObjectMapper {
         return TYPE_INCLUSION_MAPPER.readValue(rawJson, type);
     }
 
-    public static <T> T readValue(String rawJson, JavaType type) throws IOException {
+    public static <T> T readValueTyped(String rawJson, JavaType type) throws IOException {
         return TYPE_INCLUSION_MAPPER.readValue(rawJson, type);
     }
 

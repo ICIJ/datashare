@@ -18,7 +18,7 @@ public class BatchSearchRunnerResultTest {
     @Test
     public void test_serialize() throws JsonProcessingException {
         BatchSearchRunnerResult batchRecord = new BatchSearchRunnerResult(10, 5);
-        String json = JsonObjectMapper.writeValueAsString(batchRecord);
+        String json = JsonObjectMapper.writeValueAsStringTyped(batchRecord);
 
         assertThat(json).contains("\"nbResults\":10")
                 .contains("\"nbQueriesWithoutResults\":5");
@@ -28,7 +28,7 @@ public class BatchSearchRunnerResultTest {
     public void test_deserialize() throws IOException {
         String json = "{\"nbResults\":10,\"nbQueriesWithoutResults\":5}";
 
-        assertThat(JsonObjectMapper.readValue(json, BatchSearchRunnerResult.class)).isEqualTo(new BatchSearchRunnerResult(10, 5));
+        assertThat(JsonObjectMapper.readValueTyped(json, BatchSearchRunnerResult.class)).isEqualTo(new BatchSearchRunnerResult(10, 5));
     }
 
     // Cannot be done in JooqTaskRepository since datashare-db does not know batch search runner
@@ -41,10 +41,10 @@ public class BatchSearchRunnerResultTest {
         BatchSearchRunnerResult batchSearchRunnerResult = new BatchSearchRunnerResult(10, 5);
         task.setResult(new TaskResult<>(batchSearchRunnerResult));
 
-        String json = JsonObjectMapper.writeValueAsString(task);
+        String json = JsonObjectMapper.writeValueAsStringTyped(task);
 
         assertThat(json).contains("\"nbResults\":10").contains("\"nbQueriesWithoutResults\":5");
 
-        assertThat(((Task<?>)JsonObjectMapper.readValue(json, javaType)).getResult().value()).isEqualTo(batchSearchRunnerResult);
+        assertThat(((Task<?>)JsonObjectMapper.readValueTyped(json, javaType)).getResult().value()).isEqualTo(batchSearchRunnerResult);
     }
 }
