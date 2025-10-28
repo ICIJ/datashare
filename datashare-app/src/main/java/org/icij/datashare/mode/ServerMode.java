@@ -57,6 +57,8 @@ public class ServerMode extends CommonMode {
         } else if (authFilterClass.equals(YesCookieAuthFilter.class)) {
             bind(YesCookieAuthFilter.class).toInstance(getYesCookieAuthFilter());
         }
+        bind(Filter.class).to(UserPermissionFilter.class);
+
         bind(StatusResource.class).asEagerSingleton();
         configurePersistence();
     }

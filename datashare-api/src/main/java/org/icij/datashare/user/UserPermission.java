@@ -26,4 +26,8 @@ public record UserPermission(
         return new UserPermission(userId, projectId, false, false, false);
     }
 
+    public static UserPermission create(User user, String projectId) {
+        return UserPermission.create(user.id, projectId);
+    }
+
 }
