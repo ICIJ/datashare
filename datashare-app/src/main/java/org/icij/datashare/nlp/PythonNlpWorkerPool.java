@@ -76,7 +76,7 @@ public class PythonNlpWorkerPool implements Closeable {
         Path workerConfigPath = Files.createTempFile("datashare-extension-nlp-spacy-config-", ".json");
         File tempFile = workerConfigPath.toFile();
         // Write the JSON object to the temporary file
-        JsonObjectMapper.writeValue(tempFile, workerConfig);
+        JsonObjectMapper.writeValueTyped(tempFile, workerConfig);
         return workerConfigPath;
     }
 
