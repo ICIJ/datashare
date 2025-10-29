@@ -2,16 +2,21 @@ package org.icij.datashare.session;
 
 import com.google.inject.Inject;
 import net.codestory.http.Context;
-import net.codestory.http.Request;
+import net.codestory.http.errors.ForbiddenException;
+import net.codestory.http.errors.UnauthorizedException;
 import net.codestory.http.filters.Filter;
 import net.codestory.http.filters.PayloadSupplier;
 import net.codestory.http.payload.Payload;
 import org.icij.datashare.user.UserPermissionRepository;
 import org.icij.datashare.web.IndexResource;
 
+import java.io.Serial;
 import java.lang.reflect.Method;
 
 public class UserPermissionFilter implements Filter {
+    @Serial
+    private static final long serialVersionUID = 1L;
+
     private final UserPermissionRepository userPermissionRepository;
 
     @Inject
@@ -29,11 +34,11 @@ public class UserPermissionFilter implements Filter {
             DatashareUser user = (DatashareUser) context.currentUser();
 
             if (user == null) {
-                throw new SecurityException("No user logged in");
+                throw new UnauthorizedException();
             }
 
             if ( !userPermissionRepository.get(user,"test").admin()) {
-                throw new SecurityException("Admin access required");
+                throw new ForbiddenException();
             }
         }
         return next.get();

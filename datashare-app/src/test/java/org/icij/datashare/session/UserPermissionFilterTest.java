@@ -1,6 +1,8 @@
 package org.icij.datashare.session;
 
 import net.codestory.http.Context;
+import net.codestory.http.errors.ForbiddenException;
+import net.codestory.http.errors.UnauthorizedException;
 import net.codestory.http.filters.PayloadSupplier;
 import net.codestory.http.payload.Payload;
 import org.icij.datashare.user.UserPermission;
@@ -38,32 +40,21 @@ public class UserPermissionFilterTest {
         when(adminPermission.admin()).thenReturn(true);
         when(userPermissionRepository.get(adminUser, "test")).thenReturn(adminPermission);
         when(next.get()).thenReturn(mock(Payload.class));
-        try {
-            filter.apply("/api/esPost", context, next);
-        } catch (Exception e) {
-            fail("Exception was thrown: " + e.getMessage());
-        }
+        assertEquals(next.get(), filter.apply("/api/esPost", context, next));
     }
 
-    @Test
+    @Test(expected = ForbiddenException.class)
     public void testNonAdminAccessDenied() throws Exception {
         when(context.currentUser()).thenReturn(nonAdminUser);
         UserPermission nonAdminPermission = mock(UserPermission.class);
         when(nonAdminPermission.admin()).thenReturn(false);
         when(userPermissionRepository.get(nonAdminUser, "test")).thenReturn(nonAdminPermission);
-
-        SecurityException exception = assertThrows(SecurityException.class, () ->
-            filter.apply("/api/esPost", context, next)
-        );
-        assertEquals("Admin access required", exception.getMessage());
+        filter.apply("/api/esPost", context, next);
     }
 
-    @Test
+    @Test(expected = UnauthorizedException.class)
     public void testNoUserAccessDenied() throws Exception {
         when(context.currentUser()).thenReturn(null);
-        SecurityException exception = assertThrows(SecurityException.class, () ->
-            filter.apply("/api/esPost", context, next)
-        );
-        assertEquals("No user logged in", exception.getMessage());
+        filter.apply("/api/esPost", context, next);
     }
 }
