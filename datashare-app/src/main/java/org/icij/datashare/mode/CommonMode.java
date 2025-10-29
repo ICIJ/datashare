@@ -11,6 +11,7 @@ import com.google.inject.Provides;
 import com.google.inject.Singleton;
 import com.google.inject.assistedinject.FactoryModuleBuilder;
 import net.codestory.http.Configuration;
+import net.codestory.http.annotations.ApplyAfterAnnotation;
 import net.codestory.http.annotations.Get;
 import net.codestory.http.annotations.Prefix;
 import net.codestory.http.extensions.Extensions;
@@ -38,7 +39,7 @@ import org.icij.datashare.extract.MemoryDocumentCollectionFactory;
 import org.icij.datashare.extract.RedisDocumentCollectionFactory;
 import org.icij.datashare.nlp.EmailPipeline;
 import org.icij.datashare.nlp.OptimaizeLanguageGuesser;
-import org.icij.datashare.session.UserPolicyFilter;
+import org.icij.datashare.session.Policy;
 import org.icij.datashare.tasks.*;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.text.indexing.LanguageGuesser;
@@ -296,7 +297,7 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
     protected abstract Routes addModeConfiguration(final Routes routes);
 
     protected Routes addPermissionConfiguration(final Routes routes){
-        return routes.filter(UserPolicyFilter.class);
+        return routes.registerAfterAnnotation(Policy.class, (annotation, context, payload) -> payload);
     }
 
     void configurePersistence() {

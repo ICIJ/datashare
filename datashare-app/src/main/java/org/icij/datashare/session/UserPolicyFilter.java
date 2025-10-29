@@ -2,59 +2,23 @@ package org.icij.datashare.session;
 
 import com.google.inject.Inject;
 import net.codestory.http.Context;
-import net.codestory.http.errors.ForbiddenException;
-import net.codestory.http.errors.UnauthorizedException;
-import net.codestory.http.filters.Filter;
-import net.codestory.http.filters.PayloadSupplier;
+import net.codestory.http.annotations.*;
 import net.codestory.http.payload.Payload;
-import org.icij.datashare.user.UserPolicy;
 import org.icij.datashare.user.UserPolicyRepository;
-import org.icij.datashare.web.IndexResource;
 
-import java.io.Serial;
-import java.lang.reflect.Method;
+import java.util.function.Function;
 
-public class UserPolicyFilter implements Filter {
-    @Serial
-    private static final long serialVersionUID = 1L;
+public class UserPolicyFilter implements ApplyAroundAnnotation<Policy> {
 
-    private final UserPolicyRepository userPolicyRepository;
+    private final UserPolicyRepository jooqRepository;
 
     @Inject
-    public UserPolicyFilter(UserPolicyRepository userPolicyRepository) {
-        this.userPolicyRepository = userPolicyRepository;
+    public UserPolicyFilter(final UserPolicyRepository jooqRepository) {
+        this.jooqRepository = jooqRepository;
     }
 
     @Override
-    public Payload apply(String uri, Context context, PayloadSupplier next) throws Exception {
-        Policy annotation = findAnnotation(context);
-        if(annotation == null) {
-            return Payload.forbidden();
-        }
-
-        String project = context.get("project");
-        if (annotation.admin()) {
-            DatashareUser user = (DatashareUser) context.currentUser();
-
-            if (user == null) {
-                throw new UnauthorizedException();
-            }
-
-            UserPolicy userPolicy = userPolicyRepository.get(user, project);
-            if ( userPolicy==null || !userPolicy.admin()) {
-                throw new ForbiddenException();
-            }
-        }
-        return next.get();
-    }
-
-    public static Policy findAnnotation(Context context) throws NoSuchMethodException {
-        Method[] methods = IndexResource.class.getDeclaredMethods();
-        for (Method method : methods) {
-            if (method.isAnnotationPresent(Policy.class)) {
-                return method.getAnnotation(Policy.class);
-            }
-        }
-        return null;
+    public Payload apply(Policy policy, Context context, Function<Context, Payload> function) {
+        return function.apply(context);
     }
 }
