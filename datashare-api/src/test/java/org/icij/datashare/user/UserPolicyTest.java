@@ -6,11 +6,11 @@ import org.junit.Test;
 
 import static org.fest.assertions.Assertions.assertThat;
 
-public class UserPermissionTest {
+public class UserPolicyTest {
 
     @Test
     public void test_factory_and_getters() {
-        UserPermission up = UserPermission.create("user1", "projectA", true, false, true);
+        UserPolicy up = UserPolicy.create("user1", "projectA", true, false, true);
         assertThat(up.userId()).isEqualTo("user1");
         assertThat(up.projectId()).isEqualTo("projectA");
         assertThat(up.read()).isTrue();
@@ -20,9 +20,9 @@ public class UserPermissionTest {
 
     @Test
     public void test_equals_and_hashcode() {
-        UserPermission up1 = UserPermission.create("user1", "projectA", true, false, false);
-        UserPermission up2 = UserPermission.create("user1", "projectA", true, false, false);
-        UserPermission up3 = UserPermission.create("user1", "projectA", true, true, false);
+        UserPolicy up1 = UserPolicy.create("user1", "projectA", true, false, false);
+        UserPolicy up2 = UserPolicy.create("user1", "projectA", true, false, false);
+        UserPolicy up3 = UserPolicy.create("user1", "projectA", true, true, false);
 
         assertThat(up1).isEqualTo(up2);
         assertThat(up1.hashCode()).isEqualTo(up2.hashCode());
@@ -31,7 +31,7 @@ public class UserPermissionTest {
 
     @Test
     public void test_toString_contains_fields() {
-        UserPermission up = UserPermission.create("user1", "projectA", true, false, true);
+        UserPolicy up = UserPolicy.create("user1", "projectA", true, false, true);
         String s = up.toString();
         assertThat(s).contains("userId=user1");
         assertThat(s).contains("projectId=projectA");
@@ -43,10 +43,10 @@ public class UserPermissionTest {
     @Test
     public void test_json_round_trip_with_objectmapper() throws Exception {
         ObjectMapper mapper = JsonObjectMapper.MAPPER;
-        UserPermission original = UserPermission.create("user1", "projectA", false, true, false);
+        UserPolicy original = UserPolicy.create("user1", "projectA", false, true, false);
 
         String json = mapper.writeValueAsString(original);
-        UserPermission restored = mapper.readValue(json, UserPermission.class);
+        UserPolicy restored = mapper.readValue(json, UserPolicy.class);
 
         assertThat(restored).isEqualTo(original);
         assertThat(restored.userId()).isEqualTo("user1");

@@ -4,7 +4,7 @@ databaseChangeLog:
       author: cdesprat
       changes:
         - createTable:
-            tableName: user_permission
+            tableName: user_policy
             columns:
               - column:
                   name: user_id
@@ -35,4 +35,4 @@ databaseChangeLog:
       id: 44
       author: cdesprat
       sql:
-        - CREATE UNIQUE INDEX idx_user_permission_unique ON user_permission (user_id, prj_id)
+        - CREATE UNIQUE INDEX idx_user_policy_unique ON user_policy (user_id, prj_id)

@@ -10,7 +10,7 @@ import net.codestory.http.Context;
 import net.codestory.http.annotations.*;
 import net.codestory.http.constants.HttpStatus;
 import net.codestory.http.payload.Payload;
-import org.icij.datashare.session.UserPermissionFilterAnn;
+import org.icij.datashare.session.Policy;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.utils.IndexAccessVerifier;
 import org.icij.datashare.utils.PayloadFormatter;
@@ -84,7 +84,7 @@ public class IndexResource {
     @ApiResponse(responseCode = "200", description = "returns 200")
     @ApiResponse(responseCode = "400", description = "returns 400 if there is an error from ElasticSearch")
     @Post("/search/:path:")
-    @UserPermissionFilterAnn(admin = true)
+    @Policy(admin = true)
     public Payload esPost(@Parameter(name = "index", description = "elasticsearch path", in = ParameterIn.PATH) final String path, Context context, final net.codestory.http.Request request) throws IOException {
         try {
             return PayloadFormatter.json(indexer.executeRaw("POST", IndexAccessVerifier.checkPath(path, context), new String(request.contentAsBytes())));
