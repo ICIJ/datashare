@@ -2,7 +2,7 @@ package org.icij.datashare;
 
 import org.icij.datashare.batch.BatchSearchRepository;
 import org.icij.datashare.user.ApiKeyRepository;
-import org.icij.datashare.user.UserPermissionRepository;
+import org.icij.datashare.user.UserPolicyRepository;
 
 public interface RepositoryFactory {
     Repository createRepository();
@@ -11,5 +11,5 @@ public interface RepositoryFactory {
 
     BatchSearchRepository createBatchSearchRepository();
 
-    UserPermissionRepository createUserPermissionRepository();
+    UserPolicyRepository createPolicyRepository();
 }

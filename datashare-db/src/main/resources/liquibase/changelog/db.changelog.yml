@@ -129,5 +129,5 @@ databaseChangeLog:
       file: changes/042-task-result-batch-search-migration.yml
       relativeToChangelogFile: true
   - include:
-      file: changes/043-adds-user-permission-table.yml
+      file: changes/043-adds-user-policy-table.yml
       relativeToChangelogFile: true

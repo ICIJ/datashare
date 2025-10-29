@@ -7,7 +7,7 @@ import java.lang.annotation.Target;
 
 @Target({ElementType.METHOD, ElementType.TYPE})
 @Retention(RetentionPolicy.RUNTIME)
-public @interface UserPermissionFilterAnn {
+public @interface Policy {
         boolean admin() default false;
         boolean write() default false;
         boolean read() default false;

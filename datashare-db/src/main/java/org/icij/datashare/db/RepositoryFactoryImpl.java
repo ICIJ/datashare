@@ -14,7 +14,7 @@ import org.icij.datashare.Repository;
 import org.icij.datashare.RepositoryFactory;
 import org.icij.datashare.batch.BatchSearchRepository;
 import org.icij.datashare.user.ApiKeyRepository;
-import org.icij.datashare.user.UserPermissionRepository;
+import org.icij.datashare.user.UserPolicyRepository;
 import org.jooq.SQLDialect;
 
 import javax.sql.DataSource;
@@ -54,8 +54,8 @@ public class RepositoryFactoryImpl implements RepositoryFactory {
     }
 
     @Override
-    public UserPermissionRepository createUserPermissionRepository() {
-        return createRepository(JooqUserPermissionRepository::new);
+    public UserPolicyRepository createPolicyRepository() {
+        return createRepository(JooqUserPolicyRepository::new);
     }
 
     void initDatabase(final DataSource dataSource) {

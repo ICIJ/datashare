@@ -5,17 +5,17 @@ import net.codestory.http.errors.ForbiddenException;
 import net.codestory.http.errors.UnauthorizedException;
 import net.codestory.http.filters.PayloadSupplier;
 import net.codestory.http.payload.Payload;
-import org.icij.datashare.user.UserPermission;
-import org.icij.datashare.user.UserPermissionRepository;
+import org.icij.datashare.user.UserPolicyRepository;
+import org.icij.datashare.user.UserPolicy;
 import org.junit.Before;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.*;
 
-public class UserPermissionFilterTest {
-    private UserPermissionRepository userPermissionRepository;
-    private UserPermissionFilter filter;
+public class UserPolicyFilterTest {
+    private UserPolicyRepository userPolicyRepository;
+    private UserPolicyFilter filter;
     private Context context;
     private PayloadSupplier next;
     private DatashareUser adminUser;
@@ -23,8 +23,8 @@ public class UserPermissionFilterTest {
 
     @Before
     public void setUp() {
-        userPermissionRepository = mock(UserPermissionRepository.class);
-        filter = new UserPermissionFilter(userPermissionRepository);
+        userPolicyRepository = mock(UserPolicyRepository.class);
+        filter = new UserPolicyFilter(userPolicyRepository);
         context = mock(Context.class);
         next = mock(PayloadSupplier.class);
         adminUser = mock(DatashareUser.class);
@@ -34,9 +34,9 @@ public class UserPermissionFilterTest {
     @Test
     public void testAdminAccessAllowed() throws Exception {
         when(context.currentUser()).thenReturn(adminUser);
-        UserPermission adminPermission = mock(UserPermission.class);
+        UserPolicy adminPermission = mock(UserPolicy.class);
         when(adminPermission.admin()).thenReturn(true);
-        when(userPermissionRepository.get(adminUser, "test")).thenReturn(adminPermission);
+        when(userPolicyRepository.get(adminUser, "test")).thenReturn(adminPermission);
         when(next.get()).thenReturn(mock(Payload.class));
         assertEquals(next.get(), filter.apply("/api/esPost", context, next));
     }
@@ -44,9 +44,9 @@ public class UserPermissionFilterTest {
     @Test(expected = ForbiddenException.class)
     public void testNonAdminAccessDenied() throws Exception {
         when(context.currentUser()).thenReturn(nonAdminUser);
-        UserPermission nonAdminPermission = mock(UserPermission.class);
+        UserPolicy nonAdminPermission = mock(UserPolicy.class);
         when(nonAdminPermission.admin()).thenReturn(false);
-        when(userPermissionRepository.get(nonAdminUser, "test")).thenReturn(nonAdminPermission);
+        when(userPolicyRepository.get(nonAdminUser, "test")).thenReturn(nonAdminPermission);
         filter.apply("/api/esPost", context, next);
     }
 

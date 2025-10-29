@@ -4,11 +4,11 @@ import co.elastic.clients.elasticsearch._types.Refresh;
 import net.codestory.http.filters.basic.BasicAuthFilter;
 import net.codestory.http.security.Users;
 import org.icij.datashare.PropertiesProvider;
+import org.icij.datashare.db.JooqUserPolicyRepository;
 import org.icij.datashare.db.JooqRepository;
-import org.icij.datashare.db.JooqUserPermissionRepository;
 import org.icij.datashare.session.DatashareUser;
 import org.icij.datashare.session.LocalUserFilter;
-import org.icij.datashare.session.UserPermissionFilter;
+import org.icij.datashare.session.UserPolicyFilter;
 import org.icij.datashare.test.ElasticsearchRule;
 import org.icij.datashare.text.DocumentBuilder;
 import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchIndexer;
@@ -31,7 +31,8 @@ import static org.mockito.MockitoAnnotations.initMocks;
 
 public class IndexResourceTest extends AbstractProdWebServerTest {
     @Mock JooqRepository jooqRepository;
-    @Mock JooqUserPermissionRepository jooqUserPermissionRepository;
+    @Mock
+    JooqUserPolicyRepository jooqPolicyRepository;
     @ClassRule public static ElasticsearchRule esRule = new ElasticsearchRule(TEST_INDEXES);
     private final ElasticsearchIndexer indexer = new ElasticsearchIndexer(esRule.client, new PropertiesProvider()).withRefresh(Refresh.True);
     private final PropertiesProvider propertiesProvider = new PropertiesProvider(new HashMap<>() {{
@@ -179,7 +180,7 @@ public class IndexResourceTest extends AbstractProdWebServerTest {
     public void test_search_path_accessible_to_non_admin() {
         configure(routes -> routes
                 .add(new IndexResource(indexer))
-                .filter(new UserPermissionFilter(jooqUserPermissionRepository)));
+                .filter(new UserPolicyFilter(jooqPolicyRepository)));
         get("/api/index/search/test-datashare/_search").should().respond(401);
     }
 
