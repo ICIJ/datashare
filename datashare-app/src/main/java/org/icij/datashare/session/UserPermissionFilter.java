@@ -22,12 +22,14 @@ public class UserPermissionFilter implements Filter {
     @Override
     public Payload apply(String uri, Context context, PayloadSupplier next) throws Exception {
         UserPermissionFilterAnn annotation = findAnnotation(context);
-        if (annotation != null && annotation.admin()) {
-            DatashareUser user =(DatashareUser) context.currentUser();
+        if(annotation == null) {
+            return Payload.forbidden();
+        }
+        if (annotation.admin()) {
+            DatashareUser user = (DatashareUser) context.currentUser();
 
             if (user == null) {
                 throw new SecurityException("No user logged in");
-
             }
 
             if ( !userPermissionRepository.get(user,"test").admin()) {
