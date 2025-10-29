@@ -7,6 +7,7 @@ import net.codestory.http.errors.UnauthorizedException;
 import net.codestory.http.filters.Filter;
 import net.codestory.http.filters.PayloadSupplier;
 import net.codestory.http.payload.Payload;
+import org.icij.datashare.user.UserPolicy;
 import org.icij.datashare.user.UserPolicyRepository;
 import org.icij.datashare.web.IndexResource;
 
@@ -39,7 +40,8 @@ public class UserPolicyFilter implements Filter {
                 throw new UnauthorizedException();
             }
 
-            if ( !userPolicyRepository.get(user,project).admin()) {
+            UserPolicy userPolicy = userPolicyRepository.get(user, project);
+            if ( userPolicy==null || !userPolicy.admin()) {
                 throw new ForbiddenException();
             }
         }
