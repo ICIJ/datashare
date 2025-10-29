@@ -34,6 +34,7 @@ public class IndexResource {
     @ApiResponse(responseCode = "200", description = "returns 200 if the index already exists")
     @ApiResponse(responseCode = "201", description = "returns 201 if the index has been created")
     @Put("/:index")
+    @Policy(admin = true)
     public Payload createIndex(@Parameter(name = "index", description = "index to create", in = ParameterIn.PATH) final String index) throws IOException {
         try{
             return indexer.createIndex(IndexAccessVerifier.checkIndices(index)) ? created() : ok();
@@ -84,7 +85,6 @@ public class IndexResource {
     @ApiResponse(responseCode = "200", description = "returns 200")
     @ApiResponse(responseCode = "400", description = "returns 400 if there is an error from ElasticSearch")
     @Post("/search/:path:")
-    @Policy(admin = true)
     public Payload esPost(@Parameter(name = "index", description = "elasticsearch path", in = ParameterIn.PATH) final String path, Context context, final net.codestory.http.Request request) throws IOException {
         try {
             return PayloadFormatter.json(indexer.executeRaw("POST", IndexAccessVerifier.checkPath(path, context), new String(request.contentAsBytes())));
