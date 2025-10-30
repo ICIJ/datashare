@@ -21,7 +21,7 @@ public class DuplicateTest extends TestCase {
         Duplicate dup = new Duplicate(Paths.get(requireNonNull(getClass().getResource("/sampleFile.txt")).getPath()), "docId");
         Duplicate duplicate = JsonObjectMapper.readValue(
                 (String.format("{\"id\":\"%s\"," +
-                "\"path\":\"%s\",\"documentId\":\"docId\",\"type\":\"Duplicate\"}", dup.getId(), path)).getBytes(), Duplicate.class);
+                "\"path\":\"%s\",\"documentId\":\"docId\",\"type\":\"Duplicate\"}", dup.getId(), path)), Duplicate.class);
 
         assertThat(duplicate.path.toString()).isEqualTo(path.toString());
         assertThat(duplicate.documentId).isEqualTo("docId");

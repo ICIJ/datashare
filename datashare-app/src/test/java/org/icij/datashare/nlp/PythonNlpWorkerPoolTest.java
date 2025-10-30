@@ -57,7 +57,7 @@ public class PythonNlpWorkerPoolTest {
         if (!p.waitFor(timeout, unit)) {
             throw new AssertionError("failed to get process output in less than " + timeout + unit.name().toLowerCase());
         }
-        Map<String, Object> output = JsonObjectMapper.readValue(p.getInputStream().readAllBytes(), new TypeReference<>(){});
+        Map<String, Object> output = JsonObjectMapper.readValue(new String(p.getInputStream().readAllBytes()), new TypeReference<>(){});
         assertThat(output.get("n_workers")).isEqualTo(6);
         assertThat((String) output.get("config_file")).contains("datashare-extension-nlp-spacy-config-");
     }
