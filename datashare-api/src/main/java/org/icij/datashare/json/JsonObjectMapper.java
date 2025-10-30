@@ -200,12 +200,12 @@ public class JsonObjectMapper {
     }
 
     public static JsonNode readTree(byte[] rawJson) throws IOException {
-        return TYPE_INCLUSION_MAPPER.readTree(rawJson);
+        return MAPPER.readTree(rawJson);
     }
 
     public static boolean isValidJson(String json) {
         try {
-            TYPE_INCLUSION_MAPPER.readTree(json);
+            MAPPER.readTree(json);
         } catch (IOException e) {
             return false;
         }
@@ -239,21 +239,21 @@ public class JsonObjectMapper {
         return MAPPER;
     }
 
+    public static JsonFactory getFactory() {
+        return MAPPER.getFactory();
+    }
+
+    public static <T> T convertValue(Object obj, TypeReference<T> typeReference) {
+        return MAPPER.convertValue(obj, typeReference);
+    }
+
     public static void registerSubtypes(NamedType... classesToRegister) {
         TYPE_INCLUSION_MAPPER.registerSubtypes(classesToRegister);
         MAPPER.registerSubtypes(classesToRegister);
     }
 
-    public static byte[] writeValueAsBytesTyped(Object obj) throws JsonProcessingException {
-        return TYPE_INCLUSION_MAPPER.writeValueAsBytes(obj);
-    }
-
     public static <T> T readValue(byte[] rawJson, Class<T> type) throws IOException {
         return MAPPER.readValue(rawJson, type);
-    }
-
-    public static <T> T readValueTyped(byte[] rawJson, Class<T> type) throws IOException {
-        return TYPE_INCLUSION_MAPPER.readValue(rawJson, type);
     }
 
     public static <T> T readValue(byte[] rawJson, TypeReference<T> type) throws IOException {
@@ -264,12 +264,16 @@ public class JsonObjectMapper {
         return MAPPER.readValue(rawJson, type);
     }
 
-    public static <T> T readValueTyped(String rawJson, TypeReference<T> type) throws IOException {
+    public static <T> T readValue(String rawJson, Class<T> type) throws IOException {
+        return MAPPER.readValue(rawJson, type);
+    }
+
+    public static <T> T readValueTyped(byte[] rawJson, Class<T> type) throws IOException {
         return TYPE_INCLUSION_MAPPER.readValue(rawJson, type);
     }
 
-    public static <T> T readValue(String rawJson, Class<T> type) throws IOException {
-        return MAPPER.readValue(rawJson, type);
+    public static <T> T readValueTyped(String rawJson, TypeReference<T> type) throws IOException {
+        return TYPE_INCLUSION_MAPPER.readValue(rawJson, type);
     }
 
     public static <T> T readValueTyped(String rawJson, Class<T> type) throws IOException {
@@ -288,20 +292,16 @@ public class JsonObjectMapper {
         return TYPE_INCLUSION_MAPPER.writeValueAsString(obj);
     }
 
-    public static CollectionType constructCollectionType(Class<? extends Collection> arrayListClass, Class<?> mapClass) {
-        return MAPPER.getTypeFactory().constructCollectionType(arrayListClass, mapClass);
-    }
-
-    public static <T> T convertValue(Object obj, TypeReference<T> typeReference) {
-        return MAPPER.convertValue(obj, typeReference);
-    }
-
-    public static JsonFactory getFactory() {
-        return MAPPER.getFactory();
+    public static byte[] writeValueAsBytesTyped(Object obj) throws JsonProcessingException {
+        return TYPE_INCLUSION_MAPPER.writeValueAsBytes(obj);
     }
 
     public static void writeValueTyped(File file, Object obj) throws IOException {
         TYPE_INCLUSION_MAPPER.writeValue(file, obj);
+    }
+
+    public static CollectionType constructCollectionType(Class<? extends Collection> arrayListClass, Class<?> mapClass) {
+        return MAPPER.getTypeFactory().constructCollectionType(arrayListClass, mapClass);
     }
 
     public static JavaType constructParametricType(Class<?> parametrized, Class<?> parameterClass) {
