@@ -33,7 +33,7 @@ public class DocumentTest {
                         "\"contentType\":\"text/plain\",\"extractionLevel\":0," +
                         "\"metadata\":{\"ocr_parser\": \"Tesseract\"},\"status\":\"INDEXED\",\"nerTags\":[]," +
                         "\"parentDocument\":null,\"rootDocument\":\"45a0a224c2836b4c558f3b56e2a1c69c21fcc8b3f9f4f99f2bc49946acfb28d8\"," +
-                        "\"contentLength\":123,\"projectId\":\"prj\", \"tags\": [\"foo\", \"bar\"]}").getBytes(),
+                        "\"contentLength\":123,\"projectId\":\"prj\", \"tags\": [\"foo\", \"bar\"]}"),
                 Document.class);
         assertThat(d.getProject()).isEqualTo(project("prj"));
         assertThat(d.getOcrParser()).isEqualTo("Tesseract");
@@ -56,7 +56,7 @@ public class DocumentTest {
                         "\"contentType\":\"text/plain\",\"extractionLevel\":0," +
                         "\"metadata\":{},\"status\":\"INDEXED\",\"nerTags\":[]," +
                         "\"parentDocument\":null,\"rootDocument\":\"45a0a224c2836b4c558f3b56e2a1c69c21fcc8b3f9f4f99f2bc49946acfb28d8\"," +
-                        "\"contentLength\":123,\"projectId\":\"prj\", \"tags\": [\"foo\", \"bar\"]}").getBytes(),
+                        "\"contentLength\":123,\"projectId\":\"prj\", \"tags\": [\"foo\", \"bar\"]}"),
                 Document.class);
 
         assertThat(document.getPath().toString()).isEqualTo(path);

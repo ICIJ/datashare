@@ -16,7 +16,7 @@ public class JsonObjectMapperTest {
         String json = JsonObjectMapper.writeValueAsStringTyped(new ExceptionWrapper(new RuntimeException("hello")));
         assertThat(json).contains("\"@type\":\"java.lang.RuntimeException\"");
 
-        ExceptionWrapper wrapper = JsonObjectMapper.readValueTyped(json, ExceptionWrapper.class);
+        ExceptionWrapper wrapper = JsonObjectMapper.readValueTyped(json.getBytes(), ExceptionWrapper.class);
         assertThat(wrapper.throwable.getClass()).isEqualTo(RuntimeException.class);
         assertThat(wrapper.throwable.getMessage()).isEqualTo("hello");
     }
@@ -27,7 +27,7 @@ public class JsonObjectMapperTest {
         hello.addSuppressed(new RuntimeException("world"));
 
         ExceptionWrapper wrapper = JsonObjectMapper.readValueTyped(
-                JsonObjectMapper.writeValueAsStringTyped(new ExceptionWrapper(hello)), ExceptionWrapper.class);
+                JsonObjectMapper.writeValueAsStringTyped(new ExceptionWrapper(hello)).getBytes(), ExceptionWrapper.class);
         assertThat(wrapper.throwable.getClass()).isEqualTo(RuntimeException.class);
         assertThat(wrapper.throwable.getMessage()).isEqualTo("hello");
     }

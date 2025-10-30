@@ -252,14 +252,6 @@ public class JsonObjectMapper {
         MAPPER.registerSubtypes(classesToRegister);
     }
 
-    public static <T> T readValue(byte[] rawJson, Class<T> type) throws IOException {
-        return MAPPER.readValue(rawJson, type);
-    }
-
-    public static <T> T readValue(byte[] rawJson, TypeReference<T> type) throws IOException {
-        return MAPPER.readValue(rawJson, type);
-    }
-
     public static <T> T readValue(String rawJson, TypeReference<T> type) throws IOException {
         return MAPPER.readValue(rawJson, type);
     }

@@ -25,7 +25,7 @@ public class SearchResultTest {
                         "\"documentPath\":\"/path/to/doc1\"," +
                         "\"creationDate\":\"1608049139794\"," +
                         "\"rootId\":\"rootId1\",\"documentNumber\":\"1\"," +
-                        "\"contentType\":\"content/type\",\"contentLength\":123}").getBytes(),
+                        "\"contentType\":\"content/type\",\"contentLength\":123}"),
                 SearchResult.class);
         assertThat(searchResultFromJson.project.getId()).isEqualTo("prj");
         assertThat(searchResultFromJson.documentPath.toString()).isEqualTo("/path/to/doc1");
@@ -41,7 +41,7 @@ public class SearchResultTest {
                         "\"documentPath\":\"/path/to/doc1\"," +
                         "\"creationDate\":\"1608049139794\"," +
                         "\"rootId\":\"rootId1\",\"documentNumber\":\"1\"," +
-                        "\"contentType\":\"content/type\",\"contentLength\":123}").getBytes(),
+                        "\"contentType\":\"content/type\",\"contentLength\":123}"),
                 SearchResult.class).documentPath.toString()).isEqualTo("/path/to/doc1");
 
     }
