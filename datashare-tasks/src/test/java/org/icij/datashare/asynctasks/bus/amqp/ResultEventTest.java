@@ -1,7 +1,6 @@
 package org.icij.datashare.asynctasks.bus.amqp;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.icij.datashare.asynctasks.TaskResult;
 import org.icij.datashare.json.JsonObjectMapper;
 import org.junit.Test;

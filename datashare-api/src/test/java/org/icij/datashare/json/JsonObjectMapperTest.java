@@ -4,7 +4,6 @@ package org.icij.datashare.json;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.StreamReadConstraints;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.Test;
 
 import static org.fest.assertions.Assertions.assertThat;
