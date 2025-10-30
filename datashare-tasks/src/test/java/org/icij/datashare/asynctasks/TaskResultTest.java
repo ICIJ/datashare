@@ -1,7 +1,6 @@
 package org.icij.datashare.asynctasks;
 
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.jsontype.NamedType;
 import org.icij.datashare.asynctasks.bus.amqp.UriResult;
 import org.icij.datashare.json.JsonObjectMapper;

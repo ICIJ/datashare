@@ -1,6 +1,5 @@
 package org.icij.datashare.web;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import net.codestory.rest.Response;
 import org.icij.datashare.PropertiesProvider;

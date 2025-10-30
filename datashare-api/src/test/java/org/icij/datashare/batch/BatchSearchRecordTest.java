@@ -1,8 +1,6 @@
 package org.icij.datashare.batch;
 
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.icij.datashare.json.JsonObjectMapper;
 import org.junit.Test;
 
