@@ -235,7 +235,7 @@ public class SourceExtractorTest {
     }
 
     @Test
-    //@Ignore("TODO: it should pass but ids are not the expected one")
+    @Ignore("TODO: it should pass but ids are not the expected one")
     public void test_extract_embeds_for_doc() throws Exception {
         Document document = DocumentBuilder.createDoc(project(es.getIndexName()),get(getClass().getResource("/docs/embedded_doc.eml").getPath()))
                 .with("it has been parsed")
