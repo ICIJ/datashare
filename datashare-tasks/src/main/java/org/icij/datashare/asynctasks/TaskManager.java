@@ -270,7 +270,7 @@ public interface TaskManager extends Closeable {
     static Task<Integer> taskify(BatchSearchRecord batchSearchRecord) {
         String name = "org.icij.datashare.tasks.BatchSearchRunnerProxy";
         Map<String, Object> batchRecord = Map.of("batchRecord", batchSearchRecord);
-        Task<Integer> task = new Task<>(batchSearchRecord.uuid, name, batchSearchRecord.user, batchRecord);
+        Task<Integer> task = new Task<>(batchSearchRecord.uuid, name, batchSearchRecord.date, batchSearchRecord.user, batchRecord);
         // Build a state map between task and batch search record
         Map<BatchSearchRecord.State, Task.State> stateMap = new EnumMap<>(BatchSearchRecord.State.class);
         stateMap.put(BatchSearchRecord.State.QUEUED, Task.State.QUEUED);
@@ -282,8 +282,6 @@ public interface TaskManager extends Closeable {
         // Set the task result
         TaskResult<Integer> result = new TaskResult<>(batchSearchRecord.nbResults);
         task.setResult(result);
-        // Set the correct creation date
-        task.setCreatedAt(batchSearchRecord.date);
         return task;
     }
 }

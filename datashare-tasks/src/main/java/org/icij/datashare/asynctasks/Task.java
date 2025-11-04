@@ -67,6 +67,10 @@ public class Task<V extends Serializable> extends Event implements Entity, Compa
         this(id, name, State.CREATED, 0, DatashareTime.getNow(), MAX_RETRIES_LEFT, null, addTo(args, user), null, null);
     }
 
+    public Task(String id, String name, Date date, User user, Map<String, Object> args) {
+        this(id, name, State.CREATED, 0, date, MAX_RETRIES_LEFT, null, addTo(args, user), null, null);
+    }
+
     @JsonCreator
     public Task(@JsonProperty("id") String id,
          @JsonProperty("name") String name,
