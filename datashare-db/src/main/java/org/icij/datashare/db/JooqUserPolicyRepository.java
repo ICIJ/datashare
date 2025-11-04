@@ -55,6 +55,17 @@ public class JooqUserPolicyRepository implements UserPolicyRepository {
     }
 
     @Override
+    public List<UserPolicy> getAll() {
+        DSLContext ctx = using(connectionProvider, dialect);
+        return ctx.selectFrom(USER_POLICY)
+                .fetch()
+                .stream()
+                .map(JooqUserPolicyRepository::fromRecord)
+                .collect(Collectors.toList());
+    }
+
+
+    @Override
     public boolean save(UserPolicy policy) {
         DSLContext ctx = using(connectionProvider, dialect);
         return ctx.insertInto(USER_POLICY)
