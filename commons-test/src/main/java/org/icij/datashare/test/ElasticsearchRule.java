@@ -18,11 +18,14 @@ import org.elasticsearch.client.Response;
 import org.elasticsearch.client.RestClient;
 import org.elasticsearch.client.RestClientBuilder;
 import org.icij.datashare.json.JsonObjectMapper;
+import org.icij.datashare.text.StringUtils;
 import org.junit.rules.ExternalResource;
 
 import java.io.IOException;
 import java.io.StringReader;
+import java.util.Arrays;
 import java.util.Objects;
+import java.util.stream.IntStream;
 
 import static com.google.common.io.ByteStreams.toByteArray;
 import static java.util.Arrays.asList;
@@ -30,7 +33,7 @@ import static java.util.Collections.singletonList;
 import static org.apache.http.HttpHost.create;
 
 public class ElasticsearchRule extends ExternalResource {
-    public static final String[] TEST_INDEXES = {"test-datashare", "test-index1", "test-index2"};
+    private static final String[] TEST_INDEXES = {"test-datashare", "test-index1", "test-index2"};
     private static final String TEST_INDEX = "test-datashare";
     private static final String MAPPING_RESOURCE_NAME = "datashare_index_mappings.json";
     private static final String SETTINGS_RESOURCE_NAME = "datashare_index_settings.json";
@@ -38,11 +41,12 @@ public class ElasticsearchRule extends ExternalResource {
     private final String[] indexesNames;
 
     public ElasticsearchRule() {
-        this(new String[]{TEST_INDEX});
+        this(new String[]{generateIndexName()});
     }
     public ElasticsearchRule(final String[] indexesName) { this(indexesName, create("http://elasticsearch:9200"));}
     public ElasticsearchRule(final HttpHost esHost) { this(TEST_INDEXES, esHost);}
-    public ElasticsearchRule(final String[] indexesName, HttpHost elasticHost) {
+    public ElasticsearchRule(int nbIndices) { this(IntStream.range(0, nbIndices).mapToObj(i -> generateIndexName()).toArray(String[]::new), create("http://elasticsearch:9200"));}
+    private ElasticsearchRule(final String[] indexesName, HttpHost elasticHost) {
         this.indexesNames = indexesName;
         System.setProperty("es.set.netty.runtime.available.processors", "false");
         RestClientBuilder.HttpClientConfigCallback xElasticProductCallback = httpAsyncClientBuilder -> {
@@ -110,6 +114,14 @@ public class ElasticsearchRule extends ExternalResource {
     }
 
     public String getIndexName() {
-        return TEST_INDEX;
+        return indexesNames[0];
+    }
+
+    public String[] getIndexNames() {
+        return indexesNames;
+    }
+
+    public static String generateIndexName() {
+        return TEST_INDEX  + "-"  + StringUtils.generateString(8);
     }
 }

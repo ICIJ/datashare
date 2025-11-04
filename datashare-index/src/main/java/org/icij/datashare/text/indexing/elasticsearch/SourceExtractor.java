@@ -112,7 +112,7 @@ public class SourceExtractor {
         throw new ContentNotFoundException(document.getRootDocument(), document.getId());
     }
 
-    public void extractEmbeddedSources(final Project project, Document document) throws TikaException, IOException, SAXException {
+    public TikaDocument extractEmbeddedSources(final Project project, Document document) throws TikaException, IOException, SAXException {
         Hasher hasher = Hasher.valueOf(document.getId().length());
         DigestingParser.Digester digester = noDigestProject() ?
                 new CommonsDigester(20 * 1024 * 1024,  hasher.toStringWithoutDash()):
@@ -122,6 +122,7 @@ public class SourceExtractor {
         TikaDocument tikaDocument = new DocumentFactory().withIdentifier(identifier).create(document.getPath());
         EmbeddedDocumentExtractor embeddedExtractor = new EmbeddedDocumentExtractor(digester, hasher.toString(), getArtifactPath(project),false);
         embeddedExtractor.extractAll(tikaDocument);
+        return tikaDocument;
     }
 
     private Path getArtifactPath(Project project) {

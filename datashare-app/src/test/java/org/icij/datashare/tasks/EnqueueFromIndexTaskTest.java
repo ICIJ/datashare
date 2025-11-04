@@ -33,7 +33,7 @@ public class EnqueueFromIndexTaskTest {
             indexer.add(es.getIndexName(), createDoc("doc" + i).with(Pipeline.Type.CORENLP).build());
         }
         Map<String, Object> properties = Map.of(
-                "defaultProject", "test-datashare",
+                "defaultProject", es.getIndexName(),
                 "stages", "ENQUEUEIDX",
                 "queueName", "test:queue",
                 NLP_PIPELINE_OPT, Pipeline.Type.OPENNLP.name());
@@ -48,7 +48,7 @@ public class EnqueueFromIndexTaskTest {
         indexer.add(es.getIndexName(), createDoc("my_id").with("this is my precious doc")
                 .with(Pipeline.Type.CORENLP).with(project(es.getIndexName())).build()); // because default is CORENLP so it should fail as of now
         Map<String, Object> properties = Map.of(
-                "defaultProject", "test-datashare",
+                "defaultProject", es.getIndexName(),
                 "stages", "ENQUEUEIDX",
                 "queueName", "test:queue",
                 "searchQuery", """
@@ -70,7 +70,7 @@ public class EnqueueFromIndexTaskTest {
         indexer.add(es.getIndexName(), createDoc("my_id").with("this is my precious doc")
                 .with(Pipeline.Type.CORENLP).with(project(es.getIndexName())).build()); // because default is CORENLP so it should fail as of now
         Map<String, Object> properties = Map.of(
-                "defaultProject", "test-datashare",
+                "defaultProject", es.getIndexName(),
                 "stages", "ENQUEUEIDX",
                 "queueName", "test:queue",
                 "searchQuery", "extractionLevel:0");

@@ -23,14 +23,13 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 
-import static org.icij.datashare.test.ElasticsearchRule.TEST_INDEXES;
 import static org.mockito.Mockito.when;
 import static org.mockito.MockitoAnnotations.initMocks;
 
 public class IndexResourceTest extends AbstractProdWebServerTest {
     @Mock JooqRepository jooqRepository;
-    @ClassRule public static ElasticsearchRule esRule = new ElasticsearchRule(TEST_INDEXES);
-    private final ElasticsearchIndexer indexer = new ElasticsearchIndexer(esRule.client, new PropertiesProvider()).withRefresh(Refresh.True);
+    @ClassRule public static ElasticsearchRule es = new ElasticsearchRule(3);
+    private final ElasticsearchIndexer indexer = new ElasticsearchIndexer(es.client, new PropertiesProvider()).withRefresh(Refresh.True);
     private final PropertiesProvider propertiesProvider = new PropertiesProvider(new HashMap<>() {{
         put("defaultUserName", "test");
     }});
@@ -113,21 +112,21 @@ public class IndexResourceTest extends AbstractProdWebServerTest {
     public void test_auth_forward_request_with_user_logged_on_allow_search_on_multiple_indices() throws IOException {
         configure(routes ->
                 routes.add(new IndexResource(indexer)).
-                        filter(new BasicAuthFilter("/", "icij", DatashareUser.singleUser(new User(new HashMap<String, Object>() {
+                        filter(new BasicAuthFilter("/", "icij", DatashareUser.singleUser(new User(new HashMap<>() {
                             {
                                 this.put("uid", "cecile");
                                 this.put("groups_by_applications", new HashMap<String, Object>() {
                                     {
-                                        this.put("datashare", Arrays.asList(TEST_INDEXES[1], TEST_INDEXES[2]));
+                                        this.put("datashare", Arrays.asList(es.getIndexNames()[1], es.getIndexNames()[2]));
                                     }
                                 });
                             }
                         })))));
-        indexer.add(TEST_INDEXES[1], DocumentBuilder.createDoc("doc1").withRootId("rootId").build());
-        indexer.add(TEST_INDEXES[2], DocumentBuilder.createDoc("doc2").withRootId("rootId").build());
-        post("/api/index/search/test-index1,test-index2/_search").withPreemptiveAuthentication("cecile", "").should().respond(200);
-        post("/api/index/search/test-index1,test-index2/_doc/_search").withPreemptiveAuthentication("cecile", "").should().respond(200);
-        post("/api/index/search/test-index1,test-index2/_count").withPreemptiveAuthentication("cecile", "").should().respond(200);
+        indexer.add(es.getIndexNames()[1], DocumentBuilder.createDoc("doc1").withRootId("rootId").build());
+        indexer.add(es.getIndexNames()[2], DocumentBuilder.createDoc("doc2").withRootId("rootId").build());
+        post("/api/index/search/%s,%s/_search".formatted(es.getIndexNames()[1], es.getIndexNames()[2])).withPreemptiveAuthentication("cecile", "").should().respond(200);
+        post("/api/index/search/%s,%s/_doc/_search".formatted(es.getIndexNames()[1], es.getIndexNames()[2])).withPreemptiveAuthentication("cecile", "").should().respond(200);
+        post("/api/index/search/%s,%s/_count".formatted(es.getIndexNames()[1], es.getIndexNames()[2])).withPreemptiveAuthentication("cecile", "").should().respond(200);
 
         post("/api/index/search/test-index1,test-index2/_delete_by_query").withPreemptiveAuthentication("cecile", "").should().respond(401);
     }
@@ -141,13 +140,13 @@ public class IndexResourceTest extends AbstractProdWebServerTest {
                                 this.put("uid", "cecile");
                                 this.put("groups_by_applications", new HashMap<String, Object>() {
                                     {
-                                        this.put("datashare", Arrays.asList(TEST_INDEXES[1], TEST_INDEXES[2]));
+                                        this.put("datashare", Arrays.asList(es.getIndexNames()[1], es.getIndexNames()[2]));
                                     }
                                 });
                             }
                         })))));
-        indexer.add(TEST_INDEXES[1], DocumentBuilder.createDoc("doc1").withRootId("rootId").build());
-        indexer.add(TEST_INDEXES[2], DocumentBuilder.createDoc("doc2").withRootId("rootId").build());
+        indexer.add(es.getIndexNames()[1], DocumentBuilder.createDoc("doc1").withRootId("rootId").build());
+        indexer.add(es.getIndexNames()[2], DocumentBuilder.createDoc("doc2").withRootId("rootId").build());
         post("/api/index/search/test-index1,  /_search").withPreemptiveAuthentication("cecile", "").should().respond(400);
         post("/api/index/search/,test-index2/_doc/_search").withPreemptiveAuthentication("cecile", "").should().respond(400);
         post("/api/index/search/,test-index2,/_count").withPreemptiveAuthentication("cecile", "").should().respond(400);
@@ -187,7 +186,7 @@ public class IndexResourceTest extends AbstractProdWebServerTest {
 
     @After
     public void tearDown() throws Exception {
-        esRule.delete("cecile-datashare", "index_name");
+        es.delete("cecile-datashare", "index_name");
     }
 }
 

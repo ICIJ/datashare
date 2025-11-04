@@ -52,6 +52,10 @@ public class IndexerHelper {
     }
 
     File indexEmbeddedFile(String project, String docPath) throws IOException {
+        return indexEmbeddedFile(project, docPath, project);
+    }
+
+    File indexEmbeddedFile(String project, String docPath, String spewerProject) throws IOException {
         Path path = get(getClass().getResource(docPath).getPath());
         Extractor extractor = new Extractor(new DocumentFactory().withIdentifier(new DigestIdentifier("SHA-384", Charset.defaultCharset())));
         extractor.setDigester(new UpdatableDigester(project, Entity.DEFAULT_DIGESTER.toString()));
@@ -59,7 +63,7 @@ public class IndexerHelper {
         ElasticsearchSpewer elasticsearchSpewer = new ElasticsearchSpewer(new ElasticsearchIndexer(client,
                 new PropertiesProvider()).withRefresh(Refresh.True), new MemoryDocumentCollectionFactory<>(), l -> ENGLISH,
                 new FieldNames(), new PropertiesProvider(new HashMap<>() {{
-                    put("defaultProject","test-datashare");
+            put("defaultProject", spewerProject);
         }}));
         elasticsearchSpewer.write(document);
         return path.toFile();

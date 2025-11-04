@@ -60,7 +60,7 @@ public class CreateNlpBatchesFromIndexTest {
             .withExtractionLevel((short) 1)
             .with(Pipeline.Type.CORENLP).with(project(es.getIndexName())).build());
         Map<String, Object> properties = Map.of(
-            "defaultProject", "test-datashare",
+            "defaultProject", es.getIndexName(),
             "stages", "BATCHENQUEUEIDX",
             "queueName", "test:queue",
             "nlpPipeline", "OPENNLP",

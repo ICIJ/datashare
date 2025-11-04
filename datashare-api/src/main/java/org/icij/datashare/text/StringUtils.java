@@ -9,8 +9,11 @@ import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Map;
+import java.util.Random;
 
 public class StringUtils {
+    private static final Random random = new Random();
+    private static final String chars = "abcdefghijklmnopqrstuvwxyz01234567890";
     public static String normalize(String unicoded) {
         return Unidecode.decode(unicoded).trim().replaceAll("(\\s+)", " ").toLowerCase();
     }
@@ -60,5 +63,14 @@ public class StringUtils {
 
         // not found
         return null;
+    }
+
+    public static String generateString(int length)
+    {
+        char[] text = new char[length];
+        for (int i = 0; i < length; i++) {
+            text[i] = chars.charAt(random.nextInt(chars.length()));
+        }
+        return new String(text);
     }
 }

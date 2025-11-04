@@ -35,7 +35,7 @@ public class DatashareExtractIntegrationTest {
     private final ElasticsearchIndexer indexer = new ElasticsearchIndexer(es.client, new PropertiesProvider()).withRefresh(Refresh.True);
     private final ElasticsearchSpewer spewer = new ElasticsearchSpewer(indexer, new MemoryDocumentCollectionFactory<>(), l -> ENGLISH,
             new FieldNames(), new PropertiesProvider(new HashMap<>(){{
-                put("defaultProject", "test-datashare");
+                put("defaultProject", es.getIndexName());
     }}));
 
     public DatashareExtractIntegrationTest() throws IOException {}
@@ -48,7 +48,7 @@ public class DatashareExtractIntegrationTest {
         spewer.write(tikaDocument);
         Document doc = indexer.get(es.getIndexName(), tikaDocument.getId());
 
-        assertThat(doc.getProject()).isEqualTo(project("test-datashare"));
+        assertThat(doc.getProject()).isEqualTo(project(es.getIndexName()));
         assertThat(doc.getId()).isEqualTo(tikaDocument.getId());
         assertThat(doc.getContent()).isEqualTo("This is a document to be parsed by datashare.");
         assertThat(doc.getLanguage()).isEqualTo(ENGLISH);

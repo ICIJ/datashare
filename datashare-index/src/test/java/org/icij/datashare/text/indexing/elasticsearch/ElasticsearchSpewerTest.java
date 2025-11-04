@@ -56,7 +56,7 @@ public class ElasticsearchSpewerTest {
     private final MemoryDocumentCollectionFactory<String> documentQueueFactory = new MemoryDocumentCollectionFactory<>();
     private final ElasticsearchSpewer spewer = new ElasticsearchSpewer(new ElasticsearchIndexer(es.client, new PropertiesProvider()).withRefresh(Refresh.True),
             documentQueueFactory, text -> Language.ENGLISH, new FieldNames(), new PropertiesProvider(new HashMap<>() {{
-                put("defaultProject", "test-datashare");
+                put("defaultProject", es.getIndexName());
     }}));
 
     @Test
@@ -114,7 +114,7 @@ public class ElasticsearchSpewerTest {
         ElasticsearchIndexer indexer = new ElasticsearchIndexer(es.client, new PropertiesProvider()).withRefresh(Refresh.True);
         try (ElasticsearchSpewer zhoSpewer = new ElasticsearchSpewer(indexer,
             documentQueueFactory, text -> Language.CHINESE, new FieldNames(),
-            new PropertiesProvider(Map.of("defaultProject", "test-datashare")))) {
+            new PropertiesProvider(Map.of("defaultProject", es.getIndexName())))) {
             Path path = get(requireNonNull(getClass().getResource("/docs/a/b/c/zho.txt")).getPath());
             Options<String> options = Options.from(Map.of("ocrLanguage", "eng+zho"));
             Extractor extractor = new Extractor(options);
@@ -351,7 +351,7 @@ public class ElasticsearchSpewerTest {
         HashMap<String, Object> properties = new HashMap<>() {{
             put("digestAlgorithm", "SHA-256");
             put("digestProjectName", "project");
-            put("defaultProject", "test-datashare");
+            put("defaultProject", es.getIndexName());
         }};
         ElasticsearchSpewer spewer256 = new ElasticsearchSpewer(new ElasticsearchIndexer(es.client, new PropertiesProvider()),
                 documentQueueFactory, text -> Language.ENGLISH, new FieldNames(), new PropertiesProvider(properties));
@@ -377,7 +377,7 @@ public class ElasticsearchSpewerTest {
         HashMap<String, Object> properties = new HashMap<>() {{
             put("digestAlgorithm", "SHA-256");
             put("digestProjectName", "project");
-            put("defaultProject", "test-datashare");
+            put("defaultProject", es.getIndexName());
         }};
         ElasticsearchSpewer spewer256 = new ElasticsearchSpewer(new ElasticsearchIndexer(es.client, new PropertiesProvider()),
                 documentQueueFactory, text -> Language.ENGLISH, new FieldNames(), new PropertiesProvider(properties));
@@ -428,7 +428,7 @@ public class ElasticsearchSpewerTest {
         ElasticsearchSpewer limitedContentSpewer = new ElasticsearchSpewer(new ElasticsearchIndexer(es.client, new PropertiesProvider()),
                 documentQueueFactory, text -> Language.ENGLISH, new FieldNames(), new PropertiesProvider(new HashMap<>() {{
             put("maxContentLength", "20");
-            put("defaultProject", "test-datashare");
+            put("defaultProject", es.getIndexName());
         }}));
         final TikaDocument document = new DocumentFactory().withIdentifier(new PathIdentifier()).create(get("fake-file.txt"));
         final ParsingReader reader = new ParsingReader(new ByteArrayInputStream("this content should be truncated".getBytes()));
@@ -445,7 +445,7 @@ public class ElasticsearchSpewerTest {
         ElasticsearchSpewer limitedContentSpewer = new ElasticsearchSpewer(new ElasticsearchIndexer(es.client, new PropertiesProvider()),
                 documentQueueFactory, text -> Language.ENGLISH, new FieldNames(), new PropertiesProvider(new HashMap<>() {{
             put("maxContentLength", "20");
-            put("defaultProject", "test-datashare");
+            put("defaultProject", es.getIndexName());
         }}));
         final TikaDocument document = new DocumentFactory().withIdentifier(new PathIdentifier()).create(get("ok-file.txt"));
         final ParsingReader reader = new ParsingReader(new ByteArrayInputStream("this content is ok".getBytes()));
@@ -502,7 +502,7 @@ public class ElasticsearchSpewerTest {
     @After
     public void after() {
         try {
-            DeleteByQueryRequest.Builder deleteByQueryRequest = new DeleteByQueryRequest.Builder().index("test-datashare");
+            DeleteByQueryRequest.Builder deleteByQueryRequest = new DeleteByQueryRequest.Builder().index(es.getIndexName());
             deleteByQueryRequest.query(Query.of(q -> q.matchAll(ma -> ma)));
             es.client.deleteByQuery(deleteByQueryRequest.build()).deleted();
         } catch (IOException e) {

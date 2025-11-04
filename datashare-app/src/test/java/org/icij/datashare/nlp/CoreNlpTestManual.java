@@ -10,6 +10,7 @@ import org.icij.datashare.text.NamedEntity;
 import org.icij.datashare.text.nlp.corenlp.CorenlpPipeline;
 import org.icij.datashare.text.nlp.corenlp.models.CoreNlpModels;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.File;
@@ -25,6 +26,7 @@ import static org.icij.datashare.text.nlp.corenlp.models.CoreNlpModels.SUPPORTED
 // this test is not executed by CI because it doesn't end with "Test"
 // its goal is to test manually the core NLP pipeline
 // it has not been automated because it loads near 1GB models and is flaky
+@Ignore
 public class CoreNlpTestManual {
     private static final File distDir = new File("dist");
 

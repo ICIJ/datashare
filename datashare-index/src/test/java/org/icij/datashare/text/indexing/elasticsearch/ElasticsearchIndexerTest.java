@@ -39,7 +39,6 @@ import static java.util.Collections.singletonList;
 import static java.util.stream.Collectors.toList;
 import static org.elasticsearch.action.support.WriteRequest.RefreshPolicy.IMMEDIATE;
 import static org.fest.assertions.Assertions.assertThat;
-import static org.icij.datashare.test.ElasticsearchRule.TEST_INDEXES;
 import static org.icij.datashare.text.Document.Status.DONE;
 import static org.icij.datashare.text.Document.Status.INDEXED;
 import static org.icij.datashare.text.DocumentBuilder.createDoc;
@@ -60,7 +59,7 @@ import static org.mockito.Mockito.when;
 public class ElasticsearchIndexerTest {
     static final String KEEP_ALIVE = "60000ms";
     @ClassRule
-    public static ElasticsearchRule es = new ElasticsearchRule(TEST_INDEXES);
+    public static ElasticsearchRule es = new ElasticsearchRule(3);
     private final ElasticsearchIndexer indexer = new ElasticsearchIndexer(es.client, new PropertiesProvider()).withRefresh(Refresh.True);
 
     @After
@@ -196,10 +195,10 @@ public class ElasticsearchIndexerTest {
                 .with(Language.FRENCH)
                 .with("application/pdf")
                 .with(INDEXED).build();
-        indexer.add(TEST_INDEXES[1], doc);
-        indexer.add(TEST_INDEXES[2], doc);
+        indexer.add(es.getIndexNames()[1], doc);
+        indexer.add(es.getIndexNames()[2], doc);
 
-        List<? extends Entity> lst = indexer.search(asList(TEST_INDEXES[1], TEST_INDEXES[2]), Document.class).execute().toList();
+        List<? extends Entity> lst = indexer.search(asList(es.getIndexNames()[1], es.getIndexNames()[2]), Document.class).execute().toList();
         assertThat(lst.size()).isEqualTo(2);
     }
 
