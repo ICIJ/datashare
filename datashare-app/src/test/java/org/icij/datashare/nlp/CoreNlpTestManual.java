@@ -1,15 +1,6 @@
 package org.icij.datashare.nlp;
 
-import static org.fest.assertions.Assertions.assertThat;
-import static org.icij.datashare.LambdaExceptionUtils.rethrowConsumer;
-import static org.icij.datashare.text.nlp.corenlp.models.CoreNlpModels.SUPPORTED_LANGUAGES;
-
 import edu.stanford.nlp.pipeline.StanfordCoreNLP;
-import java.io.File;
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Objects;
 import org.apache.commons.io.FileUtils;
 import org.icij.datashare.DynamicClassLoader;
 import org.icij.datashare.PropertiesProvider;
@@ -20,6 +11,16 @@ import org.icij.datashare.text.nlp.corenlp.CorenlpPipeline;
 import org.icij.datashare.text.nlp.corenlp.models.CoreNlpModels;
 import org.junit.Before;
 import org.junit.Test;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Objects;
+
+import static org.fest.assertions.Assertions.assertThat;
+import static org.icij.datashare.LambdaExceptionUtils.rethrowConsumer;
+import static org.icij.datashare.text.nlp.corenlp.models.CoreNlpModels.SUPPORTED_LANGUAGES;
 
 // this test is not executed by CI because it doesn't end with "Test"
 // its goal is to test manually the core NLP pipeline

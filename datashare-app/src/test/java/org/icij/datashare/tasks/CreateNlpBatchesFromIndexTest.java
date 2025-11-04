@@ -1,7 +1,6 @@
 package org.icij.datashare.tasks;
 
 import static org.fest.assertions.Assertions.assertThat;
-import static org.icij.datashare.test.ElasticsearchRule.TEST_INDEX;
 import static org.icij.datashare.text.DocumentBuilder.createDoc;
 import static org.icij.datashare.text.Project.project;
 import static org.mockito.ArgumentMatchers.any;
@@ -55,11 +54,11 @@ public class CreateNlpBatchesFromIndexTest {
         // Given
         int batchSize = 3;
         int scrollSize = 5;
-        indexer.add(TEST_INDEX, createDoc("my_id").with("this is my precious doc")
-            .with(Pipeline.Type.CORENLP).with(project(TEST_INDEX)).build());
-        indexer.add(TEST_INDEX, createDoc("my_other_id").with("this is not my precious doc")
+        indexer.add(es.getIndexName(), createDoc("my_id").with("this is my precious doc")
+            .with(Pipeline.Type.CORENLP).with(project(es.getIndexName())).build());
+        indexer.add(es.getIndexName(), createDoc("my_other_id").with("this is not my precious doc")
             .withExtractionLevel((short) 1)
-            .with(Pipeline.Type.CORENLP).with(project(TEST_INDEX)).build());
+            .with(Pipeline.Type.CORENLP).with(project(es.getIndexName())).build());
         Map<String, Object> properties = Map.of(
             "defaultProject", "test-datashare",
             "stages", "BATCHENQUEUEIDX",

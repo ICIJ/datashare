@@ -22,7 +22,6 @@ import java.util.concurrent.CountDownLatch;
 
 import static java.util.Collections.singletonList;
 import static org.fest.assertions.Assertions.assertThat;
-import static org.icij.datashare.test.ElasticsearchRule.TEST_INDEX;
 import static org.icij.datashare.text.Project.project;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -37,7 +36,7 @@ public class BatchDownloadRunnerEncryptedIntTest {
 
     @Test
     public void test_zip_with_password_should_encrypt_file_and_send_mail() throws Exception {
-        new IndexerHelper(es.client).indexFile("mydoc.txt", "content", fs);
+        new IndexerHelper(es.client).indexFile("mydoc.txt", "content", fs, es.getIndexName());
         BatchDownload batchDownload = createBatchDownload("*");
         MailSender mailSender = mock(MailSender.class);
         Task<?> taskView =
@@ -58,7 +57,7 @@ public class BatchDownloadRunnerEncryptedIntTest {
 
     @NotNull
     private BatchDownload createBatchDownload(String query) {
-        return new BatchDownload(singletonList(project(TEST_INDEX)), new User("foo", "bar", "foo@bar.com"), query, null, fs.getRoot().toPath(), true);
+        return new BatchDownload(singletonList(project(es.getIndexName())), new User("foo", "bar", "foo@bar.com"), query, null, fs.getRoot().toPath(), true);
     }
 
     @Before

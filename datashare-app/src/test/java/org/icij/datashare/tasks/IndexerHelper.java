@@ -6,7 +6,6 @@ import org.apache.commons.io.FilenameUtils;
 import org.icij.datashare.Entity;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.extract.MemoryDocumentCollectionFactory;
-import org.icij.datashare.test.ElasticsearchRule;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.DocumentBuilder;
 import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchIndexer;
@@ -38,10 +37,6 @@ public class IndexerHelper {
     public IndexerHelper(ElasticsearchClient elasticsearch) {
         this.client = elasticsearch;
         this.indexer = new ElasticsearchIndexer(elasticsearch, new PropertiesProvider()).withRefresh(Refresh.True);
-    }
-
-    File indexFile(String fileName, String content, TemporaryFolder fs) throws IOException {
-        return indexFile(fileName, content, fs, ElasticsearchRule.TEST_INDEX);
     }
 
     File indexFile(String fileName, String content, TemporaryFolder fs, String indexName) throws IOException {

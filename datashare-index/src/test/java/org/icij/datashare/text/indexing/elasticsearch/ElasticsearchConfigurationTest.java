@@ -14,7 +14,6 @@ import org.junit.Test;
 import java.util.HashMap;
 
 import static org.fest.assertions.Assertions.assertThat;
-import static org.icij.datashare.test.ElasticsearchRule.TEST_INDEX;
 
 public class ElasticsearchConfigurationTest {
     @ClassRule
@@ -25,7 +24,7 @@ public class ElasticsearchConfigurationTest {
         ElasticsearchConfiguration.createESClient(new PropertiesProvider());
 
         RestClient restClient = ((RestClientTransport) es.client._transport()).restClient();
-        Response response = restClient.performRequest(new Request("GET", TEST_INDEX));
+        Response response = restClient.performRequest(new Request("GET", es.getIndexName()));
 
         assertThat(EntityUtils.toString(response.getEntity())).contains("mapping");
     }
@@ -35,7 +34,7 @@ public class ElasticsearchConfigurationTest {
         ElasticsearchConfiguration.createESClient(new PropertiesProvider());
 
         RestClient restClient = ((RestClientTransport) es.client._transport()).restClient();
-        Response response = restClient.performRequest(new Request("GET", TEST_INDEX));
+        Response response = restClient.performRequest(new Request("GET", es.getIndexName()));
 
         assertThat(EntityUtils.toString(response.getEntity())).contains("settings");
     }
@@ -47,7 +46,7 @@ public class ElasticsearchConfigurationTest {
         }}));
 
         RestClient restClient = ((RestClientTransport) esClient._transport()).restClient();
-        Response response = restClient.performRequest(new Request("GET", TEST_INDEX));
+        Response response = restClient.performRequest(new Request("GET", es.getIndexName()));
 
         assertThat(EntityUtils.toString(response.getEntity())).contains("settings");
     }
@@ -57,7 +56,7 @@ public class ElasticsearchConfigurationTest {
         ElasticsearchConfiguration.createESClient(new PropertiesProvider());
 
         RestClient restClient = ((RestClientTransport) es.client._transport()).restClient();
-        Response response = restClient.performRequest(new Request("GET", TEST_INDEX));
+        Response response = restClient.performRequest(new Request("GET", es.getIndexName()));
 
         assertThat(response.getHeader("X-Elastic-Product")).isNotNull();
     }

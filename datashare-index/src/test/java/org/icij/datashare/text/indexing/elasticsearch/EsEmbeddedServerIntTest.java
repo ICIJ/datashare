@@ -8,7 +8,6 @@ import java.io.IOException;
 
 import static org.apache.http.HttpHost.create;
 import static org.fest.assertions.Assertions.assertThat;
-import static org.icij.datashare.test.ElasticsearchRule.TEST_INDEX;
 
 public class EsEmbeddedServerIntTest {
     private static EsEmbeddedServer server;
@@ -17,7 +16,7 @@ public class EsEmbeddedServerIntTest {
 
     @Test(timeout = 10_000)
     public void test_embedded_server_has_a_test_index() throws Exception {
-         assertThat(es.client.indices().exists(e -> e.index(TEST_INDEX)).value()).isTrue();
+         assertThat(es.client.indices().exists(e -> e.index(es.getIndexName())).value()).isTrue();
     }
 
     @BeforeClass

@@ -39,7 +39,6 @@ import static java.util.Collections.singletonList;
 import static java.util.stream.Collectors.toList;
 import static org.elasticsearch.action.support.WriteRequest.RefreshPolicy.IMMEDIATE;
 import static org.fest.assertions.Assertions.assertThat;
-import static org.icij.datashare.test.ElasticsearchRule.TEST_INDEX;
 import static org.icij.datashare.test.ElasticsearchRule.TEST_INDEXES;
 import static org.icij.datashare.text.Document.Status.DONE;
 import static org.icij.datashare.text.Document.Status.INDEXED;
@@ -71,53 +70,53 @@ public class ElasticsearchIndexerTest {
 
     @Test
     public void test_get_unknown_document() {
-        Document doc = indexer.get(TEST_INDEX, "unknown");
+        Document doc = indexer.get(es.getIndexName(), "unknown");
         assertThat(doc).isNull();
     }
 
     @Test
     public void test_bulk_add() throws IOException {
         Document doc1 = createDoc("doc1").build();
-        assertThat(indexer.bulkAdd(TEST_INDEX, asList(doc1, createDoc("doc2").build()))).isTrue();
+        assertThat(indexer.bulkAdd(es.getIndexName(), asList(doc1, createDoc("doc2").build()))).isTrue();
 
-        assertThat(((Document) indexer.get(TEST_INDEX, "doc1"))).isEqualTo(doc1);
-        assertThat(((Document) indexer.get(TEST_INDEX, "doc2"))).isNotNull();
+        assertThat(((Document) indexer.get(es.getIndexName(), "doc1"))).isEqualTo(doc1);
+        assertThat(((Document) indexer.get(es.getIndexName(), "doc2"))).isNotNull();
     }
 
     @Test
     public void test_bulk_add_with_root_document() throws IOException {
         Document root = createDoc("root").build();
-        assertThat(indexer.bulkAdd(TEST_INDEX, asList(createDoc("doc1").withParentId(root.getId()).withRootId(root.getId()).build(), createDoc("doc2").withParentId(root.getId()).withRootId(root.getId()).build()))).isTrue();
+        assertThat(indexer.bulkAdd(es.getIndexName(), asList(createDoc("doc1").withParentId(root.getId()).withRootId(root.getId()).build(), createDoc("doc2").withParentId(root.getId()).withRootId(root.getId()).build()))).isTrue();
 
-        assertThat(((Document) indexer.get(TEST_INDEX, "doc1")).getRootDocument()).isEqualTo(root.getId());
-        assertThat(((Document) indexer.get(TEST_INDEX, "doc2")).getRootDocument()).isEqualTo(root.getId());
-        assertThat(Objects.requireNonNull(es.client.get(GetRequest.of(d -> d.index(TEST_INDEX).id("doc1")), Document.class).source()).getRootDocument()).isEqualTo(root.getId());
-        assertThat(Objects.requireNonNull(es.client.get(GetRequest.of(d -> d.index(TEST_INDEX).id("doc1")), Document.class).source()).getRootDocument()).isEqualTo(root.getId());
+        assertThat(((Document) indexer.get(es.getIndexName(), "doc1")).getRootDocument()).isEqualTo(root.getId());
+        assertThat(((Document) indexer.get(es.getIndexName(), "doc2")).getRootDocument()).isEqualTo(root.getId());
+        assertThat(Objects.requireNonNull(es.client.get(GetRequest.of(d -> d.index(es.getIndexName()).id("doc1")), Document.class).source()).getRootDocument()).isEqualTo(root.getId());
+        assertThat(Objects.requireNonNull(es.client.get(GetRequest.of(d -> d.index(es.getIndexName()).id("doc1")), Document.class).source()).getRootDocument()).isEqualTo(root.getId());
     }
 
     @Test
     public void test_bulk_add_named_entities() throws IOException {
         Document doc = createDoc("id").build();
-        indexer.add(TEST_INDEX, doc);
+        indexer.add(es.getIndexName(), doc);
         NamedEntity ne1 = create(PERSON, "John Doe", singletonList(12L), "doc.txt", "root", CORENLP, Language.FRENCH);
         NamedEntity ne2 = create(ORGANIZATION, "AAA", singletonList(123L), "doc.txt", "root", CORENLP, Language.FRENCH);
 
-        assertThat(indexer.bulkAdd(TEST_INDEX, CORENLP, asList(ne1, ne2), doc)).isTrue();
+        assertThat(indexer.bulkAdd(es.getIndexName(), CORENLP, asList(ne1, ne2), doc)).isTrue();
 
-        assertThat(((Document) indexer.get(TEST_INDEX, doc.getId())).getStatus()).isEqualTo(Document.Status.DONE);
-        assertThat(((Document) indexer.get(TEST_INDEX, doc.getId())).getNerTags()).containsOnly(CORENLP);
-        assertThat((NamedEntity) indexer.get(TEST_INDEX, ne1.getId(), doc.getId())).isNotNull();
-        assertThat((NamedEntity) indexer.get(TEST_INDEX, ne2.getId(), doc.getId())).isNotNull();
+        assertThat(((Document) indexer.get(es.getIndexName(), doc.getId())).getStatus()).isEqualTo(Document.Status.DONE);
+        assertThat(((Document) indexer.get(es.getIndexName(), doc.getId())).getNerTags()).containsOnly(CORENLP);
+        assertThat((NamedEntity) indexer.get(es.getIndexName(), ne1.getId(), doc.getId())).isNotNull();
+        assertThat((NamedEntity) indexer.get(es.getIndexName(), ne2.getId(), doc.getId())).isNotNull();
     }
 
     @Test
     public void test_bulk_add_should_add_ner_pipeline_once_and_for_empty_list() throws IOException {
         Document doc = createDoc("id").with(INDEXED).with(OPENNLP).build();
-        indexer.add(TEST_INDEX, doc);
+        indexer.add(es.getIndexName(), doc);
 
-        assertThat(indexer.bulkAdd(TEST_INDEX, OPENNLP, emptyList(), doc)).isTrue();
+        assertThat(indexer.bulkAdd(es.getIndexName(), OPENNLP, emptyList(), doc)).isTrue();
 
-        co.elastic.clients.elasticsearch.core.GetResponse<Document> resp = es.client.get(co.elastic.clients.elasticsearch.core.GetRequest.of(d -> d.index(TEST_INDEX).id(doc.getId())), Document.class);
+        co.elastic.clients.elasticsearch.core.GetResponse<Document> resp = es.client.get(co.elastic.clients.elasticsearch.core.GetRequest.of(d -> d.index(es.getIndexName()).id(doc.getId())), Document.class);
         assertThat(Objects.requireNonNull(resp.source()).getStatus()).isEqualTo(DONE);
         assertThat(resp.source().getNerTags()).containsOnly(OPENNLP);
     }
@@ -147,16 +146,16 @@ public class ElasticsearchIndexerTest {
                 .withExtractionLevel((short)1)
                 .build();
 
-        indexer.add(TEST_INDEX,parent);
-        indexer.add(TEST_INDEX,child);
+        indexer.add(es.getIndexName(),parent);
+        indexer.add(es.getIndexName(),child);
         NamedEntity ne1 = create(PERSON, "Jane Daffodil", singletonList(12L), parent.getId(), "root", CORENLP, Language.FRENCH);
 
-        assertThat(indexer.bulkAdd(TEST_INDEX,CORENLP, singletonList(ne1), child)).isTrue();
+        assertThat(indexer.bulkAdd(es.getIndexName(),CORENLP, singletonList(ne1), child)).isTrue();
 
-        Document doc = indexer.get(TEST_INDEX, child.getId(), parent.getId());
+        Document doc = indexer.get(es.getIndexName(), child.getId(), parent.getId());
         assertThat(doc.getNerTags()).containsOnly(CORENLP);
         assertThat(doc.getStatus()).isEqualTo(Document.Status.DONE);
-        NamedEntity actual = indexer.get(TEST_INDEX, ne1.getId(), doc.getRootDocument());
+        NamedEntity actual = indexer.get(es.getIndexName(), ne1.getId(), doc.getRootDocument());
         assertThat(actual).isNotNull();
         assertThat(actual.getRootDocument()).isEqualTo(doc.getRootDocument());
     }
@@ -173,19 +172,19 @@ public class ElasticsearchIndexerTest {
                 .withContentLength(123L)
                 .build();
         NamedEntity ne = create(PERSON, "Madeline", singletonList(8L), parent.getId(), "root", CORENLP, Language.ENGLISH);
-        indexer.add(TEST_INDEX, parent);
-        indexer.add(TEST_INDEX, ne);
+        indexer.add(es.getIndexName(), parent);
+        indexer.add(es.getIndexName(), ne);
 
         ne.hide();
-        indexer.update(TEST_INDEX, ne);
+        indexer.update(es.getIndexName(), ne);
 
-        NamedEntity neFromES = indexer.get(TEST_INDEX, ne.getId(), parent.getId());
+        NamedEntity neFromES = indexer.get(es.getIndexName(), ne.getId(), parent.getId());
         assertThat(neFromES.isHidden()).isTrue();
     }
 
     @Test
     public void test_search_no_results() throws IOException {
-        List<? extends Entity> lst = indexer.search(singletonList(TEST_INDEX), Document.class).execute().collect(toList());
+        List<? extends Entity> lst = indexer.search(singletonList(es.getIndexName()), Document.class).execute().collect(toList());
         assertThat(lst).isEmpty();
     }
 
@@ -212,15 +211,15 @@ public class ElasticsearchIndexerTest {
                 .with(Language.FRENCH)
                 .with("application/pdf")
                 .with(INDEXED).build();
-        indexer.add(TEST_INDEX, doc);
+        indexer.add(es.getIndexName(), doc);
 
-        Boolean exists = indexer.exists(TEST_INDEX, "id");
+        Boolean exists = indexer.exists(es.getIndexName(), "id");
         assertThat(exists).isTrue();
     }
 
     @Test
     public void test_document_with_id_doesnt_exist()  throws IOException {
-        Boolean exists = indexer.exists(TEST_INDEX, "id");
+        Boolean exists = indexer.exists(es.getIndexName(), "id");
         assertThat(exists).isFalse();
     }
 
@@ -232,9 +231,9 @@ public class ElasticsearchIndexerTest {
                 .with(Language.FRENCH)
                 .with("application/pdf")
                 .with(INDEXED).build();
-        indexer.add(TEST_INDEX, doc);
+        indexer.add(es.getIndexName(), doc);
 
-        Boolean exists = indexer.exists(TEST_INDEX, "id", Paths.get("doc.txt"));
+        Boolean exists = indexer.exists(es.getIndexName(), "id", Paths.get("doc.txt"));
         assertThat(exists).isTrue();
     }
 
@@ -246,15 +245,15 @@ public class ElasticsearchIndexerTest {
                 .with(Language.FRENCH)
                 .with("application/pdf")
                 .with(INDEXED).build();
-        indexer.add(TEST_INDEX, doc);
+        indexer.add(es.getIndexName(), doc);
 
-        Boolean exists = indexer.exists(TEST_INDEX, "id", Paths.get("report.txt"));
+        Boolean exists = indexer.exists(es.getIndexName(), "id", Paths.get("report.txt"));
         assertThat(exists).isFalse();
     }
 
     @Test
     public void test_index_exists() throws IOException {
-        Boolean exists = indexer.exists(TEST_INDEX);
+        Boolean exists = indexer.exists(es.getIndexName());
         assertThat(exists).isTrue();
     }
 
@@ -266,42 +265,42 @@ public class ElasticsearchIndexerTest {
 
     @Test
     public void test_duplicate() throws IOException {
-        indexer.add(TEST_INDEX, new Duplicate(Paths.get("duplicate"), "docId"));
-        assertThat(indexer.search(singletonList(TEST_INDEX), Duplicate.class)).isNotNull();
+        indexer.add(es.getIndexName(), new Duplicate(Paths.get("duplicate"), "docId"));
+        assertThat(indexer.search(singletonList(es.getIndexName()), Duplicate.class)).isNotNull();
     }
 
     @Test
     public void test_search_with_status() throws IOException {
         Document doc = createDoc("id").with(INDEXED).build();
-        indexer.add(TEST_INDEX, doc);
+        indexer.add(es.getIndexName(), doc);
 
-        List<? extends Entity> lst = indexer.search(singletonList(TEST_INDEX), Document.class).ofStatus(INDEXED).execute().toList();
+        List<? extends Entity> lst = indexer.search(singletonList(es.getIndexName()), Document.class).ofStatus(INDEXED).execute().toList();
         assertThat(lst.size()).isEqualTo(1);
-        assertThat((int) indexer.search(singletonList(TEST_INDEX), Document.class).ofStatus(DONE).execute().count()).isEqualTo(0);
+        assertThat((int) indexer.search(singletonList(es.getIndexName()), Document.class).ofStatus(DONE).execute().count()).isEqualTo(0);
     }
 
     @Test
     public void test_search_with_json_query() throws IOException {
         Document doc = createDoc("id").build();
-        indexer.add(TEST_INDEX, doc);
+        indexer.add(es.getIndexName(), doc);
 
         String queryBody = "{\"bool\":{\"must\":[{\"match_all\":{}},{\"bool\":{\"should\":[{\"query_string\":{\"query\":\"*\"}}]}},{\"match\":{\"type\":\"Document\"}}]}}";
-        List<? extends Entity> lst = indexer.search(singletonList(TEST_INDEX),Document.class, new SearchQuery(queryBody)).execute().toList();
+        List<? extends Entity> lst = indexer.search(singletonList(es.getIndexName()),Document.class, new SearchQuery(queryBody)).execute().toList();
         assertThat(lst.size()).isEqualTo(1);
     }
 
     @Test
     public void test_search_with_a_template_json_query_phrase_matches() throws IOException {
         Document doc = createDoc("id").with("content with john doe").build();
-        indexer.add(TEST_INDEX, doc);
+        indexer.add(es.getIndexName(), doc);
         String queryBody = "{\"bool\":{\"must\":[{\"match_all\":{}},{\"bool\":{\"should\":[{\"query_string\":{\"query\":\"<query>\"}}]}},{\"match\":{\"type\":\"Document\"}}]}}";
         String queryToSearch = "john AND doe";
 
-        List<? extends Entity> searchWithPhraseMatch = indexer.search(singletonList(TEST_INDEX),Document.class, new SearchQuery(queryBody)).
+        List<? extends Entity> searchWithPhraseMatch = indexer.search(singletonList(es.getIndexName()),Document.class, new SearchQuery(queryBody)).
                 with(0, true).execute(queryToSearch).toList();
         assertThat(searchWithPhraseMatch.size()).isEqualTo(0);
 
-        List<? extends Entity> searchWithoutPhraseMatch = indexer.search(singletonList(TEST_INDEX),Document.class, new SearchQuery(queryBody)).
+        List<? extends Entity> searchWithoutPhraseMatch = indexer.search(singletonList(es.getIndexName()),Document.class, new SearchQuery(queryBody)).
                 with(0, false).execute(queryToSearch).toList();
         assertThat(searchWithoutPhraseMatch.size()).isEqualTo(1);
     }
@@ -310,16 +309,16 @@ public class ElasticsearchIndexerTest {
     public void test_search_with_a_template_json_query_fuzziness() throws IOException {
         Document doc1 = createDoc("id1").with("bar").build();
         Document doc2 = createDoc("id2").with("baz").build();
-        indexer.add(TEST_INDEX, doc1);
-        indexer.add(TEST_INDEX, doc2);
+        indexer.add(es.getIndexName(), doc1);
+        indexer.add(es.getIndexName(), doc2);
         String queryBody = "{\"bool\":{\"must\":[{\"match_all\":{}},{\"bool\":{\"should\":[{\"query_string\":{\"query\":\"<query>\"}}]}},{\"match\":{\"type\":\"Document\"}}]}}";
         String queryToSearch = "bar";
 
-        List<? extends Entity> searchWithFuzziness0 = indexer.search(singletonList(TEST_INDEX),Document.class, new SearchQuery(queryBody)).
+        List<? extends Entity> searchWithFuzziness0 = indexer.search(singletonList(es.getIndexName()),Document.class, new SearchQuery(queryBody)).
                 with(0, false).execute(queryToSearch).toList();
         assertThat(searchWithFuzziness0.size()).isEqualTo(1);
 
-        List<? extends Entity> searchWithFuzziness1 = indexer.search(singletonList(TEST_INDEX),Document.class, new SearchQuery(queryBody)).
+        List<? extends Entity> searchWithFuzziness1 = indexer.search(singletonList(es.getIndexName()),Document.class, new SearchQuery(queryBody)).
                 with(1, false).execute(queryToSearch).toList();
         assertThat(searchWithFuzziness1.size()).isEqualTo(2);
     }
@@ -327,12 +326,12 @@ public class ElasticsearchIndexerTest {
     @Test
     public void test_tag_document() throws IOException {
         Document doc = createDoc("id").build();
-        indexer.add(TEST_INDEX, doc);
+        indexer.add(es.getIndexName(), doc);
 
-        assertThat(indexer.tag(project(TEST_INDEX), doc.getId(), doc.getId(), tag("foo"), tag("bar"))).isTrue();
-        assertThat(indexer.tag(project(TEST_INDEX), doc.getId(), doc.getId(), tag("foo"))).isFalse();
+        assertThat(indexer.tag(project(es.getIndexName()), doc.getId(), doc.getId(), tag("foo"), tag("bar"))).isTrue();
+        assertThat(indexer.tag(project(es.getIndexName()), doc.getId(), doc.getId(), tag("foo"))).isFalse();
 
-        List<? extends Entity> lst = indexer.search(singletonList(TEST_INDEX), Document.class).with(tag("foo"), tag("bar")).execute().toList();
+        List<? extends Entity> lst = indexer.search(singletonList(es.getIndexName()), Document.class).with(tag("foo"), tag("bar")).execute().toList();
         assertThat(lst.size()).isEqualTo(1);
         assertThat(((Document)lst.get(0)).getTags()).containsOnly(tag("foo"), tag("bar"));
     }
@@ -340,89 +339,89 @@ public class ElasticsearchIndexerTest {
     @Test
     public void test_tag_document_without_tags_field_for_backward_compatibility() throws IOException {
         Document doc = createDoc("id").build();
-        indexer.add(TEST_INDEX, doc);
-        UpdateRequest removeTagsRequest = new UpdateRequest(TEST_INDEX, doc.getId()).script(new Script(ScriptType.INLINE, "painless", "ctx._source.remove(\"tags\")", new HashMap<>()));
+        indexer.add(es.getIndexName(), doc);
+        UpdateRequest removeTagsRequest = new UpdateRequest(es.getIndexName(), doc.getId()).script(new Script(ScriptType.INLINE, "painless", "ctx._source.remove(\"tags\")", new HashMap<>()));
         removeTagsRequest.setRefreshPolicy(IMMEDIATE);
         //es.client.update(removeTagsRequest, RequestOptions.DEFAULT);
 
-        assertThat(indexer.tag(project(TEST_INDEX), doc.getId(), doc.getId(), tag("tag"))).isTrue();
+        assertThat(indexer.tag(project(es.getIndexName()), doc.getId(), doc.getId(), tag("tag"))).isTrue();
     }
 
     @Test(expected = ElasticsearchException.class)
     public void test_tag_unknown_document() throws IOException {
-        indexer.tag(project(TEST_INDEX), "unknown", "routing", tag("foo"), tag("bar"));
+        indexer.tag(project(es.getIndexName()), "unknown", "routing", tag("foo"), tag("bar"));
     }
 
     @Test
     public void test_untag_document() throws IOException {
         Document doc = createDoc("id").build();
 
-        indexer.add(TEST_INDEX, doc);
-        indexer.tag(project(TEST_INDEX), doc.getId(), doc.getId(), tag("foo"), tag("bar"), tag("bar"), tag("baz"));
+        indexer.add(es.getIndexName(), doc);
+        indexer.tag(project(es.getIndexName()), doc.getId(), doc.getId(), tag("foo"), tag("bar"), tag("bar"), tag("baz"));
 
-        assertThat(indexer.untag(project(TEST_INDEX), doc.getId(),doc.getId(), tag("baz"), tag("foo"))).isTrue();
-        assertThat(((Document)indexer.get(TEST_INDEX, doc.getId())).getTags()).containsOnly(tag("bar"));
-        assertThat(indexer.untag(project(TEST_INDEX), doc.getId(),doc.getId(), tag("foo"))).isFalse();
+        assertThat(indexer.untag(project(es.getIndexName()), doc.getId(),doc.getId(), tag("baz"), tag("foo"))).isTrue();
+        assertThat(((Document)indexer.get(es.getIndexName(), doc.getId())).getTags()).containsOnly(tag("bar"));
+        assertThat(indexer.untag(project(es.getIndexName()), doc.getId(),doc.getId(), tag("foo"))).isFalse();
 
-        assertThat(indexer.untag(project(TEST_INDEX), doc.getId(),doc.getId(), tag("bar"))).isTrue();
-        assertThat(((Document)indexer.get(TEST_INDEX, doc.getId())).getTags()).isEmpty();
+        assertThat(indexer.untag(project(es.getIndexName()), doc.getId(),doc.getId(), tag("bar"))).isTrue();
+        assertThat(((Document)indexer.get(es.getIndexName(), doc.getId())).getTags()).isEmpty();
     }
 
    @Test
     public void test_group_tag_untag_documents() throws IOException {
         Document doc1 = createDoc("id1").build();
         Document doc2 = createDoc("id2").build();
-        indexer.add(TEST_INDEX, doc1);
-        indexer.add(TEST_INDEX, doc2);
+        indexer.add(es.getIndexName(), doc1);
+        indexer.add(es.getIndexName(), doc2);
 
-        assertThat(indexer.tag(project(TEST_INDEX), asList("id1", "id2"), tag("foo"), tag("bar"))).isTrue();
-        assertThat(((Document)indexer.get(TEST_INDEX, "id1")).getTags()).containsOnly(tag("foo"), tag("bar"));
-        assertThat(((Document)indexer.get(TEST_INDEX, "id2")).getTags()).containsOnly(tag("foo"), tag("bar"));
+        assertThat(indexer.tag(project(es.getIndexName()), asList("id1", "id2"), tag("foo"), tag("bar"))).isTrue();
+        assertThat(((Document)indexer.get(es.getIndexName(), "id1")).getTags()).containsOnly(tag("foo"), tag("bar"));
+        assertThat(((Document)indexer.get(es.getIndexName(), "id2")).getTags()).containsOnly(tag("foo"), tag("bar"));
 
-        assertThat(indexer.untag(project(TEST_INDEX), asList("id1", "id2"), tag("foo"), tag("bar"))).isTrue();
-        assertThat(((Document)indexer.get(TEST_INDEX, "id1")).getTags()).isEmpty();
-        assertThat(((Document)indexer.get(TEST_INDEX, "id2")).getTags()).isEmpty();
+        assertThat(indexer.untag(project(es.getIndexName()), asList("id1", "id2"), tag("foo"), tag("bar"))).isTrue();
+        assertThat(((Document)indexer.get(es.getIndexName(), "id1")).getTags()).isEmpty();
+        assertThat(((Document)indexer.get(es.getIndexName(), "id2")).getTags()).isEmpty();
     }
 
     @Test
     public void test_search_with_field_value() throws Exception {
-        indexer.add(TEST_INDEX, create(PERSON, "Joe Foo", singletonList(2L), "docId", "root", CORENLP, Language.FRENCH));
-        indexer.add(TEST_INDEX, create(PERSON, "John Doe", singletonList(12L), "docId", "root", CORENLP, Language.FRENCH));
-        indexer.add(TEST_INDEX, create(PERSON, "John Doe", singletonList(24L), "doc2Id", "root", CORENLP, Language.FRENCH));
+        indexer.add(es.getIndexName(), create(PERSON, "Joe Foo", singletonList(2L), "docId", "root", CORENLP, Language.FRENCH));
+        indexer.add(es.getIndexName(), create(PERSON, "John Doe", singletonList(12L), "docId", "root", CORENLP, Language.FRENCH));
+        indexer.add(es.getIndexName(), create(PERSON, "John Doe", singletonList(24L), "doc2Id", "root", CORENLP, Language.FRENCH));
 
-        assertThat(indexer.search(singletonList(TEST_INDEX), NamedEntity.class).thatMatchesFieldValue("mentionNorm", "john doe").execute().count()).isEqualTo(2);
-        assertThat(indexer.search(singletonList(TEST_INDEX), NamedEntity.class).thatMatchesFieldValue("offsets", 24).execute().count()).isEqualTo(1);
+        assertThat(indexer.search(singletonList(es.getIndexName()), NamedEntity.class).thatMatchesFieldValue("mentionNorm", "john doe").execute().count()).isEqualTo(2);
+        assertThat(indexer.search(singletonList(es.getIndexName()), NamedEntity.class).thatMatchesFieldValue("offsets", 24).execute().count()).isEqualTo(1);
     }
 
     @Test
     public void test_search_with_and_without_NLP_tags() throws IOException {
         Document doc = createDoc("id").with(DONE).with(CORENLP, OPENNLP).build();
-        indexer.add(TEST_INDEX,doc);
+        indexer.add(es.getIndexName(),doc);
 
-        assertThat((int) indexer.search(singletonList(TEST_INDEX), Document.class).ofStatus(DONE).without(CORENLP).execute().count()).isEqualTo(0);
-        assertThat((int) indexer.search(singletonList(TEST_INDEX), Document.class).ofStatus(DONE).without(CORENLP, OPENNLP).execute().count()).isEqualTo(0);
+        assertThat((int) indexer.search(singletonList(es.getIndexName()), Document.class).ofStatus(DONE).without(CORENLP).execute().count()).isEqualTo(0);
+        assertThat((int) indexer.search(singletonList(es.getIndexName()), Document.class).ofStatus(DONE).without(CORENLP, OPENNLP).execute().count()).isEqualTo(0);
 
-        assertThat((int) indexer.search(singletonList(TEST_INDEX), Document.class).ofStatus(DONE).without(SPACY).execute().count()).isEqualTo(1);
-        assertThat((int) indexer.search(singletonList(TEST_INDEX), Document.class).ofStatus(DONE).with(CORENLP).execute().count()).isEqualTo(1);
-        assertThat((int) indexer.search(singletonList(TEST_INDEX), Document.class).ofStatus(DONE).with(OPENNLP).execute().count()).isEqualTo(1);
-        assertThat((int) indexer.search(singletonList(TEST_INDEX), Document.class).ofStatus(DONE).with(CORENLP, OPENNLP).execute().count()).isEqualTo(1);
-        assertThat((int) indexer.search(singletonList(TEST_INDEX), Document.class).ofStatus(DONE).with(CORENLP, SPACY).execute().count()).isEqualTo(1);
+        assertThat((int) indexer.search(singletonList(es.getIndexName()), Document.class).ofStatus(DONE).without(SPACY).execute().count()).isEqualTo(1);
+        assertThat((int) indexer.search(singletonList(es.getIndexName()), Document.class).ofStatus(DONE).with(CORENLP).execute().count()).isEqualTo(1);
+        assertThat((int) indexer.search(singletonList(es.getIndexName()), Document.class).ofStatus(DONE).with(OPENNLP).execute().count()).isEqualTo(1);
+        assertThat((int) indexer.search(singletonList(es.getIndexName()), Document.class).ofStatus(DONE).with(CORENLP, OPENNLP).execute().count()).isEqualTo(1);
+        assertThat((int) indexer.search(singletonList(es.getIndexName()), Document.class).ofStatus(DONE).with(CORENLP, SPACY).execute().count()).isEqualTo(1);
     }
 
     @Test
     public void test_search_with_and_without_NLP_tags_no_tags() throws IOException {
         Document doc = createDoc("id").with(INDEXED).build();
-        indexer.add(TEST_INDEX,doc);
+        indexer.add(es.getIndexName(),doc);
 
-        assertThat((int) indexer.search(singletonList(TEST_INDEX), Document.class).without().execute().count()).isEqualTo(1);
+        assertThat((int) indexer.search(singletonList(es.getIndexName()), Document.class).without().execute().count()).isEqualTo(1);
     }
 
     @Test
     public void test_search_source_filtering() throws IOException {
         Document doc = createDoc("id").ofContentType("application/pdf").build();
-        indexer.add(TEST_INDEX,doc);
+        indexer.add(es.getIndexName(),doc);
 
-        Document actualDoc = (Document) indexer.search(singletonList(TEST_INDEX),Document.class).withSource("contentType").execute().toList().get(0);
+        Document actualDoc = (Document) indexer.search(singletonList(es.getIndexName()),Document.class).withSource("contentType").execute().toList().get(0);
         assertThat(actualDoc.getContentType()).isEqualTo("application/pdf");
         assertThat(actualDoc.getId()).isEqualTo(doc.getId());
         assertThat(actualDoc.getContent()).isEmpty();
@@ -431,9 +430,9 @@ public class ElasticsearchIndexerTest {
     @Test
     public void test_search_source_false() throws IOException {
         Document doc = createDoc("id").ofContentType("application/pdf").build();
-        indexer.add(TEST_INDEX,doc);
+        indexer.add(es.getIndexName(),doc);
 
-        Document actualDoc = (Document) indexer.search(singletonList(TEST_INDEX),Document.class).withSource(false).execute().toList().get(0);
+        Document actualDoc = (Document) indexer.search(singletonList(es.getIndexName()),Document.class).withSource(false).execute().toList().get(0);
         assertThat(actualDoc.getId()).isNotNull();
     }
 
@@ -441,20 +440,20 @@ public class ElasticsearchIndexerTest {
     public void test_search_size_limit() throws IOException {
         for (int i = 0 ; i < 20; i++) {
             Document doc = createDoc("id" + i).build();
-            indexer.add(TEST_INDEX,doc);
+            indexer.add(es.getIndexName(),doc);
         }
-        assertThat(indexer.search(singletonList(TEST_INDEX),Document.class).limit(5).execute().count()).isEqualTo(5);
-        assertThat(indexer.search(singletonList(TEST_INDEX),Document.class).execute().count()).isEqualTo(20);
+        assertThat(indexer.search(singletonList(es.getIndexName()),Document.class).limit(5).execute().count()).isEqualTo(5);
+        assertThat(indexer.search(singletonList(es.getIndexName()),Document.class).execute().count()).isEqualTo(20);
     }
 
     @Test
     public void test_search_with_scroll() throws IOException {
         for (int i = 0 ; i < 12; i++) {
             Document doc = createDoc("id" + i).build();
-            indexer.add(TEST_INDEX,doc);
+            indexer.add(es.getIndexName(),doc);
         }
 
-        Indexer.Searcher searcher = indexer.search(singletonList(TEST_INDEX), Document.class).limit(5);
+        Indexer.Searcher searcher = indexer.search(singletonList(es.getIndexName()), Document.class).limit(5);
         assertThat(searcher.scroll(KEEP_ALIVE).count()).isEqualTo(5);
         assertThat(searcher.totalHits()).isEqualTo(12);
         assertThat(searcher.scroll(KEEP_ALIVE).count()).isEqualTo(5);
@@ -467,9 +466,9 @@ public class ElasticsearchIndexerTest {
     public void test_scroll_with_json_query() throws IOException {
         for (int i = 0; i < 12; i++) {
             Document doc = createDoc("id" + i).build();
-            indexer.add(TEST_INDEX, doc);
+            indexer.add(es.getIndexName(), doc);
         }
-        Indexer.Searcher searcher = indexer.search(singletonList(TEST_INDEX), Document.class,
+        Indexer.Searcher searcher = indexer.search(singletonList(es.getIndexName()), Document.class,
                 new SearchQuery("{\"bool\":{\"must\":[{\"match\":{\"type\":\"Document\"}}]}}")).limit(6);
 
         assertThat(searcher.scroll(KEEP_ALIVE).count()).isEqualTo(6);
@@ -482,9 +481,9 @@ public class ElasticsearchIndexerTest {
     public void test_scroll_with_json_query_template() throws IOException {
         for (int i = 0; i < 12; i++) {
             Document doc = createDoc("id" + i).build();
-            indexer.add(TEST_INDEX, doc);
+            indexer.add(es.getIndexName(), doc);
         }
-        Indexer.Searcher searcher = indexer.search(singletonList(TEST_INDEX), Document.class,
+        Indexer.Searcher searcher = indexer.search(singletonList(es.getIndexName()), Document.class,
                 new SearchQuery("{\"bool\":{\"must\":[{\"query_string\":{\"query\":\"<query>\"}}, {\"match\":{\"type\":\"Document\"}}]}}"))
                 .limit(12);
 
@@ -505,9 +504,9 @@ public class ElasticsearchIndexerTest {
     @Test(expected = JsonException.class)
     public void test_scroll_with_json_query_template_and_wrong_query() throws IOException {
         Document doc = createDoc("id").build();
-        indexer.add(TEST_INDEX, doc);
+        indexer.add(es.getIndexName(), doc);
 
-        Indexer.Searcher searcher = indexer.search(singletonList(TEST_INDEX), Document.class,
+        Indexer.Searcher searcher = indexer.search(singletonList(es.getIndexName()), Document.class,
                         new SearchQuery("{\"bool\":{\"must\":[{\"query_string\":{\"query\":\"<query>\"}}, {\"match\":{\"type\":\"Document\"}}]}}"));
 
         searcher.scroll(KEEP_ALIVE, "\"id*");
@@ -517,7 +516,7 @@ public class ElasticsearchIndexerTest {
 
     @Test(expected = IllegalStateException.class)
     public void test_searcher_scroll_is_not_usable_after_clear() throws IOException {
-        Indexer.Searcher searcher = indexer.search(singletonList(TEST_INDEX), Document.class).limit(5);
+        Indexer.Searcher searcher = indexer.search(singletonList(es.getIndexName()), Document.class).limit(5);
         assertThat(searcher.scroll(KEEP_ALIVE).count()).isEqualTo(0);
 
         searcher.clearScroll();
@@ -528,16 +527,16 @@ public class ElasticsearchIndexerTest {
     @Test
     public void test_bulk_update() throws IOException {
         Document doc = createDoc("id").build();
-        indexer.add(TEST_INDEX, doc);
+        indexer.add(es.getIndexName(), doc);
         NamedEntity ne1 = create(PERSON, "John Doe", singletonList(12L), doc.getId(), "root", CORENLP, Language.FRENCH);
         NamedEntity ne2 = create(ORGANIZATION, "AAA", singletonList(123L), doc.getId(), "root", CORENLP, Language.FRENCH);
-        indexer.bulkAdd(TEST_INDEX, CORENLP, asList(ne1, ne2), doc);
+        indexer.bulkAdd(es.getIndexName(), CORENLP, asList(ne1, ne2), doc);
 
         ne1.hide();
         ne2.hide();
-        assertThat(indexer.bulkUpdate(TEST_INDEX, asList(ne1, ne2))).isTrue();
+        assertThat(indexer.bulkUpdate(es.getIndexName(), asList(ne1, ne2))).isTrue();
 
-        Object[] namedEntities = indexer.search(singletonList(TEST_INDEX), NamedEntity.class).execute().toArray();
+        Object[] namedEntities = indexer.search(singletonList(es.getIndexName()), NamedEntity.class).execute().toArray();
         assertThat(namedEntities.length).isEqualTo(2);
         assertThat(((NamedEntity)namedEntities[0]).isHidden()).isTrue();
         assertThat(((NamedEntity)namedEntities[1]).isHidden()).isTrue();
@@ -546,13 +545,13 @@ public class ElasticsearchIndexerTest {
     @Test
     public void test_delete_by_query() throws Exception {
         Document doc = createDoc("docId").build();
-        indexer.add(TEST_INDEX, doc);
-        indexer.add(TEST_INDEX, create(PERSON, "Joe Foo", singletonList(2L), "docId", "root", CORENLP, Language.FRENCH));
-        indexer.add(TEST_INDEX, create(PERSON, "John Doe", singletonList(12L), "docId", "root", CORENLP, Language.FRENCH));
+        indexer.add(es.getIndexName(), doc);
+        indexer.add(es.getIndexName(), create(PERSON, "Joe Foo", singletonList(2L), "docId", "root", CORENLP, Language.FRENCH));
+        indexer.add(es.getIndexName(), create(PERSON, "John Doe", singletonList(12L), "docId", "root", CORENLP, Language.FRENCH));
 
-        assertThat(indexer.deleteAll(TEST_INDEX)).isTrue();
+        assertThat(indexer.deleteAll(es.getIndexName())).isTrue();
 
-        Object[] documents = indexer.search(singletonList(TEST_INDEX), Document.class).execute().toArray();
+        Object[] documents = indexer.search(singletonList(es.getIndexName()), Document.class).execute().toArray();
         assertThat(documents.length).isEqualTo(0);
     }
 
@@ -564,11 +563,11 @@ public class ElasticsearchIndexerTest {
     @Test
     public void test_query_like_js_front_finds_document_from_its_child_named_entity() throws Exception {
         Document doc = createDoc("id").with("content with john doe").build();
-        indexer.add(TEST_INDEX, doc);
+        indexer.add(es.getIndexName(), doc);
         NamedEntity ne1 = create(PERSON, "John Doe", singletonList(12L), doc.getId(), "root", CORENLP, Language.FRENCH);
-        indexer.bulkAdd(TEST_INDEX, CORENLP, singletonList(ne1), doc);
+        indexer.bulkAdd(es.getIndexName(), CORENLP, singletonList(ne1), doc);
 
-        Object[] documents = indexer.search(singletonList(TEST_INDEX), Document.class, new SearchQuery("john")).withoutSource("content").execute().toArray();
+        Object[] documents = indexer.search(singletonList(es.getIndexName()), Document.class, new SearchQuery("john")).withoutSource("content").execute().toArray();
 
         assertThat(documents.length).isEqualTo(1);
         assertThat(((Document)documents[0]).getId()).isEqualTo("id");
@@ -578,21 +577,21 @@ public class ElasticsearchIndexerTest {
     @Test
     public void test_execute_raw_search() throws Exception {
         Document doc = createDoc("id").with("my content").with(OPENNLP).build();
-        indexer.add(TEST_INDEX, doc);
-        assertThat(indexer.executeRaw("POST", TEST_INDEX + "/_search", "{\"query\":{\"match_all\":{}}}")).contains("my content");
-        assertThat(indexer.executeRaw("POST", TEST_INDEX + "/_search", "{\"query\":{\"match\":{\"content\":\"foo\"}}}")).doesNotContain("my content");
+        indexer.add(es.getIndexName(), doc);
+        assertThat(indexer.executeRaw("POST", es.getIndexName() + "/_search", "{\"query\":{\"match_all\":{}}}")).contains("my content");
+        assertThat(indexer.executeRaw("POST", es.getIndexName() + "/_search", "{\"query\":{\"match\":{\"content\":\"foo\"}}}")).doesNotContain("my content");
     }
 
     @Test
     public void test_execute_raw_with_head() throws Exception {
-        assertThat(indexer.executeRaw("HEAD", TEST_INDEX, "")).isNull();
-        assertThat(indexer.executeRaw("HEAD", TEST_INDEX, null)).isNull();
+        assertThat(indexer.executeRaw("HEAD", es.getIndexName(), "")).isNull();
+        assertThat(indexer.executeRaw("HEAD", es.getIndexName(), null)).isNull();
     }
 
     @Test
     public void test_execute_raw_with_options() throws Exception {
-        assertThat(indexer.executeRaw("OPTIONS", TEST_INDEX, "").split(",")).containsOnly("PUT","HEAD","DELETE","GET");
-        assertThat(indexer.executeRaw("OPTIONS", TEST_INDEX, null).split(",")).containsOnly("PUT","HEAD","DELETE","GET");
+        assertThat(indexer.executeRaw("OPTIONS", es.getIndexName(), "").split(",")).containsOnly("PUT","HEAD","DELETE","GET");
+        assertThat(indexer.executeRaw("OPTIONS", es.getIndexName(), null).split(",")).containsOnly("PUT","HEAD","DELETE","GET");
     }
 
     @Test
@@ -610,18 +609,18 @@ public class ElasticsearchIndexerTest {
     @Test
     public void test_search_query_with_operator_and_phrase_match() throws Exception {
         Document doc = createDoc("id").with("content with john doe").build();
-        indexer.add(TEST_INDEX, doc);
+        indexer.add(es.getIndexName(), doc);
 
-        assertThat(indexer.search(singletonList(TEST_INDEX),Document.class, new SearchQuery("john AND doe")).with( 0, true).execute().toArray()).isEmpty();
-        assertThat(indexer.search(singletonList(TEST_INDEX),Document.class, new SearchQuery("john AND doe")).with( 0, false).execute().toArray()).hasSize(1);
+        assertThat(indexer.search(singletonList(es.getIndexName()),Document.class, new SearchQuery("john AND doe")).with( 0, true).execute().toArray()).isEmpty();
+        assertThat(indexer.search(singletonList(es.getIndexName()),Document.class, new SearchQuery("john AND doe")).with( 0, false).execute().toArray()).hasSize(1);
     }
 
     @Test
     public void test_get_slice_of_document_content() throws Exception {
         Document doc = createDoc("id").with("content with john doe").withContentLength(34L).build();
-        indexer.add(TEST_INDEX, doc);
+        indexer.add(es.getIndexName(), doc);
 
-        ExtractedText actual = indexer.getExtractedText(TEST_INDEX, "id", null, 0, 10, null);
+        ExtractedText actual = indexer.getExtractedText(es.getIndexName(), "id", null, 0, 10, null);
         assertThat(actual.content).isEqualTo("content wi");
         assertThat(actual.content.length()).isEqualTo(10);
         assertThat(actual.maxOffset).isEqualTo(21);
@@ -629,60 +628,60 @@ public class ElasticsearchIndexerTest {
     @Test
     public void test_get_slice_of_document_content_with_offset() throws Exception {
         Document doc = createDoc("id").with("content with john doe").withContentLength(34L).build();
-        indexer.add(TEST_INDEX, doc);
+        indexer.add(es.getIndexName(), doc);
 
-        ExtractedText actual = indexer.getExtractedText(TEST_INDEX, "id", null, 10, 10, null);
+        ExtractedText actual = indexer.getExtractedText(es.getIndexName(), "id", null, 10, 10, null);
         assertThat(actual.content).isEqualTo("th john do");
         assertThat(actual.content.length()).isEqualTo(10);
     }
     @Test
     public void test_get_slice_of_document_content_with_maxOffset() throws Exception {
         Document doc = createDoc("id").with("content with john doe").withContentLength(34L).build();
-        indexer.add(TEST_INDEX, doc);
+        indexer.add(es.getIndexName(), doc);
 
-        ExtractedText actual = indexer.getExtractedText(TEST_INDEX, "id", null, 20, 1, null);
+        ExtractedText actual = indexer.getExtractedText(es.getIndexName(), "id", null, 20, 1, null);
         assertThat(actual.content).isEqualTo("e");
         assertThat(actual.content.length()).isEqualTo(1);
     }
     @Test
     public void test_get_slice_of_document_content_with_no_limit() throws Exception {
         Document doc = createDoc("id").with("content with john doe").withContentLength(34L).build();
-        indexer.add(TEST_INDEX, doc);
+        indexer.add(es.getIndexName(), doc);
 
-        ExtractedText actual = indexer.getExtractedText(TEST_INDEX, "id", null, 21, 0, null);
+        ExtractedText actual = indexer.getExtractedText(es.getIndexName(), "id", null, 21, 0, null);
         assertThat(actual.content).isEqualTo("");
         assertThat(actual.content.length()).isEqualTo(0);
     }
     @Test(expected = IndexOutOfBoundsException.class)
     public void test_get_slice_of_document_content_with_negative_limit() throws Exception {
         Document doc = createDoc("id").with("content with john doe").withContentLength(34L).build();
-        indexer.add(TEST_INDEX, doc);
-        indexer.getExtractedText(TEST_INDEX, "id", null, -10, 1, null);
+        indexer.add(es.getIndexName(), doc);
+        indexer.getExtractedText(es.getIndexName(), "id", null, -10, 1, null);
     }
     @Test(expected = IndexOutOfBoundsException.class)
     public void test_get_slice_of_document_content_with_negative_start() throws Exception {
         Document doc = createDoc("id").with("content with john doe").withContentLength(34L).build();
-        indexer.add(TEST_INDEX, doc);
-        indexer.getExtractedText(TEST_INDEX, "id", null, 1, -10, null);
+        indexer.add(es.getIndexName(), doc);
+        indexer.getExtractedText(es.getIndexName(), "id", null, 1, -10, null);
     }
     @Test(expected = IndexOutOfBoundsException.class)
     public void test_get_slice_of_document_content_with_oversize() throws Exception {
         Document doc = createDoc("id").with("content with john doe").withContentLength(34L).build();
-        indexer.add(TEST_INDEX, doc);
+        indexer.add(es.getIndexName(), doc);
 
-        indexer.getExtractedText(TEST_INDEX, "id", null, 0, 22, null);
+        indexer.getExtractedText(es.getIndexName(), "id", null, 0, 22, null);
     }
     @Test(expected = IndexOutOfBoundsException.class)
     public void test_get_slice_of_document_content_with_out_of_range_limit() throws Exception {
         Document doc = createDoc("id").with("content with john doe").withContentLength(34L).build();
-        indexer.add(TEST_INDEX, doc);
+        indexer.add(es.getIndexName(), doc);
 
-        indexer.getExtractedText(TEST_INDEX, "id", null, 10, 18, null);
+        indexer.getExtractedText(es.getIndexName(), "id", null, 10, 18, null);
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void test_get_slice_of_document_not_found() throws Exception {
-        indexer.getExtractedText(TEST_INDEX, "id", null, 10, 18, null);
+        indexer.getExtractedText(es.getIndexName(), "id", null, 10, 18, null);
     }
     @Test(expected = IllegalArgumentException.class)
     public void test_get_slice_of_translated_document_not_found() throws Exception {
@@ -693,9 +692,9 @@ public class ElasticsearchIndexerTest {
         List<Map<String,String>> translated_content = new ArrayList<>() {{add(english);}};
 
         Document doc = createDoc("id").with("bonjour monde").with(FRENCH).with(translated_content).withContentLength(13L).build();
-        indexer.add(TEST_INDEX, doc);
+        indexer.add(es.getIndexName(), doc);
 
-        indexer.getExtractedText(TEST_INDEX, "id", null, 10, 18, "unknown");
+        indexer.getExtractedText(es.getIndexName(), "id", null, 10, 18, "unknown");
     }
 
     @Test
@@ -706,18 +705,18 @@ public class ElasticsearchIndexerTest {
         }};
         List<Map<String,String>> contentTranslated = new ArrayList<>(){{add(english);}} ;
         Document doc = createDoc("id").with("contenu avec john doe").with(FRENCH).with(contentTranslated).withContentLength(21L).build();
-        indexer.add(TEST_INDEX, doc);
+        indexer.add(es.getIndexName(), doc);
 
-        ExtractedText actual = indexer.getExtractedText(TEST_INDEX, "id", null, 0, 7, "ENGLISH");
+        ExtractedText actual = indexer.getExtractedText(es.getIndexName(), "id", null, 0, 7, "ENGLISH");
         assertThat(actual.content).isEqualTo("content");
         assertThat(actual.content.length()).isEqualTo(7);
     }
     @Test
     public void test_search_occurrences_of_query_in_content_of_existing_document() throws Exception {
         Document doc = createDoc("id").with("this content contains content containing john doe").withContentLength(49L).build();
-        indexer.add(TEST_INDEX, doc);
+        indexer.add(es.getIndexName(), doc);
 
-        SearchedText actual = indexer.searchTextOccurrences(TEST_INDEX, "id", "cont",null);
+        SearchedText actual = indexer.searchTextOccurrences(es.getIndexName(), "id", "cont",null);
         assertThat(actual.query).isEqualTo("cont");
         assertThat(actual.count).isEqualTo(4);
         assertArrayEquals(actual.offsets, new int[]{5,13,22,30});
@@ -725,9 +724,9 @@ public class ElasticsearchIndexerTest {
     @Test
     public void test_search_occurrences_of_query_with_diacritics() throws Exception {
         Document doc = createDoc("id").with("contigüe et accentué s'est tueTuE").withContentLength(38L).build();
-        indexer.add(TEST_INDEX, doc);
+        indexer.add(es.getIndexName(), doc);
 
-        SearchedText actual = indexer.searchTextOccurrences(TEST_INDEX, "id", "tué",null);
+        SearchedText actual = indexer.searchTextOccurrences(es.getIndexName(), "id", "tué",null);
         assertThat(actual.query).isEqualTo("tué");
         assertThat(actual.count).isEqualTo(3);
         assertArrayEquals(new int[]{17,27,30},actual.offsets);
@@ -737,9 +736,9 @@ public class ElasticsearchIndexerTest {
     public void test_search_occurrences_of_query_with_diacritics_long() throws Exception {
         String text= "L’en-½tête UDP n’a pas de notion\nMethod...tete de numérotation tête";
         Document doc = createDoc("id").with(text).withContentLength(86L).build();
-        indexer.add(TEST_INDEX, doc);
+        indexer.add(es.getIndexName(), doc);
 
-        SearchedText actual = indexer.searchTextOccurrences(TEST_INDEX, "id", "tête",null);
+        SearchedText actual = indexer.searchTextOccurrences(es.getIndexName(), "id", "tête",null);
         assertThat(actual.query).isEqualTo("tête");
         assertThat(actual.count).isEqualTo(3);
         assertArrayEquals(new int[]{6, 42, 63},actual.offsets);
@@ -748,9 +747,9 @@ public class ElasticsearchIndexerTest {
     @Test
     public void test_search_occurrences_of_query_in_content_of_existing_document_ignoring_case() throws Exception {
         Document doc = createDoc("id").with("this content contains content containing john doe").withContentLength(49L).build();
-        indexer.add(TEST_INDEX, doc);
+        indexer.add(es.getIndexName(), doc);
 
-        SearchedText actual = indexer.searchTextOccurrences(TEST_INDEX, "id", "CONT",null);
+        SearchedText actual = indexer.searchTextOccurrences(es.getIndexName(), "id", "CONT",null);
         assertThat(actual.query).isEqualTo("CONT");
         assertThat(actual.count).isEqualTo(4);
         assertArrayEquals(actual.offsets, new int[]{5,13,22,30});
@@ -765,9 +764,9 @@ public class ElasticsearchIndexerTest {
         Document doc = createDoc("id").with("this content contains content containing john doe")
                 .withContentLength(49L)
                 .with(ENGLISH).with(contentTranslated).build();
-        indexer.add(TEST_INDEX, doc);
+        indexer.add(es.getIndexName(), doc);
 
-        SearchedText actual = indexer.searchTextOccurrences(TEST_INDEX, "id", "cont","FRENCH");
+        SearchedText actual = indexer.searchTextOccurrences(es.getIndexName(), "id", "cont","FRENCH");
         assertThat(actual.query).isEqualTo("cont");
         assertThat(actual.count).isEqualTo(4);
         assertThat(actual.targetLanguage).isEqualTo("FRENCH");

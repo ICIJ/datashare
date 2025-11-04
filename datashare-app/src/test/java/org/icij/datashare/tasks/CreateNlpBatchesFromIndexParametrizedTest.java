@@ -1,7 +1,6 @@
 package org.icij.datashare.tasks;
 
 import static org.fest.assertions.Assertions.assertThat;
-import static org.icij.datashare.test.ElasticsearchRule.TEST_INDEX;
 import static org.icij.datashare.text.DocumentBuilder.createDoc;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -117,12 +116,12 @@ public class CreateNlpBatchesFromIndexParametrizedTest {
                 case 3 -> Language.SPANISH;
                 default -> Language.ENGLISH;
             };
-            indexer.add(TEST_INDEX, createDoc("doc" + i).with(language).with(Pipeline.Type.OPENNLP).build());
+            indexer.add(es.getIndexName(), createDoc("doc" + i).with(language).with(Pipeline.Type.OPENNLP).build());
         }
         // Already processed
-        indexer.add(TEST_INDEX,
+        indexer.add(es.getIndexName(),
             createDoc("docAlreadyProcessed").with(Language.ITALIAN).with(Pipeline.Type.CORENLP).build());
-        indexer.add(TEST_INDEX,
+        indexer.add(es.getIndexName(),
             createDoc("docAlsoAlreadyProcessed").with(Language.ITALIAN).with(Pipeline.Type.CORENLP).build());
         Map<String, Object> properties = Map.of(
             "defaultProject", "test-datashare",

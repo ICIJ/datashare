@@ -23,13 +23,12 @@ import java.util.HashMap;
 import static org.fest.assertions.Assertions.assertThat;
 import static org.fest.assertions.MapAssert.entry;
 import static org.icij.datashare.PropertiesProvider.propertiesToMap;
-import static org.icij.datashare.test.ElasticsearchRule.TEST_INDEX;
 
 public class ScanIndexTaskTest {
     @ClassRule
     public static ElasticsearchRule es = new ElasticsearchRule();
     private final PropertiesProvider propertiesProvider = new PropertiesProvider(new HashMap<>() {{
-        put("defaultProject", TEST_INDEX);
+        put("defaultProject", es.getIndexName());
         put("reportName", "test:report");
         put("stages", "SCANIDX");
     }});
@@ -44,8 +43,8 @@ public class ScanIndexTaskTest {
 
     @Test
     public void test_transfer_indexed_paths_to_filter_set() throws Exception {
-        indexer.add(TEST_INDEX, DocumentBuilder.createDoc("id1").build());
-        indexer.add(TEST_INDEX, DocumentBuilder.createDoc("id2").build());
+        indexer.add(es.getIndexName(), DocumentBuilder.createDoc("id1").build());
+        indexer.add(es.getIndexName(), DocumentBuilder.createDoc("id2").build());
 
         assertThat(new ScanIndexTask(documentCollectionFactory, indexer,  new Task<>(
                 ScanIndexTask.class.getName(), User.nullUser(), propertiesToMap(propertiesProvider.getProperties())), null).call()).isEqualTo(2);

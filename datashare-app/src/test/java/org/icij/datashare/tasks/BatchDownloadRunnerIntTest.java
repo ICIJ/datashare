@@ -27,7 +27,6 @@ import java.util.zip.ZipFile;
 import static java.util.Arrays.asList;
 import static org.fest.assertions.Assertions.assertThat;
 import static org.icij.datashare.cli.DatashareCliOptions.*;
-import static org.icij.datashare.test.ElasticsearchRule.TEST_INDEX;
 import static org.icij.datashare.test.ElasticsearchRule.TEST_INDEXES;
 import static org.icij.datashare.text.Project.project;
 import static org.icij.datashare.user.User.local;
@@ -56,7 +55,7 @@ public class BatchDownloadRunnerIntTest {
     @Test
     public void test_one_result() throws Exception {
         String content = "The quick brown fox jumps over the lazy dog";
-        File file = new IndexerHelper(es.client).indexFile("mydoc.txt", content, fs);
+        File file = new IndexerHelper(es.client).indexFile("mydoc.txt", content, fs, es.getIndexName());
         BatchDownload bd = createBatchDownload("fox");
 
         Task<File> taskView = createTaskView(bd);
@@ -72,7 +71,7 @@ public class BatchDownloadRunnerIntTest {
     @Test
     public void test_one_result_with_json_query() throws Exception {
         String content = "The quick brown fox jumps over the lazy dog";
-        new IndexerHelper(es.client).indexFile("mydoc.txt", content, fs);
+        new IndexerHelper(es.client).indexFile("mydoc.txt", content, fs, es.getIndexName());
         BatchDownload bd = createBatchDownload("{\"match_all\":{}}");
 
         Task<File> taskView = createTaskView(bd);
@@ -84,8 +83,8 @@ public class BatchDownloadRunnerIntTest {
 
     @Test
     public void test_two_results() throws Exception {
-        new IndexerHelper(es.client).indexFile("doc1.txt", "The quick brown fox jumps over the lazy dog", fs);
-        new IndexerHelper(es.client).indexFile("doc2.txt", "Portez ce vieux whisky au juge blond qui fume", fs);
+        new IndexerHelper(es.client).indexFile("doc1.txt", "The quick brown fox jumps over the lazy dog", fs, es.getIndexName());
+        new IndexerHelper(es.client).indexFile("doc2.txt", "Portez ce vieux whisky au juge blond qui fume", fs, es.getIndexName());
 
         BatchDownload bd = createBatchDownload("*");
         Task<File> taskView = createTaskView(bd);
@@ -98,8 +97,8 @@ public class BatchDownloadRunnerIntTest {
 
     @Test
     public void test_update_batch_download_zip_size() throws Exception {
-        new IndexerHelper(es.client).indexFile("doc1.txt", "The quick brown fox jumps over the lazy dog", fs);
-        new IndexerHelper(es.client).indexFile("doc2.txt", "Portez ce vieux whisky au juge blond qui fume", fs);
+        new IndexerHelper(es.client).indexFile("doc1.txt", "The quick brown fox jumps over the lazy dog", fs, es.getIndexName());
+        new IndexerHelper(es.client).indexFile("doc2.txt", "Portez ce vieux whisky au juge blond qui fume", fs, es.getIndexName());
 
         BatchDownload bd = createBatchDownload("*");
         Task<File> taskView = createTaskView(bd);
@@ -110,8 +109,8 @@ public class BatchDownloadRunnerIntTest {
 
     @Test
     public void test_two_files_one_result() throws Exception {
-        new IndexerHelper(es.client).indexFile("doc1.txt", "The quick brown fox jumps over the lazy dog", fs);
-        new IndexerHelper(es.client).indexFile("doc2.txt", "Portez ce vieux whisky au juge blond qui fume", fs);
+        new IndexerHelper(es.client).indexFile("doc1.txt", "The quick brown fox jumps over the lazy dog", fs, es.getIndexName());
+        new IndexerHelper(es.client).indexFile("doc2.txt", "Portez ce vieux whisky au juge blond qui fume", fs, es.getIndexName());
 
         BatchDownload bd = createBatchDownload("juge");
         Task<File> taskView = createTaskView(bd);
@@ -123,8 +122,8 @@ public class BatchDownloadRunnerIntTest {
 
     @Test
     public void test_two_results_two_dirs() throws Exception {
-        File doc1 = new IndexerHelper(es.client).indexFile("dir1/doc1.txt", "The quick brown fox jumps over the lazy dog", fs);
-        File doc2 = new IndexerHelper(es.client).indexFile("dir2/doc2.txt", "Portez ce vieux whisky au juge blond qui fume", fs);
+        File doc1 = new IndexerHelper(es.client).indexFile("dir1/doc1.txt", "The quick brown fox jumps over the lazy dog", fs, es.getIndexName());
+        File doc2 = new IndexerHelper(es.client).indexFile("dir2/doc2.txt", "Portez ce vieux whisky au juge blond qui fume", fs, es.getIndexName());
 
         BatchDownload bd = createBatchDownload("*");
         Task<File> taskView = createTaskView(bd);
@@ -153,7 +152,7 @@ public class BatchDownloadRunnerIntTest {
 
     @Test
     public void test_progress_rate() throws Exception {
-        new IndexerHelper(es.client).indexFile("mydoc.txt", "content", fs);
+        new IndexerHelper(es.client).indexFile("mydoc.txt", "content", fs, es.getIndexName());
         Task<File> taskView = createTaskView(createBatchDownload("*"));
         BatchDownloadRunner batchDownloadRunner = new BatchDownloadRunner(indexer, createProvider(), taskView, taskView.progress(taskModifier::progress));
         assertThat(batchDownloadRunner.getProgressRate()).isEqualTo(0);
@@ -163,7 +162,7 @@ public class BatchDownloadRunnerIntTest {
 
     @Test
     public void test_embedded_doc_should_not_interrupt_zip_creation() throws Exception {
-        File file = new IndexerHelper(es.client).indexEmbeddedFile(TEST_INDEX, "/docs/embedded_doc.eml");
+        File file = new IndexerHelper(es.client).indexEmbeddedFile(es.getIndexName(), "/docs/embedded_doc.eml");
 
         BatchDownload bd = createBatchDownload("*");
         Task<File> taskView = createTaskView(bd);
@@ -196,7 +195,7 @@ public class BatchDownloadRunnerIntTest {
 
     @Test
     public void test_cancel_current_batch_download() throws Exception {
-        new IndexerHelper(es.client).indexFile("mydoc.txt", "content", fs);
+        new IndexerHelper(es.client).indexFile("mydoc.txt", "content", fs, es.getIndexName());
         ExecutorService executor = Executors.newFixedThreadPool(1);
         CountDownLatch countDownLatch = new CountDownLatch(1);
         Task<File> taskView = createTaskView(createBatchDownload("*"));
@@ -246,7 +245,7 @@ public class BatchDownloadRunnerIntTest {
 
 
     private BatchDownload createBatchDownload(String query) {
-        return new BatchDownload(asList(project(TEST_INDEX)), local(), query, null, fs.getRoot().toPath(), false);
+        return new BatchDownload(asList(project(es.getIndexName())), local(), query, null, fs.getRoot().toPath(), false);
     }
     private Task<File> createTaskView(BatchDownload bd) {
         return new Task<>(BatchDownloadRunner.class.getName(), bd.user, new HashMap<>() {{

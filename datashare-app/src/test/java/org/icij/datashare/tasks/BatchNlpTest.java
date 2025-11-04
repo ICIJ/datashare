@@ -1,6 +1,5 @@
 package org.icij.datashare.tasks;
 
-import static org.icij.datashare.test.ElasticsearchRule.TEST_INDEX;
 import static org.icij.datashare.text.DocumentBuilder.createDoc;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -24,6 +23,7 @@ import org.junit.Test;
 import org.mockito.Mock;
 
 public class BatchNlpTest {
+    private static final String INDEX_NAME = "datashare-test-batch-nlp";
     @Mock
     private Indexer indexer;
     @Mock
@@ -55,8 +55,8 @@ public class BatchNlpTest {
 
         when(indexer.get(anyString(), anyString(), any(List.class))).thenReturn(doc0, doc1);
         List<CreateNlpBatchesFromIndex.BatchDocument> batchDocs = List.of(
-            new CreateNlpBatchesFromIndex.BatchDocument(doc0.getId(), doc0.getRootDocument(), TEST_INDEX, language),
-            new CreateNlpBatchesFromIndex.BatchDocument(doc1.getId(), doc1.getRootDocument(), TEST_INDEX, language)
+            new CreateNlpBatchesFromIndex.BatchDocument(doc0.getId(), doc0.getRootDocument(), INDEX_NAME, language),
+            new CreateNlpBatchesFromIndex.BatchDocument(doc1.getId(), doc1.getRootDocument(), INDEX_NAME, language)
         );
         Map<String, Object> properties = Map.of(
             "docs", batchDocs,

@@ -31,7 +31,7 @@ import static org.apache.http.HttpHost.create;
 
 public class ElasticsearchRule extends ExternalResource {
     public static final String[] TEST_INDEXES = {"test-datashare", "test-index1", "test-index2"};
-    public static final String TEST_INDEX = "test-datashare";
+    private static final String TEST_INDEX = "test-datashare";
     private static final String MAPPING_RESOURCE_NAME = "datashare_index_mappings.json";
     private static final String SETTINGS_RESOURCE_NAME = "datashare_index_settings.json";
     public final ElasticsearchClient client;
@@ -107,5 +107,9 @@ public class ElasticsearchRule extends ExternalResource {
                 throw new RuntimeException("error while executing delete by query status : " + response.getStatusLine().getStatusCode());
             }
         }
+    }
+
+    public String getIndexName() {
+        return TEST_INDEX;
     }
 }

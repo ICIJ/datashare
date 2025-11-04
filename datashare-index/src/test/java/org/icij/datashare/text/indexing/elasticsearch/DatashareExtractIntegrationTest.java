@@ -25,7 +25,6 @@ import java.util.Objects;
 
 import static java.nio.file.Paths.get;
 import static org.fest.assertions.Assertions.assertThat;
-import static org.icij.datashare.test.ElasticsearchRule.TEST_INDEX;
 import static org.icij.datashare.text.Language.ENGLISH;
 import static org.icij.datashare.text.Project.project;
 
@@ -47,7 +46,7 @@ public class DatashareExtractIntegrationTest {
         TikaDocument tikaDocument = createExtractor().extract(path);
 
         spewer.write(tikaDocument);
-        Document doc = indexer.get(TEST_INDEX, tikaDocument.getId());
+        Document doc = indexer.get(es.getIndexName(), tikaDocument.getId());
 
         assertThat(doc.getProject()).isEqualTo(project("test-datashare"));
         assertThat(doc.getId()).isEqualTo(tikaDocument.getId());
@@ -73,7 +72,7 @@ public class DatashareExtractIntegrationTest {
         TikaDocument tikaDocument = createExtractor().extract(path);
 
         spewer.write(tikaDocument);
-        Document doc = indexer.get(TEST_INDEX, tikaDocument.getEmbeds().get(0).getId(), tikaDocument.getId());
+        Document doc = indexer.get(es.getIndexName(), tikaDocument.getEmbeds().get(0).getId(), tikaDocument.getId());
 
         assertThat(doc).isNotNull();
         assertThat(doc.getId()).isNotEqualTo(doc.getRootDocument());
