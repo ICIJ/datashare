@@ -12,7 +12,7 @@ import static org.fest.assertions.Assertions.assertThat;
 public class EsEmbeddedServerIntTest {
     private static EsEmbeddedServer server;
     @ClassRule static public TemporaryFolder esDir = new TemporaryFolder();
-    @Rule public ElasticsearchRule es = new ElasticsearchRule(create("http://localhost:9222"));
+    @Rule public ElasticsearchRule es = new ElasticsearchRule();
 
     @Test(timeout = 10_000)
     public void test_embedded_server_has_a_test_index() throws Exception {

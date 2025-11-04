@@ -30,7 +30,7 @@ public class IndexTaskIntTest {
     private final MemoryDocumentCollectionFactory<Path> inputQueueFactory = new MemoryDocumentCollectionFactory<>();
     private final MemoryDocumentCollectionFactory<String> outputQueueFactory = new MemoryDocumentCollectionFactory<>();
     private Map<String, Object> map = new HashMap<>() {{
-        put("defaultProject", "test-datashare");
+        put("defaultProject", es.getIndexName());
         put("queueName", "test:queue");
     }};
     private final PropertiesProvider propertiesProvider = new PropertiesProvider(map);
