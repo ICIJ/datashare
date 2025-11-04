@@ -2,10 +2,14 @@ package org.icij.datashare.asynctasks;
 
 
 import java.util.List;
+
+import com.fasterxml.jackson.databind.jsontype.NamedType;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.asynctasks.bus.amqp.AmqpInterlocutor;
 import org.icij.datashare.asynctasks.bus.amqp.AmqpQueue;
 import org.icij.datashare.asynctasks.bus.amqp.AmqpServerRule;
+import org.icij.datashare.asynctasks.bus.amqp.UriResult;
+import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.tasks.RoutingStrategy;
 import org.icij.datashare.user.User;
 import org.icij.extract.redis.RedissonClientFactory;
@@ -185,6 +189,7 @@ public class TaskManagersIntTest {
 
     @Before
     public void setUp() throws Exception {
+        JsonObjectMapper.registerSubtypes(new NamedType(UriResult.class)); // for test_additionnal_subtype_result_type
         this.taskManager = taskManagerCreator.create();
         this.taskInspector = new TaskInspector(this.taskManager);
         CountDownLatch taskRunnerWaiter = new CountDownLatch(1);

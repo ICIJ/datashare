@@ -36,6 +36,7 @@ import org.icij.datashare.extension.PipelineRegistry;
 import org.icij.datashare.extract.DocumentCollectionFactory;
 import org.icij.datashare.extract.MemoryDocumentCollectionFactory;
 import org.icij.datashare.extract.RedisDocumentCollectionFactory;
+import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.nlp.EmailPipeline;
 import org.icij.datashare.nlp.OptimaizeLanguageGuesser;
 import org.icij.datashare.tasks.*;
@@ -93,7 +94,9 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
         propertiesProvider = properties == null ? new PropertiesProvider() :
                 new PropertiesProvider(properties.getProperty(PropertiesProvider.SETTINGS_OPT)).overrideWith(properties);
         this.mode = getMode(properties);
-        
+
+        JsonObjectMapper.registerSubtypes(TaskResultSubtypes.getClasses());
+
         // Eager load extension JARs before Guice injector creation
         String extensionsDir = getExtensionsDir();
         if (extensionsDir != null) {
@@ -309,7 +312,6 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
             }
             case DATABASE -> {
                 JooqTaskRepository jooqTaskRepository = new JooqTaskRepository(repositoryFactory.getDataSource(), repositoryFactory.guessSqlDialect());
-                jooqTaskRepository.registerTaskResultTypes(TaskResultSubtypes.getClasses());
                 bind(TaskRepository.class).toInstance(jooqTaskRepository);
             }
         }

@@ -1,14 +1,7 @@
 package org.icij.datashare.asynctasks;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.jsontype.NamedType;
-import org.icij.datashare.json.JsonObjectMapper;
-import org.slf4j.LoggerFactory;
-
 import java.io.IOException;
 import java.io.Serializable;
-import java.util.Arrays;
-import java.util.logging.Logger;
 import java.util.stream.Stream;
 
 public interface TaskRepository {
@@ -26,10 +19,4 @@ public interface TaskRepository {
 
 
     Stream<Task<? extends Serializable>> getTasks(TaskFilters filters) throws IOException, UnknownTask;
-
-    default void registerTaskResultTypes(NamedType ...classesToRegister) {
-        JsonObjectMapper.registerSubtypes(classesToRegister);
-        LoggerFactory.getLogger(this.getClass()).info("Registered task types : "
-                + Arrays.stream(classesToRegister).map(namedType -> namedType.getType().getSimpleName()).toList());
-    }
 }

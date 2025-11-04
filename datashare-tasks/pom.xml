@@ -122,8 +122,41 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <configuration>
-                    <argLine>--add-opens java.base/java.util.concurrent.locks=ALL-UNNAMED --add-opens java.base/java.lang=ALL-UNNAMED</argLine>
+                    <skipTests>true</skipTests>
                 </configuration>
+                <executions>
+                    <execution>
+                        <id>jackson-subtypes-tests</id>
+                        <phase>test</phase>
+                        <goals>
+                            <goal>test</goal>
+                        </goals>
+                        <configuration>
+                            <skipTests>false</skipTests>
+                            <includes>
+                                <include>JacksonSubTypesTest</include>
+                                <include>TaskManagerAmqpTest</include>
+                            </includes>
+                            <runOrder>alphabetical</runOrder>
+                            <argLine>--add-opens java.base/java.util.concurrent.locks=ALL-UNNAMED --add-opens java.base/java.lang=ALL-UNNAMED</argLine>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>tests</id>
+                        <phase>test</phase>
+                        <goals>
+                            <goal>test</goal>
+                        </goals>
+                        <configuration>
+                            <skipTests>false</skipTests>
+                            <excludes>
+                                <exclude>JacksonSubTypesTest</exclude>
+                                <exclude>TaskManagerAmqpTest</exclude>
+                            </excludes>
+                            <argLine>--add-opens java.base/java.util.concurrent.locks=ALL-UNNAMED --add-opens java.base/java.lang=ALL-UNNAMED</argLine>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
             <plugin>
                 <groupId>org.sonatype.central</groupId>

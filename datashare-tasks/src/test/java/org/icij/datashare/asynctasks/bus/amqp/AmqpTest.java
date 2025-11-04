@@ -2,7 +2,6 @@ package org.icij.datashare.asynctasks.bus.amqp;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import java.util.function.Predicate;
 import org.icij.datashare.asynctasks.NackException;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -20,6 +19,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
 
 import static org.fest.assertions.Assertions.assertThat;
 

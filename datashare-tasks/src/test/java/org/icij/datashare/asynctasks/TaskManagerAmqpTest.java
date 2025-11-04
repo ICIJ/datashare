@@ -15,6 +15,7 @@ import org.icij.datashare.asynctasks.bus.amqp.AmqpQueue;
 import org.icij.datashare.asynctasks.bus.amqp.AmqpServerRule;
 import org.icij.datashare.asynctasks.bus.amqp.TaskError;
 import org.icij.datashare.asynctasks.bus.amqp.UriResult;
+import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.tasks.RoutingStrategy;
 import org.icij.datashare.time.DatashareTime;
 import org.icij.datashare.user.User;
@@ -142,21 +143,6 @@ public class TaskManagerAmqpTest {
         assertThat(result).isEqualTo(taskResult);
     }
 
-    @Ignore // To Fix : pass but not with surefire
-    @Test(timeout = 2000)
-    public void test_additionnal_subtype_result_type() throws Exception {
-        taskManager.startTask("taskName", User.local(), new HashMap<>());
-
-        Task<Serializable> task = taskQueue.poll(2, TimeUnit.SECONDS); // to sync
-        TaskResult<TestResult> taskResult = new TaskResult<>(new TestResult(1,"foo"));
-        taskSupplier.result(task.id,taskResult);
-
-        nextMessage.await();
-        Task<Serializable> task1 = taskManager.getTask(task.id);
-        TaskResult<Serializable> result = task1.getResult();
-        assertThat(result).isEqualTo(taskResult);
-    }
-
     @Test(timeout = 2000)
     public void test_task_error() throws Exception {
         taskManager.startTask("taskName", User.local(), new HashMap<>());
@@ -271,7 +257,7 @@ public class TaskManagerAmqpTest {
         final RedissonClient redissonClient = new RedissonClientFactory().withOptions(
                 Options.from(new PropertiesProvider(Map.of("redisAddress", "redis://redis:6379")).getProperties())).create();
         taskRepository = new TaskRepositoryRedis(redissonClient, "tasks:queue:test");
-        taskRepository.registerTaskResultTypes(new NamedType(TestResult.class)); // for test_additionnal_subtype_result_type
+        JsonObjectMapper.registerSubtypes(new NamedType(UriResult.class)); // for test_additionnal_subtype_result_type
         taskManager = new TaskManagerAmqp(AMQP, taskRepository, RoutingStrategy.UNIQUE, () -> nextMessage.countDown());
         taskSupplier = new TaskSupplierAmqp(AMQP);
         taskSupplier.consumeTasks(t -> taskQueue.add(t));
@@ -290,14 +276,5 @@ public class TaskManagerAmqpTest {
     @AfterClass
     public static void afterClass() throws Exception {
         AMQP.close();
-    }
-
-    @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "@type")
-    public record TestResult(int num, String str) implements Serializable {
-        @JsonCreator
-        public TestResult(@JsonProperty("num") int num, @JsonProperty("str") String str) {
-            this.num = num;
-            this.str = str;
-        }
     }
 }

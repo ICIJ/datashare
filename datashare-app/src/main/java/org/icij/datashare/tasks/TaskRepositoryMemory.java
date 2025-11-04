@@ -8,6 +8,5 @@ public class TaskRepositoryMemory extends org.icij.datashare.asynctasks.TaskRepo
     @Inject
     public TaskRepositoryMemory() {
         super();
-        this.registerTaskResultTypes(TaskResultSubtypes.getClasses());
     }
 }

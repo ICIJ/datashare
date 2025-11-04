@@ -1,10 +1,13 @@
 package org.icij.datashare.db;
 
+import com.fasterxml.jackson.databind.jsontype.NamedType;
 import com.ninja_squad.dbsetup.DbSetup;
 import com.ninja_squad.dbsetup.destination.DataSourceDestination;
 import com.ninja_squad.dbsetup.operation.Operation;
 import com.ninja_squad.dbsetup.operation.SqlOperation;
 import org.icij.datashare.PropertiesProvider;
+import org.icij.datashare.asynctasks.bus.amqp.UriResult;
+import org.icij.datashare.json.JsonObjectMapper;
 import org.junit.rules.ExternalResource;
 
 import javax.sql.DataSource;
@@ -28,6 +31,7 @@ public class DbSetupRule extends ExternalResource {
     DbSetupRule(String dataSourceUrl) {
         this.dataSource = createDatasource(dataSourceUrl);
         this.dataSourceUrl = dataSourceUrl;
+        JsonObjectMapper.registerSubtypes(new NamedType(UriResult.class));
     }
 
     @Override

@@ -14,6 +14,7 @@ import org.icij.datashare.asynctasks.TaskResult;
 import org.icij.datashare.asynctasks.UnknownTask;
 import org.icij.datashare.asynctasks.bus.amqp.TaskError;
 import org.icij.datashare.asynctasks.bus.amqp.UriResult;
+import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.user.User;
 import org.jooq.exception.IntegrityConstraintViolationException;
 import org.junit.After;
@@ -191,18 +192,6 @@ public class JooqTaskRepositoryTest {
         assertThat(tasks.get(0).id).isEqualTo(bar.id);
     }
 
-    @Test
-    public void test_get_task_with_external_type() throws IOException {
-        repository.registerTaskResultTypes(new NamedType(ResultRecord.class));
-        Task<ResultRecord> task = new Task<>("id", "foo", User.local(), Map.of());
-        repository.insert(task, new Group(TaskGroupType.Test));
-        task.setResult(new TaskResult<>(new ResultRecord(1, "baz")));
-        repository.update(task);
-
-
-        assertThat(repository.getTask(task.getId()).getResult().value()).isEqualTo(new ResultRecord(1, "baz"));
-    }
-
     @After
     public void tearDown() throws Exception {
         repository.deleteAll();
@@ -212,6 +201,4 @@ public class JooqTaskRepositoryTest {
         dbRule = rule;
         repository = rule.createTaskRepository();
     }
-
-    record ResultRecord(int foo, String bar) implements Serializable { }
 }

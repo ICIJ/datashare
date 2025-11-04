@@ -20,6 +20,7 @@ import org.icij.datashare.text.indexing.IndexId;
 import org.icij.datashare.text.indexing.IndexParent;
 import org.icij.datashare.text.indexing.IndexRoot;
 import org.icij.datashare.text.indexing.IndexType;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
@@ -249,6 +250,8 @@ public class JsonObjectMapper {
     public static void registerSubtypes(NamedType... classesToRegister) {
         TYPE_INCLUSION_MAPPER.registerSubtypes(classesToRegister);
         MAPPER.registerSubtypes(classesToRegister);
+        LoggerFactory.getLogger(JsonObjectMapper.class).info("Registered task types : "
+                + Arrays.stream(classesToRegister).map(namedType -> namedType.getType().getSimpleName()).toList());
     }
 
     public static <T> T readValue(String rawJson, TypeReference<T> type) throws IOException {

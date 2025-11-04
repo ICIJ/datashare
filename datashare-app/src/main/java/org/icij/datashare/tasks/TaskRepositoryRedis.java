@@ -9,6 +9,5 @@ public class TaskRepositoryRedis extends org.icij.datashare.asynctasks.TaskRepos
     @Inject
     public TaskRepositoryRedis(RedissonClient redisson) {
         super(redisson);
-        this.registerTaskResultTypes(TaskResultSubtypes.getClasses());
     }
 }
