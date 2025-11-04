@@ -66,6 +66,11 @@
 
     <repositories>
         <repository>
+          <id>local-repo</id>
+          <name></name>
+          <url>file://~/.m2/repository</url>
+        </repository>
+        <repository>
             <name>Central Portal Snapshots</name>
             <id>central-portal-snapshots</id>
             <url>https://central.sonatype.com/repository/maven-snapshots/</url>
@@ -109,7 +114,7 @@
         <joda-time.version>2.9.5</joda-time.version>
         <httpclient.version>4.5.13</httpclient.version>
         <redisson.version>3.20.1</redisson.version>
-        <jackson.version>2.15.1</jackson.version>
+        <jackson.version>2.19.4</jackson.version>
         <httpcore.version>4.4.13</httpcore.version>
         <guava.version>33.0.0-jre</guava.version>
         <xalan.version>2.7.2</xalan.version>

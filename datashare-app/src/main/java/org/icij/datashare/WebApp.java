@@ -43,7 +43,7 @@ public class WebApp {
         requeueDatabaseBatchSearches(mode.get(BatchSearchRepository.class), mode.get(TaskManager.class));
     }
 
-    private static void waitForServerToBeUp(int tcpListenPort) throws InterruptedException {
+    public static void waitForServerToBeUp(int tcpListenPort) throws InterruptedException {
         for (int nbTries = 0; nbTries < 60; nbTries++) {
            if (isOpen(tcpListenPort)) {
                return;
@@ -64,7 +64,7 @@ public class WebApp {
         }
     }
 
-    private static boolean isOpen(int port) {
+    public static boolean isOpen(int port) {
         try (Socket ignored = new Socket("localhost", port)) {
             return true;
         } catch (IOException ignored) {

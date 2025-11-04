@@ -41,6 +41,12 @@
         <dependency>
             <groupId>org.icij</groupId>
             <artifactId>ftm.java</artifactId>
+            <exclusions>
+                <exclusion>
+                    <groupId>com.fasterxml.jackson.core</groupId>
+                    <artifactId>*</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>redis.clients</groupId>
@@ -138,6 +144,78 @@
             <groupId>biz.paluch.logging</groupId>
             <artifactId>logstash-gelf</artifactId>
             <version>1.15.0</version>
+        </dependency>
+
+<!--        Force netty version to 4.2 since kestra's micronaut requires it-->
+        <dependency>
+            <groupId>io.netty</groupId>
+            <artifactId>netty-transport</artifactId>
+            <version>4.2.4.Final</version>
+        </dependency>
+        <dependency>
+            <groupId>net.java.dev.jna</groupId>
+            <artifactId>jna</artifactId>
+            <version>5.18.1</version>
+            <scope>compile</scope>
+        </dependency>
+<!--        <dependency>-->
+<!--            <groupId>io.netty</groupId>-->
+<!--            <artifactId>netty-transport-native-kqueue</artifactId>-->
+<!--            <classifier>osx-x86_64</classifier>-->
+<!--            <version>4.2.4.Final</version>-->
+<!--        </dependency>-->
+<!--         <dependency>-->
+<!--            <groupId>io.netty</groupId>-->
+<!--            <artifactId>netty-transport-native-kqueue</artifactId>-->
+<!--            <classifier>osx-aarch_64</classifier>-->
+<!--            <version>4.2.4.Final</version>-->
+<!--        </dependency>-->
+
+        <dependency>
+            <groupId>io.kestra</groupId>
+            <artifactId>kestra</artifactId>
+<!-- TODO: in practice we can't take use the snapshot of the transitive webserver dep in the local repo
+we'll have to build and publish the webserver -->
+            <version>1.1.0-SNAPSHOT</version>
+            <exclusions>
+                <exclusion>
+                  <groupId>io.kestra</groupId>
+                  <artifactId>jdbc-mysql</artifactId>
+                </exclusion>
+                <exclusion>
+                  <groupId>io.kestra</groupId>
+                  <artifactId>jdbc-postgres</artifactId>
+                </exclusion>
+                <exclusion>
+                  <groupId>elasticsearch-java</groupId>
+                  <artifactId>co.elastic.clients</artifactId>
+                </exclusion>
+                <exclusion>
+                  <groupId>elasticsearch-rest-client</groupId>
+                  <artifactId>org.elasticsearch.client</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+
+        <dependency>
+          <groupId>io.kestra</groupId>
+          <artifactId>kestra-api-client</artifactId>
+          <version>1.0.0</version>
+          <scope>compile</scope>
+        </dependency>
+
+        <dependency>
+          <groupId>co.elastic.clients</groupId>
+          <artifactId>elasticsearch-java</artifactId>
+          <version>${elasticsearch.version}</version>
+          <scope>compile</scope>
+        </dependency>
+
+        <dependency>
+          <groupId>org.elasticsearch.client</groupId>
+          <artifactId>elasticsearch-rest-client</artifactId>
+            <version>${elasticsearch.version}</version>
+          <scope>compile</scope>
         </dependency>
 
         <!--test dependencies-->

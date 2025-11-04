@@ -88,7 +88,7 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
     protected final Mode mode;
     private final Injector injector;
     private final List<Closeable> closeables = new LinkedList<>();
-    private final ExecutorService executorService;
+    protected final ExecutorService executorService;
 
     protected CommonMode(Properties properties) {
         propertiesProvider = properties == null ? new PropertiesProvider() :
