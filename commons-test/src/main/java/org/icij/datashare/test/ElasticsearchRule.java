@@ -33,7 +33,6 @@ import static java.util.Collections.singletonList;
 import static org.apache.http.HttpHost.create;
 
 public class ElasticsearchRule extends ExternalResource {
-    private static final String[] TEST_INDEXES = {"test-datashare", "test-index1", "test-index2"};
     private static final String TEST_INDEX = "test-datashare";
     private static final String MAPPING_RESOURCE_NAME = "datashare_index_mappings.json";
     private static final String SETTINGS_RESOURCE_NAME = "datashare_index_settings.json";
@@ -41,11 +40,17 @@ public class ElasticsearchRule extends ExternalResource {
     private final String[] indexesNames;
 
     public ElasticsearchRule() {
-        this(new String[]{generateIndexName()});
+        this(generateIndexName());
     }
-    public ElasticsearchRule(final String[] indexesName) { this(indexesName, create("http://elasticsearch:9200"));}
-    public ElasticsearchRule(final HttpHost esHost) { this(TEST_INDEXES, esHost);}
-    public ElasticsearchRule(int nbIndices) { this(IntStream.range(0, nbIndices).mapToObj(i -> generateIndexName()).toArray(String[]::new), create("http://elasticsearch:9200"));}
+
+    public ElasticsearchRule(final String... indexesNames) {
+        this(indexesNames, create("http://elasticsearch:9200"));
+    }
+
+    public ElasticsearchRule(int nbIndices) {
+        this(IntStream.range(0, nbIndices).mapToObj(i -> generateIndexName()).toArray(String[]::new), create("http://elasticsearch:9200"));
+    }
+
     private ElasticsearchRule(final String[] indexesName, HttpHost elasticHost) {
         this.indexesNames = indexesName;
         System.setProperty("es.set.netty.runtime.available.processors", "false");
@@ -68,9 +73,9 @@ public class ElasticsearchRule extends ExternalResource {
 
     @Override
     protected void before() throws Throwable {
-        ExistsRequest existsRequest = ExistsRequest.of(er -> er.index(asList(indexesNames)));
-        if (!client.indices().exists(existsRequest).value()) {
-            for (String index : indexesNames) {
+        for (String index : indexesNames) {
+            ExistsRequest existsRequest = ExistsRequest.of(er -> er.index(index));
+            if (!client.indices().exists(existsRequest).value()) {
                 Builder createReq = new Builder().index(index);
                 String settings = new String(toByteArray(Objects.requireNonNull(getClass().getClassLoader().getResourceAsStream(SETTINGS_RESOURCE_NAME))));
                 createReq.settings(IndexSettings.of(is -> is.withJson(new StringReader(settings))));
@@ -92,7 +97,7 @@ public class ElasticsearchRule extends ExternalResource {
     }
 
     public void delete(String... indices) throws IOException {
-        for (String index: indices) {
+        for (String index : indices) {
             Request request = new Request("DELETE", index);
             request.addParameter("ignore_unavailable", "true");
             RestClient restClient = ((RestClientTransport) client._transport()).restClient();
@@ -122,6 +127,6 @@ public class ElasticsearchRule extends ExternalResource {
     }
 
     public static String generateIndexName() {
-        return TEST_INDEX  + "-"  + StringUtils.generateString(8);
+        return TEST_INDEX + "-" + StringUtils.generateString(8);
     }
 }

@@ -28,7 +28,8 @@ import static org.mockito.MockitoAnnotations.initMocks;
 
 public class IndexResourceTest extends AbstractProdWebServerTest {
     @Mock JooqRepository jooqRepository;
-    @ClassRule public static ElasticsearchRule es = new ElasticsearchRule(3);
+    // TODO: should not have hard coded indices
+    @ClassRule public static ElasticsearchRule es = new ElasticsearchRule("test-datashare", "test-index1", "test-index2");
     private final ElasticsearchIndexer indexer = new ElasticsearchIndexer(es.client, new PropertiesProvider()).withRefresh(Refresh.True);
     private final PropertiesProvider propertiesProvider = new PropertiesProvider(new HashMap<>() {{
         put("defaultUserName", "test");
@@ -112,7 +113,7 @@ public class IndexResourceTest extends AbstractProdWebServerTest {
     public void test_auth_forward_request_with_user_logged_on_allow_search_on_multiple_indices() throws IOException {
         configure(routes ->
                 routes.add(new IndexResource(indexer)).
-                        filter(new BasicAuthFilter("/", "icij", DatashareUser.singleUser(new User(new HashMap<>() {
+                        filter(new BasicAuthFilter("/", "icij", DatashareUser.singleUser(new User(new HashMap<String, Object>() {
                             {
                                 this.put("uid", "cecile");
                                 this.put("groups_by_applications", new HashMap<String, Object>() {
@@ -124,9 +125,9 @@ public class IndexResourceTest extends AbstractProdWebServerTest {
                         })))));
         indexer.add(es.getIndexNames()[1], DocumentBuilder.createDoc("doc1").withRootId("rootId").build());
         indexer.add(es.getIndexNames()[2], DocumentBuilder.createDoc("doc2").withRootId("rootId").build());
-        post("/api/index/search/%s,%s/_search".formatted(es.getIndexNames()[1], es.getIndexNames()[2])).withPreemptiveAuthentication("cecile", "").should().respond(200);
-        post("/api/index/search/%s,%s/_doc/_search".formatted(es.getIndexNames()[1], es.getIndexNames()[2])).withPreemptiveAuthentication("cecile", "").should().respond(200);
-        post("/api/index/search/%s,%s/_count".formatted(es.getIndexNames()[1], es.getIndexNames()[2])).withPreemptiveAuthentication("cecile", "").should().respond(200);
+        post("/api/index/search/test-index1,test-index2/_search").withPreemptiveAuthentication("cecile", "").should().respond(200);
+        post("/api/index/search/test-index1,test-index2/_doc/_search").withPreemptiveAuthentication("cecile", "").should().respond(200);
+        post("/api/index/search/test-index1,test-index2/_count").withPreemptiveAuthentication("cecile", "").should().respond(200);
 
         post("/api/index/search/test-index1,test-index2/_delete_by_query").withPreemptiveAuthentication("cecile", "").should().respond(401);
     }
