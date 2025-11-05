@@ -200,8 +200,7 @@ we'll have to build and publish the webserver -->
         <dependency>
           <groupId>io.kestra</groupId>
           <artifactId>kestra-api-client</artifactId>
-          <version>1.0.0</version>
-          <scope>compile</scope>
+          <version>1.0.1</version>
         </dependency>
 
         <dependency>

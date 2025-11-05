@@ -1,6 +1,5 @@
 package org.icij.datashare.tasks;
 
-import java.util.LinkedList;
 import org.icij.datashare.asynctasks.Task;
 
 import java.util.function.Function;
@@ -15,6 +14,7 @@ public interface DatashareTaskFactory extends org.icij.datashare.asynctasks.Task
     ScanIndexTask createScanIndexTask(Task<Long> taskView, Function<Double, Void> updateCallback);
     ExtractNlpTask createExtractNlpTask(Task<Long> taskView, Function<Double, Void> updateCallback);
     EnqueueFromIndexTask createEnqueueFromIndexTask(Task<Long> taskView, Function<Double, Void> updateCallback);
+    SleepTask createSleepTask(Task<Long> taskView, Function<Double, Void> updateCallback);
 //    CreateNlpBatchesFromIndex createBatchEnqueueFromIndexTask(Task<LinkedList<String>> taskView, Function<Double, Void> updateCallback);
     BatchNlpTask createBatchNlpTask(Task<Long> taskView, Function<Double, Void> updateCallback);
     DeduplicateTask createDeduplicateTask(Task<Long> taskView, Function<Double, Void> updateCallback);

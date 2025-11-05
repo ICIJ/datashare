@@ -15,7 +15,7 @@ import org.junit.jupiter.api.Test;
  * This test will only test the main task, this allow you to send any input
  * parameters to your task and test the returning behaviour easily.
  */
-@KestraTest(packages = {"org.icij.datashare.kestra.plugin"}, application = DatashareModeFactory.class)
+@KestraTest(packages = {"org.icij.datashare.kestra.plugin"})
 class ExtractNlpTaskTest {
     @Inject
     private RunContextFactory runContextFactory;
@@ -23,7 +23,15 @@ class ExtractNlpTaskTest {
     @Test
     void testRun() throws Exception {
         String defaultProject = "local-datashare";
-        RunContext runContext = runContextFactory.of(Map.of("inputs", Map.of(DEFAULT_PROJECT_OPT, defaultProject)));
+        RunContext runContext = runContextFactory.of(Map.of(
+            "inputs", Map.of(DEFAULT_PROJECT_OPT, defaultProject),
+            "flow", Map.of(
+                "namespace", "org.icij.datashare",
+                "tenantId", "default-tenant"
+            ),
+            "taskrun", Map.of("id", "taskrunid")
+            )
+        );
         ExtractNlpTask task = ExtractNlpTask.builder()
             .defaultProject(Property.ofExpression("{{inputs.defaultProject}}"))
             .build();

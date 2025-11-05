@@ -23,7 +23,16 @@ class IndexTaskTest {
     @Test
     void testRun() throws Exception {
         String defaultProject = "local-datashare";
-        RunContext runContext = runContextFactory.of(Map.of("inputs", Map.of(DEFAULT_PROJECT_OPT, defaultProject)));
+        RunContext runContext = runContextFactory.of(
+            Map.of(
+                "inputs", Map.of(DEFAULT_PROJECT_OPT, defaultProject),
+                "flow", Map.of(
+                "namespace", "org.icij.datashare",
+                "tenantId", "default-tenant"
+            ),
+            "taskrun", Map.of("id", "taskrunid")
+            )
+        );
         IndexTask task = IndexTask.builder()
             .defaultProject(Property.ofExpression("{{inputs.defaultProject}}"))
             .build();
