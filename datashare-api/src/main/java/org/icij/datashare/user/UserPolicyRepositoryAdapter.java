@@ -13,6 +13,21 @@ public class UserPolicyRepositoryAdapter implements Adapter {
     public UserPolicyRepositoryAdapter(UserPolicyRepository repository) {
         this.repository = repository;
     }
+    public enum Permission {
+        READ("read"),
+        WRITE("write"),
+        ADMIN("admin");
+
+        private final String value;
+
+        Permission(String value) {
+            this.value = value;
+        }
+
+        public String value() {
+            return value;
+        }
+    }
 
     @Override
     public void loadPolicy(Model model) {
@@ -22,13 +37,13 @@ public class UserPolicyRepositoryAdapter implements Adapter {
             String userId = policy.userId();
             String projectId = policy.projectId();
             if (policy.read()) {
-                Helper.loadPolicyLine(String.format("p, %s, %s, read", userId, projectId), model);
+                Helper.loadPolicyLine(String.format("p, %s, %s, %s", userId, projectId, Permission.READ.value()), model);
             }
             if (policy.write()) {
-                Helper.loadPolicyLine(String.format("p, %s, %s, write", userId, projectId), model);
+                Helper.loadPolicyLine(String.format("p, %s, %s, %s", userId, projectId, Permission.WRITE.value()), model);
             }
             if (policy.admin()) {
-                Helper.loadPolicyLine(String.format("p, %s, %s, admin", userId, projectId), model);
+                Helper.loadPolicyLine(String.format("p, %s, %s, %s", userId, projectId, Permission.ADMIN.value()), model);
             }
         }
 

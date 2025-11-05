@@ -22,6 +22,7 @@ public record UserPolicy(
     public static UserPolicy create(String userId, String projectId, boolean read, boolean write, boolean admin) {
         return new UserPolicy(userId, projectId, read, write, admin);
     }
+
     public static UserPolicy create(String userId, String projectId) {
         return new UserPolicy(userId, projectId, false, false, false);
     }

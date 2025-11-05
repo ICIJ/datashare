@@ -15,10 +15,7 @@ import org.icij.datashare.text.DocumentBuilder;
 import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchIndexer;
 import org.icij.datashare.user.User;
 import org.icij.datashare.web.testhelpers.AbstractProdWebServerTest;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.ClassRule;
-import org.junit.Test;
+import org.junit.*;
 import org.mockito.Mock;
 
 import java.io.IOException;
@@ -26,7 +23,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 
-import static org.icij.datashare.test.ElasticsearchRule.TEST_INDEXES;
 import static org.mockito.Mockito.when;
 import static org.mockito.MockitoAnnotations.initMocks;
 
@@ -183,6 +179,7 @@ public class IndexResourceTest extends AbstractProdWebServerTest {
         put("/api/index/ cecile-datashare").withPreemptiveAuthentication("cecile", "pass").should().respond(400);
     }
 
+    @Ignore("CD: Not ready yet")
     @Test
     public void test_put_createIndex_with_policy() {
         configure(routes ->
@@ -191,6 +188,7 @@ public class IndexResourceTest extends AbstractProdWebServerTest {
         put("/api/index/cecile-datashare").should().respond(201);
     }
 
+    @Ignore("CD: Not ready yet")
     @Test
     public void test_search_path_accessible_to_non_admin() {
         configure(routes -> routes

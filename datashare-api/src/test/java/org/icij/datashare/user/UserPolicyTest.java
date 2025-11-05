@@ -42,11 +42,10 @@ public class UserPolicyTest {
 
     @Test
     public void test_json_round_trip_with_objectmapper() throws Exception {
-        ObjectMapper mapper = JsonObjectMapper.MAPPER;
         UserPolicy original = UserPolicy.create("user1", "projectA", false, true, false);
 
-        String json = mapper.writeValueAsString(original);
-        UserPolicy restored = mapper.readValue(json, UserPolicy.class);
+        String json = JsonObjectMapper.writeValueAsString(original);
+        UserPolicy restored = JsonObjectMapper.readValue(json, UserPolicy.class);
 
         assertThat(restored).isEqualTo(original);
         assertThat(restored.userId()).isEqualTo("user1");
