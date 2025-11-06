@@ -8,9 +8,10 @@ import org.mockito.Mock;
 import java.util.Arrays;
 import java.util.List;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.when;
-import static org.mockito.MockitoAnnotations.initMocks;
+import static org.mockito.MockitoAnnotations.openMocks;
 
 public class UserPolicyRepositoryAdapterTest {
 
@@ -21,7 +22,7 @@ public class UserPolicyRepositoryAdapterTest {
 
     @Before
     public void setUp() {
-        initMocks(this);
+        openMocks(this);
         adapter = new UserPolicyRepositoryAdapter(repository);
     }
 

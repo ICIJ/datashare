@@ -1,9 +1,11 @@
 package org.icij.datashare.tasks;
 
-import java.util.List;
 import org.icij.datashare.CollectionUtils;
 import org.icij.datashare.PropertiesProvider;
-import org.icij.datashare.asynctasks.*;
+import org.icij.datashare.asynctasks.CancelException;
+import org.icij.datashare.asynctasks.Group;
+import org.icij.datashare.asynctasks.Task;
+import org.icij.datashare.asynctasks.TaskGroupType;
 import org.icij.datashare.batch.BatchSearch;
 import org.icij.datashare.batch.BatchSearchRecord;
 import org.icij.datashare.batch.BatchSearchRepository;
@@ -20,6 +22,7 @@ import sun.misc.Signal;
 import java.io.IOException;
 import java.util.Date;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -31,7 +34,7 @@ import static org.icij.datashare.text.DocumentBuilder.createDoc;
 import static org.icij.datashare.text.Project.project;
 import static org.icij.datashare.user.User.local;
 import static org.mockito.Mockito.*;
-import static org.mockito.MockitoAnnotations.initMocks;
+import static org.mockito.MockitoAnnotations.openMocks;
 
 
 public class TaskManagerMemoryForBatchSearchTest {
@@ -152,7 +155,7 @@ public class TaskManagerMemoryForBatchSearchTest {
 
     @Before
     public void setUp() throws IOException {
-        initMocks(this);
+        openMocks(this);
         taskManager = new TaskManagerMemory(factory, new TaskRepositoryMemory(), new PropertiesProvider(Map.of(TASK_MANAGER_POLLING_INTERVAL_OPT, "1000")), startLoop);
         mockSearch = new MockSearch<>(indexer, Indexer.QueryBuilderSearcher.class);
 

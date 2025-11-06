@@ -14,7 +14,7 @@ import java.nio.file.Paths;
 import static java.util.Collections.singletonList;
 import static org.icij.datashare.text.Project.project;
 import static org.mockito.Mockito.when;
-import static org.mockito.MockitoAnnotations.initMocks;
+import static org.mockito.MockitoAnnotations.openMocks;
 
 public class NoteResourceTest extends AbstractProdWebServerTest {
     @Mock JooqRepository jooqRepository;
@@ -65,7 +65,7 @@ public class NoteResourceTest extends AbstractProdWebServerTest {
 
     @Before
     public void setUp() {
-        initMocks(this);
+        openMocks(this);
         configure(routes -> routes.add(new NoteResource(jooqRepository)).
                 filter(new LocalUserFilter(new PropertiesProvider(), jooqRepository)));
     }

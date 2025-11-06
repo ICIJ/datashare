@@ -8,10 +8,10 @@ import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.asynctasks.TaskManager;
 import org.icij.datashare.cli.Mode;
 import org.icij.datashare.db.JooqRepository;
+import org.icij.datashare.extract.MemoryDocumentCollectionFactory;
 import org.icij.datashare.session.DatashareUser;
 import org.icij.datashare.session.LocalUserFilter;
 import org.icij.datashare.session.YesBasicAuthFilter;
-import org.icij.datashare.extract.MemoryDocumentCollectionFactory;
 import org.icij.datashare.text.Project;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.user.User;
@@ -34,7 +34,7 @@ import static java.util.Arrays.asList;
 import static org.fest.assertions.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
-import static org.mockito.MockitoAnnotations.initMocks;
+import static org.mockito.MockitoAnnotations.openMocks;
 
 public class ProjectResourceTest extends AbstractProdWebServerTest {
     @Mock Repository repository;
@@ -47,7 +47,7 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
 
     @Before
     public void setUp() {
-        initMocks(this);
+        openMocks(this);
         documentCollectionFactory = new MemoryDocumentCollectionFactory<>();
         when(jooqRepository.getProjects()).thenReturn(new ArrayList<>());
         configure(routes -> {

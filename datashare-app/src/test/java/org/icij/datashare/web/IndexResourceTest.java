@@ -4,8 +4,8 @@ import co.elastic.clients.elasticsearch._types.Refresh;
 import net.codestory.http.filters.basic.BasicAuthFilter;
 import net.codestory.http.security.Users;
 import org.icij.datashare.PropertiesProvider;
-import org.icij.datashare.db.JooqUserPolicyRepository;
 import org.icij.datashare.db.JooqRepository;
+import org.icij.datashare.db.JooqUserPolicyRepository;
 import org.icij.datashare.session.DatashareUser;
 import org.icij.datashare.session.LocalUserFilter;
 import org.icij.datashare.session.Policy;
@@ -24,7 +24,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 
 import static org.mockito.Mockito.when;
-import static org.mockito.MockitoAnnotations.initMocks;
+import static org.mockito.MockitoAnnotations.openMocks;
 
 public class IndexResourceTest extends AbstractProdWebServerTest {
     @Mock JooqRepository jooqRepository;
@@ -200,7 +200,7 @@ public class IndexResourceTest extends AbstractProdWebServerTest {
 
     @Before
     public void setUp() {
-        initMocks(this);
+        openMocks(this);
         when(jooqRepository.getProjects()).thenReturn(new ArrayList<>());
         configure(routes -> {
             Users users =  DatashareUser.singleUser("cecile");

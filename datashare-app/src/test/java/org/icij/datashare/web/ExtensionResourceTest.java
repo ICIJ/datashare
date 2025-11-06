@@ -19,7 +19,7 @@ import java.util.ArrayList;
 import static java.net.URLEncoder.encode;
 import static org.fest.assertions.Assertions.assertThat;
 import static org.mockito.Mockito.when;
-import static org.mockito.MockitoAnnotations.initMocks;
+import static org.mockito.MockitoAnnotations.openMocks;
 
 public class ExtensionResourceTest extends AbstractProdWebServerTest  {
     @Mock JooqRepository jooqRepository;
@@ -86,7 +86,7 @@ public class ExtensionResourceTest extends AbstractProdWebServerTest  {
 
     @Before
     public void setUp() {
-        initMocks(this);
+        openMocks(this);
         when(jooqRepository.getProjects()).thenReturn(new ArrayList<>());
         configure(routes -> routes.add(new ExtensionResource(
             ExtensionServiceTest.createExtensionService(extensionFolder.getRoot().toPath(), new ByteArrayInputStream(("{\"deliverableList\": [" +

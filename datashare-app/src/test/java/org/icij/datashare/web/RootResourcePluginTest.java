@@ -9,12 +9,7 @@ import org.apache.commons.io.FileUtils;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.db.JooqRepository;
 import org.icij.datashare.session.LocalUserFilter;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.ClassRule;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.*;
 import org.junit.rules.TemporaryFolder;
 import org.mockito.Mock;
 
@@ -29,7 +24,7 @@ import java.util.Map;
 import static java.nio.file.Files.copy;
 import static java.util.Arrays.asList;
 import static org.mockito.Mockito.when;
-import static org.mockito.MockitoAnnotations.initMocks;
+import static org.mockito.MockitoAnnotations.openMocks;
 
 public class RootResourcePluginTest implements FluentRestTest {
     @Mock JooqRepository jooqRepository;
@@ -53,7 +48,7 @@ public class RootResourcePluginTest implements FluentRestTest {
 
     @Before
     public void setUp() {
-        initMocks(this);
+        openMocks(this);
         when(jooqRepository.getProjects()).thenReturn(new ArrayList<>());
         propertiesProvider = new PropertiesProvider(new HashMap<>() {{
             put("pluginsDir", folder.getRoot().toString());

@@ -35,10 +35,8 @@ import static org.icij.datashare.CollectionUtils.asSet;
 import static org.icij.datashare.text.Project.project;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-import static org.mockito.MockitoAnnotations.initMocks;
+import static org.mockito.Mockito.*;
+import static org.mockito.MockitoAnnotations.openMocks;
 
 public class TaskResourceBatchSearchTest extends AbstractProdWebServerTest {
     @Mock BatchSearchRepository batchSearchRepository;
@@ -47,7 +45,7 @@ public class TaskResourceBatchSearchTest extends AbstractProdWebServerTest {
 
     @Before
     public void setUp() throws Exception {
-        initMocks(this);
+        openMocks(this);
         TestTaskUtils.init(taskFactory);
         configure(routes -> routes.add(new TaskResource(taskFactory, taskManager, new PropertiesProvider(), batchSearchRepository)));
     }

@@ -8,7 +8,9 @@ import net.codestory.rest.Response;
 import net.codestory.rest.RestAssert;
 import net.codestory.rest.ShouldChain;
 import org.icij.datashare.PropertiesProvider;
-import org.icij.datashare.asynctasks.*;
+import org.icij.datashare.asynctasks.Task;
+import org.icij.datashare.asynctasks.TaskFilters;
+import org.icij.datashare.asynctasks.TaskManager;
 import org.icij.datashare.asynctasks.TaskRepositoryMemory;
 import org.icij.datashare.asynctasks.bus.amqp.TaskCreation;
 import org.icij.datashare.batch.BatchSearchRecord;
@@ -20,7 +22,6 @@ import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.nlp.EmailPipeline;
 import org.icij.datashare.session.LocalUserFilter;
 import org.icij.datashare.tasks.*;
-import org.icij.datashare.tasks.TaskManagerMemory;
 import org.icij.datashare.test.DatashareTimeRule;
 import org.icij.datashare.text.ProjectProxy;
 import org.icij.datashare.text.nlp.AbstractModels;
@@ -54,7 +55,7 @@ import static org.icij.datashare.web.TaskResource.taskFiltersFromContext;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
-import static org.mockito.MockitoAnnotations.initMocks;
+import static org.mockito.MockitoAnnotations.openMocks;
 
 public class TaskResourceTest extends AbstractProdWebServerTest {
     @Rule
@@ -69,7 +70,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
 
     @Before
     public void setUp() {
-        initMocks(this);
+        openMocks(this);
         when(jooqRepository.getProjects()).thenReturn(new ArrayList<>());
         when(batchSearchRepository.getRecords(any(), any())).thenReturn(new ArrayList<>());
         PipelineRegistry pipelineRegistry = new PipelineRegistry(getDefaultPropertiesProvider());

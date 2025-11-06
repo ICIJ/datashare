@@ -6,16 +6,17 @@ import org.icij.datashare.text.DocumentBuilder;
 import org.icij.datashare.text.Duplicate;
 import org.icij.datashare.text.Project;
 import org.icij.datashare.text.indexing.Indexer;
-import org.junit.Test;
 import org.junit.Before;
+import org.junit.Test;
 import org.mockito.Mock;
 
 import java.util.Optional;
 
 import static org.icij.datashare.cli.DatashareCliOptions.EMBEDDED_DOCUMENT_DOWNLOAD_MAX_SIZE_OPT;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.when;
-import static org.mockito.MockitoAnnotations.initMocks;
+import static org.mockito.MockitoAnnotations.openMocks;
 
 public class DocumentVerifierTest {
 
@@ -25,7 +26,7 @@ public class DocumentVerifierTest {
 
     @Before
     public void setUp() {
-        initMocks(this);
+        openMocks(this);
         documentVerifier = new DocumentVerifier(indexer, propertiesProvider);
     }
 

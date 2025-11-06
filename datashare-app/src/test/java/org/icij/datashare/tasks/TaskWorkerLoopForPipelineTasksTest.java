@@ -1,7 +1,5 @@
 package org.icij.datashare.tasks;
 
-import java.util.List;
-import java.util.function.Function;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.asynctasks.TaskRepositoryMemory;
@@ -15,15 +13,17 @@ import org.junit.Test;
 import org.mockito.Mock;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 
 import static org.fest.assertions.Assertions.assertThat;
 import static org.icij.datashare.cli.DatashareCliOptions.TASK_MANAGER_POLLING_INTERVAL_OPT;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
-import static org.mockito.MockitoAnnotations.initMocks;
+import static org.mockito.MockitoAnnotations.openMocks;
 
 public class TaskWorkerLoopForPipelineTasksTest {
     @Mock
@@ -98,7 +98,7 @@ public class TaskWorkerLoopForPipelineTasksTest {
 
     @Before
     public void setUp() {
-        initMocks(this);
+        openMocks(this);
         when(spewer.configure(any())).thenReturn(spewer);
     }
 }

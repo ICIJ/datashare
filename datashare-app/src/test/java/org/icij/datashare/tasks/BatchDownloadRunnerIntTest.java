@@ -32,7 +32,7 @@ import static org.icij.datashare.user.User.local;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
-import static org.mockito.MockitoAnnotations.initMocks;
+import static org.mockito.MockitoAnnotations.openMocks;
 
 public class BatchDownloadRunnerIntTest {
     @ClassRule public static ElasticsearchRule es = new ElasticsearchRule(3);
@@ -259,7 +259,7 @@ public class BatchDownloadRunnerIntTest {
 
     @Before
     public void setUp() throws Exception {
-        initMocks(this);
+        openMocks(this);
     }
 
     @After

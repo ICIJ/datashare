@@ -10,7 +10,7 @@ import java.util.List;
 
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.when;
-import static org.mockito.MockitoAnnotations.initMocks;
+import static org.mockito.MockitoAnnotations.openMocks;
 
 public class UserPolicyVerifierTest {
     @Mock private UserPolicyRepository repository;
@@ -18,7 +18,7 @@ public class UserPolicyVerifierTest {
 
     @Before
     public void setUp() {
-        initMocks(this);
+        openMocks(this);
         UserPolicy policy1 = new UserPolicy("user1", "project1", true, false, false);
         UserPolicy policy2 = new UserPolicy("user2", "project2", false, true, true);
         List<UserPolicy> policies = Arrays.asList(policy1, policy2);
@@ -34,7 +34,7 @@ public class UserPolicyVerifierTest {
         }
     }
     @Test
-    public void testPermissionEnforcement() {
+    public void test_permission_enforcement() {
 
         testEnforce(verifier, "user1", "project1", "read", true);
         testEnforce(verifier, "user1", "project1", "write", false);
@@ -50,7 +50,7 @@ public class UserPolicyVerifierTest {
         testEnforce(verifier, "user1", "project1", "test", false);
     }
     @Test
-    public void testEnforceWithUserProjectPermission() {
+    public void test_enforce_with_user_project_permission() {
         User user1 = new User("user1", "user1", "user1@example.com", "local", "{}");
         User user2 = new User("user2", "user2", "user2@example.com", "local", "{}");
         Project project1 = new Project("project1", "Project 1");

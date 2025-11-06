@@ -18,7 +18,7 @@ import java.util.Map;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
-import static org.mockito.MockitoAnnotations.initMocks;
+import static org.mockito.MockitoAnnotations.openMocks;
 
 public class DocumentUserRecommendationResourceTest extends AbstractProdWebServerTest {
     @Mock
@@ -31,7 +31,7 @@ public class DocumentUserRecommendationResourceTest extends AbstractProdWebServe
 
     @Before
     public void setUp() {
-        initMocks(this);
+        openMocks(this);
         configure(routes -> {
             propertiesProvider = new PropertiesProvider(Map.of("mode", "LOCAL"));
             DocumentUserRecommendationResource resource = new DocumentUserRecommendationResource(jooqRepository);

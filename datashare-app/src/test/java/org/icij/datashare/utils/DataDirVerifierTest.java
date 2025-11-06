@@ -1,8 +1,8 @@
 package org.icij.datashare.utils;
 
 import org.icij.datashare.PropertiesProvider;
-import org.junit.Test;
 import org.junit.Before;
+import org.junit.Test;
 import org.mockito.Mock;
 
 import java.nio.file.Path;
@@ -11,7 +11,7 @@ import java.util.Optional;
 
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.when;
-import static org.mockito.MockitoAnnotations.initMocks;
+import static org.mockito.MockitoAnnotations.openMocks;
 
 public class DataDirVerifierTest {
     @Mock PropertiesProvider propertiesProvider;
@@ -20,7 +20,7 @@ public class DataDirVerifierTest {
 
     @Before
     public void setUp() {
-        initMocks(this);
+        openMocks(this);
         dataDirVerifier = new DataDirVerifier(propertiesProvider);
     }
 

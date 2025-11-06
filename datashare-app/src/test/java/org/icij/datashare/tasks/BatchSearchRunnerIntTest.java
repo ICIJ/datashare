@@ -33,7 +33,7 @@ import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.Mockito.*;
-import static org.mockito.MockitoAnnotations.initMocks;
+import static org.mockito.MockitoAnnotations.openMocks;
 
 public class BatchSearchRunnerIntTest {
     @ClassRule public static ElasticsearchRule es = new ElasticsearchRule();
@@ -281,5 +281,5 @@ public class BatchSearchRunnerIntTest {
     }
 
     @Before
-    public void setUp() { initMocks(this);}
+    public void setUp() { openMocks(this);}
 }

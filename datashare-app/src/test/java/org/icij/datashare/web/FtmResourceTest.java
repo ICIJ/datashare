@@ -9,7 +9,7 @@ import org.mockito.Mock;
 
 import java.nio.file.Path;
 
-import static org.mockito.MockitoAnnotations.initMocks;
+import static org.mockito.MockitoAnnotations.openMocks;
 
 public class FtmResourceTest extends AbstractProdWebServerTest {
     @Mock Indexer mockEs;
@@ -30,7 +30,7 @@ public class FtmResourceTest extends AbstractProdWebServerTest {
 
     @Before
     public void setUp() {
-        initMocks(this);
+        openMocks(this);
         this.mockIndexer = new MockIndexer(mockEs);
         configure(routes -> routes.add(new FtmResource(mockEs)));
     }

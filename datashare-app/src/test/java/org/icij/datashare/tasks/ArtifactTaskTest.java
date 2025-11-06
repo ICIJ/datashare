@@ -19,7 +19,7 @@ import java.util.Map;
 import java.util.Objects;
 
 import static org.fest.assertions.Assertions.assertThat;
-import static org.mockito.MockitoAnnotations.initMocks;
+import static org.mockito.MockitoAnnotations.openMocks;
 
 public class ArtifactTaskTest {
     @Rule public TemporaryFolder artifactDir = new TemporaryFolder();
@@ -57,7 +57,7 @@ public class ArtifactTaskTest {
 
     @Before
     public void setUp() throws Exception {
-        initMocks(this);
+        openMocks(this);
         mockIndexer = new MockIndexer(mockEs);
     }
 }

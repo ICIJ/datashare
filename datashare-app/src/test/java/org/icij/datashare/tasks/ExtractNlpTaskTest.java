@@ -22,10 +22,8 @@ import static org.icij.datashare.text.Language.ENGLISH;
 import static org.icij.datashare.text.Project.project;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-import static org.mockito.MockitoAnnotations.initMocks;
+import static org.mockito.Mockito.*;
+import static org.mockito.MockitoAnnotations.openMocks;
 
 public class ExtractNlpTaskTest {
     @Mock private Indexer indexer;
@@ -35,7 +33,7 @@ public class ExtractNlpTaskTest {
 
     @Before
     public void setUp() {
-        initMocks(this);
+        openMocks(this);
         nlpTask = new ExtractNlpTask(indexer, pipeline, factory, new Task<>(ExtractNlpTask.class.getName(), User.local(),
                 Map.of("maxContentLength", "32")), null);
     }

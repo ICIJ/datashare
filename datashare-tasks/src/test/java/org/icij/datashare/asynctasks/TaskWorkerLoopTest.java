@@ -109,7 +109,7 @@ public class TaskWorkerLoopTest {
 
     @Before
     public void setUp() {
-        MockitoAnnotations.initMocks(this);
+        MockitoAnnotations.openMocks(this);
     }
 
     private CountDownLatch whenTaskHasStarted(String id) {

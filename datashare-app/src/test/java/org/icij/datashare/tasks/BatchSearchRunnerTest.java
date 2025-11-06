@@ -34,7 +34,7 @@ import static org.icij.datashare.user.User.local;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
-import static org.mockito.MockitoAnnotations.initMocks;
+import static org.mockito.MockitoAnnotations.openMocks;
 
 
 public class BatchSearchRunnerTest {
@@ -139,7 +139,7 @@ public class BatchSearchRunnerTest {
 
     @Before
     public void setUp() {
-        initMocks(this);
+        openMocks(this);
         mockSearch = new MockSearch<>(indexer, Indexer.QueryBuilderSearcher.class);
     }
 }

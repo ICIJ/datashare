@@ -25,7 +25,7 @@ import static org.fest.assertions.Assertions.assertThat;
 import static org.icij.datashare.text.Project.project;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
-import static org.mockito.MockitoAnnotations.initMocks;
+import static org.mockito.MockitoAnnotations.openMocks;
 
 public class BatchDownloadRunnerEncryptedIntTest {
     @ClassRule public static ElasticsearchRule es = new ElasticsearchRule();
@@ -61,7 +61,7 @@ public class BatchDownloadRunnerEncryptedIntTest {
     }
 
     @Before
-    public void setUp() throws Exception { initMocks(this); }
+    public void setUp() throws Exception { openMocks(this); }
 
     @After
     public void tearDown() throws IOException { es.removeAll();}

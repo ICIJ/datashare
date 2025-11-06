@@ -4,18 +4,19 @@ package org.icij.datashare.web;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.db.JooqRepository;
 import org.icij.datashare.session.LocalUserFilter;
+import org.icij.datashare.tasks.DatashareTaskFactory;
 import org.icij.datashare.tasks.DelApiKeyTask;
 import org.icij.datashare.tasks.GenApiKeyTask;
 import org.icij.datashare.tasks.GetApiKeyTask;
-import org.icij.datashare.tasks.DatashareTaskFactory;
 import org.icij.datashare.user.User;
 import org.icij.datashare.web.testhelpers.AbstractProdWebServerTest;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
 
-import static org.mockito.Mockito.*;
-import static org.mockito.MockitoAnnotations.initMocks;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+import static org.mockito.MockitoAnnotations.openMocks;
 
 public class ApiKeyResourceTest extends AbstractProdWebServerTest {
     @Mock public DatashareTaskFactory taskFactory;
@@ -60,7 +61,7 @@ public class ApiKeyResourceTest extends AbstractProdWebServerTest {
 
     @Before
     public void setUp() {
-        initMocks(this);
+        openMocks(this);
         configure(routes -> routes.add(new ApiKeyResource(taskFactory)).filter(new LocalUserFilter(new PropertiesProvider(), jooqRepository)));
     }
 }

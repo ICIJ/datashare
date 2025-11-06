@@ -6,10 +6,11 @@ import org.icij.datashare.cli.Mode;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
+
 import java.util.Optional;
 
 import static org.mockito.Mockito.when;
-import static org.mockito.MockitoAnnotations.initMocks;
+import static org.mockito.MockitoAnnotations.openMocks;
 
 public class ModeVerifierTest {
     @Mock private PropertiesProvider propertiesProvider;
@@ -17,7 +18,7 @@ public class ModeVerifierTest {
 
     @Before
     public void setUp() {
-        initMocks(this);
+        openMocks(this);
         modeVerifier = new ModeVerifier(propertiesProvider);
     }
 

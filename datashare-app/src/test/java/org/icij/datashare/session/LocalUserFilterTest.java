@@ -17,7 +17,7 @@ import java.util.HashMap;
 import static org.fest.assertions.Assertions.assertThat;
 import static org.mockito.ArgumentCaptor.forClass;
 import static org.mockito.Mockito.*;
-import static org.mockito.MockitoAnnotations.initMocks;
+import static org.mockito.MockitoAnnotations.openMocks;
 
 public class LocalUserFilterTest {
     @Mock JooqRepository jooqRepository;
@@ -28,7 +28,7 @@ public class LocalUserFilterTest {
 
     @Before
     public void setUp() {
-        initMocks(this);
+        openMocks(this);
         when(jooqRepository.getProjects()).thenReturn(new ArrayList<>());
     }
 
