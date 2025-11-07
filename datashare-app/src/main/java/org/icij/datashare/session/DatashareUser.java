@@ -21,6 +21,7 @@ public class DatashareUser extends User implements net.codestory.http.security.U
     @Override public String name() { return (String) details.get("name"); }
     @Override public String[] roles() { return isLocal() ? new String[] {LOCAL}: new String[0]; }
     public Object get(String key) { return details.get(key); }
+    public static Users singleUser(String name, String ...projectNames) { return singleUser(User.localUser(name, projectNames)); }
     public static Users singleUser(String name) { return singleUser(User.localUser(name));}
     public static Users singleUser(final User user) {
         return new Users() {

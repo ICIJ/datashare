@@ -29,7 +29,7 @@ import static org.mockito.MockitoAnnotations.initMocks;
 public class IndexResourceTest extends AbstractProdWebServerTest {
     @Mock JooqRepository jooqRepository;
     // TODO: should not have hard coded indices
-    @ClassRule public static ElasticsearchRule es = new ElasticsearchRule("test-datashare", "test-index1", "test-index2");
+    @ClassRule public static ElasticsearchRule es = new ElasticsearchRule(3);
     private final ElasticsearchIndexer indexer = new ElasticsearchIndexer(es.client, new PropertiesProvider()).withRefresh(Refresh.True);
     private final PropertiesProvider propertiesProvider = new PropertiesProvider(new HashMap<>() {{
         put("defaultUserName", "test");
@@ -37,37 +37,37 @@ public class IndexResourceTest extends AbstractProdWebServerTest {
 
     @Test
     public void test_no_auth_get_forward_request_to_elastic() {
-        configure(routes -> routes.add(new IndexResource(indexer)).filter(new LocalUserFilter(propertiesProvider, jooqRepository)));
-        get("/api/index/search/test-datashare/_search").should().respond(200).contain("\"successful\":1");
+        configure(routes -> routes.add(new IndexResource(indexer)).filter(new LocalUserFilter(propertiesProvider, jooqRepository, es.getIndexNames())));
+        get("/api/index/search/%s/_search".formatted(es.getIndexName())).should().respond(200).contain("\"successful\":1");
     }
 
     @Test
     public void test_no_auth_get_forward_request_to_elastic_if_granted_to_read_index() {
-        configure(routes -> routes.add(new IndexResource(indexer)).filter(new LocalUserFilter(propertiesProvider, jooqRepository)));
+        configure(routes -> routes.add(new IndexResource(indexer)).filter(new LocalUserFilter(propertiesProvider, jooqRepository, es.getIndexNames())));
         get("/api/index/search/unauthorized/_search").should().respond(401);
     }
     @Test
     public void test_no_auth_get_forward_request_to_elastic_with_empty_indice() {
-        configure(routes -> routes.add(new IndexResource(indexer)).filter(new LocalUserFilter(propertiesProvider, jooqRepository)));
+        configure(routes -> routes.add(new IndexResource(indexer)).filter(new LocalUserFilter(propertiesProvider, jooqRepository, es.getIndexNames())));
         get("/api/index/search/    /_search").should().respond(400);
         get("/api/index/search/!!/_search").should().respond(400);
     }
     @Test
     public void test_no_auth_get_unauthorized_on_unknown_index() {
-        configure(routes -> routes.add(new IndexResource(indexer)).filter(new LocalUserFilter(propertiesProvider, jooqRepository)));
+        configure(routes -> routes.add(new IndexResource(indexer)).filter(new LocalUserFilter(propertiesProvider, jooqRepository, es.getIndexNames())));
         get("/api/index/search/hacker/bar/baz").should().respond(401);
     }
     @Test
     public void test_put_create_local_index_in_local_mode() {
-        configure(routes -> routes.add(new IndexResource(indexer)).filter(new LocalUserFilter(propertiesProvider, jooqRepository)));
+        configure(routes -> routes.add(new IndexResource(indexer)).filter(new LocalUserFilter(propertiesProvider, jooqRepository, es.getIndexNames())));
         put("/api/index/index_name").should().respond(201);
         put("/api/index/ !!").should().respond(400);
         put("/api/index/  /").should().respond(404);
     }
     @Test
     public void test_no_auth_post_forward_request_to_elastic_with_body() {
-        configure(routes -> routes.add(new IndexResource(indexer)).filter(new LocalUserFilter(propertiesProvider, jooqRepository)));
-        post("/api/index/search/test-datashare/_search", "{}").should().respond(200).contain("\"successful\":1");
+        configure(routes -> routes.add(new IndexResource(indexer)).filter(new LocalUserFilter(propertiesProvider, jooqRepository, es.getIndexNames())));
+        post("/api/index/search/%s/_search".formatted(es.getIndexName()), "{}").should().respond(200).contain("\"successful\":1");
         post("/api/index/search/  \\").should().respond(400);
         post("/api/index/search/  /  ").should().respond(400);
         post("/api/index/search/unauthorized/_search").should().respond(401);
@@ -75,15 +75,15 @@ public class IndexResourceTest extends AbstractProdWebServerTest {
 
     @Test
     public void test_no_auth_options_forward_request_to_elastic() {
-        configure(routes -> routes.add(new IndexResource(indexer)).filter(new LocalUserFilter(propertiesProvider, jooqRepository)));
-        options("/api/index/search/test-datashare").should().respond(200);
+        configure(routes -> routes.add(new IndexResource(indexer)).filter(new LocalUserFilter(propertiesProvider, jooqRepository, es.getIndexNames())));
+        options("/api/index/search/%s".formatted(es.getIndexName())).should().respond(200);
         options("/api/index/search/  /").should().respond(400);
         options("/api/index/search/  \\").should().respond(400);
     }
 
     @Test
     public void test_delete_should_return_method_not_allowed() {
-        configure(routes -> routes.add(new IndexResource(indexer)).filter(new LocalUserFilter(propertiesProvider, jooqRepository)));
+        configure(routes -> routes.add(new IndexResource(indexer)).filter(new LocalUserFilter(propertiesProvider, jooqRepository, es.getIndexNames())));
         delete("/api/index/search/foo/bar").should().respond(405);
     }
 
@@ -125,11 +125,15 @@ public class IndexResourceTest extends AbstractProdWebServerTest {
                         })))));
         indexer.add(es.getIndexNames()[1], DocumentBuilder.createDoc("doc1").withRootId("rootId").build());
         indexer.add(es.getIndexNames()[2], DocumentBuilder.createDoc("doc2").withRootId("rootId").build());
-        post("/api/index/search/test-index1,test-index2/_search").withPreemptiveAuthentication("cecile", "").should().respond(200);
-        post("/api/index/search/test-index1,test-index2/_doc/_search").withPreemptiveAuthentication("cecile", "").should().respond(200);
-        post("/api/index/search/test-index1,test-index2/_count").withPreemptiveAuthentication("cecile", "").should().respond(200);
+        post("/api/index/search/%s,%s/_search".formatted(es.getIndexNames()[1], es.getIndexNames()[2]))
+                .withPreemptiveAuthentication("cecile", "").should().respond(200);
+        post("/api/index/search/%s,%s/_doc/_search".formatted(es.getIndexNames()[1], es.getIndexNames()[2]))
+                .withPreemptiveAuthentication("cecile", "").should().respond(200);
+        post("/api/index/search/%s,%s/_count".formatted(es.getIndexNames()[1], es.getIndexNames()[2]))
+                .withPreemptiveAuthentication("cecile", "").should().respond(200);
 
-        post("/api/index/search/test-index1,test-index2/_delete_by_query").withPreemptiveAuthentication("cecile", "").should().respond(401);
+        post("/api/index/search/%s,%s/_delete_by_query".formatted(es.getIndexNames()[1], es.getIndexNames()[2]))
+                .withPreemptiveAuthentication("cecile", "").should().respond(401);
     }
 
     @Test
@@ -148,13 +152,14 @@ public class IndexResourceTest extends AbstractProdWebServerTest {
                         })))));
         indexer.add(es.getIndexNames()[1], DocumentBuilder.createDoc("doc1").withRootId("rootId").build());
         indexer.add(es.getIndexNames()[2], DocumentBuilder.createDoc("doc2").withRootId("rootId").build());
-        post("/api/index/search/test-index1,  /_search").withPreemptiveAuthentication("cecile", "").should().respond(400);
-        post("/api/index/search/,test-index2/_doc/_search").withPreemptiveAuthentication("cecile", "").should().respond(400);
-        post("/api/index/search/,test-index2,/_count").withPreemptiveAuthentication("cecile", "").should().respond(400);
-        post("/api/index/search/ test-index1  /_delete_by_query").withPreemptiveAuthentication("cecile", "").should().respond(400);
-        get("/api/index/search/test-index1, test-index1").withPreemptiveAuthentication("cecile", "").should().respond(400);
-        get("/api/index/search/,test-index1").withPreemptiveAuthentication("cecile", "").should().respond(400);
-        get("/api/index/search/test-index1test-index2,test-index2").withPreemptiveAuthentication("cecile", "").should().respond(400);
+        post("/api/index/search/%s,  /_search".formatted(es.getIndexNames()[1])).withPreemptiveAuthentication("cecile", "").should().respond(400);
+        post("/api/index/search/,%s/_doc/_search".formatted(es.getIndexNames()[2])).withPreemptiveAuthentication("cecile", "").should().respond(400);
+        post("/api/index/search/,%s,/_count".formatted(es.getIndexNames()[2])).withPreemptiveAuthentication("cecile", "").should().respond(400);
+        post("/api/index/search/ %s  /_delete_by_query".formatted(es.getIndexNames()[1])).withPreemptiveAuthentication("cecile", "").should().respond(400);
+        get("/api/index/search/%s, %s".formatted(es.getIndexNames()[1],es.getIndexNames()[1])).withPreemptiveAuthentication("cecile", "").should().respond(400);
+        get("/api/index/search/,%s".formatted(es.getIndexNames()[1])).withPreemptiveAuthentication("cecile", "").should().respond(400);
+        get("/api/index/search/%s%s,%s".formatted(es.getIndexNames()[1],es.getIndexNames()[2],es.getIndexNames()[2]))
+                .withPreemptiveAuthentication("cecile", "").should().respond(400);
     }
     @Test
     public void test_auth_forward_request_for_scroll_requests() {

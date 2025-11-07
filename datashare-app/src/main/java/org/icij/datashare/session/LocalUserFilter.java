@@ -25,6 +25,15 @@ public class LocalUserFilter extends CookieAuthFilter {
         this.repository = repository;
     }
 
+    //for tests
+    public LocalUserFilter(final PropertiesProvider propertiesProvider, final Repository repository, String ...projectNames) {
+        super(propertiesProvider.get("protectedUrPrefix").orElse("/"),
+                singleUser(propertiesProvider.get("defaultUserName").orElse("local"), projectNames),
+                SessionIdStore.inMemory());
+        this.userName = propertiesProvider.get("defaultUserName").orElse("local");
+        this.repository = repository;
+    }
+
     @Override
     public Payload otherUri(String uri, Context context, PayloadSupplier nextFilter) throws Exception {
         String sessionId = readSessionIdInCookie(context);

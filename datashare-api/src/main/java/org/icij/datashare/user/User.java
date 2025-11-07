@@ -7,12 +7,7 @@ import org.icij.datashare.Entity;
 import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.text.Project;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static java.util.Collections.singletonList;
@@ -199,6 +194,9 @@ public class User implements Entity, Comparable<User> {
     @JsonIgnore
     public boolean isLocal() { return LOCAL.equals(this.id);}
     public static User local() { return localUser(LOCAL);}
+    public static User localUser(String id, String... projectNames) {
+        return localUser(id, Arrays.stream(projectNames).toList());
+    }
     public static User localUser(String id) {
         return localUser(id, singletonList(id + "-datashare"));
     }
