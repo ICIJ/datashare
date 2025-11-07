@@ -6,7 +6,6 @@ import io.kestra.core.models.tasks.Output;
 import io.kestra.core.models.tasks.RunnableTask;
 import io.kestra.core.models.tasks.Task;
 import io.kestra.core.models.tasks.WorkerGroup;
-import io.kestra.core.runners.DefaultRunContext;
 import io.kestra.core.runners.RunContext;
 import io.kestra.core.storages.kv.KVStore;
 import io.kestra.core.storages.kv.KVValueAndMetadata;
@@ -91,8 +90,7 @@ public abstract class DatashareTask<DO extends Serializable, KO extends Output> 
         KVStore kvStore = getKvStore(runContext);
         // TODO: update the createScanTask API to provide a logger
         org.icij.datashare.asynctasks.Task<DO> dsTask = asDatashareTask(runContext);
-        CommonMode mode = ((DefaultRunContext) runContext).getApplicationContext().getBean(CommonMode.class);
-        DatashareTaskFactory taskFactory = mode.get(DatashareTaskFactory.class);
+        DatashareTaskFactory taskFactory = DatashareMode.mode().get(DatashareTaskFactory.class);
         Integer progressWeight = runContext.render(this.progressWeight).as(Integer.class).orElse(1);
         // TODO: update the createScanTask API to provide a logger
         Callable<?> taskFn = TaskFactoryHelper.createTaskCallable(

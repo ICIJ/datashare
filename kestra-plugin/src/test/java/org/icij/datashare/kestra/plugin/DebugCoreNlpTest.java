@@ -11,7 +11,6 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.Objects;
 import org.apache.commons.io.FileUtils;
-import org.icij.datashare.DynamicClassLoader;
 import org.icij.datashare.text.Language;
 import org.icij.datashare.text.nlp.corenlp.models.CoreNlpModels;
 import org.junit.jupiter.api.BeforeEach;
