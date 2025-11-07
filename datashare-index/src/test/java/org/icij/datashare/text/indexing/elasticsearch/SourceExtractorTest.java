@@ -235,7 +235,6 @@ public class SourceExtractorTest {
     }
 
     @Test
-    @Ignore("TODO: it should pass but ids are not the expected one")
     public void test_extract_embeds_for_doc() throws Exception {
         Document document = DocumentBuilder.createDoc(project(es.getIndexName()),get(getClass().getResource("/docs/embedded_doc.eml").getPath()))
                 .with("it has been parsed")
@@ -247,9 +246,10 @@ public class SourceExtractorTest {
                 .withContentLength(45L).build();
 
         TikaDocument tikaDocument = new SourceExtractor(getPropertiesProvider()).extractEmbeddedSources(project(es.getIndexName()), document);
+        String embeddedId = tikaDocument.getEmbeds().get(0).getId();
         assertThat(tmpDir.getRoot().toPath().resolve(es.getIndexName()).toFile()).isDirectory();
         assertThat(tmpDir.getRoot().toPath().resolve(es.getIndexName()).toFile().listFiles()).containsOnly(
-                tmpDir.getRoot().toPath().resolve(es.getIndexName()).resolve(tikaDocument.getId().substring(0,2)).toFile());
+                tmpDir.getRoot().toPath().resolve(es.getIndexName()).resolve(embeddedId.substring(0,2)).toFile());
     }
 
     @Test
