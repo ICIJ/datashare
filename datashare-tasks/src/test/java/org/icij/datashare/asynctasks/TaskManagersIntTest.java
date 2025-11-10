@@ -63,13 +63,13 @@ public class TaskManagersIntTest {
 
         return asList(new Object[][]{
             {
-                (Creator<TaskManager>) () -> new TaskManagerAmqp(AMQP, new TaskRepositoryRedis(redissonClient), RoutingStrategy.UNIQUE, amqpWaiter::countDown),
+                (Creator<TaskManager>) () -> new TaskManagerAmqp(AMQP, new TaskRepositoryRedis(redissonClient), RoutingStrategy.UNIQUE, amqpWaiter::countDown, 1000),
                 (Creator<TaskSupplier>) () -> new TaskSupplierAmqp(AMQP),
                 amqpWaiter
             },
             {
                 (Creator<TaskManager>) () -> new TaskManagerRedis(redissonClient,
-                        new TaskRepositoryRedis(redissonClient, "tasks:map:test"), RoutingStrategy.UNIQUE, redisWaiter::countDown),
+                        new TaskRepositoryRedis(redissonClient, "tasks:map:test"), RoutingStrategy.UNIQUE, redisWaiter::countDown, 1000),
                 (Creator<TaskSupplier>) () -> new TaskSupplierRedis(redissonClient),
                 redisWaiter
             }

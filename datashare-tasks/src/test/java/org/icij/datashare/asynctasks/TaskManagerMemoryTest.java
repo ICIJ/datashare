@@ -37,7 +37,10 @@ public class TaskManagerMemoryTest {
 
     @Before
     public void setUp() throws Exception {
-        taskManager = new TaskManagerMemory(factory, new TaskRepositoryMemory(), new PropertiesProvider(), waitForLoop);
+        PropertiesProvider propertiesProvider = new PropertiesProvider(Map.of(
+            "taskManagerPollingIntervalMilliseconds", "1000"
+        ));
+        taskManager = new TaskManagerMemory(factory, new TaskRepositoryMemory(), propertiesProvider, waitForLoop);
         taskInspector = new TaskInspector(taskManager);
         waitForLoop.await();
     }
@@ -290,7 +293,7 @@ public class TaskManagerMemoryTest {
 
     @Test
     public void test_health_ko() throws IOException {
-        taskManager.shutdown();
+        taskManager.close();
 
         assertThat(taskManager.getHealth()).isFalse();
     }
