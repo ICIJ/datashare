@@ -19,6 +19,7 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import static org.fest.assertions.Assertions.assertThat;
+import static org.icij.datashare.cli.DatashareCliOptions.TASK_MANAGER_POLLING_INTERVAL_OPT;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -29,7 +30,8 @@ public class TaskWorkerLoopForPipelineTasksTest {
     DatashareTaskFactory taskFactory;
     @Mock Function<Double, Void> updateCallback;
     @Mock ElasticsearchSpewer spewer;
-    private final TaskManagerMemory taskSupplier = new TaskManagerMemory(taskFactory, new TaskRepositoryMemory(), new PropertiesProvider());
+    private final TaskManagerMemory taskSupplier = new TaskManagerMemory(taskFactory, new TaskRepositoryMemory(), new PropertiesProvider(
+            Map.of(TASK_MANAGER_POLLING_INTERVAL_OPT, "1000")));
 
     @Test
     public void test_scan_task() throws Exception {
