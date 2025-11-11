@@ -1,0 +1,48 @@
+package org.icij.datashare.user;
+
+import org.casbin.jcasbin.model.Model;
+import org.junit.Before;
+import org.junit.Test;
+import org.mockito.Mock;
+
+import java.util.Arrays;
+import java.util.List;
+
+import static org.junit.Assert.*;
+import static org.mockito.Mockito.when;
+import static org.mockito.MockitoAnnotations.initMocks;
+
+public class UserPolicyRepositoryAdapterTest {
+
+    @Mock
+    private UserPolicyRepository repository;
+
+    private UserPolicyRepositoryAdapter adapter;
+
+    @Before
+    public void setUp() {
+        initMocks(this);
+        adapter = new UserPolicyRepositoryAdapter(repository);
+    }
+
+
+    @Test
+    public void testAdapterLoadPolicy() {
+        UserPolicy policy1 = new UserPolicy("user1", "project1", true, false, false);
+        UserPolicy policy2 = new UserPolicy("user2", "project2", false, true, true);
+        List<UserPolicy> policies = Arrays.asList(policy1, policy2);
+        when(repository.getAll()).thenReturn(policies);
+
+        Model model = new Model();
+        String filePath = "src/test/resources/casbin/model.conf";
+        model.loadModel(filePath);
+        adapter.loadPolicy(model);
+
+        List<List<String>> loadedPolicies = model.model.get("p").get("p").policy;
+        assertTrue(loadedPolicies.contains(Arrays.asList("user1", "project1", "read")));
+        assertTrue(loadedPolicies.contains(Arrays.asList("user2", "project2", "write")));
+        assertTrue(loadedPolicies.contains(Arrays.asList("user2", "project2", "admin")));
+        assertFalse(loadedPolicies.contains(Arrays.asList("user1", "project2", "read")));
+
+    }
+}

@@ -4,18 +4,18 @@ import co.elastic.clients.elasticsearch._types.Refresh;
 import net.codestory.http.filters.basic.BasicAuthFilter;
 import net.codestory.http.security.Users;
 import org.icij.datashare.PropertiesProvider;
+import org.icij.datashare.db.JooqUserPolicyRepository;
 import org.icij.datashare.db.JooqRepository;
 import org.icij.datashare.session.DatashareUser;
 import org.icij.datashare.session.LocalUserFilter;
+import org.icij.datashare.session.Policy;
+import org.icij.datashare.session.UserPolicyFilter;
 import org.icij.datashare.test.ElasticsearchRule;
 import org.icij.datashare.text.DocumentBuilder;
 import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchIndexer;
 import org.icij.datashare.user.User;
 import org.icij.datashare.web.testhelpers.AbstractProdWebServerTest;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.ClassRule;
-import org.junit.Test;
+import org.junit.*;
 import org.mockito.Mock;
 
 import java.io.IOException;
@@ -28,6 +28,8 @@ import static org.mockito.MockitoAnnotations.initMocks;
 
 public class IndexResourceTest extends AbstractProdWebServerTest {
     @Mock JooqRepository jooqRepository;
+    @Mock JooqUserPolicyRepository jooqPolicyRepository;
+
     // TODO: should not have hard coded indices
     @ClassRule public static ElasticsearchRule es = new ElasticsearchRule(3);
     private final ElasticsearchIndexer indexer = new ElasticsearchIndexer(es.client, new PropertiesProvider()).withRefresh(Refresh.True);
@@ -177,6 +179,25 @@ public class IndexResourceTest extends AbstractProdWebServerTest {
         put("/api/index/!!").withPreemptiveAuthentication("cecile", "pass").should().respond(400);
         put("/api/index/ cecile-datashare").withPreemptiveAuthentication("cecile", "pass").should().respond(400);
     }
+
+    @Ignore("CD: Not ready yet")
+    @Test
+    public void test_put_createIndex_with_policy() {
+        configure(routes ->
+                routes.registerAroundAnnotation(Policy.class, UserPolicyFilter.class).add(new IndexResource(indexer)));
+
+        put("/api/index/cecile-datashare").should().respond(201);
+    }
+
+    @Ignore("CD: Not ready yet")
+    @Test
+    public void test_search_path_accessible_to_non_admin() {
+        configure(routes -> routes
+                .add(new IndexResource(indexer))
+        );
+        get("/api/index/search/test-datashare/_search").should().respond(401);
+    }
+
 
     @Before
     public void setUp() {

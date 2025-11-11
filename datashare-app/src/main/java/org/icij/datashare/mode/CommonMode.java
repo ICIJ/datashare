@@ -39,12 +39,14 @@ import org.icij.datashare.extract.RedisDocumentCollectionFactory;
 import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.nlp.EmailPipeline;
 import org.icij.datashare.nlp.OptimaizeLanguageGuesser;
+import org.icij.datashare.session.Policy;
 import org.icij.datashare.tasks.*;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.text.indexing.LanguageGuesser;
 import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchIndexer;
 import org.icij.datashare.text.nlp.Pipeline;
 import org.icij.datashare.user.ApiKeyRepository;
+import org.icij.datashare.user.UserPolicyRepository;
 import org.icij.datashare.web.OpenApiResource;
 import org.icij.datashare.web.RootResource;
 import org.icij.datashare.web.SettingsResource;
@@ -296,11 +298,16 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
 
     protected abstract Routes addModeConfiguration(final Routes routes);
 
+    protected Routes addPermissionConfiguration(final Routes routes){
+        return routes.registerAfterAnnotation(Policy.class, (annotation, context, payload) -> payload);
+    }
+
     void configurePersistence() {
         RepositoryFactoryImpl repositoryFactory = new RepositoryFactoryImpl(propertiesProvider);
         bind(Repository.class).toInstance(repositoryFactory.createRepository());
         bind(ApiKeyRepository.class).toInstance(repositoryFactory.createApiKeyRepository());
         bind(BatchSearchRepository.class).toInstance(repositoryFactory.createBatchSearchRepository());
+        bind(UserPolicyRepository.class).toInstance(repositoryFactory.createPolicyRepository());
 
         TaskRepositoryType taskRepositoryType = TaskRepositoryType.valueOf(propertiesProvider.get(TASK_REPOSITORY_OPT).orElse("DATABASE"));
         switch ( taskRepositoryType ) {
@@ -333,6 +340,7 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
                 });
         addExtensionsConfiguration(routes);
         addModeConfiguration(routes);
+        addPermissionConfiguration(routes);
         addPluginsConfiguration(routes);
         return routes;
     }
