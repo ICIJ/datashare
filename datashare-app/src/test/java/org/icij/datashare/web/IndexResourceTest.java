@@ -9,16 +9,18 @@ import org.icij.datashare.db.JooqUserPolicyRepository;
 import org.icij.datashare.session.DatashareUser;
 import org.icij.datashare.session.LocalUserFilter;
 import org.icij.datashare.session.Policy;
-import org.icij.datashare.session.UserPolicyFilter;
+import org.icij.datashare.session.UserPolicyAnnotation;
 import org.icij.datashare.test.ElasticsearchRule;
 import org.icij.datashare.text.DocumentBuilder;
 import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchIndexer;
 import org.icij.datashare.user.User;
+import org.icij.datashare.user.UserPolicy;
 import org.icij.datashare.web.testhelpers.AbstractProdWebServerTest;
 import org.junit.*;
 import org.mockito.Mock;
 
 import java.io.IOException;
+import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -181,11 +183,21 @@ public class IndexResourceTest extends AbstractProdWebServerTest {
 
     @Ignore("CD: Not ready yet")
     @Test
-    public void test_put_createIndex_with_policy() {
-        configure(routes ->
-                routes.registerAroundAnnotation(Policy.class, UserPolicyFilter.class).add(new IndexResource(indexer)));
+    public void test_put_createIndex_with_policy() throws URISyntaxException {
 
-        put("/api/index/cecile-datashare").should().respond(201);
+        UserPolicy adminPermission = new UserPolicy("cecile", "test-datashare", false, false, true);
+        UserPolicyAnnotation userPolicyAnnotation = new UserPolicyAnnotation(jooqPolicyRepository);
+
+        when(jooqPolicyRepository.get(new User("cecile"), "test-datashare")).thenReturn(adminPermission);
+
+        configure(routes ->
+        {
+            Users users = DatashareUser.singleUser("cecile");
+            routes.registerAroundAnnotation(Policy.class, userPolicyAnnotation)
+                    .filter(new BasicAuthFilter("/", "icij", users)).add(new IndexResource(indexer));
+        });
+
+        put("/api/index/test-datashare").withPreemptiveAuthentication("cecile", "pass").should().respond(201);
     }
 
     @Ignore("CD: Not ready yet")

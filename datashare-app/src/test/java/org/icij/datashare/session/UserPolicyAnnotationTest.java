@@ -5,26 +5,28 @@ import net.codestory.http.errors.ForbiddenException;
 import net.codestory.http.errors.UnauthorizedException;
 import net.codestory.http.filters.PayloadSupplier;
 import net.codestory.http.payload.Payload;
-import org.icij.datashare.user.UserPolicyRepository;
 import org.icij.datashare.user.UserPolicy;
+import org.icij.datashare.user.UserPolicyRepository;
 import org.junit.Before;
 import org.junit.Test;
 
-import static org.junit.Assert.assertEquals;
-import static org.mockito.Mockito.*;
+import java.net.URISyntaxException;
 
-public class UserPolicyFilterTest {
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+public class UserPolicyAnnotationTest {
     private UserPolicyRepository userPolicyRepository;
-    private UserPolicyFilter filter;
+    private UserPolicyAnnotation filter;
     private Context context;
     private PayloadSupplier next;
     private DatashareUser adminUser;
     private DatashareUser nonAdminUser;
 
     @Before
-    public void setUp() {
+    public void setUp() throws URISyntaxException {
         userPolicyRepository = mock(UserPolicyRepository.class);
-        filter = new UserPolicyFilter(userPolicyRepository);
+        filter = new UserPolicyAnnotation(userPolicyRepository);
         context = mock(Context.class);
         next = mock(PayloadSupplier.class);
         adminUser = mock(DatashareUser.class);
@@ -38,9 +40,9 @@ public class UserPolicyFilterTest {
         when(context.uri()).thenReturn("/api/test-datashare");
         UserPolicy adminPermission = mock(UserPolicy.class);
         when(adminPermission.admin()).thenReturn(true);
-        when(userPolicyRepository.get(adminUser, "test")).thenReturn(adminPermission);
+        when(userPolicyRepository.get(adminUser, "test-datashare")).thenReturn(adminPermission);
         when(next.get()).thenReturn(mock(Payload.class));
-        //assertEquals(next.get(), filter.apply(adminPermission, context,next));
+      //  assertEquals(next.get(), filter.apply());
     }
 
     @Test(expected = ForbiddenException.class)

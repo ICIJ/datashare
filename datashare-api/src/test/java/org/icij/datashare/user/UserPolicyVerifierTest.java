@@ -5,6 +5,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
 
+import java.net.URISyntaxException;
 import java.util.Arrays;
 import java.util.List;
 
@@ -17,7 +18,7 @@ public class UserPolicyVerifierTest {
     private UserPolicyVerifier verifier;
 
     @Before
-    public void setUp() {
+    public void setUp() throws URISyntaxException {
         openMocks(this);
         UserPolicy policy1 = new UserPolicy("user1", "project1", true, false, false);
         UserPolicy policy2 = new UserPolicy("user2", "project2", false, true, true);

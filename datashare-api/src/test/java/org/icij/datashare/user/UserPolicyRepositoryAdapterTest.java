@@ -5,6 +5,9 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
 
+import java.net.URISyntaxException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.List;
 
@@ -28,15 +31,17 @@ public class UserPolicyRepositoryAdapterTest {
 
 
     @Test
-    public void testAdapterLoadPolicy() {
+    public void testAdapterLoadPolicy() throws URISyntaxException {
         UserPolicy policy1 = new UserPolicy("user1", "project1", true, false, false);
         UserPolicy policy2 = new UserPolicy("user2", "project2", false, true, true);
         List<UserPolicy> policies = Arrays.asList(policy1, policy2);
         when(repository.getAll()).thenReturn(policies);
 
         Model model = new Model();
-        String filePath = "src/test/resources/casbin/model.conf";
-        model.loadModel(filePath);
+        String filePath = "casbin/model.conf";
+        Path path = Paths.get(ClassLoader.getSystemResource(filePath).toURI());
+
+        model.loadModel(path.toString());
         adapter.loadPolicy(model);
 
         List<List<String>> loadedPolicies = model.model.get("p").get("p").policy;
