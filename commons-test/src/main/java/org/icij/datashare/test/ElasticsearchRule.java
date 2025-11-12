@@ -43,12 +43,12 @@ public class ElasticsearchRule extends ExternalResource {
         this(generateIndexName());
     }
 
-    public ElasticsearchRule(final String... indexesNames) {
-        this(indexesNames, create("http://elasticsearch:9200"));
+    public ElasticsearchRule(int nbIndices) {
+        this(IntStream.range(0, nbIndices).mapToObj(i -> generateIndexName()).toArray(String[]::new));
     }
 
-    public ElasticsearchRule(int nbIndices) {
-        this(IntStream.range(0, nbIndices).mapToObj(i -> generateIndexName()).toArray(String[]::new), create("http://elasticsearch:9200"));
+    private ElasticsearchRule(final String... indexesNames) {
+        this(indexesNames, create("http://elasticsearch:9200"));
     }
 
     private ElasticsearchRule(final String[] indexesNames, HttpHost elasticHost) {
