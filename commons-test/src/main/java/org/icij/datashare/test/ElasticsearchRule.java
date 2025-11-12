@@ -51,8 +51,8 @@ public class ElasticsearchRule extends ExternalResource {
         this(IntStream.range(0, nbIndices).mapToObj(i -> generateIndexName()).toArray(String[]::new), create("http://elasticsearch:9200"));
     }
 
-    private ElasticsearchRule(final String[] indexesName, HttpHost elasticHost) {
-        this.indexesNames = indexesName;
+    private ElasticsearchRule(final String[] indexesNames, HttpHost elasticHost) {
+        this.indexesNames = indexesNames;
         System.setProperty("es.set.netty.runtime.available.processors", "false");
         RestClientBuilder.HttpClientConfigCallback xElasticProductCallback = httpAsyncClientBuilder -> {
             httpAsyncClientBuilder.disableAuthCaching();
