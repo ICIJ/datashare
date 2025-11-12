@@ -33,7 +33,7 @@ public class SleepTask implements Callable<Integer> {
             rethrowConsumer(i -> {
                 Thread.sleep(1000);
                 logger.info("slept for {} secs", i);
-                progressCallback.apply((double) i / (double) durationS);
+                    progressCallback.apply((double) i + 1 / (double) durationS);
             })
         );
         return durationS;
