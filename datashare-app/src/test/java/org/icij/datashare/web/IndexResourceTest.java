@@ -28,7 +28,6 @@ import static org.mockito.MockitoAnnotations.initMocks;
 
 public class IndexResourceTest extends AbstractProdWebServerTest {
     @Mock JooqRepository jooqRepository;
-    // TODO: should not have hard coded indices
     @ClassRule public static ElasticsearchRule es = new ElasticsearchRule(3);
     private final ElasticsearchIndexer indexer = new ElasticsearchIndexer(es.client, new PropertiesProvider()).withRefresh(Refresh.True);
     private final PropertiesProvider propertiesProvider = new PropertiesProvider(new HashMap<>() {{
