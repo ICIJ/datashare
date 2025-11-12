@@ -60,7 +60,9 @@ tasks.register('showSourceSets') {
 dependencies {
     // Datashare
     implementation "org.icij.datashare:datashare-api:$datashareApiVersion"
-    implementation "org.icij.datashare:datashare-app:$datashareVersion" // TODO: implementation really ???
+    implementation (group: "org.icij.datashare", name: "datashare-app", version: "$datashareVersion") {
+        exclude "group": "io.kestra"
+    }
     implementation "org.icij.datashare:datashare-tasks:$datashareTaskVersion" // TODO: implementation really ???
     implementation "org.icij.datashare:datashare-cli:$datashareCliVersion"   // TODO: implementation really ???
     runtimeOnly "org.icij.datashare:datashare-nlp-corenlp:$datashareVersion"
@@ -70,8 +72,6 @@ dependencies {
     runtimeOnly "org.liquibase:liquibase-core:$liquibaseVersion" // TODO: check why this is needed...
     runtimeOnly "co.elastic.clients:elasticsearch-java:$elasticSearchVersion" // TODO: check why this is needed...
 
-
-    runtimeOnly "org.postgresql:postgresql:42.4.4"  // TODO: why is it needed ?
 
 
     // Injection
@@ -146,6 +146,7 @@ dependencies {
 
     // TODO: remove me
     testImplementation "org.icij.datashare:datashare-nlp-corenlp:$datashareVersion"
+    testRuntimeOnly "org.postgresql:postgresql:42.4.4"
 
     // test
     testImplementation "org.junit.jupiter:junit-jupiter-engine"

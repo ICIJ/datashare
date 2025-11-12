@@ -16,7 +16,7 @@ public class DatashareMode {
         "mode", Mode.CLI.name()
     );
 
-    public synchronized static CommonMode mode() {
+    public synchronized static CommonMode modeSingleton() {
         if (instance == null) {
             instance = CommonMode.create(ENV_VARS);
         }
