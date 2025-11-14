@@ -22,7 +22,6 @@ import lombok.NoArgsConstructor;
 import lombok.ToString;
 import lombok.experimental.SuperBuilder;
 import org.icij.datashare.asynctasks.TaskFactoryHelper;
-import org.icij.datashare.asynctasks.TaskGroupType;
 import org.icij.datashare.asynctasks.WeightedProgress;
 import org.icij.datashare.tasks.DatashareTaskFactory;
 import org.icij.datashare.user.User;
@@ -80,7 +79,9 @@ public abstract class DatashareTask<DO extends Serializable, KO extends Output> 
 
     @Override
     public WorkerGroup getWorkerGroup() {
-        return new WorkerGroup(TaskGroupType.Java.name(), WorkerGroup.Fallback.WAIT);
+        // TODO: add back the java worker tool
+//        return new WorkerGroup(TaskGroupType.Java.name(), WorkerGroup.Fallback.WAIT);
+        return new WorkerGroup(null, WorkerGroup.Fallback.WAIT);
     }
 
     @Override

@@ -6,6 +6,7 @@ import io.kestra.core.models.property.Property;
 import io.kestra.core.runners.RunContext;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotNull;
+import java.util.ArrayList;
 import java.util.Map;
 import java.util.function.Function;
 import lombok.Builder;
@@ -45,15 +46,15 @@ import lombok.experimental.SuperBuilder;
     }
 )
 public class SleepTask extends DatashareTask<Integer, SleepTask.Output> {
-    @Schema(title = "Sleep duration in seconds")
+    @Schema(title = "Sleep durations in seconds")
     @NotNull
-    private Property<Integer> durationS;
+    private Property<ArrayList<Integer>> sleepDurations;
 
     @Builder
     @Getter
     public static class Output implements io.kestra.core.models.tasks.Output {
         @Schema(title = "Duration slept in seconds")
-        private final int durationS;
+        private final Integer totalSleepDurationS;
     }
 
     @Override
@@ -63,12 +64,12 @@ public class SleepTask extends DatashareTask<Integer, SleepTask.Output> {
 
     @Override
     protected Map<String, Object> datashareArgs(RunContext runContext) throws IllegalVariableEvaluationException {
-        Integer durationS = runContext.render(this.durationS).as(Integer.class).orElseThrow();
-        return Map.of("durationS", durationS);
+        ArrayList<Integer> durations = runContext.render(this.sleepDurations).asList(Integer.class);
+        return Map.of("sleepDurations", durations);
     }
 
     @Override
     protected Function<Integer, Output> datashareToKestraOutputConverter() {
-        return (sleptS) -> Output.builder().durationS(sleptS).build();
+        return (total) -> Output.builder().totalSleepDurationS(total).build();
     }
 }
