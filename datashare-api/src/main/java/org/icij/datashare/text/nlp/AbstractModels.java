@@ -1,6 +1,7 @@
 package org.icij.datashare.text.nlp;
 
 import java.io.File;
+import org.icij.datashare.ClassLoaderContext;
 import org.icij.datashare.DynamicClassLoader;
 import org.icij.datashare.io.RemoteFiles;
 import org.icij.datashare.text.Language;
@@ -59,10 +60,14 @@ public abstract class AbstractModels<T> {
         l.acquire();
         try {
             if (isLoaded(language)) return;
-            if (isSync()) {
-                downloadIfNecessary(language);
+            try (ClassLoaderContext ctx = new ClassLoaderContext(DynamicClassLoader::new)) {
+                if (isSync()) {
+                    downloadIfNecessary(language);
+                }
+                // TODO: is it necessary ?
+                ctx.dynamicLoader.add(getModelsBaseDir().toFile().toURI().toURL());
+                models.put(language, loadModelFile(language));
             }
-            models.put(language, loadModelFile(language));
             LOGGER.info("loaded model for {}", language);
         } catch (IOException e) {
             LOGGER.error("failed loading ", e);
@@ -79,14 +84,19 @@ public abstract class AbstractModels<T> {
     }
 
     public Path getModelsFilesystemPath(Language language) {
-        return Paths.get(PREFIX).resolve(getModelsBasePath(language));
+        return getModelsBaseDir().resolve(getModelsBasePath(language));
+    }
+
+    protected static Path getModelsBaseDir() {
+        return Paths.get(PREFIX);
     }
 
     public void addResourceToContextClassLoader(Path resourcePath) {
-        DynamicClassLoader classLoader = (DynamicClassLoader)ClassLoader.getSystemClassLoader();
-        final URL resource = classLoader.getResource(resourcePath.toString());
-        LOGGER.info("adding {} to system classloader", resource == null? null: resource.getPath());
-        classLoader.add(resource);
+        if (Thread.currentThread().getContextClassLoader() instanceof DynamicClassLoader classLoader) {
+            final URL resource = classLoader.getResource(resourcePath.toString());
+            LOGGER.info("adding {} to system classloader", resource == null? null: resource.getPath());
+            classLoader.add(resource);
+        }
     }
 
     protected boolean isPresent(Language language) {

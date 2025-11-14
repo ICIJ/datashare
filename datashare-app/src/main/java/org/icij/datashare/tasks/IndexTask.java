@@ -42,7 +42,7 @@ import static org.icij.datashare.cli.DatashareCliOptions.*;
 @Option(name = DEFAULT_PROJECT_OPT, description = "the default project name")
 @Option(name = "projectName", description = "task project name")
 @TaskGroup(TaskGroupType.Java)
-public class IndexTask extends PipelineTask<Path> implements Monitorable{
+public class IndexTask extends PipelineTask<Path> implements Monitorable {
     private final Logger logger = LoggerFactory.getLogger(getClass());
     private final DocumentQueueDrainer<Path> drainer;
     private final DocumentConsumer consumer;

@@ -66,6 +66,11 @@
 
     <repositories>
         <repository>
+          <id>local-repo</id>
+          <name></name>
+          <url>file://~/.m2/repository</url>
+        </repository>
+        <repository>
             <name>Central Portal Snapshots</name>
             <id>central-portal-snapshots</id>
             <url>https://central.sonatype.com/repository/maven-snapshots/</url>
@@ -76,14 +81,18 @@
                 <enabled>true</enabled>
             </snapshots>
         </repository>
+        <repository>
+		    <id>jitpack.io</id>
+		    <url>https://jitpack.io</url>
+		</repository>
     </repositories>
 
     <properties>
         <maven.test.redirectTestOutputToFile>true</maven.test.redirectTestOutputToFile>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <maven.compiler.source>17</maven.compiler.source>
-        <maven.compiler.target>17</maven.compiler.target>
+        <maven.compiler.source>21</maven.compiler.source>
+        <maven.compiler.target>21</maven.compiler.target>
 
         <datashare-api.version>14.7.6</datashare-api.version>
         <datashare-cli.version>13.6.1</datashare-cli.version>
@@ -93,7 +102,7 @@
         <datashare-mitie.version>${project.version}</datashare-mitie.version>
         <datashare-elasticsearch.version>${project.version}</datashare-elasticsearch.version>
         <datashare-corenlp.version>${project.version}</datashare-corenlp.version>
-        <guice.version>4.2.3</guice.version>
+        <guice.version>5.1.0</guice.version>
         <amazon.version>1.12.411</amazon.version>
 
         <aws-s3.version>2.35.10</aws-s3.version>
@@ -105,7 +114,7 @@
         <joda-time.version>2.9.5</joda-time.version>
         <httpclient.version>4.5.13</httpclient.version>
         <redisson.version>3.20.1</redisson.version>
-        <jackson.version>2.15.1</jackson.version>
+        <jackson.version>2.19.4</jackson.version>
         <httpcore.version>4.4.13</httpcore.version>
         <guava.version>33.0.0-jre</guava.version>
         <xalan.version>2.7.2</xalan.version>

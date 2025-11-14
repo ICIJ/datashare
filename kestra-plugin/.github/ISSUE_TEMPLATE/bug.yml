@@ -1,0 +1,25 @@
+name: Bug report
+description: File a bug report
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting an issue! Please provide a [Minimal Reproducible Example](https://stackoverflow.com/help/minimal-reproducible-example) and share any additional information that may help reproduce, troubleshoot, and hopefully fix the issue, including screenshots, error traceback, and your Kestra server logs. For quick questions, you can contact us directly on [Slack](https://kestra.io/slack).
+  - type: textarea
+    attributes:
+      label: Describe the issue
+      description: A concise description of the issue and how we can reproduce it.
+      placeholder: Describe the issue step by step
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Environment
+      description: Environment information where the problem occurs.
+      value: |
+        - Kestra Version: develop
+    validations:
+      required: false
+labels:
+  - bug
+  - area/plugin

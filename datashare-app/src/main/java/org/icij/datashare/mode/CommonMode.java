@@ -88,7 +88,7 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
     protected final Mode mode;
     private final Injector injector;
     private final List<Closeable> closeables = new LinkedList<>();
-    private final ExecutorService executorService;
+    protected final ExecutorService executorService;
 
     protected CommonMode(Properties properties) {
         propertiesProvider = properties == null ? new PropertiesProvider() :
@@ -296,7 +296,7 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
 
     protected abstract Routes addModeConfiguration(final Routes routes);
 
-    void configurePersistence() {
+    protected void configurePersistence() {
         RepositoryFactoryImpl repositoryFactory = new RepositoryFactoryImpl(propertiesProvider);
         bind(Repository.class).toInstance(repositoryFactory.createRepository());
         bind(ApiKeyRepository.class).toInstance(repositoryFactory.createApiKeyRepository());

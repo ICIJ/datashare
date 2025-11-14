@@ -10,11 +10,19 @@ import static org.icij.datashare.text.Language.SPANISH;
 
 import edu.stanford.nlp.pipeline.LanguageInfo;
 import edu.stanford.nlp.pipeline.StanfordCoreNLP;
+import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
+import java.util.Enumeration;
 import java.util.List;
 import java.util.Properties;
 import java.util.Set;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
+import org.icij.datashare.DynamicClassLoader;
 import org.icij.datashare.text.Language;
 import org.icij.datashare.text.nlp.AbstractModels;
 import org.icij.datashare.text.nlp.Pipeline;
@@ -43,7 +51,9 @@ public class CoreNlpModels extends AbstractModels<StanfordCoreNLP> {
         // Load base model
         String propertyFileName = LanguageInfo.getLanguagePropertiesFile(language.name().toLowerCase());
         Properties properties = new Properties();
-        properties.load(ClassLoader.getSystemClassLoader().getResourceAsStream(propertyFileName));
+        DynamicClassLoader contextClassLoader = (DynamicClassLoader)Thread.currentThread().getContextClassLoader();
+        InputStream propertiesStream = contextClassLoader.getResourceAsStream(propertyFileName);
+        properties.load(propertiesStream);
         // Override some props
         properties.setProperty("ner.useSUTime", "false");
         properties.setProperty("ner.applyNumericClassifiers", "false");
@@ -80,6 +90,7 @@ public class CoreNlpModels extends AbstractModels<StanfordCoreNLP> {
         return getModelsBasePath(language).resolve(getJarFileName(language));
     }
 
+    @Override
     public Path getModelsFilesystemPath(Language language) {
         return super.getModelsFilesystemPath(language).resolve(getJarFileName(language));
     }
@@ -101,5 +112,23 @@ public class CoreNlpModels extends AbstractModels<StanfordCoreNLP> {
     @Override
     protected String getVersion() {
         return VERSION;
+    }
+
+    private static void extractJar(Path jarPath, Path destDir) throws IOException {
+        try (ZipFile zipFile = new ZipFile(jarPath.toString())) {
+            Enumeration<? extends ZipEntry> entries = zipFile.entries();
+            while (entries.hasMoreElements()) {
+                ZipEntry entry = entries.nextElement();
+                File outputFile = new File(destDir.toString(), entry.getName());
+                if (entry.isDirectory()) {
+                    outputFile.mkdirs();
+                } else {
+                    outputFile.getParentFile().mkdirs();
+                    try (InputStream is = zipFile.getInputStream(entry)) {
+                        Files.copy(is, outputFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+                    }
+                }
+            }
+        }
     }
 }

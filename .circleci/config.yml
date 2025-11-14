@@ -10,7 +10,7 @@ jobs:
   build_back:
     resource_class: large
     docker:
-      - image: cimg/openjdk:17.0.11
+      - image: cimg/openjdk:21.0.9
       - image: docker.elastic.co/elasticsearch/elasticsearch:7.17.7
         environment:
           ES_JAVA_OPTS: -Xms256m -Xmx256m
