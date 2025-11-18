@@ -47,6 +47,7 @@ import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchIndexer;
 import org.icij.datashare.text.nlp.Pipeline;
 import org.icij.datashare.user.ApiKeyRepository;
 import org.icij.datashare.user.UserPolicyRepository;
+import org.icij.datashare.user.UserRepository;
 import org.icij.datashare.web.OpenApiResource;
 import org.icij.datashare.web.RootResource;
 import org.icij.datashare.web.SettingsResource;
@@ -308,6 +309,7 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
         bind(ApiKeyRepository.class).toInstance(repositoryFactory.createApiKeyRepository());
         bind(BatchSearchRepository.class).toInstance(repositoryFactory.createBatchSearchRepository());
         bind(UserPolicyRepository.class).toInstance(repositoryFactory.createPolicyRepository());
+        bind(UserRepository.class).toInstance(repositoryFactory.createUserRepository());
 
         TaskRepositoryType taskRepositoryType = TaskRepositoryType.valueOf(propertiesProvider.get(TASK_REPOSITORY_OPT).orElse("DATABASE"));
         switch ( taskRepositoryType ) {

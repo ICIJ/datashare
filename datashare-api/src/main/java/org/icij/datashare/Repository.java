@@ -61,9 +61,6 @@ public interface Repository {
 
     boolean getHealth();
 
-    boolean save(User user);
-    User getUser(String userId);
-
     record AggregateList<T>(List<Aggregate<T>> aggregates, int totalCount) { }
 
     record Aggregate<T>(T item, int count) {

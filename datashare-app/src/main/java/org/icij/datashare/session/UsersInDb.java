@@ -3,15 +3,15 @@ package org.icij.datashare.session;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import net.codestory.http.security.User;
-import org.icij.datashare.Repository;
 import org.icij.datashare.text.Hasher;
+import org.icij.datashare.user.UserRepository;
 
 @Singleton
 public class UsersInDb implements UsersWritable {
-    private final Repository userRepository;
+    private final UserRepository userRepository;
 
     @Inject
-    public UsersInDb(Repository userRepository) {
+    public UsersInDb(UserRepository userRepository) {
         this.userRepository = userRepository;
     }
 

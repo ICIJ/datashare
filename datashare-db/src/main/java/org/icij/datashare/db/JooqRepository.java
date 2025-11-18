@@ -42,7 +42,6 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -57,6 +56,7 @@ import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toSet;
 import static org.icij.datashare.Entity.LOGGER;
 import static org.icij.datashare.UserEvent.Type.fromId;
+import static org.icij.datashare.db.PersistenceMappings.createUserFrom;
 import static org.icij.datashare.db.Tables.USER_HISTORY_PROJECT;
 import static org.icij.datashare.db.tables.Document.DOCUMENT;
 import static org.icij.datashare.db.tables.DocumentTag.DOCUMENT_TAG;
@@ -545,28 +545,6 @@ public class JooqRepository implements Repository {
 
     }
 
-    public boolean save(User user) {
-        InsertOnDuplicateSetMoreStep<UserInventoryRecord> innerSet = using(connectionProvider, dialect).insertInto(
-                        USER_INVENTORY, USER_INVENTORY.ID, USER_INVENTORY.EMAIL,
-                        USER_INVENTORY.NAME, USER_INVENTORY.PROVIDER, USER_INVENTORY.DETAILS).
-                values(user.id, user.email, user.name, user.provider, JsonObjectMapper.serialize(user.details)).
-                onConflict(USER_INVENTORY.ID).
-                doUpdate().
-                set(USER_INVENTORY.EMAIL, user.email);
-        return innerSet.
-                set(USER_INVENTORY.DETAILS, JsonObjectMapper.serialize(user.details)).
-                set(USER_INVENTORY.NAME, user.name).
-                set(USER_INVENTORY.PROVIDER, user.provider).
-                execute() > 0;
-
-
-    }
-
-    public User getUser(String uid) {
-        DSLContext ctx = using(connectionProvider, dialect);
-        return createUserFrom(ctx.selectFrom(USER_INVENTORY).where(USER_INVENTORY.ID.eq(uid)).fetchOne());
-
-    }
 
     @Override
     public boolean getHealth() {
@@ -607,17 +585,6 @@ public class JooqRepository implements Repository {
                 .join(PROJECT)
                 .on(DOCUMENT_USER_RECOMMENDATION.PRJ_ID.eq(PROJECT.ID));
 
-    }
-
-    private User createUserFrom(Record record) {
-        if (record == null) {
-            return null;
-        }
-        UserInventoryRecord userRecord = record.into(USER_INVENTORY);
-        if (userRecord.getId() == null) {
-            return new User(record.into(DOCUMENT_USER_RECOMMENDATION).getUserId());
-        }
-        return new User(userRecord.getId(), userRecord.getName(), userRecord.getEmail(), userRecord.getProvider(), userRecord.getDetails());
     }
 
     private Note createNoteFrom(NoteRecord noteRecord) {

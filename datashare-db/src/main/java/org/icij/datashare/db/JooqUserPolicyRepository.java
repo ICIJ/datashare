@@ -1,6 +1,5 @@
 package org.icij.datashare.db;
 
-import com.rometools.utils.Lists;
 import org.icij.datashare.user.Role;
 import org.icij.datashare.user.UserPolicy;
 import org.icij.datashare.user.UserPolicyRepository;
@@ -10,7 +9,6 @@ import org.jooq.DSLContext;
 import org.jooq.SQLDialect;
 
 import javax.sql.DataSource;
-import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.stream.Collectors;

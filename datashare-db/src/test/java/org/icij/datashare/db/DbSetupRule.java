@@ -68,4 +68,8 @@ public class DbSetupRule extends ExternalResource {
             put("dataSourceUrl", ofNullable(jdbcUrl).orElse("jdbc:sqlite:file:memorydb.db?mode=memory&cache=shared"));
         }})).createDatasource();
     }
+
+    public JooqUserRepository createUserRepository() {
+        return new JooqUserRepository(dataSource, RepositoryFactoryImpl.guessSqlDialectFrom(dataSourceUrl));
+    }
 }

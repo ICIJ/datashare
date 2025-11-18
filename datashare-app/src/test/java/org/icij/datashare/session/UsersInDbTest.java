@@ -1,8 +1,8 @@
 package org.icij.datashare.session;
 
-import org.icij.datashare.Repository;
 import org.icij.datashare.text.Hasher;
 import org.icij.datashare.user.User;
+import org.icij.datashare.user.UserRepository;
 import org.junit.Test;
 
 import java.util.HashMap;
@@ -15,7 +15,7 @@ public class UsersInDbTest {
 
     @Test
     public void find_user_in_db() {
-        Repository repository = mock(Repository.class);
+        UserRepository repository = mock(UserRepository.class);
         User expected = new User("foo", "bar", "mail", "icij", new HashMap<String, Object>() {{
             put("field1", "val1");
         }});
@@ -30,7 +30,7 @@ public class UsersInDbTest {
 
     @Test
     public void find_user_in_db_with_password() {
-        Repository repository = mock(Repository.class);
+        UserRepository repository = mock(UserRepository.class);
         User expected = new User("foo", "bar", "mail", "icij", new HashMap<String, Object>() {{
             put("password", Hasher.SHA_256.hash("bar"));
         }});
@@ -45,13 +45,13 @@ public class UsersInDbTest {
 
     @Test
     public void find_user_in_db_with_null() {
-        assertThat(new UsersInDb(mock(Repository.class)).find("foo", "bar")).isNull();
+        assertThat(new UsersInDb(mock(UserRepository.class)).find("foo", "bar")).isNull();
     }
 
     @Test
     public void find_user_in_db_with_bad_password() {
-        Repository repository = mock(Repository.class);
-        User expected = new User("foo", "bar", "mail", "icij", new HashMap<String, Object>() {{
+        UserRepository repository = mock(UserRepository.class);
+        User expected = new User("foo", "bar", "mail", "icij", new HashMap<>() {{
             put("password", "unused");
         }});
         when(repository.getUser("foo")).thenReturn(expected);

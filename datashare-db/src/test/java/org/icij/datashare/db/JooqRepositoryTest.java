@@ -38,6 +38,7 @@ public class JooqRepositoryTest {
     @Rule public DatashareTimeRule time = new DatashareTimeRule("2021-06-30T12:13:14Z");
     @Rule public DbSetupRule dbRule;
     private final JooqRepository repository;
+    private final JooqUserRepository userRepository;
 
     @Parameters
     public static Collection<Object[]> dataSources() {
@@ -50,6 +51,7 @@ public class JooqRepositoryTest {
     public JooqRepositoryTest(DbSetupRule rule) {
         dbRule = rule;
         repository = rule.createRepository();
+        userRepository = rule.createUserRepository();
     }
 
     @Test
@@ -205,7 +207,7 @@ public class JooqRepositoryTest {
     @Test
     public void test_get_recommendations_filter_with_doc_list_and_with_user_properties() {
         final User userFoo = new User("foo" , "test", "foo@bar.org");
-        repository.save(userFoo);
+        userRepository.save(userFoo);
 
         repository.recommend(project("prj"), userFoo, List.of("id4"));
 
@@ -219,7 +221,7 @@ public class JooqRepositoryTest {
     @Test
     public void test_get_recommendations_with_user_properties() {
         final User userBar = new User("bar" , "test", "bar@bar.org");
-        repository.save(userBar);
+        userRepository.save(userBar);
 
         repository.recommend(project("prj"), userBar, asList("id5", "id6"));
 
@@ -234,7 +236,7 @@ public class JooqRepositoryTest {
     public void test_get_all_document_user_recommendations() {
         final User janeDoe = new User("jdoe" , "Jane Doe", "jdoe@icij.org");
         final Project projectFoo = new Project("foo");
-        repository.save(janeDoe);
+        userRepository.save(janeDoe);
         repository.save(projectFoo);
         repository.recommend(projectFoo, janeDoe, asList("id5", "id6"));
         List<DocumentUserRecommendation> recommendations = repository.getDocumentUserRecommendations(0, 50);
@@ -261,7 +263,7 @@ public class JooqRepositoryTest {
     public void test_get_all_document_user_recommendations_with_size() {
         final User janeDoe = new User("jdoe" , "Jane Doe", "jdoe@icij.org");
         final Project projectFoo = new Project("foo");
-        repository.save(janeDoe);
+        userRepository.save(janeDoe);
         repository.save(projectFoo);
         repository.recommend(projectFoo, janeDoe, asList("id5", "id6"));
         List<DocumentUserRecommendation> recommendations = repository.getDocumentUserRecommendations(0, 1);
@@ -273,7 +275,7 @@ public class JooqRepositoryTest {
         final User janeDoe = new User("jdoe" , "Jane Doe", "jdoe@icij.org");
         final Project projectFoo = new Project("foo");
         final Project projectBar = new Project("bar");
-        repository.save(janeDoe);
+        userRepository.save(janeDoe);
         repository.save(projectFoo);
         repository.save(projectBar);
         repository.recommend(projectFoo, janeDoe, asList("id5", "id6"));
@@ -290,7 +292,7 @@ public class JooqRepositoryTest {
 
     @Test
     public void test_get_unknown_user() {
-        assertThat(repository.getUser("unknown")).isNull();
+        assertThat(userRepository.getUser("unknown")).isNull();
     }
 
     @Test
@@ -303,9 +305,9 @@ public class JooqRepositoryTest {
             put("password", "pass");
             put("baz", "qux");
         }});
-        assertThat(repository.save(expected)).isTrue();
+        assertThat(userRepository.save(expected)).isTrue();
 
-        User actual = repository.getUser("bar");
+        User actual = userRepository.getUser("bar");
         assertThat(actual).isEqualTo(expected);
         assertThat(actual.name).isEqualTo(expected.name);
         assertThat(actual.email).isEqualTo(expected.email);
@@ -321,16 +323,16 @@ public class JooqRepositoryTest {
             put("name", "Bar Baz");
             put("email", "baz@foo.com");
         }});
-        repository.save(fistSave);
+        userRepository.save(fistSave);
         final User updatedUser = new User(new HashMap<>() {{
             put("uid", "baz");
             put("provider", "prov");
             put("name", "Baz");
             put("email", "baz@foo.fr");
         }});
-        assertThat(repository.save(updatedUser)).isTrue();
+        assertThat(userRepository.save(updatedUser)).isTrue();
 
-        User actual = repository.getUser("baz");
+        User actual = userRepository.getUser("baz");
         assertThat(actual).isEqualTo(updatedUser);
         assertThat(actual.name).isEqualTo(updatedUser.name);
         assertThat(actual.email).isEqualTo(updatedUser.email);
@@ -341,8 +343,8 @@ public class JooqRepositoryTest {
     @Test
     public void test_save_and_get_user_with_empty_details(){
         User expected = new User("foo", "bar", "mail", "icij", new HashMap<>());
-        repository.save(expected);
-        User actual = repository.getUser("foo");
+        userRepository.save(expected);
+        User actual = userRepository.getUser("foo");
         assertThat(actual).isEqualTo(User.localUser("foo"));
         assertThat(actual.email).isEqualTo(expected.email);
         assertThat(actual.provider).isEqualTo(expected.provider);
