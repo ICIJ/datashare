@@ -1,8 +1,10 @@
 package org.icij.datashare.utils;
 
+import org.icij.datashare.Entity;
 import org.icij.datashare.HumanReadableSize;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.text.Document;
+import org.icij.datashare.text.Duplicate;
 import org.icij.datashare.text.indexing.Indexer;
 
 import static org.icij.datashare.cli.DatashareCliOptions.EMBEDDED_DOCUMENT_DOWNLOAD_MAX_SIZE_OPT;
@@ -39,7 +41,13 @@ public class DocumentVerifier {
             return true;
         }
         long maxSizeBytes = getEmbeddedDocumentDownloadMaxSizeBytes();
-        Document rootDocument = indexer.get(document.getProjectId(), document.getRootDocument());
+        Document rootDocument;
+        Entity entity = indexer.get(document.getProjectId(), document.getRootDocument());
+        if (entity.getClass().equals(Duplicate.class)) {
+            rootDocument = indexer.get(document.getProjectId(), ((Duplicate) entity).documentId);
+        } else {
+            rootDocument = (Document) entity;
+        }
         return rootDocument.getContentLength() < maxSizeBytes;
     }
 
