@@ -12,6 +12,7 @@ import net.codestory.http.constants.HttpStatus;
 import net.codestory.http.payload.Payload;
 import org.icij.datashare.session.Policy;
 import org.icij.datashare.text.indexing.Indexer;
+import org.icij.datashare.user.Role;
 import org.icij.datashare.utils.IndexAccessVerifier;
 import org.icij.datashare.utils.PayloadFormatter;
 
@@ -34,7 +35,7 @@ public class IndexResource {
     @ApiResponse(responseCode = "200", description = "returns 200 if the index already exists")
     @ApiResponse(responseCode = "201", description = "returns 201 if the index has been created")
     @Put("/:index")
-    @Policy(admin = true)
+    @Policy(roles = {Role.ADMIN})  // params uri + uri coma separated, query params, payload
     public Payload createIndex(@Parameter(name = "index", description = "index to create", in = ParameterIn.PATH) final String index) throws IOException {
         try{
             return indexer.createIndex(IndexAccessVerifier.checkIndices(index)) ? created() : ok();
