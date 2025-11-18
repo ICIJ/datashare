@@ -17,12 +17,12 @@ public class UsersInDb implements UsersWritable {
 
     @Override
     public User find(String login) {
-        return new DatashareUser(userRepository.getUser(login));
+        return new DatashareUser(userRepository.getUserWithPolicies(login));
     }
 
     @Override
     public User find(String login, String password) {
-        org.icij.datashare.user.User user = userRepository.getUser(login);
+        org.icij.datashare.user.User user = userRepository.getUserWithPolicies(login);
         return user != null && Hasher.SHA_256.hash(password).equals(user.details.get("password")) ? new DatashareUser(user): null;
     }
 

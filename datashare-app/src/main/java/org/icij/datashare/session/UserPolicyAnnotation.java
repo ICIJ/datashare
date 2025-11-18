@@ -7,8 +7,8 @@ import net.codestory.http.errors.UnauthorizedException;
 import net.codestory.http.payload.Payload;
 import org.icij.datashare.text.Project;
 import org.icij.datashare.user.UserPolicy;
-import org.icij.datashare.user.UserPolicyRepository;
 import org.icij.datashare.user.UserPolicyVerifier;
+import org.icij.datashare.user.UserRepository;
 
 import java.net.URISyntaxException;
 import java.util.function.Function;
@@ -17,11 +17,11 @@ import static org.icij.datashare.text.Project.project;
 
 public class UserPolicyAnnotation implements ApplyAroundAnnotation<Policy> {
 
-    private final UserPolicyRepository jooqRepository;
+    private final UserRepository jooqRepository;
     private final UserPolicyVerifier userPolicyVerifier;
 
     @Inject
-    public UserPolicyAnnotation(final UserPolicyRepository userPolicyRepository) throws URISyntaxException {
+    public UserPolicyAnnotation(final UserRepository userPolicyRepository) throws URISyntaxException {
         this.jooqRepository = userPolicyRepository;
         this.userPolicyVerifier = UserPolicyVerifier.getInstance(userPolicyRepository);
     }

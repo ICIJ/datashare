@@ -5,7 +5,7 @@ import net.codestory.http.filters.basic.BasicAuthFilter;
 import net.codestory.http.security.Users;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.db.JooqRepository;
-import org.icij.datashare.db.JooqUserPolicyRepository;
+import org.icij.datashare.db.JooqUserRepository;
 import org.icij.datashare.session.DatashareUser;
 import org.icij.datashare.session.LocalUserFilter;
 import org.icij.datashare.session.Policy;
@@ -31,7 +31,7 @@ import static org.mockito.MockitoAnnotations.openMocks;
 
 public class IndexResourceTest extends AbstractProdWebServerTest {
     @Mock JooqRepository jooqRepository;
-    @Mock JooqUserPolicyRepository jooqPolicyRepository;
+    @Mock JooqUserRepository jooqPolicyRepository;
 
     @ClassRule public static ElasticsearchRule es = new ElasticsearchRule(3);
     private final ElasticsearchIndexer indexer = new ElasticsearchIndexer(es.client, new PropertiesProvider()).withRefresh(Refresh.True);

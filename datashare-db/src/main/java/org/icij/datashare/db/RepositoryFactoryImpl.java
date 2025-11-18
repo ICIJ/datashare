@@ -14,7 +14,6 @@ import org.icij.datashare.Repository;
 import org.icij.datashare.RepositoryFactory;
 import org.icij.datashare.batch.BatchSearchRepository;
 import org.icij.datashare.user.ApiKeyRepository;
-import org.icij.datashare.user.UserPolicyRepository;
 import org.icij.datashare.user.UserRepository;
 import org.jooq.SQLDialect;
 
@@ -52,11 +51,6 @@ public class RepositoryFactoryImpl implements RepositoryFactory {
     @Override
     public BatchSearchRepository createBatchSearchRepository() {
         return createRepository(JooqBatchSearchRepository::new);
-    }
-
-    @Override
-    public UserPolicyRepository createPolicyRepository() {
-        return createRepository(JooqUserPolicyRepository::new);
     }
 
     @Override

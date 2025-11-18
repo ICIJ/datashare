@@ -350,6 +350,7 @@ public class JooqRepositoryTest {
         assertThat(actual.provider).isEqualTo(expected.provider);
         assertThat(actual.details).isEqualTo(expected.details);
         assertThat(actual.name).isEqualTo(expected.name);
+        assertThat(actual.policies).isEmpty();
     }
 
     @Test

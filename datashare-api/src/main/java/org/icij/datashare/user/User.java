@@ -14,10 +14,13 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static java.util.Collections.singletonList;
 import static java.util.Collections.unmodifiableMap;
+import static java.util.Collections.unmodifiableSet;
 import static java.util.Optional.ofNullable;
 import static org.icij.datashare.json.JsonObjectMapper.deserialize;
 import static org.icij.datashare.text.StringUtils.isEmpty;
@@ -32,7 +35,8 @@ public class User implements Entity, Comparable<User> {
     public final String email;
     public final String provider;
     public final Map<String, Object> details;
-    private final HashSet<Project> projects = new HashSet<>();
+    public final Set<UserPolicy> policies;
+    private final Set<Project> projects = new HashSet<>();
     @JsonIgnore
     private final String jsonProjectKey;
 
@@ -40,22 +44,28 @@ public class User implements Entity, Comparable<User> {
         this(id, name, email, provider, deserialize(jsonDetails));
     }
 
+    public User(final String id, String name, String email, String provider, String jsonDetails, Set<UserPolicy> policies) {
+        this(id, name, email, provider, deserialize(jsonDetails), jsonDetails, policies);
+    }
+
     @JsonCreator
     public User(@JsonProperty("id") final String id, @JsonProperty("name") String name,
                 @JsonProperty("email") String email, @JsonProperty("provider") String provider,
                 @JsonProperty("details") Map<String, Object> details) {
-        this(id, name, email, provider, details, getDefaultProjectsKey());
+        this(id, name, email, provider, details, getDefaultProjectsKey(), new HashSet<>());
     }
 
     public User(String id, String name,
                 String email, String provider,
-                Map<String, Object> details, String jsonProjectKey) {
+                Map<String, Object> details, String jsonProjectKey,
+                Set<UserPolicy> policies) {
         this.id = id;
         this.name = name;
         this.email = email;
         this.provider = provider;
         this.details = unmodifiableMap(ofNullable(details).orElse(new HashMap<>()));
         this.jsonProjectKey = jsonProjectKey;
+        this.policies = unmodifiableSet(policies);
     }
 
     public User(final String id, String name, String email, String provider) {
@@ -79,7 +89,23 @@ public class User implements Entity, Comparable<User> {
                 ofNullable(user).orElse(nullUser()).name,
                 ofNullable(user).orElse(nullUser()).email,
                 ofNullable(user).orElse(nullUser()).provider,
-                ofNullable(user).orElse(nullUser()).details);
+                ofNullable(user).orElse(nullUser()).details,
+                ofNullable(user).orElse(nullUser()).jsonProjectKey,
+                ofNullable(user).orElse(nullUser()).policies);
+    }
+
+    public Set<Role> getRoles(String projectId) {
+        return policies.stream().
+                filter(p -> p.projectId().equals(projectId)).
+                map(UserPolicy::roles).
+                flatMap(Stream::of).
+                collect(Collectors.toSet());
+    }
+
+    public UserPolicy getPolicy(String projectId) {
+        return policies.stream().
+                filter(p -> p.projectId().equals(projectId)).
+                findFirst().orElse(UserPolicy.create(id, projectId));
     }
 
     public static User fromJson(String json, String provider) {

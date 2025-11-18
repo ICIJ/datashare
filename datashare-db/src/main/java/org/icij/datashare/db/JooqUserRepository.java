@@ -1,16 +1,26 @@
 package org.icij.datashare.db;
 
 import org.icij.datashare.db.tables.records.UserInventoryRecord;
+import org.icij.datashare.db.tables.records.UserPolicyRecord;
 import org.icij.datashare.json.JsonObjectMapper;
+import org.icij.datashare.user.Role;
 import org.icij.datashare.user.User;
+import org.icij.datashare.user.UserPolicy;
 import org.icij.datashare.user.UserRepository;
 import org.jooq.DSLContext;
 import org.jooq.InsertOnDuplicateSetMoreStep;
+import org.jooq.Result;
 import org.jooq.SQLDialect;
 
 import javax.sql.DataSource;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import static org.icij.datashare.db.PersistenceMappings.createUserFrom;
+import static org.icij.datashare.db.Tables.USER_POLICY;
 import static org.icij.datashare.db.tables.UserInventory.USER_INVENTORY;
 import static org.jooq.impl.DSL.using;
 
@@ -45,4 +55,82 @@ public class JooqUserRepository implements UserRepository {
         DSLContext ctx = using(connectionProvider, dialect);
         return createUserFrom(ctx.selectFrom(USER_INVENTORY).where(USER_INVENTORY.ID.eq(uid)).fetchOne());
     }
+
+    private static UserPolicy fromRecord(UserPolicyRecord r) {
+        List<Role> roles = new LinkedList<>();
+        if (r.getRead()) roles.add(Role.READER);
+        if (r.getWrite()) roles.add(Role.WRITER);
+        if (r.getAdmin()) roles.add(Role.ADMIN);
+        return new UserPolicy(
+                r.getUserId(),
+                r.getPrjId(),
+                roles.toArray(new Role[0])
+        );
+    }
+
+    @Override
+    public UserPolicy get(User user, String projectId) {
+        DSLContext ctx = using(connectionProvider, dialect);
+        var rec = ctx.selectFrom(USER_POLICY)
+                .where(USER_POLICY.USER_ID.eq(user.id)
+                        .and(USER_POLICY.PRJ_ID.eq(projectId)))
+                .fetchOne();
+        return rec != null ? fromRecord(rec) : null;
+    }
+
+    @Override
+    public List<UserPolicy> list(User user) {
+        DSLContext ctx = using(connectionProvider, dialect);
+        return ctx.selectFrom(USER_POLICY)
+                .where(USER_POLICY.USER_ID.eq(user.id))
+                .fetch()
+                .stream()
+                .map(JooqUserRepository::fromRecord)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<UserPolicy> getAll() {
+        DSLContext ctx = using(connectionProvider, dialect);
+        return ctx.selectFrom(USER_POLICY)
+                .fetch()
+                .stream()
+                .map(JooqUserRepository::fromRecord)
+                .collect(Collectors.toList());
+    }
+
+
+    @Override
+    public boolean save(UserPolicy policy) {
+        DSLContext ctx = using(connectionProvider, dialect);
+        return ctx.insertInto(USER_POLICY)
+                .columns(USER_POLICY.USER_ID, USER_POLICY.PRJ_ID, USER_POLICY.READ, USER_POLICY.WRITE, USER_POLICY.ADMIN)
+                .values(policy.userId(), policy.projectId(), policy.reader(), policy.writer(), policy.admin())
+                .onConflict(USER_POLICY.USER_ID, USER_POLICY.PRJ_ID)
+                .doUpdate()
+                .set(USER_POLICY.READ, policy.reader())
+                .set(USER_POLICY.WRITE, policy.writer())
+                .set(USER_POLICY.ADMIN, policy.admin())
+                .execute() > 0;
+    }
+
+    @Override
+    public boolean delete(User user, String projectId) {
+        DSLContext ctx = using(connectionProvider, dialect);
+        return ctx.deleteFrom(USER_POLICY)
+                .where(USER_POLICY.USER_ID.eq(user.id).and(USER_POLICY.PRJ_ID.eq(projectId)))
+                .execute() > 0;
+    }
+
+    @Override
+    public User getUserWithPolicies(String userId){
+        DSLContext ctx = using(connectionProvider, dialect);
+        Map<UserInventoryRecord, Result<UserPolicyRecord>> userInventoryRecordResultMap =
+                ctx.select().from(USER_INVENTORY).leftJoin(USER_POLICY).on(USER_POLICY.USER_ID.eq(USER_INVENTORY.ID))
+                .and(USER_POLICY.USER_ID.eq(userId)).fetchGroups(USER_INVENTORY, USER_POLICY);
+        Set<UserPolicy> policies = userInventoryRecordResultMap.values().iterator().next().stream().map(JooqUserRepository::fromRecord).collect(Collectors.toSet());
+        UserInventoryRecord userRecord = userInventoryRecordResultMap.keySet().iterator().next();
+        return new User(userRecord.getId(), userRecord.getName(), userRecord.getEmail(), userRecord.getProvider(), userRecord.getDetails(), policies);
+    }
+
 }

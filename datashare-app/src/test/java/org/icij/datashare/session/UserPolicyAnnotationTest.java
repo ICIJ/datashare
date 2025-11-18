@@ -6,7 +6,7 @@ import net.codestory.http.errors.UnauthorizedException;
 import net.codestory.http.filters.PayloadSupplier;
 import net.codestory.http.payload.Payload;
 import org.icij.datashare.user.UserPolicy;
-import org.icij.datashare.user.UserPolicyRepository;
+import org.icij.datashare.user.UserRepository;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -16,7 +16,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class UserPolicyAnnotationTest {
-    private UserPolicyRepository userPolicyRepository;
+    private UserRepository userRepository;
     private UserPolicyAnnotation filter;
     private Context context;
     private PayloadSupplier next;
@@ -25,8 +25,8 @@ public class UserPolicyAnnotationTest {
 
     @Before
     public void setUp() throws URISyntaxException {
-        userPolicyRepository = mock(UserPolicyRepository.class);
-        filter = new UserPolicyAnnotation(userPolicyRepository);
+        userRepository = mock(UserRepository.class);
+        filter = new UserPolicyAnnotation(userRepository);
         context = mock(Context.class);
         next = mock(PayloadSupplier.class);
         adminUser = mock(DatashareUser.class);
@@ -40,7 +40,7 @@ public class UserPolicyAnnotationTest {
         when(context.uri()).thenReturn("/api/test-datashare");
         UserPolicy adminPermission = mock(UserPolicy.class);
         when(adminPermission.admin()).thenReturn(true);
-        when(userPolicyRepository.get(adminUser, "test-datashare")).thenReturn(adminPermission);
+        when(userRepository.get(adminUser, "test-datashare")).thenReturn(adminPermission);
         when(next.get()).thenReturn(mock(Payload.class));
       //  assertEquals(next.get(), filter.apply());
     }
@@ -50,7 +50,7 @@ public class UserPolicyAnnotationTest {
         when(context.currentUser()).thenReturn(nonAdminUser);
         UserPolicy nonAdminPermission = mock(UserPolicy.class);
         when(nonAdminPermission.admin()).thenReturn(false);
-        when(userPolicyRepository.get(nonAdminUser, "test")).thenReturn(nonAdminPermission);
+        when(userRepository.get(nonAdminUser, "test")).thenReturn(nonAdminPermission);
        // filter.apply("/api/esPost", context, next);
     }
 

@@ -14,7 +14,7 @@ import static org.mockito.Mockito.when;
 import static org.mockito.MockitoAnnotations.openMocks;
 
 public class UserPolicyVerifierTest {
-    @Mock private UserPolicyRepository repository;
+    @Mock private UserRepository repository;
     private UserPolicyVerifier verifier;
 
     @Before

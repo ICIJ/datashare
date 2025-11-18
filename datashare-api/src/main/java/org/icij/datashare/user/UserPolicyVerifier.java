@@ -16,7 +16,7 @@ public class UserPolicyVerifier {
     private static final String DEFAULT_POLICY_FILE = "casbin/model.conf";
     private static final boolean ENABLE_CASBIN_LOG = false;
 
-    private UserPolicyVerifier(UserPolicyRepository repository) throws URISyntaxException {
+    private UserPolicyVerifier(UserRepository repository) throws URISyntaxException {
         Adapter adapter = new UserPolicyRepositoryAdapter(repository);
         Model model = new Model();
         Path path = Paths.get(ClassLoader.getSystemResource(DEFAULT_POLICY_FILE).toURI());
@@ -24,7 +24,7 @@ public class UserPolicyVerifier {
         this.enforcer = new Enforcer(model, adapter, ENABLE_CASBIN_LOG);
     }
 
-    public static synchronized UserPolicyVerifier getInstance(UserPolicyRepository repository) throws URISyntaxException {
+    public static synchronized UserPolicyVerifier getInstance(UserRepository repository) throws URISyntaxException {
         if (instance == null) {
             instance = new UserPolicyVerifier(repository);
         }
@@ -41,5 +41,4 @@ public class UserPolicyVerifier {
     public boolean enforce(String userName, String projectName, String permission) {
         return this.enforcer.enforce(userName, projectName, permission);
     }
-
 }
