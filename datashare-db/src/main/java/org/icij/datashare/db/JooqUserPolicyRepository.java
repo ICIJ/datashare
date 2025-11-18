@@ -1,5 +1,7 @@
 package org.icij.datashare.db;
 
+import com.rometools.utils.Lists;
+import org.icij.datashare.user.Role;
 import org.icij.datashare.user.UserPolicy;
 import org.icij.datashare.user.UserPolicyRepository;
 import org.icij.datashare.user.User;
@@ -8,6 +10,8 @@ import org.jooq.DSLContext;
 import org.jooq.SQLDialect;
 
 import javax.sql.DataSource;
+import java.util.Arrays;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -24,12 +28,14 @@ public class JooqUserPolicyRepository implements UserPolicyRepository {
     }
 
     private static UserPolicy fromRecord(UserPolicyRecord r) {
+        List<Role> roles = new LinkedList<>();
+        if (r.getRead()) roles.add(Role.READER);
+        if (r.getWrite()) roles.add(Role.WRITER);
+        if (r.getAdmin()) roles.add(Role.ADMIN);
         return new UserPolicy(
                 r.getUserId(),
                 r.getPrjId(),
-                Boolean.TRUE.equals(r.getRead()),
-                Boolean.TRUE.equals(r.getWrite()),
-                Boolean.TRUE.equals(r.getAdmin())
+                roles.toArray(new Role[0])
         );
     }
 
@@ -70,11 +76,11 @@ public class JooqUserPolicyRepository implements UserPolicyRepository {
         DSLContext ctx = using(connectionProvider, dialect);
         return ctx.insertInto(USER_POLICY)
                 .columns(USER_POLICY.USER_ID, USER_POLICY.PRJ_ID, USER_POLICY.READ, USER_POLICY.WRITE, USER_POLICY.ADMIN)
-                .values(policy.userId(), policy.projectId(), policy.read(), policy.write(), policy.admin())
+                .values(policy.userId(), policy.projectId(), policy.reader(), policy.writer(), policy.admin())
                 .onConflict(USER_POLICY.USER_ID, USER_POLICY.PRJ_ID)
                 .doUpdate()
-                .set(USER_POLICY.READ, policy.read())
-                .set(USER_POLICY.WRITE, policy.write())
+                .set(USER_POLICY.READ, policy.reader())
+                .set(USER_POLICY.WRITE, policy.writer())
                 .set(USER_POLICY.ADMIN, policy.admin())
                 .execute() > 0;
     }

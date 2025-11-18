@@ -13,6 +13,7 @@ import org.icij.datashare.session.UserPolicyAnnotation;
 import org.icij.datashare.test.ElasticsearchRule;
 import org.icij.datashare.text.DocumentBuilder;
 import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchIndexer;
+import org.icij.datashare.user.Role;
 import org.icij.datashare.user.User;
 import org.icij.datashare.user.UserPolicy;
 import org.icij.datashare.web.testhelpers.AbstractProdWebServerTest;
@@ -185,7 +186,7 @@ public class IndexResourceTest extends AbstractProdWebServerTest {
     @Test
     public void test_put_createIndex_with_policy() throws URISyntaxException {
 
-        UserPolicy adminPermission = new UserPolicy("cecile", "test-datashare", false, false, true);
+        UserPolicy adminPermission = new UserPolicy("cecile", "test-datashare", new Role[] {Role.ADMIN});
         UserPolicyAnnotation userPolicyAnnotation = new UserPolicyAnnotation(jooqPolicyRepository);
 
         when(jooqPolicyRepository.get(new User("cecile"), "test-datashare")).thenReturn(adminPermission);

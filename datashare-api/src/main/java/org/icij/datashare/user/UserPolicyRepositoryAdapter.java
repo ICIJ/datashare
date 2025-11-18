@@ -36,10 +36,10 @@ public class UserPolicyRepositoryAdapter implements Adapter {
         for (UserPolicy policy : policies) {
             String userId = policy.userId();
             String projectId = policy.projectId();
-            if (policy.read()) {
+            if (policy.reader()) {
                 Helper.loadPolicyLine(String.format("p, %s, %s, %s", userId, projectId, Permission.READ.value()), model);
             }
-            if (policy.write()) {
+            if (policy.writer()) {
                 Helper.loadPolicyLine(String.format("p, %s, %s, %s", userId, projectId, Permission.WRITE.value()), model);
             }
             if (policy.admin()) {

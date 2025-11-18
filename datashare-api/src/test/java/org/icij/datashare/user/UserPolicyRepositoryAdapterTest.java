@@ -32,8 +32,8 @@ public class UserPolicyRepositoryAdapterTest {
 
     @Test
     public void testAdapterLoadPolicy() throws URISyntaxException {
-        UserPolicy policy1 = new UserPolicy("user1", "project1", true, false, false);
-        UserPolicy policy2 = new UserPolicy("user2", "project2", false, true, true);
+        UserPolicy policy1 = new UserPolicy("user1", "project1",  new Role[] {Role.READER});
+        UserPolicy policy2 = new UserPolicy("user2", "project2",  new Role[] {Role.WRITER,Role.ADMIN});
         List<UserPolicy> policies = Arrays.asList(policy1, policy2);
         when(repository.getAll()).thenReturn(policies);
 

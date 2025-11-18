@@ -1,6 +1,7 @@
 package org.icij.datashare.db;
 
 import org.icij.datashare.text.ProjectProxy;
+import org.icij.datashare.user.Role;
 import org.icij.datashare.user.UserPolicy;
 import org.icij.datashare.user.User;
 import org.junit.Rule;
@@ -37,7 +38,7 @@ public class JooqUserPolicyRepositoryTest {
     public void test_save_and_get() {
         User user = new User("doe");
         ProjectProxy prj = new ProjectProxy("pA");
-        UserPolicy p = new UserPolicy(user.id, prj.name, true, false, false);
+        UserPolicy p = new UserPolicy(user.id, prj.name, new Role[]{Role.READER});
 
         boolean saved = repository.save(p);
         assertThat(saved).isTrue();
@@ -46,8 +47,8 @@ public class JooqUserPolicyRepositoryTest {
         assertThat(got).isNotNull();
         assertThat(got.userId()).isEqualTo("doe");
         assertThat(got.projectId()).isEqualTo("pA");
-        assertThat(got.read()).isTrue();
-        assertThat(got.write()).isFalse();
+        assertThat(got.reader()).isTrue();
+        assertThat(got.writer()).isFalse();
         assertThat(got.admin()).isFalse();
     }
 
@@ -55,14 +56,14 @@ public class JooqUserPolicyRepositoryTest {
     public void test_upsert_updates_existing() {
         User user = new User("doe");
         ProjectProxy prj = new ProjectProxy("pA");
-        repository.save(new UserPolicy(user.id, prj.name, false, true, false));
+        repository.save(new UserPolicy(user.id, prj.name, new Role[]{Role.WRITER}));
 
-        boolean saved = repository.save(new UserPolicy(user.id, prj.name, true, true, true));
+        boolean saved = repository.save(new UserPolicy(user.id, prj.name, new Role[]{Role.READER, Role.WRITER,Role.ADMIN}));
         assertThat(saved).isTrue();
 
         UserPolicy got = repository.get(user, prj.name);
-        assertThat(got.read()).isTrue();
-        assertThat(got.write()).isTrue();
+        assertThat(got.reader()).isTrue();
+        assertThat(got.writer()).isTrue();
         assertThat(got.admin()).isTrue();
     }
 
@@ -71,8 +72,8 @@ public class JooqUserPolicyRepositoryTest {
         User user = new User("doe");
         ProjectProxy prjA = new ProjectProxy("pA");
         ProjectProxy prjB = new ProjectProxy("pB");
-        repository.save(new UserPolicy(user.id, prjA.name, true, true, false));
-        repository.save(new UserPolicy(user.id, prjB.name, false, true, true));
+        repository.save(new UserPolicy(user.id, prjA.name, new Role[] {Role.READER, Role.WRITER}));
+        repository.save(new UserPolicy(user.id, prjB.name, new Role[]{ Role.WRITER,Role.ADMIN}));
 
         List<UserPolicy> list = repository.list(user);
         assertThat(list.size()).isEqualTo(2);
@@ -84,7 +85,7 @@ public class JooqUserPolicyRepositoryTest {
         User user = new User("doe");
         ProjectProxy prj = new ProjectProxy("pA");
         assertThat(repository.delete(user, prj.name)).isFalse();
-        repository.save(new UserPolicy(user.id, prj.name, true, true, false));
+        repository.save(new UserPolicy(user.id, prj.name, new Role[]{Role.READER, Role.WRITER }));
         assertThat(repository.delete(user, prj.name)).isTrue();
         assertThat(repository.get(user, prj.name)).isNull();
     }
