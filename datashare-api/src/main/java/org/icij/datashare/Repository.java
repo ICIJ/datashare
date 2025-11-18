@@ -64,34 +64,15 @@ public interface Repository {
     boolean save(User user);
     User getUser(String userId);
 
-    class AggregateList<T> {
-        public final List<Aggregate<T>> aggregates;
-        public final int totalCount;
+    record AggregateList<T>(List<Aggregate<T>> aggregates, int totalCount) { }
 
-        public AggregateList(List<Aggregate<T>> aggregates, int totalCount) {
-            this.aggregates = aggregates;
-            this.totalCount = totalCount;
-        }
-    }
-
-    class Aggregate<T> {
-        public final T item;
-        public final int count;
-
-        public Aggregate(T item, int count) {
-            this.item = item;
-            this.count = count;
-        }
-
+    record Aggregate<T>(T item, int count) {
         @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (!(o instanceof Aggregate)) return false;
-            Aggregate<?> aggregate = (Aggregate<?>) o;
-            return count == aggregate.count &&
-                    Objects.equals(item, aggregate.item);
+            public boolean equals(Object o) {
+                if (this == o) return true;
+                if (!(o instanceof Aggregate<?> aggregate)) return false;
+                return count == aggregate.count &&
+                        Objects.equals(item, aggregate.item);
+            }
         }
-        @Override public int hashCode() { return Objects.hash(item, count);}
-        @Override public String toString() { return item + "=" + count;}
-    }
 }

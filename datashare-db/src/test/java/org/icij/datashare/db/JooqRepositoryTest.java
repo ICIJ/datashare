@@ -175,12 +175,12 @@ public class JooqRepositoryTest {
         assertThat(repository.recommend(project("prj"), user2, List.of("id1"))).isEqualTo(1);
 
         Repository.AggregateList<User> recommendations = repository.getRecommendations(project("prj"), asList("id1", "id2", "id4"));
-        assertThat(recommendations.aggregates).contains(new Repository.Aggregate<>(user1, 2), new Repository.Aggregate<>(user2, 1));
-        assertThat(recommendations.totalCount).isEqualTo(2);
+        assertThat(recommendations.aggregates()).contains(new Repository.Aggregate<>(user1, 2), new Repository.Aggregate<>(user2, 1));
+        assertThat(recommendations.totalCount()).isEqualTo(2);
 
         recommendations = repository.getRecommendations(project("prj"));
-        assertThat(recommendations.aggregates).contains(new Repository.Aggregate<>(user1, 3), new Repository.Aggregate<>(user2, 1));
-        assertThat(recommendations.totalCount).isEqualTo(3);
+        assertThat(recommendations.aggregates()).contains(new Repository.Aggregate<>(user1, 3), new Repository.Aggregate<>(user2, 1));
+        assertThat(recommendations.totalCount()).isEqualTo(3);
         assertThat(repository.getRecommentationsBy(project("prj"),asList(user1,user2))).contains("id1").contains("id2").contains("id3");
 
         assertThat(repository.unrecommend(project("prj"), user1,asList("id1", "id2"))).isEqualTo(2);
@@ -209,11 +209,11 @@ public class JooqRepositoryTest {
 
         repository.recommend(project("prj"), userFoo, List.of("id4"));
 
-        final Repository.Aggregate<User> recommendationEntry = repository.getRecommendations(project("prj"), List.of("id4")).aggregates.iterator().next();
-        assertThat(recommendationEntry.item.id).isEqualTo("foo");
-        assertThat(recommendationEntry.item.name).isEqualTo("test");
-        assertThat(recommendationEntry.item.email).isEqualTo("foo@bar.org");
-        assertThat(recommendationEntry.count).isEqualTo(1);
+        final Repository.Aggregate<User> recommendationEntry = repository.getRecommendations(project("prj"), List.of("id4")).aggregates().iterator().next();
+        assertThat(recommendationEntry.item().id).isEqualTo("foo");
+        assertThat(recommendationEntry.item().name).isEqualTo("test");
+        assertThat(recommendationEntry.item().email).isEqualTo("foo@bar.org");
+        assertThat(recommendationEntry.count()).isEqualTo(1);
     }
 
     @Test
@@ -223,11 +223,11 @@ public class JooqRepositoryTest {
 
         repository.recommend(project("prj"), userBar, asList("id5", "id6"));
 
-        final Repository.Aggregate<User> recommendationEntry = repository.getRecommendations(project("prj")).aggregates.iterator().next();
-        assertThat(recommendationEntry.item.id).isEqualTo("bar");
-        assertThat(recommendationEntry.item.name).isEqualTo("test");
-        assertThat(recommendationEntry.item.email).isEqualTo("bar@bar.org");
-        assertThat(recommendationEntry.count).isEqualTo(2);
+        final Repository.Aggregate<User> recommendationEntry = repository.getRecommendations(project("prj")).aggregates().iterator().next();
+        assertThat(recommendationEntry.item().id).isEqualTo("bar");
+        assertThat(recommendationEntry.item().name).isEqualTo("test");
+        assertThat(recommendationEntry.item().email).isEqualTo("bar@bar.org");
+        assertThat(recommendationEntry.count()).isEqualTo(2);
     }
 
     @Test
