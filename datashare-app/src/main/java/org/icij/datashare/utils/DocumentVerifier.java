@@ -64,8 +64,7 @@ public class DocumentVerifier {
         Entity entity = indexer.get(document.getProjectId(), document.getRootDocument());
         if (entity.getClass().equals(Duplicate.class)) {
             return indexer.get(document.getProjectId(), ((Duplicate) entity).documentId);
-        } else {
-            return (Document) entity;
         }
+        return (Document) entity;
     }
 }
