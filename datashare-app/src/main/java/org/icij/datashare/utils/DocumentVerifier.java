@@ -41,13 +41,7 @@ public class DocumentVerifier {
             return true;
         }
         long maxSizeBytes = getEmbeddedDocumentDownloadMaxSizeBytes();
-        Document rootDocument;
-        Entity entity = indexer.get(document.getProjectId(), document.getRootDocument());
-        if (entity.getClass().equals(Duplicate.class)) {
-            rootDocument = indexer.get(document.getProjectId(), ((Duplicate) entity).documentId);
-        } else {
-            rootDocument = (Document) entity;
-        }
+        Document rootDocument = getRootDocument(document);
         return rootDocument.getContentLength() < maxSizeBytes;
     }
 
@@ -59,5 +53,19 @@ public class DocumentVerifier {
     private long getEmbeddedDocumentDownloadMaxSizeBytes() {
         String maxSize = propertiesProvider.get(EMBEDDED_DOCUMENT_DOWNLOAD_MAX_SIZE_OPT).orElse(DEFAULT_MAX_SIZE);
         return HumanReadableSize.parse(maxSize);
+    }
+
+    /**
+     * Retrieves the root document for an embedded document even if the root is a duplicate.
+     *
+     * @return The max size in bytes.
+     */
+    private Document getRootDocument(Document document) {
+        Entity entity = indexer.get(document.getProjectId(), document.getRootDocument());
+        if (entity.getClass().equals(Duplicate.class)) {
+            return indexer.get(document.getProjectId(), ((Duplicate) entity).documentId);
+        } else {
+            return (Document) entity;
+        }
     }
 }
