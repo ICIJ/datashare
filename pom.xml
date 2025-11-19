@@ -114,7 +114,8 @@
         <joda-time.version>2.9.5</joda-time.version>
         <httpclient.version>4.5.13</httpclient.version>
         <redisson.version>3.20.1</redisson.version>
-        <jackson.version>2.19.4</jackson.version>
+        <jackson.version>2.20.1</jackson.version>
+        <jackson-annotations.version>2.20</jackson-annotations.version>
         <httpcore.version>4.4.13</httpcore.version>
         <guava.version>33.0.0-jre</guava.version>
         <xalan.version>2.7.2</xalan.version>

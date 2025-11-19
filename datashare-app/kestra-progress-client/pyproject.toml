@@ -1,0 +1,10 @@
+[project]
+name = "kestra-progress-client"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "icij-common>=0.7.3",
+    "kestrapy>=1.0.5",
+]

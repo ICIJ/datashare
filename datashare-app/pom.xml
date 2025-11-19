@@ -33,6 +33,12 @@
                 </exclusion>
             </exclusions>
         </dependency>
+<!--        Code story has an old version of jsr incompatible with later version we need to set a more recent one-->
+        <dependency>
+            <groupId>com.fasterxml.jackson.datatype</groupId>
+            <artifactId>jackson-datatype-jsr310</artifactId>
+            <version>${jackson.version}</version>
+        </dependency>
         <dependency>
             <groupId>com.github.scribejava</groupId>
             <artifactId>scribejava-core</artifactId>
@@ -129,6 +135,7 @@
             <version>0.4.1</version>
         </dependency>
 
+
         <!-- Logging -->
         <dependency>
             <groupId>ch.qos.logback</groupId>
@@ -200,7 +207,7 @@ we'll have to build and publish the webserver -->
         <dependency>
           <groupId>io.kestra</groupId>
           <artifactId>kestra-api-client</artifactId>
-          <version>1.0.1</version>
+          <version>1.0.2</version>
         </dependency>
 
         <dependency>

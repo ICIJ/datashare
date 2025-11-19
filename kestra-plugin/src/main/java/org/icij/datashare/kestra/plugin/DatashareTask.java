@@ -56,10 +56,14 @@ public abstract class DatashareTask<DO extends Serializable, KO extends Output> 
 
     private org.icij.datashare.asynctasks.Task<DO> asDatashareTask(RunContext runContext)
         throws IllegalVariableEvaluationException {
-        String taskRunId = ((Map<?, ?>) runContext.getVariables().get("taskrun")).get("id").toString();
+        String taskRunId = getTaskRunId(runContext);
         User user = runContext.render(this.user).as(User.class).orElse(User.local());
         return new org.icij.datashare.asynctasks.Task<>(taskRunId, this.getDatashareTaskClass().getName(), user,
             datashareArgs(runContext));
+    }
+
+    private static String getTaskRunId(RunContext runContext) {
+        return ((Map<?, ?>) runContext.getVariables().get("taskrun")).get("id").toString();
     }
 
     protected abstract Function<DO, KO> datashareToKestraOutputConverter();
@@ -87,16 +91,20 @@ public abstract class DatashareTask<DO extends Serializable, KO extends Output> 
     @Override
     public KO run(RunContext runContext) throws Exception {
         Logger logger = runContext.logger();
+        String taskRunId = getTaskRunId(runContext);
+        logger.info("starting task run {}", taskRunId); // TODO: remove
         KVStore kvStore = getKvStore(runContext);
         // TODO: update the createScanTask API to provide a logger
         org.icij.datashare.asynctasks.Task<DO> dsTask = asDatashareTask(runContext);
         DatashareTaskFactory taskFactory = DatashareMode.modeSingleton().get(DatashareTaskFactory.class);
-        Integer progressWeight = runContext.render(this.progressWeight).as(Integer.class).orElse(1);
+        int progressWeight = runContext.render(this.progressWeight).as(Integer.class).orElse(1);
         // TODO: update the createScanTask API to provide a logger
+        progressCallback(taskRunId, 0., logger, kvStore, progressWeight);
         Callable<?> taskFn = TaskFactoryHelper.createTaskCallable(
             taskFactory, dsTask.name, dsTask,
             dsTask.progress((taskId, p) -> progressCallback(taskId, p, logger, kvStore, progressWeight)));
         DO dsOutput = (DO) taskFn.call();
+        progressCallback(taskRunId, 1., logger, kvStore, progressWeight);
         return datashareToKestraOutputConverter().apply(dsOutput);
     }
 
