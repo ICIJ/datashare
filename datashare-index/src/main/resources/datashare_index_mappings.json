@@ -30,7 +30,13 @@
       "type": "integer"
     },
     "path": {
-      "type": "keyword"
+      "type": "keyword",
+      "fields": {
+        "parts": {
+          "type": "text",
+          "analyzer": "path_parts_analyzer"
+        }
+      }
     },
     "title": {
       "type": "keyword"
