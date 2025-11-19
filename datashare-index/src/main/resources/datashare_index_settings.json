@@ -17,6 +17,7 @@
     "metadata.tika_metadata_resourcename",
     "name",
     "path",
+    "path.parts",
     "tags"
   ],
   "analysis": {
@@ -24,6 +25,11 @@
       "path_analyzer": {
         "type":"custom",
         "tokenizer": "path_tokenizer"
+      },
+      "path_parts_analyzer": {
+        "type":"custom",
+        "tokenizer": "path_parts_tokenizer",
+        "filter": ["lowercase"]
       },
       "folding": {
         "type":"custom",
@@ -39,6 +45,12 @@
         "buffer_size": 1024,
         "reverse": false,
         "skip": 0
+      },
+      "path_parts_tokenizer": {
+        "type": "pattern",
+        "pattern": "[/\\\\. ]+",
+        "flags": "",
+        "group": -1
       }
     },
     "normalizer": {

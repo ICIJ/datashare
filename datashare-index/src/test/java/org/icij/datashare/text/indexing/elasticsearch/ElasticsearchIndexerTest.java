@@ -784,4 +784,40 @@ public class ElasticsearchIndexerTest {
         String filename= "unknown.painless.java";
         ElasticsearchIndexer.getScriptStringFromFile(filename);
     }
+
+    @Test
+    public void test_search_by_path_parts_returns_documents_with_matching_path_components() throws IOException {
+        Document doc1 = createDoc("doc1")
+                .with(Paths.get("/home/dev/foo.mp3"))
+                .with("content1")
+                .with(Language.ENGLISH)
+                .with("audio/mpeg")
+                .with(INDEXED)
+                .build();
+        Document doc2 = createDoc("doc2")
+                .with(Paths.get("/home/foo/dev.mp3"))
+                .with("content2")
+                .with(Language.ENGLISH)
+                .with("audio/mpeg")
+                .with(INDEXED)
+                .build();
+        Document doc3 = createDoc("doc3")
+                .with(Paths.get("/home/dev/bar.mp3"))
+                .with("content3")
+                .with(Language.ENGLISH)
+                .with("audio/mpeg")
+                .with(INDEXED)
+                .build();
+
+        indexer.add(es.getIndexName(), doc1);
+        indexer.add(es.getIndexName(), doc2);
+        indexer.add(es.getIndexName(), doc3);
+
+        List<? extends Entity> results = indexer.search(singletonList(es.getIndexName()), Document.class, new SearchQuery("foo")).execute().toList();
+
+        assertThat(results.size()).isEqualTo(2);
+        List<String> resultIds = results.stream().map(Entity::getId).collect(toList());
+        assertThat(resultIds).contains("doc1", "doc2");
+        assertThat(resultIds).excludes("doc3");
+    }
 }
