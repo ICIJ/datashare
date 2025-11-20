@@ -14,7 +14,7 @@ public class UserPolicyVerifier {
     private static UserPolicyVerifier instance;
     private final Enforcer enforcer;
     private static final String DEFAULT_POLICY_FILE = "casbin/model.conf";
-    private static final boolean ENABLE_CASBIN_LOG = false;
+    private static final boolean ENABLE_CASBIN_LOG = true;
 
     private UserPolicyVerifier(UserRepository repository) throws URISyntaxException {
         Adapter adapter = new UserPolicyRepositoryAdapter(repository);
@@ -32,13 +32,14 @@ public class UserPolicyVerifier {
     }
 
     public boolean enforce(UserPolicy userPolicy) {
-        return this.enforcer.enforce(userPolicy.userId(),userPolicy.projectId(),userPolicy.admin());
+        return this.enforcer.enforce(userPolicy.userId(),userPolicy.projectId(),"admin");
     }
     public boolean enforce(User user, Project project, UserPolicyRepositoryAdapter.Permission act ) {
-        return this.enforce(user.name, project.name, act.value());
+        return this.enforce(user.id, project.name, act.value());
     }
 
     public boolean enforce(String userName, String projectName, String permission) {
+        this.enforcer.enforce("cecile","test-datashare","admin");
         return this.enforcer.enforce(userName, projectName, permission);
     }
 }

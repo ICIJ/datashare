@@ -70,9 +70,13 @@ public class JooqUserRepository implements UserRepository {
 
     @Override
     public UserPolicy get(User user, String projectId) {
+        return get(user.getId(),projectId);
+    }
+    @Override
+    public UserPolicy get(String userId, String projectId) {
         DSLContext ctx = using(connectionProvider, dialect);
         var rec = ctx.selectFrom(USER_POLICY)
-                .where(USER_POLICY.USER_ID.eq(user.id)
+                .where(USER_POLICY.USER_ID.eq(userId)
                         .and(USER_POLICY.PRJ_ID.eq(projectId)))
                 .fetchOne();
         return rec != null ? fromRecord(rec) : null;
