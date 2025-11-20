@@ -31,7 +31,7 @@ import static org.mockito.MockitoAnnotations.openMocks;
 
 public class IndexResourceTest extends AbstractProdWebServerTest {
     @Mock JooqRepository jooqRepository;
-    @Mock JooqUserRepository jooqPolicyRepository;
+    @Mock JooqUserRepository jooqUserRepository;
 
     @ClassRule public static ElasticsearchRule es = new ElasticsearchRule(3);
     private final ElasticsearchIndexer indexer = new ElasticsearchIndexer(es.client, new PropertiesProvider()).withRefresh(Refresh.True);
@@ -187,9 +187,10 @@ public class IndexResourceTest extends AbstractProdWebServerTest {
     public void test_put_createIndex_with_policy() throws URISyntaxException {
 
         UserPolicy adminPermission = new UserPolicy("cecile", "test-datashare", new Role[] {Role.ADMIN});
-        UserPolicyAnnotation userPolicyAnnotation = new UserPolicyAnnotation(jooqPolicyRepository);
+        UserPolicyAnnotation userPolicyAnnotation = new UserPolicyAnnotation(jooqUserRepository);
 
-        when(jooqPolicyRepository.get(new User("cecile"), "test-datashare")).thenReturn(adminPermission);
+        when(jooqUserRepository.get("cecile", "test-datashare")).thenReturn(adminPermission);
+        when(jooqUserRepository.get(new User("cecile"), "test-datashare")).thenReturn(adminPermission);
 
         configure(routes ->
         {

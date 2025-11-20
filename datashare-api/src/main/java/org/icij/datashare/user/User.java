@@ -7,20 +7,11 @@ import org.icij.datashare.Entity;
 import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.text.Project;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static java.util.Collections.singletonList;
-import static java.util.Collections.unmodifiableMap;
-import static java.util.Collections.unmodifiableSet;
+import static java.util.Collections.*;
 import static java.util.Optional.ofNullable;
 import static org.icij.datashare.json.JsonObjectMapper.deserialize;
 import static org.icij.datashare.text.StringUtils.isEmpty;
@@ -35,7 +26,7 @@ public class User implements Entity, Comparable<User> {
     public final String email;
     public final String provider;
     public final Map<String, Object> details;
-    public final Set<UserPolicy> policies;
+    public Set<UserPolicy> policies;
     private final Set<Project> projects = new HashSet<>();
     @JsonIgnore
     private final String jsonProjectKey;
@@ -64,8 +55,8 @@ public class User implements Entity, Comparable<User> {
         this.email = email;
         this.provider = provider;
         this.details = unmodifiableMap(ofNullable(details).orElse(new HashMap<>()));
-        this.jsonProjectKey = jsonProjectKey;
-        this.policies = unmodifiableSet(policies);
+        this.jsonProjectKey = ofNullable(jsonProjectKey).orElse(getDefaultProjectsKey());
+        this.policies = unmodifiableSet(ofNullable(policies).orElse(new HashSet<>()));
     }
 
     public User(final String id, String name, String email, String provider) {
@@ -81,7 +72,7 @@ public class User implements Entity, Comparable<User> {
     }
 
     public User(Map<String, Object> map) {
-        this((String)map.get("uid"), (String)map.get("name"), (String)map.get("email"), (String)map.getOrDefault("provider", LOCAL), map);
+        this((String)map.get("uid"), (String)map.get("name"), (String)map.get("email"), (String)map.getOrDefault("provider", LOCAL), map, (String)map.get("jsonProjectKey"),(Set<UserPolicy>) map.get("policies"));
     }
 
     public User(User user) {

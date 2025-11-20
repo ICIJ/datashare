@@ -3,6 +3,7 @@ package org.icij.datashare.session;
 import com.google.inject.Inject;
 import net.codestory.http.Context;
 import net.codestory.http.annotations.ApplyAroundAnnotation;
+import net.codestory.http.errors.ForbiddenException;
 import net.codestory.http.errors.UnauthorizedException;
 import net.codestory.http.payload.Payload;
 import org.icij.datashare.text.Project;
@@ -27,22 +28,13 @@ public class UserPolicyAnnotation implements ApplyAroundAnnotation<Policy> {
     }
 
     @Override
-    public Payload apply(Policy policy, Context context, Function<Context, Payload> function) {
-        if(authorize((DatashareUser) context.currentUser(), project("test-datashare"))){
-            return function.apply(context);
-        }
-        return Payload.forbidden();
-    }
-
-
-    // TODO to be called by apply function
-    public boolean authorize(DatashareUser user, Project project){
-        if(user == null || project == null) throw new UnauthorizedException();
-        return this.enforce(user, project);
-    }
-
-    private boolean enforce(DatashareUser user, Project project){
+    public Payload apply(Policy annotation, Context context, Function<Context, Payload> payloadSupplier) {
+        String index = context.pathParam("index");
+        DatashareUser user = (DatashareUser) context.currentUser();
+        Project project = project(index); //check project exists ?
+        if(user == null) throw new UnauthorizedException();
         UserPolicy userPolicy = jooqRepository.get(user, project.getId());
-        return userPolicyVerifier.enforce(userPolicy);
+        if(userPolicy==null) throw new ForbiddenException();
+        return userPolicyVerifier.enforce(userPolicy) ? payloadSupplier.apply(context) : Payload.forbidden();
     }
 }
