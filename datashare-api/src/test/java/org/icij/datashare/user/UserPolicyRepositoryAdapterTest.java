@@ -45,10 +45,9 @@ public class UserPolicyRepositoryAdapterTest {
         adapter.loadPolicy(model);
 
         List<List<String>> loadedPolicies = model.model.get("p").get("p").policy;
-        assertTrue(loadedPolicies.contains(Arrays.asList("user1", "project1", "read")));
-        assertTrue(loadedPolicies.contains(Arrays.asList("user2", "project2", "write")));
-        assertTrue(loadedPolicies.contains(Arrays.asList("user2", "project2", "admin")));
-        assertFalse(loadedPolicies.contains(Arrays.asList("user1", "project2", "read")));
-
+        assertTrue(loadedPolicies.contains(Arrays.asList("user1", "project1", "READER")));
+        assertFalse(loadedPolicies.contains(Arrays.asList("user1", "project2", "READER")));
+        assertTrue(loadedPolicies.contains(Arrays.asList("user2", "project2", "WRITER")));
+        assertTrue(loadedPolicies.contains(Arrays.asList("user2", "project2", "ADMIN")));
     }
 }

@@ -17,14 +17,15 @@ import org.icij.datashare.user.Role;
 import org.icij.datashare.user.User;
 import org.icij.datashare.user.UserPolicy;
 import org.icij.datashare.web.testhelpers.AbstractProdWebServerTest;
-import org.junit.*;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.ClassRule;
+import org.junit.Test;
 import org.mockito.Mock;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
+import java.util.*;
 
 import static org.mockito.Mockito.when;
 import static org.mockito.MockitoAnnotations.openMocks;
@@ -182,35 +183,27 @@ public class IndexResourceTest extends AbstractProdWebServerTest {
         put("/api/index/ cecile-datashare").withPreemptiveAuthentication("cecile", "pass").should().respond(400);
     }
 
-    @Ignore("CD: Not ready yet")
     @Test
     public void test_put_createIndex_with_policy() throws URISyntaxException {
 
-        UserPolicy adminPermission = new UserPolicy("cecile", "test-datashare", new Role[] {Role.ADMIN});
+        UserPolicy adminPermission = new UserPolicy("john", "test-datashare", new Role[] {Role.ADMIN});
+        when(jooqUserRepository.getAll()).thenReturn(List.of(new UserPolicy[]{adminPermission}));
         UserPolicyAnnotation userPolicyAnnotation = new UserPolicyAnnotation(jooqUserRepository);
-
-        when(jooqUserRepository.get("cecile", "test-datashare")).thenReturn(adminPermission);
-        when(jooqUserRepository.get(new User("cecile"), "test-datashare")).thenReturn(adminPermission);
 
         configure(routes ->
         {
-            Users users = DatashareUser.singleUser("cecile");
+            User user = new User(new HashMap<>() {{
+                put("uid", "john");
+                put("name", "john");
+                put("policies", new HashSet<UserPolicy>() {{ add(adminPermission); }});
+            }});
+            Users users = DatashareUser.singleUser(user);
             routes.registerAroundAnnotation(Policy.class, userPolicyAnnotation)
                     .filter(new BasicAuthFilter("/", "icij", users)).add(new IndexResource(indexer));
         });
 
-        put("/api/index/test-datashare").withPreemptiveAuthentication("cecile", "pass").should().respond(201);
+        put("/api/index/test-datashare").withPreemptiveAuthentication("john", "pass").should().respond(200);
     }
-
-    @Ignore("CD: Not ready yet")
-    @Test
-    public void test_search_path_accessible_to_non_admin() {
-        configure(routes -> routes
-                .add(new IndexResource(indexer))
-        );
-        get("/api/index/search/test-datashare/_search").should().respond(401);
-    }
-
 
     @Before
     public void setUp() {

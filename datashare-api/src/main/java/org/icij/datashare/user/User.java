@@ -72,7 +72,13 @@ public class User implements Entity, Comparable<User> {
     }
 
     public User(Map<String, Object> map) {
-        this((String)map.get("uid"), (String)map.get("name"), (String)map.get("email"), (String)map.getOrDefault("provider", LOCAL), map, (String)map.get("jsonProjectKey"),(Set<UserPolicy>) map.get("policies"));
+        this((String)map.get("uid"),
+                (String)map.get("name"),
+                (String)map.get("email"),
+                (String)map.getOrDefault("provider", LOCAL),
+                map, //details
+                (String)map.get("jsonProjectKey"),
+                (Set<UserPolicy>) map.get("policies"));
     }
 
     public User(User user) {

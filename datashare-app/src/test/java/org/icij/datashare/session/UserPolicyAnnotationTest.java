@@ -1,7 +1,6 @@
 package org.icij.datashare.session;
 
 import net.codestory.http.Context;
-import net.codestory.http.errors.ForbiddenException;
 import net.codestory.http.errors.UnauthorizedException;
 import net.codestory.http.payload.Payload;
 import org.icij.datashare.user.Role;
@@ -10,52 +9,61 @@ import org.icij.datashare.user.UserRepository;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.lang.annotation.Annotation;
 import java.net.URISyntaxException;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import static org.icij.datashare.user.Role.ADMIN;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class UserPolicyAnnotationTest {
-    private UserRepository userRepository;
     private UserPolicyAnnotation annotation;
     private Context context;
     private DatashareUser adminUser;
     private DatashareUser nonAdminUser;
+
     private Policy policy;
-    String projectId = "test-datashare";
-    UserPolicy adminPermission;
-    UserPolicy nonAdminPermission;
+    private String projectId = "test-datashare";
 
     @Before
     public void setUp() throws URISyntaxException {
-        userRepository = mock(UserRepository.class);
+        projectId = "test-datashare";
         String adminId = "cecile";
-        adminPermission = new UserPolicy(adminId, projectId, new Role[]{Role.ADMIN});
-        Map<String, Object> adminUserMap = Map.of(
+        UserPolicy adminPermission = new UserPolicy(adminId, projectId, new Role[]{Role.ADMIN});
+        adminUser = new DatashareUser(Map.of(
                 "uid", adminId,
                 "policies", Set.of(adminPermission)
-        );
-        adminUser = new DatashareUser(adminUserMap);
+        ));
 
         String nonAdminId = "john";
-        nonAdminPermission = new UserPolicy(nonAdminId, projectId, new Role[]{Role.READER});
-        Map<String, Object> nonAdminUserMap = Map.of(
+        UserPolicy nonAdminPermission = new UserPolicy(nonAdminId, projectId, new Role[]{Role.READER});
+        nonAdminUser = new DatashareUser( Map.of(
                 "uid", nonAdminId,
                 "policies", Set.of(nonAdminPermission)
-        );
-        nonAdminUser = new DatashareUser(nonAdminId);
+        ));
 
-        when(userRepository.getAll()).thenReturn(List.of(adminPermission,nonAdminPermission));
 
+        UserRepository userRepository = mock(UserRepository.class);
+        when(userRepository.getAll()).thenReturn(List.of(adminPermission, nonAdminPermission));
         annotation = new UserPolicyAnnotation(userRepository);
-        context = mock(Context.class);
-        policy = mock(Policy.class);
 
-        projectId = "test-datashare";
+        context = mock(Context.class);
+
+        policy = new Policy() {
+           @Override
+           public Class<? extends Annotation> annotationType() {
+               return null;
+           }
+
+           @Override
+            public Role[] roles() {
+                return new Role[]{ADMIN};
+            }
+        };
 
     }
 
@@ -66,28 +74,28 @@ public class UserPolicyAnnotationTest {
         annotation.apply(policy, context, (c) -> Payload.ok());
     }
 
-    @Test(expected = ForbiddenException.class)
-    public void should_return_forbidden_if_no_policy() {
-        when(context.currentUser()).thenReturn(nonAdminUser);
-        when(context.pathParam("index")).thenReturn(projectId);
-        when(userRepository.get(nonAdminUser, projectId)).thenReturn(null);
-        annotation.apply(policy, context, (c) -> Payload.forbidden());
-    }
-
     @Test
-    public void should_return_forbidden_if_wrong_policy() {
-        when(context.currentUser()).thenReturn(nonAdminUser);
+    public void should_return_forbidden_if_no_policy() {
+
+        DatashareUser noPolicyUser = new DatashareUser(  "jane");
+        when(context.currentUser()).thenReturn(noPolicyUser);
+
         when(context.pathParam("index")).thenReturn(projectId);
-        when(userRepository.get(nonAdminUser, projectId)).thenReturn(null);
-        Payload result = annotation.apply(policy, context,c->Payload.forbidden());
+
+        Payload result = annotation.apply(policy, context,c->Payload.ok());
         assertEquals(403, result.code());
     }
-
     @Test
-    public void should_allow_user_if_has_policy() {
+    public void should_allow_user_if_has_wrong_policy_as_non_admin() {
+        when(context.currentUser()).thenReturn(nonAdminUser);
+        when(context.pathParam("index")).thenReturn(projectId);
+        Payload result = annotation.apply(policy, context, (c) -> Payload.ok());
+        assertEquals(403, result.code());
+    }
+    @Test
+    public void should_allow_user_if_has_right_policy_as_admin() {
         when(context.currentUser()).thenReturn(adminUser);
         when(context.pathParam("index")).thenReturn(projectId);
-        when(userRepository.get(adminUser, projectId)).thenReturn(adminPermission);
         Payload result = annotation.apply(policy, context, (c) -> Payload.ok());
         assertEquals(200, result.code());
     }

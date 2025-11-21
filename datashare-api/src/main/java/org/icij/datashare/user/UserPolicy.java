@@ -8,7 +8,7 @@ import java.util.Arrays;
 import java.util.Objects;
 
 /**
- * Domain model for a access policy on a project, matching the policy table.
+ * Domain model for access policy on a project, matching the policy table.
  */
 
 @IndexType("UserPolicy")

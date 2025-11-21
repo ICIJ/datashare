@@ -8,6 +8,7 @@ import org.icij.datashare.text.Project;
 import java.net.URISyntaxException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Arrays;
 
 
 public class UserPolicyVerifier {
@@ -31,15 +32,17 @@ public class UserPolicyVerifier {
         return instance;
     }
 
-    public boolean enforce(UserPolicy userPolicy) {
-        return this.enforcer.enforce(userPolicy.userId(),userPolicy.projectId(),"admin");
-    }
-    public boolean enforce(User user, Project project, UserPolicyRepositoryAdapter.Permission act ) {
-        return this.enforce(user.id, project.name, act.value());
+    public boolean enforceAllRoles(UserPolicy userPolicy) {
+        // Check if all roles in a policy are enforced by checking if any is not.
+        return Arrays.stream(userPolicy.roles()).allMatch(role ->
+            this.enforce(userPolicy.userId(), userPolicy.projectId(), role.name()));
     }
 
-    public boolean enforce(String userName, String projectName, String permission) {
-        this.enforcer.enforce("cecile","test-datashare","admin");
-        return this.enforcer.enforce(userName, projectName, permission);
+    public boolean enforce(User user, Project project, Role act) {
+        return this.enforce(user.getId(), project.getName(), act.name());
+    }
+
+    public boolean enforce(String userName, String projectName, String act) {
+        return this.enforcer.enforce(userName, projectName, act);
     }
 }
