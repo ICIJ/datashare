@@ -34,12 +34,11 @@ public class UserPolicyVerifier {
     public boolean enforce(UserPolicy userPolicy) {
         return this.enforcer.enforce(userPolicy.userId(),userPolicy.projectId(),"admin");
     }
-    public boolean enforce(User user, Project project, UserPolicyRepositoryAdapter.Permission act ) {
-        return this.enforce(user.id, project.name, act.value());
+    public boolean enforce(User user, Project project, Role act ) {
+        return this.enforce(user.id, project.name, act.toString());
     }
 
     public boolean enforce(String userName, String projectName, String permission) {
-        this.enforcer.enforce("cecile","test-datashare","admin");
         return this.enforcer.enforce(userName, projectName, permission);
     }
 }
