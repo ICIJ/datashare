@@ -34,8 +34,8 @@ public class UserPolicyVerifier {
 
     public boolean enforceAllRoles(UserPolicy userPolicy) {
         // Check if all roles in a policy are enforced by checking if any is not.
-            return Arrays.stream(userPolicy.roles()).allMatch(role ->
-                this.enforce(userPolicy.userId(), userPolicy.projectId(), role.name()));
+        return Arrays.stream(userPolicy.roles()).allMatch(role ->
+            this.enforce(userPolicy.userId(), userPolicy.projectId(), role.name()));
     }
 
     public boolean enforce(User user, Project project, Role act) {

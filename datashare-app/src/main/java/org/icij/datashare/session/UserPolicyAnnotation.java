@@ -35,9 +35,7 @@ public class UserPolicyAnnotation implements ApplyAroundAnnotation<Policy> {
         if(user == null) throw new UnauthorizedException();
         UserPolicy userPolicy = user.getPolicy(project.getId());
         // check if annotation has role and user policy as well
-        boolean allMatch = containsSameRoles(annotation, userPolicy);
-
-        return allMatch ? payloadSupplier.apply(context) : Payload.forbidden();
+        return containsSameRoles(annotation, userPolicy) ? payloadSupplier.apply(context) : Payload.forbidden();
     }
 
     private boolean containsSameRoles(Policy annotation, UserPolicy userPolicy) {
