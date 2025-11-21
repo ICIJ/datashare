@@ -12,7 +12,6 @@ import org.icij.datashare.user.UserPolicyVerifier;
 import org.icij.datashare.user.UserRepository;
 
 import java.net.URISyntaxException;
-import java.util.Arrays;
 import java.util.function.Function;
 
 import static org.icij.datashare.text.Project.project;
@@ -37,9 +36,6 @@ public class UserPolicyAnnotation implements ApplyAroundAnnotation<Policy> {
         if(user == null) throw new UnauthorizedException();
         UserPolicy userPolicy = jooqRepository.get(user, project.getId());
         if(userPolicy==null) throw new ForbiddenException();
-
-        boolean notWorking = Arrays.stream(annotation.roles()).anyMatch(role -> !userPolicyVerifier.enforce(userPolicy.userId(), userPolicy.projectId(), role.name()));
-
-        return notWorking?  Payload.forbidden() :payloadSupplier.apply(context);
+        return userPolicyVerifier.enforceAllRoles(userPolicy) ? payloadSupplier.apply(context) : Payload.forbidden();
     }
 }
