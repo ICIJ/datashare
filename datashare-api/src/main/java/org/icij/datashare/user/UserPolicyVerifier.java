@@ -38,11 +38,11 @@ public class UserPolicyVerifier {
                 this.enforce(userPolicy.userId(), userPolicy.projectId(), role.name()));
     }
 
-    public boolean enforce(User user, Project project, Role act ) {
-        return this.enforce(user.id, project.name, act.toString());
+    public boolean enforce(User user, Project project, Role act) {
+        return this.enforce(user.getId(), project.getName(), act.name());
     }
 
-    public boolean enforce(String userName, String projectName, String permission) {
-        return this.enforcer.enforce(userName, projectName, permission);
+    public boolean enforce(String userName, String projectName, String act) {
+        return this.enforcer.enforce(userName, projectName, act);
     }
 }

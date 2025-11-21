@@ -17,11 +17,11 @@ public class UserPolicyVerifierTest {
     @Mock private UserRepository repository;
     private UserPolicyVerifier verifier;
 
+    UserPolicy policy1 = new UserPolicy("user1", "project1", new Role[] {Role.READER});
+    UserPolicy policy2 = new UserPolicy("user2", "project2",  new Role[] {Role.WRITER,Role.ADMIN});
     @Before
     public void setUp() throws URISyntaxException {
         openMocks(this);
-        UserPolicy policy1 = new UserPolicy("user1", "project1", new Role[] {Role.READER});
-        UserPolicy policy2 = new UserPolicy("user2", "project2",  new Role[] {Role.WRITER,Role.ADMIN});
         List<UserPolicy> policies = Arrays.asList(policy1, policy2);
         when(repository.getAll()).thenReturn(policies);
         verifier =  UserPolicyVerifier.getInstance(repository);
@@ -68,6 +68,10 @@ public class UserPolicyVerifierTest {
         // Negative test: user1 should not have READER on project2
         assertFalse(verifier.enforce(user1, project2, Role.READER));
     }
-
+    @Test
+    public void test_enforce_bad_policy() {
+        UserPolicy badPolicy= new UserPolicy("user2", "project2",  new Role[] {Role.READER});
+        assertFalse(verifier.enforceAllRoles(badPolicy));
+    }
 
 }
