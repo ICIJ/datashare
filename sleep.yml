@@ -1,0 +1,17 @@
+id: sleep_flow
+namespace: org.icij.datashare
+
+inputs:
+  - id: sleepDurations
+    type: ARRAY
+    itemType: INT
+
+tasks:
+  - id: sleep
+    type: org.icij.datashare.kestra.plugin.SleepTask
+    sleepDurations: "{{ inputs.sleepDurations }}"
+
+outputs:
+  - id: total_sleep_duration
+    type: INT
+    value: "{{ outputs.sleep.totalSleepDurationS }}"

@@ -1,0 +1,64 @@
+id: parent_workflow
+namespace: org.icij.datashare
+
+inputs:
+  - id: max_tasks
+    type: INT
+
+tasks:
+  - id: produce
+    type: io.kestra.plugin.scripts.python.Script
+    taskRunner:
+      type: io.kestra.plugin.core.runner.Process
+    outputFiles:
+      - "batches.jsonl"
+    script: |
+      import json
+      import random
+
+      from pathlib import Path
+
+      max_tasks = random.randint(1, {{inputs.max_tasks}})
+      with Path("batches.jsonl").open("w") as f:
+          for i in range(max_tasks):
+              f.write(json.dumps({"durationS": i}) + "\n")
+
+  - id: map
+    type: "io.kestra.plugin.core.flow.ForEachItem"
+    items: "{{ outputs.produce.outputFiles['batches.jsonl'] }}"
+    batch:
+      rows: 1
+    namespace: org.icij.datashare
+    flowId: sleep_flow
+    wait: true # wait for the subflow execution
+    transmitFailed: true # fail the task run if the subflow execution fails
+    inputs:
+      sleepDurations: "{{ json(read(taskrun.items)) | jq('.durationS') }}"
+
+  - id: reduce
+    type: io.kestra.plugin.scripts.python.Script
+    taskRunner:
+      type: io.kestra.plugin.core.runner.Process
+    dependencies:
+      - kestra
+      - amazon.ion
+    script: |
+      import amazon.ion.simpleion as ion
+      from pathlib import Path
+
+      from kestra import Kestra
+
+      file_path = "{{ outputs.map_merge.subflowOutputs }}"
+      arithmetic_sum = 0
+      with Path(file_path).open() as f:
+        for l in f:
+          batch_output = ion.loads(l.strip())
+          batch_sum = int(batch_output["total_sleep_duration"])
+          arithmetic_sum += batch_sum
+
+      Kestra.outputs({"arithmetic_sum": arithmetic_sum})
+
+outputs:
+  - id: arithmetic_sum
+    type: INT
+    value: "{{ outputs.reduce.vars.arithmetic_sum }}"
