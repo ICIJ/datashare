@@ -1,6 +1,7 @@
 package org.icij.datashare.web;
 
 import net.codestory.http.filters.basic.BasicAuthFilter;
+import net.codestory.rest.ShouldChain;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.asynctasks.TaskGroup;
@@ -67,11 +68,13 @@ public class UserTaskResourceTest extends AbstractProdWebServerTest {
     public void test_get_task() throws Exception {
         setupAppWith(new DummyUserTask<>("foo"), "foo");
         String tId = taskManager.startTask(DummyUserTask.class, localUser("foo"), new HashMap<>());
-        get("/api/task/" + tId).withPreemptiveAuthentication("foo", "qux").should().respond(200).
+        ShouldChain respond = get("/api/task/" + tId).withPreemptiveAuthentication("foo", "qux").should().respond(200);
+        respond.
                 contain(format("{\"@type\":\"Task\",\"id\":\"%s\",\"name\":\"%s\",\"state\":\"DONE\",\"progress\":1.0",tId, DummyUserTask.class.getName())).
                 contain("\"details\":").
                 contain("\"uid\":\"foo\"").
                 contain("\"groups_by_applications\":{\"datashare\":[\"foo-datashare\"]}").
+                contain("\"policies\":[]").
                 contain("\"args\":{\"user\":{\"@type\":\"org.icij.datashare.user.User\",\"id\":\"foo\"");
     }
 
