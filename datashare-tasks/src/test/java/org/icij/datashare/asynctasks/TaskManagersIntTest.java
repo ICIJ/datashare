@@ -34,8 +34,6 @@ import static org.fest.assertions.Assertions.assertThat;
 public class TaskManagersIntTest {
     private static AmqpInterlocutor AMQP;
     private final TestFactory factory = new TestFactory();
-    @ClassRule
-    static public AmqpServerRule qpid = new AmqpServerRule(5672);
     private final EventWaiter eventWaiter;
     private final Creator<TaskManager> taskManagerCreator;
     private final Creator<TaskSupplier> taskSupplierCreator;
@@ -51,7 +49,7 @@ public class TaskManagersIntTest {
         PropertiesProvider propertiesProvider = new PropertiesProvider(Map.of(
                 "redisAddress", "redis://redis:6379",
                 "redisPoolSize", "3",
-                "messageBusAddress", "amqp://admin:admin@rabbitmq"));
+                "messageBusAddress", "amqp://guest:guest@amqp"));
         final RedissonClient redissonClient = new RedissonClientFactory().withOptions(
             Options.from(propertiesProvider.getProperties())).create();
 

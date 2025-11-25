@@ -28,11 +28,8 @@ jobs:
           POSTGRES_USER: dstest
           POSTGRES_PASSWORD: test
           POSTGRES_DB: dstest
-      - image: rabbitmq:3.12
-        name: rabbitmq
-        environment:
-          RABBITMQ_DEFAULT_USER: admin
-          RABBITMQ_DEFAULT_PASS: admin
+      - image: cloudamqp/lavinmq
+        name: amqp
       - image: adobe/s3mock:3.12.0
         name: s3mock
 

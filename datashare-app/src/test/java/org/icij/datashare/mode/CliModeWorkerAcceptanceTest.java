@@ -30,7 +30,7 @@ public class CliModeWorkerAcceptanceTest {
                                 "mode", "TASK_WORKER",
                                 "batchQueueType", QueueType.AMQP.name(),
                                 "queueType", "REDIS",
-                                "messageBusAddress", "amqp://admin:admin@rabbitmq:5672"
+                                "messageBusAddress", "amqp://guest:guest@amqp:5672"
                         ))
                 },
                 {
