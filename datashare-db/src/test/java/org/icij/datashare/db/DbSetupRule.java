@@ -5,6 +5,7 @@ import com.ninja_squad.dbsetup.DbSetup;
 import com.ninja_squad.dbsetup.destination.DataSourceDestination;
 import com.ninja_squad.dbsetup.operation.Operation;
 import com.ninja_squad.dbsetup.operation.SqlOperation;
+import com.zaxxer.hikari.HikariDataSource;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.asynctasks.bus.amqp.UriResult;
 import org.icij.datashare.json.JsonObjectMapper;
@@ -63,5 +64,11 @@ public class DbSetupRule extends ExternalResource {
         return new RepositoryFactoryImpl(new PropertiesProvider(new HashMap<>() {{
             put("dataSourceUrl", ofNullable(jdbcUrl).orElse("jdbc:sqlite:file:memorydb.db?mode=memory&cache=shared"));
         }})).createDatasource();
+    }
+
+    protected void shutdown() {
+        if (dataSource instanceof HikariDataSource) {
+            ((HikariDataSource)dataSource).close();
+        }
     }
 }

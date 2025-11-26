@@ -8,6 +8,7 @@ import org.icij.datashare.UserEvent;
 import org.icij.datashare.test.DatashareTimeRule;
 import org.icij.datashare.text.*;
 import org.icij.datashare.user.User;
+import org.junit.AfterClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -38,6 +39,7 @@ public class JooqRepositoryTest {
     @Rule public DatashareTimeRule time = new DatashareTimeRule("2021-06-30T12:13:14Z");
     @Rule public DbSetupRule dbRule;
     private final JooqRepository repository;
+    private static final List<DbSetupRule> rulesToClose = new ArrayList<>();
 
     @Parameters
     public static Collection<Object[]> dataSources() {
@@ -50,6 +52,14 @@ public class JooqRepositoryTest {
     public JooqRepositoryTest(DbSetupRule rule) {
         dbRule = rule;
         repository = rule.createRepository();
+        rulesToClose.add(dbRule);
+    }
+
+    @AfterClass
+    public static void shutdownPools() {
+        for (DbSetupRule rule : rulesToClose) {
+            rule.shutdown();
+        }
     }
 
     @Test

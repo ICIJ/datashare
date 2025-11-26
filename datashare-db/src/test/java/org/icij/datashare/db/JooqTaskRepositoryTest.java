@@ -18,12 +18,14 @@ import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.user.User;
 import org.jooq.exception.IntegrityConstraintViolationException;
 import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Map;
 
@@ -36,6 +38,7 @@ public class JooqTaskRepositoryTest {
     @Rule
     public DbSetupRule dbRule;
     private final JooqTaskRepository repository;
+    private static final List<DbSetupRule> rulesToClose = new ArrayList<>();
 
     @Parameterized.Parameters
     public static Collection<Object[]> dataSources() {
@@ -197,8 +200,16 @@ public class JooqTaskRepositoryTest {
         repository.deleteAll();
     }
 
+    @AfterClass
+    public static void shutdownPools() {
+        for (DbSetupRule rule : rulesToClose) {
+            rule.shutdown();
+        }
+    }
+
     public JooqTaskRepositoryTest(DbSetupRule rule) {
         dbRule = rule;
         repository = rule.createTaskRepository();
+        rulesToClose.add(dbRule);
     }
 }

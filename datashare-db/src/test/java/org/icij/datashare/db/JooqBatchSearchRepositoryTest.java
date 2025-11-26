@@ -9,6 +9,7 @@ import org.icij.datashare.text.indexing.SearchQuery;
 import org.icij.datashare.time.DatashareTime;
 import org.icij.datashare.user.User;
 import org.jooq.exception.DataAccessException;
+import org.junit.AfterClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -33,6 +34,7 @@ public class JooqBatchSearchRepositoryTest {
     @Rule public DbSetupRule dbRule;
     @Rule public TemporaryFolder dataFolder = new TemporaryFolder();
     private final JooqBatchSearchRepository repository;
+    private static final List<DbSetupRule> rulesToClose = new ArrayList<>();
 
     @Parameterized.Parameters
     public static Collection<Object[]> dataSources() {
@@ -42,9 +44,17 @@ public class JooqBatchSearchRepositoryTest {
         });
     }
 
+    @AfterClass
+    public static void shutdownPools() {
+        for (DbSetupRule rule : rulesToClose) {
+            rule.shutdown();
+        }
+    }
+
     public JooqBatchSearchRepositoryTest(DbSetupRule rule) {
         dbRule = rule;
         repository = rule.createBatchSearchRepository();
+        rulesToClose.add(dbRule);
     }
 
     @Test

@@ -4,6 +4,7 @@ import org.icij.datashare.text.Document;
 import org.icij.datashare.text.Language;
 import org.icij.extract.document.TikaDocument;
 import org.icij.extract.extractor.Extractor;
+import org.junit.AfterClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -12,7 +13,9 @@ import org.junit.runners.Parameterized;
 
 import java.io.File;
 import java.nio.file.Files;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 
 import static java.nio.charset.Charset.forName;
 import static java.util.Arrays.asList;
@@ -25,6 +28,7 @@ public class DatabaseSpewerTest {
     @Rule public DbSetupRule dbRule;
     @Rule public TemporaryFolder tmp = new TemporaryFolder();
     private DatabaseSpewer dbSpewer;
+    private static final List<DbSetupRule> rulesToClose = new ArrayList<>();
 
     @Parameterized.Parameters
     public static Collection<Object[]> dataSources() {
@@ -34,9 +38,17 @@ public class DatabaseSpewerTest {
         });
     }
 
+    @AfterClass
+    public static void shutdownPools() {
+        for (DbSetupRule rule : rulesToClose) {
+            rule.shutdown();
+        }
+    }
+
     public DatabaseSpewerTest(DbSetupRule rule) {
         dbRule = rule;
         dbSpewer = new DatabaseSpewer(project("prj"), rule.createRepository(), text -> Language.ENGLISH);
+        rulesToClose.add(dbRule);
     }
 
     @Test
