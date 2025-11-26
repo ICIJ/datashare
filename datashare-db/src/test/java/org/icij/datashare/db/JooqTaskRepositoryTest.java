@@ -1,20 +1,8 @@
 package org.icij.datashare.db;
 
-import java.io.IOException;
-import java.io.Serializable;
-import java.util.List;
-
-import com.fasterxml.jackson.databind.jsontype.NamedType;
-import org.icij.datashare.asynctasks.Group;
-import org.icij.datashare.asynctasks.Task;
-import org.icij.datashare.asynctasks.TaskAlreadyExists;
-import org.icij.datashare.asynctasks.TaskFilters;
-import org.icij.datashare.asynctasks.TaskGroupType;
-import org.icij.datashare.asynctasks.TaskResult;
-import org.icij.datashare.asynctasks.UnknownTask;
+import org.icij.datashare.asynctasks.*;
 import org.icij.datashare.asynctasks.bus.amqp.TaskError;
 import org.icij.datashare.asynctasks.bus.amqp.UriResult;
-import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.user.User;
 import org.jooq.exception.IntegrityConstraintViolationException;
 import org.junit.After;
@@ -23,8 +11,11 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
+import java.io.IOException;
+import java.io.Serializable;
 import java.net.URI;
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 
 import static java.util.Arrays.asList;

@@ -17,7 +17,6 @@ import java.util.function.Function;
 import static org.icij.datashare.text.Project.project;
 
 public class UserPolicyAnnotation implements ApplyAroundAnnotation<Policy> {
-    private static final org.slf4j.Logger LOGGER = org.slf4j.LoggerFactory.getLogger(UserPolicyAnnotation.class);
 
     private final UserPolicyVerifier userPolicyVerifier;
 
