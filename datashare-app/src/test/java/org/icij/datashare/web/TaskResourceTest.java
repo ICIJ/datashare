@@ -55,7 +55,7 @@ import static org.icij.datashare.web.TaskResource.taskFiltersFromContext;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
-import static org.mockito.MockitoAnnotations.openMocks;
+import static org.mockito.MockitoAnnotations.initMocks;
 
 public class TaskResourceTest extends AbstractProdWebServerTest {
     @Rule
@@ -70,7 +70,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
 
     @Before
     public void setUp() {
-        openMocks(this);
+        initMocks(this);
         when(jooqRepository.getProjects()).thenReturn(new ArrayList<>());
         when(batchSearchRepository.getRecords(any(), any())).thenReturn(new ArrayList<>());
         PipelineRegistry pipelineRegistry = new PipelineRegistry(getDefaultPropertiesProvider());

@@ -15,7 +15,7 @@ import org.mockito.Mock;
 import java.util.HashMap;
 
 import static org.mockito.Mockito.when;
-import static org.mockito.MockitoAnnotations.openMocks;
+import static org.mockito.MockitoAnnotations.initMocks;
 
 public class StatusResourceTest extends AbstractProdWebServerTest {
     @Rule public TemporaryFolder folder = new TemporaryFolder();
@@ -26,7 +26,7 @@ public class StatusResourceTest extends AbstractProdWebServerTest {
 
     @Before
     public void setUp() {
-        openMocks(this);
+        initMocks(this);
         configure(routes -> routes.add(new StatusResource(new PropertiesProvider(),repository,indexer,taskManager)));
     }
 

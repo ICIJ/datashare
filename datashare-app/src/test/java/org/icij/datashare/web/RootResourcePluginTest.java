@@ -24,7 +24,7 @@ import java.util.Map;
 import static java.nio.file.Files.copy;
 import static java.util.Arrays.asList;
 import static org.mockito.Mockito.when;
-import static org.mockito.MockitoAnnotations.openMocks;
+import static org.mockito.MockitoAnnotations.initMocks;
 
 public class RootResourcePluginTest implements FluentRestTest {
     @Mock JooqRepository jooqRepository;
@@ -48,7 +48,7 @@ public class RootResourcePluginTest implements FluentRestTest {
 
     @Before
     public void setUp() {
-        openMocks(this);
+        initMocks(this);
         when(jooqRepository.getProjects()).thenReturn(new ArrayList<>());
         propertiesProvider = new PropertiesProvider(new HashMap<>() {{
             put("pluginsDir", folder.getRoot().toString());

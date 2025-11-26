@@ -14,7 +14,7 @@ import java.util.List;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.when;
-import static org.mockito.MockitoAnnotations.openMocks;
+import static org.mockito.MockitoAnnotations.initMocks;
 
 public class UserPolicyRepositoryAdapterTest {
 
@@ -25,7 +25,7 @@ public class UserPolicyRepositoryAdapterTest {
 
     @Before
     public void setUp() {
-        openMocks(this);
+        initMocks(this);
         adapter = new UserPolicyRepositoryAdapter(repository);
     }
 

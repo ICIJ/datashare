@@ -42,7 +42,7 @@ import static org.icij.datashare.text.Tag.tag;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
-import static org.mockito.MockitoAnnotations.openMocks;
+import static org.mockito.MockitoAnnotations.initMocks;
 
 public class DocumentResourceTest extends AbstractProdWebServerTest {
     @Rule public TemporaryFolder temp = new TemporaryFolder();
@@ -54,7 +54,7 @@ public class DocumentResourceTest extends AbstractProdWebServerTest {
 
     @Before
     public void setUp() {
-        openMocks(this);
+        initMocks(this);
         mockIndexer = new MockIndexer(indexer);
         when(propertiesProvider.get(EMBEDDED_DOCUMENT_DOWNLOAD_MAX_SIZE_OPT)).thenReturn(Optional.of("1G"));
         when(propertiesProvider.getProperties()).thenReturn(new Properties());

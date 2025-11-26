@@ -11,7 +11,7 @@ import java.util.List;
 
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.when;
-import static org.mockito.MockitoAnnotations.openMocks;
+import static org.mockito.MockitoAnnotations.initMocks;
 
 public class UserPolicyVerifierTest {
     @Mock private UserRepository repository;
@@ -21,7 +21,7 @@ public class UserPolicyVerifierTest {
     UserPolicy policy2 = new UserPolicy("user2", "project2",  new Role[] {Role.WRITER,Role.ADMIN});
     @Before
     public void setUp() throws URISyntaxException {
-        openMocks(this);
+        initMocks(this);
         List<UserPolicy> policies = Arrays.asList(policy1, policy2);
         when(repository.getAll()).thenReturn(policies);
         verifier =  UserPolicyVerifier.getInstance(repository);

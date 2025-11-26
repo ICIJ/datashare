@@ -16,7 +16,7 @@ import org.mockito.Mock;
 
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
-import static org.mockito.MockitoAnnotations.openMocks;
+import static org.mockito.MockitoAnnotations.initMocks;
 
 public class ApiKeyResourceTest extends AbstractProdWebServerTest {
     @Mock public DatashareTaskFactory taskFactory;
@@ -61,7 +61,7 @@ public class ApiKeyResourceTest extends AbstractProdWebServerTest {
 
     @Before
     public void setUp() {
-        openMocks(this);
+        initMocks(this);
         configure(routes -> routes.add(new ApiKeyResource(taskFactory)).filter(new LocalUserFilter(new PropertiesProvider(), jooqRepository)));
     }
 }

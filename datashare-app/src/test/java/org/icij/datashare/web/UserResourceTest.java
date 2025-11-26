@@ -22,7 +22,7 @@ import static org.icij.datashare.text.Project.project;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
-import static org.mockito.MockitoAnnotations.openMocks;
+import static org.mockito.MockitoAnnotations.initMocks;
 
 public class UserResourceTest extends AbstractProdWebServerTest {
     @Mock JooqRepository jooqRepository;
@@ -30,7 +30,7 @@ public class UserResourceTest extends AbstractProdWebServerTest {
 
     @Before
     public void setUp() {
-        openMocks(this);
+        initMocks(this);
         configure(routes -> routes.add(new UserResource(jooqRepository)).filter(new LocalUserFilter(new PropertiesProvider(), jooqRepository)));
     }
 

@@ -16,7 +16,7 @@ import static org.icij.datashare.cli.DatashareCliOptions.EMBEDDED_DOCUMENT_DOWNL
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.when;
-import static org.mockito.MockitoAnnotations.openMocks;
+import static org.mockito.MockitoAnnotations.initMocks;
 
 public class DocumentVerifierTest {
 
@@ -26,7 +26,7 @@ public class DocumentVerifierTest {
 
     @Before
     public void setUp() {
-        openMocks(this);
+        initMocks(this);
         documentVerifier = new DocumentVerifier(indexer, propertiesProvider);
     }
 

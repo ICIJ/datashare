@@ -34,7 +34,7 @@ import static java.util.Arrays.asList;
 import static org.fest.assertions.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
-import static org.mockito.MockitoAnnotations.openMocks;
+import static org.mockito.MockitoAnnotations.initMocks;
 
 public class ProjectResourceTest extends AbstractProdWebServerTest {
     @Mock Repository repository;
@@ -47,7 +47,7 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
 
     @Before
     public void setUp() {
-        openMocks(this);
+        initMocks(this);
         documentCollectionFactory = new MemoryDocumentCollectionFactory<>();
         when(jooqRepository.getProjects()).thenReturn(new ArrayList<>());
         configure(routes -> {

@@ -37,7 +37,7 @@ import static org.icij.datashare.user.User.localUser;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
-import static org.mockito.MockitoAnnotations.openMocks;
+import static org.mockito.MockitoAnnotations.initMocks;
 
 public class UserTaskResourceTest extends AbstractProdWebServerTest {
     private TaskManagerMemory taskManager;
@@ -47,7 +47,7 @@ public class UserTaskResourceTest extends AbstractProdWebServerTest {
 
     @Before
     public void setUp() {
-        openMocks(this);
+        initMocks(this);
         when(batchSearchRepository.getRecords(any(), any())).thenReturn(new ArrayList<>());
     }
 

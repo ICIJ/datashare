@@ -28,7 +28,7 @@ import static org.icij.datashare.text.ProjectProxy.proxy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
-import static org.mockito.MockitoAnnotations.openMocks;
+import static org.mockito.MockitoAnnotations.initMocks;
 
 public class BatchSearchResourceTest extends AbstractProdWebServerTest {
     @Mock BatchSearchRepository batchSearchRepository;
@@ -309,7 +309,7 @@ public class BatchSearchResourceTest extends AbstractProdWebServerTest {
 
     @Before
     public void setUp() {
-        openMocks(this);
+        initMocks(this);
         configure(routes -> routes.add(new BatchSearchResource(new PropertiesProvider(), batchSearchRepository)).
                 filter(new LocalUserFilter(new PropertiesProvider(), jooqRepository)));
     }

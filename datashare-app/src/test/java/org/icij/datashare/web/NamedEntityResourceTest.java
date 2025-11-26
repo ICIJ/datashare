@@ -22,7 +22,7 @@ import static org.icij.datashare.text.NamedEntity.Category.PERSON;
 import static org.icij.datashare.text.NamedEntity.create;
 import static org.icij.datashare.text.nlp.Pipeline.Type.CORENLP;
 import static org.mockito.Mockito.*;
-import static org.mockito.MockitoAnnotations.openMocks;
+import static org.mockito.MockitoAnnotations.initMocks;
 
 public class NamedEntityResourceTest extends AbstractProdWebServerTest {
     @Mock Indexer indexer;
@@ -73,7 +73,7 @@ public class NamedEntityResourceTest extends AbstractProdWebServerTest {
 
     @Before
     public void setUp() {
-        openMocks(this);
+        initMocks(this);
         PropertiesProvider propertiesProvider = new PropertiesProvider();
         LocalUserFilter localUserFilter = new LocalUserFilter(propertiesProvider, jooqRepository);
         configure(routes -> routes.add(new NamedEntityResource(indexer)).filter(localUserFilter));

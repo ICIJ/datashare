@@ -10,11 +10,11 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
 
 import static org.fest.assertions.Assertions.assertThat;
 import static org.mockito.ArgumentCaptor.forClass;
 import static org.mockito.Mockito.*;
-import static org.mockito.MockitoAnnotations.openMocks;
 
 public class ApiKeyFilterTest {
     private final Payload next = Payload.ok();
@@ -76,7 +76,7 @@ public class ApiKeyFilterTest {
 
     @Before
     public void setUp() {
-        openMocks(this);
+        MockitoAnnotations.initMocks(this);
         when(context.cookies()).thenReturn(mock(Cookies.class));
         apiKeyFilter = new ApiKeyFilter(users, apiKeyStore);
     }

@@ -28,7 +28,7 @@ import java.net.URISyntaxException;
 import java.util.*;
 
 import static org.mockito.Mockito.when;
-import static org.mockito.MockitoAnnotations.openMocks;
+import static org.mockito.MockitoAnnotations.initMocks;
 
 public class IndexResourceTest extends AbstractProdWebServerTest {
     @Mock JooqRepository jooqRepository;
@@ -207,7 +207,7 @@ public class IndexResourceTest extends AbstractProdWebServerTest {
 
     @Before
     public void setUp() {
-        openMocks(this);
+        initMocks(this);
         when(jooqRepository.getProjects()).thenReturn(new ArrayList<>());
         configure(routes -> {
             Users users =  DatashareUser.singleUser("cecile");

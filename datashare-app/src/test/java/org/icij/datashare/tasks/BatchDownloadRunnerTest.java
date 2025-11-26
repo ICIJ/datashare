@@ -33,7 +33,7 @@ import static org.fest.assertions.Assertions.assertThat;
 import static org.icij.datashare.cli.DatashareCliOptions.*;
 import static org.icij.datashare.text.DocumentBuilder.createDoc;
 import static org.icij.datashare.text.Project.project;
-import static org.mockito.MockitoAnnotations.openMocks;
+import static org.mockito.MockitoAnnotations.initMocks;
 
 public class BatchDownloadRunnerTest {
     @Rule public TemporaryFolder fs = new TemporaryFolder();
@@ -99,5 +99,5 @@ public class BatchDownloadRunnerTest {
     }
 
     @Before
-    public void setUp() { openMocks(this); mockSearch = new MockSearch<>(indexer, Indexer.QueryBuilderSearcher.class);}
+    public void setUp() { initMocks(this); mockSearch = new MockSearch<>(indexer, Indexer.QueryBuilderSearcher.class);}
 }

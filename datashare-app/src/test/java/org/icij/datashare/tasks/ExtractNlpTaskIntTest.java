@@ -32,7 +32,7 @@ import static org.icij.datashare.text.DocumentBuilder.createDoc;
 import static org.icij.datashare.text.Language.ENGLISH;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
-import static org.mockito.MockitoAnnotations.openMocks;
+import static org.mockito.MockitoAnnotations.initMocks;
 
 @RunWith(Parameterized.class)
 public class ExtractNlpTaskIntTest {
@@ -122,7 +122,7 @@ public class ExtractNlpTaskIntTest {
 
     @Before
     public void setUp() {
-        openMocks(this);
+        initMocks(this);
         nlpTask = new ExtractNlpTask(indexer, pipeline, factory, new Task<>(ExtractNlpTask.class.getName(), User.local(), new HashMap<>(){{
             put("maxContentLength", "32");
         }}), null);

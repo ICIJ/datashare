@@ -23,7 +23,7 @@ import static org.icij.datashare.cli.DatashareCliOptions.TASK_MANAGER_POLLING_IN
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
-import static org.mockito.MockitoAnnotations.openMocks;
+import static org.mockito.MockitoAnnotations.initMocks;
 
 public class TaskWorkerLoopForPipelineTasksTest {
     @Mock
@@ -98,7 +98,7 @@ public class TaskWorkerLoopForPipelineTasksTest {
 
     @Before
     public void setUp() {
-        openMocks(this);
+        initMocks(this);
         when(spewer.configure(any())).thenReturn(spewer);
     }
 }

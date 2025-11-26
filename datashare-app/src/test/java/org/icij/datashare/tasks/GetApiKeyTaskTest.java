@@ -12,7 +12,7 @@ import static org.fest.assertions.Assertions.assertThat;
 import static org.mockito.ArgumentCaptor.forClass;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.mockito.MockitoAnnotations.openMocks;
+import static org.mockito.MockitoAnnotations.initMocks;
 
 public class GetApiKeyTaskTest {
     @Mock
@@ -29,7 +29,7 @@ public class GetApiKeyTaskTest {
 
     @Before
     public void setUp() throws Exception {
-        openMocks(this);
+        initMocks(this);
     }
 
 }

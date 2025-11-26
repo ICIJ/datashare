@@ -11,7 +11,7 @@ import java.util.Optional;
 
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.when;
-import static org.mockito.MockitoAnnotations.openMocks;
+import static org.mockito.MockitoAnnotations.initMocks;
 
 public class DataDirVerifierTest {
     @Mock PropertiesProvider propertiesProvider;
@@ -20,7 +20,7 @@ public class DataDirVerifierTest {
 
     @Before
     public void setUp() {
-        openMocks(this);
+        initMocks(this);
         dataDirVerifier = new DataDirVerifier(propertiesProvider);
     }
 

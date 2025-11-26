@@ -10,7 +10,7 @@ import org.mockito.Mock;
 import java.util.Optional;
 
 import static org.mockito.Mockito.when;
-import static org.mockito.MockitoAnnotations.openMocks;
+import static org.mockito.MockitoAnnotations.initMocks;
 
 public class ModeVerifierTest {
     @Mock private PropertiesProvider propertiesProvider;
@@ -18,7 +18,7 @@ public class ModeVerifierTest {
 
     @Before
     public void setUp() {
-        openMocks(this);
+        initMocks(this);
         modeVerifier = new ModeVerifier(propertiesProvider);
     }
 

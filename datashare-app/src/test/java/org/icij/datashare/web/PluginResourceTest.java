@@ -18,7 +18,7 @@ import java.util.ArrayList;
 import static java.net.URLEncoder.encode;
 import static org.fest.assertions.Assertions.assertThat;
 import static org.mockito.Mockito.when;
-import static org.mockito.MockitoAnnotations.openMocks;
+import static org.mockito.MockitoAnnotations.initMocks;
 
 public class PluginResourceTest extends AbstractProdWebServerTest {
     @Mock JooqRepository jooqRepository;
@@ -75,7 +75,7 @@ public class PluginResourceTest extends AbstractProdWebServerTest {
 
     @Before
     public void setUp() {
-        openMocks(this);
+        initMocks(this);
         when(jooqRepository.getProjects()).thenReturn(new ArrayList<>());
         configure(routes -> {
             routes

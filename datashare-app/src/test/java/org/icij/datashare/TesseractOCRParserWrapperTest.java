@@ -8,7 +8,7 @@ import org.mockito.Mock;
 
 import static org.fest.assertions.Assertions.assertThat;
 import static org.mockito.Mockito.*;
-import static org.mockito.MockitoAnnotations.openMocks;
+import static org.mockito.MockitoAnnotations.initMocks;
 
 public class TesseractOCRParserWrapperTest {
     @Mock private TesseractOCRParser ocrParser;
@@ -57,6 +57,6 @@ public class TesseractOCRParserWrapperTest {
 
     @Before
     public void setUp() {
-        openMocks(this);
+        initMocks(this);
     }
 }
