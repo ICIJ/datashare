@@ -249,4 +249,10 @@ public class User implements Entity, Comparable<User> {
                 flatMap(Stream::of).
                 collect(Collectors.toSet());
     }
+
+    public Optional<UserPolicy> getPolicy(String projectId) {
+        return policies.stream().
+                filter(p -> p.projectId().equals(projectId)).
+                findFirst();
+    }
 }
