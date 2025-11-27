@@ -14,6 +14,7 @@ import org.icij.datashare.Repository;
 import org.icij.datashare.RepositoryFactory;
 import org.icij.datashare.batch.BatchSearchRepository;
 import org.icij.datashare.user.ApiKeyRepository;
+import org.icij.datashare.user.UserRepository;
 import org.jooq.SQLDialect;
 
 import javax.sql.DataSource;
@@ -50,6 +51,11 @@ public class RepositoryFactoryImpl implements RepositoryFactory {
     @Override
     public BatchSearchRepository createBatchSearchRepository() {
         return createRepository(JooqBatchSearchRepository::new);
+    }
+
+    @Override
+    public UserRepository createUserRepository() {
+        return createRepository(JooqUserRepository::new);
     }
 
     void initDatabase(final DataSource dataSource) {
