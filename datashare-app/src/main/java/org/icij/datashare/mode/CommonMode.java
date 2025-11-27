@@ -301,6 +301,7 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
         bind(Repository.class).toInstance(repositoryFactory.createRepository());
         bind(ApiKeyRepository.class).toInstance(repositoryFactory.createApiKeyRepository());
         bind(BatchSearchRepository.class).toInstance(repositoryFactory.createBatchSearchRepository());
+        bind(UserRepository.class).toInstance(repositoryFactory.createUserRepository());
 
         TaskRepositoryType taskRepositoryType = TaskRepositoryType.valueOf(propertiesProvider.get(TASK_REPOSITORY_OPT).orElse("DATABASE"));
         switch ( taskRepositoryType ) {
