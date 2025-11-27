@@ -13,7 +13,7 @@ public class DatashareUserTest {
         ObjectMapper objectMapper = new ObjectMapper();
 
         String json = objectMapper.writeValueAsString(new DatashareUser(new User("id", "name", "email", "provider", "{\"key1\": \"value1\", \"key2\": \"value2\"}")));
-        assertThat(json).contains("{\"id\":\"id\",\"name\":\"name\",\"email\":\"email\",\"provider\":\"provider\"}");
+        assertThat(json).contains("{\"id\":\"id\",\"name\":\"name\",\"email\":\"email\",\"provider\":\"provider\",\"policies\":[]}");
 
         assertThat(objectMapper.readValue(json, DatashareUser.class)).isNotNull();
     }
