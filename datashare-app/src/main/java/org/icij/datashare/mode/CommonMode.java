@@ -1,14 +1,8 @@
 package org.icij.datashare.mode;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.inject.AbstractModule;
-import com.google.inject.CreationException;
-import com.google.inject.Guice;
-import com.google.inject.Injector;
-import com.google.inject.Key;
+import com.google.inject.*;
 import com.google.inject.Module;
-import com.google.inject.Provides;
-import com.google.inject.Singleton;
 import com.google.inject.assistedinject.FactoryModuleBuilder;
 import net.codestory.http.Configuration;
 import net.codestory.http.annotations.Get;
@@ -19,11 +13,7 @@ import net.codestory.http.misc.Env;
 import net.codestory.http.routes.Routes;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Repository;
-import org.icij.datashare.asynctasks.TaskManager;
-import org.icij.datashare.asynctasks.TaskModifier;
-import org.icij.datashare.asynctasks.TaskRepository;
-import org.icij.datashare.asynctasks.TaskSupplier;
-import org.icij.datashare.asynctasks.TaskWorkerLoop;
+import org.icij.datashare.asynctasks.*;
 import org.icij.datashare.batch.BatchSearchRepository;
 import org.icij.datashare.cli.Mode;
 import org.icij.datashare.cli.QueueType;
@@ -39,12 +29,21 @@ import org.icij.datashare.extract.RedisDocumentCollectionFactory;
 import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.nlp.EmailPipeline;
 import org.icij.datashare.nlp.OptimaizeLanguageGuesser;
+import org.icij.datashare.session.Policy;
 import org.icij.datashare.tasks.*;
+import org.icij.datashare.tasks.TaskManagerAmqp;
+import org.icij.datashare.tasks.TaskManagerMemory;
+import org.icij.datashare.tasks.TaskManagerRedis;
+import org.icij.datashare.tasks.TaskRepositoryMemory;
+import org.icij.datashare.tasks.TaskRepositoryRedis;
+import org.icij.datashare.tasks.TaskSupplierAmqp;
+import org.icij.datashare.tasks.TaskSupplierRedis;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.text.indexing.LanguageGuesser;
 import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchIndexer;
 import org.icij.datashare.text.nlp.Pipeline;
 import org.icij.datashare.user.ApiKeyRepository;
+import org.icij.datashare.user.UserRepository;
 import org.icij.datashare.web.OpenApiResource;
 import org.icij.datashare.web.RootResource;
 import org.icij.datashare.web.SettingsResource;
@@ -296,6 +295,10 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
 
     protected abstract Routes addModeConfiguration(final Routes routes);
 
+    protected void addPermissionConfiguration(final Routes routes) {
+        routes.registerAfterAnnotation(Policy.class, (annotation, context, payload) -> payload);
+    }
+
     void configurePersistence() {
         RepositoryFactoryImpl repositoryFactory = new RepositoryFactoryImpl(propertiesProvider);
         bind(Repository.class).toInstance(repositoryFactory.createRepository());
@@ -335,6 +338,7 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
         addExtensionsConfiguration(routes);
         addModeConfiguration(routes);
         addPluginsConfiguration(routes);
+        addPermissionConfiguration(routes);
         return routes;
     }
 
