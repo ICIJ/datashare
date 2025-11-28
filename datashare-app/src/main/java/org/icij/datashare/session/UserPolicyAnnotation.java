@@ -12,7 +12,6 @@ import org.icij.datashare.user.UserRepository;
 
 import java.net.URISyntaxException;
 import java.util.Arrays;
-import java.util.Optional;
 import java.util.function.Function;
 
 import static org.icij.datashare.text.Project.project;
@@ -33,11 +32,9 @@ public class UserPolicyAnnotation implements ApplyAroundAnnotation<Policy> {
         DatashareUser user = (DatashareUser) context.currentUser();
         Project project = project(index); //check if project exists ?
         if (user == null) throw new UnauthorizedException();
-        Optional<UserPolicy> userPolicy = user.getPolicy(project.getId());
-        if (userPolicy.isPresent() && enforcePolicyRoles(annotation, userPolicy.get())) {
-            return payloadSupplier.apply(context);
-        }
-        return Payload.forbidden();
+        return user.getPolicy(project.getId())
+                .map(p -> enforcePolicyRoles(annotation, p) ? payloadSupplier.apply(context) : null)
+                .orElse(Payload.forbidden());
 
     }
 
