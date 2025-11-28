@@ -138,7 +138,7 @@ public class JooqUserRepository implements UserRepository {
     }
 
     @Override
-    public User getUserWithPolicies(String userId){
+    public User getAllPolicies(String userId) {
         DSLContext ctx = using(connectionProvider, dialect);
         Map<UserInventoryRecord, Result<UserPolicyRecord>> userInventoryRecordResultMap =
                 ctx.select().from(USER_INVENTORY).leftJoin(USER_POLICY).on(USER_POLICY.USER_ID.eq(USER_INVENTORY.ID))
