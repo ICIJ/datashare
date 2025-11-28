@@ -6,7 +6,7 @@ import org.junit.Test;
 import org.mockito.Mock;
 
 import java.net.URISyntaxException;
-import java.util.List;
+import java.util.stream.Stream;
 
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.when;
@@ -21,7 +21,7 @@ public class UserPolicyVerifierTest {
     @Before
     public void setUp() throws URISyntaxException {
         openMocks(this);
-        List<UserPolicy> policies = List.of(policy1, policy2);
+        Stream<UserPolicy> policies = Stream.of(policy1, policy2);
         when(repository.getAll()).thenReturn(policies);
         verifier =  UserPolicyVerifier.getInstance(repository);
     }

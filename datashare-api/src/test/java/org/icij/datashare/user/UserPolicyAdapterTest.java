@@ -9,6 +9,7 @@ import java.net.URISyntaxException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
+import java.util.stream.Stream;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -33,8 +34,7 @@ public class UserPolicyAdapterTest {
     public void test_adapter_load_policy() throws URISyntaxException {
         UserPolicy policy1 = new UserPolicy("user1", "project1", new Role[] {Role.READER});
         UserPolicy policy2 = new UserPolicy("user2", "project2", new Role[] {Role.WRITER,Role.ADMIN});
-        List<UserPolicy> policies = List.of(policy1, policy2);
-        when(repository.getAll()).thenReturn(policies);
+        when(repository.getAll()).thenReturn(Stream.of(policy1, policy2));
 
         Model model = new Model();
         String filePath = "casbin/model.conf";

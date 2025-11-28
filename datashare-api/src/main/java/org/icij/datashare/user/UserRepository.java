@@ -1,6 +1,7 @@
 package org.icij.datashare.user;
 
 import java.util.List;
+import java.util.stream.Stream;
 
 public interface UserRepository {
     boolean save(User user);
@@ -8,7 +9,8 @@ public interface UserRepository {
     UserPolicy get(User user, String projectId);
     UserPolicy get(String userId, String projectId);
     List<UserPolicy> list(User user);
-    List<UserPolicy> getAll();
+
+    Stream<UserPolicy> getAll();
     boolean save(UserPolicy permission);
     boolean delete(User user, String projectId);
     User getUserWithPolicies(String userId);

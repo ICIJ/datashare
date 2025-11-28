@@ -18,6 +18,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static org.icij.datashare.db.Tables.USER_POLICY;
 import static org.icij.datashare.db.tables.UserInventory.USER_INVENTORY;
@@ -100,17 +101,16 @@ public class JooqUserRepository implements UserRepository {
                 .fetch()
                 .stream()
                 .map(JooqUserRepository::fromRecord)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override
-    public List<UserPolicy> getAll() {
+    public Stream<UserPolicy> getAll() {
         DSLContext ctx = using(connectionProvider, dialect);
         return ctx.selectFrom(USER_POLICY)
                 .fetch()
                 .stream()
-                .map(JooqUserRepository::fromRecord)
-                .collect(Collectors.toList());
+                .map(JooqUserRepository::fromRecord);
     }
 
 

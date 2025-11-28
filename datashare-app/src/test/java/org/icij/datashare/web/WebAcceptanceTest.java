@@ -22,7 +22,7 @@ import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
+import java.util.stream.Stream;
 
 import static org.mockito.Mockito.when;
 import static org.mockito.MockitoAnnotations.openMocks;
@@ -42,8 +42,9 @@ public class WebAcceptanceTest extends AbstractProdWebServerTest {
 
         mocks = openMocks(this);
         when(jooqRepository.getProjects()).thenReturn(new ArrayList<>());
-        when(jooqUserRepository.getAll()).thenReturn(List.of(new UserPolicy[]{adminPermission}));
+        when(jooqUserRepository.getAll()).thenReturn(Stream.of(adminPermission));
     }
+
     @Test
     public void route_with_index_in_path_policy_annotation_accepts_user_with_same_policy() throws URISyntaxException {
         User user = new User(new HashMap<>() {{
