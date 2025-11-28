@@ -58,8 +58,9 @@ public class JooqUserRepository implements UserRepository {
 
     private static User createUserFrom(UserInventoryRecord record) {
         if (record == null) {
-            return null;
+            return null; // could be NullPointerException
         }
+        // record not found
         UserInventoryRecord userRecord = record.into(USER_INVENTORY);
         if (userRecord.getId() == null) {
             return null;
