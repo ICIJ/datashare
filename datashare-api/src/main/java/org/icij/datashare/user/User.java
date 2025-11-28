@@ -9,7 +9,6 @@ import org.icij.datashare.text.Project;
 
 import java.util.*;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import static java.util.Collections.*;
 import static java.util.Optional.ofNullable;
@@ -43,7 +42,7 @@ public class User implements Entity, Comparable<User> {
     public User(@JsonProperty("id") final String id, @JsonProperty("name") String name,
                 @JsonProperty("email") String email, @JsonProperty("provider") String provider,
                 @JsonProperty("details") Map<String, Object> details) {
-        this(id, name, email, provider, details, getDefaultProjectsKey(), new HashSet<>());
+        this(id, name, email, provider, details, getDefaultProjectsKey(), Set.of());
     }
 
     public User(String id, String name,
@@ -56,7 +55,7 @@ public class User implements Entity, Comparable<User> {
         this.provider = provider;
         this.details = unmodifiableMap(ofNullable(details).orElse(new HashMap<>()));
         this.jsonProjectKey = ofNullable(jsonProjectKey).orElse(getDefaultProjectsKey());
-        this.policies = unmodifiableSet(ofNullable(policies).orElse(new HashSet<>()));
+        this.policies = unmodifiableSet(ofNullable(policies).orElse(Set.of()));
     }
 
     public User(final String id, String name, String email, String provider) {
@@ -245,8 +244,7 @@ public class User implements Entity, Comparable<User> {
     public Set<Role> getRoles(String projectId) {
         return policies.stream().
                 filter(p -> p.projectId().equals(projectId)).
-                map(UserPolicy::roles).
-                flatMap(Stream::of).
+                flatMap(p -> Arrays.stream(p.roles())).
                 collect(Collectors.toSet());
     }
 
