@@ -16,9 +16,7 @@ public class UserPolicyAdapter implements Adapter {
 
     @Override
     public void loadPolicy(Model model) {
-        List<UserPolicy> policies = repository.getAll();
-        if (policies == null || policies.isEmpty()) return;
-        for (UserPolicy policy : policies) {
+        repository.getAll().forEach(policy -> {
             String userId = policy.userId();
             String projectId = policy.projectId();
             if (policy.reader()) {
@@ -30,8 +28,7 @@ public class UserPolicyAdapter implements Adapter {
             if (policy.admin()) {
                 Helper.loadPolicyLine(String.format("p, %s, %s, %s", userId, projectId, Role.ADMIN.name()), model);
             }
-        }
-
+        });
     }
 
     @Override
