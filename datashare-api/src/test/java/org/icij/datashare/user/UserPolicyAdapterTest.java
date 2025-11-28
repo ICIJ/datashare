@@ -8,7 +8,6 @@ import org.mockito.Mock;
 import java.net.URISyntaxException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Arrays;
 import java.util.List;
 
 import static org.junit.Assert.assertFalse;
@@ -34,7 +33,7 @@ public class UserPolicyAdapterTest {
     public void test_adapter_load_policy() throws URISyntaxException {
         UserPolicy policy1 = new UserPolicy("user1", "project1", new Role[] {Role.READER});
         UserPolicy policy2 = new UserPolicy("user2", "project2", new Role[] {Role.WRITER,Role.ADMIN});
-        List<UserPolicy> policies = Arrays.asList(policy1, policy2);
+        List<UserPolicy> policies = List.of(policy1, policy2);
         when(repository.getAll()).thenReturn(policies);
 
         Model model = new Model();
@@ -45,9 +44,9 @@ public class UserPolicyAdapterTest {
         adapter.loadPolicy(model);
 
         List<List<String>> loadedPolicies = model.model.get("p").get("p").policy;
-        assertTrue(loadedPolicies.contains(Arrays.asList("user1", "project1", "READER")));
-        assertFalse(loadedPolicies.contains(Arrays.asList("user1", "project2", "READER")));
-        assertTrue(loadedPolicies.contains(Arrays.asList("user2", "project2", "WRITER")));
-        assertTrue(loadedPolicies.contains(Arrays.asList("user2", "project2", "ADMIN")));
+        assertTrue(loadedPolicies.contains(List.of("user1", "project1", "READER")));
+        assertFalse(loadedPolicies.contains(List.of("user1", "project2", "READER")));
+        assertTrue(loadedPolicies.contains(List.of("user2", "project2", "WRITER")));
+        assertTrue(loadedPolicies.contains(List.of("user2", "project2", "ADMIN")));
     }
 }

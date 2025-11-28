@@ -6,7 +6,6 @@ import org.junit.Test;
 import org.mockito.Mock;
 
 import java.net.URISyntaxException;
-import java.util.Arrays;
 import java.util.List;
 
 import static org.junit.Assert.*;
@@ -22,7 +21,7 @@ public class UserPolicyVerifierTest {
     @Before
     public void setUp() throws URISyntaxException {
         openMocks(this);
-        List<UserPolicy> policies = Arrays.asList(policy1, policy2);
+        List<UserPolicy> policies = List.of(policy1, policy2);
         when(repository.getAll()).thenReturn(policies);
         verifier =  UserPolicyVerifier.getInstance(repository);
     }
