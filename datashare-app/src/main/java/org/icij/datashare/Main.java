@@ -1,5 +1,8 @@
 package org.icij.datashare;
 
+import dorkbox.systemTray.Menu;
+import dorkbox.systemTray.MenuItem;
+import dorkbox.systemTray.SystemTray;
 import org.icij.datashare.cli.DatashareCli;
 import org.icij.datashare.cli.Mode;
 import org.icij.datashare.mode.CommonMode;
@@ -7,11 +10,42 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import ch.qos.logback.classic.Level;
 
+import java.awt.*;
+import java.awt.image.BufferedImage;
+import java.net.URL;
 import java.nio.charset.Charset;
 
 public class Main {
     private static final Logger LOGGER = LoggerFactory.getLogger(Main.class);
     public static void main(String[] args) throws Exception {
+        SystemTray systemTray = SystemTray.get();
+        if (systemTray != null) {
+            systemTray.setTooltip("Datashare");
+            try {
+                URL datashareIcon = Main.class.getClassLoader().getResource("datashare.png");
+                if (datashareIcon != null) {
+                    systemTray.setImage(datashareIcon);
+                    LOGGER.info("Custom tray icon loaded successfully");
+                } else {
+                    LOGGER.warn("Tray icon not found in resources, using default");
+                    setDefaultIcon(systemTray);
+                }
+            } catch (Exception e) {
+                LOGGER.warn("Could not load custom tray icon, using default", e);
+                setDefaultIcon(systemTray);
+            }
+
+            Menu menu = systemTray.getMenu();
+            menu.add(new MenuItem("Click me", e -> {
+                LOGGER.info("Clicked!");
+            }));
+            menu.add(new MenuItem("Quit", e -> System.exit(0)));
+
+            LOGGER.info("SystemTray should appear in your system tray");
+        } else {
+            LOGGER.error("SystemTray is NULL - not supported on this system");
+        }
+
         DatashareCli cli = new DatashareCli().parseArguments(args);
         LOGGER.info("Running datashare {}", cli.isWebServer() ? "web server" : "");
         LOGGER.info("JVM version {}", System.getProperty("java.version"));
@@ -33,5 +67,15 @@ public class Main {
             CliApp.start(cli.properties);
         }
         LOGGER.info("exiting main");
+    }
+
+
+    private static void setDefaultIcon(SystemTray systemTray) {
+        BufferedImage defaultImage = new BufferedImage(16, 16, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g2d = defaultImage.createGraphics();
+        g2d.setColor(Color.BLUE);
+        g2d.fillRect(0, 0, 16, 16);
+        g2d.dispose();
+        systemTray.setImage(defaultImage);
     }
 }
