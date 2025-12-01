@@ -36,15 +36,15 @@ public record UserPolicy(
         return Arrays.asList(roles).contains(role);
     }
 
-    public boolean admin() {
+    public boolean isAdmin() {
         return hasRole(Role.ADMIN);
     }
 
-    public boolean reader() {
+    public boolean isReader() {
         return hasRole(Role.READER);
     }
 
-    public boolean writer() {
+    public boolean isWriter() {
         return hasRole(Role.WRITER);
     }
 

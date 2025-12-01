@@ -60,9 +60,9 @@ public class JooqUserRepositoryTest extends TestCase {
         assertThat(got).isNotNull();
         assertThat(got.userId()).isEqualTo("doe");
         assertThat(got.projectId()).isEqualTo("pA");
-        assertThat(got.reader()).isTrue();
-        assertThat(got.writer()).isFalse();
-        assertThat(got.admin()).isFalse();
+        assertThat(got.isReader()).isTrue();
+        assertThat(got.isWriter()).isFalse();
+        assertThat(got.isAdmin()).isFalse();
     }
 
     @Test
@@ -75,9 +75,9 @@ public class JooqUserRepositoryTest extends TestCase {
         assertThat(saved).isTrue();
 
         UserPolicy got = repository.get(user, prj.name);
-        assertThat(got.reader()).isTrue();
-        assertThat(got.writer()).isTrue();
-        assertThat(got.admin()).isTrue();
+        assertThat(got.isReader()).isTrue();
+        assertThat(got.isWriter()).isTrue();
+        assertThat(got.isAdmin()).isTrue();
     }
 
     @Test

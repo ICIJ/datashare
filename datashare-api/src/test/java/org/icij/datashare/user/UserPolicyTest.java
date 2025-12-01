@@ -12,9 +12,9 @@ public class UserPolicyTest {
         UserPolicy up = UserPolicy.create("user1", "projectA", new Role[] {Role.READER, Role.ADMIN});
         assertThat(up.userId()).isEqualTo("user1");
         assertThat(up.projectId()).isEqualTo("projectA");
-        assertThat(up.reader()).isTrue();
-        assertThat(up.writer()).isFalse();
-        assertThat(up.admin()).isTrue();
+        assertThat(up.isReader()).isTrue();
+        assertThat(up.isWriter()).isFalse();
+        assertThat(up.isAdmin()).isTrue();
     }
 
     @Test
@@ -38,8 +38,8 @@ public class UserPolicyTest {
         assertThat(restored).isEqualTo(original);
         assertThat(restored.userId()).isEqualTo("user1");
         assertThat(restored.projectId()).isEqualTo("projectA");
-        assertThat(restored.reader()).isFalse();
-        assertThat(restored.writer()).isTrue();
-        assertThat(restored.admin()).isFalse();
+        assertThat(restored.isReader()).isFalse();
+        assertThat(restored.isWriter()).isTrue();
+        assertThat(restored.isAdmin()).isFalse();
     }
 }

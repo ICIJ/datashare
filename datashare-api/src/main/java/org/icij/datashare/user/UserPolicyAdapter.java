@@ -19,13 +19,13 @@ public class UserPolicyAdapter implements Adapter {
         repository.getAll().forEach(policy -> {
             String userId = policy.userId();
             String projectId = policy.projectId();
-            if (policy.reader()) {
+            if (policy.isReader()) {
                 Helper.loadPolicyLine(String.format("p, %s, %s, %s", userId, projectId, Role.READER.name()), model);
             }
-            if (policy.writer()) {
+            if (policy.isWriter()) {
                 Helper.loadPolicyLine(String.format("p, %s, %s, %s", userId, projectId, Role.WRITER.name()), model);
             }
-            if (policy.admin()) {
+            if (policy.isAdmin()) {
                 Helper.loadPolicyLine(String.format("p, %s, %s, %s", userId, projectId, Role.ADMIN.name()), model);
             }
         });
