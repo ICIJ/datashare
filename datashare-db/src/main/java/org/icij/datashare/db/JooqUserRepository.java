@@ -95,7 +95,7 @@ public class JooqUserRepository implements UserRepository {
     }
 
     @Override
-    public List<UserPolicy> list(User user) {
+    public List<UserPolicy> getPolicies(User user) {
         DSLContext ctx = using(connectionProvider, dialect);
         return ctx.selectFrom(USER_POLICY)
                 .where(USER_POLICY.USER_ID.eq(user.id))

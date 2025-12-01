@@ -81,14 +81,14 @@ public class JooqUserRepositoryTest extends TestCase {
     }
 
     @Test
-    public void test_list_by_user() {
+    public void test_getPolicies_by_user() {
         User user = new User("doe");
         ProjectProxy prjA = new ProjectProxy("pA");
         ProjectProxy prjB = new ProjectProxy("pB");
         repository.save(new UserPolicy(user.id, prjA.name, new Role[] {Role.READER, Role.WRITER}));
         repository.save(new UserPolicy(user.id, prjB.name, new Role[]{ Role.WRITER,Role.ADMIN}));
 
-        List<UserPolicy> list = repository.list(user);
+        List<UserPolicy> list = repository.getPolicies(user);
         assertThat(list.size()).isEqualTo(2);
         assertThat(list.stream().map(UserPolicy::projectId).toList()).contains(prjA.name, prjB.name);
     }

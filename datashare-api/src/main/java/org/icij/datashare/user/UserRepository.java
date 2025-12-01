@@ -8,7 +8,8 @@ public interface UserRepository {
     User getUser(String userId);
     UserPolicy get(User user, String projectId);
     UserPolicy get(String userId, String projectId);
-    List<UserPolicy> list(User user);
+
+    List<UserPolicy> getPolicies(User user);
 
     Stream<UserPolicy> getAll();
     boolean save(UserPolicy permission);
