@@ -9,7 +9,7 @@ public class UserPolicyTest {
 
     @Test
     public void test_factory_and_getters() {
-        UserPolicy up = UserPolicy.create("user1", "projectA", new Role[] {Role.READER, Role.ADMIN});
+        UserPolicy up = UserPolicy.of("user1", "projectA", new Role[]{Role.READER, Role.ADMIN});
         assertThat(up.userId()).isEqualTo("user1");
         assertThat(up.projectId()).isEqualTo("projectA");
         assertThat(up.isReader()).isTrue();
@@ -19,9 +19,9 @@ public class UserPolicyTest {
 
     @Test
     public void test_equals_and_hashcode() {
-        UserPolicy up1 = UserPolicy.create("user1", "projectA", new Role[] {Role.READER});
-        UserPolicy up2 = UserPolicy.create("user1", "projectA", new Role[] {Role.READER});
-        UserPolicy up3 = UserPolicy.create("user1", "projectA", new Role[] {Role.READER, Role.WRITER});
+        UserPolicy up1 = UserPolicy.of("user1", "projectA", new Role[]{Role.READER});
+        UserPolicy up2 = UserPolicy.of("user1", "projectA", new Role[]{Role.READER});
+        UserPolicy up3 = UserPolicy.of("user1", "projectA", new Role[]{Role.READER, Role.WRITER});
 
         assertThat(up1).isEqualTo(up2);
         assertThat(up1.hashCode()).isEqualTo(up2.hashCode());
@@ -30,7 +30,7 @@ public class UserPolicyTest {
 
     @Test
     public void test_json_round_trip_with_objectmapper() throws Exception {
-        UserPolicy original = UserPolicy.create("user1", "projectA", new Role[] {Role.WRITER});
+        UserPolicy original = UserPolicy.of("user1", "projectA", new Role[]{Role.WRITER});
 
         String json = JsonObjectMapper.writeValueAsString(original);
         UserPolicy restored = JsonObjectMapper.readValue(json, UserPolicy.class);

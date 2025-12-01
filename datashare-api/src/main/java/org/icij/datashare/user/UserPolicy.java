@@ -20,16 +20,16 @@ public record UserPolicy(
     @JsonCreator
     public UserPolicy {}
 
-    public static UserPolicy create(String userId, String projectId, Role[] roles) {
+    public static UserPolicy of(String userId, String projectId, Role[] roles) {
         return new UserPolicy(userId, projectId, roles);
     }
 
-    public static UserPolicy create(String userId, String projectId) {
+    public static UserPolicy of(String userId, String projectId) {
         return new UserPolicy(userId, projectId, new Role[] {});
     }
 
-    public static UserPolicy create(User user, String projectId) {
-        return UserPolicy.create(user.id, projectId);
+    public static UserPolicy of(User user, String projectId) {
+        return UserPolicy.of(user.id, projectId);
     }
 
     public boolean hasRole(Role role) {
