@@ -120,12 +120,12 @@ public class JooqUserRepository implements UserRepository {
         DSLContext ctx = using(connectionProvider, dialect);
         return ctx.insertInto(USER_POLICY)
                 .columns(USER_POLICY.USER_ID, USER_POLICY.PRJ_ID, USER_POLICY.READ, USER_POLICY.WRITE, USER_POLICY.ADMIN)
-                .values(policy.userId(), policy.projectId(), policy.reader(), policy.writer(), policy.admin())
+                .values(policy.userId(), policy.projectId(), policy.isReader(), policy.isWriter(), policy.isAdmin())
                 .onConflict(USER_POLICY.USER_ID, USER_POLICY.PRJ_ID)
                 .doUpdate()
-                .set(USER_POLICY.READ, policy.reader())
-                .set(USER_POLICY.WRITE, policy.writer())
-                .set(USER_POLICY.ADMIN, policy.admin())
+                .set(USER_POLICY.READ, policy.isReader())
+                .set(USER_POLICY.WRITE, policy.isWriter())
+                .set(USER_POLICY.ADMIN, policy.isAdmin())
                 .execute() > 0;
     }
 

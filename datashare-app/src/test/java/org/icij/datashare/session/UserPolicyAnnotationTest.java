@@ -82,7 +82,7 @@ public class UserPolicyAnnotationTest {
     }
 
     @Test
-    public void should_allow_user_if_has_wrong_policy_as_non_admin() {
+    public void should_allow_user_if_has_wrong_policy_as_non_isAdmin() {
         Context context = mock(Context.class);
 
         when(context.currentUser()).thenReturn(nonAdminUser);
@@ -92,7 +92,7 @@ public class UserPolicyAnnotationTest {
     }
 
     @Test
-    public void should_allow_user_if_has_right_policy_as_admin() {
+    public void should_allow_user_if_has_right_policy_as_isAdmin() {
         Context context = mock(Context.class);
 
         when(context.currentUser()).thenReturn(adminUser);
