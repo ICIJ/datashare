@@ -42,7 +42,7 @@ public class WebAcceptanceTest extends AbstractProdWebServerTest {
 
         mocks = openMocks(this);
         when(jooqRepository.getProjects()).thenReturn(new ArrayList<>());
-        when(jooqUserRepository.getAll()).thenReturn(Stream.of(adminPermission));
+        when(jooqUserRepository.getAllPolicies()).thenReturn(Stream.of(adminPermission));
     }
 
     @Test

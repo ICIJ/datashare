@@ -52,7 +52,7 @@ public class UserPolicyAnnotationTest {
         UserPolicy adminPermission = new UserPolicy("cecile", projectId, new Role[]{ADMIN});
         UserPolicy nonAdminPermission = new UserPolicy("john", projectId, new Role[]{Role.READER});
         UserRepository userRepository = mock(UserRepository.class);
-        when(userRepository.getAll()).thenReturn(Stream.of(adminPermission, nonAdminPermission));
+        when(userRepository.getAllPolicies()).thenReturn(Stream.of(adminPermission, nonAdminPermission));
 
         adminUser = new DatashareUser(Map.of("uid", "cecile", "policies", Set.of(adminPermission)));
         nonAdminUser = new DatashareUser(Map.of("uid", "john", "policies", Set.of(nonAdminPermission)));

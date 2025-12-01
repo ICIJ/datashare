@@ -16,7 +16,7 @@ public class UserPolicyAdapter implements Adapter {
 
     @Override
     public void loadPolicy(Model model) {
-        repository.getAll().forEach(policy -> {
+        repository.getAllPolicies().forEach(policy -> {
             String userId = policy.userId();
             String projectId = policy.projectId();
             if (policy.isReader()) {

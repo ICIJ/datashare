@@ -109,7 +109,7 @@ public class JooqUserRepositoryTest extends TestCase {
         repository.save(new UserPolicy("foo", "bar", new Role[]{Role.READER, Role.WRITER}));
         repository.save(new UserPolicy("foo", "baz", new Role[]{Role.ADMIN}));
 
-        User foo = repository.getAllPolicies("foo");
+        User foo = repository.getUser("foo");
 
         assertThat(foo.policies).hasSize(2);
         assertThat(foo.getRoles("bar")).containsOnly(Role.READER, Role.WRITER);

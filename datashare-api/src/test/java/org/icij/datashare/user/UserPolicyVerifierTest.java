@@ -22,7 +22,7 @@ public class UserPolicyVerifierTest {
     public void setUp() throws URISyntaxException {
         openMocks(this);
         Stream<UserPolicy> policies = Stream.of(policy1, policy2);
-        when(repository.getAll()).thenReturn(policies);
+        when(repository.getAllPolicies()).thenReturn(policies);
         verifier =  UserPolicyVerifier.getInstance(repository);
     }
     public static void testEnforce(UserPolicyVerifier verifier, String subject, String obj, String act, boolean expectedResult) {

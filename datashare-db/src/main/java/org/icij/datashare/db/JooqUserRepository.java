@@ -51,11 +51,6 @@ public class JooqUserRepository implements UserRepository {
 
     }
 
-    public User getUser(String uid) {
-        DSLContext ctx = using(connectionProvider, dialect);
-        return createUserFrom(ctx.selectFrom(USER_INVENTORY).where(USER_INVENTORY.ID.eq(uid)).fetchOne());
-    }
-
     private static User createUserFrom(UserInventoryRecord record) {
         if (record == null) {
             return null; // could be NullPointerException
@@ -106,7 +101,7 @@ public class JooqUserRepository implements UserRepository {
     }
 
     @Override
-    public Stream<UserPolicy> getAll() {
+    public Stream<UserPolicy> getAllPolicies() {
         DSLContext ctx = using(connectionProvider, dialect);
         return ctx.selectFrom(USER_POLICY)
                 .fetch()
@@ -138,7 +133,7 @@ public class JooqUserRepository implements UserRepository {
     }
 
     @Override
-    public User getAllPolicies(String userId) {
+    public User getUser(String userId) {
         DSLContext ctx = using(connectionProvider, dialect);
         Map<UserInventoryRecord, Result<UserPolicyRecord>> userInventoryRecordResultMap =
                 ctx.select().from(USER_INVENTORY).leftJoin(USER_POLICY).on(USER_POLICY.USER_ID.eq(USER_INVENTORY.ID))

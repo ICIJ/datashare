@@ -11,9 +11,8 @@ public interface UserRepository {
 
     List<UserPolicy> getPolicies(User user);
 
-    Stream<UserPolicy> getAll();
+    Stream<UserPolicy> getAllPolicies();
     boolean save(UserPolicy permission);
     boolean delete(User user, String projectId);
 
-    User getAllPolicies(String userId);
 }

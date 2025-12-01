@@ -34,7 +34,7 @@ public class UserPolicyAdapterTest {
     public void test_adapter_load_policy() throws URISyntaxException {
         UserPolicy policy1 = new UserPolicy("user1", "project1", new Role[] {Role.READER});
         UserPolicy policy2 = new UserPolicy("user2", "project2", new Role[] {Role.WRITER,Role.ADMIN});
-        when(repository.getAll()).thenReturn(Stream.of(policy1, policy2));
+        when(repository.getAllPolicies()).thenReturn(Stream.of(policy1, policy2));
 
         Model model = new Model();
         String filePath = "casbin/model.conf";
