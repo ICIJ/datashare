@@ -25,7 +25,7 @@
 
 **Datashare** is an open‑source, self‑hosted document search and analysis platform built by the International Consortium of Investigative Journalists (ICIJ). It ingests heterogeneous data (PDFs, emails, spreadsheets, images, archives, etc.), extracts text (including via OCR), enriches it with metadata and named entities, and exposes everything through a powerful search UI and REST API. Because Datashare runs on your own machines, you keep full control over sensitive material—no external cloud services required.
 
-> 📣 **Help shape the next content extraction features in Datashare!** Please take 10 minutes to fill out our [user survey](https://forms.gle/PYgusFsoBaMyzUec9), it will directly influences our roadmap, and lets you opt‑in for early previews/beta testing.
+> 📣 **Help us improve Datashare!** What do you think about the new design of Datashare? Tell us your feedback through our [survey](https://forms.gle/85faVA7VVoWkohuH7), it will directly influences our roadmap, and lets you opt‑in for early previews/beta testing.
 
 ## Table of Contents
 
