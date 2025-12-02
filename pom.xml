@@ -111,7 +111,7 @@
         <xalan.version>2.7.2</xalan.version>
         <xerces.version>2.12.2</xerces.version>
         <commons-beanutils.version>1.7.0</commons-beanutils.version>
-        <jna.version>4.2.2</jna.version>
+        <jna.version>5.13.0</jna.version>
         <bouncycastle.version>1.70</bouncycastle.version>
         <httpcomponents.version>4.5.13</httpcomponents.version>
         <joptsimple.version>6.0-alpha-3</joptsimple.version>
@@ -246,6 +246,12 @@
                 <artifactId>bcmail-jdk15on</artifactId>
                 <version>${bouncycastle.version}</version>
                 <scope>provided</scope>
+            </dependency>
+
+            <dependency>
+                <groupId>net.java.dev.jna</groupId>
+                <artifactId>jna</artifactId>
+                <version>${jna.version}</version>
             </dependency>
 
             <!-- Guava/Guice -->
