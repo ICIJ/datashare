@@ -13,10 +13,6 @@
     <artifactId>datashare-index</artifactId>
     <packaging>jar</packaging>
 
-    <properties>
-        <jna.version>4.1.0</jna.version>
-    </properties>
-
     <repositories>
         <repository>
             <id>codelibs.org</id>
