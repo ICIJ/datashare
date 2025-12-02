@@ -13,6 +13,11 @@
     <artifactId>datashare-index</artifactId>
     <packaging>jar</packaging>
 
+    <properties>
+        <jna.version>4.1.0</jna.version>
+        <opensearch.version>3.3.2</opensearch.version>
+    </properties>
+
     <repositories>
         <repository>
             <id>codelibs.org</id>
