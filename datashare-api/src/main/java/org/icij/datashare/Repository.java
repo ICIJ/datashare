@@ -30,7 +30,8 @@ public interface Repository {
     List<Document> getDocumentsNotTaggedWithPipeline(Project project, Pipeline.Type type);
     List<Document> getStarredDocuments(User user);
     List<String> getStarredDocuments(Project project, User user);
-    Set<String> getRecommentationsBy(Project project, List<User> users);
+
+    Set<String> getRecommendationsBy(Project project, List<User> users);
 
     // document user recommendations
     List<DocumentUserRecommendation> getDocumentUserRecommendations(int from, int size);
