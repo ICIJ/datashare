@@ -349,7 +349,7 @@ public class JooqRepository implements Repository {
     }
 
     @Override
-    public Set<String> getRecommentationsBy(Project project, List<User> users) {
+    public Set<String> getRecommendationsBy(Project project, List<User> users) {
         DSLContext create = DSL.using(connectionProvider, dialect);
         return new HashSet<>(create.select(DOCUMENT_USER_RECOMMENDATION.DOC_ID).from(DOCUMENT_USER_RECOMMENDATION)
                 .where(DOCUMENT_USER_RECOMMENDATION.USER_ID.in(users.stream().map(x -> x.id).collect(toList())))
