@@ -12,8 +12,6 @@ import java.net.URISyntaxException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 
 public class UserPolicyVerifier {
@@ -53,21 +51,8 @@ public class UserPolicyVerifier {
                 this.enforce(userPolicy.userId(), userPolicy.projectId(), role.name()));
     }
 
-    public boolean enforce(User user, Project project, Role act) {
-        return this.enforce(user.getId(), project.getName(), act.name());
-    }
-
     public boolean enforce(String userName, String projectName, String act) {
         return this.enforcer.enforce(userName, projectName, act);
-    }
-
-    public User getUserWithPolicies(String userId) {
-        User user = repository.getUser(userId);
-        if (user == null) {
-            throw new EntityNotFoundException(User.class, userId);
-        }
-        Stream<UserPolicy> policies = this.userPolicyRepository.getPolicies(userId);
-        return user.withPolicies(policies.collect(Collectors.toSet()));
     }
 
     public UserPolicy getUserPolicyByProject(String userId, String projectId) {
