@@ -4,6 +4,7 @@ import com.google.inject.Inject;
 import org.casbin.jcasbin.main.Enforcer;
 import org.casbin.jcasbin.model.Model;
 import org.casbin.jcasbin.persist.Adapter;
+import org.icij.datashare.EntityNotFoundException;
 import org.icij.datashare.Repository;
 import org.icij.datashare.text.Project;
 
@@ -63,9 +64,21 @@ public class UserPolicyVerifier {
     public User getUserWithPolicies(String userId) {
         User user = repository.getUser(userId);
         if (user == null) {
-            throw new IllegalArgumentException("User not found: " + userId);
+            throw new EntityNotFoundException(User.class, userId);
         }
         Stream<UserPolicy> policies = this.userPolicyRepository.getPolicies(userId);
         return user.withPolicies(policies.collect(Collectors.toSet()));
+    }
+
+    public UserPolicy getUserPolicyByProject(String userId, String projectId) {
+        User user = repository.getUser(userId);
+        if (user == null) {
+            throw new EntityNotFoundException(User.class, userId);
+        }
+        Project project = repository.getProject(projectId);
+        if (project == null) {
+            throw new EntityNotFoundException(Project.class, projectId);
+        }
+        return this.userPolicyRepository.get(userId, projectId);
     }
 }

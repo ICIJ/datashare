@@ -1,7 +1,13 @@
-package org.icij.datashare.user;
+package org.icij.datashare.session;
 
+import org.icij.datashare.EntityNotFoundException;
 import org.icij.datashare.Repository;
 import org.icij.datashare.text.Project;
+import org.icij.datashare.user.Role;
+import org.icij.datashare.user.User;
+import org.icij.datashare.user.UserPolicy;
+import org.icij.datashare.user.UserPolicyRepository;
+import org.icij.datashare.user.UserPolicyVerifier;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
@@ -10,6 +16,7 @@ import java.net.URISyntaxException;
 import java.util.stream.Stream;
 
 import static org.fest.assertions.Assertions.assertThat;
+import static org.icij.datashare.text.Project.project;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -31,9 +38,15 @@ public class UserPolicyVerifierTest {
         openMocks(this);
         Stream<UserPolicy> policies = Stream.of(policy1, policy2);
         User user1 = new User("foo", "user1", "user1@example.com", "local", "{}");
-        when(userPolicyRepository.getPolicies("user1")).thenReturn(Stream.of(policy1));
-        when(userPolicyRepository.getAllPolicies()).thenReturn(policies);
+        Project project1 = project("project1");
+        Project project2 = project("project2");
         when(repository.getUser("user1")).thenReturn(user1);
+        when(repository.getProject("project1")).thenReturn(project1);
+        when(repository.getProject("project2")).thenReturn(project2);
+        when(userPolicyRepository.getPolicies("user1")).thenReturn(Stream.of(policy1));
+        when(userPolicyRepository.get("user1", "project1")).thenReturn(policy1);
+        when(userPolicyRepository.getAllPolicies()).thenReturn(policies);
+
         verifier = UserPolicyVerifier.getInstance(userPolicyRepository, repository);
     }
     public static void testEnforce(UserPolicyVerifier verifier, String subject, String obj, String act, boolean expectedResult) {
@@ -90,9 +103,28 @@ public class UserPolicyVerifierTest {
         assertThat(foo.getRoles("project1")).containsOnly(Role.READER);
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
+    public void test_get_user_policy_by_project() {
+        Project project1 = new Project("project1", "Project 1");
+        when(repository.getProject("project1")).thenReturn(project1);
+        UserPolicy policy = verifier.getUserPolicyByProject("user1", "project1");
+        assertThat(policy).isNotNull();
+        UserPolicy policyNotExist = verifier.getUserPolicyByProject("user1", "project2");
+        assertThat(policyNotExist).isNull();
+    }
+
+    @Test(expected = EntityNotFoundException.class)
     public void test_get_user_with_policies_when_user_does_not_exists() {
         verifier.getUserWithPolicies("foo");
     }
 
+    @Test(expected = EntityNotFoundException.class)
+    public void test_get_user_with_policies_by_project_when_user_does_not_exists() {
+        verifier.getUserPolicyByProject("foo", "bar");
+    }
+
+    @Test(expected = EntityNotFoundException.class)
+    public void test_get_user_with_policies_by_project_when_project_does_not_exists() {
+        verifier.getUserPolicyByProject("user1", "bar");
+    }
 }
