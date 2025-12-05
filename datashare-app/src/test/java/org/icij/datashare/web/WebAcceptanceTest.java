@@ -4,7 +4,7 @@ import net.codestory.http.annotations.Get;
 import net.codestory.http.filters.basic.BasicAuthFilter;
 import net.codestory.http.security.Users;
 import org.icij.datashare.Repository;
-import org.icij.datashare.db.JooqUserRepository;
+import org.icij.datashare.db.JooqUserPolicyRepository;
 import org.icij.datashare.session.DatashareUser;
 import org.icij.datashare.session.Policy;
 import org.icij.datashare.session.UserPolicyAnnotation;
@@ -32,7 +32,7 @@ public class WebAcceptanceTest extends AbstractProdWebServerTest {
     @Mock
     Repository jooqRepository;
     @Mock
-    JooqUserRepository jooqUserRepository;
+    JooqUserPolicyRepository jooqUserPolicyRepository;
     UserPolicy adminPermission = new UserPolicy("john", "test-datashare", new Role[]{Role.ADMIN});
 
 
@@ -42,7 +42,7 @@ public class WebAcceptanceTest extends AbstractProdWebServerTest {
 
         mocks = openMocks(this);
         when(jooqRepository.getProjects()).thenReturn(new ArrayList<>());
-        when(jooqUserRepository.getAllPolicies()).thenReturn(Stream.of(adminPermission));
+        when(jooqUserPolicyRepository.getAllPolicies()).thenReturn(Stream.of(adminPermission));
     }
 
     @Test
@@ -55,7 +55,7 @@ public class WebAcceptanceTest extends AbstractProdWebServerTest {
             }});
         }});
         Users users = DatashareUser.singleUser(user);
-        UserPolicyAnnotation userPolicyAnnotation = new UserPolicyAnnotation(jooqUserRepository);
+        UserPolicyAnnotation userPolicyAnnotation = new UserPolicyAnnotation(jooqUserPolicyRepository, jooqRepository);
         configure(routes -> routes.registerAroundAnnotation(Policy.class, userPolicyAnnotation).filter(new BasicAuthFilter("/", "icij", users)).add(new FakeResource()));
 
         get("/admin/test-datashare").withPreemptiveAuthentication("john", "pass").should().respond(200);

@@ -3,17 +3,17 @@ package org.icij.datashare.session;
 import net.codestory.http.Context;
 import net.codestory.http.errors.UnauthorizedException;
 import net.codestory.http.payload.Payload;
+import org.icij.datashare.Repository;
 import org.icij.datashare.user.Role;
 import org.icij.datashare.user.UserPolicy;
+import org.icij.datashare.user.UserPolicyRepository;
 import org.icij.datashare.user.UserPolicyVerifier;
-import org.icij.datashare.user.UserRepository;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.lang.annotation.Annotation;
 import java.net.URISyntaxException;
-import java.util.Map;
 import java.util.Set;
 import java.util.stream.Stream;
 
@@ -51,13 +51,14 @@ public class UserPolicyAnnotationTest {
         projectId = "test-datashare";
         UserPolicy adminPermission = new UserPolicy("cecile", projectId, new Role[]{ADMIN});
         UserPolicy nonAdminPermission = new UserPolicy("john", projectId, new Role[]{Role.READER});
-        UserRepository userRepository = mock(UserRepository.class);
+        UserPolicyRepository userRepository = mock(UserPolicyRepository.class);
+        Repository repository = mock(Repository.class);
         when(userRepository.getAllPolicies()).thenReturn(Stream.of(adminPermission, nonAdminPermission));
 
-        adminUser = new DatashareUser(Map.of("uid", "cecile", "policies", Set.of(adminPermission)));
-        nonAdminUser = new DatashareUser(Map.of("uid", "john", "policies", Set.of(nonAdminPermission)));
+        adminUser = (DatashareUser) new DatashareUser("cecile").withPolicies(Set.of(adminPermission));
+        nonAdminUser = (DatashareUser) new DatashareUser("john").withPolicies(Set.of(nonAdminPermission));
 
-        annotation = new UserPolicyAnnotation(userRepository);
+        annotation = new UserPolicyAnnotation(userRepository, repository);
 
     }
 
