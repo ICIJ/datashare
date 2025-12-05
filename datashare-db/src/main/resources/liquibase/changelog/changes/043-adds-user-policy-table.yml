@@ -1,0 +1,38 @@
+databaseChangeLog:
+  - changeSet:
+      id: 43
+      author: cdesprat
+      changes:
+        - createTable:
+            tableName: user_policy
+            columns:
+              - column:
+                  name: user_id
+                  type: varchar(96)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: prj_id
+                  type: varchar(96)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: read
+                  type: boolean
+                  constraints:
+                    nullable: false
+              - column:
+                  name: write
+                  type: boolean
+                  constraints:
+                    nullable: false
+              - column:
+                  name: admin
+                  type: boolean
+                  constraints:
+                    nullable: false
+  - changeSet:
+      id: 44
+      author: cdesprat
+      sql:
+        - CREATE UNIQUE INDEX idx_user_policy_unique ON user_policy (user_id, prj_id)

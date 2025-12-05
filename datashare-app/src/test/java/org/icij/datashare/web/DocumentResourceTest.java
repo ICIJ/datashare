@@ -201,7 +201,7 @@ public class DocumentResourceTest extends AbstractProdWebServerTest {
 
     @Test
     public void test_get_recommended_documents() {
-        when(jooqRepository.getRecommentationsBy(eq(project("prj")),eq(asList(new User("user1"), new User("user2"))))).thenReturn(of("doc1","doc2").collect(Collectors.toSet()));
+        when(jooqRepository.getRecommendationsBy(eq(project("prj")), eq(asList(new User("user1"), new User("user2"))))).thenReturn(of("doc1", "doc2").collect(Collectors.toSet()));
         get("/api/prj/documents/recommendations?userids=user1,user2").should().respond(200).contain("doc1").contain("doc2");
     }
 

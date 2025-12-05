@@ -14,10 +14,13 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import static java.util.Collections.singletonList;
 import static java.util.Collections.unmodifiableMap;
+import static java.util.Collections.unmodifiableSet;
 import static java.util.Optional.ofNullable;
 import static org.icij.datashare.json.JsonObjectMapper.deserialize;
 import static org.icij.datashare.text.StringUtils.isEmpty;
@@ -32,6 +35,7 @@ public class User implements Entity, Comparable<User> {
     public final String email;
     public final String provider;
     public final Map<String, Object> details;
+    public final Set<UserPolicy> policies;
     private final HashSet<Project> projects = new HashSet<>();
     @JsonIgnore
     private final String jsonProjectKey;
@@ -40,22 +44,28 @@ public class User implements Entity, Comparable<User> {
         this(id, name, email, provider, deserialize(jsonDetails));
     }
 
+    public User(final String id, String name, String email, String provider, String jsonDetails, Set<UserPolicy> policies) {
+        this(id, name, email, provider, deserialize(jsonDetails), jsonDetails, policies);
+    }
+
     @JsonCreator
     public User(@JsonProperty("id") final String id, @JsonProperty("name") String name,
                 @JsonProperty("email") String email, @JsonProperty("provider") String provider,
                 @JsonProperty("details") Map<String, Object> details) {
-        this(id, name, email, provider, details, getDefaultProjectsKey());
+        this(id, name, email, provider, details, getDefaultProjectsKey(), Set.of());
     }
 
     public User(String id, String name,
                 String email, String provider,
-                Map<String, Object> details, String jsonProjectKey) {
+                Map<String, Object> details, String jsonProjectKey,
+                Set<UserPolicy> policies) {
         this.id = id;
         this.name = name;
         this.email = email;
         this.provider = provider;
         this.details = unmodifiableMap(ofNullable(details).orElse(new HashMap<>()));
-        this.jsonProjectKey = jsonProjectKey;
+        this.jsonProjectKey = ofNullable(jsonProjectKey).orElse(getDefaultProjectsKey());
+        this.policies = unmodifiableSet(ofNullable(policies).orElse(Set.of()));
     }
 
     public User(final String id, String name, String email, String provider) {
@@ -71,7 +81,13 @@ public class User implements Entity, Comparable<User> {
     }
 
     public User(Map<String, Object> map) {
-        this((String)map.get("uid"), (String)map.get("name"), (String)map.get("email"), (String)map.getOrDefault("provider", LOCAL), map);
+        this((String)map.get("uid"),
+                (String)map.get("name"),
+                (String)map.get("email"),
+                (String)map.getOrDefault("provider", LOCAL),
+                map, //details
+                (String)map.get("jsonProjectKey"),
+                (Set<UserPolicy>) map.get("policies"));
     }
 
     public User(User user) {
@@ -79,7 +95,22 @@ public class User implements Entity, Comparable<User> {
                 ofNullable(user).orElse(nullUser()).name,
                 ofNullable(user).orElse(nullUser()).email,
                 ofNullable(user).orElse(nullUser()).provider,
-                ofNullable(user).orElse(nullUser()).details);
+                ofNullable(user).orElse(nullUser()).details,
+                ofNullable(user).orElse(nullUser()).jsonProjectKey,
+                ofNullable(user).orElse(nullUser()).policies);
+    }
+
+    public User withPolicies(Set<UserPolicy> policies) {
+        // User is immutable regarding policies; return a new instance with updated policies
+        return new User(
+                this.id,
+                this.name,
+                this.email,
+                this.provider,
+                this.details,
+                this.jsonProjectKey,
+                policies
+        );
     }
 
     public static User fromJson(String json, String provider) {
@@ -231,5 +262,18 @@ public class User implements Entity, Comparable<User> {
     @Override
     public int compareTo(User user) {
         return id.compareTo(user.id);
+    }
+
+    public Set<Role> getRoles(String projectId) {
+        return policies.stream().
+                filter(p -> p.projectId().equals(projectId)).
+                flatMap(p -> Arrays.stream(p.roles())).
+                collect(Collectors.toSet());
+    }
+
+    public Optional<UserPolicy> getPolicy(String projectId) {
+        return policies.stream().
+                filter(p -> p.projectId().equals(projectId)).
+                findFirst();
     }
 }

@@ -11,6 +11,8 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 
 import static org.fest.assertions.Assertions.assertThat;
 import static org.fest.assertions.MapAssert.entry;
@@ -197,6 +199,39 @@ public class UserTest {
         assertThat(user.getProjectNames()).hasSize(0);
     }
 
+    @Test
+    public void test_getRoles_returns_roles_for_project() {
+        UserPolicy policy1 = new UserPolicy("id", "project1", new Role[]{Role.ADMIN, Role.READER});
+        UserPolicy policy2 = new UserPolicy("id", "project2", new Role[]{Role.READER});
+        User user = new User("id", "name", "email", "provider", "{}", Set.of(policy1, policy2));
+
+        Set<Role> roles = user.getRoles("project1");
+        assertThat(roles).containsOnly(Role.ADMIN, Role.READER);
+
+        roles = user.getRoles("project2");
+        assertThat(roles).containsOnly(Role.READER);
+
+        roles = user.getRoles("project3");
+        assertThat(roles).isEmpty();
+    }
+
+    @Test
+    public void test_getPolicy_returns_policy_for_project() {
+        UserPolicy policy1 = new UserPolicy("id", "project1", new Role[]{Role.ADMIN});
+        UserPolicy policy2 = new UserPolicy("id", "project2", new Role[]{Role.READER});
+        User user = new User("id", "name", "email", "provider", "{}", Set.of(policy1, policy2));
+
+        Optional<UserPolicy> foundPolicy = user.getPolicy("project1");
+        assertThat(foundPolicy.isPresent()).isTrue();
+        assertThat(foundPolicy.get()).isEqualTo(policy1);
+
+        foundPolicy = user.getPolicy("project2");
+        assertThat(foundPolicy.isPresent()).isTrue();
+        assertThat(foundPolicy.get()).isEqualTo(policy2);
+
+        foundPolicy = user.getPolicy("project3");
+        assertThat(foundPolicy.isPresent()).isFalse();
+    }
     @After
     public void tearDown() throws Exception {
         System.setProperty("datashare.user.projects", "");

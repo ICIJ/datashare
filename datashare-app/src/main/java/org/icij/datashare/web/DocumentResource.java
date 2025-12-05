@@ -439,7 +439,7 @@ public class DocumentResource {
     )
     @Get("/:project/documents/recommendations?userids=:coma_separated_users")
     public Set<String> getProjectRecommendationsBy(final String projectId, final String comaSeparatedUsers) {
-        return repository.getRecommentationsBy(project(projectId), stream(comaSeparatedUsers.split(",")).map(User::new).collect(Collectors.toList()));
+        return repository.getRecommendationsBy(project(projectId), stream(comaSeparatedUsers.split(",")).map(User::new).collect(Collectors.toList()));
     }
 
     @Operation(description = "Marks the documents as recommended in batch. The id list is passed in the request body as a json list.",

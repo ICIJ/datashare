@@ -6,7 +6,11 @@ import org.icij.datashare.Note;
 import org.icij.datashare.Repository;
 import org.icij.datashare.UserEvent;
 import org.icij.datashare.test.DatashareTimeRule;
-import org.icij.datashare.text.*;
+import org.icij.datashare.text.Document;
+import org.icij.datashare.text.DocumentBuilder;
+import org.icij.datashare.text.NamedEntity;
+import org.icij.datashare.text.Project;
+import org.icij.datashare.text.Tag;
 import org.icij.datashare.user.User;
 import org.junit.AfterClass;
 import org.junit.Rule;
@@ -18,7 +22,12 @@ import org.junit.runners.Parameterized.Parameters;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
 import java.util.stream.Collectors;
 
 import static java.util.Arrays.asList;
@@ -27,11 +36,16 @@ import static org.fest.assertions.Assertions.assertThat;
 import static org.icij.datashare.UserEvent.Type.DOCUMENT;
 import static org.icij.datashare.UserEvent.Type.SEARCH;
 import static org.icij.datashare.db.tables.UserHistory.USER_HISTORY;
-import static org.icij.datashare.text.Language.*;
+import static org.icij.datashare.text.Language.ENGLISH;
+import static org.icij.datashare.text.Language.FRENCH;
+import static org.icij.datashare.text.Language.GERMAN;
 import static org.icij.datashare.text.NamedEntity.Category.PERSON;
 import static org.icij.datashare.text.Project.project;
 import static org.icij.datashare.text.Tag.tag;
-import static org.icij.datashare.text.nlp.Pipeline.Type.*;
+import static org.icij.datashare.text.nlp.Pipeline.Type.CORENLP;
+import static org.icij.datashare.text.nlp.Pipeline.Type.OPENNLP;
+import static org.icij.datashare.text.nlp.Pipeline.Type.SPACY;
+import static org.icij.datashare.text.nlp.Pipeline.Type.TEST;
 import static org.icij.datashare.user.User.nullUser;
 
 @RunWith(Parameterized.class)
@@ -191,7 +205,7 @@ public class JooqRepositoryTest {
         recommendations = repository.getRecommendations(project("prj"));
         assertThat(recommendations.aggregates).contains(new Repository.Aggregate<>(user1, 3), new Repository.Aggregate<>(user2, 1));
         assertThat(recommendations.totalCount).isEqualTo(3);
-        assertThat(repository.getRecommentationsBy(project("prj"),asList(user1,user2))).contains("id1").contains("id2").contains("id3");
+        assertThat(repository.getRecommendationsBy(project("prj"), asList(user1, user2))).contains("id1").contains("id2").contains("id3");
 
         assertThat(repository.unrecommend(project("prj"), user1,asList("id1", "id2"))).isEqualTo(2);
         assertThat(repository.unrecommend(project("prj"), user1, singletonList("id3"))).isEqualTo(1);
@@ -421,7 +435,7 @@ public class JooqRepositoryTest {
 
         assertThat(repository.getDocuments(project("prj"), tag("tag1"), tag("tag2"))).isEmpty();
         assertThat(repository.getStarredDocuments(user)).isEmpty();
-        assertThat(repository.getRecommentationsBy(project("prj"), List.of(user))).isEmpty();
+        assertThat(repository.getRecommendationsBy(project("prj"), List.of(user))).isEmpty();
         assertThat(repository.getUserHistory(user, DOCUMENT, 0, 10, "modification_date",true, "prj")).isEmpty();
         assertThat(repository.getUserEvents(user)).isEmpty();
     }
