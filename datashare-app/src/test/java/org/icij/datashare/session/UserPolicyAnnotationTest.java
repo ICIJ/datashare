@@ -7,7 +7,6 @@ import org.icij.datashare.Repository;
 import org.icij.datashare.user.Role;
 import org.icij.datashare.user.UserPolicy;
 import org.icij.datashare.user.UserPolicyRepository;
-import org.icij.datashare.user.UserPolicyVerifier;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;

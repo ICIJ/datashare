@@ -6,7 +6,6 @@ import net.codestory.http.annotations.ApplyAroundAnnotation;
 import net.codestory.http.errors.UnauthorizedException;
 import net.codestory.http.payload.Payload;
 import org.icij.datashare.user.UserPolicy;
-import org.icij.datashare.user.UserPolicyVerifier;
 
 import java.net.URISyntaxException;
 import java.util.Arrays;

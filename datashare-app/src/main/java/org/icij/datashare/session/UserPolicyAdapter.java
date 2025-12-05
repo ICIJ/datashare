@@ -1,8 +1,10 @@
-package org.icij.datashare.user;
+package org.icij.datashare.session;
 
 import org.casbin.jcasbin.model.Model;
 import org.casbin.jcasbin.persist.Adapter;
 import org.casbin.jcasbin.persist.Helper;
+import org.icij.datashare.user.Role;
+import org.icij.datashare.user.UserPolicyRepository;
 
 import java.util.List;
 
