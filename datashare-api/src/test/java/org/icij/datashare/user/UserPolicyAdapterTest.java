@@ -19,7 +19,7 @@ import static org.mockito.MockitoAnnotations.openMocks;
 public class UserPolicyAdapterTest {
 
     @Mock
-    private UserRepository repository;
+    private UserPolicyRepository repository;
 
     private UserPolicyAdapter adapter;
 

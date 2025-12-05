@@ -7,7 +7,9 @@ import org.icij.datashare.text.Tag;
 import org.icij.datashare.text.nlp.Pipeline;
 import org.icij.datashare.user.User;
 
-import java.util.*;
+import java.util.List;
+import java.util.Objects;
+import java.util.Set;
 
 public interface Repository {
     NamedEntity getNamedEntity(String id);

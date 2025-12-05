@@ -1,5 +1,6 @@
 package org.icij.datashare.user;
 
+import org.icij.datashare.Repository;
 import org.icij.datashare.text.Project;
 import org.junit.Before;
 import org.junit.Test;
@@ -8,12 +9,19 @@ import org.mockito.Mock;
 import java.net.URISyntaxException;
 import java.util.stream.Stream;
 
-import static org.junit.Assert.*;
+import static org.fest.assertions.Assertions.assertThat;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.when;
 import static org.mockito.MockitoAnnotations.openMocks;
 
 public class UserPolicyVerifierTest {
-    @Mock private UserRepository repository;
+    @Mock
+    private UserPolicyRepository userPolicyRepository;
+    @Mock
+    private Repository repository;
+
     private UserPolicyVerifier verifier;
 
     UserPolicy policy1 = new UserPolicy("user1", "project1", new Role[] {Role.READER});
@@ -22,8 +30,11 @@ public class UserPolicyVerifierTest {
     public void setUp() throws URISyntaxException {
         openMocks(this);
         Stream<UserPolicy> policies = Stream.of(policy1, policy2);
-        when(repository.getAllPolicies()).thenReturn(policies);
-        verifier =  UserPolicyVerifier.getInstance(repository);
+        User user1 = new User("foo", "user1", "user1@example.com", "local", "{}");
+        when(userPolicyRepository.getPolicies("user1")).thenReturn(Stream.of(policy1));
+        when(userPolicyRepository.getAllPolicies()).thenReturn(policies);
+        when(repository.getUser("user1")).thenReturn(user1);
+        verifier = UserPolicyVerifier.getInstance(userPolicyRepository, repository);
     }
     public static void testEnforce(UserPolicyVerifier verifier, String subject, String obj, String act, boolean expectedResult) {
         try {
@@ -69,8 +80,19 @@ public class UserPolicyVerifierTest {
     }
     @Test
     public void test_enforce_bad_policy() {
-        UserPolicy badPolicy= new UserPolicy("user2", "project2",  new Role[] {Role.READER});
+        UserPolicy badPolicy = new UserPolicy("user2", "project2", new Role[]{Role.READER});
         assertFalse(verifier.enforceAllRoles(badPolicy));
+    }
+
+    @Test
+    public void test_get_user_with_policies() {
+        User foo = verifier.getUserWithPolicies("user1");
+        assertThat(foo.getRoles("project1")).containsOnly(Role.READER);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void test_get_user_with_policies_when_user_does_not_exists() {
+        verifier.getUserWithPolicies("foo");
     }
 
 }

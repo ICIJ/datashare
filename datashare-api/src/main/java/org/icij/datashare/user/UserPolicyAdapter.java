@@ -8,9 +8,9 @@ import java.util.List;
 
 public class UserPolicyAdapter implements Adapter {
 
-    private final UserRepository repository;
+    private final UserPolicyRepository repository;
 
-    public UserPolicyAdapter(UserRepository repository) {
+    public UserPolicyAdapter(UserPolicyRepository repository) {
         this.repository = repository;
     }
 

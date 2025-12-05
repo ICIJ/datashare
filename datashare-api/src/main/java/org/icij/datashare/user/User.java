@@ -7,10 +7,20 @@ import org.icij.datashare.Entity;
 import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.text.Project;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
-import static java.util.Collections.*;
+import static java.util.Collections.singletonList;
+import static java.util.Collections.unmodifiableMap;
+import static java.util.Collections.unmodifiableSet;
 import static java.util.Optional.ofNullable;
 import static org.icij.datashare.json.JsonObjectMapper.deserialize;
 import static org.icij.datashare.text.StringUtils.isEmpty;
@@ -88,6 +98,11 @@ public class User implements Entity, Comparable<User> {
                 ofNullable(user).orElse(nullUser()).details,
                 ofNullable(user).orElse(nullUser()).jsonProjectKey,
                 ofNullable(user).orElse(nullUser()).policies);
+    }
+
+    public User withPolicies(Set<UserPolicy> policies) {
+        this.policies = policies;
+        return this;
     }
 
     public static User fromJson(String json, String provider) {
