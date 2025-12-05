@@ -1,6 +1,9 @@
-package org.icij.datashare.user;
+package org.icij.datashare.session;
 
 import org.casbin.jcasbin.model.Model;
+import org.icij.datashare.user.Role;
+import org.icij.datashare.user.UserPolicy;
+import org.icij.datashare.user.UserPolicyRepository;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;

@@ -1,4 +1,4 @@
-package org.icij.datashare.user;
+package org.icij.datashare.session;
 
 import com.google.inject.Inject;
 import org.casbin.jcasbin.main.Enforcer;
@@ -7,6 +7,9 @@ import org.casbin.jcasbin.persist.Adapter;
 import org.icij.datashare.EntityNotFoundException;
 import org.icij.datashare.Repository;
 import org.icij.datashare.text.Project;
+import org.icij.datashare.user.User;
+import org.icij.datashare.user.UserPolicy;
+import org.icij.datashare.user.UserPolicyRepository;
 
 import java.net.URISyntaxException;
 import java.nio.file.Path;

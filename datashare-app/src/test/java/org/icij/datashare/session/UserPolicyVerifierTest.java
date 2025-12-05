@@ -7,7 +7,6 @@ import org.icij.datashare.user.Role;
 import org.icij.datashare.user.User;
 import org.icij.datashare.user.UserPolicy;
 import org.icij.datashare.user.UserPolicyRepository;
-import org.icij.datashare.user.UserPolicyVerifier;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
@@ -32,7 +31,7 @@ public class UserPolicyVerifierTest {
 
     private UserPolicyVerifier verifier;
 
-    public User mockUserProjectRole(String userId, String projectId, Role[] roles) {
+    public User mockPolicy(String userId, String projectId, Role[] roles) {
         User user = localUser(userId);
         user.addProject(projectId);
         when(jooqRepository.getProject(projectId)).thenReturn(project(projectId));
@@ -45,9 +44,10 @@ public class UserPolicyVerifierTest {
 
     @Before
     public void setUp() throws URISyntaxException {
+        UserPolicyVerifier.resetInstance();
         openMocks(this);
-        User user1 = mockUserProjectRole("user1", "project1", new Role[]{Role.READER});
-        User user2 = mockUserProjectRole("user2", "project2", new Role[]{Role.WRITER, Role.ADMIN});
+        User user1 = mockPolicy("user1", "project1", new Role[]{Role.READER});
+        User user2 = mockPolicy("user2", "project2", new Role[]{Role.WRITER, Role.ADMIN});
         when(jooqUserPolicyRepository.getAllPolicies()).thenReturn(Stream.concat(user1.policies.stream(), user2.policies.stream()));
         verifier = UserPolicyVerifier.getInstance(jooqUserPolicyRepository, jooqRepository);
     }
