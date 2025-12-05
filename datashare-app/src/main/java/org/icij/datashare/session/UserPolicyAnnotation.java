@@ -5,42 +5,41 @@ import net.codestory.http.Context;
 import net.codestory.http.annotations.ApplyAroundAnnotation;
 import net.codestory.http.errors.UnauthorizedException;
 import net.codestory.http.payload.Payload;
-import org.icij.datashare.Repository;
-import org.icij.datashare.text.Project;
 import org.icij.datashare.user.UserPolicy;
-import org.icij.datashare.user.UserPolicyRepository;
 import org.icij.datashare.user.UserPolicyVerifier;
 
 import java.net.URISyntaxException;
 import java.util.Arrays;
 import java.util.function.Function;
 
-import static org.icij.datashare.text.Project.project;
-
 public class UserPolicyAnnotation implements ApplyAroundAnnotation<Policy> {
 
     private final UserPolicyVerifier userPolicyVerifier;
 
     @Inject
-    public UserPolicyAnnotation(final UserPolicyRepository userPolicyRepository, final Repository repository) throws URISyntaxException {
-        this.userPolicyVerifier = UserPolicyVerifier.getInstance(userPolicyRepository, repository);
+    public UserPolicyAnnotation(final UserPolicyVerifier userPolicyVerifier) throws URISyntaxException {
+        this.userPolicyVerifier = userPolicyVerifier;
     }
 
     @Override
     public Payload apply(Policy annotation, Context context, Function<Context, Payload> payloadSupplier) {
-
-        String index = context.pathParam("index");
+        String projectId = context.pathParam("index");
         DatashareUser user = (DatashareUser) context.currentUser();
-        Project project = project(index); //check if project exists ?
-        if (user == null) throw new UnauthorizedException();
-        return user.getPolicy(project.getId())
-                .map(p -> enforcePolicyRoles(annotation, p) ? payloadSupplier.apply(context) : null)
-                .orElse(Payload.forbidden());
-
+        if (user == null) {
+            throw new UnauthorizedException();
+        }
+        UserPolicy policy = this.userPolicyVerifier.getUserPolicyByProject(user.id, projectId);
+        if (policy == null) {
+            return Payload.forbidden();
+        }
+        return enforcePolicyRoles(annotation, policy) ? payloadSupplier.apply(context) : Payload.forbidden();
     }
 
     private boolean enforcePolicyRoles(Policy annotation, UserPolicy userPolicy) {
         return Arrays.stream(annotation.roles()).allMatch(role ->
-                userPolicyVerifier.enforce(userPolicy.userId(), userPolicy.projectId(), role.name()));
+        {
+            boolean enforce = userPolicyVerifier.enforce(userPolicy.userId(), userPolicy.projectId(), role.name());
+            return enforce;
+        });
     }
 }
