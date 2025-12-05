@@ -35,7 +35,7 @@ public class User implements Entity, Comparable<User> {
     public final String email;
     public final String provider;
     public final Map<String, Object> details;
-    public Set<UserPolicy> policies;
+    public final Set<UserPolicy> policies;
     private final HashSet<Project> projects = new HashSet<>();
     @JsonIgnore
     private final String jsonProjectKey;
@@ -101,8 +101,16 @@ public class User implements Entity, Comparable<User> {
     }
 
     public User withPolicies(Set<UserPolicy> policies) {
-        this.policies = policies;
-        return this;
+        // User is immutable regarding policies; return a new instance with updated policies
+        return new User(
+                this.id,
+                this.name,
+                this.email,
+                this.provider,
+                this.details,
+                this.jsonProjectKey,
+                policies
+        );
     }
 
     public static User fromJson(String json, String provider) {
