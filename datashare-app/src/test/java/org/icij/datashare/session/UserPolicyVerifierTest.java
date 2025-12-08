@@ -1,6 +1,6 @@
 package org.icij.datashare.session;
 
-import org.icij.datashare.EntityNotFoundException;
+import org.icij.datashare.RecordNotFoundException;
 import org.icij.datashare.Repository;
 import org.icij.datashare.text.Project;
 import org.icij.datashare.user.Role;
@@ -93,12 +93,12 @@ public class UserPolicyVerifierTest {
         assertThat(policyNotExist).isNull();
     }
 
-    @Test(expected = EntityNotFoundException.class)
+    @Test(expected = RecordNotFoundException.class)
     public void test_get_user_with_policies_by_project_when_user_does_not_exists() {
         verifier.getUserPolicyByProject("foo", "bar");
     }
 
-    @Test(expected = EntityNotFoundException.class)
+    @Test(expected = RecordNotFoundException.class)
     public void test_get_user_with_policies_by_project_when_project_does_not_exists() {
         verifier.getUserPolicyByProject("user1", "bar");
     }
