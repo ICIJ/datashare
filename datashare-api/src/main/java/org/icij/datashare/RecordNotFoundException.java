@@ -9,22 +9,15 @@ package org.icij.datashare;
  */
 public class RecordNotFoundException extends RuntimeException {
 
-    public RecordNotFoundException() {
-        super("entity not found");
-    }
 
-    public RecordNotFoundException(String message) {
-        super(message);
-    }
-
-    public RecordNotFoundException(String message, Throwable cause) {
-        super(message, cause);
+    public RecordNotFoundException(Class<?> recordClass, String id) {
+        this(recordClass, id, null);
     }
 
     /**
      * Convenience constructor for messages like: "no {EntitySimpleName} with id={id} found".
      */
-    public RecordNotFoundException(Class<?> recordClass, String id) {
-        super("no " + recordClass.getSimpleName().toLowerCase() + " with id=" + id + " found");
+    public RecordNotFoundException(Class<?> recordClass, String id, Throwable cause) {
+        super("no %s with id=%s found".formatted(recordClass.getSimpleName().toLowerCase(), id), cause);
     }
 }
