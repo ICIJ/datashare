@@ -28,10 +28,6 @@ public record UserPolicy(
         return new UserPolicy(userId, projectId, new Role[] {});
     }
 
-    public static UserPolicy of(User user, String projectId) {
-        return UserPolicy.of(user.id, projectId);
-    }
-
     public boolean hasRole(Role role) {
         return Arrays.asList(roles).contains(role);
     }
