@@ -99,8 +99,8 @@
         <aws-s3.version>2.35.10</aws-s3.version>
         <extract.version>9.4.13</extract.version>
         <opennlp.version>1.6.0</opennlp.version>
-        <elasticsearch.version>7.17.9</elasticsearch.version>
-        <lucene.version>8.11.1</lucene.version>
+        <elasticsearch.version>8.19.8</elasticsearch.version>
+        <lucene.version>9.12.2</lucene.version>
         <unidecode.version>0.0.7</unidecode.version>
         <joda-time.version>2.9.5</joda-time.version>
         <httpclient.version>4.5.13</httpclient.version>
