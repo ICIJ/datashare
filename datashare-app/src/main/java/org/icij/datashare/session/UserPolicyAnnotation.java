@@ -9,6 +9,7 @@ import org.icij.datashare.user.UserPolicy;
 
 import java.net.URISyntaxException;
 import java.util.Arrays;
+import java.util.Optional;
 import java.util.function.Function;
 
 public class UserPolicyAnnotation implements ApplyAroundAnnotation<Policy> {
@@ -27,18 +28,17 @@ public class UserPolicyAnnotation implements ApplyAroundAnnotation<Policy> {
         if (user == null) {
             throw new UnauthorizedException();
         }
-        UserPolicy policy = this.userPolicyVerifier.getUserPolicyByProject(user.id, projectId);
-        if (policy == null) {
+        Optional<UserPolicy> policy = this.userPolicyVerifier.getUserPolicyByProject(user.id, projectId);
+        if (policy.isEmpty()) {
             return Payload.forbidden();
         }
-        return enforcePolicyRoles(annotation, policy) ? payloadSupplier.apply(context) : Payload.forbidden();
+        return enforcePolicyRoles(annotation, policy.get()) ? payloadSupplier.apply(context) : Payload.forbidden();
     }
 
     private boolean enforcePolicyRoles(Policy annotation, UserPolicy userPolicy) {
         return Arrays.stream(annotation.roles()).allMatch(role ->
         {
-            boolean enforce = userPolicyVerifier.enforce(userPolicy.userId(), userPolicy.projectId(), role.name());
-            return enforce;
+            return userPolicyVerifier.enforce(userPolicy.userId(), userPolicy.projectId(), role.name());
         });
     }
 }

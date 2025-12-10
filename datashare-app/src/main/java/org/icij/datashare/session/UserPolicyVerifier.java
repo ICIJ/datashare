@@ -7,6 +7,7 @@ import org.casbin.jcasbin.persist.Adapter;
 import org.icij.datashare.RecordNotFoundException;
 import org.icij.datashare.Repository;
 import org.icij.datashare.text.Project;
+import org.icij.datashare.user.Role;
 import org.icij.datashare.user.User;
 import org.icij.datashare.user.UserPolicy;
 import org.icij.datashare.user.UserPolicyRepository;
@@ -15,6 +16,8 @@ import java.net.URISyntaxException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
+import java.util.Optional;
+import java.util.stream.Stream;
 
 
 public class UserPolicyVerifier {
@@ -58,15 +61,55 @@ public class UserPolicyVerifier {
         return this.enforcer.enforce(userName, projectName, act);
     }
 
-    public UserPolicy getUserPolicyByProject(String userId, String projectId) {
+    public Stream<UserPolicy> getUserPolicies() {
+        return this.userPolicyRepository.getAllPolicies();
+    }
+
+    /**
+     * Retrieve the user policy for a given user and project.
+     * Throws RecordNotFoundException if user or project does not exist.
+     */
+    public Optional<UserPolicy> getUserPolicyByProject(String userId, String projectId) {
+        userExists(userId);
+        projectExists(projectId);
+        return Optional.ofNullable(this.userPolicyRepository.get(userId, projectId));
+    }
+
+    /**
+     * Save a user policy for a given user, project, and roles.
+     * Throws RecordNotFoundException if user or project does not exist.
+     */
+    public boolean saveUserPolicy(String userId, String projectId, Role[] roles) {
+        User user = userExists(userId);
+        Project project = projectExists(projectId);
+        UserPolicy policy = UserPolicy.of(user.id, project.getId(), roles);
+        return this.userPolicyRepository.save(policy);
+    }
+
+    /**
+     * Delete a user policy for a given user and project.
+     * Throws RecordNotFoundException if user or project does not exist.
+     */
+    public boolean deleteUserPolicy(String userId, String projectId) {
+        userExists(userId);
+        projectExists(projectId);
+        return this.userPolicyRepository.delete(userId, projectId);
+    }
+
+
+    private User userExists(String userId) throws RecordNotFoundException {
         User user = repository.getUser(userId);
-        if (user == null) {
+        if (userId == null) {
             throw new RecordNotFoundException(User.class, userId);
         }
+        return user;
+    }
+
+    private Project projectExists(String projectId) throws RecordNotFoundException {
         Project project = repository.getProject(projectId);
         if (project == null) {
             throw new RecordNotFoundException(Project.class, projectId);
         }
-        return this.userPolicyRepository.get(userId, projectId);
+        return project;
     }
 }

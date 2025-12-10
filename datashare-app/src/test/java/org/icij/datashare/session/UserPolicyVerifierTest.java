@@ -12,6 +12,7 @@ import org.junit.Test;
 import org.mockito.Mock;
 
 import java.net.URISyntaxException;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Stream;
 
@@ -87,10 +88,10 @@ public class UserPolicyVerifierTest {
     public void test_get_user_policy_by_project() {
         Project project1 = new Project("project1", "Project 1");
         when(jooqRepository.getProject("project1")).thenReturn(project1);
-        UserPolicy policy = verifier.getUserPolicyByProject("user1", "project1");
-        assertThat(policy).isNotNull();
-        UserPolicy policyNotExist = verifier.getUserPolicyByProject("user1", "project2");
-        assertThat(policyNotExist).isNull();
+        Optional<UserPolicy> policy = verifier.getUserPolicyByProject("user1", "project1");
+        assertThat(policy.isPresent()).isTrue();
+        Optional<UserPolicy> policyNotExist = verifier.getUserPolicyByProject("user1", "project2");
+        assertThat(policyNotExist.isEmpty()).isTrue();
     }
 
     @Test(expected = RecordNotFoundException.class)
