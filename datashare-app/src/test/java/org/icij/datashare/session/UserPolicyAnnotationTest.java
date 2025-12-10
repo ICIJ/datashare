@@ -13,6 +13,7 @@ import org.junit.Test;
 
 import java.lang.annotation.Annotation;
 import java.net.URISyntaxException;
+import java.util.Optional;
 
 import static junit.framework.TestCase.assertEquals;
 import static org.icij.datashare.user.Role.ADMIN;
@@ -54,8 +55,8 @@ public class UserPolicyAnnotationTest {
         Repository repository = mock(Repository.class);
 
         userPolicyVerifier = mock(UserPolicyVerifier.class);
-        when(userPolicyVerifier.getUserPolicyByProject("cecile", projectId)).thenReturn(adminPermission);
-        when(userPolicyVerifier.getUserPolicyByProject("john", projectId)).thenReturn(nonAdminPermission);
+        when(userPolicyVerifier.getUserPolicyByProject("cecile", projectId)).thenReturn(Optional.of(adminPermission));
+        when(userPolicyVerifier.getUserPolicyByProject("john", projectId)).thenReturn(Optional.of(nonAdminPermission));
         when(userPolicyVerifier.enforce("cecile", projectId, ADMIN.name())).thenReturn(true);
         when(userPolicyVerifier.enforce("john", projectId, ADMIN.name())).thenReturn(false);
         // inject mocked singleton so that UserPolicyAnnotation uses it
