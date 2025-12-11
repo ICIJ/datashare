@@ -4,7 +4,9 @@ package org.icij.datashare.tray;
 import dorkbox.systemTray.Menu;
 import dorkbox.systemTray.MenuItem;
 import dorkbox.systemTray.SystemTray;
+import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.mode.CommonMode;
+import org.icij.datashare.utils.WebBrowserUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -44,6 +46,11 @@ public class DatashareSystemTray {
 
     private void configureMenu() {
         Menu menu = systemTray.getMenu();
+        menu.add(new MenuItem("Open Browser", e -> {
+            String port = mode.properties().getProperty(PropertiesProvider.TCP_LISTEN_PORT_OPT);
+            String url = "http://localhost:" + port;
+            WebBrowserUtils.openBrowser(url);
+        }));
         menu.add(new MenuItem("Quit", e -> {
             LOGGER.info("Shutdown requested from system tray");
             System.exit(0);
