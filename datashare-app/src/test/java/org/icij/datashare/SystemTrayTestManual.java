@@ -18,10 +18,25 @@ public class SystemTrayTestManual {
     }
 
     @Test
-    public void test_main_with_system_tray() throws Exception {
+    public void test_main_display_system_tray_for_web_server() throws Exception {
         Thread main = new Thread(() -> {
             try {
                 String[] args = {"--mode", "LOCAL"};
+                Main.main(args);
+            } catch (Exception ignored) {
+
+            }
+        });
+        main.start();
+
+        Thread.sleep(Long.MAX_VALUE);
+    }
+
+    @Test
+    public void test_main_does_not_display_system_tray_for_task_worker() throws Exception {
+        Thread main = new Thread(() -> {
+            try {
+                String[] args = {"--mode", "TASK_WORKER"};
                 Main.main(args);
             } catch (Exception ignored) {
 
