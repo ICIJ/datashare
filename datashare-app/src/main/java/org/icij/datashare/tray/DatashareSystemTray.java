@@ -38,7 +38,16 @@ public class DatashareSystemTray {
     private void configure() {
         systemTray.setTooltip("Datashare");
         loadIcon();
+        configureMenu();
         LOGGER.info("SystemTray should appear in your system tray");
+    }
+
+    private void configureMenu() {
+        Menu menu = systemTray.getMenu();
+        menu.add(new MenuItem("Quit", e -> {
+            LOGGER.info("Shutdown requested from system tray");
+            System.exit(0);
+        }));
     }
 
     private void loadIcon() {
