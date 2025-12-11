@@ -16,6 +16,8 @@ import java.net.URL;
 
 public class DatashareSystemTray {
     private static final Logger LOGGER = LoggerFactory.getLogger(DatashareSystemTray.class);
+    private static final String DATASHARE_ICON_FILENAME = "datashare.png";
+    private static final int DEFAULT_ICON_SIZE = 16;
 
     private final SystemTray systemTray;
     private final CommonMode mode;
@@ -41,43 +43,45 @@ public class DatashareSystemTray {
         systemTray.setTooltip("Datashare");
         loadIcon();
         configureMenu();
-        LOGGER.info("SystemTray should appear in your system tray");
     }
 
     private void configureMenu() {
         Menu menu = systemTray.getMenu();
-        menu.add(new MenuItem("Open Browser", e -> {
-            String port = mode.properties().getProperty(PropertiesProvider.TCP_LISTEN_PORT_OPT);
-            String url = "http://localhost:" + port;
-            WebBrowserUtils.openBrowser(url);
-        }));
-        menu.add(new MenuItem("Quit", e -> {
-            LOGGER.info("Shutdown requested from system tray");
-            System.exit(0);
-        }));
+        menu.add(new MenuItem("Open Browser", e -> openBrowser()));
+        menu.add(new MenuItem("Quit", e -> quit()));
     }
+
+    private void openBrowser() {
+        String port = mode.properties().getProperty(PropertiesProvider.TCP_LISTEN_PORT_OPT);
+        String url = "http://localhost:" + port;
+        WebBrowserUtils.openBrowser(url);
+    }
+
+    private void quit() {
+        LOGGER.info("Shutdown requested from system tray");
+        System.exit(0);
+    }
+
 
     private void loadIcon() {
         try {
-            URL datashareIcon = DatashareSystemTray.class.getClassLoader().getResource("datashare.png");
+            URL datashareIcon = DatashareSystemTray.class.getClassLoader().getResource(DATASHARE_ICON_FILENAME);
             if (datashareIcon != null) {
                 systemTray.setImage(datashareIcon);
-                LOGGER.info("Custom tray icon loaded successfully");
-            } else {
-                LOGGER.warn("Tray icon not found in resources, using default");
-                setDefaultIcon();
+                return;
             }
+            LOGGER.warn("Tray icon not found in resources, using default");
         } catch (Exception e) {
-            LOGGER.warn("Could not load custom tray icon, using default", e);
-            setDefaultIcon();
+            LOGGER.warn("Could not load Datashare tray icon, using default", e);
         }
+        setDefaultIcon();
     }
 
     private void setDefaultIcon() {
         BufferedImage defaultImage = new BufferedImage(16, 16, BufferedImage.TYPE_INT_ARGB);
         Graphics2D g2d = defaultImage.createGraphics();
         g2d.setColor(Color.PINK);
-        g2d.fillRect(0, 0, 16, 16);
+        g2d.fillRect(0, 0, DEFAULT_ICON_SIZE, DEFAULT_ICON_SIZE);
         g2d.dispose();
         systemTray.setImage(defaultImage);
     }

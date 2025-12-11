@@ -24,15 +24,12 @@ public class WebBrowserUtils {
         LOGGER.info("Please open your browser at: {}", url);
     }
 
-
-
     public static void openBrowser(int port, boolean shouldOpenBrowser) throws InterruptedException {
         if (shouldOpenBrowser) {
             waitForServerToBeUp(port);
             openBrowser("http://localhost:" + port);
         }
     }
-
 
     private static void waitForServerToBeUp(int tcpListenPort) throws InterruptedException {
         for (int nbTries = 0; nbTries < 60; nbTries++) {

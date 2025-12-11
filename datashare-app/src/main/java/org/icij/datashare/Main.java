@@ -1,6 +1,5 @@
 package org.icij.datashare;
 
-import dorkbox.systemTray.SystemTray;
 import org.icij.datashare.cli.DatashareCli;
 import org.icij.datashare.cli.Mode;
 import org.icij.datashare.mode.CommonMode;
@@ -10,7 +9,6 @@ import org.slf4j.LoggerFactory;
 import ch.qos.logback.classic.Level;
 
 import java.awt.*;
-import java.awt.image.BufferedImage;
 import java.nio.charset.Charset;
 
 public class Main {
@@ -30,23 +28,13 @@ public class Main {
         Runtime.getRuntime().addShutdownHook(mode.closeThread());
 
         if (cli.isWebServer()) {
-            WebApp.start(mode);
             DatashareSystemTray.create(mode);
+            WebApp.start(mode);
         } else if (cli.mode() == Mode.TASK_WORKER) {
             TaskWorkerApp.start(mode);
         } else {
             CliApp.start(cli.properties);
         }
         LOGGER.info("exiting main");
-    }
-
-
-    private static void setDefaultIcon(SystemTray systemTray) {
-        BufferedImage defaultImage = new BufferedImage(16, 16, BufferedImage.TYPE_INT_ARGB);
-        Graphics2D g2d = defaultImage.createGraphics();
-        g2d.setColor(Color.BLUE);
-        g2d.fillRect(0, 0, 16, 16);
-        g2d.dispose();
-        systemTray.setImage(defaultImage);
     }
 }
