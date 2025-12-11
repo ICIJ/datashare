@@ -12,9 +12,11 @@ import org.slf4j.LoggerFactory;
 
 import java.awt.*;
 import java.awt.image.BufferedImage;
+import java.io.Closeable;
+import java.io.IOException;
 import java.net.URL;
 
-public class DatashareSystemTray {
+public class DatashareSystemTray implements Closeable {
     private static final Logger LOGGER = LoggerFactory.getLogger(DatashareSystemTray.class);
     private static final String DATASHARE_ICON_FILENAME = "datashare.png";
     private static final int DEFAULT_ICON_SIZE = 16;
@@ -30,13 +32,15 @@ public class DatashareSystemTray {
 
     public static DatashareSystemTray create(CommonMode mode) {
         SystemTray systemTray = SystemTray.get();
-
+        
         if (systemTray == null) {
             LOGGER.error("SystemTray is NULL - not supported on this system");
             return null;
         }
 
-        return new DatashareSystemTray(systemTray, mode);
+        DatashareSystemTray dataShareTray = new DatashareSystemTray(systemTray, mode);
+        mode.addCloseable(dataShareTray);
+        return dataShareTray;
     }
 
     private void configure() {
@@ -84,5 +88,10 @@ public class DatashareSystemTray {
         g2d.fillRect(0, 0, DEFAULT_ICON_SIZE, DEFAULT_ICON_SIZE);
         g2d.dispose();
         systemTray.setImage(defaultImage);
+    }
+
+    @Override
+    public void close() throws IOException {
+        systemTray.shutdown();
     }
 }
