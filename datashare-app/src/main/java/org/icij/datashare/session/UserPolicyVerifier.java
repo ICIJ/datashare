@@ -23,7 +23,7 @@ import java.util.stream.Stream;
 public class UserPolicyVerifier {
     private final Enforcer enforcer;
     private static final String DEFAULT_POLICY_FILE = "casbin/model.conf";
-    private static final boolean ENABLE_CASBIN_LOG = true;
+    private static final boolean ENABLE_CASBIN_LOG = false;
     private final Repository repository;
     private final UserPolicyRepository userPolicyRepository;
 
@@ -38,7 +38,7 @@ public class UserPolicyVerifier {
         try {
             path = Paths.get(ClassLoader.getSystemResource(DEFAULT_POLICY_FILE).toURI());
         } catch (URISyntaxException e) {
-            throw new RuntimeException(e);
+            throw new RuntimeException("Failed to load Casbin conf file", e);
         }
         model.loadModel(path.toString());
         this.enforcer = new Enforcer(model, adapter, ENABLE_CASBIN_LOG);

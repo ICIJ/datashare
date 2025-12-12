@@ -76,7 +76,7 @@ public class UserPolicyAnnotationTest {
     }
 
     @Test
-    public void should_allow_user_if_has_wrong_policy_as_non_isAdmin() {
+    public void should_forbid_access_for_user_with_policy_as_non_isAdmin() {
         Context context = mock(Context.class);
 
         when(context.currentUser()).thenReturn(nonAdminUser);

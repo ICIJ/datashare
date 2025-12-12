@@ -41,7 +41,7 @@ public class UserPolicyResource {
         this.userPolicyVerifier = userPolicyVerifier;
     }
 
-    private static Role[] getRoles(String commaSeparatedRoles) {
+    private static Role[] getRoles(String commaSeparatedRoles) throws IllegalArgumentException {
         return Arrays.stream(commaSeparatedRoles.split(","))
                 .map(String::trim)
                 .map(Role::valueOf)
