@@ -21,7 +21,6 @@ import java.util.stream.Stream;
 
 
 public class UserPolicyVerifier {
-    private static UserPolicyVerifier instance;
     private final Enforcer enforcer;
     private static final String DEFAULT_POLICY_FILE = "casbin/model.conf";
     private static final boolean ENABLE_CASBIN_LOG = true;
@@ -29,7 +28,7 @@ public class UserPolicyVerifier {
     private final UserPolicyRepository userPolicyRepository;
 
     @Inject
-    private UserPolicyVerifier(final UserPolicyRepository userPolicyRepository, final Repository repository) {
+    public UserPolicyVerifier(final UserPolicyRepository userPolicyRepository, final Repository repository) {
         this.userPolicyRepository = userPolicyRepository;
         this.repository = repository;
 
@@ -43,17 +42,6 @@ public class UserPolicyVerifier {
         }
         model.loadModel(path.toString());
         this.enforcer = new Enforcer(model, adapter, ENABLE_CASBIN_LOG);
-    }
-
-    public static synchronized UserPolicyVerifier getInstance(final UserPolicyRepository userPolicyRepository, final Repository repository) {
-        if (instance == null) {
-            instance = new UserPolicyVerifier(userPolicyRepository, repository);
-        }
-        return instance;
-    }
-
-    public static void resetInstance() {
-        instance = null;
     }
 
     public boolean enforceAllRoles(UserPolicy userPolicy) {

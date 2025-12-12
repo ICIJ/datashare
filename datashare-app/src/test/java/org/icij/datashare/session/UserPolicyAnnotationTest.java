@@ -3,10 +3,8 @@ package org.icij.datashare.session;
 import net.codestory.http.Context;
 import net.codestory.http.errors.UnauthorizedException;
 import net.codestory.http.payload.Payload;
-import org.icij.datashare.Repository;
 import org.icij.datashare.user.Role;
 import org.icij.datashare.user.UserPolicy;
-import org.icij.datashare.user.UserPolicyRepository;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -27,7 +25,6 @@ public class UserPolicyAnnotationTest {
     private DatashareUser nonAdminUser;
 
     private static AutoCloseable mocks;
-    ;
     private String projectId = "test-datashare";
     private final Policy adminPolicy = new Policy() {
         @Override
@@ -43,23 +40,17 @@ public class UserPolicyAnnotationTest {
     UserPolicyVerifier userPolicyVerifier;
     @Before
     public void setUp() throws URISyntaxException {
-        UserPolicyVerifier.resetInstance(); // Reset singleton before each test
-
         mocks = openMocks(this);
         projectId = "test-datashare";
         adminUser = new DatashareUser("cecile");
         nonAdminUser = new DatashareUser("john");
         UserPolicy adminPermission = new UserPolicy("cecile", projectId, new Role[]{ADMIN});
         UserPolicy nonAdminPermission = new UserPolicy("john", projectId, new Role[]{Role.READER});
-        UserPolicyRepository userRepository = mock(UserPolicyRepository.class);
-        Repository repository = mock(Repository.class);
-
         userPolicyVerifier = mock(UserPolicyVerifier.class);
         when(userPolicyVerifier.getUserPolicyByProject("cecile", projectId)).thenReturn(Optional.of(adminPermission));
         when(userPolicyVerifier.getUserPolicyByProject("john", projectId)).thenReturn(Optional.of(nonAdminPermission));
         when(userPolicyVerifier.enforce("cecile", projectId, ADMIN.name())).thenReturn(true);
         when(userPolicyVerifier.enforce("john", projectId, ADMIN.name())).thenReturn(false);
-        // inject mocked singleton so that UserPolicyAnnotation uses it
         annotation = new UserPolicyAnnotation(userPolicyVerifier);
 
     }

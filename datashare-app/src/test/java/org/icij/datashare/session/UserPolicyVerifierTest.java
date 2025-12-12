@@ -44,12 +44,11 @@ public class UserPolicyVerifierTest {
 
     @Before
     public void setUp() throws URISyntaxException {
-        UserPolicyVerifier.resetInstance();
         openMocks(this);
         User user1 = mockPolicy("user1", "project1", new Role[]{Role.READER});
         User user2 = mockPolicy("user2", "project2", new Role[]{Role.WRITER, Role.ADMIN});
         when(jooqUserPolicyRepository.getAllPolicies()).thenReturn(Stream.concat(user1.policies.stream(), user2.policies.stream()));
-        verifier = UserPolicyVerifier.getInstance(jooqUserPolicyRepository, jooqRepository);
+        verifier = new UserPolicyVerifier(jooqUserPolicyRepository, jooqRepository);
     }
 
     public static void testEnforce(UserPolicyVerifier verifier, String subject, String obj, String act, boolean expectedResult) {
