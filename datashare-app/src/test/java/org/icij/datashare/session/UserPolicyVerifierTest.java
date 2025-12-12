@@ -1,6 +1,5 @@
 package org.icij.datashare.session;
 
-import org.icij.datashare.RecordNotFoundException;
 import org.icij.datashare.Repository;
 import org.icij.datashare.text.Project;
 import org.icij.datashare.user.Role;
@@ -62,7 +61,7 @@ public class UserPolicyVerifierTest {
         }
     }
     @Test
-    public void test_permission_enforcement() {
+    public void permission_enforcement() {
 
         testEnforce(verifier, "user1", "project1", "READER", true);
         testEnforce(verifier, "user1", "project1", "WRITER", false);
@@ -79,13 +78,13 @@ public class UserPolicyVerifierTest {
     }
 
     @Test
-    public void test_enforce_bad_policy() {
+    public void enforce_bad_policy() {
         UserPolicy badPolicy = new UserPolicy("user2", "project2", new Role[]{Role.READER});
         assertFalse(verifier.enforceAllRoles(badPolicy));
     }
 
     @Test
-    public void test_get_user_policy_by_project() {
+    public void get_user_policy_by_project() {
         Project project1 = new Project("project1", "Project 1");
         when(jooqRepository.getProject("project1")).thenReturn(project1);
         Optional<UserPolicy> policy = verifier.getUserPolicyByProject("user1", "project1");
@@ -94,13 +93,13 @@ public class UserPolicyVerifierTest {
         assertThat(policyNotExist.isEmpty()).isTrue();
     }
 
-    @Test(expected = RecordNotFoundException.class)
-    public void test_get_user_with_policies_by_project_when_user_does_not_exists() {
-        verifier.getUserPolicyByProject("foo", "bar");
+    @Test
+    public void get_user_with_policies_by_project_when_user_does_not_exists() {
+        assertThat(verifier.getUserPolicyByProject("foo", "bar")).isEqualTo(Optional.empty());
     }
 
-    @Test(expected = RecordNotFoundException.class)
-    public void test_get_user_with_policies_by_project_when_project_does_not_exists() {
-        verifier.getUserPolicyByProject("user1", "bar");
+    @Test
+    public void get_user_with_policies_by_project_when_project_does_not_exists() {
+        assertThat(verifier.getUserPolicyByProject("user1", "bar")).isEqualTo(Optional.empty());
     }
 }

@@ -29,18 +29,23 @@ public class UserPolicyVerifier {
     private final UserPolicyRepository userPolicyRepository;
 
     @Inject
-    private UserPolicyVerifier(final UserPolicyRepository userPolicyRepository, final Repository repository) throws URISyntaxException {
+    private UserPolicyVerifier(final UserPolicyRepository userPolicyRepository, final Repository repository) {
         this.userPolicyRepository = userPolicyRepository;
         this.repository = repository;
 
         Adapter adapter = new UserPolicyAdapter(this.userPolicyRepository);
         Model model = new Model();
-        Path path = Paths.get(ClassLoader.getSystemResource(DEFAULT_POLICY_FILE).toURI());
+        Path path = null;
+        try {
+            path = Paths.get(ClassLoader.getSystemResource(DEFAULT_POLICY_FILE).toURI());
+        } catch (URISyntaxException e) {
+            throw new RuntimeException(e);
+        }
         model.loadModel(path.toString());
         this.enforcer = new Enforcer(model, adapter, ENABLE_CASBIN_LOG);
     }
 
-    public static synchronized UserPolicyVerifier getInstance(final UserPolicyRepository userPolicyRepository, final Repository repository) throws URISyntaxException {
+    public static synchronized UserPolicyVerifier getInstance(final UserPolicyRepository userPolicyRepository, final Repository repository) {
         if (instance == null) {
             instance = new UserPolicyVerifier(userPolicyRepository, repository);
         }
@@ -67,49 +72,37 @@ public class UserPolicyVerifier {
 
     /**
      * Retrieve the user policy for a given user and project.
-     * Throws RecordNotFoundException if user or project does not exist.
      */
     public Optional<UserPolicy> getUserPolicyByProject(String userId, String projectId) {
-        userExists(userId);
-        projectExists(projectId);
         return Optional.ofNullable(this.userPolicyRepository.get(userId, projectId));
     }
 
     /**
      * Save a user policy for a given user, project, and roles.
-     * Throws RecordNotFoundException if user or project does not exist.
      */
-    public boolean saveUserPolicy(String userId, String projectId, Role[] roles) {
-        User user = userExists(userId);
-        Project project = projectExists(projectId);
-        UserPolicy policy = UserPolicy.of(user.id, project.getId(), roles);
-        return this.userPolicyRepository.save(policy);
+    public boolean saveUserPolicy(String userId, String projectId, Role[] roles) throws RecordNotFoundException {
+        userAndProjectExist(userId, projectId);
+        UserPolicy userPolicy = UserPolicy.of(userId, projectId, roles);
+        return this.userPolicyRepository.save(userPolicy);
     }
 
     /**
      * Delete a user policy for a given user and project.
-     * Throws RecordNotFoundException if user or project does not exist.
      */
-    public boolean deleteUserPolicy(String userId, String projectId) {
-        userExists(userId);
-        projectExists(projectId);
+    public boolean deleteUserPolicy(String userId, String projectId) throws RecordNotFoundException {
+        userAndProjectExist(userId, projectId);
         return this.userPolicyRepository.delete(userId, projectId);
     }
 
-
-    private User userExists(String userId) throws RecordNotFoundException {
-        User user = repository.getUser(userId);
-        if (userId == null) {
+    private void userAndProjectExist(String userId, String projectId) throws RecordNotFoundException {
+        if (this.repository.getUser(userId) == null) {
             throw new RecordNotFoundException(User.class, userId);
         }
-        return user;
-    }
-
-    private Project projectExists(String projectId) throws RecordNotFoundException {
-        Project project = repository.getProject(projectId);
-        if (project == null) {
+        if (this.repository.getProject(projectId) == null) {
             throw new RecordNotFoundException(Project.class, projectId);
         }
-        return project;
     }
+
+
+
 }
