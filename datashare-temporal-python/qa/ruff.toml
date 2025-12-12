@@ -1,0 +1,51 @@
+[lint]
+select = [
+    "A",
+    "ANN",
+    "ARG",
+    "ASYNC",
+    "B",
+    "BLE",
+    "C4",
+    "D",
+    "DTZ",
+    "E",
+    "F",
+    "G",
+    "FBT",
+    "I",
+    "LOG",
+    "N",
+    "PL",
+    "PT",
+    "RET",
+    "SIM",
+    "UP",
+    "W",
+]
+extend-select = [
+    "D419", # empty-docstring
+    "UP004", # useless-object-inheritance
+    "C416", # unnecessary-comprehension
+    "B033", # duplicate-value
+]
+ignore = [
+    "ANN002", # missing-type-args
+    "ANN003", # missing-type-kwargs
+    "ANN204", # missing-return-type-special-method
+    "ANN401", # missing-type-kwargs
+    "C408", # missing-type-kwargs
+    "D1", # doc
+    "N818", # error-suffix-on-exception-name
+    "PLR0904", # too-many-public-methods
+    "PLR0911", # too-many-return-statements
+    "PLR0912", # too-many-branches
+    "PLR0913", # too-many-arguments
+    "PLR0914", # too-many-locals
+    "PLR0915", # too-many-statements
+    "PLR0916", # too-many-boolean-expressions
+    "PLR2004", # Magic value used in comparison
+    "PLW0603", # global-statement
+    "PLW1514", # unspecified-encoding
+    "RET504", # unnecessary-assign
+]
