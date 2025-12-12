@@ -35,8 +35,6 @@ public class WebAcceptanceTest extends AbstractProdWebServerTest {
 
     @Before
     public void setUp() throws Exception {
-        UserPolicyVerifier.resetInstance(); // Reset singleton before each test
-
         mocks = openMocks(this);
     }
 
@@ -57,7 +55,8 @@ public class WebAcceptanceTest extends AbstractProdWebServerTest {
         User john = mockUserProjectRole("john", "test-datashare", new Role[]{Role.ADMIN});
         when(jooqUserPolicyRepository.getAllPolicies()).thenReturn(john.policies.stream());
 
-        UserPolicyAnnotation userPolicyAnnotation = new UserPolicyAnnotation(UserPolicyVerifier.getInstance(jooqUserPolicyRepository, jooqRepository));
+        UserPolicyVerifier verifier = new UserPolicyVerifier(jooqUserPolicyRepository, jooqRepository);
+        UserPolicyAnnotation userPolicyAnnotation = new UserPolicyAnnotation(verifier);
         Users users = DatashareUser.singleUser(john);
 
         configure(routes -> routes.registerAroundAnnotation(Policy.class, userPolicyAnnotation).filter(new BasicAuthFilter("/", "icij", users)).add(new FakeResource()));
