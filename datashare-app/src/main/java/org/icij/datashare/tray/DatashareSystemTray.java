@@ -22,23 +22,39 @@ public class DatashareSystemTray implements Closeable {
     private static final int DEFAULT_ICON_SIZE = 16;
 
     private final SystemTray systemTray;
-    private final CommonMode mode;
+    private final TrayActions actions;
 
-    private DatashareSystemTray(SystemTray systemTray, CommonMode mode) {
+
+    DatashareSystemTray(SystemTray systemTray, TrayActions actions) {
         this.systemTray = systemTray;
-        this.mode = mode;
+        this.actions = actions;
         configure();
     }
 
     public static DatashareSystemTray create(CommonMode mode) {
         SystemTray systemTray = SystemTray.get();
-        
+
         if (systemTray == null) {
-            LOGGER.error("SystemTray is NULL - not supported on this system");
+            LOGGER.error("SystemTray is not supported on this system");
             return null;
         }
 
-        DatashareSystemTray dataShareTray = new DatashareSystemTray(systemTray, mode);
+        TrayActions actions = new TrayActions() {
+            @Override
+            public void openBrowser() {
+                String port = mode.properties().getProperty(PropertiesProvider.TCP_LISTEN_PORT_OPT);
+                String url = "http://localhost:" + port;
+                WebBrowserUtils.openBrowser(url);
+            }
+
+            @Override
+            public void quit() {
+                LOGGER.info("Shutdown requested from system tray");
+                System.exit(0);
+            }
+        };
+
+        DatashareSystemTray dataShareTray = new DatashareSystemTray(systemTray, actions);
         mode.addCloseable(dataShareTray);
         return dataShareTray;
     }
@@ -51,21 +67,9 @@ public class DatashareSystemTray implements Closeable {
 
     private void configureMenu() {
         Menu menu = systemTray.getMenu();
-        menu.add(new MenuItem("Open Browser", e -> openBrowser()));
-        menu.add(new MenuItem("Quit", e -> quit()));
+        menu.add(new MenuItem("Open Browser", e -> actions.openBrowser()));
+        menu.add(new MenuItem("Quit", e -> actions.quit()));
     }
-
-    private void openBrowser() {
-        String port = mode.properties().getProperty(PropertiesProvider.TCP_LISTEN_PORT_OPT);
-        String url = "http://localhost:" + port;
-        WebBrowserUtils.openBrowser(url);
-    }
-
-    private void quit() {
-        LOGGER.info("Shutdown requested from system tray");
-        System.exit(0);
-    }
-
 
     private void loadIcon() {
         try {
