@@ -31,10 +31,14 @@ import static net.codestory.http.payload.Payload.ok;
 public class UserPolicyResource {
     private final UserPolicyVerifier userPolicyVerifier;
 
-
     @Inject
     public UserPolicyResource(UserPolicyRepository userPolicyRepository, Repository repository) {
-        userPolicyVerifier = UserPolicyVerifier.getInstance(userPolicyRepository, repository);
+        this(new UserPolicyVerifier(userPolicyRepository, repository));
+    }
+
+    // New constructor for testability and DI
+    public UserPolicyResource(UserPolicyVerifier userPolicyVerifier) {
+        this.userPolicyVerifier = userPolicyVerifier;
     }
 
     private static Role[] getRoles(String commaSeparatedRoles) {
