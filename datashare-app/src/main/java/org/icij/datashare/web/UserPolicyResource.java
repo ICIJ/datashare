@@ -16,12 +16,14 @@ import org.icij.datashare.RecordNotFoundException;
 import org.icij.datashare.Repository;
 import org.icij.datashare.session.UserPolicyVerifier;
 import org.icij.datashare.user.Role;
+import org.icij.datashare.user.UserPolicy;
 import org.icij.datashare.user.UserPolicyRepository;
 
-import java.net.URISyntaxException;
 import java.util.Arrays;
+import java.util.stream.Stream;
 
-import static net.codestory.http.payload.Payload.notFound;
+import static net.codestory.http.constants.HttpStatus.NO_CONTENT;
+import static net.codestory.http.payload.Payload.badRequest;
 import static net.codestory.http.payload.Payload.ok;
 
 @Singleton
@@ -31,10 +33,16 @@ public class UserPolicyResource {
 
 
     @Inject
-    public UserPolicyResource(UserPolicyRepository userPolicyRepository, Repository repository) throws URISyntaxException {
+    public UserPolicyResource(UserPolicyRepository userPolicyRepository, Repository repository) {
         userPolicyVerifier = UserPolicyVerifier.getInstance(userPolicyRepository, repository);
     }
 
+    private static Role[] getRoles(String commaSeparatedRoles) {
+        return Arrays.stream(commaSeparatedRoles.split(","))
+                .map(String::trim)
+                .map(Role::valueOf)
+                .toArray(Role[]::new);
+    }
 
     @Operation(description = "Get a policy regarding a user a project ")
     @ApiResponse(responseCode = "200", description = "Policy retrieved successfully.")
@@ -43,10 +51,16 @@ public class UserPolicyResource {
             @Parameter(name = "userId", description = "User ID", in = ParameterIn.QUERY) String userId,
             @Parameter(name = "projectId", description = "Project ID", in = ParameterIn.QUERY) String projectId,
             Context context) {
-        if (userId == null && projectId == null) {
-            return new Payload(userPolicyVerifier.getUserPolicies()).withCode(200);
+
+        try {
+            if (userId == null && projectId == null) {
+                Stream<UserPolicy> userPolicies = userPolicyVerifier.getUserPolicies();
+                return new Payload(userPolicies).withCode(200);
+            }
+            return userPolicyVerifier.getUserPolicyByProject(userId, projectId).map(Payload::new).orElseGet(Payload::notFound);
+        } catch (RecordNotFoundException e) {
+            return new Payload(e).withCode(404);
         }
-        return userPolicyVerifier.getUserPolicyByProject(userId, projectId).map(Payload::new).orElseGet(Payload::notFound);
     }
 
 
@@ -59,15 +73,15 @@ public class UserPolicyResource {
             @Parameter(name = "comma_separated_roles", description = "User roles", in = ParameterIn.QUERY) String commaSeparatedRoles,
             Context context) {
         try {
-            Role[] roles = Arrays.stream(commaSeparatedRoles.split(","))
-                    .map(String::trim)
-                    .map(Role::valueOf)
-                    .toArray(Role[]::new);
-            return userPolicyVerifier.saveUserPolicy(userId, projectId, roles) ? ok() : new Payload(400);
+            Role[] roles = getRoles(commaSeparatedRoles);
+            return userPolicyVerifier.saveUserPolicy(userId, projectId, roles) ? ok() : badRequest();
+        } catch (RecordNotFoundException e) {
+            return new Payload(e).withCode(404);
         } catch (IllegalArgumentException e) {
             return new Payload("Invalid role in input: " + commaSeparatedRoles).withCode(400);
         }
     }
+
 
     @Operation(description = "Remove a policy from the current user.")
     @ApiResponse(responseCode = "200", description = "Policy removed successfully.")
@@ -77,9 +91,10 @@ public class UserPolicyResource {
             @Parameter(name = "projectId", description = "Project ID", in = ParameterIn.QUERY) String projectId,
             Context context) {
         try {
-            return userPolicyVerifier.deleteUserPolicy(userId, projectId) ? ok() : new Payload(400);
+            userPolicyVerifier.deleteUserPolicy(userId, projectId);
+            return new Payload(NO_CONTENT);
         } catch (RecordNotFoundException e) {
-            return notFound();
+            return new Payload(e).withCode(404);
         }
     }
 
