@@ -1,0 +1,10 @@
+[project]
+name = "datashare-temporal-python"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "icij-common>=0.7.3",
+    "temporalio>=1.20.0",
+]
