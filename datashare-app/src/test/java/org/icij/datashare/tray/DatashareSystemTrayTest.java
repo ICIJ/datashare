@@ -8,6 +8,7 @@ import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import java.awt.event.ActionListener;
+import java.net.URL;
 
 import static org.mockito.Mockito.*;
 import static org.mockito.MockitoAnnotations.initMocks;
@@ -27,7 +28,7 @@ public class DatashareSystemTrayTest {
 
     @Test
     public void test_set_icon() {
-        verify(systemTray).setImage(any(String.class));
+        verify(systemTray).setImage(any(URL.class));
     }
 
     @Test
