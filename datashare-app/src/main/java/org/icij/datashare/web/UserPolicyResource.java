@@ -12,6 +12,7 @@ import net.codestory.http.annotations.Get;
 import net.codestory.http.annotations.Prefix;
 import net.codestory.http.annotations.Put;
 import net.codestory.http.payload.Payload;
+import org.icij.datashare.RecordNotFoundException;
 import org.icij.datashare.Repository;
 import org.icij.datashare.session.UserPolicyVerifier;
 import org.icij.datashare.user.Role;
@@ -20,6 +21,7 @@ import org.icij.datashare.user.UserPolicyRepository;
 import java.net.URISyntaxException;
 import java.util.Arrays;
 
+import static net.codestory.http.payload.Payload.notFound;
 import static net.codestory.http.payload.Payload.ok;
 
 @Singleton
@@ -74,8 +76,11 @@ public class UserPolicyResource {
             @Parameter(name = "userId", description = "User ID", in = ParameterIn.QUERY) String userId,
             @Parameter(name = "projectId", description = "Project ID", in = ParameterIn.QUERY) String projectId,
             Context context) {
-        boolean success = userPolicyVerifier.deleteUserPolicy(userId, projectId);
-        return success ? ok() : new Payload(400);
+        try {
+            return userPolicyVerifier.deleteUserPolicy(userId, projectId) ? ok() : new Payload(400);
+        } catch (RecordNotFoundException e) {
+            return notFound();
+        }
     }
 
 }

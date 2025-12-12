@@ -59,9 +59,9 @@ public class UserPolicyResourceTest extends AbstractProdWebServerTest {
 
     // add test on bad user / project
 
-/*
+
     @Test
-    public void test_add_user_policy_success() {
+    public void upsert_user_policy_success() {
         UserPolicy policy = UserPolicy.of("jane", "test-datashare", new Role[]{Role.READER});
         UserPolicy policy2 = UserPolicy.of("jane", "test-datashare", new Role[]{Role.READER, Role.WRITER});
         when(repository.getUser("jane")).thenReturn(User.localUser("jane"));
@@ -71,6 +71,14 @@ public class UserPolicyResourceTest extends AbstractProdWebServerTest {
         put("/api/policies/?userId=jane&projectId=test-datashare&roles=READER").should().respond(200);
         put("/api/policies/?userId=jane&projectId=test-datashare&roles=READER,WRITER").should().respond(200);
     }
-*/
+
+    @Test
+    public void delete_user_policy_success() {
+        when(repository.getUser("jane")).thenReturn(User.localUser("jane"));
+        when(repository.getProject("test-datashare")).thenReturn(project("test-datashare"));
+        when(userPolicyRepository.delete("jane", "test-datashare")).thenReturn(true);
+        delete("/api/policies/?userId=jane&projectId=test-datashare").should().respond(200);
+        delete("/api/policies/?userId=john&projectId=test-datashare&test=toto").should().respond(404);
+    }
 
 }

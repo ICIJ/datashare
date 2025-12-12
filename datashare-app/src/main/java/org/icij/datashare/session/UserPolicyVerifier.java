@@ -4,11 +4,8 @@ import com.google.inject.Inject;
 import org.casbin.jcasbin.main.Enforcer;
 import org.casbin.jcasbin.model.Model;
 import org.casbin.jcasbin.persist.Adapter;
-import org.icij.datashare.RecordNotFoundException;
 import org.icij.datashare.Repository;
-import org.icij.datashare.text.Project;
 import org.icij.datashare.user.Role;
-import org.icij.datashare.user.User;
 import org.icij.datashare.user.UserPolicy;
 import org.icij.datashare.user.UserPolicyRepository;
 
@@ -67,49 +64,24 @@ public class UserPolicyVerifier {
 
     /**
      * Retrieve the user policy for a given user and project.
-     * Throws RecordNotFoundException if user or project does not exist.
      */
     public Optional<UserPolicy> getUserPolicyByProject(String userId, String projectId) {
-        userExists(userId);
-        projectExists(projectId);
         return Optional.ofNullable(this.userPolicyRepository.get(userId, projectId));
     }
 
     /**
      * Save a user policy for a given user, project, and roles.
-     * Throws RecordNotFoundException if user or project does not exist.
      */
     public boolean saveUserPolicy(String userId, String projectId, Role[] roles) {
-        User user = userExists(userId);
-        Project project = projectExists(projectId);
-        UserPolicy policy = UserPolicy.of(user.id, project.getId(), roles);
+        UserPolicy policy = UserPolicy.of(userId, projectId, roles);
         return this.userPolicyRepository.save(policy);
     }
 
     /**
      * Delete a user policy for a given user and project.
-     * Throws RecordNotFoundException if user or project does not exist.
      */
     public boolean deleteUserPolicy(String userId, String projectId) {
-        userExists(userId);
-        projectExists(projectId);
         return this.userPolicyRepository.delete(userId, projectId);
     }
 
-
-    private User userExists(String userId) throws RecordNotFoundException {
-        User user = repository.getUser(userId);
-        if (userId == null) {
-            throw new RecordNotFoundException(User.class, userId);
-        }
-        return user;
-    }
-
-    private Project projectExists(String projectId) throws RecordNotFoundException {
-        Project project = repository.getProject(projectId);
-        if (project == null) {
-            throw new RecordNotFoundException(Project.class, projectId);
-        }
-        return project;
-    }
 }
