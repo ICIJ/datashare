@@ -11,7 +11,6 @@ import org.junit.Test;
 
 import java.lang.annotation.Annotation;
 import java.net.URISyntaxException;
-import java.util.Optional;
 
 import static junit.framework.TestCase.assertEquals;
 import static org.icij.datashare.user.Role.ADMIN;
@@ -47,8 +46,8 @@ public class UserPolicyAnnotationTest {
         UserPolicy adminPermission = new UserPolicy("cecile", projectId, new Role[]{ADMIN});
         UserPolicy nonAdminPermission = new UserPolicy("john", projectId, new Role[]{Role.READER});
         userPolicyVerifier = mock(UserPolicyVerifier.class);
-        when(userPolicyVerifier.getUserPolicyByProject("cecile", projectId)).thenReturn(Optional.of(adminPermission));
-        when(userPolicyVerifier.getUserPolicyByProject("john", projectId)).thenReturn(Optional.of(nonAdminPermission));
+        when(userPolicyVerifier.getUserPolicy("cecile", projectId)).thenReturn(adminPermission);
+        when(userPolicyVerifier.getUserPolicy("john", projectId)).thenReturn(nonAdminPermission);
         when(userPolicyVerifier.enforce("cecile", projectId, ADMIN.name())).thenReturn(true);
         when(userPolicyVerifier.enforce("john", projectId, ADMIN.name())).thenReturn(false);
         annotation = new UserPolicyAnnotation(userPolicyVerifier);

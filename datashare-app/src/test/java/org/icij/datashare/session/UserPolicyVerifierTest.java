@@ -86,19 +86,19 @@ public class UserPolicyVerifierTest {
     public void get_user_policy_by_project() {
         Project project1 = new Project("project1", "Project 1");
         when(jooqRepository.getProject("project1")).thenReturn(project1);
-        Optional<UserPolicy> policy = verifier.getUserPolicyByProject("user1", "project1");
+        Optional<UserPolicy> policy = Optional.ofNullable(verifier.getUserPolicy("user1", "project1"));
         assertThat(policy.isPresent()).isTrue();
-        Optional<UserPolicy> policyNotExist = verifier.getUserPolicyByProject("user1", "project2");
+        Optional<UserPolicy> policyNotExist = Optional.ofNullable(verifier.getUserPolicy("user1", "project2"));
         assertThat(policyNotExist.isEmpty()).isTrue();
     }
 
     @Test
     public void get_user_with_policies_by_project_when_user_does_not_exists() {
-        assertThat(verifier.getUserPolicyByProject("foo", "bar")).isEqualTo(Optional.empty());
+        assertThat(verifier.getUserPolicy("foo", "bar")).isEqualTo(null);
     }
 
     @Test
     public void get_user_with_policies_by_project_when_project_does_not_exists() {
-        assertThat(verifier.getUserPolicyByProject("user1", "bar")).isEqualTo(Optional.empty());
+        assertThat(verifier.getUserPolicy("user1", "bar")).isEqualTo(null);
     }
 }

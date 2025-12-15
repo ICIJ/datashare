@@ -76,16 +76,16 @@ public class JooqUserPolicyRepositoryTest extends TestCase {
     }
 
     @Test
-    public void test_getPolicies_by_user_id() {
+    public void test_getByUserId_by_user_id() {
         repository.save(new UserPolicy("bar", "pA", new Role[]{Role.READER, Role.WRITER}));
         repository.save(new UserPolicy("bar", "pB", new Role[]{Role.WRITER, Role.ADMIN}));
         repository.save(new UserPolicy("baz", "pB", new Role[]{Role.WRITER, Role.ADMIN}));
 
-        List<UserPolicy> policiesBar = repository.getPolicies("bar").toList();
+        List<UserPolicy> policiesBar = repository.getByUserId("bar").toList();
         assertThat(policiesBar).hasSize(2);
-        List<UserPolicy> policiesFoo = repository.getPolicies("baz").toList();
+        List<UserPolicy> policiesFoo = repository.getByUserId("baz").toList();
         assertThat(policiesFoo).hasSize(1);
-        List<UserPolicy> policiesNone = repository.getPolicies("none").toList();
+        List<UserPolicy> policiesNone = repository.getByUserId("none").toList();
         assertThat(policiesNone).hasSize(0);
     }
 
