@@ -48,7 +48,16 @@ public class JooqUserPolicyRepository implements UserPolicyRepository {
     }
 
     @Override
-    public Stream<UserPolicy> getPolicies(String userId) {
+    public Stream<UserPolicy> getByProjectId(String projectId) {
+        DSLContext ctx = using(connectionProvider, dialect);
+        return ctx.selectFrom(USER_POLICY)
+                .where(USER_POLICY.PRJ_ID.eq(projectId))
+                .fetch()
+                .stream()
+                .map(JooqUserPolicyRepository::fromRecord);
+    }
+    @Override
+    public Stream<UserPolicy> getByUserId(String userId) {
         DSLContext ctx = using(connectionProvider, dialect);
         return ctx.selectFrom(USER_POLICY)
                 .where(USER_POLICY.USER_ID.eq(userId))

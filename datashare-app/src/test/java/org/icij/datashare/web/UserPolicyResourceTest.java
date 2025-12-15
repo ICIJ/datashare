@@ -35,10 +35,11 @@ public class UserPolicyResourceTest extends AbstractProdWebServerTest {
     @Test
     public void get_all_user_policy_success() throws IOException {
         UserPolicy policy = UserPolicy.of("jane", "test-datashare", new Role[]{Role.READER});
-        when(userPolicyRepository.getAllPolicies()).thenAnswer(s -> Stream.of(policy));
+        UserPolicy policy2 = UserPolicy.of("john", "test-datashare", new Role[]{Role.READER});
+        when(userPolicyRepository.getAllPolicies()).thenAnswer(s -> Stream.of(policy, policy2));
         UserPolicyVerifier verifier = new UserPolicyVerifier(userPolicyRepository, repository);
         configure(routes -> routes.add(new UserPolicyResource(verifier)));
-        get("/api/policies/").should().respond(200);
+        get("/api/policies/?from=0&to=10").should().respond(200).contain("\"count\":2");
     }
 
     @Test
@@ -47,17 +48,8 @@ public class UserPolicyResourceTest extends AbstractProdWebServerTest {
         when(userPolicyRepository.get("jane", "test-datashare")).thenAnswer(p -> policy);
         UserPolicyVerifier verifier = new UserPolicyVerifier(userPolicyRepository, repository);
         configure(routes -> routes.add(new UserPolicyResource(verifier)));
-        get("/api/policies/?userId=jane&projectId=test-datashare").should().respond(200);
+        get("/api/policies/?userId=jane&projectId=test-datashare&from=0&to=10").should().respond(200).contain("\"count\":1");
     }
-
-    @Test
-    public void get_inexistant_user_or_project_in_user_policy_returns_not_found_with_payload_message() throws IOException {
-        UserPolicyVerifier verifier = new UserPolicyVerifier(userPolicyRepository, repository);
-        configure(routes -> routes.add(new UserPolicyResource(verifier)));
-        get("/api/policies/?userId=john&projectId=test-datashare").should().contain("not found").respond(404);
-        get("/api/policies/?userId=jane&projectId=foo").should().contain("not found").respond(404);
-    }
-
 
     @Test
     public void get_user_policy_not_existing_returns_not_found() throws IOException {
@@ -65,7 +57,9 @@ public class UserPolicyResourceTest extends AbstractProdWebServerTest {
         when(userPolicyRepository.get("john", "test-datashare")).thenReturn(null);
         UserPolicyVerifier verifier = new UserPolicyVerifier(userPolicyRepository, repository);
         configure(routes -> routes.add(new UserPolicyResource(verifier)));
-        get("/api/policies/?userId=john&projectId=test-datashare").should().respond(404);
+        get("/api/policies/?userId=john&from=0&to=10").should().respond(200).contain("\"items\":[]");
+        get("/api/policies/?projectId=test-datashare&from=0&to=10").should().respond(200).contain("\"items\":[]");
+        get("/api/policies/?userId=john&projectId=test-datashare&from=0&to=10").should().respond(200).contain("\"items\":[]");
     }
 
     @Test

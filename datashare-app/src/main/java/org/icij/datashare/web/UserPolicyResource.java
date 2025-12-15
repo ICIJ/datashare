@@ -15,13 +15,11 @@ import net.codestory.http.payload.Payload;
 import org.icij.datashare.RecordNotFoundException;
 import org.icij.datashare.session.UserPolicyVerifier;
 import org.icij.datashare.user.Role;
-import org.icij.datashare.user.UserPolicy;
 
 import java.util.Arrays;
-import java.util.stream.Stream;
 
+import static java.util.Optional.ofNullable;
 import static net.codestory.http.constants.HttpStatus.NO_CONTENT;
-import static net.codestory.http.payload.Payload.badRequest;
 import static net.codestory.http.payload.Payload.ok;
 
 @Singleton
@@ -41,20 +39,22 @@ public class UserPolicyResource {
                 .toArray(Role[]::new);
     }
 
-    @Operation(description = "Get a policy regarding a user a project ")
+    @Operation(description = "Get a policies regarding a userId a projectId ",
+            parameters = {
+                    @Parameter(name = "from", description = "if not provided it starts from 0", in = ParameterIn.QUERY),
+                    @Parameter(name = "to", description = "if not provided all queries are returned from the \"from\" parameter", in = ParameterIn.QUERY)
+            }
+    )
     @ApiResponse(responseCode = "200", description = "Policy retrieved successfully.")
     @Get("/?userId=:userId&projectId=:projectId")
     public Payload getUserPoliciesByUserByProject(
             @Parameter(name = "userId", description = "User ID", in = ParameterIn.QUERY) String userId,
             @Parameter(name = "projectId", description = "Project ID", in = ParameterIn.QUERY) String projectId,
             Context context) {
-
         try {
-            if (userId == null && projectId == null) {
-                Stream<UserPolicy> userPolicies = userPolicyVerifier.getUserPolicies();
-                return new Payload(userPolicies).withCode(200);
-            }
-            return userPolicyVerifier.getUserPolicyByProject(userId, projectId).map(Payload::new).orElseGet(Payload::notFound);
+            int from = Integer.parseInt(ofNullable(context.get("from")).orElse("0"));
+            int to = Integer.parseInt(ofNullable(context.get("to")).orElse("0"));
+            return new Payload(WebResponse.fromStream(userPolicyVerifier.getUserPolicies(userId, projectId), from, to));
         } catch (RecordNotFoundException e) {
             return new Payload(e).withCode(404);
         }
@@ -71,7 +71,8 @@ public class UserPolicyResource {
             Context context) {
         try {
             Role[] roles = getRoles(commaSeparatedRoles);
-            return userPolicyVerifier.saveUserPolicy(userId, projectId, roles) ? ok() : badRequest();
+            userPolicyVerifier.saveUserPolicy(userId, projectId, roles);
+            return ok();
         } catch (RecordNotFoundException e) {
             return new Payload(e).withCode(404);
         } catch (IllegalArgumentException e) {

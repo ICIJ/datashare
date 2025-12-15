@@ -9,6 +9,8 @@ public interface UserPolicyRepository {
 
     boolean delete(String userId, String projectId);
 
-    Stream<UserPolicy> getPolicies(String userId);
+    Stream<UserPolicy> getByProjectId(String projectId);
+
+    Stream<UserPolicy> getByUserId(String userId);
     Stream<UserPolicy> getAllPolicies();
 }

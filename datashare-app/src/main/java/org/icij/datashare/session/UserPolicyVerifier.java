@@ -18,7 +18,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
-import java.util.Optional;
 import java.util.stream.Stream;
 
 
@@ -61,15 +60,28 @@ public class UserPolicyVerifier {
         return this.enforcer.enforce(userName, projectName, act);
     }
 
-    public Stream<UserPolicy> getUserPolicies() {
+    public Stream<UserPolicy> getAllUserPolicies() {
         return this.userPolicyRepository.getAllPolicies();
     }
 
     /**
-     * Retrieve the user policy for a given user and project.
+     * Retrieve the user policies for a given user or project.
      */
-    public Optional<UserPolicy> getUserPolicyByProject(String userId, String projectId) {
-        return Optional.ofNullable(this.userPolicyRepository.get(userId, projectId));
+    public Stream<UserPolicy> getUserPolicies(String userId, String projectId) {
+        if (userId != null && projectId != null) {
+            return Stream.ofNullable(this.userPolicyRepository.get(userId, projectId));
+        }
+        if (userId != null) {
+            return this.userPolicyRepository.getByUserId(userId);
+        }
+        if (projectId != null) {
+            return this.userPolicyRepository.getByProjectId(projectId);
+        }
+        return this.userPolicyRepository.getAllPolicies();
+    }
+
+    public UserPolicy getUserPolicy(String userId, String projectId) {
+        return this.userPolicyRepository.get(userId, projectId);
     }
 
     /**
@@ -97,7 +109,5 @@ public class UserPolicyVerifier {
             throw new RecordNotFoundException(Project.class, projectId);
         }
     }
-
-
 
 }

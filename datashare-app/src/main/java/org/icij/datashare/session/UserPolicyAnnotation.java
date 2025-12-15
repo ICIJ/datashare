@@ -28,7 +28,7 @@ public class UserPolicyAnnotation implements ApplyAroundAnnotation<Policy> {
         if (user == null) {
             throw new UnauthorizedException();
         }
-        Optional<UserPolicy> policy = this.userPolicyVerifier.getUserPolicyByProject(user.id, projectId);
+        Optional<UserPolicy> policy = Optional.ofNullable(this.userPolicyVerifier.getUserPolicy(user.id, projectId));
         if (policy.isEmpty()) {
             return Payload.forbidden();
         }
