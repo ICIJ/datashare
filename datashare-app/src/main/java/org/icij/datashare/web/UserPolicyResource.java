@@ -13,11 +13,9 @@ import net.codestory.http.annotations.Prefix;
 import net.codestory.http.annotations.Put;
 import net.codestory.http.payload.Payload;
 import org.icij.datashare.RecordNotFoundException;
-import org.icij.datashare.Repository;
 import org.icij.datashare.session.UserPolicyVerifier;
 import org.icij.datashare.user.Role;
 import org.icij.datashare.user.UserPolicy;
-import org.icij.datashare.user.UserPolicyRepository;
 
 import java.util.Arrays;
 import java.util.stream.Stream;
@@ -32,11 +30,6 @@ public class UserPolicyResource {
     private final UserPolicyVerifier userPolicyVerifier;
 
     @Inject
-    public UserPolicyResource(UserPolicyRepository userPolicyRepository, Repository repository) {
-        this(new UserPolicyVerifier(userPolicyRepository, repository));
-    }
-
-    // New constructor for testability and DI
     public UserPolicyResource(UserPolicyVerifier userPolicyVerifier) {
         this.userPolicyVerifier = userPolicyVerifier;
     }

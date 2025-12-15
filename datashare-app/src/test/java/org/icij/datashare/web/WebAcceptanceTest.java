@@ -18,7 +18,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
 
-import java.net.URISyntaxException;
+import java.io.IOException;
 import java.util.Set;
 
 import static org.icij.datashare.text.Project.project;
@@ -51,7 +51,7 @@ public class WebAcceptanceTest extends AbstractProdWebServerTest {
     }
 
     @Test
-    public void route_with_index_in_path_policy_annotation_accepts_user_with_same_policy() throws URISyntaxException {
+    public void route_with_index_in_path_policy_annotation_accepts_user_with_same_policy() throws IOException {
         User john = mockUserProjectRole("john", "test-datashare", new Role[]{Role.ADMIN});
         when(jooqUserPolicyRepository.getAllPolicies()).thenReturn(john.policies.stream());
 

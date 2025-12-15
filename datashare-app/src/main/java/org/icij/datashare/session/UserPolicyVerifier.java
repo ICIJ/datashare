@@ -1,6 +1,7 @@
 package org.icij.datashare.session;
 
 import com.google.inject.Inject;
+import org.apache.commons.io.IOUtils;
 import org.casbin.jcasbin.main.Enforcer;
 import org.casbin.jcasbin.model.Model;
 import org.casbin.jcasbin.persist.Adapter;
@@ -12,9 +13,10 @@ import org.icij.datashare.user.User;
 import org.icij.datashare.user.UserPolicy;
 import org.icij.datashare.user.UserPolicyRepository;
 
-import java.net.URISyntaxException;
-import java.nio.file.Path;
-import java.nio.file.Paths;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Optional;
 import java.util.stream.Stream;
@@ -28,20 +30,25 @@ public class UserPolicyVerifier {
     private final UserPolicyRepository userPolicyRepository;
 
     @Inject
-    public UserPolicyVerifier(final UserPolicyRepository userPolicyRepository, final Repository repository) {
+    public UserPolicyVerifier(final UserPolicyRepository userPolicyRepository, final Repository repository) throws IOException {
         this.userPolicyRepository = userPolicyRepository;
         this.repository = repository;
 
         Adapter adapter = new UserPolicyAdapter(this.userPolicyRepository);
         Model model = new Model();
-        Path path = null;
-        try {
-            path = Paths.get(ClassLoader.getSystemResource(DEFAULT_POLICY_FILE).toURI());
-        } catch (URISyntaxException e) {
-            throw new RuntimeException("Failed to load Casbin conf file", e);
-        }
-        model.loadModel(path.toString());
+        model.loadModelFromText(loadCasbinConf());
+
         this.enforcer = new Enforcer(model, adapter, ENABLE_CASBIN_LOG);
+    }
+
+    private String loadCasbinConf() throws IOException {
+        // Load Casbin model from classpath in a way that works both from IDE and packaged JARs
+        InputStream inputStream = getClass().getClassLoader().getResourceAsStream(DEFAULT_POLICY_FILE);
+        if (inputStream != null) {
+            return IOUtils.toString(inputStream, StandardCharsets.UTF_8);
+        } else {
+            throw new FileNotFoundException(String.format("Unable to find : %s", DEFAULT_POLICY_FILE));
+        }
     }
 
     public boolean enforceAllRoles(UserPolicy userPolicy) {
