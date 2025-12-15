@@ -36,9 +36,6 @@ public class UserPolicyAnnotation implements ApplyAroundAnnotation<Policy> {
     }
 
     private boolean enforcePolicyRoles(Policy annotation, UserPolicy userPolicy) {
-        return Arrays.stream(annotation.roles()).allMatch(role ->
-        {
-            return userPolicyVerifier.enforce(userPolicy.userId(), userPolicy.projectId(), role.name());
-        });
+        return Arrays.stream(annotation.roles()).allMatch(role -> userPolicyVerifier.enforce(userPolicy.userId(), userPolicy.projectId(), role.name()));
     }
 }
