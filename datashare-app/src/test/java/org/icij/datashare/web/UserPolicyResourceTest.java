@@ -11,6 +11,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
 
+import java.io.IOException;
 import java.util.stream.Stream;
 
 import static org.icij.datashare.text.Project.project;
@@ -32,7 +33,7 @@ public class UserPolicyResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
-    public void get_all_user_policy_success() {
+    public void get_all_user_policy_success() throws IOException {
         UserPolicy policy = UserPolicy.of("jane", "test-datashare", new Role[]{Role.READER});
         when(userPolicyRepository.getAllPolicies()).thenAnswer(s -> Stream.of(policy));
         UserPolicyVerifier verifier = new UserPolicyVerifier(userPolicyRepository, repository);
@@ -41,7 +42,7 @@ public class UserPolicyResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
-    public void get_user_policy_success_returns_ok() {
+    public void get_user_policy_success_returns_ok() throws IOException {
         UserPolicy policy = UserPolicy.of("jane", "test-datashare", new Role[]{Role.READER});
         when(userPolicyRepository.get("jane", "test-datashare")).thenAnswer(p -> policy);
         UserPolicyVerifier verifier = new UserPolicyVerifier(userPolicyRepository, repository);
@@ -50,7 +51,7 @@ public class UserPolicyResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
-    public void get_inexistant_user_or_project_in_user_policy_returns_not_found_with_payload_message() {
+    public void get_inexistant_user_or_project_in_user_policy_returns_not_found_with_payload_message() throws IOException {
         UserPolicyVerifier verifier = new UserPolicyVerifier(userPolicyRepository, repository);
         configure(routes -> routes.add(new UserPolicyResource(verifier)));
         get("/api/policies/?userId=john&projectId=test-datashare").should().contain("not found").respond(404);
@@ -59,7 +60,7 @@ public class UserPolicyResourceTest extends AbstractProdWebServerTest {
 
 
     @Test
-    public void get_user_policy_not_existing_returns_not_found() {
+    public void get_user_policy_not_existing_returns_not_found() throws IOException {
         when(repository.getUser("john")).thenReturn(User.localUser("john"));
         when(userPolicyRepository.get("john", "test-datashare")).thenReturn(null);
         UserPolicyVerifier verifier = new UserPolicyVerifier(userPolicyRepository, repository);
@@ -68,14 +69,14 @@ public class UserPolicyResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
-    public void add_user_policy_with_bad_role_format_returns_bad_request() {
+    public void add_user_policy_with_bad_role_format_returns_bad_request() throws IOException {
         UserPolicyVerifier verifier = new UserPolicyVerifier(userPolicyRepository, repository);
         configure(routes -> routes.add(new UserPolicyResource(verifier)));
         put("/api/policies/?userId=jane&projectId=test-datashare&roles=READER]").should().contain("Invalid role in input: READER]").respond(400);
     }
 
     @Test
-    public void upsert_user_policy_success_returns_ok() {
+    public void upsert_user_policy_success_returns_ok() throws IOException {
         when(userPolicyRepository.save(any(UserPolicy.class))).thenReturn(true);
         UserPolicyVerifier verifier = new UserPolicyVerifier(userPolicyRepository, repository);
         configure(routes -> routes.add(new UserPolicyResource(verifier)));
@@ -85,7 +86,7 @@ public class UserPolicyResourceTest extends AbstractProdWebServerTest {
 
 
     @Test
-    public void delete_user_policy_success_returns_204() {
+    public void delete_user_policy_success_returns_204() throws IOException {
         when(userPolicyRepository.delete("jane", "test-datashare")).thenReturn(true);
         when(repository.getUser("john")).thenReturn(User.localUser("john"));
         UserPolicyVerifier verifier = new UserPolicyVerifier(userPolicyRepository, repository);
@@ -95,7 +96,7 @@ public class UserPolicyResourceTest extends AbstractProdWebServerTest {
 
     // delete responds 204 even if the tuple does not exist in the db
     @Test
-    public void delete_user_policy__should_return_204_even_if_the_tuple_does_not_exists() {
+    public void delete_user_policy__should_return_204_even_if_the_tuple_does_not_exists() throws IOException {
         when(repository.getUser("john")).thenReturn(User.localUser("john"));
         when(userPolicyRepository.delete("john", "test-datashare")).thenReturn(false);
         UserPolicyVerifier verifier = new UserPolicyVerifier(userPolicyRepository, repository);

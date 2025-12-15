@@ -10,7 +10,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
 
-import java.net.URISyntaxException;
+import java.io.IOException;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Stream;
@@ -43,7 +43,7 @@ public class UserPolicyVerifierTest {
     }
 
     @Before
-    public void setUp() throws URISyntaxException {
+    public void setUp() throws IOException {
         openMocks(this);
         User user1 = mockPolicy("user1", "project1", new Role[]{Role.READER});
         User user2 = mockPolicy("user2", "project2", new Role[]{Role.WRITER, Role.ADMIN});
