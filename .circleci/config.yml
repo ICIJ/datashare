@@ -278,7 +278,7 @@ jobs:
       - image: cimg/openjdk:17.0.11
     working_directory: /tmp/datashare
     environment:
-      MAVEN_OPTS: "-Xms512m -Xmx512m -Xss10M"
+      MAVEN_OPTS: "-Xms512m -Xmx1g -Xss10M"
     steps:
       - attach_workspace:
           at: /tmp/datashare-client
@@ -449,7 +449,7 @@ jobs:
         name: s3mock
 
     environment:
-      MAVEN_OPTS: "-Xms512m -Xmx512m -Xss10M"
+      MAVEN_OPTS: "-Xms512m -Xmx1g -Xss10M"
 
     steps:
       - checkout
@@ -479,7 +479,7 @@ jobs:
         name: s3mock
 
     environment:
-      MAVEN_OPTS: "-Xms512m -Xmx512m -Xss10M"
+      MAVEN_OPTS: "-Xms512m -Xmx1g -Xss10M"
 
     steps:
       - checkout
@@ -506,7 +506,7 @@ jobs:
         name: s3mock
 
     environment:
-      MAVEN_OPTS: "-Xms512m -Xmx512m -Xss10M"
+      MAVEN_OPTS: "-Xms512m -Xmx1g -Xss10M"
 
     steps:
       - checkout
