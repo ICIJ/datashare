@@ -100,12 +100,12 @@
         <extract.version>9.4.12</extract.version>
         <opennlp.version>1.6.0</opennlp.version>
         <elasticsearch.version>8.19.8</elasticsearch.version>
-        <lucene.version>9.12.2</lucene.version>
+        <lucene.version>10.3.1</lucene.version>
         <unidecode.version>0.0.7</unidecode.version>
         <joda-time.version>2.9.5</joda-time.version>
         <httpclient.version>4.5.13</httpclient.version>
         <redisson.version>3.20.1</redisson.version>
-        <jackson.version>2.15.1</jackson.version>
+        <jackson.version>2.18.5</jackson.version>
         <httpcore.version>4.4.13</httpcore.version>
         <guava.version>33.0.0-jre</guava.version>
         <xalan.version>2.7.2</xalan.version>
@@ -359,6 +359,13 @@
                 <version>${amazon.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.logging.log4j</groupId>
+                <artifactId>log4j-bom</artifactId>
+                <version>2.25.2</version>
+                <scope>import</scope>
+                <type>pom</type>
             </dependency>
         </dependencies>
     </dependencyManagement>

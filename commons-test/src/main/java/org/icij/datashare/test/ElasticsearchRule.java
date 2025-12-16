@@ -43,26 +43,32 @@ public class ElasticsearchRule extends ExternalResource {
         this(generateIndexName());
     }
 
+    public ElasticsearchRule(String host, int port, boolean withLegacyHeaders) {
+        this(new String[] {generateIndexName()}, create("%s:%d".formatted(host, port)), withLegacyHeaders);
+    }
+
     public ElasticsearchRule(int nbIndices) {
         this(IntStream.range(0, nbIndices).mapToObj(i -> generateIndexName()).toArray(String[]::new));
     }
 
     private ElasticsearchRule(final String... indexesNames) {
-        this(indexesNames, create("http://elasticsearch:9200"));
+        this(indexesNames, create("http://elasticsearch:9200"), false);
     }
 
-    private ElasticsearchRule(final String[] indexesNames, HttpHost elasticHost) {
+    private ElasticsearchRule(final String[] indexesNames, HttpHost elasticHost, boolean withLegacyHeaders) {
         this.indexesNames = indexesNames;
         System.setProperty("es.set.netty.runtime.available.processors", "false");
         RestClientBuilder.HttpClientConfigCallback xElasticProductCallback = httpAsyncClientBuilder -> {
             httpAsyncClientBuilder.disableAuthCaching();
-            httpAsyncClientBuilder.setDefaultHeaders(
-                    singletonList(new BasicHeader("Content-type", "application/json")));
-            httpAsyncClientBuilder.addInterceptorLast((HttpResponseInterceptor)
-                    (response, context) ->
-                            // This header is expected from the client, versions of ES server below 7.14 don't provide it
-                            // i.e : https://www.elastic.co/guide/en/elasticsearch/reference/7.17/release-notes-7.14.0.html
-                            response.addHeader("X-Elastic-Product", "Elasticsearch"));
+            if (withLegacyHeaders) {
+                httpAsyncClientBuilder.setDefaultHeaders(
+                        singletonList(new BasicHeader("Content-type", "application/json")));
+                httpAsyncClientBuilder.addInterceptorLast((HttpResponseInterceptor)
+                        (response, context) ->
+                                // This header is expected from the client, versions of ES server below 7.14 don't provide it
+                                // i.e : https://www.elastic.co/guide/en/elasticsearch/reference/7.17/release-notes-7.14.0.html
+                                response.addHeader("X-Elastic-Product", "Elasticsearch"));
+            }
             return httpAsyncClientBuilder;
         };
         RestClient rest = RestClient.builder(elasticHost)

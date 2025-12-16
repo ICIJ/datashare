@@ -30,7 +30,6 @@ import org.apache.http.util.EntityUtils;
 import org.elasticsearch.client.Request;
 import org.elasticsearch.client.Response;
 import org.elasticsearch.client.RestClient;
-import org.elasticsearch.rest.RestStatus;
 import org.icij.datashare.Entity;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.json.JsonObjectMapper;
@@ -534,7 +533,7 @@ public class ElasticsearchIndexer implements Indexer {
         post.setEntity(new NStringEntity("{\"query\":{\"match_all\": {}}}", ContentType.APPLICATION_JSON));
         RestClient restClient = ((RestClientTransport) client._transport()).restClient();
         Response response = restClient.performRequest(post);
-        return response.getStatusLine().getStatusCode() == RestStatus.OK.getStatus();
+        return response.getStatusLine().getStatusCode() == 200;
     }
 
     public ElasticsearchIndexer withRefresh(Refresh refresh) {
