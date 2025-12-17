@@ -12,17 +12,19 @@ wheels = [
 ]
 
 [[package]]
-name = "datashare-temporal-python"
+name = "ds-temporal"
 version = "0.1.0"
-source = { virtual = "." }
+source = { editable = "." }
 dependencies = [
     { name = "icij-common" },
+    { name = "nest-asyncio" },
     { name = "temporalio" },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "icij-common", specifier = ">=0.7.3" },
+    { name = "nest-asyncio", specifier = ">=1.6.0" },
     { name = "temporalio", specifier = ">=1.20.0" },
 ]
 
@@ -37,6 +39,15 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/4d/d3/e9d3b7f2c0fa9de39001e0ec815700ff42da8907a196da93ac4aeff4891a/icij_common-0.7.3.tar.gz", hash = "sha256:99dceef268fc7837f56951ca7add94a38a516817ec2792913ef65f562718d888", size = 15044, upload-time = "2025-10-03T06:01:51.638Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/88/bd/e909c42410e5c9a5ef2b8d25485165d8bb71bae5015c872179267a4a237f/icij_common-0.7.3-py3-none-any.whl", hash = "sha256:e21b1fee32af887c5910e791003d5b466979a8aff81e8fd8f4e0f837e505ddfc", size = 19444, upload-time = "2025-10-03T06:01:50.798Z" },
+]
+
+[[package]]
+name = "nest-asyncio"
+version = "1.6.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/83/f8/51569ac65d696c8ecbee95938f89d4abf00f47d58d48f6fbabfe8f0baefe/nest_asyncio-1.6.0.tar.gz", hash = "sha256:6f172d5449aca15afd6c646851f4e31e02c598d553a667e38cafa997cfec55fe", size = 7418, upload-time = "2024-01-21T14:25:19.227Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/a0/c4/c2971a3ba4c6103a3d10c4b0f24f461ddc027f0f09763220cf35ca1401b3/nest_asyncio-1.6.0-py3-none-any.whl", hash = "sha256:87af6efd6b5e897c81050477ef65c62e2b2f35d51703cae01aff2905b1852e1c", size = 5195, upload-time = "2024-01-21T14:25:17.223Z" },
 ]
 
 [[package]]
