@@ -30,13 +30,18 @@ public class GrantAdminPolicyTask extends DefaultTask<Boolean> implements UserTa
     @Override
     public Boolean call() throws Exception {
         try {
-            return userPolicyVerifier.saveUserPolicy(user.getId(), project.getId(), new Role[]{Role.ADMIN});
+            if (userPolicyVerifier.grantAdminIfNoneExists(user.getId(), project.getId())) {
+                logger.info("Admin role granted to user {} for project {}.", user.getId(), project.getId());
+                return true;
+            }
+
+            logger.info("Project {} already has admin role.", project.getId());
+            return false;
         } catch (RecordNotFoundException e) {
             logger.error("Failed to grant admin role: {}", e.getMessage());
             return false;
         }
     }
-
 
     @Override
     public User getUser() {
