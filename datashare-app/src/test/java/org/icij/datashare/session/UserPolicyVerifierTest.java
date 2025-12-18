@@ -48,6 +48,8 @@ public class UserPolicyVerifierTest {
         User user1 = mockPolicy("user1", "project1", new Role[]{Role.READER});
         User user2 = mockPolicy("user2", "project2", new Role[]{Role.WRITER, Role.ADMIN});
         when(jooqUserPolicyRepository.getAllPolicies()).thenReturn(Stream.concat(user1.policies.stream(), user2.policies.stream()));
+        when(jooqUserPolicyRepository.getByProjectId("project1")).thenReturn(user1.policies.stream());
+        when(jooqUserPolicyRepository.getByProjectId("project2")).thenReturn(user2.policies.stream());
         verifier = new UserPolicyVerifier(jooqUserPolicyRepository, jooqRepository);
     }
 
@@ -60,7 +62,7 @@ public class UserPolicyVerifierTest {
         }
     }
     @Test
-    public void permission_enforcement() {
+    public void test_permission_enforcement() {
 
         testEnforce(verifier, "user1", "project1", "READER", true);
         testEnforce(verifier, "user1", "project1", "WRITER", false);
@@ -77,13 +79,13 @@ public class UserPolicyVerifierTest {
     }
 
     @Test
-    public void enforce_bad_policy() {
+    public void test_enforce_bad_policy() {
         UserPolicy badPolicy = new UserPolicy("user2", "project2", new Role[]{Role.READER});
         assertFalse(verifier.enforceAllRoles(badPolicy));
     }
 
     @Test
-    public void get_user_policy_by_project() {
+    public void test_get_user_policy_by_project() {
         Project project1 = new Project("project1", "Project 1");
         when(jooqRepository.getProject("project1")).thenReturn(project1);
         Optional<UserPolicy> policy = Optional.ofNullable(verifier.getUserPolicy("user1", "project1"));
@@ -93,12 +95,18 @@ public class UserPolicyVerifierTest {
     }
 
     @Test
-    public void get_user_with_policies_by_project_when_user_does_not_exists() {
+    public void test_get_user_with_policies_by_project_when_user_does_not_exists() {
         assertThat(verifier.getUserPolicy("foo", "bar")).isEqualTo(null);
     }
 
     @Test
-    public void get_user_with_policies_by_project_when_project_does_not_exists() {
+    public void test_get_user_with_policies_by_project_when_project_does_not_exists() {
         assertThat(verifier.getUserPolicy("user1", "bar")).isEqualTo(null);
+    }
+
+    @Test
+    public void test_project_has_admin() {
+        assertThat(verifier.hasAdmin("project2")).isTrue();
+        assertThat(verifier.hasAdmin("project1")).isFalse();
     }
 }

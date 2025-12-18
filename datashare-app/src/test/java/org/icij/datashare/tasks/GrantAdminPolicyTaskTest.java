@@ -27,6 +27,7 @@ public class GrantAdminPolicyTaskTest {
         ArgumentCaptor<String> projectId = ArgumentCaptor.forClass(String.class);
         ArgumentCaptor<Role[]> roles = ArgumentCaptor.forClass(Role[].class);
         Project project = Project.project("local-datashare");
+        when(userPolicyVerifier.grantAdminIfNoneExists(any(), any())).thenCallRealMethod();
         when(userPolicyVerifier.saveUserPolicy(any(), any(), any())).thenReturn(true);
 
         assertThat(new GrantAdminPolicyTask(userPolicyVerifier, User.local(), project).call()).isTrue();
