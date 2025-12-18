@@ -66,6 +66,7 @@ public final class DatashareCliOptions {
     public static final String EXT_OPT = "ext";
     public static final String FOLLOW_SYMLINKS_OPT = "followSymlinks";
     public static final String GET_API_KEY_OPT = "apiKey";
+    public static final String GRANT_ADMIN_OPT = "grantAdmin";
     public static final String HELP_ABBR_OPT = "h";
     public static final String HELP_OPT = "help";
     public static final String INDEX_TIMEOUT_OPT = "indexTimeout";
@@ -362,6 +363,12 @@ public final class DatashareCliOptions {
 
     static void delApiKey(OptionParser parser) {
         parser.acceptsAll(singletonList(DEL_API_KEY_OPT), "Delete api key for user")
+                .withRequiredArg()
+                .ofType(String.class);
+    }
+
+    static void grantAdminPolicy(OptionParser parser) {
+        parser.acceptsAll(singletonList(GRANT_ADMIN_OPT), "Grant admin policy to user if there is none")
                 .withRequiredArg()
                 .ofType(String.class);
     }
