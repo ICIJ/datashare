@@ -45,6 +45,7 @@
         <module>datashare-nlp-corenlp</module>
         <module>datashare-dist</module>
         <module>datashare-app</module>
+        <module>datashare-temporal</module>
     </modules>
 
     <scm>

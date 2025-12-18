@@ -4,7 +4,8 @@ import logging
 import sys
 from collections.abc import AsyncGenerator, Coroutine, Generator
 from contextlib import asynccontextmanager, contextmanager
-from functools import partial, wraps
+from enum import Enum
+from functools import cached_property, partial, wraps
 from inspect import signature
 from types import TracebackType
 from typing import (
@@ -35,6 +36,11 @@ class ProgressHandler(Protocol):
 
 P = ParamSpec("P")
 T = TypeVar("T")
+
+
+class TaskGroup(str, Enum):
+    PYTHON = "PYTHON"
+    JAVA = "JAVA"
 
 
 class DependencyTeardown(Protocol):
@@ -84,6 +90,16 @@ class ProgressSignal(BaseModel):
         return Progress(current=self.progress * self.weight, max_progress=self.weight)
 
 
+class TaskQueueMixin:
+    @staticmethod
+    def python_queue() -> str:
+        return activity_task_queue(TaskGroup.PYTHON)
+
+    @staticmethod
+    def java_queue() -> str:
+        return activity_task_queue(TaskGroup.JAVA)
+
+
 class ProgressMixin:
     def __init__(self):
         self._progress = dict()
@@ -99,6 +115,14 @@ class ProgressMixin:
     def get_progress(self, run_id: str) -> Progress:
         values = (v for k, v in self._progress.items() if k[0] == run_id)
         return _sum_progresses(*values)
+
+
+def activity_task_queue(group: TaskGroup = TaskGroup.PYTHON) -> str:
+    return f"activities-{group.value}"
+
+
+def workflow_task_queue(workflow_name: str, group: TaskGroup = TaskGroup.PYTHON) -> str:
+    return f"workflow-{workflow_name}-{group.value}"
 
 
 async def progress_handler(

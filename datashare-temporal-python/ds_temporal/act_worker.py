@@ -1,17 +1,16 @@
 import asyncio
+import os
+import socket
 from concurrent.futures import ThreadPoolExecutor
 
 from temporalio.client import Client
 
-from ds_temporal.dag_workflow import (
-    DAG_WORKFLOW,
-    async_activities,
-    sync_activities,
-)
+from ds_temporal.dag_workflow import async_activities, sync_activities
+from ds_temporal.utils import TaskGroup
 from ds_temporal.worker import AppConfig, ConnectConfig, WorkerWithDeps
 
 
-async def main() -> None:
+async def main_activity_worker() -> None:
     from ds_temporal.dependencies import WORKER_APP_DEPENDENCIES
 
     target_host = "localhost:7233"
@@ -22,16 +21,18 @@ async def main() -> None:
     # TODO: here we could group sync activities with workflow in a worker and async
     #  activities in another worker for optimized performances
     #  (see https://docs.temporal.io/develop/python/python-sdk-sync-vs-async)
+    identity =  f"activity-worker:{os.getpid()}@{socket.gethostname()}"
     sync_worker = WorkerWithDeps(
         client=client,
         dependencies=WORKER_APP_DEPENDENCIES,
         app_config=app_config,
-        task_queue=f"{DAG_WORKFLOW}-queue",
+        task_queue=WorkerWithDeps.python_queue(),
         activities=sync_activities + async_activities,
         activity_executor=ThreadPoolExecutor(),
+        identity=identity,
     )
     await sync_worker.run()
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    asyncio.run(main_activity_worker())

@@ -26,7 +26,7 @@ from ds_temporal.dag_workflow import (
     async_activities,
     sync_activities,
 )
-from ds_temporal.utils import Dependency, run_deps
+from ds_temporal.utils import Dependency, TaskQueueMixin, run_deps
 
 T = TypeVar("T", bound=dataclass)
 
@@ -82,7 +82,7 @@ class AppConfig(BaseModel):
     temporal_connect: ConnectConfig = ConnectConfig(target_host="localhost:7233")
 
 
-class WorkerWithDeps(Worker):
+class WorkerWithDeps(Worker, TaskQueueMixin):
     def __init__(
         self,
         client: Client,
