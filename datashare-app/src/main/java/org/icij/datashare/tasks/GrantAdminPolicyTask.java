@@ -35,7 +35,7 @@ public class GrantAdminPolicyTask extends DefaultTask<Boolean> implements UserTa
                 return true;
             }
 
-            logger.info("Project {} already has admin role.", project.getId());
+            logger.info("Project {} already has an user that has admin role.", project.getId());
             return false;
         } catch (RecordNotFoundException e) {
             logger.error("Failed to grant admin role: {}", e.getMessage());
