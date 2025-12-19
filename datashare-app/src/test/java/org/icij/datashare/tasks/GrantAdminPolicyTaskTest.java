@@ -48,6 +48,14 @@ public class GrantAdminPolicyTaskTest {
         assertThat(new GrantAdminPolicyTask(userPolicyVerifier, User.local(), project).call()).isFalse();
     }
 
+    @Test
+    public void test_returns_false_when_admin_already_exists() throws Exception {
+        Project project = Project.project("local-datashare");
+        when(userPolicyVerifier.grantAdminIfNoneExists(any(), any())).thenReturn(false);
+
+        assertThat(new GrantAdminPolicyTask(userPolicyVerifier, User.local(), project).call()).isFalse();
+    }
+
     @Before
     public void setUp() throws Exception {
         initMocks(this);
