@@ -4,10 +4,7 @@ import net.codestory.http.annotations.Get;
 import net.codestory.http.filters.basic.BasicAuthFilter;
 import net.codestory.http.security.Users;
 import org.icij.datashare.Repository;
-import org.icij.datashare.session.DatashareUser;
-import org.icij.datashare.session.Policy;
-import org.icij.datashare.session.UserPolicyAnnotation;
-import org.icij.datashare.session.UserPolicyVerifier;
+import org.icij.datashare.session.*;
 import org.icij.datashare.user.Role;
 import org.icij.datashare.user.User;
 import org.icij.datashare.user.UserPolicy;
@@ -33,6 +30,8 @@ public class WebAcceptanceTest extends AbstractProdWebServerTest {
     Repository jooqRepository;
     @Mock
     UserPolicyRepository jooqUserPolicyRepository;
+    @Mock
+    UsersWritable users;
 
     @Before
     public void setUp() throws Exception {
@@ -41,10 +40,10 @@ public class WebAcceptanceTest extends AbstractProdWebServerTest {
 
 
     public User mockUserProjectRole(String userId, String projectId, Role[] roles) {
-        User user = localUser(userId);
+        DatashareUser user = new DatashareUser(localUser(userId));
         user.addProject(projectId);
         when(jooqRepository.getProject(projectId)).thenReturn(project(projectId));
-        when(jooqRepository.getUser(user.id)).thenReturn(user);
+        when(users.find(user.id)).thenReturn(user);
 
         UserPolicy policy = new UserPolicy(user.id, projectId, roles);
         when(jooqUserPolicyRepository.get(user.id, projectId)).thenReturn(policy);
@@ -56,7 +55,7 @@ public class WebAcceptanceTest extends AbstractProdWebServerTest {
         User john = mockUserProjectRole("john", "test-datashare", new Role[]{Role.ADMIN});
         when(jooqUserPolicyRepository.getAllPolicies()).thenReturn(john.policies.stream());
 
-        UserPolicyVerifier verifier = new UserPolicyVerifier(jooqUserPolicyRepository, jooqRepository);
+        UserPolicyVerifier verifier = new UserPolicyVerifier(jooqUserPolicyRepository, jooqRepository, users);
         UserPolicyAnnotation userPolicyAnnotation = new UserPolicyAnnotation(verifier);
         Users users = DatashareUser.singleUser(john);
 
