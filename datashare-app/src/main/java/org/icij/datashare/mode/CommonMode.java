@@ -40,6 +40,8 @@ import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.nlp.EmailPipeline;
 import org.icij.datashare.nlp.OptimaizeLanguageGuesser;
 import org.icij.datashare.session.Policy;
+import org.icij.datashare.session.UsersInDb;
+import org.icij.datashare.session.UsersWritable;
 import org.icij.datashare.tasks.DatashareTaskFactory;
 import org.icij.datashare.tasks.TaskManagerAmqp;
 import org.icij.datashare.tasks.TaskManagerMemory;
@@ -243,6 +245,21 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
         addCloseable(indexer);
         return indexer;
     }
+
+    @Provides @Singleton
+    UsersWritable provideUsersWritable(final PropertiesProvider propertiesProvider, final Injector injector) {
+        String authUsersProviderClassName = propertiesProvider.get("authUsersProvider").orElse(UsersInDb.class.getName());
+        Class<? extends UsersWritable> authUsersProviderClass;
+        try {
+            authUsersProviderClass = (Class<? extends UsersWritable>) Class.forName(authUsersProviderClassName, true, ClassLoader.getSystemClassLoader());
+            logger.info("setting auth users provider to {}", authUsersProviderClass);
+        } catch (ClassNotFoundException | ClassCastException e) {
+            logger.warn("\"{}\" auth users provider class not found or invalid. Setting provider to UsersInDb", authUsersProviderClassName);
+            authUsersProviderClass = UsersInDb.class;
+        }
+        return injector.getInstance(authUsersProviderClass);
+    }
+
 
     @Provides @Singleton
     LanguageGuesser provideLanguageGuesser() throws IOException {
