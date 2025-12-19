@@ -15,8 +15,6 @@ import org.icij.datashare.session.ApiKeyStore;
 import org.icij.datashare.session.ApiKeyStoreAdapter;
 import org.icij.datashare.session.OAuth2CookieFilter;
 import org.icij.datashare.session.RedisSessionIdStore;
-import org.icij.datashare.session.UsersInRedis;
-import org.icij.datashare.session.UsersWritable;
 import org.icij.datashare.session.YesCookieAuthFilter;
 import org.icij.datashare.web.ApiKeyResource;
 import org.icij.datashare.web.BatchSearchResource;
@@ -47,15 +45,6 @@ public class ServerMode extends CommonMode {
     @Override
     protected void configure() {
         super.configure();
-        String authUsersProviderClassName = propertiesProvider.get("authUsersProvider").orElse("org.icij.datashare.session.UsersInRedis");
-        Class<? extends UsersWritable> authUsersProviderClass = UsersInRedis.class;
-        try {
-            authUsersProviderClass = (Class<? extends UsersWritable>) Class.forName(authUsersProviderClassName, true, ClassLoader.getSystemClassLoader());
-            logger.info("setting auth users provider to {}", authUsersProviderClass);
-        } catch (ClassNotFoundException e) {
-            logger.warn("\"{}\" auth users provider class not found. Setting provider to {}", authUsersProviderClassName, authUsersProviderClass);
-        }
-        bind(UsersWritable.class).to(authUsersProviderClass);
         QueueType sessionStoreType = getQueueType(propertiesProvider, SESSION_STORE_TYPE_OPT, QueueType.MEMORY);
         if (QueueType.MEMORY == sessionStoreType) {
             bind(SessionIdStore.class).toInstance(SessionIdStore.inMemory());

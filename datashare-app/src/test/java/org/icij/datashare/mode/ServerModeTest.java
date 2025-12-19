@@ -47,15 +47,6 @@ public class ServerModeTest {
     }
 
     @Test
-    public void test_server_bad_users_class_uses_default() {
-        CommonMode mode = CommonMode.create(new HashMap<>() {{
-            put("mode", "SERVER");
-            put("authUsersProvider", "org.icij.UnknownClass");
-        }});
-        assertThat(mode.get(UsersWritable.class)).isInstanceOf(UsersInRedis.class);
-    }
-
-    @Test
     public void test_session_store_redis() {
         CommonMode mode = CommonMode.create(new HashMap<>() {{
             put("mode", "SERVER");
