@@ -1,5 +1,6 @@
 package org.icij.datashare.session;
 
+import org.icij.datashare.RecordNotFoundException;
 import org.icij.datashare.Repository;
 import org.icij.datashare.text.Project;
 import org.icij.datashare.user.Role;
@@ -28,14 +29,16 @@ public class UserPolicyVerifierTest {
     private UserPolicyRepository jooqUserPolicyRepository;
     @Mock
     private Repository jooqRepository;
+    @Mock
+    private UsersWritable users;
 
     private UserPolicyVerifier verifier;
 
     public User mockPolicy(String userId, String projectId, Role[] roles) {
-        User user = localUser(userId);
+        DatashareUser user = new DatashareUser((localUser(userId)));
         user.addProject(projectId);
         when(jooqRepository.getProject(projectId)).thenReturn(project(projectId));
-        when(jooqRepository.getUser(user.id)).thenReturn(user);
+        when(users.find(user.id)).thenReturn(user);
 
         UserPolicy policy = new UserPolicy(user.id, projectId, roles);
         when(jooqUserPolicyRepository.get(user.id, projectId)).thenReturn(policy);
@@ -50,7 +53,7 @@ public class UserPolicyVerifierTest {
         when(jooqUserPolicyRepository.getAllPolicies()).thenReturn(Stream.concat(user1.policies.stream(), user2.policies.stream()));
         when(jooqUserPolicyRepository.getByProjectId("project1")).thenReturn(user1.policies.stream());
         when(jooqUserPolicyRepository.getByProjectId("project2")).thenReturn(user2.policies.stream());
-        verifier = new UserPolicyVerifier(jooqUserPolicyRepository, jooqRepository);
+        verifier = new UserPolicyVerifier(jooqUserPolicyRepository, jooqRepository, users);
     }
 
     public static void testEnforce(UserPolicyVerifier verifier, String subject, String obj, String act, boolean expectedResult) {
@@ -109,4 +112,29 @@ public class UserPolicyVerifierTest {
         assertThat(verifier.hasAdmin("project2")).isTrue();
         assertThat(verifier.hasAdmin("project1")).isFalse();
     }
+
+    @Test(expected = RecordNotFoundException.class)
+    public void test_save_throws_exception_when_user_does_not_exist() {
+        when(users.find("unknown")).thenReturn(new DatashareUser(User.nullUser()));
+        verifier.saveUserPolicy("unknown", "project1", new Role[]{Role.READER});
+    }
+
+    @Test(expected = RecordNotFoundException.class)
+    public void test_save_throws_exception_when_project_does_not_exist() {
+        when(jooqRepository.getProject("unknown")).thenReturn(null);
+        verifier.saveUserPolicy("user1", "unknown", new Role[]{Role.READER});
+    }
+
+    @Test(expected = RecordNotFoundException.class)
+    public void test_delete_throws_exception_when_user_does_not_exist() {
+        when(users.find("unknown")).thenReturn(new DatashareUser(User.nullUser()));
+        verifier.deleteUserPolicy("unknown", "project1");
+    }
+
+    @Test(expected = RecordNotFoundException.class)
+    public void test_delete_throws_exception_when_project_does_not_exist() {
+        when(jooqRepository.getProject("unknown")).thenReturn(null);
+        verifier.deleteUserPolicy("user1", "unknown");
+    }
+
 }

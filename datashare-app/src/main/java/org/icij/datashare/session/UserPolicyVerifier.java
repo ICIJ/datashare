@@ -25,13 +25,15 @@ public class UserPolicyVerifier {
     private final Enforcer enforcer;
     private static final String DEFAULT_POLICY_FILE = "casbin/model.conf";
     private static final boolean ENABLE_CASBIN_LOG = false;
-    private final Repository repository;
     private final UserPolicyRepository userPolicyRepository;
+    private final Repository repository;
+    private final UsersWritable users;
 
     @Inject
-    public UserPolicyVerifier(final UserPolicyRepository userPolicyRepository, final Repository repository) throws IOException {
+    public UserPolicyVerifier(final UserPolicyRepository userPolicyRepository, final Repository repository, final UsersWritable users) throws IOException {
         this.userPolicyRepository = userPolicyRepository;
         this.repository = repository;
+        this.users = users;
 
         Adapter adapter = new UserPolicyAdapter(this.userPolicyRepository);
         Model model = new Model();
@@ -119,7 +121,7 @@ public class UserPolicyVerifier {
     }
 
     private void userAndProjectExist(String userId, String projectId) throws RecordNotFoundException {
-        if (this.repository.getUser(userId) == null) {
+        if (this.users.find(userId).equals(User.nullUser())) {
             throw new RecordNotFoundException(User.class, userId);
         }
         if (this.repository.getProject(projectId) == null) {
