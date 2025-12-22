@@ -107,12 +107,6 @@ public class UserPolicyVerifierTest {
         assertThat(verifier.getUserPolicy("user1", "bar")).isEqualTo(null);
     }
 
-    @Test
-    public void test_project_has_admin() {
-        assertThat(verifier.hasAdmin("project2")).isTrue();
-        assertThat(verifier.hasAdmin("project1")).isFalse();
-    }
-
     @Test(expected = RecordNotFoundException.class)
     public void test_save_throws_exception_when_user_does_not_exist() {
         when(users.find("unknown")).thenReturn(new DatashareUser(User.nullUser()));

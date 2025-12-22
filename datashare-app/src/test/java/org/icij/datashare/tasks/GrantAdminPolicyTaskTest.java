@@ -27,7 +27,6 @@ public class GrantAdminPolicyTaskTest {
         ArgumentCaptor<String> projectId = ArgumentCaptor.forClass(String.class);
         ArgumentCaptor<Role[]> roles = ArgumentCaptor.forClass(Role[].class);
         Project project = Project.project("local-datashare");
-        when(userPolicyVerifier.grantAdminIfNoneExists(any(), any())).thenCallRealMethod();
         when(userPolicyVerifier.saveUserPolicy(any(), any(), any())).thenReturn(true);
 
         assertThat(new GrantAdminPolicyTask(userPolicyVerifier, User.local(), project).call()).isTrue();
@@ -44,14 +43,6 @@ public class GrantAdminPolicyTaskTest {
         Project project = Project.project("unknown-project");
         when(userPolicyVerifier.saveUserPolicy(any(),any(),any()))
                 .thenThrow(new RecordNotFoundException(Project.class, project.getId()));
-
-        assertThat(new GrantAdminPolicyTask(userPolicyVerifier, User.local(), project).call()).isFalse();
-    }
-
-    @Test
-    public void test_returns_false_when_admin_already_exists() throws Exception {
-        Project project = Project.project("local-datashare");
-        when(userPolicyVerifier.grantAdminIfNoneExists(any(), any())).thenReturn(false);
 
         assertThat(new GrantAdminPolicyTask(userPolicyVerifier, User.local(), project).call()).isFalse();
     }
