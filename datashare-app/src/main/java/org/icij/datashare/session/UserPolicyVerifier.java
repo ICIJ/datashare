@@ -103,23 +103,6 @@ public class UserPolicyVerifier {
         return this.userPolicyRepository.delete(userId, projectId);
     }
 
-    /**
-     * Grant admin role to a user for a project if no admin exists for that project.
-     */
-    public boolean grantAdminIfNoneExists(String userId, String projectId) throws RecordNotFoundException {
-        if (!hasAdmin(projectId)) {
-            return saveUserPolicy(userId, projectId, new Role[]{Role.ADMIN});
-        }
-        return false;
-    }
-
-    /**
-     * Check if a project has at least one user who has an admin policy.
-     */
-    public boolean hasAdmin(String projectId) {
-        return userPolicyRepository.getByProjectId(projectId).anyMatch(UserPolicy::isAdmin);
-    }
-
     private void userAndProjectExist(String userId, String projectId) throws RecordNotFoundException {
         if (this.users.find(userId).equals(User.nullUser())) {
             throw new RecordNotFoundException(User.class, userId);
