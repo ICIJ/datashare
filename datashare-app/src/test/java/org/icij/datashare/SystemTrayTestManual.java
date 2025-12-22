@@ -1,10 +1,7 @@
 
 package org.icij.datashare;
 
-import org.icij.datashare.tray.DatashareSystemTray;
-import org.junit.Before;
 import org.junit.Test;
-import dorkbox.systemTray.SystemTray;
 
 // this test is not executed by CI because it doesn't end with "Test"
 // its goal is to test manually the SystemTray
