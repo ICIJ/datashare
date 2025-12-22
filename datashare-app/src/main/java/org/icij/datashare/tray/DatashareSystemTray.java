@@ -32,7 +32,13 @@ public class DatashareSystemTray implements Closeable {
     }
 
     public static DatashareSystemTray create(CommonMode mode) {
-        SystemTray systemTray = SystemTray.get();
+        SystemTray systemTray = null;
+        try {
+            GraphicsEnvironment.getLocalGraphicsEnvironment();
+            systemTray = SystemTray.get();
+        } catch (Throwable e) {
+            LOGGER.warn("Could not initialize SystemTray: {}", e.getMessage());
+        }
 
         if (systemTray == null) {
             LOGGER.error("SystemTray is not supported on this system");

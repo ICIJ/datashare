@@ -18,7 +18,7 @@ public class WebBrowserUtils {
                 LOGGER.info("Browser opened at {}", url);
                 return;
             }
-        } catch (Exception ex) {
+        } catch (Throwable ex) {
             LOGGER.debug("Failed to open browser", ex);
         }
         LOGGER.info("Please open your browser at: {}", url);
