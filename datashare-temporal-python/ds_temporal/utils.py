@@ -5,7 +5,7 @@ import sys
 from collections.abc import AsyncGenerator, Coroutine, Generator
 from contextlib import asynccontextmanager, contextmanager
 from enum import Enum
-from functools import cached_property, partial, wraps
+from functools import partial, wraps
 from inspect import signature
 from types import TracebackType
 from typing import (

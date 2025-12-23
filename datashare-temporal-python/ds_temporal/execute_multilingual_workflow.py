@@ -23,7 +23,7 @@ async def main() -> None:
         MULTILINGUAL_WORKFLOW,
         payload,
         id=f"{MULTILINGUAL_WORKFLOW}-{uuid.uuid4()}",
-        task_queue="workflows",
+        task_queue="workflows-PYTHON",
     )
     logger.info("done !")
 

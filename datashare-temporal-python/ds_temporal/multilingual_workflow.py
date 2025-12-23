@@ -17,6 +17,7 @@ class MultilingualWorkflow(ProgressMixin, TaskQueueMixin):
     async def run(self, payload: DagPayload) -> int:
         workflow.logger.info("producing %s tasks", payload.max_tasks)
         n = await workflow.execute_activity(
+            # product_act,
             "produce_act",
             payload.max_tasks,
             start_to_close_timeout=GLOBAL_ACTIVITY_TIMEOUT,

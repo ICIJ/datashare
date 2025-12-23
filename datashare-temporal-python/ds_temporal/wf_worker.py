@@ -19,7 +19,7 @@ async def main() -> None:
         identity=identity,
         client=client,
         app_config=app_config,
-        task_queue="workflows",
+        task_queue="workflows-PYTHON",
         workflows=[DagWorkflow, MultilingualWorkflow],
     )
     await async_worker.run()

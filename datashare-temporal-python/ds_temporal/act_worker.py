@@ -6,7 +6,6 @@ from concurrent.futures import ThreadPoolExecutor
 from temporalio.client import Client
 
 from ds_temporal.dag_workflow import async_activities, sync_activities
-from ds_temporal.utils import TaskGroup
 from ds_temporal.worker import AppConfig, ConnectConfig, WorkerWithDeps
 
 
@@ -21,7 +20,7 @@ async def main_activity_worker() -> None:
     # TODO: here we could group sync activities with workflow in a worker and async
     #  activities in another worker for optimized performances
     #  (see https://docs.temporal.io/develop/python/python-sdk-sync-vs-async)
-    identity =  f"activity-worker:{os.getpid()}@{socket.gethostname()}"
+    identity = f"activity-worker:{os.getpid()}@{socket.gethostname()}"
     sync_worker = WorkerWithDeps(
         client=client,
         dependencies=WORKER_APP_DEPENDENCIES,
