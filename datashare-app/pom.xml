@@ -22,6 +22,11 @@
 
     <dependencies>
         <dependency>
+            <groupId>io.temporal</groupId>
+            <artifactId>temporal-sdk</artifactId>
+            <version>${temporal-sdk.version}</version>
+        </dependency>
+        <dependency>
        	    <groupId>com.github.CodeStory</groupId>
        	    <artifactId>fluent-http</artifactId>
             <version>2a87e59</version>

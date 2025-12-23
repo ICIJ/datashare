@@ -45,6 +45,7 @@
         <module>datashare-nlp-corenlp</module>
         <module>datashare-dist</module>
         <module>datashare-app</module>
+        <module>datashare-temporal</module>
     </modules>
 
     <scm>
@@ -95,6 +96,8 @@
         <datashare-corenlp.version>${project.version}</datashare-corenlp.version>
         <guice.version>5.1.0</guice.version>
         <amazon.version>1.12.411</amazon.version>
+
+        <temporal-sdk.version>1.32.1</temporal-sdk.version>
 
         <aws-s3.version>2.35.10</aws-s3.version>
         <extract.version>9.4.12</extract.version>
