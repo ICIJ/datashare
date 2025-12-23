@@ -2,7 +2,6 @@ package org.icij.datashare.io;
 
 import static java.nio.file.Files.walk;
 import static java.util.stream.Collectors.toMap;
-import static software.amazon.awssdk.http.Header.CONTENT_LENGTH;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -14,28 +13,25 @@ import java.time.Duration;
 import java.util.Map;
 import java.util.concurrent.CompletionException;
 import java.util.regex.Pattern;
+import org.icij.datashare.function.ThrowingSupplier;
 import org.slf4j.LoggerFactory;
 import software.amazon.awssdk.auth.credentials.AnonymousCredentialsProvider;
-import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
-import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
+import software.amazon.awssdk.http.Header;
 import software.amazon.awssdk.http.nio.netty.NettyNioAsyncHttpClient;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3AsyncClient;
 import software.amazon.awssdk.services.s3.S3AsyncClientBuilder;
-import software.amazon.awssdk.services.s3.endpoints.S3EndpointProvider;
+import software.amazon.awssdk.services.s3.S3Configuration;
 import software.amazon.awssdk.services.s3.model.CreateBucketRequest;
 import software.amazon.awssdk.services.s3.model.DeleteBucketRequest;
 import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
-import software.amazon.awssdk.services.s3.model.GetObjectAttributesRequest;
-import software.amazon.awssdk.services.s3.model.GetObjectAttributesResponse;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
+import software.amazon.awssdk.services.s3.model.HeadObjectResponse;
 import software.amazon.awssdk.services.s3.model.ListObjectsRequest;
 import software.amazon.awssdk.services.s3.model.ListObjectsResponse;
 import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
-import software.amazon.awssdk.services.s3.model.ObjectAttributes;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
-import software.amazon.awssdk.services.s3.model.S3Exception;
 import software.amazon.awssdk.services.s3.model.S3Object;
 import software.amazon.awssdk.transfer.s3.S3TransferManager;
 import software.amazon.awssdk.transfer.s3.model.DirectoryUpload;
@@ -48,6 +44,7 @@ public class RemoteFiles {
     private static final String S3_REGION = "us-east-1";
     private static final int READ_TIMEOUT_MS = 120 * 1000;
     private static final int CONNECTION_TIMEOUT_MS = 30 * 1000;
+    private static final String HEAD_RESPONSE_CONTENT_LENGTH = "Content-Length";
     private final S3AsyncClient s3Client;
     private final String bucket;
 
@@ -64,15 +61,22 @@ public class RemoteFiles {
         NettyNioAsyncHttpClient.Builder httpClientBuilder = NettyNioAsyncHttpClient.builder()
             .connectionTimeout(Duration.ofMillis(CONNECTION_TIMEOUT_MS))
             .readTimeout(Duration.ofMillis(READ_TIMEOUT_MS));
+
         S3AsyncClientBuilder s3ClientBuilder = S3AsyncClient.builder()
             .credentialsProvider(AnonymousCredentialsProvider.create())
             .httpClientBuilder(httpClientBuilder)
-            .endpointOverride(URI.create(endPoint))
-            .region(Region.of(S3_REGION))
-            .endpointProvider(S3EndpointProvider.defaultProvider());
-        if (pathStyleAccessEnabled) {
-            s3ClientBuilder.forcePathStyle(true);
+            .region(Region.of(S3_REGION));
+
+        if (endPoint != null && !endPoint.isEmpty()) {
+            s3ClientBuilder.endpointOverride(URI.create(endPoint));
         }
+
+        if (pathStyleAccessEnabled) {
+            s3ClientBuilder.serviceConfiguration(S3Configuration.builder()
+                .pathStyleAccessEnabled(true)
+                .build());
+        }
+
         return new RemoteFiles(s3ClientBuilder.build(), bucketName);
     }
 
@@ -93,7 +97,7 @@ public class RemoteFiles {
             final PutObjectRequest putObjectRequest = PutObjectRequest.builder()
                 .bucket(bucket)
                 .key(remoteKey)
-                .metadata(Map.of(CONTENT_LENGTH, String.valueOf(localFile.length())))
+                .metadata(Map.of(Header.CONTENT_LENGTH, String.valueOf(localFile.length())))
                 .build();
             s3Client.putObject(putObjectRequest, localFile.toPath()).join();
         }
@@ -143,10 +147,12 @@ public class RemoteFiles {
             }
             return equals;
         } else {
-            GetObjectAttributesRequest getObjectAttributesRequest = GetObjectAttributesRequest.builder()
-                .bucket(bucket).key(remoteKey).objectAttributes(ObjectAttributes.OBJECT_SIZE).build();
-            GetObjectAttributesResponse response = s3Client.getObjectAttributes(getObjectAttributesRequest).join();;
-            return response.objectSize() == localFile.length();
+            HeadObjectRequest getObjectAttributesRequest = HeadObjectRequest.builder()
+                .bucket(bucket)
+                .key(remoteKey)
+                .build();
+            HeadObjectResponse response = s3Client.headObject(getObjectAttributesRequest).join();
+            return response.contentLength() == localFile.length();
         }
     }
 

@@ -10,6 +10,9 @@ import com.google.inject.Module;
 import com.google.inject.Provides;
 import com.google.inject.Singleton;
 import com.google.inject.assistedinject.FactoryModuleBuilder;
+import io.temporal.client.WorkflowClient;
+import io.temporal.serviceclient.WorkflowServiceStubs;
+import io.temporal.worker.WorkerFactory;
 import net.codestory.http.Configuration;
 import net.codestory.http.annotations.Get;
 import net.codestory.http.annotations.Prefix;
@@ -19,6 +22,7 @@ import net.codestory.http.misc.Env;
 import net.codestory.http.routes.Routes;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Repository;
+import org.icij.datashare.asynctasks.TaskFactory;
 import org.icij.datashare.asynctasks.TaskManager;
 import org.icij.datashare.asynctasks.TaskModifier;
 import org.icij.datashare.asynctasks.TaskRepository;
@@ -49,6 +53,7 @@ import org.icij.datashare.tasks.TaskRepositoryRedis;
 import org.icij.datashare.tasks.TaskResultSubtypes;
 import org.icij.datashare.tasks.TaskSupplierAmqp;
 import org.icij.datashare.tasks.TaskSupplierRedis;
+import org.icij.datashare.tasks.TemporalHelper;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.text.indexing.LanguageGuesser;
 import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchIndexer;
@@ -89,6 +94,7 @@ import static java.util.Optional.ofNullable;
 import static org.icij.datashare.LambdaExceptionUtils.rethrowConsumer;
 import static org.icij.datashare.PluginService.PLUGINS_BASE_URL;
 import static org.icij.datashare.cli.DatashareCliOptions.*;
+import static org.icij.datashare.tasks.temporal.WorkerUtils.createTemporalWorkers;
 import static org.icij.datashare.text.indexing.elasticsearch.ElasticsearchConfiguration.createESClient;
 
 public abstract class CommonMode extends AbstractModule implements Closeable {
@@ -99,6 +105,7 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
     private final Injector injector;
     private final List<Closeable> closeables = new LinkedList<>();
     private final ExecutorService executorService;
+
 
     protected CommonMode(Properties properties) {
         propertiesProvider = properties == null ? new PropertiesProvider() :
@@ -178,6 +185,15 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
         return executorService;
     }
 
+    public void runTemporalWorkers() throws ReflectiveOperationException {
+        WorkflowServiceStubs service = WorkflowServiceStubs.newLocalServiceStubs();
+        WorkflowClient client = WorkflowClient.newInstance(service);
+        WorkerFactory workerFactory = WorkerFactory.newInstance(client);
+        addCloseable(new TemporalHelper.CloseableWorkerHandle(workerFactory));
+        createTemporalWorkers(this.get(DatashareTaskFactory.class), this.get(WorkflowClient.class), workerFactory);
+        workerFactory.start();
+    }
+
     @Override
     protected void configure() {
         bind(PropertiesProvider.class).toInstance(propertiesProvider);
@@ -255,6 +271,14 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
         pipelineRegistry.register(EmailPipeline.class);
         pipelineRegistry.register(Pipeline.Type.CORENLP);
         return pipelineRegistry;
+    }
+
+    @Provides
+    @Singleton
+    WorkflowClient provideWorkflowClient() {
+        // TODO: change client host/port
+        WorkflowServiceStubs serviceStub = WorkflowServiceStubs.newLocalServiceStubs();
+        return WorkflowClient.newInstance(serviceStub);
     }
 
     public Properties properties() {
