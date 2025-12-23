@@ -17,10 +17,10 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static java.util.Collections.singletonList;
 import static java.util.Collections.unmodifiableMap;
-import static java.util.Collections.unmodifiableSet;
 import static java.util.Optional.ofNullable;
 import static org.icij.datashare.json.JsonObjectMapper.deserialize;
 import static org.icij.datashare.text.StringUtils.isEmpty;
@@ -35,37 +35,36 @@ public class User implements Entity, Comparable<User> {
     public final String email;
     public final String provider;
     public final Map<String, Object> details;
-    public final Set<UserPolicy> policies;
+
+
     private final HashSet<Project> projects = new HashSet<>();
     @JsonIgnore
     private final String jsonProjectKey;
+    @JsonIgnore
+    private final List<UserPolicy> policies;
 
     public User(final String id, String name, String email, String provider, String jsonDetails) {
         this(id, name, email, provider, deserialize(jsonDetails));
     }
 
-    public User(final String id, String name, String email, String provider, String jsonDetails, Set<UserPolicy> policies) {
-        this(id, name, email, provider, deserialize(jsonDetails), jsonDetails, policies);
-    }
 
     @JsonCreator
     public User(@JsonProperty("id") final String id, @JsonProperty("name") String name,
                 @JsonProperty("email") String email, @JsonProperty("provider") String provider,
                 @JsonProperty("details") Map<String, Object> details) {
-        this(id, name, email, provider, details, getDefaultProjectsKey(), Set.of());
+        this(id, name, email, provider, details, getDefaultProjectsKey());
     }
 
     public User(String id, String name,
                 String email, String provider,
-                Map<String, Object> details, String jsonProjectKey,
-                Set<UserPolicy> policies) {
+                Map<String, Object> details, String jsonProjectKey) {
         this.id = id;
         this.name = name;
         this.email = email;
         this.provider = provider;
         this.details = unmodifiableMap(ofNullable(details).orElse(new HashMap<>()));
         this.jsonProjectKey = ofNullable(jsonProjectKey).orElse(getDefaultProjectsKey());
-        this.policies = unmodifiableSet(ofNullable(policies).orElse(Set.of()));
+        this.policies = deserializePolicies(this.details.get("policies"));
     }
 
     public User(final String id, String name, String email, String provider) {
@@ -86,8 +85,7 @@ public class User implements Entity, Comparable<User> {
                 (String)map.get("email"),
                 (String)map.getOrDefault("provider", LOCAL),
                 map, //details
-                (String)map.get("jsonProjectKey"),
-                (Set<UserPolicy>) map.get("policies"));
+                (String) map.get("jsonProjectKey"));
     }
 
     public User(User user) {
@@ -96,21 +94,7 @@ public class User implements Entity, Comparable<User> {
                 ofNullable(user).orElse(nullUser()).email,
                 ofNullable(user).orElse(nullUser()).provider,
                 ofNullable(user).orElse(nullUser()).details,
-                ofNullable(user).orElse(nullUser()).jsonProjectKey,
-                ofNullable(user).orElse(nullUser()).policies);
-    }
-
-    public User withPolicies(Set<UserPolicy> policies) {
-        // User is immutable regarding policies; return a new instance with updated policies
-        return new User(
-                this.id,
-                this.name,
-                this.email,
-                this.provider,
-                this.details,
-                this.jsonProjectKey,
-                policies
-        );
+                ofNullable(user).orElse(nullUser()).jsonProjectKey);
     }
 
     public static User fromJson(String json, String provider) {
@@ -200,12 +184,33 @@ public class User implements Entity, Comparable<User> {
         return this;
     }
 
-    @JsonIgnore
-    public Map<String, Object> getDetails() {
-        return details.entrySet().stream().
-                filter(k -> k.getValue() != null).
-                filter(k -> !k.getKey().equalsIgnoreCase("password")).
-                collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+    private static List<UserPolicy> deserializePolicies(Object policiesObj) {
+        if (policiesObj == null) {
+            return List.of();
+        }
+        if (policiesObj instanceof List) {
+            List<?> policyList = (List<?>) policiesObj;
+            if (policyList.isEmpty()) {
+                return List.of();
+            }
+            // Check if the list contains UserPolicy objects directly or Maps (from JSON deserialization)
+            if (policyList.get(0) instanceof UserPolicy) {
+                return new ArrayList<>((List<UserPolicy>) policyList);
+            }
+            // Handle the case where policies are deserialized as Maps (e.g., from JSON)
+            return ((List<Map<String, Object>>) policiesObj).stream()
+                    .map(map -> {
+                        String userId = (String) map.get("userId");
+                        String projectId = (String) map.get("projectId");
+                        List<String> roleStrings = (List<String>) map.get("roles");
+                        Role[] roles = roleStrings.stream()
+                                .map(Role::valueOf)
+                                .toArray(Role[]::new);
+                        return new UserPolicy(userId, projectId, roles);
+                    })
+                    .collect(Collectors.toList());
+        }
+        return List.of();
     }
 
     @JsonIgnore
@@ -232,16 +237,27 @@ public class User implements Entity, Comparable<User> {
     public boolean isLocal() { return LOCAL.equals(this.id);}
     public static User local() { return localUser(LOCAL);}
     public static User localUser(String id, String... projectNames) {
-        return localUser(id, Arrays.stream(projectNames).toList());
+        return localUser(id, Arrays.stream(projectNames).toList(), Stream.empty());
     }
+
     public static User localUser(String id) {
-        return localUser(id, singletonList(id + "-datashare"));
+        return localUser(id, singletonList(id + "-datashare"), Stream.empty());
+    }
+
+    public static User localUser(String id, Stream<UserPolicy> policies, String... projectNames) {
+        return localUser(id, Arrays.stream(projectNames).toList(), policies);
     }
 
     public static User localUser(String id, List<String> projectNames) {
         String[] keys = DEFAULT_PROJECTS_KEY.split("\\.");
         return new User(
                 Map.of("uid", id, keys[0], Map.of(keys[1], projectNames))
+        );
+    }
+    public static User localUser(String id, List<String> projectNames, Stream<UserPolicy> policies) {
+        String[] keys = DEFAULT_PROJECTS_KEY.split("\\.");
+        return new User(
+                Map.of("uid", id, keys[0], Map.of(keys[1], projectNames), "policies", policies.collect(Collectors.toList()))
         );
     }
     public static User nullUser() { return new User((String)null);}
@@ -264,15 +280,33 @@ public class User implements Entity, Comparable<User> {
         return id.compareTo(user.id);
     }
 
+    @JsonIgnore
+    public Map<String, Object> getDetails() {
+        Map<String, Object> detailsMap = details.entrySet().stream().
+                filter(k -> k.getValue() != null).
+                filter(k -> !k.getKey().equalsIgnoreCase("password")).
+                filter(k -> !k.getKey().equals("policies")).
+                collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+
+        // Serialize policies on demand only
+        if (!policies.isEmpty()) {
+            detailsMap.put("policies", policies);
+        }
+
+        return detailsMap;
+    }
+
+    public Stream<UserPolicy> getPolicies() {
+        return policies.stream();
+    }
     public Set<Role> getRoles(String projectId) {
-        return policies.stream().
+        return getPolicies().
                 filter(p -> p.projectId().equals(projectId)).
                 flatMap(p -> Arrays.stream(p.roles())).
                 collect(Collectors.toSet());
     }
-
     public Optional<UserPolicy> getPolicy(String projectId) {
-        return policies.stream().
+        return getPolicies().
                 filter(p -> p.projectId().equals(projectId)).
                 findFirst();
     }
