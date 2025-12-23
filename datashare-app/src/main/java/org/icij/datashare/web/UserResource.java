@@ -20,6 +20,8 @@ import org.icij.datashare.UserEvent;
 import org.icij.datashare.UserEvent.Type;
 import org.icij.datashare.session.DatashareUser;
 import org.icij.datashare.text.Project;
+import org.icij.datashare.user.UserPolicy;
+import org.icij.datashare.user.UserPolicyRepository;
 import org.jetbrains.annotations.NotNull;
 
 import java.net.URI;
@@ -29,6 +31,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static java.lang.Boolean.parseBoolean;
 import static java.util.Objects.isNull;
@@ -39,6 +42,7 @@ import static org.icij.datashare.db.tables.UserHistory.USER_HISTORY;
 @Prefix("/api/users")
 public class UserResource {
     private final Repository repository;
+    private final UserPolicyRepository userPolicyRepository;
 
     private List<Project> getDatashareUserProjects (DatashareUser datashareUser) {
         List<String> projectNames =  datashareUser.getProjectNames();
@@ -51,8 +55,9 @@ public class UserResource {
     }
 
     @Inject
-    public UserResource(Repository repository) {
+    public UserResource(Repository repository, UserPolicyRepository userPolicyRepository) {
         this.repository = repository;
+        this.userPolicyRepository = userPolicyRepository;
     }
 
     @Operation(description = "Gets the user's session information.")
@@ -61,7 +66,9 @@ public class UserResource {
     public Map<String, Object> getUser(Context context) {
         DatashareUser datashareUser = (DatashareUser) context.currentUser();
         Map<String, Object> details = datashareUser.getDetails();
+        Stream<UserPolicy> userPolicies = userPolicyRepository.getByUserId(datashareUser.id);
         details.put("projects", getDatashareUserProjects(datashareUser));
+        details.put("policies", userPolicies.collect(Collectors.toList()));
         return details;
     }
 

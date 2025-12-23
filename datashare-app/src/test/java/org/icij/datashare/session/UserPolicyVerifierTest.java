@@ -13,7 +13,6 @@ import org.mockito.Mock;
 
 import java.io.IOException;
 import java.util.Optional;
-import java.util.Set;
 import java.util.stream.Stream;
 
 import static org.fest.assertions.Assertions.assertThat;
@@ -34,25 +33,29 @@ public class UserPolicyVerifierTest {
 
     private UserPolicyVerifier verifier;
 
-    public User mockPolicy(String userId, String projectId, Role[] roles) {
-        DatashareUser user = new DatashareUser((localUser(userId)));
+    public User mockUser(String userId, String projectId, Role[] roles) {
+        UserPolicy policy = new UserPolicy(userId, projectId, roles);
+        DatashareUser user = new DatashareUser((localUser(userId, Stream.of(policy))));
         user.addProject(projectId);
         when(jooqRepository.getProject(projectId)).thenReturn(project(projectId));
         when(users.find(user.id)).thenReturn(user);
 
-        UserPolicy policy = new UserPolicy(user.id, projectId, roles);
         when(jooqUserPolicyRepository.get(user.id, projectId)).thenReturn(policy);
-        return user.withPolicies(Set.of(policy));
+        return user;
     }
 
     @Before
     public void setUp() throws IOException {
         openMocks(this);
-        User user1 = mockPolicy("user1", "project1", new Role[]{Role.READER});
-        User user2 = mockPolicy("user2", "project2", new Role[]{Role.WRITER, Role.ADMIN});
-        when(jooqUserPolicyRepository.getAllPolicies()).thenReturn(Stream.concat(user1.policies.stream(), user2.policies.stream()));
-        when(jooqUserPolicyRepository.getByProjectId("project1")).thenReturn(user1.policies.stream());
-        when(jooqUserPolicyRepository.getByProjectId("project2")).thenReturn(user2.policies.stream());
+        UserPolicy policy1 = new UserPolicy("user1", "project1", new Role[]{Role.READER});
+        UserPolicy policy2 = new UserPolicy("user2", "project2", new Role[]{Role.WRITER, Role.ADMIN});
+
+        mockUser("user1", "project1", new Role[]{Role.READER});
+        mockUser("user2", "project2", new Role[]{Role.WRITER, Role.ADMIN});
+
+        when(jooqUserPolicyRepository.getAllPolicies()).thenReturn(Stream.of(policy1, policy2));
+        when(jooqUserPolicyRepository.getByProjectId("project1")).thenReturn(Stream.of(policy1));
+        when(jooqUserPolicyRepository.getByProjectId("project2")).thenReturn(Stream.of(policy2));
         verifier = new UserPolicyVerifier(jooqUserPolicyRepository, jooqRepository, users);
     }
 
