@@ -121,7 +121,7 @@
         <log4-over-slf4j.version>2.17.2</log4-over-slf4j.version>
         <junit.version>4.13.2</junit.version>
         <fest-assert.version>1.4</fest-assert.version>
-        <mockito.version>5.10.0</mockito.version>
+        <mockito.version>5.14.2</mockito.version>
 
         <!-- Maven Plugins -->
         <maven-compiler.version>3.13.0</maven-compiler.version>
