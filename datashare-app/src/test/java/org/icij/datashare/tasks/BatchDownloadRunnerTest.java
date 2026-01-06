@@ -1,8 +1,5 @@
 package org.icij.datashare.tasks;
 
-import co.elastic.clients.elasticsearch._types.ElasticsearchException;
-import co.elastic.clients.elasticsearch._types.ErrorCause;
-import co.elastic.clients.elasticsearch._types.ErrorResponse;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.asynctasks.TaskModifier;
@@ -17,6 +14,8 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.mockito.Mock;
+import org.opensearch.OpenSearchException;
+import org.opensearch.core.rest.RestStatus;
 
 import java.io.File;
 import java.io.IOException;
@@ -74,10 +73,9 @@ public class BatchDownloadRunnerTest {
         assertThat(new ZipFile(new File(result.uri())).size()).isEqualTo(3); // the 4th doc must have been skipped
     }
 
-    @Test(expected = ElasticSearchAdapterException.class)
+    @Test(expected = OpenSearchException.class)
     public void test_elasticsearch_status_exception__should_be_sent() throws Exception {
-        ErrorResponse errorResponse = ErrorResponse.of(r -> r.status(400).error(ErrorCause.of(e -> e.type("bad_request").reason("error"))));
-        mockSearch.willThrow(new ElasticsearchException("test-endpoint", errorResponse));
+        mockSearch.willThrow(new OpenSearchException("error", RestStatus.BAD_REQUEST, new RuntimeException()));
         Task<File> taskView = getTaskView(new BatchDownload(singletonList(project("test-datashare")), User.local(), "query"));
         new BatchDownloadRunner(indexer, new PropertiesProvider(), taskView, taskView.progress(updater::progress)).call();
     }

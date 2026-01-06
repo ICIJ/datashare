@@ -109,7 +109,6 @@ public class IndexResourceTest extends AbstractProdWebServerTest {
         });
         indexer.add("cecile-datashare", DocumentBuilder.createDoc("1234567890abcdef").build());
         post("/api/index/search/cecile-datashare/_search").withPreemptiveAuthentication("cecile", "").should().respond(200);
-        post("/api/index/search/cecile-datashare/_doc/_search").withPreemptiveAuthentication("cecile", "").should().respond(200);
         get("/api/index/search/cecile-datashare/_doc/1234567890abcdef").withPreemptiveAuthentication("cecile", "").should().respond(200);
         post("/api/index/search/_search/scroll", "{\"scroll_id\":\"DXF1ZXJ5QW5kRmV0Y2gBAAAAAAAAAD4WYm9laVYtZndUQlNsdDcwakFMNjU1QQ\"}").withPreemptiveAuthentication("cecile", "").should().respond(500);
         post("/api/index/search/cecile-datashare/_count").withPreemptiveAuthentication("cecile", "").should().respond(200);
@@ -128,8 +127,6 @@ public class IndexResourceTest extends AbstractProdWebServerTest {
         indexer.add(es.getIndexNames()[1], DocumentBuilder.createDoc("doc1").withRootId("rootId").build());
         indexer.add(es.getIndexNames()[2], DocumentBuilder.createDoc("doc2").withRootId("rootId").build());
         post("/api/index/search/%s,%s/_search".formatted(es.getIndexNames()[1], es.getIndexNames()[2]))
-                .withPreemptiveAuthentication("cecile", "").should().respond(200);
-        post("/api/index/search/%s,%s/_doc/_search".formatted(es.getIndexNames()[1], es.getIndexNames()[2]))
                 .withPreemptiveAuthentication("cecile", "").should().respond(200);
         post("/api/index/search/%s,%s/_count".formatted(es.getIndexNames()[1], es.getIndexNames()[2]))
                 .withPreemptiveAuthentication("cecile", "").should().respond(200);

@@ -50,9 +50,8 @@ public class IndexAccessVerifier {
         boolean isMethodGet = "GET".equalsIgnoreCase(context.method());
         boolean isSearchPath = "_search".equals(pathParts[1]);
         boolean isCountPath = "_count".equals(pathParts[1]);
-        boolean isSearchPathAtThirdPosition = (pathParts.length >= 3 && "_search".equals(pathParts[2]));
         boolean areAllIndexesGranted = stream(indexes).allMatch(currentUser::isGranted);
-        return areAllIndexesGranted && (isMethodGet || isSearchPath || isCountPath || isSearchPathAtThirdPosition);
+        return areAllIndexesGranted && (isMethodGet || isSearchPath || isCountPath);
     }
 
     static String getUrlString(Context context, String s) {
