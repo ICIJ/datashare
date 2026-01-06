@@ -39,12 +39,24 @@ import org.icij.datashare.extract.RedisDocumentCollectionFactory;
 import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.nlp.EmailPipeline;
 import org.icij.datashare.nlp.OptimaizeLanguageGuesser;
-import org.icij.datashare.tasks.*;
+import org.icij.datashare.session.Policy;
+import org.icij.datashare.session.UsersInDb;
+import org.icij.datashare.session.UsersWritable;
+import org.icij.datashare.tasks.DatashareTaskFactory;
+import org.icij.datashare.tasks.TaskManagerAmqp;
+import org.icij.datashare.tasks.TaskManagerMemory;
+import org.icij.datashare.tasks.TaskManagerRedis;
+import org.icij.datashare.tasks.TaskRepositoryMemory;
+import org.icij.datashare.tasks.TaskRepositoryRedis;
+import org.icij.datashare.tasks.TaskResultSubtypes;
+import org.icij.datashare.tasks.TaskSupplierAmqp;
+import org.icij.datashare.tasks.TaskSupplierRedis;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.text.indexing.LanguageGuesser;
 import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchIndexer;
 import org.icij.datashare.text.nlp.Pipeline;
 import org.icij.datashare.user.ApiKeyRepository;
+import org.icij.datashare.user.UserPolicyRepository;
 import org.icij.datashare.web.OpenApiResource;
 import org.icij.datashare.web.RootResource;
 import org.icij.datashare.web.SettingsResource;
@@ -235,6 +247,21 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
     }
 
     @Provides @Singleton
+    UsersWritable provideUsersWritable(final PropertiesProvider propertiesProvider, final Injector injector) {
+        String authUsersProviderClassName = propertiesProvider.get("authUsersProvider").orElse(UsersInDb.class.getName());
+        Class<? extends UsersWritable> authUsersProviderClass;
+        try {
+            authUsersProviderClass = (Class<? extends UsersWritable>) Class.forName(authUsersProviderClassName, true, ClassLoader.getSystemClassLoader());
+            logger.info("setting auth users provider to {}", authUsersProviderClass);
+        } catch (ClassNotFoundException | ClassCastException e) {
+            logger.warn("\"{}\" auth users provider class not found or invalid. Setting provider to UsersInDb", authUsersProviderClassName);
+            authUsersProviderClass = UsersInDb.class;
+        }
+        return injector.getInstance(authUsersProviderClass);
+    }
+
+
+    @Provides @Singleton
     LanguageGuesser provideLanguageGuesser() throws IOException {
         return new OptimaizeLanguageGuesser();
     }
@@ -296,11 +323,16 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
 
     protected abstract Routes addModeConfiguration(final Routes routes);
 
+    protected void addPermissionConfiguration(final Routes routes) {
+        routes.registerAfterAnnotation(Policy.class, (annotation, context, payload) -> payload);
+    }
+
     void configurePersistence() {
         RepositoryFactoryImpl repositoryFactory = new RepositoryFactoryImpl(propertiesProvider);
         bind(Repository.class).toInstance(repositoryFactory.createRepository());
         bind(ApiKeyRepository.class).toInstance(repositoryFactory.createApiKeyRepository());
         bind(BatchSearchRepository.class).toInstance(repositoryFactory.createBatchSearchRepository());
+        bind(UserPolicyRepository.class).toInstance(repositoryFactory.createUserPolicyRepository());
 
         TaskRepositoryType taskRepositoryType = TaskRepositoryType.valueOf(propertiesProvider.get(TASK_REPOSITORY_OPT).orElse("DATABASE"));
         switch ( taskRepositoryType ) {
@@ -334,6 +366,7 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
         addExtensionsConfiguration(routes);
         addModeConfiguration(routes);
         addPluginsConfiguration(routes);
+        addPermissionConfiguration(routes);
         return routes;
     }
 

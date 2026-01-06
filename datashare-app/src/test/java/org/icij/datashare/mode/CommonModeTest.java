@@ -8,6 +8,9 @@ import org.icij.datashare.asynctasks.TaskModifier;
 import org.icij.datashare.asynctasks.TaskSupplier;
 import org.icij.datashare.cli.Mode;
 import org.icij.datashare.cli.QueueType;
+import org.icij.datashare.session.UsersInDb;
+import org.icij.datashare.session.UsersInRedis;
+import org.icij.datashare.session.UsersWritable;
 import org.junit.Test;
 
 import java.util.HashMap;
@@ -86,4 +89,12 @@ public class CommonModeTest {
         assertThat(modeInMemoryNoCapacitySet.propertiesProvider.queueCapacity()).isEqualTo(1000000);
     }
 
+    @Test
+    public void test_bad_users_class_uses_default() {
+        CommonMode mode = CommonMode.create(new HashMap<>() {{
+            put("mode", Mode.LOCAL.name());
+            put("authUsersProvider", "org.icij.UnknownClass");
+        }});
+        assertThat(mode.get(UsersWritable.class)).isInstanceOf(UsersInDb.class);
+    }
 }

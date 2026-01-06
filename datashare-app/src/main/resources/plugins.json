@@ -22,9 +22,9 @@
       "id": "datashare-plugin-sentence-case",
       "name": "Sentence Case",
       "description": "A Datashare plugin to add a sentence case button to the extracted text view.",
-      "url": "https://github.com/ICIJ/datashare-plugin-sentence-case/releases/download/v1.1.0/datashare-plugin-sentence-case-v1.1.0.tgz",
+      "url": "https://github.com/ICIJ/datashare-plugin-sentence-case/releases/download/v1.1.1/datashare-plugin-sentence-case-v1.1.1.tgz",
       "homepage": "https://github.com/ICIJ/datashare-plugin-sentence-case",
-      "version": "1.1.0",
+      "version": "1.1.1",
       "type": "PLUGIN"
     },
     {

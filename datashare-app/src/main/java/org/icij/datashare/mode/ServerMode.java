@@ -10,8 +10,28 @@ import net.codestory.http.security.SessionIdStore;
 import org.icij.datashare.cli.QueueType;
 import org.icij.datashare.db.JooqRepository;
 import org.icij.datashare.db.RepositoryFactoryImpl;
-import org.icij.datashare.session.*;
-import org.icij.datashare.web.*;
+import org.icij.datashare.session.ApiKeyFilter;
+import org.icij.datashare.session.ApiKeyStore;
+import org.icij.datashare.session.ApiKeyStoreAdapter;
+import org.icij.datashare.session.OAuth2CookieFilter;
+import org.icij.datashare.session.RedisSessionIdStore;
+import org.icij.datashare.session.YesCookieAuthFilter;
+import org.icij.datashare.web.ApiKeyResource;
+import org.icij.datashare.web.BatchSearchResource;
+import org.icij.datashare.web.DocumentResource;
+import org.icij.datashare.web.DocumentUserRecommendationResource;
+import org.icij.datashare.web.ExtensionResource;
+import org.icij.datashare.web.FtmResource;
+import org.icij.datashare.web.IndexResource;
+import org.icij.datashare.web.NamedEntityResource;
+import org.icij.datashare.web.NerResource;
+import org.icij.datashare.web.NoteResource;
+import org.icij.datashare.web.PluginResource;
+import org.icij.datashare.web.ProjectResource;
+import org.icij.datashare.web.StatusResource;
+import org.icij.datashare.web.TaskResource;
+import org.icij.datashare.web.UserPolicyResource;
+import org.icij.datashare.web.UserResource;
 
 import java.util.Map;
 import java.util.Properties;
@@ -25,15 +45,6 @@ public class ServerMode extends CommonMode {
     @Override
     protected void configure() {
         super.configure();
-        String authUsersProviderClassName = propertiesProvider.get("authUsersProvider").orElse("org.icij.datashare.session.UsersInRedis");
-        Class<? extends UsersWritable> authUsersProviderClass = UsersInRedis.class;
-        try {
-            authUsersProviderClass = (Class<? extends UsersWritable>) Class.forName(authUsersProviderClassName, true, ClassLoader.getSystemClassLoader());
-            logger.info("setting auth users provider to {}", authUsersProviderClass);
-        } catch (ClassNotFoundException e) {
-            logger.warn("\"{}\" auth users provider class not found. Setting provider to {}", authUsersProviderClassName, authUsersProviderClass);
-        }
-        bind(UsersWritable.class).to(authUsersProviderClass);
         QueueType sessionStoreType = getQueueType(propertiesProvider, SESSION_STORE_TYPE_OPT, QueueType.MEMORY);
         if (QueueType.MEMORY == sessionStoreType) {
             bind(SessionIdStore.class).toInstance(SessionIdStore.inMemory());
@@ -82,6 +93,7 @@ public class ServerMode extends CommonMode {
                 add(TaskResource.class).
                 add(IndexResource.class).
                 add(UserResource.class).
+                add(UserPolicyResource.class).
                 add(NamedEntityResource.class).
                 add(DocumentResource.class).
                 add(DocumentUserRecommendationResource.class).

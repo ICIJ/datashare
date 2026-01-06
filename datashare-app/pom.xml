@@ -7,7 +7,7 @@
     <parent>
         <groupId>org.icij.datashare</groupId>
         <artifactId>datashare</artifactId>
-        <version>20.5.2</version>
+        <version>20.7.1</version>
     </parent>
 
     <artifactId>datashare-app</artifactId>
@@ -24,7 +24,7 @@
         <dependency>
        	    <groupId>com.github.CodeStory</groupId>
        	    <artifactId>fluent-http</artifactId>
-       	    <version>a0ea9eb</version>
+            <version>2a87e59</version>
             <type>jar</type>
             <exclusions>
                 <exclusion>
@@ -121,6 +121,11 @@
             <groupId>org.icij</groupId>
             <artifactId>fluent-swagger-apigen</artifactId>
             <version>0.4.1</version>
+        </dependency>
+        <dependency>
+            <groupId>com.dorkbox</groupId>
+            <artifactId>SystemTray</artifactId>
+            <version>4.4</version>
         </dependency>
 
         <!-- Logging -->

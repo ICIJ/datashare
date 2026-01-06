@@ -13,6 +13,7 @@ import org.icij.datashare.tasks.ExtractNlpTask;
 import org.icij.datashare.tasks.IndexTask;
 import org.icij.datashare.tasks.ScanIndexTask;
 import org.icij.datashare.tasks.ScanTask;
+import org.icij.datashare.text.Project;
 import org.icij.datashare.text.indexing.Indexer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,11 +23,9 @@ import java.util.List;
 import java.util.Properties;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.icij.datashare.PropertiesProvider.DEFAULT_PROJECT_OPT;
 import static org.icij.datashare.PropertiesProvider.propertiesToMap;
-import static org.icij.datashare.cli.DatashareCliOptions.CREATE_INDEX_OPT;
-import static org.icij.datashare.cli.DatashareCliOptions.CRE_API_KEY_OPT;
-import static org.icij.datashare.cli.DatashareCliOptions.DEL_API_KEY_OPT;
-import static org.icij.datashare.cli.DatashareCliOptions.GET_API_KEY_OPT;
+import static org.icij.datashare.cli.DatashareCliOptions.*;
 import static org.icij.datashare.user.User.localUser;
 import static org.icij.datashare.user.User.nullUser;
 
@@ -95,6 +94,13 @@ class CliApp {
         if (properties.getProperty(DEL_API_KEY_OPT) != null) {
             String userName = properties.getProperty(DEL_API_KEY_OPT);
             taskFactory.createDelApiKey(localUser(userName)).call();
+            System.exit(0);
+        }
+
+        if (properties.getProperty(GRANT_ADMIN_OPT) != null) {
+            String userName = properties.getProperty(GRANT_ADMIN_OPT);
+            String project = properties.getProperty(DEFAULT_PROJECT_OPT);
+            taskFactory.createGrantAdminPolicyTask(localUser(userName), Project.project(project)).call();
             System.exit(0);
         }
 

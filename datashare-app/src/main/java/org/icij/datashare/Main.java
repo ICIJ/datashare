@@ -3,6 +3,7 @@ package org.icij.datashare;
 import org.icij.datashare.cli.DatashareCli;
 import org.icij.datashare.cli.Mode;
 import org.icij.datashare.mode.CommonMode;
+import org.icij.datashare.tray.DatashareSystemTray;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import ch.qos.logback.classic.Level;
@@ -26,6 +27,7 @@ public class Main {
         Runtime.getRuntime().addShutdownHook(mode.closeThread());
 
         if (cli.isWebServer()) {
+            DatashareSystemTray.create(mode);
             WebApp.start(mode);
         } else if (cli.mode() == Mode.TASK_WORKER) {
             TaskWorkerApp.start(mode);
