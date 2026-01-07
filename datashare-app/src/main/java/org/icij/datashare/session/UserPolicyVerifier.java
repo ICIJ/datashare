@@ -104,10 +104,11 @@ public class UserPolicyVerifier {
     }
 
     private void userAndProjectExist(String userId, String projectId) throws RecordNotFoundException {
-        if (this.users.find(userId).equals(User.nullUser())) {
+        DatashareUser user = (DatashareUser) this.users.find(userId);
+        if (user.equals(User.nullUser())) {
             throw new RecordNotFoundException(User.class, userId);
         }
-        if (this.repository.getProject(projectId) == null) {
+        if (!user.isGranted(projectId)) {
             throw new RecordNotFoundException(Project.class, projectId);
         }
     }
