@@ -16,9 +16,4 @@
             <unpack>true</unpack>
         </dependencySet>
     </dependencySets>
-    <containerDescriptorHandlers>
-        <containerDescriptorHandler>
-            <handlerName>metaInf-services</handlerName>
-        </containerDescriptorHandler>
-    </containerDescriptorHandlers>
 </assembly>

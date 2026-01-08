@@ -15,7 +15,6 @@
 
     <properties>
         <jna.version>4.1.0</jna.version>
-        <opensearch.version>3.3.2</opensearch.version>
     </properties>
 
     <repositories>
@@ -65,45 +64,71 @@
 
         <!-- for es embedded -->
         <dependency>
-            <groupId>org.opensearch</groupId>
-            <artifactId>opensearch</artifactId>
-            <version>${opensearch.version}</version>
-        </dependency>
-        <dependency>
             <groupId>org.apache.lucene</groupId>
             <artifactId>lucene-core</artifactId>
             <version>${lucene.version}</version>
          </dependency>
         <dependency>
-            <groupId>org.opensearch.plugin</groupId>
+            <groupId>org.elasticsearch</groupId>
+            <artifactId>elasticsearch</artifactId>
+            <version>${elasticsearch.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>org.apache.logging.log4j</groupId>
+                        <artifactId>log4j-api</artifactId>
+                    </exclusion>
+                </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>org.elasticsearch.plugin</groupId>
             <artifactId>parent-join-client</artifactId>
-            <version>${opensearch.version}</version>
+            <version>${elasticsearch.version}</version>
         </dependency>
         <dependency>
-            <groupId>org.opensearch.plugin</groupId>
+            <groupId>org.elasticsearch.plugin</groupId>
             <artifactId>transport-netty4-client</artifactId>
-            <version>${opensearch.version}</version>
+            <version>${elasticsearch.version}</version>
         </dependency>
         <dependency>
-            <groupId>org.opensearch.plugin</groupId>
+            <groupId>org.codelibs.elasticsearch.module</groupId>
             <artifactId>lang-painless</artifactId>
-            <version>${opensearch.version}</version>
+            <version>${elasticsearch.version}</version>
         </dependency>
         <dependency>
-            <groupId>org.opensearch.plugin</groupId>
-            <artifactId>reindex-client</artifactId>
-            <version>${opensearch.version}</version>
+            <groupId>org.codelibs.elasticsearch.module</groupId>
+            <artifactId>reindex</artifactId>
+            <version>${elasticsearch.version}</version>
         </dependency>
         <!-- for path_hierarchy tokenizer -->
         <dependency>
-            <groupId>org.opensearch.plugin</groupId>
+            <groupId>org.codelibs.elasticsearch.module</groupId>
             <artifactId>analysis-common</artifactId>
-            <version>${opensearch.version}</version>
+            <version>${elasticsearch.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.lucene</groupId>
+            <artifactId>lucene-analyzers-common</artifactId>
+            <version>${lucene.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.lucene</groupId>
             <artifactId>lucene-backward-codecs</artifactId>
             <version>${lucene.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-to-slf4j</artifactId>
+            <version>${log4jtoslf4j.version}</version>
+        </dependency>
+        <!--
+            see https://github.com/elastic/elasticsearch/issues/19415#issuecomment-301057712
+            we have to mock dynamic re-configuration of log4j with slf4j else it thows
+            either ClassCastException or ClassNotFoundException
+        -->
+        <dependency>
+            <groupId>de.dentrassi.elasticsearch</groupId>
+            <artifactId>log4j2-mock</artifactId>
+            <version>0.0.2</version>
         </dependency>
         <dependency>
             <groupId>ch.qos.logback</groupId>
@@ -112,21 +137,6 @@
         <!-- end for es embedded -->
 
         <!-- Slf4j / log4j bridge for elasticsearch -->
-        <dependency>
-            <groupId>org.apache.logging.log4j</groupId>
-            <artifactId>log4j-api</artifactId>
-            <version>2.17.2</version>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.logging.log4j</groupId>
-            <artifactId>log4j-to-slf4j</artifactId>
-            <version>2.17.2</version>
-        </dependency>
-        <dependency>
-            <groupId>de.dentrassi.elasticsearch</groupId>
-            <artifactId>log4j2-mock</artifactId>
-            <version>0.0.2</version>
-        </dependency>
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>

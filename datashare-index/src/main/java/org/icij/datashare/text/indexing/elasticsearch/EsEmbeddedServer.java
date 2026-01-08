@@ -1,22 +1,20 @@
 package org.icij.datashare.text.indexing.elasticsearch;
 
-import org.opensearch.Version;
-import org.opensearch.analysis.common.CommonAnalysisModulePlugin;
-import org.opensearch.common.settings.Settings;
-import org.opensearch.index.reindex.ReindexModulePlugin;
-import org.opensearch.join.ParentJoinModulePlugin;
-import org.opensearch.node.InternalSettingsPreparer;
-import org.opensearch.node.Node;
-import org.opensearch.painless.PainlessModulePlugin;
-import org.opensearch.plugins.Plugin;
-import org.opensearch.plugins.PluginInfo;
-import org.opensearch.transport.Netty4ModulePlugin;
+import org.elasticsearch.Version;
+import org.elasticsearch.analysis.common.CommonAnalysisPlugin;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.reindex.ReindexPlugin;
+import org.elasticsearch.join.ParentJoinPlugin;
+import org.elasticsearch.node.InternalSettingsPreparer;
+import org.elasticsearch.node.Node;
+import org.elasticsearch.painless.PainlessPlugin;
+import org.elasticsearch.plugins.Plugin;
+import org.elasticsearch.transport.Netty4Plugin;
 import org.slf4j.LoggerFactory;
 
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 
 import static java.util.Arrays.asList;
@@ -69,11 +67,11 @@ public class EsEmbeddedServer implements Closeable {
 
     PluginConfigurableNode createNode(Settings settings) {
         return new PluginConfigurableNode(settings, asList(
-                Netty4ModulePlugin.class,
-                ParentJoinModulePlugin.class,
-                CommonAnalysisModulePlugin.class,
-                PainlessModulePlugin.class,
-                ReindexModulePlugin.class
+                Netty4Plugin.class,
+                ParentJoinPlugin.class,
+                CommonAnalysisPlugin.class,
+                PainlessPlugin.class,
+                ReindexPlugin.class
         ));
     }
 
@@ -88,22 +86,7 @@ public class EsEmbeddedServer implements Closeable {
 
     static class PluginConfigurableNode extends Node {
         public PluginConfigurableNode(Settings settings, Collection<Class<? extends Plugin>> classpathPlugins) {
-            super(InternalSettingsPreparer.prepareEnvironment(settings, new HashMap<>(), null, () -> "datashare"),
-                    classpathPlugins.stream()
-                            .map(
-                                    p -> new PluginInfo(
-                                            p.getName(),
-                                            "classpath plugin",
-                                            "NA",
-                                            Version.CURRENT,
-                                            "1.8",
-                                            p.getName(),
-                                            null,
-                                            Collections.emptyList(),
-                                            false
-                                    )
-                            )
-                            .toList(), true);
+            super(InternalSettingsPreparer.prepareEnvironment(settings, new HashMap<>(), null, () -> "datashare"), classpathPlugins, true);
         }
     }
 

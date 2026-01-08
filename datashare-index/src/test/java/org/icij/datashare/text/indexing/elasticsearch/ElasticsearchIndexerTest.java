@@ -2,11 +2,13 @@ package org.icij.datashare.text.indexing.elasticsearch;
 
 import co.elastic.clients.elasticsearch._types.ElasticsearchException;
 import co.elastic.clients.elasticsearch._types.Refresh;
-import co.elastic.clients.elasticsearch._types.Script;
 import co.elastic.clients.elasticsearch.core.GetRequest;
-import co.elastic.clients.elasticsearch.core.UpdateRequest;
 import jakarta.json.JsonException;
+import java.util.Objects;
 import org.apache.http.ConnectionClosedException;
+import org.elasticsearch.action.update.UpdateRequest;
+import org.elasticsearch.script.Script;
+import org.elasticsearch.script.ScriptType;
 import org.icij.datashare.Entity;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.test.ElasticsearchRule;
@@ -30,12 +32,12 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
 import static java.util.stream.Collectors.toList;
+import static org.elasticsearch.action.support.WriteRequest.RefreshPolicy.IMMEDIATE;
 import static org.fest.assertions.Assertions.assertThat;
 import static org.icij.datashare.text.Document.Status.DONE;
 import static org.icij.datashare.text.Document.Status.INDEXED;
@@ -48,9 +50,7 @@ import static org.icij.datashare.text.NamedEntity.create;
 import static org.icij.datashare.text.Project.project;
 import static org.icij.datashare.text.Tag.tag;
 import static org.icij.datashare.text.indexing.ScrollQueryBuilder.createScrollQuery;
-import static org.icij.datashare.text.nlp.Pipeline.Type.CORENLP;
-import static org.icij.datashare.text.nlp.Pipeline.Type.OPENNLP;
-import static org.icij.datashare.text.nlp.Pipeline.Type.SPACY;
+import static org.icij.datashare.text.nlp.Pipeline.Type.*;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.spy;
@@ -339,10 +339,9 @@ public class ElasticsearchIndexerTest {
     public void test_tag_document_without_tags_field_for_backward_compatibility() throws IOException {
         Document doc = createDoc("id").build();
         indexer.add(es.getIndexName(), doc);
-        UpdateRequest<Object, Object> removeTagsRequest = UpdateRequest.of(r -> r.index(es.getIndexName()).
-                id(doc.getId()).
-                script(Script.of(s -> s.lang("painless").source("ctx._source.remove(\"tags\")").params(new HashMap<>()))));
-        es.client.update(removeTagsRequest, Document.class);
+        UpdateRequest removeTagsRequest = new UpdateRequest(es.getIndexName(), doc.getId()).script(new Script(ScriptType.INLINE, "painless", "ctx._source.remove(\"tags\")", new HashMap<>()));
+        removeTagsRequest.setRefreshPolicy(IMMEDIATE);
+        //es.client.update(removeTagsRequest, RequestOptions.DEFAULT);
 
         assertThat(indexer.tag(project(es.getIndexName()), doc.getId(), doc.getId(), tag("tag"))).isTrue();
     }

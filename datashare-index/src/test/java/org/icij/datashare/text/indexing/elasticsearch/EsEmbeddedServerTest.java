@@ -1,9 +1,9 @@
 package org.icij.datashare.text.indexing.elasticsearch;
 
+import org.elasticsearch.common.settings.Settings;
 import org.icij.datashare.test.LogbackCapturingRule;
 import org.junit.Rule;
 import org.junit.Test;
-import org.opensearch.common.settings.Settings;
 import org.slf4j.event.Level;
 
 import static org.fest.assertions.Assertions.assertThat;
@@ -17,13 +17,13 @@ public class EsEmbeddedServerTest {
         try  {
             new EsEmbeddedServer("name", "home/path", "data/path", "9876") {
                 @Override
-                PluginConfigurableNode createNode(org.opensearch.common.settings.Settings settings) {
+                EsEmbeddedServer.PluginConfigurableNode createNode(Settings settings) {
                     throw new IllegalArgumentException("Could not load codec");
                 }
             };
             fail("should send IllegalArgument");
         } catch (IllegalArgumentException iae) {
-            assertThat(logbackCapturingRule.logs(Level.ERROR)).contains("Your index version on disk (data/path) doesn't seem to have the same version as the embedded Elasticsearch engine (3.3.2). Please migrate it with snapshots, or remove it then restart datashare.");
+            assertThat(logbackCapturingRule.logs(Level.ERROR)).contains("Your index version on disk (data/path) doesn't seem to have the same version as the embedded Elasticsearch engine (7.17.9). Please migrate it with snapshots, or remove it then restart datashare.");
         }
     }
 
@@ -32,7 +32,7 @@ public class EsEmbeddedServerTest {
         try {
             new EsEmbeddedServer("name", "home/path", "data/path", "9876") {
                 @Override
-                PluginConfigurableNode createNode(Settings settings) {
+                EsEmbeddedServer.PluginConfigurableNode createNode(Settings settings) {
                     throw new IllegalArgumentException();
                 }
             };

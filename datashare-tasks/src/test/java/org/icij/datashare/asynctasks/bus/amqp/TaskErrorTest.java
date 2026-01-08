@@ -12,7 +12,7 @@ public class TaskErrorTest {
         RuntimeException throwable = new RuntimeException("this is an error");
         TaskError errorResult = new TaskError(throwable);
         assertThat(errorResult.stacktrace.get(0).toString()).isEqualTo(String.format("\tat %s.%s:%d", getClass().getName(), "test_stacktrace_item_to_string", 12));
-        assertThat(errorResult.stacktrace.get(1).toString()).isEqualTo("\tat jdk.internal.reflect.DirectMethodHandleAccessor.invoke:103");
+        assertThat(errorResult.stacktrace.get(1).toString()).isEqualTo("\tat jdk.internal.reflect.NativeMethodAccessorImpl (native method)");
     }
 
     @Test

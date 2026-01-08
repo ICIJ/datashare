@@ -3,7 +3,7 @@ package org.icij.datashare.text.indexing.elasticsearch;
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import co.elastic.clients.elasticsearch._types.Conflicts;
 import co.elastic.clients.elasticsearch._types.FieldValue;
-import co.elastic.clients.elasticsearch._types.Script;
+import co.elastic.clients.elasticsearch._types.InlineScript;
 import co.elastic.clients.elasticsearch._types.Refresh;
 import co.elastic.clients.elasticsearch._types.Result;
 import co.elastic.clients.elasticsearch._types.ScriptField;
@@ -30,6 +30,7 @@ import org.apache.http.util.EntityUtils;
 import org.elasticsearch.client.Request;
 import org.elasticsearch.client.Response;
 import org.elasticsearch.client.RestClient;
+import org.elasticsearch.rest.RestStatus;
 import org.icij.datashare.Entity;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.json.JsonObjectMapper;
@@ -109,9 +110,9 @@ public class ElasticsearchIndexer implements Indexer {
             BulkOperation.of(op -> op.update(up -> up.index(indexName)
                     .id(parent.getId())
                     .routing(routing)
-                    .action(a -> a.script(scr -> scr.lang("painless")
+                    .action(a -> a.script(scr -> scr.inline(iscr -> iscr.lang("painless")
                             .source("if (!ctx._source.nerTags.contains(params.nerTag)) ctx._source.nerTags.add(params.nerTag);")
-                            .params("nerTag", JsonData.of(nerType.toString()))))))
+                            .params("nerTag", JsonData.of(nerType.toString())))))))
         );
 
         for (Entity child : namedEntities) {
@@ -329,15 +330,15 @@ public class ElasticsearchIndexer implements Indexer {
         }
         return script;
     }
-    private static Script getExtractedTextScript(final int offset, final int limit, final String targetLanguage) throws IOException {
-        Map<String,Object> params = new HashMap<>() {{
+    private static InlineScript getExtractedTextScript(final int offset, final int limit, final String targetLanguage) throws IOException {
+        Map<String,Object> params =  new HashMap<String, Object>() {{
             put("offset", offset);
             put("limit", limit);
         }};
         if(targetLanguage != null){
             params.put("targetLanguage",targetLanguage);
         }
-        return new Script.Builder().lang("painless")
+        return new InlineScript.Builder().lang("painless")
                 .source(ElasticsearchIndexer.getScriptStringFromFile("extractedText.painless.java"))
                 .params(mapObjectTomapJsonData(params)).build();
     }
@@ -354,7 +355,7 @@ public class ElasticsearchIndexer implements Indexer {
             throw new StringIndexOutOfBoundsException(format("offset or limit should not be negative (offset=%d, limit=%d)", offset, limit));
         }
         sourceBuilder.query(Query.of(q -> q.bool(bq -> bq.must(qt -> qt.term(t -> t.field("_id").value(id))))));
-        Script script = getExtractedTextScript(offset, limit, targetLanguage);
+        InlineScript script = getExtractedTextScript(offset, limit, targetLanguage);
         Map<String, Object> pagination = getPagination(routing, sourceBuilder, script);
         ExtractedText extractedText;
         if (targetLanguage != null){
@@ -367,8 +368,8 @@ public class ElasticsearchIndexer implements Indexer {
        return extractedText;
     }
 
-    private static Script searchQueryOccurrencesScript(final String query, String targetLanguage) throws IOException {
-        Map<String,Object> params = new HashMap<>() {{
+    private static InlineScript searchQueryOccurrencesScript(final String query, String targetLanguage) throws IOException {
+        Map<String,Object> params = new HashMap<String, Object>() {{
             put("query", query);
         }};
 
@@ -376,7 +377,7 @@ public class ElasticsearchIndexer implements Indexer {
             params.put("targetLanguage",targetLanguage);
         }
 
-        return new Script.Builder().lang("painless")
+        return new InlineScript.Builder().lang("painless")
                 .source(ElasticsearchIndexer.getScriptStringFromFile("searchOccurrences.painless.java"))
                 .params(mapObjectTomapJsonData(params)).build();
     }
@@ -396,7 +397,7 @@ public class ElasticsearchIndexer implements Indexer {
             throw new IllegalArgumentException();
         }
         sourceBuilder.query(Query.of(q -> q.bool(bq -> bq.must(qt -> qt.term(t -> t.field("_id").value(id))))));
-        Script script = searchQueryOccurrencesScript(query, targetLanguage);
+        InlineScript script = searchQueryOccurrencesScript(query, targetLanguage);
         Map<String, Object> pagination = getPagination(routing, sourceBuilder, script);;
         SearchedText searchedText;
         List<Integer> l = JsonObjectMapper.convertValue(pagination.get("offsets"), new TypeReference<>() {});
@@ -416,10 +417,10 @@ public class ElasticsearchIndexer implements Indexer {
         return searchedText;
     }
 
-    private Map<String, Object> getPagination(String routing, SearchRequest.Builder sourceBuilder, Script script) throws IOException {
-        sourceBuilder.scriptFields("pagination", ScriptField.of(sf -> sf.script(script)));
+    private Map<String, Object> getPagination(String routing, SearchRequest.Builder sourceBuilder, InlineScript script) throws IOException {
+        sourceBuilder.scriptFields("pagination", ScriptField.of(sf -> sf.script(scr -> scr.inline(script))));
         SearchResponse<ObjectNode> search = client.search(sourceBuilder.routing(routing).build(), ObjectNode.class);
-        List<Hit<ObjectNode>> tHits = searchHitStream(() -> search.hits().hits().iterator()).toList();
+        List<Hit<ObjectNode>> tHits = searchHitStream(() -> search.hits().hits().iterator()).collect(toList());
         if(tHits.isEmpty()){
             throw new IllegalArgumentException("Document not found");
         }
@@ -448,9 +449,9 @@ public class ElasticsearchIndexer implements Indexer {
         return tagUntag(prj, documentId, rootDocument, createUntagScript(tags));
     }
 
-    private boolean tagUntag(Project prj, String documentId, String rootDocument, Script untagScript) throws IOException {
+    private boolean tagUntag(Project prj, String documentId, String rootDocument, InlineScript untagScript) throws IOException {
         Builder<Object, Object> updateRequest = new Builder<>().index(prj.getId()).id(documentId).routing(rootDocument);
-        updateRequest.script(untagScript);
+        updateRequest.script(co.elastic.clients.elasticsearch._types.Script.of(scr -> scr.inline(untagScript)));
         updateRequest.refresh(esCfg.refreshPolicy);
         UpdateResponse<Object> updateResponse = client.update(updateRequest.build(), ObjectNode.class);
         return updateResponse.result() == Result.Updated;
@@ -466,20 +467,20 @@ public class ElasticsearchIndexer implements Indexer {
         return groupTagUntag(prj, documentIds, createUntagScript(tags));
     }
 
-    private boolean groupTagUntag(Project prj, List<String> documentIds, Script untagScript) throws IOException {
+    private boolean groupTagUntag(Project prj, List<String> documentIds, InlineScript untagScript) throws IOException {
         UpdateByQueryRequest.Builder updateByQuery = new UpdateByQueryRequest.Builder().index(prj.getId());
         updateByQuery.query(q -> q.terms(qt -> qt.field("_id")
                                                  .terms(tq -> tq.value(stream(documentIds.toArray(new String[0])).map(FieldValue::of).collect(toList())))));
         updateByQuery.conflicts(Conflicts.Proceed);
-        updateByQuery.script(untagScript);
+        updateByQuery.script(scr -> scr.inline(untagScript));
         updateByQuery.refresh(esCfg.refreshPolicy.equals(Refresh.True));
         UpdateByQueryResponse updateResponse = client.updateByQuery(updateByQuery.build());
         int updated = updateResponse.updated() != null ? updateResponse.updated().intValue() : 0;
-        return updateResponse.failures().isEmpty() && updated > 0;
+        return updateResponse.failures().size() == 0 && updated > 0;
     }
 
-    private Script createTagScript(Tag[] tags) {
-        return new Script.Builder().lang("painless")
+    private InlineScript createTagScript(Tag[] tags) {
+        return new InlineScript.Builder().lang("painless")
                 .source(                "int updates = 0;" +
                         "if (ctx._source.tags == null) ctx._source.tags = [];" +
                         "for (int i = 0; i < params.tags.length; i++) {" +
@@ -489,13 +490,13 @@ public class ElasticsearchIndexer implements Indexer {
                         "  }" +
                         "}" +
                         "if (updates == 0) ctx.op = 'noop';")
-                .params(mapObjectTomapJsonData(new HashMap<>() {{
+                .params(mapObjectTomapJsonData(new HashMap<String, Object>() {{
                     put("tags", stream(tags).map(t -> t.label).collect(toList()));
                 }})).build();
     }
 
-    private Script createUntagScript(Tag[] tags) {
-        return new Script.Builder().lang("painless")
+    private InlineScript createUntagScript(Tag[] tags) {
+        return new InlineScript.Builder().lang("painless")
                 .source("int updates = 0;" +
                         "for (int i = 0; i < params.tags.length; i++) {" +
                         "  if (ctx._source.tags.contains(params.tags[i])) {" +
@@ -504,7 +505,7 @@ public class ElasticsearchIndexer implements Indexer {
                         "  }" +
                         "}" +
                         "if (updates == 0) ctx.op = 'noop';")
-                .params(mapObjectTomapJsonData(new HashMap<>() {{
+                .params(mapObjectTomapJsonData(new HashMap<String, Object>() {{
                     put("tags", stream(tags).map(t -> t.label).collect(toList()));
                 }})).build();
     }
@@ -533,7 +534,7 @@ public class ElasticsearchIndexer implements Indexer {
         post.setEntity(new NStringEntity("{\"query\":{\"match_all\": {}}}", ContentType.APPLICATION_JSON));
         RestClient restClient = ((RestClientTransport) client._transport()).restClient();
         Response response = restClient.performRequest(post);
-        return response.getStatusLine().getStatusCode() == 200;
+        return response.getStatusLine().getStatusCode() == RestStatus.OK.getStatus();
     }
 
     public ElasticsearchIndexer withRefresh(Refresh refresh) {
