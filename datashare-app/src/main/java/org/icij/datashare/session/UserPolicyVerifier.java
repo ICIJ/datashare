@@ -91,8 +91,8 @@ public class UserPolicyVerifier {
      */
     public boolean saveUserPolicy(String userId, String projectId, Role[] roles) throws RecordNotFoundException {
         userAndProjectExist(userId, projectId);
-        UserPolicy userPolicy = UserPolicy.of(userId, projectId, roles);
-        return this.userPolicyRepository.save(userPolicy);
+        this.userPolicyRepository.save(UserPolicy.of(userId, projectId, roles));
+        return true;
     }
 
     /**
@@ -105,7 +105,7 @@ public class UserPolicyVerifier {
 
     private void userAndProjectExist(String userId, String projectId) throws RecordNotFoundException {
         DatashareUser user = (DatashareUser) this.users.find(userId);
-        if (user.equals(User.nullUser())) {
+        if (user == null || user.equals(User.nullUser())) {
             throw new RecordNotFoundException(User.class, userId);
         }
         if (!user.isGranted(projectId)) {

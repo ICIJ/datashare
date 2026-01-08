@@ -184,6 +184,22 @@ public class User implements Entity, Comparable<User> {
         return this;
     }
 
+    @JsonIgnore
+    public Map<String, Object> getDetails() {
+        Map<String, Object> detailsMap = details.entrySet().stream().
+                filter(k -> k.getValue() != null).
+                filter(k -> !k.getKey().equalsIgnoreCase("password")).
+                filter(k -> !k.getKey().equals("policies")).
+                collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+
+        // Serialize policies on demand only
+        if (!policies.isEmpty()) {
+            detailsMap.put("policies", policies);
+        }
+
+        return detailsMap;
+    }
+
     private static List<UserPolicy> deserializePolicies(Object policiesObj) {
         if (policiesObj == null) {
             return List.of();
@@ -278,22 +294,6 @@ public class User implements Entity, Comparable<User> {
     @Override
     public int compareTo(User user) {
         return id.compareTo(user.id);
-    }
-
-    @JsonIgnore
-    public Map<String, Object> getDetails() {
-        Map<String, Object> detailsMap = details.entrySet().stream().
-                filter(k -> k.getValue() != null).
-                filter(k -> !k.getKey().equalsIgnoreCase("password")).
-                filter(k -> !k.getKey().equals("policies")).
-                collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
-
-        // Serialize policies on demand only
-        if (!policies.isEmpty()) {
-            detailsMap.put("policies", policies);
-        }
-
-        return detailsMap;
     }
 
     public Stream<UserPolicy> getPolicies() {
