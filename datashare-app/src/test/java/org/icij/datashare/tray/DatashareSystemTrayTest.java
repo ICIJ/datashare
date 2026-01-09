@@ -3,7 +3,6 @@ package org.icij.datashare.tray;
 import dorkbox.systemTray.Menu;
 import dorkbox.systemTray.MenuItem;
 import dorkbox.systemTray.SystemTray;
-import org.icij.datashare.mode.CommonMode;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
@@ -11,7 +10,6 @@ import org.mockito.Mock;
 import java.awt.event.ActionListener;
 import java.net.URL;
 
-import static org.fest.assertions.Fail.fail;
 import static org.mockito.Mockito.*;
 import static org.mockito.MockitoAnnotations.initMocks;
 
