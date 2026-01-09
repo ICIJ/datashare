@@ -98,9 +98,9 @@ public class UserPolicyVerifier {
     /**
      * Delete a user policy for a given user and project.
      */
-    public boolean deleteUserPolicy(String userId, String projectId) throws RecordNotFoundException {
+    public void deleteUserPolicy(String userId, String projectId) throws RecordNotFoundException {
         userAndProjectExist(userId, projectId);
-        return this.userPolicyRepository.delete(userId, projectId);
+        this.userPolicyRepository.delete(userId, projectId);
     }
 
     private void userAndProjectExist(String userId, String projectId) throws RecordNotFoundException {
