@@ -201,32 +201,25 @@ public class User implements Entity, Comparable<User> {
     }
 
     private static List<UserPolicy> deserializePolicies(Object policiesObj) {
-        if (policiesObj == null) {
+        if (!(policiesObj instanceof List<?> policyList) || policyList.isEmpty()) {
             return List.of();
         }
-        if (policiesObj instanceof List) {
-            List<?> policyList = (List<?>) policiesObj;
-            if (policyList.isEmpty()) {
-                return List.of();
-            }
-            // Check if the list contains UserPolicy objects directly or Maps (from JSON deserialization)
-            if (policyList.get(0) instanceof UserPolicy) {
-                return new ArrayList<>((List<UserPolicy>) policyList);
-            }
-            // Handle the case where policies are deserialized as Maps (e.g., from JSON)
-            return ((List<Map<String, Object>>) policiesObj).stream()
-                    .map(map -> {
-                        String userId = (String) map.get("userId");
-                        String projectId = (String) map.get("projectId");
-                        List<String> roleStrings = (List<String>) map.get("roles");
-                        Role[] roles = roleStrings.stream()
-                                .map(Role::valueOf)
-                                .toArray(Role[]::new);
-                        return new UserPolicy(userId, projectId, roles);
-                    })
-                    .collect(Collectors.toList());
+
+        // If already UserPolicy objects, just return a copy
+        if (policyList.get(0) instanceof UserPolicy) {
+            return new ArrayList<>((List<UserPolicy>) policyList);
         }
-        return List.of();
+
+        // Otherwise, assume List<Map> and map to UserPolicy
+        return ((List<Map<String, Object>>) policyList).stream()
+                .map(map -> new UserPolicy(
+                        (String) map.get("userId"),
+                        (String) map.get("projectId"),
+                        ((List<String>) map.get("roles")).stream()
+                                .map(Role::valueOf)
+                                .toArray(Role[]::new)
+                ))
+                .toList();
     }
 
     @JsonIgnore
