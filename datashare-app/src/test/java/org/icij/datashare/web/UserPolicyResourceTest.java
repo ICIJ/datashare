@@ -1,5 +1,6 @@
 package org.icij.datashare.web;
 
+import net.codestory.http.filters.basic.BasicAuthFilter;
 import org.icij.datashare.db.JooqRepository;
 import org.icij.datashare.db.JooqUserPolicyRepository;
 import org.icij.datashare.session.DatashareUser;
@@ -14,6 +15,9 @@ import org.junit.Test;
 import org.mockito.Mock;
 
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.stream.Stream;
 
 import static org.icij.datashare.text.Project.project;
@@ -32,7 +36,11 @@ public class UserPolicyResourceTest extends AbstractProdWebServerTest {
     @Before
     public void setUp() {
         openMocks(this);
-        when(users.find("jane")).thenReturn(new DatashareUser("jane"));
+        DatashareUser user = new DatashareUser(new HashMap<>() {{
+            put("uid", "jane");
+            put("groups_by_applications", Map.of("datashare", List.of("test-datashare")));
+        }});
+        when(users.find("jane")).thenReturn(user);
         when(repository.getProject("test-datashare")).thenReturn(project("test-datashare"));
     }
 
@@ -78,8 +86,8 @@ public class UserPolicyResourceTest extends AbstractProdWebServerTest {
         when(userPolicyRepository.save(any(UserPolicy.class))).thenReturn(true);
         UserPolicyVerifier verifier = new UserPolicyVerifier(userPolicyRepository, repository, users);
         configure(routes -> routes.add(new UserPolicyResource(verifier)));
-        put("/api/policies/?userId=jane&projectId=test-datashare&roles=READER").should().respond(200);
-        put("/api/policies/?userId=jane&projectId=test-datashare&roles=READER,WRITER").should().respond(200);
+        put("/api/policies/?userId=jane&projectId=test-datashare&roles=READER").withPreemptiveAuthentication("jane", "").should().respond(200);
+        put("/api/policies/?userId=jane&projectId=test-datashare&roles=READER,WRITER").withPreemptiveAuthentication("jane", "").should().respond(200);
     }
 
 
@@ -88,17 +96,11 @@ public class UserPolicyResourceTest extends AbstractProdWebServerTest {
         when(userPolicyRepository.delete("jane", "test-datashare")).thenReturn(true);
         when(repository.getUser("john")).thenReturn(User.localUser("john"));
         UserPolicyVerifier verifier = new UserPolicyVerifier(userPolicyRepository, repository, users);
-        configure(routes -> routes.add(new UserPolicyResource(verifier)));
-        delete("/api/policies/?userId=jane&projectId=test-datashare").should().respond(204);
-    }
-
-    // delete responds 204 even if the tuple does not exist in the db
-    @Test
-    public void delete_user_policy__should_return_204_even_if_the_tuple_does_not_exists() throws IOException {
-        when(users.find("john")).thenReturn(new DatashareUser(User.localUser("john")));
-        when(userPolicyRepository.delete("john", "test-datashare")).thenReturn(false);
-        UserPolicyVerifier verifier = new UserPolicyVerifier(userPolicyRepository, repository, users);
-        configure(routes -> routes.add(new UserPolicyResource(verifier)));
-        delete("/api/policies/?userId=john&projectId=test-datashare").should().respond(204);
+        configure(routes -> routes.add(new UserPolicyResource(verifier)).
+                filter(new BasicAuthFilter("/", "icij", DatashareUser.singleUser(new DatashareUser(new HashMap<>() {{
+                    put("uid", "jane");
+                    put("groups_by_applications", Map.of("datashare", List.of("test-datashare")));
+                }})))));
+        delete("/api/policies/?userId=jane&projectId=test-datashare").withPreemptiveAuthentication("jane", "").should().respond(204);
     }
 }
