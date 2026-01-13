@@ -202,9 +202,8 @@ public class UserTest {
     @Test
     public void test_getRoles_returns_roles_for_project() {
         UserPolicy policy1 = new UserPolicy("id", "project1", new Role[]{Role.ADMIN, Role.READER});
-
         UserPolicy policy2 = new UserPolicy("id", "project2", new Role[]{Role.READER});
-        User user = new User("id", "name", "email", "provider", "{\"policies\": [{\"userId\":\"id\",\"projectId\":\"project1\",\"roles\":[\"ADMIN\",\"READER\"]},{\"userId\":\"id\",\"projectId\":\"project2\",\"roles\":[\"READER\"]}]}");
+        User user = new User("id", "name", "email", "provider", "{}", Set.of(policy1, policy2));
 
         Set<Role> roles = user.getRoles("project1");
         assertThat(roles).containsOnly(Role.ADMIN, Role.READER);
@@ -220,8 +219,7 @@ public class UserTest {
     public void test_getPolicy_returns_policy_for_project() {
         UserPolicy policy1 = new UserPolicy("id", "project1", new Role[]{Role.ADMIN});
         UserPolicy policy2 = new UserPolicy("id", "project2", new Role[]{Role.READER});
-        User user = new User("id", "name", "email", "provider",
-                "{\"policies\":[{\"userId\":\"id\",\"projectId\":\"project1\",\"roles\":[\"ADMIN\"]},{\"userId\":\"id\",\"projectId\":\"project2\",\"roles\":[\"READER\"]}]}");
+        User user = new User("id", "name", "email", "provider", "{}", Set.of(policy1, policy2));
 
         Optional<UserPolicy> foundPolicy = user.getPolicy("project1");
         assertThat(foundPolicy.isPresent()).isTrue();
