@@ -82,6 +82,10 @@ public class ElasticsearchConfiguration {
 
             RestClientBuilder.HttpClientConfigCallback clientConfigCallback = httpAsyncClientBuilder -> {
                 httpAsyncClientBuilder.disableAuthCaching();
+                if (propertiesProvider.get("mode").orElse("LOCAL").equals("EMBEDDED")) {
+                    httpAsyncClientBuilder.setDefaultHeaders(
+                            singletonList(new BasicHeader("Content-type", "application/json")));
+                }
                 httpAsyncClientBuilder.addInterceptorLast((HttpResponseInterceptor)
                         (response, context) ->
                                 // This header is expected from the client, versions of ES server below 7.14 don't provide it
