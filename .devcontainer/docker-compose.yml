@@ -1,0 +1,108 @@
+services:
+    workspace:
+        build:
+          context: .
+          dockerfile: Dockerfile
+        hostname: workspace
+        networks:
+          default:
+            aliases:
+              - dev
+        security_opt:
+          - seccomp:unconfined
+        ports:
+          - 4000:4000
+          - 5555:5555
+          - 6006:6006
+          - 8008:8008
+          - 8443:8443
+          - 8888:8080
+          - 9009:9009
+        user: 'dev'
+        volumes:
+          - ../..:/home/dev/src:cached
+        environment:
+          LDAP_HOST: openldap
+          LDAP_PORT: 389
+          LDAP_BASE_DN: dc=icij,dc=org
+          LDAP_ADMIN_USER: cn=admin,dc=icij,dc=org
+          LDAP_ADMIN_PASSWORD: admin
+          PGPASSWORD: admin
+          HOME: /home/dev
+          JAVA_HOME: /usr/lib/jvm/java-17-openjdk-amd64
+          MAVEN_OPTS: "-Dgpg.skip=true"
+        command: sleep infinity
+
+    amqp:
+      image: cloudamqp/lavinmq
+      ports:
+        - 15672:15672
+
+    s3mock:
+      image: adobe/s3mock:latest
+      deploy:
+        resources:
+          limits:
+            memory: 512M
+          reservations:
+            memory: 64M
+
+    redis:
+        image: redis:7.0-alpine
+        ports:
+          - 9736:6379
+        volumes:
+          - redis_data:/data
+
+    postgres:
+      image: pgvector/pgvector:pg15
+      environment:
+        POSTGRES_USER: admin
+        POSTGRES_PASSWORD: admin
+      volumes:
+        - postgresql_data:/var/lib/postgresql/data
+      ports:
+        - 5432:5432
+
+    elasticsearch:
+        image: docker.elastic.co/elasticsearch/elasticsearch:7.17.7
+        environment:
+          - "ES_JAVA_OPTS=-Xms256m -Xmx256m"
+          - discovery.type=single-node
+          - cluster.name=datashare
+          - cluster.routing.allocation.disk.watermark.low=90%
+          - cluster.routing.allocation.disk.watermark.high=99%
+          - cluster.routing.allocation.disk.watermark.flood_stage=100%
+          - http.compression=false
+          - http.cors.enabled=true
+          - http.cors.allow-origin="*"
+          - http.cors.allow-methods=OPTIONS, HEAD, GET, POST, PUT, DELETE
+          - indices.query.bool.max_clause_count=20000
+        ports:
+          - 9200:9200
+
+    openldap:
+        image: icij/openldap:0.0.0
+        environment:
+          LDAP_READONLY_USER: "false"
+          LDAP_LOG_LEVEL: 128
+          LDAP_DOMAIN: icij.org
+          LDAP_BASE_DN: dc=icij,dc=org
+          LDAP_ADMIN_USER: cn=admin,dc=icij,dc=org
+          LDAP_ADMIN_PASSWORD: admin
+          LDAP_ORGANISATION: ICIJ
+          LDAP_RFC2307BIS_SCHEMA: "false"
+          LDAP_BACKEND: mdb
+          LDAP_TLS: "false"
+          LDAP_REPLICATION: "false"
+          KEEP_EXISTING_CONFIG: "false"
+          LDAP_REMOVE_CONFIG_AFTER_SETUP: "true"
+          LDAP_SSL_HELPER_PREFIX: ldap
+          tty: "true"
+          stdin_open: "true"
+
+volumes:
+  postgresql_data:
+    driver: local
+  redis_data:
+    driver: local
