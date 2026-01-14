@@ -67,8 +67,7 @@ RUN apt-get -y update && \
         libpoppler-cpp-dev libpoppler-dev \
         libssl-dev  libxcomposite1 libxcursor1 libxi6 libxml2-dev \
         libxrandr2 libxslt1-dev libxss1 libxtst6 zlib1g-dev \
-        libldap2-dev libsasl2-dev slapd ldap-utils tox \
-        lcov valgrind \
+        tox lcov valgrind \
         # java & maven
         openjdk-17-jdk \
         maven \
@@ -79,33 +78,10 @@ RUN apt-get -y update && \
 # install jbang
 RUN curl -Ls https://sh.jbang.dev | bash -s - app setup
 
-# Ensure we use the latest version of pip
-RUN python3 -m pip install --upgrade pip && \
-    pip3 install boto3 virtualenv cerberus passpy python-ldap sh pre-commit
-
-# Install a specific version of SOPS
-RUN wget https://github.com/mozilla/sops/releases/download/v3.7.3/sops_3.7.3_$arch.deb -O /tmp/sops.deb && \
-    dpkg -i /tmp/sops.deb && \
-    apt install -f && \
-    rm -f /tmp/sops.deb
-
 ENV HOME="/home/dev"
 ENV LANGUAGE="en"
 ENV LANG="en_US.UTF-8"
 ENV TERM xterm-256color
-
-# Install pipx
-RUN python3 -m pip install pipx virtualenv && \
-    python3 -m pipx ensurepath && \
-    apt update -y && apt install -y python3.10-venv
-
-ENV PIPX_HOME /opt/pipx/home
-ENV PIPX_BIN_DIR /opt/pipx/bin
-
-RUN install -d -o dev -g dev -m 0700 $PIPX_HOME
-RUN install -d -o dev -g dev -m 0700 $PIPX_BIN_DIR
-
-ENV PATH="$PATH:$PIPX_BIN_DIR"
 
 # Set Java 17 as default
 RUN update-alternatives --set java /usr/lib/jvm/java-17-openjdk-amd64/bin/java && \
@@ -115,28 +91,9 @@ RUN update-alternatives --set java /usr/lib/jvm/java-17-openjdk-amd64/bin/java &
 ENV JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
 ENV PATH="${JAVA_HOME}/bin:${PATH}"
 
-#n node version manager
-RUN mkdir -p /opt/n && chown dev /opt/n && \
-    curl -L https://git.io/n-install | PREFIX=/opt/n N_PREFIX=/opt/n bash -s -- -y
-
-# npm update global packages
-RUN /opt/n/bin/n 20 && node --dns-result-order=ipv4first /usr/local/bin/npm install --location=global yarn@1.22.19
-
-# configure shell before RVM
-SHELL ["/bin/bash", "-l", "-c"]
-
 # We use the dev user by default but it's important the entrypoint
 # run the /sbin/my_init script the the container is running properly
 # @see https://github.com/phusion/baseimage-docker#whats-inside-the-image
 USER dev
-
-# Install pip binaries with pipx
-RUN python3 -m pipx install ansible==8.0.0 --include-deps --force
-RUN python3 -m pipx inject ansible boto3 botocore python-ldap
-RUN python3 -m pipx install cruft==2.11.1 --include-deps
-RUN python3 -m pipx install cookiecutter==1.7.3 --include-deps
-RUN python3 -m pipx install pipenv --include-deps
-RUN python3 -m pipx install awscli --include-deps
-RUN python3 -m pipx install poetry==1.3.1 --include-deps
 
 WORKDIR /home/dev
