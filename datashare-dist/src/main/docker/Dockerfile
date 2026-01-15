@@ -13,8 +13,8 @@ RUN apt update && apt install -y \
 # add user/group datashare
 RUN addgroup --gid 1000 datashare && adduser --disabled-password -u 1000 --system datashare
 
-ENV DATASHARE_LEGACY_HOME /home/datashare
-ENV DATASHARE_HOME /home/datashare/.local/share/datashare
+ENV DATASHARE_LEGACY_HOME=/home/datashare
+ENV DATASHARE_HOME=/home/datashare/.local/share/datashare
 
 RUN mkdir -p \
   $DATASHARE_HOME \
