@@ -1,4 +1,4 @@
-FROM eclipse-temurin:21-jammy
+FROM eclipse-temurin:21-noble
 
 # install tesseract OCR and the 14 PDF standard fonts
 # cf https://pdfbox.apache.org/1.8/cookbook/workingwithfonts.html
@@ -10,8 +10,11 @@ RUN apt update && apt install -y \
   fonts-liberation \
   fonts-ubuntu
 
-# add user/group datashare
-RUN addgroup --gid 1000 datashare && adduser --disabled-password -u 1000 --system datashare
+# add user/group datashare (remove ubuntu user/group if they exist with UID/GID 1000)
+RUN userdel -r ubuntu 2>/dev/null || true && \
+    groupdel ubuntu 2>/dev/null || true && \
+    addgroup --gid 1000 datashare && \
+    adduser --disabled-password -u 1000 --system datashare
 
 ENV DATASHARE_LEGACY_HOME=/home/datashare
 ENV DATASHARE_HOME=/home/datashare/.local/share/datashare
