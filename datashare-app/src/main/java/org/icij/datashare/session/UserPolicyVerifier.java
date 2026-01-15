@@ -1,6 +1,7 @@
 package org.icij.datashare.session;
 
 import com.google.inject.Inject;
+import net.codestory.http.security.Users;
 import org.apache.commons.io.IOUtils;
 import org.casbin.jcasbin.main.Enforcer;
 import org.casbin.jcasbin.model.Model;
@@ -26,13 +27,11 @@ public class UserPolicyVerifier {
     private static final String DEFAULT_POLICY_FILE = "casbin/model.conf";
     private static final boolean ENABLE_CASBIN_LOG = false;
     private final UserPolicyRepository userPolicyRepository;
-    private final Repository repository;
-    private final UsersWritable users;
+    private final Users users;
 
     @Inject
-    public UserPolicyVerifier(final UserPolicyRepository userPolicyRepository, final Repository repository, final UsersWritable users) throws IOException {
+    public UserPolicyVerifier(final UserPolicyRepository userPolicyRepository, final Repository repository, final Users users) throws IOException {
         this.userPolicyRepository = userPolicyRepository;
-        this.repository = repository;
         this.users = users;
 
         Adapter adapter = new UserPolicyAdapter(this.userPolicyRepository);
