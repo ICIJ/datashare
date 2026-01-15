@@ -17,9 +17,9 @@ import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.apache.http.message.BasicHeader;
 import org.elasticsearch.client.RestClient;
 import org.elasticsearch.client.RestClientBuilder;
-import org.elasticsearch.common.settings.Settings;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.json.JsonObjectMapper;
+import org.opensearch.common.settings.Settings;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -82,8 +82,10 @@ public class ElasticsearchConfiguration {
 
             RestClientBuilder.HttpClientConfigCallback clientConfigCallback = httpAsyncClientBuilder -> {
                 httpAsyncClientBuilder.disableAuthCaching();
-                httpAsyncClientBuilder.setDefaultHeaders(
-                        singletonList(new BasicHeader("Content-type", "application/json")));
+                if (propertiesProvider.get("mode").orElse("LOCAL").equals("EMBEDDED")) {
+                    httpAsyncClientBuilder.setDefaultHeaders(
+                            singletonList(new BasicHeader("Content-type", "application/json")));
+                }
                 httpAsyncClientBuilder.addInterceptorLast((HttpResponseInterceptor)
                         (response, context) ->
                                 // This header is expected from the client, versions of ES server below 7.14 don't provide it
