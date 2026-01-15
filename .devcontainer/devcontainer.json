@@ -27,7 +27,21 @@
         ],
         "java.jdt.ls.java.home": "/usr/lib/jvm/java-17-openjdk",
         "maven.executable.path": "/usr/bin/mvn",
-        "java.compile.nullAnalysis.mode": "automatic"
+        "java.compile.nullAnalysis.mode": "automatic",
+        "java.test.config": [
+          {
+            "name": "with-add-opens",
+            "vmArgs": [
+              "-Djava.system.class.loader=org.icij.datashare.DynamicClassLoader",
+              "-ea",
+              "--add-opens=java.base/java.lang=ALL-UNNAMED",
+              "--add-opens=java.base/sun.nio.cs=ALL-UNNAMED",
+              "--add-opens=java.base/java.util=ALL-UNNAMED",
+              "--add-opens=java.base/java.util.concurrent.locks=ALL-UNNAMED"
+            ]
+          }
+        ],
+        "java.test.defaultConfig": "with-add-opens"
       }
     }
   },
