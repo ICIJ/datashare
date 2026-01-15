@@ -1,4 +1,4 @@
-FROM eclipse-temurin:17-jammy
+FROM eclipse-temurin:21-jammy
 
 # install tesseract OCR and the 14 PDF standard fonts
 # cf https://pdfbox.apache.org/1.8/cookbook/workingwithfonts.html
