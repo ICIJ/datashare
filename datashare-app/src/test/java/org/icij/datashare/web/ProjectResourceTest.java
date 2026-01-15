@@ -7,14 +7,15 @@ import org.icij.datashare.Repository;
 import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.cli.Mode;
 import org.icij.datashare.db.JooqRepository;
-import org.icij.datashare.session.DatashareUser;
-import org.icij.datashare.session.LocalUserFilter;
-import org.icij.datashare.session.YesBasicAuthFilter;
+import org.icij.datashare.session.*;
 import org.icij.datashare.extract.MemoryDocumentCollectionFactory;
 import org.icij.datashare.tasks.DatashareTaskManager;
 import org.icij.datashare.text.Project;
 import org.icij.datashare.text.indexing.Indexer;
+import org.icij.datashare.user.Role;
 import org.icij.datashare.user.User;
+import org.icij.datashare.user.UserPolicy;
+import org.icij.datashare.user.UserPolicyRepository;
 import org.icij.datashare.web.testhelpers.AbstractProdWebServerTest;
 import org.icij.extract.extractor.ExtractionStatus;
 import org.icij.extract.queue.DocumentQueue;
@@ -27,11 +28,15 @@ import org.junit.rules.TemporaryFolder;
 import org.mockito.Mock;
 
 import java.io.IOException;
+import java.net.URISyntaxException;
 import java.nio.file.Path;
 import java.util.*;
+import java.util.stream.Stream;
 
 import static java.util.Arrays.asList;
 import static org.fest.assertions.Assertions.assertThat;
+import static org.icij.datashare.text.Project.project;
+import static org.icij.datashare.user.User.localUser;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.mockito.MockitoAnnotations.initMocks;
@@ -63,19 +68,12 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
     }
 
     private Users get_datashare_users(String uid, List<String> groups) {
-        User user = new User(new HashMap<>() {
-                    {
-                        this.put("uid", uid);
-                        this.put("groups_by_applications", new HashMap<String, Object>() {
-                            {
-                                this.put("datashare", groups);
-                            }
-                        });
-                    }
-        });
+        User user = new User(new HashMap<>() {{
+            put("uid", uid);
+            put("groups_by_applications", Map.of("datashare", groups));
+        }});
         return DatashareUser.singleUser(user);
     }
-
 
     private Users get_datashare_users(List<String> groups) {
         return get_datashare_users("local", groups);
@@ -134,7 +132,7 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
-    public void test_get_ony_user_project_in_server_mode() {
+    public void test_get_only_user_project_in_server_mode() {
         configure(routes -> {
             PropertiesProvider propertiesProvider = new PropertiesProvider(new HashMap<>() {{
                 put("mode", Mode.SERVER.name());
@@ -231,16 +229,66 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
                 .contain("\"name\":\"foo\"")
                 .contain("\"label\":\"Foo v3\"");
     }
+    @Mock
+    UserPolicyRepository jooqUserPolicyRepository;
 
+    @Mock
+    Users users;
+
+    public User get_datashare_users_with_policy2(String userId, String projectId, Role[] roles) {
+        UserPolicy policy = new UserPolicy(userId, projectId, roles);
+        DatashareUser user = new DatashareUser(localUser(userId, List.of(projectId), Stream.of(policy)));
+        user.addProject(projectId);
+        when(jooqRepository.getProject(projectId)).thenReturn(project(projectId));
+        when(jooqUserPolicyRepository.getAllPolicies()).thenReturn(user.getPolicies());
+
+        when(users.find(user.id)).thenReturn(user);
+        when(jooqUserPolicyRepository.get(user.id, projectId)).thenReturn(policy);
+        return user;
+    }
     @Test
-    public void test_cannot_update_project_in_server_mode() {
-        Properties props = new PropertiesProvider(Collections.singletonMap("mode", Mode.SERVER.name())).getProperties();
-        propertiesProvider.overrideWith(props);
-        when(repository.getProject("foo")).thenReturn(new Project("foo"));
+    public void test_update_project_in_server_mode_by_admin() throws URISyntaxException, IOException {
+        String projectId = "foo";
+        PropertiesProvider propertiesProvider =new PropertiesProvider(Collections.singletonMap("mode", Mode.SERVER.name()));
+        ProjectResource projectResource = new ProjectResource(repository, indexer, taskManager, propertiesProvider, documentCollectionFactory);
+
+        User user = get_datashare_users_with_policy2("john", projectId,new Role[]{Role.ADMIN});
+        UserPolicyVerifier verifier = new UserPolicyVerifier(jooqUserPolicyRepository, jooqRepository, users);
+
+        UserPolicyAnnotation userPolicyAnnotation = new UserPolicyAnnotation(verifier);
+
+
+        configure(routes -> {
+            BasicAuthFilter basicAuthFilter = new BasicAuthFilter("/", "icij", DatashareUser.singleUser(user));
+
+            routes.filter(basicAuthFilter).registerAroundAnnotation(Policy.class, userPolicyAnnotation).add(new UserPolicyResource(verifier)).add(projectResource);
+        });
+        when(repository.getProject(projectId)).thenReturn(new Project(projectId));
         when(repository.save((Project) any())).thenReturn(true);
         String body = "{ \"name\": \"foo\" }";
-        put("/api/project/foo", body).should().respond(403);
+        put("/api/project/foo", body).withPreemptiveAuthentication("john", "pass").should().respond(200);
     }
+
+    @Test
+    public void test_cannot_update_project_in_server_mode_by_non_admin() throws URISyntaxException, IOException {
+        String projectId = "foo";
+        PropertiesProvider propertiesProvider =new PropertiesProvider(Collections.singletonMap("mode", Mode.SERVER.name()));
+        ProjectResource projectResource = new ProjectResource(repository, indexer, taskManager, propertiesProvider, documentCollectionFactory);
+
+        User user = get_datashare_users_with_policy2("john", projectId,new Role[]{});
+        UserPolicyVerifier verifier = new UserPolicyVerifier(jooqUserPolicyRepository, jooqRepository, users);
+        UserPolicyAnnotation userPolicyAnnotation = new UserPolicyAnnotation(verifier);
+
+        configure(routes -> {
+            BasicAuthFilter basicAuthFilter = new BasicAuthFilter("/", "icij", DatashareUser.singleUser(user));
+            routes.filter(basicAuthFilter).registerAroundAnnotation(Policy.class, userPolicyAnnotation).add(new UserPolicyResource(verifier)).add(projectResource);
+        });
+        when(repository.getProject(projectId)).thenReturn(new Project(projectId));
+        when(repository.save((Project) any())).thenReturn(true);
+        String body = "{ \"name\": \"foo\" }";
+        put("/api/project/foo", body).withPreemptiveAuthentication("john", "pass").should().respond(403);
+    }
+
 
     @Test
     public void test_is_allowed() {

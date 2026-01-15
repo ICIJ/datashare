@@ -26,9 +26,11 @@
     import org.icij.datashare.cli.Mode;
     import org.icij.datashare.extract.DocumentCollectionFactory;
     import org.icij.datashare.session.DatashareUser;
+    import org.icij.datashare.session.Policy;
     import org.icij.datashare.tasks.DatashareTaskManager;
     import org.icij.datashare.text.Project;
     import org.icij.datashare.text.indexing.Indexer;
+    import org.icij.datashare.user.Role;
     import org.icij.datashare.utils.DataDirVerifier;
     import org.icij.datashare.utils.IndexAccessVerifier;
     import org.icij.datashare.utils.ModeVerifier;
@@ -141,8 +143,8 @@
         @ApiResponse(responseCode = "404", description = "if project doesn't exist in database")
         @ApiResponse(responseCode = "500", description = "if project json id is not the same as the url id or if save failed")
         @Put("/:id")
+        @Policy(roles = {Role.ADMIN},projectIdParam="id")
         public Payload projectUpdate(String id, Project project) {
-            modeVerifier.checkAllowedMode(Mode.LOCAL, Mode.EMBEDDED);
             if (!projectExists(project) || !Objects.equals(project.getId(), id)) {
                 return PayloadFormatter.error("Project not found", HttpStatus.NOT_FOUND);
             }
