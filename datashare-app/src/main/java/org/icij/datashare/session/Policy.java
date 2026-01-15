@@ -11,4 +11,5 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 public @interface Policy {
     Role[] roles() default {};
+    String projectIdParam() default "index";
 }

@@ -23,7 +23,11 @@ public class UserPolicyAnnotation implements ApplyAroundAnnotation<Policy> {
 
     @Override
     public Payload apply(Policy annotation, Context context, Function<Context, Payload> payloadSupplier) {
-        String projectId = context.pathParam("index");
+
+        String projectId = context.pathParam(annotation.projectIdParam());
+        if(projectId == null) {
+            return Payload.forbidden();
+        }
         DatashareUser user = (DatashareUser) context.currentUser();
         if (user == null) {
             throw new UnauthorizedException();
