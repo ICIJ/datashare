@@ -41,6 +41,7 @@ ENV LANG="en_US.UTF-8"
 ENV TERM xterm-256color
 ENV JDK_ARCH=${BUILDPLATFORM#*/}
 
+
 RUN ln -s /usr/lib/jvm/java-17-openjdk-$JDK_ARCH /usr/lib/jvm/java-17-openjdk
 
 # Set JAVA_HOME environment variable
@@ -48,3 +49,5 @@ ENV JAVA_HOME=/usr/lib/jvm/java-17-openjdk
 ENV PATH="${JAVA_HOME}/bin:${PATH}"
 
 WORKDIR /home/dev/workspace/datashare
+
+RUN git config --global --add safe.directory "/home/dev/workspace/datashare"

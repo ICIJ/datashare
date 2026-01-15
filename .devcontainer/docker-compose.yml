@@ -19,6 +19,12 @@ services:
           HOME: /home/dev
           MAVEN_OPTS: "-Dgpg.skip=true"
         command: sleep infinity
+        volumes:
+          # Mounts the project folder to '/workspace'. The target path inside the container
+          # should match what your application expects. In this case, the compose file is
+          # in a sub-folder, so you will mount '..'. You would then reference this path as the
+          # 'workspaceFolder' in '.devcontainer/devcontainer.json' so VS Code starts here.
+          - ..:/home/dev/workspace/datashare:cached
 
     amqp:
       image: cloudamqp/lavinmq
