@@ -4,10 +4,6 @@ services:
           context: .
           dockerfile: Dockerfile
         hostname: workspace
-        networks:
-          default:
-            aliases:
-              - dev
         security_opt:
           - seccomp:unconfined
         ports:
@@ -18,13 +14,9 @@ services:
           - 8443:8443
           - 8888:8080
           - 9009:9009
-        user: 'dev'
-        volumes:
-          - ../..:/home/dev/src:cached
         environment:
           PGPASSWORD: admin
           HOME: /home/dev
-          JAVA_HOME: /usr/lib/jvm/java-17-openjdk-amd64
           MAVEN_OPTS: "-Dgpg.skip=true"
         command: sleep infinity
 

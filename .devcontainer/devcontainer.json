@@ -2,7 +2,8 @@
   "name": "Datashare Dev Environment",
   "dockerComposeFile": "docker-compose.yml",
   "service": "workspace",
-  "workspaceFolder": "/home/dev/src/datashare",
+  "workspaceMount": "source=${localWorkspaceFolder},target=/home/dev/workspace/datashare,type=bind",
+  "workspaceFolder": "/home/dev/workspace/datashare",
 
   "customizations": {
     "vscode": {
@@ -20,11 +21,11 @@
         "java.configuration.runtimes": [
           {
             "name": "JavaSE-17",
-            "path": "/usr/lib/jvm/java-17-openjdk-amd64",
+            "path": "/usr/lib/jvm/java-17-openjdk",
             "default": true
           }
         ],
-        "java.jdt.ls.java.home": "/usr/lib/jvm/java-17-openjdk-amd64",
+        "java.jdt.ls.java.home": "/usr/lib/jvm/java-17-openjdk",
         "maven.executable.path": "/usr/bin/mvn",
         "java.compile.nullAnalysis.mode": "automatic"
       }
@@ -52,6 +53,4 @@
   },
 
   "postCreateCommand": "mvn validate && mvn install -DskipTests -Dgpg.skip=true",
-
-  "remoteUser": "dev"
 }
