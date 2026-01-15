@@ -31,18 +31,18 @@
       "id": "datashare-plugin-dataconnect",
       "name": "Dataconnect",
       "description": "A Datashare plugin to create Dataconnect, a bridge between Datashare and ICIJ I-Hub.",
-      "url": "https://github.com/ICIJ/datashare-plugin-dataconnect/releases/download/v3.0.2/datashare-plugin-dataconnect-v3.0.2.tgz",
+      "url": "https://github.com/ICIJ/datashare-plugin-dataconnect/releases/download/v3.0.5/datashare-plugin-dataconnect-v3.0.5.tgz",
       "homepage": "https://github.com/ICIJ/datashare-plugin-dataconnect",
-      "version": "3.0.2",
+      "version": "3.0.5",
       "type": "PLUGIN"
     },
     {
       "id": "datashare-plugin-tour",
       "name": "Tour",
       "description": "A Datashare plugin to build a tour guide on it.",
-      "url": "https://github.com/ICIJ/datashare-plugin-tour/releases/download/v2.0.0/datashare-plugin-tour-v2.0.0.tgz",
+      "url": "https://github.com/ICIJ/datashare-plugin-tour/releases/download/v2.0.1/datashare-plugin-tour-v2.0.1.tgz",
       "homepage": "https://github.com/ICIJ/datashare-plugin-tour",
-      "version": "2.0.0",
+      "version": "2.0.1",
       "type": "PLUGIN"
     },
     {
