@@ -1,10 +1,16 @@
 package org.icij.datashare.db;
 
+import static java.util.Arrays.asList;
+import static org.fest.assertions.Assertions.assertThat;
+import static org.junit.Assert.assertThrows;
+
 import java.io.IOException;
 import java.io.Serializable;
+import java.net.URI;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
-
-import com.fasterxml.jackson.databind.jsontype.NamedType;
+import java.util.Map;
 import org.icij.datashare.asynctasks.Group;
 import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.asynctasks.TaskAlreadyExists;
@@ -14,7 +20,7 @@ import org.icij.datashare.asynctasks.TaskResult;
 import org.icij.datashare.asynctasks.UnknownTask;
 import org.icij.datashare.asynctasks.bus.amqp.TaskError;
 import org.icij.datashare.asynctasks.bus.amqp.UriResult;
-import org.icij.datashare.json.JsonObjectMapper;
+import org.icij.datashare.EnvUtils;
 import org.icij.datashare.user.User;
 import org.jooq.exception.IntegrityConstraintViolationException;
 import org.junit.After;
@@ -23,15 +29,6 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
-
-import java.net.URI;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Map;
-
-import static java.util.Arrays.asList;
-import static org.fest.assertions.Assertions.assertThat;
-import static org.junit.Assert.assertThrows;
 
 @RunWith(Parameterized.class)
 public class JooqTaskRepositoryTest {
@@ -42,16 +39,18 @@ public class JooqTaskRepositoryTest {
 
     @Parameterized.Parameters
     public static Collection<Object[]> dataSources() {
-        return asList(new Object[][]{
-                {new DbSetupRule("jdbc:sqlite:file:memorydb.db?mode=memory&cache=shared")},
-                {new DbSetupRule("jdbc:postgresql://postgres/dstest?user=dstest&password=test")}
+        String postgresUrl = "jdbc:postgresql://" + EnvUtils.resolveHost("postgres") + "/dstest?user=dstest&password=test";
+        return asList(new Object[][] {
+            {new DbSetupRule("jdbc:sqlite:file:memorydb.db?mode=memory&cache=shared")},
+            {new DbSetupRule(postgresUrl)}
         });
     }
 
     @Test
     public void test_insert_with_null_id_should_throw() {
         Task<Serializable> task = new Task<>(null, "foo", User.local(), Map.of());
-        assertThrows(IntegrityConstraintViolationException.class, () -> repository.insert(task, new Group(TaskGroupType.Test)));
+        assertThrows(IntegrityConstraintViolationException.class,
+            () -> repository.insert(task, new Group(TaskGroupType.Test)));
     }
 
     @Test
@@ -130,7 +129,7 @@ public class JooqTaskRepositoryTest {
     @Test
     public void test_get_result() throws Exception {
         Task<UriResult> foo = new Task<>("foo", User.local(), Map.of("user", User.local()));
-        repository.insert(foo,  new Group(TaskGroupType.Test));
+        repository.insert(foo, new Group(TaskGroupType.Test));
 
         TaskResult<UriResult> result = new TaskResult<>(new UriResult(new URI("file:///my/file"), 123));
         foo.setResult(result);
@@ -142,7 +141,7 @@ public class JooqTaskRepositoryTest {
     @Test
     public void test_get_error() throws Exception {
         Task<String> foo = new Task<>("foo", User.local(), Map.of("user", User.local()));
-        repository.insert(foo,  new Group(TaskGroupType.Test));
+        repository.insert(foo, new Group(TaskGroupType.Test));
 
         foo.setError(new TaskError(new RuntimeException("boom")));
         repository.update(foo);
@@ -154,8 +153,8 @@ public class JooqTaskRepositoryTest {
     public void test_get_tasks() throws Exception {
         Task<String> foo = new Task<>("foo", User.local(), Map.of("user", User.local()));
         Task<String> bar = new Task<>("bar", User.local(), Map.of("user", User.local()));
-        repository.insert(foo,  new Group(TaskGroupType.Test));
-        repository.insert(bar,  new Group(TaskGroupType.Test));
+        repository.insert(foo, new Group(TaskGroupType.Test));
+        repository.insert(bar, new Group(TaskGroupType.Test));
         TaskFilters filter = TaskFilters.empty();
 
         List<Task<? extends Serializable>> tasks = repository.getTasks(filter).toList();

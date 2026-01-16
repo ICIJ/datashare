@@ -59,7 +59,7 @@ public class JooqRepositoryTest {
     public static Collection<Object[]> dataSources() {
         return asList(new Object[][]{
                 {new DbSetupRule("jdbc:sqlite:file:memorydb.db?mode=memory&cache=shared")},
-                {new DbSetupRule("jdbc:postgresql://postgres/dstest?user=dstest&password=test")}
+                {new DbSetupRule("jdbc:postgresql://" + EnvUtils.resolveHost("postgres") + "/dstest?user=dstest&password=test")}
         });
     }
 

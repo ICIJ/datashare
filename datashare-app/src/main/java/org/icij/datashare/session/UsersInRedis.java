@@ -2,6 +2,7 @@ package org.icij.datashare.session;
 
 import com.google.inject.Inject;
 import net.codestory.http.security.User;
+import org.icij.datashare.EnvUtils;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.text.Hasher;
@@ -20,7 +21,7 @@ public class UsersInRedis implements UsersWritable {
 
     @Inject
     public UsersInRedis(PropertiesProvider propertiesProvider) {
-        redis = new JedisPool(propertiesProvider.get("redisAddress").orElse("redis://redis:6379"));
+        redis = new JedisPool(propertiesProvider.get("redisAddress").orElse("redis://" + EnvUtils.resolveHost("redis") + ":6379"));
         this.ttl = Integer.valueOf(ofNullable(propertiesProvider.getProperties().getProperty("sessionTtlSeconds")).orElse("1"));
     }
 

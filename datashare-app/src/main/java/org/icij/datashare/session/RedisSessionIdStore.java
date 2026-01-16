@@ -2,6 +2,7 @@ package org.icij.datashare.session;
 
 import com.google.inject.Inject;
 import net.codestory.http.security.SessionIdStore;
+import org.icij.datashare.EnvUtils;
 import org.icij.datashare.PropertiesProvider;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
@@ -15,7 +16,7 @@ public class RedisSessionIdStore implements SessionIdStore {
 
     @Inject
     public RedisSessionIdStore(PropertiesProvider propertiesProvider) {
-        this.redis = new JedisPool(propertiesProvider.get("redisAddress").orElse("redis://redis:6379"));
+        this.redis = new JedisPool(propertiesProvider.get("redisAddress").orElse("redis://" + EnvUtils.resolveHost("redis") + ":6379"));
         this.ttl = Integer.valueOf(ofNullable(propertiesProvider.getProperties().getProperty("sessionTtlSeconds")).orElse("1"));
     }
 

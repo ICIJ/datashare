@@ -137,6 +137,9 @@
         <maven-exec.version>1.5.0</maven-exec.version>
         <maven-javadoc.version>3.1.0</maven-javadoc.version>
         <git-commit-id-maven-plugin.version>9.0.0</git-commit-id-maven-plugin.version>
+
+        <!-- Env file -->
+        <devenv.file>${maven.multiModuleProjectDirectory}/datashare-devenv.properties</devenv.file>
     </properties>
 
     <dependencyManagement>
@@ -391,6 +394,9 @@
                     <version>${maven-surefire.version}</version>
                     <configuration>
                         <runOrder>random</runOrder>
+                        <systemPropertyVariables>
+                            <devenv.file>${devenv.file}</devenv.file>
+                        </systemPropertyVariables>
                     </configuration>
                 </plugin>
 
@@ -535,6 +541,11 @@
                     <groupId>org.codehaus.mojo</groupId>
                     <artifactId>exec-maven-plugin</artifactId>
                     <version>${maven-exec.version}</version>
+                    <configuration>
+                        <systemProperties>
+                            <devenv.file>${devenv.file}</devenv.file>
+                        </systemProperties>
+                    </configuration>
                 </plugin>
 
                 <!-- Release -->

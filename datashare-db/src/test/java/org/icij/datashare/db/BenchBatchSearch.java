@@ -2,6 +2,7 @@ package org.icij.datashare.db;
 
 import org.icij.datashare.batch.BatchSearch;
 import org.icij.datashare.batch.BatchSearchRepository;
+import org.icij.datashare.EnvUtils;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.user.User;
 import org.jooq.SQLDialect;
@@ -22,7 +23,7 @@ import static org.icij.datashare.text.Project.project;
 public class BenchBatchSearch {
     private static Logger logger = LoggerFactory.getLogger(BenchBatchSearch.class);
     @Rule
-    public DbSetupRule dbRule = new DbSetupRule("jdbc:postgresql://postgres/dstest?user=dstest&password=test");
+    public DbSetupRule dbRule = new DbSetupRule("jdbc:postgresql://" + EnvUtils.resolveHost("postgres") + "/dstest?user=dstest&password=test");
     private BatchSearchRepository repository = new JooqBatchSearchRepository(dbRule.dataSource, SQLDialect.POSTGRES);
 
     @Test

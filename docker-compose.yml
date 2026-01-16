@@ -1,0 +1,31 @@
+services:
+    amqp:
+      extends:
+        file: .devcontainer/docker-compose.yml
+        service: amqp
+
+    s3mock:
+      extends:
+        file: .devcontainer/docker-compose.yml
+        service: s3mock
+
+    redis:
+      extends:
+        file: .devcontainer/docker-compose.yml
+        service: redis
+
+    postgres:
+      extends:
+        file: .devcontainer/docker-compose.yml
+        service: postgres
+
+    elasticsearch:
+      extends:
+        file: .devcontainer/docker-compose.yml
+        service: elasticsearch
+
+volumes:
+  postgresql_data:
+    driver: local
+  redis_data:
+    driver: local
