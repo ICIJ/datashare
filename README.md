@@ -165,6 +165,53 @@ The web UI is built with Vue 3 and maintained in a [separate repository](https:/
    cp -r dist/* ../datashare/app/
    ```
 
+## Devcontainer
+
+Datashare can also be developed using a **VS Code Devcontainer**, which provides a reproducible development environment with all required dependencies (JDK, Maven, PostgreSQL, Elasticsearch, Redis, etc.) running in Docker.
+
+This approach helps avoid local environment inconsistencies and ensures a setup closer to CI and production-like conditions.
+
+### Prerequisites
+
+* **Docker** (with Docker Compose support)
+* **Visual Studio Code**
+* **VS Code Dev Containers extension** (`ms-vscode-remote.remote-containers`)
+
+### Starting the Devcontainer
+
+1. Clone the Datashare repository if not already done.
+2. Open the repository root in **VS Code**.
+3. When prompted, select **“Reopen in Container”**  
+   (or use *Command Palette* → `Dev Containers: Reopen in Container`).
+
+VS Code will build the container image and start the development environment.  
+This step may take several minutes on first run.
+
+### Build and project initialization
+
+Once VS Code is connected to the devcontainer:
+
+1. **Run all Maven commands from the VS Code integrated terminal**, inside the container.  
+   This ensures builds run with the correct Java version, tools, and permissions.
+
+2. Follow the steps described in the [Build](#build) section to initialize the project:
+   - validate the build,
+   - build shared modules,
+   - apply database migrations,
+   - package the project as needed.
+
+3. After the build completes, reload Java projects so that VS Code correctly picks up:
+   - generated sources (e.g. jOOQ),
+   - updated dependencies,
+   - Maven module configuration.
+4. Reload Java projects so that VS Code correctly picks up generated sources and dependencies:
+   - Go to `View` → *Command Palette* (Ctrl+Shift+A) → `Java: Reload Projects`
+This reload step is important, especially:
+   - after the first container startup,
+   - after running Maven builds that generate sources,
+   - or after modifying Maven configuration.
+
+
 ## License
 
 Datashare is distributed under the [GNU Affero General Public License v3.0](LICENSE.txt).
