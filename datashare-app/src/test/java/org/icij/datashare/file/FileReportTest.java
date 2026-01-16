@@ -16,7 +16,7 @@ import static org.icij.datashare.file.AbstractFileReport.Type.DIRECTORY;
 public class FileReportTest {
     @Test
     public void test_report_for_file() throws IOException {
-        assertThat(new FileReport(getFile("email.eml")).getProt()).isEqualTo("-rw-r--r--");
+        assertThat(new FileReport(getFile("email.eml")).getProt()).isIn("-rw-r--r--", "-rw-rw-r--"); // TBF: group can write in devcontainer
     }
 
     @Test
@@ -65,7 +65,7 @@ public class FileReportTest {
         Files.walkFileTree(docs.toPath(), new FileReportVisitor(rootReport, 2));
         assertThat(rootReport.getContents()).hasSize(3);
         assertThat(rootReport.getContents().get(1).file.getName()).isEqualTo("embedded_doc.eml");
-        assertThat(rootReport.getContents().get(1).fileProt()).isEqualTo("rw-r--r--");
+        assertThat(rootReport.getContents().get(1).fileProt()).isIn("rw-r--r--", "rw-rw-r--"); // TBF: group can write in devcontainer
 
         assertThat(rootReport.getContents().get(2).file.getName()).isEqualTo("foo");
         assertThat(((DirectoryReport)rootReport.getContents().get(2)).getContents()).hasSize(1);
