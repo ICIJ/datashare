@@ -233,7 +233,7 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
     UserPolicyRepository jooqUserPolicyRepository;
 
     @Mock
-    Users users;
+    UsersWritable users;
 
     public User get_datashare_users_with_policy2(String userId, String projectId, Role[] roles) {
         UserPolicy policy = new UserPolicy(userId, projectId, roles);
@@ -253,7 +253,7 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
         ProjectResource projectResource = new ProjectResource(repository, indexer, taskManager, propertiesProvider, documentCollectionFactory);
 
         User user = get_datashare_users_with_policy2("john", projectId,new Role[]{Role.ADMIN});
-        UserPolicyVerifier verifier = new UserPolicyVerifier(jooqUserPolicyRepository, jooqRepository, users);
+        UserPolicyVerifier verifier = new UserPolicyVerifier(jooqUserPolicyRepository, users);
 
         UserPolicyAnnotation userPolicyAnnotation = new UserPolicyAnnotation(verifier);
 
@@ -276,7 +276,7 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
         ProjectResource projectResource = new ProjectResource(repository, indexer, taskManager, propertiesProvider, documentCollectionFactory);
 
         User user = get_datashare_users_with_policy2("john", projectId,new Role[]{});
-        UserPolicyVerifier verifier = new UserPolicyVerifier(jooqUserPolicyRepository, jooqRepository, users);
+        UserPolicyVerifier verifier = new UserPolicyVerifier(jooqUserPolicyRepository, users);
         UserPolicyAnnotation userPolicyAnnotation = new UserPolicyAnnotation(verifier);
 
         configure(routes -> {

@@ -59,7 +59,7 @@ public class WebAcceptanceTest extends AbstractProdWebServerTest {
         User john = mockUserProjectRole("john", "test-datashare", new Role[]{Role.ADMIN});
         when(jooqUserPolicyRepository.getAllPolicies()).thenReturn(john.getPolicies());
 
-        UserPolicyVerifier verifier = new UserPolicyVerifier(jooqUserPolicyRepository, jooqRepository, users);
+        UserPolicyVerifier verifier = new UserPolicyVerifier(jooqUserPolicyRepository, users);
         UserPolicyAnnotation userPolicyAnnotation = new UserPolicyAnnotation(verifier);
         Users users = DatashareUser.singleUser(john);
 
