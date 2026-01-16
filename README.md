@@ -87,10 +87,13 @@ mvn validate
 # 2. Build shared testing utilities (some modules depend on these)
 mvn -pl commons-test -am install
 
-# 3. Apply DB migrations so your dev DB schema matches the code
+# 3. Reset the test Database
+./datashare-db/scr/reset_datashare_db.sh
+
+# 4. Apply DB migrations so your dev DB schema matches the code
 mvn -pl datashare-db liquibase:update
 
-# 4. Build everything (excluding tests)
+# 5. Build everything (excluding tests)
 mvn package -Dmaven.test.skip=true
 ```
 
