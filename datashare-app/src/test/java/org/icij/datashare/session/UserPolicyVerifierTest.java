@@ -63,7 +63,7 @@ public class UserPolicyVerifierTest {
         when(jooqUserPolicyRepository.getAllPolicies()).thenReturn(Stream.of(policy1, policy2));
         when(jooqUserPolicyRepository.getByProjectId("project1")).thenReturn(Stream.of(policy1));
         when(jooqUserPolicyRepository.getByProjectId("project2")).thenReturn(Stream.of(policy2));
-        verifier = new UserPolicyVerifier(jooqUserPolicyRepository, jooqRepository, users);
+        verifier = new UserPolicyVerifier(jooqUserPolicyRepository, users);
     }
 
     public static void testEnforce(UserPolicyVerifier verifier, String subject, String obj, String act, boolean expectedResult) {

@@ -35,6 +35,11 @@ public class UserPolicyAnnotationTest {
         public Role[] roles() {
             return new Role[]{Role.ADMIN};
         }
+
+        @Override
+        public String projectIdParam() {
+            return "index";
+        }
     };
     UserPolicyVerifier userPolicyVerifier;
     @Before
