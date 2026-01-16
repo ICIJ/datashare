@@ -1,5 +1,7 @@
 package org.icij.datashare.extract;
 
+import net.codestory.http.misc.Env;
+import org.icij.datashare.EnvUtils;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.user.User;
 import org.junit.After;
@@ -14,7 +16,7 @@ import static org.fest.assertions.Assertions.assertThat;
 import static org.icij.datashare.user.User.nullUser;
 
 public class RedisUserDocumentQueueTest {
-    private Jedis redis = new Jedis("redis");
+    private Jedis redis = new Jedis(EnvUtils.resolveHost("redis"));
 
     @After
     public void tearDown() {
@@ -24,7 +26,7 @@ public class RedisUserDocumentQueueTest {
     @Test
     public void test_redis_queue_name_with_null_user() {
         RedisUserDocumentQueue<Path> queue = new RedisUserDocumentQueue<>(nullUser(), new PropertiesProvider(new HashMap<>() {{
-            put("redisAddress", "redis://redis:6379");
+            put("redisAddress", "redis://" + EnvUtils.resolveHost("redis") + ":6379");
         }}), Path.class);
         queue.offer(get("/path/to/doc"));
 
@@ -34,7 +36,7 @@ public class RedisUserDocumentQueueTest {
     @Test
     public void test_redis_queue_name_with_user_not_null_and_no_parameter_queue_name() {
         RedisUserDocumentQueue<Path> queue = new RedisUserDocumentQueue<>(new User("foo"), new PropertiesProvider(new HashMap<>() {{
-            put("redisAddress", "redis://redis:6379");
+            put("redisAddress", "redis://" + EnvUtils.resolveHost("redis") + ":6379");
         }}), Path.class);
         queue.offer(get("/path/to/doc"));
 
@@ -46,7 +48,7 @@ public class RedisUserDocumentQueueTest {
     public void test_redis_queue_name_with_user_not_null_and_queue_name__user_queue_is_preferred() {
         RedisUserDocumentQueue<Path> queue = new RedisUserDocumentQueue<>(new User("foo"),
                 new PropertiesProvider(new HashMap<>() {{
-                    put("redisAddress", "redis://redis:6379");
+                    put("redisAddress", "redis://" + EnvUtils.resolveHost("redis") + ":6379");
                     put("queueName", "myqueue");
                 }}), Path.class);
         queue.offer(get("/path/to/doc"));

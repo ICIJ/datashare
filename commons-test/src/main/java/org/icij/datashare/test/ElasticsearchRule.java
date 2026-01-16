@@ -17,6 +17,7 @@ import org.elasticsearch.client.Request;
 import org.elasticsearch.client.Response;
 import org.elasticsearch.client.RestClient;
 import org.elasticsearch.client.RestClientBuilder;
+import org.icij.datashare.EnvUtils;
 import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.text.StringUtils;
 import org.junit.rules.ExternalResource;
@@ -48,7 +49,7 @@ public class ElasticsearchRule extends ExternalResource {
     }
 
     private ElasticsearchRule(final String... indexesNames) {
-        this(indexesNames, create("http://elasticsearch:9200"));
+        this(indexesNames, create("http://" + EnvUtils.resolveHost("elasticsearch") + ":9200"));
     }
 
     private ElasticsearchRule(final String[] indexesNames, HttpHost elasticHost) {

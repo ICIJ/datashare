@@ -1,0 +1,5 @@
+amqpHost=localhost
+elasticsearchHost=localhost
+postgresHost=localhost
+redisHost=localhost
+s3mockHost=localhost

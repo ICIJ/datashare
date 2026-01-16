@@ -1,5 +1,6 @@
 package org.icij.datashare.session;
 
+import org.icij.datashare.EnvUtils;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.text.Hasher;
 import org.junit.Test;
@@ -13,7 +14,7 @@ import static org.fest.assertions.Assertions.assertThat;
 
 public class UsersInRedisTest {
     UsersInRedis users = new UsersInRedis(new PropertiesProvider(new HashMap<>() {{
-        put("messageBusAddress", "redis://redis:6379");
+        put("messageBusAddress", "redis://" + EnvUtils.resolveHost("redis") + ":6379");
     }}));
 
     @Test

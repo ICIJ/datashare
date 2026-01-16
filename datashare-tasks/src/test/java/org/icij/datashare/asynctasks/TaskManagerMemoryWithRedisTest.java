@@ -24,7 +24,7 @@ public class TaskManagerMemoryWithRedisTest {
     @Before
     public void setUp() throws Exception {
         PropertiesProvider propertiesProvider = new PropertiesProvider(Map.of(
-                "redisAddress", "redis://redis:6379",
+                "redisAddress", "redis://" + EnvUtils.resolveHost("redis") + ":6379",
                 "redisPoolSize", "2"
         ));
         final RedissonClient redissonClient = new RedissonClientFactory().withOptions(

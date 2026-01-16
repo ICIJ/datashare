@@ -56,7 +56,7 @@ public class DocumentIngestor {
                 asList("u", "elasticsearchAddress"), "Elasticsearch url")
                 .withRequiredArg()
                 .ofType(String.class)
-                .defaultsTo("http://elasticsearch:9200");
+                .defaultsTo("http://" + EnvUtils.resolveHost("elasticsearch") + ":9200");
         parser.acceptsAll(
                 asList("i", "indexName"), "Name of the index")
                 .withRequiredArg()

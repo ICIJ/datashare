@@ -1,6 +1,7 @@
 package org.icij.datashare.asynctasks;
 
 import java.util.List;
+import org.icij.datashare.EnvUtils;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.tasks.RoutingStrategy;
 import org.icij.datashare.user.User;
@@ -24,7 +25,7 @@ import static org.fest.assertions.Assertions.assertThat;
 
 public class TaskManagerRedisTest {
     PropertiesProvider propertiesProvider = new PropertiesProvider(new HashMap<>() {{
-        put("redisAddress", "redis://redis:6379");
+        put("redisAddress", "redis://" + EnvUtils.resolveHost("redis") + ":6379");
     }});
     private final RedissonClient redissonClient = new RedissonClientFactory().withOptions(
         Options.from(propertiesProvider.getProperties())).create();

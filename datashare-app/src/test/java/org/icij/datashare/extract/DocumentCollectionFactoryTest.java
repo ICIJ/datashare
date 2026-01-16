@@ -1,5 +1,6 @@
 package org.icij.datashare.extract;
 
+import org.icij.datashare.EnvUtils;
 import org.icij.datashare.PropertiesProvider;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -38,7 +39,7 @@ public class DocumentCollectionFactoryTest {
     public static Collection<Object[]> maps() {
         PropertiesProvider propertiesProvider = new PropertiesProvider(Map.of( "queueName", "extract:test"));
         Config config = new Config();
-        config.useSingleServer().setDatabase(1).setAddress("redis://redis:6379");
+        config.useSingleServer().setDatabase(1).setAddress("redis://" + EnvUtils.resolveHost("redis") + ":6379");
         RedissonClient redissonClient = Redisson.create(config);
 
         return asList(new Object[][]{

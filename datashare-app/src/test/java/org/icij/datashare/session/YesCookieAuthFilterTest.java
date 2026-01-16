@@ -4,6 +4,7 @@ import net.codestory.http.Context;
 import net.codestory.http.filters.PayloadSupplier;
 import net.codestory.http.payload.Payload;
 import net.codestory.http.security.User;
+import org.icij.datashare.EnvUtils;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.db.JooqRepository;
 import org.icij.datashare.text.Project;
@@ -48,7 +49,7 @@ public class YesCookieAuthFilterTest {
         when(jooqRepository.getProjects()).thenReturn(new ArrayList<>());
         PropertiesProvider propertiesProvider = new PropertiesProvider();
         propertiesProvider.getProperties().put("defaultProject", "demo");
-        propertiesProvider.getProperties().put("messageBusAddress", "redis://redis:6379");
+        propertiesProvider.getProperties().put("messageBusAddress", "redis://" + EnvUtils.resolveHost("redis") + ":6379");
         YesCookieAuthFilter filter = new YesCookieAuthFilter(propertiesProvider, jooqRepository);
         Payload payload = filter.apply("url", context, nextFilter);
 
@@ -64,7 +65,7 @@ public class YesCookieAuthFilterTest {
         when(jooqRepository.getProjects()).thenReturn(new ArrayList<>(List.of(new Project("foo"))));
         PropertiesProvider propertiesProvider = new PropertiesProvider();
         propertiesProvider.getProperties().put("defaultProject", "demo");
-        propertiesProvider.getProperties().put("messageBusAddress", "redis://redis:6379");
+        propertiesProvider.getProperties().put("messageBusAddress", "redis://" + EnvUtils.resolveHost("redis") + ":6379");
         YesCookieAuthFilter filter = new YesCookieAuthFilter(propertiesProvider, jooqRepository);
         Payload payload = filter.apply("url", context, nextFilter);
 

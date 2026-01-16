@@ -9,6 +9,7 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.databind.jsontype.NamedType;
+import org.icij.datashare.EnvUtils;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.asynctasks.bus.amqp.AmqpInterlocutor;
 import org.icij.datashare.asynctasks.bus.amqp.AmqpQueue;
@@ -235,7 +236,7 @@ public class TaskManagerAmqpTest {
             put("messageBusAddress", "amqp://admin:admin@localhost?rabbitMq=false&monitoring=true");
         }}), queues);
         RedissonClient redissonClientKo = new RedissonClientFactory().withOptions(
-                Options.from(new PropertiesProvider(Map.of("redisAddress", "redis://redis:6379")).getProperties())).create();
+                Options.from(new PropertiesProvider(Map.of("redisAddress", "redis://" + EnvUtils.resolveHost("redis") + ":6379")).getProperties())).create();
         TaskManagerAmqp taskManagerAmqpKo = new TaskManagerAmqp(amqpKo, new TaskRepositoryRedis(redissonClientKo, "tasks:queue:test"), RoutingStrategy.UNIQUE, () -> nextMessage.countDown());
 
         amqpKo.close();
@@ -255,7 +256,7 @@ public class TaskManagerAmqpTest {
     public void setUp() throws IOException {
         nextMessage = new CountDownLatch(1);
         final RedissonClient redissonClient = new RedissonClientFactory().withOptions(
-                Options.from(new PropertiesProvider(Map.of("redisAddress", "redis://redis:6379")).getProperties())).create();
+                Options.from(new PropertiesProvider(Map.of("redisAddress", "redis://" + EnvUtils.resolveHost("redis") + ":6379")).getProperties())).create();
         taskRepository = new TaskRepositoryRedis(redissonClient, "tasks:queue:test");
         JsonObjectMapper.registerSubtypes(new NamedType(UriResult.class)); // for test_additionnal_subtype_result_type
         taskManager = new TaskManagerAmqp(AMQP, taskRepository, RoutingStrategy.UNIQUE, () -> nextMessage.countDown());

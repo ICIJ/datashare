@@ -5,6 +5,7 @@ import com.google.inject.Guice;
 import com.google.inject.Injector;
 import com.google.inject.Key;
 import com.google.inject.TypeLiteral;
+import org.icij.datashare.EnvUtils;
 import org.icij.datashare.PipelineHelper;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Stage;
@@ -109,7 +110,7 @@ public class ExtractNlpTaskIntTest {
                     @Override
                     protected void configure() {
                         Config config = new Config();
-                        config.useSingleServer().setDatabase(1).setAddress("redis://redis:6379");
+                        config.useSingleServer().setDatabase(1).setAddress("redis://" + EnvUtils.resolveHost("redis") + ":6379");
                         RedissonClient redissonClient = Redisson.create(config);
                         bind(RedissonClient.class).toInstance(redissonClient);
                         bind(new TypeLiteral<DocumentCollectionFactory<String>>(){}).to(new TypeLiteral<RedisDocumentCollectionFactory<String>>(){});
