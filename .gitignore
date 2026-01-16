@@ -18,3 +18,4 @@ datashare-web/src/main/resources/secret.properties
 .classpath
 doc/
 work
+*.swp
