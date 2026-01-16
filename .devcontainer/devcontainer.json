@@ -65,5 +65,8 @@
     }
   },
 
-  "postCreateCommand": "mvn validate && mvn install -DskipTests -Dgpg.skip=true",
+  "postCreateCommand": "mvn validate",
+  
+  "remoteUser": "dev",
+  "updateRemoteUserUID": true
 }

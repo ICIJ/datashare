@@ -18,6 +18,7 @@ services:
           PGPASSWORD: admin
           HOME: /home/dev
           MAVEN_OPTS: "-Dgpg.skip=true"
+        user: 'dev'
         command: sleep infinity
         volumes:
           # Mounts the project folder to '/workspace'. The target path inside the container
