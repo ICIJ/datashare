@@ -185,7 +185,7 @@ This approach helps avoid local environment inconsistencies and ensures a setup 
 1. Clone the Datashare repository if not already done.
 2. Open the repository root in **VS Code**.
 3. When prompted, select **“Reopen in Container”**  
-   (or use *Command Palette* → `Dev Containers: Reopen in Container`).
+   (or use *View* → *Command Palette* → *Dev Containers: Reopen in Container*).
 
 VS Code will build the container image and start the development environment.  
 This step may take several minutes on first run.
@@ -208,11 +208,11 @@ Once VS Code is connected to the devcontainer:
    - updated dependencies,
    - Maven module configuration.
 4. Reload Java projects so that VS Code correctly picks up generated sources and dependencies:
-   - Go to `View` → *Command Palette* (Ctrl+Shift+A) → `Java: Reload Projects`
-This reload step is important, especially:
-   - after the first container startup,
-   - after running Maven builds that generate sources,
-   - or after modifying Maven configuration.
+   - Go to *View* → *Command Palette (Ctrl+Shift+A)* → *Java: Reload Projects*
+    This reload step is important, especially:
+     - after the first container startup,
+     - after running Maven builds that generate sources,
+     - or after modifying Maven configuration.
 
 
 ## License
