@@ -1,5 +1,6 @@
 package org.icij.datashare.db;
 
+import org.icij.datashare.EnvUtils;
 import org.icij.datashare.batch.*;
 import org.icij.datashare.batch.BatchSearchRecord.State;
 import org.icij.datashare.test.DatashareTimeRule;

@@ -1,5 +1,6 @@
 package org.icij.datashare.db;
 
+import org.icij.datashare.EnvUtils;
 import org.icij.datashare.test.DatashareTimeRule;
 import org.icij.datashare.time.DatashareTime;
 import org.icij.datashare.user.ApiKey;

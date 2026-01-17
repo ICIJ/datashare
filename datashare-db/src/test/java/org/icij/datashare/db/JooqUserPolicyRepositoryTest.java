@@ -1,5 +1,6 @@
 package org.icij.datashare.db;
 
+import org.icij.datashare.EnvUtils;
 import junit.framework.TestCase;
 import org.icij.datashare.user.Role;
 import org.icij.datashare.user.UserPolicy;
