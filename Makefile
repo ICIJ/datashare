@@ -1,8 +1,13 @@
 VERSION = $(shell head pom.xml | grep '<version>[0-9.]\+' | sed 's/<version>\([0-9.]\+\)<\/version>/\1/g' | tr -d '[:space:]')
 DIST_TARGET=datashare-dist/target/datashare-dist-$(VERSION)-docker
 PATH_TO_APP_DIST=../datashare-client/dist/
+DEVENV_PROPERTIES=datashare-devenv.properties
+DEVENV_PROPERTIES_TEMPLATE=datashare-devenv.properties.template
 
 $(DIST_TARGET): dist
+
+$(DEVENV_PROPERTIES): 
+		cp $(DEVENV_PROPERTIES_TEMPLATE) $(DEVENV_PROPERTIES)
 
 clean:
 		mvn clean
@@ -13,10 +18,10 @@ dist:
 
 build: install validate update-db package
 
-install:
+install: $(DEVENV_PROPERTIES)
 		mvn install
 
-validate:
+validate:  $(DEVENV_PROPERTIES)
 		mvn validate
 
 package:
@@ -52,7 +57,7 @@ release:
 docker: $(DIST_TARGET)
 		docker build -t icij/datashare:$(VERSION) $(DIST_TARGET)
 
-unit:
+unit: $(DEVENV_PROPERTIES)
 		mvn test
 
 run:
