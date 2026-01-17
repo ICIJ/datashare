@@ -62,6 +62,7 @@ jobs:
             echo ${RELEASES_GPG_PRIV_BASE64} | base64 --decode | gpg --batch --no-tty --import --yes
 
       - run: sudo apt-get install -y tesseract-ocr-eng
+      - run: make devenv
       - run: mvn validate
       - run: mvn -s .circleci/maven-release-settings.xml -pl commons-test -am install
       - run: mvn -pl datashare-db liquibase:update
