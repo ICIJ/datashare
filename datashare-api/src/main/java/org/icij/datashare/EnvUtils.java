@@ -26,8 +26,8 @@ public class EnvUtils {
         return envProperties.get(propertyName);
     }
 
-    public static String resolveHost(String hostKey) {
-        return Optional.ofNullable(resolve(hostKey + "Host")).map(String::valueOf).orElse(hostKey);
+    public static String resolveUri(String serviceKey, String defaultUri) {
+        return Optional.ofNullable(resolve(serviceKey + "Uri")).map(String::valueOf).orElse(defaultUri);
     }
 
     private static Optional<Path> getEnvFile() {
