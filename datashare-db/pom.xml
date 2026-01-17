@@ -15,7 +15,8 @@
     <properties>
         <liquibase.version>4.27.0</liquibase.version>
         <jooq.version>3.19.10</jooq.version>
-        <postgres.host>localhost</postgres.host>
+        <!-- postgres.host can be overridden via -Dpostgres.host=<host> -->
+        <postgres.host>postgres</postgres.host>
     </properties>
 
     <dependencies>
@@ -109,12 +110,6 @@
             <id>prod</id>
             <properties>
                 <env>prod</env>
-            </properties>
-        </profile>
-        <profile>
-            <id>devcontainer</id>
-            <properties>
-                <postgres.host>postgres</postgres.host>
             </properties>
         </profile>
     </profiles>
