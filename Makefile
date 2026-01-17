@@ -9,6 +9,9 @@ $(DIST_TARGET): dist
 $(DEVENV_PROPERTIES): 
 		cp $(DEVENV_PROPERTIES_TEMPLATE) $(DEVENV_PROPERTIES)
 
+devenv: $(DEVENV_PROPERTIES)
+		@echo "Devenv properties file is ready: $(DEVENV_PROPERTIES)"
+
 clean:
 		mvn clean
 
@@ -18,10 +21,10 @@ dist:
 
 build: install validate update-db package
 
-install: $(DEVENV_PROPERTIES)
+install: devenv
 		mvn install
 
-validate:  $(DEVENV_PROPERTIES)
+validate: devenv
 		mvn validate
 
 package:
@@ -57,7 +60,7 @@ release:
 docker: $(DIST_TARGET)
 		docker build -t icij/datashare:$(VERSION) $(DIST_TARGET)
 
-unit: $(DEVENV_PROPERTIES)
+unit: devenv
 		mvn test
 
 run:
