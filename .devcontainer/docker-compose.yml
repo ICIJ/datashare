@@ -17,7 +17,7 @@ services:
         environment:
           PGPASSWORD: admin
           HOME: /home/dev
-          MAVEN_OPTS: "-Dgpg.skip=true -Dpostgres.host=postgres"
+          MAVEN_OPTS: "-Dgpg.skip=true"
         user: 'dev'
         command: sleep infinity
         volumes:
