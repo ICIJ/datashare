@@ -29,15 +29,23 @@
 
 ## Table of Contents
 
-* [Main Features](#main-features)
-* [Developer Guide](#developer-guide)
-  * [Requirements](#requirements)
-  * [Build](#build)
-  * [Run Tests](#run-tests)
-  * [Database Migrations](#database-migrations)
-* [Frontend](#frontend)
-* [License](#license)
-* [About ICIJ](#about-icij)
+- [Table of Contents](#table-of-contents)
+- [Main Features](#main-features)
+- [Developer Guide](#developer-guide)
+  - [Requirements](#requirements)
+  - [Development Environment Configuration](#development-environment-configuration)
+  - [Build](#build)
+  - [Run Tests](#run-tests)
+  - [Database Migrations](#database-migrations)
+- [Frontend](#frontend)
+  - [Prerequisites for Frontend Dev](#prerequisites-for-frontend-dev)
+  - [Build workflow](#build-workflow)
+- [Devcontainer](#devcontainer)
+  - [Prerequisites](#prerequisites)
+  - [Starting the Devcontainer](#starting-the-devcontainer)
+  - [Build and project initialization](#build-and-project-initialization)
+- [License](#license)
+- [About ICIJ](#about-icij)
 
 ## Main Features
 
@@ -75,6 +83,28 @@ Those services must be running to have a complete developer environement. You mi
 * **Redis 5+**
   * Available on host `redis:6379`
   * Used to store session and orchestrate async tasks.
+
+### Development Environment Configuration
+
+Datashare uses a properties file to configure service URIs for local development and testing. This allows you to run tests against services running on different hosts (e.g., in Docker containers or on localhost).
+
+**Setup:**
+
+```bash
+make devenv
+```
+
+This creates a gitignored `datashare-devenv.properties` from the template file. The default configuration expects services to be available at these URIs:
+
+| Service       | Property           | Default URI                                              |
+|---------------|--------------------|----------------------------------------------------------|
+| AMQP          | `amqpUri`          | `amqp://guest:guest@amqp`                                |
+| Elasticsearch | `elasticsearchUri` | `http://elasticsearch:9200`                              |
+| PostgreSQL    | `postgresUri`      | `jdbc:postgresql://postgres/dstest?user=dstest&password=test` |
+| Redis         | `redisUri`         | `redis://redis:6379`                                     |
+| S3 Mock       | `s3mockUri`        | `http://s3mock:9090`                                     |
+
+The properties file is loaded automatically when running tests via the `-Ddevenv.file` system property.
 
 ### Build
 
