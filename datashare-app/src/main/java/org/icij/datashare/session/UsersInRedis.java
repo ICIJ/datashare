@@ -21,7 +21,7 @@ public class UsersInRedis implements UsersWritable {
 
     @Inject
     public UsersInRedis(PropertiesProvider propertiesProvider) {
-        redis = new JedisPool(propertiesProvider.get("redisAddress").orElse("redis://" + EnvUtils.resolveHost("redis") + ":6379"));
+        redis = new JedisPool(propertiesProvider.get("redisAddress").orElse(EnvUtils.resolveUri("redis", "redis://redis:6379")));
         this.ttl = Integer.valueOf(ofNullable(propertiesProvider.getProperties().getProperty("sessionTtlSeconds")).orElse("1"));
     }
 

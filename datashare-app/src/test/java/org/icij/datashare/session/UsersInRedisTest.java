@@ -14,7 +14,7 @@ import static org.fest.assertions.Assertions.assertThat;
 
 public class UsersInRedisTest {
     UsersInRedis users = new UsersInRedis(new PropertiesProvider(new HashMap<>() {{
-        put("messageBusAddress", "redis://" + EnvUtils.resolveHost("redis") + ":6379");
+        put("messageBusAddress", EnvUtils.resolveUri("redis", "redis://redis:6379"));
     }}));
 
     @Test

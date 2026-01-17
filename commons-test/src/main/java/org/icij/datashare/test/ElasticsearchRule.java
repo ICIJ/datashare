@@ -49,7 +49,7 @@ public class ElasticsearchRule extends ExternalResource {
     }
 
     private ElasticsearchRule(final String... indexesNames) {
-        this(indexesNames, create("http://" + EnvUtils.resolveHost("elasticsearch") + ":9200"));
+        this(indexesNames, create(EnvUtils.resolveUri("elasticsearch", "http://elasticsearch:9200")));
     }
 
     private ElasticsearchRule(final String[] indexesNames, HttpHost elasticHost) {

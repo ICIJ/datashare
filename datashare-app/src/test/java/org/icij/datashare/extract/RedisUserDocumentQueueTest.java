@@ -16,7 +16,8 @@ import static org.fest.assertions.Assertions.assertThat;
 import static org.icij.datashare.user.User.nullUser;
 
 public class RedisUserDocumentQueueTest {
-    private Jedis redis = new Jedis(EnvUtils.resolveHost("redis"));
+    private static final String REDIS_ADDRESS = EnvUtils.resolveUri("redis", "redis://redis:6379");
+    private Jedis redis = new Jedis(java.net.URI.create(REDIS_ADDRESS));
 
     @After
     public void tearDown() {
@@ -26,7 +27,7 @@ public class RedisUserDocumentQueueTest {
     @Test
     public void test_redis_queue_name_with_null_user() {
         RedisUserDocumentQueue<Path> queue = new RedisUserDocumentQueue<>(nullUser(), new PropertiesProvider(new HashMap<>() {{
-            put("redisAddress", "redis://" + EnvUtils.resolveHost("redis") + ":6379");
+            put("redisAddress", REDIS_ADDRESS);
         }}), Path.class);
         queue.offer(get("/path/to/doc"));
 
@@ -36,7 +37,7 @@ public class RedisUserDocumentQueueTest {
     @Test
     public void test_redis_queue_name_with_user_not_null_and_no_parameter_queue_name() {
         RedisUserDocumentQueue<Path> queue = new RedisUserDocumentQueue<>(new User("foo"), new PropertiesProvider(new HashMap<>() {{
-            put("redisAddress", "redis://" + EnvUtils.resolveHost("redis") + ":6379");
+            put("redisAddress", REDIS_ADDRESS);
         }}), Path.class);
         queue.offer(get("/path/to/doc"));
 
@@ -48,7 +49,7 @@ public class RedisUserDocumentQueueTest {
     public void test_redis_queue_name_with_user_not_null_and_queue_name__user_queue_is_preferred() {
         RedisUserDocumentQueue<Path> queue = new RedisUserDocumentQueue<>(new User("foo"),
                 new PropertiesProvider(new HashMap<>() {{
-                    put("redisAddress", "redis://" + EnvUtils.resolveHost("redis") + ":6379");
+                    put("redisAddress", REDIS_ADDRESS);
                     put("queueName", "myqueue");
                 }}), Path.class);
         queue.offer(get("/path/to/doc"));

@@ -14,14 +14,15 @@ import java.util.concurrent.TimeUnit;
 import static org.fest.assertions.Assertions.assertThat;
 
 public class RedisBlockingQueueTest {
-    Map<String, Object> redisConfig = Map.of("redisAddress", "redis://" + EnvUtils.resolveHost("redis") + ":6379", "redisPoolSize", "5");
+    private static final String REDIS_ADDRESS = EnvUtils.resolveUri("redis", "redis://redis:6379");
+    Map<String, Object> redisConfig = Map.of("redisAddress", REDIS_ADDRESS, "redisPoolSize", "5");
     RedissonClient client = new RedissonClientFactory().withOptions(Options.from(redisConfig)).create();
     RedisBlockingQueue<String> queue = new RedisBlockingQueue<>(client, "ds:tasks:queue:test");
 
     @Test
     public void test_redisson_connection(){
         RedissonClient redissonClient = new RedissonClientFactory().withOptions(Options.from(new HashMap<>() {{
-            put("redisAddress", "redis://" + EnvUtils.resolveHost("redis") + ":6379");
+            put("redisAddress", REDIS_ADDRESS);
         }})).create();
         redissonClient.shutdown();
     }
