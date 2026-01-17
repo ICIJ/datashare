@@ -4,6 +4,7 @@ package org.icij.datashare.asynctasks;
 import java.util.List;
 
 import com.fasterxml.jackson.databind.jsontype.NamedType;
+import org.icij.datashare.EnvUtils;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.asynctasks.bus.amqp.AmqpInterlocutor;
 import org.icij.datashare.asynctasks.bus.amqp.AmqpQueue;
@@ -47,7 +48,7 @@ public class TaskManagersIntTest {
     @Parameterized.Parameters
     public static Collection<Object[]> taskServices() throws Exception {
         PropertiesProvider propertiesProvider = new PropertiesProvider(Map.of(
-                "redisAddress", "redis://redis:6379",
+                "redisAddress", EnvUtils.resolveUri("redis", "redis://redis:6379"),
                 "redisPoolSize", "3",
                 "messageBusAddress", "amqp://guest:guest@amqp"));
         final RedissonClient redissonClient = new RedissonClientFactory().withOptions(

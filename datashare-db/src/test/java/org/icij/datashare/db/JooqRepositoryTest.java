@@ -1,6 +1,6 @@
 package org.icij.datashare.db;
 
-
+import org.icij.datashare.EnvUtils;
 import org.icij.datashare.DocumentUserRecommendation;
 import org.icij.datashare.Note;
 import org.icij.datashare.Repository;
@@ -59,7 +59,7 @@ public class JooqRepositoryTest {
     public static Collection<Object[]> dataSources() {
         return asList(new Object[][]{
                 {new DbSetupRule("jdbc:sqlite:file:memorydb.db?mode=memory&cache=shared")},
-                {new DbSetupRule("jdbc:postgresql://postgres/dstest?user=dstest&password=test")}
+                {new DbSetupRule(EnvUtils.resolveUri("postgres", "jdbc:postgresql://postgres/dstest?user=dstest&password=test"))}
         });
     }
 

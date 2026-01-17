@@ -1,5 +1,6 @@
 package org.icij.datashare.db;
 
+import org.icij.datashare.EnvUtils;
 import junit.framework.TestCase;
 import org.icij.datashare.user.Role;
 import org.icij.datashare.user.UserPolicy;
@@ -27,7 +28,7 @@ public class JooqUserPolicyRepositoryTest extends TestCase {
     public static Collection<Object[]> dataSources() {
         return asList(new Object[][]{
                 {new DbSetupRule("jdbc:sqlite:file:memorydb.db?mode=memory&cache=shared")},
-                {new DbSetupRule("jdbc:postgresql://postgres/dstest?user=dstest&password=test")}
+                {new DbSetupRule(EnvUtils.resolveUri("postgres", "jdbc:postgresql://postgres/dstest?user=dstest&password=test"))}
         });
     }
 

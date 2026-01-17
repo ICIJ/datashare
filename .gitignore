@@ -19,3 +19,5 @@ datashare-web/src/main/resources/secret.properties
 doc/
 work
 *.swp
+# Devenv Properties File
+datashare-devenv.properties

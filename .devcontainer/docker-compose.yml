@@ -44,7 +44,7 @@ services:
     redis:
         image: redis:7.0-alpine
         ports:
-          - 9736:6379
+          - 6379:6379
         volumes:
           - redis_data:/data
 

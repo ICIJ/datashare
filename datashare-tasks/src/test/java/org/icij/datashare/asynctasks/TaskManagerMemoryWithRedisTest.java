@@ -1,5 +1,6 @@
 package org.icij.datashare.asynctasks;
 
+import org.icij.datashare.EnvUtils;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.user.User;
 import org.icij.extract.redis.RedissonClientFactory;
@@ -24,7 +25,7 @@ public class TaskManagerMemoryWithRedisTest {
     @Before
     public void setUp() throws Exception {
         PropertiesProvider propertiesProvider = new PropertiesProvider(Map.of(
-                "redisAddress", "redis://redis:6379",
+                "redisAddress", EnvUtils.resolveUri("redis", "redis://redis:6379"),
                 "redisPoolSize", "2"
         ));
         final RedissonClient redissonClient = new RedissonClientFactory().withOptions(
