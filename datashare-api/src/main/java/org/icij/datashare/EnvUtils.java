@@ -33,6 +33,19 @@ public class EnvUtils {
     }
 
     /**
+     * Resolves the value of a property by its name from the loaded environment properties.
+     * If the property is not found, returns the provided default value.
+     *
+     * @param propertyName the name of the property to resolve
+     * @param defaultValue the default value to return if the property is not found
+     * @return the value of the property, or {@code null} if not found
+     */
+    public static String resolve(String propertyName, String defaultValue) {
+        return Optional.ofNullable(resolve(propertyName)).map(String::valueOf).orElse(defaultValue);
+    }
+
+
+    /**
      * Resolves the URI for a given service key from the environment properties.
      * If the property is not found, returns the provided default URI.
      *
@@ -41,7 +54,7 @@ public class EnvUtils {
      * @return the resolved URI as a string, or {@code defaultUri} if not found
      */
     public static String resolveUri(String serviceKey, String defaultUri) {
-        return Optional.ofNullable(resolve(serviceKey + "Uri")).map(String::valueOf).orElse(defaultUri);
+        return resolve(serviceKey + "Uri", defaultUri).toString();
     }
 
     /**
