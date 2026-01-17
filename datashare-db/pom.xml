@@ -15,6 +15,7 @@
     <properties>
         <liquibase.version>4.27.0</liquibase.version>
         <jooq.version>3.19.10</jooq.version>
+        <postgres.host>localhost</postgres.host>
     </properties>
 
     <dependencies>
@@ -110,6 +111,12 @@
                 <env>prod</env>
             </properties>
         </profile>
+        <profile>
+            <id>devcontainer</id>
+            <properties>
+                <postgres.host>postgres</postgres.host>
+            </properties>
+        </profile>
     </profiles>
 
     <build>
@@ -130,7 +137,7 @@
                 <configuration>
                     <changeLogFile>src/main/resources/liquibase/changelog/db.changelog.yml</changeLogFile>
                     <driver>org.postgresql.Driver</driver>
-                    <url>jdbc:postgresql://postgres/datashare_liquibase</url>
+                    <url>jdbc:postgresql://${postgres.host}/datashare_liquibase</url>
                     <username>dstest</username>
                     <password>test</password>
                     <promptOnNonLocalDatabase>false</promptOnNonLocalDatabase>
@@ -163,7 +170,7 @@
                             </generator>
                             <jdbc>
                                 <driver>org.postgresql.Driver</driver>
-                                <url>jdbc:postgresql://postgres/datashare_liquibase</url>
+                                <url>jdbc:postgresql://${postgres.host}/datashare_liquibase</url>
                                 <user>dstest</user>
                                 <password>test</password>
                             </jdbc>
