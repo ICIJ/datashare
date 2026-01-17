@@ -1,6 +1,6 @@
 package org.icij.datashare.db;
 
-
+import org.icij.datashare.EnvUtils;
 import org.icij.datashare.DocumentUserRecommendation;
 import org.icij.datashare.Note;
 import org.icij.datashare.Repository;

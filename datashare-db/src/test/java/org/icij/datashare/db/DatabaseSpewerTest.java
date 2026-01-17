@@ -1,5 +1,6 @@
 package org.icij.datashare.db;
 
+import org.icij.datashare.EnvUtils;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.Language;
 import org.icij.extract.document.TikaDocument;

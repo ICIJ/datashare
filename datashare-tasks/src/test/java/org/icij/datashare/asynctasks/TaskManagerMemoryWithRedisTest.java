@@ -1,5 +1,6 @@
 package org.icij.datashare.asynctasks;
 
+import org.icij.datashare.EnvUtils;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.user.User;
 import org.icij.extract.redis.RedissonClientFactory;
