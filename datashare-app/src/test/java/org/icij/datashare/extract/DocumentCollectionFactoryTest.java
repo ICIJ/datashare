@@ -39,7 +39,7 @@ public class DocumentCollectionFactoryTest {
     public static Collection<Object[]> maps() {
         PropertiesProvider propertiesProvider = new PropertiesProvider(Map.of( "queueName", "extract:test"));
         Config config = new Config();
-        config.useSingleServer().setDatabase(1).setAddress("redis://" + EnvUtils.resolveHost("redis") + ":6379");
+        config.useSingleServer().setDatabase(1).setAddress(EnvUtils.resolveUri("redis", "redis://redis:6379"));
         RedissonClient redissonClient = Redisson.create(config);
 
         return asList(new Object[][]{

@@ -17,7 +17,7 @@ import static org.fest.assertions.Assertions.assertThat;
 
 public class RemoteFilesTest {
     private static final String BUCKET_NAME = "testbucket";
-    private static final String S3MOCK_ENDPOINT = "http://" + EnvUtils.resolveHost("s3mock") + ":9090";
+    private static final String S3MOCK_ENDPOINT = EnvUtils.resolveUri("s3mock", "http://s3mock:9090");
     @Rule
     public TemporaryFolder folder = new TemporaryFolder();
 

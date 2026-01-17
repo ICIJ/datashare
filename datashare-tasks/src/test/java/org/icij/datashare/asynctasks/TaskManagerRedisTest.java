@@ -25,7 +25,7 @@ import static org.fest.assertions.Assertions.assertThat;
 
 public class TaskManagerRedisTest {
     PropertiesProvider propertiesProvider = new PropertiesProvider(new HashMap<>() {{
-        put("redisAddress", "redis://" + EnvUtils.resolveHost("redis") + ":6379");
+        put("redisAddress", EnvUtils.resolveUri("redis", "redis://redis:6379"));
     }});
     private final RedissonClient redissonClient = new RedissonClientFactory().withOptions(
         Options.from(propertiesProvider.getProperties())).create();

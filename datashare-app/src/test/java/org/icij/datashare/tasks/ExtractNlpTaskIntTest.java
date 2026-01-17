@@ -110,7 +110,7 @@ public class ExtractNlpTaskIntTest {
                     @Override
                     protected void configure() {
                         Config config = new Config();
-                        config.useSingleServer().setDatabase(1).setAddress("redis://" + EnvUtils.resolveHost("redis") + ":6379");
+                        config.useSingleServer().setDatabase(1).setAddress(EnvUtils.resolveUri("redis", "redis://redis:6379"));
                         RedissonClient redissonClient = Redisson.create(config);
                         bind(RedissonClient.class).toInstance(redissonClient);
                         bind(new TypeLiteral<DocumentCollectionFactory<String>>(){}).to(new TypeLiteral<RedisDocumentCollectionFactory<String>>(){});
