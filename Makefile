@@ -47,7 +47,7 @@ dist: migrate
 	$(MVN) clean package -DskipTests
 
 ## Run all tests
-test: migrate
+test:
 	$(MVN) test
 
 ## Start Datashare locally
