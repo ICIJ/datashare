@@ -38,8 +38,6 @@
   - [Run Tests](#run-tests)
   - [Database Migrations](#database-migrations)
 - [Frontend](#frontend)
-  - [Prerequisites for Frontend Dev](#prerequisites-for-frontend-dev)
-  - [Build workflow](#build-workflow)
 - [Devcontainer](#devcontainer)
   - [Prerequisites](#prerequisites)
   - [Starting the Devcontainer](#starting-the-devcontainer)
@@ -165,34 +163,13 @@ make reset-db
 
 The web UI is built with Vue 3 and maintained in a [separate repository](https://github.com/ICIJ/datashare-client). When building the backend, you must also build the client and copy its compiled files into the `./app` directory. The backend bundles these static assets using [FluentHTTP](https://github.com/CodeStory/fluent-http), which serves resources from `./app` (relative to the repo root). If this folder is missing or empty, only the API will be available, no UI.
 
-### Prerequisites for Frontend Dev
+The easiest way to get the frontend is to download a pre-built release:
 
-* **Node.js 20.19+**
-* **Yarn 1**
+```bash
+make app
+```
 
-### Build workflow
-
-1. **Clone & enter the client repo**
-
-   ```bash
-   git clone https://github.com/ICIJ/datashare-client.git
-   cd datashare-client
-   ```
-2. **Install and build**
-
-   ```bash
-   yarn
-   yarn build
-   ```
-
-   The build outputs a production bundle into `dist/`.
-3. **Copy (or symlink) into backend**
-
-   ```bash
-   rm -rf ../datashare/app
-   mkdir -p ../datashare/app
-   cp -r dist/* ../datashare/app/
-   ```
+This downloads the frontend release matching the backend VERSION (from `pom.xml`) and extracts it to the `app/` directory. If the matching version doesn't exist, it falls back to the latest release.
 
 ## Devcontainer
 

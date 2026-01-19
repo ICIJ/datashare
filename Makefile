@@ -3,7 +3,7 @@ DIST_TARGET = datashare-dist/target/datashare-dist-$(VERSION)-docker
 DEVENV_PROPERTIES = datashare-devenv.properties
 DEVENV_PROPERTIES_TEMPLATE = datashare-devenv.properties.template
 
-.PHONY: help build dist install test run clean devenv migrate generate docker release
+.PHONY: help build dist install test run clean devenv migrate generate docker release app
 
 help:
 	@echo "Datashare Makefile - Available targets:"
@@ -15,6 +15,7 @@ help:
 	@echo "    test      - Run all tests"
 	@echo "    run       - Start Datashare (requires 'build' first)"
 	@echo "    clean     - Clean all build artifacts"
+	@echo "    app       - Download and install frontend (uses VERSION from pom.xml)"
 	@echo ""
 	@echo "  Database:"
 	@echo "    migrate   - Apply database migrations (Liquibase)"
@@ -51,6 +52,10 @@ test: devenv
 ## Start Datashare locally
 run:
 	./launchBack.sh
+
+## Download and install frontend from GitHub releases
+app:
+	@./datashare-app/scripts/download-frontend.sh $(VERSION)
 
 ## Clean all build artifacts
 clean:
