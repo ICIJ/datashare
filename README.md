@@ -84,9 +84,7 @@ Those services must be running to have a complete developer environement. You mi
 
 ### Development Environment Configuration
 
-Datashare uses a properties file to configure service URIs for local development and testing. This allows you to run tests against services running on different hosts (e.g., in Docker containers or on localhost).
-
-**Setup:**
+Datashare uses a properties file to configure service URIs for local development and testing. This allows you to run tests against services running on different hosts (e.g., in Docker containers or on localhost). To bootstrap the devenv configuration file, simply run:
 
 ```bash
 make devenv
@@ -167,6 +165,8 @@ The easiest way to get the frontend is to download a pre-built release:
 
 ```bash
 make app
+# Or a specific version of the front
+make app VERSION=20.8.1 
 ```
 
 This downloads the frontend release matching the backend VERSION (from `pom.xml`) and extracts it to the `app/` directory. If the matching version doesn't exist, it falls back to the latest release.
