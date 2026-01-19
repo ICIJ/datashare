@@ -15,8 +15,8 @@
     <properties>
         <liquibase.version>4.27.0</liquibase.version>
         <jooq.version>3.19.10</jooq.version>
-        <!-- postgresUri can be overridden via -DpostgresUri=... or use ./datashare-devenv.sh -->
-        <postgresUri>jdbc:postgresql://postgres/datashare_liquibase?user=dstest&amp;password=test</postgresUri>
+        <!-- postgresUri: Used by Liquibase, jOOQ, and tests. Override via devenv properties. -->
+        <postgresUri>jdbc:postgresql://postgres/dstest?user=dstest&amp;password=test</postgresUri>
     </properties>
 
     <dependencies>
@@ -130,7 +130,8 @@
                 <artifactId>liquibase-maven-plugin</artifactId>
                 <version>${liquibase.version}</version>
                 <configuration>
-                    <changeLogFile>src/main/resources/liquibase/changelog/db.changelog.yml</changeLogFile>
+                    <changeLogFile>liquibase/changelog/db.changelog.yml</changeLogFile>
+                    <searchPath>${project.basedir}/src/main/resources</searchPath>
                     <driver>org.postgresql.Driver</driver>
                     <url>${postgresUri}</url>
                     <promptOnNonLocalDatabase>false</promptOnNonLocalDatabase>
