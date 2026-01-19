@@ -99,18 +99,14 @@ The properties file is loaded automatically when running tests via the `-Ddevenv
 The project is modular. Using Make:
 
 ```bash
-# Setup development environment
-make devenv
+# Build and install all modules (runs migrations first, then jOOQ codegen)
+make install
 
-# Apply database migrations
-make migrate
-
-# Build distribution JARs
+# Or build distribution JARs only
 make build
-
-# Or do everything with Maven directly
-mvn clean install -DskipTests
 ```
+
+The `install` and `build` targets automatically run database migrations before building, ensuring jOOQ sources are generated from the current schema.
 
 ### Run Tests
 
@@ -193,9 +189,7 @@ Once VS Code is connected to the devcontainer:
 
 2. Initialize the project:
    ```bash
-   make devenv    # Setup environment
-   make migrate   # Apply database migrations
-   make build     # Build JARs
+   make install   # Build all modules (runs migrations + jOOQ codegen)
    make test      # Run tests
    ```
 

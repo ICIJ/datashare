@@ -2,6 +2,7 @@ VERSION = $(shell head pom.xml | grep '<version>[0-9.]\+' | sed 's/<version>\([0
 DIST_TARGET = datashare-dist/target/datashare-dist-$(VERSION)-docker
 DEVENV_PROPERTIES = datashare-devenv.properties
 DEVENV_PROPERTIES_TEMPLATE = datashare-devenv.properties.template
+MVN = ./datashare-devenv.sh
 
 .PHONY: help build dist install test run clean devenv migrate generate docker release app
 
@@ -10,7 +11,7 @@ help:
 	@echo ""
 	@echo "  Development:"
 	@echo "    devenv    - Create development environment configuration file"
-	@echo "    install   - Install dependencies and build all modules"
+	@echo "    install   - Install dependencies and build all modules (runs migrate first)"
 	@echo "    build     - Build distribution JARs (alias for 'dist')"
 	@echo "    test      - Run all tests"
 	@echo "    run       - Start Datashare (requires 'build' first)"
@@ -19,7 +20,7 @@ help:
 	@echo ""
 	@echo "  Database:"
 	@echo "    migrate   - Apply database migrations (Liquibase)"
-	@echo "    generate  - Generate sources from database (jOOQ)"
+	@echo "    generate  - Generate jOOQ sources (run after schema changes)"
 	@echo "    reset-db  - Reset database and reapply migrations (DESTRUCTIVE)"
 	@echo ""
 	@echo "  Release:"
@@ -35,19 +36,19 @@ $(DEVENV_PROPERTIES):
 	cp $(DEVENV_PROPERTIES_TEMPLATE) $(DEVENV_PROPERTIES)
 
 ## Install dependencies and build all modules
-install: devenv
-	mvn clean install -DskipTests
+install: migrate
+	$(MVN) clean install -DskipTests -Dgpg.skip=true
 
 ## Build distribution JARs (alias for dist)
 build: dist
 
 ## Build distribution package
-dist: devenv
-	mvn clean package -DskipTests
+dist: migrate
+	$(MVN) clean package -DskipTests
 
 ## Run all tests
 test: devenv
-	mvn test
+	$(MVN) test
 
 ## Start Datashare locally
 run:
@@ -63,17 +64,17 @@ clean:
 
 ## Apply database migrations
 migrate: devenv
-	mvn -pl commons-test -am install -DskipTests -Dgpg.skip=true -q
-	mvn -pl datashare-db liquibase:update
+	$(MVN) -pl commons-test -am install -DskipTests -Dgpg.skip=true -q
+	$(MVN) -pl datashare-db liquibase:update
 
 ## Generate sources from database schema (jOOQ)
 generate: migrate
-	mvn -pl datashare-db generate-sources
+	$(MVN) -pl datashare-db generate-sources
 
 ## Reset database and reapply all migrations (DESTRUCTIVE)
 reset-db:
 	bash datashare-db/scripts/reset-datashare-db.sh
-	mvn -pl datashare-db liquibase:update
+	$(MVN) -pl datashare-db liquibase:update
 
 ## Create a new release (usage: make release NEW_VERSION=x.y.z)
 release:
