@@ -122,7 +122,8 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <configuration>
-                    <skipTests>${skipTests}</skipTests>
+                    <!-- Skip default execution; tests run via custom executions below -->
+                    <skipTests>true</skipTests>
                 </configuration>
                 <executions>
                     <execution>
@@ -132,6 +133,7 @@
                             <goal>test</goal>
                         </goals>
                         <configuration>
+                            <skipTests>${skipTests}</skipTests>
                             <includes>
                                 <include>JacksonSubTypesTest</include>
                                 <include>TaskManagerAmqpTest</include>
@@ -147,6 +149,7 @@
                             <goal>test</goal>
                         </goals>
                         <configuration>
+                            <skipTests>${skipTests}</skipTests>
                             <excludes>
                                 <exclude>JacksonSubTypesTest</exclude>
                                 <exclude>TaskManagerAmqpTest</exclude>
