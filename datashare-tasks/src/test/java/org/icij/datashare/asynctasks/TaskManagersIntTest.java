@@ -50,7 +50,7 @@ public class TaskManagersIntTest {
         PropertiesProvider propertiesProvider = new PropertiesProvider(Map.of(
                 "redisAddress", EnvUtils.resolveUri("redis", "redis://redis:6379"),
                 "redisPoolSize", "3",
-                "messageBusAddress", "amqp://guest:guest@amqp"));
+                "messageBusAddress", EnvUtils.resolveUri("amqp", "amqp://guest:guest@amqp")));
         final RedissonClient redissonClient = new RedissonClientFactory().withOptions(
             Options.from(propertiesProvider.getProperties())).create();
 
