@@ -11,7 +11,7 @@ services:
           - 8090:8090
           - 9009:9009
         environment:
-          PGPASSWORD: admin
+          PGPASSWORD: test
           HOME: /home/dev
           MAVEN_OPTS: "-Dgpg.skip=true"
         user: 'dev'
@@ -26,10 +26,13 @@ services:
     amqp:
       image: cloudamqp/lavinmq
       ports:
+        - 5672:5672
         - 15672:15672
 
     s3mock:
       image: adobe/s3mock:latest
+      ports:
+        - 9090:9090
       deploy:
         resources:
           limits:
@@ -47,10 +50,12 @@ services:
     postgres:
       image: pgvector/pgvector:pg15
       environment:
-        POSTGRES_USER: admin
-        POSTGRES_PASSWORD: admin
+        POSTGRES_USER: dstest
+        POSTGRES_PASSWORD: test
+        POSTGRES_DB: dstest
       volumes:
         - postgresql_data:/var/lib/postgresql/data
+        - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
       ports:
         - 5432:5432
 
