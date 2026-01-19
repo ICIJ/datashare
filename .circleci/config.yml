@@ -66,15 +66,7 @@ jobs:
           command: |
             echo ${RELEASES_GPG_PRIV_BASE64} | base64 --decode | gpg --batch --no-tty --import --yes
 
-      - run:
-          name: Install PostgreSQL client and create datashare_liquibase DB
-          command: |
-            sudo sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt/ $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
-            wget --no-check-certificate --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo apt-key add -
-            sudo apt-get update
-            sudo apt-get install -y postgresql-client-15
-            PGPASSWORD=${DS_POSTGRES_PASSWORD} psql -h ${DS_POSTGRES_HOST} -U ${DS_POSTGRES_USER} ${DS_POSTGRES_DB} -c "CREATE DATABASE datashare_liquibase;"
-      - run: sudo apt-get install -y tesseract-ocr-eng
+      - run: sudo apt-get update && sudo apt-get install -y tesseract-ocr-eng
       - run: echo "amqpUri=${DS_AMQP_URI}" > datashare-devenv.properties
       - run: echo "elasticsearchUri=${DS_ELASTICSEARCH_URI}" >> datashare-devenv.properties
       - run: echo "postgresUri=${DS_POSTGRES_URI}" >> datashare-devenv.properties
@@ -124,8 +116,6 @@ jobs:
     environment:
       <<: *ds_env
       MAVEN_OPTS: "-Xms512m -Xmx512m -Xss10M"
-      DS_POSTGRES_DB: datashare_liquibase
-      DS_POSTGRES_URI: jdbc:postgresql://postgres/datashare_liquibase?user=dstest&password=test
     steps:
       - checkout
       - restore_cache:

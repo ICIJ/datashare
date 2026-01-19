@@ -1,2 +1,1 @@
--- Create additional database for Liquibase migrations
-CREATE DATABASE datashare_liquibase;
+-- No additional databases needed, dstest is created by POSTGRES_DB env var
