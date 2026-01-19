@@ -18,6 +18,9 @@ services:
       extends:
         file: .devcontainer/docker-compose.yml
         service: postgres
+      volumes:
+        - postgresql_data:/var/lib/postgresql/data
+        - ./.devcontainer/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
 
     elasticsearch:
       extends:
