@@ -7,12 +7,8 @@ services:
         security_opt:
           - seccomp:unconfined
         ports:
-          - 4000:4000
-          - 5555:5555
-          - 6006:6006
-          - 8008:8008
-          - 8443:8443
-          - 8888:8080
+          - 8080:8080
+          - 8090:8090
           - 9009:9009
         environment:
           PGPASSWORD: admin
