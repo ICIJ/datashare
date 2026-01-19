@@ -1,8 +1,6 @@
 # Datashare Cookbook
 
 This cookbook is a practical reference for running Datashare in common configurations.
-It is intended to be published in the repository and focuses on copy-pasteable commands,
-with short explanations to clarify when and why to use each mode.
 
 Unless stated otherwise, commands assume:
 - user: `dev`
