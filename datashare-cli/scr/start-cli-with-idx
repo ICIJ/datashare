@@ -1,5 +1,0 @@
-#!/bin/bash
-
-dir=`pwd $0`
-
-${dir}/start-idx && ${dir}/start-cli $* && ${dir}/stop-idx
