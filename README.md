@@ -86,7 +86,7 @@ This creates a gitignored `datashare-devenv.properties` from the template file. 
 
 | Service       | Property           | Default URI                                                   |
 |---------------|--------------------|---------------------------------------------------------------|
-| AMQP          | `amqpUri`          | `amqp://guest:guest@localhost`                                |
+| AMQP          | `amqpUri`          | `amqp://guest:guest@localhost:5673`                           |
 | Elasticsearch | `elasticsearchUri` | `http://localhost:9200`                                       |
 | PostgreSQL    | `postgresUri`      | `jdbc:postgresql://localhost/dstest?user=dstest&password=test`|
 | Redis         | `redisUri`         | `redis://localhost:6379`                                      |
@@ -140,8 +140,8 @@ make reset-db
 
 **Adding a new changeset:**
 
-1. Create a new XML/YAML changeset under `datashare-db/src/main/resources/db/changelog/`
-2. Reference it in the master changelog file
+1. Create a new YAML changeset under `datashare-db/src/main/resources/liquibase/changelog/changes/`
+2. Reference it in `datashare-db/src/main/resources/liquibase/changelog/db.changelog.yml`
 3. Run `make migrate` locally to verify
 4. Commit both the changeset and updated master file
 
