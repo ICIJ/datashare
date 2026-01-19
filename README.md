@@ -84,13 +84,13 @@ make devenv
 
 This creates a gitignored `datashare-devenv.properties` from the template file. The default configuration expects services to be available at these URIs:
 
-| Service       | Property           | Default URI                                              |
-|---------------|--------------------|----------------------------------------------------------|
-| AMQP          | `amqpUri`          | `amqp://guest:guest@amqp`                                |
-| Elasticsearch | `elasticsearchUri` | `http://elasticsearch:9200`                              |
-| PostgreSQL    | `postgresUri`      | `jdbc:postgresql://postgres/dstest?user=dstest&password=test` |
-| Redis         | `redisUri`         | `redis://redis:6379`                                     |
-| S3 Mock       | `s3mockUri`        | `http://s3mock:9090`                                     |
+| Service       | Property           | Default URI                                                   |
+|---------------|--------------------|---------------------------------------------------------------|
+| AMQP          | `amqpUri`          | `amqp://guest:guest@localhost`                                |
+| Elasticsearch | `elasticsearchUri` | `http://localhost:9200`                                       |
+| PostgreSQL    | `postgresUri`      | `jdbc:postgresql://localhost/dstest?user=dstest&password=test`|
+| Redis         | `redisUri`         | `redis://localhost:6379`                                      |
+| S3 Mock       | `s3mockUri`        | `http://localhost:9090`                                       |
 
 The properties file is loaded automatically when running tests via the `-Ddevenv.file` system property.
 
