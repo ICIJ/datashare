@@ -32,11 +32,11 @@ Unless stated otherwise, commands assume:
 
 ---
 ## Help
-
+Shows all options and their default values
 ```sh
 ./launchBack.sh --help
 ```
-```
+
 ## CLI
 
 CLI mode is mainly used for batch operations: scanning data, indexing, running NLP,
@@ -100,7 +100,7 @@ on available CPU and memory.
 ## LOCAL
 ### Local Mode
 
-Starts Datashare in LOCAL mode (default mode) with minimal configuration (default options).
+Starts Datashare in LOCAL mode (default mode) with minimal configuration (default options). The datashare instance is a single user instance.
 
 ```sh
 ./launchBack.sh \
@@ -110,8 +110,7 @@ Starts Datashare in LOCAL mode (default mode) with minimal configuration (defaul
 
 ## SERVER
 
-Server mode exposes Datashare over HTTP and is intended for interactive use.
-Authentication and persistence are configured depending on the environment.
+Server mode is meant to be used in a multi user Datashare environment (with authentication).
 
 ### OAuth
 
