@@ -394,7 +394,7 @@
                     <version>${maven-surefire.version}</version>
                     <configuration>
                         <runOrder>random</runOrder>
-                        <argLine>-Djava.awt.headless=true</argLine>
+                        <argLine>-Djava.awt.headless=true -Duser.timezone=UTC</argLine>
                         <systemPropertyVariables>
                             <devenv.file>${devenv.file}</devenv.file>
                         </systemPropertyVariables>
