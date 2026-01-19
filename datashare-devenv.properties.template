@@ -1,5 +1,5 @@
-amqpUri=amqp://guest:guest@amqp
-elasticsearchUri=http://elasticsearch:9200
-postgresUri=jdbc:postgresql://postgres/dstest?user=dstest&password=test
-redisUri=redis://redis:6379
-s3mockUri=http://s3mock:9090
+amqpUri=amqp://guest:guest@localhost
+elasticsearchUri=http://localhost:9200
+postgresUri=jdbc:postgresql://localhost/dstest?user=dstest&password=test
+redisUri=redis://localhost:6379
+s3mockUri=http://localhost:9090
