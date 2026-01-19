@@ -7,7 +7,7 @@ ds_env: &ds_env
   DS_POSTGRES_USER: dstest
   DS_POSTGRES_PASSWORD: test
   DS_POSTGRES_DB: dstest
-  DS_POSTGRES_URI: jdbc:postgresql://${DS_POSTGRES_HOST}/${DS_POSTGRES_DB}?user=${DS_POSTGRES_USER}&password=${DS_POSTGRES_PASSWORD}
+  DS_POSTGRES_URI: jdbc:postgresql://postgres/dstest?user=dstest&password=test
   DS_AMQP_URI: amqp://guest:guest@amqp
   DS_ELASTICSEARCH_URI: http://elasticsearch:9200
   DS_REDIS_URI: redis://redis:6379
@@ -126,7 +126,7 @@ jobs:
       <<: *ds_env
       MAVEN_OPTS: "-Xms512m -Xmx512m -Xss10M"
       DS_POSTGRES_DB: datashare_liquibase
-      DS_POSTGRES_URI: jdbc:postgresql://${DS_POSTGRES_HOST}/${DS_POSTGRES_DB}?user=${DS_POSTGRES_USER}&password=${DS_POSTGRES_PASSWORD}
+      DS_POSTGRES_URI: jdbc:postgresql://postgres/datashare_liquibase?user=dstest&password=test
     steps:
       - checkout
       - restore_cache:
