@@ -67,7 +67,7 @@ This section explains how to set up a development environment, build the project
 
 * **JDK 17**
 * **Apache Maven 3.8+**: primary build tool for the backend
-* **GNU Make** (optional but recommended): convenient shortcuts (`make dist`, `make update-db`, etc.)
+* **GNU Make** (optional but recommended): convenient shortcuts (run `make help` to see available targets)
 
 **Services**
 
@@ -108,23 +108,20 @@ The properties file is loaded automatically when running tests via the `-Ddevenv
 
 ### Build
 
-The project is modular. Typical steps:
+The project is modular. Using Make:
 
 ```bash
-# 1. Validate the build and resolve deps
-mvn validate
+# Setup development environment
+make devenv
 
-# 2. Build shared testing utilities (some modules depend on these)
-mvn -pl commons-test -am install
+# Apply database migrations
+make migrate
 
-# 3. Reset the test Database
-./datashare-db/scr/reset_datashare_db.sh
+# Build distribution JARs
+make build
 
-# 4. Apply DB migrations so your dev DB schema matches the code
-mvn -pl datashare-db liquibase:update
-
-# 5. Build everything (excluding tests)
-mvn package -Dmaven.test.skip=true
+# Or do everything with Maven directly
+mvn clean install -DskipTests
 ```
 
 ### Run Tests
@@ -133,7 +130,7 @@ Datashare has both unit and integration tests. Integration tests expect Postgres
 
 ```bash
 # Run the whole test suite
-mvn test
+make test
 
 # Or run a single module
 mvn -pl datashare-api test
@@ -144,17 +141,16 @@ mvn -pl datashare-api -Dtest=org.icij.datashare.PropertiesProviderTest test
 
 ### Database Migrations
 
-Datashare uses **Liquibase** to version and apply schema changes.
-
-**Apply latest migrations:**
+Datashare uses **Liquibase** for schema migrations and **jOOQ** for type-safe SQL.
 
 ```bash
-make update-db
-```
+# Apply pending migrations
+make migrate
 
-**Start from scratch (danger: drops data):**
+# Regenerate jOOQ sources from DB schema
+make generate
 
-```bash
+# Reset DB and reapply all migrations (DESTRUCTIVE)
 make reset-db
 ```
 
@@ -162,7 +158,7 @@ make reset-db
 
 1. Create a new XML/YAML changeset under `datashare-db/src/main/resources/db/changelog/`
 2. Reference it in the master changelog file
-3. Run `make update-db` locally to verify
+3. Run `make migrate` locally to verify
 4. Commit both the changeset and updated master file
 
 ## Frontend
@@ -224,25 +220,18 @@ This step may take several minutes on first run.
 
 Once VS Code is connected to the devcontainer:
 
-1. **Run all Maven commands from the VS Code integrated terminal**, inside the container.  
-   This ensures builds run with the correct Java version, tools, and permissions.
+1. **Run all commands from the VS Code integrated terminal**, inside the container.
 
-2. Follow the steps described in the [Build](#build) section to initialize the project:
-   - validate the build,
-   - build shared modules,
-   - apply database migrations,
-   - package the project as needed.
+2. Initialize the project:
+   ```bash
+   make devenv    # Setup environment
+   make migrate   # Apply database migrations
+   make build     # Build JARs
+   make test      # Run tests
+   ```
 
-3. After the build completes, reload Java projects so that VS Code correctly picks up:
-   - generated sources (e.g. jOOQ),
-   - updated dependencies,
-   - Maven module configuration.
-4. Reload Java projects so that VS Code correctly picks up generated sources and dependencies:
-   - Go to *View* → *Command Palette (Ctrl+Shift+A)* → *Java: Reload Projects*
-    This reload step is important, especially:
-     - after the first container startup,
-     - after running Maven builds that generate sources,
-     - or after modifying Maven configuration.
+3. Reload Java projects so that VS Code correctly picks up generated sources (jOOQ) and dependencies:
+   - Go to *View* → *Command Palette* → *Java: Reload Projects*
 
 
 ## License

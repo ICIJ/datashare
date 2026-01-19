@@ -63,11 +63,9 @@ jobs:
 
       - run: sudo apt-get install -y tesseract-ocr-eng
       - run: make devenv
-      - run: mvn clean
-      - run: mvn validate
-      - run: mvn -s .circleci/maven-release-settings.xml -pl commons-test -am install
-      - run: mvn -pl datashare-db liquibase:update
-      - run: mvn test
+      - run: make clean
+      - run: make migrate
+      - run: make test
       - run:
           name: Make install for app and corenlp modules
           command: mvn -s .circleci/maven-release-settings.xml -pl datashare-app -pl datashare-nlp-corenlp -am install -Dmaven.test.skip=true
@@ -150,7 +148,8 @@ jobs:
           command: |
             echo "postgres:5432:$PGDB:$PGUSER:$PGPASSWORD" > ~/.pgpass && chmod 600 ~/.pgpass
             createdb -U $PGUSER -h postgres $PGDB
-            mvn -pl datashare-db liquibase:update -Dmaven.test.skip=true
+            make devenv
+            make migrate
             ./datashare-db/scr/build_db_doc.sh > ~/datashare-docs/developers/backend/database.md
       - run:
           name: Add/Commit changes to the doc
