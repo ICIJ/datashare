@@ -37,8 +37,8 @@ Shows all options and their default values
 
 ## CLI
 
-CLI mode is mainly used for batch operations: scanning data, indexing, running NLP,
-installing plugins, or producing reports. It does not expose an HTTP server.
+CLI mode (command line interface mode) is mainly used for long running operations in server mode like scan, index, NLP...
+
 
 ### Scan and Index
 
