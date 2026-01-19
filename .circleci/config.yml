@@ -1,5 +1,18 @@
 version: 2.1
 
+# Shared environment variables
+ds_env: &ds_env
+  DS_POSTGRES_HOST: postgres
+  DS_POSTGRES_PORT: "5432"
+  DS_POSTGRES_USER: dstest
+  DS_POSTGRES_PASSWORD: test
+  DS_POSTGRES_DB: dstest
+  DS_POSTGRES_URI: jdbc:postgresql://${DS_POSTGRES_HOST}/${DS_POSTGRES_DB}?user=${DS_POSTGRES_USER}&password=${DS_POSTGRES_PASSWORD}
+  DS_AMQP_URI: amqp://guest:guest@amqp
+  DS_ELASTICSEARCH_URI: http://elasticsearch:9200
+  DS_REDIS_URI: redis://redis:6379
+  DS_S3MOCK_URI: http://s3mock:9090
+
 parameters:
   publish_backend_doc:
     type: boolean
@@ -36,12 +49,8 @@ jobs:
     working_directory: /tmp/datashare
 
     environment:
+      <<: *ds_env
       MAVEN_OPTS: "-Xms512m -Xmx1g -Xss10M"
-      DS_AMQP_URI: amqp://guest:guest@amqp
-      DS_ELASTICSEARCH_URI: http://elasticsearch:9200
-      DS_POSTGRES_URI: jdbc:postgresql://postgres/dstest?user=dstest&password=test
-      DS_REDIS_URI: redis://redis:6379
-      DS_S3MOCK_URI: http://s3mock:9090
 
     steps:
       - checkout
@@ -58,7 +67,7 @@ jobs:
             wget --no-check-certificate --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo apt-key add -
             sudo apt-get update
             sudo apt-get install -y postgresql-client-15
-            PGPASSWORD=test psql -h postgres -U dstest dstest -c "CREATE DATABASE datashare_liquibase;"
+            PGPASSWORD=${DS_POSTGRES_PASSWORD} psql -h ${DS_POSTGRES_HOST} -U ${DS_POSTGRES_USER} ${DS_POSTGRES_DB} -c "CREATE DATABASE datashare_liquibase;"
 
       - run:
           name: Configure GPG private key for signing project artifacts in OSS Sonatype
@@ -114,8 +123,10 @@ jobs:
           POSTGRES_PASSWORD: test
     working_directory: ~/datashare
     environment:
+      <<: *ds_env
       MAVEN_OPTS: "-Xms512m -Xmx512m -Xss10M"
-      DS_POSTGRES_URI: jdbc:postgresql://postgres/dstest?user=dstest&password=test
+      DS_POSTGRES_DB: datashare_liquibase
+      DS_POSTGRES_URI: jdbc:postgresql://${DS_POSTGRES_HOST}/${DS_POSTGRES_DB}?user=${DS_POSTGRES_USER}&password=${DS_POSTGRES_PASSWORD}
     steps:
       - checkout
       - restore_cache:
@@ -151,13 +162,9 @@ jobs:
             sudo apt-get install -y postgresql-client-15
       - run:
           name: Generate db doc
-          environment:
-            PGDB: datashare_liquibase
-            PGUSER: dstest
-            PGPASSWORD: test
           command: |
-            echo "postgres:5432:$PGDB:$PGUSER:$PGPASSWORD" > ~/.pgpass && chmod 600 ~/.pgpass
-            createdb -U $PGUSER -h postgres $PGDB
+            echo "${DS_POSTGRES_HOST}:${DS_POSTGRES_PORT}:${DS_POSTGRES_DB}:${DS_POSTGRES_USER}:${DS_POSTGRES_PASSWORD}" > ~/.pgpass && chmod 600 ~/.pgpass
+            createdb -U ${DS_POSTGRES_USER} -h ${DS_POSTGRES_HOST} ${DS_POSTGRES_DB}
             echo "postgresUri=${DS_POSTGRES_URI}" > datashare-devenv.properties
             make migrate
             ./datashare-db/scripts/build-db-doc.sh > ~/datashare-docs/developers/backend/database.md
