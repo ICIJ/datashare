@@ -16,7 +16,7 @@
         <liquibase.version>4.27.0</liquibase.version>
         <jooq.version>3.19.10</jooq.version>
         <!-- postgresUri can be overridden via -DpostgresUri=... or use ./datashare-devenv.sh -->
-        <postgresUri>jdbc:postgresql://postgres/dstest?user=dstest&amp;password=test</postgresUri>
+        <postgresUri>jdbc:postgresql://postgres/datashare_liquibase?user=dstest&amp;password=test</postgresUri>
     </properties>
 
     <dependencies>
