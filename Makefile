@@ -60,9 +60,9 @@ app:
 
 ## Clean all build artifacts
 clean:
-	mvn clean
+	$(MVN) clean
 
-## Apply database migrations
+## Apply database migrations (uses datashare_liquibase DB via buildDbUrl)
 migrate: devenv
 	$(MVN) -pl commons-test -am install -DskipTests -Dgpg.skip=true -q
 	$(MVN) -pl datashare-db liquibase:update
