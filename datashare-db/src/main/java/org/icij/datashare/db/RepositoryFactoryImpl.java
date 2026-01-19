@@ -60,7 +60,18 @@ public class RepositoryFactoryImpl implements RepositoryFactory {
 
     void initDatabase(final DataSource dataSource) {
         System.setProperty("liquibase.command.showSummaryOutput", "LOG"); // avoid double log
-        try (Connection connection = dataSource.getConnection()){
+        try (Connection connection = dataSource.getConnection()) {
+            // Normalize Liquibase changelog paths to ensure idempotence across execution contexts.
+            //
+            // Liquibase records the file path of each applied changeset in the `databasechangelog` table.
+            // When migrations run from different contexts (Maven plugin vs Java code), the recorded paths
+            // can differ (e.g., "classpath:liquibase/..." vs "liquibase/..."). This causes Liquibase to
+            // treat already-applied changesets as "new" and attempt to re-apply them, failing with errors
+            // like "relation already exists".
+            //
+            // By normalizing the FILENAME column to strip prefixes like "classpath:", we ensure Liquibase
+            // correctly identifies previously-applied changesets regardless of how they were originally run.
+            normalizeChangelogPaths(connection);
             try (Database db = DatabaseFactory.getInstance().findCorrectDatabaseImplementation(new JdbcConnection(connection))) {
                 CommandScope updateCommand = new CommandScope(UpdateCommandStep.COMMAND_NAME);
                 updateCommand.addArgumentValue(UpdateCommandStep.CHANGELOG_FILE_ARG, "liquibase/changelog/db.changelog.yml");
@@ -70,8 +81,21 @@ public class RepositoryFactoryImpl implements RepositoryFactory {
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }
-        } catch ( SQLException e) {
+        } catch (SQLException e) {
             throw new RuntimeException(e);
+        }
+    }
+
+    private void normalizeChangelogPaths(Connection connection) {
+        try (var stmt = connection.createStatement()) {
+            // Check if databasechangelog table exists before attempting to update
+            var rs = connection.getMetaData().getTables(null, null, "databasechangelog", new String[]{"TABLE"});
+            if (rs.next()) {
+                // Remove "classpath:" prefix from FILENAME to match Java code's path format
+                stmt.execute("UPDATE databasechangelog SET filename = REPLACE(filename, 'classpath:', '') WHERE filename LIKE 'classpath:%'");
+            }
+        } catch (SQLException e) {
+            // Table might not exist yet on fresh database - that's fine
         }
     }
 
