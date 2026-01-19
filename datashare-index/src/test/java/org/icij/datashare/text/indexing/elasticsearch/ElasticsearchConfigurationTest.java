@@ -6,6 +6,7 @@ import org.apache.http.util.EntityUtils;
 import org.elasticsearch.client.Request;
 import org.elasticsearch.client.Response;
 import org.elasticsearch.client.RestClient;
+import org.icij.datashare.EnvUtils;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.test.ElasticsearchRule;
 import org.junit.ClassRule;
@@ -41,8 +42,10 @@ public class ElasticsearchConfigurationTest {
 
     @Test
     public void test_create_client_with_user_pass() throws Exception {
+        String esUri = EnvUtils.resolveUri("elasticsearch", "http://localhost:9200");
+        String esUriWithAuth = esUri.replace("://", "://user:pass@");
         ElasticsearchClient esClient = ElasticsearchConfiguration.createESClient(new PropertiesProvider(new HashMap<>() {{
-            put("elasticsearchAddress", "http://user:pass@elasticsearch:9200");
+            put("elasticsearchAddress", esUriWithAuth);
         }}));
 
         RestClient restClient = ((RestClientTransport) esClient._transport()).restClient();
