@@ -66,7 +66,7 @@ jobs:
           command: |
             echo ${RELEASES_GPG_PRIV_BASE64} | base64 --decode | gpg --batch --no-tty --import --yes
 
-      - run: sudo apt-get install -y tesseract-ocr-eng
+      - run: sudo apt-get update && sudo apt-get install -y tesseract-ocr-eng
       - run: echo "amqpUri=${DS_AMQP_URI}" > datashare-devenv.properties
       - run: echo "elasticsearchUri=${DS_ELASTICSEARCH_URI}" >> datashare-devenv.properties
       - run: echo "postgresUri=${DS_POSTGRES_URI}" >> datashare-devenv.properties
