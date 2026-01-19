@@ -61,15 +61,6 @@ jobs:
           - v1-dependencies-{{ checksum "pom.xml" }}
 
       - run:
-          name: Create a bootstrap datashare DB for jooq code generation
-          command: |
-            sudo sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt/ $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
-            wget --no-check-certificate --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo apt-key add -
-            sudo apt-get update
-            sudo apt-get install -y postgresql-client-15
-            PGPASSWORD=${DS_POSTGRES_PASSWORD} psql -h ${DS_POSTGRES_HOST} -U ${DS_POSTGRES_USER} ${DS_POSTGRES_DB} -c "CREATE DATABASE datashare_liquibase;"
-
-      - run:
           name: Configure GPG private key for signing project artifacts in OSS Sonatype
           shell: /bin/bash
           command: |
@@ -125,8 +116,6 @@ jobs:
     environment:
       <<: *ds_env
       MAVEN_OPTS: "-Xms512m -Xmx512m -Xss10M"
-      DS_POSTGRES_DB: datashare_liquibase
-      DS_POSTGRES_URI: jdbc:postgresql://postgres/datashare_liquibase?user=dstest&password=test
     steps:
       - checkout
       - restore_cache:
