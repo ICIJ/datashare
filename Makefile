@@ -72,7 +72,7 @@ generate: migrate
 
 ## Reset database and reapply all migrations (DESTRUCTIVE)
 reset-db:
-	bash datashare-db/scr/reset_datashare_db.sh
+	bash datashare-db/scripts/reset-datashare-db.sh
 	mvn -pl datashare-db liquibase:update
 
 ## Create a new release (usage: make release NEW_VERSION=x.y.z)

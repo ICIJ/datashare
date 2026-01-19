@@ -150,7 +150,7 @@ jobs:
             createdb -U $PGUSER -h postgres $PGDB
             make devenv
             make migrate
-            ./datashare-db/scr/build_db_doc.sh > ~/datashare-docs/developers/backend/database.md
+            ./datashare-db/scripts/build-db-doc.sh > ~/datashare-docs/developers/backend/database.md
       - run:
           name: Add/Commit changes to the doc
           command: |
