@@ -87,12 +87,20 @@ public class RepositoryFactoryImpl implements RepositoryFactory {
     }
 
     private void normalizeChangelogPaths(Connection connection) {
-        try (var stmt = connection.createStatement()) {
-            // Check if databasechangelog table exists before attempting to update
-            var rs = connection.getMetaData().getTables(null, null, "databasechangelog", new String[]{"TABLE"});
-            if (rs.next()) {
-                // Remove "classpath:" prefix from FILENAME to match Java code's path format
-                stmt.execute("UPDATE databasechangelog SET filename = REPLACE(filename, 'classpath:', '') WHERE filename LIKE 'classpath:%'");
+        try {
+            // Only normalize paths for PostgreSQL - SQLite uses in-memory databases for tests
+            // and doesn't have the path mismatch issue between Maven plugin and Java code
+            String dbProduct = connection.getMetaData().getDatabaseProductName();
+            if (!"PostgreSQL".equalsIgnoreCase(dbProduct)) {
+                return;
+            }
+            try (var stmt = connection.createStatement()) {
+                // Check if databasechangelog table exists before attempting to update
+                var rs = connection.getMetaData().getTables(null, null, "databasechangelog", new String[]{"TABLE"});
+                if (rs.next()) {
+                    // Remove "classpath:" prefix from FILENAME to match Java code's path format
+                    stmt.execute("UPDATE databasechangelog SET filename = REPLACE(filename, 'classpath:', '') WHERE filename LIKE 'classpath:%'");
+                }
             }
         } catch (SQLException e) {
             // Table might not exist yet on fresh database - that's fine
