@@ -139,7 +139,7 @@
                                 <include>TaskManagerAmqpTest</include>
                             </includes>
                             <runOrder>alphabetical</runOrder>
-                            <argLine>--add-opens java.base/java.util.concurrent.locks=ALL-UNNAMED --add-opens java.base/java.lang=ALL-UNNAMED</argLine>
+                            <argLine>-Djava.awt.headless=true --add-opens java.base/java.util.concurrent.locks=ALL-UNNAMED --add-opens java.base/java.lang=ALL-UNNAMED</argLine>
                         </configuration>
                     </execution>
                     <execution>
@@ -154,7 +154,7 @@
                                 <exclude>JacksonSubTypesTest</exclude>
                                 <exclude>TaskManagerAmqpTest</exclude>
                             </excludes>
-                            <argLine>--add-opens java.base/java.util.concurrent.locks=ALL-UNNAMED --add-opens java.base/java.lang=ALL-UNNAMED</argLine>
+                            <argLine>-Djava.awt.headless=true --add-opens java.base/java.util.concurrent.locks=ALL-UNNAMED --add-opens java.base/java.lang=ALL-UNNAMED</argLine>
                         </configuration>
                     </execution>
                 </executions>
