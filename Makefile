@@ -63,7 +63,7 @@ clean:
 
 ## Apply database migrations
 migrate: devenv
-	mvn -pl commons-test -am install -DskipTests -q
+	mvn -pl commons-test -am install -DskipTests -Dgpg.skip=true -q
 	mvn -pl datashare-db liquibase:update
 
 ## Generate sources from database schema (jOOQ)
