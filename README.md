@@ -61,26 +61,18 @@ This section explains how to set up a development environment, build the project
 
 ### Requirements
 
-**Languages & tooling**
-
 * **JDK 17**
-* **Apache Maven 3.8+**: primary build tool for the backend
-* **GNU Make** (optional but recommended): convenient shortcuts (run `make help` to see available targets)
+* **Apache Maven 3.8+** - primary build tool for the backend
+* **GNU Make** (optional) - convenient shortcuts (run `make help` to see available targets)
+* **PostgreSQL 13+** - two DBs expected: `datashare` (dev) and `test` (tests)
+* **Elasticsearch 7.x** - 8.x is not officially supported
+* **Redis 5+** - session storage and async task orchestration
 
-**Services**
+A `docker-compose.yml` is provided to start all required services:
 
-Those services must be running to have a complete developer environement. You might want 
-
-* **PostgreSQL 13+**
-  * Available on host `postgres:5432`
-  * Two DBs expected by default: `datashare` (dev) and `test` (tests)
-  * A role with privileges, e.g. user: `test`, password: `test`
-* **Elasticsearch 7.x** 
-  * Available on host `elasticsearch:9200`
-  * 8.x is not officially supported 
-* **Redis 5+**
-  * Available on host `redis:6379`
-  * Used to store session and orchestrate async tasks.
+```bash
+docker compose up -d
+```
 
 ### Development Environment Configuration
 
