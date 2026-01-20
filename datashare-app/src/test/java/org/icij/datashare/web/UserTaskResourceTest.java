@@ -67,6 +67,7 @@ public class UserTaskResourceTest extends AbstractProdWebServerTest {
     public void test_get_task() throws Exception {
         setupAppWith(new DummyUserTask<>("foo"), "foo");
         String tId = taskManager.startTask(DummyUserTask.class, localUser("foo"), new HashMap<>());
+        taskManager.waitTasksToBeDone(1, SECONDS);
         get("/api/task/" + tId).withPreemptiveAuthentication("foo", "qux").should().respond(200).
                 contain(format("{\"@type\":\"Task\",\"id\":\"%s\",\"name\":\"%s\",\"state\":\"DONE\",\"progress\":1.0",tId, DummyUserTask.class.getName())).
                 contain("\"details\":").
@@ -93,6 +94,7 @@ public class UserTaskResourceTest extends AbstractProdWebServerTest {
     public void test_get_task_result_with_no_result() throws IOException {
         setupAppWith(new DummyUserTask<>("foo"), "foo");
         String tId = taskManager.startTask(DummyUserTask.class, localUser("foo"), new HashMap<>());
+        taskManager.waitTasksToBeDone(1, SECONDS);
         get("/api/task/" + tId + "/result").withPreemptiveAuthentication("foo", "qux").should().respond(204);
     }
 
@@ -100,6 +102,7 @@ public class UserTaskResourceTest extends AbstractProdWebServerTest {
     public void test_get_task_result_with_int_result() throws IOException {
         setupAppWith(new DummyUserTask<>("foo", () -> 42), "foo");
         String tId = taskManager.startTask(DummyUserTask.class, localUser("foo"), new HashMap<>());
+        taskManager.waitTasksToBeDone(1, SECONDS);
         get("/api/task/" + tId + "/result").withPreemptiveAuthentication("foo", "qux").
                 should().respond(200).
                 should().haveType("application/json").
@@ -113,6 +116,7 @@ public class UserTaskResourceTest extends AbstractProdWebServerTest {
         setupAppWith(new DummyUserTask<>("foo", () -> indexHtml), "foo");
 
         String tId = taskManager.startTask(DummyUserTask.class, localUser("foo"), new HashMap<>());
+        taskManager.waitTasksToBeDone(1, SECONDS);
         get("/api/task/" + tId + "/result").withPreemptiveAuthentication("foo", "qux").
                 should().respond(200).
                 should().haveType("application/octet-stream").
@@ -126,6 +130,7 @@ public class UserTaskResourceTest extends AbstractProdWebServerTest {
         UriResult indexHtml = new UriResult(file.toURI(), Files.size(file.toPath()));
         setupAppWith(new DummyUserTask<>("foo", () -> indexHtml), "foo");
         String tId = taskManager.startTask(DummyUserTask.class, localUser("foo"), new HashMap<>());
+        taskManager.waitTasksToBeDone(1, SECONDS);
 
         get("/api/task/" + tId + "/result").withPreemptiveAuthentication("foo", "qux").should().respond(200);
     }
@@ -134,6 +139,7 @@ public class UserTaskResourceTest extends AbstractProdWebServerTest {
     public void test_get_task_result_when_task_threw_exception__should_show_error() throws IOException {
         setupAppWith(new DummyUserTask<>("foo", () -> {throw new RuntimeException("error blah");}), "foo");
         String tId = taskManager.startTask(DummyUserTask.class, localUser("foo"), new HashMap<>());
+        taskManager.waitTasksToBeDone(1, SECONDS);
 
         get("/api/task/" + tId + "/result").withPreemptiveAuthentication("foo", "qux").should().respond(204);
         get("/api/task/" + tId).withPreemptiveAuthentication("foo", "qux").should().contain("error blah");
@@ -143,6 +149,7 @@ public class UserTaskResourceTest extends AbstractProdWebServerTest {
     public void test_task_list_by_name() throws IOException {
         setupAppWith(new DummyUserTask<>("bar"), "bar");
         String t2Id = taskManager.startTask(DummyUserTask.class, localUser("bar"), new HashMap<>());
+        taskManager.waitTasksToBeDone(1, SECONDS);
 
         get("/api/task/all?name=DummyUserTask").withPreemptiveAuthentication("bar", "qux").should().
                 contain(format("{\"id\":\"%s\",\"name\":\"%s\",\"state\":\"DONE\",\"progress\":1.0",t2Id, DummyUserTask.class.getName())).
