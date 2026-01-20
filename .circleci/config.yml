@@ -8,6 +8,7 @@ ds_env: &ds_env
   DS_POSTGRES_PASSWORD: test
   DS_POSTGRES_DB: dstest
   DS_POSTGRES_URI: jdbc:postgresql://postgres/dstest?user=dstest&password=test
+  DS_POSTGRES_BUILD_URI: jdbc:postgresql://postgres/dsbuild?user=dstest&password=test
   DS_AMQP_URI: amqp://guest:guest@amqp
   DS_ELASTICSEARCH_URI: http://elasticsearch:9200
   DS_REDIS_URI: redis://redis:6379
@@ -66,12 +67,16 @@ jobs:
           command: |
             echo ${RELEASES_GPG_PRIV_BASE64} | base64 --decode | gpg --batch --no-tty --import --yes
 
-      - run: sudo apt-get update && sudo apt-get install -y tesseract-ocr-eng
+      - run: sudo apt-get update && sudo apt-get install -y tesseract-ocr-eng postgresql-client
       - run: echo "amqpUri=${DS_AMQP_URI}" > datashare-devenv.properties
       - run: echo "elasticsearchUri=${DS_ELASTICSEARCH_URI}" >> datashare-devenv.properties
       - run: echo "postgresUri=${DS_POSTGRES_URI}" >> datashare-devenv.properties
+      - run: echo "postgresBuildUri=${DS_POSTGRES_BUILD_URI}" >> datashare-devenv.properties
       - run: echo "redisUri=${DS_REDIS_URI}" >> datashare-devenv.properties
       - run: echo "s3mockUri=${DS_S3MOCK_URI}" >> datashare-devenv.properties
+      - run:
+          name: Create build database
+          command: PGPASSWORD=${DS_POSTGRES_PASSWORD} createdb -h ${DS_POSTGRES_HOST} -U ${DS_POSTGRES_USER} dsbuild
       - run: make clean
       - run: make migrate
       - run: make test
@@ -152,9 +157,11 @@ jobs:
       - run:
           name: Generate db doc
           command: |
-            echo "${DS_POSTGRES_HOST}:${DS_POSTGRES_PORT}:${DS_POSTGRES_DB}:${DS_POSTGRES_USER}:${DS_POSTGRES_PASSWORD}" > ~/.pgpass && chmod 600 ~/.pgpass
+            echo "${DS_POSTGRES_HOST}:${DS_POSTGRES_PORT}:*:${DS_POSTGRES_USER}:${DS_POSTGRES_PASSWORD}" > ~/.pgpass && chmod 600 ~/.pgpass
             createdb -U ${DS_POSTGRES_USER} -h ${DS_POSTGRES_HOST} ${DS_POSTGRES_DB}
+            createdb -U ${DS_POSTGRES_USER} -h ${DS_POSTGRES_HOST} dsbuild
             echo "postgresUri=${DS_POSTGRES_URI}" > datashare-devenv.properties
+            echo "postgresBuildUri=${DS_POSTGRES_BUILD_URI}" >> datashare-devenv.properties
             make migrate
             ./datashare-db/scripts/build-db-doc.sh > ~/datashare-docs/developers/backend/database.md
       - run:
