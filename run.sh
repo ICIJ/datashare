@@ -14,4 +14,15 @@ export DATASHARE_VERSION=${DATASHARE_VERSION:-$DATASHARE_POM_VERSION}
 export DATASHARE_JAR=${DATASHARE_JAR:-$DIR/datashare-dist/target/datashare-dist-${DATASHARE_VERSION}-all.jar}
 export DATASHARE_SYNC_NLP_MODELS=${DATASHARE_SYNC_NLP_MODELS:-true}
 
+if [ ! -f "$DATASHARE_JAR" ]; then
+  echo "Datashare's JAR was not found: $DATASHARE_JAR"
+  read -p "Would you like to build it? [Y/n] " answer
+  if [ -z "$answer" ] || [ "$answer" = "y" ] || [ "$answer" = "Y" ] || [ "$answer" = "yes" ]; then
+    make -C "$DIR" build || exit 1
+  else
+    echo "Run 'make build' first, then try again."
+    exit 1
+  fi
+fi
+
 ./datashare-dist/src/main/deb/bin/datashare "$@"
