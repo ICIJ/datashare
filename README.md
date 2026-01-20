@@ -29,7 +29,6 @@
 
 ## Table of Contents
 
-- [Table of Contents](#table-of-contents)
 - [Main Features](#main-features)
 - [Developer Guide](#developer-guide)
   - [Requirements](#requirements)
@@ -42,6 +41,7 @@
   - [Prerequisites](#prerequisites)
   - [Starting the Devcontainer](#starting-the-devcontainer)
   - [Build and project initialization](#build-and-project-initialization)
+- [Cookbook](#cookbook)
 - [License](#license)
 - [About ICIJ](#about-icij)
 
@@ -196,6 +196,10 @@ Once VS Code is connected to the devcontainer:
 3. Reload Java projects so that VS Code correctly picks up generated sources (jOOQ) and dependencies:
    - Go to *View* → *Command Palette* → *Java: Reload Projects*
 
+
+## Cookbook
+
+For practical command-line examples covering CLI mode, server mode, OAuth setup, and more, see the [Cookbook](COOKBOOK.md).
 
 ## License
 

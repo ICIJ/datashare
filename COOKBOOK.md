@@ -1,49 +1,45 @@
 # Datashare Cookbook
 
-This cookbook is a practical reference for running Datashare in common configurations.
+This cookbook provides practical command-line examples for running Datashare in common configurations.
 
-Unless stated otherwise, commands assume:
-- user: `dev`
-- execution from the `Datashare` repository root
-- existing projects: `banana-papers`, `citrus-confidential`, `local-datashare`
+**Assumptions** (unless stated otherwise):
+- User: `dev`
+- Commands run from the Datashare repository root
+- Example projects: `banana-papers`, `citrus-confidential`, `local-datashare`
 - OAuth server available at `http://oauth:3001`
-
----
 
 ## Table of Contents
 
-- [Options and help](#help)
-- [CLI](#cli)
+- [Help](#help)
+- [CLI Mode](#cli-mode)
   - [Scan and Index](#scan-and-index)
   - [Reports](#reports)
   - [Plugins](#plugins)
   - [NLP](#nlp)
-- [LOCAL](#local)
-  - [Local Mode](#local-mode)
-- [SERVER](#server)
+- [Local Mode](#local-mode)
+- [Server Mode](#server-mode)
   - [OAuth](#oauth)
-  - [BasicAuth](#basicauth)
+  - [Basic Auth](#basic-auth)
   - [Embedded](#embedded)
   - [Batch Search](#batch-search)
-- [MAINTENANCE](#maintenance)
+- [Maintenance](#maintenance)
   - [Elasticsearch Cleanup](#elasticsearch-cleanup)
 
----
 ## Help
-Shows all options and their default values
+
+Show all available options and their default values:
+
 ```sh
 ./launchBack.sh --help
 ```
 
-## CLI
+## CLI Mode
 
-CLI mode (command line interface mode) is mainly used for long running operations in server mode like scan, index, NLP...
-
+CLI mode is used for long-running operations such as scanning, indexing, and NLP processing.
 
 ### Scan and Index
 
-Runs a full scan and index on a project. This is typically used for initial ingestion
-or reindexing after configuration changes.
+Run a full scan and index on a project. Typically used for initial ingestion or reindexing after configuration changes.
 
 ```sh
 ./launchBack.sh \
@@ -55,8 +51,7 @@ or reindexing after configuration changes.
 
 ### Reports
 
-Retrieve a report for a given queue. This is mostly used to inspect or debug
-queue processing.
+Retrieve a report for a given queue. Useful for inspecting or debugging queue processing.
 
 ```sh
 ./launchBack.sh \
@@ -69,7 +64,7 @@ queue processing.
 
 ### Plugins
 
-Installs a Datashare plugin into the plugins directory.
+Install a Datashare plugin into the plugins directory:
 
 ```sh
 ./launchBack.sh \
@@ -80,8 +75,7 @@ Installs a Datashare plugin into the plugins directory.
 
 ### NLP
 
-Runs NLP processing using CoreNLP. Parallelism settings can be adjusted depending
-on available CPU and memory.
+Run NLP processing using CoreNLP. Adjust parallelism settings based on available CPU and memory.
 
 ```sh
 ./launchBack.sh \
@@ -94,28 +88,25 @@ on available CPU and memory.
   --dataDir /vault/citrus-confidential \
   --defaultProject citrus-confidential
 ```
----
-## LOCAL
-### Local Mode
 
-Starts Datashare in LOCAL mode (default mode) with minimal configuration (default options). The datashare instance is a single user instance.
+## Local Mode
+
+Start Datashare in LOCAL mode (the default) with minimal configuration. This creates a single-user instance.
 
 ```sh
 ./launchBack.sh \
   --dataDir /home/dev/Datashare/Data/
 ```
----
 
-## SERVER
+## Server Mode
 
-Server mode is meant to be used in a multi user Datashare environment (with authentication).
+Server mode is designed for multi-user deployments with authentication.
 
 ### OAuth
 
-Standard server mode using OAuth (e.g. Keycloak). This is the recommended setup
-for multi-user deployments.
+Standard server mode using OAuth (e.g., Keycloak). This is the recommended setup for multi-user deployments.
 
-Server mode with plugins:
+**Server mode with plugins:**
 
 ```sh
 ./launchBack.sh \
@@ -126,7 +117,7 @@ Server mode with plugins:
   --pluginDir /home/dev/Datashare/Plugins
 ```
 
-Server mode with OAuth and PostgreSQL:
+**Server mode with OAuth and PostgreSQL:**
 
 ```sh
 ./launchBack.sh \
@@ -137,7 +128,7 @@ Server mode with OAuth and PostgreSQL:
   --oauthClientSecret datasharesecretforseed
 ```
 
-Full OAuth configuration using a local OAuth server and a SQLite database:
+**Full OAuth configuration with local OAuth server and SQLite:**
 
 ```sh
 ./launchBack.sh \
@@ -157,7 +148,7 @@ Full OAuth configuration using a local OAuth server and a SQLite database:
   --sessionStoreType MEMORY
 ```
 
-Simplified OAuth example with explicit endpoints:
+**Simplified OAuth example with explicit endpoints:**
 
 ```sh
 ./launchBack.sh \
@@ -171,12 +162,13 @@ Simplified OAuth example with explicit endpoints:
   --oauthApiUrl http://oauth:3001/api/v1/me.json
 ```
 
-### BasicAuth
+### Basic Auth
 
-Basic authentication is mostly intended for testing or constrained environments.
+Basic authentication is intended for testing or constrained environments.
 
-#### BasicAuth with Redis
-See: https://icij.gitbook.io/datashare/server-mode/authentication-providers/basic-with-redis
+**Basic Auth with Redis:**
+
+See: [Basic with Redis documentation](https://icij.gitbook.io/datashare/server-mode/authentication-providers/basic-with-redis)
 
 ```sh
 ./launchBack.sh \
@@ -185,8 +177,9 @@ See: https://icij.gitbook.io/datashare/server-mode/authentication-providers/basi
   --redisAddress redis://redis:6379
 ```
 
-#### BasicAuth with PostgreSQL
-See: https://icij.gitbook.io/datashare/server-mode/authentication-providers/basic-with-a-database
+**Basic Auth with PostgreSQL:**
+
+See: [Basic with Database documentation](https://icij.gitbook.io/datashare/server-mode/authentication-providers/basic-with-a-database)
 
 ```sh
 ./launchBack.sh \
@@ -198,9 +191,9 @@ See: https://icij.gitbook.io/datashare/server-mode/authentication-providers/basi
 
 ### Embedded
 
-Embedded mode targets low-resource environments (e.g. Raspberry Pi).
-Configuration is explicit and everything runs on the same host.
-Warning: This command has not been tested since 2020.
+Embedded mode targets low-resource environments (e.g., Raspberry Pi). All services run on the same host.
+
+> **Warning:** This configuration has not been tested since 2020.
 
 ```sh
 ./launchBack.sh \
@@ -216,10 +209,9 @@ Warning: This command has not been tested since 2020.
 
 ### Batch Search
 
-Batch Search runs as a dedicated daemon consuming extraction queues.
-It is typically started alongside a standard server instance.
+Batch Search runs as a dedicated daemon consuming extraction queues. It is typically started alongside a standard server instance.
 
-Server process:
+**Server process:**
 
 ```sh
 ./launchBack.sh \
@@ -230,7 +222,7 @@ Server process:
   --oauthClientSecret datasharesecretforseed
 ```
 
-Batch search daemon (separate terminal):
+**Batch search daemon (separate terminal):**
 
 ```sh
 JDWP_TRANSPORT_PORT=8001 ./launchBack.sh \
@@ -240,15 +232,13 @@ JDWP_TRANSPORT_PORT=8001 ./launchBack.sh \
   --batchQueueType org.icij.datashare.extract.RedisBlockingQueue
 ```
 
----
+## Maintenance
 
-## MAINTENANCE
-
-Maintenance commands are destructive by nature and should be used with care.
+> **Caution:** Maintenance commands are destructive and should be used with care.
 
 ### Elasticsearch Cleanup
 
-Deletes the Elasticsearch index for a project.
+Delete the Elasticsearch index for a project:
 
 ```sh
 curl -X DELETE http://localhost:9200/citrus-confidential
