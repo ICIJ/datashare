@@ -222,13 +222,14 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
 
     @Test
     public void test_update_project() {
-        when(repository.getProject("foo")).thenReturn(new Project("foo"));
         when(repository.save((Project) any())).thenReturn(true);
-        String body = "{ \"name\": \"foo\", \"label\": \"Foo v3\" }";
+        String body = "{ \"name\": \"foo\", \"label\": \"Foo v3\", \"sourcePath\": \"/vault/foo\"}";
         put("/api/project/foo", body).should().respond(200)
                 .contain("\"name\":\"foo\"")
-                .contain("\"label\":\"Foo v3\"");
+                .contain("\"label\":\"Foo v3\"")
+                .contain("\"sourcePath\":\"file:///vault/foo\"");
     }
+
     @Mock
     UserPolicyRepository jooqUserPolicyRepository;
 
