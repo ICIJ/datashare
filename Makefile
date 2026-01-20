@@ -72,7 +72,7 @@ generate: migrate
 	$(MVN) -pl datashare-db generate-sources
 
 ## Reset database and reapply all migrations (DESTRUCTIVE)
-reset-db:
+reset-db: devenv
 	bash datashare-db/scripts/reset-datashare-db.sh
 	$(MVN) -pl datashare-db liquibase:update
 
