@@ -50,6 +50,7 @@
     import java.util.stream.Collectors;
     import java.util.stream.Stream;
 
+    import static dorkbox.systemTray.SystemTray.logger;
     import static java.util.concurrent.TimeUnit.MILLISECONDS;
     import static net.codestory.http.errors.NotFoundException.notFoundIfNull;
     import static net.codestory.http.payload.Payload.ok;
@@ -145,14 +146,36 @@
         @Put("/:id")
         @Policy(roles = {Role.ADMIN},projectIdParam="id")
         public Payload projectUpdate(String id, Project project) {
-            if (!projectExists(project) || !Objects.equals(project.getId(), id)) {
+            if (!Objects.equals(project.getId(), id)) {
                 return PayloadFormatter.error("Project not found", HttpStatus.NOT_FOUND);
             }
-            if (!project.getId().equals(id) || !repository.save(project)) {
+            if (isProjectNameEmpty(project)) {
+                return PayloadFormatter.error("`name` field is required.", HttpStatus.BAD_REQUEST);
+            }
+            if (isProjectSourcePathNull(project) || !dataDirVerifier.allowed(project.getSourcePath())) {
+                return PayloadFormatter.error(String.format("`sourcePath` is required and must not be outside %s.", dataDirVerifier.value()), HttpStatus.BAD_REQUEST);
+            }
+
+            boolean isNewProject = !projectExists(project);
+
+            // save project
+            if (!repository.save(project)) {
                 return PayloadFormatter.error("Unable to save the project", HttpStatus.INTERNAL_SERVER_ERROR);
             }
+
+            // post-process for new projects
+            if (isNewProject) {
+                Logger logger = LoggerFactory.getLogger(getClass());
+                logger.info("Created {}'s project: true", id);
+                if (createIndexOnce(project.getId())) {
+                    logger.info("Created {}'s index: true", id);
+                }
+            }
+
             return new Payload(project).withCode(HttpStatus.OK);
         }
+
+
 
         @Operation(description = "Deletes the project from database and elasticsearch index.",
                 parameters = {@Parameter(name = "id", description = "project id")}
