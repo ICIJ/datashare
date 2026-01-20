@@ -2,7 +2,7 @@ VERSION = $(shell head pom.xml | grep '<version>[0-9.]\+' | sed 's/<version>\([0
 DIST_TARGET = datashare-dist/target/datashare-dist-$(VERSION)-docker
 DEVENV_PROPERTIES = datashare-devenv.properties
 DEVENV_PROPERTIES_TEMPLATE = datashare-devenv.properties.template
-MVN = ./datashare-devenv.sh
+MVN = mvn
 
 .PHONY: help build dist install test run clean devenv migrate generate docker release app
 
@@ -62,10 +62,10 @@ app:
 clean:
 	$(MVN) clean
 
-## Apply database migrations (uses datashare_liquibase DB via buildDbUrl)
+## Apply database migrations (uses dsbuild DB via postgresBuildUri)
 migrate: devenv
 	$(MVN) -pl commons-test -am install -DskipTests -Dgpg.skip=true -q
-	$(MVN) -pl datashare-db liquibase:update
+	$(MVN) -pl datashare-db initialize liquibase:update
 
 ## Generate sources from database schema (jOOQ)
 generate: migrate

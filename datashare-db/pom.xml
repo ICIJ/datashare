@@ -15,8 +15,6 @@
     <properties>
         <liquibase.version>4.27.0</liquibase.version>
         <jooq.version>3.19.10</jooq.version>
-        <!-- postgresUri: Used by Liquibase, jOOQ, and tests. Override via devenv properties. -->
-        <postgresUri>jdbc:postgresql://postgres/dstest?user=dstest&amp;password=test</postgresUri>
     </properties>
 
     <dependencies>
@@ -126,6 +124,25 @@
         </resources>
         <plugins>
             <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>properties-maven-plugin</artifactId>
+                <version>1.3.0</version>
+                <executions>
+                    <execution>
+                        <phase>initialize</phase>
+                        <goals>
+                            <goal>read-project-properties</goal>
+                        </goals>
+                        <configuration>
+                            <quiet>true</quiet>
+                            <files>
+                                <file>${project.basedir}/../datashare-devenv.properties</file>
+                            </files>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
                 <groupId>org.liquibase</groupId>
                 <artifactId>liquibase-maven-plugin</artifactId>
                 <version>${liquibase.version}</version>
@@ -133,7 +150,7 @@
                     <changeLogFile>liquibase/changelog/db.changelog.yml</changeLogFile>
                     <searchPath>${project.basedir}/src/main/resources</searchPath>
                     <driver>org.postgresql.Driver</driver>
-                    <url>${postgresUri}</url>
+                    <url>${postgresBuildUri}</url>
                     <promptOnNonLocalDatabase>false</promptOnNonLocalDatabase>
                 </configuration>
             </plugin>
@@ -164,7 +181,7 @@
                             </generator>
                             <jdbc>
                                 <driver>org.postgresql.Driver</driver>
-                                <url>${postgresUri}</url>
+                                <url>${postgresBuildUri}</url>
                             </jdbc>
                         </configuration>
                     </execution>
