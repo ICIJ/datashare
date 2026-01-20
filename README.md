@@ -27,6 +27,7 @@
 
 > 📣 **Help us improve Datashare!** What do you think about the new design of Datashare? Tell us your feedback through our [survey](https://forms.gle/85faVA7VVoWkohuH7), it will directly influences our roadmap, and lets you opt‑in for early previews/beta testing.
 
+<!-- omit from toc -->
 ## Table of Contents
 
 - [Main Features](#main-features)

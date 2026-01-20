@@ -8,6 +8,9 @@ This cookbook provides practical command-line examples for running Datashare in 
 - Example projects: `banana-papers`, `citrus-confidential`, `local-datashare`
 - OAuth server available at `http://oauth:3001`
 
+> The `run.sh` script is a development wrapper that launches Datashare with Java debug options enabled (JDWP on port 8090 by default). It automatically detects the project version and locates the distribution JAR. For production deployments, use the `datashare` binary directly.
+
+<!-- omit from toc -->
 ## Table of Contents
 
 - [Help](#help)
@@ -30,7 +33,7 @@ This cookbook provides practical command-line examples for running Datashare in 
 Show all available options and their default values:
 
 ```sh
-./launchBack.sh --help
+./run.sh --help
 ```
 
 ## CLI Mode
@@ -42,7 +45,7 @@ CLI mode is used for long-running operations such as scanning, indexing, and NLP
 Run a full scan and index on a project. Typically used for initial ingestion or reindexing after configuration changes.
 
 ```sh
-./launchBack.sh \
+./run.sh \
   --mode CLI \
   --dataDir /home/dev/Datashare/Data/ \
   --defaultProject banana-papers \
@@ -54,7 +57,7 @@ Run a full scan and index on a project. Typically used for initial ingestion or 
 Retrieve a report for a given queue. Useful for inspecting or debugging queue processing.
 
 ```sh
-./launchBack.sh \
+./run.sh \
   --mode CLI \
   --dataDir /home/dev/Datashare/Data/ \
   --defaultProject cantina \
@@ -67,7 +70,7 @@ Retrieve a report for a given queue. Useful for inspecting or debugging queue pr
 Install a Datashare plugin into the plugins directory:
 
 ```sh
-./launchBack.sh \
+./run.sh \
   --mode CLI \
   --pluginInstall datashare-plugin-tour \
   --pluginsDir /home/dev/Datashare/Plugins
@@ -78,7 +81,7 @@ Install a Datashare plugin into the plugins directory:
 Run NLP processing using CoreNLP. Adjust parallelism settings based on available CPU and memory.
 
 ```sh
-./launchBack.sh \
+./run.sh \
   --mode CLI \
   --stages NLP \
   --nlpp CORENLP \
@@ -94,7 +97,7 @@ Run NLP processing using CoreNLP. Adjust parallelism settings based on available
 Start Datashare in LOCAL mode (the default) with minimal configuration. This creates a single-user instance.
 
 ```sh
-./launchBack.sh \
+./run.sh \
   --dataDir /home/dev/Datashare/Data/
 ```
 
@@ -109,7 +112,7 @@ Standard server mode using OAuth (e.g., Keycloak). This is the recommended setup
 **Server mode with plugins:**
 
 ```sh
-./launchBack.sh \
+./run.sh \
   --mode SERVER \
   --dataDir /home/dev/Datashare/Data/ \
   --oauthClientId datashareuidforseed \
@@ -120,7 +123,7 @@ Standard server mode using OAuth (e.g., Keycloak). This is the recommended setup
 **Server mode with OAuth and PostgreSQL:**
 
 ```sh
-./launchBack.sh \
+./run.sh \
   --mode SERVER \
   --dataDir /home/dev/Datashare/Data/ \
   --dataSourceUrl "jdbc:postgresql://postgres/datashare?user=dstest&password=test" \
@@ -131,7 +134,7 @@ Standard server mode using OAuth (e.g., Keycloak). This is the recommended setup
 **Full OAuth configuration with local OAuth server and SQLite:**
 
 ```sh
-./launchBack.sh \
+./run.sh \
   --mode SERVER \
   --dataDir /home/dev/Datashare/Data/ \
   --defaultProject local-datashare \
@@ -151,7 +154,7 @@ Standard server mode using OAuth (e.g., Keycloak). This is the recommended setup
 **Simplified OAuth example with explicit endpoints:**
 
 ```sh
-./launchBack.sh \
+./run.sh \
   --mode SERVER \
   --dataDir /home/dev/Datashare/Data/ \
   --defaultProject local-datashare \
@@ -171,7 +174,7 @@ Basic authentication is intended for testing or constrained environments.
 See: [Basic with Redis documentation](https://icij.gitbook.io/datashare/server-mode/authentication-providers/basic-with-redis)
 
 ```sh
-./launchBack.sh \
+./run.sh \
   --mode SERVER \
   --authFilter org.icij.datashare.session.BasicAuthAdaptorFilter \
   --redisAddress redis://redis:6379
@@ -182,7 +185,7 @@ See: [Basic with Redis documentation](https://icij.gitbook.io/datashare/server-m
 See: [Basic with Database documentation](https://icij.gitbook.io/datashare/server-mode/authentication-providers/basic-with-a-database)
 
 ```sh
-./launchBack.sh \
+./run.sh \
   --mode SERVER \
   --authFilter org.icij.datashare.session.BasicAuthAdaptorFilter \
   --authUsersProvider org.icij.datashare.session.UsersInDb \
@@ -196,7 +199,7 @@ Embedded mode targets low-resource environments (e.g., Raspberry Pi). All servic
 > **Warning:** This configuration has not been tested since 2020.
 
 ```sh
-./launchBack.sh \
+./run.sh \
   --mode EMBEDDED \
   --dataDir /home/pi/data \
   --dataSourceUrl jdbc:sqlite:/home/pi/dist/datashare.sqlite \
@@ -214,7 +217,7 @@ Batch Search runs as a dedicated daemon consuming extraction queues. It is typic
 **Server process:**
 
 ```sh
-./launchBack.sh \
+./run.sh \
   --mode SERVER \
   --dataDir /home/dev/Datashare/Data/ \
   --dataSourceUrl "jdbc:postgresql://postgres/datashare?user=dstest&password=test" \
@@ -225,7 +228,7 @@ Batch Search runs as a dedicated daemon consuming extraction queues. It is typic
 **Batch search daemon (separate terminal):**
 
 ```sh
-JDWP_TRANSPORT_PORT=8001 ./launchBack.sh \
+JDWP_TRANSPORT_PORT=8001 ./run.sh \
   --mode BATCH_SEARCH \
   --dataDir /home/dev/Datashare/Data/ \
   --dataSourceUrl "jdbc:postgresql://postgres/datashare?user=dstest&password=test" \
