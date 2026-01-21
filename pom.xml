@@ -97,7 +97,7 @@
         <amazon.version>1.12.411</amazon.version>
 
         <aws-s3.version>2.35.10</aws-s3.version>
-        <extract.version>9.4.12</extract.version>
+        <extract.version>9.4.13</extract.version>
         <opennlp.version>1.6.0</opennlp.version>
         <elasticsearch.version>7.17.9</elasticsearch.version>
         <lucene.version>8.11.1</lucene.version>
