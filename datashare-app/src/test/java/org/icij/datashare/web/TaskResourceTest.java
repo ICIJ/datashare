@@ -901,7 +901,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         return taskManager.getTasks().filter(t -> expectedName.equals(t.name)).findFirst();
     }
 
-    private void assertHasState(String taskId, Task.State expectedState, TaskManager taskManager, int timeoutMs, int pollIntervalMs)
+    private void assertHasState(String taskId, Task.State expectedState, DatashareTaskManager taskManager, int timeoutMs, int pollIntervalMs)
         throws IOException, InterruptedException {
         long start = System.currentTimeMillis();
         while (System.currentTimeMillis() - start < timeoutMs) {

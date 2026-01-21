@@ -1,12 +1,10 @@
 package org.icij.datashare.asynctasks;
 
-import org.icij.datashare.Entity;
 import org.icij.datashare.asynctasks.bus.amqp.CancelledEvent;
 import org.icij.datashare.asynctasks.bus.amqp.ErrorEvent;
 import org.icij.datashare.asynctasks.bus.amqp.ProgressEvent;
 import org.icij.datashare.asynctasks.bus.amqp.ResultEvent;
 import org.icij.datashare.asynctasks.bus.amqp.TaskEvent;
-import org.icij.datashare.batch.BatchSearchRecord;
 import org.icij.datashare.user.User;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -14,8 +12,6 @@ import org.slf4j.LoggerFactory;
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.Serializable;
-import java.util.EnumMap;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -48,27 +44,6 @@ public interface TaskManager extends Closeable {
 
     default Stream<Task<?>> getTasks() throws IOException {
         return getTasks(TaskFilters.empty());
-    }
-
-    default Stream<Task<?>> getTasks(TaskFilters filters, Stream<BatchSearchRecord> batchSearchRecords) throws IOException {
-        Stream<Task<? extends Serializable>> userTasks = getTasks(filters);
-        // Remove any filter on task's user. This allows to display batch search records from other users.
-        TaskFilters filtersWithoutUser = filters.withUser(null);
-        // The list of batch search records must be converted to a list of task which allow us to apply the same task filters.
-        Stream<Task<Integer>> batchSearchTasks = batchSearchRecords.map(TaskManager::taskify).filter(filtersWithoutUser::filter);
-        // Merge the list of tasks and deduplicate them by id
-        return Stream.concat(userTasks, batchSearchTasks)
-            .collect(toMap(
-                // We deduplicate tasks by id
-                Entity::getId,
-                task -> task,
-                // Get the first in priority
-                (first, second) -> first,
-                LinkedHashMap::new
-            ))
-            .values()
-                .stream()
-                .map(t -> (Task<?>)t);
     }
 
     default boolean awaitTermination(int timeout, TimeUnit timeUnit) throws InterruptedException, IOException {
@@ -267,21 +242,4 @@ public interface TaskManager extends Closeable {
         }
     }
 
-    static Task<Integer> taskify(BatchSearchRecord batchSearchRecord) {
-        String name = "org.icij.datashare.tasks.BatchSearchRunnerProxy";
-        Map<String, Object> batchRecord = Map.of("batchRecord", batchSearchRecord);
-        Task<Integer> task = new Task<>(batchSearchRecord.uuid, name, batchSearchRecord.date, batchSearchRecord.user, batchRecord);
-        // Build a state map between task and batch search record
-        Map<BatchSearchRecord.State, Task.State> stateMap = new EnumMap<>(BatchSearchRecord.State.class);
-        stateMap.put(BatchSearchRecord.State.QUEUED, Task.State.QUEUED);
-        stateMap.put(BatchSearchRecord.State.RUNNING, Task.State.RUNNING);
-        stateMap.put(BatchSearchRecord.State.SUCCESS, Task.State.DONE);
-        stateMap.put(BatchSearchRecord.State.FAILURE, Task.State.ERROR);
-        // Set the task state to the same state as the batch search record
-        task.setState(stateMap.get(batchSearchRecord.state));
-        // Set the task result
-        TaskResult<Integer> result = new TaskResult<>(batchSearchRecord.nbResults);
-        task.setResult(result);
-        return task;
-    }
 }

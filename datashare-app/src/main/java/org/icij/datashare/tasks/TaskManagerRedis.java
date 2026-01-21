@@ -12,7 +12,7 @@ import org.redisson.api.RedissonClient;
 import static org.icij.datashare.cli.DatashareCliOptions.TASK_MANAGER_POLLING_INTERVAL_OPT;
 
 @Singleton
-public class TaskManagerRedis extends org.icij.datashare.asynctasks.TaskManagerRedis {
+public class TaskManagerRedis extends org.icij.datashare.asynctasks.TaskManagerRedis implements DatashareTaskManager {
 
     // Convenience class made to ease injection and test
     @Inject

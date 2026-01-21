@@ -5,13 +5,13 @@ import net.codestory.http.security.Users;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Repository;
 import org.icij.datashare.asynctasks.Task;
-import org.icij.datashare.asynctasks.TaskManager;
 import org.icij.datashare.cli.Mode;
 import org.icij.datashare.db.JooqRepository;
 import org.icij.datashare.session.DatashareUser;
 import org.icij.datashare.session.LocalUserFilter;
 import org.icij.datashare.session.YesBasicAuthFilter;
 import org.icij.datashare.extract.MemoryDocumentCollectionFactory;
+import org.icij.datashare.tasks.DatashareTaskManager;
 import org.icij.datashare.text.Project;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.user.User;
@@ -40,7 +40,8 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
     @Mock Repository repository;
     @Mock JooqRepository jooqRepository;
     @Mock Indexer indexer;
-    @Mock TaskManager taskManager;
+    @Mock
+    DatashareTaskManager taskManager;
     @Rule public TemporaryFolder artifactDir = new TemporaryFolder();
     MemoryDocumentCollectionFactory<Path> documentCollectionFactory;
     PropertiesProvider propertiesProvider;

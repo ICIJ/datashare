@@ -10,7 +10,7 @@ import org.icij.datashare.asynctasks.bus.amqp.AmqpInterlocutor;
 import static org.icij.datashare.cli.DatashareCliOptions.TASK_MANAGER_POLLING_INTERVAL_OPT;
 
 @Singleton
-public class TaskManagerAmqp extends org.icij.datashare.asynctasks.TaskManagerAmqp {
+public class TaskManagerAmqp extends org.icij.datashare.asynctasks.TaskManagerAmqp implements DatashareTaskManager {
     @Inject
     public TaskManagerAmqp(AmqpInterlocutor amqp, TaskRepository taskRepository, PropertiesProvider propertiesProvider)
         throws IOException {

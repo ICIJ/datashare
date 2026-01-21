@@ -26,6 +26,7 @@
     import org.icij.datashare.cli.Mode;
     import org.icij.datashare.extract.DocumentCollectionFactory;
     import org.icij.datashare.session.DatashareUser;
+    import org.icij.datashare.tasks.DatashareTaskManager;
     import org.icij.datashare.text.Project;
     import org.icij.datashare.text.indexing.Indexer;
     import org.icij.datashare.utils.DataDirVerifier;
@@ -59,14 +60,14 @@
     public class ProjectResource {
         private final Repository repository;
         private final Indexer indexer;
-        private final TaskManager taskManager;
+        private final DatashareTaskManager taskManager;
         private final DataDirVerifier dataDirVerifier;
         private final ModeVerifier modeVerifier;
         private final DocumentCollectionFactory<Path> documentCollectionFactory;
         private final PropertiesProvider propertiesProvider;
 
         @Inject
-        public ProjectResource(Repository repository, Indexer indexer, TaskManager taskManager,PropertiesProvider propertiesProvider, DocumentCollectionFactory<Path> documentCollectionFactory) {
+        public ProjectResource(Repository repository, Indexer indexer, DatashareTaskManager taskManager, PropertiesProvider propertiesProvider, DocumentCollectionFactory<Path> documentCollectionFactory) {
             this.repository = repository;
             this.indexer = indexer;
             this.taskManager = taskManager;

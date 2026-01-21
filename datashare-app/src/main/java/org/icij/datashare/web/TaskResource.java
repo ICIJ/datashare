@@ -31,7 +31,6 @@ import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.asynctasks.TaskAlreadyExists;
 import org.icij.datashare.asynctasks.TaskFilters;
 import org.icij.datashare.asynctasks.TaskGroupType;
-import org.icij.datashare.asynctasks.TaskManager;
 import org.icij.datashare.asynctasks.TaskResult;
 import org.icij.datashare.asynctasks.UnknownTask;
 import org.icij.datashare.asynctasks.bus.amqp.UriResult;
@@ -46,6 +45,7 @@ import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.tasks.BatchDownloadRunner;
 import org.icij.datashare.tasks.BatchSearchRunner;
 import org.icij.datashare.tasks.DatashareTaskFactory;
+import org.icij.datashare.tasks.DatashareTaskManager;
 import org.icij.datashare.tasks.EnqueueFromIndexTask;
 import org.icij.datashare.tasks.ExtractNlpTask;
 import org.icij.datashare.tasks.IndexTask;
@@ -111,7 +111,7 @@ public class TaskResource {
     public static final Set<String> PAGINATION_FIELDS = WebQueryPagination.fields();
     public static final Set<String> TASK_FILTER_FIELDS = Set.of("args", "name", "state", "user");
     private final DatashareTaskFactory taskFactory;
-    private final TaskManager taskManager;
+    private final DatashareTaskManager taskManager;
     private final PropertiesProvider propertiesProvider;
     private final BatchSearchRepository batchSearchRepository;;
     private final ModeVerifier modeVerifier;
@@ -121,7 +121,7 @@ public class TaskResource {
 
 
     @Inject
-    public TaskResource(final DatashareTaskFactory taskFactory, final TaskManager taskManager,
+    public TaskResource(final DatashareTaskFactory taskFactory, final DatashareTaskManager taskManager,
                         final PropertiesProvider propertiesProvider, final BatchSearchRepository batchSearchRepository) {
         this.taskFactory = taskFactory;
         this.taskManager = taskManager;
@@ -198,7 +198,7 @@ public class TaskResource {
                     .getRecords(user, user.getProjectNames())
                     .stream()
                         .filter(r -> r.uuid.equals(id))
-                        .findFirst().map(TaskManager::taskify)
+                        .findFirst().map(DatashareTaskManager::taskify)
                         .orElseThrow(NotFoundException::new);
         }
     }
