@@ -29,7 +29,6 @@ import static java.lang.Integer.parseInt;
 import static java.lang.String.valueOf;
 import static java.util.Collections.singletonList;
 import static java.util.stream.Collectors.toList;
-import static java.util.stream.Collectors.toMap;
 import static org.icij.datashare.PropertiesProvider.DEFAULT_PROJECT_OPT;
 import static org.icij.datashare.PropertiesProvider.REPORT_NAME_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_DEFAULT_PROJECT;
@@ -80,13 +79,26 @@ public class ScanIndexTask extends PipelineTask<Path> {
         do {
             try {
                 docsToProcess = search.scroll(createScrollQuery().withDuration(scrollDuration).withSlices(sliceNum, scrollSlices).build()).collect(toList());
-                reportMap.putAll(docsToProcess.stream().map(d -> ((Document) d).getPath()).collect(toMap(p -> p, p -> new Report(ExtractionStatus.SUCCESS), (a, b) -> b)));
+                addToReportMap(docsToProcess);
                 nbProcessed += docsToProcess.size();
             } catch (IOException e) {
                 logger.error("error in slice {}", sliceNum, e);
             }
         } while (!docsToProcess.isEmpty());
         return nbProcessed;
+    }
+
+    /**
+     * Uses individual put() calls to work around ByteBuf memory leak in icij-extract's ResultEncoder.
+     * The leak occurs in putAll() due to unreleased ByteBufs during batch encoding.
+     * See: https://netty.io/wiki/reference-counted-objects.html
+     */
+    private void addToReportMap(List<? extends Entity> docs) {
+        Report successReport = new Report(ExtractionStatus.SUCCESS);
+        for (Entity entity : docs) {
+            Path path = ((Document) entity).getPath();
+            reportMap.put(path, successReport);
+        }
     }
 
     @NotNull
