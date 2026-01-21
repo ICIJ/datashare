@@ -21,7 +21,9 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.IntStream;
 
@@ -50,6 +52,7 @@ public class ScanIndexTask extends PipelineTask<Path> {
     private final String scrollDuration;
     private final int scrollSize;
     private final int scrollSlices;
+    private final int reportMapBatchSize;
 
     @Inject
     public ScanIndexTask(DocumentCollectionFactory<Path> factory, final Indexer indexer,
@@ -61,12 +64,15 @@ public class ScanIndexTask extends PipelineTask<Path> {
         this.projectName = propertiesProvider.get(DEFAULT_PROJECT_OPT).orElse(DEFAULT_DEFAULT_PROJECT);
         this.reportMap = factory.createMap(getMapName());
         this.indexer = indexer;
+        // Batch size matches scroll size for optimal performance (one putAll per scroll iteration)
+        this.reportMapBatchSize = scrollSize;
     }
 
     @Override
     public Long call() throws Exception {
         super.call();
-        logger.info("scanning index {} with {} scroll, scroll size {} and {} slice(s)", projectName, scrollDuration, scrollSize, scrollSlices);
+        logger.info("scanning index {} with {} scroll, scroll size {}, {} slice(s) in parallel, batch size {}",
+                projectName, scrollDuration, scrollSize, scrollSlices, reportMapBatchSize);
         Optional<Long> nb = IntStream.range(0, scrollSlices).parallel().mapToObj(this::slicedScroll).reduce(Long::sum);
         logger.info("imported {} paths into map {}", nb.get(), getMapName());
         return nb.get();
@@ -89,15 +95,22 @@ public class ScanIndexTask extends PipelineTask<Path> {
     }
 
     /**
-     * Uses individual put() calls to work around ByteBuf memory leak in icij-extract's ResultEncoder.
-     * The leak occurs in putAll() due to unreleased ByteBufs during batch encoding.
-     * See: https://netty.io/wiki/reference-counted-objects.html
+     * Batches putAll calls for better performance with large document sets.
+     * Batch size is set to scrollSize for optimal performance (one putAll per scroll iteration).
      */
     private void addToReportMap(List<? extends Entity> docs) {
         Report successReport = new Report(ExtractionStatus.SUCCESS);
+        Map<Path, Report> batch = new HashMap<>();
         for (Entity entity : docs) {
             Path path = ((Document) entity).getPath();
-            reportMap.put(path, successReport);
+            batch.put(path, successReport);
+            if (batch.size() >= reportMapBatchSize) {
+                reportMap.putAll(batch);
+                batch.clear();
+            }
+        }
+        if (!batch.isEmpty()) {
+            reportMap.putAll(batch);
         }
     }
 
