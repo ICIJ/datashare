@@ -46,7 +46,7 @@ public class CreateNlpBatchesFromIndexParametrizedTest {
 
     static class TestableCreateNlpBatchesFromIndex extends CreateNlpBatchesFromIndex {
         public TestableCreateNlpBatchesFromIndex(
-                TaskManager taskManager, Indexer indexer, Task<LinkedList<String>> taskView, Function<Double, Void> ignored) {
+                DatashareTaskManager taskManager, Indexer indexer, Task<LinkedList<String>> taskView, Function<Double, Void> ignored) {
             super(taskManager, indexer, taskView, ignored);
         }
 
@@ -60,7 +60,7 @@ public class CreateNlpBatchesFromIndexParametrizedTest {
     public static ElasticsearchRule es = new ElasticsearchRule();
     private static final ElasticsearchIndexer indexer = new ElasticsearchIndexer(es.client, new PropertiesProvider())
         .withRefresh(Refresh.True);
-    private static TaskManager taskManager;
+    private static DatashareTaskManager taskManager;
 
     @Before
     public void setUp() {

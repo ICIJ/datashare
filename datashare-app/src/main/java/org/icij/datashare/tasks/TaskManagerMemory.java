@@ -9,7 +9,7 @@ import java.util.concurrent.CountDownLatch;
 
 
 @Singleton
-public class TaskManagerMemory extends org.icij.datashare.asynctasks.TaskManagerMemory {
+public class TaskManagerMemory extends org.icij.datashare.asynctasks.TaskManagerMemory implements DatashareTaskManager {
 
     @Inject
     public TaskManagerMemory(DatashareTaskFactory taskFactory, TaskRepository taskRepository, PropertiesProvider propertiesProvider) {

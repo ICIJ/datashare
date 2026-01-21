@@ -8,12 +8,12 @@ import java.io.IOException;
 import java.util.Map;
 import net.codestory.http.WebServer;
 import org.icij.datashare.asynctasks.TaskAlreadyExists;
-import org.icij.datashare.asynctasks.TaskManager;
 import org.icij.datashare.batch.BatchSearch;
 import org.icij.datashare.batch.BatchSearchRecord;
 import org.icij.datashare.batch.BatchSearchRepository;
 import org.icij.datashare.mode.CommonMode;
 import org.icij.datashare.tasks.BatchSearchRunner;
+import org.icij.datashare.tasks.DatashareTaskManager;
 import org.icij.datashare.utils.WebBrowserUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,10 +37,10 @@ public class WebApp {
         boolean shouldOpenBrowser = parseBoolean(mode.properties().getProperty(BROWSER_OPEN_LINK_OPT));
         WebBrowserUtils.openBrowser(port, shouldOpenBrowser);
 
-        requeueDatabaseBatchSearches(mode.get(BatchSearchRepository.class), mode.get(TaskManager.class));
+        requeueDatabaseBatchSearches(mode.get(BatchSearchRepository.class), mode.get(DatashareTaskManager.class));
     }
 
-    private static void requeueDatabaseBatchSearches(BatchSearchRepository repository, TaskManager taskManager) throws IOException {
+    private static void requeueDatabaseBatchSearches(BatchSearchRepository repository, DatashareTaskManager taskManager) throws IOException {
         for (String batchSearchUuid: repository.getQueued()) {
             BatchSearch batchSearch = repository.get(batchSearchUuid);
             try {
