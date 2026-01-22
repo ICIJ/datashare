@@ -50,7 +50,6 @@
     import java.util.stream.Collectors;
     import java.util.stream.Stream;
 
-    import static dorkbox.systemTray.SystemTray.logger;
     import static java.util.concurrent.TimeUnit.MILLISECONDS;
     import static net.codestory.http.errors.NotFoundException.notFoundIfNull;
     import static net.codestory.http.payload.Payload.ok;
