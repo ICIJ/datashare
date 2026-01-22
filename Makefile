@@ -74,7 +74,7 @@ generate: migrate
 ## Reset database and reapply all migrations (DESTRUCTIVE)
 reset-db: devenv
 	bash datashare-db/scripts/reset-datashare-db.sh
-	$(MVN) -pl datashare-db liquibase:update
+	$(MVN) -pl datashare-db initialize liquibase:update
 
 ## Create a new release (usage: make release NEW_VERSION=x.y.z)
 release:
