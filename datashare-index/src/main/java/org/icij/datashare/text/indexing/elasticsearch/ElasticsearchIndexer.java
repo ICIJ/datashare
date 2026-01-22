@@ -19,6 +19,7 @@ import co.elastic.clients.elasticsearch.core.search.SourceConfigParam;
 import co.elastic.clients.json.JsonData;
 import co.elastic.clients.transport.rest_client.RestClientTransport;
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
@@ -567,5 +568,15 @@ public class ElasticsearchIndexer implements Indexer {
 
     public boolean ping() throws IOException {
         return client.ping().value();
+    }
+
+    @Override
+    public Map<String, String> getVersion() throws IOException {
+        String response = executeRaw("GET", "/", null);
+        JsonNode root = JsonObjectMapper.getMapper().readTree(response);
+        JsonNode version = root.get("version");
+        String versionNumber = version.get("number").asText();
+        String distribution = version.has("distribution") ? version.get("distribution").asText() : "elasticsearch";
+        return Map.of("version", versionNumber, "distribution", distribution);
     }
 }
