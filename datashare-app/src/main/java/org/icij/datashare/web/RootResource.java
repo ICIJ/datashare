@@ -14,6 +14,7 @@ import org.icij.datashare.ExtensionService;
 import org.icij.datashare.PluginService;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.session.DatashareUser;
+import org.icij.datashare.text.indexing.Indexer;
 
 import java.io.File;
 import java.io.IOException;
@@ -37,9 +38,13 @@ import static org.icij.datashare.PropertiesProvider.PLUGINS_DIR_OPT;
 public class RootResource {
     public static final String INDEX_HTML = "index.html";
     private final PropertiesProvider propertiesProvider;
+    private final Indexer indexer;
 
     @Inject
-    public RootResource(PropertiesProvider propertiesProvider) {this.propertiesProvider = propertiesProvider;}
+    public RootResource(PropertiesProvider propertiesProvider, Indexer indexer) {
+        this.propertiesProvider = propertiesProvider;
+        this.indexer = indexer;
+    }
 
     @Get
     public String getRoot(Context context) throws IOException {
@@ -79,15 +84,46 @@ public class RootResource {
     @ApiResponse(responseCode = "200", description = "returns the list of versions of datashare", useReturnTypeSchema = true)
     @Get("version")
     public Properties getVersions() throws IOException {
-        return getVersionProperties();
+        Properties properties = new Properties();
+        properties.putAll(getDatashareVersion());
+        properties.putAll(getExtractorVersion());
+        properties.putAll(getIndexVersion());
+        return properties;
     }
 
-    static Properties getVersionProperties() throws IOException {
+    /**
+     * Returns datashare version info from git.properties (build-time generated).
+     */
+    static Properties getDatashareVersion() throws IOException {
         Properties properties = new Properties();
-        properties.put("ds.extractorVersion", Tika.getString());
         InputStream gitProperties = RootResource.class.getResourceAsStream("/git.properties");
         if (gitProperties != null) {
             properties.load(gitProperties);
+        }
+        return properties;
+    }
+
+    /**
+     * Returns the document extractor (Tika) version.
+     */
+    static Properties getExtractorVersion() {
+        Properties properties = new Properties();
+        properties.put("ds.extractorVersion", Tika.getString());
+        return properties;
+    }
+
+    /**
+     * Returns the search index (Elasticsearch/OpenSearch) version and distribution.
+     */
+    private Properties getIndexVersion() {
+        Properties properties = new Properties();
+        try {
+            Map<String, String> indexVersion = indexer.getVersion();
+            properties.put("index.version", indexVersion.get("version"));
+            properties.put("index.distribution", indexVersion.get("distribution"));
+        } catch (Exception e) {
+            properties.put("index.version", "unknown");
+            properties.put("index.distribution", "unknown");
         }
         return properties;
     }
