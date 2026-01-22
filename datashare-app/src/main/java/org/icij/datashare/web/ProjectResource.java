@@ -21,7 +21,6 @@
     import org.apache.commons.io.FileUtils;
     import org.icij.datashare.PropertiesProvider;
     import org.icij.datashare.Repository;
-    import org.icij.datashare.asynctasks.TaskManager;
     import org.icij.datashare.cli.DatashareCliOptions;
     import org.icij.datashare.cli.Mode;
     import org.icij.datashare.extract.DocumentCollectionFactory;
@@ -155,20 +154,8 @@
                 return PayloadFormatter.error(String.format("`sourcePath` is required and must not be outside %s.", dataDirVerifier.value()), HttpStatus.BAD_REQUEST);
             }
 
-            boolean isNewProject = !projectExists(project);
-
-            // save project
-            if (!repository.save(project)) {
+            if (projectExists(project) && !repository.save(project)) {
                 return PayloadFormatter.error("Unable to save the project", HttpStatus.INTERNAL_SERVER_ERROR);
-            }
-
-            // post-process for new projects
-            if (isNewProject) {
-                Logger logger = LoggerFactory.getLogger(getClass());
-                logger.info("Created {}'s project: true", id);
-                if (createIndexOnce(project.getId())) {
-                    logger.info("Created {}'s index: true", id);
-                }
             }
 
             return new Payload(project).withCode(HttpStatus.OK);
