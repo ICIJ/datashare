@@ -13,6 +13,7 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Stream;
 
 
@@ -28,6 +29,7 @@ public interface Indexer extends Closeable {
     boolean getHealth();
     boolean ping() throws IOException;
     void close() throws IOException;
+    Map<String, String> getVersion() throws IOException;
 
     boolean bulkAdd(String indexName, Pipeline.Type nerType, List<NamedEntity> namedEntities, Document parent) throws IOException;
     <T extends Entity> boolean bulkAdd(final String indexName, List<T> entities) throws IOException;
