@@ -38,7 +38,7 @@ import java.util.stream.StreamSupport;
 import static java.util.Optional.ofNullable;
 import static org.icij.datashare.asynctasks.Task.State.FINAL_STATES;
 
-public class TaskManagerRedis implements TaskManager {
+public class TaskManagerRedis extends StoreAndQueueTaskManagerImpl {
     private final Runnable eventCallback; // for test
     public static final String EVENT_CHANNEL_NAME = "EVENT";
     protected static final int DEFAULT_TASK_POLLING_INTERVAL_MS = 5000;
@@ -116,7 +116,7 @@ public class TaskManagerRedis implements TaskManager {
     }
 
     public void handleEvent(TaskEvent e) {
-        ofNullable(TaskManager.super.handleAck(e)).flatMap(t -> ofNullable(eventCallback)).ifPresent(Runnable::run);
+        ofNullable(this.handleAck(e)).flatMap(t -> ofNullable(eventCallback)).ifPresent(Runnable::run);
     }
 
     @Override

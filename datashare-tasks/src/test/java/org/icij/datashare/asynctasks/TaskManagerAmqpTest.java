@@ -5,9 +5,6 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.databind.jsontype.NamedType;
 import org.icij.datashare.EnvUtils;
 import org.icij.datashare.PropertiesProvider;
@@ -64,7 +61,7 @@ public class TaskManagerAmqpTest {
         TaskGroupType key = TaskGroupType.Test;
         try (TaskManagerAmqp groupTaskManager = new TaskManagerAmqp(AMQP, new TaskRepositoryMemory(), RoutingStrategy.GROUP, () -> nextMessage.countDown());
              TaskSupplierAmqp groupTaskSupplier = new TaskSupplierAmqp(AMQP, key.name())) {
-            groupTaskSupplier.consumeTasks(t -> taskQueue.add(t));
+            groupTaskSupplier.consumeTasks(taskQueue::add);
             String expectedTaskViewId = groupTaskManager.startTask("taskName", User.local(), new Group(key), Map.of());
 
             assertThat(groupTaskManager.getTask(expectedTaskViewId)).isNotNull();
@@ -78,7 +75,7 @@ public class TaskManagerAmqpTest {
     public void test_new_task_with_name_routing() throws Exception {
         try (TaskManagerAmqp groupTaskManager = new TaskManagerAmqp(AMQP, new TaskRepositoryMemory(), RoutingStrategy.NAME, () -> nextMessage.countDown());
              TaskSupplierAmqp groupTaskSupplier = new TaskSupplierAmqp(AMQP, "TaskName")) {
-            groupTaskSupplier.consumeTasks(t -> taskQueue.add(t));
+            groupTaskSupplier.consumeTasks(taskQueue::add);
             String expectedTaskViewId = groupTaskManager.startTask("TaskName", User.local(), Map.of());
 
             assertThat(groupTaskManager.getTask(expectedTaskViewId)).isNotNull();

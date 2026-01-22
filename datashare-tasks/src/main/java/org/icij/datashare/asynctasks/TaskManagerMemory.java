@@ -21,7 +21,7 @@ import static java.lang.Integer.parseInt;
 import static org.icij.datashare.asynctasks.Task.State.FINAL_STATES;
 
 
-public class TaskManagerMemory implements TaskManager, TaskSupplier {
+public class TaskManagerMemory extends StoreAndQueueTaskManagerImpl implements TaskSupplier {
     protected static final int DEFAULT_TASK_POLLING_INTERVAL_MS = 5000;
     private final Logger logger = LoggerFactory.getLogger(getClass());
     private final ExecutorService executor;
@@ -117,7 +117,7 @@ public class TaskManagerMemory implements TaskManager, TaskSupplier {
     }
 
     @Override
-    public Group getTaskGroup(String taskId) throws IOException {
+    protected Group getTaskGroup(String taskId) throws IOException {
         return tasks.getTaskGroup(taskId);
     }
 
