@@ -221,7 +221,7 @@
                 }
             });
             logger.info("Stopping tasks : {}", taskManager.stopTasks(user));
-            taskManager.waitTasksToBeDone(TaskManager.POLLING_INTERVAL*2, MILLISECONDS);
+            taskManager.waitTasksToBeDone(taskManager.getTerminationPollingInterval()*2, MILLISECONDS);
             logger.info("Deleted tasks : {}", !taskManager.clearDoneTasks().isEmpty());
             return new Payload(204);
         }

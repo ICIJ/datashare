@@ -13,7 +13,7 @@ import java.util.stream.Stream;
 import static java.util.Optional.ofNullable;
 import static org.icij.datashare.asynctasks.Task.State.FINAL_STATES;
 
-public class TaskManagerAmqp implements TaskManager {
+public class TaskManagerAmqp extends StoreAndQueueTaskManagerImpl {
     protected static final int DEFAULT_TASK_POLLING_INTERVAL_MS = 5000;
     private final TaskRepository tasks;
     private final RoutingStrategy routingStrategy;
@@ -38,9 +38,7 @@ public class TaskManagerAmqp implements TaskManager {
         this.tasks = tasks;
         this.routingStrategy = routingStrategy;
         this.taskPollingIntervalMs = taskPollingIntervalMs;
-        eventConsumer = new AmqpConsumer<>(amqp, event ->
-                ofNullable(TaskManager.super.handleAck(event)).flatMap(t ->
-                        ofNullable(eventCallback)).ifPresent(Runnable::run), AmqpQueue.MANAGER_EVENT, TaskEvent.class).consumeEvents();
+        eventConsumer = new AmqpConsumer<>(amqp, event -> ofNullable(this.handleAck(event)).flatMap(t -> ofNullable(eventCallback)).ifPresent(Runnable::run), AmqpQueue.MANAGER_EVENT, TaskEvent.class).consumeEvents();
     }
 
     @Override
@@ -105,7 +103,7 @@ public class TaskManagerAmqp implements TaskManager {
     }
 
     @Override
-    public Group getTaskGroup(String taskId) throws IOException {
+    protected Group getTaskGroup(String taskId) throws IOException {
         return tasks.getTaskGroup(taskId);
     }
 

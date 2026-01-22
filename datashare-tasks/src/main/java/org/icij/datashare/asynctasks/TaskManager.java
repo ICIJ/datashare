@@ -1,10 +1,5 @@
 package org.icij.datashare.asynctasks;
 
-import org.icij.datashare.asynctasks.bus.amqp.CancelledEvent;
-import org.icij.datashare.asynctasks.bus.amqp.ErrorEvent;
-import org.icij.datashare.asynctasks.bus.amqp.ProgressEvent;
-import org.icij.datashare.asynctasks.bus.amqp.ResultEvent;
-import org.icij.datashare.asynctasks.bus.amqp.TaskEvent;
 import org.icij.datashare.user.User;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -21,33 +16,24 @@ import static java.util.stream.Collectors.toMap;
 import static org.icij.datashare.asynctasks.Task.State.NON_FINAL_STATES;
 
 /**
- * Task manager interface with default methods common for all managers implementations.
+ * Task manager interface whether implemented in-house or externally (proxy to an external TM)
  */
 public interface TaskManager extends Closeable {
-    int POLLING_INTERVAL = 5000;
     Logger logger = LoggerFactory.getLogger(TaskManager.class);
+    <V extends Serializable> String startTask(Task<V> taskView, Group group) throws IOException, TaskAlreadyExists;
     <V extends Serializable> Task<V> getTask(String taskId) throws IOException, UnknownTask;
     <V extends Serializable> Task<V> clearTask(String taskId) throws IOException, UnknownTask;
     boolean stopTask(String taskId) throws IOException, UnknownTask;
-
     Stream<Task<?>> getTasks(TaskFilters filters) throws IOException;
     // clearDoneTasks keeps a List return type otherwise tasks are cleared unless the stream is consumed
     List<Task<?>> clearDoneTasks(TaskFilters filter) throws IOException;
-    Group getTaskGroup(String taskId) throws IOException, UnknownTask;
     boolean shutdown() throws IOException;
-
     void clear() throws IOException;
-
     boolean getHealth() throws IOException;
-
     int getTerminationPollingInterval();
 
     default Stream<Task<?>> getTasks() throws IOException {
         return getTasks(TaskFilters.empty());
-    }
-
-    default boolean awaitTermination(int timeout, TimeUnit timeUnit) throws InterruptedException, IOException {
-        return !waitTasksToBeDone(timeout, timeUnit).isEmpty();
     }
 
     default Map<String, Boolean> stopTasks(User user) throws IOException {
@@ -71,24 +57,6 @@ public interface TaskManager extends Closeable {
         return clearDoneTasks(TaskFilters.empty());
     }
 
-    /**
-     * This is a "inner method" that is used in the template method for start(task).
-     * It saves the method in the inner persistent state of TaskManagers implementations.
-     *
-     * @param task to be saved in persistent state
-     * @throws IOException if a network error occurs
-     */
-    <V extends Serializable> void insert(Task<V> task, Group group) throws IOException, TaskAlreadyExists;
-    <V extends Serializable> void update(Task<V> task) throws IOException, UnknownTask;
-
-    /**
-     * This is a "inner method" that is used in the template method for start(task).
-     * It put the task in the task queue for workers.
-     * @param task task to be queued
-     * @throws IOException if a network error occurs
-     */
-    <V extends Serializable> void enqueue(Task<V> task) throws IOException;
-
     // TaskResource and pipeline tasks
     default String startTask(Class<?> taskClass, User user, Map<String, Object> properties) throws IOException {
         return startTask(new Task<>(taskClass.getName(), user, properties), new Group(taskClass.getAnnotation(TaskGroup.class).value()));
@@ -108,103 +76,8 @@ public interface TaskManager extends Closeable {
         return startTask(new Task<>(taskName, user, properties), group);
     }
 
-    /**
-     * Main start task function. it saves the task in the persistent storage. If the task is new it will enqueue
-     * it in the memory/redis/AMQP queue and return the id. Else it will not enqueue the task and return null.
-     *
-     * @param taskView: the task description.
-     * @param group: task group
-     * @return task id if it was new and has been saved else null
-     * @throws IOException in case of communication failure with Redis or AMQP broker
-     * @throws TaskAlreadyExists when the task has already been started
-     */
-    default <V extends Serializable> String startTask(Task<V> taskView, Group group) throws IOException, TaskAlreadyExists {
-        insert(taskView, group);
-        taskView.queue();
-        enqueue(taskView);
-        return taskView.id;
-    }
-
     default <V extends Serializable> String startTask(Task<V> taskView) throws IOException, TaskAlreadyExists {
         return startTask(taskView, null);
-    }
-
-    default <V extends Serializable> Task<V> setResult(ResultEvent<V> e) throws IOException, UnknownTask {
-        Task<V> taskView = getTask(e.taskId);
-        if (taskView != null) {
-            logger.info("result event for {}", e.taskId);
-            taskView.setResult(e.result);
-            update(taskView);
-        } else {
-            logger.warn("no task found for result event {}", e.taskId);
-        }
-        return taskView;
-    }
-
-    default <V extends Serializable> Task<V> setError(ErrorEvent e) throws IOException, UnknownTask {
-        Task<V> taskView = getTask(e.taskId);
-        if (taskView != null) {
-            logger.info("error event for {}", e.taskId);
-            taskView.setError(e.error);
-            update(taskView);
-        } else {
-            logger.warn("no task found for error event {}", e.taskId);
-        }
-        return taskView;
-    }
-
-    default <V extends Serializable> Task<V> setCanceled(CancelledEvent e) throws IOException, UnknownTask {
-        Task<V> taskView = getTask(e.taskId);
-        if (taskView != null) {
-            logger.info("canceled event for {}", e.taskId);
-            taskView.cancel();
-            update(taskView);
-            if (e.requeue) {
-                try {
-                    enqueue(taskView);
-                } catch (IOException ex) {
-                    logger.error("error while reposting canceled event", ex);
-                }
-            }
-        } else {
-            logger.warn("no task found for canceled event {}", e.taskId);
-        }
-        return taskView;
-    }
-
-    default <V extends Serializable> Task<V> setProgress(ProgressEvent e) throws IOException, UnknownTask {
-        logger.debug("progress event for {}", e.taskId);
-        try {
-            Task<V> taskView = getTask(e.taskId);
-            if (taskView != null) {
-                taskView.setProgress(e.progress);
-                update(taskView);
-            }
-            return taskView;
-        } catch (UnknownTask ex) {
-            throw new NackException(ex, false);
-        }
-    }
-
-    default <V extends Serializable> Task<V> handleAck(TaskEvent e) {
-        try {
-            if (e instanceof CancelledEvent ce) {
-                return setCanceled(ce);
-            }
-            if (e instanceof ResultEvent) {
-                return setResult((ResultEvent<V>) e);
-            }
-            if (e instanceof ErrorEvent ee) {
-                return setError(ee);
-            }
-            if (e instanceof ProgressEvent pe) {
-                return setProgress(pe);
-            }
-            logger.warn("received event not handled {}", e);
-            return null;
-        } catch (IOException | UnknownTask ioe) {
-            throw new TaskEventHandlingException(ioe);
-        }
     }
 
     /**
@@ -231,15 +104,12 @@ public interface TaskManager extends Closeable {
         return unfinishedTasks;
     }
 
+    default boolean awaitTermination(int timeout, TimeUnit timeUnit) throws InterruptedException, IOException {
+        return !waitTasksToBeDone(timeout, timeUnit).isEmpty();
+    }
+
     // for tests
     default void setLatch(String taskId, StateLatch stateLatch) throws IOException, UnknownTask {
         getTask(taskId).setLatch(stateLatch);
     }
-
-    class TaskEventHandlingException extends RuntimeException {
-        public TaskEventHandlingException(Exception cause) {
-            super(cause);
-        }
-    }
-
 }

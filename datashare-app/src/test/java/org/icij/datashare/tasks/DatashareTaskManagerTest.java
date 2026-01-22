@@ -64,7 +64,7 @@ public class DatashareTaskManagerTest {
         BatchSearchRecord batchSearchRecord =
             new BatchSearchRecord(projects, "name", "description", 123, new Date(), uri);
         Task<String> task = new Task<>("name", User.local(), new HashMap<>());
-        taskManager.insert(task, null);
+        taskManager.startTask(task, null);
 
         List<Task<?>> tasks =
             taskManager.getTasks(TaskFilters.empty().withUser(user), Stream.of(batchSearchRecord)).toList();
@@ -82,7 +82,7 @@ public class DatashareTaskManagerTest {
         BatchSearchRecord batchSearchRecord =
             new BatchSearchRecord(projects, "name", "description", 123, new Date(), uri);
         Task<String> task = new Task<>("name", User.local(), new HashMap<>());
-        taskManager.insert(task, null);
+        taskManager.startTask(task, null);
 
         TaskFilters filters = TaskFilters.empty().withUser(userOtherLocal);
         List<Task<?>> tasks = taskManager.getTasks(filters, Stream.of(batchSearchRecord)).toList();
@@ -142,7 +142,7 @@ public class DatashareTaskManagerTest {
             new BatchSearchRecord(projects, "name", "description", 123, new Date(), uri);
 
         Task<String> task = new Task<>(batchSearchRecord.uuid, "name", User.local());
-        taskManager.insert(task, null);
+        taskManager.startTask(task, null);
 
         List<Task<?>> tasks =
             taskManager.getTasks(TaskFilters.empty().withUser(user), Stream.of(batchSearchRecord)).toList();
