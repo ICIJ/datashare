@@ -1,11 +1,13 @@
 
 package org.icij.datashare;
 
+import org.junit.Ignore;
 import org.junit.Test;
 
 // this test is not executed by CI because it doesn't end with "Test"
 // its goal is to test manually the SystemTray
 // it has not been automated because it tests UI elements have to be manaaged in the CI
+@Ignore
 public class SystemTrayTestManual {
 
     @Test

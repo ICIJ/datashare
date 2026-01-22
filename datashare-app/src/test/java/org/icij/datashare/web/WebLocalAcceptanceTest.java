@@ -3,6 +3,7 @@ package org.icij.datashare.web;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import net.codestory.rest.Response;
+import org.icij.datashare.EnvUtils;
 import org.icij.datashare.Repository;
 import org.icij.datashare.mode.CommonMode;
 import org.icij.datashare.web.testhelpers.AbstractProdWebServerTest;
@@ -29,12 +30,14 @@ public class WebLocalAcceptanceTest extends AbstractProdWebServerTest {
     public void setUp() throws Exception {
         mocks = openMocks(this);
         when(jooqRepository.getProjects()).thenReturn(new ArrayList<>());
-        HashMap<String, Object> properties = new HashMap<>() {{
-            put("mode", "LOCAL");
-            put("dataDir", WebLocalAcceptanceTest.class.getResource("/data").getPath());
-            put("extensionsDir", WebLocalAcceptanceTest.class.getResource("/extensions").getPath());
-            put("pluginsDir", WebLocalAcceptanceTest.class.getResource("/plugins").getPath());
-        }};
+        Map<String, Object> properties = Map.of(
+            "mode", "LOCAL",
+            "dataDir", WebLocalAcceptanceTest.class.getResource("/data").getPath(),
+            "extensionsDir", WebLocalAcceptanceTest.class.getResource("/extensions").getPath(),
+            "pluginsDir", WebLocalAcceptanceTest.class.getResource("/plugins").getPath(),
+            "redisAddress", EnvUtils.resolveUri("redis", "redis://redis:6379"),
+            "elasticsearchAddress", EnvUtils.resolveUri("elasticsearch", "http://elasticsearch:9200")
+        );
         configure(CommonMode.create(properties).createWebConfiguration());
         waitForDatashare();
     }
@@ -78,7 +81,10 @@ public class WebLocalAcceptanceTest extends AbstractProdWebServerTest {
 
     @Test
     public void test_get_extensions_plugins_without_directory() throws Exception {
-        configure(CommonMode.create(new HashMap<>() {{ put("mode", "LOCAL");}}).createWebConfiguration());
+        Map<String, Object> properties = Map.of("mode", "LOCAL",
+            "elasticsearchAddress", EnvUtils.resolveUri("elasticsearch", "http://elasticsearch:9200")
+        );
+        configure(CommonMode.create(properties).createWebConfiguration());
         waitForDatashare();
         get("/api/extensions").should().haveType("application/json").contain("\"installed\":false");
         get("/api/plugins").should().haveType("application/json").contain("\"installed\":false");

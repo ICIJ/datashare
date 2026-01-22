@@ -1,9 +1,11 @@
 package org.icij.datashare.web;
 
+import java.util.Map;
 import net.codestory.http.Context;
 import net.codestory.http.constants.HttpStatus;
 import net.codestory.http.filters.PayloadSupplier;
 import net.codestory.http.payload.Payload;
+import org.icij.datashare.EnvUtils;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchConfiguration;
 import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchIndexer;
@@ -18,7 +20,15 @@ public class IndexWaiterFilterTest {
     private Payload next = Payload.ok();
     private PayloadSupplier nextFilter = () -> next;
     private Context context = mock(Context.class);
-    private final ElasticsearchIndexer indexer = new ElasticsearchIndexer(ElasticsearchConfiguration.createESClient(new PropertiesProvider()), new PropertiesProvider());
+    private final ElasticsearchIndexer indexer;
+
+    {
+        PropertiesProvider propertiesProvider = new PropertiesProvider(
+            Map.of("elasticsearchAddress", EnvUtils.resolveUri("elasticsearch", "http://elasticsearch:9200"))
+        );
+        indexer =
+            new ElasticsearchIndexer(ElasticsearchConfiguration.createESClient(propertiesProvider), propertiesProvider);
+    }
 
     @After
     public void tearDown() throws Exception { indexer.close();}

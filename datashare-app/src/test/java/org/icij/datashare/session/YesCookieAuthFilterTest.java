@@ -49,7 +49,9 @@ public class YesCookieAuthFilterTest {
         when(jooqRepository.getProjects()).thenReturn(new ArrayList<>());
         PropertiesProvider propertiesProvider = new PropertiesProvider();
         propertiesProvider.getProperties().put("defaultProject", "demo");
-        propertiesProvider.getProperties().put("messageBusAddress", EnvUtils.resolveUri("redis", "redis://redis:6379"));
+        String redisAddress = EnvUtils.resolveUri("redis", "redis://redis:6379");
+        propertiesProvider.getProperties().put("messageBusAddress", redisAddress);
+        propertiesProvider.getProperties().put("redisAddress", redisAddress);
         YesCookieAuthFilter filter = new YesCookieAuthFilter(propertiesProvider, jooqRepository);
         Payload payload = filter.apply("url", context, nextFilter);
 
@@ -65,7 +67,9 @@ public class YesCookieAuthFilterTest {
         when(jooqRepository.getProjects()).thenReturn(new ArrayList<>(List.of(new Project("foo"))));
         PropertiesProvider propertiesProvider = new PropertiesProvider();
         propertiesProvider.getProperties().put("defaultProject", "demo");
-        propertiesProvider.getProperties().put("messageBusAddress", EnvUtils.resolveUri("redis", "redis://redis:6379"));
+        String redisAddress = EnvUtils.resolveUri("redis", "redis://redis:6379");
+        propertiesProvider.getProperties().put("messageBusAddress", redisAddress);
+        propertiesProvider.getProperties().put("redisAddress", redisAddress);
         YesCookieAuthFilter filter = new YesCookieAuthFilter(propertiesProvider, jooqRepository);
         Payload payload = filter.apply("url", context, nextFilter);
 

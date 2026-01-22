@@ -1,6 +1,7 @@
 package org.icij.datashare.tasks;
 
 import java.util.List;
+import org.icij.datashare.EnvUtils;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.asynctasks.TaskWorkerLoop;
@@ -24,7 +25,8 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class TaskWorkerLoopIntTest {
-    private final TaskSupplierRedis taskSupplier = new TaskSupplierRedis(new PropertiesProvider());
+    private static final PropertiesProvider propertiesProvider = new PropertiesProvider(Map.of("redisAddress", EnvUtils.resolveUri("redis", "redis://redis:6379")));
+    private final TaskSupplierRedis taskSupplier = new TaskSupplierRedis(propertiesProvider);
     TaskManagerRedis taskManager;
     CountDownLatch eventWaiter;
 
@@ -59,7 +61,7 @@ public class TaskWorkerLoopIntTest {
     @Before
     public void setUp() throws Exception {
         eventWaiter = new CountDownLatch(2); // progress, error
-        taskManager = new TaskManagerRedis(new PropertiesProvider(), "test:task:manager", eventWaiter::countDown, 100);
+        taskManager = new TaskManagerRedis(propertiesProvider, "test:task:manager", eventWaiter::countDown, 100);
     }
 
     @After
