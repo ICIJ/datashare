@@ -9,6 +9,7 @@ import org.apache.commons.io.FileUtils;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.db.JooqRepository;
 import org.icij.datashare.session.LocalUserFilter;
+import org.icij.datashare.text.indexing.Indexer;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -33,6 +34,7 @@ import static org.mockito.MockitoAnnotations.initMocks;
 
 public class RootResourcePluginTest implements FluentRestTest {
     @Mock JooqRepository jooqRepository;
+    @Mock Indexer indexer;
     @ClassRule public static TemporaryFolder appFolder = new TemporaryFolder();
     @Rule public TemporaryFolder folder = new TemporaryFolder();
     private static WebServer server;
@@ -59,7 +61,7 @@ public class RootResourcePluginTest implements FluentRestTest {
             put("pluginsDir", folder.getRoot().toString());
         }});
         server.configure(routes -> {
-            routes.add(new RootResource(propertiesProvider))
+            routes.add(new RootResource(propertiesProvider, indexer))
                     .bind("/plugins", folder.getRoot())
                     .filter(new LocalUserFilter(new PropertiesProvider(), jooqRepository));
         });
@@ -67,7 +69,7 @@ public class RootResourcePluginTest implements FluentRestTest {
 
     @Test
     public void test_get_with_no_plugin_directory() {
-        server.configure(routes -> routes.add(RootResource.class));
+        server.configure(routes -> routes.add(new RootResource(new PropertiesProvider(), indexer)));
         get("/").should().respond(200).contain("datashare-client");
         get("").should().respond(200).contain("datashare-client");
     }
@@ -75,7 +77,7 @@ public class RootResourcePluginTest implements FluentRestTest {
     @Test
     public void test_get_with_missing_plugin_directory() {
         propertiesProvider = new PropertiesProvider(Map.of("pluginsDir", "/something/missing/"));
-        server.configure(routes -> routes.add(new RootResource(propertiesProvider)));
+        server.configure(routes -> routes.add(new RootResource(propertiesProvider, indexer)));
         get("/").should().respond(200).contain("datashare-client");
         get("").should().respond(200).contain("datashare-client");
 
@@ -145,7 +147,7 @@ public class RootResourcePluginTest implements FluentRestTest {
 
     @Test
     public void test_get_with_plugin_directory_that_contains_a_folder_with_package_json_file_with_private_and_projects_without_current_user() throws Exception {
-        server.configure(routes -> routes.add(new RootResource(propertiesProvider)).bind("/plugins", folder.getRoot()));
+        server.configure(routes -> routes.add(new RootResource(propertiesProvider, indexer)).bind("/plugins", folder.getRoot()));
         Path pluginPath = folder.newFolder("my_plugin").toPath();
         Files.write(pluginPath.resolve("package.json"), asList(
                 "{",
