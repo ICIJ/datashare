@@ -10,12 +10,7 @@ import net.codestory.http.security.SessionIdStore;
 import org.icij.datashare.cli.QueueType;
 import org.icij.datashare.db.JooqRepository;
 import org.icij.datashare.db.RepositoryFactoryImpl;
-import org.icij.datashare.session.ApiKeyFilter;
-import org.icij.datashare.session.ApiKeyStore;
-import org.icij.datashare.session.ApiKeyStoreAdapter;
-import org.icij.datashare.session.OAuth2CookieFilter;
-import org.icij.datashare.session.RedisSessionIdStore;
-import org.icij.datashare.session.YesCookieAuthFilter;
+import org.icij.datashare.session.*;
 import org.icij.datashare.web.ApiKeyResource;
 import org.icij.datashare.web.BatchSearchResource;
 import org.icij.datashare.web.DocumentResource;
@@ -87,8 +82,13 @@ public class ServerMode extends CommonMode {
         return new YesCookieAuthFilter(propertiesProvider, jooqRepository);
     }
 
+    protected void addPermissionConfiguration(final Routes routes) {
+        routes.registerAfterAnnotation(Policy.class, (annotation, context, payload) -> payload);
+    }
+
     @Override
     protected Routes addModeConfiguration(Routes routes) {
+        addPermissionConfiguration(routes);
         return routes.
                 add(TaskResource.class).
                 add(IndexResource.class).

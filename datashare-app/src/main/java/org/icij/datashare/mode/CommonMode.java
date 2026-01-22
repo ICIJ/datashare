@@ -38,7 +38,6 @@ import org.icij.datashare.extract.RedisDocumentCollectionFactory;
 import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.nlp.EmailPipeline;
 import org.icij.datashare.nlp.OptimaizeLanguageGuesser;
-import org.icij.datashare.session.Policy;
 import org.icij.datashare.session.UsersInDb;
 import org.icij.datashare.session.UsersWritable;
 import org.icij.datashare.tasks.DatashareTaskFactory;
@@ -323,10 +322,6 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
 
     protected abstract Routes addModeConfiguration(final Routes routes);
 
-    protected void addPermissionConfiguration(final Routes routes) {
-        routes.registerAfterAnnotation(Policy.class, (annotation, context, payload) -> payload);
-    }
-
     void configurePersistence() {
         RepositoryFactoryImpl repositoryFactory = new RepositoryFactoryImpl(propertiesProvider);
         bind(Repository.class).toInstance(repositoryFactory.createRepository());
@@ -366,7 +361,6 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
         addExtensionsConfiguration(routes);
         addModeConfiguration(routes);
         addPluginsConfiguration(routes);
-        addPermissionConfiguration(routes);
         return routes;
     }
 
