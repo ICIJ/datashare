@@ -12,35 +12,41 @@ import org.redisson.api.RedissonClient;
 import org.redisson.command.CommandSyncService;
 import org.redisson.liveobject.core.RedissonObjectBuilder;
 
-public class TaskRepositoryRedis extends RedissonMap<String, TaskMetadata<?>> implements TaskRepository {
+public class TaskRepositoryRedis extends RedissonMap<String, TaskGroupMetadata<?>> implements TaskRepository {
     public TaskRepositoryRedis(RedissonClient redisson) {
         this(redisson, "ds:task:manager");
     }
 
     public TaskRepositoryRedis(RedissonClient redisson, String name) {
-        super(new TaskManagerRedis.RedisCodec<>(TaskMetadata.class, JsonObjectMapper.getMapper()), new CommandSyncService(((Redisson) redisson).getConnectionManager(), new RedissonObjectBuilder(redisson)),
+        super(new TaskManagerRedis.RedisCodec<>(TaskGroupMetadata.class, JsonObjectMapper.getMapper()), new CommandSyncService(((Redisson) redisson).getConnectionManager(), new RedissonObjectBuilder(redisson)),
                 name, redisson, null, null);
     }
 
     @Override
     public <V extends Serializable> Task<V> getTask(String taskId) throws IOException, UnknownTask{
-        TaskMetadata<V> taskMetadata = (TaskMetadata<V>) super.get(taskId);
-        if (taskMetadata == null) {
+        TaskGroupMetadata<V> taskGroupMetadata = (TaskGroupMetadata<V>) super.get(taskId);
+        if (taskGroupMetadata == null) {
             throw new UnknownTask(taskId);
         }
-        return taskMetadata.task();
+        return taskGroupMetadata.task();
     }
 
     @Override
     public Stream<Task<? extends Serializable>> getTasks(TaskFilters filters) throws IOException, UnknownTask {
-        return super.values().stream().map(TaskMetadata::task)
+        return super.values().stream().map(TaskGroupMetadata::task)
             .filter(filters::filter)
             .map(t -> (Task<? extends Serializable>)t);
     }
 
     @Override
+    public Stream<TaskStateMetadata> getTaskStates(TaskFilters filters) throws IOException, UnknownTask {
+        // Inefficient implementation of get task state but redis is not used any longer
+        return getTasks(filters).map(t -> new TaskStateMetadata(t.id, t.getState()));
+    }
+
+    @Override
     public <V extends Serializable> void insert(Task<V> task, Group group) throws IOException {
-        super.put(task.id, new TaskMetadata<>(task, group));
+        super.put(task.id, new TaskGroupMetadata<>(task, group));
     }
 
     @Override

@@ -30,6 +30,7 @@ import java.util.concurrent.Executors;
 import static java.util.Arrays.asList;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.fest.assertions.Assertions.assertThat;
+import static org.junit.Assert.assertTrue;
 
 @RunWith(Parameterized.class)
 public class TaskManagersIntTest {
@@ -181,7 +182,9 @@ public class TaskManagersIntTest {
         String tv1Id = taskManager.startTask(TestFactory.Sleep.class, User.local(), Map.of("duration", 100));
         String tv2Id = taskManager.startTask(TestFactory.Sleep.class, User.local(), Map.of("duration", 200));
 
-        taskManager.awaitTermination(2, SECONDS);
+        boolean allDone = taskManager.awaitTermination(20, SECONDS);
+
+        assertTrue(allDone);
         assertThat(taskManager.getTask(tv1Id).getState()).isEqualTo(Task.State.DONE);
         assertThat(taskManager.getTask(tv2Id).getState()).isEqualTo(Task.State.DONE);
     }

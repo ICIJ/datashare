@@ -15,9 +15,11 @@ import org.icij.datashare.asynctasks.TaskFilters;
 import org.icij.datashare.asynctasks.TaskGroupType;
 import org.icij.datashare.asynctasks.TaskRepository;
 import org.icij.datashare.asynctasks.TaskResult;
+import org.icij.datashare.asynctasks.TaskStateMetadata;
 import org.icij.datashare.asynctasks.UnknownTask;
 import org.icij.datashare.asynctasks.bus.amqp.TaskError;
 import org.icij.datashare.db.tables.records.TaskRecord;
+import org.icij.datashare.function.Pair;
 import org.icij.datashare.json.JsonObjectMapper;
 import org.jooq.Condition;
 import org.jooq.DSLContext;
@@ -34,6 +36,7 @@ import java.util.Date;
 import java.util.Map;
 
 import static java.util.Optional.ofNullable;
+import static org.icij.datashare.LambdaExceptionUtils.rethrowFunction;
 import static org.icij.datashare.asynctasks.bus.amqp.Event.MAX_RETRIES_LEFT;
 import static org.icij.datashare.db.Tables.TASK;
 import static org.jooq.impl.DSL.selectFrom;
@@ -126,9 +129,9 @@ public class JooqTaskRepository implements TaskRepository {
     }
 
     @Override
-    public Stream<Task<? extends Serializable>> getTasks(TaskFilters filters) {
+    public Stream<Task<? extends Serializable>> getTasks(TaskFilters filters) throws IOException {
         if (filters == null) {
-            return selectFrom(TASK).stream().map(this::createTaskFrom);
+            return selectFrom(TASK).stream().map(rethrowFunction(this::createTaskFrom));
         }
         Stream<Task<? extends Serializable>> tasks = selectTasks(DSL.using(connectionProvider, dialect), filters);
         if (filters.getArgs() != null && !filters.getArgs().isEmpty()) {
@@ -137,25 +140,67 @@ public class JooqTaskRepository implements TaskRepository {
         return tasks;
     }
 
-    private Task<?> createTaskFrom(TaskRecord taskRecord) {
-        return ofNullable(taskRecord).map(r ->
+    @Override
+    public Stream<TaskStateMetadata> getTaskStates(TaskFilters filters) throws UnknownTask {
+        if (filters == null) {
+            return selectFrom(TASK).stream().map(this::createTaskStateFrom);
+        }
+        // Special case when we need to filter on args as we need to deserialize them
+        if (filters.getArgs() != null) {
+            // TODO: test me
+            return selectTaskStatesAndArgs(DSL.using(connectionProvider, dialect), filters)
+                .filter( p -> TaskFilters.empty().withArgs(filters.getArgs()).filter(p._2()))
+                .map(Pair::_1);
+        }
+        return selectTaskStates(DSL.using(connectionProvider, dialect), filters);
+    }
+
+    private Task<?> createTaskFrom(TaskRecord taskRecord) throws IOException {
+        return ofNullable(taskRecord).map(rethrowFunction(r ->
         {
             Date createdAt = r.getCreatedAt() == null ? null : Date.from(r.getCreatedAt().atZone(ZoneId.systemDefault()).toInstant());
             Date completedAt = r.getCompletedAt() == null ? null :Date.from(r.getCompletedAt().atZone(ZoneId.systemDefault()).toInstant());
-            try {
-                Map<String, Object> args = JsonObjectMapper.readValueTyped(r.getArgs(), new TypeReference<>() {});
+            Map<String, Object> args = JsonObjectMapper.readValueTyped(r.getArgs(), new TypeReference<>() {});
                 TaskResult<?> result = r.getResult() == null ? null: JsonObjectMapper.readValueTyped(r.getResult(), new TypeReference<>() {});
                 TaskError error  = r.getError() == null ? null: JsonObjectMapper.readValueTyped(r.getError(), TaskError.class);
                 Task<?> task = new Task<>(r.getId(), r.getName(), Task.State.valueOf(r.getState()),
                         r.getProgress(), createdAt, r.getRetriesLeft(), completedAt, args, result, error);
                 return task;
-            } catch ( IOException e) {
-                throw new RuntimeException(e);
-            }
-        }).orElse(null);
+        })).orElse(null);
+    }
+
+    private TaskStateMetadata createTaskStateFrom(TaskRecord taskRecord) {
+        return ofNullable(taskRecord)
+            .map(r -> new TaskStateMetadata(r.getId(), Task.State.valueOf(r.getState())))
+            .orElse(null);
+    }
+
+    private Pair<TaskStateMetadata, Map<String, Object>> createTaskStateAndArgsFrom(TaskRecord taskRecord) {
+        return ofNullable(taskRecord)
+            .map(rethrowFunction(r -> {
+                Map<String, Object> args = JsonObjectMapper.readValueTyped(r.getArgs(), new TypeReference<>() {});
+                TaskStateMetadata state = new TaskStateMetadata(r.getId(), Task.State.valueOf(r.getState()));
+                return new Pair<>(state, args);
+            }))
+            .orElse(null);
     }
 
     private Stream<Task<? extends Serializable>> selectTasks(DSLContext ctx, TaskFilters filters) {
+        List<Condition> conditions = conditionsFromFilter(filters);
+        return ctx.selectFrom(TASK).where(conditions).stream().map(rethrowFunction(this::createTaskFrom));
+    }
+
+    private Stream<TaskStateMetadata> selectTaskStates(DSLContext ctx, TaskFilters filters) {
+        List<Condition> conditions = conditionsFromFilter(filters);
+        return ctx.selectFrom(TASK).where(conditions).stream().map(this::createTaskStateFrom);
+    }
+
+    private Stream<Pair<TaskStateMetadata, Map<String, Object>>> selectTaskStatesAndArgs(DSLContext ctx, TaskFilters filters) {
+        List<Condition> conditions = conditionsFromFilter(filters);
+        return ctx.selectFrom(TASK).where(conditions).stream().map(this::createTaskStateAndArgsFrom);
+    }
+
+    private static List<Condition> conditionsFromFilter(TaskFilters filters) {
         List<Condition> conditions = new ArrayList<>();
         if (filters.getStates() != null && !filters.getStates().isEmpty()) {
             Condition hasState = filters.getStates().stream()
@@ -172,19 +217,18 @@ public class JooqTaskRepository implements TaskRepository {
         if (filters.getUser() != null) {
             conditions.add(TASK.USER_ID.eq(filters.getUser().id));
         }
-        return ctx.selectFrom(TASK).where(conditions).stream().map(this::createTaskFrom);
+        return conditions;
     }
 
-
+    
     private InsertValuesStep11<TaskRecord, String, String, String, String, String, Double, LocalDateTime, LocalDateTime, Integer, Integer, String> insert(DSLContext ctx) {
         return ctx.insertInto(TASK).columns(
                         TASK.ID, TASK.NAME, TASK.STATE, TASK.USER_ID, TASK.GROUP_ID, TASK.PROGRESS,
                         TASK.CREATED_AT, TASK.COMPLETED_AT, TASK.RETRIES_LEFT, TASK.MAX_RETRIES, TASK.ARGS);
     }
 
-    private static void insertValues(Task<?> task, Group group, InsertValuesStep11<TaskRecord, String, String, String, String, String, Double, LocalDateTime, LocalDateTime, Integer, Integer, String> insert) {
-        try {
-            insert.values(task.id, task.name,
+    private static void insertValues(Task<?> task, Group group, InsertValuesStep11<TaskRecord, String, String, String, String, String, Double, LocalDateTime, LocalDateTime, Integer, Integer, String> insert) throws JsonProcessingException {
+        insert.values(task.id, task.name,
                     task.getState().name(),
                     ofNullable(task.getUser()).map(u -> u.id).orElse(null),
                     ofNullable(group).map(Group::getId).orElse(null),
@@ -193,9 +237,6 @@ public class JooqTaskRepository implements TaskRepository {
                     ofNullable(task.getCompletedAt()).map(d -> new Timestamp(d.getTime()).toLocalDateTime()).orElse(null),
                     task.getRetriesLeft(),
                     MAX_RETRIES_LEFT, JsonObjectMapper.writeValueAsStringTyped(task.args)); // to force writing @type fields in the hashmap
-        } catch (JsonProcessingException ex) {
-            throw new RuntimeException(ex);
-        }
     }
 
 }

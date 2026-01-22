@@ -69,6 +69,10 @@ public final class TaskFilters {
         return new TaskFilters(taskArgs, states, name, user, regexFlags);
     }
 
+    public TaskFilters withArgs(ArgsFilter... taskArgs) {
+        return new TaskFilters(List.of(taskArgs), states, name, user, regexFlags);
+    }
+
     public TaskFilters withFlag(Integer flag) {
         return new TaskFilters(args, states, name, user, flag);
     }
@@ -78,6 +82,10 @@ public final class TaskFilters {
 
     public boolean filter(Task<? extends Serializable> task) {
         return byName(task.name) && byUser(task.getUser()) && byState(task.getState()) && byArgs(task.args);
+    }
+
+    public boolean filter(Map<String, Object> args) {
+        return byArgs(args);
     }
 
     private boolean byState(Task.State taskState) {
@@ -99,15 +107,11 @@ public final class TaskFilters {
 
     private boolean byArgs(Map<String, Object> taskArgs) {
         return Optional.ofNullable(getArgsPatterns())
-            .map(patterns -> {
-                return patterns.entrySet()
-                                .stream()
-                                .allMatch(e -> {
-                                    return e.getValue()
-                                            .matcher(String.valueOf(getValue(taskArgs, e.getKey())))
-                                            .find();
-                                });
-            })
+            .map(patterns -> patterns.entrySet()
+                            .stream()
+                            .allMatch(e -> e.getValue()
+                                    .matcher(String.valueOf(getValue(taskArgs, e.getKey())))
+                                    .find()))
             .orElse(true);
     }
 

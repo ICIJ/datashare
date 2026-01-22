@@ -1,5 +1,6 @@
 package org.icij.datashare;
 
+import java.io.IOException;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -16,7 +17,7 @@ public final class LambdaExceptionUtils {
 
     @FunctionalInterface
     public interface Function_WithExceptions<T, R, E extends Exception> {
-        R apply(T t) throws E;
+        R apply(T t) throws E, IOException;
     }
 
     /**

@@ -4,7 +4,6 @@ import static org.fest.assertions.Assertions.assertThat;
 
 import java.io.IOException;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -178,9 +177,9 @@ public class TaskManagerMemoryTest {
 
     @Test
     public void test_wait_task_to_be_done() throws Exception {
-        taskManager.startTask(TestFactory.Sleep.class, User.local(), Map.of("duration", 100));
-        List<Task<?>> tasks = taskManager.waitTasksToBeDone(200, TimeUnit.MILLISECONDS);
-        assertThat(tasks).hasSize(1);
+        taskManager.startTask(TestFactory.Sleep.class, User.local(), Map.of("duration", 100000));
+        long unfinished = taskManager.waitTasksToBeDone(200, TimeUnit.MILLISECONDS);
+        assert unfinished == 1L;
     }
 
     @Test

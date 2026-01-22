@@ -103,6 +103,11 @@ public class TaskManagerAmqp extends StoreAndQueueTaskManagerImpl {
     }
 
     @Override
+    public Stream<TaskStateMetadata> getTaskStates(TaskFilters filters) throws IOException {
+        return tasks.getTaskStates(filters);
+    }
+
+    @Override
     protected Group getTaskGroup(String taskId) throws IOException {
         return tasks.getTaskGroup(taskId);
     }

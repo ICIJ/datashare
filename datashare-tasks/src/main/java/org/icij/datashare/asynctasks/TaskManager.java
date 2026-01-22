@@ -19,12 +19,26 @@ import static org.icij.datashare.asynctasks.Task.State.NON_FINAL_STATES;
  * Task manager interface whether implemented in-house or externally (proxy to an external TM)
  */
 public interface TaskManager extends Closeable {
+    int POLLING_INTERVAL = 5000;
+
     Logger logger = LoggerFactory.getLogger(TaskManager.class);
     <V extends Serializable> String startTask(Task<V> taskView, Group group) throws IOException, TaskAlreadyExists;
+
     <V extends Serializable> Task<V> getTask(String taskId) throws IOException, UnknownTask;
     <V extends Serializable> Task<V> clearTask(String taskId) throws IOException, UnknownTask;
+
     boolean stopTask(String taskId) throws IOException, UnknownTask;
+
     Stream<Task<?>> getTasks(TaskFilters filters) throws IOException;
+    default Stream<Task<?>> getTasks() throws IOException {
+        return getTasks(TaskFilters.empty());
+    }
+
+    Stream<TaskStateMetadata> getTaskStates(TaskFilters filters) throws IOException;
+    default Stream<TaskStateMetadata> getTaskStates() throws IOException {
+        return getTaskStates(TaskFilters.empty());
+    }
+
     // clearDoneTasks keeps a List return type otherwise tasks are cleared unless the stream is consumed
     List<Task<?>> clearDoneTasks(TaskFilters filter) throws IOException;
     boolean shutdown() throws IOException;
@@ -32,8 +46,8 @@ public interface TaskManager extends Closeable {
     boolean getHealth() throws IOException;
     int getTerminationPollingInterval();
 
-    default Stream<Task<?>> getTasks() throws IOException {
-        return getTasks(TaskFilters.empty());
+    default boolean awaitTermination(int timeout, TimeUnit timeUnit) throws InterruptedException, IOException {
+        return waitTasksToBeDone(timeout, timeUnit) == 0L;
     }
 
     default Map<String, Boolean> stopTasks(User user) throws IOException {
@@ -42,12 +56,11 @@ public interface TaskManager extends Closeable {
 
     default Map<String, Boolean> stopTasks(TaskFilters filters) throws IOException {
         TaskFilters filterNotCompleted = filters.withStates(NON_FINAL_STATES);
-        Stream<Task<?>> taskStream = getTasks(filterNotCompleted);
-        return taskStream.collect(toMap(t -> t.id, t -> {
+        return getTaskStates(filterNotCompleted).collect(toMap(TaskStateMetadata::taskId, m -> {
             try {
-                return stopTask(t.id);
+                return stopTask(m.taskId());
             } catch (IOException | UnknownTask e) {
-                logger.error("cannot stop task {}", t.id, e);
+                logger.error("cannot stop task {}", m.taskId(), e);
                 return false;
             }
         }));
@@ -87,25 +100,22 @@ public interface TaskManager extends Closeable {
      *
      * @param timeout amount for the timeout
      * @param timeUnit unit of the timeout
-     * @return the list of unfinished/alive tasks
+     * @return the number of unfinished tasks
      * @throws IOException if the task list cannot be retrieved because of a network failure.
      */
-    default List<Task<?>> waitTasksToBeDone(int timeout, TimeUnit timeUnit) throws IOException {
+    default long waitTasksToBeDone(int timeout, TimeUnit timeUnit) throws IOException {
         long startTime = System.currentTimeMillis();
-        List<Task<?>> unfinishedTasks = getTasks().filter(t -> !t.isFinished()).toList();
-        while (System.currentTimeMillis() - startTime < timeUnit.toMillis(timeout) && !unfinishedTasks.isEmpty()) {
-            unfinishedTasks = getTasks().filter(t -> !t.isFinished()).toList();
+        TaskFilters filterNotCompleted = TaskFilters.empty().withStates(NON_FINAL_STATES);
+        long nUnfinished = getTaskStates(filterNotCompleted).count();
+        while (System.currentTimeMillis() - startTime < timeUnit.toMillis(timeout) && nUnfinished > 0) {
             try {
                 Thread.sleep(getTerminationPollingInterval());
             } catch (InterruptedException e) {
                 throw new RuntimeException(e);
             }
+            nUnfinished = getTaskStates(filterNotCompleted).count();;
         }
-        return unfinishedTasks;
-    }
-
-    default boolean awaitTermination(int timeout, TimeUnit timeUnit) throws InterruptedException, IOException {
-        return !waitTasksToBeDone(timeout, timeUnit).isEmpty();
+        return nUnfinished;
     }
 
     // for tests
