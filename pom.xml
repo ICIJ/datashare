@@ -100,6 +100,7 @@
         <extract.version>9.4.13</extract.version>
         <opennlp.version>1.6.0</opennlp.version>
         <elasticsearch.version>8.19.8</elasticsearch.version>
+        <jooq.version>3.19.10</jooq.version>
         <lucene.version>10.3.1</lucene.version>
         <unidecode.version>0.0.7</unidecode.version>
         <joda-time.version>2.9.5</joda-time.version>
