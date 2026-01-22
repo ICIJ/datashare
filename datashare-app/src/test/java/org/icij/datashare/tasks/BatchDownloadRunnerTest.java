@@ -101,6 +101,6 @@ public class BatchDownloadRunnerTest {
     @Before
     public void setUp() {
         initMocks(this);
-        mockSearch = new MockSearch<>(indexer);
+        mockSearch = new MockSearch<>(indexer, Indexer.QueryBuilderSearcher.class);
     }
 }
