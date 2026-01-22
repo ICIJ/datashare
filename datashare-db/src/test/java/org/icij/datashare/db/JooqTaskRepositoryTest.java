@@ -17,6 +17,7 @@ import org.icij.datashare.asynctasks.TaskAlreadyExists;
 import org.icij.datashare.asynctasks.TaskFilters;
 import org.icij.datashare.asynctasks.TaskGroupType;
 import org.icij.datashare.asynctasks.TaskResult;
+import org.icij.datashare.asynctasks.TaskStateMetadata;
 import org.icij.datashare.asynctasks.UnknownTask;
 import org.icij.datashare.asynctasks.bus.amqp.TaskError;
 import org.icij.datashare.asynctasks.bus.amqp.UriResult;
@@ -179,7 +180,7 @@ public class JooqTaskRepositoryTest {
     }
 
     @Test
-    public void test_get_task_with_status_filter() throws Exception {
+    public void test_get_tasks_with_status_filter() throws Exception {
         Task<String> foo = new Task<>("foo", User.local(), Map.of("user", User.local()));
         Task<String> bar = new Task<>("bar", User.local(), Map.of("user", User.local()));
         // Bar must have a result to be considered as "DONE"
@@ -192,6 +193,68 @@ public class JooqTaskRepositoryTest {
 
         assertThat(tasks.size()).isEqualTo(1);
         assertThat(tasks.get(0).id).isEqualTo(bar.id);
+    }
+
+    @Test
+    public void test_get_task_states() throws Exception {
+        Task<String> foo = new Task<>("foo", User.local(), Map.of("user", User.local()));
+        Task<String> bar = new Task<>("bar", User.local(), Map.of("user", User.local()));
+        repository.insert(foo, new Group(TaskGroupType.Test));
+        repository.insert(bar, new Group(TaskGroupType.Test));
+        TaskFilters filter = TaskFilters.empty();
+
+        List<TaskStateMetadata> tasks = repository.getTaskStates(filter).toList();
+
+        assertThat(tasks.size()).isEqualTo(2);
+        assertThat(tasks.stream().map(TaskStateMetadata::taskId).toList()).isEqualTo(List.of(foo.id, bar.id));
+    }
+
+
+    @Test
+    public void test_get_task_states_with_names_filter() throws Exception {
+        Task<String> foo = new Task<>("foo", User.local(), Map.of("user", User.local()));
+        Task<String> bar = new Task<>("bar", User.local(), Map.of("user", User.local()));
+        repository.insert(foo, new Group(TaskGroupType.Test));
+        repository.insert(bar, new Group(TaskGroupType.Test));
+        TaskFilters filter = TaskFilters.empty().withNames("foo");
+
+        List<TaskStateMetadata> tasks = repository.getTaskStates(filter).toList();
+
+        assertThat(tasks.size()).isEqualTo(1);
+        assertThat(tasks.get(0).taskId()).isEqualTo(foo.id);
+    }
+
+    @Test
+    public void test_get_task_states_with_status_filter() throws Exception {
+        Task<String> foo = new Task<>("foo", User.local(), Map.of("user", User.local()));
+        Task<String> bar = new Task<>("bar", User.local(), Map.of("user", User.local()));
+        // Bar must have a result to be considered as "DONE"
+        bar.setResult(new TaskResult<>("1"));
+        repository.insert(foo, new Group(TaskGroupType.Test));
+        repository.insert(bar, new Group(TaskGroupType.Test));
+        TaskFilters filter = TaskFilters.empty().withStates(Task.State.FINAL_STATES);
+
+        List<TaskStateMetadata> tasks = repository.getTaskStates(filter).toList();
+
+        assertThat(tasks.size()).isEqualTo(1);
+        assertThat(tasks.get(0).taskId()).isEqualTo(bar.id);
+    }
+
+    @Test
+    public void test_get_task_states_with_args_filter() throws Exception {
+        Task<String> foo = new Task<>("foo", User.local(), Map.of("someArg", "fooValue"));
+        Task<String> bar = new Task<>("bar", User.local(), Map.of("someArg", "barValue"));
+
+        repository.insert(foo, new Group(TaskGroupType.Test));
+        repository.insert(bar, new Group(TaskGroupType.Test));
+
+        TaskFilters filter = TaskFilters.empty()
+            .withArgs(new TaskFilters.ArgsFilter("someArg", "bar.*"));
+
+        List<TaskStateMetadata> tasks = repository.getTaskStates(filter).toList();
+
+        assertThat(tasks.size()).isEqualTo(1);
+        assertThat(tasks.get(0).taskId()).isEqualTo(bar.id);
     }
 
     @After
