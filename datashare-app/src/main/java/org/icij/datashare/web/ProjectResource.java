@@ -104,7 +104,6 @@
         @Post("/")
         public Payload projectCreate(Project project) {
             modeVerifier.checkAllowedMode(Mode.LOCAL, Mode.EMBEDDED);
-
             if (projectExists(project)) {
                 return PayloadFormatter.error("Project already exists.", HttpStatus.CONFLICT);
             } else if (isProjectNameEmpty(project)) {
@@ -143,22 +142,26 @@
         @ApiResponse(responseCode = "500", description = "if project json id is not the same as the url id or if save failed")
         @Put("/:id")
         @Policy(roles = {Role.ADMIN},projectIdParam="id")
-        public Payload projectUpdate(String id, Project project) {
-            if (!Objects.equals(project.getId(), id)) {
-                return PayloadFormatter.error("Project not found", HttpStatus.NOT_FOUND);
-            }
-            if (isProjectNameEmpty(project)) {
+        public Payload projectUpdate(String id, Project projectPayload, Context context) {
+            if (isProjectNameEmpty(projectPayload)) {
                 return PayloadFormatter.error("`name` field is required.", HttpStatus.BAD_REQUEST);
             }
-            if (isProjectSourcePathNull(project) || !dataDirVerifier.allowed(project.getSourcePath())) {
+            //check if the current user has access to the requested project
+            DatashareUser user = (DatashareUser) context.currentUser();
+            Project project = getUserProject(user, id);
+            if (project == null || !Objects.equals(projectPayload.getId(), id) || !projectExists(projectPayload)) {
+                return PayloadFormatter.error("Project not found", HttpStatus.NOT_FOUND);
+            }
+
+            if (isProjectSourcePathNull(projectPayload) || !dataDirVerifier.allowed(projectPayload.getSourcePath())) {
                 return PayloadFormatter.error(String.format("`sourcePath` is required and must not be outside %s.", dataDirVerifier.value()), HttpStatus.BAD_REQUEST);
             }
 
-            if (projectExists(project) && !repository.save(project)) {
+            if (!repository.save(projectPayload)) {
                 return PayloadFormatter.error("Unable to save the project", HttpStatus.INTERNAL_SERVER_ERROR);
             }
 
-            return new Payload(project).withCode(HttpStatus.OK);
+            return new Payload(projectPayload).withCode(HttpStatus.OK);
         }
 
 
@@ -293,19 +296,19 @@
             }
         }
 
-        boolean projectExists(Project project) {
+        private boolean projectExists(Project project) {
             return projectExists(project.getName());
         }
 
-        boolean projectExists(String name) {
+        private boolean projectExists(String name) {
             return repository.getProject(name) != null;
         }
 
-        boolean isProjectNameEmpty(Project project) {
+        private boolean isProjectNameEmpty(Project project) {
             return isEmpty(project.getName());
         }
 
-        boolean isProjectSourcePathNull(Project project) {
+        private boolean isProjectSourcePathNull(Project project) {
             return project.getSourcePath() == null;
         }
     }
