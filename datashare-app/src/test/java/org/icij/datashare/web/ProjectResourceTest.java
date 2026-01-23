@@ -2,6 +2,7 @@ package org.icij.datashare.web;
 
 import net.codestory.http.filters.basic.BasicAuthFilter;
 import net.codestory.http.security.Users;
+import org.icij.datashare.EnvUtils;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Repository;
 import org.icij.datashare.asynctasks.Task;
@@ -222,12 +223,15 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
 
     @Test
     public void test_update_project() {
+        Project oldFoo = new Project("foo", "Foo", Path.of("/vault/foo"), "", "", "", "", "*.*.*.*", null, null);
+        when(repository.getProjects(any())).thenReturn(List.of(oldFoo));
+        when(repository.getProject("foo")).thenReturn(oldFoo);
         when(repository.save((Project) any())).thenReturn(true);
-        String body = "{ \"name\": \"foo\", \"label\": \"Foo v3\", \"sourcePath\": \"/vault/foo\"}";
+        String body = "{ \"name\": \"foo\", \"label\": \"Foo v3\", \"sourcePath\": \"/vault/newFoo/test\"}";
         put("/api/project/foo", body).should().respond(200)
                 .contain("\"name\":\"foo\"")
                 .contain("\"label\":\"Foo v3\"")
-                .contain("\"sourcePath\":\"file:///vault/foo\"");
+                .contain("\"sourcePath\":\"file:///vault/newFoo/test\"");
     }
 
     @Mock
@@ -247,27 +251,36 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
         when(jooqUserPolicyRepository.get(user.id, projectId)).thenReturn(policy);
         return user;
     }
+
     @Test
     public void test_update_project_in_server_mode_by_admin() throws URISyntaxException, IOException {
         String projectId = "foo";
-        PropertiesProvider propertiesProvider =new PropertiesProvider(Collections.singletonMap("mode", Mode.SERVER.name()));
-        ProjectResource projectResource = new ProjectResource(repository, indexer, taskManager, propertiesProvider, documentCollectionFactory);
+        //setup SERVER properties
+        PropertiesProvider propertiesProvider = new PropertiesProvider(new HashMap<>() {{
+            put("mode", Mode.SERVER.name());
+            put("dataDir", "/my-dir");
+        }});
 
+        ProjectResource projectResource = new ProjectResource(repository, indexer, taskManager, propertiesProvider, documentCollectionFactory);
+        // add policies
         User user = get_datashare_users_with_policy2("john", projectId,new Role[]{Role.ADMIN});
         UserPolicyVerifier verifier = new UserPolicyVerifier(jooqUserPolicyRepository, users);
-
         UserPolicyAnnotation userPolicyAnnotation = new UserPolicyAnnotation(verifier);
-
 
         configure(routes -> {
             BasicAuthFilter basicAuthFilter = new BasicAuthFilter("/", "icij", DatashareUser.singleUser(user));
-
             routes.filter(basicAuthFilter).registerAroundAnnotation(Policy.class, userPolicyAnnotation).add(new UserPolicyResource(verifier)).add(projectResource);
         });
-        when(repository.getProject(projectId)).thenReturn(new Project(projectId));
+
+        Project foo = new Project(projectId, Path.of("/my-dir/foo"));
+        when(repository.getProjects(any())).thenReturn(List.of(foo));
+
+        when(repository.getProject(projectId)).thenReturn(foo);
         when(repository.save((Project) any())).thenReturn(true);
-        String body = "{ \"name\": \"foo\" }";
-        put("/api/project/foo", body).withPreemptiveAuthentication("john", "pass").should().respond(200);
+        String body = "{ \"name\": \"foo\", \"sourcePath\": \"/my-dir/foo/test\", \"label\": \"Foo Hello\"}";
+        put("/api/project/foo", body).withPreemptiveAuthentication("john", "pass").should().respond(200).contain("\"name\":\"foo\"")
+                .contain("\"label\":\"Foo Hello\"")
+                .contain("\"sourcePath\":\"file:///my-dir/foo/test\"");
     }
 
     @Test
