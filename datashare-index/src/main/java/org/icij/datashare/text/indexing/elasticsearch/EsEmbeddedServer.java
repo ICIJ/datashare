@@ -10,10 +10,13 @@ import org.elasticsearch.node.Node;
 import org.elasticsearch.painless.PainlessPlugin;
 import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.transport.Netty4Plugin;
+import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Collection;
 import java.util.HashMap;
 
@@ -25,14 +28,28 @@ import static java.util.Optional.ofNullable;
  * https://github.com/elastic/elasticsearch-hadoop/blob/fefcf8b191d287aca93a04144c67b803c6c81db5/mr/src/itest/java/org/elasticsearch/hadoop/EsEmbeddedServer.java
  */
 public class EsEmbeddedServer implements Closeable {
+    private static final Logger logger = LoggerFactory.getLogger(EsEmbeddedServer.class);
     private final Node node;
 
     public EsEmbeddedServer(String clusterName, String homePath, String dataPath, String httpPort) {
-        this(clusterName, homePath, dataPath, httpPort, "9300");
+        this(clusterName, homePath, dataPath, httpPort, "9300", null);
     }
 
     public EsEmbeddedServer(String clusterName, String homePath, String dataPath, String httpPort, String transportPort) {
-        Settings settings = Settings.builder()
+        this(clusterName, homePath, dataPath, httpPort, transportPort, null);
+    }
+
+    /**
+     * Constructor with settings file path.
+     * @param clusterName the cluster name
+     * @param homePath the elasticsearch home path
+     * @param dataPath the elasticsearch data path
+     * @param httpPort the HTTP port
+     * @param transportPort the transport port
+     * @param settingsPath path to elasticsearch.yml settings file (optional, can be null)
+     */
+    public EsEmbeddedServer(String clusterName, String homePath, String dataPath, String httpPort, String transportPort, String settingsPath) {
+        Settings.Builder settingsBuilder = Settings.builder()
                 .put("transport.type", "netty4")
                 .put("http.type", "netty4")
                 .put("indices.query.bool.max_clause_count", "16384")
@@ -43,12 +60,29 @@ public class EsEmbeddedServer implements Closeable {
                 .put("path.data", dataPath)
                 .put("http.port", httpPort)
                 .put("transport.port", transportPort)
-                .put("cluster.name", clusterName).build();
+                .put("cluster.name", clusterName);
+
+        // Load settings from file if provided and exists
+        if (settingsPath != null) {
+            Path settingsFile = Path.of(settingsPath);
+            if (Files.exists(settingsFile)) {
+                try {
+                    logger.info("Loading elasticsearch settings from {}", settingsPath);
+                    settingsBuilder.loadFromPath(settingsFile);
+                } catch (IOException e) {
+                    logger.warn("Failed to load elasticsearch settings from {}: {}", settingsPath, e.getMessage());
+                }
+            } else {
+                logger.debug("Elasticsearch settings file not found at {}, using defaults", settingsPath);
+            }
+        }
+
+        Settings settings = settingsBuilder.build();
         try {
             node = createNode(settings);
         } catch (IllegalArgumentException iae) {
             if (iae.getMessage() != null && iae.getMessage().contains("Could not load codec")) {
-                LoggerFactory.getLogger(getClass()).error("Your index version on disk ({}) doesn't seem to have the same " +
+                logger.error("Your index version on disk ({}) doesn't seem to have the same " +
                         "version as the embedded Elasticsearch engine ({}). Please migrate it with snapshots, " +
                         "or remove it then restart datashare.", dataPath, Version.CURRENT);
             }
