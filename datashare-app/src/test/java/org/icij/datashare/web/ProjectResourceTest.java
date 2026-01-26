@@ -32,6 +32,7 @@ import java.io.IOException;
 import java.net.URISyntaxException;
 import java.nio.file.Path;
 import java.util.*;
+import java.util.Set;
 import java.util.stream.Stream;
 
 import static java.util.Arrays.asList;
@@ -241,15 +242,15 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
     UsersWritable users;
 
     public User get_datashare_users_with_policy2(String userId, String projectId, Role[] roles) {
-        UserPolicy policy = new UserPolicy(userId, projectId, roles);
-        DatashareUser user = new DatashareUser(localUser(userId, List.of(projectId), Stream.of(policy)));
+        DatashareUser user = new DatashareUser(localUser(userId));
         user.addProject(projectId);
         when(jooqRepository.getProject(projectId)).thenReturn(project(projectId));
-        when(jooqUserPolicyRepository.getAllPolicies()).thenReturn(user.getPolicies());
-
         when(users.find(user.id)).thenReturn(user);
+
+        UserPolicy policy = new UserPolicy(user.id, projectId, roles);
         when(jooqUserPolicyRepository.get(user.id, projectId)).thenReturn(policy);
-        return user;
+        when(jooqUserPolicyRepository.getAllPolicies()).thenReturn(Stream.of(policy));
+        return user.withPolicies(Set.of(policy));
     }
 
     @Test
@@ -264,7 +265,7 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
         ProjectResource projectResource = new ProjectResource(repository, indexer, taskManager, propertiesProvider, documentCollectionFactory);
         // add policies
         User user = get_datashare_users_with_policy2("john", projectId,new Role[]{Role.ADMIN});
-        UserPolicyVerifier verifier = new UserPolicyVerifier(jooqUserPolicyRepository, users);
+        UserPolicyVerifier verifier = new UserPolicyVerifier(jooqUserPolicyRepository, jooqRepository, users);
         UserPolicyAnnotation userPolicyAnnotation = new UserPolicyAnnotation(verifier);
 
         configure(routes -> {
@@ -290,7 +291,7 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
         ProjectResource projectResource = new ProjectResource(repository, indexer, taskManager, propertiesProvider, documentCollectionFactory);
 
         User user = get_datashare_users_with_policy2("john", projectId,new Role[]{});
-        UserPolicyVerifier verifier = new UserPolicyVerifier(jooqUserPolicyRepository, users);
+        UserPolicyVerifier verifier = new UserPolicyVerifier(jooqUserPolicyRepository, jooqRepository, users);
         UserPolicyAnnotation userPolicyAnnotation = new UserPolicyAnnotation(verifier);
 
         configure(routes -> {

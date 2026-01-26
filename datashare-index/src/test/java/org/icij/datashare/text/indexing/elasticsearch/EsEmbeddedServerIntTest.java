@@ -1,18 +1,21 @@
 package org.icij.datashare.text.indexing.elasticsearch;
 
 import org.icij.datashare.test.ElasticsearchRule;
-import org.junit.*;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
+import org.junit.ClassRule;
+import org.junit.Rule;
+import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import java.io.IOException;
 
-import static org.apache.http.HttpHost.create;
 import static org.fest.assertions.Assertions.assertThat;
 
 public class EsEmbeddedServerIntTest {
     private static EsEmbeddedServer server;
     @ClassRule static public TemporaryFolder esDir = new TemporaryFolder();
-    @Rule public ElasticsearchRule es = new ElasticsearchRule();
+    @Rule public ElasticsearchRule es = new ElasticsearchRule("localhost", 9222, true);
 
     @Test(timeout = 10_000)
     public void test_embedded_server_has_a_test_index() throws Exception {

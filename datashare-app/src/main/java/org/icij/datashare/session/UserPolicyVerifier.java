@@ -27,11 +27,13 @@ public class UserPolicyVerifier {
     private static final String DEFAULT_POLICY_FILE = "casbin/model.conf";
     private static final boolean ENABLE_CASBIN_LOG = false;
     private final UserPolicyRepository userPolicyRepository;
+    private final Repository repository;
     private final UsersWritable users;
 
     @Inject
-    public UserPolicyVerifier(final UserPolicyRepository userPolicyRepository, final UsersWritable users) throws IOException {
+    public UserPolicyVerifier(final UserPolicyRepository userPolicyRepository, final Repository repository, final UsersWritable users) throws IOException {
         this.userPolicyRepository = userPolicyRepository;
+        this.repository = repository;
         this.users = users;
 
         Adapter adapter = new UserPolicyAdapter(this.userPolicyRepository);
@@ -90,24 +92,23 @@ public class UserPolicyVerifier {
      */
     public boolean saveUserPolicy(String userId, String projectId, Role[] roles) throws RecordNotFoundException {
         userAndProjectExist(userId, projectId);
-        this.userPolicyRepository.save(UserPolicy.of(userId, projectId, roles));
-        return true;
+        UserPolicy userPolicy = UserPolicy.of(userId, projectId, roles);
+        return this.userPolicyRepository.save(userPolicy);
     }
 
     /**
      * Delete a user policy for a given user and project.
      */
-    public void deleteUserPolicy(String userId, String projectId) throws RecordNotFoundException {
+    public boolean deleteUserPolicy(String userId, String projectId) throws RecordNotFoundException {
         userAndProjectExist(userId, projectId);
-        this.userPolicyRepository.delete(userId, projectId);
+        return this.userPolicyRepository.delete(userId, projectId);
     }
 
     private void userAndProjectExist(String userId, String projectId) throws RecordNotFoundException {
-        DatashareUser user = (DatashareUser) this.users.find(userId);
-        if (user == null || user.equals(User.nullUser())) {
+        if (this.users.find(userId).equals(User.nullUser())) {
             throw new RecordNotFoundException(User.class, userId);
         }
-        if (!user.isGranted(projectId)) {
+        if (this.repository.getProject(projectId) == null) {
             throw new RecordNotFoundException(Project.class, projectId);
         }
     }

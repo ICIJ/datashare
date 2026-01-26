@@ -21,7 +21,7 @@ import org.mockito.Mock;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
-import java.util.stream.Stream;
+import java.util.Set;
 
 import static org.icij.datashare.text.Project.project;
 import static org.icij.datashare.user.User.localUser;
@@ -44,22 +44,22 @@ public class WebAcceptanceTest extends AbstractProdWebServerTest {
 
 
     public User mockUserProjectRole(String userId, String projectId, Role[] roles) {
-        UserPolicy policy = new UserPolicy(userId, projectId, roles);
-        DatashareUser user = new DatashareUser(localUser(userId, Stream.of(policy)));
+        DatashareUser user = new DatashareUser(localUser(userId));
         user.addProject(projectId);
         when(jooqRepository.getProject(projectId)).thenReturn(project(projectId));
         when(users.find(user.id)).thenReturn(user);
 
+        UserPolicy policy = new UserPolicy(user.id, projectId, roles);
         when(jooqUserPolicyRepository.get(user.id, projectId)).thenReturn(policy);
-        return user;
+        return user.withPolicies(Set.of(policy));
     }
 
     @Test
     public void route_with_index_in_path_policy_annotation_accepts_user_with_same_policy() throws IOException, URISyntaxException {
         User john = mockUserProjectRole("john", "test-datashare", new Role[]{Role.ADMIN});
-        when(jooqUserPolicyRepository.getAllPolicies()).thenReturn(john.getPolicies());
+        when(jooqUserPolicyRepository.getAllPolicies()).thenReturn(john.policies.stream());
 
-        UserPolicyVerifier verifier = new UserPolicyVerifier(jooqUserPolicyRepository, users);
+        UserPolicyVerifier verifier = new UserPolicyVerifier(jooqUserPolicyRepository, jooqRepository, users);
         UserPolicyAnnotation userPolicyAnnotation = new UserPolicyAnnotation(verifier);
         Users users = DatashareUser.singleUser(john);
 

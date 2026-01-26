@@ -24,15 +24,16 @@ jobs:
   build_back:
     resource_class: large
     docker:
-      - image: cimg/openjdk:17.0.11
-      - image: docker.elastic.co/elasticsearch/elasticsearch:7.17.7
+      - image: cimg/openjdk:21.0.9
+      - image: docker.elastic.co/elasticsearch/elasticsearch:8.19.8
         environment:
           ES_JAVA_OPTS: -Xms256m -Xmx256m
           discovery.type: single-node
           cluster.name: datashare
           http.cors.enabled: "true"
-          http.cors.allow-origin: "*"
+          http.cors.allow-origin: '"*"'
           http.cors.allow-methods: OPTIONS, HEAD, GET, POST, PUT, DELETE
+          xpack.security.enabled: false
         name: elasticsearch
       - image: redis:4.0.1-alpine
         name: redis
@@ -101,8 +102,8 @@ jobs:
 
   publish_doc:
     docker:
-      - image: cimg/openjdk:17.0.11
-      - image: docker.elastic.co/elasticsearch/elasticsearch:7.17.7
+      - image: cimg/openjdk:21.0.9
+      - image: docker.elastic.co/elasticsearch/elasticsearch:8.19.8
         environment:
           ES_JAVA_OPTS: -Xms256m -Xmx256m
           discovery.type: single-node
@@ -175,7 +176,7 @@ jobs:
 
   deploy_back:
     docker:
-      - image: cimg/openjdk:17.0.11
+      - image: cimg/openjdk:21.0.9
     working_directory: /tmp
     steps:
       - attach_workspace:
@@ -199,7 +200,7 @@ jobs:
     resource_class: large
     docker:
       - image: cimg/node:20.19
-      - image: docker.elastic.co/elasticsearch/elasticsearch:7.17.7
+      - image: docker.elastic.co/elasticsearch/elasticsearch:8.19.8
         environment:
           ES_JAVA_OPTS: -Xms256m -Xmx256m
           discovery.type: single-node
@@ -289,7 +290,7 @@ jobs:
 
   package_back:
     docker:
-      - image: cimg/openjdk:17.0.11
+      - image: cimg/openjdk:21.0.9
     working_directory: /tmp/datashare
     environment:
       MAVEN_OPTS: "-Xms512m -Xmx1g -Xss10M"
@@ -430,7 +431,7 @@ jobs:
 
   create_openapi_json:
     docker:
-      - image: cimg/openjdk:17.0.11
+      - image: cimg/openjdk:21.0.9
     working_directory: /tmp/datashare
     steps:
       - attach_workspace:
@@ -451,7 +452,7 @@ jobs:
 
   deploy_datashare_tasks:
     docker:
-      - image: cimg/openjdk:17.0.11
+      - image: cimg/openjdk:21.0.9
       - image: redis:4.0.1-alpine
         name: redis
       - image: rabbitmq:3.12
@@ -488,7 +489,7 @@ jobs:
 
   deploy_datashare_api:
     docker:
-      - image: cimg/openjdk:17.0.11
+      - image: cimg/openjdk:21.0.9
       - image: adobe/s3mock:3.12.0
         name: s3mock
 
@@ -515,7 +516,7 @@ jobs:
 
   deploy_datashare_cli:
     docker:
-      - image: cimg/openjdk:17.0.11
+      - image: cimg/openjdk:21.0.9
       - image: adobe/s3mock:3.12.0
         name: s3mock
 
