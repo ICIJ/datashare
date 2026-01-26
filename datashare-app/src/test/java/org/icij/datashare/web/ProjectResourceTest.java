@@ -249,6 +249,7 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
 
         UserPolicy policy = new UserPolicy(user.id, projectId, roles);
         when(jooqUserPolicyRepository.get(user.id, projectId)).thenReturn(policy);
+        when(jooqUserPolicyRepository.getAllPolicies()).thenReturn(Stream.of(policy));
         return user.withPolicies(Set.of(policy));
     }
 
