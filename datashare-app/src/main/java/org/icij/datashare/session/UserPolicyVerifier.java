@@ -27,11 +27,13 @@ public class UserPolicyVerifier {
     private static final String DEFAULT_POLICY_FILE = "casbin/model.conf";
     private static final boolean ENABLE_CASBIN_LOG = false;
     private final UserPolicyRepository userPolicyRepository;
+    private final Repository repository;
     private final UsersWritable users;
 
     @Inject
-    public UserPolicyVerifier(final UserPolicyRepository userPolicyRepository, final UsersWritable users) throws IOException {
+    public UserPolicyVerifier(final UserPolicyRepository userPolicyRepository, final Repository repository, final UsersWritable users) throws IOException {
         this.userPolicyRepository = userPolicyRepository;
+        this.repository = repository;
         this.users = users;
 
         Adapter adapter = new UserPolicyAdapter(this.userPolicyRepository);
