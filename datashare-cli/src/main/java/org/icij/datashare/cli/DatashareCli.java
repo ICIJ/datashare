@@ -138,6 +138,7 @@ public class DatashareCli {
         DatashareCliOptions.batchDownloadScrollSize(parser);
         DatashareCliOptions.redisPoolSize(parser);
         DatashareCliOptions.elasticsearchDataPath(parser);
+        DatashareCliOptions.elasticsearchSettings(parser);
         DatashareCliOptions.reportName(parser);
         DatashareCliOptions.parallelism(parser);
         DatashareCliOptions.fileParserParallelism(parser);
