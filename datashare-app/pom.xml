@@ -92,6 +92,12 @@
             <scope>provided</scope>
         </dependency>
         <dependency>
+            <groupId>org.jooq</groupId>
+            <artifactId>jooq</artifactId>
+            <version>${jooq.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
             <groupId>org.icij.datashare</groupId>
             <artifactId>datashare-nlp-corenlp</artifactId>
             <scope>provided</scope>
