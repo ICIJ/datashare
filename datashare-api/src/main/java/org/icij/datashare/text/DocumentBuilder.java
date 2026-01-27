@@ -40,6 +40,29 @@ public class DocumentBuilder {
     public static DocumentBuilder createDoc(Project project, Path path) {
         return new DocumentBuilder().withDefaultValues(Document.getHash(project,path)).with(project).with(path);
     }
+    public static DocumentBuilder from(Document doc){
+        if(doc == null) {
+            return new DocumentBuilder();
+        }
+        return new DocumentBuilder()
+                .with(doc.getProject())
+                .withId(doc.getId())
+                .with(doc.getPath())
+                .with(doc.getContentEncoding())
+                .with(doc.getContent())
+                .with(doc.getContentTranslated())
+                .with(doc.getLanguage())
+                .extractedAt(doc.getExtractionDate())
+                .ofContentType(doc.getContentType())
+                .withExtractionLevel(doc.getExtractionLevel())
+                .with(doc.getMetadata())
+                .with(doc.getStatus())
+                .withPipelines(doc.getNerTags())
+                .withParentId(doc.getParentDocument())
+                .withRootId(doc.getRootDocument())
+                .withContentLength(doc.getContentLength())
+                .withTags(doc.getTags());
+    }
 
     public DocumentBuilder withDefaultValues(String id){
         this.id = id;
@@ -105,6 +128,12 @@ public class DocumentBuilder {
         this.pipelines = Arrays.stream(pipelineTypes).collect(toSet());
         return this;
     }
+
+    public DocumentBuilder withPipelines(Set<Pipeline.Type> pipelines){
+        this.pipelines = pipelines;
+        return this;
+    }
+
     public DocumentBuilder with(Document.Status documentStatus) {
         this.documentStatus = documentStatus;
         return this;
@@ -117,6 +146,11 @@ public class DocumentBuilder {
         this.tags = Arrays.stream(tags).collect(toSet());
         return this;
     }
+    public DocumentBuilder withTags(Set<Tag> tags) {
+        this.tags = tags;
+        return this;
+    }
+
     public DocumentBuilder withExtractionLevel(short extractionLevel) {
         this.extractionLevel = extractionLevel;
         return this;

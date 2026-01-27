@@ -9,6 +9,7 @@ import java.nio.file.Path;
 import java.time.Instant;
 import java.util.*;
 
+import org.icij.datashare.ObjectAssert;
 import org.junit.Test;
 
 public class DocumentBuilderTest {
@@ -63,4 +64,15 @@ public class DocumentBuilderTest {
         assertThat(doc.getMetadata()).includes(entry("some", "metadata"));
         assertThat(doc.getOcrParser()).isEqualTo(ocrParser);
     }
+
+    @Test
+    public void test_copy() {
+        //GIVEN
+        Document doc = DocumentMother.getOneWithoutBlankValue();
+        //WHEN
+        Document copy = DocumentBuilder.from(doc).build();
+        //THEN
+        ObjectAssert.assertThat(copy).isNotNull().isEqualByGetters(copy);
+    }
+
 }
