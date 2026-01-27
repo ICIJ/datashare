@@ -37,6 +37,20 @@ public class IndexResourceTest extends AbstractProdWebServerTest {
     }});
 
     @Test
+    public void test_get_cluster_info_in_local_mode() {
+        configure(routes -> routes.add(new IndexResource(indexer, propertiesProvider))
+                .filter(new LocalUserFilter(propertiesProvider, jooqRepository, es.getIndexNames())));
+        get("/api/index").should().respond(200).contain("cluster_name");
+    }
+
+    @Test
+    public void test_get_cluster_info_forbidden_in_server_mode() {
+        configure(routes -> routes.add(new IndexResource(indexer, serverModeProvider))
+                .filter(new LocalUserFilter(serverModeProvider, jooqRepository, es.getIndexNames())));
+        get("/api/index").should().respond(403);
+    }
+
+    @Test
     public void test_no_auth_get_forward_request_to_elastic() {
         configure(routes -> routes.add(new IndexResource(indexer, propertiesProvider)).filter(new LocalUserFilter(propertiesProvider, jooqRepository, es.getIndexNames())));
         get("/api/index/search/%s/_search".formatted(es.getIndexName())).should().respond(200).contain("\"successful\":1");
