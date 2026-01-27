@@ -223,6 +223,13 @@ public class IndexResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
+    public void test_delete_snapshot_repository_forbidden_in_server_mode() {
+        configure(routes -> routes.add(new IndexResource(indexer, serverModeProvider))
+                .filter(new LocalUserFilter(serverModeProvider, jooqRepository, es.getIndexNames())));
+        delete("/api/index/_snapshot/my-repo").should().respond(403);
+    }
+
+    @Test
     public void test_get_nodes_settings_in_local_mode() {
         configure(routes -> routes.add(new IndexResource(indexer, propertiesProvider))
                 .filter(new LocalUserFilter(propertiesProvider, jooqRepository, es.getIndexNames())));

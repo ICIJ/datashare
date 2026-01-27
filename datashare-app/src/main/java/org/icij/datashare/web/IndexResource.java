@@ -189,6 +189,17 @@ public class IndexResource {
         return PayloadFormatter.json(indexer.executeRaw("PUT", "_snapshot/" + repository, new String(request.contentAsBytes())));
     }
 
+    @Operation(description = "Delete a snapshot repository. Only available in LOCAL and EMBEDDED modes.")
+    @ApiResponse(responseCode = "200", description = "repository deleted")
+    @ApiResponse(responseCode = "403", description = "operation not allowed in current mode")
+    @Delete("/_snapshot/:repository")
+    public Payload deleteSnapshotRepository(
+            @Parameter(name = "repository", description = "snapshot repository name", in = ParameterIn.PATH)
+            final String repository) throws IOException {
+        modeVerifier.checkAllowedMode(Mode.LOCAL, Mode.EMBEDDED);
+        return PayloadFormatter.json(indexer.executeRaw("DELETE", "_snapshot/" + repository, null));
+    }
+
     @Operation(description = "List snapshots in a repository. Only available in LOCAL and EMBEDDED modes.")
     @ApiResponse(responseCode = "200", description = "list of snapshots")
     @ApiResponse(responseCode = "403", description = "operation not allowed in current mode")
