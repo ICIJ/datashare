@@ -9,6 +9,7 @@ import java.nio.file.Path;
 import java.time.Instant;
 import java.util.*;
 
+import org.icij.datashare.ObjectAssert;
 import org.junit.Test;
 
 public class DocumentBuilderTest {
@@ -63,4 +64,52 @@ public class DocumentBuilderTest {
         assertThat(doc.getMetadata()).includes(entry("some", "metadata"));
         assertThat(doc.getOcrParser()).isEqualTo(ocrParser);
     }
+
+    @Test
+    public void test_copy() {
+        //GIVEN
+        Document doc = aDocWithoutBlankValue();
+        //WHEN
+        Document copy = DocumentBuilder.from(doc).build();
+        //THEN
+        ObjectAssert.assertThat(doc).isNotNull().hasNoGetterWithBlankValues();
+        ObjectAssert.assertThat(copy).isNotNull().isEqualByGetters(doc);
+    }
+
+
+    public static Document aDocWithoutBlankValue() {
+        String docId = "someId";
+        String rootId = "rootId";
+        String parentId = "parentId";
+        short extractionLevel = (short) 1;
+        long contentLength = 11L;
+        Project project = Project.project("someProject");
+        Tag sometag = Tag.tag("sometag");
+        Document.Status status = Document.Status.INDEXED;
+        Date extractionDate = Date.from(Instant.now());
+        String mimeType = "SOME/MIME";
+        List<Map<String, String>> contentTranslated = List.of(Map.of("french", "ducontenu"));
+        Map<String, Object> metadata = Map.of("some", "metadata", "tika_metadata_dcterms_created", "2024-03-10T10:00:00+01:00");
+        String ocrParser = "org.apache.tika.parser.ocr.TesseractOCRParser";
+        return DocumentBuilder.createDoc()
+                .withDefaultValues(docId)
+                .withRootId(rootId)
+                .withParentId(parentId)
+                .withExtractionLevel(extractionLevel)
+                .withContentLength(contentLength)
+                .with(project)
+                .with(sometag)
+                .with(status)
+                .with(CORENLP)
+                .extractedAt(extractionDate)
+                .with(Charset.defaultCharset())
+                .ofContentType(mimeType)
+                .with(contentTranslated)
+                .with(metadata)
+                .with(Language.ENGLISH)
+                .with(Path.of("some/path"))
+                .with("somecontent")
+                .withOcrParser(ocrParser).build();
+    }
+
 }
