@@ -10,8 +10,11 @@ import net.codestory.http.Context;
 import net.codestory.http.annotations.*;
 import net.codestory.http.constants.HttpStatus;
 import net.codestory.http.payload.Payload;
+import org.icij.datashare.PropertiesProvider;
+import org.icij.datashare.cli.Mode;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.utils.IndexAccessVerifier;
+import org.icij.datashare.utils.ModeVerifier;
 import org.icij.datashare.utils.PayloadFormatter;
 
 import java.io.IOException;
@@ -23,10 +26,12 @@ import static net.codestory.http.payload.Payload.ok;
 @Prefix("/api/index")
 public class IndexResource {
     private final Indexer indexer;
+    private final ModeVerifier modeVerifier;
 
     @Inject
-    public IndexResource(Indexer indexer) {
+    public IndexResource(Indexer indexer, PropertiesProvider propertiesProvider) {
         this.indexer = indexer;
+        this.modeVerifier = new ModeVerifier(propertiesProvider);
     }
     
     @Operation(description = "Create the index for the current user if it doesn't exist.")
@@ -118,5 +123,175 @@ public class IndexResource {
         } catch (IllegalArgumentException e){
             return PayloadFormatter.error(e, HttpStatus.BAD_REQUEST);
         }
+    }
+
+    @Operation(description = "Close an index. Only available in LOCAL and EMBEDDED modes.")
+    @ApiResponse(responseCode = "200", description = "index closed successfully")
+    @ApiResponse(responseCode = "400", description = "invalid index name")
+    @ApiResponse(responseCode = "403", description = "operation not allowed in current mode")
+    @Post("/:index/_close")
+    public Payload closeIndex(
+            @Parameter(name = "index", description = "index name to close", in = ParameterIn.PATH)
+            final String index) throws IOException {
+        modeVerifier.checkAllowedMode(Mode.LOCAL, Mode.EMBEDDED);
+        try {
+            return PayloadFormatter.json(indexer.executeRaw("POST", IndexAccessVerifier.checkIndices(index) + "/_close", null));
+        } catch (IllegalArgumentException e) {
+            return PayloadFormatter.error(e, HttpStatus.BAD_REQUEST);
+        }
+    }
+
+    @Operation(description = "Open a closed index. Only available in LOCAL and EMBEDDED modes.")
+    @ApiResponse(responseCode = "200", description = "index opened successfully")
+    @ApiResponse(responseCode = "400", description = "invalid index name")
+    @ApiResponse(responseCode = "403", description = "operation not allowed in current mode")
+    @Post("/:index/_open")
+    public Payload openIndex(
+            @Parameter(name = "index", description = "index name to open", in = ParameterIn.PATH)
+            final String index) throws IOException {
+        modeVerifier.checkAllowedMode(Mode.LOCAL, Mode.EMBEDDED);
+        try {
+            return PayloadFormatter.json(indexer.executeRaw("POST", IndexAccessVerifier.checkIndices(index) + "/_open", null));
+        } catch (IllegalArgumentException e) {
+            return PayloadFormatter.error(e, HttpStatus.BAD_REQUEST);
+        }
+    }
+
+    @Operation(description = "List all snapshot repositories. Only available in LOCAL and EMBEDDED modes.")
+    @ApiResponse(responseCode = "200", description = "list of repositories")
+    @ApiResponse(responseCode = "403", description = "operation not allowed in current mode")
+    @Get("/_snapshot")
+    public Payload getSnapshotRepositories() throws IOException {
+        modeVerifier.checkAllowedMode(Mode.LOCAL, Mode.EMBEDDED);
+        return PayloadFormatter.json(indexer.executeRaw("GET", "_snapshot", null));
+    }
+
+    @Operation(description = "Get a snapshot repository configuration. Only available in LOCAL and EMBEDDED modes.")
+    @ApiResponse(responseCode = "200", description = "repository configuration")
+    @ApiResponse(responseCode = "403", description = "operation not allowed in current mode")
+    @Get("/_snapshot/:repository")
+    public Payload getSnapshotRepository(
+            @Parameter(name = "repository", description = "snapshot repository name", in = ParameterIn.PATH)
+            final String repository) throws IOException {
+        modeVerifier.checkAllowedMode(Mode.LOCAL, Mode.EMBEDDED);
+        return PayloadFormatter.json(indexer.executeRaw("GET", "_snapshot/" + repository, null));
+    }
+
+    @Operation(description = "Create or update a snapshot repository. Only available in LOCAL and EMBEDDED modes.")
+    @ApiResponse(responseCode = "200", description = "repository created or updated")
+    @ApiResponse(responseCode = "403", description = "operation not allowed in current mode")
+    @Put("/_snapshot/:repository")
+    public Payload createSnapshotRepository(
+            @Parameter(name = "repository", description = "snapshot repository name", in = ParameterIn.PATH)
+            final String repository,
+            net.codestory.http.Request request) throws IOException {
+        modeVerifier.checkAllowedMode(Mode.LOCAL, Mode.EMBEDDED);
+        return PayloadFormatter.json(indexer.executeRaw("PUT", "_snapshot/" + repository, new String(request.contentAsBytes())));
+    }
+
+    @Operation(description = "List snapshots in a repository. Only available in LOCAL and EMBEDDED modes.")
+    @ApiResponse(responseCode = "200", description = "list of snapshots")
+    @ApiResponse(responseCode = "403", description = "operation not allowed in current mode")
+    @Get("/_snapshot/:repository/_all")
+    public Payload getSnapshots(
+            @Parameter(name = "repository", description = "snapshot repository name", in = ParameterIn.PATH)
+            final String repository) throws IOException {
+        modeVerifier.checkAllowedMode(Mode.LOCAL, Mode.EMBEDDED);
+        return PayloadFormatter.json(indexer.executeRaw("GET", "_snapshot/" + repository + "/_all", null));
+    }
+
+    @Operation(description = "Get a specific snapshot. Only available in LOCAL and EMBEDDED modes.")
+    @ApiResponse(responseCode = "200", description = "snapshot details")
+    @ApiResponse(responseCode = "403", description = "operation not allowed in current mode")
+    @Get("/_snapshot/:repository/:snapshot")
+    public Payload getSnapshot(
+            @Parameter(name = "repository", description = "snapshot repository name", in = ParameterIn.PATH)
+            final String repository,
+            @Parameter(name = "snapshot", description = "snapshot name", in = ParameterIn.PATH)
+            final String snapshot) throws IOException {
+        modeVerifier.checkAllowedMode(Mode.LOCAL, Mode.EMBEDDED);
+        return PayloadFormatter.json(indexer.executeRaw("GET", "_snapshot/" + repository + "/" + snapshot, null));
+    }
+
+    @Operation(description = "Create a snapshot. Only available in LOCAL and EMBEDDED modes.")
+    @ApiResponse(responseCode = "200", description = "snapshot creation started")
+    @ApiResponse(responseCode = "403", description = "operation not allowed in current mode")
+    @Put("/_snapshot/:repository/:snapshot")
+    public Payload createSnapshot(
+            @Parameter(name = "repository", description = "snapshot repository name", in = ParameterIn.PATH)
+            final String repository,
+            @Parameter(name = "snapshot", description = "snapshot name", in = ParameterIn.PATH)
+            final String snapshot,
+            Context context,
+            net.codestory.http.Request request) throws IOException {
+        modeVerifier.checkAllowedMode(Mode.LOCAL, Mode.EMBEDDED);
+        String waitForCompletion = context.query().get("wait_for_completion");
+        String path = "_snapshot/" + repository + "/" + snapshot;
+        if (waitForCompletion != null) {
+            path += "?wait_for_completion=" + waitForCompletion;
+        }
+        String body = request.contentAsBytes().length > 0 ? new String(request.contentAsBytes()) : null;
+        return PayloadFormatter.json(indexer.executeRaw("PUT", path, body));
+    }
+
+    @Operation(description = "Restore a snapshot. Only available in LOCAL and EMBEDDED modes.")
+    @ApiResponse(responseCode = "200", description = "restore started")
+    @ApiResponse(responseCode = "403", description = "operation not allowed in current mode")
+    @Post("/_snapshot/:repository/:snapshot/_restore")
+    public Payload restoreSnapshot(
+            @Parameter(name = "repository", description = "snapshot repository name", in = ParameterIn.PATH)
+            final String repository,
+            @Parameter(name = "snapshot", description = "snapshot name", in = ParameterIn.PATH)
+            final String snapshot,
+            Context context,
+            net.codestory.http.Request request) throws IOException {
+        modeVerifier.checkAllowedMode(Mode.LOCAL, Mode.EMBEDDED);
+        String waitForCompletion = context.query().get("wait_for_completion");
+        String path = "_snapshot/" + repository + "/" + snapshot + "/_restore";
+        if (waitForCompletion != null) {
+            path += "?wait_for_completion=" + waitForCompletion;
+        }
+        String body = request.contentAsBytes().length > 0 ? new String(request.contentAsBytes()) : null;
+        return PayloadFormatter.json(indexer.executeRaw("POST", path, body));
+    }
+
+    @Operation(description = "Delete a snapshot. Only available in LOCAL and EMBEDDED modes.")
+    @ApiResponse(responseCode = "200", description = "snapshot deleted")
+    @ApiResponse(responseCode = "403", description = "operation not allowed in current mode")
+    @Delete("/_snapshot/:repository/:snapshot")
+    public Payload deleteSnapshot(
+            @Parameter(name = "repository", description = "snapshot repository name", in = ParameterIn.PATH)
+            final String repository,
+            @Parameter(name = "snapshot", description = "snapshot name", in = ParameterIn.PATH)
+            final String snapshot) throws IOException {
+        modeVerifier.checkAllowedMode(Mode.LOCAL, Mode.EMBEDDED);
+        return PayloadFormatter.json(indexer.executeRaw("DELETE", "_snapshot/" + repository + "/" + snapshot, null));
+    }
+
+    @Operation(description = "Get cluster nodes settings. Only available in LOCAL and EMBEDDED modes.")
+    @ApiResponse(responseCode = "200", description = "nodes settings")
+    @ApiResponse(responseCode = "403", description = "operation not allowed in current mode")
+    @Get("/_nodes/settings")
+    public Payload getNodesSettings() throws IOException {
+        modeVerifier.checkAllowedMode(Mode.LOCAL, Mode.EMBEDDED);
+        return PayloadFormatter.json(indexer.executeRaw("GET", "_nodes/settings", null));
+    }
+
+    @Operation(description = "Get cluster nodes info. Only available in LOCAL and EMBEDDED modes.")
+    @ApiResponse(responseCode = "200", description = "nodes info")
+    @ApiResponse(responseCode = "403", description = "operation not allowed in current mode")
+    @Get("/_nodes")
+    public Payload getNodes() throws IOException {
+        modeVerifier.checkAllowedMode(Mode.LOCAL, Mode.EMBEDDED);
+        return PayloadFormatter.json(indexer.executeRaw("GET", "_nodes", null));
+    }
+
+    @Operation(description = "Get cluster settings. Only available in LOCAL and EMBEDDED modes.")
+    @ApiResponse(responseCode = "200", description = "cluster settings")
+    @ApiResponse(responseCode = "403", description = "operation not allowed in current mode")
+    @Get("/_cluster/settings")
+    public Payload getClusterSettings() throws IOException {
+        modeVerifier.checkAllowedMode(Mode.LOCAL, Mode.EMBEDDED);
+        return PayloadFormatter.json(indexer.executeRaw("GET", "_cluster/settings", null));
     }
 }
