@@ -202,6 +202,14 @@ public class IndexResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
+    public void test_close_index_forwards_query_params() throws IOException {
+        configure(routes -> routes.add(new IndexResource(indexer, propertiesProvider))
+                .filter(new LocalUserFilter(propertiesProvider, jooqRepository, es.getIndexNames())));
+        post("/api/index/%s/_close?ignore_unavailable=true".formatted(es.getIndexName())).should().respond(200);
+        post("/api/index/%s/_open?ignore_unavailable=true".formatted(es.getIndexName())).should().respond(200);
+    }
+
+    @Test
     public void test_close_index_forbidden_in_server_mode() {
         configure(routes -> routes.add(new IndexResource(indexer, serverModeProvider))
                 .filter(new LocalUserFilter(serverModeProvider, jooqRepository, es.getIndexNames())));
