@@ -141,10 +141,12 @@ public class IndexResource {
     @Post("/:index/_close")
     public Payload closeIndex(
             @Parameter(name = "index", description = "index name to close", in = ParameterIn.PATH)
-            final String index) throws IOException {
+            final String index,
+            Context context) throws IOException {
         modeVerifier.checkAllowedMode(Mode.LOCAL, Mode.EMBEDDED);
         try {
-            return PayloadFormatter.json(indexer.executeRaw("POST", IndexAccessVerifier.checkIndices(index) + "/_close", null));
+            String path = IndexAccessVerifier.checkIndices(index) + "/_close";
+            return PayloadFormatter.json(indexer.executeRaw("POST", withQueryParams(path, context), null));
         } catch (IllegalArgumentException e) {
             return PayloadFormatter.error(e, HttpStatus.BAD_REQUEST);
         }
@@ -157,10 +159,12 @@ public class IndexResource {
     @Post("/:index/_open")
     public Payload openIndex(
             @Parameter(name = "index", description = "index name to open", in = ParameterIn.PATH)
-            final String index) throws IOException {
+            final String index,
+            Context context) throws IOException {
         modeVerifier.checkAllowedMode(Mode.LOCAL, Mode.EMBEDDED);
         try {
-            return PayloadFormatter.json(indexer.executeRaw("POST", IndexAccessVerifier.checkIndices(index) + "/_open", null));
+            String path = IndexAccessVerifier.checkIndices(index) + "/_open";
+            return PayloadFormatter.json(indexer.executeRaw("POST", withQueryParams(path, context), null));
         } catch (IllegalArgumentException e) {
             return PayloadFormatter.error(e, HttpStatus.BAD_REQUEST);
         }
@@ -245,13 +249,9 @@ public class IndexResource {
             Context context,
             net.codestory.http.Request request) throws IOException {
         modeVerifier.checkAllowedMode(Mode.LOCAL, Mode.EMBEDDED);
-        String waitForCompletion = context.query().get("wait_for_completion");
         String path = "_snapshot/" + repository + "/" + snapshot;
-        if (waitForCompletion != null) {
-            path += "?wait_for_completion=" + waitForCompletion;
-        }
         String body = request.contentAsBytes().length > 0 ? new String(request.contentAsBytes()) : null;
-        return PayloadFormatter.json(indexer.executeRaw("PUT", path, body));
+        return PayloadFormatter.json(indexer.executeRaw("PUT", withQueryParams(path, context), body));
     }
 
     @Operation(description = "Restore a snapshot. Only available in LOCAL and EMBEDDED modes.")
@@ -266,13 +266,9 @@ public class IndexResource {
             Context context,
             net.codestory.http.Request request) throws IOException {
         modeVerifier.checkAllowedMode(Mode.LOCAL, Mode.EMBEDDED);
-        String waitForCompletion = context.query().get("wait_for_completion");
         String path = "_snapshot/" + repository + "/" + snapshot + "/_restore";
-        if (waitForCompletion != null) {
-            path += "?wait_for_completion=" + waitForCompletion;
-        }
         String body = request.contentAsBytes().length > 0 ? new String(request.contentAsBytes()) : null;
-        return PayloadFormatter.json(indexer.executeRaw("POST", path, body));
+        return PayloadFormatter.json(indexer.executeRaw("POST", withQueryParams(path, context), body));
     }
 
     @Operation(description = "Delete a snapshot. Only available in LOCAL and EMBEDDED modes.")
@@ -313,5 +309,13 @@ public class IndexResource {
     public Payload getClusterSettings() throws IOException {
         modeVerifier.checkAllowedMode(Mode.LOCAL, Mode.EMBEDDED);
         return PayloadFormatter.json(indexer.executeRaw("GET", "_cluster/settings", null));
+    }
+
+    private String withQueryParams(String path, Context context) {
+        String queryString = context.query().keyValues().entrySet().stream()
+                .map(e -> e.getKey() + "=" + e.getValue())
+                .reduce((a, b) -> a + "&" + b)
+                .orElse("");
+        return queryString.isEmpty() ? path : path + "?" + queryString;
     }
 }
