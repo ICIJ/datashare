@@ -454,15 +454,13 @@ jobs:
       - image: cimg/openjdk:17.0.11
       - image: redis:4.0.1-alpine
         name: redis
-      - image: rabbitmq:3.12
-        name: rabbitmq
-        environment:
-          RABBITMQ_DEFAULT_USER: admin
-          RABBITMQ_DEFAULT_PASS: admin
+      - image: cloudamqp/lavinmq
+        name: amqp
       - image: adobe/s3mock:3.12.0
         name: s3mock
 
     environment:
+      <<: *ds_env
       MAVEN_OPTS: "-Xms512m -Xmx1g -Xss10M"
 
     steps:
