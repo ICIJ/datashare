@@ -90,7 +90,6 @@
         <datashare-tasks.version>19.0.2</datashare-tasks.version>
         <ftm.version>0.3.1</ftm.version>
 
-        <datashare-mitie.version>${project.version}</datashare-mitie.version>
         <datashare-elasticsearch.version>${project.version}</datashare-elasticsearch.version>
         <datashare-corenlp.version>${project.version}</datashare-corenlp.version>
         <guice.version>5.1.0</guice.version>
@@ -205,24 +204,6 @@
                 <groupId>org.icij.datashare</groupId>
                 <artifactId>datashare-nlp-opennlp</artifactId>
                 <version>${datashare-opennlp.version}</version>
-                <scope>runtime</scope>
-            </dependency>
-            <dependency>
-                <groupId>org.icij.datashare</groupId>
-                <artifactId>datashare-nlp-gate</artifactId>
-                <version>${datashare-gate.version}</version>
-                <scope>runtime</scope>
-            </dependency>
-            <dependency>
-                <groupId>org.icij.datashare</groupId>
-                <artifactId>datashare-nlp-mitie</artifactId>
-                <version>${datashare-mitie.version}</version>
-                <scope>runtime</scope>
-            </dependency>
-            <dependency>
-                <groupId>org.icij.datashare</groupId>
-                <artifactId>datashare-nlp-ixapipe</artifactId>
-                <version>${datashare-ixapipe.version}</version>
                 <scope>runtime</scope>
             </dependency>
 
