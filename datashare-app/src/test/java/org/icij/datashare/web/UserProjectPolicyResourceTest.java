@@ -25,7 +25,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.mockito.MockitoAnnotations.openMocks;
 
-public class UserPolicyResourceTest extends AbstractProdWebServerTest {
+public class UserProjectPolicyResourceTest extends AbstractProdWebServerTest {
     @Mock
     JooqUserPolicyRepository userPolicyRepository;
     @Mock

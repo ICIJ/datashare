@@ -10,12 +10,7 @@
     import io.swagger.v3.oas.annotations.parameters.RequestBody;
     import io.swagger.v3.oas.annotations.responses.ApiResponse;
     import net.codestory.http.Context;
-    import net.codestory.http.annotations.Delete;
-    import net.codestory.http.annotations.Get;
-    import net.codestory.http.annotations.Options;
-    import net.codestory.http.annotations.Post;
-    import net.codestory.http.annotations.Prefix;
-    import net.codestory.http.annotations.Put;
+    import net.codestory.http.annotations.*;
     import net.codestory.http.constants.HttpStatus;
     import net.codestory.http.payload.Payload;
     import org.apache.commons.io.FileUtils;
@@ -25,7 +20,7 @@
     import org.icij.datashare.cli.Mode;
     import org.icij.datashare.extract.DocumentCollectionFactory;
     import org.icij.datashare.session.DatashareUser;
-    import org.icij.datashare.session.Policy;
+    import org.icij.datashare.session.ProjectPolicy;
     import org.icij.datashare.tasks.DatashareTaskManager;
     import org.icij.datashare.text.Project;
     import org.icij.datashare.text.indexing.Indexer;
@@ -141,7 +136,7 @@
         @ApiResponse(responseCode = "404", description = "if project doesn't exist in database")
         @ApiResponse(responseCode = "500", description = "if project json id is not the same as the url id or if save failed")
         @Put("/:id")
-        @Policy(roles = {Role.ADMIN}, idParam = "id")
+        @ProjectPolicy(roles = {Role.ADMIN}, idParam = "id")
         public Payload projectUpdate(String id, Project projectPayload, Context context) {
             if (isProjectNameEmpty(projectPayload)) {
                 return PayloadFormatter.error("`name` field is required.", HttpStatus.BAD_REQUEST);

@@ -19,7 +19,7 @@ import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.when;
 import static org.mockito.MockitoAnnotations.openMocks;
 
-public class UserPolicyAdapterTest {
+public class UserProjectPolicyAdapterTest {
 
     @Mock
     private UserPolicyRepository repository;

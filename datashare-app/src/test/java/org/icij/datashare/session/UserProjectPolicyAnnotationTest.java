@@ -18,17 +18,11 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.mockito.MockitoAnnotations.openMocks;
 
-public class UserPolicyAnnotationTest {
-    private UserPolicyAnnotation annotation;
-    private DatashareUser adminUser;
-    private DatashareUser nonAdminUser;
-
-    private static AutoCloseable mocks;
-    private String projectId = "test-datashare";
-    private final Policy adminPolicy = new Policy() {
+public class UserProjectPolicyAnnotationTest {
+    private final ProjectPolicy adminProjectProjectPolicy = new ProjectPolicy() {
         @Override
         public Class<? extends Annotation> annotationType() {
-            return Policy.class;
+            return ProjectPolicy.class;
         }
 
         @Override
@@ -37,11 +31,19 @@ public class UserPolicyAnnotationTest {
         }
 
         @Override
-        public String projectIdParam() {
+        public String idParam() {
             return "index";
         }
+
     };
+    private DatashareUser adminUser;
+    private DatashareUser nonAdminUser;
+
+    private static AutoCloseable mocks;
+    private String projectId = "test-datashare";
+    private UserProjectPolicyAnnotation annotation;
     UserPolicyVerifier userPolicyVerifier;
+
     @Before
     public void setUp() throws URISyntaxException {
         mocks = openMocks(this);
@@ -55,7 +57,7 @@ public class UserPolicyAnnotationTest {
         when(userPolicyVerifier.getUserPolicy("john", projectId)).thenReturn(nonAdminPermission);
         when(userPolicyVerifier.enforce("cecile", projectId, ADMIN.name())).thenReturn(true);
         when(userPolicyVerifier.enforce("john", projectId, ADMIN.name())).thenReturn(false);
-        annotation = new UserPolicyAnnotation(userPolicyVerifier);
+        annotation = new UserProjectPolicyAnnotation(userPolicyVerifier);
 
     }
 
@@ -63,7 +65,7 @@ public class UserPolicyAnnotationTest {
     public void should_throw_unauthorized_if_no_user() {
         Context context = mock(Context.class);
         when(context.pathParam("index")).thenReturn(projectId);
-        annotation.apply(adminPolicy, context, (c) -> Payload.ok());
+        annotation.apply(adminProjectProjectPolicy, context, (c) -> Payload.ok());
     }
 
     @Test
@@ -75,7 +77,7 @@ public class UserPolicyAnnotationTest {
 
         when(context.pathParam("index")).thenReturn(projectId);
 
-        Payload result = annotation.apply(adminPolicy, context, c -> Payload.ok());
+        Payload result = annotation.apply(adminProjectProjectPolicy, context, c -> Payload.ok());
         assertEquals(403, result.code());
     }
 
@@ -85,7 +87,7 @@ public class UserPolicyAnnotationTest {
 
         when(context.currentUser()).thenReturn(nonAdminUser);
         when(context.pathParam("index")).thenReturn(projectId);
-        Payload result = annotation.apply(adminPolicy, context, (c) -> Payload.forbidden());
+        Payload result = annotation.apply(adminProjectProjectPolicy, context, (c) -> Payload.forbidden());
         assertEquals(403, result.code());
     }
 
@@ -95,7 +97,7 @@ public class UserPolicyAnnotationTest {
 
         when(context.currentUser()).thenReturn(adminUser);
         when(context.pathParam("index")).thenReturn(projectId);
-        Payload result = annotation.apply(adminPolicy, context, (c) -> Payload.ok());
+        Payload result = annotation.apply(adminProjectProjectPolicy, context, (c) -> Payload.ok());
         assertEquals(200, result.code());
     }
 

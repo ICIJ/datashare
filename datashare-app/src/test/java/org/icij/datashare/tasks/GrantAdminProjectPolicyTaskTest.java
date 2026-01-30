@@ -3,7 +3,6 @@ package org.icij.datashare.tasks;
 import org.icij.datashare.RecordNotFoundException;
 import org.icij.datashare.session.UserPolicyVerifier;
 import org.icij.datashare.text.Project;
-
 import org.icij.datashare.user.Role;
 import org.icij.datashare.user.User;
 import org.junit.Before;
@@ -17,7 +16,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.MockitoAnnotations.initMocks;
 
-public class GrantAdminPolicyTaskTest {
+public class GrantAdminProjectPolicyTaskTest {
     @Mock
     public UserPolicyVerifier userPolicyVerifier;
 
