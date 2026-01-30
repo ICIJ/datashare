@@ -17,7 +17,7 @@ import org.mockito.Mock;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
-import java.util.List;
+import java.util.stream.Stream;
 
 import static org.icij.datashare.text.Project.project;
 import static org.icij.datashare.user.User.localUser;
@@ -40,26 +40,26 @@ public class WebAcceptanceTest extends AbstractProdWebServerTest {
 
 
     public User mockUserProjectRole(String userId, String projectId, Role[] roles) {
-        DatashareUser user = new DatashareUser(localUser(userId));
+        UserPolicy policy = new UserPolicy(userId, projectId, roles);
+        DatashareUser user = new DatashareUser(localUser(userId, Stream.of(policy)));
         user.addProject(projectId);
         when(jooqRepository.getProject(projectId)).thenReturn(project(projectId));
         when(users.find(user.id)).thenReturn(user);
 
-        UserPolicy policy = new UserPolicy(user.id, projectId, roles);
         when(jooqUserPolicyRepository.get(user.id, projectId)).thenReturn(policy);
-        return user.withPolicies(List.of(policy));
+        return user;
     }
 
     @Test
     public void route_with_index_in_path_policy_annotation_accepts_user_with_same_policy() throws IOException, URISyntaxException {
         User john = mockUserProjectRole("john", "test-datashare", new Role[]{Role.ADMIN});
-        when(jooqUserPolicyRepository.getAllPolicies()).thenReturn(john.policies.stream());
+        when(jooqUserPolicyRepository.getAllPolicies()).thenReturn(john.getPolicies());
 
-        UserPolicyVerifier verifier = new UserPolicyVerifier(jooqUserPolicyRepository, jooqRepository, users);
-        UserPolicyAnnotation userPolicyAnnotation = new UserPolicyAnnotation(verifier);
+        UserPolicyVerifier verifier = new UserPolicyVerifier(jooqUserPolicyRepository, users);
+        UserProjectPolicyAnnotation userProjectPolicyAnnotation = new UserProjectPolicyAnnotation(verifier);
         Users users = DatashareUser.singleUser(john);
 
-        configure(routes -> routes.registerAroundAnnotation(Policy.class, userPolicyAnnotation).filter(new BasicAuthFilter("/", "icij", users)).add(new FakeResource()));
+        configure(routes -> routes.registerAroundAnnotation(ProjectPolicy.class, userProjectPolicyAnnotation).filter(new BasicAuthFilter("/", "icij", users)).add(new FakeResource()));
 
         get("/admin/test-datashare").withPreemptiveAuthentication("john", "pass").should().respond(200);
     }
@@ -69,7 +69,7 @@ public class WebAcceptanceTest extends AbstractProdWebServerTest {
         User jane = mockUserProjectRole("jane", "test-datashare", new Role[]{});
         when(jooqUserPolicyRepository.getAllPolicies()).thenReturn(jane.getPolicies());
 
-        UserPolicyVerifier verifier = new UserPolicyVerifier(jooqUserPolicyRepository, jooqRepository, users);
+        UserPolicyVerifier verifier = new UserPolicyVerifier(jooqUserPolicyRepository, users);
         UserPolicyAnnotation userPolicyAnnotation = new UserPolicyAnnotation(verifier);
         Users users = DatashareUser.singleUser(jane);
 
@@ -84,7 +84,7 @@ public class WebAcceptanceTest extends AbstractProdWebServerTest {
         }
 
         @Get("/admin/:index")
-        @Policy(roles = {Role.ADMIN})
+        @ProjectPolicy(roles = {Role.ADMIN})
         public String getAdminResource(String index) {
             return "admin-content " + index;
         }

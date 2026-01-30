@@ -240,15 +240,15 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
     UsersWritable users;
 
     public User get_datashare_users_with_policy2(String userId, String projectId, Role[] roles) {
-        DatashareUser user = new DatashareUser(localUser(userId));
+        UserPolicy policy = new UserPolicy(userId, projectId, roles);
+        DatashareUser user = new DatashareUser(localUser(userId, List.of(projectId), Stream.of(policy)));
         user.addProject(projectId);
         when(jooqRepository.getProject(projectId)).thenReturn(project(projectId));
-        when(users.find(user.id)).thenReturn(user);
+        when(jooqUserPolicyRepository.getAllPolicies()).thenReturn(user.getPolicies());
 
-        UserPolicy policy = new UserPolicy(user.id, projectId, roles);
+        when(users.find(user.id)).thenReturn(user);
         when(jooqUserPolicyRepository.get(user.id, projectId)).thenReturn(policy);
-        when(jooqUserPolicyRepository.getAllPolicies()).thenReturn(Stream.of(policy));
-        return user.withPolicies(List.of(policy));
+        return user;
     }
 
     @Test
@@ -263,12 +263,12 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
         ProjectResource projectResource = new ProjectResource(repository, indexer, taskManager, propertiesProvider, documentCollectionFactory);
         // add policies
         User user = get_datashare_users_with_policy2("john", projectId,new Role[]{Role.ADMIN});
-        UserPolicyVerifier verifier = new UserPolicyVerifier(jooqUserPolicyRepository, jooqRepository, users);
-        UserPolicyAnnotation userPolicyAnnotation = new UserPolicyAnnotation(verifier);
+        UserPolicyVerifier verifier = new UserPolicyVerifier(jooqUserPolicyRepository, users);
+        UserProjectPolicyAnnotation userProjectPolicyAnnotation = new UserProjectPolicyAnnotation(verifier);
 
         configure(routes -> {
             BasicAuthFilter basicAuthFilter = new BasicAuthFilter("/", "icij", DatashareUser.singleUser(user));
-            routes.filter(basicAuthFilter).registerAroundAnnotation(Policy.class, userPolicyAnnotation).add(new UserPolicyResource(verifier)).add(projectResource);
+            routes.filter(basicAuthFilter).registerAroundAnnotation(ProjectPolicy.class, userProjectPolicyAnnotation).add(new UserPolicyResource(verifier)).add(projectResource);
         });
 
         Project foo = new Project(projectId, Path.of("/my-dir/foo"));
@@ -289,12 +289,12 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
         ProjectResource projectResource = new ProjectResource(repository, indexer, taskManager, propertiesProvider, documentCollectionFactory);
 
         User user = get_datashare_users_with_policy2("john", projectId,new Role[]{});
-        UserPolicyVerifier verifier = new UserPolicyVerifier(jooqUserPolicyRepository, jooqRepository, users);
-        UserPolicyAnnotation userPolicyAnnotation = new UserPolicyAnnotation(verifier);
+        UserPolicyVerifier verifier = new UserPolicyVerifier(jooqUserPolicyRepository, users);
+        UserProjectPolicyAnnotation userProjectPolicyAnnotation = new UserProjectPolicyAnnotation(verifier);
 
         configure(routes -> {
             BasicAuthFilter basicAuthFilter = new BasicAuthFilter("/", "icij", DatashareUser.singleUser(user));
-            routes.filter(basicAuthFilter).registerAroundAnnotation(Policy.class, userPolicyAnnotation).add(new UserPolicyResource(verifier)).add(projectResource);
+            routes.filter(basicAuthFilter).registerAroundAnnotation(ProjectPolicy.class, userProjectPolicyAnnotation).add(new UserPolicyResource(verifier)).add(projectResource);
         });
         when(repository.getProject(projectId)).thenReturn(new Project(projectId));
         when(repository.save((Project) any())).thenReturn(true);

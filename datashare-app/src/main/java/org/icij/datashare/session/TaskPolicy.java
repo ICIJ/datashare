@@ -9,18 +9,8 @@ import java.lang.annotation.Target;
 
 @Target({ElementType.METHOD, ElementType.TYPE})
 @Retention(RetentionPolicy.RUNTIME)
-public @interface Policy {
-    String idParam() default "index";
+public @interface TaskPolicy {
+    String idParam() default "taskName:";
 
     Role[] roles() default {};
-
-    ResourceType resourceType() default ResourceType.PROJECT;
-
-    /**
-     * Enum representing the types of resources that can be protected by policies.
-     */
-    enum ResourceType {
-        PROJECT,
-        TASK
-    }
 }
