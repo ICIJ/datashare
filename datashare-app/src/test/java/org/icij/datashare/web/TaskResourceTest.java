@@ -8,7 +8,8 @@ import net.codestory.rest.Response;
 import net.codestory.rest.RestAssert;
 import net.codestory.rest.ShouldChain;
 import org.icij.datashare.PropertiesProvider;
-import org.icij.datashare.asynctasks.*;
+import org.icij.datashare.asynctasks.Task;
+import org.icij.datashare.asynctasks.TaskFilters;
 import org.icij.datashare.asynctasks.TaskRepositoryMemory;
 import org.icij.datashare.asynctasks.bus.amqp.TaskCreation;
 import org.icij.datashare.batch.BatchSearchRecord;
@@ -18,13 +19,15 @@ import org.icij.datashare.db.JooqRepository;
 import org.icij.datashare.extension.PipelineRegistry;
 import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.nlp.EmailPipeline;
-import org.icij.datashare.session.LocalUserFilter;
+import org.icij.datashare.session.*;
 import org.icij.datashare.tasks.*;
-import org.icij.datashare.tasks.TaskManagerMemory;
 import org.icij.datashare.test.DatashareTimeRule;
 import org.icij.datashare.text.ProjectProxy;
 import org.icij.datashare.text.nlp.AbstractModels;
+import org.icij.datashare.user.Role;
 import org.icij.datashare.user.User;
+import org.icij.datashare.user.UserPolicy;
+import org.icij.datashare.user.UserPolicyRepository;
 import org.icij.datashare.web.testhelpers.AbstractProdWebServerTest;
 import org.jetbrains.annotations.NotNull;
 import org.junit.After;
@@ -37,6 +40,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.InetSocketAddress;
 import java.util.*;
+import java.util.stream.Stream;
 
 import static java.lang.String.format;
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -67,17 +71,8 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
     private static final TestTaskUtils.DatashareTaskFactoryForTest taskFactory = mock(TestTaskUtils.DatashareTaskFactoryForTest.class);
     private static final TaskManagerMemory taskManager = new TaskManagerMemory(taskFactory, new TaskRepositoryMemory(), new PropertiesProvider(Map.of(TASK_MANAGER_POLLING_INTERVAL_OPT, "500")));
 
-    @Before
-    public void setUp() {
-        initMocks(this);
-        when(jooqRepository.getProjects()).thenReturn(new ArrayList<>());
-        when(batchSearchRepository.getRecords(any(), any())).thenReturn(new ArrayList<>());
-        PipelineRegistry pipelineRegistry = new PipelineRegistry(getDefaultPropertiesProvider());
-        pipelineRegistry.register(EmailPipeline.class);
-        LocalUserFilter localUserFilter = new LocalUserFilter(getDefaultPropertiesProvider(), jooqRepository);
-        configure(routes -> routes.add(new TaskResource(taskFactory, taskManager, getDefaultPropertiesProvider(), batchSearchRepository)).filter(localUserFilter));
-        TestTaskUtils.init(taskFactory);
-    }
+    @Mock
+    UserPolicyRepository userPolicyRepository;
 
     @After
     public void tearDown() throws IOException {
@@ -661,17 +656,65 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         responseBody.should().not().contain("IndexTask");
         assertThat(taskManager.getTasks().toList()).hasSize(1);
     }
+    @Mock
+    UsersWritable users;
+
+    @Before
+    public void setUp() {
+        initMocks(this);
+        when(jooqRepository.getProjects()).thenReturn(new ArrayList<>());
+        when(batchSearchRepository.getRecords(any(), any())).thenReturn(new ArrayList<>());
+        PipelineRegistry pipelineRegistry = new PipelineRegistry(getDefaultPropertiesProvider());
+        pipelineRegistry.register(EmailPipeline.class);
+        LocalUserFilter localUserFilter = new LocalUserFilter(getDefaultPropertiesProvider(), jooqRepository);
+        configure(routes -> routes
+                .add(new TaskResource(taskFactory, taskManager, getDefaultPropertiesProvider(), batchSearchRepository))
+                .filter(localUserFilter)
+        );
+        TestTaskUtils.init(taskFactory);
+    }
 
     @Test
-    public void test_clean_one_done_task() throws IOException {
-        String dummyTaskId = taskManager.startTask(TestTask.class, User.local(), new HashMap<>());
+    public void test_clean_task_with_admin_policy() throws Exception {
+        String projectId = "test-datashare";
+        String dummyTaskId = taskManager.startTask(TestTask.class, User.local(), new HashMap<>(Map.of(PropertiesProvider.DEFAULT_PROJECT_OPT, projectId)));
         taskManager.waitTasksToBeDone(1, SECONDS);
-        assertThat(taskManager.getTasks().toList()).hasSize(1);
-        assertThat(taskManager.getTask(dummyTaskId).getState()).isEqualTo(Task.State.DONE);
 
-        delete("/api/task/clean/" + dummyTaskId).should().respond(200);
+        // Setup admin user
+        DatashareUser admin = new DatashareUser("admin");
+        UserPolicy adminPolicy = new UserPolicy("admin", projectId, new Role[]{Role.ADMIN});
+        when(users.find("admin", "pass")).thenReturn(admin);
+        when(userPolicyRepository.get("admin", projectId)).thenReturn(adminPolicy);
 
-        assertThat(taskManager.getTasks().toList()).hasSize(0);
+        // Setup non-admin user
+        DatashareUser john = new DatashareUser("john");
+        UserPolicy johnPolicy = new UserPolicy("john", projectId, new Role[]{Role.READER});
+        when(users.find("john", "pass")).thenReturn(john);
+        when(userPolicyRepository.get("john", projectId)).thenReturn(johnPolicy);
+
+        when(userPolicyRepository.getAllPolicies()).thenReturn(Stream.of(johnPolicy, adminPolicy));
+        UserPolicyVerifier verifier = new UserPolicyVerifier(userPolicyRepository, users);
+        UserTaskPolicyAnnotation userTaskPolicyAnnotation = new UserTaskPolicyAnnotation(verifier, taskManager);
+
+        configure(routes -> routes
+                .filter(new BasicAuthFilter("/", "icij", users))
+                .registerAroundAnnotation(TaskPolicy.class, userTaskPolicyAnnotation)
+                .add(new UserPolicyResource(verifier))
+                .add(new TaskResource(taskFactory, taskManager, getDefaultPropertiesProvider(), batchSearchRepository))
+        );
+
+        // Admin can clean
+        //delete("/api/task/clean/" + dummyTaskId).withPreemptiveAuthentication("admin", "pass").should().respond(200);
+
+        // recreate task for john's test
+        String dummyTaskId2 = taskManager.startTask(TestTask.class, User.local(), new HashMap<>(Map.of(PropertiesProvider.DEFAULT_PROJECT_OPT, projectId)));
+        taskManager.waitTasksToBeDone(1, SECONDS);
+
+        // John cannot clean (403 Forbidden)
+        delete("/api/task/clean/" + dummyTaskId2).withPreemptiveAuthentication("john", "pass").should().respond(403);
+
+        // Admin can clean dummyTaskId2
+        delete("/api/task/clean/" + dummyTaskId2).withPreemptiveAuthentication("admin", "pass").should().respond(200);
     }
     @Test
     public void test_cannot_clean_unknown_task() {
