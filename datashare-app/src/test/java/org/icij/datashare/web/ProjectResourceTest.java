@@ -2,14 +2,13 @@ package org.icij.datashare.web;
 
 import net.codestory.http.filters.basic.BasicAuthFilter;
 import net.codestory.http.security.Users;
-import org.icij.datashare.EnvUtils;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Repository;
 import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.cli.Mode;
 import org.icij.datashare.db.JooqRepository;
-import org.icij.datashare.session.*;
 import org.icij.datashare.extract.MemoryDocumentCollectionFactory;
+import org.icij.datashare.session.*;
 import org.icij.datashare.tasks.DatashareTaskManager;
 import org.icij.datashare.text.Project;
 import org.icij.datashare.text.indexing.Indexer;
@@ -265,11 +264,11 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
         // add policies
         User user = get_datashare_users_with_policy2("john", projectId,new Role[]{Role.ADMIN});
         UserPolicyVerifier verifier = new UserPolicyVerifier(jooqUserPolicyRepository, users);
-        UserPolicyAnnotation userPolicyAnnotation = new UserPolicyAnnotation(verifier);
+        UserProjectPolicyAnnotation userProjectPolicyAnnotation = new UserProjectPolicyAnnotation(verifier);
 
         configure(routes -> {
             BasicAuthFilter basicAuthFilter = new BasicAuthFilter("/", "icij", DatashareUser.singleUser(user));
-            routes.filter(basicAuthFilter).registerAroundAnnotation(Policy.class, userPolicyAnnotation).add(new UserPolicyResource(verifier)).add(projectResource);
+            routes.filter(basicAuthFilter).registerAroundAnnotation(ProjectPolicy.class, userProjectPolicyAnnotation).add(new UserPolicyResource(verifier)).add(projectResource);
         });
 
         Project foo = new Project(projectId, Path.of("/my-dir/foo"));
@@ -291,11 +290,11 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
 
         User user = get_datashare_users_with_policy2("john", projectId,new Role[]{});
         UserPolicyVerifier verifier = new UserPolicyVerifier(jooqUserPolicyRepository, users);
-        UserPolicyAnnotation userPolicyAnnotation = new UserPolicyAnnotation(verifier);
+        UserProjectPolicyAnnotation userProjectPolicyAnnotation = new UserProjectPolicyAnnotation(verifier);
 
         configure(routes -> {
             BasicAuthFilter basicAuthFilter = new BasicAuthFilter("/", "icij", DatashareUser.singleUser(user));
-            routes.filter(basicAuthFilter).registerAroundAnnotation(Policy.class, userPolicyAnnotation).add(new UserPolicyResource(verifier)).add(projectResource);
+            routes.filter(basicAuthFilter).registerAroundAnnotation(ProjectPolicy.class, userProjectPolicyAnnotation).add(new UserPolicyResource(verifier)).add(projectResource);
         });
         when(repository.getProject(projectId)).thenReturn(new Project(projectId));
         when(repository.save((Project) any())).thenReturn(true);

@@ -22,7 +22,7 @@ import static org.junit.Assert.assertFalse;
 import static org.mockito.Mockito.when;
 import static org.mockito.MockitoAnnotations.openMocks;
 
-public class UserPolicyVerifierTest {
+public class UserProjectPolicyVerifierTest {
     @Mock
     private UserPolicyRepository jooqUserPolicyRepository;
     @Mock
