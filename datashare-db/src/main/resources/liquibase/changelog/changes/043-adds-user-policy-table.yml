@@ -1,6 +1,6 @@
 databaseChangeLog:
   - changeSet:
-      id: 43
+      id: 72
       author: cdesprat
       changes:
         - createTable:
@@ -32,7 +32,7 @@ databaseChangeLog:
                   constraints:
                     nullable: false
   - changeSet:
-      id: 44
+      id: 73
       author: cdesprat
       sql:
         - CREATE UNIQUE INDEX idx_user_policy_unique ON user_policy (user_id, prj_id)
