@@ -1,6 +1,6 @@
 databaseChangeLog:
   - changeSet:
-      id: 38
+      id: 66
       author: mvanza
       changes:
         - addColumn:
