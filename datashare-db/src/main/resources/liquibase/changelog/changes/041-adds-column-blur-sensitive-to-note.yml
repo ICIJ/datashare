@@ -1,6 +1,6 @@
 databaseChangeLog:
   - changeSet:
-      id: 41
+      id: 69
       author: promera
       changes:
         - addColumn:
