@@ -3,11 +3,13 @@ package org.icij.datashare.db;
 import junit.framework.TestCase;
 import org.icij.datashare.user.Role;
 import org.icij.datashare.user.UserPolicy;
+import org.junit.AfterClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
@@ -15,10 +17,11 @@ import static java.util.Arrays.asList;
 import static org.fest.assertions.Assertions.assertThat;
 
 @RunWith(Parameterized.class)
-public class JooqUserPolicyRepositoryTest extends TestCase {
+public class JooqCasbinRuleRepositoryTest extends TestCase {
 
     @Rule public DbSetupRule dbRule;
-    private final JooqUserPolicyRepository repository;
+    private final JooqCasbinRuleRepository repository;
+    private static final List<DbSetupRule> rulesToClose = new ArrayList<>();
 
     @Parameterized.Parameters
     public static Collection<Object[]> dataSources() {
@@ -28,9 +31,17 @@ public class JooqUserPolicyRepositoryTest extends TestCase {
         });
     }
 
-    public JooqUserPolicyRepositoryTest(DbSetupRule rule) {
+    public JooqCasbinRuleRepositoryTest(DbSetupRule rule) {
         dbRule = rule;
         repository = rule.createUserPolicyRepository();
+        rulesToClose.add(dbRule);
+    }
+
+    @AfterClass
+    public static void shutdownPools() {
+        for (DbSetupRule rule : rulesToClose) {
+            rule.shutdown();
+        }
     }
 
     @Test
