@@ -4,9 +4,8 @@ package org.icij.datashare.tray;
 import dorkbox.systemTray.Menu;
 import dorkbox.systemTray.MenuItem;
 import dorkbox.systemTray.SystemTray;
-import org.icij.datashare.PropertiesProvider;
-import org.icij.datashare.mode.CommonMode;
 import org.icij.datashare.utils.WebBrowserUtils;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -15,6 +14,9 @@ import java.awt.image.BufferedImage;
 import java.io.Closeable;
 import java.io.IOException;
 import java.net.URL;
+
+import static java.lang.String.format;
+import static java.util.Optional.ofNullable;
 
 public class DatashareSystemTray implements Closeable {
     private static final Logger LOGGER = LoggerFactory.getLogger(DatashareSystemTray.class);
@@ -31,26 +33,11 @@ public class DatashareSystemTray implements Closeable {
         configure();
     }
 
-    public static DatashareSystemTray create(CommonMode mode) {
-        SystemTray systemTray = null;
-        try {
-            GraphicsEnvironment.getLocalGraphicsEnvironment();
-            systemTray = SystemTray.get();
-        } catch (Throwable e) {
-            LOGGER.warn("Could not initialize SystemTray: {}", e.getMessage());
-        }
-
-        if (systemTray == null) {
-            LOGGER.error("SystemTray is not supported on this system");
-            return null;
-        }
-
-        TrayActions actions = new TrayActions() {
+    public static DatashareSystemTray create(String port) {
+        return ofNullable(createSystemTray()).map(st -> new DatashareSystemTray(st, new TrayActions() {
             @Override
             public void openBrowser() {
-                String port = mode.properties().getProperty(PropertiesProvider.TCP_LISTEN_PORT_OPT);
-                String url = "http://localhost:" + port;
-                WebBrowserUtils.openBrowser(url);
+                WebBrowserUtils.openBrowser(format("http://localhost:%s", port));
             }
 
             @Override
@@ -58,11 +45,18 @@ public class DatashareSystemTray implements Closeable {
                 LOGGER.info("Shutdown requested from system tray");
                 System.exit(0);
             }
-        };
+        })).orElse(null);
+    }
 
-        DatashareSystemTray dataShareTray = new DatashareSystemTray(systemTray, actions);
-        mode.addCloseable(dataShareTray);
-        return dataShareTray;
+    @Nullable
+    private static SystemTray createSystemTray() {
+        try {
+            GraphicsEnvironment.getLocalGraphicsEnvironment();
+            return SystemTray.get();
+        } catch (Throwable e) {
+            LOGGER.warn("SystemTray is not supported on this system", e);
+            return null;
+        }
     }
 
     private void configure() {

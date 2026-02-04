@@ -8,7 +8,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import ch.qos.logback.classic.Level;
 
+import java.io.Closeable;
 import java.nio.charset.Charset;
+
+import static java.util.Optional.ofNullable;
 
 public class Main {
     private static final Logger LOGGER = LoggerFactory.getLogger(Main.class);
@@ -27,7 +30,8 @@ public class Main {
         Runtime.getRuntime().addShutdownHook(mode.closeThread());
 
         if (cli.isWebServer()) {
-            DatashareSystemTray.create(mode);
+            ofNullable(DatashareSystemTray.create(mode.properties().getProperty(PropertiesProvider.TCP_LISTEN_PORT_OPT))).
+                    ifPresent(mode::addCloseable);
             WebApp.start(mode);
         } else if (cli.mode() == Mode.TASK_WORKER) {
             TaskWorkerApp.start(mode);
