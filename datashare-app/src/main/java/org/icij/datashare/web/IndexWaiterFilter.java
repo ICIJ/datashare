@@ -22,7 +22,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 @Singleton
 public class IndexWaiterFilter implements Filter {
     private final Logger LOGGER = LoggerFactory.getLogger(getClass());
-    private static final int TIMEOUT_SECONDS = 45;
+    private static final int TIMEOUT_SECONDS = 120;
     private static final String WAIT_CONTENT = "<!DOCTYPE html>" +
             "<head><meta HTTP-EQUIV=\"refresh\" CONTENT=\"2\"><title>Datashare</title></head>" +
             "<body>waiting for Datashare to be up...</body>";

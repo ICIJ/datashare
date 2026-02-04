@@ -1,11 +1,16 @@
 package org.icij.datashare.mode;
 
 import net.codestory.http.routes.Routes;
+import org.icij.datashare.process.Process;
 import org.icij.datashare.session.LocalUserFilter;
 import org.icij.datashare.web.*;
 
 import java.util.Map;
 import java.util.Properties;
+import java.util.concurrent.atomic.AtomicBoolean;
+
+import static org.icij.datashare.cli.DatashareCliOptions.ELASTICSEARCH_PATH_OPT;
+
 
 public class LocalMode extends CommonMode {
     LocalMode(Properties properties) { super(properties);}
@@ -18,6 +23,15 @@ public class LocalMode extends CommonMode {
         bind(StatusResource.class).asEagerSingleton();
         bind(LocalUserFilter.class).asEagerSingleton();
         configurePersistence();
+        String elasticsearchDir = propertiesProvider.get(ELASTICSEARCH_PATH_OPT).orElse(System.getProperty("user.dir"));
+        if (getClass().equals(LocalMode.class)) {
+            logger.info("Starting Elasticsearch from local install within a new JVM.");
+            new Process(elasticsearchDir,
+                    "elasticsearch",
+                    new String[]{String.format("%s/current/bin/elasticsearch", elasticsearchDir)},
+                    9200).start();
+        }
+
     }
 
     @Override

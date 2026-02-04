@@ -59,8 +59,9 @@ public final class DatashareCliOptions {
     public static final String DEL_API_KEY_OPT = "deleteApiKey";
     public static final String DIGEST_ALGORITHM_OPT = "digestAlgorithm";
     public static final String ELASTICSEARCH_ADDRESS_OPT = "elasticsearchAddress";
+    public static final String ELASTICSEARCH_SETTINGS_OPT = "elasticsearch.yaml";
+    public static final String ELASTICSEARCH_PATH_OPT = "elasticsearchPath";
     public static final String ELASTICSEARCH_DATA_PATH_OPT = "elasticsearchDataPath";
-    public static final String ELASTICSEARCH_SETTINGS_OPT = "elasticsearchSettings";
     public static final String EMBEDDED_DOCUMENT_DOWNLOAD_MAX_SIZE_OPT = "embeddedDocumentDownloadMaxSize";
     public static final String EXTENSION_DELETE_OPT = "extensionDelete";
     public static final String EXTENSION_INSTALL_OPT = "extensionInstall";
@@ -154,6 +155,7 @@ public final class DatashareCliOptions {
     public static final String DEFAULT_DEFAULT_PROJECT = "local-datashare";
     public static final String DEFAULT_ELASTICSEARCH_ADDRESS = EnvUtils.resolveUri("elasticsearch", "http://elasticsearch:9200");
     public static final String DEFAULT_ELASTICSEARCH_DATA_PATH = DEFAULT_DATASHARE_HOME.resolve("es").toString();
+    public static final String DEFAULT_ELASTICSEARCH_PATH = DEFAULT_DATASHARE_HOME.resolve("elasticsearch").toString();
     public static final String DEFAULT_ELASTICSEARCH_SETTINGS = DEFAULT_DATASHARE_HOME.resolve("elasticsearch.yml").toString();
     public static final String DEFAULT_EMBEDDED_DOCUMENT_DOWNLOAD_MAX_SIZE = "1G";
     public static final String DEFAULT_EXTENSIONS_DIR = DEFAULT_DATASHARE_HOME.resolve("extensions").toString();
@@ -582,6 +584,14 @@ public final class DatashareCliOptions {
                 .withRequiredArg()
                 .ofType(String.class)
                 .defaultsTo(DEFAULT_ELASTICSEARCH_DATA_PATH);
+    }
+
+    public static void elasticsearchPath(OptionParser parser) {
+        parser.acceptsAll(
+                singletonList(ELASTICSEARCH_PATH_OPT), "Path used for launching Elasticsearch (should be installed with official tar/zip).")
+                .withRequiredArg()
+                .ofType(String.class)
+                .defaultsTo(DEFAULT_ELASTICSEARCH_PATH);
     }
 
     public static void elasticsearchSettings(OptionParser parser) {
