@@ -1,0 +1,122 @@
+databaseChangeLog:
+  - changeSet:
+      id: 74
+      author: auth
+      changes:
+        - dropTable:
+            tableName: user_policy
+  - changeSet:
+      id: 75
+      author: cdesprat
+      changes:
+        - createTable:
+            tableName: user_domain_role
+            columns:
+              - column:
+                  name: user_id
+                  type: UUID
+                  constraints:
+                    nullable: false
+              - column:
+                  name: domain_id
+                  type: UUID
+                  constraints:
+                    nullable: false
+              - column:
+                  name: role
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+        - addPrimaryKey:
+            tableName: user_domain_role
+            columnNames: user_id, domain_id
+            constraintName: pk_user_domain_role
+
+  - changeSet:
+      id: 76
+      author: cdesprat
+      changes:
+        - createTable:
+            tableName: role_project_permission
+            columns:
+              - column:
+                  name: role
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: domain_id
+                  type: UUID
+                  constraints:
+                    nullable: false
+              - column:
+                  name: project_id
+                  type: UUID
+                  constraints:
+                    nullable: false
+              - column:
+                  name: action
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+        - addPrimaryKey:
+            tableName: role_project_permission
+            columnNames: role, domain_id, project_id, action
+            constraintName: pk_role_project_permission
+
+  - changeSet:
+      id: 77
+      author: cdesprat
+      changes:
+        - createTable:
+            tableName: casbin_rule
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    nullable: false
+                    primaryKey: true
+              - column:
+                  name: ptype
+                  type: VARCHAR(255)
+              - column:
+                  name: v0
+                  type: VARCHAR(255)
+              - column:
+                  name: v1
+                  type: VARCHAR(255)
+              - column:
+                  name: v2
+                  type: VARCHAR(255)
+              - column:
+                  name: v3
+                  type: VARCHAR(255)
+              - column:
+                  name: v4
+                  type: VARCHAR(255)
+              - column:
+                  name: v5
+                  type: VARCHAR(255)
+
+  - changeSet:
+      id: 78
+      author: cdesprat
+      changes:
+        - createIndex:
+            tableName: casbin_rule
+            indexName: idx_casbin_rule_ptype
+            columns:
+              - column:
+                  name: ptype
+        - createIndex:
+            tableName: casbin_rule
+            indexName: idx_casbin_rule_v0_v1_v2
+            columns:
+              - column:
+                  name: v0
+              - column:
+                  name: v1
+              - column:
+                  name: v2
