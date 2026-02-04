@@ -9,19 +9,15 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.enums.ParameterIn;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import net.codestory.http.Context;
-import net.codestory.http.annotations.Delete;
-import net.codestory.http.annotations.Get;
-import net.codestory.http.annotations.Options;
-import net.codestory.http.annotations.Prefix;
-import net.codestory.http.annotations.Put;
+import net.codestory.http.annotations.*;
 import net.codestory.http.payload.Payload;
 import org.icij.datashare.Repository;
 import org.icij.datashare.UserEvent;
 import org.icij.datashare.UserEvent.Type;
 import org.icij.datashare.session.DatashareUser;
 import org.icij.datashare.text.Project;
+import org.icij.datashare.user.CasbinRuleRepository;
 import org.icij.datashare.user.UserPolicy;
-import org.icij.datashare.user.UserPolicyRepository;
 import org.jetbrains.annotations.NotNull;
 
 import java.net.URI;
@@ -42,7 +38,7 @@ import static org.icij.datashare.db.tables.UserHistory.USER_HISTORY;
 @Prefix("/api/users")
 public class UserResource {
     private final Repository repository;
-    private final UserPolicyRepository userPolicyRepository;
+    private final CasbinRuleRepository casbinRuleRepository;
 
     private List<Project> getDatashareUserProjects (DatashareUser datashareUser) {
         List<String> projectNames =  datashareUser.getProjectNames();
@@ -55,9 +51,9 @@ public class UserResource {
     }
 
     @Inject
-    public UserResource(Repository repository, UserPolicyRepository userPolicyRepository) {
+    public UserResource(Repository repository, CasbinRuleRepository casbinRuleRepository) {
         this.repository = repository;
-        this.userPolicyRepository = userPolicyRepository;
+        this.casbinRuleRepository = casbinRuleRepository;
     }
 
     @Operation(description = "Gets the user's session information.")
@@ -66,7 +62,7 @@ public class UserResource {
     public Map<String, Object> getUser(Context context) {
         DatashareUser datashareUser = (DatashareUser) context.currentUser();
         Map<String, Object> details = datashareUser.getDetails();
-        Stream<UserPolicy> userPolicies = userPolicyRepository.getByUserId(datashareUser.id);
+        Stream<UserPolicy> userPolicies = casbinRuleRepository.getByUserId(datashareUser.id);
         details.put("projects", getDatashareUserProjects(datashareUser));
         details.put("policies", userPolicies.collect(Collectors.toList()));
         return details;

@@ -2,6 +2,7 @@ package org.icij.datashare.user;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import org.casbin.jcasbin.model.Policy;
 import org.icij.datashare.text.indexing.IndexType;
 
 import java.util.Arrays;
@@ -12,13 +13,20 @@ import java.util.Objects;
  */
 
 @IndexType("UserPolicy")
-public record UserPolicy(
-        @JsonProperty("userId") String userId,
-        @JsonProperty("projectId") String projectId,
-        @JsonProperty("roles") Role[] roles
-) {
+public class UserPolicy extends Policy {
+
+    @JsonProperty("roles")
+    public Role[] roles;
+    @JsonProperty("userId")
+    private String userId;
+    @JsonProperty("projectId")
+    private String projectId;
     @JsonCreator
-    public UserPolicy {}
+    public UserPolicy(String userId, String projectId, Role[] roles) {
+        this.userId = userId;
+        this.projectId = projectId;
+        this.roles = roles;
+    }
 
     public static UserPolicy of(String userId, String projectId, Role[] roles) {
         return new UserPolicy(userId, projectId, roles);

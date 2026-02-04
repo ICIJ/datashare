@@ -1,7 +1,7 @@
 package org.icij.datashare.db;
 
-import org.icij.datashare.EnvUtils;
 import junit.framework.TestCase;
+import org.icij.datashare.EnvUtils;
 import org.icij.datashare.user.Role;
 import org.icij.datashare.user.UserPolicy;
 import org.junit.AfterClass;
@@ -18,10 +18,10 @@ import static java.util.Arrays.asList;
 import static org.fest.assertions.Assertions.assertThat;
 
 @RunWith(Parameterized.class)
-public class JooqUserPolicyRepositoryTest extends TestCase {
+public class JooqCasbinRuleRepositoryTest extends TestCase {
 
     @Rule public DbSetupRule dbRule;
-    private final JooqUserPolicyRepository repository;
+    private final JooqCasbinRuleRepository repository;
     private static final List<DbSetupRule> rulesToClose = new ArrayList<>();
 
     @Parameterized.Parameters
@@ -32,7 +32,7 @@ public class JooqUserPolicyRepositoryTest extends TestCase {
         });
     }
 
-    public JooqUserPolicyRepositoryTest(DbSetupRule rule) {
+    public JooqCasbinRuleRepositoryTest(DbSetupRule rule) {
         dbRule = rule;
         repository = rule.createUserPolicyRepository();
         rulesToClose.add(dbRule);

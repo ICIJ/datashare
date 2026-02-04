@@ -14,7 +14,7 @@ import org.icij.datashare.Repository;
 import org.icij.datashare.RepositoryFactory;
 import org.icij.datashare.batch.BatchSearchRepository;
 import org.icij.datashare.user.ApiKeyRepository;
-import org.icij.datashare.user.UserPolicyRepository;
+import org.icij.datashare.user.CasbinRuleRepository;
 import org.jooq.SQLDialect;
 
 import javax.sql.DataSource;
@@ -54,8 +54,8 @@ public class RepositoryFactoryImpl implements RepositoryFactory {
     }
 
     @Override
-    public UserPolicyRepository createUserPolicyRepository() {
-        return createRepository(JooqUserPolicyRepository::new);
+    public CasbinRuleRepository createUserPolicyRepository() {
+        return createRepository(JooqCasbinRuleRepository::new);
     }
 
     void initDatabase(final DataSource dataSource) {

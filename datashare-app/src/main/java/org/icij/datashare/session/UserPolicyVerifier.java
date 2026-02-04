@@ -1,18 +1,16 @@
 package org.icij.datashare.session;
 
 import com.google.inject.Inject;
-import net.codestory.http.security.Users;
 import org.apache.commons.io.IOUtils;
 import org.casbin.jcasbin.main.Enforcer;
 import org.casbin.jcasbin.model.Model;
 import org.casbin.jcasbin.persist.Adapter;
 import org.icij.datashare.RecordNotFoundException;
-import org.icij.datashare.Repository;
 import org.icij.datashare.text.Project;
+import org.icij.datashare.user.CasbinRuleRepository;
 import org.icij.datashare.user.Role;
 import org.icij.datashare.user.User;
 import org.icij.datashare.user.UserPolicy;
-import org.icij.datashare.user.UserPolicyRepository;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -26,15 +24,15 @@ public class UserPolicyVerifier {
     private final Enforcer enforcer;
     private static final String DEFAULT_POLICY_FILE = "casbin/model.conf";
     private static final boolean ENABLE_CASBIN_LOG = false;
-    private final UserPolicyRepository userPolicyRepository;
+    private final CasbinRuleRepository casbinRuleRepository;
     private final UsersWritable users;
 
     @Inject
-    public UserPolicyVerifier(final UserPolicyRepository userPolicyRepository, final UsersWritable users) throws IOException {
-        this.userPolicyRepository = userPolicyRepository;
+    public UserPolicyVerifier(final CasbinRuleRepository casbinRuleRepository, final UsersWritable users) throws IOException {
+        this.casbinRuleRepository = casbinRuleRepository;
         this.users = users;
 
-        Adapter adapter = new UserPolicyAdapter(this.userPolicyRepository);
+        Adapter adapter = new UserPolicyAdapter(this.casbinRuleRepository);
         Model model = new Model();
         model.loadModelFromText(loadCasbinConf());
 
@@ -52,6 +50,7 @@ public class UserPolicyVerifier {
     }
 
     public boolean enforceAllRoles(UserPolicy userPolicy) {
+        this.enforcer.getPermissionsForUserInDomain(userPolicy.userId(), "icij");
         // Check if all roles in a policy are enforced by checking if any is not.
         return Arrays.stream(userPolicy.roles()).allMatch(role ->
                 this.enforce(userPolicy.userId(), userPolicy.projectId(), role.name()));
@@ -62,7 +61,7 @@ public class UserPolicyVerifier {
     }
 
     public Stream<UserPolicy> getAllUserPolicies() {
-        return this.userPolicyRepository.getAllPolicies();
+        return this.casbinRuleRepository.getAllPolicies();
     }
 
     /**
@@ -70,19 +69,19 @@ public class UserPolicyVerifier {
      */
     public Stream<UserPolicy> getUserPolicies(String userId, String projectId) {
         if (userId != null && projectId != null) {
-            return Stream.ofNullable(this.userPolicyRepository.get(userId, projectId));
+            return Stream.ofNullable(this.casbinRuleRepository.get(userId, projectId));
         }
         if (userId != null) {
-            return this.userPolicyRepository.getByUserId(userId);
+            return this.casbinRuleRepository.getByUserId(userId);
         }
         if (projectId != null) {
-            return this.userPolicyRepository.getByProjectId(projectId);
+            return this.casbinRuleRepository.getByProjectId(projectId);
         }
-        return this.userPolicyRepository.getAllPolicies();
+        return this.casbinRuleRepository.getAllPolicies();
     }
 
     public UserPolicy getUserPolicy(String userId, String projectId) {
-        return this.userPolicyRepository.get(userId, projectId);
+        return this.casbinRuleRepository.get(userId, projectId);
     }
 
     /**
@@ -90,7 +89,7 @@ public class UserPolicyVerifier {
      */
     public boolean saveUserPolicy(String userId, String projectId, Role[] roles) throws RecordNotFoundException {
         userAndProjectExist(userId, projectId);
-        this.userPolicyRepository.save(UserPolicy.of(userId, projectId, roles));
+        this.casbinRuleRepository.save(UserPolicy.of(userId, projectId, roles));
         return true;
     }
 
@@ -99,7 +98,7 @@ public class UserPolicyVerifier {
      */
     public void deleteUserPolicy(String userId, String projectId) throws RecordNotFoundException {
         userAndProjectExist(userId, projectId);
-        this.userPolicyRepository.delete(userId, projectId);
+        this.casbinRuleRepository.delete(userId, projectId);
     }
 
     private void userAndProjectExist(String userId, String projectId) throws RecordNotFoundException {

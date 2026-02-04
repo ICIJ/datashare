@@ -5,10 +5,10 @@ import net.codestory.http.filters.basic.BasicAuthFilter;
 import net.codestory.http.security.Users;
 import org.icij.datashare.Repository;
 import org.icij.datashare.session.*;
+import org.icij.datashare.user.CasbinRuleRepository;
 import org.icij.datashare.user.Role;
 import org.icij.datashare.user.User;
 import org.icij.datashare.user.UserPolicy;
-import org.icij.datashare.user.UserPolicyRepository;
 import org.icij.datashare.web.testhelpers.AbstractProdWebServerTest;
 import org.junit.After;
 import org.junit.Before;
@@ -29,7 +29,7 @@ public class WebAcceptanceTest extends AbstractProdWebServerTest {
     @Mock
     Repository jooqRepository;
     @Mock
-    UserPolicyRepository jooqUserPolicyRepository;
+    CasbinRuleRepository jooqCasbinRuleRepository;
     @Mock
     UsersWritable users;
 
@@ -46,16 +46,16 @@ public class WebAcceptanceTest extends AbstractProdWebServerTest {
         when(jooqRepository.getProject(projectId)).thenReturn(project(projectId));
         when(users.find(user.id)).thenReturn(user);
 
-        when(jooqUserPolicyRepository.get(user.id, projectId)).thenReturn(policy);
+        when(jooqCasbinRuleRepository.get(user.id, projectId)).thenReturn(policy);
         return user;
     }
 
     @Test
     public void route_with_index_in_path_policy_annotation_accepts_user_with_same_policy() throws IOException, URISyntaxException {
         User john = mockUserProjectRole("john", "test-datashare", new Role[]{Role.ADMIN});
-        when(jooqUserPolicyRepository.getAllPolicies()).thenReturn(john.getPolicies());
+        when(jooqCasbinRuleRepository.getAllPolicies()).thenReturn(john.getPolicies());
 
-        UserPolicyVerifier verifier = new UserPolicyVerifier(jooqUserPolicyRepository, users);
+        UserPolicyVerifier verifier = new UserPolicyVerifier(jooqCasbinRuleRepository, users);
         UserProjectPolicyAnnotation userProjectPolicyAnnotation = new UserProjectPolicyAnnotation(verifier);
         Users users = DatashareUser.singleUser(john);
 

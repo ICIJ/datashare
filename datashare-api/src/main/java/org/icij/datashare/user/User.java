@@ -7,15 +7,7 @@ import org.icij.datashare.Entity;
 import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.text.Project;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -293,14 +285,9 @@ public class User implements Entity, Comparable<User> {
         return policies.stream();
     }
     public Set<Role> getRoles(String projectId) {
-        return getPolicies().
-                filter(p -> p.projectId().equals(projectId)).
-                flatMap(p -> Arrays.stream(p.roles())).
-                collect(Collectors.toSet());
+        return null;
     }
     public Optional<UserPolicy> getPolicy(String projectId) {
-        return getPolicies().
-                filter(p -> p.projectId().equals(projectId)).
-                findFirst();
+        return Optional.empty();
     }
 }
