@@ -1,8 +1,8 @@
 package org.icij.datashare.web;
 
 import net.codestory.http.filters.basic.BasicAuthFilter;
+import org.icij.datashare.db.JooqCasbinRuleRepository;
 import org.icij.datashare.db.JooqRepository;
-import org.icij.datashare.db.JooqUserPolicyRepository;
 import org.icij.datashare.session.DatashareUser;
 import org.icij.datashare.session.UserPolicyVerifier;
 import org.icij.datashare.session.UsersWritable;
@@ -27,7 +27,7 @@ import static org.mockito.MockitoAnnotations.openMocks;
 
 public class UserProjectPolicyResourceTest extends AbstractProdWebServerTest {
     @Mock
-    JooqUserPolicyRepository userPolicyRepository;
+    JooqCasbinRuleRepository userPolicyRepository;
     @Mock
     JooqRepository repository;
     @Mock

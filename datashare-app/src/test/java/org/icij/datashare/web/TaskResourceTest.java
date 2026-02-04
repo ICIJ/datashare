@@ -24,10 +24,10 @@ import org.icij.datashare.tasks.*;
 import org.icij.datashare.test.DatashareTimeRule;
 import org.icij.datashare.text.ProjectProxy;
 import org.icij.datashare.text.nlp.AbstractModels;
+import org.icij.datashare.user.CasbinRuleRepository;
 import org.icij.datashare.user.Role;
 import org.icij.datashare.user.User;
 import org.icij.datashare.user.UserPolicy;
-import org.icij.datashare.user.UserPolicyRepository;
 import org.icij.datashare.web.testhelpers.AbstractProdWebServerTest;
 import org.jetbrains.annotations.NotNull;
 import org.junit.After;
@@ -72,7 +72,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
     private static final TaskManagerMemory taskManager = new TaskManagerMemory(taskFactory, new TaskRepositoryMemory(), new PropertiesProvider(Map.of(TASK_MANAGER_POLLING_INTERVAL_OPT, "500")));
 
     @Mock
-    UserPolicyRepository userPolicyRepository;
+    CasbinRuleRepository casbinRuleRepository;
 
     @After
     public void tearDown() throws IOException {
@@ -684,16 +684,16 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         DatashareUser admin = new DatashareUser("admin");
         UserPolicy adminPolicy = new UserPolicy("admin", projectId, new Role[]{Role.ADMIN});
         when(users.find("admin", "pass")).thenReturn(admin);
-        when(userPolicyRepository.get("admin", projectId)).thenReturn(adminPolicy);
+        when(casbinRuleRepository.get("admin", projectId)).thenReturn(adminPolicy);
 
         // Setup non-admin user
         DatashareUser john = new DatashareUser("john");
         UserPolicy johnPolicy = new UserPolicy("john", projectId, new Role[]{Role.READER});
         when(users.find("john", "pass")).thenReturn(john);
-        when(userPolicyRepository.get("john", projectId)).thenReturn(johnPolicy);
+        when(casbinRuleRepository.get("john", projectId)).thenReturn(johnPolicy);
 
-        when(userPolicyRepository.getAllPolicies()).thenReturn(Stream.of(johnPolicy, adminPolicy));
-        UserPolicyVerifier verifier = new UserPolicyVerifier(userPolicyRepository, users);
+        when(casbinRuleRepository.getAllPolicies()).thenReturn(Stream.of(johnPolicy, adminPolicy));
+        UserPolicyVerifier verifier = new UserPolicyVerifier(casbinRuleRepository, users);
         UserTaskPolicyAnnotation userTaskPolicyAnnotation = new UserTaskPolicyAnnotation(verifier, taskManager);
 
         configure(routes -> routes

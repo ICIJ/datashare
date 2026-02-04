@@ -2,9 +2,9 @@ package org.icij.datashare.session;
 
 import org.icij.datashare.RecordNotFoundException;
 import org.icij.datashare.Repository;
+import org.icij.datashare.user.CasbinRuleRepository;
 import org.icij.datashare.user.Role;
 import org.icij.datashare.user.UserPolicy;
-import org.icij.datashare.user.UserPolicyRepository;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
@@ -24,7 +24,7 @@ import static org.mockito.MockitoAnnotations.openMocks;
 
 public class UserProjectPolicyVerifierTest {
     @Mock
-    private UserPolicyRepository jooqUserPolicyRepository;
+    private CasbinRuleRepository jooqCasbinRuleRepository;
     @Mock
     private Repository jooqRepository;
     @Mock
@@ -48,7 +48,7 @@ public class UserProjectPolicyVerifierTest {
             put("policies",  Stream.of(policy));
         }});
         when(users.find(user.id)).thenReturn(user);
-        when(jooqUserPolicyRepository.get(user.id, projectId)).thenReturn(policy);
+        when(jooqCasbinRuleRepository.get(user.id, projectId)).thenReturn(policy);
     }
 
     @Before
@@ -60,10 +60,10 @@ public class UserProjectPolicyVerifierTest {
         mockUserWithPolicy("user1", "project1", new Role[]{Role.READER});
         mockUserWithPolicy("user2", "project2", new Role[]{Role.WRITER, Role.ADMIN});
 
-        when(jooqUserPolicyRepository.getAllPolicies()).thenReturn(Stream.of(policy1, policy2));
-        when(jooqUserPolicyRepository.getByProjectId("project1")).thenReturn(Stream.of(policy1));
-        when(jooqUserPolicyRepository.getByProjectId("project2")).thenReturn(Stream.of(policy2));
-        verifier = new UserPolicyVerifier(jooqUserPolicyRepository, users);
+        when(jooqCasbinRuleRepository.getAllPolicies()).thenReturn(Stream.of(policy1, policy2));
+        when(jooqCasbinRuleRepository.getByProjectId("project1")).thenReturn(Stream.of(policy1));
+        when(jooqCasbinRuleRepository.getByProjectId("project2")).thenReturn(Stream.of(policy2));
+        verifier = new UserPolicyVerifier(jooqCasbinRuleRepository, users);
     }
 
     public static void testEnforce(UserPolicyVerifier verifier, String subject, String obj, String act, boolean expectedResult) {
