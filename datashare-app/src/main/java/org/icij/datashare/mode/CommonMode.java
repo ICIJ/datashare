@@ -1,14 +1,8 @@
 package org.icij.datashare.mode;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.inject.AbstractModule;
-import com.google.inject.CreationException;
-import com.google.inject.Guice;
-import com.google.inject.Injector;
-import com.google.inject.Key;
+import com.google.inject.*;
 import com.google.inject.Module;
-import com.google.inject.Provides;
-import com.google.inject.Singleton;
 import com.google.inject.assistedinject.FactoryModuleBuilder;
 import net.codestory.http.Configuration;
 import net.codestory.http.annotations.Get;
@@ -40,22 +34,13 @@ import org.icij.datashare.nlp.EmailPipeline;
 import org.icij.datashare.nlp.OptimaizeLanguageGuesser;
 import org.icij.datashare.session.UsersInDb;
 import org.icij.datashare.session.UsersWritable;
-import org.icij.datashare.tasks.DatashareTaskFactory;
-import org.icij.datashare.tasks.DatashareTaskManager;
-import org.icij.datashare.tasks.TaskManagerAmqp;
-import org.icij.datashare.tasks.TaskManagerMemory;
-import org.icij.datashare.tasks.TaskManagerRedis;
-import org.icij.datashare.tasks.TaskRepositoryMemory;
-import org.icij.datashare.tasks.TaskRepositoryRedis;
-import org.icij.datashare.tasks.TaskResultSubtypes;
-import org.icij.datashare.tasks.TaskSupplierAmqp;
-import org.icij.datashare.tasks.TaskSupplierRedis;
+import org.icij.datashare.tasks.*;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.text.indexing.LanguageGuesser;
 import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchIndexer;
 import org.icij.datashare.text.nlp.Pipeline;
 import org.icij.datashare.user.ApiKeyRepository;
-import org.icij.datashare.user.UserPolicyRepository;
+import org.icij.datashare.user.CasbinRuleRepository;
 import org.icij.datashare.web.OpenApiResource;
 import org.icij.datashare.web.RootResource;
 import org.icij.datashare.web.SettingsResource;
@@ -327,7 +312,7 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
         bind(Repository.class).toInstance(repositoryFactory.createRepository());
         bind(ApiKeyRepository.class).toInstance(repositoryFactory.createApiKeyRepository());
         bind(BatchSearchRepository.class).toInstance(repositoryFactory.createBatchSearchRepository());
-        bind(UserPolicyRepository.class).toInstance(repositoryFactory.createUserPolicyRepository());
+        bind(CasbinRuleRepository.class).toInstance(repositoryFactory.createUserPolicyRepository());
 
         TaskRepositoryType taskRepositoryType = TaskRepositoryType.valueOf(propertiesProvider.get(TASK_REPOSITORY_OPT).orElse("DATABASE"));
         switch ( taskRepositoryType ) {
