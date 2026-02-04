@@ -70,8 +70,7 @@ public class Process {
             pool.execute(new StdoutRunnable(new BufferedInputStream(p.getInputStream())));
             pool.execute(new StdoutRunnable(new BufferedInputStream(p.getErrorStream())));
         } catch (final Exception e) {
-            logger.error(e.getMessage());
-            throw new ProcessException(e.getMessage());
+            throw new ProcessException(e);
         } finally {
             pool.shutdown();
         }
