@@ -44,8 +44,6 @@ services:
         image: redis:7.0-alpine
         ports:
           - 6379:6379
-        volumes:
-          - redis_data:/data
 
     postgres:
       image: pgvector/pgvector:pg15
@@ -54,7 +52,6 @@ services:
         POSTGRES_PASSWORD: test
         POSTGRES_DB: dstest
       volumes:
-        - postgresql_data:/var/lib/postgresql/data
         - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
       ports:
         - 5432:5432
@@ -75,9 +72,3 @@ services:
           - indices.query.bool.max_clause_count=20000
         ports:
           - 9200:9200
-
-volumes:
-  postgresql_data:
-    driver: local
-  redis_data:
-    driver: local
