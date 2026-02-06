@@ -400,11 +400,6 @@ jobs:
             cd /tmp/datashare-installer/windows
             make VERSION=${CIRCLE_TAG} all
       - run:
-          name: Build Linux installer
-          command: |
-            cd /tmp/datashare-installer/linux
-            make VERSION=${CIRCLE_TAG} all        
-      - run:
           name: Populate VERSION.txt file
           command: echo $CIRCLE_TAG > /tmp/datashare-installer/VERSION.txt
       - run:
