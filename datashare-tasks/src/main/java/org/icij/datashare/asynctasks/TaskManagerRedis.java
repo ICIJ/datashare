@@ -76,8 +76,8 @@ public class TaskManagerRedis extends StoreAndQueueTaskManagerImpl {
     }
 
     @Override
-    public Stream<TaskStateMetadata> getTaskStates(TaskFilters filters) throws IOException {
-        return tasks.getTaskStates(filters);
+    public Stream<String> getTaskIds(TaskFilters filters) throws IOException {
+        return tasks.getTaskIds(filters);
     }
 
     @Override
