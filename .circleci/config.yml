@@ -2,17 +2,18 @@ version: 2.1
 
 # Shared environment variables
 ds_env: &ds_env
-  DS_POSTGRES_HOST: postgres
-  DS_POSTGRES_PORT: "5432"
+  DS_POSTGRES_HOST: localhost
+  DS_POSTGRES_PORT: 5432
   DS_POSTGRES_USER: dstest
   DS_POSTGRES_PASSWORD: test
   DS_POSTGRES_DB: dstest
-  DS_POSTGRES_URI: jdbc:postgresql://postgres/dstest?user=dstest&password=test
-  DS_POSTGRES_BUILD_URI: jdbc:postgresql://postgres/dsbuild?user=dstest&password=test
-  DS_AMQP_URI: amqp://guest:guest@amqp
-  DS_ELASTICSEARCH_URI: http://elasticsearch:9200
-  DS_REDIS_URI: redis://redis:6379
-  DS_S3MOCK_URI: http://s3mock:9090
+  DS_TEMPORAL_TARGET: localhost:7233
+  DS_POSTGRES_URI: jdbc:postgresql://localhost/dstest?user=dstest&password=test
+  DS_POSTGRES_BUILD_URI: jdbc:postgresql://localhost/dsbuild?user=dstest&password=test
+  DS_AMQP_URI: amqp://guest:guest@localhost:5673
+  DS_ELASTICSEARCH_URI: http://localhost:9200
+  DS_REDIS_URI: redis://localhost:6379
+  DS_S3MOCK_URI: http://localhost:9090
 
 parameters:
   publish_backend_doc:
@@ -23,43 +24,26 @@ jobs:
 
   build_back:
     resource_class: large
-    docker:
-      - image: cimg/openjdk:17.0.11
-      - image: docker.elastic.co/elasticsearch/elasticsearch:7.17.7
-        environment:
-          ES_JAVA_OPTS: -Xms256m -Xmx256m
-          discovery.type: single-node
-          cluster.name: datashare
-          http.cors.enabled: "true"
-          http.cors.allow-origin: "*"
-          http.cors.allow-methods: OPTIONS, HEAD, GET, POST, PUT, DELETE
-        name: elasticsearch
-      - image: redis:4.0.1-alpine
-        name: redis
-      - image: postgres:15
-        name: postgres
-        environment:
-          POSTGRES_USER: dstest
-          POSTGRES_PASSWORD: test
-          POSTGRES_DB: dstest
-      - image: cloudamqp/lavinmq
-        name: amqp
-      - image: adobe/s3mock:3.12.0
-        name: s3mock
-
+    machine:
+      image: ubuntu-2004:current
+      docker_layer_caching: true
     working_directory: /tmp/datashare
 
     environment:
       <<: *ds_env
       MAVEN_OPTS: "-Xms512m -Xmx1g -Xss10M"
+      JAVA_HOME: /usr/lib/jvm/java-17-openjdk-amd64
 
     steps:
       - checkout
-
       # Download and cache dependencies
       - restore_cache:
           keys:
           - v1-dependencies-{{ checksum "pom.xml" }}
+
+      - run:
+          name: Start services
+          command: docker-compose up -d elasticsearch postgres redis amqp s3mock temporal temporal-setup-db
 
       - run:
           name: Configure GPG private key for signing project artifacts in OSS Sonatype
@@ -71,12 +55,10 @@ jobs:
       - run: echo "amqpUri=${DS_AMQP_URI}" > datashare-devenv.properties
       - run: echo "elasticsearchUri=${DS_ELASTICSEARCH_URI}" >> datashare-devenv.properties
       - run: echo "postgresUri=${DS_POSTGRES_URI}" >> datashare-devenv.properties
+      - run: echo "temporalTarget=${DS_TEMPORAL_TARGET}" >> datashare-devenv.properties
       - run: echo "postgresBuildUri=${DS_POSTGRES_BUILD_URI}" >> datashare-devenv.properties
       - run: echo "redisUri=${DS_REDIS_URI}" >> datashare-devenv.properties
       - run: echo "s3mockUri=${DS_S3MOCK_URI}" >> datashare-devenv.properties
-      - run:
-          name: Create build database
-          command: PGPASSWORD=${DS_POSTGRES_PASSWORD} createdb -h ${DS_POSTGRES_HOST} -U ${DS_POSTGRES_USER} dsbuild
       - run: make clean
       - run: make migrate
       - run: make test

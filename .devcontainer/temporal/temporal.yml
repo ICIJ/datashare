@@ -1,0 +1,42 @@
+log:
+  stdout: true
+  level: { { default .Env.LOG_LEVEL "info" } }
+
+dynamicConfigClient:
+  filepath: '.config/temporalio/dynamic.yml'
+  pollInterval: '10s'
+
+system:
+  forceSearchAttributesCacheRefreshOnRead: true
+
+worker:
+  batcherRPS: 100
+  batcherConcurrency: 10
+
+persistence:
+  defaultStore: postgres-default
+  visibilityStore: postgres-visibility
+  numHistoryShards: 4
+  datastores:
+    postgres-default:
+      sql:
+        pluginName: 'postgres12'
+        databaseName: 'temporal'
+        connectAddr: 'postgres:5432'
+        connectProtocol: 'tcp'
+        user: 'dstest'
+        password: 'test'
+        tls:
+          enabled: false
+          enableHostVerification: false
+    postgres-visibility:
+      sql:
+        pluginName: 'postgres12'
+        databaseName: 'temporal_visibility'
+        connectAddr: 'postgres:5432'
+        connectProtocol: 'tcp'
+        user: 'dstest'
+        password: 'test'
+        tls:
+          enabled: false
+          enableHostVerification: false

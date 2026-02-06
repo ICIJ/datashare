@@ -10,6 +10,7 @@ import com.google.inject.Module;
 import com.google.inject.Provides;
 import com.google.inject.Singleton;
 import com.google.inject.assistedinject.FactoryModuleBuilder;
+import io.temporal.client.WorkflowClient;
 import net.codestory.http.Configuration;
 import net.codestory.http.annotations.Get;
 import net.codestory.http.annotations.Prefix;
@@ -17,6 +18,7 @@ import net.codestory.http.extensions.Extensions;
 import net.codestory.http.injection.GuiceAdapter;
 import net.codestory.http.misc.Env;
 import net.codestory.http.routes.Routes;
+import org.icij.datashare.EnvUtils;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Repository;
 import org.icij.datashare.asynctasks.TaskModifier;
@@ -45,6 +47,7 @@ import org.icij.datashare.tasks.DatashareTaskManager;
 import org.icij.datashare.tasks.TaskManagerAmqp;
 import org.icij.datashare.tasks.TaskManagerMemory;
 import org.icij.datashare.tasks.TaskManagerRedis;
+import org.icij.datashare.tasks.TaskManagerTemporal;
 import org.icij.datashare.tasks.TaskRepositoryMemory;
 import org.icij.datashare.tasks.TaskRepositoryRedis;
 import org.icij.datashare.tasks.TaskResultSubtypes;
@@ -89,6 +92,8 @@ import static java.lang.Integer.parseInt;
 import static java.util.Optional.ofNullable;
 import static org.icij.datashare.LambdaExceptionUtils.rethrowConsumer;
 import static org.icij.datashare.PluginService.PLUGINS_BASE_URL;
+import static org.icij.datashare.asynctasks.TaskManagerTemporal.DEFAULT_NAMESPACE;
+import static org.icij.datashare.asynctasks.TaskManagerTemporal.buildClient;
 import static org.icij.datashare.cli.DatashareCliOptions.*;
 import static org.icij.datashare.text.indexing.elasticsearch.ElasticsearchConfiguration.createESClient;
 
@@ -196,6 +201,9 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
                 bind(TaskSupplier.class).to(TaskSupplierAmqp.class);
                 bind(TaskModifier.class).to(TaskSupplierAmqp.class);
                 break;
+            case TEMPORAL:
+                bind(DatashareTaskManager.class).to(TaskManagerTemporal.class);
+                break;
             default:
                 bind(DatashareTaskManager.class).to(TaskManagerMemory.class);
                 bind(TaskModifier.class).to(TaskManagerMemory.class);
@@ -223,10 +231,19 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
     }
 
     @Provides @Singleton
+    WorkflowClient provideTemporalClient(final PropertiesProvider propertiesProvider) {
+        String target = propertiesProvider.get(MESSAGE_BUS_OPT)
+            .orElse(EnvUtils.resolveUri("temporalTarget", "temporal:7233"));
+        String namespace = propertiesProvider.get(TEMPORAL_NAMESPACE_OPT)
+            .orElse(DEFAULT_NAMESPACE);
+        return buildClient(target, namespace);
+    }
+
+    @Provides @Singleton
     DocumentCollectionFactory<Path> provideScanQueue(final PropertiesProvider propertiesProvider) {
         return switch (getQueueType(propertiesProvider, QUEUE_TYPE_OPT, DEFAULT_QUEUE_TYPE)) {
             case MEMORY -> new MemoryDocumentCollectionFactory<>(propertiesProvider);
-            case REDIS, AMQP -> new RedisDocumentCollectionFactory<>(propertiesProvider, get(RedissonClient.class));
+            case REDIS, AMQP, TEMPORAL -> new RedisDocumentCollectionFactory<>(propertiesProvider, get(RedissonClient.class));
         };
     }
 
@@ -234,7 +251,7 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
     DocumentCollectionFactory<String> provideIndexQueue(final PropertiesProvider propertiesProvider) {
         return switch (getQueueType(propertiesProvider, QUEUE_TYPE_OPT, DEFAULT_QUEUE_TYPE)) {
             case MEMORY -> new MemoryDocumentCollectionFactory<>(propertiesProvider);
-            case REDIS, AMQP -> new RedisDocumentCollectionFactory<>(propertiesProvider, get(RedissonClient.class));
+            case REDIS, AMQP, TEMPORAL -> new RedisDocumentCollectionFactory<>(propertiesProvider, get(RedissonClient.class));
         };
     }
 

@@ -92,6 +92,10 @@ public final class TaskFilters {
         return byArgs(args);
     }
 
+    public boolean hasArgs() {
+        return args != null && !args.isEmpty();
+    }
+
     public boolean hasStates() {
         return states != null && !states.isEmpty();
     }

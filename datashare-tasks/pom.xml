@@ -19,6 +19,7 @@
     <properties>
         <qpid-version>9.0.0</qpid-version>
         <rabbitmq-version>5.18.0</rabbitmq-version>
+        <temporal-sdk-version>1.32.1</temporal-sdk-version>
     </properties>
 
     <dependencies>
@@ -52,6 +53,11 @@
             <groupId>com.rabbitmq</groupId>
             <artifactId>amqp-client</artifactId>
             <version>${rabbitmq-version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.temporal</groupId>
+            <artifactId>temporal-sdk</artifactId>
+            <version>${temporal-sdk-version}</version>
         </dependency>
         <!--
         Redisson is needed for RedisBlockingQueue. Redisson is pulling netty.
@@ -139,7 +145,8 @@
                                 <include>TaskManagerAmqpTest</include>
                             </includes>
                             <runOrder>alphabetical</runOrder>
-                            <argLine>-Djava.awt.headless=true --add-opens java.base/java.util.concurrent.locks=ALL-UNNAMED --add-opens java.base/java.lang=ALL-UNNAMED</argLine>
+                            <argLine>-Djava.awt.headless=true --add-opens java.base/java.util.concurrent.locks=ALL-UNNAMED --add-opens java.base/java.lang=ALL-UNNAMED
+                            </argLine>
                         </configuration>
                     </execution>
                     <execution>
@@ -154,7 +161,8 @@
                                 <exclude>JacksonSubTypesTest</exclude>
                                 <exclude>TaskManagerAmqpTest</exclude>
                             </excludes>
-                            <argLine>-Djava.awt.headless=true --add-opens java.base/java.util.concurrent.locks=ALL-UNNAMED --add-opens java.base/java.lang=ALL-UNNAMED</argLine>
+                            <argLine>-Djava.awt.headless=true --add-opens java.base/java.util.concurrent.locks=ALL-UNNAMED --add-opens java.base/java.lang=ALL-UNNAMED
+                            </argLine>
                         </configuration>
                     </execution>
                 </executions>
