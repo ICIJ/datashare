@@ -39,9 +39,9 @@ public class TaskRepositoryRedis extends RedissonMap<String, TaskGroupMetadata<?
     }
 
     @Override
-    public Stream<TaskStateMetadata> getTaskStates(TaskFilters filters) throws IOException, UnknownTask {
+    public Stream<String> getTaskIds(TaskFilters filters) throws IOException, UnknownTask {
         // Inefficient implementation of get task state but redis is not used any longer
-        return getTasks(filters).map(t -> new TaskStateMetadata(t.id, t.getState()));
+        return getTasks(filters).map(Task::getId);
     }
 
     @Override

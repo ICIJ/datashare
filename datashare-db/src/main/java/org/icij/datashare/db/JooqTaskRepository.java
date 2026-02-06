@@ -15,7 +15,6 @@ import org.icij.datashare.asynctasks.TaskFilters;
 import org.icij.datashare.asynctasks.TaskGroupType;
 import org.icij.datashare.asynctasks.TaskRepository;
 import org.icij.datashare.asynctasks.TaskResult;
-import org.icij.datashare.asynctasks.TaskStateMetadata;
 import org.icij.datashare.asynctasks.UnknownTask;
 import org.icij.datashare.asynctasks.bus.amqp.TaskError;
 import org.icij.datashare.db.tables.records.TaskRecord;
@@ -141,21 +140,21 @@ public class JooqTaskRepository implements TaskRepository {
     }
 
     @Override
-    public Stream<TaskStateMetadata> getTaskStates(TaskFilters filters) throws UnknownTask {
+    public Stream<String> getTaskIds(TaskFilters filters) throws UnknownTask {
         if (filters == null) {
-            return selectFrom(TASK).stream().map(this::createTaskStateFrom);
+            return selectFrom(TASK).stream().map(this::getTaskIdFrom);
         }
         // Special case when we need to filter on args as we need to deserialize them
         if (filters.getArgs() != null) {
             // TODO: test me
-            return selectTaskStatesAndArgs(DSL.using(connectionProvider, dialect), filters)
+            return selectTaskIdsAndArgs(DSL.using(connectionProvider, dialect), filters)
                 .filter( p -> TaskFilters.empty().withArgs(filters.getArgs()).filter(p._2()))
                 .map(Pair::_1);
         }
         return selectTaskStates(DSL.using(connectionProvider, dialect), filters);
     }
 
-    private Task<?> createTaskFrom(TaskRecord taskRecord) throws IOException {
+    private Task<?> createTaskFrom(TaskRecord taskRecord) {
         return ofNullable(taskRecord).map(rethrowFunction(r ->
         {
             Date createdAt = r.getCreatedAt() == null ? null : Date.from(r.getCreatedAt().atZone(ZoneId.systemDefault()).toInstant());
@@ -169,18 +168,15 @@ public class JooqTaskRepository implements TaskRepository {
         })).orElse(null);
     }
 
-    private TaskStateMetadata createTaskStateFrom(TaskRecord taskRecord) {
-        return ofNullable(taskRecord)
-            .map(r -> new TaskStateMetadata(r.getId(), Task.State.valueOf(r.getState())))
-            .orElse(null);
+    private String getTaskIdFrom(TaskRecord taskRecord) {
+        return ofNullable(taskRecord).map(TaskRecord::getId).orElse(null);
     }
 
-    private Pair<TaskStateMetadata, Map<String, Object>> createTaskStateAndArgsFrom(TaskRecord taskRecord) {
+    private Pair<String, Map<String, Object>> createTaskIdsAndArgsFrom(TaskRecord taskRecord) {
         return ofNullable(taskRecord)
             .map(rethrowFunction(r -> {
                 Map<String, Object> args = JsonObjectMapper.readValueTyped(r.getArgs(), new TypeReference<>() {});
-                TaskStateMetadata state = new TaskStateMetadata(r.getId(), Task.State.valueOf(r.getState()));
-                return new Pair<>(state, args);
+                return new Pair<>(r.getId(), args);
             }))
             .orElse(null);
     }
@@ -190,14 +186,14 @@ public class JooqTaskRepository implements TaskRepository {
         return ctx.selectFrom(TASK).where(conditions).stream().map(rethrowFunction(this::createTaskFrom));
     }
 
-    private Stream<TaskStateMetadata> selectTaskStates(DSLContext ctx, TaskFilters filters) {
+    private Stream<String> selectTaskStates(DSLContext ctx, TaskFilters filters) {
         List<Condition> conditions = conditionsFromFilter(filters);
-        return ctx.selectFrom(TASK).where(conditions).stream().map(this::createTaskStateFrom);
+        return ctx.selectFrom(TASK).where(conditions).stream().map(this::getTaskIdFrom);
     }
 
-    private Stream<Pair<TaskStateMetadata, Map<String, Object>>> selectTaskStatesAndArgs(DSLContext ctx, TaskFilters filters) {
+    private Stream<Pair<String, Map<String, Object>>> selectTaskIdsAndArgs(DSLContext ctx, TaskFilters filters) {
         List<Condition> conditions = conditionsFromFilter(filters);
-        return ctx.selectFrom(TASK).where(conditions).stream().map(this::createTaskStateAndArgsFrom);
+        return ctx.selectFrom(TASK).where(conditions).stream().map(this::createTaskIdsAndArgsFrom);
     }
 
     private static List<Condition> conditionsFromFilter(TaskFilters filters) {
