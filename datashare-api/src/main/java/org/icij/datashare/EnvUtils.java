@@ -56,7 +56,7 @@ public class EnvUtils {
      * @return the resolved URI as a string, or {@code defaultUri} if not found
      */
     public static String resolveUri(String serviceKey, String defaultUri) {
-        return resolve(serviceKey + "Uri", defaultUri).toString();
+        return resolve(serviceKey + "Uri", defaultUri);
     }
 
     /**
