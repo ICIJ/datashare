@@ -6,7 +6,6 @@ ds_env: &ds_env
   DS_POSTGRES_PORT: 5432
   DS_POSTGRES_USER: dstest
   DS_POSTGRES_PASSWORD: test
-  DS_POSTGRES_DB: dstest
   DS_TEMPORAL_TARGET: localhost:7233
   DS_POSTGRES_URI: jdbc:postgresql://localhost/dstest?user=dstest&password=test
   DS_POSTGRES_BUILD_URI: jdbc:postgresql://localhost/dsbuild?user=dstest&password=test
@@ -82,32 +81,22 @@ jobs:
           key: v1-dependencies-{{ checksum "pom.xml" }}
 
   publish_doc:
-    docker:
-      - image: cimg/openjdk:17.0.11
-      - image: docker.elastic.co/elasticsearch/elasticsearch:7.17.7
-        environment:
-          ES_JAVA_OPTS: -Xms256m -Xmx256m
-          discovery.type: single-node
-          cluster.name: datashare
-          http.cors.enabled: "true"
-          http.cors.allow-origin: "*"
-          http.cors.allow-methods: OPTIONS, HEAD, GET, POST, PUT, DELETE
-        name: elasticsearch
-      - image: postgres:15
-        name: postgres
-        environment:
-          POSTGRES_USER: dstest
-          POSTGRES_DB: dstest
-          POSTGRES_PASSWORD: test
+    machine:
+      image: ubuntu-2004:current
+      docker_layer_caching: true
     working_directory: ~/datashare
     environment:
       <<: *ds_env
       MAVEN_OPTS: "-Xms512m -Xmx512m -Xss10M"
+      JAVA_HOME: /usr/lib/jvm/java-17-openjdk-amd64
     steps:
       - checkout
       - restore_cache:
           keys:
             - v1-dependencies-{{ checksum "pom.xml" }}
+      - run:
+          name: Start services
+          command: docker-compose up -d elasticsearch postgres
       - run:
           name: Prepare SSH directory
           command: |
@@ -140,8 +129,6 @@ jobs:
           name: Generate db doc
           command: |
             echo "${DS_POSTGRES_HOST}:${DS_POSTGRES_PORT}:*:${DS_POSTGRES_USER}:${DS_POSTGRES_PASSWORD}" > ~/.pgpass && chmod 600 ~/.pgpass
-            createdb -U ${DS_POSTGRES_USER} -h ${DS_POSTGRES_HOST} ${DS_POSTGRES_DB}
-            createdb -U ${DS_POSTGRES_USER} -h ${DS_POSTGRES_HOST} dsbuild
             echo "postgresUri=${DS_POSTGRES_URI}" > datashare-devenv.properties
             echo "postgresBuildUri=${DS_POSTGRES_BUILD_URI}" >> datashare-devenv.properties
             make migrate
