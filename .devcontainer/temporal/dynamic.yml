@@ -1,0 +1,3 @@
+system:
+  namespaceCacheRefreshInterval: 0.1s
+  forceSearchAttributesCacheRefreshOnRead: true

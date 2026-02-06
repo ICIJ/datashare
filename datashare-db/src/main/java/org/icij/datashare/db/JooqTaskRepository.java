@@ -191,7 +191,7 @@ public class JooqTaskRepository implements TaskRepository {
         return ctx.selectFrom(TASK).where(conditions).stream().map(this::getTaskIdFrom);
     }
 
-    private Stream<Pair<String, Map<String, Object>>> selectTaskIdsAndArgs(DSLContext ctx, TaskFilters filters) throws IOException {
+    private Stream<Pair<String, Map<String, Object>>> selectTaskIdsAndArgs(DSLContext ctx, TaskFilters filters) throws IOException  {
         List<Condition> conditions = conditionsFromFilter(filters);
         return ctx.selectFrom(TASK).where(conditions).stream().map(rethrowFunction(this::createTaskIdsAndArgsFrom));
     }

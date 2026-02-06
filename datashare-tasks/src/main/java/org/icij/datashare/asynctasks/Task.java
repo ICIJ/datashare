@@ -60,7 +60,7 @@ public class Task<V extends Serializable> extends Event implements Entity, Compa
     private volatile TaskResult<V> result;
 
     public Task(String name, User user, Map<String, Object> args) {
-        this(randomUUID().toString(), name, user, args);
+        this(name + "-" + randomUUID(), name, user, args);
     }
 
     public Task(String id, String name, User user) {

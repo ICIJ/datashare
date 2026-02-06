@@ -119,6 +119,7 @@ public final class DatashareCliOptions {
     public static final String SESSION_TTL_SECONDS_OPT = "sessionTtlSeconds";
     public static final String SETTING_ABBR_OPT = "s";
     public static final String SMTP_URL_OPT = "smtpUrl";
+    public static final String TEMPORAL_NAMESPACE_OPT = "temporalNamespace";
     public static final String VERSION_ABBR_OPT = "v";
     public static final String VERSION_OPT = "version";
     public static final String ARTIFACT_DIR_OPT = "artifactDir";
