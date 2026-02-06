@@ -196,6 +196,9 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
                 bind(TaskSupplier.class).to(TaskSupplierAmqp.class);
                 bind(TaskModifier.class).to(TaskSupplierAmqp.class);
                 break;
+            case TEMPORAL:
+                bind(TaskManager.class).to(TaskManagerTemporal.class);
+                break;
             default:
                 bind(DatashareTaskManager.class).to(TaskManagerMemory.class);
                 bind(TaskModifier.class).to(TaskManagerMemory.class);

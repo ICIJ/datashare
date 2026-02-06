@@ -7,9 +7,9 @@ services:
         security_opt:
           - seccomp:unconfined
         ports:
-          - 8080:8080
-          - 8090:8090
-          - 9009:9009
+          - "8080:8080"
+          - "8090:8090"
+          - "9009:9009"
         environment:
           PGPASSWORD: test
           HOME: /home/dev
@@ -26,13 +26,13 @@ services:
     amqp:
       image: cloudamqp/lavinmq
       ports:
-        - 5673:5672
-        - 15673:15672
+        - "5673:5672"
+        - "15673:15672"
 
     s3mock:
       image: adobe/s3mock:latest
       ports:
-        - 9090:9090
+        - "9090:9090"
       deploy:
         resources:
           limits:
@@ -54,7 +54,13 @@ services:
       volumes:
         - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
       ports:
-        - 5432:5432
+        - "5432:5432"
+      healthcheck:
+        test: [ "CMD-SHELL", "pg_isready -U dstest" ]
+        interval: 1s
+        timeout: 5s
+        retries: 60
+        start_period: 30s
 
     elasticsearch:
         image: docker.elastic.co/elasticsearch/elasticsearch:7.17.7
@@ -71,4 +77,58 @@ services:
           - http.cors.allow-methods=OPTIONS, HEAD, GET, POST, PUT, DELETE
           - indices.query.bool.max_clause_count=20000
         ports:
-          - 9200:9200
+          - "9200:9200"
+
+    temporal:
+      image: temporalio/server:latest
+      depends_on:
+        temporal-setup-db:
+          condition: service_completed_successfully
+      ports:
+        - "7233:7233"
+        - "8233:8233"
+        - "8076:8076"
+      environment:
+        - DB=postgres12
+        - DB_PORT=5432
+        - POSTGRES_USER=dstest
+        - POSTGRES_PWD=test
+        - POSTGRES_SEEDS=postgres
+        - BIND_ON_IP=0.0.0.0
+        - LOG_LEVEL=info
+      healthcheck:
+        test: [ "CMD", "nc", "-z", "0.0.0.0", "7233" ]
+        interval: 2s
+        timeout: 1s
+        start_period: 1s
+        retries: 10
+      volumes:
+        - ./temporal:/etc/temporal/.config/temporalio
+
+    temporal-ui:
+      container_name: temporal-ui
+      depends_on:
+        temporal:
+          condition: service_healthy
+      environment:
+        - TEMPORAL_ADDRESS=temporal:7233
+        - TEMPORAL_CORS_ORIGINS=http://localhost:3000
+      image: temporalio/ui:latest
+      ports:
+        - "8080:8080"
+
+    temporal-setup-db:
+      image: temporalio/admin-tools:1.29
+      depends_on:
+        postgres:
+          condition: service_healthy
+      container_name: temporal-setup-db
+      restart: on-failure:5
+      environment:
+        - TEMPORAL_ADDRESS=temporal:7233
+        - DEFAULT_NAMESPACE=default
+      volumes:
+        - ./temporal:/temporal
+      entrypoint: [ "/bin/sh" ]
+      command: /temporal/setup.sh
+

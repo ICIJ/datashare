@@ -3,4 +3,4 @@ elasticsearchUri=http://localhost:9200
 postgresUri=jdbc:postgresql://localhost/dstest?user=dstest&password=test
 postgresBuildUri=jdbc:postgresql://localhost/dsbuild?user=dstest&password=test
 redisUri=redis://localhost:6379
-s3mockUri=http://localhost:9090
+temporalPersistenceUri=jdbc:postgresql://localhost/temporal?user=dstest&password=test

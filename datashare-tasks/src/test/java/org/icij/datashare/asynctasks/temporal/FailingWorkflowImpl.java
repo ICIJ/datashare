@@ -1,0 +1,21 @@
+package org.icij.datashare.asynctasks.temporal;
+
+import io.temporal.activity.ActivityOptions;
+import io.temporal.workflow.Workflow;
+import java.time.Duration;
+
+public class FailingWorkflowImpl implements FailingWorkflow {
+    private final FailingActivity fail;
+
+    public FailingWorkflowImpl() {
+        this.fail = Workflow.newActivityStub(
+            FailingActivity.class,
+            ActivityOptions.newBuilder().setStartToCloseTimeout(Duration.ofMinutes(2)).build()
+        );
+    }
+
+    @Override
+    public void fail() {
+        this.fail.failing();
+    }
+}
