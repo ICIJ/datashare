@@ -19,5 +19,5 @@ public interface TaskRepository {
 
 
     Stream<Task<? extends Serializable>> getTasks(TaskFilters filters) throws IOException, UnknownTask;
-    Stream<TaskStateMetadata> getTaskStates(TaskFilters filters) throws IOException;
+    Stream<String> getTaskIds(TaskFilters filters) throws IOException;
 }

@@ -29,9 +29,9 @@ public class TaskRepositoryMemory extends ConcurrentHashMap<String, TaskGroupMet
     }
 
     @Override
-    public Stream<TaskStateMetadata> getTaskStates(TaskFilters filters) throws IOException, UnknownTask {
+    public Stream<String> getTaskIds(TaskFilters filters) throws IOException, UnknownTask {
         // Inefficient implementation of get task state but that's fine for in-memory usage
-        return getTasks(filters).map(t -> new TaskStateMetadata(t.id, t.getState()));
+        return getTasks(filters).map(Task::getId);
     }
 
     @Override
