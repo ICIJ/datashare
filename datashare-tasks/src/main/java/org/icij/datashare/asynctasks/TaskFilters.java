@@ -37,6 +37,10 @@ public final class TaskFilters {
         return new TaskFilters(null, null, null, null);
     }
 
+    public boolean isEmpty() {
+        return args == null && states == null && name == null && user == null;
+    }
+
     public Set<Task.State> getStates() {
         return states;
     }
@@ -88,7 +92,11 @@ public final class TaskFilters {
         return byArgs(args);
     }
 
-    private boolean byState(Task.State taskState) {
+    public boolean hasStates() {
+        return states != null && !states.isEmpty();
+    }
+
+    boolean byState(Task.State taskState) {
         return Optional.ofNullable(states).map(expectedStates -> {
             if (!expectedStates.isEmpty()) {
                 return expectedStates.contains(taskState);
@@ -101,11 +109,11 @@ public final class TaskFilters {
         return Optional.ofNullable(this.user).map(u -> u.equals(taskUser)).orElse(true);
     }
 
-    private boolean byName(String taskName) {
+    boolean byName(String taskName) {
         return Optional.ofNullable(getNamePattern()).map(p -> p.matcher(taskName).find()).orElse(true);
     }
 
-    private boolean byArgs(Map<String, Object> taskArgs) {
+    boolean byArgs(Map<String, Object> taskArgs) {
         return Optional.ofNullable(getArgsPatterns())
             .map(patterns -> patterns.entrySet()
                             .stream()

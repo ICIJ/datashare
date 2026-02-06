@@ -1,5 +1,8 @@
 package org.icij.datashare.asynctasks;
 
+import java.util.HashSet;
+import java.util.Set;
+import java.util.function.Function;
 import org.icij.datashare.user.User;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,19 +32,22 @@ public interface TaskManager extends Closeable {
 
     boolean stopTask(String taskId) throws IOException, UnknownTask;
 
+    // Task search for the frontend
     Stream<Task<?>> getTasks(TaskFilters filters) throws IOException;
     default Stream<Task<?>> getTasks() throws IOException {
         return getTasks(TaskFilters.empty());
     }
 
-    Stream<TaskStateMetadata> getTaskStates(TaskFilters filters) throws IOException;
-    default Stream<TaskStateMetadata> getTaskStates() throws IOException {
-        return getTaskStates(TaskFilters.empty());
+    // Fast and internal task state search for internal operations
+    Stream<String> getTaskIds(TaskFilters filters) throws IOException;
+    default Stream<String> getTaskIds() throws IOException {
+        return getTaskIds(TaskFilters.empty());
     }
 
     // clearDoneTasks keeps a List return type otherwise tasks are cleared unless the stream is consumed
     List<Task<?>> clearDoneTasks(TaskFilters filter) throws IOException;
     boolean shutdown() throws IOException;
+    // TODO: make this one async
     void clear() throws IOException;
     boolean getHealth() throws IOException;
     int getTerminationPollingInterval();
@@ -55,17 +61,22 @@ public interface TaskManager extends Closeable {
     }
 
     default Map<String, Boolean> stopTasks(TaskFilters filters) throws IOException {
-        TaskFilters filterNotCompleted = filters.withStates(NON_FINAL_STATES);
-        return getTaskStates(filterNotCompleted).collect(toMap(TaskStateMetadata::taskId, m -> {
+        Set<Task.State> states = new HashSet<>(NON_FINAL_STATES);
+        if (filters.hasStates()) {
+            states.retainAll(filters.getStates());
+        }
+        TaskFilters filterNotCompleted = filters.withStates(states);
+        return getTaskIds(filterNotCompleted).collect(toMap(Function.identity(), taskId -> {
             try {
-                return stopTask(m.taskId());
+                return stopTask(taskId);
             } catch (IOException | UnknownTask e) {
-                logger.error("cannot stop task {}", m.taskId(), e);
+                logger.error("cannot stop task {}", taskId, e);
                 return false;
             }
         }));
     }
 
+    // TODO: make this one async
     default List<Task<?>> clearDoneTasks() throws IOException {
         return clearDoneTasks(TaskFilters.empty());
     }
@@ -105,15 +116,17 @@ public interface TaskManager extends Closeable {
      */
     default long waitTasksToBeDone(int timeout, TimeUnit timeUnit) throws IOException {
         long startTime = System.currentTimeMillis();
+        long maxDuration = timeUnit.toMillis(timeout);
         TaskFilters filterNotCompleted = TaskFilters.empty().withStates(NON_FINAL_STATES);
-        long nUnfinished = getTaskStates(filterNotCompleted).count();
-        while (System.currentTimeMillis() - startTime < timeUnit.toMillis(timeout) && nUnfinished > 0) {
+        long nUnfinished = getTaskIds(filterNotCompleted).count();
+        while (System.currentTimeMillis() - startTime < maxDuration && nUnfinished > 0) {
             try {
                 Thread.sleep(getTerminationPollingInterval());
             } catch (InterruptedException e) {
                 throw new RuntimeException(e);
             }
-            nUnfinished = getTaskStates(filterNotCompleted).count();;
+            Stream<String> taskIds = getTaskIds(filterNotCompleted);
+            nUnfinished = taskIds.count();
         }
         return nUnfinished;
     }
