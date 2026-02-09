@@ -21,6 +21,11 @@
             <directory>${basedir}/../app/</directory>
             <outputDirectory>app</outputDirectory>
         </fileSet>
+        <fileSet>
+            <directory>${basedir}/src/main/scripts/</directory>
+            <outputDirectory>dist</outputDirectory>
+            <fileMode>0755</fileMode>
+        </fileSet>
     </fileSets>
     <containerDescriptorHandlers>
         <containerDescriptorHandler>
