@@ -4,19 +4,20 @@ DEVENV_PROPERTIES = datashare-devenv.properties
 DEVENV_PROPERTIES_TEMPLATE = datashare-devenv.properties.template
 MVN = mvn
 
-.PHONY: help build dist install test run clean devenv migrate generate docker release app
+.PHONY: help build dist install test run clean devenv migrate generate docker release app elasticsearch
 
 help:
 	@echo "Datashare Makefile - Available targets:"
 	@echo ""
 	@echo "  Development:"
-	@echo "    devenv    - Create development environment configuration file"
-	@echo "    install   - Install dependencies and build all modules"
-	@echo "    build     - Build distribution JARs (alias for 'dist')"
-	@echo "    test      - Run all tests"
-	@echo "    run       - Start Datashare (JDWP on port 8090 by default, requires 'build' first)"
-	@echo "    clean     - Clean all build artifacts"
-	@echo "    app       - Download and install frontend (uses VERSION from pom.xml)"
+	@echo "    devenv        - Create development environment configuration file"
+	@echo "    install       - Install dependencies and build all modules"
+	@echo "    build         - Build distribution JARs (alias for 'dist')"
+	@echo "    test          - Run all tests"
+	@echo "    run           - Start Datashare (JDWP on port 8090 by default, requires 'build' first)"
+	@echo "    clean         - Clean all build artifacts"
+	@echo "    app           - Download and install frontend (uses VERSION from pom.xml)"
+	@echo "    elasticsearch - Download and install Elasticsearch locally"
 	@echo ""
 	@echo "  Database:"
 	@echo "    migrate   - Apply database migrations (Liquibase)"
@@ -43,7 +44,7 @@ install: migrate
 build: dist
 
 ## Build distribution package
-dist: migrate
+dist: migrate elasticsearch
 	$(MVN) clean package -DskipTests
 
 ## Run all tests
@@ -57,6 +58,10 @@ run:
 ## Download and install frontend from GitHub releases
 app:
 	@./datashare-app/scripts/download-frontend.sh $(VERSION)
+
+## Download and install Elasticsearch locally
+elasticsearch:
+	@./datashare-dist/src/main/scripts/elasticsearch-setup.sh install
 
 ## Clean all build artifacts
 clean:

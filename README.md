@@ -109,6 +109,17 @@ make build
 
 The `install` and `build` targets automatically run database migrations before building, ensuring jOOQ sources are generated from the current schema.
 
+**Elasticsearch setup:**
+
+Datashare can automatically download and install Elasticsearch locally:
+
+```bash
+# Download and install Elasticsearch (done automatically during 'make dist')
+make elasticsearch
+```
+
+The distribution package (`make dist`) automatically downloads Elasticsearch 8.x to `~/.local/share/datashare/elasticsearch/` if not already present. The installation script detects your platform (Linux/macOS, x86_64/aarch64) and downloads the appropriate version.
+
 ### Run Tests
 
 Datashare has both unit and integration tests. Integration tests expect Postgres, Elasticsearch, and Redis to be reachable.
