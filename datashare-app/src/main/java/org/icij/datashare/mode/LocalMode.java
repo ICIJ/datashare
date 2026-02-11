@@ -23,8 +23,8 @@ public class LocalMode extends CommonMode {
         bind(StatusResource.class).asEagerSingleton();
         bind(LocalUserFilter.class).asEagerSingleton();
         configurePersistence();
-        String elasticsearchDir = propertiesProvider.get(ELASTICSEARCH_PATH_OPT).orElse(System.getProperty("user.dir"));
-        if (getClass().equals(LocalMode.class)) {
+        String elasticsearchDir = propertiesProvider.get(ELASTICSEARCH_PATH_OPT).orElse("");
+        if (!elasticsearchDir.isEmpty() && getClass().equals(LocalMode.class)) {
             logger.info("Starting Elasticsearch from local install within a new JVM.");
             new Process(elasticsearchDir,
                     "elasticsearch",
