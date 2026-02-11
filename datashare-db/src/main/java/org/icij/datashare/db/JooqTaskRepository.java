@@ -140,7 +140,7 @@ public class JooqTaskRepository implements TaskRepository {
     }
 
     @Override
-    public Stream<String> getTaskIds(TaskFilters filters) throws UnknownTask {
+    public Stream<String> getTaskIds(TaskFilters filters) throws IOException, UnknownTask {
         if (filters == null) {
             return selectFrom(TASK).stream().map(this::getTaskIdFrom);
         }
@@ -154,7 +154,7 @@ public class JooqTaskRepository implements TaskRepository {
         return selectTaskStates(DSL.using(connectionProvider, dialect), filters);
     }
 
-    private Task<?> createTaskFrom(TaskRecord taskRecord) {
+    private Task<?> createTaskFrom(TaskRecord taskRecord) throws IOException {
         return ofNullable(taskRecord).map(rethrowFunction(r ->
         {
             Date createdAt = r.getCreatedAt() == null ? null : Date.from(r.getCreatedAt().atZone(ZoneId.systemDefault()).toInstant());
@@ -172,7 +172,7 @@ public class JooqTaskRepository implements TaskRepository {
         return ofNullable(taskRecord).map(TaskRecord::getId).orElse(null);
     }
 
-    private Pair<String, Map<String, Object>> createTaskIdsAndArgsFrom(TaskRecord taskRecord) {
+    private Pair<String, Map<String, Object>> createTaskIdsAndArgsFrom(TaskRecord taskRecord) throws IOException {
         return ofNullable(taskRecord)
             .map(rethrowFunction(r -> {
                 Map<String, Object> args = JsonObjectMapper.readValueTyped(r.getArgs(), new TypeReference<>() {});
@@ -181,7 +181,7 @@ public class JooqTaskRepository implements TaskRepository {
             .orElse(null);
     }
 
-    private Stream<Task<? extends Serializable>> selectTasks(DSLContext ctx, TaskFilters filters) {
+    private Stream<Task<? extends Serializable>> selectTasks(DSLContext ctx, TaskFilters filters) throws IOException {
         List<Condition> conditions = conditionsFromFilter(filters);
         return ctx.selectFrom(TASK).where(conditions).stream().map(rethrowFunction(this::createTaskFrom));
     }
@@ -191,9 +191,9 @@ public class JooqTaskRepository implements TaskRepository {
         return ctx.selectFrom(TASK).where(conditions).stream().map(this::getTaskIdFrom);
     }
 
-    private Stream<Pair<String, Map<String, Object>>> selectTaskIdsAndArgs(DSLContext ctx, TaskFilters filters) {
+    private Stream<Pair<String, Map<String, Object>>> selectTaskIdsAndArgs(DSLContext ctx, TaskFilters filters) throws IOException {
         List<Condition> conditions = conditionsFromFilter(filters);
-        return ctx.selectFrom(TASK).where(conditions).stream().map(this::createTaskIdsAndArgsFrom);
+        return ctx.selectFrom(TASK).where(conditions).stream().map(rethrowFunction(this::createTaskIdsAndArgsFrom));
     }
 
     private static List<Condition> conditionsFromFilter(TaskFilters filters) {
