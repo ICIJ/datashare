@@ -44,7 +44,7 @@ install: migrate
 build: dist
 
 ## Build distribution package
-dist: migrate elasticsearch
+dist: migrate
 	$(MVN) clean package -DskipTests
 
 ## Run all tests
