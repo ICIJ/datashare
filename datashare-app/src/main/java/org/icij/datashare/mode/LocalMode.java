@@ -1,6 +1,7 @@
 package org.icij.datashare.mode;
 
 import net.codestory.http.routes.Routes;
+import org.icij.datashare.OsArchDetector;
 import org.icij.datashare.process.Process;
 import org.icij.datashare.session.LocalUserFilter;
 import org.icij.datashare.web.*;
@@ -9,12 +10,19 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import static java.lang.String.format;
+import static org.icij.datashare.cli.DatashareCliOptions.ELASTICSEARCH_DATA_PATH_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.ELASTICSEARCH_PATH_OPT;
 
 
 public class LocalMode extends CommonMode {
-    LocalMode(Properties properties) { super(properties);}
-    LocalMode(Map<String, Object> properties) { super(properties);}
+    LocalMode(Properties properties) {
+        super(properties);
+    }
+
+    LocalMode(Map<String, Object> properties) {
+        super(properties);
+    }
 
     @Override
     protected void configure() {
@@ -25,13 +33,20 @@ public class LocalMode extends CommonMode {
         configurePersistence();
         String elasticsearchDir = propertiesProvider.get(ELASTICSEARCH_PATH_OPT).orElse("");
         if (!elasticsearchDir.isEmpty() && getClass().equals(LocalMode.class)) {
-            logger.info("Starting Elasticsearch from local install within a new JVM.");
+            String elasticsearchDataPath = propertiesProvider.get(ELASTICSEARCH_DATA_PATH_OPT).orElseThrow(
+                    () -> new IllegalArgumentException(
+                            format("Missing required option %s.", ELASTICSEARCH_DATA_PATH_OPT))
+            );
+            logger.info("Starting Elasticsearch from local install {} within a new JVM.", elasticsearchDir);
+            String elasticsearchScript = new OsArchDetector().isWindows() ? "elasticsearch.bat" : "elasticsearch";
             new Process(elasticsearchDir,
                     "elasticsearch",
-                    new String[]{String.format("%s/current/bin/elasticsearch", elasticsearchDir)},
+                    new String[]{
+                            format("%s/current/bin/%s", elasticsearchDir, elasticsearchScript),
+                            format("-Epath.data=%s", elasticsearchDataPath),
+                            "-Expack.security.enabled=false"},
                     9200).start();
         }
-
     }
 
     @Override

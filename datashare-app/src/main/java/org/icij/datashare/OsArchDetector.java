@@ -20,6 +20,10 @@ public class OsArchDetector {
         this.arch = arch;
     }
 
+    public boolean isWindows() {
+        return os == OS.windows;
+    }
+
     enum OS {
         macos("mac.*"), linux(".*(nux|nix|aix).*"), windows("windows.*");
         private final Pattern osPattern;
@@ -55,14 +59,15 @@ public class OsArchDetector {
         static ARCH fromSystemString(String archName) {
             String normalizedArchName = normalize(archName);
             return stream(values()).filter(os -> os.archPattern.matcher(normalizedArchName).matches())
-                .findFirst()
-                .orElseThrow(() -> new IllegalArgumentException(format("Unknown ARCH: %s", archName)));
+                    .findFirst()
+                    .orElseThrow(() -> new IllegalArgumentException(format("Unknown ARCH: %s", archName)));
         }
     }
 
     static String normalize(String string) {
         return ofNullable(string).orElse("").toLowerCase();
     }
+
 
     String osArchSuffix() {
         return os + "-" + arch;

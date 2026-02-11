@@ -4,7 +4,7 @@ import static org.fest.assertions.Assertions.assertThat;
 
 import org.junit.Test;
 
-public class OsDetectorTest {
+public class OsArchDetectorTest {
     @Test(expected = IllegalArgumentException.class)
     public void test_os_unknown() {
         OsArchDetector.OS.fromSystemString("freebsd");
@@ -55,5 +55,12 @@ public class OsDetectorTest {
     public void test_arch_64() {
         assertThat(OsArchDetector.ARCH.fromSystemString("amd64")).isEqualTo(OsArchDetector.ARCH.x86_64);
         assertThat(OsArchDetector.ARCH.fromSystemString("x86_64")).isEqualTo(OsArchDetector.ARCH.x86_64);
+    }
+
+    @Test
+    public void test_is_windows() {
+        assertThat(new OsArchDetector(OsArchDetector.OS.fromSystemString("Windows 11"), OsArchDetector.ARCH.x86_64).isWindows()).isTrue();
+        assertThat(new OsArchDetector(OsArchDetector.OS.fromSystemString("macosx"), OsArchDetector.ARCH.x86_64).isWindows()).isFalse();
+        assertThat(new OsArchDetector(OsArchDetector.OS.fromSystemString("linux"), OsArchDetector.ARCH.x86_64).isWindows()).isFalse();
     }
 }
