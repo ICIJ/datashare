@@ -12,7 +12,7 @@
 
     <artifactId>datashare-api</artifactId>
     <name>datashare-api</name>
-    <version>16.0.0</version>
+    <version>15.0.1</version>
     <packaging>jar</packaging>
     <properties>
         <casbin.version>1.85.1</casbin.version>
