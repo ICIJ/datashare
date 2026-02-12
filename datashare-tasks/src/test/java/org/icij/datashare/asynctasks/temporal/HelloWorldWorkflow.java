@@ -5,6 +5,6 @@ import io.temporal.workflow.WorkflowMethod;
 
 @WorkflowInterface
 public interface HelloWorldWorkflow {
-    @WorkflowMethod(name = "hello_world")
+    @WorkflowMethod(name = "hello-world")
     String DoNothing();
 }

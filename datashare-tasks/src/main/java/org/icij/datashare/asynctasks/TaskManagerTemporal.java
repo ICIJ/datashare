@@ -267,6 +267,21 @@ public class TaskManagerTemporal implements TaskManager {
         return buildClient(serviceStub, clientOptions);
     }
 
+    public static String resolveWfTaskQueue(RoutingStrategy routingStrategy, String queueKey, Group group) {
+        switch (routingStrategy) {
+            case UNIQUE -> {
+                return WORKFLOWS_DEFAULT;
+            }
+            case GROUP -> {
+                return group.getId().toLowerCase();
+            }
+            case NAME -> {
+                return queueKey.toLowerCase();
+            }
+            default -> throw new IllegalArgumentException("invalid routing strategy " + routingStrategy);
+        }
+    }
+
     private static WorkflowClient buildClient(WorkflowServiceStubs serviceStub, WorkflowClientOptions clientOptions) {
         return WorkflowClient.newInstance(serviceStub, clientOptions);
     }
@@ -440,18 +455,7 @@ public class TaskManagerTemporal implements TaskManager {
     }
 
     protected String resolveWfTaskQueue(String taskName, Group group) {
-        switch (routingStrategy) {
-            case UNIQUE -> {
-                return WORKFLOWS_DEFAULT;
-            }
-            case GROUP -> {
-                return "workflows-" + group.getId().toLowerCase();
-            }
-            case NAME -> {
-                return "workflows-" + taskName.toLowerCase();
-            }
-            default -> throw new IllegalArgumentException("invalid routing strategy " + routingStrategy);
-        }
+        return resolveWfTaskQueue(routingStrategy, taskName, group);
     }
 
     private WorkflowExecutionDescription getWorkflowExecution(String taskId) throws UnknownTask {

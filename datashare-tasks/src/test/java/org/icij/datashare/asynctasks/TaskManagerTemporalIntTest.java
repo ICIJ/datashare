@@ -10,9 +10,11 @@ import static org.icij.datashare.asynctasks.TaskManagerTemporal.WORKFLOWS_DEFAUL
 import static org.icij.datashare.asynctasks.TaskManagerTemporal.buildClient;
 import static org.icij.datashare.asynctasks.TaskManagerTemporal.deleteNamespace;
 import static org.icij.datashare.asynctasks.TaskManagerTemporal.setupNamespace;
+import static org.icij.datashare.asynctasks.temporal.TemporalHelper.activityFactory;
 import static org.icij.datashare.asynctasks.temporal.TemporalHelper.createTemporalWorkerFactory;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.MockitoAnnotations.openMocks;
 
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
@@ -35,16 +37,23 @@ import org.icij.datashare.asynctasks.temporal.HelloWorldWorkflowImpl;
 import org.icij.datashare.asynctasks.temporal.TemporalHelper;
 import org.icij.datashare.tasks.RoutingStrategy;
 import org.icij.datashare.user.User;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.mockito.Mock;
 
 public class TaskManagerTemporalIntTest {
+    private AutoCloseable mocks;
     private static WorkflowClient client;
 
     private static TaskManagerTemporal taskManager;
 
+    @Mock
+    private TaskFactory taskFactory;
+
+    private List<TemporalHelper.RegisteredWorkflow> WORKFLOWS;
 
     @BeforeClass
     public static void setUpClass() {
@@ -54,6 +63,11 @@ public class TaskManagerTemporalIntTest {
 
     @Before
     public void setUp() throws IOException, InterruptedException {
+        mocks = openMocks(this);
+        WORKFLOWS = List.of(
+            new TemporalHelper.RegisteredWorkflow(HelloWorldWorkflowImpl.class, WORKFLOWS_DEFAULT, List.of(new TemporalHelper.RegisteredActivity(activityFactory(HelloWorldActivityImpl.class, taskFactory, client, 1d), WORKFLOWS_DEFAULT))),
+            new TemporalHelper.RegisteredWorkflow(FailingWorkflowImpl.class, WORKFLOWS_DEFAULT, List.of(new TemporalHelper.RegisteredActivity(activityFactory(FailingActivityImpl.class, taskFactory, client, 1d), WORKFLOWS_DEFAULT)))
+        );
         try {
             deleteNamespace(client, Duration.ofSeconds(5));
         } catch (StatusRuntimeException ex) {
@@ -65,22 +79,18 @@ public class TaskManagerTemporalIntTest {
         Thread.sleep(2000); // Sleep to allow custom attribute creation propagation refresh rate is 0.1s
     }
 
+    @After
+    public void tearDown() throws Exception {
+        mocks.close();
+    }
+
     private TemporalHelper.CloseableWorkerFactoryHandle testCloseableWorkerFactory(WorkflowClient client) {
         return new TemporalHelper.CloseableWorkerFactoryHandle(testWorkerFactory(client));
     }
 
     private WorkerFactory testWorkerFactory(WorkflowClient client) {
-        WorkerFactory workerFactory = WorkerFactory.newInstance(client);
-        createTemporalWorkerFactory(WORKFLOWS, workerFactory);
-        return workerFactory;
+        return createTemporalWorkerFactory(WORKFLOWS, client);
     }
-
-    private static final List<TemporalHelper.RegisteredWorkflow> WORKFLOWS = List.of(
-        new TemporalHelper.RegisteredWorkflow(HelloWorldWorkflowImpl.class, WORKFLOWS_DEFAULT,
-            List.of(new TemporalHelper.RegisteredActivity(HelloWorldActivityImpl::new, WORKFLOWS_DEFAULT))),
-        new TemporalHelper.RegisteredWorkflow(FailingWorkflowImpl.class, WORKFLOWS_DEFAULT,
-            List.of(new TemporalHelper.RegisteredActivity(FailingActivityImpl::new, WORKFLOWS_DEFAULT)))
-    );
 
 
     @Test

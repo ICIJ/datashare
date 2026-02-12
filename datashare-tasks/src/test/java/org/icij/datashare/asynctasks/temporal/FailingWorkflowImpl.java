@@ -4,7 +4,7 @@ import io.temporal.activity.ActivityOptions;
 import io.temporal.workflow.Workflow;
 import java.time.Duration;
 
-public class FailingWorkflowImpl implements FailingWorkflow {
+public class FailingWorkflowImpl extends TemporalWorkflowImpl implements FailingWorkflow {
     private final FailingActivity fail;
 
     public FailingWorkflowImpl() {
