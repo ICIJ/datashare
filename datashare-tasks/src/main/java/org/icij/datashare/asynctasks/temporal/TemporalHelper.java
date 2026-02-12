@@ -14,7 +14,6 @@ import io.temporal.worker.Worker;
 import io.temporal.worker.WorkerFactory;
 import io.temporal.worker.WorkflowImplementationOptions;
 import java.io.IOException;
-import java.io.Serializable;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Set;
@@ -98,7 +97,7 @@ public class TemporalHelper {
         };
     }
 
-    protected static <P, R extends Serializable> R taskWrapper(Function<P, R> taskFn, P payload, Set<Class<? extends Exception>> retriables) {
+    protected static <P, R> R taskWrapper(Function<P, R> taskFn, P payload, Set<Class<? extends Exception>> retriables) {
         try {
             return taskFn.apply(payload);
         } catch (Exception e) {
@@ -109,15 +108,15 @@ public class TemporalHelper {
         }
     }
 
-    protected static <P, R extends Serializable> R taskWrapper(Function<P, R> taskFn, P payload) {
+    protected static <P, R> R taskWrapper(Function<P, R> taskFn, P payload) {
         return taskWrapper(taskFn, payload, Set.of());
     }
 
-    protected static <R extends Serializable> R taskWrapper(Supplier<R> taskSupplier, Set<Class<? extends Exception>> retriables) {
+    protected static <R> R taskWrapper(Supplier<R> taskSupplier, Set<Class<? extends Exception>> retriables) {
         return taskWrapper((t) -> taskSupplier.get(), null, retriables);
     }
 
-    protected static <R extends Serializable> R taskWrapper(Supplier<R> taskSupplier) {
+    protected static <R> R taskWrapper(Supplier<R> taskSupplier) {
         return taskWrapper((t) -> taskSupplier.get(), null, Set.of());
     }
 
