@@ -30,7 +30,7 @@ public class WebApp {
                 .start(parseInt(mode.properties().getProperty(PropertiesProvider.TCP_LISTEN_PORT_OPT)));
 
         if (mode.isEmbeddedAMQP()) {
-            mode.createWorkers();
+            mode.runWorkers();
         }
 
         int port = parseInt(mode.properties().getProperty(PropertiesProvider.TCP_LISTEN_PORT_OPT));

@@ -11,6 +11,8 @@ import com.google.inject.Provides;
 import com.google.inject.Singleton;
 import com.google.inject.assistedinject.FactoryModuleBuilder;
 import io.temporal.client.WorkflowClient;
+import io.temporal.worker.WorkerFactory;
+import io.temporal.worker.WorkerOptions;
 import net.codestory.http.Configuration;
 import net.codestory.http.annotations.Get;
 import net.codestory.http.annotations.Prefix;
@@ -21,10 +23,13 @@ import net.codestory.http.routes.Routes;
 import org.icij.datashare.EnvUtils;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Repository;
+import org.icij.datashare.asynctasks.Group;
+import org.icij.datashare.asynctasks.TaskGroupType;
 import org.icij.datashare.asynctasks.TaskModifier;
 import org.icij.datashare.asynctasks.TaskRepository;
 import org.icij.datashare.asynctasks.TaskSupplier;
 import org.icij.datashare.asynctasks.TaskWorkerLoop;
+import org.icij.datashare.asynctasks.temporal.TemporalHelper;
 import org.icij.datashare.batch.BatchSearchRepository;
 import org.icij.datashare.cli.Mode;
 import org.icij.datashare.cli.QueueType;
@@ -53,6 +58,7 @@ import org.icij.datashare.tasks.TaskRepositoryRedis;
 import org.icij.datashare.tasks.TaskResultSubtypes;
 import org.icij.datashare.tasks.TaskSupplierAmqp;
 import org.icij.datashare.tasks.TaskSupplierRedis;
+import org.icij.datashare.tasks.Utils;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.text.indexing.LanguageGuesser;
 import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchIndexer;
@@ -95,6 +101,7 @@ import static org.icij.datashare.PluginService.PLUGINS_BASE_URL;
 import static org.icij.datashare.asynctasks.TaskManagerTemporal.DEFAULT_NAMESPACE;
 import static org.icij.datashare.asynctasks.TaskManagerTemporal.buildClient;
 import static org.icij.datashare.cli.DatashareCliOptions.*;
+import static org.icij.datashare.cli.QueueType.TEMPORAL;
 import static org.icij.datashare.text.indexing.elasticsearch.ElasticsearchConfiguration.createESClient;
 
 public abstract class CommonMode extends AbstractModule implements Closeable {
@@ -173,15 +180,12 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
                 .orElse(DEFAULT_TASK_PROGRESS_INTERVAL_SECONDS);
     }
 
-    public ExecutorService createWorkers() {
-        if (getTaskWorkersNb()>0) {
-            List<TaskWorkerLoop> workers = IntStream.range(0, getTaskWorkersNb())
-                    .mapToObj(i -> new TaskWorkerLoop(get(DatashareTaskFactory.class), get(TaskSupplier.class),
-                            getProgressMinIntervalS())).toList();
-            workers.forEach(this::addCloseable);
-            workers.forEach(executorService::submit);
+    public ExecutorService runWorkers() {
+        QueueType batchQueueType = getQueueType(propertiesProvider, BATCH_QUEUE_TYPE_OPT, DEFAULT_BATCH_QUEUE_TYPE);
+        if (batchQueueType.equals(TEMPORAL)) {
+            return runTemporalWorkers();
         }
-        return executorService;
+        return runTaskWorkerLoop();
     }
 
     @Override
@@ -360,6 +364,42 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
             }
         }
         repositoryFactory.initDatabase();
+    }
+
+    private ExecutorService runTaskWorkerLoop() {
+        if (getTaskWorkersNb() > 0) {
+            List<TaskWorkerLoop> workers = IntStream.range(0, getTaskWorkersNb())
+                .mapToObj(i -> new TaskWorkerLoop(get(DatashareTaskFactory.class), get(TaskSupplier.class),
+                    getProgressMinIntervalS())).toList();
+            workers.forEach(this::addCloseable);
+            workers.forEach(executorService::submit);
+        }
+        return executorService;
+    }
+
+    private ExecutorService runTemporalWorkers() {
+        if (getTaskWorkersNb() > 0) {
+            WorkflowClient client = get(WorkflowClient.class);
+            WorkerOptions workerOptions = WorkerOptions.newBuilder()
+                .setMaxConcurrentWorkflowTaskExecutionSize(getTaskWorkersNb())
+                .setMaxConcurrentActivityExecutionSize(getTaskWorkersNb())
+                .build();
+            List<TemporalHelper.RegisteredWorkflow> workflows;
+            try {
+                workflows = TemporalHelper.discoverWorkflows(
+                    "org.icij.datashare.tasks",
+                    get(DatashareTaskFactory.class),
+                    client,
+                    Utils.getRoutingStrategy(propertiesProvider),
+                    new Group(TaskGroupType.Java)
+                );
+            } catch (ClassNotFoundException e) {
+                throw new RuntimeException(e);
+            }
+            WorkerFactory workerFactory = TemporalHelper.createTemporalWorkerFactory(workflows, client, workerOptions);
+            executorService.submit(workerFactory::start);
+        }
+        return executorService;
     }
 
     private Routes defaultRoutes(final Routes routes) {
