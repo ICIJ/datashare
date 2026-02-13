@@ -449,7 +449,8 @@ jobs:
               curl -f "https://search.maven.org/remotecontent?filepath=org/icij/datashare/datashare/$DATASHARE_VERSION/datashare-$DATASHARE_VERSION.pom" || mvn -s .circleci/resources/maven-release-settings.xml -pl . deploy 
             fi
             mvn -s .circleci/resources/maven-release-settings.xml -pl commons-test -am install
-            mvn -s .circleci/resources/maven-release-settings.xml -pl datashare-tasks -am deploy
+            mvn -s .circleci/resources/maven-release-settings.xml -pl datashare-tasks -am install
+            mvn -s .circleci/resources/maven-release-settings.xml -pl datashare-tasks deploy
 
   deploy_datashare_api:
     machine:
