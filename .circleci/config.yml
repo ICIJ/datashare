@@ -2,6 +2,7 @@ version: 2.1
 
 # Shared environment variables
 ds_env: &ds_env
+  JAVA_HOME: /usr/lib/jvm/java-17-openjdk-amd64
   DS_POSTGRES_HOST: localhost
   DS_POSTGRES_PORT: 5432
   DS_POSTGRES_USER: dstest
@@ -31,7 +32,6 @@ jobs:
     environment:
       <<: *ds_env
       MAVEN_OPTS: "-Xms512m -Xmx1g -Xss10M"
-      JAVA_HOME: /usr/lib/jvm/java-17-openjdk-amd64
 
     steps:
       - checkout
@@ -88,7 +88,6 @@ jobs:
     environment:
       <<: *ds_env
       MAVEN_OPTS: "-Xms512m -Xmx512m -Xss10M"
-      JAVA_HOME: /usr/lib/jvm/java-17-openjdk-amd64
     steps:
       - checkout
       - restore_cache:
@@ -414,14 +413,9 @@ jobs:
             - datashare_openapi.json
 
   deploy_datashare_tasks:
-    docker:
-      - image: cimg/openjdk:17.0.11
-      - image: redis:4.0.1-alpine
-        name: redis
-      - image: cloudamqp/lavinmq
-        name: amqp
-      - image: adobe/s3mock:3.12.0
-        name: s3mock
+    machine:
+      image: ubuntu-2004:current
+      docker_layer_caching: true
 
     environment:
       <<: *ds_env
@@ -429,6 +423,9 @@ jobs:
 
     steps:
       - checkout
+      - run:
+          name: Start services
+          command: docker-compose up -d redis amqp s3mock temporal temporal-setup-db
       - run:
           name: Configure GPG private key for signing project artifacts in OSS Sonatype
           shell: /bin/bash
@@ -449,16 +446,18 @@ jobs:
             mvn -s .circleci/resources/maven-release-settings.xml -pl datashare-tasks deploy
 
   deploy_datashare_api:
-    docker:
-      - image: cimg/openjdk:17.0.11
-      - image: adobe/s3mock:3.12.0
-        name: s3mock
+    machine:
+      image: ubuntu-2004:current
+      docker_layer_caching: true
 
     environment:
       MAVEN_OPTS: "-Xms512m -Xmx1g -Xss10M"
 
     steps:
       - checkout
+      - run:
+          name: Start services
+          command: docker-compose up -d s3mock
       - run:
           name: Configure GPG private key for signing project artifacts in OSS Sonatype
           shell: /bin/bash
@@ -476,16 +475,18 @@ jobs:
             mvn -s .circleci/resources/maven-release-settings.xml -pl datashare-api deploy
 
   deploy_datashare_cli:
-    docker:
-      - image: cimg/openjdk:17.0.11
-      - image: adobe/s3mock:3.12.0
-        name: s3mock
+    machine:
+      image: ubuntu-2004:current
+      docker_layer_caching: true
 
     environment:
       MAVEN_OPTS: "-Xms512m -Xmx1g -Xss10M"
 
     steps:
       - checkout
+      - run:
+          name: Start services
+          command: docker-compose up -d s3mock
       - run:
           name: Configure GPG private key for signing project artifacts in OSS Sonatype
           shell: /bin/bash
