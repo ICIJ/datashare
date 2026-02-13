@@ -40,9 +40,9 @@ services:
       ports:
         - "9090:9090"
       environment:
-        - initialBuckets=testbucket
+        COM_ADOBE_TESTING_S3MOCK_STORE_INITIAL_BUCKETS: testbucket
       healthcheck:
-        test: [ "CMD", "curl", "-f", "http://localhost:9090/testbucket" ]
+        test: [ "CMD", "curl", "-f", "http://localhost:9090" ]
         interval: 5s
         timeout: 5s
         retries: 3
