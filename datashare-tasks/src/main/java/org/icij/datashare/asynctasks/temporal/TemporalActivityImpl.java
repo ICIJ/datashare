@@ -28,19 +28,17 @@ public abstract class TemporalActivityImpl<R, T extends Callable<R>> {
         this.progressWeight = progressWeight;
     }
 
+    abstract protected Class<T> getTaskClass();
+
     protected TaskFactory getTaskFactory() {
         return factory;
     }
 
     protected BiConsumer<String, Double> getProgressFn(ActivityInfo info) {
         WorkflowStub workflow = client.newUntypedWorkflowStub(info.getWorkflowId());
-        return (ignored, progress) -> workflow.signal(
-            "progress",
-            new ProgressSignal(info.getRunId(), info.getActivityId(), progress, this.progressWeight)
-        );
+        return (ignored, progress) -> workflow.signal("progress",
+            new ProgressSignal(info.getRunId(), info.getActivityId(), progress, this.progressWeight));
     }
-
-    abstract protected Class<T> getTaskClass();
 
     protected Set<Class<? extends Exception>> getRetriables() {
         return Set.of();
