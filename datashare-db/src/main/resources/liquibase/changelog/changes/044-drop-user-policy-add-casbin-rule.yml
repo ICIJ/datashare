@@ -14,24 +14,23 @@ databaseChangeLog:
             columns:
               - column:
                   name: user_id
-                  type: UUID
+                  type: VARCHAR(36)
                   constraints:
                     nullable: false
+                    primaryKey: true
+                    primaryKeyName: pk_user_domain_role_user_id
               - column:
                   name: domain_id
-                  type: UUID
+                  type: VARCHAR(36)
                   constraints:
                     nullable: false
+                    primaryKey: true
+                    primaryKeyName: pk_user_domain_role_domain_id
               - column:
                   name: role
                   type: VARCHAR(255)
                   constraints:
                     nullable: false
-        - addPrimaryKey:
-            tableName: user_domain_role
-            columnNames: user_id, domain_id
-            constraintName: pk_user_domain_role
-
   - changeSet:
       id: 76
       author: cdesprat
@@ -44,25 +43,29 @@ databaseChangeLog:
                   type: VARCHAR(255)
                   constraints:
                     nullable: false
+                    primaryKey: true
+                    primaryKeyName: pk_role_project_permission_role
               - column:
                   name: domain_id
-                  type: UUID
+                  type: VARCHAR(36)
                   constraints:
                     nullable: false
+                    primaryKey: true
+                    primaryKeyName: pk_role_project_permission_domain_id
               - column:
                   name: project_id
-                  type: UUID
+                  type: VARCHAR(36)
                   constraints:
                     nullable: false
+                    primaryKey: true
+                    primaryKeyName: pk_role_project_permission_project_id
               - column:
                   name: action
                   type: VARCHAR(255)
                   constraints:
                     nullable: false
-        - addPrimaryKey:
-            tableName: role_project_permission
-            columnNames: role, domain_id, project_id, action
-            constraintName: pk_role_project_permission
+                    primaryKey: true
+                    primaryKeyName: pk_role_project_permission_action
 
   - changeSet:
       id: 77
@@ -73,7 +76,7 @@ databaseChangeLog:
             columns:
               - column:
                   name: id
-                  type: BIGINT
+                  type: int
                   autoIncrement: true
                   constraints:
                     nullable: false
