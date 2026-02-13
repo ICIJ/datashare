@@ -426,7 +426,7 @@ jobs:
       - checkout
       - run:
           name: Start services
-          command: docker-compose up -d --wait redis amqp s3mock temporal temporal-setup-db
+          command: docker-compose up -d --wait postgres redis amqp s3mock temporal temporal-setup-db
       - run:
           name: Configure GPG private key for signing project artifacts in OSS Sonatype
           shell: /bin/bash
@@ -436,6 +436,7 @@ jobs:
       - run: echo "s3mockUri=${DS_S3MOCK_URI}" >> datashare-devenv.properties
       - run: echo "temporalTarget=${DS_TEMPORAL_TARGET}" >> datashare-devenv.properties
       - run: echo "redisUri=${DS_REDIS_URI}" >> datashare-devenv.properties
+      - run: echo "postgresUri=${DS_POSTGRES_URI}" >> datashare-devenv.properties
       - run:
           name: Build and deploy datashare-tasks
           no_output_timeout: 1h
