@@ -7,7 +7,7 @@ import java.util.concurrent.TimeUnit;
 
 public class TaskWorkerApp {
     public static void start(CommonMode mode) throws Exception {
-        ExecutorService workers = mode.createWorkers();
+        ExecutorService workers = mode.runWorkers();
         workers.awaitTermination(Long.MAX_VALUE, TimeUnit.DAYS); // to wait consumers, else we are closing them all
     }
 }
