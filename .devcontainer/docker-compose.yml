@@ -36,11 +36,12 @@ services:
         start_period: 2s
 
     s3mock:
-      image: adobe/s3mock:4.11.0
+      image: adobe/s3mock:3.12.0
       ports:
         - "9090:9090"
       environment:
-        COM_ADOBE_TESTING_S3MOCK_STORE_INITIAL_BUCKETS: testbucket
+        initialBuckets: testbucket
+        debug: true
       healthcheck:
         test: [ "CMD-SHELL", "wget --quiet --tries=1 --spider http://localhost:9090/" ]
         interval: 5s
