@@ -413,6 +413,7 @@ jobs:
             - datashare_openapi.json
 
   deploy_datashare_tasks:
+    resource_class: large
     machine:
       image: ubuntu-2004:current
       docker_layer_caching: true
