@@ -42,7 +42,7 @@ services:
       environment:
         COM_ADOBE_TESTING_S3MOCK_STORE_INITIAL_BUCKETS: testbucket
       healthcheck:
-        test: [ "CMD", "curl", "-f", "http://localhost:9090" ]
+        test: [ "CMD_SHELL", "wget --quiet --tries=1 --spider http://localhost:9090/" ]
         interval: 5s
         timeout: 5s
         retries: 3
