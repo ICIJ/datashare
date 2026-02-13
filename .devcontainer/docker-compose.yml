@@ -42,7 +42,7 @@ services:
       environment:
         - initialBuckets=testbucket
       healthcheck:
-        test: [ "CMD", "curl", "-f", "http://localhost:9090/" ]
+        test: [ "CMD", "curl", "-f", "http://localhost:9090/testbucket" ]
         interval: 5s
         timeout: 5s
         retries: 3
