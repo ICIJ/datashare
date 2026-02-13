@@ -42,7 +42,7 @@ jobs:
 
       - run:
           name: Start services
-          command: docker-compose up -d elasticsearch postgres redis amqp s3mock temporal temporal-setup-db
+          command: docker-compose up -d --wait elasticsearch postgres redis amqp s3mock temporal temporal-setup-db
 
       - run:
           name: Configure GPG private key for signing project artifacts in OSS Sonatype
@@ -95,7 +95,7 @@ jobs:
             - v1-dependencies-{{ checksum "pom.xml" }}
       - run:
           name: Start services
-          command: docker-compose up -d elasticsearch postgres
+          command: docker-compose up -d --wait elasticsearch postgres
       - run:
           name: Prepare SSH directory
           command: |
@@ -426,7 +426,7 @@ jobs:
       - checkout
       - run:
           name: Start services
-          command: docker-compose up -d redis amqp s3mock temporal temporal-setup-db
+          command: docker-compose up -d --wait redis amqp s3mock temporal temporal-setup-db
       - run:
           name: Configure GPG private key for signing project artifacts in OSS Sonatype
           shell: /bin/bash
@@ -462,7 +462,7 @@ jobs:
       - checkout
       - run:
           name: Start services
-          command: docker-compose up -d s3mock
+          command: docker-compose up -d --wait s3mock
       - run:
           name: Configure GPG private key for signing project artifacts in OSS Sonatype
           shell: /bin/bash
@@ -491,7 +491,7 @@ jobs:
       - checkout
       - run:
           name: Start services
-          command: docker-compose up -d s3mock
+          command: docker-compose up -d --wait s3mock
       - run:
           name: Configure GPG private key for signing project artifacts in OSS Sonatype
           shell: /bin/bash
