@@ -4,7 +4,7 @@ import io.temporal.activity.ActivityOptions;
 import io.temporal.workflow.Workflow;
 import java.time.Duration;
 
-public class HelloWorldWorkflowImpl implements HelloWorldWorkflow {
+public class HelloWorldWorkflowImpl extends TemporalWorkflowImpl implements HelloWorldWorkflow {
     private final HelloWorldActivity doNothing;
 
     public HelloWorldWorkflowImpl() {

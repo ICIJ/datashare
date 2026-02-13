@@ -59,7 +59,11 @@
             <artifactId>temporal-sdk</artifactId>
             <version>${temporal-sdk-version}</version>
         </dependency>
-
+        <dependency>
+            <groupId>org.reflections</groupId>
+            <artifactId>reflections</artifactId>
+            <version>0.10.2</version>
+        </dependency>
         <dependency>
             <groupId>com.palantir.javapoet</groupId>
             <artifactId>javapoet</artifactId>
