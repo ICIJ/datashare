@@ -119,7 +119,11 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
+                <version>${maven-compiler.version}</version>
                 <configuration>
+                    <compilerArgument>-Xlint:all</compilerArgument>
+                    <compilerArgument>-parameters</compilerArgument>
+                    <showDeprecation>true</showDeprecation>
                     <proc>none</proc>
                 </configuration>
             </plugin>
