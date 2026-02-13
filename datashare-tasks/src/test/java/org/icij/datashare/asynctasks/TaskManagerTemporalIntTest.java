@@ -10,9 +10,11 @@ import static org.icij.datashare.asynctasks.TaskManagerTemporal.WORKFLOWS_DEFAUL
 import static org.icij.datashare.asynctasks.TaskManagerTemporal.buildClient;
 import static org.icij.datashare.asynctasks.TaskManagerTemporal.deleteNamespace;
 import static org.icij.datashare.asynctasks.TaskManagerTemporal.setupNamespace;
+import static org.icij.datashare.asynctasks.temporal.TemporalHelper.activityFactory;
 import static org.icij.datashare.asynctasks.temporal.TemporalHelper.createTemporalWorkerFactory;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.MockitoAnnotations.openMocks;
 
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
@@ -39,12 +41,19 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.mockito.Mock;
 
-@Ignore("skipping this temporarily to avoid blocking")
 public class TaskManagerTemporalIntTest {
+    private AutoCloseable mocks;
+
+    @Mock
+    private TaskFactory taskFactory;
+
     private static WorkflowClient client;
 
     private static TaskManagerTemporal taskManager;
+
+    private List<TemporalHelper.RegisteredWorkflow> registeredWorkflows;
 
 
     @BeforeClass
@@ -55,6 +64,7 @@ public class TaskManagerTemporalIntTest {
 
     @Before
     public void setUp() throws IOException, InterruptedException {
+        mocks = openMocks(this);
         try {
             deleteNamespace(client, Duration.ofSeconds(5));
         } catch (StatusRuntimeException ex) {
@@ -62,8 +72,24 @@ public class TaskManagerTemporalIntTest {
                 throw ex;
             }
         }
+        registeredWorkflows = List.of(
+            new TemporalHelper.RegisteredWorkflow(
+                HelloWorldWorkflowImpl.class,
+                WORKFLOWS_DEFAULT,
+                List.of(new TemporalHelper.RegisteredActivity(activityFactory(HelloWorldActivityImpl.class, taskFactory, client, 1.0d), WORKFLOWS_DEFAULT))),
+            new TemporalHelper.RegisteredWorkflow(
+                FailingWorkflowImpl.class,
+                WORKFLOWS_DEFAULT,
+                List.of(new TemporalHelper.RegisteredActivity(activityFactory(FailingActivityImpl.class, taskFactory, client, 1.0d), WORKFLOWS_DEFAULT)))
+        );
+
         setupNamespace(client, Duration.ofSeconds(5));
         Thread.sleep(2000); // Sleep to allow custom attribute creation propagation refresh rate is 0.1s
+    }
+
+    @Before
+    public void tearDown() throws Exception {
+        mocks.close();
     }
 
     private TemporalHelper.CloseableWorkerFactoryHandle testCloseableWorkerFactory(WorkflowClient client) {
@@ -71,18 +97,8 @@ public class TaskManagerTemporalIntTest {
     }
 
     private WorkerFactory testWorkerFactory(WorkflowClient client) {
-        WorkerFactory workerFactory = WorkerFactory.newInstance(client);
-        createTemporalWorkerFactory(WORKFLOWS, workerFactory);
-        return workerFactory;
+        return createTemporalWorkerFactory(registeredWorkflows, client);
     }
-
-    private static final List<TemporalHelper.RegisteredWorkflow> WORKFLOWS = List.of(
-        new TemporalHelper.RegisteredWorkflow(HelloWorldWorkflowImpl.class, WORKFLOWS_DEFAULT,
-            List.of(new TemporalHelper.RegisteredActivity(HelloWorldActivityImpl::new, WORKFLOWS_DEFAULT))),
-        new TemporalHelper.RegisteredWorkflow(FailingWorkflowImpl.class, WORKFLOWS_DEFAULT,
-            List.of(new TemporalHelper.RegisteredActivity(FailingActivityImpl::new, WORKFLOWS_DEFAULT)))
-    );
-
 
     @Test
     public void test_start_task() throws IOException {
@@ -129,8 +145,8 @@ public class TaskManagerTemporalIntTest {
 
     @Test
     public void test_get_task_ids() throws IOException, InterruptedException {
-        Task<String> foo = new Task<>("hello_world", User.local(), Map.of());
-        Task<String> bar = new Task<>("hello_world", User.local(), Map.of());
+        Task<String> foo = new Task<>("hello-world", User.local(), Map.of());
+        Task<String> bar = new Task<>("hello-world", User.local(), Map.of());
 
         taskManager.startTask(foo);
         Task.State fooState = taskManager.getTask(foo.id).getState();
@@ -159,7 +175,7 @@ public class TaskManagerTemporalIntTest {
     @Test(timeout = 10000)
     public void test_get_task_result() throws IOException {
         try (TemporalHelper.CloseableWorkerFactoryHandle ignored = testCloseableWorkerFactory(client)) {
-            Task<String> task = new Task<>("hello_world", User.local(), Map.of());
+            Task<String> task = new Task<>("hello-world", User.local(), Map.of());
 
             taskManager.startTask(task);
             taskManager.waitTasksToBeDone(10, TimeUnit.SECONDS);
@@ -211,7 +227,7 @@ public class TaskManagerTemporalIntTest {
     @Test
     public void test_clear_done_tasks() throws Exception {
         try (TemporalHelper.CloseableWorkerFactoryHandle ignored = testCloseableWorkerFactory(client)) {
-            Task<String> task = new Task<>("hello_world", User.local(), Map.of("key", "value"));
+            Task<String> task = new Task<>("hello-world", User.local(), Map.of("key", "value"));
             taskManager.startTask(task);
             assertThat(taskManager.awaitTermination(2, TimeUnit.SECONDS));
             assertThat(taskManager.getTasks().toList()).hasSize(1);
@@ -226,8 +242,8 @@ public class TaskManagerTemporalIntTest {
     @Test
     public void test_clear_done_tasks_with_args_filter() throws IOException, InterruptedException {
         try (TemporalHelper.CloseableWorkerFactoryHandle ignored = testCloseableWorkerFactory(client)) {
-            Task<String> first = new Task<>("hello_world", User.local(), Map.of("key", "value"));
-            Task<String> second = new Task<>("hello_world", User.local(), Map.of("otherKey", "otherValue"));
+            Task<String> first = new Task<>("hello-world", User.local(), Map.of("key", "value"));
+            Task<String> second = new Task<>("hello-world", User.local(), Map.of("otherKey", "otherValue"));
             taskManager.startTask(first);
             taskManager.startTask(second);
             assertThat(taskManager.awaitTermination(2, TimeUnit.SECONDS));
