@@ -436,6 +436,7 @@ jobs:
       - run: echo "s3mockUri=${DS_S3MOCK_URI}" >> datashare-devenv.properties
       - run: echo "temporalTarget=${DS_TEMPORAL_TARGET}" >> datashare-devenv.properties
       - run: echo "redisUri=${DS_REDIS_URI}" >> datashare-devenv.properties
+      - run: echo "postgresBuildUri=${DS_POSTGRES_BUILD_URI}" >> datashare-devenv.properties
       - run: echo "postgresUri=${DS_POSTGRES_URI}" >> datashare-devenv.properties
       - run:
           name: Build and deploy datashare-tasks
