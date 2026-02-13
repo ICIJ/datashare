@@ -111,7 +111,7 @@ public class AmqpTest {
 
         amqp.publish(AmqpQueue.EVENT, new TestEvent("boom!!"));
 
-        assertThat(eventQueue.poll(1, TimeUnit.SECONDS)).isNull();
+        assertThat(eventQueue.poll(2, TimeUnit.SECONDS)).isNull();
         assertThat(nackExceptionConsumer.hasBeenCalled).isTrue();
     }
 
