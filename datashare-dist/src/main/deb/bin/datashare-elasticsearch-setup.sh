@@ -50,7 +50,7 @@ download_elasticsearch() {
     fi
 
     if command -v curl >/dev/null 2>&1; then
-        curl -L -o "$ES_ARCHIVE" "$ES_DOWNLOAD_URL"
+        curl -s -L -o "$ES_ARCHIVE" "$ES_DOWNLOAD_URL"
     elif command -v wget >/dev/null 2>&1; then
         wget -O "$ES_ARCHIVE" "$ES_DOWNLOAD_URL"
     else

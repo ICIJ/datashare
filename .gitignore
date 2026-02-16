@@ -4,6 +4,7 @@ dependency-reduced-pom.xml
 .idea/
 *.iml
 dist/
+elasticsearch/
 index/
 plugins/
 extensions/
