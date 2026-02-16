@@ -10,6 +10,8 @@ import org.icij.datashare.Stage;
 import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.asynctasks.TaskGroup;
 import org.icij.datashare.asynctasks.TaskGroupType;
+import org.icij.datashare.asynctasks.temporal.ActivityOpts;
+import org.icij.datashare.asynctasks.temporal.TemporalSingleActivityWorkflow;
 import org.icij.datashare.extract.DocumentCollectionFactory;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.indexing.Indexer;
@@ -33,6 +35,7 @@ import static org.icij.datashare.cli.DatashareCliOptions.SCROLL_DURATION_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.SCROLL_SIZE_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.SEARCH_QUERY_OPT;
 
+@TemporalSingleActivityWorkflow(name = "enqueue-ner-tasks-from-index", activityOptions = @ActivityOpts(timeout = "7d"))
 @TaskGroup(TaskGroupType.Java)
 public class EnqueueFromIndexTask extends PipelineTask<String> {
     private final DocumentCollectionFactory<String> factory;

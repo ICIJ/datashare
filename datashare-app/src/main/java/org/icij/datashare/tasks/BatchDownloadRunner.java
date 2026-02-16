@@ -16,6 +16,8 @@ import org.icij.datashare.asynctasks.CancellableTask;
 import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.asynctasks.TaskGroup;
 import org.icij.datashare.asynctasks.bus.amqp.UriResult;
+import org.icij.datashare.asynctasks.temporal.ActivityOpts;
+import org.icij.datashare.asynctasks.temporal.TemporalSingleActivityWorkflow;
 import org.icij.datashare.batch.BatchDownload;
 import org.icij.datashare.com.mail.Mail;
 import org.icij.datashare.com.mail.MailException;
@@ -53,6 +55,7 @@ import static java.util.stream.Collectors.toList;
 import static org.icij.datashare.cli.DatashareCliOptions.*;
 import org.icij.datashare.asynctasks.TaskGroupType;
 
+@TemporalSingleActivityWorkflow(name = "batch-download", activityOptions = @ActivityOpts(timeout = "7d"))
 @TaskGroup(TaskGroupType.Java)
 public class BatchDownloadRunner implements Callable<UriResult>, Monitorable, UserTask, CancellableTask {
     private final static Logger logger = LoggerFactory.getLogger(BatchDownloadRunner.class);

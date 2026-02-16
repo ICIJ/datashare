@@ -4,6 +4,8 @@ import com.google.inject.assistedinject.Assisted;
 import org.icij.datashare.RecordNotFoundException;
 import org.icij.datashare.asynctasks.TaskGroup;
 import org.icij.datashare.asynctasks.TaskGroupType;
+import org.icij.datashare.asynctasks.temporal.ActivityOpts;
+import org.icij.datashare.asynctasks.temporal.TemporalSingleActivityWorkflow;
 import org.icij.datashare.session.UserPolicyVerifier;
 import org.icij.datashare.text.Project;
 import org.icij.datashare.user.*;
@@ -13,6 +15,7 @@ import org.slf4j.LoggerFactory;
 
 import javax.inject.Inject;
 
+@TemporalSingleActivityWorkflow(name = "grant-admin-policy", activityOptions = @ActivityOpts(timeout = "1d"))
 @TaskGroup(TaskGroupType.Java)
 public class GrantAdminPolicyTask extends DefaultTask<Boolean> implements UserTask {
     private final Logger logger = LoggerFactory.getLogger(getClass());

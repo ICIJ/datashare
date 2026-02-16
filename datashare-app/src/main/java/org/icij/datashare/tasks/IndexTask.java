@@ -11,6 +11,8 @@ import org.icij.datashare.Stage;
 import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.asynctasks.TaskGroup;
 import org.icij.datashare.asynctasks.TaskGroupType;
+import org.icij.datashare.asynctasks.temporal.ActivityOpts;
+import org.icij.datashare.asynctasks.temporal.TemporalSingleActivityWorkflow;
 import org.icij.datashare.extract.DocumentCollectionFactory;
 import org.icij.datashare.monitoring.Monitorable;
 import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchSpewer;
@@ -36,6 +38,7 @@ import static org.icij.datashare.PropertiesProvider.DEFAULT_PROJECT_OPT;
 import static org.icij.datashare.PropertiesProvider.REPORT_NAME_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.*;
 
+@TemporalSingleActivityWorkflow(name = "index-documents", activityOptions = @ActivityOpts(timeout = "1m"))
 @OptionsClass(Extractor.class)
 @OptionsClass(DocumentFactory.class)
 @OptionsClass(DocumentQueueDrainer.class)

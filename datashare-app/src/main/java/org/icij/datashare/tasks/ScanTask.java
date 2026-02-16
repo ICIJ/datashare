@@ -9,6 +9,8 @@ import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Stage;
 import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.asynctasks.TaskGroup;
+import org.icij.datashare.asynctasks.temporal.ActivityOpts;
+import org.icij.datashare.asynctasks.temporal.TemporalSingleActivityWorkflow;
 import org.icij.datashare.extract.DocumentCollectionFactory;
 import org.icij.extract.Scanner;
 import org.icij.extract.ScannerVisitor;
@@ -20,6 +22,7 @@ import java.nio.file.Paths;
 
 import static org.icij.datashare.PropertiesProvider.DATA_DIR_OPT;
 
+@TemporalSingleActivityWorkflow(name = "scan-documents", activityOptions = @ActivityOpts(timeout = "7d"))
 @OptionsClass(Scanner.class)
 @TaskGroup(TaskGroupType.Java)
 public class ScanTask extends PipelineTask<Path> {

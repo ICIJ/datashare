@@ -1,6 +1,5 @@
 package org.icij.datashare.asynctasks.temporal;
 
-import static java.lang.Character.MAX_CODE_POINT;
 import static java.lang.Character.toUpperCase;
 import static java.util.Arrays.stream;
 import static java.util.stream.Collectors.joining;
