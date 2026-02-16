@@ -154,6 +154,7 @@ public final class DatashareCliOptions {
     public static final String DEFAULT_DATA_SOURCE_URL = "jdbc:sqlite:file:" + DEFAULT_DATASHARE_HOME.resolve("dist/datashare.db");
     public static final String DEFAULT_DEFAULT_PROJECT = "local-datashare";
     public static final String DEFAULT_ELASTICSEARCH_ADDRESS = EnvUtils.resolveUri("elasticsearch", "http://elasticsearch:9200");
+    public static final String DEFAULT_ELASTICSEARCH_PATH = DEFAULT_DATASHARE_HOME.resolve("elasticsearch").toString();
     public static final String DEFAULT_ELASTICSEARCH_DATA_PATH = DEFAULT_DATASHARE_HOME.resolve("es").toString();
     public static final String DEFAULT_ELASTICSEARCH_SETTINGS = DEFAULT_DATASHARE_HOME.resolve("elasticsearch.yml").toString();
     public static final String DEFAULT_EMBEDDED_DOCUMENT_DOWNLOAD_MAX_SIZE = "1G";
@@ -589,7 +590,8 @@ public final class DatashareCliOptions {
         parser.acceptsAll(
                 singletonList(ELASTICSEARCH_PATH_OPT), "Path used for launching Elasticsearch (should be installed with official tar/zip).")
                 .withRequiredArg()
-                .ofType(String.class);
+                .ofType(String.class)
+                .defaultsTo(DEFAULT_ELASTICSEARCH_PATH);
     }
 
     public static void elasticsearchSettings(OptionParser parser) {

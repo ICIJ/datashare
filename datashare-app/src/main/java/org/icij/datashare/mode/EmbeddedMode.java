@@ -31,22 +31,20 @@ public class EmbeddedMode extends LocalMode {
     protected void configure() {
         String elasticsearchSettings = propertiesProvider.get(ELASTICSEARCH_SETTINGS_OPT).orElse(DEFAULT_ELASTICSEARCH_SETTINGS);
         createDefaultSettingsFileIfNeeded(elasticsearchSettings);
-        String elasticsearchDir = propertiesProvider.get(ELASTICSEARCH_PATH_OPT).orElse("");
-        if (!elasticsearchDir.isEmpty()) {
-            String elasticsearchDataPath = propertiesProvider.get(ELASTICSEARCH_DATA_PATH_OPT).orElseThrow(
-                    () -> new IllegalArgumentException(
-                            format("Missing required option %s.", ELASTICSEARCH_DATA_PATH_OPT))
-            );
-            logger.info("Starting Elasticsearch from local install {} within a new JVM.", elasticsearchDir);
-            String elasticsearchScript = new OsArchDetector().isWindows() ? "elasticsearch.bat" : "elasticsearch";
-            new Process(elasticsearchDir,
-                    "elasticsearch",
-                    new String[]{
-                            format("%s/current/bin/%s", elasticsearchDir, elasticsearchScript),
-                            format("-Epath.data=%s", elasticsearchDataPath),
-                            "-Expack.security.enabled=false"},
-                    9200).start();
-        }
+        String elasticsearchDir = propertiesProvider.get(ELASTICSEARCH_PATH_OPT).orElse(DEFAULT_ELASTICSEARCH_PATH);
+        String elasticsearchDataPath = propertiesProvider.get(ELASTICSEARCH_DATA_PATH_OPT).orElseThrow(
+                () -> new IllegalArgumentException(
+                        format("Missing required option %s.", ELASTICSEARCH_DATA_PATH_OPT))
+        );
+        logger.info("Starting Elasticsearch from local install {} within a new JVM.", elasticsearchDir);
+        String elasticsearchScript = new OsArchDetector().isWindows() ? "elasticsearch.bat" : "elasticsearch";
+        new Process(elasticsearchDir,
+                "elasticsearch",
+                new String[]{
+                        format("%s/current/bin/%s", elasticsearchDir, elasticsearchScript),
+                        format("-Epath.data=%s", elasticsearchDataPath),
+                        "-Expack.security.enabled=false"},
+                9200).start();
         if (propertiesProvider.getProperties().contains(QueueType.AMQP.name())) {
             addCloseable(new QpidAmqpServer(AMQP_PORT).start());
             ExtensionService extensionService = new ExtensionService(propertiesProvider);
