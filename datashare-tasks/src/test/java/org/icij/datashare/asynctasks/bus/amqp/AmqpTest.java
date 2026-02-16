@@ -117,7 +117,7 @@ public class AmqpTest {
         new AmqpConsumer<>(amqp, nackExceptionConsumer, AmqpQueue.EVENT, TestEvent.class ).consumeEvents(1);
         new AmqpConsumer<>(amqp, new TestEventConsumer(), AmqpQueue.MANAGER_EVENT, TestEvent.class).consumeEvents(1);
 
-        amqp.publish(AmqpQueue.EVENT, new TestEvent("boom!!"));
+        amqp.publish(AmqpQueue.EVENT, new TestEvent("boom no requeue !!"));
 
         TestEvent polled = eventQueue.poll(1, TimeUnit.SECONDS);
         String asString = Optional.ofNullable(polled).map(rethrowFunction(JsonObjectMapper::writeValueAsString)).orElse(null);
