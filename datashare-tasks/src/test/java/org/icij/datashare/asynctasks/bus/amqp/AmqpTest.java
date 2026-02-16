@@ -5,8 +5,8 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.Optional;
 import org.icij.datashare.asynctasks.NackException;
 import org.icij.datashare.json.JsonObjectMapper;
-import org.junit.After;
 import org.junit.AfterClass;
+import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Ignore;
@@ -33,9 +33,14 @@ public class AmqpTest {
     static private AmqpInterlocutor amqp;
 
     @BeforeClass
-    public static void setUp() throws Exception {
+    public static void setUpClass() throws Exception {
         AmqpQueue[] queues = {AmqpQueue.EVENT, AmqpQueue.MANAGER_EVENT};
         amqp = new AmqpInterlocutor(new Configuration(new URI("amqp://admin:admin@localhost:12345?nbMessageMax=10&rabbitMq=false")), queues);
+    }
+
+    @Before
+    public void setUp() throws Exception {
+        eventQueue.clear();
     }
 
     @Test
@@ -170,11 +175,6 @@ public class AmqpTest {
 
         assertThat(eventQueue.take().field).isEqualTo("hello Key AMQP");
         consumer.cancel();
-    }
-
-    @After
-    public void tearDown() throws Exception {
-        eventQueue.clear();
     }
 
     @AfterClass
