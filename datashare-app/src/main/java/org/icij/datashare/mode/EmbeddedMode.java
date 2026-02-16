@@ -9,7 +9,6 @@ import org.icij.datashare.nlp.PythonNlpWorkerPool;
 import org.icij.datashare.asynctasks.bus.amqp.QpidAmqpServer;
 import org.icij.datashare.cli.QueueType;
 import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchConfiguration;
-import org.icij.datashare.text.indexing.elasticsearch.EsEmbeddedServer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -27,10 +26,8 @@ public class EmbeddedMode extends LocalMode {
 
     @Override
     protected void configure() {
-        String elasticsearchDataPath = propertiesProvider.get("elasticsearchDataPath").orElse("/home/datashare/es");
         String elasticsearchSettings = propertiesProvider.get(ELASTICSEARCH_SETTINGS_OPT).orElse(DEFAULT_ELASTICSEARCH_SETTINGS);
         createDefaultSettingsFileIfNeeded(elasticsearchSettings);
-        addCloseable(new EsEmbeddedServer(ElasticsearchConfiguration.ES_CLUSTER_NAME, elasticsearchDataPath, elasticsearchDataPath, "9200", "9300", elasticsearchSettings).start());
         if (propertiesProvider.getProperties().contains(QueueType.AMQP.name())) {
             addCloseable(new QpidAmqpServer(AMQP_PORT).start());
             ExtensionService extensionService = new ExtensionService(propertiesProvider);

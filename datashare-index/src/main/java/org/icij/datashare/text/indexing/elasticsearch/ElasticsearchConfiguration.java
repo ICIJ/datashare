@@ -19,7 +19,6 @@ import org.elasticsearch.client.RestClient;
 import org.elasticsearch.client.RestClientBuilder;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.json.JsonObjectMapper;
-import org.opensearch.common.settings.Settings;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -156,14 +155,6 @@ public class ElasticsearchConfiguration {
                 ", shards=" + shards +
                 ", replicas=" + replicas +
                 '}';
-    }
-
-    Settings getIndexSettings() {
-        return Settings.builder()
-                .put("index.number_of_shards",   shards)
-                .put("index.number_of_replicas", replicas)
-                .put("index.max_result_window",  INDEX_MAX_RESULT_WINDOW)
-                .build();
     }
 
     private static String getResourceContent(String resourceName) {
