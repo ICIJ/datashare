@@ -64,6 +64,10 @@ public class TemporalWorkflowGenerator extends AbstractProcessor {
         ClassName.get("java.lang", "Object")
     );
 
+    public TemporalWorkflowGenerator() {
+        super();
+    }
+
     @Override
     public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
         for (Element element : roundEnv.getElementsAnnotatedWith(TemporalSingleActivityWorkflow.class)) {
