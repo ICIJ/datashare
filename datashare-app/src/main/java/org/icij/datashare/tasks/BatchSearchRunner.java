@@ -7,6 +7,8 @@ import jakarta.json.JsonException;
 import org.icij.datashare.Entity;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.asynctasks.*;
+import org.icij.datashare.asynctasks.temporal.ActivityOpts;
+import org.icij.datashare.asynctasks.temporal.TemporalSingleActivityWorkflow;
 import org.icij.datashare.batch.BatchSearch;
 import org.icij.datashare.batch.BatchSearchRecord;
 import org.icij.datashare.batch.BatchSearchRepository;
@@ -34,6 +36,7 @@ import static java.util.stream.Collectors.toList;
 import static org.icij.datashare.cli.DatashareCliOptions.*;
 import static org.icij.datashare.text.ProjectProxy.asCommaConcatNames;
 
+@TemporalSingleActivityWorkflow(name = "batch-search", activityOptions = @ActivityOpts(timeout = "7d"))
 @TaskGroup(TaskGroupType.Java)
 public class BatchSearchRunner implements CancellableTask, UserTask, Callable<BatchSearchRunnerResult> {
     private final Logger logger = LoggerFactory.getLogger(getClass());

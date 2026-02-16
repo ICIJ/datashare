@@ -34,6 +34,8 @@ import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.asynctasks.TaskGroup;
 import org.icij.datashare.asynctasks.TaskGroupType;
 import org.icij.datashare.asynctasks.TaskManager;
+import org.icij.datashare.asynctasks.temporal.ActivityOpts;
+import org.icij.datashare.asynctasks.temporal.TemporalSingleActivityWorkflow;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.Language;
 import org.icij.datashare.text.indexing.Indexer;
@@ -46,6 +48,7 @@ import org.icij.task.DefaultTask;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+@TemporalSingleActivityWorkflow(name = "create-nlp-batches", activityOptions = @ActivityOpts(timeout = "1d"))
 @TaskGroup(TaskGroupType.Java)
 public class CreateNlpBatchesFromIndex extends DefaultTask<List<String>> implements UserTask, CancellableTask {
     Logger logger = LoggerFactory.getLogger(getClass());

@@ -5,6 +5,8 @@ import org.icij.datashare.asynctasks.TaskGroupType;
 import com.google.inject.Inject;
 import com.google.inject.assistedinject.Assisted;
 import org.icij.datashare.asynctasks.TaskGroup;
+import org.icij.datashare.asynctasks.temporal.ActivityOpts;
+import org.icij.datashare.asynctasks.temporal.TemporalSingleActivityWorkflow;
 import org.icij.datashare.user.ApiKeyRepository;
 import org.icij.datashare.user.DatashareApiKey;
 import org.icij.datashare.user.User;
@@ -15,6 +17,7 @@ import org.slf4j.LoggerFactory;
 
 import javax.crypto.SecretKey;
 
+@TemporalSingleActivityWorkflow(name = "generate-api-key", activityOptions = @ActivityOpts(timeout = "1d"))
 @TaskGroup(TaskGroupType.Java)
 public class GenApiKeyTask extends DefaultTask<String> implements UserTask {
     private final Logger logger = LoggerFactory.getLogger(getClass());

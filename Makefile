@@ -102,3 +102,6 @@ docker: $(DIST_TARGET)
 	docker build -t icij/datashare:$(VERSION) $(DIST_TARGET)
 
 $(DIST_TARGET): dist
+
+temporal-testcontainer:
+	docker buildx build --platform linux/amd64,linux/arm64 -t icij/datashare-temporal-testcontainer:1.29.2 --target temporal-test-container --push .devcontainer
