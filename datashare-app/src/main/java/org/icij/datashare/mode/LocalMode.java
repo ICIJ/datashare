@@ -31,22 +31,6 @@ public class LocalMode extends CommonMode {
         bind(StatusResource.class).asEagerSingleton();
         bind(LocalUserFilter.class).asEagerSingleton();
         configurePersistence();
-        String elasticsearchDir = propertiesProvider.get(ELASTICSEARCH_PATH_OPT).orElse("");
-        if (!elasticsearchDir.isEmpty() && getClass().equals(LocalMode.class)) {
-            String elasticsearchDataPath = propertiesProvider.get(ELASTICSEARCH_DATA_PATH_OPT).orElseThrow(
-                    () -> new IllegalArgumentException(
-                            format("Missing required option %s.", ELASTICSEARCH_DATA_PATH_OPT))
-            );
-            logger.info("Starting Elasticsearch from local install {} within a new JVM.", elasticsearchDir);
-            String elasticsearchScript = new OsArchDetector().isWindows() ? "elasticsearch.bat" : "elasticsearch";
-            new Process(elasticsearchDir,
-                    "elasticsearch",
-                    new String[]{
-                            format("%s/current/bin/%s", elasticsearchDir, elasticsearchScript),
-                            format("-Epath.data=%s", elasticsearchDataPath),
-                            "-Expack.security.enabled=false"},
-                    9200).start();
-        }
     }
 
     @Override

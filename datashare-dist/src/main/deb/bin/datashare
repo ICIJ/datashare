@@ -6,7 +6,7 @@ datashare_jar=${DATASHARE_JAR:-/usr/share/java/datashare.jar}
 # All default options for the command line
 datashare_home=${DATASHARE_HOME:-$HOME/.local/share/datashare}
 datashare_data_dir=${DATASHARE_DATA_DIR:-$HOME/Datashare}
-datashare_mode=${DATASHARE_MODE:-LOCAL}
+datashare_mode=${DATASHARE_MODE:-EMBEDDED}
 datashare_queue_type=${DATASHARE_QUEUE_TYPE:-MEMORY}
 datashare_bus_type=${DATASHARE_BUSTYPE:-MEMORY}
 datashare_data_source_url=${DATASHARE_DATA_SOURCE_URL:-jdbc:sqlite:file:$datashare_home/dist/datashare.db}

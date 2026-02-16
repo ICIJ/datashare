@@ -5,9 +5,11 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 
 import org.icij.datashare.ExtensionService;
+import org.icij.datashare.OsArchDetector;
 import org.icij.datashare.nlp.PythonNlpWorkerPool;
 import org.icij.datashare.asynctasks.bus.amqp.QpidAmqpServer;
 import org.icij.datashare.cli.QueueType;
+import org.icij.datashare.process.Process;
 import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -15,8 +17,9 @@ import org.slf4j.LoggerFactory;
 import java.util.Map;
 import java.util.Properties;
 
-import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_ELASTICSEARCH_SETTINGS;
-import static org.icij.datashare.cli.DatashareCliOptions.ELASTICSEARCH_SETTINGS_OPT;
+import static java.lang.String.format;
+import static org.icij.datashare.cli.DatashareCliOptions.*;
+import static org.icij.datashare.cli.DatashareCliOptions.ELASTICSEARCH_DATA_PATH_OPT;
 
 public class EmbeddedMode extends LocalMode {
     private static final Logger logger = LoggerFactory.getLogger(EmbeddedMode.class);
@@ -28,6 +31,22 @@ public class EmbeddedMode extends LocalMode {
     protected void configure() {
         String elasticsearchSettings = propertiesProvider.get(ELASTICSEARCH_SETTINGS_OPT).orElse(DEFAULT_ELASTICSEARCH_SETTINGS);
         createDefaultSettingsFileIfNeeded(elasticsearchSettings);
+        String elasticsearchDir = propertiesProvider.get(ELASTICSEARCH_PATH_OPT).orElse("");
+        if (!elasticsearchDir.isEmpty()) {
+            String elasticsearchDataPath = propertiesProvider.get(ELASTICSEARCH_DATA_PATH_OPT).orElseThrow(
+                    () -> new IllegalArgumentException(
+                            format("Missing required option %s.", ELASTICSEARCH_DATA_PATH_OPT))
+            );
+            logger.info("Starting Elasticsearch from local install {} within a new JVM.", elasticsearchDir);
+            String elasticsearchScript = new OsArchDetector().isWindows() ? "elasticsearch.bat" : "elasticsearch";
+            new Process(elasticsearchDir,
+                    "elasticsearch",
+                    new String[]{
+                            format("%s/current/bin/%s", elasticsearchDir, elasticsearchScript),
+                            format("-Epath.data=%s", elasticsearchDataPath),
+                            "-Expack.security.enabled=false"},
+                    9200).start();
+        }
         if (propertiesProvider.getProperties().contains(QueueType.AMQP.name())) {
             addCloseable(new QpidAmqpServer(AMQP_PORT).start());
             ExtensionService extensionService = new ExtensionService(propertiesProvider);
