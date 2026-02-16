@@ -2,7 +2,9 @@ package org.icij.datashare.asynctasks.bus.amqp;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import java.util.Optional;
 import org.icij.datashare.asynctasks.NackException;
+import org.icij.datashare.json.JsonObjectMapper;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -22,6 +24,7 @@ import java.util.function.Consumer;
 import java.util.function.Predicate;
 
 import static org.fest.assertions.Assertions.assertThat;
+import static org.icij.datashare.LambdaExceptionUtils.rethrowFunction;
 
 public class AmqpTest {
     static BlockingQueue<TestEvent> eventQueue = new ArrayBlockingQueue<>(10);
@@ -111,7 +114,9 @@ public class AmqpTest {
 
         amqp.publish(AmqpQueue.EVENT, new TestEvent("boom!!"));
 
-        assertThat(eventQueue.poll(2, TimeUnit.SECONDS)).isNull();
+        TestEvent polled = eventQueue.poll(1, TimeUnit.SECONDS);
+        String asString = Optional.ofNullable(polled).map(rethrowFunction(JsonObjectMapper::writeValueAsString)).orElse(null);
+        assertThat(polled).as("polled event is not null: " + asString).isNull();
         assertThat(nackExceptionConsumer.hasBeenCalled).isTrue();
     }
 
