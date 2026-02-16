@@ -1,5 +1,6 @@
 package org.icij.datashare.asynctasks.temporal;
 
+import static java.lang.Character.MAX_CODE_POINT;
 import static java.lang.Character.toUpperCase;
 import static java.util.Arrays.stream;
 import static java.util.stream.Collectors.joining;
@@ -48,9 +49,9 @@ import org.icij.datashare.asynctasks.TaskFactory;
 @SupportedAnnotationTypes("org.icij.datashare.asynctasks.temporal.TemporalSingleActivityWorkflow")
 @SupportedSourceVersion(SourceVersion.RELEASE_17)
 public class TemporalWorkflowGenerator extends AbstractProcessor {
-    private static final ClassName CLASS_TYPE = ClassName.get("java.lang", "Class");
-    private static final ClassName EXCEPTION_TYPE = ClassName.get("java.lang", "Exception");
-    private static final ParameterizedTypeName RETRIABLES_TYPE = ParameterizedTypeName.get(ClassName.get("java.util", "Set"),
+    private static final ClassName CLASS_TYPE = ClassName.get(Class.class);
+    private static final ClassName EXCEPTION_TYPE = ClassName.get(Exception.class);
+    private static final ParameterizedTypeName RETRIABLES_TYPE = ParameterizedTypeName.get(ClassName.get(Set.class),
         ParameterizedTypeName.get(CLASS_TYPE, WildcardTypeName.subtypeOf(EXCEPTION_TYPE)));
     private static final ClassName TEMPORAL_WF_IMPL_TYPE = ClassName.get(TemporalWorkflowImpl.class);
     private static final ClassName TEMPORAL_ACTIVITY_IMPL_TYPE = ClassName.get(TemporalActivityImpl.class);
@@ -59,9 +60,9 @@ public class TemporalWorkflowGenerator extends AbstractProcessor {
     private static final ClassName DURATION_TYPE = ClassName.get(Duration.class);
     private static final String WF_IMPL_CONSTRUCTOR_CODE = "this.activity = $T.newActivityStub($T.class, $T.newBuilder().setTaskQueue(\"$L\").setStartToCloseTimeout($L.parse(\"$L\")).build());";
     private static final ParameterizedTypeName ARG_TYPE = ParameterizedTypeName.get(
-        ClassName.get("java.util", "Map"),
-        ClassName.get("java.lang", "String"),
-        ClassName.get("java.lang", "Object")
+        ClassName.get(Map.class),
+        ClassName.get(String.class),
+        ClassName.get(Object.class)
     );
 
     public TemporalWorkflowGenerator() {
