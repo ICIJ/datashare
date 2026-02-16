@@ -18,7 +18,7 @@ datashare_elasticsearch_path=${DATASHARE_ELASTICSEARCH_PATH:-$datashare_home/ela
 datashare_elasticsearch_data_path=${DATASHARE_ELASTICSEARCH_DATA_PATH:-$datashare_home/index}
 datashare_jna_tmpdir=${DATASHARE_JNA_TMPDIR:-$datashare_home/index/tmp}
 datashare_sync_nlp_models=${DATASHARE_SYNC_NLP_MODELS:-true}
-
+script_dir=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 
 # Locating Datashare binary
 if [ ! -f "$datashare_jar" ]; then
@@ -45,7 +45,10 @@ cd $datashare_home || exit
 
 # Setup Elasticsearch if needed
 setup_script="/usr/bin/datashare-elasticsearch-setup.sh"
-if [ -f "$setup_script" ]; then
+local_setup_script="$script_dir/datashare-elasticsearch-setup.sh"
+if [ -f "$local_setup_script" ]; then
+  bash "$local_setup_script" install
+elif [ -f "$setup_script" ]; then
   bash "$setup_script" install
 fi
 
