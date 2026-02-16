@@ -61,7 +61,7 @@ app:
 
 ## Download and install Elasticsearch locally
 elasticsearch:
-	@./datashare-dist/src/main/scripts/elasticsearch-setup.sh install
+	@./datashare-dist/src/main/deb/bin/datashare-elasticsearch-setup.sh install
 
 ## Clean all build artifacts
 clean:
