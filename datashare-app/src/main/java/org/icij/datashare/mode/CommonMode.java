@@ -11,6 +11,7 @@ import net.codestory.http.extensions.Extensions;
 import net.codestory.http.injection.GuiceAdapter;
 import net.codestory.http.misc.Env;
 import net.codestory.http.routes.Routes;
+import org.icij.datashare.CasbinRuleRepository;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Repository;
 import org.icij.datashare.asynctasks.TaskModifier;
@@ -40,7 +41,6 @@ import org.icij.datashare.text.indexing.LanguageGuesser;
 import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchIndexer;
 import org.icij.datashare.text.nlp.Pipeline;
 import org.icij.datashare.user.ApiKeyRepository;
-import org.icij.datashare.user.CasbinRuleRepository;
 import org.icij.datashare.web.OpenApiResource;
 import org.icij.datashare.web.RootResource;
 import org.icij.datashare.web.SettingsResource;
@@ -312,7 +312,7 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
         bind(Repository.class).toInstance(repositoryFactory.createRepository());
         bind(ApiKeyRepository.class).toInstance(repositoryFactory.createApiKeyRepository());
         bind(BatchSearchRepository.class).toInstance(repositoryFactory.createBatchSearchRepository());
-        bind(CasbinRuleRepository.class).toInstance(repositoryFactory.createUserPolicyRepository());
+        bind(CasbinRuleRepository.class).toInstance(repositoryFactory.createCasbinRuleRepository());
 
         TaskRepositoryType taskRepositoryType = TaskRepositoryType.valueOf(propertiesProvider.get(TASK_REPOSITORY_OPT).orElse("DATABASE"));
         switch ( taskRepositoryType ) {
