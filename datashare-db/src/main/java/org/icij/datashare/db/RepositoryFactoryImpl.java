@@ -9,12 +9,12 @@ import liquibase.database.Database;
 import liquibase.database.DatabaseFactory;
 import liquibase.database.jvm.JdbcConnection;
 import liquibase.ui.LoggerUIService;
+import org.icij.datashare.CasbinRuleRepository;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Repository;
 import org.icij.datashare.RepositoryFactory;
 import org.icij.datashare.batch.BatchSearchRepository;
 import org.icij.datashare.user.ApiKeyRepository;
-import org.icij.datashare.user.CasbinRuleRepository;
 import org.jooq.SQLDialect;
 
 import javax.sql.DataSource;
@@ -54,7 +54,7 @@ public class RepositoryFactoryImpl implements RepositoryFactory {
     }
 
     @Override
-    public CasbinRuleRepository createUserPolicyRepository() {
+    public CasbinRuleRepository createCasbinRuleRepository() {
         return createRepository(JooqCasbinRuleRepository::new);
     }
 
