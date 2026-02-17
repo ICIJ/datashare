@@ -873,7 +873,7 @@ public class JooqBatchSearchRepositoryTest {
 
     }
 
-    @Test(expected = DataAccessException.class)
+    @Test(expected = IllegalArgumentException.class)
     public void test_get_batch_search_queries_with_unknown_sort_field() {
         repository.getQueries(User.local(), "uuid", 0, 0, null, "unknown_field", "asc");
     }
@@ -881,6 +881,18 @@ public class JooqBatchSearchRepositoryTest {
     @Test(expected = IllegalArgumentException.class)
     public void test_get_batch_search_queries_with_unknown_order_field() {
         repository.getQueries(User.local(), "uuid", 0, 0, null, "query_number", "unknown_order");
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void test_get_records_with_sql_injection_sort_field() {
+        repository.getRecords(User.local(), List.of("prj"),
+                WebQueryBuilder.createWebQuery().queryAll().withSortOrder("name; DROP TABLE batch_search; --", "asc").build());
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void test_get_results_with_sql_injection_sort_field() {
+        repository.getResults(User.local(), "uuid",
+                WebQueryBuilder.createWebQuery().queryAll().withSortOrder("(SELECT password FROM users)", "asc").build());
     }
 
     private SearchResult resultFrom(Document doc, int docNb, String queryName) {
