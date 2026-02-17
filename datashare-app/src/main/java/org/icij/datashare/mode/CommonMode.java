@@ -371,8 +371,9 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
                 .setExtensions(new Extensions() {
                     @Override
                     public ObjectMapper configureOrReplaceObjectMapper(ObjectMapper defaultObjectMapper, Env env) {
-                        defaultObjectMapper.enable(ACCEPT_EMPTY_STRING_AS_NULL_OBJECT);
-                        return defaultObjectMapper;
+                        ObjectMapper mapper = JsonObjectMapper.getMapper();
+                        mapper.enable(ACCEPT_EMPTY_STRING_AS_NULL_OBJECT);
+                        return mapper;
                     }
                 });
         addExtensionsConfiguration(routes);
