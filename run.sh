@@ -2,7 +2,7 @@
 
 export DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 export JDWP_TRANSPORT_PORT=${JDWP_TRANSPORT_PORT:-8090}
-export JAVA_OPTS="-agentlib:jdwp=transport=dt_socket,server=y,address=$JDWP_TRANSPORT_PORT,suspend=n \
+export DS_JAVA_OPTS="-agentlib:jdwp=transport=dt_socket,server=y,address=$JDWP_TRANSPORT_PORT,suspend=n \
   -Djava.net.preferIPv4Stack=true \
   -Ddatashare.loghost=udp:localhost \
   -Dlogback.configurationFile=logback.xml \

@@ -1,7 +1,7 @@
 #!/bin/bash
 
 java_bin=${JAVA_HOME:-/usr}/bin/java
-java_opts=${JAVA_OPTS:-''}
+java_opts=${DS_JAVA_OPTS:-''}
 datashare_jar=${DATASHARE_JAR:-/usr/share/java/datashare.jar}
 # All default options for the command line
 datashare_home=${DATASHARE_HOME:-$HOME/.local/share/datashare}
