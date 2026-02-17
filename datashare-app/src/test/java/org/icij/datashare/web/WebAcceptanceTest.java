@@ -68,6 +68,20 @@ public class WebAcceptanceTest extends AbstractProdWebServerTest {
         get("/admin/test-datashare").withPreemptiveAuthentication("john", "pass").should().respond(200);
     }
 
+    @Test
+    public void route_with_policy_annotation_rejects_user_without_admin_role() throws IOException, URISyntaxException {
+        User jane = mockUserProjectRole("jane", "test-datashare", new Role[]{});
+        when(jooqUserPolicyRepository.getAllPolicies()).thenReturn(jane.getPolicies());
+
+        UserPolicyVerifier verifier = new UserPolicyVerifier(jooqUserPolicyRepository, users);
+        UserPolicyAnnotation userPolicyAnnotation = new UserPolicyAnnotation(verifier);
+        Users users = DatashareUser.singleUser(jane);
+
+        configure(routes -> routes.registerAroundAnnotation(Policy.class, userPolicyAnnotation).filter(new BasicAuthFilter("/", "icij", users)).add(new FakeResource()));
+
+        get("/admin/test-datashare").withPreemptiveAuthentication("jane", "pass").should().respond(403);
+    }
+
     // Fake resource with @Policy annotation
     static class FakeResource {
         public FakeResource() {

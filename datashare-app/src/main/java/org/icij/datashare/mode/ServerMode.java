@@ -83,7 +83,9 @@ public class ServerMode extends CommonMode {
     }
 
     protected void addPermissionConfiguration(final Routes routes) {
-        routes.registerAfterAnnotation(Policy.class, (annotation, context, payload) -> payload);
+        // Use registerAroundAnnotation (not registerAfterAnnotation) so @Policy checks
+        // run BEFORE the endpoint handler and can block unauthorized requests with 403.
+        routes.registerAroundAnnotation(Policy.class, get(UserPolicyAnnotation.class));
     }
 
     @Override
