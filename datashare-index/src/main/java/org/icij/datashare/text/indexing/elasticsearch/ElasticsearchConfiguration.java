@@ -14,7 +14,6 @@ import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
 import org.apache.http.client.CredentialsProvider;
 import org.apache.http.impl.client.BasicCredentialsProvider;
-import org.apache.http.message.BasicHeader;
 import org.elasticsearch.client.RestClient;
 import org.elasticsearch.client.RestClientBuilder;
 import org.icij.datashare.PropertiesProvider;
@@ -29,7 +28,6 @@ import java.net.URL;
 
 import static com.google.common.io.ByteStreams.toByteArray;
 import static java.lang.String.format;
-import static java.util.Collections.singletonList;
 import static org.apache.commons.lang3.SystemUtils.IS_OS_WINDOWS;
 import static org.apache.http.HttpHost.create;
 
