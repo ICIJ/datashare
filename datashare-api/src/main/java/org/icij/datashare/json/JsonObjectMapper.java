@@ -11,7 +11,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.jsontype.NamedType;
 import com.fasterxml.jackson.databind.jsontype.TypeResolverBuilder;
-import com.fasterxml.jackson.databind.jsontype.impl.LaissezFaireSubTypeValidator;
+import com.fasterxml.jackson.databind.jsontype.BasicPolymorphicTypeValidator;
 import com.fasterxml.jackson.databind.type.CollectionType;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.fasterxml.jackson.module.paramnames.ParameterNamesModule;
@@ -70,8 +70,30 @@ public class JsonObjectMapper {
                     .maxNumberLength(MAX_NUMBER_LENGTH)
                     .maxStringLength(MAX_STRING_LENGTH).build());
             TYPE_INCLUSION_MAPPER = MAPPER.copy();
+            // Restrict polymorphic deserialization to safe types only.
+            // LaissezFaireSubTypeValidator was previously used here, which accepts ANY class
+            // and enables arbitrary object instantiation (RCE via gadget chains).
+            BasicPolymorphicTypeValidator ptv = BasicPolymorphicTypeValidator.builder()
+                    .allowIfBaseType(java.util.Map.class)
+                    .allowIfBaseType(java.util.Collection.class)
+                    .allowIfBaseType(java.util.Date.class)
+                    .allowIfBaseType(java.nio.file.Path.class)
+                    .allowIfBaseType(java.nio.charset.Charset.class)
+                    .allowIfBaseType(java.net.URI.class)
+                    .allowIfBaseType(java.lang.Enum.class)
+                    .allowIfBaseType(java.lang.Number.class)
+                    .allowIfBaseType(java.lang.Throwable.class)
+                    .allowIfSubType(java.lang.String.class)
+                    .allowIfSubType(java.lang.Boolean.class)
+                    .allowIfBaseType("org.icij.datashare.")
+                    .allowIfBaseType("org.icij.extract.")
+                    // Allow Java standard library arrays (e.g. Throwable[], StackTraceElement[])
+                    .allowIfSubType("[Ljava.lang.")
+                    .allowIfSubType("[Ljava.util.")
+                    .allowIfSubType("[Lorg.icij.")
+                    .build();
             TypeResolverBuilder<?> mapTyper = new ObjectMapper.DefaultTypeResolverBuilder(
-                    ObjectMapper.DefaultTyping.NON_FINAL, LaissezFaireSubTypeValidator.instance)
+                    ObjectMapper.DefaultTyping.NON_FINAL, ptv)
                     .init(JsonTypeInfo.Id.CLASS, null)
                     .typeProperty("@type")
                     .inclusion(JsonTypeInfo.As.PROPERTY);
