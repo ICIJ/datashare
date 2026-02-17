@@ -13,6 +13,10 @@ worker:
   batcherRPS: 100
   batcherConcurrency: 10
 
+history:
+  transferProcessorEnsureCloseBeforeDelete: false
+  transferProcessorUpdateAckInterval: 2s
+
 persistence:
   defaultStore: postgres-default
   visibilityStore: postgres-visibility
