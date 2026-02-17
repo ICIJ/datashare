@@ -16,6 +16,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import static java.lang.String.format;
+import static org.fest.assertions.Assertions.assertThat;
 
 public class OAuth2CookieFilterTest implements FluentRestTest {
     private static final WebServer identityProvider = new WebServer() {
@@ -83,6 +84,29 @@ public class OAuth2CookieFilterTest implements FluentRestTest {
     }
 
     @Test
+    public void test_matches_api_paths_with_static_file_extensions() {
+        assertThat(oAuth2Filter.matches("/api/users/me.css", null)).isTrue();
+        assertThat(oAuth2Filter.matches("/api/users/me.js", null)).isTrue();
+        assertThat(oAuth2Filter.matches("/api/users/me.png", null)).isTrue();
+        assertThat(oAuth2Filter.matches("/api/users/me.ico", null)).isTrue();
+        assertThat(oAuth2Filter.matches("/api/key/victim.woff", null)).isTrue();
+        assertThat(oAuth2Filter.matches("/api/batch/search.map", null)).isTrue();
+    }
+
+    @Test
+    public void test_matches_auth_paths_with_static_file_extensions() {
+        assertThat(oAuth2Filter.matches("/auth/signin", null)).isTrue();
+        assertThat(oAuth2Filter.matches("/auth/callback.css", null)).isTrue();
+    }
+
+    @Test
+    public void test_api_path_with_extension_should_return_unauthorized() {
+        this.get("/api/users/me.css").should().respond(401);
+        this.get("/api/users/me.js").should().respond(401);
+        this.get("/api/users/me.png").should().respond(401);
+    }
+
+    @Test
     public void test_if_user_already_in_context_do_nothing() {
         datashare.configure(routes -> routes
                         .get("/protected", context -> format("hello %s uid=%s", context.currentUser().name(), context.currentUser().login()))
@@ -129,6 +153,8 @@ public class OAuth2CookieFilterTest implements FluentRestTest {
     public void setUp() {
         datashare.configure(routes -> routes
                         .get("/", context -> format("hello %s uid=%s", context.currentUser().name(), context.currentUser().login()))
+                        .get("/api/users/me", context -> format("hello %s", context.currentUser().login()))
+                        .get("/protected", context -> "protected content")
                         .filter(oAuth2Filter));
     }
 

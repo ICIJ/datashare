@@ -107,6 +107,13 @@ public class OAuth2CookieFilter extends CookieAuthFilter {
 
     @Override
     public boolean matches(String uri, Context context) {
+        // Do not skip authentication based on file extension for API paths.
+        // CookieAuthFilter.matches() excludes URIs ending in static file
+        // extensions (.css, .js, .png, etc.), which allows attackers to bypass
+        // authentication by appending an extension to API routes.
+        if (uri.startsWith("/api/") || uri.startsWith("/auth/")) {
+            return true;
+        }
         return super.matches(uri, context) || uri.isEmpty() || uri.equals("/");
     }
 

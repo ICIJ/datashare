@@ -48,6 +48,26 @@ public class LocalUserFilterTest {
     }
 
     @Test
+    public void test_matches_api_paths_with_static_file_extensions() {
+        LocalUserFilter localUserFilter = new LocalUserFilter(new PropertiesProvider(), jooqRepository);
+
+        assertThat(localUserFilter.matches("/api/users/me.css", null)).isTrue();
+        assertThat(localUserFilter.matches("/api/users/me.js", null)).isTrue();
+        assertThat(localUserFilter.matches("/api/users/me.png", null)).isTrue();
+        assertThat(localUserFilter.matches("/api/users/me.ico", null)).isTrue();
+        assertThat(localUserFilter.matches("/api/key/victim.woff", null)).isTrue();
+        assertThat(localUserFilter.matches("/api/batch/search.map", null)).isTrue();
+    }
+
+    @Test
+    public void test_matches_auth_paths_with_static_file_extensions() {
+        LocalUserFilter localUserFilter = new LocalUserFilter(new PropertiesProvider(), jooqRepository);
+
+        assertThat(localUserFilter.matches("/auth/signin", null)).isTrue();
+        assertThat(localUserFilter.matches("/auth/callback.css", null)).isTrue();
+    }
+
+    @Test
     public void test_adds_local_user_to_context() throws Exception {
         LocalUserFilter localUserFilter = new LocalUserFilter(new PropertiesProvider(), jooqRepository);
         Payload payload = localUserFilter.apply("url", context, nextFilter);

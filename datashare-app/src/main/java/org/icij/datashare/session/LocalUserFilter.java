@@ -45,6 +45,14 @@ public class LocalUserFilter extends CookieAuthFilter {
         }
     }
 
+    @Override
+    public boolean matches(String uri, Context context) {
+        if (uri.startsWith("/api/") || uri.startsWith("/auth/")) {
+            return true;
+        }
+        return super.matches(uri, context);
+    }
+
     @Override protected String cookieName() { return "_ds_session_id"; }
     @Override protected int expiry() { return Integer.MAX_VALUE; }
     @Override protected boolean redirectToLogin(String uri) { return false; }
