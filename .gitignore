@@ -5,7 +5,7 @@ dependency-reduced-pom.xml
 *.iml
 dist/
 elasticsearch/
-elasticsearch.yml
+elasticsearch.yaml
 backups/
 index/
 plugins/
