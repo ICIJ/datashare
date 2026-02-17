@@ -15,6 +15,7 @@ datashare_browser_open_link=${DATASHARE_BROWSER_OPEN_LINK:-true}
 datashare_plugins_dir=${DATASHARE_PLUGINS_DIR:-$datashare_home/plugins}
 datashare_extensions_dir=${DATASHARE_EXTENSION_DIR:-$datashare_home/extensions}
 datashare_elasticsearch_path=${DATASHARE_ELASTICSEARCH_PATH:-$datashare_home/elasticsearch}
+datashare_elasticsearch_settings=${DATASHARE_ELASTICSEARCH_SETTINGS:-$datashare_home/elasticsearch.yaml}
 datashare_elasticsearch_data_path=${DATASHARE_ELASTICSEARCH_DATA_PATH:-$datashare_home/index}
 datashare_jna_tmpdir=${DATASHARE_JNA_TMPDIR:-$datashare_home/index/tmp}
 datashare_sync_nlp_models=${DATASHARE_SYNC_NLP_MODELS:-true}
@@ -73,5 +74,6 @@ $java_bin $java_opts \
       --pluginsDir $datashare_plugins_dir \
       --extensionsDir $datashare_extensions_dir \
       --elasticsearchPath $datashare_elasticsearch_path \
+      --elasticsearch.yaml $datashare_elasticsearch_settings \
       --elasticsearchDataPath $datashare_elasticsearch_data_path \
       "$@"
