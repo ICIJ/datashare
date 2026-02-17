@@ -73,6 +73,11 @@ public class JsonObjectMapper {
             // Restrict polymorphic deserialization to safe types only.
             // LaissezFaireSubTypeValidator was previously used here, which accepts ANY class
             // and enables arbitrary object instantiation (RCE via gadget chains).
+            // allowIfBaseType checks the DECLARED (compile-time) type of the property.
+            // allowIfSubType checks the ACTUAL (runtime) type being deserialized.
+            // Both are needed: baseType rules cover fields declared as e.g. Map or Throwable,
+            // while subType rules cover values inside generic containers like Map<String, Object>
+            // where the declared type is Object but the actual type is a specific class.
             BasicPolymorphicTypeValidator ptv = BasicPolymorphicTypeValidator.builder()
                     .allowIfBaseType(java.util.Map.class)
                     .allowIfBaseType(java.util.Collection.class)
@@ -83,11 +88,21 @@ public class JsonObjectMapper {
                     .allowIfBaseType(java.lang.Enum.class)
                     .allowIfBaseType(java.lang.Number.class)
                     .allowIfBaseType(java.lang.Throwable.class)
-                    .allowIfSubType(java.lang.String.class)
-                    .allowIfSubType(java.lang.Boolean.class)
                     .allowIfBaseType("org.icij.datashare.")
                     .allowIfBaseType("org.icij.extract.")
-                    // Allow Java standard library arrays (e.g. Throwable[], StackTraceElement[])
+                    .allowIfSubType(java.lang.String.class)
+                    .allowIfSubType(java.lang.Boolean.class)
+                    .allowIfSubType(java.util.Map.class)
+                    .allowIfSubType(java.util.Collection.class)
+                    .allowIfSubType(java.util.Date.class)
+                    .allowIfSubType(java.nio.file.Path.class)
+                    .allowIfSubType(java.nio.charset.Charset.class)
+                    .allowIfSubType(java.net.URI.class)
+                    .allowIfSubType(java.lang.Enum.class)
+                    .allowIfSubType(java.lang.Number.class)
+                    .allowIfSubType(java.lang.Throwable.class)
+                    .allowIfSubType("org.icij.datashare.")
+                    .allowIfSubType("org.icij.extract.")
                     .allowIfSubType("[Ljava.lang.")
                     .allowIfSubType("[Ljava.util.")
                     .allowIfSubType("[Lorg.icij.")
