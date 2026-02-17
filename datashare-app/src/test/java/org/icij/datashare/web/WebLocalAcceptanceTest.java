@@ -59,6 +59,24 @@ public class WebLocalAcceptanceTest extends AbstractProdWebServerTest {
     }
 
     @Test
+    public void test_get_settings_obfuscates_sensitive_keys() throws Exception {
+        Response response = get("/settings").response();
+        ObjectMapper mapper = new ObjectMapper();
+        Map<String, Object> settings = mapper.readValue(response.content(), new TypeReference<>() {});
+        // Keys containing "Address" (non-sensitive) should appear as-is
+        assertThat(settings.get("redisAddress")).isNotNull();
+        assertThat(settings.get("redisAddress")).isNotEqualTo("******");
+        // Keys containing "key" or "secret" or "password" (case-insensitive) should be obfuscated
+        // The elasticsearchAddress key doesn't match, but let's verify no sensitive values leak
+        for (Map.Entry<String, Object> entry : settings.entrySet()) {
+            String key = entry.getKey().toLowerCase();
+            if (key.contains("password") || key.contains("key") || key.contains("secret")) {
+                assertThat(entry.getValue()).as("key '" + entry.getKey() + "' should be obfuscated").isEqualTo("******");
+            }
+        }
+    }
+
+    @Test
     public void test_get_version() throws Exception {
         Response response = get("/version").response();
 
