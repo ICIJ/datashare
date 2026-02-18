@@ -62,7 +62,8 @@ public class RootResource {
         return content;
     }
 
-    private static final Pattern SENSITIVE_KEY_PATTERN = Pattern.compile(".*(password|key|secret).*", Pattern.CASE_INSENSITIVE);
+    private static final Pattern SENSITIVE_KEY_PATTERN = Pattern.compile(".*(password|key|secret|address|url).*", Pattern.CASE_INSENSITIVE);
+    private static final Pattern URI_WITH_CREDENTIALS = Pattern.compile("(\\w+://)([^:]+):([^@]+)@(.+)");
     private static final String OBFUSCATED = "******";
 
     @Operation(description = """
@@ -70,7 +71,8 @@ public class RootResource {
 
             These parameters are used for the client app for the init process.
 
-            The endpoint obfuscates values for keys containing password, key, or secret.
+            The endpoint obfuscates values for keys containing password, key, secret, address, or url.
+            URI values with embedded credentials (e.g. scheme://user:pass@host) have user and password masked.
             """)
     @ApiResponse(responseCode = "200", description = "returns the list of public settings", useReturnTypeSchema = true)
     @Get("settings")
@@ -78,9 +80,22 @@ public class RootResource {
         Map<String, Object> properties = propertiesProvider.getProperties().entrySet().stream()
                 .collect(Collectors.toMap(
                         e -> (String) e.getKey(),
-                        e -> SENSITIVE_KEY_PATTERN.matcher((String) e.getKey()).matches() ? OBFUSCATED : e.getValue()));
+                        e -> obfuscateValue((String) e.getKey(), e.getValue())));
         properties.put("pathSeparator", File.separator);
         return properties;
+    }
+
+    private static Object obfuscateValue(String key, Object value) {
+        if (SENSITIVE_KEY_PATTERN.matcher(key).matches()) {
+            return OBFUSCATED;
+        }
+        if (value instanceof String strValue) {
+            java.util.regex.Matcher m = URI_WITH_CREDENTIALS.matcher(strValue);
+            if (m.matches()) {
+                return m.group(1) + OBFUSCATED + ":" + OBFUSCATED + "@" + m.group(4);
+            }
+        }
+        return value;
     }
 
     @Operation(description = "Gets the versions (front/back/docker) of datashare.")

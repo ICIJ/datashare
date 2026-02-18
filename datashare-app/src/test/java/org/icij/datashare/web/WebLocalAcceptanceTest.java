@@ -30,14 +30,15 @@ public class WebLocalAcceptanceTest extends AbstractProdWebServerTest {
     public void setUp() throws Exception {
         mocks = openMocks(this);
         when(jooqRepository.getProjects()).thenReturn(new ArrayList<>());
-        Map<String, Object> properties = Map.of(
+        Map<String, Object> properties = new HashMap<>(Map.of(
             "mode", "LOCAL",
             "dataDir", WebLocalAcceptanceTest.class.getResource("/data").getPath(),
             "extensionsDir", WebLocalAcceptanceTest.class.getResource("/extensions").getPath(),
             "pluginsDir", WebLocalAcceptanceTest.class.getResource("/plugins").getPath(),
             "redisAddress", EnvUtils.resolveUri("redis", "redis://redis:6379"),
-            "elasticsearchAddress", EnvUtils.resolveUri("elasticsearch", "http://elasticsearch:9200")
-        );
+            "elasticsearchAddress", EnvUtils.resolveUri("elasticsearch", "http://elasticsearch:9200"),
+            "messageBusAddress", "amqp://admin:s3cret@rabbitmq:5672"
+        ));
         configure(CommonMode.create(properties).createWebConfiguration());
         waitForDatashare();
     }
@@ -63,17 +64,38 @@ public class WebLocalAcceptanceTest extends AbstractProdWebServerTest {
         Response response = get("/settings").response();
         ObjectMapper mapper = new ObjectMapper();
         Map<String, Object> settings = mapper.readValue(response.content(), new TypeReference<>() {});
-        // Keys containing "Address" (non-sensitive) should appear as-is
-        assertThat(settings.get("redisAddress")).isNotNull();
-        assertThat(settings.get("redisAddress")).isNotEqualTo("******");
-        // Keys containing "key" or "secret" or "password" (case-insensitive) should be obfuscated
-        // The elasticsearchAddress key doesn't match, but let's verify no sensitive values leak
+        // Keys containing address, url, key, secret, or password should be obfuscated
+        assertThat(settings.get("redisAddress")).isEqualTo("******");
+        assertThat(settings.get("elasticsearchAddress")).isEqualTo("******");
+        // Non-sensitive keys should appear as-is
+        assertThat(settings.get("mode")).isEqualTo("LOCAL");
+        // Verify all sensitive keys are obfuscated
+        List<String> sensitiveKeywords = List.of("password", "key", "secret", "address", "url");
         for (Map.Entry<String, Object> entry : settings.entrySet()) {
             String key = entry.getKey().toLowerCase();
-            if (key.contains("password") || key.contains("key") || key.contains("secret")) {
+            if (sensitiveKeywords.stream().anyMatch(key::contains)) {
                 assertThat(entry.getValue()).as("key '" + entry.getKey() + "' should be obfuscated").isEqualTo("******");
             }
         }
+    }
+
+    @Test
+    public void test_get_settings_obfuscates_uri_credentials() throws Exception {
+        // Add a non-sensitive key with embedded URI credentials
+        Map<String, Object> properties = new HashMap<>(Map.of(
+            "mode", "LOCAL",
+            "dataDir", WebLocalAcceptanceTest.class.getResource("/data").getPath(),
+            "extensionsDir", WebLocalAcceptanceTest.class.getResource("/extensions").getPath(),
+            "pluginsDir", WebLocalAcceptanceTest.class.getResource("/plugins").getPath(),
+            "myBroker", "amqp://admin:s3cret@rabbitmq:5672"
+        ));
+        configure(CommonMode.create(properties).createWebConfiguration());
+        waitForDatashare();
+
+        Response response = get("/settings").response();
+        ObjectMapper mapper = new ObjectMapper();
+        Map<String, Object> settings = mapper.readValue(response.content(), new TypeReference<>() {});
+        assertThat(settings.get("myBroker")).isEqualTo("amqp://******:******@rabbitmq:5672");
     }
 
     @Test
