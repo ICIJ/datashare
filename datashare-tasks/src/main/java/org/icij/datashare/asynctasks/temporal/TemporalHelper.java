@@ -73,7 +73,10 @@ public class TemporalHelper {
     }
 
     public static List<RegisteredWorkflow> discoverWorkflows(
-        String packageName, TaskFactory taskFactory, WorkflowClient client, RoutingStrategy routingStrategy,
+        String packageName,
+        TaskFactory taskFactory,
+        WorkflowClient client,
+        RoutingStrategy routingStrategy,
         Group workerGroup
     ) throws ClassNotFoundException {
         Reflections reflections = new Reflections(packageName);
@@ -86,13 +89,10 @@ public class TemporalHelper {
                 String workflowKey = parseWorkflowKey(c);
                 String workflowClassName = c.getName();
                 String baseName = workflowClassName.replace("Workflow", "");
-                Class<TemporalWorkflowImpl> wfImplClass =
-                    (Class<TemporalWorkflowImpl>) Class.forName(workflowClassName + "Impl");
-                Class<TemporalActivityImpl<?, ?>> actImplCls =
-                    (Class<TemporalActivityImpl<?, ?>>) Class.forName(baseName + "Activity");
+                Class<TemporalWorkflowImpl> wfImplClass = (Class<TemporalWorkflowImpl>) Class.forName(workflowClassName + "Impl");
+                Class<TemporalActivityImpl<?, ?>> actImplCls = (Class<TemporalActivityImpl<?, ?>>) Class.forName(baseName + "ActivityImpl");
                 String taskQueue = resolveWfTaskQueue(routingStrategy, workflowKey, workerGroup);
-                List<RegisteredActivity> activities =
-                    List.of(new RegisteredActivity(activityFactory(actImplCls, taskFactory, client, 1d), taskQueue));
+                List<RegisteredActivity> activities = List.of(new RegisteredActivity(activityFactory(actImplCls, taskFactory, client, 1d), taskQueue));
                 return new RegisteredWorkflow(wfImplClass, taskQueue, activities);
             }))
             .toList();
