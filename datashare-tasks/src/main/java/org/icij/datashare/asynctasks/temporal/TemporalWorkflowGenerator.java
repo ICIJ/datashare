@@ -224,6 +224,7 @@ public class TemporalWorkflowGenerator extends AbstractProcessor {
             .returns(ParameterizedTypeName.get(CLASS_TYPE, datashareTaskClass))
             .build();
         TypeSpec.Builder activityBuilder = TypeSpec.classBuilder(activityImpl)
+            .addModifiers(Modifier.PUBLIC)
             .superclass(ParameterizedTypeName.get(TEMPORAL_ACTIVITY_IMPL_TYPE, outputType, datashareTaskClass))
             .addSuperinterface(ClassName.get(packageName, actInterface))
             .addMethod(constructor)
