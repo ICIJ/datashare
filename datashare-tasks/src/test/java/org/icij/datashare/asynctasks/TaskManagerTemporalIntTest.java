@@ -1,6 +1,7 @@
 package org.icij.datashare.asynctasks;
 
 import static org.fest.assertions.Assertions.assertThat;
+import static org.icij.datashare.LambdaExceptionUtils.rethrowConsumer;
 import static org.icij.datashare.asynctasks.Task.State.CANCELLED;
 import static org.icij.datashare.asynctasks.Task.State.DONE;
 import static org.icij.datashare.asynctasks.Task.State.ERROR;
@@ -27,6 +28,7 @@ import java.io.IOException;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import org.icij.datashare.EnvUtils;
@@ -89,7 +91,7 @@ public class TaskManagerTemporalIntTest {
 
     @Before
     public void tearDown() throws Exception {
-        mocks.close();
+        Optional.ofNullable(mocks).ifPresent(rethrowConsumer(AutoCloseable::close));
     }
 
     private TemporalHelper.CloseableWorkerFactoryHandle testCloseableWorkerFactory(WorkflowClient client) {

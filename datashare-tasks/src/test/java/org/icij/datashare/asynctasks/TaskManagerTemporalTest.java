@@ -1,6 +1,7 @@
 package org.icij.datashare.asynctasks;
 
 import static org.fest.assertions.Assertions.assertThat;
+import static org.icij.datashare.LambdaExceptionUtils.rethrowConsumer;
 import static org.icij.datashare.asynctasks.Task.State.ERROR;
 import static org.icij.datashare.asynctasks.TaskManagerTemporal.DEFAULT_NAMESPACE;
 import static org.junit.Assert.assertThrows;
@@ -24,6 +25,7 @@ import io.temporal.client.WorkflowOptions;
 import io.temporal.client.WorkflowStub;
 import java.io.IOException;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import org.icij.datashare.tasks.RoutingStrategy;
 import org.icij.datashare.user.User;
@@ -45,12 +47,10 @@ public class TaskManagerTemporalTest {
     @Before
     public void setUp() {
         mocks = openMocks(this);
-        when(client.getOptions()).thenReturn(
-            WorkflowClientOptions.newBuilder().setNamespace(DEFAULT_NAMESPACE).build());
+        when(client.getOptions()).thenReturn(WorkflowClientOptions.newBuilder().setNamespace(DEFAULT_NAMESPACE).build());
         workflowServiceBlockingStub = mock(WorkflowServiceGrpc.WorkflowServiceBlockingStub.class);
         when(workflowServiceBlockingStub.listWorkflowExecutions(any(ListWorkflowExecutionsRequest.class)))
             .thenReturn(ListWorkflowExecutionsResponse.newBuilder().build());
-
         when(client.newUntypedWorkflowStub(anyString(), any(WorkflowOptions.class)))
             .thenReturn(mock(WorkflowStub.class));
         when(client.newUntypedWorkflowStub(anyString())).thenReturn(mock(WorkflowStub.class));
@@ -59,7 +59,7 @@ public class TaskManagerTemporalTest {
 
     @After
     public void tearDown() throws Exception {
-        mocks.close();
+        Optional.ofNullable(mocks).ifPresent(rethrowConsumer(AutoCloseable::close));
     }
 
     @Test
@@ -68,13 +68,10 @@ public class TaskManagerTemporalTest {
         String taskName = "taskName";
         Map<String, Object> args = Map.of("someKey", "fooValue");
         Task<String> task = new Task<>(taskName, User.local(), args);
-        try (TaskManagerTemporal groupTaskManager = new TaskManagerTemporal(client, workflowServiceBlockingStub,
-            RoutingStrategy.GROUP)) {
-
+        try (TaskManagerTemporal groupTaskManager = new TaskManagerTemporal(client, workflowServiceBlockingStub, RoutingStrategy.GROUP)) {
             groupTaskManager.startTask(task, new Group(key));
 
-            verify(client).newUntypedWorkflowStub(eq(taskName),
-                argThat(o -> o.getTaskQueue().equals("workflows-test")));
+            verify(client).newUntypedWorkflowStub(eq(taskName), argThat(o -> o.getTaskQueue().equals("test")));
         }
     }
 
@@ -84,12 +81,10 @@ public class TaskManagerTemporalTest {
         String taskName = "taskName";
         Map<String, Object> args = Map.of();
         Task<String> task = new Task<>(taskName, User.local(), args);
-        try (TaskManagerTemporal groupTaskManager = new TaskManagerTemporal(client, workflowServiceBlockingStub,
-            RoutingStrategy.NAME)) {
+        try (TaskManagerTemporal groupTaskManager = new TaskManagerTemporal(client, workflowServiceBlockingStub, RoutingStrategy.NAME)) {
             groupTaskManager.startTask(task, new Group(key));
 
-            verify(client).newUntypedWorkflowStub(eq(taskName),
-                argThat(o -> o.getTaskQueue().equals("workflows-taskname")));
+            verify(client).newUntypedWorkflowStub(eq(taskName), argThat(o -> o.getTaskQueue().equals("taskname")));
         }
     }
 

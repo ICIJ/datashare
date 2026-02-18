@@ -127,9 +127,7 @@ public class TaskManagerTemporal implements TaskManager {
         this(client, client.getWorkflowServiceStubs().blockingStub(), routingStrategy);
     }
 
-    protected TaskManagerTemporal(WorkflowClient client,
-                                  WorkflowServiceGrpc.WorkflowServiceBlockingStub workflowServiceStubs,
-                                  RoutingStrategy routingStrategy) {
+    protected TaskManagerTemporal(WorkflowClient client,  WorkflowServiceGrpc.WorkflowServiceBlockingStub workflowServiceStubs, RoutingStrategy routingStrategy) {
         this.client = client;
         this.namespace = client.getOptions().getNamespace();
         this.workflowServiceBlockingStub = workflowServiceStubs;
