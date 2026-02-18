@@ -25,10 +25,13 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
 import java.io.IOException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
+import java.util.HexFormat;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ExecutionException;
@@ -56,6 +59,8 @@ public class OAuth2CookieFilter extends CookieAuthFilter {
     public static final String REQUEST_CODE_KEY = "code";
     public static final String REQUEST_STATE_KEY = "state";
 
+    private static final String HMAC_ALGO = "HmacSHA256";
+
     protected final String oauthDefaultProject;
     private final DefaultApi20 defaultOauthApi;
     private final Integer oauthTtl;
@@ -66,6 +71,7 @@ public class OAuth2CookieFilter extends CookieAuthFilter {
     private final String oauthTokenUrl;
     private final String oauthClientId;
     private final String oauthClientSecret;
+    private final byte[] sessionSigningKey;
     private final String oauthScope;
     private final String oauthClaimIdAttribute;
 
@@ -77,6 +83,7 @@ public class OAuth2CookieFilter extends CookieAuthFilter {
         this.oauthApiUrl = propertiesProvider.get("oauthApiUrl").orElse("http://localhost");
         this.oauthClientId = propertiesProvider.get("oauthClientId").orElse("");
         this.oauthClientSecret = propertiesProvider.get("oauthClientSecret").orElse("");
+        this.sessionSigningKey = deriveSigningKey(this.oauthClientSecret);
         this.oauthCallbackPath = propertiesProvider.get("oauthCallbackPath").orElse("/auth/callback");
         this.oauthSigninPath = propertiesProvider.get("oauthSigninPath").orElse("/auth/signin");
         this.oauthTtl = Integer.valueOf(ofNullable(propertiesProvider.getProperties().getProperty("sessionTtlSeconds")).orElse("600"));
@@ -123,18 +130,24 @@ public class OAuth2CookieFilter extends CookieAuthFilter {
             return nextFilter.get();
         }
 
+        // Validate session by resolving the login to an actual user.
+        // This prevents OAuth2 state tokens (which map to timestamps,
+        // not real logins) from being accepted as valid sessions.
         String sessionId = readSessionIdInCookie(context);
-        if(uri.equals("/") || uri.isEmpty()) {
-            if (sessionId != null) {
-                String login = sessionIdStore.getLogin(sessionId);
-                if (login != null) {
-                    User user = users.find(login);
+        if (sessionId != null) {
+            String login = sessionIdStore.getLogin(sessionId);
+            if (login != null) {
+                User user = users.find(login);
+                if (user != null) {
                     context.setCurrentUser(user);
+                    return nextFilter.get();
                 }
             }
+        }
+        if (uri.equals("/") || uri.isEmpty()) {
             return nextFilter.get();
         }
-        return super.otherUri(uri, context, nextFilter);
+        return new Payload(401);
     }
 
     private Payload callback(Context context) throws IOException, ExecutionException, InterruptedException {
@@ -143,6 +156,8 @@ public class OAuth2CookieFilter extends CookieAuthFilter {
                 sessionIdStore.getLogin(context.get(REQUEST_STATE_KEY)) == null) {
             return Payload.badRequest();
         }
+        // Consume the state token so it cannot be reused as a session cookie.
+        sessionIdStore.remove(context.get(REQUEST_STATE_KEY));
         OAuth20Service service = new ServiceBuilder(oauthClientId).apiSecret(oauthClientSecret).
                 callback(getCallbackUrl(context)).
                 build(defaultOauthApi);
@@ -204,6 +219,57 @@ public class OAuth2CookieFilter extends CookieAuthFilter {
         String hexState = Long.toHexString(RANDOM.nextLong()) + Long.toHexString(RANDOM.nextLong());
         sessionIdStore.put(hexState, valueOf(new Date().getTime()));
         return hexState;
+    }
+
+    @Override
+    protected String newSessionId(String login) {
+        // Sign the session ID with HMAC so it cannot be forged from an OAuth state token.
+        // The parent generates plain random hex for both state and session IDs in the same
+        // store. Signing makes session IDs cryptographically distinct from state tokens.
+        String rawId = Long.toHexString(RANDOM.nextLong()) + Long.toHexString(RANDOM.nextLong());
+        String signature = hmacSign(rawId);
+        String signedSessionId = rawId + "." + signature;
+        sessionIdStore.put(signedSessionId, login);
+        return signedSessionId;
+    }
+
+    @Override
+    protected String readSessionIdInCookie(Context context) {
+        String sessionId = super.readSessionIdInCookie(context);
+        if (sessionId == null) {
+            return null;
+        }
+        // Reject session IDs that are not HMAC-signed (e.g. raw OAuth state tokens)
+        int dotIndex = sessionId.indexOf('.');
+        if (dotIndex < 0) {
+            return null;
+        }
+        String rawId = sessionId.substring(0, dotIndex);
+        String signature = sessionId.substring(dotIndex + 1);
+        if (!hmacSign(rawId).equals(signature)) {
+            return null;
+        }
+        return sessionId;
+    }
+
+    private String hmacSign(String data) {
+        try {
+            Mac mac = Mac.getInstance(HMAC_ALGO);
+            mac.init(new SecretKeySpec(sessionSigningKey, HMAC_ALGO));
+            return HexFormat.of().formatHex(mac.doFinal(data.getBytes(StandardCharsets.UTF_8)));
+        } catch (Exception e) {
+            throw new RuntimeException("HMAC signing failed", e);
+        }
+    }
+
+    private static byte[] deriveSigningKey(String secret) {
+        try {
+            Mac mac = Mac.getInstance(HMAC_ALGO);
+            mac.init(new SecretKeySpec("datashare-session-signing".getBytes(StandardCharsets.UTF_8), HMAC_ALGO));
+            return mac.doFinal(secret.getBytes(StandardCharsets.UTF_8));
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to derive session signing key", e);
+        }
     }
 
     @Override protected Payload signout(Context context) {
