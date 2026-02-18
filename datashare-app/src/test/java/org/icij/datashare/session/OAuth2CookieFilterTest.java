@@ -107,6 +107,19 @@ public class OAuth2CookieFilterTest implements FluentRestTest {
     }
 
     @Test
+    public void test_state_token_cannot_be_used_as_session() throws Exception {
+        // Grab the state from /auth/signin
+        Response signinResponse = this.get("/auth/signin").response();
+        String state = getState(signinResponse.content());
+        assertThat(state).isNotEmpty();
+
+        // Try to use the state as a session cookie (the reported attack)
+        String fakeCookie = "{\"sessionId\":\"" + state + "\"}";
+        this.get("/api/users/me").withHeader("Cookie", "_ds_session_id=" + fakeCookie)
+                .should().respond(401);
+    }
+
+    @Test
     public void test_if_user_already_in_context_do_nothing() {
         datashare.configure(routes -> routes
                         .get("/protected", context -> format("hello %s uid=%s", context.currentUser().name(), context.currentUser().login()))
