@@ -178,6 +178,7 @@ public class DatashareCli {
         DatashareCliOptions.delApiKey(parser);
         DatashareCliOptions.getApiKey(parser);
         DatashareCliOptions.grantAdminPolicy(parser);
+        DatashareCliOptions.sessionSigningKey(parser);
         DatashareCliOptions.sessionTtlSeconds(parser);
         DatashareCliOptions.protectedUriPrefix(parser);
         DatashareCliOptions.authUsersProvider(parser);

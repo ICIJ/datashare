@@ -115,6 +115,7 @@ public final class DatashareCliOptions {
     public static final String SCROLL_DURATION_OPT = "scroll";
     public static final String SCROLL_SIZE_OPT = "scrollSize";
     public static final String SCROLL_SLICES_OPT = "scrollSlices";
+    public static final String SESSION_SIGNING_KEY_OPT = "sessionSigningKey";
     public static final String SESSION_STORE_TYPE_OPT = "sessionStoreType";
     public static final String SESSION_TTL_SECONDS_OPT = "sessionTtlSeconds";
     public static final String SETTING_ABBR_OPT = "s";
@@ -318,6 +319,13 @@ public final class DatashareCliOptions {
                         .withRequiredArg()
                         .ofType(Integer.class)
                         .defaultsTo(DEFAULT_TCP_LISTEN_PORT);
+    }
+
+    static void sessionSigningKey(OptionParser parser) {
+        parser.acceptsAll(
+                singletonList(SESSION_SIGNING_KEY_OPT), "HMAC key used to sign session IDs (defaults to oauthClientSecret)")
+                        .withRequiredArg()
+                        .ofType(String.class);
     }
 
     static void sessionTtlSeconds(OptionParser parser) {
