@@ -83,7 +83,7 @@ public class OAuth2CookieFilter extends CookieAuthFilter {
         this.oauthApiUrl = propertiesProvider.get("oauthApiUrl").orElse("http://localhost");
         this.oauthClientId = propertiesProvider.get("oauthClientId").orElse("");
         this.oauthClientSecret = propertiesProvider.get("oauthClientSecret").orElse("");
-        this.sessionSigningKey = deriveSigningKey(this.oauthClientSecret);
+        this.sessionSigningKey = deriveSigningKey(propertiesProvider.get("sessionSigningKey").orElse(this.oauthClientSecret));
         this.oauthCallbackPath = propertiesProvider.get("oauthCallbackPath").orElse("/auth/callback");
         this.oauthSigninPath = propertiesProvider.get("oauthSigninPath").orElse("/auth/signin");
         this.oauthTtl = Integer.valueOf(ofNullable(propertiesProvider.getProperties().getProperty("sessionTtlSeconds")).orElse("600"));
