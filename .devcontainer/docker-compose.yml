@@ -95,9 +95,7 @@ services:
           - "9200:9200"
 
     temporal:
-      build:
-        context: .
-        target: temporal-test-container
+      image: temporalio/server:1.29.2
       depends_on:
         temporal-setup-db:
           condition: service_completed_successfully
@@ -119,6 +117,8 @@ services:
         timeout: 1s
         start_period: 1s
         retries: 10
+      volumes:
+        - ./temporal:/etc/temporal/.config/temporalio/
 
     temporal-ui:
       image: temporalio/ui:2.45.3
@@ -145,4 +145,3 @@ services:
         - ./temporal:/temporal
       entrypoint: [ "/bin/sh" ]
       command: /temporal/setup.sh
-
