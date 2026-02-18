@@ -88,6 +88,7 @@ public class WebLocalAcceptanceTest extends AbstractProdWebServerTest {
             "dataDir", WebLocalAcceptanceTest.class.getResource("/data").getPath(),
             "extensionsDir", WebLocalAcceptanceTest.class.getResource("/extensions").getPath(),
             "pluginsDir", WebLocalAcceptanceTest.class.getResource("/plugins").getPath(),
+            "elasticsearchAddress", EnvUtils.resolveUri("elasticsearch", "http://elasticsearch:9200"),
             "myBroker", "amqp://admin:s3cret@rabbitmq:5672"
         ));
         configure(CommonMode.create(properties).createWebConfiguration());
