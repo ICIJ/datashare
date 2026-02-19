@@ -19,6 +19,7 @@ import java.util.Properties;
 import static java.util.Optional.ofNullable;
 import static org.icij.datashare.PropertiesProvider.DEFAULT_PROJECT_OPT;
 import static org.icij.datashare.PropertiesProvider.DIGEST_PROJECT_NAME_OPT;
+import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_DEFAULT_PROJECT;
 import static org.icij.datashare.cli.DatashareCliOptions.NO_DIGEST_PROJECT_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.OAUTH_USER_PROJECTS_KEY_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.OPT_ALIASES;
@@ -73,7 +74,8 @@ public class DatashareCli {
             properties = asProperties(options, null);
             if (!Boolean.parseBoolean(properties.getProperty(NO_DIGEST_PROJECT_OPT))
                     && properties.getProperty(DIGEST_PROJECT_NAME_OPT) == null) {
-                properties.setProperty(DIGEST_PROJECT_NAME_OPT, properties.getProperty(DEFAULT_PROJECT_OPT));
+                String defaultDigestProjectName = ofNullable(properties.getProperty(DEFAULT_PROJECT_OPT)).orElse(DEFAULT_DEFAULT_PROJECT);
+                properties.setProperty(DIGEST_PROJECT_NAME_OPT, defaultDigestProjectName);
             }
             if (!User.DEFAULT_PROJECTS_KEY.equals(properties.getProperty(OAUTH_USER_PROJECTS_KEY_OPT))) {
                 LOGGER.info("settings system property {} to {}", User.JVM_PROJECT_KEY, properties.getProperty(OAUTH_USER_PROJECTS_KEY_OPT));

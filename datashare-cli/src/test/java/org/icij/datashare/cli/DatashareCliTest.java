@@ -162,6 +162,23 @@ public class DatashareCliTest {
     }
 
     @Test
+    public void test_digest_project_name_defaults_to_local_datashare_when_default_project_is_missing() {
+        // Simulates the case where defaultProject is absent from the parsed properties
+        // (e.g. when running in Docker without --defaultProject and a settings file
+        // overrides the parsed options). This should not throw a NullPointerException.
+        DatashareCli spyCli = new DatashareCli() {
+            @Override
+            java.util.Properties asProperties(joptsimple.OptionSet options, String prefix) {
+                java.util.Properties props = super.asProperties(options, prefix);
+                props.remove("defaultProject");
+                return props;
+            }
+        };
+        spyCli.parseArguments(new String[] {});
+        assertThat(spyCli.properties).includes(entry("digestProjectName", "local-datashare"));
+    }
+
+    @Test
     public void test_digest_project_name_should_be_emptied_if_no_digest_project_flag() {
         cli.parseArguments(new String[] {"--noDigestProject", "true"});
         assertThat(cli.properties).includes(entry("defaultProject", "local-datashare"));
