@@ -127,16 +127,31 @@
     <build>
         <plugins>
             <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <version>${maven-compiler.version}</version>
                 <configuration>
+                    <proc>none</proc>
+                    <!-- your existing config -->
                     <compilerArgument>-Xlint:all</compilerArgument>
                     <compilerArgument>-parameters</compilerArgument>
                     <showDeprecation>true</showDeprecation>
-                    <proc>none</proc>
                 </configuration>
+                <executions>
+                    <execution>
+                        <id>process-test-annotations</id>
+                        <phase>generate-test-resources</phase>
+                        <goals>
+                            <goal>testCompile</goal>
+                        </goals>
+                        <configuration>
+                            <proc>only</proc>
+                            <annotationProcessors>
+                                <annotationProcessor>org.icij.datashare.asynctasks.temporal.TemporalWorkflowGenerator</annotationProcessor>
+                            </annotationProcessors>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
+
             <plugin>
                 <artifactId>maven-assembly-plugin</artifactId>
                 <executions>
