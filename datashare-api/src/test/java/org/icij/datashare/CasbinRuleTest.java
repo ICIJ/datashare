@@ -8,7 +8,7 @@ import static org.junit.Assert.assertEquals;
 public class CasbinRuleTest {
 
     @Test
-    public void testEscapeQuotesValues() {
+    public void test_escape_quotes_values() {
         CasbinRule rule = new CasbinRule();
         rule.ptype = "p";
         rule.v0 = "alice";
@@ -30,7 +30,7 @@ public class CasbinRuleTest {
     }
 
     @Test
-    public void testEscapeDoesNotDoubleQuote() {
+    public void test_escape_does_not_double_quote() {
         CasbinRule rule = new CasbinRule();
         rule.ptype = "p";
         rule.v0 = "\"alice\"";
@@ -47,7 +47,7 @@ public class CasbinRuleTest {
     }
 
     @Test
-    public void testToStringArray() {
+    public void test_to_string_array() {
         CasbinRule rule = new CasbinRule();
         rule.ptype = "p";
         rule.v0 = "v0";
@@ -63,7 +63,7 @@ public class CasbinRuleTest {
     }
 
     @Test
-    public void testGetLineText() {
+    public void test_get_line_text() {
         CasbinRule rule = new CasbinRule();
         rule.ptype = "p";
         rule.v0 = "alice";
@@ -79,7 +79,7 @@ public class CasbinRuleTest {
     }
 
     @Test
-    public void testGetLineTextAllValues() {
+    public void test_get_line_text_all_values() {
         CasbinRule rule = new CasbinRule();
         rule.ptype = "g";
         rule.v0 = "alice";
