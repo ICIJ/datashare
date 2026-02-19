@@ -70,14 +70,10 @@ public class JsonObjectMapper {
                     .maxNumberLength(MAX_NUMBER_LENGTH)
                     .maxStringLength(MAX_STRING_LENGTH).build());
             TYPE_INCLUSION_MAPPER = MAPPER.copy();
-            // Restrict polymorphic deserialization to safe types only.
-            // LaissezFaireSubTypeValidator was previously used here, which accepts ANY class
-            // and enables arbitrary object instantiation (RCE via gadget chains).
-            // allowIfBaseType checks the DECLARED (compile-time) type of the property.
-            // allowIfSubType checks the ACTUAL (runtime) type being deserialized.
-            // Both are needed: baseType rules cover fields declared as e.g. Map or Throwable,
-            // while subType rules cover values inside generic containers like Map<String, Object>
-            // where the declared type is Object but the actual type is a specific class.
+            // Restrict polymorphic deserialization to an allowlist of safe types.
+            // Applied to both MAPPER (HTTP bodies) and TYPE_INCLUSION_MAPPER (DB/AMQP).
+            // allowIfBaseType: matches the declared type; allowIfSubType: matches the runtime type.
+            // Both are needed for types inside generic containers like Map<String, Object>.
             BasicPolymorphicTypeValidator ptv = BasicPolymorphicTypeValidator.builder()
                     .allowIfBaseType(java.util.Map.class)
                     .allowIfBaseType(java.util.Collection.class)
@@ -107,6 +103,9 @@ public class JsonObjectMapper {
                     .allowIfSubType("[Ljava.util.")
                     .allowIfSubType("[Lorg.icij.")
                     .build();
+            // Also apply PTV to MAPPER so per-field @JsonTypeInfo annotations
+            // (e.g. Task.args) are validated during HTTP body deserialization.
+            MAPPER.setPolymorphicTypeValidator(ptv);
             TypeResolverBuilder<?> mapTyper = new ObjectMapper.DefaultTypeResolverBuilder(
                     ObjectMapper.DefaultTyping.NON_FINAL, ptv)
                     .init(JsonTypeInfo.Id.CLASS, null)
