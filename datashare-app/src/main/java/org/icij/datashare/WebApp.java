@@ -6,11 +6,11 @@ import static org.icij.datashare.cli.DatashareCliOptions.BROWSER_OPEN_LINK_OPT;
 
 import java.io.IOException;
 import java.util.Map;
-import net.codestory.http.WebServer;
 import org.icij.datashare.asynctasks.TaskAlreadyExists;
 import org.icij.datashare.batch.BatchSearch;
 import org.icij.datashare.batch.BatchSearchRecord;
 import org.icij.datashare.batch.BatchSearchRepository;
+import org.icij.datashare.cli.Mode;
 import org.icij.datashare.mode.CommonMode;
 import org.icij.datashare.tasks.BatchSearchRunner;
 import org.icij.datashare.tasks.DatashareTaskManager;
@@ -21,8 +21,19 @@ import org.slf4j.LoggerFactory;
 public class WebApp {
     private static final Logger LOGGER = LoggerFactory.getLogger(WebApp.class);
 
+    static String resolveBindHost(CommonMode mode) {
+        String host = mode.properties().getProperty(PropertiesProvider.BIND_HOST_OPT);
+        if (host == null) {
+            host = Mode.valueOf(mode.properties().getProperty("mode")).isLocal() ? "localhost" : "0.0.0.0";
+        }
+        return host;
+    }
+
     static void start(CommonMode mode) throws Exception {
-        new WebServer()
+        String host = resolveBindHost(mode);
+        LOGGER.info("binding HTTP server to {}:{}", host,
+                mode.properties().getProperty(PropertiesProvider.TCP_LISTEN_PORT_OPT));
+        new BindableWebServer(host)
                 .withThreadCount(10)
                 .withSelectThreads(2)
                 .withWebSocketThreads(1)
