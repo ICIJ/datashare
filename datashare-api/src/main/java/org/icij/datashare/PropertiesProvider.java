@@ -44,6 +44,7 @@ public class PropertiesProvider {
     public static final String REPORT_NAME_OPT = "reportName";
     public static final String RESUME_OPT = "resume";
     public static final String SETTINGS_OPT = "settings";
+    public static final String BIND_HOST_OPT = "bind";
     public static final String TCP_LISTEN_PORT_OPT = "tcpListenPort";
 
     private final Logger logger = LoggerFactory.getLogger(getClass());
