@@ -19,6 +19,7 @@ import io.temporal.worker.WorkerOptions;
 import io.temporal.worker.WorkflowImplementationOptions;
 import io.temporal.workflow.WorkflowInterface;
 import io.temporal.workflow.WorkflowMethod;
+import java.io.Closeable;
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.util.Arrays;
@@ -50,7 +51,7 @@ public class TemporalHelper {
 
     private static final String WORKFLOW_METHOD_CLASS_NAME = WorkflowMethod.class.getName();
 
-    public static class CloseableWorkerFactoryHandle implements AutoCloseable {
+    public static class CloseableWorkerFactoryHandle implements Closeable {
         private final WorkerFactory factory;
 
         public CloseableWorkerFactoryHandle(WorkerFactory factory) {
@@ -166,8 +167,7 @@ public class TemporalHelper {
             if (retriables.stream().anyMatch(r -> r.isInstance(e))) {
                 throw e;
             }
-            throw ApplicationFailure.newNonRetryableFailureWithCause("Non retryable failure occurred", e.getMessage(),
-                e);
+            throw ApplicationFailure.newNonRetryableFailureWithCause("Non retryable failure occurred", e.getMessage(), e);
         }
     }
 

@@ -3,6 +3,7 @@ package org.icij.datashare.asynctasks.temporal;
 import static org.icij.datashare.asynctasks.temporal.TemporalHelper.taskWrapper;
 
 import io.temporal.client.WorkflowClient;
+import java.util.Map;
 import java.util.concurrent.Callable;
 import org.icij.datashare.asynctasks.TaskFactory;
 
@@ -13,8 +14,8 @@ public class HelloWorldActivityImpl extends TemporalActivityImpl<String, Callabl
     }
 
     @Override
-    public String helloWorld() {
-        return taskWrapper(() -> "hello world");
+    public String helloWorld(Map<String, Object> args) {
+        return taskWrapper(() -> "hello " + args.get("name"));
     }
 
     @Override

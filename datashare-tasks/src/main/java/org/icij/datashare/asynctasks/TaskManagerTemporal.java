@@ -108,17 +108,18 @@ public class TaskManagerTemporal implements TaskManager {
     // TODO: add support for continue-as-new https://docs.temporal.io/develop/java/continue-as-new
 
     private static final String TERMINATION_MSG = "terminated_by_user";
-    public static final String WORKFLOWS_DEFAULT = "workflows-default";
+    public static final String WORKFLOWS_DEFAULT = "default-java";
 
     private static final DefaultDataConverter defaultDataConverter = DefaultDataConverter.newDefaultInstance();
 
 
     private final WorkflowServiceGrpc.WorkflowServiceBlockingStub workflowServiceBlockingStub;
 
-    public static final Map<String, IndexedValueType> CUSTOM_SEARCH_ATTRIBUTES =
-        Map.of(MAX_PROGRESS_CUSTOM_ATTRIBUTE.getName(), IndexedValueType.INDEXED_VALUE_TYPE_DOUBLE,
-            PROGRESS_CUSTOM_ATTRIBUTE.getName(), IndexedValueType.INDEXED_VALUE_TYPE_DOUBLE,
-            USER_CUSTOM_ATTRIBUTE.getName(), IndexedValueType.INDEXED_VALUE_TYPE_KEYWORD);
+    public static final Map<String, IndexedValueType> CUSTOM_SEARCH_ATTRIBUTES = Map.of(
+        MAX_PROGRESS_CUSTOM_ATTRIBUTE.getName(), IndexedValueType.INDEXED_VALUE_TYPE_DOUBLE,
+        PROGRESS_CUSTOM_ATTRIBUTE.getName(), IndexedValueType.INDEXED_VALUE_TYPE_DOUBLE,
+        USER_CUSTOM_ATTRIBUTE.getName(), IndexedValueType.INDEXED_VALUE_TYPE_KEYWORD
+    );
 
     private static final Set<Status.Code> NAMESPACE_EXISTS = Set.of(Status.ALREADY_EXISTS.getCode());
 
