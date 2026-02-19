@@ -177,7 +177,7 @@ public class TaskManagerTemporalIntTest {
     @Test(timeout = 10000)
     public void test_get_task_result() throws IOException {
         try (TemporalHelper.CloseableWorkerFactoryHandle ignored = testCloseableWorkerFactory(client)) {
-            Task<String> task = new Task<>("hello-world", User.local(), Map.of());
+            Task<String> task = new Task<>("hello-world", User.local(), Map.of("name", "world"));
 
             taskManager.startTask(task);
             taskManager.waitTasksToBeDone(10, TimeUnit.SECONDS);

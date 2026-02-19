@@ -7,7 +7,9 @@ import io.temporal.activity.Activity;
 import io.temporal.activity.ActivityInfo;
 import io.temporal.client.WorkflowClient;
 import io.temporal.client.WorkflowStub;
+import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.function.BiConsumer;
@@ -48,7 +50,9 @@ public abstract class TemporalActivityImpl<R, T extends Callable<R>> {
         return taskWrapper(rethrowFunction(inputArgs -> {
             ActivityInfo info = Activity.getExecutionContext().getInfo();
             String runId = info.getRunId();
-            User user = new User((Map<String, Object>) inputArgs.get("user"));
+            User user = Optional.ofNullable((HashMap<String, Object>) inputArgs.get("user"))
+                .map(User::new)
+                .orElse(null);
             Task<?> task = new Task<>(runId, getTaskClass().getSimpleName(), user, inputArgs);
             BiConsumer<String, Double> progressFn = getProgressFn(info);
             ProgressSmoother smoothedProgress = new ProgressSmoother(progressFn, 1000);
