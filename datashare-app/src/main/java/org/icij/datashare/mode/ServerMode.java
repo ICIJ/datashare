@@ -15,13 +15,11 @@ import org.icij.datashare.web.ApiKeyResource;
 import org.icij.datashare.web.BatchSearchResource;
 import org.icij.datashare.web.DocumentResource;
 import org.icij.datashare.web.DocumentUserRecommendationResource;
-import org.icij.datashare.web.ExtensionResource;
 import org.icij.datashare.web.FtmResource;
 import org.icij.datashare.web.IndexResource;
 import org.icij.datashare.web.NamedEntityResource;
 import org.icij.datashare.web.NerResource;
 import org.icij.datashare.web.NoteResource;
-import org.icij.datashare.web.PluginResource;
 import org.icij.datashare.web.ProjectResource;
 import org.icij.datashare.web.StatusResource;
 import org.icij.datashare.web.TaskResource;
@@ -102,8 +100,6 @@ public class ServerMode extends CommonMode {
                 add(BatchSearchResource.class).
                 add(NoteResource.class).
                 add(FtmResource.class).
-                add(PluginResource.class).
-                add(ExtensionResource.class).
                 add(NerResource.class).
                 add(ApiKeyResource.class).
                 add(ProjectResource.class).
