@@ -166,10 +166,11 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
     public Injector createChildInjector(Module... modules) {
         return injector.createChildInjector(modules);
     }
-    public boolean isEmbeddedAMQP() {
+    public boolean shouldRunWorker() {
+        boolean batchQueueType = getQueueType(propertiesProvider, BATCH_QUEUE_TYPE_OPT, DEFAULT_BATCH_QUEUE_TYPE)
+            .equals(TEMPORAL);
         return (CommonMode.getMode(this.properties()) == Mode.EMBEDDED || getMode() == Mode.LOCAL)
-                && properties().containsValue(QueueType.AMQP.name())
-                && getTaskWorkersNb() > 0;
+                && (properties().containsValue(QueueType.AMQP.name()) || batchQueueType);
     }
     int getTaskWorkersNb() {
         return parseInt((String) ofNullable(properties().get(TASK_WORKERS_OPT)).orElse(DEFAULT_TASK_WORKERS));
@@ -397,7 +398,10 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
                 throw new RuntimeException(e);
             }
             WorkerFactory workerFactory = TemporalHelper.createTemporalWorkerFactory(workflows, client, workerOptions);
-            executorService.submit(workerFactory::start);
+            executorService.submit(() -> {
+                // Start and add to closable
+                closeables.add(new TemporalHelper.CloseableWorkerFactoryHandle(workerFactory));
+            });
         }
         return executorService;
     }
