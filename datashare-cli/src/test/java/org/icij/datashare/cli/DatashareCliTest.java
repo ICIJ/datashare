@@ -234,6 +234,33 @@ public class DatashareCliTest {
     }
 
     @Test
+    public void test_bind_opt() {
+        cli.parseArguments(new String[] {"--bind", "127.0.0.1"});
+        assertThat(cli.properties).includes(entry("bind", "127.0.0.1"));
+    }
+
+    @Test
+    public void test_bind_short_opt() {
+        cli.parseArguments(new String[] {"-b", "0.0.0.0"});
+        assertThat(cli.properties).includes(entry("bind", "0.0.0.0"));
+    }
+
+    @Test
+    public void test_mode_is_local() {
+        assertThat(Mode.LOCAL.isLocal()).isTrue();
+        assertThat(Mode.EMBEDDED.isLocal()).isTrue();
+        assertThat(Mode.SERVER.isLocal()).isFalse();
+        assertThat(Mode.CLI.isLocal()).isFalse();
+        assertThat(Mode.TASK_WORKER.isLocal()).isFalse();
+    }
+
+    @Test
+    public void test_bind_opt_not_set_by_default() {
+        cli.parseArguments(new String[] {""});
+        assertThat(cli.properties.getProperty("bind")).isNull();
+    }
+
+    @Test
     public void test_queue_capacity_exists() {
         cli.parseArguments(new String[] {});
         assertThat(cli.properties).includes(entry("queueCapacity", "1000000")); // 1e6
