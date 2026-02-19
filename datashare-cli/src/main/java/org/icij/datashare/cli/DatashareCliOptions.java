@@ -30,6 +30,8 @@ import static org.icij.datashare.PropertiesProvider.*;
 public final class DatashareCliOptions {
     public static final String AUTH_FILTER_OPT = "authFilter";
     public static final String AUTH_USERS_PROVIDER_OPT = "authUsersProvider";
+    public static final String BIND_HOST_ABBR_OPT = "b";
+    public static final String BIND_HOST_OPT = "bind";
     public static final String BATCH_DOWNLOAD_DIR_OPT = "batchDownloadDir";
     public static final String BATCH_DOWNLOAD_ENCRYPT_OPT = "batchDownloadEncrypt";
     public static final String BATCH_DOWNLOAD_MAX_NB_FILES_OPT = "batchDownloadMaxNbFiles";
@@ -194,6 +196,14 @@ public final class DatashareCliOptions {
     public static final Map<String, String> OPT_ALIASES = Map.ofEntries(
             Map.entry(PORT_OPT, TCP_LISTEN_PORT_OPT)
     );
+
+    static void bindHost(OptionParser parser) {
+        parser.acceptsAll(
+                asList(BIND_HOST_ABBR_OPT, BIND_HOST_OPT),
+                "Host/IP address to bind the HTTP server to (default: localhost for LOCAL/EMBEDDED, 0.0.0.0 for SERVER)")
+                .withRequiredArg()
+                .ofType(String.class);
+    }
 
     static void stages(OptionParser parser) {
         parser.acceptsAll(
