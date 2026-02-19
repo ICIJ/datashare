@@ -7,6 +7,7 @@ import static org.icij.datashare.LambdaExceptionUtils.rethrowFunction;
 import static org.icij.datashare.asynctasks.Task.State.FINAL_STATES;
 import static org.icij.datashare.asynctasks.Task.USER_KEY;
 import static org.icij.datashare.asynctasks.bus.amqp.Event.MAX_RETRIES_LEFT;
+import static org.icij.datashare.asynctasks.temporal.TemporalHelper.asExecInfoFilter;
 import static org.icij.datashare.asynctasks.temporal.TemporalHelper.asTaskState;
 
 import com.google.protobuf.ByteString;
@@ -64,6 +65,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.Spliterator;
 import java.util.Spliterators;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -76,11 +78,10 @@ import org.icij.datashare.asynctasks.temporal.TemporalQueryBuilder;
 import org.icij.datashare.function.Pair;
 import org.icij.datashare.tasks.RoutingStrategy;
 import org.icij.datashare.user.User;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class TaskManagerTemporal implements TaskManager {
-    private static final Logger LOGGER = LoggerFactory.getLogger(TaskManagerTemporal.class);
+    // TODO: in-memory hack for strong consistence, maybe a repository would be a better implem
+    private final ConcurrentHashMap.KeySetView<String, Boolean> executions = ConcurrentHashMap.newKeySet();
 
     public static final String DEFAULT_NAMESPACE = "datashare-default";
 
@@ -150,6 +151,7 @@ public class TaskManagerTemporal implements TaskManager {
         } catch (WorkflowExecutionAlreadyStarted ex) {
             throw new TaskAlreadyExists(taskId, ex);
         }
+        executions.add(taskId);
         // Super important force description to refresh the cache and make the task visible
         client.newUntypedWorkflowStub(taskId).describe();
         return taskId;
@@ -173,15 +175,20 @@ public class TaskManagerTemporal implements TaskManager {
 
     @Override
     public Stream<String> getTaskIds(TaskFilters filters) throws IOException {
-        Stream<WorkflowExecutionInfo> exec = eventuallyConsistentListExecutions(filters);
+        Stream<WorkflowExecutionInfo> execs = eventuallyConsistentListExecutions(filters);
+        Iterator<WorkflowExecutionInfo> iterator = new StronglyConsistentExecutionIterator(execs, executions, this::fetchExecByIdsIfExist, filters);
+        execs = StreamSupport.stream(
+            Spliterators.spliteratorUnknownSize(iterator, Spliterator.ORDERED),
+            false // not parallel
+        );
         // Temporal doesn't allow to search by args we have to post filter task retrieved with other filters
         if (filters.hasArgs()) {
             TaskFilters byArgs = TaskFilters.empty().withArgs(filters.getArgs());
-            exec = exec.map(e -> new Pair<>(e, getArgs(e)))
+            execs = execs.map(e -> new Pair<>(e, getArgs(e)))
                 .filter(p -> byArgs.filter(p._2()))
                 .map(Pair::_1);
         }
-        return exec.map(e -> e.getExecution().getWorkflowId());
+        return execs.map(e -> e.getExecution().getWorkflowId());
     }
 
     @Override
@@ -194,6 +201,7 @@ public class TaskManagerTemporal implements TaskManager {
                 .setWorkflowExecution(requestBuilder.getWorkflowExecutionBuilder().setWorkflowId(t).build());
             workflowServiceBlockingStub.deleteWorkflowExecution(requestBuilder.build());
         }), taskId);
+        executions.remove(taskId);
         return task;
     }
 
@@ -382,10 +390,8 @@ public class TaskManagerTemporal implements TaskManager {
 
 
     private Stream<WorkflowExecutionInfo> eventuallyConsistentListExecutions(TaskFilters filters) {
-        PageFetcher<WorkflowExecutionInfo> fetcher =
-            getWorkflowExecutionFetcher(TemporalQueryBuilder.buildFromFilters(filters));
-        return StreamSupport.stream(
-            Spliterators.spliteratorUnknownSize(new TemporalPageIterator<>(fetcher), Spliterator.ORDERED), false);
+        PageFetcher<WorkflowExecutionInfo> fetcher = getWorkflowExecutionFetcher(TemporalQueryBuilder.buildFromFilters(filters));
+        return StreamSupport.stream(Spliterators.spliteratorUnknownSize(new TemporalPageIterator<>(fetcher), Spliterator.ORDERED), false);
     }
 
     private <V extends Serializable> Task<V> parseTask(WorkflowExecutionMetadata response) {
@@ -522,6 +528,49 @@ public class TaskManagerTemporal implements TaskManager {
         };
     }
 
+    private static class StronglyConsistentExecutionIterator implements Iterator<WorkflowExecutionInfo> {
+        private final Iterator<WorkflowExecutionInfo> listWorkflowsResults;
+        private final Set<String> remainingIds;
+        private final Function<Set<String>, Stream<WorkflowExecutionInfo>> fetchKnownExecInfoFn;
+        private final TaskFilters filters;
+
+        private Iterator<WorkflowExecutionInfo> missingItems = null;
+
+        StronglyConsistentExecutionIterator(Stream<WorkflowExecutionInfo> listWorkflowsResults, Set<String> knownIds, Function<Set<String>, Stream<WorkflowExecutionInfo>> fetchKnownExecInfoFn, TaskFilters filters) {
+            this.listWorkflowsResults = listWorkflowsResults.iterator();
+            this.remainingIds = new HashSet<>(knownIds);
+            this.fetchKnownExecInfoFn = fetchKnownExecInfoFn;
+            this.filters = filters;
+        }
+
+        @Override
+        public boolean hasNext() {
+            if (listWorkflowsResults.hasNext()) {
+                return true;
+            }
+            if (missingItems == null) {
+                if (!this.remainingIds.isEmpty()) {
+                    missingItems = fetchKnownExecInfoFn.apply(this.remainingIds)
+                        .filter(asExecInfoFilter(filters))
+                        .iterator();
+                } else {
+                    missingItems = Stream.<WorkflowExecutionInfo>of().iterator();
+                }
+            }
+            return missingItems.hasNext();
+        }
+
+        @Override
+        public WorkflowExecutionInfo next() {
+            if (listWorkflowsResults.hasNext()) {
+                WorkflowExecutionInfo fromSearch = listWorkflowsResults.next();
+                remainingIds.remove(fromSearch.getExecution().getWorkflowId());
+                return fromSearch;
+            }
+            return missingItems.next();
+        }
+    }
+
     private static void unknownIfNotFound(Consumer<String> supplier, String taskId) {
         unknownIfNotFound((t) -> {
             supplier.accept(t);
@@ -635,8 +684,29 @@ public class TaskManagerTemporal implements TaskManager {
             workflowServiceBlockingStub.deleteWorkflowExecution(deleteWorkflowExecutionRequest);
             // Try to refresh the cache
             client.newUntypedWorkflowStub(workflowId).describe();
+        } catch (StatusRuntimeException ex) {
+            if (!ex.getStatus().getCode().equals(Status.Code.NOT_FOUND)) {
+                throw ex;
+            }
         } catch (WorkflowNotFoundException ignored) {
         }
+        executions.remove(workflowId);
     }
 
+    private Stream<WorkflowExecutionInfo> fetchExecByIdsIfExist(Set<String> executionIds) {
+        return executionIds.stream()
+            .map(id -> {
+                try {
+                    return client.newUntypedWorkflowStub(id).describe().getWorkflowExecutionInfo();
+                } catch (StatusRuntimeException ex) {
+                    if (!ex.getStatus().getCode().equals(Status.Code.NOT_FOUND)) {
+                        throw ex;
+                    }
+                    return null;
+                } catch (WorkflowNotFoundException ignored) {
+                    return null;
+                }
+            })
+            .filter(Objects::nonNull);
+    }
 }

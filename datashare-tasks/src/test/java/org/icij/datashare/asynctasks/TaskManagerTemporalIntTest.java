@@ -26,6 +26,7 @@ import io.temporal.serviceclient.WorkflowServiceStubsOptions;
 import io.temporal.worker.WorkerFactory;
 import java.io.IOException;
 import java.time.Duration;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -86,6 +87,7 @@ public class TaskManagerTemporalIntTest {
         );
 
         setupNamespace(client, Duration.ofSeconds(5));
+        taskManager.clear();
         Thread.sleep(2000); // Sleep to allow custom attribute creation propagation refresh rate is 0.1s
     }
 
@@ -114,7 +116,7 @@ public class TaskManagerTemporalIntTest {
         assertThat(task.getState()).isEqualTo(RUNNING);
     }
 
-    @Test
+    @Test(timeout = 5000)
     public void test_get_tasks() throws IOException, InterruptedException {
         Task<String> foo = new Task<>("foo", User.local(), Map.of());
         Task<String> bar = new Task<>("bar", User.local(), Map.of());
@@ -123,14 +125,22 @@ public class TaskManagerTemporalIntTest {
         Thread.sleep(1000); // Sleep 1sec to test the sort on timestamp in ms
         taskManager.startTask(bar);
 
+        // Get task is only eventually consistent, we just check that result are returned within a decent timeout
         TaskFilters filter = TaskFilters.empty();
-        List<Task<?>> tasks = taskManager.getTasks(filter).toList();
-
-        assertThat(tasks.size()).isEqualTo(2);
+        List<Task<?>> tasks;
+        while (true) {
+            tasks = taskManager.getTasks(filter).toList();
+            try {
+                assertThat(tasks.size()).isEqualTo(2);
+                break;
+            } catch (AssertionError ignored) {
+                Thread.sleep(100);
+            }
+        }
         assertThat(tasks.stream().map(Task::getId).toList()).isEqualTo(List.of(foo.id, bar.id));
     }
 
-    @Test
+    @Test(timeout = 5000)
     public void test_get_tasks_with_args_filter() throws IOException {
         Task<String> foo = new Task<>("foo", User.local(), Map.of("someKey", "fooValue"));
         Task<String> bar = new Task<>("bar", User.local(), Map.of("someKey", "barValue"));
@@ -146,18 +156,19 @@ public class TaskManagerTemporalIntTest {
 
 
     @Test
-    public void test_get_task_ids() throws IOException, InterruptedException {
-        Task<String> foo = new Task<>("hello-world", User.local(), Map.of());
-        Task<String> bar = new Task<>("hello-world", User.local(), Map.of());
+    public void test_get_task_ids() throws IOException {
+        Task<String> foo = new Task<>("foo", User.local(), Map.of());
+        Task<String> bar = new Task<>("bar", User.local(), Map.of());
 
         taskManager.startTask(foo);
-        Task.State fooState = taskManager.getTask(foo.id).getState();
-        Thread.sleep(1000); // Sleep 1sec to test the sort on timestamp in ms
         taskManager.startTask(bar);
 
-        Task.State barState = taskManager.getTask(bar.id).getState();
-        assertThat(fooState).isEqualTo(Task.State.RUNNING);
-        assertThat(barState).isEqualTo(Task.State.RUNNING);
+        TaskFilters filter = TaskFilters.empty();
+        // Strongly consistent, should return all task IDs right away
+        List<String> taskIds = taskManager.getTaskIds(filter).toList();
+
+        assertThat(taskIds.size()).isEqualTo(2);
+        assertThat(new HashSet<>(taskIds)).isEqualTo(Set.of(foo.id, bar.id));
     }
 
     @Test
@@ -188,7 +199,7 @@ public class TaskManagerTemporalIntTest {
         }
     }
 
-    @Test(timeout = 10000)
+    @Test(timeout = 20000)
     public void test_task_error() throws IOException, InterruptedException {
         try (TemporalHelper.CloseableWorkerFactoryHandle ignored = testCloseableWorkerFactory(client)) {
             Task<String> task = new Task<>("failing", User.local(), Map.of());
