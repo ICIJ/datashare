@@ -9,9 +9,12 @@ import static io.temporal.api.enums.v1.WorkflowExecutionStatus.WORKFLOW_EXECUTIO
 import static org.icij.datashare.LambdaExceptionUtils.rethrowConsumer;
 import static org.icij.datashare.LambdaExceptionUtils.rethrowFunction;
 import static org.icij.datashare.asynctasks.TaskManagerTemporal.resolveWfTaskQueue;
+import static org.icij.datashare.asynctasks.TaskManagerTemporal.USER_CUSTOM_ATTRIBUTE;
 
 import io.temporal.api.enums.v1.WorkflowExecutionStatus;
 import io.temporal.client.WorkflowClient;
+import io.temporal.api.workflow.v1.WorkflowExecutionInfo;
+import io.temporal.common.converter.DefaultDataConverter;
 import io.temporal.failure.ApplicationFailure;
 import io.temporal.worker.Worker;
 import io.temporal.worker.WorkerFactory;
@@ -33,6 +36,8 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.icij.datashare.asynctasks.Group;
 import org.icij.datashare.asynctasks.Task;
+import org.icij.datashare.asynctasks.TaskFilters;
+import org.icij.datashare.user.User;
 import org.icij.datashare.asynctasks.TaskFactory;
 import org.icij.datashare.function.ThrowingSupplier;
 import org.icij.datashare.tasks.RoutingStrategy;
@@ -50,6 +55,7 @@ public class TemporalHelper {
             .build();
 
     private static final String WORKFLOW_METHOD_CLASS_NAME = WorkflowMethod.class.getName();
+        private static final DefaultDataConverter defaultDataConverter = DefaultDataConverter.newDefaultInstance();
 
     public static class CloseableWorkerFactoryHandle implements Closeable {
         private final WorkerFactory factory;
@@ -158,6 +164,23 @@ public class TemporalHelper {
         return () -> activityCls
             .getConstructor(TaskFactory.class, WorkflowClient.class, Double.class)
             .newInstance(taskFactory, client, progressWeight);
+    }
+
+    public static Predicate<WorkflowExecutionInfo> asExecInfoFilter(TaskFilters filters) {
+        return execInfo -> {
+            if (!filters.byName(execInfo.getType().getName())) {
+                return false;
+            }
+            if (!filters.byState(asTaskState(execInfo.getStatus()))) {
+                return false;
+            }
+            String userId = defaultDataConverter.fromPayload(
+                execInfo.getSearchAttributes().getIndexedFieldsOrThrow(USER_CUSTOM_ATTRIBUTE.getName()),
+                String.class,
+                String.class
+            );
+            return filters.byUser(new User(userId));
+        };
     }
 
     protected static <P, R> R taskWrapper(Function<P, R> taskFn, P payload, Set<Class<? extends Exception>> retriables) {
