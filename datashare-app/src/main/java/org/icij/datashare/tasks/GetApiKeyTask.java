@@ -14,7 +14,7 @@ import org.icij.task.DefaultTask;
 
 import javax.inject.Inject;
 
-@TemporalSingleActivityWorkflow(name = "get-api-key", activityOptions = @ActivityOpts(timeout = "1d"))
+@TemporalSingleActivityWorkflow(name = "get-api-key", activityOptions = @ActivityOpts(timeout = "P1D"))
 @TaskGroup(TaskGroupType.Java)
 public class GetApiKeyTask extends DefaultTask<String> implements UserTask  {
     private final ApiKeyRepository apiKeyRepository;

@@ -45,7 +45,7 @@ import static org.icij.datashare.cli.DatashareCliOptions.SCROLL_SLICES_OPT;
 import org.icij.datashare.asynctasks.TaskGroupType;
 import static org.icij.datashare.text.indexing.ScrollQueryBuilder.createScrollQuery;
 
-@TemporalSingleActivityWorkflow(name = "scan-index", activityOptions = @ActivityOpts(timeout = "7d"))
+@TemporalSingleActivityWorkflow(name = "scan-index", activityOptions = @ActivityOpts(timeout = "P7D"))
 @TaskGroup(TaskGroupType.Java)
 public class ScanIndexTask extends PipelineTask<Path> {
     private final Logger logger = LoggerFactory.getLogger(getClass());

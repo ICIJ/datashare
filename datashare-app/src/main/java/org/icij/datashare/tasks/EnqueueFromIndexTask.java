@@ -35,7 +35,7 @@ import static org.icij.datashare.cli.DatashareCliOptions.SCROLL_DURATION_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.SCROLL_SIZE_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.SEARCH_QUERY_OPT;
 
-@TemporalSingleActivityWorkflow(name = "enqueue-ner-tasks-from-index", activityOptions = @ActivityOpts(timeout = "7d"))
+@TemporalSingleActivityWorkflow(name = "enqueue-ner-tasks-from-index", activityOptions = @ActivityOpts(timeout = "P7D"))
 @TaskGroup(TaskGroupType.Java)
 public class EnqueueFromIndexTask extends PipelineTask<String> {
     private final DocumentCollectionFactory<String> factory;

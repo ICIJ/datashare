@@ -14,7 +14,7 @@ import org.icij.task.DefaultTask;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@TemporalSingleActivityWorkflow(name = "delete-api-key", activityOptions = @ActivityOpts(timeout = "1d"))
+@TemporalSingleActivityWorkflow(name = "delete-api-key", activityOptions = @ActivityOpts(timeout = "P1D"))
 @TaskGroup(TaskGroupType.Java)
 public class DelApiKeyTask extends DefaultTask<Boolean> implements UserTask {
     private final Logger logger = LoggerFactory.getLogger(getClass());

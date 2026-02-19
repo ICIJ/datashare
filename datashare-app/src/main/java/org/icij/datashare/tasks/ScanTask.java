@@ -22,7 +22,7 @@ import java.nio.file.Paths;
 
 import static org.icij.datashare.PropertiesProvider.DATA_DIR_OPT;
 
-@TemporalSingleActivityWorkflow(name = "scan-documents", activityOptions = @ActivityOpts(timeout = "7d"))
+@TemporalSingleActivityWorkflow(name = "scan-documents", activityOptions = @ActivityOpts(timeout = "P7D"))
 @OptionsClass(Scanner.class)
 @TaskGroup(TaskGroupType.Java)
 public class ScanTask extends PipelineTask<Path> {

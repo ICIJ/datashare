@@ -28,7 +28,7 @@ import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_DEFAULT_PROJECT
 import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_POLLING_INTERVAL_SEC;
 import static org.icij.datashare.cli.DatashareCliOptions.POLLING_INTERVAL_SECONDS_OPT;
 
-@TemporalSingleActivityWorkflow(name = "artifact", activityOptions = @ActivityOpts(timeout = "1d"))
+@TemporalSingleActivityWorkflow(name = "artifact", activityOptions = @ActivityOpts(timeout = "P1D"))
 @TaskGroup(TaskGroupType.Java)
 public class ArtifactTask extends PipelineTask<String> {
     private final Logger logger = LoggerFactory.getLogger(getClass());
