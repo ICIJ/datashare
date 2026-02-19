@@ -29,7 +29,7 @@ public class WebApp {
                 .configure(mode.createWebConfiguration())
                 .start(parseInt(mode.properties().getProperty(PropertiesProvider.TCP_LISTEN_PORT_OPT)));
 
-        if (mode.isEmbeddedAMQP()) {
+        if (mode.shouldRunWorker()) {
             mode.runWorkers();
         }
 
