@@ -17,10 +17,10 @@ import static java.util.Arrays.asList;
 import static org.fest.assertions.Assertions.assertThat;
 
 @RunWith(Parameterized.class)
-public class JooqCasbinRuleRepositoryTest extends TestCase {
+public class JooqCasbinRuleAdapterTest extends TestCase {
 
     @Rule public DbSetupRule dbRule;
-    private final JooqCasbinRuleRepository repository;
+    private final JooqCasbinRuleAdapter repository;
     private static final List<DbSetupRule> rulesToClose = new ArrayList<>();
 
     @Parameterized.Parameters
@@ -31,7 +31,7 @@ public class JooqCasbinRuleRepositoryTest extends TestCase {
         });
     }
 
-    public JooqCasbinRuleRepositoryTest(DbSetupRule rule) {
+    public JooqCasbinRuleAdapterTest(DbSetupRule rule) {
         dbRule = rule;
         repository = rule.createUserPolicyRepository();
         rulesToClose.add(dbRule);
@@ -46,7 +46,7 @@ public class JooqCasbinRuleRepositoryTest extends TestCase {
     }
 
     @Test
-    public void testAddPolicy() {
+    public void test_add_policy() {
         repository.addPolicy("p", "p", asList("alice", "data1", "read"));
         Model model = new Model();
         model.addDef("p", "p", "sub, obj, act");
@@ -55,7 +55,7 @@ public class JooqCasbinRuleRepositoryTest extends TestCase {
     }
 
     @Test
-    public void testAddPolicies() {
+    public void test_add_policies() {
         List<List<String>> rules = asList(
                 asList("alice", "data1", "read"),
                 asList("bob", "data2", "write")
@@ -69,7 +69,7 @@ public class JooqCasbinRuleRepositoryTest extends TestCase {
     }
 
     @Test
-    public void testRemovePolicy() {
+    public void test_remove_policy() {
         repository.addPolicy("p", "p", asList("alice", "data1", "read"));
         repository.removePolicy("p", "p", asList("alice", "data1", "read"));
         Model model = new Model();
@@ -79,7 +79,7 @@ public class JooqCasbinRuleRepositoryTest extends TestCase {
     }
 
     @Test
-    public void testRemovePolicies() {
+    public void test_remove_policies() {
         List<List<String>> rules = asList(
                 asList("alice", "data1", "read"),
                 asList("bob", "data2", "write")
@@ -94,7 +94,7 @@ public class JooqCasbinRuleRepositoryTest extends TestCase {
     }
 
     @Test
-    public void testRemoveFilteredPolicy() {
+    public void test_remove_filtered_policy() {
         repository.addPolicy("p", "p", asList("alice", "data1", "read"));
         repository.addPolicy("p", "p", asList("bob", "data1", "read"));
         repository.addPolicy("p", "p", asList("alice", "data2", "write"));
@@ -109,7 +109,7 @@ public class JooqCasbinRuleRepositoryTest extends TestCase {
     }
 
     @Test
-    public void testRemoveFilteredPolicyWithMultipleFields() {
+    public void test_remove_filtered_policy_with_multiple_fields() {
         repository.addPolicy("p", "p", asList("alice", "data1", "read"));
         repository.addPolicy("p", "p", asList("alice", "data1", "write"));
         repository.addPolicy("p", "p", asList("bob", "data1", "read"));
@@ -124,7 +124,7 @@ public class JooqCasbinRuleRepositoryTest extends TestCase {
     }
 
     @Test
-    public void testRemoveFilteredPolicyWithEmptyValues() {
+    public void test_remove_filtered_policy_with_empty_values() {
         repository.addPolicy("p", "p", asList("alice", "data1", "read"));
         repository.addPolicy("p", "p", asList("bob", "data1", "read"));
         repository.addPolicy("p", "p", asList("alice", "data2", "read"));
@@ -139,7 +139,7 @@ public class JooqCasbinRuleRepositoryTest extends TestCase {
     }
 
     @Test
-    public void testSavePolicy() {
+    public void test_save_policy() {
         Model model = new Model();
         model.addDef("p", "p", "sub, obj, act");
         model.addDef("g", "g", "_, _");
@@ -156,7 +156,7 @@ public class JooqCasbinRuleRepositoryTest extends TestCase {
     }
 
     @Test
-    public void testUpdatePolicyWithNonExistentOldRule() {
+    public void test_update_policy_with_non_existent_old_rule() {
         repository.addPolicy("p", "p", asList("alice", "data1", "read"));
         repository.updatePolicy("p", "p", asList("bob", "data1", "read"), asList("bob", "data1", "write"));
         Model model = new Model();
@@ -167,7 +167,7 @@ public class JooqCasbinRuleRepositoryTest extends TestCase {
     }
 
     @Test
-    public void testAddPoliciesBatching() {
+    public void test_add_policies_batching() {
         List<List<String>> rules = new ArrayList<>();
         for (int i = 0; i < 1500; i++) {
             rules.add(asList("user" + i, "data", "read"));
@@ -181,7 +181,7 @@ public class JooqCasbinRuleRepositoryTest extends TestCase {
     }
 
     @Test
-    public void testUpdatePolicy() {
+    public void test_update_policy() {
         repository.addPolicy("p", "p", asList("alice", "data1", "read"));
         repository.updatePolicy("p", "p", asList("alice", "data1", "read"), asList("alice", "data1", "write"));
         Model model = new Model();
@@ -192,7 +192,7 @@ public class JooqCasbinRuleRepositoryTest extends TestCase {
     }
 
     @Test
-    public void testAddPolicyWithLongRule() {
+    public void test_add_policy_with_long_rule() {
         repository.addPolicy("p", "p", asList("v0", "v1", "v2", "v3", "v4", "v5"));
         Model model = new Model();
         model.addDef("p", "p", "sub, obj, act, v3, v4, v5");

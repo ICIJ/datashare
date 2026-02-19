@@ -1,40 +1,38 @@
 package org.icij.datashare.db;
 
 import org.casbin.jcasbin.model.Model;
-import org.casbin.jcasbin.persist.Adapter;
-import org.casbin.jcasbin.persist.BatchAdapter;
 import org.casbin.jcasbin.persist.Helper;
-import org.casbin.jcasbin.persist.UpdatableAdapter;
-import org.icij.datashare.CasbinRuleRepository;
+import org.icij.datashare.CasbinRule;
+import org.icij.datashare.CasbinRuleAdapter;
 import org.icij.datashare.db.tables.records.CasbinRuleRecord;
 import org.jooq.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.sql.DataSource;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import static org.icij.datashare.db.CasbinRule.getLineText;
 import static org.icij.datashare.db.Tables.CASBIN_RULE;
 import static org.jooq.impl.DSL.using;
-import static org.jooq.impl.SQLDataType.VARCHAR;
 
 
-public class JooqCasbinRuleRepository implements Adapter, BatchAdapter, UpdatableAdapter, CasbinRuleRepository {
+public class JooqCasbinRuleAdapter implements CasbinRuleAdapter {
 
-    private static final Logger logger = LoggerFactory.getLogger(JooqCasbinRuleRepository.class);
-
+    private static final Logger logger = LoggerFactory.getLogger(JooqCasbinRuleAdapter.class);
     private final DataSource connectionProvider;
     private final SQLDialect dialect;
     private final int batchSize;
 
-    public JooqCasbinRuleRepository(DataSource connectionProvider, SQLDialect dialect) {
+    public JooqCasbinRuleAdapter(DataSource connectionProvider, SQLDialect dialect) {
+        this(connectionProvider, dialect, determineBatchSize(dialect));
+    }
+
+    protected JooqCasbinRuleAdapter(DataSource connectionProvider, SQLDialect dialect, int batchSize) {
         this.connectionProvider = connectionProvider;
         this.dialect = dialect;
-        this.batchSize = determineBatchSize(dialect);
+        this.batchSize = batchSize;
         logger.info("JooqCasbinRuleRepository initialized with dialect: {}", dialect);
     }
 
@@ -123,19 +121,13 @@ public class JooqCasbinRuleRepository implements Adapter, BatchAdapter, Updatabl
         };
     }
 
-    @Override
-    public void savePolicy(Model model) {
-        DSLContext ctx = using(connectionProvider, dialect);
-        ctx.transaction((Configuration trx) -> {
-            DSLContext trxCtx = using(trx);
-
-            // Delete all existing rules
-            trxCtx.deleteFrom(CASBIN_RULE).execute();
-
-            // Process both sections with immediate batch execution
-            saveSectionPolicyWithBatch(trxCtx, model, "p");
-            saveSectionPolicyWithBatch(trxCtx, model, "g");
-        });
+    private static int determineBatchSize(SQLDialect dialect) {
+        if (dialect.getName().contains("SQLite")) {
+            return 1000;  // SQLite: prefer larger batches in single transaction
+        } else if (dialect.getName().contains("Postgres")) {
+            return 10000;  // PostgreSQL: optimal for JDBC batching
+        }
+        return 1000;  // Default fallback
     }
 
     private void saveSectionPolicyWithBatch(DSLContext ctx, Model model, String section) {
@@ -172,13 +164,20 @@ public class JooqCasbinRuleRepository implements Adapter, BatchAdapter, Updatabl
         }
     }
 
-    private int determineBatchSize(SQLDialect dialect) {
-        if (dialect.getName().contains("SQLite")) {
-            return 1000;  // SQLite: prefer larger batches in single transaction
-        } else if (dialect.getName().contains("Postgres")) {
-            return 10000;  // PostgreSQL: optimal for JDBC batching
-        }
-        return 1000;  // Default fallback
+    @Override
+    public void savePolicy(Model model) {
+        DSLContext ctx = using(connectionProvider, dialect);
+        ctx.transaction((Configuration trx) -> {
+            DSLContext trxCtx = using(trx);
+
+            // Delete all existing rules
+            trxCtx.deleteFrom(CASBIN_RULE).execute();
+
+            // Process both sections with immediate batch execution
+            saveSectionPolicyWithBatch(trxCtx, model, "p");
+            saveSectionPolicyWithBatch(trxCtx, model, "g");
+            saveSectionPolicyWithBatch(trxCtx, model, "g2");
+        });
     }
 
     public void addPolicies(String sec, String ptype, List<List<String>> rules) {
@@ -227,14 +226,12 @@ public class JooqCasbinRuleRepository implements Adapter, BatchAdapter, Updatabl
         return line;
     }
 
-
-
     @Override
     public void loadPolicy(Model model) {
         DSLContext ctx = using(connectionProvider, dialect);
         List<CasbinRuleRecord> records = ctx.selectFrom(CASBIN_RULE).fetch();
         for (CasbinRuleRecord record : records) {
-            CasbinRule line = new CasbinRule();
+            org.icij.datashare.CasbinRule line = new org.icij.datashare.CasbinRule();
             line.ptype = record.get(CASBIN_RULE.PTYPE);
             line.v0 = record.get(CASBIN_RULE.V0) != null ? record.get(CASBIN_RULE.V0) : "";
             line.v1 = record.get(CASBIN_RULE.V1) != null ? record.get(CASBIN_RULE.V1) : "";
@@ -247,26 +244,12 @@ public class JooqCasbinRuleRepository implements Adapter, BatchAdapter, Updatabl
 
     }
 
-    protected void migrate() throws SQLException {
-        DSLContext ctx = using(connectionProvider, dialect);
-        CreateTableElementListStep casbinRule = ctx.createTableIfNotExists("casbin_rule")
-                .column(CASBIN_RULE.PTYPE, VARCHAR)
-                .column(CASBIN_RULE.V0, VARCHAR)
-                .column(CASBIN_RULE.V1, VARCHAR)
-                .column(CASBIN_RULE.V2, VARCHAR)
-                .column(CASBIN_RULE.V3, VARCHAR)
-                .column(CASBIN_RULE.V4, VARCHAR)
-                .column(CASBIN_RULE.V5, VARCHAR);
-        casbinRule.execute();
-    }
-
-
-    protected void loadPolicyLine(CasbinRule line, Model model) {
+    protected void loadPolicyLine(org.icij.datashare.CasbinRule line, Model model) {
         // Escape ONLY for Casbin's line format, NOT for database storage
-        CasbinRule escapedLine = CasbinRule.escape(line);
+        CasbinRule escapedLine = org.icij.datashare.CasbinRule.escape(line);
 
         // Build the text line for Casbin
-        String lineText = getLineText(escapedLine);
+        String lineText = CasbinRule.getLineText(escapedLine);
 
         Helper.loadPolicyLine(lineText, model);
     }
@@ -290,7 +273,7 @@ public class JooqCasbinRuleRepository implements Adapter, BatchAdapter, Updatabl
                 deleteQuery.execute();
 
                 // Insert the new rule
-                CasbinRule line = savePolicyLine(ptype, newRule);
+                org.icij.datashare.CasbinRule line = savePolicyLine(ptype, newRule);
                 trxCtx.insertInto(CASBIN_RULE, CASBIN_RULE.PTYPE, CASBIN_RULE.V0, CASBIN_RULE.V1, CASBIN_RULE.V2, CASBIN_RULE.V3, CASBIN_RULE.V4, CASBIN_RULE.V5)
                         .values(line.ptype, line.v0, line.v1, line.v2, line.v3, line.v4, line.v5)
                         .execute();
