@@ -55,7 +55,7 @@ import static java.util.stream.Collectors.toList;
 import static org.icij.datashare.cli.DatashareCliOptions.*;
 import org.icij.datashare.asynctasks.TaskGroupType;
 
-@TemporalSingleActivityWorkflow(name = "batch-download", activityOptions = @ActivityOpts(timeout = "7d"))
+@TemporalSingleActivityWorkflow(name = "batch-download", activityOptions = @ActivityOpts(timeout = "P7D"))
 @TaskGroup(TaskGroupType.Java)
 public class BatchDownloadRunner implements Callable<UriResult>, Monitorable, UserTask, CancellableTask {
     private final static Logger logger = LoggerFactory.getLogger(BatchDownloadRunner.class);

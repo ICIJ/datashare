@@ -15,7 +15,7 @@ import org.slf4j.LoggerFactory;
 
 import javax.inject.Inject;
 
-@TemporalSingleActivityWorkflow(name = "grant-admin-policy", activityOptions = @ActivityOpts(timeout = "1d"))
+@TemporalSingleActivityWorkflow(name = "grant-admin-policy", activityOptions = @ActivityOpts(timeout = "P1D"))
 @TaskGroup(TaskGroupType.Java)
 public class GrantAdminPolicyTask extends DefaultTask<Boolean> implements UserTask {
     private final Logger logger = LoggerFactory.getLogger(getClass());

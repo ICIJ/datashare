@@ -22,7 +22,7 @@ import java.util.function.Predicate;
 /**
  * filters the document queue with extracted docs
  */
-@TemporalSingleActivityWorkflow(name = "deduplicate-documents", activityOptions = @ActivityOpts(timeout = "1d"))
+@TemporalSingleActivityWorkflow(name = "deduplicate-documents", activityOptions = @ActivityOpts(timeout = "P1D"))
 @TaskGroup(TaskGroupType.Java)
 public class DeduplicateTask extends PipelineTask<Path> {
     private final Logger logger = LoggerFactory.getLogger(getClass());

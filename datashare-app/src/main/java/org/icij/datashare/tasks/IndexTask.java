@@ -38,7 +38,7 @@ import static org.icij.datashare.PropertiesProvider.DEFAULT_PROJECT_OPT;
 import static org.icij.datashare.PropertiesProvider.REPORT_NAME_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.*;
 
-@TemporalSingleActivityWorkflow(name = "index-documents", activityOptions = @ActivityOpts(timeout = "1m"))
+@TemporalSingleActivityWorkflow(name = "index-documents", activityOptions = @ActivityOpts(timeout = "P30D"))
 @OptionsClass(Extractor.class)
 @OptionsClass(DocumentFactory.class)
 @OptionsClass(DocumentQueueDrainer.class)

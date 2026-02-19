@@ -36,7 +36,7 @@ import static java.util.stream.Collectors.toList;
 import static org.icij.datashare.cli.DatashareCliOptions.*;
 import static org.icij.datashare.text.ProjectProxy.asCommaConcatNames;
 
-@TemporalSingleActivityWorkflow(name = "batch-search", activityOptions = @ActivityOpts(timeout = "7d"))
+@TemporalSingleActivityWorkflow(name = "batch-search", activityOptions = @ActivityOpts(timeout = "P7D"))
 @TaskGroup(TaskGroupType.Java)
 public class BatchSearchRunner implements CancellableTask, UserTask, Callable<BatchSearchRunnerResult> {
     private final Logger logger = LoggerFactory.getLogger(getClass());

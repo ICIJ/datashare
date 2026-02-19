@@ -17,7 +17,7 @@ import org.slf4j.LoggerFactory;
 
 import javax.crypto.SecretKey;
 
-@TemporalSingleActivityWorkflow(name = "generate-api-key", activityOptions = @ActivityOpts(timeout = "1d"))
+@TemporalSingleActivityWorkflow(name = "generate-api-key", activityOptions = @ActivityOpts(timeout = "P1D"))
 @TaskGroup(TaskGroupType.Java)
 public class GenApiKeyTask extends DefaultTask<String> implements UserTask {
     private final Logger logger = LoggerFactory.getLogger(getClass());
