@@ -48,7 +48,7 @@ public class TemporalWorkflowGeneratorTest {
                 
                 @WorkflowInterface
                 public interface HelloWorldWorkflow {
-                    @WorkflowMethod(name = "hello-world")
+                    @WorkflowMethod(name = "org.icij.datashare.asynctasks.temporal.HelloWorldTask")
                     String run(final Map<String, Object> args) throws Exception;
                 }
                 """
@@ -120,7 +120,7 @@ public class TemporalWorkflowGeneratorTest {
            
                 @ActivityInterface
                 public interface HelloWorldActivity {
-                    @ActivityMethod(name = "hello-world")
+                    @ActivityMethod(name = "org.icij.datashare.asynctasks.temporal.HelloWorldTask")
                     String run(final Map<String, Object> args) throws Exception;
                 }
                 """
@@ -151,7 +151,7 @@ public class TemporalWorkflowGeneratorTest {
                 import java.util.Set;
                 import org.icij.datashare.asynctasks.TaskFactory;
            
-                class HelloWorldActivityImpl extends TemporalActivityImpl<String, HelloWorldTask> implements HelloWorldActivity {
+                public class HelloWorldActivityImpl extends TemporalActivityImpl<String, HelloWorldTask> implements HelloWorldActivity {
 
                     public HelloWorldActivityImpl(TaskFactory factory, WorkflowClient client, Double progressWeight) {
                         super(factory, client, progressWeight);

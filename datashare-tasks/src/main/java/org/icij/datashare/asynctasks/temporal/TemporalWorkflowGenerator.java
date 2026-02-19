@@ -75,8 +75,8 @@ public class TemporalWorkflowGenerator extends AbstractProcessor {
             TemporalSingleActivityWorkflow annotation = classElement.getAnnotation(TemporalSingleActivityWorkflow.class);
             String packageName = getPackageName(classElement.getQualifiedName().toString());
 
-            String wfName = annotation.name();
-            String baseName = asClassName(wfName, "-");
+            String wfType = classElement.getQualifiedName().toString();
+            String baseName = asClassName(annotation.name(), "-");
             String wfInterface = baseName + "Workflow";
             String wfImpl = wfInterface + "Impl";
             String actInterface = baseName + "Activity";
@@ -89,8 +89,8 @@ public class TemporalWorkflowGenerator extends AbstractProcessor {
 
 
             Map<String, JavaFile> generated = Map.of(
-                wfInterface, generateWorkflowInterface(packageName, wfInterface, wfName, outputType),
-                actInterface, generateActivity(packageName, actInterface, wfName, outputType),
+                wfInterface, generateWorkflowInterface(packageName, wfInterface, wfType, outputType),
+                actInterface, generateActivity(packageName, actInterface, wfType, outputType),
                 wfImpl, generateWorkflowImpl(packageName, wfInterface, outputType, actInterface, actTaskQueue, actTimeout),
                 actImpl, generateActivityImpl(packageName, actInterface, outputType, datashareTaskType, retriables)
             );
@@ -133,9 +133,9 @@ public class TemporalWorkflowGenerator extends AbstractProcessor {
         return retriableTypes.stream().map(TypeName::get).collect(Collectors.toSet());
     }
 
-    private JavaFile generateWorkflowInterface(String packageName, String wfInterface, String wfName, TypeName outputType) {
+    private JavaFile generateWorkflowInterface(String packageName, String wfInterface, String wfType, TypeName outputType) {
         AnnotationSpec wfMethodAnnotationSpec = AnnotationSpec.builder(WorkflowMethod.class)
-            .addMember("name", "$S", wfName)
+            .addMember("name", "$S", wfType)
             .build();
         MethodSpec run = MethodSpec.methodBuilder("run")
             .addAnnotation(wfMethodAnnotationSpec)
@@ -180,10 +180,10 @@ public class TemporalWorkflowGenerator extends AbstractProcessor {
     }
 
     private JavaFile generateActivity(
-        String packageName, String actInterface, String actName, TypeName outputType
+        String packageName, String actInterface, String actType, TypeName outputType
     ) {
         AnnotationSpec actMethodAnnotationSpec = AnnotationSpec.builder(ActivityMethod.class)
-            .addMember("name", "$S", actName)
+            .addMember("name", "$S", actType)
             .build();
         MethodSpec run = MethodSpec.methodBuilder("run")
             .addAnnotation(actMethodAnnotationSpec)
