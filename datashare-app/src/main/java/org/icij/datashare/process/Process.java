@@ -44,13 +44,17 @@ public class Process {
     private java.lang.Process p;
     private final Logger logger;
     private final ExecutorService pool;
-    private final int port;
+    private final Map<String, String> envVars;
 
     public Process(final String dir, final String name, final String[] cmd, final int port) {
+        this(dir, name, cmd, Map.of("PORT", String.valueOf(port)));
+    }
+
+    public Process(final String dir, final String name, final String[] cmd, final Map<String, String> envVars) {
         this.dir = dir;
         this.name = name;
         this.cmd = cmd;
-        this.port = port;
+        this.envVars = envVars;
         this.logger = LoggerFactory.getLogger(getName());
         this.pool = Executors.newCachedThreadPool();
     }
@@ -59,7 +63,7 @@ public class Process {
         final ProcessBuilder pb = new ProcessBuilder(cmd);
 
         final Map<String, String> env = pb.environment();
-        env.put("PORT", String.valueOf(port));
+        env.putAll(envVars);
 
         pb.directory(new File(dir));
         pb.redirectInput(Redirect.INHERIT);
@@ -115,7 +119,7 @@ public class Process {
     }
 
     public int getPort() {
-        return port;
+        return Integer.parseInt(envVars.getOrDefault("PORT", "0"));
     }
 
     public static void main(String[] args) {
