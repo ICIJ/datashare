@@ -61,7 +61,6 @@ public class ServerMode extends CommonMode {
         } else if (authFilterClass.equals(YesCookieAuthFilter.class)) {
             bind(YesCookieAuthFilter.class).toInstance(getYesCookieAuthFilter());
         }
-        bind(CsrfFilter.class).asEagerSingleton();
         bind(StatusResource.class).asEagerSingleton();
         configurePersistence();
     }
@@ -94,7 +93,7 @@ public class ServerMode extends CommonMode {
                 add(TaskResource.class).
                 add(IndexResource.class).
                 add(UserResource.class).
-                add(UserPolicyResource.class).
+                add(PolicyResource.class).
                 add(NamedEntityResource.class).
                 add(DocumentResource.class).
                 add(DocumentUserRecommendationResource.class).
