@@ -10,5 +10,5 @@ public interface RepositoryFactory {
 
     BatchSearchRepository createBatchSearchRepository();
 
-    CasbinRuleRepository createCasbinRuleRepository();
+    CasbinRuleAdapter createCasbinRuleRepository();
 }

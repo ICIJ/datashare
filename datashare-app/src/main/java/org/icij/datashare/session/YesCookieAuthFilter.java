@@ -12,6 +12,7 @@ import org.icij.datashare.text.Project;
 
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class YesCookieAuthFilter extends CookieAuthFilter {
     private final Integer ttl;
