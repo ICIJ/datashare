@@ -172,7 +172,9 @@ public class OAuth2CookieFilter extends CookieAuthFilter {
 
         logger.info("received response code from user API : {}", oauthApiResponse.getCode());
         DatashareUser datashareUser = processOAuthApiResponse(oauthApiResponse);
-        return Payload.seeOther(this.validRedirectUrl(this.readRedirectUrlInCookie(context))).withCookie(this.authCookie(this.buildCookie(datashareUser, "/")));
+        return Payload.seeOther(this.validRedirectUrl(this.readRedirectUrlInCookie(context)))
+                .withCookie(this.authCookie(this.buildCookie(datashareUser, "/")))
+                .withCookie(CsrfFilter.csrfCookie(CsrfFilter.generateToken()));
     }
 
     protected DatashareUser processOAuthApiResponse(Response oauthApiResponse) throws IOException {
