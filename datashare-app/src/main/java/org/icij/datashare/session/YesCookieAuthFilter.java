@@ -12,7 +12,8 @@ import org.icij.datashare.text.Project;
 
 import java.util.List;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
+
+import static org.icij.datashare.user.User.localUser;
 
 public class YesCookieAuthFilter extends CookieAuthFilter {
     private final Integer ttl;
@@ -44,7 +45,7 @@ public class YesCookieAuthFilter extends CookieAuthFilter {
         List<Project> projects = getProjects();
         List<String> projectNames = getProjectNames();
         // Build datashare user
-        DatashareUser user = new DatashareUser(org.icij.datashare.user.User.localUser(userName, projectNames, Stream.empty()));
+        DatashareUser user = new DatashareUser(localUser(userName, projectNames, List.of()));
         user.setProjects(projects);
         // Finally, store the user in redis so the session can be retrieved
         ((UsersInRedis) users).saveOrUpdate(user);
