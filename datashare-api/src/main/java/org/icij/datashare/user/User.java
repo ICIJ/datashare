@@ -3,13 +3,13 @@ package org.icij.datashare.user;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import org.icij.datashare.CasbinRule;
 import org.icij.datashare.Entity;
 import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.text.Project;
 
 import java.util.*;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import static java.util.Collections.singletonList;
 import static java.util.Collections.unmodifiableMap;
@@ -32,8 +32,9 @@ public class User implements Entity, Comparable<User> {
     private final HashSet<Project> projects = new HashSet<>();
     @JsonIgnore
     private final String jsonProjectKey;
-    @JsonIgnore
-    private final List<UserPolicy> policies;
+
+    @JsonProperty("policies")
+    private final List<Object> policies;
 
     public User(final String id, String name, String email, String provider, String jsonDetails) {
         this(id, name, email, provider, deserialize(jsonDetails));
@@ -56,7 +57,8 @@ public class User implements Entity, Comparable<User> {
         this.provider = provider;
         this.details = unmodifiableMap(ofNullable(details).orElse(new HashMap<>()));
         this.jsonProjectKey = ofNullable(jsonProjectKey).orElse(getDefaultProjectsKey());
-        this.policies = deserializePolicies(this.details.get("policies"));
+        this.policies = this.details.containsKey("policies") ? (List<Object>) this.details.get("policies") : new ArrayList<>();
+
     }
 
     public User(final String id, String name, String email, String provider) {
@@ -176,42 +178,8 @@ public class User implements Entity, Comparable<User> {
         return this;
     }
 
-    @JsonIgnore
-    public Map<String, Object> getDetails() {
-        Map<String, Object> detailsMap = details.entrySet().stream().
-                filter(k -> k.getValue() != null).
-                filter(k -> !k.getKey().equalsIgnoreCase("password")).
-                filter(k -> !k.getKey().equals("policies")).
-                collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
-
-        // Serialize policies on demand only
-        if (!policies.isEmpty()) {
-            detailsMap.put("policies", policies);
-        }
-
-        return detailsMap;
-    }
-
-    private static List<UserPolicy> deserializePolicies(Object policiesObj) {
-        if (!(policiesObj instanceof List<?> policyList) || policyList.isEmpty()) {
-            return List.of();
-        }
-
-        // If already UserPolicy objects, just return a copy
-        if (policyList.get(0) instanceof UserPolicy) {
-            return new ArrayList<>((List<UserPolicy>) policyList);
-        }
-
-        // Otherwise, assume List<Map> and map to UserPolicy
-        return ((List<Map<String, Object>>) policyList).stream()
-                .map(map -> new UserPolicy(
-                        (String) map.get("userId"),
-                        (String) map.get("projectId"),
-                        ((List<String>) map.get("roles")).stream()
-                                .map(Role::valueOf)
-                                .toArray(Role[]::new)
-                ))
-                .toList();
+    public static User localUser(String id, String... projectNames) {
+        return localUser(id, Arrays.stream(projectNames).toList(), List.of());
     }
 
     @JsonIgnore
@@ -237,29 +205,33 @@ public class User implements Entity, Comparable<User> {
     @JsonIgnore
     public boolean isLocal() { return LOCAL.equals(this.id);}
     public static User local() { return localUser(LOCAL);}
-    public static User localUser(String id, String... projectNames) {
-        return localUser(id, Arrays.stream(projectNames).toList(), Stream.empty());
-    }
 
     public static User localUser(String id) {
-        return localUser(id, singletonList(id + "-datashare"), Stream.empty());
+        return localUser(id, singletonList(id + "-datashare"), List.of());
     }
 
-    public static User localUser(String id, Stream<UserPolicy> policies, String... projectNames) {
-        return localUser(id, Arrays.stream(projectNames).toList(), policies);
+    public static User localUser(String id, List<String> projectNames, List<CasbinRule> policies) {
+        String[] keys = DEFAULT_PROJECTS_KEY.split("\\.");
+        return new User(
+                Map.of("uid", id, keys[0], Map.of(keys[1], projectNames, "policies", policies.stream().map(rule -> Arrays.asList(rule.toStringArray())).collect(Collectors.toList())))
+        );
     }
 
-    public static User localUser(String id, List<String> projectNames) {
-        String[] keys = DEFAULT_PROJECTS_KEY.split("\\.");
-        return new User(
-                Map.of("uid", id, keys[0], Map.of(keys[1], projectNames))
-        );
-    }
-    public static User localUser(String id, List<String> projectNames, Stream<UserPolicy> policies) {
-        String[] keys = DEFAULT_PROJECTS_KEY.split("\\.");
-        return new User(
-                Map.of("uid", id, keys[0], Map.of(keys[1], projectNames), "policies", policies.collect(Collectors.toList()))
-        );
+    @JsonIgnore
+    public Map<String, Object> getDetails() {
+        Map<String, Object> detailsMap = details.entrySet().stream().
+                filter(k -> k.getValue() != null).
+                filter(k -> !k.getKey().equalsIgnoreCase("password")).
+                filter(k -> !k.getKey().equals("policies")).
+                collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+
+        // Serialize policies on demand only
+        if (!policies.isEmpty()) {
+            // Serialize as list of arrays for compatibility
+            detailsMap.put("policies", getPolicies().stream().map(rule -> Arrays.asList(rule.toStringArray())).collect(Collectors.toList()));
+        }
+
+        return detailsMap;
     }
     public static User nullUser() { return new User((String)null);}
     @Override
@@ -281,13 +253,18 @@ public class User implements Entity, Comparable<User> {
         return id.compareTo(user.id);
     }
 
-    public Stream<UserPolicy> getPolicies() {
-        return policies.stream();
-    }
-    public Set<Role> getRoles(String projectId) {
-        return null;
-    }
-    public Optional<UserPolicy> getPolicy(String projectId) {
-        return Optional.empty();
+    public List<CasbinRule> getPolicies() {
+        if (policies.isEmpty()) {
+            return new ArrayList<>();
+        }
+        return policies.stream().map(policy -> {
+            if (policy instanceof CasbinRule) {
+                return (CasbinRule) policy;
+            } else if (policy instanceof List) {
+                return CasbinRule.fromArray((List<String>) policy);
+            } else {
+                throw new RuntimeException("Unexpected policy type: " + policy.getClass().getName());
+            }
+        }).collect(Collectors.toList());
     }
 }

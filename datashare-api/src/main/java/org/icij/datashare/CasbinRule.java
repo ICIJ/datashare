@@ -1,5 +1,9 @@
 package org.icij.datashare;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+
+import java.util.List;
+
 public class CasbinRule {
     public String ptype;
     public String v0;
@@ -14,12 +18,12 @@ public class CasbinRule {
 
     public CasbinRule(String ptype, String v0, String v1, String v2, String v3, String v4, String v5) {
         this.ptype = ptype;
-        this.v0 = escapeSingleRule(v0);
-        this.v1 = escapeSingleRule(v1);
-        this.v2 = escapeSingleRule(v2);
-        this.v3 = escapeSingleRule(v3);
-        this.v4 = escapeSingleRule(v4);
-        this.v5 = escapeSingleRule(v5);
+        this.v0 = v0;
+        this.v1 = v1;
+        this.v2 = v2;
+        this.v3 = v3;
+        this.v4 = v4;
+        this.v5 = v5;
     }
 
     public static String escapeSingleRule(String rule) {
@@ -27,7 +31,15 @@ public class CasbinRule {
     }
 
     public static CasbinRule escape(CasbinRule line) {
-        return new CasbinRule(line.ptype, line.v0, line.v1, line.v2, line.v3, line.v4, line.v5);
+        return new CasbinRule(
+                line.ptype,
+                escapeSingleRule(line.v0),
+                escapeSingleRule(line.v1),
+                escapeSingleRule(line.v2),
+                escapeSingleRule(line.v3),
+                escapeSingleRule(line.v4),
+                escapeSingleRule(line.v5)
+        );
     }
 
     public static String getLineText(CasbinRule escapedLine) {
@@ -53,6 +65,18 @@ public class CasbinRule {
         return lineText;
     }
 
+    @JsonCreator
+    public static CasbinRule fromArray(List<String> arr) {
+        return new CasbinRule(
+                arr.size() > 0 ? arr.get(0) : "",
+                arr.size() > 1 ? arr.get(1) : "",
+                arr.size() > 2 ? arr.get(2) : "",
+                arr.size() > 3 ? arr.get(3) : "",
+                arr.size() > 4 ? arr.get(4) : "",
+                arr.size() > 5 ? arr.get(5) : "",
+                arr.size() > 6 ? arr.get(6) : ""
+        );
+    }
     public String[] toStringArray() {
         return new String[]{this.ptype, this.v0, this.v1, this.v2, this.v3, this.v4, this.v5};
     }
