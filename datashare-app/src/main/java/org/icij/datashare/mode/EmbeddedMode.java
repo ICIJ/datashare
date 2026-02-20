@@ -87,6 +87,7 @@ public class EmbeddedMode extends LocalMode {
                     path.repo: "%s"
                     xpack.security.enabled: false
                     indices.id_field_data.enabled: true
+                    indices.query.bool.max_clause_count: 16384
                     cluster.routing.allocation.disk.watermark.low: 90%%
                     cluster.routing.allocation.disk.watermark.high: 99%%
                     cluster.routing.allocation.disk.watermark.flood_stage: 100%%
