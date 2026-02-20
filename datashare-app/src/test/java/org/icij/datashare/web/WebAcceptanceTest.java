@@ -3,21 +3,20 @@ package org.icij.datashare.web;
 import net.codestory.http.annotations.Get;
 import net.codestory.http.filters.basic.BasicAuthFilter;
 import net.codestory.http.security.Users;
+import org.icij.datashare.CasbinRuleAdapter;
 import org.icij.datashare.Repository;
 import org.icij.datashare.session.*;
-import org.icij.datashare.user.CasbinRuleRepository;
+import org.icij.datashare.user.Domain;
 import org.icij.datashare.user.Role;
 import org.icij.datashare.user.User;
-import org.icij.datashare.user.UserPolicy;
 import org.icij.datashare.web.testhelpers.AbstractProdWebServerTest;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
 
-import java.io.IOException;
 import java.net.URISyntaxException;
-import java.util.stream.Stream;
+import java.util.Collections;
 
 import static org.icij.datashare.text.Project.project;
 import static org.icij.datashare.user.User.localUser;
@@ -29,37 +28,37 @@ public class WebAcceptanceTest extends AbstractProdWebServerTest {
     @Mock
     Repository jooqRepository;
     @Mock
-    CasbinRuleRepository jooqCasbinRuleRepository;
+    CasbinRuleAdapter jooqCasbinRuleRepository;
     @Mock
     UsersWritable users;
 
+    Authorizer authorizer;
     @Before
     public void setUp() throws Exception {
+        authorizer = new Authorizer(jooqCasbinRuleRepository);
         mocks = openMocks(this);
     }
 
+    public void tearDown() throws Exception {
+        mocks.close();
+    }
 
-    public User mockUserProjectRole(String userId, String projectId, Role[] roles) {
-        UserPolicy policy = new UserPolicy(userId, projectId, roles);
-        DatashareUser user = new DatashareUser(localUser(userId, Stream.of(policy)));
+    public User mockUserProjectRole(String userId, String projectId, Role role) {
+        authorizer.addRoleForUserInProject(userId, role, Domain.of(""), projectId);
+        DatashareUser user = new DatashareUser(localUser(userId, Collections.singletonList(projectId), authorizer.getPermissionsForUserInDomain(userId, Domain.of(""))));
         user.addProject(projectId);
         when(jooqRepository.getProject(projectId)).thenReturn(project(projectId));
         when(users.find(user.id)).thenReturn(user);
-
-        when(jooqCasbinRuleRepository.get(user.id, projectId)).thenReturn(policy);
         return user;
     }
 
     @Test
-    public void route_with_index_in_path_policy_annotation_accepts_user_with_same_policy() throws IOException, URISyntaxException {
-        User john = mockUserProjectRole("john", "test-datashare", new Role[]{Role.ADMIN});
-        when(jooqCasbinRuleRepository.getAllPolicies()).thenReturn(john.getPolicies());
-
-        UserPolicyVerifier verifier = new UserPolicyVerifier(jooqCasbinRuleRepository, users);
-        UserProjectPolicyAnnotation userProjectPolicyAnnotation = new UserProjectPolicyAnnotation(verifier);
+    public void route_with_index_in_path_policy_annotation_accepts_user_with_same_policy() throws URISyntaxException {
+        User john = mockUserProjectRole("john", "test-datashare", Role.PROJECT_ADMIN);
+        AuthorizationAnnotation authorizationAnnotation = new AuthorizationAnnotation(authorizer);
         Users users = DatashareUser.singleUser(john);
 
-        configure(routes -> routes.registerAroundAnnotation(ProjectPolicy.class, userProjectPolicyAnnotation).filter(new BasicAuthFilter("/", "icij", users)).add(new FakeResource()));
+        configure(routes -> routes.registerAroundAnnotation(Policy.class, authorizationAnnotation).filter(new BasicAuthFilter("/", "icij", users)).add(new FakeResource()));
 
         get("/admin/test-datashare").withPreemptiveAuthentication("john", "pass").should().respond(200);
     }
@@ -84,7 +83,7 @@ public class WebAcceptanceTest extends AbstractProdWebServerTest {
         }
 
         @Get("/admin/:index")
-        @ProjectPolicy(roles = {Role.ADMIN})
+        @Policy(role = Role.PROJECT_ADMIN)
         public String getAdminResource(String index) {
             return "admin-content " + index;
         }
