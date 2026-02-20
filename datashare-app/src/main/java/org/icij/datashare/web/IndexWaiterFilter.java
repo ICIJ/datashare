@@ -54,7 +54,9 @@ public class IndexWaiterFilter implements Filter {
                         break;
                     }
                 } catch (IOException|RuntimeException e) {
-                    LOGGER.info("Ping failed. Waiting for indexer to be up " + e);
+                    if (i % 10 == 0) {
+                        LOGGER.info("Ping failed. Waiting for indexer to be up " + e);
+                    }
                     try {
                         Thread.sleep(1000);
                     } catch (InterruptedException ie) {
