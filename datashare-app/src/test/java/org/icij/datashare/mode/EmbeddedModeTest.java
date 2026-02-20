@@ -8,7 +8,10 @@ import org.slf4j.event.Level;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
 
+import static java.lang.String.format;
 import static org.fest.assertions.Assertions.assertThat;
 
 public class EmbeddedModeTest {
@@ -42,6 +45,46 @@ public class EmbeddedModeTest {
 
         String content = Files.readString(settingsFile);
         assertThat(content).isEqualTo(originalContent);
+    }
+
+    @Test
+    public void test_buildElasticsearchArgs_with_quoted_values() throws Exception {
+        Path settingsFile = temporaryFolder.newFile("elasticsearch.yml").toPath();
+        String content = """
+                foo.bar: "/some/path"
+                #bar.baz: true
+                foo.bar.baz: false
+                quz.qux: 10%
+                """;
+        Files.writeString(settingsFile, content);
+
+        List<String> args = EmbeddedMode.buildElasticsearchArgs(settingsFile);
+
+        assertThat(args).containsOnly("-Efoo.bar=/some/path",
+                "-Equz.qux=10%",
+                "-Efoo.bar.baz=false");
+    }
+
+    @Test
+    public void test_buildElasticsearchArgs_with_win_path() throws Exception {
+        Path settingsFile = temporaryFolder.newFile("elasticsearch.yml").toPath();
+        String content = """
+                foo.bar: "C:\\some\\path"
+                bar.baz: "http://localhost:9200"
+                """;
+        Files.writeString(settingsFile, content);
+
+        List<String> args = EmbeddedMode.buildElasticsearchArgs(settingsFile);
+
+        assertThat(args).containsOnly("-Efoo.bar=C:\\some\\path",
+                "-Ebar.baz=http://localhost:9200");
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void test_buildElasticsearchArgs_with_nonexistent_file() throws Exception {
+        Path settingsFile = temporaryFolder.getRoot().toPath().resolve("nonexistent.yml");
+
+        EmbeddedMode.buildElasticsearchArgs(settingsFile);
     }
 
     // Helper methods that mirror the logic in EmbeddedMode for testing

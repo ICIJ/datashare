@@ -3,6 +3,8 @@ package org.icij.datashare.mode;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.icij.datashare.ExtensionService;
 import org.icij.datashare.OsArchDetector;
@@ -30,20 +32,19 @@ public class EmbeddedMode extends LocalMode {
     @Override
     protected void configure() {
         String elasticsearchSettings = propertiesProvider.get(ELASTICSEARCH_SETTINGS_OPT).orElse(DEFAULT_ELASTICSEARCH_SETTINGS);
-        createDefaultSettingsFileIfNeeded(elasticsearchSettings);
         String elasticsearchDir = propertiesProvider.get(ELASTICSEARCH_PATH_OPT).orElse(DEFAULT_ELASTICSEARCH_PATH);
         String elasticsearchDataPath = propertiesProvider.get(ELASTICSEARCH_DATA_PATH_OPT).orElseThrow(
                 () -> new IllegalArgumentException(
                         format("Missing required option %s.", ELASTICSEARCH_DATA_PATH_OPT))
         );
+        createDefaultSettingsFileIfNeeded(elasticsearchSettings, elasticsearchDataPath);
         logger.info("Starting Elasticsearch from local install {} within a new JVM.", elasticsearchDir);
         String elasticsearchScript = new OsArchDetector().isWindows() ? "elasticsearch.bat" : "elasticsearch";
+        List<String> args = buildElasticsearchArgs(Path.of(elasticsearchSettings));
+        args.add(0, format("%s/current/bin/%s", elasticsearchDir, elasticsearchScript));
         new Process(elasticsearchDir,
                 "elasticsearch",
-                new String[]{
-                        format("%s/current/bin/%s", elasticsearchDir, elasticsearchScript),
-                        format("-Epath.data=%s", elasticsearchDataPath),
-                        "-Expack.security.enabled=false"},
+                args.toArray(new String[0]),
                 9200).start();
         if (propertiesProvider.getProperties().contains(QueueType.AMQP.name())) {
             addCloseable(new QpidAmqpServer(AMQP_PORT).start());
@@ -67,10 +68,10 @@ public class EmbeddedMode extends LocalMode {
         super.configure();
     }
 
-    private void createDefaultSettingsFileIfNeeded(String settingsPath) {
+    private void createDefaultSettingsFileIfNeeded(String settingsPath, String dataPath) {
         Path settingsFile = Path.of(settingsPath);
         if (!settingsFileExists(settingsFile)) {
-            createDefaultSettingsFile(settingsFile);
+            createDefaultSettingsFile(settingsFile, dataPath);
         }
     }
 
@@ -78,18 +79,46 @@ public class EmbeddedMode extends LocalMode {
         return Files.exists(settingsFile);
     }
 
-    private void createDefaultSettingsFile(Path settingsFile) {
+    protected void createDefaultSettingsFile(Path settingsFile, String dataPath) {
         try {
             Path backupsDir = settingsFile.getParent().resolve("backups");
-            String defaultContent = String.format("""
-                    path.repo:
-                      - "%s"
-                    """, backupsDir);
+            String defaultContent = """
+                    path.data: "%s"
+                    path.repo: "%s"
+                    xpack.security.enabled: false
+                    indices.id_field_data.enabled: true
+                    cluster.routing.allocation.disk.watermark.low: 90%%
+                    cluster.routing.allocation.disk.watermark.high: 99%%
+                    cluster.routing.allocation.disk.watermark.flood_stage: 100%%
+                    """.formatted(dataPath, backupsDir);
             Files.createDirectories(settingsFile.getParent());
             Files.writeString(settingsFile, defaultContent);
             logger.info("Created default elasticsearch settings file at {}", settingsFile);
         } catch (IOException e) {
             logger.warn("Failed to create default elasticsearch settings file at {}: {}", settingsFile, e.getMessage());
         }
+    }
+
+    protected static List<String> buildElasticsearchArgs(Path settingsFile) {
+        List<String> args = new ArrayList<>();
+        try {
+            List<String> lines = Files.readAllLines(settingsFile);
+            for (String line : lines) {
+                line = line.trim();
+                if (line.isEmpty() || line.startsWith("#")) {
+                    continue;
+                }
+                if (line.contains(":")) {
+                    String[] parts = line.split(":", 2);
+                    String key = parts[0].trim();
+                    String value = parts[1].trim().replaceAll("^\\s*\"|\\s*\"$", "");
+                    args.add(format("-E%s=%s", key, value));
+                }
+            }
+            logger.info("loaded {} elasticsearch settings from {}", args.size(), settingsFile);
+        } catch (IOException e) {
+            throw new RuntimeException(format("failed to read elasticsearch settings from %s",settingsFile), e);
+        }
+        return args;
     }
 }
