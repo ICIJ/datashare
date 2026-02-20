@@ -14,7 +14,7 @@ import net.codestory.http.extensions.Extensions;
 import net.codestory.http.injection.GuiceAdapter;
 import net.codestory.http.misc.Env;
 import net.codestory.http.routes.Routes;
-import org.icij.datashare.CasbinRuleRepository;
+import org.icij.datashare.CasbinRuleAdapter;
 import org.icij.datashare.EnvUtils;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Repository;
@@ -346,7 +346,7 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
         bind(Repository.class).toInstance(repositoryFactory.createRepository());
         bind(ApiKeyRepository.class).toInstance(repositoryFactory.createApiKeyRepository());
         bind(BatchSearchRepository.class).toInstance(repositoryFactory.createBatchSearchRepository());
-        bind(CasbinRuleRepository.class).toInstance(repositoryFactory.createCasbinRuleRepository());
+        bind(CasbinRuleAdapter.class).toInstance(repositoryFactory.createCasbinRuleRepository());
 
         TaskRepositoryType taskRepositoryType = TaskRepositoryType.valueOf(propertiesProvider.get(TASK_REPOSITORY_OPT).orElse("DATABASE"));
         switch ( taskRepositoryType ) {
