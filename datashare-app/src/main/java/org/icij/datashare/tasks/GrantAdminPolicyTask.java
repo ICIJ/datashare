@@ -1,14 +1,15 @@
 package org.icij.datashare.tasks;
 
 import com.google.inject.assistedinject.Assisted;
-import org.icij.datashare.RecordNotFoundException;
 import org.icij.datashare.asynctasks.TaskGroup;
 import org.icij.datashare.asynctasks.TaskGroupType;
 import org.icij.datashare.asynctasks.temporal.ActivityOpts;
 import org.icij.datashare.asynctasks.temporal.TemporalSingleActivityWorkflow;
-import org.icij.datashare.session.UserPolicyVerifier;
+import org.icij.datashare.session.Authorizer;
 import org.icij.datashare.text.Project;
-import org.icij.datashare.user.*;
+import org.icij.datashare.user.Domain;
+import org.icij.datashare.user.User;
+import org.icij.datashare.user.UserTask;
 import org.icij.task.DefaultTask;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -19,27 +20,28 @@ import javax.inject.Inject;
 @TaskGroup(TaskGroupType.Java)
 public class GrantAdminPolicyTask extends DefaultTask<Boolean> implements UserTask {
     private final Logger logger = LoggerFactory.getLogger(getClass());
-    private final UserPolicyVerifier userPolicyVerifier;
+    private final Authorizer authorizer;
     private final User user;
     private final Project project;
+    private final Domain domain;
 
     @Inject
-    public GrantAdminPolicyTask(UserPolicyVerifier userPolicyVerifier, @Assisted User user, @Assisted Project project) {
-        this.userPolicyVerifier = userPolicyVerifier;
+    public GrantAdminPolicyTask(Authorizer authorizer, @Assisted User user, @Assisted Domain domain, @Assisted Project project) {
+        this.authorizer = authorizer;
         this.user = user;
+        this.domain = domain;
         this.project = project;
     }
 
     @Override
-    public Boolean call() throws Exception {
-        try {
-            userPolicyVerifier.saveUserPolicy(user.getId(), project.getId(), new Role[]{Role.ADMIN});
+    public Boolean call() {
+        if (authorizer.addProjectAdmin(user.getId(), domain, project.getId())) {
             logger.info("Admin role granted to user {} for project {}.", user.getId(), project.getId());
             return true;
-        } catch (RecordNotFoundException e) {
-            logger.error("Failed to grant admin role: {}", e.getMessage());
-            return false;
         }
+        ;
+        logger.error("Failed to grant admin role: {}", "Already exists or user/project not found.");
+        return false;
     }
 
     @Override
