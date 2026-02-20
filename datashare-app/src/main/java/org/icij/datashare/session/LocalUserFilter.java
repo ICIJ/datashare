@@ -39,7 +39,9 @@ public class LocalUserFilter extends CookieAuthFilter {
         String sessionId = readSessionIdInCookie(context);
         context.setCurrentUser(getUserWithEveryProjects());
         if (sessionId == null) {
-            return nextFilter.get().withCookie(this.authCookie(this.buildCookie(users.find("local"), "/")));
+            return nextFilter.get()
+                    .withCookie(this.authCookie(this.buildCookie(users.find("local"), "/")))
+                    .withCookie(CsrfFilter.csrfCookie(CsrfFilter.generateToken()));
         } else {
             return nextFilter.get();
         }

@@ -33,7 +33,9 @@ public class YesCookieAuthFilter extends CookieAuthFilter {
         if (payload.code() == 401) {
             User user = createUser(NameGenerator.generate());
             context.setCurrentUser(user);
-            return nextFilter.get().withCookie(this.authCookie(this.buildCookie(user, "/")));
+            return nextFilter.get()
+                    .withCookie(this.authCookie(this.buildCookie(user, "/")))
+                    .withCookie(CsrfFilter.csrfCookie(CsrfFilter.generateToken()));
         }
         return payload;
     }
