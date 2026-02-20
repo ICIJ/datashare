@@ -96,8 +96,9 @@ public class LocalUserFilterTest {
         LocalUserFilter localUserFilter = new LocalUserFilter(new PropertiesProvider(), jooqRepository);
         Payload payload = localUserFilter.apply("url", context, nextFilter);
 
-        assertThat(payload.cookies().size()).isEqualTo(1);
+        assertThat(payload.cookies().size()).isEqualTo(2);
         assertThat(payload.cookies().get(0).name()).isEqualTo("_ds_session_id");
         assertThat(payload.cookies().get(0).value()).contains("\"login\":\"local\"");
+        assertThat(payload.cookies().get(1).name()).isEqualTo("_ds_csrf_token");
     }
 }
