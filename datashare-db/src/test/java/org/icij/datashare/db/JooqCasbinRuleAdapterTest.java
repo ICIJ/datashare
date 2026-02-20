@@ -1,7 +1,9 @@
 package org.icij.datashare.db;
 
 import junit.framework.TestCase;
+import org.casbin.jcasbin.exception.CasbinAdapterException;
 import org.casbin.jcasbin.model.Model;
+import org.casbin.jcasbin.persist.file_adapter.FilteredAdapter.Filter;
 import org.icij.datashare.EnvUtils;
 import org.junit.AfterClass;
 import org.junit.Rule;
@@ -198,5 +200,97 @@ public class JooqCasbinRuleAdapterTest extends TestCase {
         model.addDef("p", "p", "sub, obj, act, v3, v4, v5");
         repository.loadPolicy(model);
         assertThat(model.hasPolicy("p", "p", asList("v0", "v1", "v2", "v3", "v4", "v5"))).isTrue();
+    }
+
+    @Test
+    public void test_loadFilteredPolicy_null_filter_loads_all_and_isFiltered_false() {
+        repository.addPolicy("p", "p", asList("alice", "data1", "read"));
+        repository.addPolicy("p", "p", asList("bob", "data2", "write"));
+        Model model = new Model();
+        model.addDef("p", "p", "sub, obj, act");
+        repository.loadFilteredPolicy(model, null);
+        assertThat(model.hasPolicy("p", "p", asList("alice", "data1", "read"))).isTrue();
+        assertThat(model.hasPolicy("p", "p", asList("bob", "data2", "write"))).isTrue();
+        assertThat(repository.isFiltered()).isFalse();
+    }
+
+    @Test
+    public void test_loadFilteredPolicy_with_valid_filter_loads_only_matching_and_isFiltered_true() {
+        repository.addPolicy("p", "p", asList("alice", "data1", "read"));
+        repository.addPolicy("p", "p", asList("bob", "data2", "write"));
+        Model model = new Model();
+        model.addDef("p", "p", "sub, obj, act");
+        Filter filter = new Filter();
+        filter.p = new String[]{"alice", null, null};
+        repository.loadFilteredPolicy(model, filter);
+        assertThat(model.hasPolicy("p", "p", asList("alice", "data1", "read"))).isTrue();
+        assertThat(model.hasPolicy("p", "p", asList("bob", "data2", "write"))).isFalse();
+        assertThat(repository.isFiltered()).isTrue();
+    }
+
+    @Test
+    public void test_loadFilteredPolicy_with_filter_matches_nothing() {
+        repository.addPolicy("p", "p", asList("alice", "data1", "read"));
+        Model model = new Model();
+        model.addDef("p", "p", "sub, obj, act");
+        Filter filter = new Filter();
+        filter.p = new String[]{"bob", null, null};
+        repository.loadFilteredPolicy(model, filter);
+        assertThat(model.getPolicy("p", "p").size()).isEqualTo(0);
+        assertThat(repository.isFiltered()).isTrue();
+    }
+
+    @Test(expected = CasbinAdapterException.class)
+    public void test_loadFilteredPolicy_with_invalid_filter_type_throws() {
+        repository.loadFilteredPolicy(new Model(), "not_a_filter");
+    }
+
+    @Test
+    public void test_loadFilteredPolicy_with_partial_filter() {
+        repository.addPolicy("p", "p", asList("alice", "data1", "read"));
+        repository.addPolicy("p", "p", asList("alice", "data2", "write"));
+        repository.addPolicy("p", "p", asList("bob", "data1", "read"));
+        Model model = new Model();
+        model.addDef("p", "p", "sub, obj, act");
+        Filter filter = new Filter();
+        filter.p = new String[]{"alice", null, null};
+        repository.loadFilteredPolicy(model, filter);
+        assertThat(model.hasPolicy("p", "p", asList("alice", "data1", "read"))).isTrue();
+        assertThat(model.hasPolicy("p", "p", asList("alice", "data2", "write"))).isTrue();
+        assertThat(model.hasPolicy("p", "p", asList("bob", "data1", "read"))).isFalse();
+        assertThat(repository.isFiltered()).isTrue();
+    }
+
+    @Test
+    public void test_loadFilteredPolicy_with_g_section() {
+        repository.addPolicy("g", "g", asList("alice", "group1"));
+        repository.addPolicy("g", "g", asList("bob", "group2"));
+        Model model = new Model();
+        model.addDef("g", "g", "_, _");
+        Filter filter = new Filter();
+        filter.g = new String[]{"alice", null};
+        repository.loadFilteredPolicy(model, filter);
+        assertThat(model.hasPolicy("g", "g", asList("alice", "group1"))).isTrue();
+        assertThat(model.hasPolicy("g", "g", asList("bob", "group2"))).isFalse();
+        assertThat(repository.isFiltered()).isTrue();
+    }
+
+    @Test
+    public void test_loadFilteredPolicy_with_g2_section_if_supported() {
+        // Only run if Filter has g2 field
+        try {
+            Filter filter = new Filter();
+            java.lang.reflect.Field g2Field = filter.getClass().getDeclaredField("g2");
+            repository.addPolicy("g2", "g2", asList("alice", "group3"));
+            repository.addPolicy("g2", "g2", asList("bob", "group4"));
+            Model model = new Model();
+            model.addDef("g2", "g2", "_, _");
+            g2Field.set(filter, new String[]{"alice", null});
+            repository.loadFilteredPolicy(model, filter);
+            assertThat(model.hasPolicy("g2", "g2", asList("alice", "group3"))).isTrue();
+            assertThat(model.hasPolicy("g2", "g2", asList("bob", "group4"))).isFalse();
+            assertThat(repository.isFiltered()).isTrue();
+        } catch (NoSuchFieldException | IllegalAccessException ignored) {
+        }
     }
 }
