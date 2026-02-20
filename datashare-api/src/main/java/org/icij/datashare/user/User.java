@@ -174,7 +174,7 @@ public class User implements Entity, Comparable<User> {
 
     @JsonIgnore
     public Map<String, Object> getDetails() {
-        Map<String, Object> detailsMap = details.entrySet().stream().
+        return details.entrySet().stream().
                 filter(k -> k.getValue() != null).
                 filter(k -> !k.getKey().equalsIgnoreCase("password")).
                 collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
@@ -217,6 +217,7 @@ public class User implements Entity, Comparable<User> {
                 Map.of("uid", id, keys[0], Map.of(keys[1], projectNames))
         );
     }
+
     public static User nullUser() { return new User((String)null);}
     @Override
     public int hashCode() { return Objects.hash(id);}
