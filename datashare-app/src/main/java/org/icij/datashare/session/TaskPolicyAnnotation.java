@@ -11,29 +11,26 @@ import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.asynctasks.UnknownTask;
 import org.icij.datashare.tasks.DatashareTaskManager;
 import org.icij.datashare.text.Project;
-import org.icij.datashare.user.Role;
-import org.icij.datashare.user.UserPolicy;
+import org.icij.datashare.user.Domain;
 import org.icij.datashare.web.TaskResource;
 
 import java.io.IOException;
 import java.io.Serializable;
 import java.net.URISyntaxException;
-import java.util.Arrays;
-import java.util.Optional;
 import java.util.function.Function;
 
 import static java.util.Optional.ofNullable;
 import static org.icij.datashare.PropertiesProvider.DEFAULT_PROJECT_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_DEFAULT_PROJECT;
 
-public class UserTaskPolicyAnnotation implements ApplyAroundAnnotation<TaskPolicy> {
+public class TaskPolicyAnnotation implements ApplyAroundAnnotation<TaskPolicy> {
 
-    private final UserPolicyVerifier userPolicyVerifier;
+    private final Authorizer authorizer;
     private final DatashareTaskManager taskManager;
 
     @Inject
-    public UserTaskPolicyAnnotation(final UserPolicyVerifier userPolicyVerifier, final DatashareTaskManager taskManager) throws URISyntaxException {
-        this.userPolicyVerifier = userPolicyVerifier;
+    public TaskPolicyAnnotation(final Authorizer userPolicyVerifier, final DatashareTaskManager taskManager) throws URISyntaxException {
+        this.authorizer = userPolicyVerifier;
         this.taskManager = taskManager;
 
     }
@@ -68,28 +65,13 @@ public class UserTaskPolicyAnnotation implements ApplyAroundAnnotation<TaskPolic
             if (projectId == null) {
                 return Payload.forbidden();
             }
-            Optional<UserPolicy> policy = Optional.ofNullable(this.userPolicyVerifier.getUserPolicy(user.id, projectId));
-            if (policy.isEmpty()) {
+            if (!authorizer.can(user.id, Domain.of(""), projectId, annotation.role())) {
                 return Payload.forbidden();
             }
+            return payloadSupplier.apply(context);
 
-            boolean hasAdminRole = Arrays.stream(annotation.roles())
-                    .anyMatch(role -> role == Role.ADMIN);
-            // except if they are admin and ADMIN role is in the annotation.
-            // non admin users are forbidden from accessing tasks that they don't own
-            if (hasAdminRole && !policy.get().isAdmin()) {
-                forbiddenIfNotSameUser(context, taskView);
-            }
-
-
-            return enforcePolicyRoles(annotation, policy.get()) ? payloadSupplier.apply(context) : Payload.forbidden();
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
-
-    }
-
-    private boolean enforcePolicyRoles(TaskPolicy annotation, UserPolicy userPolicy) {
-        return Arrays.stream(annotation.roles()).allMatch(role -> userPolicyVerifier.enforce(userPolicy.userId(), userPolicy.projectId(), role.name()));
     }
 }
