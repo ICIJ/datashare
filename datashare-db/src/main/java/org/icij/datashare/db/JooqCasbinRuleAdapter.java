@@ -1,7 +1,9 @@
 package org.icij.datashare.db;
 
+import org.casbin.jcasbin.exception.CasbinAdapterException;
 import org.casbin.jcasbin.model.Model;
 import org.casbin.jcasbin.persist.Helper;
+import org.casbin.jcasbin.persist.file_adapter.FilteredAdapter.Filter;
 import org.icij.datashare.CasbinRule;
 import org.icij.datashare.CasbinRuleAdapter;
 import org.icij.datashare.db.tables.records.CasbinRuleRecord;
@@ -15,8 +17,8 @@ import java.util.Arrays;
 import java.util.List;
 
 import static org.icij.datashare.db.Tables.CASBIN_RULE;
+import static org.jooq.impl.DSL.trueCondition;
 import static org.jooq.impl.DSL.using;
-
 
 public class JooqCasbinRuleAdapter implements CasbinRuleAdapter {
 
@@ -24,6 +26,7 @@ public class JooqCasbinRuleAdapter implements CasbinRuleAdapter {
     private final DataSource connectionProvider;
     private final SQLDialect dialect;
     private final int batchSize;
+    private boolean isFiltered = false;
 
     public JooqCasbinRuleAdapter(DataSource connectionProvider, SQLDialect dialect) {
         this(connectionProvider, dialect, determineBatchSize(dialect));
@@ -281,5 +284,74 @@ public class JooqCasbinRuleAdapter implements CasbinRuleAdapter {
                 logger.debug("Updated policy: ptype={}", ptype);
             });
         }
+    }
+
+    @Override
+    public void loadFilteredPolicy(Model model, Object filter) throws CasbinAdapterException {
+        if (filter == null) {
+            loadPolicy(model);
+            isFiltered = false;
+            return;
+        }
+        if (!(filter instanceof Filter f)) {
+            isFiltered = false;
+            throw new CasbinAdapterException("Invalid filter type.");
+        }
+        isFiltered = true;
+        DSLContext ctx = using(connectionProvider, dialect);
+        // Handle each section: p, g, g2
+        loadFilteredSectionPolicy(ctx, model, "p", f.p);
+        loadFilteredSectionPolicy(ctx, model, "g", f.g);
+        // Only check g2 if present in the Filter class
+        try {
+            java.lang.reflect.Field g2Field = f.getClass().getDeclaredField("g2");
+            g2Field.setAccessible(true);
+            Object g2Value = g2Field.get(f);
+            if (g2Value instanceof String[] g2Arr) {
+                loadFilteredSectionPolicy(ctx, model, "g2", g2Arr);
+            }
+        } catch (NoSuchFieldException | IllegalAccessException ignored) {
+        }
+    }
+
+    private void loadFilteredSectionPolicy(DSLContext ctx, Model model, String section, String[] filterSlice) {
+        if (filterSlice == null) return;
+        // Build query for section and filterSlice
+        Condition condition = CASBIN_RULE.PTYPE.eq(section);
+        for (int i = 0; i < filterSlice.length; i++) {
+            String value = filterSlice[i];
+            if (value != null && !value.isEmpty()) {
+                condition = condition.and(getFieldCondition(i, value));
+            }
+        }
+        List<CasbinRuleRecord> records = ctx.selectFrom(CASBIN_RULE).where(condition).fetch();
+        for (CasbinRuleRecord record : records) {
+            CasbinRule line = new CasbinRule();
+            line.ptype = record.get(CASBIN_RULE.PTYPE);
+            line.v0 = record.get(CASBIN_RULE.V0) != null ? record.get(CASBIN_RULE.V0) : "";
+            line.v1 = record.get(CASBIN_RULE.V1) != null ? record.get(CASBIN_RULE.V1) : "";
+            line.v2 = record.get(CASBIN_RULE.V2) != null ? record.get(CASBIN_RULE.V2) : "";
+            line.v3 = record.get(CASBIN_RULE.V3) != null ? record.get(CASBIN_RULE.V3) : "";
+            line.v4 = record.get(CASBIN_RULE.V4) != null ? record.get(CASBIN_RULE.V4) : "";
+            line.v5 = record.get(CASBIN_RULE.V5) != null ? record.get(CASBIN_RULE.V5) : "";
+            loadPolicyLine(line, model);
+        }
+    }
+
+    private Condition getFieldCondition(int columnIndex, String value) {
+        return switch (columnIndex) {
+            case 0 -> CASBIN_RULE.V0.eq(value);
+            case 1 -> CASBIN_RULE.V1.eq(value);
+            case 2 -> CASBIN_RULE.V2.eq(value);
+            case 3 -> CASBIN_RULE.V3.eq(value);
+            case 4 -> CASBIN_RULE.V4.eq(value);
+            case 5 -> CASBIN_RULE.V5.eq(value);
+            default -> trueCondition();
+        };
+    }
+
+    @Override
+    public boolean isFiltered() {
+        return isFiltered;
     }
 }
