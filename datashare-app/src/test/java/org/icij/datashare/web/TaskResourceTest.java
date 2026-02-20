@@ -7,6 +7,7 @@ import net.codestory.http.filters.basic.BasicAuthFilter;
 import net.codestory.rest.Response;
 import net.codestory.rest.RestAssert;
 import net.codestory.rest.ShouldChain;
+import org.icij.datashare.CasbinRuleAdapter;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.asynctasks.TaskFilters;
@@ -24,10 +25,9 @@ import org.icij.datashare.tasks.*;
 import org.icij.datashare.test.DatashareTimeRule;
 import org.icij.datashare.text.ProjectProxy;
 import org.icij.datashare.text.nlp.AbstractModels;
-import org.icij.datashare.user.CasbinRuleRepository;
+import org.icij.datashare.user.Domain;
 import org.icij.datashare.user.Role;
 import org.icij.datashare.user.User;
-import org.icij.datashare.user.UserPolicy;
 import org.icij.datashare.web.testhelpers.AbstractProdWebServerTest;
 import org.jetbrains.annotations.NotNull;
 import org.junit.After;
@@ -40,7 +40,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.InetSocketAddress;
 import java.util.*;
-import java.util.stream.Stream;
 
 import static java.lang.String.format;
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -72,8 +71,9 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
     private static final TaskManagerMemory taskManager = new TaskManagerMemory(taskFactory, new TaskRepositoryMemory(), new PropertiesProvider(Map.of(TASK_MANAGER_POLLING_INTERVAL_OPT, "500")));
 
     @Mock
-    CasbinRuleRepository casbinRuleRepository;
+    CasbinRuleAdapter casbinRuleRepository;
 
+    Authorizer authorizer;
     @After
     public void tearDown() throws IOException {
         taskManager.stopTasks(User.local());
@@ -682,24 +682,19 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
 
         // Setup admin user
         DatashareUser admin = new DatashareUser("admin");
-        UserPolicy adminPolicy = new UserPolicy("admin", projectId, new Role[]{Role.ADMIN});
+        authorizer.addProjectAdmin("admin", Domain.of(""), projectId);
         when(users.find("admin", "pass")).thenReturn(admin);
-        when(casbinRuleRepository.get("admin", projectId)).thenReturn(adminPolicy);
 
         // Setup non-admin user
         DatashareUser john = new DatashareUser("john");
-        UserPolicy johnPolicy = new UserPolicy("john", projectId, new Role[]{Role.READER});
+        authorizer.addRoleForUserInProject("john", Role.PROJECT_MEMBER, Domain.of(""), projectId);
         when(users.find("john", "pass")).thenReturn(john);
-        when(casbinRuleRepository.get("john", projectId)).thenReturn(johnPolicy);
-
-        when(casbinRuleRepository.getAllPolicies()).thenReturn(Stream.of(johnPolicy, adminPolicy));
-        UserPolicyVerifier verifier = new UserPolicyVerifier(casbinRuleRepository, users);
-        UserTaskPolicyAnnotation userTaskPolicyAnnotation = new UserTaskPolicyAnnotation(verifier, taskManager);
+        TaskPolicyAnnotation taskPolicyAnnotation = new TaskPolicyAnnotation(authorizer, taskManager);
 
         configure(routes -> routes
                 .filter(new BasicAuthFilter("/", "icij", users))
-                .registerAroundAnnotation(TaskPolicy.class, userTaskPolicyAnnotation)
-                .add(new UserPolicyResource(verifier))
+                .registerAroundAnnotation(TaskPolicy.class, taskPolicyAnnotation)
+                .add(new PolicyResource(authorizer))
                 .add(new TaskResource(taskFactory, taskManager, getDefaultPropertiesProvider(), batchSearchRepository))
         );
 
