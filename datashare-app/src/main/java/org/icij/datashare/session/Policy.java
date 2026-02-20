@@ -9,9 +9,8 @@ import java.lang.annotation.Target;
 
 @Target({ElementType.METHOD, ElementType.TYPE})
 @Retention(RetentionPolicy.RUNTIME)
-public @interface ProjectPolicy {
+public @interface Policy {
     String idParam() default "index";
 
-    Role[] roles() default {};
-
+    Role role() default Role.PROJECT_MEMBER;
 }

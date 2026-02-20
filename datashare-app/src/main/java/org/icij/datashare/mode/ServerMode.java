@@ -68,7 +68,7 @@ public class ServerMode extends CommonMode {
     }
 
     protected void addPermissionConfiguration(final Routes routes) {
-        routes.registerAfterAnnotation(ProjectPolicy.class, (annotation, context, payload) -> payload);
+        routes.registerAfterAnnotation(Policy.class, (annotation, context, payload) -> payload);
     }
 
     @Override
@@ -78,7 +78,7 @@ public class ServerMode extends CommonMode {
                 add(TaskResource.class).
                 add(IndexResource.class).
                 add(UserResource.class).
-                add(UserPolicyResource.class).
+                add(PolicyResource.class).
                 add(NamedEntityResource.class).
                 add(DocumentResource.class).
                 add(DocumentUserRecommendationResource.class).
