@@ -1,9 +1,6 @@
-package org.icij.datashare.session;
+package org.icij.datashare.policies;
 
 import junit.framework.TestCase;
-import org.icij.datashare.policies.CasbinRuleAdapter;
-import org.icij.datashare.policies.Domain;
-import org.icij.datashare.policies.Role;
 import org.mockito.Mockito;
 
 import java.util.List;
@@ -18,7 +15,7 @@ public class AuthorizerTest extends TestCase {
     public void setUp() throws Exception {
         super.setUp();
         adapter = Mockito.mock(CasbinRuleAdapter.class);
-        authorizer = new Authorizer(adapter);
+        authorizer = new Authorizer(adapter, false);
         domain = Domain.of("test_domain");
         userId = "test_user";
         project = "test_project";
@@ -83,5 +80,10 @@ public class AuthorizerTest extends TestCase {
     public void test_get_roles_for_user_in_project() {
         List<String> roles = authorizer.getRolesForUserInProject(userId, domain, project);
         assertNotNull(roles);
+    }
+
+    public void test_role_hierarchy_with_g2() {
+        authorizer.addProjectAdmin("alice", Domain.of("icij"), "project1");
+        assertTrue(authorizer.can("alice", Domain.of("icij"), "project1", "PROJECT_MEMBER"));
     }
 }
