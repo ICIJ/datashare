@@ -120,6 +120,7 @@ public final class DatashareCliOptions {
     public static final String SESSION_SIGNING_KEY_OPT = "sessionSigningKey";
     public static final String SESSION_STORE_TYPE_OPT = "sessionStoreType";
     public static final String SESSION_TTL_SECONDS_OPT = "sessionTtlSeconds";
+    public static final String STATUS_ALLOWED_NETS_OPT = "statusAllowedNets";
     public static final String SETTING_ABBR_OPT = "s";
     public static final String SMTP_URL_OPT = "smtpUrl";
     public static final String TEMPORAL_NAMESPACE_OPT = "temporalNamespace";
@@ -141,6 +142,7 @@ public final class DatashareCliOptions {
     private static final Integer DEFAULT_PARALLELISM = Runtime.getRuntime().availableProcessors() == 1 ? 2 : Runtime.getRuntime().availableProcessors();
     private static final Integer DEFAULT_PARSER_PARALLELISM = 1;
     public static final DigestAlgorithm DEFAULT_DIGEST_METHOD = DigestAlgorithm.SHA_384;
+    public static final String DEFAULT_STATUS_ALLOWED_NETS = "127.0.0.0/8,::1/128";
     public static final String DEFAULT_DATA_DIR = Paths.get(System.getProperty("user.home")).resolve("Datashare").toString();
     public static final Mode DEFAULT_MODE = Mode.LOCAL;
     public static final QueueType DEFAULT_BATCH_QUEUE_TYPE = QueueType.MEMORY;
@@ -860,6 +862,14 @@ public final class DatashareCliOptions {
                 .withRequiredArg()
                 .ofType(QueueType.class)
                 .defaultsTo(DEFAULT_SESSION_STORE_TYPE);
+    }
+
+    public static void statusAllowedNets(OptionParser parser) {
+        parser.acceptsAll(
+                singletonList(STATUS_ALLOWED_NETS_OPT), "Comma-separated CIDR list for unauthenticated access to /api/status")
+                .withRequiredArg()
+                .ofType(String.class)
+                .defaultsTo(DEFAULT_STATUS_ALLOWED_NETS);
     }
 
     public static void digestMethod(OptionParser parser) {
