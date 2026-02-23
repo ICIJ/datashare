@@ -207,6 +207,7 @@ public class DatashareCli {
         DatashareCliOptions.taskProgressUpdateInterval(parser);
         DatashareCliOptions.taskWorkers(parser);
         DatashareCliOptions.temporalNamespaceOpt(parser);
+        DatashareCliOptions.statusAllowedNets(parser);
         return parser;
     }
 
