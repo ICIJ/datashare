@@ -74,12 +74,10 @@ public class StatusCidrFilter implements Filter {
     /**
      * Applies the CIDR-based access control logic.
      *
-     * <ul>
-     *   <li>If the user is already authenticated, delegates to the next filter.</li>
-     *   <li>If the client IP matches an allowed CIDR, calls {@link StatusResource#getStatus} directly,
-     *       bypassing the rest of the filter chain.</li>
-     *   <li>Otherwise, returns a 403 JSON error response.</li>
-     * </ul>
+     * If the user is already authenticated, delegates to the next filter.
+     * If the client IP matches an allowed CIDR, calls StatusResource.getStatus directly,
+     * bypassing the rest of the filter chain.
+     * Otherwise, returns a 403 JSON error response.
      */
     @Override
     public Payload apply(String uri, Context context, PayloadSupplier nextFilter) throws Exception {
