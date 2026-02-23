@@ -23,16 +23,16 @@ public class GrantAdminPolicyTaskTest {
     public void test_call_grant_admin_for_existing_user_and_project() {
         ArgumentCaptor<String> userId = ArgumentCaptor.forClass(String.class);
         ArgumentCaptor<String> projectId = ArgumentCaptor.forClass(String.class);
-        ArgumentCaptor<String> domainId = ArgumentCaptor.forClass(String.class);
+        ArgumentCaptor<Domain> domain = ArgumentCaptor.forClass(Domain.class);
         Project project = Project.project("local-datashare");
         when(authorizer.addProjectAdmin(any(), any(), any())).thenReturn(true);
 
         assertThat(new GrantAdminPolicyTask(authorizer, User.local(), Domain.of(""), project).call()).isTrue();
 
-        verify(authorizer).addProjectAdmin(userId.capture(), Domain.of(domainId.capture()), projectId.capture());
+        verify(authorizer).addProjectAdmin(userId.capture(), domain.capture(), projectId.capture());
 
         assertThat(userId.getValue()).isEqualTo(User.local().getId());
-        assertThat(domainId.getValue()).isEqualTo("");
+        assertThat(domain.getValue().id()).isEqualTo("");
         assertThat(projectId.getValue()).isEqualTo(project.getId());
     }
 
