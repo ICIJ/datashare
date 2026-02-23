@@ -19,9 +19,9 @@
     import org.icij.datashare.cli.DatashareCliOptions;
     import org.icij.datashare.cli.Mode;
     import org.icij.datashare.extract.DocumentCollectionFactory;
+    import org.icij.datashare.policies.Policy;
     import org.icij.datashare.policies.Role;
     import org.icij.datashare.session.DatashareUser;
-    import org.icij.datashare.session.Policy;
     import org.icij.datashare.tasks.DatashareTaskManager;
     import org.icij.datashare.text.Project;
     import org.icij.datashare.text.indexing.Indexer;
