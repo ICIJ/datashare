@@ -47,22 +47,17 @@ public class StatusCidrFilter implements Filter {
      *
      * @param propertiesProvider provides the comma-separated CIDR list (defaults to {@code 127.0.0.0/8,::1/128})
      * @param statusResource     the resource called directly when access is granted
-     * @throws IllegalArgumentException if any CIDR entry is invalid
+     * @throws InvalidCidrException if any CIDR entry is invalid
      */
     @Inject
     public StatusCidrFilter(PropertiesProvider propertiesProvider, StatusResource statusResource) {
         this.statusResource = statusResource;
         String nets = propertiesProvider.get(STATUS_ALLOWED_NETS_OPT).orElse(DEFAULT_STATUS_ALLOWED_NETS);
-        try {
-            this.allowedNets = Arrays.stream(nets.split(","))
-                    .map(String::trim)
-                    .filter(s -> !s.isEmpty())
-                    .map(StatusCidrFilter::parseCidr)
-                    .collect(Collectors.toList());
-        } catch (IllegalArgumentException e) {
-            String message = String.format("invalid value for --%s \"%s\": %s", STATUS_ALLOWED_NETS_OPT, nets, e.getMessage());
-            throw new IllegalArgumentException(message, e);
-        }
+        this.allowedNets = Arrays.stream(nets.split(","))
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .map(StatusCidrFilter::parseCidr)
+                .collect(Collectors.toList());
         logger.info("status endpoint allows unauthenticated access from CIDRs: {}", allowedNets);
     }
 
@@ -126,7 +121,7 @@ public class StatusCidrFilter implements Filter {
     static boolean isInSubnet(InetAddress addr, String cidr) {
         try {
             return isInSubnet(addr, parseCidr(cidr));
-        } catch (IllegalArgumentException e) {
+        } catch (InvalidCidrException e) {
             return false;
         }
     }
@@ -148,27 +143,27 @@ public class StatusCidrFilter implements Filter {
      *
      * @param cidr the CIDR string (e.g. {@code "192.168.1.0/24"})
      * @return the parsed {@link CidrBlock}
-     * @throws IllegalArgumentException if the format is invalid, the host is unresolvable,
-     *                                  or the prefix length is out of range
+     * @throws InvalidCidrException if the format is invalid, the host is unresolvable,
+     *                              or the prefix length is out of range
      */
     private static CidrBlock parseCidr(String cidr) {
         String[] parts = cidr.split("/");
         if (parts.length != 2) {
-            throw new IllegalArgumentException("expected format \"address/prefix\"");
+            throw new InvalidCidrException(cidr, "expected format \"address/prefix\"");
         }
         try {
             InetAddress network = InetAddress.getByName(parts[0]);
             int prefixLength = Integer.parseInt(parts[1]);
             int maxPrefix = network.getAddress().length * 8;
             if (prefixLength < 0 || prefixLength > maxPrefix) {
-                throw new IllegalArgumentException(
-                        "prefix length " + prefixLength + " must be between 0 and " + maxPrefix);
+                throw new InvalidCidrException(cidr,
+                        String.format("prefix length %d must be between 0 and %d", prefixLength, maxPrefix));
             }
             return new CidrBlock(network, prefixLength);
         } catch (UnknownHostException e) {
-            throw new IllegalArgumentException("cannot resolve network address: " + e.getMessage());
+            throw new InvalidCidrException(cidr, "cannot resolve network address", e);
         } catch (NumberFormatException e) {
-            throw new IllegalArgumentException("invalid prefix length: " + e.getMessage());
+            throw new InvalidCidrException(cidr, "invalid prefix length", e);
         }
     }
 
@@ -219,6 +214,20 @@ public class StatusCidrFilter implements Filter {
     private static boolean partialByteMatches(byte addrByte, byte networkByte, int significantBits) {
         int mask = (0xFF << (8 - significantBits)) & 0xFF;
         return (addrByte & mask) == (networkByte & mask);
+    }
+
+    /**
+     * Thrown when a CIDR notation string cannot be parsed.
+     * The message includes the invalid value and the reason for rejection.
+     */
+    static class InvalidCidrException extends RuntimeException {
+        InvalidCidrException(String cidr, String reason) {
+            super(String.format("invalid CIDR notation \"%s\": %s", cidr, reason));
+        }
+
+        InvalidCidrException(String cidr, String reason, Throwable cause) {
+            super(String.format("invalid CIDR notation \"%s\": %s", cidr, reason), cause);
+        }
     }
 
     /**
