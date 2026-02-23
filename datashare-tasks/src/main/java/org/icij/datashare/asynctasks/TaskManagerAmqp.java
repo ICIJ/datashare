@@ -86,7 +86,7 @@ public class TaskManagerAmqp extends StoreAndQueueTaskManagerImpl {
     @Override
     public <V extends Serializable> void enqueue(Task<V> task) throws IOException {
         switch (routingStrategy) {
-            case GROUP -> amqp.publish(AmqpQueue.TASK, this.tasks.getTaskGroup(task.id).id().name(), task);
+            case GROUP -> amqp.publish(AmqpQueue.TASK, this.tasks.getTaskGroup(task.id).id(), task);
             case NAME -> amqp.publish(AmqpQueue.TASK, task.name, task);
             default -> amqp.publish(AmqpQueue.TASK, task);
         }

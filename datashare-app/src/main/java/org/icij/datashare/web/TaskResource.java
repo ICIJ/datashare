@@ -212,7 +212,7 @@ public class TaskResource {
     @ApiResponse(responseCode = "404", description = "returns 404 if the task doesn't exist")
     @Put("/:id")
     public <V extends Serializable> Payload createTask(@Parameter(name = "id", description = "task id", required = true, in = ParameterIn.PATH) String id,  Context context, Task<V> taskView) throws IOException {
-        Group taskGroup = Optional.ofNullable(context.get("group")).map(g -> new Group(TaskGroupType.valueOf(g))).orElse(null);
+        Group taskGroup = Optional.ofNullable(context.get("group")).map(Group::new).orElse(null);
         if (taskView == null || id == null || !Objects.equals(taskView.id, id)) {
             return new JsonPayload(400, new ErrorResponse("body should contain a taskView, URL id should be present and equal to body id"));
         }

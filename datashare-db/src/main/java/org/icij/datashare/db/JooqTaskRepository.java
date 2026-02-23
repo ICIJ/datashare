@@ -12,7 +12,6 @@ import org.icij.datashare.asynctasks.Group;
 import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.asynctasks.TaskAlreadyExists;
 import org.icij.datashare.asynctasks.TaskFilters;
-import org.icij.datashare.asynctasks.TaskGroupType;
 import org.icij.datashare.asynctasks.TaskRepository;
 import org.icij.datashare.asynctasks.TaskResult;
 import org.icij.datashare.asynctasks.UnknownTask;
@@ -124,7 +123,7 @@ public class JooqTaskRepository implements TaskRepository {
             )
             .map(r -> r.get(TASK.GROUP_ID))
             .orElseThrow(() -> new UnknownTask(taskId));
-        return new Group(TaskGroupType.valueOf(groupId));
+        return new Group(groupId);
     }
 
     @Override
