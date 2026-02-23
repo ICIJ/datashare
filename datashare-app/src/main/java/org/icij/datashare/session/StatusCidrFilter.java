@@ -38,27 +38,30 @@ public class StatusCidrFilter implements Filter {
     private static final Logger logger = LoggerFactory.getLogger(StatusCidrFilter.class);
     static final String STATUS_PATH = "/api/status";
 
-    private final List<String> allowedNets;
+    private final List<CidrBlock> allowedNets;
     private final StatusResource statusResource;
 
     /**
      * Creates a new filter with CIDR subnets read from the {@code statusAllowedNets} property.
+     * All CIDR entries are parsed and validated eagerly at construction time.
      *
      * @param propertiesProvider provides the comma-separated CIDR list (defaults to {@code 127.0.0.0/8,::1/128})
      * @param statusResource     the resource called directly when access is granted
+     * @throws IllegalArgumentException if any CIDR entry is invalid
      */
     @Inject
     public StatusCidrFilter(PropertiesProvider propertiesProvider, StatusResource statusResource) {
         this.statusResource = statusResource;
         String nets = propertiesProvider.get(STATUS_ALLOWED_NETS_OPT).orElse(DEFAULT_STATUS_ALLOWED_NETS);
-        this.allowedNets = Arrays.stream(nets.split(","))
-                .map(String::trim)
-                .filter(s -> !s.isEmpty())
-                .collect(Collectors.toList());
-        for (String cidr : allowedNets) {
-            if (!isValidCidr(cidr)) {
-                logger.warn("invalid CIDR notation \"{}\" in {} configuration, it will be ignored", cidr, STATUS_ALLOWED_NETS_OPT);
-            }
+        try {
+            this.allowedNets = Arrays.stream(nets.split(","))
+                    .map(String::trim)
+                    .filter(s -> !s.isEmpty())
+                    .map(StatusCidrFilter::parseCidr)
+                    .collect(Collectors.toList());
+        } catch (IllegalArgumentException e) {
+            String message = String.format("invalid value for --%s \"%s\": %s", STATUS_ALLOWED_NETS_OPT, nets, e.getMessage());
+            throw new IllegalArgumentException(message, e);
         }
         logger.info("status endpoint allows unauthenticated access from CIDRs: {}", allowedNets);
     }
@@ -104,8 +107,8 @@ public class StatusCidrFilter implements Filter {
      * @return {@code true} if the address is within at least one allowed subnet
      */
     private boolean isAllowed(InetAddress clientAddr) {
-        for (String cidr : allowedNets) {
-            if (isInSubnet(clientAddr, cidr)) {
+        for (CidrBlock block : allowedNets) {
+            if (isInSubnet(clientAddr, block)) {
                 return true;
             }
         }
@@ -114,22 +117,30 @@ public class StatusCidrFilter implements Filter {
 
     /**
      * Tests whether an IP address falls within a CIDR block.
-     * Supports both IPv4 and IPv6; returns {@code false} on address family mismatch
-     * or invalid CIDR notation.
+     * Supports both IPv4 and IPv6; returns {@code false} on address family mismatch.
      *
      * @param addr the IP address to test
-     * @param cidr the CIDR block in {@code "address/prefix"} notation (e.g. {@code "10.0.0.0/8"})
+     * @param cidr the CIDR block in "address/prefix" notation (e.g. "10.0.0.0/8")
      * @return {@code true} if the address is inside the subnet
      */
     static boolean isInSubnet(InetAddress addr, String cidr) {
         try {
-            CidrBlock block = parseCidr(cidr);
-            return isSameAddressFamily(addr, block.network)
-                    && prefixMatches(addr.getAddress(), block.network.getAddress(), block.prefixLength);
+            return isInSubnet(addr, parseCidr(cidr));
         } catch (IllegalArgumentException e) {
-            logger.warn("skipping CIDR \"{}\": {}", cidr, e.getMessage());
             return false;
         }
+    }
+
+    /**
+     * Tests whether an IP address falls within a pre-parsed CIDR block.
+     *
+     * @param addr  the IP address to test
+     * @param block the parsed CIDR block
+     * @return {@code true} if the address is inside the subnet
+     */
+    private static boolean isInSubnet(InetAddress addr, CidrBlock block) {
+        return isSameAddressFamily(addr, block.network)
+                && prefixMatches(addr.getAddress(), block.network.getAddress(), block.prefixLength);
     }
 
     /**
@@ -211,21 +222,6 @@ public class StatusCidrFilter implements Filter {
     }
 
     /**
-     * Checks whether a CIDR string can be parsed without errors.
-     *
-     * @param cidr the CIDR string to validate
-     * @return {@code true} if the string is valid CIDR notation
-     */
-    private static boolean isValidCidr(String cidr) {
-        try {
-            parseCidr(cidr);
-            return true;
-        } catch (IllegalArgumentException e) {
-            return false;
-        }
-    }
-
-    /**
      * Holds a parsed CIDR block: a network base address and its prefix length.
      */
     private static class CidrBlock {
@@ -235,6 +231,11 @@ public class StatusCidrFilter implements Filter {
         CidrBlock(InetAddress network, int prefixLength) {
             this.network = network;
             this.prefixLength = prefixLength;
+        }
+
+        @Override
+        public String toString() {
+            return network.getHostAddress() + "/" + prefixLength;
         }
     }
 }

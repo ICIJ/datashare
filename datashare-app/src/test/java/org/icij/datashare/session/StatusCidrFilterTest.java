@@ -170,6 +170,13 @@ public class StatusCidrFilterTest {
                 InetAddress.getByName("127.0.0.1"), "::1/128")).isFalse();
     }
 
+    @Test(expected = IllegalArgumentException.class)
+    public void test_invalid_cidr_fails_at_construction() {
+        HashMap<String, Object> props = new HashMap<>();
+        props.put("statusAllowedNets", "not-a-cidr");
+        createFilter(props);
+    }
+
     private StatusCidrFilter createFilter(HashMap<String, Object> properties) {
         PropertiesProvider provider = new PropertiesProvider(properties);
         return new StatusCidrFilter(provider, statusResource);
