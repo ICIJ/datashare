@@ -1,14 +1,10 @@
-package org.icij.datashare.session;
+package org.icij.datashare.policies;
 
 import org.apache.commons.io.IOUtils;
 import org.casbin.jcasbin.main.Enforcer;
 import org.casbin.jcasbin.model.Model;
 import org.casbin.jcasbin.rbac.DomainManager;
 import org.casbin.jcasbin.util.BuiltInFunctions;
-import org.icij.datashare.policies.CasbinRule;
-import org.icij.datashare.policies.CasbinRuleAdapter;
-import org.icij.datashare.policies.Domain;
-import org.icij.datashare.policies.Role;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -25,15 +21,20 @@ public class Authorizer {
     private final Enforcer enforcer;
 
     public Authorizer(CasbinRuleAdapter adapter) {
+        this(adapter, true);
+    }
+
+    public Authorizer(CasbinRuleAdapter adapter, boolean enableAutoSave) {
         Model model = new Model();
         try {
-            model.loadModelFromText(loadCasbinConf(DEFAULT_POLICY_FILE));
+            String modelConf = loadCasbinConf(DEFAULT_POLICY_FILE);
+            model.loadModelFromText(modelConf);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
         enforcer = new Enforcer(model, adapter);
         enforcer.setRoleManager(new DomainManager(10, null, BuiltInFunctions::allMatch));
-        enforcer.enableAutoSave(true);
+        enforcer.enableAutoSave(enableAutoSave);
         enforcer.loadPolicy();
         initializeRoleHierarchy();
     }
@@ -53,13 +54,17 @@ public class Authorizer {
         addRoleHierarchy(Role.DOMAIN_ADMIN, Role.INSTANCE_ADMIN);
         addRoleHierarchy(Role.PROJECT_MEMBER, Role.DOMAIN_ADMIN);
         addRoleHierarchy(Role.PROJECT_ADMIN, Role.PROJECT_EDITOR);
-        addRoleHierarchy(Role.PROJECT_EDITOR, Role.PROJECT_ADMIN);
-        addRoleHierarchy(Role.PROJECT_MEMBER, Role.PROJECT_EDITOR);
-        addRoleHierarchy(Role.PROJECT_VISITOR, Role.PROJECT_MEMBER);
+        addRoleHierarchy(Role.PROJECT_EDITOR, Role.PROJECT_MEMBER);
+        addRoleHierarchy(Role.PROJECT_MEMBER, Role.PROJECT_VISITOR);
 
         for (Role role : Role.values()) {
             enforcer.addPolicy(role.name(), "*", "*", role.name());
         }
+        enforcer.buildRoleLinks();
+    }
+
+    protected Enforcer enforcer() {
+        return enforcer;
     }
 
     private String loadCasbinConf(String modelPath) throws IOException {
