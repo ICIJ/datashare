@@ -2,6 +2,7 @@ package org.icij.datashare.user;
 
 
 import org.icij.datashare.json.JsonObjectMapper;
+import org.icij.datashare.policies.CasbinRule;
 import org.junit.After;
 import org.junit.Test;
 

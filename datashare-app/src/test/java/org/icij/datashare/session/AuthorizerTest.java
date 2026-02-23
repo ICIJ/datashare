@@ -1,9 +1,9 @@
 package org.icij.datashare.session;
 
 import junit.framework.TestCase;
-import org.icij.datashare.CasbinRuleAdapter;
-import org.icij.datashare.user.Domain;
-import org.icij.datashare.user.Role;
+import org.icij.datashare.policies.CasbinRuleAdapter;
+import org.icij.datashare.policies.Domain;
+import org.icij.datashare.policies.Role;
 import org.mockito.Mockito;
 
 import java.util.List;

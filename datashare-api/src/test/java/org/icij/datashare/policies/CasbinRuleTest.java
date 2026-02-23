@@ -1,4 +1,4 @@
-package org.icij.datashare;
+package org.icij.datashare.policies;
 
 import org.junit.Test;
 

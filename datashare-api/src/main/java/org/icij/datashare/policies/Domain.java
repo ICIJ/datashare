@@ -1,4 +1,4 @@
-package org.icij.datashare.user;
+package org.icij.datashare.policies;
 
 
 public record Domain(String id) {

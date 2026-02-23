@@ -1,8 +1,8 @@
 package org.icij.datashare.tasks;
 
 import org.icij.datashare.asynctasks.Task;
+import org.icij.datashare.policies.Domain;
 import org.icij.datashare.text.Project;
-import org.icij.datashare.user.Domain;
 import org.icij.datashare.user.User;
 
 import java.util.LinkedList;
