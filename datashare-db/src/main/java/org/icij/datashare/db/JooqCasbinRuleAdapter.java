@@ -4,9 +4,9 @@ import org.casbin.jcasbin.exception.CasbinAdapterException;
 import org.casbin.jcasbin.model.Model;
 import org.casbin.jcasbin.persist.Helper;
 import org.casbin.jcasbin.persist.file_adapter.FilteredAdapter.Filter;
-import org.icij.datashare.CasbinRule;
-import org.icij.datashare.CasbinRuleAdapter;
 import org.icij.datashare.db.tables.records.CasbinRuleRecord;
+import org.icij.datashare.policies.CasbinRule;
+import org.icij.datashare.policies.CasbinRuleAdapter;
 import org.jooq.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -234,7 +234,7 @@ public class JooqCasbinRuleAdapter implements CasbinRuleAdapter {
         DSLContext ctx = using(connectionProvider, dialect);
         List<CasbinRuleRecord> records = ctx.selectFrom(CASBIN_RULE).fetch();
         for (CasbinRuleRecord record : records) {
-            org.icij.datashare.CasbinRule line = new org.icij.datashare.CasbinRule();
+            CasbinRule line = new CasbinRule();
             line.ptype = record.get(CASBIN_RULE.PTYPE);
             line.v0 = record.get(CASBIN_RULE.V0) != null ? record.get(CASBIN_RULE.V0) : "";
             line.v1 = record.get(CASBIN_RULE.V1) != null ? record.get(CASBIN_RULE.V1) : "";
@@ -247,9 +247,9 @@ public class JooqCasbinRuleAdapter implements CasbinRuleAdapter {
 
     }
 
-    protected void loadPolicyLine(org.icij.datashare.CasbinRule line, Model model) {
+    protected void loadPolicyLine(CasbinRule line, Model model) {
         // Escape ONLY for Casbin's line format, NOT for database storage
-        CasbinRule escapedLine = org.icij.datashare.CasbinRule.escape(line);
+        CasbinRule escapedLine = CasbinRule.escape(line);
 
         // Build the text line for Casbin
         String lineText = CasbinRule.getLineText(escapedLine);
@@ -276,7 +276,7 @@ public class JooqCasbinRuleAdapter implements CasbinRuleAdapter {
                 deleteQuery.execute();
 
                 // Insert the new rule
-                org.icij.datashare.CasbinRule line = savePolicyLine(ptype, newRule);
+                CasbinRule line = savePolicyLine(ptype, newRule);
                 trxCtx.insertInto(CASBIN_RULE, CASBIN_RULE.PTYPE, CASBIN_RULE.V0, CASBIN_RULE.V1, CASBIN_RULE.V2, CASBIN_RULE.V3, CASBIN_RULE.V4, CASBIN_RULE.V5)
                         .values(line.ptype, line.v0, line.v1, line.v2, line.v3, line.v4, line.v5)
                         .execute();

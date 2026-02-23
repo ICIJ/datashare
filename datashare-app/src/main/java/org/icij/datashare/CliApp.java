@@ -3,6 +3,7 @@ package org.icij.datashare;
 import org.icij.datashare.cli.CliExtensionService;
 import org.icij.datashare.cli.spi.CliExtension;
 import org.icij.datashare.mode.CommonMode;
+import org.icij.datashare.policies.Domain;
 import org.icij.datashare.tasks.ArtifactTask;
 import org.icij.datashare.tasks.CreateNlpBatchesFromIndex;
 import org.icij.datashare.tasks.CategorizeTask;
@@ -16,7 +17,6 @@ import org.icij.datashare.tasks.ScanIndexTask;
 import org.icij.datashare.tasks.ScanTask;
 import org.icij.datashare.text.Project;
 import org.icij.datashare.text.indexing.Indexer;
-import org.icij.datashare.user.Domain;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

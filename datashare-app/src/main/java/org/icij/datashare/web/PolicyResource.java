@@ -13,9 +13,9 @@ import net.codestory.http.annotations.Prefix;
 import net.codestory.http.annotations.Put;
 import net.codestory.http.payload.Payload;
 import org.icij.datashare.RecordNotFoundException;
+import org.icij.datashare.policies.Domain;
+import org.icij.datashare.policies.Role;
 import org.icij.datashare.session.Authorizer;
-import org.icij.datashare.user.Domain;
-import org.icij.datashare.user.Role;
 
 import static java.util.Optional.ofNullable;
 import static net.codestory.http.constants.HttpStatus.NO_CONTENT;
