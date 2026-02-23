@@ -5,7 +5,7 @@ import net.codestory.http.Context;
 import net.codestory.http.annotations.ApplyAroundAnnotation;
 import net.codestory.http.errors.UnauthorizedException;
 import net.codestory.http.payload.Payload;
-import org.icij.datashare.user.Domain;
+import org.icij.datashare.policies.Domain;
 
 import java.net.URISyntaxException;
 import java.util.function.Function;

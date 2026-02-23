@@ -5,10 +5,10 @@ import org.casbin.jcasbin.main.Enforcer;
 import org.casbin.jcasbin.model.Model;
 import org.casbin.jcasbin.rbac.DomainManager;
 import org.casbin.jcasbin.util.BuiltInFunctions;
-import org.icij.datashare.CasbinRule;
-import org.icij.datashare.CasbinRuleAdapter;
-import org.icij.datashare.user.Domain;
-import org.icij.datashare.user.Role;
+import org.icij.datashare.policies.CasbinRule;
+import org.icij.datashare.policies.CasbinRuleAdapter;
+import org.icij.datashare.policies.Domain;
+import org.icij.datashare.policies.Role;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;

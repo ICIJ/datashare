@@ -11,14 +11,14 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import net.codestory.http.Context;
 import net.codestory.http.annotations.*;
 import net.codestory.http.payload.Payload;
-import org.icij.datashare.CasbinRuleAdapter;
 import org.icij.datashare.Repository;
 import org.icij.datashare.UserEvent;
 import org.icij.datashare.UserEvent.Type;
+import org.icij.datashare.policies.CasbinRuleAdapter;
+import org.icij.datashare.policies.Domain;
 import org.icij.datashare.session.Authorizer;
 import org.icij.datashare.session.DatashareUser;
 import org.icij.datashare.text.Project;
-import org.icij.datashare.user.Domain;
 import org.jetbrains.annotations.NotNull;
 
 import java.net.URI;

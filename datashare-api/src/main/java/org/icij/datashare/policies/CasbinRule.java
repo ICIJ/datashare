@@ -1,4 +1,4 @@
-package org.icij.datashare;
+package org.icij.datashare.policies;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 

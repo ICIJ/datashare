@@ -9,9 +9,9 @@ import net.codestory.http.errors.UnauthorizedException;
 import net.codestory.http.payload.Payload;
 import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.asynctasks.UnknownTask;
+import org.icij.datashare.policies.Domain;
 import org.icij.datashare.tasks.DatashareTaskManager;
 import org.icij.datashare.text.Project;
-import org.icij.datashare.user.Domain;
 import org.icij.datashare.web.TaskResource;
 
 import java.io.IOException;

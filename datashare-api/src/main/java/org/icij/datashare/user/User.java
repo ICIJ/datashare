@@ -3,9 +3,9 @@ package org.icij.datashare.user;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import org.icij.datashare.CasbinRule;
 import org.icij.datashare.Entity;
 import org.icij.datashare.json.JsonObjectMapper;
+import org.icij.datashare.policies.CasbinRule;
 import org.icij.datashare.text.Project;
 
 import java.util.*;
