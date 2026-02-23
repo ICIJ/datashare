@@ -1,7 +1,7 @@
 package org.icij.datashare.tasks;
 
+import org.icij.datashare.policies.Authorizer;
 import org.icij.datashare.policies.Domain;
-import org.icij.datashare.session.Authorizer;
 import org.icij.datashare.text.Project;
 import org.icij.datashare.user.User;
 import org.junit.Before;

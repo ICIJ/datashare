@@ -1,6 +1,4 @@
-package org.icij.datashare.session;
-
-import org.icij.datashare.policies.Role;
+package org.icij.datashare.policies;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
