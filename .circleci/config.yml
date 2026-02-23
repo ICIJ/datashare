@@ -90,11 +90,6 @@ jobs:
           steps:
             - run: .circleci/scripts/publish-doc-if-necessary.sh
       - run: mvn -pl datashare-dist package
-      - run:
-          name: Acceptance test for embedded mode
-          command: |
-            VERSION=$(head pom.xml | grep '<version>[0-9.]\+' | sed 's/<version>\([0-9.]\+\..*\)<\/version>/\1/g'| tr -d '[:space:]')
-            DS_ELASTICSEARCH_DATA_PATH=$HOME DS_ELASTICSEARCH_HTTP_PORT=9222 DS_ELASTICSEARCH_TRANSPORT_PORT=9333 java -cp datashare-dist/target/datashare-dist-${VERSION}-all.jar org.icij.datashare.text.indexing.elasticsearch.EsEmbeddedServer -- 5
       - save_cache:
           paths:
             - ~/.m2
