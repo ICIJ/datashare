@@ -62,6 +62,7 @@ public class ServerMode extends CommonMode {
             bind(YesCookieAuthFilter.class).toInstance(getYesCookieAuthFilter());
         }
         bind(CsrfFilter.class).asEagerSingleton();
+        bind(StatusCidrFilter.class).asEagerSingleton();
         bind(StatusResource.class).asEagerSingleton();
         configurePersistence();
     }
@@ -104,6 +105,7 @@ public class ServerMode extends CommonMode {
                 add(NerResource.class).
                 add(ApiKeyResource.class).
                 add(ProjectResource.class).
+                filter(StatusCidrFilter.class).
                 filter(CsrfFilter.class).
                 filter(ApiKeyFilter.class).
                 filter(Filter.class);
