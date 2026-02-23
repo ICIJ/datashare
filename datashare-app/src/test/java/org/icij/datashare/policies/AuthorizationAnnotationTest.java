@@ -1,11 +1,9 @@
-package org.icij.datashare.session;
+package org.icij.datashare.policies;
 
 import net.codestory.http.Context;
 import net.codestory.http.errors.UnauthorizedException;
 import net.codestory.http.payload.Payload;
-import org.icij.datashare.policies.CasbinRuleAdapter;
-import org.icij.datashare.policies.Domain;
-import org.icij.datashare.policies.Role;
+import org.icij.datashare.session.DatashareUser;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
