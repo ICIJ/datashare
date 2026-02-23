@@ -954,6 +954,14 @@ public final class DatashareCliOptions {
                 .defaultsTo(DEFAULT_TASK_WORKERS);
     }
 
+    static void temporalNamespaceOpt(OptionParser parser) {
+        parser.acceptsAll(
+                singletonList(TEMPORAL_NAMESPACE_OPT), "temporal namespace")
+                .withRequiredArg()
+                .ofType( String.class )
+                .defaultsTo("datashare-default");
+    }
+
     public static ValueConverter<String> toAbsolute() {
         return new ValueConverter<>() {
             @Override
