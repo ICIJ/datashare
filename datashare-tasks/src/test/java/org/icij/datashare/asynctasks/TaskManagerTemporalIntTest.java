@@ -218,11 +218,11 @@ public class TaskManagerTemporalIntTest {
     public void test_clear() throws IOException {
         String taskId = taskManager.startTask("taskName1", User.local(), Map.of());
 
-        assertThat(taskManager.getTasks().toList()).hasSize(1);
+        assertThat(taskManager.getTaskIds().toList()).hasSize(1);
         taskManager.clear();
 
         assertThrows(UnknownTask.class, () -> taskManager.getTask(taskId));
-        assertThat(taskManager.getTasks().toList()).hasSize(0);
+        assertThat(taskManager.getTaskIds().toList()).hasSize(0);
     }
 
     @Test
@@ -233,7 +233,7 @@ public class TaskManagerTemporalIntTest {
 
         assertThat(taskId).isEqualTo(clearedTask.id);
         assertThrows(UnknownTask.class, () -> taskManager.getTask(taskId));
-        assertThat(taskManager.getTasks().toList()).hasSize(0);
+        assertThat(taskManager.getTaskIds().toList()).hasSize(0);
     }
 
     @Ignore("keeping this one for manual test as it can take very long to complete")
@@ -243,7 +243,7 @@ public class TaskManagerTemporalIntTest {
             Task<String> task = new Task<>("hello-world", User.local(), Map.of("key", "value"));
             taskManager.startTask(task);
             assertThat(taskManager.awaitTermination(2, TimeUnit.SECONDS));
-            assertThat(taskManager.getTasks().toList()).hasSize(1);
+            assertThat(taskManager.getTaskIds().toList()).hasSize(1);
 
             taskManager.clearDoneTasks();
 
