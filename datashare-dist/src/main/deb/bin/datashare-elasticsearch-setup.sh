@@ -4,6 +4,26 @@ ES_VERSION="${ELASTICSEARCH_VERSION:-8.19.8}"
 DATASHARE_HOME="${DATASHARE_HOME:-$HOME/.local/share/datashare}"
 ES_HOME="$DATASHARE_HOME/elasticsearch"
 
+# from https://github.com/ICIJ/datashare/issues/2017#issuecomment-3952758808
+ES_MODULES="
+aggregations
+analysis-common
+apm
+constant-keyword
+ingest-attachment
+ingest-common
+ingest-geoip
+ingest-user-agent
+lang-painless
+parent-join
+reindex
+rest-root
+transport-netty4
+x-pack-core
+x-pack-geoip-enterprise-downloader
+x-pack-security
+"
+
 function detect_platform() {
     OS=$(uname -s | tr '[:upper:]' '[:lower:]')
     ARCH=$(uname -m)
@@ -40,7 +60,7 @@ function check_elasticsearch_installed() {
 }
 
 download_elasticsearch() {
-    echo "Downloading Elasticsearch $ES_VERSION..."
+    echo "Downloading Elasticsearch $ES_VERSION from $ES_DOWNLOAD_URL..."
     mkdir -p "$ES_HOME"
     cd "$ES_HOME"
 
@@ -90,6 +110,12 @@ setup_elasticsearch() {
     fi
     download_elasticsearch
     extract_elasticsearch
+    echo "Removing Elasticsearch unnecessary modules in $ES_HOME/current/modules"
+    for dir in $(echo $ES_MODULES| xargs printf -- '-I %s\n' | xargs ls $ES_HOME/current/modules) ;
+    do
+      echo "Removing $ES_HOME/current/modules/$dir"
+      rm -rf "$ES_HOME/current/modules/$dir"
+    done
     echo "Elasticsearch $ES_VERSION installed successfully at $ES_HOME"
     echo "Installation complete"
     echo "Note: Configuration will be handled by Datashare at runtime"
