@@ -45,6 +45,7 @@ import org.icij.datashare.extract.RedisDocumentCollectionFactory;
 import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.nlp.EmailPipeline;
 import org.icij.datashare.nlp.OptimaizeLanguageGuesser;
+import org.icij.datashare.session.StatusCidrFilter;
 import org.icij.datashare.session.UsersInDb;
 import org.icij.datashare.session.UsersWritable;
 import org.icij.datashare.tasks.DatashareTaskFactory;
@@ -192,6 +193,7 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
     @Override
     protected void configure() {
         bind(PropertiesProvider.class).toInstance(propertiesProvider);
+        bind(StatusCidrFilter.class).asEagerSingleton();
         install(new FactoryModuleBuilder().build(DatashareTaskFactory.class));
 
         QueueType batchQueueType = getQueueType(propertiesProvider, BATCH_QUEUE_TYPE_OPT, DEFAULT_BATCH_QUEUE_TYPE);
@@ -421,6 +423,7 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
                     }
                 });
         addExtensionsConfiguration(routes);
+        routes.filter(StatusCidrFilter.class);
         addModeConfiguration(routes);
         addPluginsConfiguration(routes);
         return routes;
