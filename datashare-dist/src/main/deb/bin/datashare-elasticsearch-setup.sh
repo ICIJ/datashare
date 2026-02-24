@@ -70,7 +70,7 @@ download_elasticsearch() {
     fi
 
     if command -v curl >/dev/null 2>&1; then
-        if ! curl -s -L -o -f "$ES_ARCHIVE" "$ES_DOWNLOAD_URL"; then
+        if ! curl -s -L -o "$ES_ARCHIVE" "$ES_DOWNLOAD_URL"; then
           echo "Error during download elasticsearch with curl"
           exit 1
         fi
