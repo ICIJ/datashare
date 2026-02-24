@@ -53,6 +53,11 @@ elif [ -f "$setup_script" ]; then
   bash "$setup_script" install
 fi
 
+checkEs=$?
+if [ $checkEs -ne 0 ]; then
+    exit $checkEs
+fi
+
 $java_bin $java_opts \
     --add-opens java.base/java.lang=ALL-UNNAMED \
     --add-opens java.base/java.util=ALL-UNNAMED \

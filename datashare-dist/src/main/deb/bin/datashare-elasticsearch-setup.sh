@@ -1,5 +1,6 @@
 #!/bin/bash
 
+set -x
 ES_VERSION="${ELASTICSEARCH_VERSION:-8.19.8}"
 DATASHARE_HOME="${DATASHARE_HOME:-$HOME/.local/share/datashare}"
 ES_HOME="$DATASHARE_HOME/elasticsearch"
@@ -50,9 +51,15 @@ download_elasticsearch() {
     fi
 
     if command -v curl >/dev/null 2>&1; then
-        curl -s -L -o "$ES_ARCHIVE" "$ES_DOWNLOAD_URL"
+        if ! curl -s -L -o -f "$ES_ARCHIVE" "$ES_DOWNLOAD_URL"; then
+          echo "Error during download elasticsearch with curl"
+          exit 1
+        fi
     elif command -v wget >/dev/null 2>&1; then
-        wget -O "$ES_ARCHIVE" "$ES_DOWNLOAD_URL"
+       if ! wget -q -O "$ES_ARCHIVE" "$ES_DOWNLOAD_URL"; then
+         echo "Error during download elasticsearch with wget"
+         exit 1
+       fi
     else
         echo "ERROR: Neither curl nor wget found. Please install one."
         exit 1
