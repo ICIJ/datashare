@@ -1,6 +1,5 @@
 #!/bin/bash
 
-set -x
 ES_VERSION="${ELASTICSEARCH_VERSION:-8.19.8}"
 DATASHARE_HOME="${DATASHARE_HOME:-$HOME/.local/share/datashare}"
 ES_HOME="$DATASHARE_HOME/elasticsearch"
