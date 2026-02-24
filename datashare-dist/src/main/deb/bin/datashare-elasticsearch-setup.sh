@@ -111,7 +111,7 @@ setup_elasticsearch() {
     download_elasticsearch
     extract_elasticsearch
     echo "Removing Elasticsearch unnecessary modules in $ES_HOME/current/modules"
-    for dir in $(echo $ES_MODULES| xargs printf -- '-I %s\n' | xargs ls $ES_HOME/current/modules) ;
+    for dir in $(ls $ES_HOME/current/modules | grep -v -E "$(echo $ES_MODULES| xargs -n1 echo "|" | xargs | sed 's/^|//' | sed 's/ //g')") ;
     do
       echo "Removing $ES_HOME/current/modules/$dir"
       rm -rf "$ES_HOME/current/modules/$dir"
