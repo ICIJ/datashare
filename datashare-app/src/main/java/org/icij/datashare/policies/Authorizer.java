@@ -160,10 +160,10 @@ public class Authorizer {
         if (domain == null && project == null) {
             listPredicate = rule -> rule.size() >= 3;
         } else if (domain != null && project == null) {
-            listPredicate = rule -> rule.size() >= 3 && (rule.get(2).startsWith(domainId));
+            listPredicate = rule -> rule.size() >= 3 && (rule.get(2).startsWith("*") || rule.get(2).startsWith(domainId));
         } else {
             // When both domain and project are specified, only include exact matches for that domain-project scope.
-            listPredicate = rule -> rule.size() >= 3 && (rule.get(2).equals(casbinDomain));
+            listPredicate = rule -> rule.size() >= 3 && (rule.get(2).startsWith("*") || rule.get(2).startsWith(domainId + "::*") || rule.get(2).equals(casbinDomain));
         }
 
 
