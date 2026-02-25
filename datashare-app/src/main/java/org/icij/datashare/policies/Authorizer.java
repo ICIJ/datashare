@@ -173,42 +173,27 @@ public class Authorizer {
                 .collect(Collectors.toList());
     }
 
-    public List<CasbinRule> getAllPermissions() {
-        return getAllPermissions(null, null, null);
+    public List<CasbinRule> getGroupPermissions() {
+        return getGroupPermissions(null, null, null);
     }
 
-    public List<CasbinRule> getAllPermissions(String user) {
+    public List<CasbinRule> getGroupPermissions(String user) {
         return getFilteredPermissions(user, null, null);
     }
 
-    public List<CasbinRule> getAllPermissions(String user, Domain domain) {
+    public List<CasbinRule> getGroupPermissions(String user, Domain domain) {
         return getFilteredPermissions(user, domain, null);
     }
 
-    public List<CasbinRule> getAllPermissions(Domain domain) {
+    public List<CasbinRule> getGroupPermissions(Domain domain) {
         return getFilteredPermissions(null, domain, null);
     }
 
-    public List<CasbinRule> getAllPermissions(Domain domain, String project) {
+    public List<CasbinRule> getGroupPermissions(Domain domain, String project) {
         return getFilteredPermissions(null, domain, project);
     }
 
-    public List<CasbinRule> getAllPermissions(String user, Domain domain, String project) {
+    public List<CasbinRule> getGroupPermissions(String user, Domain domain, String project) {
         return getFilteredPermissions(user, domain, project);
     }
-/*    public List<CasbinRule> getPermissionsByDomain(Domain domain) {
-        // Get all grouping policies and filter by domain prefix
-        return enforcer.getGroupingPolicy().stream()
-                .filter(rule -> rule.size() >= 3 && rule.get(2).startsWith(domain.id()))
-                .map(rule -> CasbinRule.fromArray(Stream.concat(Stream.of("g"), rule.stream()).collect(Collectors.toList())))
-                .collect(Collectors.toList());
-    }
-
-    public List<CasbinRule> getPermissionsByProject(Domain domain, String project) {
-        String casbinDomain = DomainSepProject(domain, project);
-        return enforcer.getFilteredGroupingPolicy(2, casbinDomain).stream()
-                .map(rule -> CasbinRule.fromArray(Stream.concat(Stream.of("g"), rule.stream()).collect(Collectors.toList())))
-                .collect(Collectors.toList());
-    }*/
-
 }
