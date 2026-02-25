@@ -694,7 +694,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         configure(routes -> routes
                 .filter(new BasicAuthFilter("/", "icij", users))
                 .registerAroundAnnotation(TaskPolicy.class, taskPolicyAnnotation)
-                .add(new PolicyResource(authorizer))
+                .add(new PolicyResource(authorizer, null))
                 .add(new TaskResource(taskFactory, taskManager, getDefaultPropertiesProvider(), batchSearchRepository))
         );
 

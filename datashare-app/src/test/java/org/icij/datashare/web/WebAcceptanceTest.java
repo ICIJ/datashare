@@ -27,14 +27,14 @@ public class WebAcceptanceTest extends AbstractProdWebServerTest {
     @Mock
     Repository jooqRepository;
     @Mock
-    CasbinRuleAdapter jooqCasbinRuleRepository;
+    CasbinRuleAdapter adapter;
     @Mock
     UsersWritable users;
 
     Authorizer authorizer;
     @Before
     public void setUp() throws Exception {
-        authorizer = new Authorizer(jooqCasbinRuleRepository);
+        authorizer = new Authorizer(adapter);
         mocks = openMocks(this);
     }
 
@@ -63,12 +63,15 @@ public class WebAcceptanceTest extends AbstractProdWebServerTest {
     }
 
     @Test
-    public void route_with_policy_annotation_rejects_user_without_admin_role() throws IOException, URISyntaxException {
-        User jane = mockUserProjectRole("jane", "test-datashare", new Role[]{});
-        when(jooqUserPolicyRepository.getAllPolicies()).thenReturn(jane.getPolicies());
+    public void route_with_policy_annotation_rejects_user_without_admin_role() throws URISyntaxException {
 
-        UserPolicyVerifier verifier = new UserPolicyVerifier(jooqUserPolicyRepository, users);
-        UserPolicyAnnotation userPolicyAnnotation = new UserPolicyAnnotation(verifier);
+        User jane = localUser("jane", "test-datashare");
+        when(jooqRepository.getUser("jane")).thenReturn(jane);
+        when(jooqRepository.getProject("test-datashare")).thenReturn(project("test-datashare"));
+        when(users.find(jane.id)).thenReturn((net.codestory.http.security.User) jane);
+
+        authorizer.addRoleForUserInProject("jane", Role.PROJECT_MEMBER, Domain.of("default"), "test-datashare");
+        AuthorizationAnnotation userPolicyAnnotation = new AuthorizationAnnotation(authorizer);
         Users users = DatashareUser.singleUser(jane);
 
         configure(routes -> routes.registerAroundAnnotation(Policy.class, userPolicyAnnotation).filter(new BasicAuthFilter("/", "icij", users)).add(new FakeResource()));
