@@ -87,7 +87,7 @@ public class AuthorizerTest extends TestCase {
     public void test_get_permissions_by_domain() {
         authorizer.addRoleForUserInDomain(userId, Role.DOMAIN_ADMIN, domain);
         authorizer.addRoleForUserInProject(userId, Role.DOMAIN_ADMIN, domain, "p1");
-        List<CasbinRule> permissions = authorizer.getAllPermissions(domain);
+        List<CasbinRule> permissions = authorizer.getGroupPermissions(domain);
         assertFalse(permissions.isEmpty());
         assertTrue(permissions.stream().anyMatch(p -> p.ptype.equals("g") && p.v0.equals(userId) && p.v1.equals(Role.DOMAIN_ADMIN.name())));
         assertThat(permissions.size()).isEqualTo(2);
@@ -98,11 +98,11 @@ public class AuthorizerTest extends TestCase {
         authorizer.addRoleForUserInProject("other_user", Role.PROJECT_ADMIN, domain, project);
         authorizer.addRoleForUserInProject(userId, Role.PROJECT_ADMIN, domain, "project2");
         authorizer.addRoleForUserInProject(userId, Role.PROJECT_ADMIN, Domain.of("other"), project);
-        List<CasbinRule> permissions = authorizer.getAllPermissions(domain, project);
+        List<CasbinRule> permissions = authorizer.getGroupPermissions(domain, project);
         assertFalse(permissions.isEmpty());
         assertThat(permissions.size()).isEqualTo(2);
         assertTrue(permissions.stream().anyMatch(p -> p.ptype.equals("g") && p.v0.equals(userId) && p.v1.equals(Role.PROJECT_ADMIN.name())));
-        List<CasbinRule> permissionsP2 = authorizer.getAllPermissions(domain, "project2");
+        List<CasbinRule> permissionsP2 = authorizer.getGroupPermissions(domain, "project2");
         assertThat(permissionsP2.size()).isEqualTo(1);
     }
 
@@ -118,7 +118,7 @@ public class AuthorizerTest extends TestCase {
         authorizer.addRoleForUserInInstance(instUser, Role.INSTANCE_ADMIN);
 
         // WHEN: Get all permissions for the user
-        List<CasbinRule> permissions = authorizer.getAllPermissions(instUser);
+        List<CasbinRule> permissions = authorizer.getGroupPermissions(instUser);
 
         // THEN: Verify instance-level permission is retrieved
         assertFalse(permissions.isEmpty());
@@ -136,7 +136,7 @@ public class AuthorizerTest extends TestCase {
         authorizer.addRoleForUserInDomain(domainUser, Role.DOMAIN_ADMIN, domain);
 
         // WHEN: Get all permissions for the user
-        List<CasbinRule> permissions = authorizer.getAllPermissions(domainUser);
+        List<CasbinRule> permissions = authorizer.getGroupPermissions(domainUser);
 
         // THEN: Verify domain-level permission is retrieved
         assertFalse(permissions.isEmpty());
@@ -155,7 +155,7 @@ public class AuthorizerTest extends TestCase {
         authorizer.addRoleForUserInProject(projectUser, Role.PROJECT_ADMIN, domain, project);
 
         // WHEN: Get all permissions for the user
-        List<CasbinRule> permissions = authorizer.getAllPermissions(projectUser);
+        List<CasbinRule> permissions = authorizer.getGroupPermissions(projectUser);
 
         // THEN: Verify project-level permission is retrieved
         assertFalse(permissions.isEmpty());
@@ -179,7 +179,7 @@ public class AuthorizerTest extends TestCase {
         authorizer.addRoleForUserInProject(multiUser, Role.PROJECT_MEMBER, domain1, project2);
 
         // WHEN: Get all permissions for the user
-        List<CasbinRule> permissions = authorizer.getAllPermissions(multiUser);
+        List<CasbinRule> permissions = authorizer.getGroupPermissions(multiUser);
 
         // THEN: Verify all permissions across all levels are retrieved
         assertThat(permissions.size()).isEqualTo(4);
@@ -198,7 +198,7 @@ public class AuthorizerTest extends TestCase {
         String noPermUser = "eve";
 
         // WHEN: Get all permissions for the user
-        List<CasbinRule> permissions = authorizer.getAllPermissions(noPermUser);
+        List<CasbinRule> permissions = authorizer.getGroupPermissions(noPermUser);
 
         // THEN: Verify that the list is empty
         assertTrue(permissions.isEmpty());
@@ -214,7 +214,7 @@ public class AuthorizerTest extends TestCase {
         authorizer.addRoleForUserInDomain(user2, Role.DOMAIN_ADMIN, domain);
 
         // WHEN: Get all permissions for user1
-        List<CasbinRule> user1Perms = authorizer.getAllPermissions(user1);
+        List<CasbinRule> user1Perms = authorizer.getGroupPermissions(user1);
 
         // THEN: Verify only user1's permissions are returned, not user2's
         assertTrue(user1Perms.stream().allMatch(p -> p.v0.equals(user1)));
@@ -232,7 +232,7 @@ public class AuthorizerTest extends TestCase {
         authorizer.addRoleForUserInProject(multiRoleUser, Role.PROJECT_MEMBER, domain, project);
 
         // WHEN: Get all permissions for the user
-        List<CasbinRule> permissions = authorizer.getAllPermissions(multiRoleUser);
+        List<CasbinRule> permissions = authorizer.getGroupPermissions(multiRoleUser);
 
         // THEN: Verify all role assignments are retrieved
         assertThat(permissions.size()).isGreaterThanOrEqualTo(2);
