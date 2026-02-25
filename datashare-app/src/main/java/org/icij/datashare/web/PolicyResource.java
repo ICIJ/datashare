@@ -51,7 +51,6 @@ public class PolicyResource {
         if (repository.getProject(name) == null) {
             throw new RecordNotFoundException(Project.class, name);
         }
-        ;
     }
 
     private void userExists(String name) {
@@ -289,29 +288,6 @@ public class PolicyResource {
         }
     }
 
-/*    @Operation(description = "Upsert a policy regarding a user a project a domain and its role.")
-    @ApiResponse(responseCode = "200", description = "Policy added successfully.")
-    @Put("/policies?user=:user&domain=:domain&project=:project&role=:role")
-    public Payload saveUserPolicy(
-            @Parameter(name = "user", description = "User ID", in = ParameterIn.QUERY) String user,
-            @Parameter(name = "domain", description = "Domain name", in = ParameterIn.QUERY) String domain,
-            @Parameter(name = "project", description = "Project ID", in = ParameterIn.QUERY) String project,
-            @Parameter(name = "role", description = "User role", in = ParameterIn.QUERY) String role,
-            Context context) {
-        try {
-            domainIsPresent(domain);
-            projectExists(project);
-            userExists(user);
-            authorizer.updateRoleForUserInProject(user, Role.valueOf(role), Domain.of(domain), project);
-            return ok();
-        } catch (RecordNotFoundException e) {
-            return new Payload(e).withCode(404);
-        } catch (BlankParameterException e) {
-            return new Payload(e).withCode(Payload.badRequest().code());
-        } catch (IllegalArgumentException e) {
-            return new Payload("Invalid role in input: " + role).withCode(Payload.badRequest().code());
-        }
-    }*/
 
     static class BlankParameterException extends IllegalArgumentException {
         public BlankParameterException(String parameterName) {
