@@ -123,11 +123,66 @@ public class PolicyResourceTest extends AbstractProdWebServerTest {
         when(repository.getUser("jane")).thenReturn(User.localUser("jane", "test-datashare"));
         authorizer.addRoleForUserInProject("jane", Role.PROJECT_MEMBER, Domain.of("default"), "test-datashare");
         configure(routes -> routes.add(new PolicyResource(authorizer, repository)));
-        get("/api/policies?domain=default&user=jane&project=test-datashare&from=0&to=10").withPreemptiveAuthentication("jane", "").should().respond(200).contain("\"count\":1");
+        get("/api/policies/default/test-datashare?user=jane&from=0&to=10").withPreemptiveAuthentication("jane", "").should().respond(200).contain("\"count\":1");
 
         //WHEN
-        delete("/api/policies?domain=default&user=jane&project=test-datashare&role=PROJECT_MEMBER").withPreemptiveAuthentication("jane", "").should().respond(204);
+        delete("/api/policies/default/test-datashare?user=jane&role=PROJECT_MEMBER").withPreemptiveAuthentication("jane", "").should().respond(204);
         //THEN
-        get("/api/policies?domain=default&user=jane&project=test-datashare&from=0&to=10").withPreemptiveAuthentication("jane", "").should().respond(200).contain("\"count\":0");
+        get("/api/policies/default/test-datashare?user=jane&from=0&to=10").withPreemptiveAuthentication("jane", "").should().respond(200).contain("\"count\":0");
+    }
+
+    @Test
+    public void instance_policies_lifecycle_success() {
+        when(repository.getUser("jane")).thenReturn(User.localUser("jane", "test-datashare"));
+        configure(routes -> routes.add(new PolicyResource(authorizer, repository)));
+
+        // PUT
+        put("/api/policies?user=jane&role=INSTANCE_ADMIN").should().respond(200);
+
+        // GET
+        get("/api/policies?user=jane&from=0&to=10").should().respond(200).contain("\"count\":1");
+
+        // DELETE
+        delete("/api/policies?user=jane&role=INSTANCE_ADMIN").should().respond(204);
+
+        // GET
+        get("/api/policies?user=jane&from=0&to=10").should().respond(200).contain("\"count\":0");
+    }
+
+    @Test
+    public void domain_policies_lifecycle_success() {
+        when(repository.getUser("jane")).thenReturn(User.localUser("jane", "test-datashare"));
+        configure(routes -> routes.add(new PolicyResource(authorizer, repository)));
+
+        // PUT
+        put("/api/policies/icij?user=jane&role=DOMAIN_ADMIN").should().respond(200);
+
+        // GET
+        get("/api/policies/icij?user=jane&from=0&to=10").should().respond(200).contain("\"count\":1");
+
+        // DELETE
+        delete("/api/policies/icij?user=jane&role=DOMAIN_ADMIN").should().respond(204);
+
+        // GET
+        get("/api/policies/icij?user=jane&from=0&to=10").should().respond(200).contain("\"count\":0");
+    }
+
+    @Test
+    public void project_policies_lifecycle_success() {
+        when(repository.getUser("jane")).thenReturn(User.localUser("jane", "test-datashare"));
+        when(repository.getProject("test-datashare")).thenReturn(project("test-datashare"));
+        configure(routes -> routes.add(new PolicyResource(authorizer, repository)));
+
+        // PUT
+        put("/api/policies/icij/test-datashare?user=jane&role=PROJECT_MEMBER").should().respond(200);
+
+        // GET
+        get("/api/policies/icij/test-datashare?user=jane&from=0&to=10").should().respond(200).contain("\"count\":1");
+
+        // DELETE
+        delete("/api/policies/icij/test-datashare?user=jane&role=PROJECT_MEMBER").should().respond(204);
+
+        // GET
+        get("/api/policies/icij/test-datashare?user=jane&from=0&to=10").should().respond(200).contain("\"count\":0");
     }
 }

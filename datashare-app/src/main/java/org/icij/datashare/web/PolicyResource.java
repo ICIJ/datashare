@@ -91,6 +91,47 @@ public class PolicyResource {
         }
     }
 
+
+    @Operation(description = "Remove an instance policy for a given user with a given role.")
+    @ApiResponse(responseCode = "200", description = "Policy removed successfully.")
+    @Delete("/policies")
+    public Payload removeInstancePolicy(
+            Context context) {
+        String user = context.query().get("user");
+        String role = context.query().get("role");
+        try {
+            userExists(user);
+            authorizer.deleteRoleForUserInInstance(user, Role.valueOf(role));
+
+            return new Payload(NO_CONTENT);
+        } catch (RecordNotFoundException e) {
+            return new Payload(e).withCode(404);
+        } catch (BlankParameterException e) {
+            return new Payload(e).withCode(Payload.badRequest().code());
+        } catch (IllegalArgumentException e) {
+            return new Payload("Invalid role in input: " + role).withCode(Payload.badRequest().code());
+        }
+    }
+
+    @Operation(description = "Upsert a policy regarding a user a project a domain and its role.")
+    @ApiResponse(responseCode = "200", description = "Policy added successfully.")
+    @Put("/policies")
+    public Payload saveInstancePolicy(
+            Context context) {
+        String user = context.query().get("user");
+        String role = context.query().get("role");
+        try {
+            userExists(user);
+            authorizer.updateRoleForUserInDomain(user, Role.valueOf(role), Domain.of("*"));
+            return ok();
+        } catch (RecordNotFoundException e) {
+            return new Payload(e).withCode(404);
+        } catch (BlankParameterException e) {
+            return new Payload(e).withCode(Payload.badRequest().code());
+        } catch (IllegalArgumentException e) {
+            return new Payload("Invalid role in input: " + role).withCode(Payload.badRequest().code());
+        }
+    }
     /*
     DOMAIN api
      */
@@ -123,7 +164,49 @@ public class PolicyResource {
         }
     }
 
+    @Operation(description = "Remove a domain policy for a given user with a given role.")
+    @ApiResponse(responseCode = "200", description = "Policy removed successfully.")
+    @Delete("/policies/:domain")
+    public Payload removeDomainPolicy(
+            String domain,
+            Context context) {
+        String user = context.query().get("user");
+        String role = context.query().get("role");
+        try {
+            domainIsPresent(domain);
+            userExists(user);
+            authorizer.deleteRoleForUserInDomain(user, Role.valueOf(role), Domain.of(domain));
+            return new Payload(NO_CONTENT);
+        } catch (RecordNotFoundException e) {
+            return new Payload(e).withCode(404);
+        } catch (BlankParameterException e) {
+            return new Payload(e).withCode(Payload.badRequest().code());
+        } catch (IllegalArgumentException e) {
+            return new Payload("Invalid role in input: " + role).withCode(Payload.badRequest().code());
+        }
+    }
 
+    @Operation(description = "Upsert a policy regarding a user a project a domain and its role.")
+    @ApiResponse(responseCode = "200", description = "Policy added successfully.")
+    @Put("/policies/:domain")
+    public Payload saveDomainPolicy(
+            String domain,
+            Context context) {
+        String user = context.query().get("user");
+        String role = context.query().get("role");
+        try {
+            domainIsPresent(domain);
+            userExists(user);
+            authorizer.updateRoleForUserInDomain(user, Role.valueOf(role), Domain.of(domain));
+            return ok();
+        } catch (RecordNotFoundException e) {
+            return new Payload(e).withCode(404);
+        } catch (BlankParameterException e) {
+            return new Payload(e).withCode(Payload.badRequest().code());
+        } catch (IllegalArgumentException e) {
+            return new Payload("Invalid role in input: " + role).withCode(Payload.badRequest().code());
+        }
+    }
     /*
     Project API
      */
@@ -136,8 +219,8 @@ public class PolicyResource {
     @ApiResponse(responseCode = "200", description = "Project policies retrieved successfully.")
     @Get("/policies/:domain/:project")
     public Payload getProjectPolicies(
-            @Parameter(name = "domain", description = "Domain name", in = ParameterIn.QUERY) String domain,
-            @Parameter(name = "project", description = "Project name", in = ParameterIn.QUERY) String project,
+            @Parameter(name = "domain", description = "Domain name", in = ParameterIn.PATH) String domain,
+            @Parameter(name = "project", description = "Project name", in = ParameterIn.PATH) String project,
             Context context) {
         String user = context.query().get("user");
         int from = Integer.parseInt(ofNullable(context.get("from")).orElse("0"));
@@ -156,7 +239,57 @@ public class PolicyResource {
         }
     }
 
+    @Operation(description = "Remove a project policy for a given user with a given role.")
+    @ApiResponse(responseCode = "200", description = "Policy removed successfully.")
+    @Delete("/policies/:domain/:project")
+    public Payload removeProjectPolicy(
+            String domain,
+            String project,
+            Context context) {
+        String user = context.query().get("user");
+        String role = context.query().get("role");
+        try {
+            domainIsPresent(domain);
+            projectExists(project);
+            userExists(user);
+            authorizer.deleteRoleForUserInProject(user, Role.valueOf(role), Domain.of(domain), project);
+
+            return new Payload(NO_CONTENT);
+        } catch (RecordNotFoundException e) {
+            return new Payload(e).withCode(404);
+        } catch (BlankParameterException e) {
+            return new Payload(e).withCode(Payload.badRequest().code());
+        } catch (IllegalArgumentException e) {
+            return new Payload("Invalid role in input: " + role).withCode(Payload.badRequest().code());
+        }
+    }
+
+
     @Operation(description = "Upsert a policy regarding a user a project a domain and its role.")
+    @ApiResponse(responseCode = "200", description = "Policy added successfully.")
+    @Put("/policies/:domain/:project")
+    public Payload saveProjectPolicy(
+            String domain,
+            String project,
+            Context context) {
+        String user = context.query().get("user");
+        String role = context.query().get("role");
+        try {
+            domainIsPresent(domain);
+            projectExists(project);
+            userExists(user);
+            authorizer.updateRoleForUserInProject(user, Role.valueOf(role), Domain.of(domain), project);
+            return ok();
+        } catch (RecordNotFoundException e) {
+            return new Payload(e).withCode(404);
+        } catch (BlankParameterException e) {
+            return new Payload(e).withCode(Payload.badRequest().code());
+        } catch (IllegalArgumentException e) {
+            return new Payload("Invalid role in input: " + role).withCode(Payload.badRequest().code());
+        }
+    }
+
+/*    @Operation(description = "Upsert a policy regarding a user a project a domain and its role.")
     @ApiResponse(responseCode = "200", description = "Policy added successfully.")
     @Put("/policies?user=:user&domain=:domain&project=:project&role=:role")
     public Payload saveUserPolicy(
@@ -178,32 +311,7 @@ public class PolicyResource {
         } catch (IllegalArgumentException e) {
             return new Payload("Invalid role in input: " + role).withCode(Payload.badRequest().code());
         }
-    }
-
-    @Operation(description = "Remove a policy from the current user.")
-    @ApiResponse(responseCode = "200", description = "Policy removed successfully.")
-    @Delete("/policies?domain=:domain&user=:user&project=:project&role=:role")
-    public Payload removeUserPolicy(
-            @Parameter(name = "domain", description = "Domain name", in = ParameterIn.PATH) String domain,
-            @Parameter(name = "user", description = "User ID", in = ParameterIn.QUERY) String user,
-            @Parameter(name = "project", description = "Project ID", in = ParameterIn.QUERY) String project,
-            @Parameter(name = "role", description = "User role", in = ParameterIn.QUERY) String role,
-            Context context) {
-        try {
-            domainIsPresent(domain);
-            projectExists(project);
-            userExists(user);
-            authorizer.deleteRoleForUserInProject(user, Role.valueOf(role), Domain.of(domain), project);
-
-            return new Payload(NO_CONTENT);
-        } catch (RecordNotFoundException e) {
-            return new Payload(e).withCode(404);
-        } catch (BlankParameterException e) {
-            return new Payload(e).withCode(Payload.badRequest().code());
-        } catch (IllegalArgumentException e) {
-            return new Payload("Invalid role in input: " + role).withCode(Payload.badRequest().code());
-        }
-    }
+    }*/
 
     static class BlankParameterException extends IllegalArgumentException {
         public BlankParameterException(String parameterName) {
