@@ -92,7 +92,7 @@ class CliApp {
         if (properties.getProperty(GRANT_ADMIN_OPT) != null) {
             String userName = properties.getProperty(GRANT_ADMIN_OPT);
             String project = properties.getProperty(DEFAULT_PROJECT_OPT);
-            taskFactory.createGrantAdminPolicyTask(localUser(userName), Domain.of(""), Project.project(project)).call();
+            taskFactory.createGrantAdminPolicyTask(localUser(userName), Domain.DEFAULT, Project.project(project)).call();
             System.exit(0);
         }
 

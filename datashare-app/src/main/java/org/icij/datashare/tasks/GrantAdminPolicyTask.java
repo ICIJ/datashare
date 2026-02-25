@@ -36,7 +36,7 @@ public class GrantAdminPolicyTask extends DefaultTask<Boolean> implements UserTa
     @Override
     public Boolean call() {
         if (authorizer.addProjectAdmin(user.getId(), domain, project.getId())) {
-            logger.info("Admin role granted to user {} for project {}.", user.getId(), project.getId());
+            logger.info("Admin role granted to user {} for project {} in domain {}.", user.getId(), project.getId(), domain.id());
             return true;
         }
         ;

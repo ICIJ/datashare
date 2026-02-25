@@ -65,7 +65,7 @@ public class TaskPolicyAnnotation implements ApplyAroundAnnotation<TaskPolicy> {
             if (projectId == null) {
                 return Payload.forbidden();
             }
-            if (!authorizer.can(user.id, Domain.of(""), projectId, annotation.role())) {
+            if (!authorizer.can(user.id, Domain.DEFAULT, projectId, annotation.role())) {
                 return Payload.forbidden();
             }
             return payloadSupplier.apply(context);
