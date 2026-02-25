@@ -1,13 +1,14 @@
 package org.icij.datashare.web;
 
-import net.codestory.http.filters.basic.BasicAuthFilter;
-import org.icij.datashare.db.JooqCasbinRuleAdapter;
+import net.codestory.http.payload.Payload;
 import org.icij.datashare.db.JooqRepository;
 import org.icij.datashare.policies.Authorizer;
+import org.icij.datashare.policies.CasbinRuleAdapter;
 import org.icij.datashare.policies.Domain;
 import org.icij.datashare.policies.Role;
 import org.icij.datashare.session.DatashareUser;
 import org.icij.datashare.session.UsersWritable;
+import org.icij.datashare.user.User;
 import org.icij.datashare.web.testhelpers.AbstractProdWebServerTest;
 import org.junit.Before;
 import org.junit.Test;
@@ -24,7 +25,7 @@ import static org.mockito.MockitoAnnotations.openMocks;
 
 public class PolicyResourceTest extends AbstractProdWebServerTest {
     @Mock
-    JooqCasbinRuleAdapter adapter;
+    CasbinRuleAdapter adapter;
     @Mock
     JooqRepository repository;
     @Mock
@@ -38,62 +39,95 @@ public class PolicyResourceTest extends AbstractProdWebServerTest {
             put("uid", "jane");
             put("groups_by_applications", Map.of("datashare", List.of("test-datashare")));
         }});
+
         authorizer = new Authorizer(adapter);
         when(users.find("jane")).thenReturn(user);
         when(repository.getProject("test-datashare")).thenReturn(project("test-datashare"));
     }
 
     @Test
-    public void get_all_user_policy_success() {
-        authorizer.addRoleForUserInProject("jane", Role.PROJECT_MEMBER, Domain.of(""), "test-datashare");
-        authorizer.addRoleForUserInProject("john", Role.PROJECT_MEMBER, Domain.of(""), "test-datashare");
-        configure(routes -> routes.add(new PolicyResource(authorizer)));
-        get("/api/policies/?from=0&to=10").should().respond(200).contain("\"count\":2");
+    public void get_instance_policies_success() {
+        Domain domain1 = Domain.of("icij");
+        Domain domain2 = Domain.of("datashare");
+        authorizer.addRoleForUserInProject("jane", Role.PROJECT_MEMBER, domain1, "test-datashare");
+        authorizer.addRoleForUserInProject("john", Role.PROJECT_MEMBER, domain2, "test-datashare");
+        authorizer.addRoleForUserInProject("john", Role.PROJECT_MEMBER, domain1, "project2");
+        configure(routes -> routes.add(new PolicyResource(authorizer, repository)));
+        get("/api/policies?from=0&to=10").should().respond(200).contain("\"count\":3");
     }
 
     @Test
-    public void get_user_policy_success_returns_ok() {
-        authorizer.addRoleForUserInProject("jane", Role.PROJECT_MEMBER, Domain.of(""), "test-datashare");
-        authorizer.addRoleForUserInProject("john", Role.PROJECT_MEMBER, Domain.of(""), "test-datashare");
-        configure(routes -> routes.add(new PolicyResource(authorizer)));
-        get("/api/policies/?userId=jane&projectId=test-datashare&from=0&to=10").should().respond(200).contain("\"count\":1");
+    public void get_domain_policies_success() {
+        Domain domain1 = Domain.of("icij");
+        Domain domain2 = Domain.of("datashare");
+        authorizer.addRoleForUserInProject("jane", Role.PROJECT_MEMBER, domain1, "test-datashare");
+        authorizer.addRoleForUserInProject("john", Role.PROJECT_MEMBER, domain2, "test-datashare");
+        authorizer.addRoleForUserInProject("john", Role.PROJECT_MEMBER, domain1, "project2");
+        configure(routes -> routes.add(new PolicyResource(authorizer, repository)));
+        get("/api/policies/icij?from=0&to=10").should().respond(200).contain("\"count\":2");
+        get("/api/policies/?from=0&to=10").should().respond(404);
+        get("/api/policies/   ?from=0&to=10").should().respond(400);
+    }
+    @Test
+    public void get_project_policies_success() {
+        Domain domain = Domain.of("icij");
+        when(repository.getProject("test-datashare")).thenReturn(project("test-datashare"));
+        when(repository.getProject("project2")).thenReturn(project("project2"));
+        when(repository.getProject("unknown")).thenReturn(null);
+        authorizer.addRoleForUserInProject("jane", Role.PROJECT_MEMBER, domain, "test-datashare");
+        authorizer.addRoleForUserInProject("john", Role.PROJECT_MEMBER, domain, "test-datashare");
+        authorizer.addRoleForUserInProject("john", Role.PROJECT_MEMBER, domain, "project2");
+        configure(routes -> routes.add(new PolicyResource(authorizer, repository)));
+        get("/api/policies/icij/   ?from=0&to=10").should().respond(Payload.badRequest().code());
+        get("/api/policies/icij/test-datashare?from=0&to=10").should().respond(200).contain("\"count\":2");
+        get("/api/policies/icij/project2?from=0&to=10").should().respond(200).contain("\"count\":1");
+        get("/api/policies/icij/unknown?from=0&to=10").should().respond(404);
     }
 
     @Test
-    public void get_user_policy_not_existing_returns_not_found() {
-        configure(routes -> routes.add(new PolicyResource(authorizer)));
-        get("/api/policies/?userId=nonExistingUser&from=0&to=10").should().respond(200).contain("\"items\":[]");
-        get("/api/policies/?projectId=nonExistingProject&from=0&to=10").should().respond(200).contain("\"items\":[]");
-        get("/api/policies/?userId=nonExistingUser&projectId=nonExistingProject&from=0&to=10").should().respond(200).contain("\"items\":[]");
+    public void filter_policies_by_user() {
+        String projectId = "test-datashare";
+        authorizer.addRoleForUserInInstance("jane", Role.INSTANCE_ADMIN);
+        when(repository.getProject(projectId)).thenReturn(project(projectId));
+        when(repository.getUser("jane")).thenReturn(User.localUser("jane", projectId));
+
+        configure(routes -> routes.add(new PolicyResource(authorizer, repository)));
+        get("/api/policies?user=nonExistingUser&from=0&to=10").should().respond(200).contain("\"items\":[]");
+        get("/api/policies/icij?user=nonExistingUser&from=0&to=10").should().respond(200).contain("\"items\":[]");
+        get("/api/policies/icij/test-datashare?user=nonExistingUser&from=0&to=10").should().respond(200).contain("\"items\":[]");
+        get("/api/policies?user=jane&from=0&to=10").should().respond(200).contain("\"count\":1");
+        get("/api/policies/icij?user=jane&from=0&to=10").should().respond(200).contain("\"count\":1");
+        get("/api/policies/icij/test-datashare?user=jane&from=0&to=10").should().respond(200).contain("\"count\":1");
     }
 
     @Test
     public void add_user_policy_with_bad_role_format_returns_bad_request() {
+        when(repository.getUser("jane")).thenReturn(User.localUser("jane", "test-datashare"));
         authorizer.addRoleForUserInProject("jane", Role.PROJECT_MEMBER, Domain.of(""), "test-datashare");
-        configure(routes -> routes.add(new PolicyResource(authorizer)));
-        put("/api/policies/?userId=jane&projectId=test-datashare&role=READER]").should().contain("Invalid role in input: READER]").respond(400);
+        configure(routes -> routes.add(new PolicyResource(authorizer, repository)));
+        put("/api/policies?domain=default&user=jane&project=test-datashare&role=READER]").should().contain("Invalid role in input: READER]").respond(400);
     }
 
     @Test
     public void upsert_user_policy_success_returns_ok() {
-        configure(routes -> routes.add(new PolicyResource(authorizer)));
-        put("/api/policies/?userId=jane&projectId=test-datashare&role=PROJECT_MEMBER").withPreemptiveAuthentication("jane", "").should().respond(200);
-        put("/api/policies/?userId=jane&projectId=test-datashare&role=PROJECT_ADMIN").withPreemptiveAuthentication("jane", "").should().respond(200);
+        when(repository.getUser("jane")).thenReturn(User.localUser("jane", "test-datashare"));
+        configure(routes -> routes.add(new PolicyResource(authorizer, repository)));
+        put("/api/policies?domain=default&user=jane&project=test-datashare&role=PROJECT_MEMBER").withPreemptiveAuthentication("jane", "").should().respond(200);
+        put("/api/policies?domain=default&user=jane&project=test-datashare&role=PROJECT_ADMIN").withPreemptiveAuthentication("jane", "").should().respond(200);
     }
 
 
     @Test
     public void delete_user_policy_success_returns_204() throws IOException {
         //GIVEN
-        authorizer.addRoleForUserInProject("jane", Role.PROJECT_MEMBER, Domain.of(""), "test-datashare");
+        when(repository.getUser("jane")).thenReturn(User.localUser("jane", "test-datashare"));
+        authorizer.addRoleForUserInProject("jane", Role.PROJECT_MEMBER, Domain.of("default"), "test-datashare");
+        configure(routes -> routes.add(new PolicyResource(authorizer, repository)));
+        get("/api/policies?domain=default&user=jane&project=test-datashare&from=0&to=10").withPreemptiveAuthentication("jane", "").should().respond(200).contain("\"count\":1");
+
         //WHEN
-        authorizer.deleteRoleForUserInProject("jane", Role.PROJECT_MEMBER, Domain.of(""), "test-datashare");
-        configure(routes -> routes.add(new PolicyResource(authorizer)).
-                filter(new BasicAuthFilter("/", "icij", DatashareUser.singleUser(new DatashareUser(new HashMap<>() {{
-                    put("uid", "jane");
-                    put("groups_by_applications", Map.of("datashare", List.of("test-datashare")));
-                }})))));
+        delete("/api/policies?domain=default&user=jane&project=test-datashare&role=PROJECT_MEMBER").withPreemptiveAuthentication("jane", "").should().respond(204);
         //THEN
-        delete("/api/policies/?userId=jane&projectId=test-datashare").withPreemptiveAuthentication("jane", "").should().respond(204);
+        get("/api/policies?domain=default&user=jane&project=test-datashare&from=0&to=10").withPreemptiveAuthentication("jane", "").should().respond(200).contain("\"count\":0");
     }
 }
