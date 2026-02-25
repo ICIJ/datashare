@@ -12,7 +12,9 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class Authorizer {
 
@@ -109,7 +111,7 @@ public class Authorizer {
     }
 
     public List<String> getRolesForUserInDomain(String user, Domain domain) {
-        return enforcer.getRolesForUserInDomain(user, domain.id());
+        return enforcer.getRolesForUserInDomain(user, DomainSepProject(domain, "*"));
     }
 
     /*
@@ -135,12 +137,78 @@ public class Authorizer {
         return enforcer.getRolesForUserInDomain(user, DomainSepProject(domain, project));
     }
 
-
     public List<CasbinRule> getPermissionsForUserInDomain(String user, Domain domain) {
-        return enforcer.getPermissionsForUserInDomain(user, DomainSepProject(domain, "*")).stream()
-                .map(rule -> new CasbinRule(rule.get(0), rule.get(1), rule.get(2), rule.get(3), rule.get(4), rule.get(5), rule.get(6)))
+        return enforcer.getImplicitPermissionsForUser(user, DomainSepProject(domain, "*")).stream()
+                .map(rule -> CasbinRule.fromArray(Stream.concat(Stream.of("p"), rule.stream()).collect(Collectors.toList())))
                 .collect(Collectors.toList());
     }
 
+
+    private List<CasbinRule> getFilteredPermissions(String user, Domain domain, String project) {
+        // Get all grouping policies for the user that provide instance-wide access
+        // This includes: *::* (instance), domain::* (domain), and domain::project (project level)
+        List<List<String>> list;
+        Predicate<List<String>> listPredicate;
+        if (user != null) {
+            list = enforcer.getFilteredGroupingPolicy(0, user);
+        } else {
+            list = enforcer.getGroupingPolicy();
+        }
+        String domainId = domain != null ? domain.id() : "*";
+        String projectId = project != null ? project : "*";
+        String casbinDomain = DomainSepProject(Domain.of(domainId), projectId);
+        if (domain == null && project == null) {
+            listPredicate = rule -> rule.size() >= 3;
+        } else if (domain != null && project == null) {
+            listPredicate = rule -> rule.size() >= 3 && (rule.get(2).startsWith(domainId));
+        } else {
+            // When both domain and project are specified, only include exact matches for that domain-project scope.
+            listPredicate = rule -> rule.size() >= 3 && (rule.get(2).equals(casbinDomain));
+        }
+
+
+        return list.stream()
+                .filter(listPredicate)
+                .map(rule -> CasbinRule.fromArray(Stream.concat(Stream.of("g"), rule.stream()).collect(Collectors.toList())))
+                .collect(Collectors.toList());
+    }
+
+    public List<CasbinRule> getAllPermissions() {
+        return getAllPermissions(null, null, null);
+    }
+
+    public List<CasbinRule> getAllPermissions(String user) {
+        return getFilteredPermissions(user, null, null);
+    }
+
+    public List<CasbinRule> getAllPermissions(String user, Domain domain) {
+        return getFilteredPermissions(user, domain, null);
+    }
+
+    public List<CasbinRule> getAllPermissions(Domain domain) {
+        return getFilteredPermissions(null, domain, null);
+    }
+
+    public List<CasbinRule> getAllPermissions(Domain domain, String project) {
+        return getFilteredPermissions(null, domain, project);
+    }
+
+    public List<CasbinRule> getAllPermissions(String user, Domain domain, String project) {
+        return getFilteredPermissions(user, domain, project);
+    }
+/*    public List<CasbinRule> getPermissionsByDomain(Domain domain) {
+        // Get all grouping policies and filter by domain prefix
+        return enforcer.getGroupingPolicy().stream()
+                .filter(rule -> rule.size() >= 3 && rule.get(2).startsWith(domain.id()))
+                .map(rule -> CasbinRule.fromArray(Stream.concat(Stream.of("g"), rule.stream()).collect(Collectors.toList())))
+                .collect(Collectors.toList());
+    }
+
+    public List<CasbinRule> getPermissionsByProject(Domain domain, String project) {
+        String casbinDomain = DomainSepProject(domain, project);
+        return enforcer.getFilteredGroupingPolicy(2, casbinDomain).stream()
+                .map(rule -> CasbinRule.fromArray(Stream.concat(Stream.of("g"), rule.stream()).collect(Collectors.toList())))
+                .collect(Collectors.toList());
+    }*/
 
 }
