@@ -92,22 +92,28 @@ public class Authorizer {
      *   Instance
      */
     public boolean addRoleForUserInInstance(String user, Role role) {
-        return enforcer.addRoleForUserInDomain(user, role.name(), DomainSepProject(Domain.of("*"), "*"));
+        return enforcer.addGroupingPolicy(user, role.name(), DomainSepProject(Domain.of("*"), "*"));
+    }
+
+    public boolean deleteRoleForUserInInstance(String user, Role role) {
+        return enforcer.removeGroupingPolicy(user, role.name(), DomainSepProject(Domain.of("*"), "*"));
     }
 
     /*
      *   Domain
      */
     public boolean addRoleForUserInDomain(String user, Role role, Domain domain) {
-        return enforcer.addRoleForUserInDomain(user, role.name(), DomainSepProject(domain, "*"));
+        return enforcer.addGroupingPolicy(user, role.name(), DomainSepProject(domain, "*"));
     }
 
     public boolean deleteRoleForUserInDomain(String user, Role role, Domain domain) {
-        return enforcer.deleteRoleForUserInDomain(user, role.name(), DomainSepProject(domain, "*"));
+        return enforcer.removeGroupingPolicy(user, role.name(), DomainSepProject(domain, "*"));
     }
 
     public boolean updateRoleForUserInDomain(String user, Role role, Domain domain) {
-        return deleteRoleForUserInDomain(user, role, domain) && addRoleForUserInDomain(user, role, domain);
+        // Remove existing role if present, then ensure the new role is added
+        deleteRoleForUserInDomain(user, role, domain);
+        return addRoleForUserInDomain(user, role, domain);
     }
 
     public List<String> getRolesForUserInDomain(String user, Domain domain) {
@@ -122,15 +128,17 @@ public class Authorizer {
     }
 
     public boolean addRoleForUserInProject(String user, Role role, Domain domain, String project) {
-        return enforcer.addRoleForUserInDomain(user, role.name(), DomainSepProject(domain, project));
+        return enforcer.addGroupingPolicy(user, role.name(), DomainSepProject(domain, project));
     }
 
     public boolean deleteRoleForUserInProject(String user, Role role, Domain domain, String project) {
-        return enforcer.deleteRoleForUserInDomain(user, role.name(), DomainSepProject(domain, project));
+        return enforcer.removeGroupingPolicy(user, role.name(), DomainSepProject(domain, project));
     }
 
     public boolean updateRoleForUserInProject(String user, Role role, Domain domain, String project) {
-        return deleteRoleForUserInProject(user, role, domain, project) && addRoleForUserInProject(user, role, domain, project);
+        // Remove existing role if present, then ensure the new role is added
+        deleteRoleForUserInProject(user, role, domain, project);
+        return addRoleForUserInProject(user, role, domain, project);
     }
 
     public List<String> getRolesForUserInProject(String user, Domain domain, String project) {
