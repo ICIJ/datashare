@@ -266,7 +266,7 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
 
         configure(routes -> {
             BasicAuthFilter basicAuthFilter = new BasicAuthFilter("/", "icij", DatashareUser.singleUser(john));
-            routes.filter(basicAuthFilter).registerAroundAnnotation(Policy.class, authorizationAnnotation).add(new PolicyResource(authorizer)).add(projectResource);
+            routes.filter(basicAuthFilter).registerAroundAnnotation(Policy.class, authorizationAnnotation).add(new PolicyResource(authorizer, repository)).add(projectResource);
         });
 
         Project foo = new Project(projectId, Path.of("/my-dir/foo"));
@@ -292,7 +292,7 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
 
         configure(routes -> {
             BasicAuthFilter basicAuthFilter = new BasicAuthFilter("/", "icij", DatashareUser.singleUser(elios));
-            routes.filter(basicAuthFilter).registerAroundAnnotation(Policy.class, authorizationAnnotation).add(new PolicyResource(authorizer)).add(projectResource);
+            routes.filter(basicAuthFilter).registerAroundAnnotation(Policy.class, authorizationAnnotation).add(new PolicyResource(authorizer, repository)).add(projectResource);
         });
         when(repository.getProject(projectId)).thenReturn(new Project(projectId));
         when(repository.save((Project) any())).thenReturn(true);
