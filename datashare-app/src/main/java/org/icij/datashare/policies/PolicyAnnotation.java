@@ -7,16 +7,15 @@ import net.codestory.http.errors.UnauthorizedException;
 import net.codestory.http.payload.Payload;
 import org.icij.datashare.session.DatashareUser;
 
-import java.net.URISyntaxException;
 import java.util.function.Function;
 
 
-public class AuthorizationAnnotation implements ApplyAroundAnnotation<Policy> {
+public class PolicyAnnotation implements ApplyAroundAnnotation<Policy> {
 
     private final Authorizer authorizer;
 
     @Inject
-    public AuthorizationAnnotation(final Authorizer authorizer) throws URISyntaxException {
+    public PolicyAnnotation(final Authorizer authorizer) {
         this.authorizer = authorizer;
     }
 
