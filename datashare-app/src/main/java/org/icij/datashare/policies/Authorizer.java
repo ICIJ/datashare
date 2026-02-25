@@ -41,7 +41,7 @@ public class Authorizer {
         initializeRoleHierarchy();
     }
 
-    private static String DomainSepProject(Domain domain, String project) {
+    private static String domainSepProject(Domain domain, String project) {
         return String.format("%s%s%s", domain.id(), SEPARATOR, project);
     }
 
@@ -63,6 +63,10 @@ public class Authorizer {
             enforcer.addPolicy(role.name(), "*", "*", role.name());
         }
         enforcer.buildRoleLinks();
+    }
+
+    private CasbinRule streamToCasbinRule(String ptype, List<String> rule) {
+        return CasbinRule.fromArray(Stream.concat(Stream.of(ptype), rule.stream()).collect(Collectors.toList()));
     }
 
     protected Enforcer enforcer() {
@@ -92,22 +96,22 @@ public class Authorizer {
      *   Instance
      */
     public boolean addRoleForUserInInstance(String user, Role role) {
-        return enforcer.addGroupingPolicy(user, role.name(), DomainSepProject(Domain.of("*"), "*"));
+        return enforcer.addGroupingPolicy(user, role.name(), domainSepProject(Domain.of("*"), "*"));
     }
 
     public boolean deleteRoleForUserInInstance(String user, Role role) {
-        return enforcer.removeGroupingPolicy(user, role.name(), DomainSepProject(Domain.of("*"), "*"));
+        return enforcer.removeGroupingPolicy(user, role.name(), domainSepProject(Domain.of("*"), "*"));
     }
 
     /*
      *   Domain
      */
     public boolean addRoleForUserInDomain(String user, Role role, Domain domain) {
-        return enforcer.addGroupingPolicy(user, role.name(), DomainSepProject(domain, "*"));
+        return enforcer.addGroupingPolicy(user, role.name(), domainSepProject(domain, "*"));
     }
 
     public boolean deleteRoleForUserInDomain(String user, Role role, Domain domain) {
-        return enforcer.removeGroupingPolicy(user, role.name(), DomainSepProject(domain, "*"));
+        return enforcer.removeGroupingPolicy(user, role.name(), domainSepProject(domain, "*"));
     }
 
     public boolean updateRoleForUserInDomain(String user, Role role, Domain domain) {
@@ -117,7 +121,7 @@ public class Authorizer {
     }
 
     public List<String> getRolesForUserInDomain(String user, Domain domain) {
-        return enforcer.getRolesForUserInDomain(user, DomainSepProject(domain, "*"));
+        return enforcer.getRolesForUserInDomain(user, domainSepProject(domain, "*"));
     }
 
     /*
@@ -128,11 +132,11 @@ public class Authorizer {
     }
 
     public boolean addRoleForUserInProject(String user, Role role, Domain domain, String project) {
-        return enforcer.addGroupingPolicy(user, role.name(), DomainSepProject(domain, project));
+        return enforcer.addGroupingPolicy(user, role.name(), domainSepProject(domain, project));
     }
 
     public boolean deleteRoleForUserInProject(String user, Role role, Domain domain, String project) {
-        return enforcer.removeGroupingPolicy(user, role.name(), DomainSepProject(domain, project));
+        return enforcer.removeGroupingPolicy(user, role.name(), domainSepProject(domain, project));
     }
 
     public boolean updateRoleForUserInProject(String user, Role role, Domain domain, String project) {
@@ -142,12 +146,12 @@ public class Authorizer {
     }
 
     public List<String> getRolesForUserInProject(String user, Domain domain, String project) {
-        return enforcer.getRolesForUserInDomain(user, DomainSepProject(domain, project));
+        return enforcer.getRolesForUserInDomain(user, domainSepProject(domain, project));
     }
 
     public List<CasbinRule> getPermissionsForUserInDomain(String user, Domain domain) {
-        return enforcer.getImplicitPermissionsForUser(user, DomainSepProject(domain, "*")).stream()
-                .map(rule -> CasbinRule.fromArray(Stream.concat(Stream.of("p"), rule.stream()).collect(Collectors.toList())))
+        return enforcer.getImplicitPermissionsForUser(user, domainSepProject(domain, "*")).stream()
+                .map(rule -> streamToCasbinRule("p", rule))
                 .collect(Collectors.toList());
     }
 
@@ -156,7 +160,6 @@ public class Authorizer {
         // Get all grouping policies for the user that provide instance-wide access
         // This includes: *::* (instance), domain::* (domain), and domain::project (project level)
         List<List<String>> list;
-        Predicate<List<String>> listPredicate;
         if (user != null) {
             list = enforcer.getFilteredGroupingPolicy(0, user);
         } else {
@@ -164,20 +167,25 @@ public class Authorizer {
         }
         String domainId = domain != null ? domain.id() : "*";
         String projectId = project != null ? project : "*";
-        String casbinDomain = DomainSepProject(Domain.of(domainId), projectId);
-        if (domain == null && project == null) {
-            listPredicate = rule -> rule.size() >= 3;
-        } else if (domain != null && project == null) {
-            listPredicate = rule -> rule.size() >= 3 && (rule.get(2).startsWith("*") || rule.get(2).startsWith(domainId));
-        } else {
+        String casbinDomain = domainSepProject(Domain.of(domainId), projectId);
+
+        Predicate<List<String>> listPredicate = rule -> {
+            if (rule.size() < 3) return false;
+            String ruleDomain = rule.get(2);
+            if (domain == null && project == null) {
+                return true;
+            }
+            if (domain != null && project == null) {
+                return ruleDomain.equals("*::*") || ruleDomain.equals(domainId + "::*") || ruleDomain.startsWith(domainId + "::");
+            }
             // When both domain and project are specified, only include exact matches for that domain-project scope.
-            listPredicate = rule -> rule.size() >= 3 && (rule.get(2).startsWith("*") || rule.get(2).startsWith(domainId + "::*") || rule.get(2).equals(casbinDomain));
-        }
+            return ruleDomain.equals("*::*") || ruleDomain.equals(domainId + "::*") || ruleDomain.equals(casbinDomain);
+        };
 
 
         return list.stream()
                 .filter(listPredicate)
-                .map(rule -> CasbinRule.fromArray(Stream.concat(Stream.of("g"), rule.stream()).collect(Collectors.toList())))
+                .map(rule -> streamToCasbinRule("g", rule))
                 .collect(Collectors.toList());
     }
 
