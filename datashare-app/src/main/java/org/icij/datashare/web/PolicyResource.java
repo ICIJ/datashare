@@ -56,14 +56,16 @@ public class PolicyResource {
 
     private void userExists(String name) {
         if (name == null || name.isBlank()) {
-            throw new BlankParameterException("Project cannot be null or blank");
+            throw new BlankParameterException("User cannot be null or blank");
         }
         if (repository.getUser(name) == null) {
             throw new RecordNotFoundException(UserInventory.class, name);
         }
-        ;
     }
 
+    /*
+    Instance API
+     */
     @Operation(description = "Get all instance policies",
             parameters = {
                     @Parameter(name = "from", description = "if not provided it starts from 0", in = ParameterIn.QUERY),
@@ -71,15 +73,14 @@ public class PolicyResource {
             }
     )
     @ApiResponse(responseCode = "200", description = "Instance policies retrieved successfully.")
-    @Get("/policies?user=:user")
+    @Get("/policies")
     public Payload getInstancePolicies(
-            @Parameter(name = "user", description = "User name", in = ParameterIn.QUERY) String user,
             Context context) {
+        String user = context.query().get("user");
         int from = Integer.parseInt(ofNullable(context.get("from")).orElse("0"));
         int to = Integer.parseInt(ofNullable(context.get("to")).orElse("0"));
         try {
-            if (context.get("user") != null) {
-                userExists(user);
+            if (user != null) {
                 return new Payload(WebResponse.fromStream(authorizer.getGroupPermissions(user).stream(), from, to));
             }
             return new Payload(WebResponse.fromStream(authorizer.getGroupPermissions().stream(), from, to));
@@ -90,6 +91,9 @@ public class PolicyResource {
         }
     }
 
+    /*
+    DOMAIN api
+     */
     @Operation(description = "Get a policies by domain regarding a user a project",
             parameters = {
                     @Parameter(name = "from", description = "if not provided it starts from 0", in = ParameterIn.QUERY),
@@ -99,16 +103,16 @@ public class PolicyResource {
     )
 
     @ApiResponse(responseCode = "200", description = "Domain policies retrieved successfully.")
-    @Get("/policies/:domain?user=:user")
+    @Get("/policies/:domain")
     public Payload getDomainPolicies(
             @Parameter(name = "domain", description = "Domain name", in = ParameterIn.PATH) String domain,
-            @Parameter(name = "user", description = "User name", in = ParameterIn.QUERY) String user,
             Context context) {
+        String user = context.query().get("user");
         int from = Integer.parseInt(ofNullable(context.get("from")).orElse("0"));
         int to = Integer.parseInt(ofNullable(context.get("to")).orElse("0"));
         try {
             domainIsPresent(domain);
-            if (context.get("user") != null) {
+            if (user != null) {
                 return new Payload(WebResponse.fromStream(authorizer.getGroupPermissions(user, Domain.of(domain)).stream(), from, to));
             }
             return new Payload(WebResponse.fromStream(authorizer.getGroupPermissions(Domain.of(domain)).stream(), from, to));
@@ -119,25 +123,29 @@ public class PolicyResource {
         }
     }
 
+
+    /*
+    Project API
+     */
     @Operation(description = "Get a policies by project in a given domain",
             parameters = {
                     @Parameter(name = "from", description = "if not provided it starts from 0", in = ParameterIn.QUERY),
                     @Parameter(name = "to", description = "if not provided all queries are returned from the \"from\" parameter", in = ParameterIn.QUERY)
             }
     )
-    @ApiResponse(responseCode = "200", description = "Policy retrieved successfully.")
-    @Get("/policies/:domain/:project?user=:user")
+    @ApiResponse(responseCode = "200", description = "Project policies retrieved successfully.")
+    @Get("/policies/:domain/:project")
     public Payload getProjectPolicies(
             @Parameter(name = "domain", description = "Domain name", in = ParameterIn.QUERY) String domain,
             @Parameter(name = "project", description = "Project name", in = ParameterIn.QUERY) String project,
-            @Parameter(name = "user", description = "User name", in = ParameterIn.QUERY) String user,
             Context context) {
+        String user = context.query().get("user");
+        int from = Integer.parseInt(ofNullable(context.get("from")).orElse("0"));
+        int to = Integer.parseInt(ofNullable(context.get("to")).orElse("0"));
         try {
             domainIsPresent(domain);
             projectExists(project);
-            int from = Integer.parseInt(ofNullable(context.get("from")).orElse("0"));
-            int to = Integer.parseInt(ofNullable(context.get("to")).orElse("0"));
-            if (context.get("user") != null) {
+            if (user != null) {
                 return new Payload(WebResponse.fromStream(authorizer.getGroupPermissions(user, Domain.of(domain), project).stream(), from, to));
             }
             return new Payload(WebResponse.fromStream(authorizer.getGroupPermissions(Domain.of(domain), project).stream(), from, to));
@@ -148,7 +156,7 @@ public class PolicyResource {
         }
     }
 
-    @Operation(description = "Upsert a policy regarding a user a project and the permissions.")
+    @Operation(description = "Upsert a policy regarding a user a project a domain and its role.")
     @ApiResponse(responseCode = "200", description = "Policy added successfully.")
     @Put("/policies?user=:user&domain=:domain&project=:project&role=:role")
     public Payload saveUserPolicy(
