@@ -10,22 +10,10 @@ import net.codestory.http.security.SessionIdStore;
 import org.icij.datashare.cli.QueueType;
 import org.icij.datashare.db.JooqRepository;
 import org.icij.datashare.db.RepositoryFactoryImpl;
+import org.icij.datashare.policies.AuthorizationAnnotation;
 import org.icij.datashare.policies.Policy;
 import org.icij.datashare.session.*;
-import org.icij.datashare.web.ApiKeyResource;
-import org.icij.datashare.web.BatchSearchResource;
-import org.icij.datashare.web.DocumentResource;
-import org.icij.datashare.web.DocumentUserRecommendationResource;
-import org.icij.datashare.web.FtmResource;
-import org.icij.datashare.web.IndexResource;
-import org.icij.datashare.web.NamedEntityResource;
-import org.icij.datashare.web.NerResource;
-import org.icij.datashare.web.NoteResource;
-import org.icij.datashare.web.ProjectResource;
-import org.icij.datashare.web.StatusResource;
-import org.icij.datashare.web.TaskResource;
-import org.icij.datashare.web.UserPolicyResource;
-import org.icij.datashare.web.UserResource;
+import org.icij.datashare.web.*;
 
 import java.util.Map;
 import java.util.Properties;
@@ -84,7 +72,7 @@ public class ServerMode extends CommonMode {
     protected void addPermissionConfiguration(final Routes routes) {
         // Use registerAroundAnnotation (not registerAfterAnnotation) so @Policy checks
         // run BEFORE the endpoint handler and can block unauthorized requests with 403.
-        routes.registerAroundAnnotation(ProjectPolicy.class, get(UserProjectPolicyAnnotation.class));
+        routes.registerAroundAnnotation(Policy.class, get(AuthorizationAnnotation.class));
     }
 
     @Override
