@@ -54,10 +54,10 @@ public class WebAcceptanceTest extends AbstractProdWebServerTest {
     @Test
     public void route_with_index_in_path_policy_annotation_accepts_user_with_same_policy() throws URISyntaxException {
         User john = mockUserProjectRole("john", "test-datashare", Role.PROJECT_ADMIN);
-        AuthorizationAnnotation authorizationAnnotation = new AuthorizationAnnotation(authorizer);
+        PolicyAnnotation policyAnnotation = new PolicyAnnotation(authorizer);
         Users users = DatashareUser.singleUser(john);
 
-        configure(routes -> routes.registerAroundAnnotation(Policy.class, authorizationAnnotation).filter(new BasicAuthFilter("/", "icij", users)).add(new FakeResource()));
+        configure(routes -> routes.registerAroundAnnotation(Policy.class, policyAnnotation).filter(new BasicAuthFilter("/", "icij", users)).add(new FakeResource()));
 
         get("/admin/test-datashare").withPreemptiveAuthentication("john", "pass").should().respond(200);
     }
@@ -71,7 +71,7 @@ public class WebAcceptanceTest extends AbstractProdWebServerTest {
         when(users.find(jane.id)).thenReturn((net.codestory.http.security.User) jane);
 
         authorizer.addRoleForUserInProject("jane", Role.PROJECT_MEMBER, Domain.of("default"), "test-datashare");
-        AuthorizationAnnotation userPolicyAnnotation = new AuthorizationAnnotation(authorizer);
+        PolicyAnnotation userPolicyAnnotation = new PolicyAnnotation(authorizer);
         Users users = DatashareUser.singleUser(jane);
 
         configure(routes -> routes.registerAroundAnnotation(Policy.class, userPolicyAnnotation).filter(new BasicAuthFilter("/", "icij", users)).add(new FakeResource()));

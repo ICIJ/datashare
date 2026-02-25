@@ -17,7 +17,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.mockito.MockitoAnnotations.openMocks;
 
-public class AuthorizationAnnotationTest {
+public class PolicyAnnotationTest {
     private final Policy adminProjectPolicy = new Policy() {
         @Override
         public Class<? extends Annotation> annotationType() {
@@ -43,7 +43,7 @@ public class AuthorizationAnnotationTest {
     @Mock
     CasbinRuleAdapter jooqCasbinRuleRepository;
     Authorizer authorizer;
-    private AuthorizationAnnotation annotation;
+    private PolicyAnnotation annotation;
 
     @Before
     public void setUp() throws URISyntaxException {
@@ -54,7 +54,7 @@ public class AuthorizationAnnotationTest {
         authorizer = new Authorizer(jooqCasbinRuleRepository);
         authorizer.addRoleForUserInProject("cecile", Role.PROJECT_ADMIN, Domain.of(""), projectId);
         authorizer.addRoleForUserInProject("john", Role.PROJECT_MEMBER, Domain.of(""), projectId);
-        annotation = new AuthorizationAnnotation(authorizer);
+        annotation = new PolicyAnnotation(authorizer);
     }
 
     @Test(expected = UnauthorizedException.class)

@@ -10,8 +10,8 @@ import net.codestory.http.security.SessionIdStore;
 import org.icij.datashare.cli.QueueType;
 import org.icij.datashare.db.JooqRepository;
 import org.icij.datashare.db.RepositoryFactoryImpl;
-import org.icij.datashare.policies.AuthorizationAnnotation;
 import org.icij.datashare.policies.Policy;
+import org.icij.datashare.policies.PolicyAnnotation;
 import org.icij.datashare.session.*;
 import org.icij.datashare.web.*;
 
@@ -72,7 +72,7 @@ public class ServerMode extends CommonMode {
     protected void addPermissionConfiguration(final Routes routes) {
         // Use registerAroundAnnotation (not registerAfterAnnotation) so @Policy checks
         // run BEFORE the endpoint handler and can block unauthorized requests with 403.
-        routes.registerAroundAnnotation(Policy.class, get(AuthorizationAnnotation.class));
+        routes.registerAroundAnnotation(Policy.class, get(PolicyAnnotation.class));
     }
 
     @Override

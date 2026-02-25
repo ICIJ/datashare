@@ -262,11 +262,11 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
         ProjectResource projectResource = new ProjectResource(repository, indexer, taskManager, propertiesProvider, documentCollectionFactory);
         // add policies
         User john = mockUser("john", projectId, Role.PROJECT_ADMIN);
-        AuthorizationAnnotation authorizationAnnotation = new AuthorizationAnnotation(authorizer);
+        PolicyAnnotation policyAnnotation = new PolicyAnnotation(authorizer);
 
         configure(routes -> {
             BasicAuthFilter basicAuthFilter = new BasicAuthFilter("/", "icij", DatashareUser.singleUser(john));
-            routes.filter(basicAuthFilter).registerAroundAnnotation(Policy.class, authorizationAnnotation).add(new PolicyResource(authorizer, repository)).add(projectResource);
+            routes.filter(basicAuthFilter).registerAroundAnnotation(Policy.class, policyAnnotation).add(new PolicyResource(authorizer, repository)).add(projectResource);
         });
 
         Project foo = new Project(projectId, Path.of("/my-dir/foo"));
@@ -288,11 +288,11 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
 
         User elios = mockUser("elios", projectId, Role.PROJECT_MEMBER);
 
-        AuthorizationAnnotation authorizationAnnotation = new AuthorizationAnnotation(authorizer);
+        PolicyAnnotation policyAnnotation = new PolicyAnnotation(authorizer);
 
         configure(routes -> {
             BasicAuthFilter basicAuthFilter = new BasicAuthFilter("/", "icij", DatashareUser.singleUser(elios));
-            routes.filter(basicAuthFilter).registerAroundAnnotation(Policy.class, authorizationAnnotation).add(new PolicyResource(authorizer, repository)).add(projectResource);
+            routes.filter(basicAuthFilter).registerAroundAnnotation(Policy.class, policyAnnotation).add(new PolicyResource(authorizer, repository)).add(projectResource);
         });
         when(repository.getProject(projectId)).thenReturn(new Project(projectId));
         when(repository.save((Project) any())).thenReturn(true);
