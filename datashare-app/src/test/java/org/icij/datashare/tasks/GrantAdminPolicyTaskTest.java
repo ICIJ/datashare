@@ -27,12 +27,12 @@ public class GrantAdminPolicyTaskTest {
         Project project = Project.project("local-datashare");
         when(authorizer.addProjectAdmin(any(), any(), any())).thenReturn(true);
 
-        assertThat(new GrantAdminPolicyTask(authorizer, User.local(), Domain.of(""), project).call()).isTrue();
+        assertThat(new GrantAdminPolicyTask(authorizer, User.local(), Domain.of("default"), project).call()).isTrue();
 
         verify(authorizer).addProjectAdmin(userId.capture(), domain.capture(), projectId.capture());
 
         assertThat(userId.getValue()).isEqualTo(User.local().getId());
-        assertThat(domain.getValue().id()).isEqualTo("");
+        assertThat(domain.getValue().id()).isEqualTo("default");
         assertThat(projectId.getValue()).isEqualTo(project.getId());
     }
 
@@ -40,7 +40,7 @@ public class GrantAdminPolicyTaskTest {
     public void test_call_throws_exception_when_verifier_fails() {
         Project project = Project.project("unknown-project");
         when(authorizer.addProjectAdmin(any(), any(), any())).thenReturn(false);
-        assertThat(new GrantAdminPolicyTask(authorizer, User.local(), Domain.of(""), project).call()).isFalse();
+        assertThat(new GrantAdminPolicyTask(authorizer, User.local(), Domain.of("default"), project).call()).isFalse();
     }
 
     @Before
