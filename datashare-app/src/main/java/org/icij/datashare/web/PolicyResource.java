@@ -38,14 +38,14 @@ public class PolicyResource {
         this.repository = repository;
     }
 
-    private void domainIsPresent(String domain) {
-        if (domain == null || domain.isBlank()) {
+    private void domainIsPresent(String name) {
+        if (name == null || name.isBlank() || !name.equals("*")) {
             throw new BlankParameterException("Domain cannot be null or blank");
         }
     }
 
     private void projectExists(String name) {
-        if (name == null || name.isBlank()) {
+        if (name == null || name.isBlank() || !name.equals("*")) {
             throw new BlankParameterException("Project cannot be null or blank");
         }
         if (repository.getProject(name) == null) {
