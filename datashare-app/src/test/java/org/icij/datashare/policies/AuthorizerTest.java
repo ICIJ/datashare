@@ -9,14 +9,13 @@ import static org.fest.assertions.Assertions.assertThat;
 
 public class AuthorizerTest extends TestCase {
     private Authorizer authorizer;
-    private CasbinRuleAdapter adapter;
     private Domain domain;
     private String userId;
     private String project;
 
     public void setUp() throws Exception {
         super.setUp();
-        adapter = Mockito.mock(CasbinRuleAdapter.class);
+        CasbinRuleAdapter adapter = Mockito.mock(CasbinRuleAdapter.class);
         authorizer = new Authorizer(adapter, false);
         domain = Domain.of("test_domain");
         userId = "test_user";
