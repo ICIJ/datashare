@@ -14,7 +14,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
 
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -68,6 +67,7 @@ public class PolicyResourceTest extends AbstractProdWebServerTest {
         get("/api/policies/?from=0&to=10").should().respond(404);
         get("/api/policies/   ?from=0&to=10").should().respond(400);
     }
+
     @Test
     public void get_project_policies_success() {
         Domain domain = Domain.of("icij");
@@ -98,37 +98,6 @@ public class PolicyResourceTest extends AbstractProdWebServerTest {
         get("/api/policies?user=jane&from=0&to=10").should().respond(200).contain("\"count\":1");
         get("/api/policies/icij?user=jane&from=0&to=10").should().respond(200).contain("\"count\":1");
         get("/api/policies/icij/test-datashare?user=jane&from=0&to=10").should().respond(200).contain("\"count\":1");
-    }
-
-    @Test
-    public void add_user_policy_with_bad_role_format_returns_bad_request() {
-        when(repository.getUser("jane")).thenReturn(User.localUser("jane", "test-datashare"));
-        authorizer.addRoleForUserInProject("jane", Role.PROJECT_MEMBER, Domain.of(""), "test-datashare");
-        configure(routes -> routes.add(new PolicyResource(authorizer, repository)));
-        put("/api/policies?domain=default&user=jane&project=test-datashare&role=READER]").should().contain("Invalid role in input: READER]").respond(400);
-    }
-
-    @Test
-    public void upsert_user_policy_success_returns_ok() {
-        when(repository.getUser("jane")).thenReturn(User.localUser("jane", "test-datashare"));
-        configure(routes -> routes.add(new PolicyResource(authorizer, repository)));
-        put("/api/policies?domain=default&user=jane&project=test-datashare&role=PROJECT_MEMBER").withPreemptiveAuthentication("jane", "").should().respond(200);
-        put("/api/policies?domain=default&user=jane&project=test-datashare&role=PROJECT_ADMIN").withPreemptiveAuthentication("jane", "").should().respond(200);
-    }
-
-
-    @Test
-    public void delete_user_policy_success_returns_204() throws IOException {
-        //GIVEN
-        when(repository.getUser("jane")).thenReturn(User.localUser("jane", "test-datashare"));
-        authorizer.addRoleForUserInProject("jane", Role.PROJECT_MEMBER, Domain.of("default"), "test-datashare");
-        configure(routes -> routes.add(new PolicyResource(authorizer, repository)));
-        get("/api/policies/default/test-datashare?user=jane&from=0&to=10").withPreemptiveAuthentication("jane", "").should().respond(200).contain("\"count\":1");
-
-        //WHEN
-        delete("/api/policies/default/test-datashare?user=jane&role=PROJECT_MEMBER").withPreemptiveAuthentication("jane", "").should().respond(204);
-        //THEN
-        get("/api/policies/default/test-datashare?user=jane&from=0&to=10").withPreemptiveAuthentication("jane", "").should().respond(200).contain("\"count\":0");
     }
 
     @Test

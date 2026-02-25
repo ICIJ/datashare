@@ -27,7 +27,7 @@ import static net.codestory.http.constants.HttpStatus.NO_CONTENT;
 import static net.codestory.http.payload.Payload.ok;
 
 @Singleton
-@Prefix("/api")
+@Prefix("/api/policies")
 public class PolicyResource {
     private final Authorizer authorizer;
     private final Repository repository;
@@ -72,7 +72,7 @@ public class PolicyResource {
             }
     )
     @ApiResponse(responseCode = "200", description = "Instance policies retrieved successfully.")
-    @Get("/policies")
+    @Get()
     public Payload getInstancePolicies(
             Context context) {
         String user = context.query().get("user");
@@ -93,7 +93,7 @@ public class PolicyResource {
 
     @Operation(description = "Remove an instance policy for a given user with a given role.")
     @ApiResponse(responseCode = "200", description = "Policy removed successfully.")
-    @Delete("/policies")
+    @Delete("")
     public Payload removeInstancePolicy(
             Context context) {
         String user = context.query().get("user");
@@ -114,7 +114,7 @@ public class PolicyResource {
 
     @Operation(description = "Upsert a policy regarding a user a project a domain and its role.")
     @ApiResponse(responseCode = "200", description = "Policy added successfully.")
-    @Put("/policies")
+    @Put("")
     public Payload saveInstancePolicy(
             Context context) {
         String user = context.query().get("user");
@@ -143,7 +143,7 @@ public class PolicyResource {
     )
 
     @ApiResponse(responseCode = "200", description = "Domain policies retrieved successfully.")
-    @Get("/policies/:domain")
+    @Get("/:domain")
     public Payload getDomainPolicies(
             @Parameter(name = "domain", description = "Domain name", in = ParameterIn.PATH) String domain,
             Context context) {
@@ -165,7 +165,7 @@ public class PolicyResource {
 
     @Operation(description = "Remove a domain policy for a given user with a given role.")
     @ApiResponse(responseCode = "200", description = "Policy removed successfully.")
-    @Delete("/policies/:domain")
+    @Delete("/:domain")
     public Payload removeDomainPolicy(
             String domain,
             Context context) {
@@ -187,7 +187,7 @@ public class PolicyResource {
 
     @Operation(description = "Upsert a policy regarding a user a project a domain and its role.")
     @ApiResponse(responseCode = "200", description = "Policy added successfully.")
-    @Put("/policies/:domain")
+    @Put("/:domain")
     public Payload saveDomainPolicy(
             String domain,
             Context context) {
@@ -216,7 +216,7 @@ public class PolicyResource {
             }
     )
     @ApiResponse(responseCode = "200", description = "Project policies retrieved successfully.")
-    @Get("/policies/:domain/:project")
+    @Get("/:domain/:project")
     public Payload getProjectPolicies(
             @Parameter(name = "domain", description = "Domain name", in = ParameterIn.PATH) String domain,
             @Parameter(name = "project", description = "Project name", in = ParameterIn.PATH) String project,
@@ -240,7 +240,7 @@ public class PolicyResource {
 
     @Operation(description = "Remove a project policy for a given user with a given role.")
     @ApiResponse(responseCode = "200", description = "Policy removed successfully.")
-    @Delete("/policies/:domain/:project")
+    @Delete("/:domain/:project")
     public Payload removeProjectPolicy(
             String domain,
             String project,
@@ -266,7 +266,7 @@ public class PolicyResource {
 
     @Operation(description = "Upsert a policy regarding a user a project a domain and its role.")
     @ApiResponse(responseCode = "200", description = "Policy added successfully.")
-    @Put("/policies/:domain/:project")
+    @Put("/:domain/:project")
     public Payload saveProjectPolicy(
             String domain,
             String project,
