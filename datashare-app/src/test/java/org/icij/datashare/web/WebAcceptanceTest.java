@@ -14,9 +14,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
 
-import java.net.URISyntaxException;
-import java.util.Collections;
-
 import static org.icij.datashare.text.Project.project;
 import static org.icij.datashare.user.User.localUser;
 import static org.mockito.Mockito.when;
@@ -34,8 +31,8 @@ public class WebAcceptanceTest extends AbstractProdWebServerTest {
     Authorizer authorizer;
     @Before
     public void setUp() throws Exception {
-        authorizer = new Authorizer(adapter);
         mocks = openMocks(this);
+        authorizer = new Authorizer(adapter);
     }
 
     public void tearDown() throws Exception {
@@ -43,16 +40,18 @@ public class WebAcceptanceTest extends AbstractProdWebServerTest {
     }
 
     public User mockUserProjectRole(String userId, String projectId, Role role) {
-        authorizer.addRoleForUserInProject(userId, role, Domain.of(""), projectId);
-        DatashareUser user = new DatashareUser(localUser(userId, Collections.singletonList(projectId), authorizer.getPermissionsForUserInDomain(userId, Domain.of(""))));
-        user.addProject(projectId);
+        User user = localUser(userId, projectId);
+        when(jooqRepository.getUser(userId)).thenReturn(user);
         when(jooqRepository.getProject(projectId)).thenReturn(project(projectId));
-        when(users.find(user.id)).thenReturn(user);
+        when(users.find(user.id)).thenReturn(new DatashareUser(user));
+
+        authorizer.addRoleForUserInProject(userId, role, Domain.DEFAULT, projectId);
+
         return user;
     }
 
     @Test
-    public void route_with_index_in_path_policy_annotation_accepts_user_with_same_policy() throws URISyntaxException {
+    public void route_with_index_in_path_policy_annotation_accepts_user_with_same_policy() {
         User john = mockUserProjectRole("john", "test-datashare", Role.PROJECT_ADMIN);
         PolicyAnnotation policyAnnotation = new PolicyAnnotation(authorizer);
         Users users = DatashareUser.singleUser(john);
@@ -63,14 +62,9 @@ public class WebAcceptanceTest extends AbstractProdWebServerTest {
     }
 
     @Test
-    public void route_with_policy_annotation_rejects_user_without_admin_role() throws URISyntaxException {
+    public void route_with_policy_annotation_rejects_user_without_admin_role() {
+        User jane = mockUserProjectRole("jane", "test-datashare", Role.PROJECT_MEMBER);
 
-        User jane = localUser("jane", "test-datashare");
-        when(jooqRepository.getUser("jane")).thenReturn(jane);
-        when(jooqRepository.getProject("test-datashare")).thenReturn(project("test-datashare"));
-        when(users.find(jane.id)).thenReturn((net.codestory.http.security.User) jane);
-
-        authorizer.addRoleForUserInProject("jane", Role.PROJECT_MEMBER, Domain.of("default"), "test-datashare");
         PolicyAnnotation userPolicyAnnotation = new PolicyAnnotation(authorizer);
         Users users = DatashareUser.singleUser(jane);
 
@@ -85,7 +79,7 @@ public class WebAcceptanceTest extends AbstractProdWebServerTest {
         }
 
         @Get("/admin/:index")
-        @Policy(role = Role.PROJECT_ADMIN)
+        @Policy(role = Role.PROJECT_EDITOR)
         public String getAdminResource(String index) {
             return "admin-content " + index;
         }
