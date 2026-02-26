@@ -52,8 +52,8 @@ public class PolicyAnnotationTest {
         adminUser = new DatashareUser("cecile");
         nonAdminUser = new DatashareUser("john");
         authorizer = new Authorizer(jooqCasbinRuleRepository);
-        authorizer.addRoleForUserInProject("cecile", Role.PROJECT_ADMIN, Domain.of(""), projectId);
-        authorizer.addRoleForUserInProject("john", Role.PROJECT_MEMBER, Domain.of(""), projectId);
+        authorizer.addRoleForUserInProject("cecile", Role.PROJECT_ADMIN, Domain.of("testDomain"), projectId);
+        authorizer.addRoleForUserInProject("john", Role.PROJECT_MEMBER, Domain.of("testDomain"), projectId);
         annotation = new PolicyAnnotation(authorizer);
     }
 

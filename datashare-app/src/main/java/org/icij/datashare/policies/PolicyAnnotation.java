@@ -30,7 +30,8 @@ public class PolicyAnnotation implements ApplyAroundAnnotation<Policy> {
             return Payload.forbidden();
         }
 
-        if (!authorizer.can(user.id, Domain.of(""), projectId, annotation.role())) {
+        //TODO #DOMAIN: change Domain.DEFAULT to variable when domain are operational
+        if (!authorizer.can(user.id, Domain.DEFAULT, projectId, annotation.role())) {
             return Payload.forbidden();
         }
         return payloadSupplier.apply(context);

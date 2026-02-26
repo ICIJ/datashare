@@ -15,8 +15,8 @@ import org.icij.datashare.Repository;
 import org.icij.datashare.UserEvent;
 import org.icij.datashare.UserEvent.Type;
 import org.icij.datashare.policies.Authorizer;
+import org.icij.datashare.policies.CasbinRule;
 import org.icij.datashare.policies.CasbinRuleAdapter;
-import org.icij.datashare.policies.Domain;
 import org.icij.datashare.session.DatashareUser;
 import org.icij.datashare.text.Project;
 import org.jetbrains.annotations.NotNull;
@@ -62,7 +62,8 @@ public class UserResource {
     public Map<String, Object> getUser(Context context) {
         DatashareUser datashareUser = (DatashareUser) context.currentUser();
         Map<String, Object> details = datashareUser.getDetails();
-        List<String> policies = authorizer.getRolesForUserInDomain(datashareUser.id, Domain.of(""));
+        //TODO #DOMAIN: change Domain.DEFAULT to variable when domain are operational
+        List<CasbinRule> policies = authorizer.getGroupPermissions(datashareUser.id);
         details.put("projects", getDatashareUserProjects(datashareUser));
         details.put("policies", policies);
         return details;
