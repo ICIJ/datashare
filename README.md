@@ -66,7 +66,7 @@ This section explains how to set up a development environment, build the project
 * **Apache Maven 3.8+** - primary build tool for the backend
 * **GNU Make** (optional) - convenient shortcuts (run `make help` to see available targets)
 * **PostgreSQL 13+** - two DBs expected: `datashare` (dev) and `test` (tests)
-* **Elasticsearch 7.x** - 8.x is not officially supported
+* **Elasticsearch 8.x** - 7.x server is still supported
 * **Redis 5+** - session storage and async task orchestration
 
 A `docker-compose.yml` is provided to start all required services:
