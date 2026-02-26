@@ -10,7 +10,6 @@ import org.junit.Test;
 import org.mockito.Mock;
 
 import java.lang.annotation.Annotation;
-import java.net.URISyntaxException;
 
 import static junit.framework.TestCase.assertEquals;
 import static org.mockito.Mockito.mock;
@@ -46,14 +45,15 @@ public class PolicyAnnotationTest {
     private PolicyAnnotation annotation;
 
     @Before
-    public void setUp() throws URISyntaxException {
+    public void setUp() {
         mocks = openMocks(this);
         projectId = "test-datashare";
         adminUser = new DatashareUser("cecile");
         nonAdminUser = new DatashareUser("john");
         authorizer = new Authorizer(jooqCasbinRuleRepository);
-        authorizer.addRoleForUserInProject("cecile", Role.PROJECT_ADMIN, Domain.of("testDomain"), projectId);
-        authorizer.addRoleForUserInProject("john", Role.PROJECT_MEMBER, Domain.of("testDomain"), projectId);
+        //TODO #DOMAIN : currently only default domain is supported in the annotation
+        authorizer.addRoleForUserInProject("cecile", Role.PROJECT_ADMIN, Domain.DEFAULT, projectId);
+        authorizer.addRoleForUserInProject("john", Role.PROJECT_MEMBER, Domain.DEFAULT, projectId);
         annotation = new PolicyAnnotation(authorizer);
     }
 
@@ -88,7 +88,7 @@ public class PolicyAnnotationTest {
     }
 
     @Test
-    public void should_allow_user_if_has_right_policy_as_isAdmin() {
+    public void should_allow_user_if_has_right_policy() {
         Context context = mock(Context.class);
 
         when(context.currentUser()).thenReturn(adminUser);
