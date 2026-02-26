@@ -682,12 +682,12 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
 
         // Setup admin user
         DatashareUser admin = new DatashareUser("admin");
-        authorizer.addProjectAdmin("admin", Domain.of(""), projectId);
+        authorizer.addProjectAdmin("admin", Domain.of("testDomain"), projectId);
         when(users.find("admin", "pass")).thenReturn(admin);
 
         // Setup non-admin user
         DatashareUser john = new DatashareUser("john");
-        authorizer.addRoleForUserInProject("john", Role.PROJECT_MEMBER, Domain.of(""), projectId);
+        authorizer.addRoleForUserInProject("john", Role.PROJECT_MEMBER, Domain.of("testDomain"), projectId);
         when(users.find("john", "pass")).thenReturn(john);
         TaskPolicyAnnotation taskPolicyAnnotation = new TaskPolicyAnnotation(authorizer, taskManager);
 
