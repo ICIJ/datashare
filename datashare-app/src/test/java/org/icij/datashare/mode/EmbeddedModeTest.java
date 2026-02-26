@@ -8,7 +8,6 @@ import org.slf4j.event.Level;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.List;
 
 import static java.lang.String.format;
@@ -45,6 +44,13 @@ public class EmbeddedModeTest {
 
         String content = Files.readString(settingsFile);
         assertThat(content).isEqualTo(originalContent);
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void test_creates_default_settings_throws_runtime_when_fails() throws Exception {
+        Path invalidPath = Path.of("/invalid/path/elasticsearch.yml");
+
+        createDefaultSettingsFile(invalidPath);
     }
 
     @Test
@@ -95,15 +101,12 @@ public class EmbeddedModeTest {
     private void createDefaultSettingsFile(Path settingsFile) {
         try {
             Path backupsDir = settingsFile.getParent().resolve("backups");
-            String defaultContent = String.format("""
-                    path.repo:
-                      - "%s"
-                    """, backupsDir);
+            String defaultContent = String.format("path.repo: %s", backupsDir);
             Files.createDirectories(settingsFile.getParent());
             Files.writeString(settingsFile, defaultContent);
             org.slf4j.LoggerFactory.getLogger(EmbeddedMode.class).info("Created default elasticsearch settings file at {}", settingsFile);
         } catch (java.io.IOException e) {
-            org.slf4j.LoggerFactory.getLogger(EmbeddedMode.class).warn("Failed to create default elasticsearch settings file at {}: {}", settingsFile, e.getMessage());
+            throw new RuntimeException(format("failed to create default elasticsearch settings file at %s", settingsFile), e);
         }
     }
 }

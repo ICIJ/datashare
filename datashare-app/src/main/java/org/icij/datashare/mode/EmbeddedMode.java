@@ -38,10 +38,10 @@ public class EmbeddedMode extends LocalMode {
                         format("Missing required option %s.", ELASTICSEARCH_DATA_PATH_OPT))
         );
         createDefaultSettingsFileIfNeeded(elasticsearchSettings, elasticsearchDataPath);
-        logger.info("Starting Elasticsearch from local install {} within a new JVM.", elasticsearchDir);
-        String elasticsearchScript = new OsArchDetector().isWindows() ? "elasticsearch.bat" : "elasticsearch";
         List<String> args = buildElasticsearchArgs(Path.of(elasticsearchSettings));
+        String elasticsearchScript = new OsArchDetector().isWindows() ? "elasticsearch.bat" : "elasticsearch";
         args.add(0, format("%s/current/bin/%s", elasticsearchDir, elasticsearchScript));
+        logger.info("Starting Elasticsearch from local install {} within a new JVM.", elasticsearchDir);
         new Process(elasticsearchDir,
                 "elasticsearch",
                 args.toArray(new String[0]),
@@ -96,7 +96,7 @@ public class EmbeddedMode extends LocalMode {
             Files.writeString(settingsFile, defaultContent);
             logger.info("Created default elasticsearch settings file at {}", settingsFile);
         } catch (IOException e) {
-            logger.warn("Failed to create default elasticsearch settings file at {}: {}", settingsFile, e.getMessage());
+            throw new RuntimeException(format("failed to create default elasticsearch settings file at %s", settingsFile), e);
         }
     }
 
@@ -118,7 +118,7 @@ public class EmbeddedMode extends LocalMode {
             }
             logger.info("loaded {} elasticsearch settings from {}", args.size(), settingsFile);
         } catch (IOException e) {
-            throw new RuntimeException(format("failed to read elasticsearch settings from %s",settingsFile), e);
+            throw new RuntimeException(format("failed to read elasticsearch settings from %s", settingsFile), e);
         }
         return args;
     }
