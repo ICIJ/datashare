@@ -16,7 +16,6 @@ import org.icij.datashare.web.TaskResource;
 
 import java.io.IOException;
 import java.io.Serializable;
-import java.net.URISyntaxException;
 import java.util.function.Function;
 
 import static java.util.Optional.ofNullable;
@@ -29,7 +28,7 @@ public class TaskPolicyAnnotation implements ApplyAroundAnnotation<TaskPolicy> {
     private final DatashareTaskManager taskManager;
 
     @Inject
-    public TaskPolicyAnnotation(final Authorizer userPolicyVerifier, final DatashareTaskManager taskManager) throws URISyntaxException {
+    public TaskPolicyAnnotation(final Authorizer userPolicyVerifier, final DatashareTaskManager taskManager) {
         this.authorizer = userPolicyVerifier;
         this.taskManager = taskManager;
 
@@ -72,6 +71,8 @@ public class TaskPolicyAnnotation implements ApplyAroundAnnotation<TaskPolicy> {
 
         } catch (IOException e) {
             throw new RuntimeException(e);
+        } catch (NotFoundException e) {
+            return Payload.notFound();
         }
     }
 }
