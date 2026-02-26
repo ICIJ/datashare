@@ -62,7 +62,7 @@ This section explains how to set up a development environment, build the project
 
 ### Requirements
 
-* **JDK 17**
+* **JDK 21**
 * **Apache Maven 3.8+** - primary build tool for the backend
 * **GNU Make** (optional) - convenient shortcuts (run `make help` to see available targets)
 * **PostgreSQL 13+** - two DBs expected: `datashare` (dev) and `test` (tests)
