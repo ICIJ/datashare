@@ -1,69 +1,67 @@
-package org.icij.datashare.session;
+package org.icij.datashare.policies;
 
 import net.codestory.http.Context;
 import net.codestory.http.errors.UnauthorizedException;
 import net.codestory.http.payload.Payload;
-import org.icij.datashare.user.Role;
-import org.icij.datashare.user.UserPolicy;
+import org.icij.datashare.session.DatashareUser;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mock;
 
 import java.lang.annotation.Annotation;
-import java.net.URISyntaxException;
 
 import static junit.framework.TestCase.assertEquals;
-import static org.icij.datashare.user.Role.ADMIN;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.mockito.MockitoAnnotations.openMocks;
 
-public class UserPolicyAnnotationTest {
-    private UserPolicyAnnotation annotation;
-    private DatashareUser adminUser;
-    private DatashareUser nonAdminUser;
-
-    private static AutoCloseable mocks;
-    private String projectId = "test-datashare";
-    private final Policy adminPolicy = new Policy() {
+public class PolicyAnnotationTest {
+    private final Policy adminProjectPolicy = new Policy() {
         @Override
         public Class<? extends Annotation> annotationType() {
             return Policy.class;
         }
 
         @Override
-        public Role[] roles() {
-            return new Role[]{Role.ADMIN};
+        public Role role() {
+            return Role.PROJECT_ADMIN;
         }
 
         @Override
-        public String projectIdParam() {
+        public String idParam() {
             return "index";
         }
+
     };
-    UserPolicyVerifier userPolicyVerifier;
+    private DatashareUser adminUser;
+    private DatashareUser nonAdminUser;
+
+    private static AutoCloseable mocks;
+    private String projectId = "test-datashare";
+    @Mock
+    CasbinRuleAdapter adapter;
+    Authorizer authorizer;
+    private PolicyAnnotation annotation;
+
     @Before
-    public void setUp() throws URISyntaxException {
+    public void setUp() {
         mocks = openMocks(this);
         projectId = "test-datashare";
         adminUser = new DatashareUser("cecile");
         nonAdminUser = new DatashareUser("john");
-        UserPolicy adminPermission = new UserPolicy("cecile", projectId, new Role[]{ADMIN});
-        UserPolicy nonAdminPermission = new UserPolicy("john", projectId, new Role[]{Role.READER});
-        userPolicyVerifier = mock(UserPolicyVerifier.class);
-        when(userPolicyVerifier.getUserPolicy("cecile", projectId)).thenReturn(adminPermission);
-        when(userPolicyVerifier.getUserPolicy("john", projectId)).thenReturn(nonAdminPermission);
-        when(userPolicyVerifier.enforce("cecile", projectId, ADMIN.name())).thenReturn(true);
-        when(userPolicyVerifier.enforce("john", projectId, ADMIN.name())).thenReturn(false);
-        annotation = new UserPolicyAnnotation(userPolicyVerifier);
-
+        authorizer = new Authorizer(adapter);
+        //TODO #DOMAIN : currently only default domain is supported in the annotation
+        authorizer.addRoleForUserInProject("cecile", Role.PROJECT_ADMIN, Domain.DEFAULT, projectId);
+        authorizer.addRoleForUserInProject("john", Role.PROJECT_MEMBER, Domain.DEFAULT, projectId);
+        annotation = new PolicyAnnotation(authorizer);
     }
 
     @Test(expected = UnauthorizedException.class)
     public void should_throw_unauthorized_if_no_user() {
         Context context = mock(Context.class);
         when(context.pathParam("index")).thenReturn(projectId);
-        annotation.apply(adminPolicy, context, (c) -> Payload.ok());
+        annotation.apply(adminProjectPolicy, context, (c) -> Payload.ok());
     }
 
     @Test
@@ -75,7 +73,7 @@ public class UserPolicyAnnotationTest {
 
         when(context.pathParam("index")).thenReturn(projectId);
 
-        Payload result = annotation.apply(adminPolicy, context, c -> Payload.ok());
+        Payload result = annotation.apply(adminProjectPolicy, context, c -> Payload.ok());
         assertEquals(403, result.code());
     }
 
@@ -85,17 +83,17 @@ public class UserPolicyAnnotationTest {
 
         when(context.currentUser()).thenReturn(nonAdminUser);
         when(context.pathParam("index")).thenReturn(projectId);
-        Payload result = annotation.apply(adminPolicy, context, (c) -> Payload.forbidden());
+        Payload result = annotation.apply(adminProjectPolicy, context, (c) -> Payload.forbidden());
         assertEquals(403, result.code());
     }
 
     @Test
-    public void should_allow_user_if_has_right_policy_as_isAdmin() {
+    public void should_allow_user_if_has_right_policy() {
         Context context = mock(Context.class);
 
         when(context.currentUser()).thenReturn(adminUser);
         when(context.pathParam("index")).thenReturn(projectId);
-        Payload result = annotation.apply(adminPolicy, context, (c) -> Payload.ok());
+        Payload result = annotation.apply(adminProjectPolicy, context, (c) -> Payload.ok());
         assertEquals(200, result.code());
     }
 

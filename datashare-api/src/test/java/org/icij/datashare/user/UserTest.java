@@ -2,17 +2,11 @@ package org.icij.datashare.user;
 
 
 import org.icij.datashare.json.JsonObjectMapper;
+import org.icij.datashare.policies.CasbinRule;
 import org.junit.After;
 import org.junit.Test;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 
 import static org.fest.assertions.Assertions.assertThat;
 import static org.fest.assertions.MapAssert.entry;
@@ -24,6 +18,7 @@ public class UserTest {
     public void test_stringify_arrays()  {
         assertThat(fromJson("{\"key\":\"value\",\"array\":[]}", "test").details).includes(entry("key", "value"), entry("array", new LinkedList<>()));
         assertThat(fromJson("{\"key\":\"value\",\"array\":[\"item\"]}", "test").details).includes(entry("array", Collections.singletonList("item")));
+        assertThat(fromJson("{\"policies\":[],\"array\":[\"item\"]}", "test").details).includes(entry("policies", List.of()));
     }
 
     @Test
@@ -133,7 +128,7 @@ public class UserTest {
 
     @Test
     public void test_local_user_with_projects() {
-        User user = User.localUser("foo", List.of("p1", "p2"));
+        User user = User.localUser("foo", "p1", "p2");
         assertThat(user.id).isEqualTo("foo");
         assertThat(user.getProjects()).contains (project("p1"), project("p2"));
     }
@@ -200,39 +195,50 @@ public class UserTest {
     }
 
     @Test
-    public void test_getRoles_returns_roles_for_project() {
-        UserPolicy policy1 = new UserPolicy("id", "project1", new Role[]{Role.ADMIN, Role.READER});
+    public void serialize_policies_from_casbin_rules() {
+        // Create CasbinRule objects
+        CasbinRule rule1 = CasbinRule.fromArray(List.of("p", "cecile", "icij", "project1", "PROJECT_ADMIN"));
+        CasbinRule rule2 = CasbinRule.fromArray(List.of("p", "cecile", "icij", "project2", "PROJECT_MEMBER"));
+        List<CasbinRule> rules = List.of(rule1, rule2);
 
-        UserPolicy policy2 = new UserPolicy("id", "project2", new Role[]{Role.READER});
-        User user = new User("id", "name", "email", "provider", "{\"policies\": [{\"userId\":\"id\",\"projectId\":\"project1\",\"roles\":[\"ADMIN\",\"READER\"]},{\"userId\":\"id\",\"projectId\":\"project2\",\"roles\":[\"READER\"]}]}");
+        // Create user with policies
+        User user = new User("id", "name", "email", "provider", Map.of("policies", rules));
 
-        Set<Role> roles = user.getRoles("project1");
-        assertThat(roles).containsOnly(Role.ADMIN, Role.READER);
-
-        roles = user.getRoles("project2");
-        assertThat(roles).containsOnly(Role.READER);
-
-        roles = user.getRoles("project3");
-        assertThat(roles).isEmpty();
+        // Serialize details
+        Map<String, Object> details = user.getDetails();
+        assertThat(details.containsKey("policies")).isTrue();
+        Object policiesObj = details.get("policies");
+        assertThat(policiesObj).isInstanceOf(List.class);
+        List<?> policies = (List<?>) policiesObj;
+        assertThat(policies).hasSize(2);
+        assertThat(policies.get(0)).isEqualTo(List.of("p", "cecile", "icij", "project1", "PROJECT_ADMIN", "", ""));
+        assertThat(policies.get(1)).isEqualTo(List.of("p", "cecile", "icij", "project2", "PROJECT_MEMBER", "", ""));
     }
 
     @Test
-    public void test_getPolicy_returns_policy_for_project() {
-        UserPolicy policy1 = new UserPolicy("id", "project1", new Role[]{Role.ADMIN});
-        UserPolicy policy2 = new UserPolicy("id", "project2", new Role[]{Role.READER});
+    public void deserialize_getPolicies_returns_casbin_rules() {
         User user = new User("id", "name", "email", "provider",
-                "{\"policies\":[{\"userId\":\"id\",\"projectId\":\"project1\",\"roles\":[\"ADMIN\"]},{\"userId\":\"id\",\"projectId\":\"project2\",\"roles\":[\"READER\"]}]}");
+                "{\"policies\":[[\"p\",\"cecile\",\"icij\",\"project1\",\"PROJECT_ADMIN\"],[\"p\",\"cecile\",\"icij\",\"project2\",\"PROJECT_MEMBER\"]]}");
 
-        Optional<UserPolicy> foundPolicy = user.getPolicy("project1");
-        assertThat(foundPolicy.isPresent()).isTrue();
-        assertThat(foundPolicy.get()).isEqualTo(policy1);
+        List<CasbinRule> policies = user.getPolicies();
+        assertThat(policies).hasSize(2);
 
-        foundPolicy = user.getPolicy("project2");
-        assertThat(foundPolicy.isPresent()).isTrue();
-        assertThat(foundPolicy.get()).isEqualTo(policy2);
+        CasbinRule policy1 = policies.get(0);
+        CasbinRule policy2 = policies.get(1);
 
-        foundPolicy = user.getPolicy("project3");
-        assertThat(foundPolicy.isPresent()).isFalse();
+        // Check first policy
+        assertThat(policy1.ptype).isEqualTo("p");
+        assertThat(policy1.v0).isEqualTo("cecile");
+        assertThat(policy1.v1).isEqualTo("icij");
+        assertThat(policy1.v2).isEqualTo("project1");
+        assertThat(policy1.v3).isEqualTo("PROJECT_ADMIN");
+
+        // Check second policy
+        assertThat(policy2.ptype).isEqualTo("p");
+        assertThat(policy2.v0).isEqualTo("cecile");
+        assertThat(policy2.v1).isEqualTo("icij");
+        assertThat(policy2.v2).isEqualTo("project2");
+        assertThat(policy2.v3).isEqualTo("PROJECT_MEMBER");
     }
     @After
     public void tearDown() throws Exception {

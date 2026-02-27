@@ -3,8 +3,8 @@ package org.icij.datashare.web;
 import net.codestory.http.filters.basic.BasicAuthFilter;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.UserEvent;
+import org.icij.datashare.db.JooqCasbinRuleAdapter;
 import org.icij.datashare.db.JooqRepository;
-import org.icij.datashare.db.JooqUserPolicyRepository;
 import org.icij.datashare.session.LocalUserFilter;
 import org.icij.datashare.text.Project;
 import org.icij.datashare.user.User;
@@ -28,18 +28,18 @@ import static org.mockito.MockitoAnnotations.initMocks;
 public class UserResourceTest extends AbstractProdWebServerTest {
     @Mock JooqRepository jooqRepository;
     @Mock
-    JooqUserPolicyRepository jooqUserPolicyRepository;
+    JooqCasbinRuleAdapter jooqCasbinRuleAdapter;
     PropertiesProvider propertiesProvider = new PropertiesProvider();
 
     @Before
     public void setUp() {
         initMocks(this);
-        configure(routes -> routes.add(new UserResource(jooqRepository, jooqUserPolicyRepository)).filter(new LocalUserFilter(new PropertiesProvider(), jooqRepository)));
+        configure(routes -> routes.add(new UserResource(jooqRepository, jooqCasbinRuleAdapter)).filter(new LocalUserFilter(new PropertiesProvider(), jooqRepository)));
     }
 
     @Test
     public void test_user_information() {
-        configure(routes -> routes.add(new UserResource(jooqRepository, jooqUserPolicyRepository)).
+        configure(routes -> routes.add(new UserResource(jooqRepository, jooqCasbinRuleAdapter)).
                         filter(new BasicAuthFilter("/", "icij", singleUser("pierre"))));
 
         get("/api/users/me")
@@ -59,7 +59,7 @@ public class UserResourceTest extends AbstractProdWebServerTest {
             LocalUserFilter localUserFilter = new LocalUserFilter(propertiesProvider, jooqRepository);
             routes
                     .filter(localUserFilter)
-                    .add(new UserResource(jooqRepository, jooqUserPolicyRepository));
+                    .add(new UserResource(jooqRepository, jooqCasbinRuleAdapter));
         });
 
         get("/api/users/me")

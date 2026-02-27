@@ -14,45 +14,27 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import net.codestory.http.Context;
 import net.codestory.http.Part;
 import net.codestory.http.Query;
-import net.codestory.http.annotations.Delete;
-import net.codestory.http.annotations.Get;
-import net.codestory.http.annotations.Options;
-import net.codestory.http.annotations.Post;
-import net.codestory.http.annotations.Prefix;
-import net.codestory.http.annotations.Put;
+import net.codestory.http.annotations.*;
 import net.codestory.http.errors.BadRequestException;
 import net.codestory.http.errors.ForbiddenException;
 import net.codestory.http.errors.HttpException;
 import net.codestory.http.errors.NotFoundException;
 import net.codestory.http.payload.Payload;
 import org.icij.datashare.PropertiesProvider;
-import org.icij.datashare.asynctasks.Group;
-import org.icij.datashare.asynctasks.Task;
-import org.icij.datashare.asynctasks.TaskAlreadyExists;
-import org.icij.datashare.asynctasks.TaskFilters;
-import org.icij.datashare.asynctasks.TaskGroupType;
-import org.icij.datashare.asynctasks.TaskResult;
-import org.icij.datashare.asynctasks.UnknownTask;
+import org.icij.datashare.asynctasks.*;
 import org.icij.datashare.asynctasks.bus.amqp.UriResult;
-import org.icij.datashare.batch.BatchDownload;
-import org.icij.datashare.batch.BatchSearch;
-import org.icij.datashare.batch.BatchSearchRecord;
-import org.icij.datashare.batch.BatchSearchRepository;
-import org.icij.datashare.batch.WebQueryPagination;
+import org.icij.datashare.batch.*;
 import org.icij.datashare.cli.Mode;
 import org.icij.datashare.extract.OptionsWrapper;
 import org.icij.datashare.json.JsonObjectMapper;
-import org.icij.datashare.tasks.BatchDownloadRunner;
-import org.icij.datashare.tasks.BatchSearchRunner;
-import org.icij.datashare.tasks.DatashareTaskFactory;
-import org.icij.datashare.tasks.DatashareTaskManager;
-import org.icij.datashare.tasks.EnqueueFromIndexTask;
-import org.icij.datashare.tasks.ExtractNlpTask;
-import org.icij.datashare.tasks.IndexTask;
-import org.icij.datashare.tasks.ScanIndexTask;
-import org.icij.datashare.tasks.ScanTask;
+import org.icij.datashare.policies.Role;
+import org.icij.datashare.policies.TaskPolicy;
+import org.icij.datashare.tasks.*;
 import org.icij.datashare.text.Project;
 import org.icij.datashare.user.User;
+import org.icij.datashare.utils.ModeVerifier;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
@@ -60,27 +42,13 @@ import java.io.InputStream;
 import java.io.Serializable;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.HashMap;
-import java.util.LinkedHashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Properties;
-import java.util.Set;
+import java.util.*;
 import java.util.function.Function;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import org.icij.datashare.utils.ModeVerifier;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import static java.lang.Boolean.FALSE;
-import static java.lang.Boolean.TRUE;
-import static java.lang.Boolean.parseBoolean;
+import static java.lang.Boolean.*;
 import static java.lang.Integer.parseInt;
 import static java.nio.file.Paths.get;
 import static java.util.Arrays.stream;
@@ -88,19 +56,10 @@ import static java.util.Optional.ofNullable;
 import static java.util.function.Predicate.not;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toMap;
-import static net.codestory.http.payload.Payload.badRequest;
-import static net.codestory.http.payload.Payload.forbidden;
-import static net.codestory.http.payload.Payload.ok;
+import static net.codestory.http.payload.Payload.*;
 import static org.apache.commons.lang3.SystemUtils.IS_OS_WINDOWS;
 import static org.icij.datashare.CollectionUtils.asSet;
-import static org.icij.datashare.PropertiesProvider.DATA_DIR_OPT;
-import static org.icij.datashare.PropertiesProvider.DEFAULT_PROJECT_OPT;
-import static org.icij.datashare.PropertiesProvider.DIGEST_PROJECT_NAME_OPT;
-import static org.icij.datashare.PropertiesProvider.REPORT_NAME_OPT;
-import static org.icij.datashare.PropertiesProvider.QUEUE_NAME_OPT;
-import static org.icij.datashare.PropertiesProvider.RESUME_OPT;
-import static org.icij.datashare.PropertiesProvider.SYNC_MODELS_OPTION;
-import static org.icij.datashare.PropertiesProvider.propertiesToMap;
+import static org.icij.datashare.PropertiesProvider.*;
 import static org.icij.datashare.cli.DatashareCliOptions.BATCH_DOWNLOAD_DIR_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.NLP_PIPELINE_OPT;
 import static org.icij.datashare.text.nlp.AbstractModels.syncModels;
@@ -487,8 +446,9 @@ public class TaskResource {
     @ApiResponse(responseCode = "403", description = "returns 403 if the task is still in RUNNING state")
     @ApiResponse(responseCode = "404", description = "returns 404 if the task doesn't exist")
     @Delete("/clean/:taskName:")
+    @TaskPolicy(role = Role.PROJECT_ADMIN)
     public Payload cleanTask(@Parameter(name = "taskName", description = "name of the task to delete", in = ParameterIn.PATH) final String taskId, Context context) throws Exception {
-        Task<?> task = forbiddenIfNotSameUser(context, notFoundIfUnknown(() -> taskManager.getTask(taskId)));
+        Task<?> task = notFoundIfUnknown(() -> taskManager.getTask(taskId));
         if (task.getState() == Task.State.RUNNING) {
             return forbidden();
         } else {
@@ -645,7 +605,7 @@ public class TaskResource {
         return asSet(stream(csv.split("\r?\n")).filter(q -> q.length() >= 2).toArray(String[]::new));
     }
 
-    private interface UnknownTaskThrowingSupplier<T>  {
+    public interface UnknownTaskThrowingSupplier<T> {
         T get() throws IOException, UnknownTask;
     }
 

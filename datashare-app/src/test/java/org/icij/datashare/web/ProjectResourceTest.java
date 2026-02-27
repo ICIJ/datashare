@@ -2,21 +2,21 @@ package org.icij.datashare.web;
 
 import net.codestory.http.filters.basic.BasicAuthFilter;
 import net.codestory.http.security.Users;
-import org.icij.datashare.EnvUtils;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Repository;
 import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.cli.Mode;
 import org.icij.datashare.db.JooqRepository;
-import org.icij.datashare.session.*;
 import org.icij.datashare.extract.MemoryDocumentCollectionFactory;
+import org.icij.datashare.policies.*;
+import org.icij.datashare.session.DatashareUser;
+import org.icij.datashare.session.LocalUserFilter;
+import org.icij.datashare.session.UsersWritable;
+import org.icij.datashare.session.YesBasicAuthFilter;
 import org.icij.datashare.tasks.DatashareTaskManager;
 import org.icij.datashare.text.Project;
 import org.icij.datashare.text.indexing.Indexer;
-import org.icij.datashare.user.Role;
 import org.icij.datashare.user.User;
-import org.icij.datashare.user.UserPolicy;
-import org.icij.datashare.user.UserPolicyRepository;
 import org.icij.datashare.web.testhelpers.AbstractProdWebServerTest;
 import org.icij.extract.extractor.ExtractionStatus;
 import org.icij.extract.queue.DocumentQueue;
@@ -32,7 +32,6 @@ import java.io.IOException;
 import java.net.URISyntaxException;
 import java.nio.file.Path;
 import java.util.*;
-import java.util.stream.Stream;
 
 import static java.util.Arrays.asList;
 import static org.fest.assertions.Assertions.assertThat;
@@ -51,22 +50,9 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
     @Rule public TemporaryFolder artifactDir = new TemporaryFolder();
     MemoryDocumentCollectionFactory<Path> documentCollectionFactory;
     PropertiesProvider propertiesProvider;
-
-    @Before
-    public void setUp() {
-        initMocks(this);
-        documentCollectionFactory = new MemoryDocumentCollectionFactory<>();
-        when(jooqRepository.getProjects()).thenReturn(new ArrayList<>());
-        configure(routes -> {
-            propertiesProvider = new PropertiesProvider(new HashMap<>() {{
-                put("dataDir", "/vault");
-                put("mode", "LOCAL");
-            }});
-
-            ProjectResource projectResource = new ProjectResource(repository, indexer, taskManager, propertiesProvider, documentCollectionFactory);
-            routes.filter(new LocalUserFilter(propertiesProvider, jooqRepository)).add(projectResource);
-        });
-    }
+    Authorizer authorizer;
+    @Mock
+    CasbinRuleAdapter jooqCasbinRuleRepository;
 
     private Users get_datashare_users(String uid, List<String> groups) {
         User user = new User(new HashMap<>() {{
@@ -234,21 +220,33 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
                 .contain("\"sourcePath\":\"file:///vault/newFoo/test\"");
     }
 
-    @Mock
-    UserPolicyRepository jooqUserPolicyRepository;
+    @Before
+    public void setUp() {
+        initMocks(this);
+        authorizer = new Authorizer(jooqCasbinRuleRepository);
+
+        documentCollectionFactory = new MemoryDocumentCollectionFactory<>();
+        when(jooqRepository.getProjects()).thenReturn(new ArrayList<>());
+        configure(routes -> {
+            propertiesProvider = new PropertiesProvider(new HashMap<>() {{
+                put("dataDir", "/vault");
+                put("mode", "LOCAL");
+            }});
+
+            ProjectResource projectResource = new ProjectResource(repository, indexer, taskManager, propertiesProvider, documentCollectionFactory);
+            routes.filter(new LocalUserFilter(propertiesProvider, jooqRepository)).add(projectResource);
+        });
+    }
 
     @Mock
     UsersWritable users;
 
-    public User get_datashare_users_with_policy2(String userId, String projectId, Role[] roles) {
-        UserPolicy policy = new UserPolicy(userId, projectId, roles);
-        DatashareUser user = new DatashareUser(localUser(userId, List.of(projectId), Stream.of(policy)));
+    public User mockUser(String userId, String projectId, Role role) {
+        authorizer.addRoleForUserInProject(userId, role, Domain.of("testDomain"), projectId);
+        DatashareUser user = new DatashareUser(localUser(userId, List.of(projectId), authorizer.getPermissionsForUserInDomain(userId, Domain.of("testDomain"))));
         user.addProject(projectId);
         when(jooqRepository.getProject(projectId)).thenReturn(project(projectId));
-        when(jooqUserPolicyRepository.getAllPolicies()).thenReturn(user.getPolicies());
-
         when(users.find(user.id)).thenReturn(user);
-        when(jooqUserPolicyRepository.get(user.id, projectId)).thenReturn(policy);
         return user;
     }
 
@@ -263,13 +261,12 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
 
         ProjectResource projectResource = new ProjectResource(repository, indexer, taskManager, propertiesProvider, documentCollectionFactory);
         // add policies
-        User user = get_datashare_users_with_policy2("john", projectId,new Role[]{Role.ADMIN});
-        UserPolicyVerifier verifier = new UserPolicyVerifier(jooqUserPolicyRepository, users);
-        UserPolicyAnnotation userPolicyAnnotation = new UserPolicyAnnotation(verifier);
+        User john = mockUser("john", projectId, Role.PROJECT_ADMIN);
+        PolicyAnnotation policyAnnotation = new PolicyAnnotation(authorizer);
 
         configure(routes -> {
-            BasicAuthFilter basicAuthFilter = new BasicAuthFilter("/", "icij", DatashareUser.singleUser(user));
-            routes.filter(basicAuthFilter).registerAroundAnnotation(Policy.class, userPolicyAnnotation).add(new UserPolicyResource(verifier)).add(projectResource);
+            BasicAuthFilter basicAuthFilter = new BasicAuthFilter("/", "icij", DatashareUser.singleUser(john));
+            routes.filter(basicAuthFilter).registerAroundAnnotation(Policy.class, policyAnnotation).add(new PolicyResource(authorizer, repository)).add(projectResource);
         });
 
         Project foo = new Project(projectId, Path.of("/my-dir/foo"));
@@ -289,13 +286,13 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
         PropertiesProvider propertiesProvider =new PropertiesProvider(Collections.singletonMap("mode", Mode.SERVER.name()));
         ProjectResource projectResource = new ProjectResource(repository, indexer, taskManager, propertiesProvider, documentCollectionFactory);
 
-        User user = get_datashare_users_with_policy2("john", projectId,new Role[]{});
-        UserPolicyVerifier verifier = new UserPolicyVerifier(jooqUserPolicyRepository, users);
-        UserPolicyAnnotation userPolicyAnnotation = new UserPolicyAnnotation(verifier);
+        User elios = mockUser("elios", projectId, Role.PROJECT_MEMBER);
+
+        PolicyAnnotation policyAnnotation = new PolicyAnnotation(authorizer);
 
         configure(routes -> {
-            BasicAuthFilter basicAuthFilter = new BasicAuthFilter("/", "icij", DatashareUser.singleUser(user));
-            routes.filter(basicAuthFilter).registerAroundAnnotation(Policy.class, userPolicyAnnotation).add(new UserPolicyResource(verifier)).add(projectResource);
+            BasicAuthFilter basicAuthFilter = new BasicAuthFilter("/", "icij", DatashareUser.singleUser(elios));
+            routes.filter(basicAuthFilter).registerAroundAnnotation(Policy.class, policyAnnotation).add(new PolicyResource(authorizer, repository)).add(projectResource);
         });
         when(repository.getProject(projectId)).thenReturn(new Project(projectId));
         when(repository.save((Project) any())).thenReturn(true);
