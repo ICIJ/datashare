@@ -116,6 +116,18 @@ public class TaskManagerTemporalIntTest {
         assertThat(task.getState()).isEqualTo(RUNNING);
     }
 
+    @Test
+    public void test_start_task_with_null_user() throws IOException {
+        String expectedTaskId = taskManager.startTask("taskName", null, Map.of("key", "value"));
+
+        List<String> taskIds = taskManager.getTaskIds().toList();
+        assertThat(taskIds).hasSize(1);
+        String taskId = taskIds.get(0);
+        assertThat(taskId).isEqualTo(expectedTaskId);
+        Task<?> task = taskManager.getTask(taskId);
+        assertThat(task.getState()).isEqualTo(RUNNING);
+    }
+
     @Test(timeout = 5000)
     public void test_get_tasks() throws IOException, InterruptedException {
         Task<String> foo = new Task<>("foo", User.local(), Map.of());
