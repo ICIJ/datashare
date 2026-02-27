@@ -57,7 +57,7 @@ import static org.icij.datashare.web.TaskResource.taskFiltersFromContext;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
-import static org.mockito.MockitoAnnotations.initMocks;
+import static org.mockito.MockitoAnnotations.openMocks;
 
 public class TaskResourceTest extends AbstractProdWebServerTest {
     @Rule
@@ -70,14 +70,35 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
     private static final TestTaskUtils.DatashareTaskFactoryForTest taskFactory = mock(TestTaskUtils.DatashareTaskFactoryForTest.class);
     private static final TaskManagerMemory taskManager = new TaskManagerMemory(taskFactory, new TaskRepositoryMemory(), new PropertiesProvider(Map.of(TASK_MANAGER_POLLING_INTERVAL_OPT, "500")));
 
-    @Mock
-    CasbinRuleAdapter casbinRuleRepository;
+    private static AutoCloseable mocks;
 
     Authorizer authorizer;
+    @Mock
+    CasbinRuleAdapter adapter;
+    @Mock
+    UsersWritable users;
+
+    @Before
+    public void setUp() {
+        mocks = openMocks(this);
+        when(jooqRepository.getProjects()).thenReturn(new ArrayList<>());
+        when(batchSearchRepository.getRecords(any(), any())).thenReturn(new ArrayList<>());
+        PipelineRegistry pipelineRegistry = new PipelineRegistry(getDefaultPropertiesProvider());
+        pipelineRegistry.register(EmailPipeline.class);
+        LocalUserFilter localUserFilter = new LocalUserFilter(getDefaultPropertiesProvider(), jooqRepository);
+        configure(routes -> routes
+                .add(new TaskResource(taskFactory, taskManager, getDefaultPropertiesProvider(), batchSearchRepository))
+                .filter(localUserFilter)
+        );
+        TestTaskUtils.init(taskFactory);
+    }
+
     @After
-    public void tearDown() throws IOException {
+    public void tearDown() throws Exception {
         taskManager.stopTasks(User.local());
         taskManager.clear();
+        mocks.close();
+
     }
 
     @Test
@@ -656,61 +677,61 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         responseBody.should().not().contain("IndexTask");
         assertThat(taskManager.getTasks().toList()).hasSize(1);
     }
-    @Mock
-    UsersWritable users;
 
-    @Before
-    public void setUp() {
-        initMocks(this);
-        when(jooqRepository.getProjects()).thenReturn(new ArrayList<>());
-        when(batchSearchRepository.getRecords(any(), any())).thenReturn(new ArrayList<>());
-        PipelineRegistry pipelineRegistry = new PipelineRegistry(getDefaultPropertiesProvider());
-        pipelineRegistry.register(EmailPipeline.class);
-        LocalUserFilter localUserFilter = new LocalUserFilter(getDefaultPropertiesProvider(), jooqRepository);
-        configure(routes -> routes
-                .add(new TaskResource(taskFactory, taskManager, getDefaultPropertiesProvider(), batchSearchRepository))
-                .filter(localUserFilter)
-        );
-        TestTaskUtils.init(taskFactory);
-    }
 
     @Test
     public void test_clean_task_with_admin_policy() throws Exception {
+        authorizer = new Authorizer(adapter);
         String projectId = "test-datashare";
-        String dummyTaskId = taskManager.startTask(TestTask.class, User.local(), new HashMap<>(Map.of(PropertiesProvider.DEFAULT_PROJECT_OPT, projectId)));
+        DatashareUser notJohn = new DatashareUser("notJohn");
+
+        String dummyTaskId = taskManager.startTask(TestTask.class, notJohn, new HashMap<>(Map.of(PropertiesProvider.DEFAULT_PROJECT_OPT, projectId)));
         taskManager.waitTasksToBeDone(1, SECONDS);
 
-        // Setup admin user
-        DatashareUser admin = new DatashareUser("admin");
-        authorizer.addProjectAdmin("admin", Domain.of("testDomain"), projectId);
-        when(users.find("admin", "pass")).thenReturn(admin);
-
-        // Setup non-admin user
+        // Setup user
         DatashareUser john = new DatashareUser("john");
-        authorizer.addRoleForUserInProject("john", Role.PROJECT_MEMBER, Domain.of("testDomain"), projectId);
-        when(users.find("john", "pass")).thenReturn(john);
+        john.addProject(projectId);
+        authorizer.addRoleForUserInProject(john.id, Role.PROJECT_MEMBER, Domain.DEFAULT, projectId);
+        when(users.find(john.id)).thenReturn(john);
         TaskPolicyAnnotation taskPolicyAnnotation = new TaskPolicyAnnotation(authorizer, taskManager);
 
         configure(routes -> routes
-                .filter(new BasicAuthFilter("/", "icij", users))
                 .registerAroundAnnotation(TaskPolicy.class, taskPolicyAnnotation)
-                .add(new PolicyResource(authorizer, null))
                 .add(new TaskResource(taskFactory, taskManager, getDefaultPropertiesProvider(), batchSearchRepository))
+                .filter(new BasicAuthFilter("/", "icij", DatashareUser.users("john", "notJohn")))
         );
 
-        // Admin can clean
-        //delete("/api/task/clean/" + dummyTaskId).withPreemptiveAuthentication("admin", "pass").should().respond(200);
+        // MEMBER cannot clean
+        delete("/api/task/clean/" + dummyTaskId).withPreemptiveAuthentication("john", "").should().respond(403);
+        authorizer.updateRoleForUserInProject(john.id, Role.PROJECT_ADMIN, Domain.DEFAULT, projectId);
+        delete("/api/task/clean/" + dummyTaskId).withPreemptiveAuthentication("john", "").should().respond(200);
+    }
 
-        // recreate task for john's test
-        String dummyTaskId2 = taskManager.startTask(TestTask.class, User.local(), new HashMap<>(Map.of(PropertiesProvider.DEFAULT_PROJECT_OPT, projectId)));
+    @Test
+    public void test_clean_task_as_owner() throws Exception {
+        authorizer = new Authorizer(adapter);
+        String projectId = "test-datashare";
+        DatashareUser owner = new DatashareUser("owner");
+        owner.addProject(projectId);
+        authorizer.addRoleForUserInProject(owner.id, Role.PROJECT_MEMBER, Domain.DEFAULT, projectId);
+        when(users.find(owner.id)).thenReturn(owner);
+
+        String dummyTaskId = taskManager.startTask(TestTask.class, owner, new HashMap<>(Map.of(PropertiesProvider.DEFAULT_PROJECT_OPT, projectId)));
         taskManager.waitTasksToBeDone(1, SECONDS);
 
-        // John cannot clean (403 Forbidden)
-        delete("/api/task/clean/" + dummyTaskId2).withPreemptiveAuthentication("john", "pass").should().respond(403);
+        TaskPolicyAnnotation taskPolicyAnnotation = new TaskPolicyAnnotation(authorizer, taskManager);
 
-        // Admin can clean dummyTaskId2
-        delete("/api/task/clean/" + dummyTaskId2).withPreemptiveAuthentication("admin", "pass").should().respond(200);
+        configure(routes -> routes
+                .registerAroundAnnotation(TaskPolicy.class, taskPolicyAnnotation)
+                .add(new TaskResource(taskFactory, taskManager, getDefaultPropertiesProvider(), batchSearchRepository))
+                .filter(new BasicAuthFilter("/", "icij", DatashareUser.users("owner")))
+        );
+
+        // MEMBER cannot clean but as owner it's ok
+        delete("/api/task/clean/" + dummyTaskId).withPreemptiveAuthentication("owner", "").should().respond(200);
     }
+
+
     @Test
     public void test_cannot_clean_unknown_task() {
         delete("/api/task/clean/UNKNOWN_TASK_NAME").should().respond(404);

@@ -3,16 +3,12 @@ package org.icij.datashare.policies;
 import com.google.inject.Inject;
 import net.codestory.http.Context;
 import net.codestory.http.annotations.ApplyAroundAnnotation;
-import net.codestory.http.errors.ForbiddenException;
-import net.codestory.http.errors.NotFoundException;
-import net.codestory.http.errors.UnauthorizedException;
 import net.codestory.http.payload.Payload;
 import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.asynctasks.UnknownTask;
 import org.icij.datashare.session.DatashareUser;
 import org.icij.datashare.tasks.DatashareTaskManager;
 import org.icij.datashare.text.Project;
-import org.icij.datashare.web.TaskResource;
 
 import java.io.IOException;
 import java.io.Serializable;
@@ -34,29 +30,22 @@ public class TaskPolicyAnnotation implements ApplyAroundAnnotation<TaskPolicy> {
 
     }
 
-    private static <V extends Serializable> Task<V> forbiddenIfNotSameUser(Context context, Task<V> task) {
-        if (!task.getUser().equals(context.currentUser())) throw new ForbiddenException();
-        return task;
-    }
-
-    private static <T> T notFoundIfUnknown(TaskResource.UnknownTaskThrowingSupplier<T> supplier) throws IOException {
-        try {
-            return supplier.get();
-        } catch (UnknownTask ex) {
-            throw new NotFoundException();
-        }
+    private static <V extends Serializable> boolean isTaskOwner(Context context, Task<V> task) {
+        return task.getUser().equals(context.currentUser());
     }
 
     @Override
     public Payload apply(TaskPolicy annotation, Context context, Function<Context, Payload> payloadSupplier) {
         DatashareUser user = (DatashareUser) context.currentUser();
         if (user == null) {
-            throw new UnauthorizedException();
+            return Payload.forbidden();
         }
-
         String taskId = context.pathParam(annotation.idParam());
+        if (taskId == null || taskId.isBlank()) {
+            return Payload.forbidden();
+        }
         try {
-            Task<Serializable> taskView = notFoundIfUnknown(() -> taskManager.getTask(taskId));
+            Task<Serializable> taskView = taskManager.getTask(taskId);
 
             Project project = Project.project(ofNullable((String) taskView.args.get(DEFAULT_PROJECT_OPT)).orElse(DEFAULT_DEFAULT_PROJECT));
 
@@ -64,14 +53,15 @@ public class TaskPolicyAnnotation implements ApplyAroundAnnotation<TaskPolicy> {
             if (projectId == null) {
                 return Payload.forbidden();
             }
-            if (!authorizer.can(user.id, Domain.DEFAULT, projectId, annotation.role())) {
-                return Payload.forbidden();
-            }
-            return payloadSupplier.apply(context);
 
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        } catch (NotFoundException e) {
+            if (authorizer.can(user.id, Domain.DEFAULT, projectId, annotation.role())) {
+                return payloadSupplier.apply(context);
+            } else if (annotation.allowOwner() && isTaskOwner(context, taskView)) {
+                return payloadSupplier.apply(context);
+            }
+            return Payload.forbidden();
+
+        } catch (UnknownTask | IOException e) {
             return Payload.notFound();
         }
     }

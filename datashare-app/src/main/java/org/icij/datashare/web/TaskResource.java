@@ -27,6 +27,8 @@ import org.icij.datashare.batch.*;
 import org.icij.datashare.cli.Mode;
 import org.icij.datashare.extract.OptionsWrapper;
 import org.icij.datashare.json.JsonObjectMapper;
+import org.icij.datashare.policies.Role;
+import org.icij.datashare.policies.TaskPolicy;
 import org.icij.datashare.tasks.*;
 import org.icij.datashare.text.Project;
 import org.icij.datashare.user.User;
@@ -444,8 +446,9 @@ public class TaskResource {
     @ApiResponse(responseCode = "403", description = "returns 403 if the task is still in RUNNING state")
     @ApiResponse(responseCode = "404", description = "returns 404 if the task doesn't exist")
     @Delete("/clean/:taskName:")
+    @TaskPolicy(role = Role.PROJECT_ADMIN)
     public Payload cleanTask(@Parameter(name = "taskName", description = "name of the task to delete", in = ParameterIn.PATH) final String taskId, Context context) throws Exception {
-        Task<?> task = forbiddenIfNotSameUser(context, notFoundIfUnknown(() -> taskManager.getTask(taskId)));
+        Task<?> task = notFoundIfUnknown(() -> taskManager.getTask(taskId));
         if (task.getState() == Task.State.RUNNING) {
             return forbidden();
         } else {
