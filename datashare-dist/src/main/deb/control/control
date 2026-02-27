@@ -6,5 +6,5 @@ Priority: low
 Architecture: all
 Description: [[description]]
 Maintainer: ICIJ <datashare@icij.org>
-Depends: default-jre | openjdk-17-jre | openjdk-18-jre, tesseract-ocr
+Depends: openjdk-21-jre, tesseract-ocr
 Recommends: tesseract-ocr-all
