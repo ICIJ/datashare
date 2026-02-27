@@ -42,6 +42,11 @@ public class TaskPolicyAnnotationTest {
         }
 
         @Override
+        public boolean allowOwner() {
+            return true;
+        }
+
+        @Override
         public String idParam() {
             return "taskName:";
         }
