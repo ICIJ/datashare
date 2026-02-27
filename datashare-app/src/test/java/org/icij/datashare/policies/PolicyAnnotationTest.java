@@ -40,7 +40,7 @@ public class PolicyAnnotationTest {
     private static AutoCloseable mocks;
     private String projectId = "test-datashare";
     @Mock
-    CasbinRuleAdapter jooqCasbinRuleRepository;
+    CasbinRuleAdapter adapter;
     Authorizer authorizer;
     private PolicyAnnotation annotation;
 
@@ -50,7 +50,7 @@ public class PolicyAnnotationTest {
         projectId = "test-datashare";
         adminUser = new DatashareUser("cecile");
         nonAdminUser = new DatashareUser("john");
-        authorizer = new Authorizer(jooqCasbinRuleRepository);
+        authorizer = new Authorizer(adapter);
         //TODO #DOMAIN : currently only default domain is supported in the annotation
         authorizer.addRoleForUserInProject("cecile", Role.PROJECT_ADMIN, Domain.DEFAULT, projectId);
         authorizer.addRoleForUserInProject("john", Role.PROJECT_MEMBER, Domain.DEFAULT, projectId);
