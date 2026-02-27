@@ -11,4 +11,6 @@ public @interface TaskPolicy {
     String idParam() default "taskName:";
 
     Role role() default Role.PROJECT_MEMBER;
+
+    boolean allowOwner() default true;
 }
