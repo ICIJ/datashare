@@ -22,6 +22,12 @@ datashare-web/src/main/resources/secret.properties
 doc/
 work
 *.swp
+
+# Mac jenv properties
+.java-version
+
+# Flattened maven plugin
 **/.flattened-pom.xml
+
 # Devenv Properties File
 datashare-devenv.properties
