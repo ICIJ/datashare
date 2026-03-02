@@ -3,3 +3,5 @@
 -- dsbuild: used by Maven for migrations and jOOQ code generation
 
 CREATE DATABASE dsbuild OWNER dstest;
+CREATE DATABASE temporal OWNER dstest;
+CREATE DATABASE temporal_visibility OWNER dstest;

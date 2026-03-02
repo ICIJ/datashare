@@ -208,6 +208,11 @@ Once VS Code is connected to the devcontainer:
 3. Reload Java projects so that VS Code correctly picks up generated sources (jOOQ) and dependencies:
    - Go to *View* → *Command Palette* → *Java: Reload Projects*
 
+### Publishing the temporal test container
+To publish Datashare's Temporal test container run
+```console
+make build-temporal-testcontainer NEW_VERSION=<your-version>
+```
 
 ## Cookbook
 
