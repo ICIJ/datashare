@@ -25,7 +25,9 @@ public class ProjectPolicyAnnotation extends AbstractPolicyAnnotation<ProjectPol
             return Payload.forbidden();
         }
 
-        if (!isAllowed(user, projectId, annotation.role())) {
+        Domain domain = Domain.of(annotation.domain());
+
+        if (!isAllowed(user, domain, projectId, annotation.role())) {
             return Payload.forbidden();
         }
 

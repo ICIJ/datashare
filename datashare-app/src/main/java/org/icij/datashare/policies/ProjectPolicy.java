@@ -11,5 +11,7 @@ import java.lang.annotation.Target;
 public @interface ProjectPolicy {
     String idParam() default "index";
 
+    String domain() default "default";
+
     Role role() default Role.PROJECT_MEMBER;
 }

@@ -33,6 +33,11 @@ public class ProjectPolicyAnnotationTest {
             return "index";
         }
 
+        @Override
+        public String domain() {
+            return "default";
+        }
+
     };
     private DatashareUser adminUser;
     private DatashareUser nonAdminUser;
