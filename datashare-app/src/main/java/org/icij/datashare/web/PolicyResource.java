@@ -39,14 +39,14 @@ public class PolicyResource {
     }
 
     private void domainIsPresent(String name) {
-        if (name == null || name.isBlank() || !name.equals("*")) {
-            throw new BlankParameterException("Domain cannot be null or blank");
+        if (name == null || name.isBlank() || name.equals("*")) {
+            throw new BlankParameterException("Domain cannot be null or blank or wildcard");
         }
     }
 
     private void projectExists(String name) {
-        if (name == null || name.isBlank() || !name.equals("*")) {
-            throw new BlankParameterException("Project cannot be null or blank");
+        if (name == null || name.isBlank() || name.equals("*")) {
+            throw new BlankParameterException("Project cannot be null or blank or wildcard");
         }
         if (repository.getProject(name) == null) {
             throw new RecordNotFoundException(Project.class, name);
