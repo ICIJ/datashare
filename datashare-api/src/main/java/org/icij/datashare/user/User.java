@@ -78,7 +78,8 @@ public class User implements Entity, Comparable<User> {
                 (String)map.getOrDefault("provider", LOCAL),
                 map, //details
                 (String)map.get("jsonProjectKey"),
-                (Set<UserPolicy>) map.get("policies"));
+                (Set<UserPolicy>) Optional.ofNullable(map.get("policies"))
+                        .orElse(Collections.emptySet()));
     }
 
     public User(User user) {
@@ -268,6 +269,7 @@ public class User implements Entity, Comparable<User> {
                 findFirst();
     }
 
+    @JsonIgnore
     public Stream<UserPolicy> getPolicies() {
         return policies.stream();
     }
