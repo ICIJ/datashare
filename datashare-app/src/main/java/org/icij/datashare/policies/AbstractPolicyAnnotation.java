@@ -23,7 +23,7 @@ public abstract class AbstractPolicyAnnotation<A extends Annotation> implements 
         return user;
     }
 
-    protected boolean isAllowed(DatashareUser user, String projectId, Role role) {
-        return authorizer.can(user.id, Domain.DEFAULT, projectId, role);
+    protected boolean isAllowed(DatashareUser user, Domain domain, String projectId, Role role) {
+        return authorizer.can(user.id, domain, projectId, role);
     }
 }

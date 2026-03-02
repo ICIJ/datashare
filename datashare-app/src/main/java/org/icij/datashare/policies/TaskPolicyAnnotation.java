@@ -48,7 +48,8 @@ public class TaskPolicyAnnotation extends AbstractPolicyAnnotation<TaskPolicy> {
                 return Payload.forbidden();
             }
 
-            if (isAllowed(user, projectId, annotation.role()) || (annotation.allowOwner() && task.getUser().equals(user))) {
+            Domain domain = Domain.of(annotation.domain());
+            if (isAllowed(user, domain, projectId, annotation.role()) || (annotation.allowOwner() && task.getUser().equals(user))) {
                 return payloadSupplier.apply(context);
             }
 

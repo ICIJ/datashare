@@ -51,6 +51,11 @@ public class TaskPolicyAnnotationTest {
             return "taskName:";
         }
 
+        @Override
+        public String domain() {
+            return "default";
+        }
+
     };
     @Mock
     CasbinRuleAdapter jooqCasbinRuleRepository;

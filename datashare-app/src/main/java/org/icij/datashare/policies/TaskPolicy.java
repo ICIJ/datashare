@@ -11,6 +11,8 @@ import java.lang.annotation.Target;
 public @interface TaskPolicy {
     String idParam() default "taskName:";
 
+    String domain() default "default";
+
     Role role() default Role.PROJECT_MEMBER;
 
     boolean allowOwner() default true;

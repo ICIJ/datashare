@@ -29,7 +29,6 @@ import org.junit.rules.TemporaryFolder;
 import org.mockito.Mock;
 
 import java.io.IOException;
-import java.net.URISyntaxException;
 import java.nio.file.Path;
 import java.util.*;
 
@@ -242,8 +241,9 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
     UsersWritable users;
 
     public User mockUser(String userId, String projectId, Role role) {
-        authorizer.addRoleForUserInProject(userId, role, Domain.of("testDomain"), projectId);
-        DatashareUser user = new DatashareUser(localUser(userId, List.of(projectId), authorizer.getPermissionsForUserInDomain(userId, Domain.of("testDomain"))));
+        Domain domain = Domain.DEFAULT;
+        authorizer.addRoleForUserInProject(userId, role, domain, projectId);
+        DatashareUser user = new DatashareUser(localUser(userId, List.of(projectId), authorizer.getPermissionsForUserInDomain(userId, domain)));
         user.addProject(projectId);
         when(jooqRepository.getProject(projectId)).thenReturn(project(projectId));
         when(users.find(user.id)).thenReturn(user);
@@ -251,7 +251,7 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
-    public void test_update_project_in_server_mode_by_admin() throws URISyntaxException, IOException {
+    public void test_update_project_in_server_mode_by_admin() {
         String projectId = "foo";
         //setup SERVER properties
         PropertiesProvider propertiesProvider = new PropertiesProvider(new HashMap<>() {{
@@ -281,7 +281,7 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
-    public void test_cannot_update_project_in_server_mode_by_non_admin() throws URISyntaxException, IOException {
+    public void test_cannot_update_project_in_server_mode_by_non_admin() {
         String projectId = "foo";
         PropertiesProvider propertiesProvider =new PropertiesProvider(Collections.singletonMap("mode", Mode.SERVER.name()));
         ProjectResource projectResource = new ProjectResource(repository, indexer, taskManager, propertiesProvider, documentCollectionFactory);
@@ -297,7 +297,7 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
         when(repository.getProject(projectId)).thenReturn(new Project(projectId));
         when(repository.save((Project) any())).thenReturn(true);
         String body = "{ \"name\": \"foo\" }";
-        put("/api/project/foo", body).withPreemptiveAuthentication("john", "pass").should().respond(403);
+        put("/api/project/foo", body).withPreemptiveAuthentication("elios", "pass").should().respond(403);
     }
 
 
