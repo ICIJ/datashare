@@ -4,11 +4,7 @@ import net.codestory.http.annotations.Get;
 import net.codestory.http.filters.basic.BasicAuthFilter;
 import net.codestory.http.security.Users;
 import org.icij.datashare.Repository;
-import org.icij.datashare.session.DatashareUser;
-import org.icij.datashare.session.Policy;
-import org.icij.datashare.session.UserPolicyAnnotation;
-import org.icij.datashare.session.UserPolicyVerifier;
-import org.icij.datashare.session.UsersWritable;
+import org.icij.datashare.session.*;
 import org.icij.datashare.user.Role;
 import org.icij.datashare.user.User;
 import org.icij.datashare.user.UserPolicy;
@@ -73,7 +69,7 @@ public class WebAcceptanceTest extends AbstractProdWebServerTest {
         User jane = mockUserProjectRole("jane", "test-datashare", new Role[]{});
         when(jooqUserPolicyRepository.getAllPolicies()).thenReturn(jane.getPolicies());
 
-        UserPolicyVerifier verifier = new UserPolicyVerifier(jooqUserPolicyRepository, users);
+        UserPolicyVerifier verifier = new UserPolicyVerifier(jooqUserPolicyRepository, jooqRepository, users);
         UserPolicyAnnotation userPolicyAnnotation = new UserPolicyAnnotation(verifier);
         Users users = DatashareUser.singleUser(jane);
 
