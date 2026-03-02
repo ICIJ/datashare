@@ -1,22 +1,30 @@
-set -e
+#!/bin/sh
+set -eu
+
+# Validate required environment variables
+: "${POSTGRES_SEEDS:?ERROR: POSTGRES_SEEDS environment variable is required}"
+: "${POSTGRES_PWD:?ERROR: POSTGRES_PWD environment variable is required}"
+: "${POSTGRES_USER:?ERROR: POSTGRES_USER environment variable is required}"
+: "${POSTGRES_PORT:?ERROR: POSTGRES_PORT environment variable is required}"
+: "${DBNAME:?ERROR: DBNAME environment variable is required}"
+: "${VISIBILITY_DBNAME:?ERROR: VISIBILITY_DBNAME environment variable is required}"
 
 setup_postgres() {
-  echo 'Starting PostgreSQL schema setup...'
-  echo 'Waiting for PostgreSQL port to be available...'
-  nc -z -w 10 postgres 5432
-  echo 'PostgreSQL port is available'
+  echo 'Creating temporal base DB'
 
   # Create and setup temporal database
-  temporal-sql-tool --plugin postgres12 --ep postgres -u dstest -pw test -p 5432 --db temporal create
-  temporal-sql-tool --plugin postgres12 --ep postgres -u dstest -pw test -p 5432 --db temporal setup-schema -v 0.0
-  temporal-sql-tool --plugin postgres12 --ep postgres -u dstest -pw test -p 5432 --db temporal update-schema -d /etc/temporal/schema/postgresql/v12/temporal/versioned
+  temporal-sql-tool --plugin postgres12 --ep "${POSTGRES_SEEDS}" -u "${POSTGRES_USER}" -pw "${POSTGRES_PWD}" -p "${POSTGRES_PORT}" --db "${DBNAME}" create
+  temporal-sql-tool --plugin postgres12 --ep "${POSTGRES_SEEDS}" -u "${POSTGRES_USER}" -pw "${POSTGRES_PWD}" -p "${POSTGRES_PORT}" --db "${DBNAME}" setup-schema -v 0.0
+  temporal-sql-tool --plugin postgres12 --ep "${POSTGRES_SEEDS}" -u "${POSTGRES_USER}" -pw "${POSTGRES_PWD}" -p "${POSTGRES_PORT}" --db "${DBNAME}" update-schema -d /etc/temporal/schema/postgresql/v12/temporal/versioned
 
-  # Create and setup visibility database
-  temporal-sql-tool --plugin postgres12 --ep postgres -u dstest -pw test -p 5432 --db temporal_visibility create
-  temporal-sql-tool --plugin postgres12 --ep postgres -u dstest -pw test -p 5432 --db temporal_visibility setup-schema -v 0.0
-  temporal-sql-tool --plugin postgres12 --ep postgres -u dstest -pw test -p 5432 --db temporal_visibility update-schema -d /etc/temporal/schema/postgresql/v12/visibility/versioned
+  echo 'Creating temporal visibility DB'
+  # Create and setup temporal database
+  temporal-sql-tool --plugin postgres12 --ep "${POSTGRES_SEEDS}" -u "${POSTGRES_USER}" -pw "${POSTGRES_PWD}" -p "${POSTGRES_PORT}" --db "${VISIBILITY_DBNAME}" create
+  temporal-sql-tool --plugin postgres12 --ep "${POSTGRES_SEEDS}" -u "${POSTGRES_USER}" -pw "${POSTGRES_PWD}" -p "${POSTGRES_PORT}" --db "${VISIBILITY_DBNAME}" setup-schema -v 0.0
+  temporal-sql-tool --plugin postgres12 --ep "${POSTGRES_SEEDS}" -u "${POSTGRES_USER}" -pw "${POSTGRES_PWD}" -p "${POSTGRES_PORT}" --db "${VISIBILITY_DBNAME}" update-schema -d /etc/temporal/schema/postgresql/v12/visibility/versioned
 
   echo 'PostgreSQL schema setup complete'
 }
+
 
 setup_postgres
