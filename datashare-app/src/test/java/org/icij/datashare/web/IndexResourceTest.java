@@ -10,7 +10,6 @@ import org.icij.datashare.session.LocalUserFilter;
 import org.icij.datashare.test.ElasticsearchRule;
 import org.icij.datashare.text.DocumentBuilder;
 import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchIndexer;
-import org.icij.datashare.user.User;
 import org.icij.datashare.web.testhelpers.AbstractProdWebServerTest;
 import org.junit.After;
 import org.junit.Before;
@@ -20,8 +19,9 @@ import org.mockito.Mock;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import static org.mockito.Mockito.when;
 import static org.mockito.MockitoAnnotations.initMocks;
@@ -290,12 +290,6 @@ public class IndexResourceTest extends AbstractProdWebServerTest {
     public void setUp() {
         initMocks(this);
         when(jooqRepository.getProjects()).thenReturn(new ArrayList<>());
-        configure(routes -> {
-            Users users =  DatashareUser.singleUser("cecile");
-            routes
-                    .add(new IndexResource(indexer))
-                    .filter(new BasicAuthFilter("/", "icij", users));
-        });
     }
 
     @After
