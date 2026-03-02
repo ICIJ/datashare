@@ -5,9 +5,10 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
+@BasePolicy
 @Target({ElementType.METHOD, ElementType.TYPE})
 @Retention(RetentionPolicy.RUNTIME)
-public @interface Policy {
+public @interface ProjectPolicy {
     String idParam() default "index";
 
     Role role() default Role.PROJECT_MEMBER;

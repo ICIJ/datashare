@@ -53,10 +53,10 @@ public class WebAcceptanceTest extends AbstractProdWebServerTest {
     @Test
     public void route_with_index_in_path_policy_annotation_accepts_user_with_same_policy() {
         User john = mockUserProjectRole("john", "test-datashare", Role.PROJECT_ADMIN);
-        PolicyAnnotation policyAnnotation = new PolicyAnnotation(authorizer);
+        ProjectPolicyAnnotation projectPolicyAnnotation = new ProjectPolicyAnnotation(authorizer);
         Users users = DatashareUser.singleUser(john);
 
-        configure(routes -> routes.registerAroundAnnotation(Policy.class, policyAnnotation).filter(new BasicAuthFilter("/", "icij", users)).add(new FakeResource()));
+        configure(routes -> routes.registerAroundAnnotation(ProjectPolicy.class, projectPolicyAnnotation).filter(new BasicAuthFilter("/", "icij", users)).add(new FakeResource()));
 
         get("/admin/test-datashare").withPreemptiveAuthentication("john", "pass").should().respond(200);
     }
@@ -65,21 +65,21 @@ public class WebAcceptanceTest extends AbstractProdWebServerTest {
     public void route_with_policy_annotation_rejects_user_without_admin_role() {
         User jane = mockUserProjectRole("jane", "test-datashare", Role.PROJECT_MEMBER);
 
-        PolicyAnnotation userPolicyAnnotation = new PolicyAnnotation(authorizer);
+        ProjectPolicyAnnotation userProjectPolicyAnnotation = new ProjectPolicyAnnotation(authorizer);
         Users users = DatashareUser.singleUser(jane);
 
-        configure(routes -> routes.registerAroundAnnotation(Policy.class, userPolicyAnnotation).filter(new BasicAuthFilter("/", "icij", users)).add(new FakeResource()));
+        configure(routes -> routes.registerAroundAnnotation(ProjectPolicy.class, userProjectPolicyAnnotation).filter(new BasicAuthFilter("/", "icij", users)).add(new FakeResource()));
 
         get("/admin/test-datashare").withPreemptiveAuthentication("jane", "pass").should().respond(403);
     }
 
-    // Fake resource with @Policy annotation
+    // Fake resource with @ProjectPolicy annotation
     static class FakeResource {
         public FakeResource() {
         }
 
         @Get("/admin/:index")
-        @Policy(role = Role.PROJECT_EDITOR)
+        @ProjectPolicy(role = Role.PROJECT_EDITOR)
         public String getAdminResource(String index) {
             return "admin-content " + index;
         }

@@ -1,5 +1,6 @@
 package org.icij.datashare.policies;
 
+import com.google.inject.Inject;
 import org.apache.commons.io.IOUtils;
 import org.casbin.jcasbin.main.Enforcer;
 import org.casbin.jcasbin.model.Model;
@@ -22,6 +23,7 @@ public class Authorizer {
     private static final String DEFAULT_POLICY_FILE = "casbin/model.conf";
     private final Enforcer enforcer;
 
+    @Inject
     public Authorizer(CasbinRuleAdapter adapter) {
         this(adapter, true);
     }
