@@ -3,7 +3,6 @@ package org.icij.datashare.web;
 import net.codestory.http.filters.basic.BasicAuthFilter;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.UserEvent;
-import org.icij.datashare.db.JooqCasbinRuleAdapter;
 import org.icij.datashare.db.JooqRepository;
 import org.icij.datashare.session.LocalUserFilter;
 import org.icij.datashare.text.Project;
@@ -27,19 +26,17 @@ import static org.mockito.MockitoAnnotations.initMocks;
 
 public class UserResourceTest extends AbstractProdWebServerTest {
     @Mock JooqRepository jooqRepository;
-    @Mock
-    JooqCasbinRuleAdapter jooqCasbinRuleAdapter;
     PropertiesProvider propertiesProvider = new PropertiesProvider();
 
     @Before
     public void setUp() {
         initMocks(this);
-        configure(routes -> routes.add(new UserResource(jooqRepository, jooqCasbinRuleAdapter)).filter(new LocalUserFilter(new PropertiesProvider(), jooqRepository)));
+        configure(routes -> routes.add(new UserResource(jooqRepository)).filter(new LocalUserFilter(new PropertiesProvider(), jooqRepository)));
     }
 
     @Test
     public void test_user_information() {
-        configure(routes -> routes.add(new UserResource(jooqRepository, jooqCasbinRuleAdapter)).
+        configure(routes -> routes.add(new UserResource(jooqRepository)).
                         filter(new BasicAuthFilter("/", "icij", singleUser("pierre"))));
 
         get("/api/users/me")
@@ -59,7 +56,7 @@ public class UserResourceTest extends AbstractProdWebServerTest {
             LocalUserFilter localUserFilter = new LocalUserFilter(propertiesProvider, jooqRepository);
             routes
                     .filter(localUserFilter)
-                    .add(new UserResource(jooqRepository, jooqCasbinRuleAdapter));
+                    .add(new UserResource(jooqRepository));
         });
 
         get("/api/users/me")

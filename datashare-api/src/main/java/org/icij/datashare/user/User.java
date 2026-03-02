@@ -5,7 +5,6 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import org.icij.datashare.Entity;
 import org.icij.datashare.json.JsonObjectMapper;
-import org.icij.datashare.policies.CasbinRule;
 import org.icij.datashare.text.Project;
 
 import java.util.*;
@@ -54,6 +53,7 @@ public class User implements Entity, Comparable<User> {
         this.provider = provider;
         this.details = unmodifiableMap(ofNullable(details).orElse(new HashMap<>()));
         this.jsonProjectKey = ofNullable(jsonProjectKey).orElse(getDefaultProjectsKey());
+
     }
 
     public User(final String id, String name, String email, String provider) {
@@ -174,14 +174,6 @@ public class User implements Entity, Comparable<User> {
     }
 
     @JsonIgnore
-    public Map<String, Object> getDetails() {
-        return details.entrySet().stream().
-                filter(k -> k.getValue() != null).
-                filter(k -> !k.getKey().equalsIgnoreCase("password")).
-                collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
-    }
-
-    @JsonIgnore
     public String getJsonDetails() {
         return JsonObjectMapper.serialize(getDetails());
     }
@@ -204,6 +196,7 @@ public class User implements Entity, Comparable<User> {
     @JsonIgnore
     public boolean isLocal() { return LOCAL.equals(this.id);}
     public static User local() { return localUser(LOCAL);}
+
     public static User localUser(String id, String... projectNames) {
         return localUser(id, Arrays.stream(projectNames).toList());
     }
@@ -219,6 +212,15 @@ public class User implements Entity, Comparable<User> {
         );
     }
 
+    @JsonIgnore
+    public Map<String, Object> getDetails() {
+        Map<String, Object> detailsMap = details.entrySet().stream().
+                filter(k -> k.getValue() != null).
+                filter(k -> !k.getKey().equalsIgnoreCase("password")).
+                collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+
+        return detailsMap;
+    }
     public static User nullUser() { return new User((String)null);}
     @Override
     public int hashCode() { return Objects.hash(id);}
