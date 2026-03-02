@@ -78,7 +78,7 @@ services:
         start_period: 30s
 
     elasticsearch:
-        image: docker.elastic.co/elasticsearch/elasticsearch:7.17.7
+        image: docker.elastic.co/elasticsearch/elasticsearch:8.19.8
         environment:
           - "ES_JAVA_OPTS=-Xms256m -Xmx256m"
           - discovery.type=single-node
