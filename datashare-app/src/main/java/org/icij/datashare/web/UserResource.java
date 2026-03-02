@@ -14,9 +14,6 @@ import net.codestory.http.payload.Payload;
 import org.icij.datashare.Repository;
 import org.icij.datashare.UserEvent;
 import org.icij.datashare.UserEvent.Type;
-import org.icij.datashare.policies.Authorizer;
-import org.icij.datashare.policies.CasbinRule;
-import org.icij.datashare.policies.CasbinRuleAdapter;
 import org.icij.datashare.session.DatashareUser;
 import org.icij.datashare.text.Project;
 import org.jetbrains.annotations.NotNull;
@@ -38,7 +35,6 @@ import static org.icij.datashare.db.tables.UserHistory.USER_HISTORY;
 @Prefix("/api/users")
 public class UserResource {
     private final Repository repository;
-    private final Authorizer authorizer;
 
     private List<Project> getDatashareUserProjects (DatashareUser datashareUser) {
         List<String> projectNames =  datashareUser.getProjectNames();
@@ -51,9 +47,8 @@ public class UserResource {
     }
 
     @Inject
-    public UserResource(Repository repository, CasbinRuleAdapter CasbinRuleAdapter) {
+    public UserResource(Repository repository) {
         this.repository = repository;
-        this.authorizer = new Authorizer(CasbinRuleAdapter);
     }
 
     @Operation(description = "Gets the user's session information.")
@@ -63,9 +58,7 @@ public class UserResource {
         DatashareUser datashareUser = (DatashareUser) context.currentUser();
         Map<String, Object> details = datashareUser.getDetails();
         //TODO #DOMAIN: change Domain.DEFAULT to variable when domain are operational
-        List<CasbinRule> policies = authorizer.getGroupPermissions(datashareUser.id);
         details.put("projects", getDatashareUserProjects(datashareUser));
-        details.put("policies", policies);
         return details;
     }
 
