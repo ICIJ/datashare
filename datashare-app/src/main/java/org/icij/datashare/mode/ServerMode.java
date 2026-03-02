@@ -12,6 +12,8 @@ import org.icij.datashare.db.JooqRepository;
 import org.icij.datashare.db.RepositoryFactoryImpl;
 import org.icij.datashare.policies.ProjectPolicy;
 import org.icij.datashare.policies.ProjectPolicyAnnotation;
+import org.icij.datashare.policies.TaskPolicy;
+import org.icij.datashare.policies.TaskPolicyAnnotation;
 import org.icij.datashare.session.*;
 import org.icij.datashare.web.*;
 
@@ -73,6 +75,7 @@ public class ServerMode extends CommonMode {
         // Use registerAroundAnnotation (not registerAfterAnnotation) so @ProjectPolicy checks
         // run BEFORE the endpoint handler and can block unauthorized requests with 403.
         routes.registerAroundAnnotation(ProjectPolicy.class, get(ProjectPolicyAnnotation.class));
+        routes.registerAroundAnnotation(TaskPolicy.class, get(TaskPolicyAnnotation.class));
     }
 
     @Override
