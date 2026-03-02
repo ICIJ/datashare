@@ -18,6 +18,7 @@ import org.icij.datashare.db.tables.Project;
 import org.icij.datashare.db.tables.UserInventory;
 import org.icij.datashare.policies.Authorizer;
 import org.icij.datashare.policies.Domain;
+import org.icij.datashare.policies.ProjectPolicy;
 import org.icij.datashare.policies.Role;
 
 import java.util.stream.Stream;
@@ -72,6 +73,7 @@ public class PolicyResource {
             }
     )
     @ApiResponse(responseCode = "200", description = "Instance policies retrieved successfully.")
+    @ProjectPolicy(role = Role.INSTANCE_ADMIN)
     @Get()
     public Payload getInstancePolicies(
             Context context) {
@@ -93,6 +95,7 @@ public class PolicyResource {
 
     @Operation(description = "Remove an instance policy for a given user with a given role.")
     @ApiResponse(responseCode = "200", description = "Policy removed successfully.")
+    @ProjectPolicy(role = Role.INSTANCE_ADMIN)
     @Delete("")
     public Payload removeInstancePolicy(
             Context context) {
@@ -114,6 +117,7 @@ public class PolicyResource {
 
     @Operation(description = "Upsert a policy regarding a user a project a domain and its role.")
     @ApiResponse(responseCode = "200", description = "Policy added successfully.")
+    @ProjectPolicy(role = Role.INSTANCE_ADMIN)
     @Put("")
     public Payload saveInstancePolicy(
             Context context) {
@@ -143,6 +147,7 @@ public class PolicyResource {
     )
 
     @ApiResponse(responseCode = "200", description = "Domain policies retrieved successfully.")
+    @ProjectPolicy(role = Role.DOMAIN_ADMIN)
     @Get("/:domain")
     public Payload getDomainPolicies(
             @Parameter(name = "domain", description = "Domain name", in = ParameterIn.PATH) String domain,
@@ -165,6 +170,7 @@ public class PolicyResource {
 
     @Operation(description = "Remove a domain policy for a given user with a given role.")
     @ApiResponse(responseCode = "200", description = "Policy removed successfully.")
+    @ProjectPolicy(role = Role.DOMAIN_ADMIN)
     @Delete("/:domain")
     public Payload removeDomainPolicy(
             String domain,
@@ -187,6 +193,7 @@ public class PolicyResource {
 
     @Operation(description = "Upsert a policy regarding a user a project a domain and its role.")
     @ApiResponse(responseCode = "200", description = "Policy added successfully.")
+    @ProjectPolicy(role = Role.DOMAIN_ADMIN)
     @Put("/:domain")
     public Payload saveDomainPolicy(
             String domain,
@@ -216,6 +223,7 @@ public class PolicyResource {
             }
     )
     @ApiResponse(responseCode = "200", description = "Project policies retrieved successfully.")
+    @ProjectPolicy(role = Role.PROJECT_MEMBER)
     @Get("/:domain/:project")
     public Payload getProjectPolicies(
             @Parameter(name = "domain", description = "Domain name", in = ParameterIn.PATH) String domain,
@@ -240,6 +248,7 @@ public class PolicyResource {
 
     @Operation(description = "Remove a project policy for a given user with a given role.")
     @ApiResponse(responseCode = "200", description = "Policy removed successfully.")
+    @ProjectPolicy(role = Role.PROJECT_ADMIN)
     @Delete("/:domain/:project")
     public Payload removeProjectPolicy(
             String domain,
@@ -266,6 +275,7 @@ public class PolicyResource {
 
     @Operation(description = "Upsert a policy regarding a user a project a domain and its role.")
     @ApiResponse(responseCode = "200", description = "Policy added successfully.")
+    @ProjectPolicy(role = Role.PROJECT_EDITOR)
     @Put("/:domain/:project")
     public Payload saveProjectPolicy(
             String domain,
