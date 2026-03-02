@@ -277,7 +277,7 @@ public class TaskResource {
             Then curl with
             
             ```
-            curl -i -XPOST localhost:8080/api/batch/search/prj1,prj2 -H 'Content-Type: multipart/form-data; boundary=BOUNDARY' --data-binary @/home/dev/multipart.txt
+            curl -i -XPOST localhost:8080/api/task/batchSearch/prj1,prj2 -H 'Content-Type: multipart/form-data; boundary=BOUNDARY' --data-binary @/home/dev/multipart.txt
             ```
             
             you'll maybe have to replace \\n with \\r\\n with `sed -i 's/$/^M/g' ~/multipart.txt`""",
