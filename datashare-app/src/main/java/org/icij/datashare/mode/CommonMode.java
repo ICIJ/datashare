@@ -20,7 +20,6 @@ import net.codestory.http.extensions.Extensions;
 import net.codestory.http.injection.GuiceAdapter;
 import net.codestory.http.misc.Env;
 import net.codestory.http.routes.Routes;
-import org.icij.datashare.EnvUtils;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Repository;
 import org.icij.datashare.asynctasks.Group;
@@ -30,6 +29,7 @@ import org.icij.datashare.asynctasks.TaskRepository;
 import org.icij.datashare.asynctasks.TaskSupplier;
 import org.icij.datashare.asynctasks.TaskWorkerLoop;
 import org.icij.datashare.asynctasks.temporal.TemporalHelper;
+import org.icij.datashare.asynctasks.temporal.TemporalInterlocutor;
 import org.icij.datashare.batch.BatchSearchRepository;
 import org.icij.datashare.cli.Mode;
 import org.icij.datashare.cli.QueueType;
@@ -99,9 +99,16 @@ import static java.lang.Integer.parseInt;
 import static java.util.Optional.ofNullable;
 import static org.icij.datashare.LambdaExceptionUtils.rethrowConsumer;
 import static org.icij.datashare.PluginService.PLUGINS_BASE_URL;
-import static org.icij.datashare.asynctasks.TaskManagerTemporal.DEFAULT_NAMESPACE;
-import static org.icij.datashare.asynctasks.TaskManagerTemporal.buildClient;
-import static org.icij.datashare.cli.DatashareCliOptions.*;
+import static org.icij.datashare.cli.DatashareCliOptions.BATCH_QUEUE_TYPE_OPT;
+import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_BATCH_QUEUE_TYPE;
+import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_QUEUE_TYPE;
+import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_TASK_PROGRESS_INTERVAL_SECONDS;
+import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_TASK_WORKERS;
+import static org.icij.datashare.cli.DatashareCliOptions.MODE_OPT;
+import static org.icij.datashare.cli.DatashareCliOptions.QUEUE_TYPE_OPT;
+import static org.icij.datashare.cli.DatashareCliOptions.TASK_PROGRESS_INTERVAL_OPT;
+import static org.icij.datashare.cli.DatashareCliOptions.TASK_REPOSITORY_OPT;
+import static org.icij.datashare.cli.DatashareCliOptions.TASK_WORKERS_OPT;
 import static org.icij.datashare.cli.QueueType.TEMPORAL;
 import static org.icij.datashare.text.indexing.elasticsearch.ElasticsearchConfiguration.createESClient;
 
@@ -238,12 +245,8 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
     }
 
     @Provides @Singleton
-    WorkflowClient provideTemporalClient(final PropertiesProvider propertiesProvider) {
-        String target = propertiesProvider.get(MESSAGE_BUS_OPT)
-            .orElse(EnvUtils.resolveUri("temporalTarget", "temporal:7233"));
-        String namespace = propertiesProvider.get(TEMPORAL_NAMESPACE_OPT)
-            .orElse(DEFAULT_NAMESPACE);
-        return buildClient(target, namespace);
+    TemporalInterlocutor provideTemporal(final PropertiesProvider propertiesProvider) throws InterruptedException {
+        return new TemporalInterlocutor(propertiesProvider);
     }
 
     @Provides @Singleton
@@ -382,7 +385,7 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
 
     private ExecutorService runTemporalWorkers() {
         if (getTaskWorkersNb() > 0) {
-            WorkflowClient client = get(WorkflowClient.class);
+            TemporalInterlocutor temporal = get(TemporalInterlocutor.class);
             WorkerOptions workerOptions = WorkerOptions.newBuilder()
                 .setMaxConcurrentWorkflowTaskExecutionSize(getTaskWorkersNb())
                 .setMaxConcurrentActivityExecutionSize(getTaskWorkersNb())
@@ -392,14 +395,14 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
                 workflows = TemporalHelper.discoverWorkflows(
                     "org.icij.datashare.tasks",
                     get(DatashareTaskFactory.class),
-                    client,
+                    temporal.client,
                     Utils.getRoutingStrategy(propertiesProvider),
                     new Group(TaskGroupType.Java)
                 );
             } catch (ClassNotFoundException e) {
                 throw new RuntimeException(e);
             }
-            WorkerFactory workerFactory = TemporalHelper.createTemporalWorkerFactory(workflows, client, workerOptions);
+            WorkerFactory workerFactory = TemporalHelper.createTemporalWorkerFactory(workflows, temporal.client, workerOptions);
             executorService.submit(() -> {
                 // Start and add to closable
                 closeables.add(new TemporalHelper.CloseableWorkerFactoryHandle(workerFactory));

@@ -3,9 +3,9 @@ package org.icij.datashare.asynctasks.temporal;
 import static java.lang.Character.toUpperCase;
 import static java.util.Arrays.stream;
 import static java.util.stream.Collectors.joining;
-import static org.icij.datashare.asynctasks.TaskManagerTemporal.EXECUTION_STATUS_ATTRIBUTE;
-import static org.icij.datashare.asynctasks.TaskManagerTemporal.USER_CUSTOM_ATTRIBUTE;
-import static org.icij.datashare.asynctasks.TaskManagerTemporal.WORKFLOW_TYPE_ATTRIBUTE;
+import static org.icij.datashare.asynctasks.temporal.TemporalInterlocutor.EXECUTION_STATUS_ATTRIBUTE;
+import static org.icij.datashare.asynctasks.temporal.TemporalInterlocutor.USER_CUSTOM_ATTRIBUTE;
+import static org.icij.datashare.asynctasks.temporal.TemporalInterlocutor.WORKFLOW_TYPE_ATTRIBUTE;
 
 import io.temporal.api.enums.v1.WorkflowExecutionStatus;
 import java.util.ArrayList;

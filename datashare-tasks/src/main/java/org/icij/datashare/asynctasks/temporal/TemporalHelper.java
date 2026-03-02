@@ -9,7 +9,7 @@ import static io.temporal.api.enums.v1.WorkflowExecutionStatus.WORKFLOW_EXECUTIO
 import static org.icij.datashare.LambdaExceptionUtils.rethrowConsumer;
 import static org.icij.datashare.LambdaExceptionUtils.rethrowFunction;
 import static org.icij.datashare.asynctasks.TaskManagerTemporal.resolveWfTaskQueue;
-import static org.icij.datashare.asynctasks.TaskManagerTemporal.USER_CUSTOM_ATTRIBUTE;
+import static org.icij.datashare.asynctasks.temporal.TemporalInterlocutor.USER_CUSTOM_ATTRIBUTE;
 
 import io.temporal.api.enums.v1.WorkflowExecutionStatus;
 import io.temporal.client.WorkflowClient;
