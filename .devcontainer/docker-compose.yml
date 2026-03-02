@@ -95,24 +95,30 @@ services:
           - "9200:9200"
 
     temporal:
-      image: temporalio/server:1.29.2
+      build:
+        context: .
+        target: temporal-test-container
       depends_on:
-        temporal-setup-db:
-          condition: service_completed_successfully
+        postgres:
+          condition: service_healthy
       ports:
         - "7233:7233"
         - "8233:8233"
         - "8076:8076"
       environment:
-        - DB=postgres12
+        - DB=postgres12_pgx
         - DB_PORT=5432
+        - POSTGRES_PORT=5432
         - POSTGRES_USER=dstest
         - POSTGRES_PWD=test
         - POSTGRES_SEEDS=postgres
-        - BIND_ON_IP=0.0.0.0
+        - TEMPORAL_ADDRESS=temporal:7233
+        - TEMPORAL_CLI_ADDRESS=temporal:7233
+        - DBNAME=temporal
+        - VISIBILITY_DBNAME=temporal_visibility
         - LOG_LEVEL=info
       healthcheck:
-        test: [ "CMD", "nc", "-z", "0.0.0.0", "7233" ]
+        test: [ "CMD", "nc", "-z", "temporal", "7233" ]
         interval: 2s
         timeout: 1s
         start_period: 1s
@@ -130,18 +136,3 @@ services:
         - TEMPORAL_CORS_ORIGINS=http://localhost:3000
       ports:
         - "8080:8080"
-
-    temporal-setup-db:
-      image: temporalio/admin-tools:1.29
-      depends_on:
-        postgres:
-          condition: service_healthy
-      container_name: temporal-setup-db
-      restart: on-failure:5
-      environment:
-        - TEMPORAL_ADDRESS=temporal:7233
-        - DEFAULT_NAMESPACE=default
-      volumes:
-        - ./temporal:/temporal
-      entrypoint: [ "/bin/sh" ]
-      command: /temporal/setup.sh

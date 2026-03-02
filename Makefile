@@ -107,3 +107,11 @@ docker: $(DIST_TARGET)
 	docker build -t icij/datashare:$(VERSION) $(DIST_TARGET)
 
 $(DIST_TARGET): dist
+
+## Build Docker image
+build-temporal-testcontainer:
+ifndef NEW_VERSION
+	$(error NEW_VERSION is required. Usage: make build-temporal-testcontainer NEW_VERSION=x.y.z)
+endif
+	docker buildx build --platform linux/amd64,linux/arm64 -t icij/datashare-temporal-testcontainer:$(NEW_VERSION) --target temporal-test-container --push .devcontainer
+
