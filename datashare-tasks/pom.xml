@@ -7,18 +7,19 @@
     <parent>
         <groupId>org.icij.datashare</groupId>
         <artifactId>datashare</artifactId>
-        <version>20.8.2</version>
+        <version>20.14.0</version>
     </parent>
 
     <artifactId>datashare-tasks</artifactId>
     <name>datashare-tasks</name>
     <packaging>jar</packaging>
-    <version>18.0.3</version>
+    <version>21.0.0</version>
     <description>Datashare asynchronous task execution library</description>
 
     <properties>
         <qpid-version>9.0.0</qpid-version>
         <rabbitmq-version>5.18.0</rabbitmq-version>
+        <temporal-sdk-version>1.32.1</temporal-sdk-version>
     </properties>
 
     <dependencies>
@@ -52,6 +53,28 @@
             <groupId>com.rabbitmq</groupId>
             <artifactId>amqp-client</artifactId>
             <version>${rabbitmq-version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.temporal</groupId>
+            <artifactId>temporal-sdk</artifactId>
+            <version>${temporal-sdk-version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.reflections</groupId>
+            <artifactId>reflections</artifactId>
+            <version>0.10.2</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-lang3</artifactId>
+            <version>3.20.0</version>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.palantir.javapoet</groupId>
+            <artifactId>javapoet</artifactId>
+            <version>0.11.0</version>
+            <scope>compile</scope>
         </dependency>
         <!--
         Redisson is needed for RedisBlockingQueue. Redisson is pulling netty.
@@ -95,6 +118,12 @@
             <version>${project.parent.version}</version>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>com.google.testing.compile</groupId>
+            <artifactId>compile-testing</artifactId>
+            <version>0.23.0</version>
+            <scope>test</scope>
+        </dependency>
 
         <dependency>
             <groupId>org.icij.extract</groupId>
@@ -105,6 +134,32 @@
 
     <build>
         <plugins>
+            <plugin>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <proc>none</proc>
+                    <!-- your existing config -->
+                    <compilerArgument>-Xlint:all</compilerArgument>
+                    <compilerArgument>-parameters</compilerArgument>
+                    <showDeprecation>true</showDeprecation>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>process-test-annotations</id>
+                        <phase>generate-test-resources</phase>
+                        <goals>
+                            <goal>testCompile</goal>
+                        </goals>
+                        <configuration>
+                            <proc>only</proc>
+                            <annotationProcessors>
+                                <annotationProcessor>org.icij.datashare.asynctasks.temporal.TemporalWorkflowGenerator</annotationProcessor>
+                            </annotationProcessors>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
             <plugin>
                 <artifactId>maven-assembly-plugin</artifactId>
                 <executions>
@@ -124,6 +179,30 @@
             </plugin>
             <plugin>
                 <artifactId>maven-dependency-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>flatten-maven-plugin</artifactId>
+                <version>1.5.0</version>
+                <configuration>
+                    <flattenMode>oss</flattenMode>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>flatten</id>
+                        <phase>process-resources</phase>
+                        <goals>
+                            <goal>flatten</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>flatten.clean</id>
+                        <phase>clean</phase>
+                        <goals>
+                            <goal>clean</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
             <!-- Test -->
             <plugin>
@@ -147,7 +226,19 @@
                                 <include>TaskManagerAmqpTest</include>
                             </includes>
                             <runOrder>alphabetical</runOrder>
-                            <argLine>-Djava.awt.headless=true --add-opens java.base/java.util.concurrent.locks=ALL-UNNAMED --add-opens java.base/java.lang=ALL-UNNAMED</argLine>
+                            <argLine>-Djava.awt.headless=true
+                                --add-opens java.base/java.util.concurrent.locks=ALL-UNNAMED
+                                --add-opens java.base/java.lang=ALL-UNNAMED
+                                --add-exports jdk.compiler/com.sun.tools.javac.api=ALL-UNNAMED
+                                --add-exports jdk.compiler/com.sun.tools.javac.util=ALL-UNNAMED
+                                --add-exports jdk.compiler/com.sun.tools.javac.tree=ALL-UNNAMED
+                                --add-exports jdk.compiler/com.sun.tools.javac.main=ALL-UNNAMED
+                                --add-exports jdk.compiler/com.sun.tools.javac.code=ALL-UNNAMED
+                                --add-exports jdk.compiler/com.sun.tools.javac.processing=ALL-UNNAMED
+                                --add-exports jdk.compiler/com.sun.tools.javac.parser=ALL-UNNAMED
+                                --add-exports jdk.compiler/com.sun.tools.javac.comp=ALL-UNNAMED
+                                --add-opens jdk.compiler/com.sun.tools.javac.file=ALL-UNNAMED
+                            </argLine>
                         </configuration>
                     </execution>
                     <execution>
@@ -162,7 +253,19 @@
                                 <exclude>JacksonSubTypesTest</exclude>
                                 <exclude>TaskManagerAmqpTest</exclude>
                             </excludes>
-                            <argLine>-Djava.awt.headless=true --add-opens java.base/java.util.concurrent.locks=ALL-UNNAMED --add-opens java.base/java.lang=ALL-UNNAMED</argLine>
+                            <argLine>-Djava.awt.headless=true
+                                --add-opens java.base/java.util.concurrent.locks=ALL-UNNAMED
+                                --add-opens java.base/java.lang=ALL-UNNAMED
+                                --add-exports jdk.compiler/com.sun.tools.javac.api=ALL-UNNAMED
+                                --add-exports jdk.compiler/com.sun.tools.javac.util=ALL-UNNAMED
+                                --add-exports jdk.compiler/com.sun.tools.javac.tree=ALL-UNNAMED
+                                --add-exports jdk.compiler/com.sun.tools.javac.main=ALL-UNNAMED
+                                --add-exports jdk.compiler/com.sun.tools.javac.code=ALL-UNNAMED
+                                --add-exports jdk.compiler/com.sun.tools.javac.processing=ALL-UNNAMED
+                                --add-exports jdk.compiler/com.sun.tools.javac.parser=ALL-UNNAMED
+                                --add-exports jdk.compiler/com.sun.tools.javac.comp=ALL-UNNAMED
+                                --add-opens jdk.compiler/com.sun.tools.javac.file=ALL-UNNAMED
+                            </argLine>
                         </configuration>
                     </execution>
                 </executions>

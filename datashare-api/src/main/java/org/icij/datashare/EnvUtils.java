@@ -13,10 +13,12 @@ public class EnvUtils {
     static {
         getEnvFile().ifPresent((f) ->
             {
-                try (FileInputStream input = new FileInputStream(f.toFile())) {
-                    envProperties.load(input);
-                } catch (IOException e) {
-                    throw new RuntimeException("Failed to dev env configuration", e);
+                if (f.toFile().exists()) {
+                    try (FileInputStream input = new FileInputStream(f.toFile())) {
+                        envProperties.load(input);
+                    } catch (IOException e) {
+                        throw new RuntimeException("Failed to dev env configuration", e);
+                    }
                 }
             }
         );
@@ -54,7 +56,7 @@ public class EnvUtils {
      * @return the resolved URI as a string, or {@code defaultUri} if not found
      */
     public static String resolveUri(String serviceKey, String defaultUri) {
-        return resolve(serviceKey + "Uri", defaultUri).toString();
+        return resolve(serviceKey + "Uri", defaultUri);
     }
 
     /**

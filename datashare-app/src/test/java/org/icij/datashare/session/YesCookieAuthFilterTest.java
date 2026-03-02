@@ -45,6 +45,30 @@ public class YesCookieAuthFilterTest {
     }
 
     @Test
+    public void test_matches_api_paths_with_static_file_extensions() {
+        when(jooqRepository.getProjects()).thenReturn(new ArrayList<>());
+        PropertiesProvider propertiesProvider = new PropertiesProvider(Map.of("protectedUrlPrefix", "/"));
+        YesCookieAuthFilter filter = new YesCookieAuthFilter(propertiesProvider, jooqRepository);
+
+        assertThat(filter.matches("/api/users/me.css", null)).isTrue();
+        assertThat(filter.matches("/api/users/me.js", null)).isTrue();
+        assertThat(filter.matches("/api/users/me.png", null)).isTrue();
+        assertThat(filter.matches("/api/users/me.ico", null)).isTrue();
+        assertThat(filter.matches("/api/key/victim.woff", null)).isTrue();
+        assertThat(filter.matches("/api/batch/search.map", null)).isTrue();
+    }
+
+    @Test
+    public void test_matches_auth_paths_with_static_file_extensions() {
+        when(jooqRepository.getProjects()).thenReturn(new ArrayList<>());
+        PropertiesProvider propertiesProvider = new PropertiesProvider(Map.of("protectedUrlPrefix", "/"));
+        YesCookieAuthFilter filter = new YesCookieAuthFilter(propertiesProvider, jooqRepository);
+
+        assertThat(filter.matches("/auth/signin", null)).isTrue();
+        assertThat(filter.matches("/auth/callback.css", null)).isTrue();
+    }
+
+    @Test
     public void test_adds_new_user_to_context() throws Exception {
         when(jooqRepository.getProjects()).thenReturn(new ArrayList<>());
         PropertiesProvider propertiesProvider = new PropertiesProvider();

@@ -19,7 +19,6 @@ services:
         file: .devcontainer/docker-compose.yml
         service: postgres
       volumes:
-        - postgresql_data:/var/lib/postgresql/data
         - ./.devcontainer/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
 
     elasticsearch:
@@ -27,8 +26,17 @@ services:
         file: .devcontainer/docker-compose.yml
         service: elasticsearch
 
-volumes:
-  postgresql_data:
-    driver: local
-  redis_data:
-    driver: local
+    temporal:
+      extends:
+        file: .devcontainer/docker-compose.yml
+        service: temporal
+
+    temporal-setup-db:
+      extends:
+        file: .devcontainer/docker-compose.yml
+        service: temporal-setup-db
+
+    temporal-ui:
+      extends:
+        file: .devcontainer/docker-compose.yml
+        service: temporal-ui

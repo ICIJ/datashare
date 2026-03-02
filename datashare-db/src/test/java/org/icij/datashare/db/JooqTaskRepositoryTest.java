@@ -179,7 +179,7 @@ public class JooqTaskRepositoryTest {
     }
 
     @Test
-    public void test_get_task_with_status_filter() throws Exception {
+    public void test_get_tasks_with_status_filter() throws Exception {
         Task<String> foo = new Task<>("foo", User.local(), Map.of("user", User.local()));
         Task<String> bar = new Task<>("bar", User.local(), Map.of("user", User.local()));
         // Bar must have a result to be considered as "DONE"
@@ -192,6 +192,64 @@ public class JooqTaskRepositoryTest {
 
         assertThat(tasks.size()).isEqualTo(1);
         assertThat(tasks.get(0).id).isEqualTo(bar.id);
+    }
+
+    @Test
+    public void test_get_task_ids() throws Exception {
+        Task<String> foo = new Task<>("foo", User.local(), Map.of("user", User.local()));
+        Task<String> bar = new Task<>("bar", User.local(), Map.of("user", User.local()));
+        repository.insert(foo, new Group(TaskGroupType.Test));
+        repository.insert(bar, new Group(TaskGroupType.Test));
+        TaskFilters filter = TaskFilters.empty();
+
+        List<String> taskIds = repository.getTaskIds(filter).toList();
+
+        assertThat(taskIds).isEqualTo(List.of(foo.id, bar.id));
+    }
+
+
+    @Test
+    public void test_get_task_ids_with_names_filter() throws Exception {
+        Task<String> foo = new Task<>("foo", User.local(), Map.of("user", User.local()));
+        Task<String> bar = new Task<>("bar", User.local(), Map.of("user", User.local()));
+        repository.insert(foo, new Group(TaskGroupType.Test));
+        repository.insert(bar, new Group(TaskGroupType.Test));
+        TaskFilters filter = TaskFilters.empty().withNames("foo");
+
+        List<String> taskIds = repository.getTaskIds(filter).toList();
+
+        assertThat(taskIds).isEqualTo(List.of(foo.id));
+    }
+
+    @Test
+    public void test_get_task_ids_with_status_filter() throws Exception {
+        Task<String> foo = new Task<>("foo", User.local(), Map.of("user", User.local()));
+        Task<String> bar = new Task<>("bar", User.local(), Map.of("user", User.local()));
+        // Bar must have a result to be considered as "DONE"
+        bar.setResult(new TaskResult<>("1"));
+        repository.insert(foo, new Group(TaskGroupType.Test));
+        repository.insert(bar, new Group(TaskGroupType.Test));
+        TaskFilters filter = TaskFilters.empty().withStates(Task.State.FINAL_STATES);
+
+        List<String> taskIds = repository.getTaskIds(filter).toList();
+
+        assertThat(taskIds).isEqualTo(List.of(bar.id));
+    }
+
+    @Test
+    public void test_get_task_ids_with_args_filter() throws Exception {
+        Task<String> foo = new Task<>("foo", User.local(), Map.of("someArg", "fooValue"));
+        Task<String> bar = new Task<>("bar", User.local(), Map.of("someArg", "barValue"));
+
+        repository.insert(foo, new Group(TaskGroupType.Test));
+        repository.insert(bar, new Group(TaskGroupType.Test));
+
+        TaskFilters filter = TaskFilters.empty()
+            .withArgs(new TaskFilters.ArgsFilter("someArg", "bar.*"));
+
+        List<String> taskIds = repository.getTaskIds(filter).toList();
+
+        assertThat(taskIds).isEqualTo(List.of(bar.id));
     }
 
     @After

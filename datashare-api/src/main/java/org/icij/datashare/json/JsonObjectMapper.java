@@ -11,7 +11,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.jsontype.NamedType;
 import com.fasterxml.jackson.databind.jsontype.TypeResolverBuilder;
-import com.fasterxml.jackson.databind.jsontype.impl.LaissezFaireSubTypeValidator;
+import com.fasterxml.jackson.databind.jsontype.BasicPolymorphicTypeValidator;
 import com.fasterxml.jackson.databind.type.CollectionType;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.fasterxml.jackson.module.paramnames.ParameterNamesModule;
@@ -70,8 +70,44 @@ public class JsonObjectMapper {
                     .maxNumberLength(MAX_NUMBER_LENGTH)
                     .maxStringLength(MAX_STRING_LENGTH).build());
             TYPE_INCLUSION_MAPPER = MAPPER.copy();
+            // Restrict polymorphic deserialization to an allowlist of safe types.
+            // Applied to both MAPPER (HTTP bodies) and TYPE_INCLUSION_MAPPER (DB/AMQP).
+            // allowIfBaseType: matches the declared type; allowIfSubType: matches the runtime type.
+            // Both are needed for types inside generic containers like Map<String, Object>.
+            BasicPolymorphicTypeValidator ptv = BasicPolymorphicTypeValidator.builder()
+                    .allowIfBaseType(java.util.Map.class)
+                    .allowIfBaseType(java.util.Collection.class)
+                    .allowIfBaseType(java.util.Date.class)
+                    .allowIfBaseType(java.nio.file.Path.class)
+                    .allowIfBaseType(java.nio.charset.Charset.class)
+                    .allowIfBaseType(java.net.URI.class)
+                    .allowIfBaseType(java.lang.Enum.class)
+                    .allowIfBaseType(java.lang.Number.class)
+                    .allowIfBaseType(java.lang.Throwable.class)
+                    .allowIfBaseType("org.icij.datashare.")
+                    .allowIfBaseType("org.icij.extract.")
+                    .allowIfSubType(java.lang.String.class)
+                    .allowIfSubType(java.lang.Boolean.class)
+                    .allowIfSubType(java.util.Map.class)
+                    .allowIfSubType(java.util.Collection.class)
+                    .allowIfSubType(java.util.Date.class)
+                    .allowIfSubType(java.nio.file.Path.class)
+                    .allowIfSubType(java.nio.charset.Charset.class)
+                    .allowIfSubType(java.net.URI.class)
+                    .allowIfSubType(java.lang.Enum.class)
+                    .allowIfSubType(java.lang.Number.class)
+                    .allowIfSubType(java.lang.Throwable.class)
+                    .allowIfSubType("org.icij.datashare.")
+                    .allowIfSubType("org.icij.extract.")
+                    .allowIfSubType("[Ljava.lang.")
+                    .allowIfSubType("[Ljava.util.")
+                    .allowIfSubType("[Lorg.icij.")
+                    .build();
+            // Also apply PTV to MAPPER so per-field @JsonTypeInfo annotations
+            // (e.g. Task.args) are validated during HTTP body deserialization.
+            MAPPER.setPolymorphicTypeValidator(ptv);
             TypeResolverBuilder<?> mapTyper = new ObjectMapper.DefaultTypeResolverBuilder(
-                    ObjectMapper.DefaultTyping.NON_FINAL, LaissezFaireSubTypeValidator.instance)
+                    ObjectMapper.DefaultTyping.NON_FINAL, ptv)
                     .init(JsonTypeInfo.Id.CLASS, null)
                     .typeProperty("@type")
                     .inclusion(JsonTypeInfo.As.PROPERTY);

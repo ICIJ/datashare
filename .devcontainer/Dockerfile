@@ -60,3 +60,10 @@ ENV PATH="${JAVA_HOME}/bin:${PATH}"
 WORKDIR /home/dev/workspace/datashare
 
 RUN git config --global --add safe.directory "/home/dev/workspace/datashare"
+
+FROM temporalio/server:1.29.2 AS temporal-test-container
+COPY ./temporal/dynamic.yml ./temporal/temporal.yml /etc/temporal/.config/temporalio/
+
+
+FROM temporalio/admin-tools:1.29 AS temporal-test-setup-container
+COPY ./temporal/dynamic.yml ./temporal/temporal.yml /etc/temporal/.config/temporalio/

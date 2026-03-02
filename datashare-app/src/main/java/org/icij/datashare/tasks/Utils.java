@@ -6,7 +6,7 @@ import org.jetbrains.annotations.NotNull;
 
 public class Utils {
     @NotNull
-    static RoutingStrategy getRoutingStrategy(PropertiesProvider propertiesProvider) {
+    public static RoutingStrategy getRoutingStrategy(PropertiesProvider propertiesProvider) {
         return RoutingStrategy.valueOf(propertiesProvider.get(DatashareCliOptions.TASK_ROUTING_STRATEGY_OPT).orElse(DatashareCliOptions.DEFAULT_TASK_ROUTING_STRATEGY.name()));
     }
 

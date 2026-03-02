@@ -58,6 +58,11 @@ public class TaskManagerMemory extends StoreAndQueueTaskManagerImpl implements T
     }
 
     @Override
+    public Stream<String> getTaskIds(TaskFilters filters) throws IOException {
+        return tasks.getTaskIds(filters);
+    }
+
+    @Override
     public Void progress(String taskId, double rate) {
         try {
             Task<Serializable> task = getTask(taskId);

@@ -162,6 +162,23 @@ public class DatashareCliTest {
     }
 
     @Test
+    public void test_digest_project_name_defaults_to_local_datashare_when_default_project_is_missing() {
+        // Simulates the case where defaultProject is absent from the parsed properties
+        // (e.g. when running in Docker without --defaultProject and a settings file
+        // overrides the parsed options). This should not throw a NullPointerException.
+        DatashareCli spyCli = new DatashareCli() {
+            @Override
+            java.util.Properties asProperties(joptsimple.OptionSet options, String prefix) {
+                java.util.Properties props = super.asProperties(options, prefix);
+                props.remove("defaultProject");
+                return props;
+            }
+        };
+        spyCli.parseArguments(new String[] {});
+        assertThat(spyCli.properties).includes(entry("digestProjectName", "local-datashare"));
+    }
+
+    @Test
     public void test_digest_project_name_should_be_emptied_if_no_digest_project_flag() {
         cli.parseArguments(new String[] {"--noDigestProject", "true"});
         assertThat(cli.properties).includes(entry("defaultProject", "local-datashare"));
@@ -231,6 +248,33 @@ public class DatashareCliTest {
     public void test_plugins_dir_is_based_on_current_user_dir() {
         cli.parseArguments(new String[] {});
         assertThat(cli.properties).includes(entry("pluginsDir", "/home/datashare/.local/share/datashare/plugins"));
+    }
+
+    @Test
+    public void test_bind_opt() {
+        cli.parseArguments(new String[] {"--bind", "127.0.0.1"});
+        assertThat(cli.properties).includes(entry("bind", "127.0.0.1"));
+    }
+
+    @Test
+    public void test_bind_short_opt() {
+        cli.parseArguments(new String[] {"-b", "0.0.0.0"});
+        assertThat(cli.properties).includes(entry("bind", "0.0.0.0"));
+    }
+
+    @Test
+    public void test_mode_is_local() {
+        assertThat(Mode.LOCAL.isLocal()).isTrue();
+        assertThat(Mode.EMBEDDED.isLocal()).isTrue();
+        assertThat(Mode.SERVER.isLocal()).isFalse();
+        assertThat(Mode.CLI.isLocal()).isFalse();
+        assertThat(Mode.TASK_WORKER.isLocal()).isFalse();
+    }
+
+    @Test
+    public void test_bind_opt_not_set_by_default() {
+        cli.parseArguments(new String[] {""});
+        assertThat(cli.properties.getProperty("bind")).isNull();
     }
 
     @Test

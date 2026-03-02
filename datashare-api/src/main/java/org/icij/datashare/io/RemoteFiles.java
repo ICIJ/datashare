@@ -12,6 +12,8 @@ import java.nio.file.FileVisitOption;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.Map;
+import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.regex.Pattern;
 import org.slf4j.LoggerFactory;
@@ -23,7 +25,9 @@ import software.amazon.awssdk.services.s3.S3AsyncClientBuilder;
 import software.amazon.awssdk.services.s3.S3Configuration;
 import software.amazon.awssdk.services.s3.model.CreateBucketRequest;
 import software.amazon.awssdk.services.s3.model.DeleteBucketRequest;
+import software.amazon.awssdk.services.s3.model.DeleteBucketResponse;
 import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
+import software.amazon.awssdk.services.s3.model.DeleteObjectResponse;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
 import software.amazon.awssdk.services.s3.model.HeadObjectResponse;
@@ -159,13 +163,17 @@ public class RemoteFiles {
             .filter(b -> bucket.equals(b.name()))
             .findAny()
             .ifPresentOrElse(b -> {
-            }, () -> s3Client.createBucket(CreateBucketRequest.builder().bucket(bucket).build()));
+            }, () -> s3Client.createBucket(CreateBucketRequest.builder().bucket(bucket).build()).join());
     }
 
     void deleteBucket() {
-        s3Client.listObjects(ListObjectsRequest.builder().bucket(bucket).build()).join().contents()
-            .forEach(o -> s3Client.deleteObject(DeleteObjectRequest.builder().bucket(bucket).key(o.key()).build()));
-        s3Client.deleteBucket(DeleteBucketRequest.builder().bucket(bucket).build());
+        CompletableFuture<?>[] futures = s3Client
+                .listObjects(ListObjectsRequest.builder().bucket(bucket).build()).join().contents()
+                .stream()
+                .map(o -> s3Client.deleteObject(DeleteObjectRequest.builder().bucket(bucket).key(o.key()).build()))
+                .toArray(CompletableFuture<?>[]::new);
+        CompletableFuture.allOf(futures).join();
+        s3Client.deleteBucket(DeleteBucketRequest.builder().bucket(bucket).build()).join();
     }
 
     private String getKeyFromFile(File localFile, File f) {

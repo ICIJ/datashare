@@ -500,7 +500,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         String path = Objects.requireNonNull(getClass().getResource("/docs/")).getPath();
         RestAssert response = post("/api/task/batchUpdate/scan/" + path.substring(1), body);
         response.should().haveType("application/json");
-        taskManager.waitTasksToBeDone(1, SECONDS).stream().map(t -> t.id).toList();
+        taskManager.waitTasksToBeDone(1, SECONDS);
 
         assertThat(findTask(taskManager, "org.icij.datashare.tasks.ScanTask").get().args).
                 includes(entry("queueName", "extract:queue:foo:1725215461"));
@@ -512,7 +512,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         String path = Objects.requireNonNull(getClass().getResource("/docs/")).getPath();
         RestAssert response = post("/api/task/batchUpdate/scan/" + path.substring(1), body);
         response.should().haveType("application/json");
-        taskManager.waitTasksToBeDone(1, SECONDS).stream().map(t -> t.id).toList();
+        taskManager.waitTasksToBeDone(1, SECONDS);
 
         assertThat(findTask(taskManager, "org.icij.datashare.tasks.ScanTask").get().args).
                 includes(entry("digestProjectName", "foo"));
@@ -524,7 +524,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         String path = Objects.requireNonNull(getClass().getResource("/docs/")).getPath();
         RestAssert response = post("/api/task/batchUpdate/scan/" + path.substring(1), body);
         response.should().haveType("application/json");
-        taskManager.waitTasksToBeDone(1, SECONDS).stream().map(t -> t.id).toList();
+        taskManager.waitTasksToBeDone(1, SECONDS);
 
         assertThat(findTask(taskManager, "org.icij.datashare.tasks.ScanTask").get().args).
                 includes(entry("queueName", "extract:queue:foo:1725215461"));

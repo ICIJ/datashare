@@ -30,6 +30,8 @@ import static org.icij.datashare.PropertiesProvider.*;
 public final class DatashareCliOptions {
     public static final String AUTH_FILTER_OPT = "authFilter";
     public static final String AUTH_USERS_PROVIDER_OPT = "authUsersProvider";
+    public static final String BIND_HOST_ABBR_OPT = "b";
+    public static final String BIND_HOST_OPT = "bind";
     public static final String BATCH_DOWNLOAD_DIR_OPT = "batchDownloadDir";
     public static final String BATCH_DOWNLOAD_ENCRYPT_OPT = "batchDownloadEncrypt";
     public static final String BATCH_DOWNLOAD_MAX_NB_FILES_OPT = "batchDownloadMaxNbFiles";
@@ -116,10 +118,13 @@ public final class DatashareCliOptions {
     public static final String SCROLL_DURATION_OPT = "scroll";
     public static final String SCROLL_SIZE_OPT = "scrollSize";
     public static final String SCROLL_SLICES_OPT = "scrollSlices";
+    public static final String SESSION_SIGNING_KEY_OPT = "sessionSigningKey";
     public static final String SESSION_STORE_TYPE_OPT = "sessionStoreType";
     public static final String SESSION_TTL_SECONDS_OPT = "sessionTtlSeconds";
+    public static final String STATUS_ALLOWED_NETS_OPT = "statusAllowedNets";
     public static final String SETTING_ABBR_OPT = "s";
     public static final String SMTP_URL_OPT = "smtpUrl";
+    public static final String TEMPORAL_NAMESPACE_OPT = "temporalNamespace";
     public static final String VERSION_ABBR_OPT = "v";
     public static final String VERSION_OPT = "version";
     public static final String ARTIFACT_DIR_OPT = "artifactDir";
@@ -138,6 +143,7 @@ public final class DatashareCliOptions {
     private static final Integer DEFAULT_PARALLELISM = Runtime.getRuntime().availableProcessors() == 1 ? 2 : Runtime.getRuntime().availableProcessors();
     private static final Integer DEFAULT_PARSER_PARALLELISM = 1;
     public static final DigestAlgorithm DEFAULT_DIGEST_METHOD = DigestAlgorithm.SHA_384;
+    public static final String DEFAULT_STATUS_ALLOWED_NETS = "127.0.0.0/8,::1/128";
     public static final String DEFAULT_DATA_DIR = Paths.get(System.getProperty("user.home")).resolve("Datashare").toString();
     public static final Mode DEFAULT_MODE = Mode.LOCAL;
     public static final QueueType DEFAULT_BATCH_QUEUE_TYPE = QueueType.MEMORY;
@@ -194,6 +200,14 @@ public final class DatashareCliOptions {
     public static final Map<String, String> OPT_ALIASES = Map.ofEntries(
             Map.entry(PORT_OPT, TCP_LISTEN_PORT_OPT)
     );
+
+    static void bindHost(OptionParser parser) {
+        parser.acceptsAll(
+                asList(BIND_HOST_ABBR_OPT, BIND_HOST_OPT),
+                "Host/IP address to bind the HTTP server to (default: localhost for LOCAL/EMBEDDED, 0.0.0.0 for SERVER)")
+                .withRequiredArg()
+                .ofType(String.class);
+    }
 
     static void stages(OptionParser parser) {
         parser.acceptsAll(
@@ -319,6 +333,13 @@ public final class DatashareCliOptions {
                         .withRequiredArg()
                         .ofType(Integer.class)
                         .defaultsTo(DEFAULT_TCP_LISTEN_PORT);
+    }
+
+    static void sessionSigningKey(OptionParser parser) {
+        parser.acceptsAll(
+                singletonList(SESSION_SIGNING_KEY_OPT), "HMAC key used to sign session IDs (defaults to oauthClientSecret)")
+                        .withRequiredArg()
+                        .ofType(String.class);
     }
 
     static void sessionTtlSeconds(OptionParser parser) {
@@ -853,6 +874,14 @@ public final class DatashareCliOptions {
                 .defaultsTo(DEFAULT_SESSION_STORE_TYPE);
     }
 
+    public static void statusAllowedNets(OptionParser parser) {
+        parser.acceptsAll(
+                singletonList(STATUS_ALLOWED_NETS_OPT), "Comma-separated CIDR list for unauthenticated access to /api/status")
+                .withRequiredArg()
+                .ofType(String.class)
+                .defaultsTo(DEFAULT_STATUS_ALLOWED_NETS);
+    }
+
     public static void digestMethod(OptionParser parser) {
         parser.acceptsAll(
                 singletonList(DIGEST_ALGORITHM_OPT))
@@ -943,6 +972,14 @@ public final class DatashareCliOptions {
                 .withRequiredArg()
                 .ofType( String.class )
                 .defaultsTo(DEFAULT_TASK_WORKERS);
+    }
+
+    static void temporalNamespaceOpt(OptionParser parser) {
+        parser.acceptsAll(
+                singletonList(TEMPORAL_NAMESPACE_OPT), "temporal namespace")
+                .withRequiredArg()
+                .ofType( String.class )
+                .defaultsTo("datashare-default");
     }
 
     public static ValueConverter<String> toAbsolute() {

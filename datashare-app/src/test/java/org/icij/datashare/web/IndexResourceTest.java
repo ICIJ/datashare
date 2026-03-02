@@ -32,40 +32,59 @@ public class IndexResourceTest extends AbstractProdWebServerTest {
     private final ElasticsearchIndexer indexer = new ElasticsearchIndexer(es.client, new PropertiesProvider()).withRefresh(Refresh.True);
     private final PropertiesProvider propertiesProvider = new PropertiesProvider(new HashMap<>() {{
         put("defaultUserName", "test");
+        put("mode", "LOCAL");
+    }});
+    private final PropertiesProvider serverModeProvider = new PropertiesProvider(new HashMap<>() {{
+        put("defaultUserName", "test");
+        put("mode", "SERVER");
     }});
 
     @Test
+    public void test_get_cluster_info_in_local_mode() {
+        configure(routes -> routes.add(new IndexResource(indexer, propertiesProvider))
+                .filter(new LocalUserFilter(propertiesProvider, jooqRepository, es.getIndexNames())));
+        get("/api/index").should().respond(200).contain("cluster_name");
+    }
+
+    @Test
+    public void test_get_cluster_info_forbidden_in_server_mode() {
+        configure(routes -> routes.add(new IndexResource(indexer, serverModeProvider))
+                .filter(new LocalUserFilter(serverModeProvider, jooqRepository, es.getIndexNames())));
+        get("/api/index").should().respond(403);
+    }
+
+    @Test
     public void test_no_auth_get_forward_request_to_elastic() {
-        configure(routes -> routes.add(new IndexResource(indexer)).filter(new LocalUserFilter(propertiesProvider, jooqRepository, es.getIndexNames())));
+        configure(routes -> routes.add(new IndexResource(indexer, propertiesProvider)).filter(new LocalUserFilter(propertiesProvider, jooqRepository, es.getIndexNames())));
         get("/api/index/search/%s/_search".formatted(es.getIndexName())).should().respond(200).contain("\"successful\":1");
     }
 
     @Test
     public void test_no_auth_get_forward_request_to_elastic_if_granted_to_read_index() {
-        configure(routes -> routes.add(new IndexResource(indexer)).filter(new LocalUserFilter(propertiesProvider, jooqRepository, es.getIndexNames())));
+        configure(routes -> routes.add(new IndexResource(indexer, propertiesProvider)).filter(new LocalUserFilter(propertiesProvider, jooqRepository, es.getIndexNames())));
         get("/api/index/search/unauthorized/_search").should().respond(401);
     }
     @Test
     public void test_no_auth_get_forward_request_to_elastic_with_empty_indice() {
-        configure(routes -> routes.add(new IndexResource(indexer)).filter(new LocalUserFilter(propertiesProvider, jooqRepository, es.getIndexNames())));
+        configure(routes -> routes.add(new IndexResource(indexer, propertiesProvider)).filter(new LocalUserFilter(propertiesProvider, jooqRepository, es.getIndexNames())));
         get("/api/index/search/    /_search").should().respond(400);
         get("/api/index/search/!!/_search").should().respond(400);
     }
     @Test
     public void test_no_auth_get_unauthorized_on_unknown_index() {
-        configure(routes -> routes.add(new IndexResource(indexer)).filter(new LocalUserFilter(propertiesProvider, jooqRepository, es.getIndexNames())));
+        configure(routes -> routes.add(new IndexResource(indexer, propertiesProvider)).filter(new LocalUserFilter(propertiesProvider, jooqRepository, es.getIndexNames())));
         get("/api/index/search/hacker/bar/baz").should().respond(401);
     }
     @Test
     public void test_put_create_local_index_in_local_mode() {
-        configure(routes -> routes.add(new IndexResource(indexer)).filter(new LocalUserFilter(propertiesProvider, jooqRepository, es.getIndexNames())));
+        configure(routes -> routes.add(new IndexResource(indexer, propertiesProvider)).filter(new LocalUserFilter(propertiesProvider, jooqRepository, es.getIndexNames())));
         put("/api/index/index_name").should().respond(201);
         put("/api/index/ !!").should().respond(400);
         put("/api/index/  /").should().respond(404);
     }
     @Test
     public void test_no_auth_post_forward_request_to_elastic_with_body() {
-        configure(routes -> routes.add(new IndexResource(indexer)).filter(new LocalUserFilter(propertiesProvider, jooqRepository, es.getIndexNames())));
+        configure(routes -> routes.add(new IndexResource(indexer, propertiesProvider)).filter(new LocalUserFilter(propertiesProvider, jooqRepository, es.getIndexNames())));
         post("/api/index/search/%s/_search".formatted(es.getIndexName()), "{}").should().respond(200).contain("\"successful\":1");
         post("/api/index/search/  \\").should().respond(400);
         post("/api/index/search/  /  ").should().respond(400);
@@ -74,7 +93,7 @@ public class IndexResourceTest extends AbstractProdWebServerTest {
 
     @Test
     public void test_no_auth_options_forward_request_to_elastic() {
-        configure(routes -> routes.add(new IndexResource(indexer)).filter(new LocalUserFilter(propertiesProvider, jooqRepository, es.getIndexNames())));
+        configure(routes -> routes.add(new IndexResource(indexer, propertiesProvider)).filter(new LocalUserFilter(propertiesProvider, jooqRepository, es.getIndexNames())));
         options("/api/index/search/%s".formatted(es.getIndexName())).should().respond(200);
         options("/api/index/search/  /").should().respond(400);
         options("/api/index/search/  \\").should().respond(400);
@@ -82,12 +101,18 @@ public class IndexResourceTest extends AbstractProdWebServerTest {
 
     @Test
     public void test_delete_should_return_method_not_allowed() {
-        configure(routes -> routes.add(new IndexResource(indexer)).filter(new LocalUserFilter(propertiesProvider, jooqRepository, es.getIndexNames())));
+        configure(routes -> routes.add(new IndexResource(indexer, propertiesProvider)).filter(new LocalUserFilter(propertiesProvider, jooqRepository, es.getIndexNames())));
         delete("/api/index/search/foo/bar").should().respond(405);
     }
 
     @Test
     public void test_auth_forward_request_with_user_logged_on() throws IOException {
+        configure(routes -> {
+            Users users =  DatashareUser.singleUser("cecile");
+            routes
+                    .add(new IndexResource(indexer, propertiesProvider))
+                    .filter(new BasicAuthFilter("/", "icij", users));
+        });
         indexer.add("cecile-datashare", DocumentBuilder.createDoc("1234567890abcdef").withRootId("rootId").build());
         get("/api/index/search/cecile-datashare/_search?routing=rootId").withPreemptiveAuthentication("cecile", "").should().
                 respond(200).contain("1234567890abcdef");
@@ -98,6 +123,12 @@ public class IndexResourceTest extends AbstractProdWebServerTest {
 
     @Test
     public void test_auth_forward_request_with_user_logged_on_only_allow_search_and_count_on_post() throws IOException {
+        configure(routes -> {
+                Users users =  DatashareUser.singleUser("cecile");
+                routes
+                    .add(new IndexResource(indexer, propertiesProvider))
+                    .filter(new BasicAuthFilter("/", "icij", users));
+        });
         indexer.add("cecile-datashare", DocumentBuilder.createDoc("1234567890abcdef").build());
         post("/api/index/search/cecile-datashare/_search").withPreemptiveAuthentication("cecile", "").should().respond(200);
         get("/api/index/search/cecile-datashare/_doc/1234567890abcdef").withPreemptiveAuthentication("cecile", "").should().respond(200);
@@ -110,17 +141,11 @@ public class IndexResourceTest extends AbstractProdWebServerTest {
     @Test
     public void test_auth_forward_request_with_user_logged_on_allow_search_on_multiple_indices() throws IOException {
         configure(routes ->
-                routes.add(new IndexResource(indexer)).
-                        filter(new BasicAuthFilter("/", "icij", DatashareUser.singleUser(new User(new HashMap<String, Object>() {
-                            {
-                                this.put("uid", "cecile");
-                                this.put("groups_by_applications", new HashMap<String, Object>() {
-                                    {
-                                        this.put("datashare", Arrays.asList(es.getIndexNames()[1], es.getIndexNames()[2]));
-                                    }
-                                });
-                            }
-                        })))));
+                routes.add(new IndexResource(indexer, propertiesProvider)).
+                        filter(new BasicAuthFilter("/", "icij", DatashareUser.singleUser(new DatashareUser(new HashMap<>() {{
+                            put("uid", "cecile");
+                            put("groups_by_applications", Map.of("datashare", List.of(es.getIndexNames()[1], es.getIndexNames()[2])));
+                        }})))));
         indexer.add(es.getIndexNames()[1], DocumentBuilder.createDoc("doc1").withRootId("rootId").build());
         indexer.add(es.getIndexNames()[2], DocumentBuilder.createDoc("doc2").withRootId("rootId").build());
         post("/api/index/search/%s,%s/_search".formatted(es.getIndexNames()[1], es.getIndexNames()[2]))
@@ -135,17 +160,11 @@ public class IndexResourceTest extends AbstractProdWebServerTest {
     @Test
     public void test_auth_forward_request_with_user_logged_on_multiple_indices_with_bad_requests() throws IOException {
         configure(routes ->
-                routes.add(new IndexResource(indexer)).
-                        filter(new BasicAuthFilter("/", "icij", DatashareUser.singleUser(new User(new HashMap<String, Object>() {
-                            {
-                                this.put("uid", "cecile");
-                                this.put("groups_by_applications", new HashMap<String, Object>() {
-                                    {
-                                        this.put("datashare", Arrays.asList(es.getIndexNames()[1], es.getIndexNames()[2]));
-                                    }
-                                });
-                            }
-                        })))));
+                routes.add(new IndexResource(indexer, propertiesProvider)).
+                        filter(new BasicAuthFilter("/", "icij", DatashareUser.singleUser(new DatashareUser(new HashMap<>() {{
+                            put("uid", "cecile");
+                            put("groups_by_applications", Map.of("datashare", List.of(es.getIndexNames()[1], es.getIndexNames()[2])));
+                        }})))));
         indexer.add(es.getIndexNames()[1], DocumentBuilder.createDoc("doc1").withRootId("rootId").build());
         indexer.add(es.getIndexNames()[2], DocumentBuilder.createDoc("doc2").withRootId("rootId").build());
         post("/api/index/search/%s,  /_search".formatted(es.getIndexNames()[1])).withPreemptiveAuthentication("cecile", "").should().respond(400);
@@ -172,6 +191,99 @@ public class IndexResourceTest extends AbstractProdWebServerTest {
         put("/api/index/cecile-datashare").withPreemptiveAuthentication("cecile", "pass").should().respond(201);
         put("/api/index/!!").withPreemptiveAuthentication("cecile", "pass").should().respond(400);
         put("/api/index/ cecile-datashare").withPreemptiveAuthentication("cecile", "pass").should().respond(400);
+    }
+
+    @Test
+    public void test_close_index_in_local_mode() throws IOException {
+        configure(routes -> routes.add(new IndexResource(indexer, propertiesProvider))
+                .filter(new LocalUserFilter(propertiesProvider, jooqRepository, es.getIndexNames())));
+        post("/api/index/%s/_close".formatted(es.getIndexName())).should().respond(200);
+        post("/api/index/%s/_open".formatted(es.getIndexName())).should().respond(200);
+    }
+
+    @Test
+    public void test_close_index_forwards_query_params() throws IOException {
+        configure(routes -> routes.add(new IndexResource(indexer, propertiesProvider))
+                .filter(new LocalUserFilter(propertiesProvider, jooqRepository, es.getIndexNames())));
+        post("/api/index/%s/_close?ignore_unavailable=true".formatted(es.getIndexName())).should().respond(200);
+        post("/api/index/%s/_open?ignore_unavailable=true".formatted(es.getIndexName())).should().respond(200);
+    }
+
+    @Test
+    public void test_close_index_forbidden_in_server_mode() {
+        configure(routes -> routes.add(new IndexResource(indexer, serverModeProvider))
+                .filter(new LocalUserFilter(serverModeProvider, jooqRepository, es.getIndexNames())));
+        post("/api/index/%s/_close".formatted(es.getIndexName())).should().respond(403);
+    }
+
+    @Test
+    public void test_open_index_forbidden_in_server_mode() {
+        configure(routes -> routes.add(new IndexResource(indexer, serverModeProvider))
+                .filter(new LocalUserFilter(serverModeProvider, jooqRepository, es.getIndexNames())));
+        post("/api/index/%s/_open".formatted(es.getIndexName())).should().respond(403);
+    }
+
+    @Test
+    public void test_close_index_with_invalid_name() {
+        configure(routes -> routes.add(new IndexResource(indexer, propertiesProvider))
+                .filter(new LocalUserFilter(propertiesProvider, jooqRepository, es.getIndexNames())));
+        post("/api/index/!!invalid/_close").should().respond(400);
+    }
+
+    @Test
+    public void test_get_snapshot_repositories_in_local_mode() {
+        configure(routes -> routes.add(new IndexResource(indexer, propertiesProvider))
+                .filter(new LocalUserFilter(propertiesProvider, jooqRepository, es.getIndexNames())));
+        get("/api/index/_snapshot").should().respond(200);
+    }
+
+    @Test
+    public void test_get_snapshot_repositories_forbidden_in_server_mode() {
+        configure(routes -> routes.add(new IndexResource(indexer, serverModeProvider))
+                .filter(new LocalUserFilter(serverModeProvider, jooqRepository, es.getIndexNames())));
+        get("/api/index/_snapshot").should().respond(403);
+    }
+
+    @Test
+    public void test_delete_snapshot_repository_forbidden_in_server_mode() {
+        configure(routes -> routes.add(new IndexResource(indexer, serverModeProvider))
+                .filter(new LocalUserFilter(serverModeProvider, jooqRepository, es.getIndexNames())));
+        delete("/api/index/_snapshot/my-repo").should().respond(403);
+    }
+
+    @Test
+    public void test_get_nodes_settings_in_local_mode() {
+        configure(routes -> routes.add(new IndexResource(indexer, propertiesProvider))
+                .filter(new LocalUserFilter(propertiesProvider, jooqRepository, es.getIndexNames())));
+        get("/api/index/_nodes/settings").should().respond(200);
+    }
+
+    @Test
+    public void test_get_nodes_settings_forbidden_in_server_mode() {
+        configure(routes -> routes.add(new IndexResource(indexer, serverModeProvider))
+                .filter(new LocalUserFilter(serverModeProvider, jooqRepository, es.getIndexNames())));
+        get("/api/index/_nodes/settings").should().respond(403);
+    }
+
+    @Test
+    public void test_get_nodes_in_local_mode() {
+        configure(routes -> routes.add(new IndexResource(indexer, propertiesProvider))
+                .filter(new LocalUserFilter(propertiesProvider, jooqRepository, es.getIndexNames())));
+        get("/api/index/_nodes").should().respond(200);
+    }
+
+    @Test
+    public void test_get_cluster_settings_in_local_mode() {
+        configure(routes -> routes.add(new IndexResource(indexer, propertiesProvider))
+                .filter(new LocalUserFilter(propertiesProvider, jooqRepository, es.getIndexNames())));
+        get("/api/index/_cluster/settings").should().respond(200);
+    }
+
+    @Test
+    public void test_get_cluster_settings_forbidden_in_server_mode() {
+        configure(routes -> routes.add(new IndexResource(indexer, serverModeProvider))
+                .filter(new LocalUserFilter(serverModeProvider, jooqRepository, es.getIndexNames())));
+        get("/api/index/_cluster/settings").should().respond(403);
     }
 
     @Before

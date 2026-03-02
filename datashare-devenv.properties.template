@@ -4,3 +4,4 @@ postgresUri=jdbc:postgresql://localhost/dstest?user=dstest&password=test
 postgresBuildUri=jdbc:postgresql://localhost/dsbuild?user=dstest&password=test
 redisUri=redis://localhost:6379
 s3mockUri=http://localhost:9090
+temporalTarget=localhost:7233

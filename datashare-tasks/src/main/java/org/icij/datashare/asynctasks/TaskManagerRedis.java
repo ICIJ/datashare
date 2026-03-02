@@ -76,6 +76,11 @@ public class TaskManagerRedis extends StoreAndQueueTaskManagerImpl {
     }
 
     @Override
+    public Stream<String> getTaskIds(TaskFilters filters) throws IOException {
+        return tasks.getTaskIds(filters);
+    }
+
+    @Override
     public Group getTaskGroup(String taskId) throws IOException {
         return tasks.getTaskGroup(taskId);
     }

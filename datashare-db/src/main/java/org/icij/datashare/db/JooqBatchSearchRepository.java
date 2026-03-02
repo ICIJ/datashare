@@ -27,6 +27,7 @@ import static java.util.Arrays.asList;
 import static java.util.Arrays.stream;
 import static java.util.Collections.singletonList;
 import static java.util.Comparator.comparing;
+import static java.util.Optional.ofNullable;
 import static java.util.stream.Collectors.*;
 import static org.icij.datashare.batch.BatchSearchRepository.WebQuery.DEFAULT_SORT_FIELD;
 import static org.icij.datashare.db.Tables.BATCH_SEARCH_PROJECT;
@@ -209,9 +210,10 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
         List<String> filteredProjects = webQuery.hasFilteredProjects() ? asNameList(webQuery.project) : projectsIds;
         addFilterToSelectCondition(webQuery, query);
         if (webQuery.isSorted()) {
-            query.orderBy(field(webQuery.sort + " " + webQuery.order));
+            SortOrder sortOrder = SortOrder.valueOf(webQuery.order.name());
+            query.orderBy(resolveSort(BATCH_SEARCH, webQuery.sort, sortOrder));
         } else {
-            query.orderBy(field("batch_date desc"));
+            query.orderBy(BATCH_SEARCH.BATCH_DATE.desc());
         }
         if (webQuery.size > 0) query.limit(webQuery.size);
         if (webQuery.from > 0) query.offset(webQuery.from);
@@ -264,11 +266,11 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
         if (maxResults > -1) {
             statement.and(BATCH_SEARCH_QUERY.QUERY_RESULTS.lessOrEqual(maxResults));
         }
-        String sortField = (sort != null) ? sort : BATCH_SEARCH_QUERY.QUERY_NUMBER.getName();
-        String sortOrder = (order != null) ? order : SortOrder.ASC.name();
+        String sortFieldName = (sort != null) ? sort : BATCH_SEARCH_QUERY.QUERY_NUMBER.getName();
+        SortOrder sortOrder = SortOrder.valueOf((order != null) ? order.toUpperCase() : SortOrder.ASC.name());
 
         return statement
-                .orderBy(field(sortField).sort(SortOrder.valueOf(sortOrder.toUpperCase())))
+                .orderBy(resolveSort(BATCH_SEARCH_QUERY, sortFieldName, sortOrder))
                 .limit(size > 0 ? size : null)
                 .offset(from)
                 .fetch().stream().map(r -> new AbstractMap.SimpleEntry<>(r.get("query", String.class), r.get("query_results", Integer.class))).collect(toMap(Map.Entry::getKey, Map.Entry::getValue, (u, v) -> {
@@ -374,9 +376,13 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
             query.and(BATCH_SEARCH_RESULT.CONTENT_TYPE.in(webQuery.contentTypes));
         }
         if (webQuery.isSorted()) {
-            query.orderBy(field(webQuery.sort + " " + webQuery.order));
+            SortOrder sortOrder = SortOrder.valueOf(webQuery.order.name());
+            query.orderBy(resolveSort(BATCH_SEARCH_RESULT, webQuery.sort, sortOrder));
         } else {
-            query.orderBy(field("query " + webQuery.order), field(DEFAULT_SORT_FIELD + " " + webQuery.order));
+            SortOrder defaultOrder = SortOrder.valueOf(webQuery.order.name());
+            query.orderBy(
+                    resolveSort(BATCH_SEARCH_RESULT, "query", defaultOrder),
+                    resolveSort(BATCH_SEARCH_RESULT, DEFAULT_SORT_FIELD, defaultOrder));
         }
     }
 
@@ -637,6 +643,16 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
         if (dataSource instanceof Closeable) {
             ((Closeable) dataSource).close();
         }
+    }
+
+    /**
+     * Resolves a user-supplied sort field name against a jOOQ table to prevent SQL injection.
+     * Returns the matching jOOQ Field or throws IllegalArgumentException if the name is invalid.
+     */
+    private static SortField<?> resolveSort(Table<?> table, String sortName, SortOrder sortOrder) {
+        Field<?> sortBy = ofNullable(table.field(sortName))
+                .orElseThrow(() -> new IllegalArgumentException(String.format("Invalid sort attribute: %s", sortName)));
+        return sortOrder == SortOrder.DESC ? sortBy.desc() : sortBy.asc();
     }
 
     public static class UnauthorizedUserException extends RuntimeException {

@@ -10,6 +10,9 @@ import com.google.inject.Module;
 import com.google.inject.Provides;
 import com.google.inject.Singleton;
 import com.google.inject.assistedinject.FactoryModuleBuilder;
+import io.temporal.client.WorkflowClient;
+import io.temporal.worker.WorkerFactory;
+import io.temporal.worker.WorkerOptions;
 import net.codestory.http.Configuration;
 import net.codestory.http.annotations.Get;
 import net.codestory.http.annotations.Prefix;
@@ -17,12 +20,16 @@ import net.codestory.http.extensions.Extensions;
 import net.codestory.http.injection.GuiceAdapter;
 import net.codestory.http.misc.Env;
 import net.codestory.http.routes.Routes;
+import org.icij.datashare.EnvUtils;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Repository;
+import org.icij.datashare.asynctasks.Group;
+import org.icij.datashare.asynctasks.TaskGroupType;
 import org.icij.datashare.asynctasks.TaskModifier;
 import org.icij.datashare.asynctasks.TaskRepository;
 import org.icij.datashare.asynctasks.TaskSupplier;
 import org.icij.datashare.asynctasks.TaskWorkerLoop;
+import org.icij.datashare.asynctasks.temporal.TemporalHelper;
 import org.icij.datashare.batch.BatchSearchRepository;
 import org.icij.datashare.cli.Mode;
 import org.icij.datashare.cli.QueueType;
@@ -38,6 +45,7 @@ import org.icij.datashare.extract.RedisDocumentCollectionFactory;
 import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.nlp.EmailPipeline;
 import org.icij.datashare.nlp.OptimaizeLanguageGuesser;
+import org.icij.datashare.session.StatusCidrFilter;
 import org.icij.datashare.session.UsersInDb;
 import org.icij.datashare.session.UsersWritable;
 import org.icij.datashare.tasks.DatashareTaskFactory;
@@ -45,11 +53,13 @@ import org.icij.datashare.tasks.DatashareTaskManager;
 import org.icij.datashare.tasks.TaskManagerAmqp;
 import org.icij.datashare.tasks.TaskManagerMemory;
 import org.icij.datashare.tasks.TaskManagerRedis;
+import org.icij.datashare.tasks.TaskManagerTemporal;
 import org.icij.datashare.tasks.TaskRepositoryMemory;
 import org.icij.datashare.tasks.TaskRepositoryRedis;
 import org.icij.datashare.tasks.TaskResultSubtypes;
 import org.icij.datashare.tasks.TaskSupplierAmqp;
 import org.icij.datashare.tasks.TaskSupplierRedis;
+import org.icij.datashare.tasks.Utils;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.text.indexing.LanguageGuesser;
 import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchIndexer;
@@ -89,7 +99,10 @@ import static java.lang.Integer.parseInt;
 import static java.util.Optional.ofNullable;
 import static org.icij.datashare.LambdaExceptionUtils.rethrowConsumer;
 import static org.icij.datashare.PluginService.PLUGINS_BASE_URL;
+import static org.icij.datashare.asynctasks.TaskManagerTemporal.DEFAULT_NAMESPACE;
+import static org.icij.datashare.asynctasks.TaskManagerTemporal.buildClient;
 import static org.icij.datashare.cli.DatashareCliOptions.*;
+import static org.icij.datashare.cli.QueueType.TEMPORAL;
 import static org.icij.datashare.text.indexing.elasticsearch.ElasticsearchConfiguration.createESClient;
 
 public abstract class CommonMode extends AbstractModule implements Closeable {
@@ -154,10 +167,11 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
     public Injector createChildInjector(Module... modules) {
         return injector.createChildInjector(modules);
     }
-    public boolean isEmbeddedAMQP() {
+    public boolean shouldRunWorker() {
+        boolean batchQueueType = getQueueType(propertiesProvider, BATCH_QUEUE_TYPE_OPT, DEFAULT_BATCH_QUEUE_TYPE)
+            .equals(TEMPORAL);
         return (CommonMode.getMode(this.properties()) == Mode.EMBEDDED || getMode() == Mode.LOCAL)
-                && properties().containsValue(QueueType.AMQP.name())
-                && getTaskWorkersNb() > 0;
+                && (properties().containsValue(QueueType.AMQP.name()) || batchQueueType);
     }
     int getTaskWorkersNb() {
         return parseInt((String) ofNullable(properties().get(TASK_WORKERS_OPT)).orElse(DEFAULT_TASK_WORKERS));
@@ -168,20 +182,18 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
                 .orElse(DEFAULT_TASK_PROGRESS_INTERVAL_SECONDS);
     }
 
-    public ExecutorService createWorkers() {
-        if (getTaskWorkersNb()>0) {
-            List<TaskWorkerLoop> workers = IntStream.range(0, getTaskWorkersNb())
-                    .mapToObj(i -> new TaskWorkerLoop(get(DatashareTaskFactory.class), get(TaskSupplier.class),
-                            getProgressMinIntervalS())).toList();
-            workers.forEach(this::addCloseable);
-            workers.forEach(executorService::submit);
+    public ExecutorService runWorkers() {
+        QueueType batchQueueType = getQueueType(propertiesProvider, BATCH_QUEUE_TYPE_OPT, DEFAULT_BATCH_QUEUE_TYPE);
+        if (batchQueueType.equals(TEMPORAL)) {
+            return runTemporalWorkers();
         }
-        return executorService;
+        return runTaskWorkerLoop();
     }
 
     @Override
     protected void configure() {
         bind(PropertiesProvider.class).toInstance(propertiesProvider);
+        bind(StatusCidrFilter.class).asEagerSingleton();
         install(new FactoryModuleBuilder().build(DatashareTaskFactory.class));
 
         QueueType batchQueueType = getQueueType(propertiesProvider, BATCH_QUEUE_TYPE_OPT, DEFAULT_BATCH_QUEUE_TYPE);
@@ -195,6 +207,9 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
                 bind(DatashareTaskManager.class).to(TaskManagerAmqp.class);
                 bind(TaskSupplier.class).to(TaskSupplierAmqp.class);
                 bind(TaskModifier.class).to(TaskSupplierAmqp.class);
+                break;
+            case TEMPORAL:
+                bind(DatashareTaskManager.class).to(TaskManagerTemporal.class);
                 break;
             default:
                 bind(DatashareTaskManager.class).to(TaskManagerMemory.class);
@@ -223,10 +238,19 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
     }
 
     @Provides @Singleton
+    WorkflowClient provideTemporalClient(final PropertiesProvider propertiesProvider) {
+        String target = propertiesProvider.get(MESSAGE_BUS_OPT)
+            .orElse(EnvUtils.resolveUri("temporalTarget", "temporal:7233"));
+        String namespace = propertiesProvider.get(TEMPORAL_NAMESPACE_OPT)
+            .orElse(DEFAULT_NAMESPACE);
+        return buildClient(target, namespace);
+    }
+
+    @Provides @Singleton
     DocumentCollectionFactory<Path> provideScanQueue(final PropertiesProvider propertiesProvider) {
         return switch (getQueueType(propertiesProvider, QUEUE_TYPE_OPT, DEFAULT_QUEUE_TYPE)) {
             case MEMORY -> new MemoryDocumentCollectionFactory<>(propertiesProvider);
-            case REDIS, AMQP -> new RedisDocumentCollectionFactory<>(propertiesProvider, get(RedissonClient.class));
+            case REDIS, AMQP, TEMPORAL -> new RedisDocumentCollectionFactory<>(propertiesProvider, get(RedissonClient.class));
         };
     }
 
@@ -234,7 +258,7 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
     DocumentCollectionFactory<String> provideIndexQueue(final PropertiesProvider propertiesProvider) {
         return switch (getQueueType(propertiesProvider, QUEUE_TYPE_OPT, DEFAULT_QUEUE_TYPE)) {
             case MEMORY -> new MemoryDocumentCollectionFactory<>(propertiesProvider);
-            case REDIS, AMQP -> new RedisDocumentCollectionFactory<>(propertiesProvider, get(RedissonClient.class));
+            case REDIS, AMQP, TEMPORAL -> new RedisDocumentCollectionFactory<>(propertiesProvider, get(RedissonClient.class));
         };
     }
 
@@ -345,6 +369,45 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
         repositoryFactory.initDatabase();
     }
 
+    private ExecutorService runTaskWorkerLoop() {
+        if (getTaskWorkersNb() > 0) {
+            List<TaskWorkerLoop> workers = IntStream.range(0, getTaskWorkersNb())
+                .mapToObj(i -> new TaskWorkerLoop(get(DatashareTaskFactory.class), get(TaskSupplier.class),
+                    getProgressMinIntervalS())).toList();
+            workers.forEach(this::addCloseable);
+            workers.forEach(executorService::submit);
+        }
+        return executorService;
+    }
+
+    private ExecutorService runTemporalWorkers() {
+        if (getTaskWorkersNb() > 0) {
+            WorkflowClient client = get(WorkflowClient.class);
+            WorkerOptions workerOptions = WorkerOptions.newBuilder()
+                .setMaxConcurrentWorkflowTaskExecutionSize(getTaskWorkersNb())
+                .setMaxConcurrentActivityExecutionSize(getTaskWorkersNb())
+                .build();
+            List<TemporalHelper.RegisteredWorkflow> workflows;
+            try {
+                workflows = TemporalHelper.discoverWorkflows(
+                    "org.icij.datashare.tasks",
+                    get(DatashareTaskFactory.class),
+                    client,
+                    Utils.getRoutingStrategy(propertiesProvider),
+                    new Group(TaskGroupType.Java)
+                );
+            } catch (ClassNotFoundException e) {
+                throw new RuntimeException(e);
+            }
+            WorkerFactory workerFactory = TemporalHelper.createTemporalWorkerFactory(workflows, client, workerOptions);
+            executorService.submit(() -> {
+                // Start and add to closable
+                closeables.add(new TemporalHelper.CloseableWorkerFactoryHandle(workerFactory));
+            });
+        }
+        return executorService;
+    }
+
     private Routes defaultRoutes(final Routes routes) {
         routes.setIocAdapter(new GuiceAdapter(injector))
                 .add(RootResource.class)
@@ -354,11 +417,13 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
                 .setExtensions(new Extensions() {
                     @Override
                     public ObjectMapper configureOrReplaceObjectMapper(ObjectMapper defaultObjectMapper, Env env) {
-                        defaultObjectMapper.enable(ACCEPT_EMPTY_STRING_AS_NULL_OBJECT);
-                        return defaultObjectMapper;
+                        ObjectMapper mapper = JsonObjectMapper.getMapper();
+                        mapper.enable(ACCEPT_EMPTY_STRING_AS_NULL_OBJECT);
+                        return mapper;
                     }
                 });
         addExtensionsConfiguration(routes);
+        routes.filter(StatusCidrFilter.class);
         addModeConfiguration(routes);
         addPluginsConfiguration(routes);
         return routes;

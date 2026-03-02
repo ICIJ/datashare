@@ -9,4 +9,6 @@ public enum Mode {
     }
 
     public boolean isWebServer() { return webServer;}
+
+    public boolean isLocal() { return this == LOCAL || this == EMBEDDED;}
 }

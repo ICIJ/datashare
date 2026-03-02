@@ -40,7 +40,7 @@ public class BatchDownloadTest {
 
         assertThat(batchDownload.projects).isEqualTo(singletonList(project("prj")));
         assertThat(batchDownload.query).isEqualTo(new SearchQuery("foo"));
-        assertThat(batchDownload.filename.toString()).isEqualTo("/tmp/archive_local_2021-07-07T14_53_47Z[GMT].zip");
+        assertThat(batchDownload.filename.toString()).isEqualTo(Paths.get(System.getProperty("java.io.tmpdir")).resolve("archive_local_2021-07-07T14_53_47Z[GMT].zip").toString());
         assertThat(batchDownload.getExists()).isFalse();
     }
 
@@ -114,7 +114,7 @@ public class BatchDownloadTest {
 
         String json = JsonObjectMapper.writeValueAsString(new BatchDownload(asList(project("prj1"),
                 project("prj2")), local(), "query"));
-        assertThat(json).contains("\"filename\":\"file:///tmp/archive_local_2021-07-07T14_53_47Z%5BGMT%5D.zip\"");
+        assertThat(json).contains("\"filename\":\"file://" + Paths.get(System.getProperty("java.io.tmpdir")).resolve("archive_local_2021-07-07T14_53_47Z%5BGMT%5D.zip\""));
         assertThat(json).contains("\"exists\":false");
 
         BatchDownload batchDownload = JsonObjectMapper.readValue(json, BatchDownload.class);

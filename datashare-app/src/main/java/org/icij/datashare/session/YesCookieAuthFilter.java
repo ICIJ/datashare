@@ -32,7 +32,9 @@ public class YesCookieAuthFilter extends CookieAuthFilter {
         if (payload.code() == 401) {
             User user = createUser(NameGenerator.generate());
             context.setCurrentUser(user);
-            return nextFilter.get().withCookie(this.authCookie(this.buildCookie(user, "/")));
+            return nextFilter.get()
+                    .withCookie(this.authCookie(this.buildCookie(user, "/")))
+                    .withCookie(CsrfFilter.csrfCookie(CsrfFilter.generateToken()));
         }
         return payload;
     }
@@ -61,6 +63,14 @@ public class YesCookieAuthFilter extends CookieAuthFilter {
 
     private List<String> getProjectNames() {
         return this.getProjects().stream().map(Project::getName).collect(Collectors.toList());
+    }
+
+    @Override
+    public boolean matches(String uri, Context context) {
+        if (uri.startsWith("/api/") || uri.startsWith("/auth/")) {
+            return true;
+        }
+        return super.matches(uri, context);
     }
 
     @Override protected String cookieName() { return "_ds_session_id";}

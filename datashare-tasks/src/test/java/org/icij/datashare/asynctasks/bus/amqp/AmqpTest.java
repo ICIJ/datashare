@@ -2,9 +2,11 @@ package org.icij.datashare.asynctasks.bus.amqp;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import java.util.Optional;
 import org.icij.datashare.asynctasks.NackException;
-import org.junit.After;
+import org.icij.datashare.json.JsonObjectMapper;
 import org.junit.AfterClass;
+import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Ignore;
@@ -22,6 +24,7 @@ import java.util.function.Consumer;
 import java.util.function.Predicate;
 
 import static org.fest.assertions.Assertions.assertThat;
+import static org.icij.datashare.LambdaExceptionUtils.rethrowFunction;
 
 public class AmqpTest {
     static BlockingQueue<TestEvent> eventQueue = new ArrayBlockingQueue<>(10);
@@ -30,9 +33,14 @@ public class AmqpTest {
     static private AmqpInterlocutor amqp;
 
     @BeforeClass
-    public static void setUp() throws Exception {
+    public static void setUpClass() throws Exception {
         AmqpQueue[] queues = {AmqpQueue.EVENT, AmqpQueue.MANAGER_EVENT};
         amqp = new AmqpInterlocutor(new Configuration(new URI("amqp://admin:admin@localhost:12345?nbMessageMax=10&rabbitMq=false")), queues);
+    }
+
+    @Before
+    public void setUp() throws Exception {
+        eventQueue.clear();
     }
 
     @Test
@@ -106,12 +114,13 @@ public class AmqpTest {
     @Test
     public void test_consume_nack_without_requeue() throws Exception {
         NackExceptionConsumer nackExceptionConsumer = new NackExceptionConsumer(false);
-        new AmqpConsumer<>(amqp, nackExceptionConsumer, AmqpQueue.EVENT, TestEvent.class ).consumeEvents(1);
-        new AmqpConsumer<>(amqp, new TestEventConsumer(), AmqpQueue.MANAGER_EVENT, TestEvent.class).consumeEvents(1);
+        new AmqpConsumer<>(amqp, nackExceptionConsumer, AmqpQueue.MANAGER_EVENT, TestEvent.class).consumeEvents(1);
 
-        amqp.publish(AmqpQueue.EVENT, new TestEvent("boom!!"));
+        amqp.publish(AmqpQueue.MANAGER_EVENT, new TestEvent("boom no requeue !!"));
 
-        assertThat(eventQueue.poll(1, TimeUnit.SECONDS)).isNull();
+        TestEvent polled = eventQueue.poll(1, TimeUnit.SECONDS);
+        String asString = Optional.ofNullable(polled).map(rethrowFunction(JsonObjectMapper::writeValueAsString)).orElse(null);
+        assertThat(polled).as("polled event is not null: " + asString).isNull();
         assertThat(nackExceptionConsumer.hasBeenCalled).isTrue();
     }
 
@@ -165,11 +174,6 @@ public class AmqpTest {
 
         assertThat(eventQueue.take().field).isEqualTo("hello Key AMQP");
         consumer.cancel();
-    }
-
-    @After
-    public void tearDown() throws Exception {
-        eventQueue.clear();
     }
 
     @AfterClass

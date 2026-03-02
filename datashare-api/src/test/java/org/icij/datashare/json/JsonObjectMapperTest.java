@@ -4,6 +4,7 @@ package org.icij.datashare.json;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.StreamReadConstraints;
+import com.fasterxml.jackson.databind.exc.InvalidTypeIdException;
 import org.junit.Test;
 
 import static org.fest.assertions.Assertions.assertThat;
@@ -39,6 +40,18 @@ public class JsonObjectMapperTest {
         assertThat(streamReadConstraints.getMaxStringLength()).isEqualTo(MAX_STRING_LENGTH);
     }
 
+
+    @Test(expected = InvalidTypeIdException.class)
+    public void test_typed_mapper_rejects_dangerous_class() throws Exception {
+        String malicious = "{\"@type\":\"javax.naming.InitialContext\",\"environment\":{}}";
+        JsonObjectMapper.readValueTyped(malicious.getBytes(), Object.class);
+    }
+
+    @Test(expected = InvalidTypeIdException.class)
+    public void test_typed_mapper_rejects_arbitrary_class() throws Exception {
+        String malicious = "{\"@type\":\"java.io.File\",\"path\":\"/etc/passwd\"}";
+        JsonObjectMapper.readValueTyped(malicious.getBytes(), Object.class);
+    }
 
     static class ExceptionWrapper {
         private final Throwable throwable;

@@ -37,6 +37,10 @@ public final class TaskFilters {
         return new TaskFilters(null, null, null, null);
     }
 
+    public boolean isEmpty() {
+        return args == null && states == null && name == null && user == null;
+    }
+
     public Set<Task.State> getStates() {
         return states;
     }
@@ -69,6 +73,10 @@ public final class TaskFilters {
         return new TaskFilters(taskArgs, states, name, user, regexFlags);
     }
 
+    public TaskFilters withArgs(ArgsFilter... taskArgs) {
+        return new TaskFilters(List.of(taskArgs), states, name, user, regexFlags);
+    }
+
     public TaskFilters withFlag(Integer flag) {
         return new TaskFilters(args, states, name, user, flag);
     }
@@ -80,7 +88,19 @@ public final class TaskFilters {
         return byName(task.name) && byUser(task.getUser()) && byState(task.getState()) && byArgs(task.args);
     }
 
-    private boolean byState(Task.State taskState) {
+    public boolean filter(Map<String, Object> args) {
+        return byArgs(args);
+    }
+
+    public boolean hasArgs() {
+        return args != null && !args.isEmpty();
+    }
+
+    public boolean hasStates() {
+        return states != null && !states.isEmpty();
+    }
+
+    public boolean byState(Task.State taskState) {
         return Optional.ofNullable(states).map(expectedStates -> {
             if (!expectedStates.isEmpty()) {
                 return expectedStates.contains(taskState);
@@ -89,25 +109,21 @@ public final class TaskFilters {
         }).orElse(true);
     }
 
-    private boolean byUser(User taskUser) {
+    public boolean byUser(User taskUser) {
         return Optional.ofNullable(this.user).map(u -> u.equals(taskUser)).orElse(true);
     }
 
-    private boolean byName(String taskName) {
+    public boolean byName(String taskName) {
         return Optional.ofNullable(getNamePattern()).map(p -> p.matcher(taskName).find()).orElse(true);
     }
 
-    private boolean byArgs(Map<String, Object> taskArgs) {
+    boolean byArgs(Map<String, Object> taskArgs) {
         return Optional.ofNullable(getArgsPatterns())
-            .map(patterns -> {
-                return patterns.entrySet()
-                                .stream()
-                                .allMatch(e -> {
-                                    return e.getValue()
-                                            .matcher(String.valueOf(getValue(taskArgs, e.getKey())))
-                                            .find();
-                                });
-            })
+            .map(patterns -> patterns.entrySet()
+                            .stream()
+                            .allMatch(e -> e.getValue()
+                                    .matcher(String.valueOf(getValue(taskArgs, e.getKey())))
+                                    .find()))
             .orElse(true);
     }
 

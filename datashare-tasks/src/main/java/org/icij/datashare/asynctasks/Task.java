@@ -44,6 +44,10 @@ public class Task<V extends Serializable> extends Event implements Entity, Compa
         public static final Set<State> FINAL_STATES = Set.of(CANCELLED, ERROR, DONE);
         public static final Set<State> NON_FINAL_STATES = Arrays.stream(State.values()).filter(s -> !FINAL_STATES.contains(s))
             .collect(Collectors.toSet());
+
+        public boolean isFinal() {
+            return FINAL_STATES.contains(this);
+        }
     }
     @JsonTypeInfo(use = JsonTypeInfo.Id.CLASS, property = "@type")
     public final Map<String, Object> args;
@@ -56,7 +60,7 @@ public class Task<V extends Serializable> extends Event implements Entity, Compa
     private volatile TaskResult<V> result;
 
     public Task(String name, User user, Map<String, Object> args) {
-        this(randomUUID().toString(), name, user, args);
+        this(name + "-" + randomUUID(), name, user, args);
     }
 
     public Task(String id, String name, User user) {
@@ -180,7 +184,7 @@ public class Task<V extends Serializable> extends Event implements Entity, Compa
 
     @JsonIgnore
     public boolean isFinished() {
-        return State.FINAL_STATES.contains(state);
+        return state.isFinal();
     }
 
     @Override

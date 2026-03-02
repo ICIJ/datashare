@@ -58,6 +58,21 @@ public class ApiKeyResourceTest extends AbstractProdWebServerTest {
         delete("/api/key/" + User.local().id).should().respond(204);
     }
 
+    @Test
+    public void test_generate_key_for_other_user_is_forbidden() {
+        put("/api/key/other-user").should().respond(403);
+    }
+
+    @Test
+    public void test_get_key_for_other_user_is_forbidden() {
+        get("/api/key/other-user").should().respond(403);
+    }
+
+    @Test
+    public void test_delete_key_for_other_user_is_forbidden() {
+        delete("/api/key/other-user").should().respond(403);
+    }
+
     @Before
     public void setUp() {
         initMocks(this);

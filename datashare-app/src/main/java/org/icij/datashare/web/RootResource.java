@@ -27,6 +27,8 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import static org.apache.commons.io.IOUtils.copy;
 import static org.icij.datashare.PropertiesProvider.EXTENSIONS_DIR_OPT;
@@ -65,19 +67,40 @@ public class RootResource {
         return content;
     }
 
+    private static final Pattern SENSITIVE_KEY_PATTERN = Pattern.compile(".*(password|key|secret|address|url).*", Pattern.CASE_INSENSITIVE);
+    private static final Pattern URI_WITH_CREDENTIALS = Pattern.compile("(\\w+://)([^:]+):([^@]+)@(.+)");
+    private static final String OBFUSCATED = "******";
+
     @Operation(description = """
             Gets the public (i.e. without user's information) datashare settings parameters.
-            
+
             These parameters are used for the client app for the init process.
-            
-            The endpoint is removing all fields that contain Address or Secret or Url or Key
+
+            The endpoint obfuscates values for keys containing password, key, secret, address, or url.
+            URI values with embedded credentials (e.g. scheme://user:pass@host) have user and password masked.
             """)
     @ApiResponse(responseCode = "200", description = "returns the list of public settings", useReturnTypeSchema = true)
     @Get("settings")
     public Map<String, Object> getPublicSettings() {
-        Map<String, Object> filteredProperties = propertiesProvider.getFilteredProperties(".*Address.*", ".*Secret.*", ".*Url.*", ".*Key.*");
-        filteredProperties.put("pathSeparator", File.separator);
-        return filteredProperties;
+        Map<String, Object> properties = propertiesProvider.getProperties().entrySet().stream()
+                .collect(Collectors.toMap(
+                        e -> (String) e.getKey(),
+                        e -> obfuscateValue((String) e.getKey(), e.getValue())));
+        properties.put("pathSeparator", File.separator);
+        return properties;
+    }
+
+    private static Object obfuscateValue(String key, Object value) {
+        if (SENSITIVE_KEY_PATTERN.matcher(key).matches()) {
+            return OBFUSCATED;
+        }
+        if (value instanceof String strValue) {
+            java.util.regex.Matcher m = URI_WITH_CREDENTIALS.matcher(strValue);
+            if (m.matches()) {
+                return m.group(1) + OBFUSCATED + ":" + OBFUSCATED + "@" + m.group(4);
+            }
+        }
+        return value;
     }
 
     @Operation(description = "Gets the versions (front/back/docker) of datashare.")

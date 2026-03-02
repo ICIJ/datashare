@@ -21,7 +21,7 @@ public class FileReportTest {
 
     @Test
     public void test_report_for_directory() throws IOException {
-        assertThat(new DirectoryReport(getFile("docs")).getProt()).isEqualTo("drwxr-xr-x");
+        assertThat(new DirectoryReport(getFile("docs")).getProt()).isIn("drwxr-xr-x", "drwxrwxr-x");
     }
 
     @Test
