@@ -9,32 +9,25 @@ import static org.icij.datashare.asynctasks.Task.USER_KEY;
 import static org.icij.datashare.asynctasks.bus.amqp.Event.MAX_RETRIES_LEFT;
 import static org.icij.datashare.asynctasks.temporal.TemporalHelper.asExecInfoFilter;
 import static org.icij.datashare.asynctasks.temporal.TemporalHelper.asTaskState;
+import static org.icij.datashare.asynctasks.temporal.TemporalInterlocutor.DEFAULT_NAMESPACE_POLL_INTERVAL;
+import static org.icij.datashare.asynctasks.temporal.TemporalInterlocutor.MAX_PROGRESS_CUSTOM_ATTRIBUTE;
+import static org.icij.datashare.asynctasks.temporal.TemporalInterlocutor.PROGRESS_CUSTOM_ATTRIBUTE;
+import static org.icij.datashare.asynctasks.temporal.TemporalInterlocutor.USER_CUSTOM_ATTRIBUTE;
 
 import com.google.protobuf.ByteString;
 import com.google.protobuf.Timestamp;
-import com.google.protobuf.util.Durations;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 import io.temporal.api.common.v1.Payloads;
 import io.temporal.api.common.v1.WorkflowExecution;
-import io.temporal.api.enums.v1.IndexedValueType;
-import io.temporal.api.enums.v1.NamespaceState;
 import io.temporal.api.enums.v1.WorkflowIdConflictPolicy;
 import io.temporal.api.enums.v1.WorkflowIdReusePolicy;
-import io.temporal.api.namespace.v1.NamespaceConfig;
-import io.temporal.api.operatorservice.v1.AddSearchAttributesRequest;
-import io.temporal.api.operatorservice.v1.DeleteNamespaceRequest;
-import io.temporal.api.operatorservice.v1.ListSearchAttributesRequest;
-import io.temporal.api.operatorservice.v1.OperatorServiceGrpc;
 import io.temporal.api.workflow.v1.WorkflowExecutionInfo;
 import io.temporal.api.workflowservice.v1.DeleteWorkflowExecutionRequest;
-import io.temporal.api.workflowservice.v1.DescribeNamespaceRequest;
 import io.temporal.api.workflowservice.v1.ListWorkflowExecutionsRequest;
 import io.temporal.api.workflowservice.v1.ListWorkflowExecutionsResponse;
-import io.temporal.api.workflowservice.v1.RegisterNamespaceRequest;
 import io.temporal.api.workflowservice.v1.WorkflowServiceGrpc;
 import io.temporal.client.WorkflowClient;
-import io.temporal.client.WorkflowClientOptions;
 import io.temporal.client.WorkflowExecutionAlreadyStarted;
 import io.temporal.client.WorkflowExecutionDescription;
 import io.temporal.client.WorkflowExecutionMetadata;
@@ -42,17 +35,11 @@ import io.temporal.client.WorkflowFailedException;
 import io.temporal.client.WorkflowNotFoundException;
 import io.temporal.client.WorkflowOptions;
 import io.temporal.client.WorkflowStub;
-import io.temporal.common.SearchAttributeKey;
 import io.temporal.common.SearchAttributes;
 import io.temporal.common.converter.DefaultDataConverter;
-import io.temporal.serviceclient.OperatorServiceStubs;
-import io.temporal.serviceclient.OperatorServiceStubsOptions;
-import io.temporal.serviceclient.WorkflowServiceStubs;
-import io.temporal.serviceclient.WorkflowServiceStubsOptions;
 import java.io.IOException;
 import java.io.Serializable;
 import java.time.Duration;
-import java.time.temporal.ChronoUnit;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.HashSet;
@@ -74,6 +61,7 @@ import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 import org.icij.datashare.asynctasks.bus.amqp.TaskError;
 import org.icij.datashare.asynctasks.temporal.TemporalInputPayload;
+import org.icij.datashare.asynctasks.temporal.TemporalInterlocutor;
 import org.icij.datashare.asynctasks.temporal.TemporalQueryBuilder;
 import org.icij.datashare.function.Pair;
 import org.icij.datashare.tasks.RoutingStrategy;
@@ -85,25 +73,11 @@ public class TaskManagerTemporal implements TaskManager {
 
     public static final String DEFAULT_NAMESPACE = "datashare-default";
 
-    // See https://docs.temporal.io/list-filter#supported-operators
-    public static final SearchAttributeKey<String> WORKFLOW_TYPE_ATTRIBUTE =
-        SearchAttributeKey.forKeyword("WorkflowType");
-    public static final SearchAttributeKey<String> EXECUTION_STATUS_ATTRIBUTE =
-        SearchAttributeKey.forKeyword("ExecutionStatus");
-    public static final SearchAttributeKey<String> USER_CUSTOM_ATTRIBUTE = SearchAttributeKey.forKeyword("UserId");
-    public static final SearchAttributeKey<Double> MAX_PROGRESS_CUSTOM_ATTRIBUTE =
-        SearchAttributeKey.forDouble("MaxProgress");
-    public static final SearchAttributeKey<Double> PROGRESS_CUSTOM_ATTRIBUTE = SearchAttributeKey.forDouble("Progress");
-
     private final WorkflowClient client;
     private final String namespace;
     private final RoutingStrategy routingStrategy;
 
-
-    private static final NamespaceConfig DEFAULT_NAMESPACE_CONFIG =
-        NamespaceConfig.newBuilder().setWorkflowExecutionRetentionTtl(Durations.fromDays(365)).build();
     private static final Duration DEFAULT_WORKFLOW_TASK_TIMEOUT = Duration.ofDays(7);
-    private static final Duration DEFAULT_NAMESPACE_POLL_INTERVAL = Duration.of(50, ChronoUnit.MILLIS);
     private static final int DEFAULT_PAGE_SIZE = 100;
 
     // TODO: add support for continue-as-new https://docs.temporal.io/develop/java/continue-as-new
@@ -116,20 +90,19 @@ public class TaskManagerTemporal implements TaskManager {
 
     private final WorkflowServiceGrpc.WorkflowServiceBlockingStub workflowServiceBlockingStub;
 
-    public static final Map<String, IndexedValueType> CUSTOM_SEARCH_ATTRIBUTES = Map.of(
-        MAX_PROGRESS_CUSTOM_ATTRIBUTE.getName(), IndexedValueType.INDEXED_VALUE_TYPE_DOUBLE,
-        PROGRESS_CUSTOM_ATTRIBUTE.getName(), IndexedValueType.INDEXED_VALUE_TYPE_DOUBLE,
-        USER_CUSTOM_ATTRIBUTE.getName(), IndexedValueType.INDEXED_VALUE_TYPE_KEYWORD
-    );
+    public TaskManagerTemporal(TemporalInterlocutor temporal, RoutingStrategy routingStrategy) {
+        this(temporal.client, temporal.client.getWorkflowServiceStubs().blockingStub(), routingStrategy);
+    }
 
-    private static final Set<Status.Code> NAMESPACE_EXISTS = Set.of(Status.ALREADY_EXISTS.getCode());
-
-
-    public TaskManagerTemporal(WorkflowClient client, RoutingStrategy routingStrategy) {
+    protected TaskManagerTemporal(WorkflowClient client, RoutingStrategy routingStrategy) {
         this(client, client.getWorkflowServiceStubs().blockingStub(), routingStrategy);
     }
 
-    protected TaskManagerTemporal(WorkflowClient client,  WorkflowServiceGrpc.WorkflowServiceBlockingStub workflowServiceStubs, RoutingStrategy routingStrategy) {
+    protected TaskManagerTemporal(
+        WorkflowClient client,
+        WorkflowServiceGrpc.WorkflowServiceBlockingStub workflowServiceStubs,
+        RoutingStrategy routingStrategy
+    ) {
         this.client = client;
         this.namespace = client.getOptions().getNamespace();
         this.workflowServiceBlockingStub = workflowServiceStubs;
@@ -176,7 +149,8 @@ public class TaskManagerTemporal implements TaskManager {
     @Override
     public Stream<String> getTaskIds(TaskFilters filters) throws IOException {
         Stream<WorkflowExecutionInfo> execs = eventuallyConsistentListExecutions(filters);
-        Iterator<WorkflowExecutionInfo> iterator = new StronglyConsistentExecutionIterator(execs, executions, this::fetchExecByIdsIfExist, filters);
+        Iterator<WorkflowExecutionInfo> iterator =
+            new StronglyConsistentExecutionIterator(execs, executions, this::fetchExecByIdsIfExist, filters);
         execs = StreamSupport.stream(
             Spliterators.spliteratorUnknownSize(iterator, Spliterator.ORDERED),
             false // not parallel
@@ -265,15 +239,6 @@ public class TaskManagerTemporal implements TaskManager {
     public void close() throws IOException {
     }
 
-    public static WorkflowClient buildClient(String target, String namespace) {
-        WorkflowClientOptions clientOptions = WorkflowClientOptions.newBuilder().setNamespace(namespace).build();
-        WorkflowServiceStubsOptions serviceStubsOptions = WorkflowServiceStubsOptions.newBuilder()
-            .setTarget(target)
-            .build();
-        WorkflowServiceStubs serviceStub = WorkflowServiceStubs.newServiceStubs(serviceStubsOptions);
-        return buildClient(serviceStub, clientOptions);
-    }
-
     public static String resolveWfTaskQueue(RoutingStrategy routingStrategy, String queueKey, Group group) {
         switch (routingStrategy) {
             case UNIQUE -> {
@@ -289,109 +254,11 @@ public class TaskManagerTemporal implements TaskManager {
         }
     }
 
-    private static WorkflowClient buildClient(WorkflowServiceStubs serviceStub, WorkflowClientOptions clientOptions) {
-        return WorkflowClient.newInstance(serviceStub, clientOptions);
-    }
-
-
-    protected static void setupNamespace(WorkflowClient client, Duration timeout) throws InterruptedException {
-        long start = System.currentTimeMillis();
-        long timeoutMillis = timeout.toMillis();
-        String namespace = client.getOptions().getNamespace();
-        WorkflowServiceGrpc.WorkflowServiceBlockingStub workflowServiceBlockingStub =
-            client.getWorkflowServiceStubs().blockingStub();
-        OperatorServiceGrpc.OperatorServiceBlockingStub operatorServiceBlockingStub =
-            OperatorServiceStubs.newServiceStubs(
-                OperatorServiceStubsOptions.newBuilder()
-                    .setChannel(client.getWorkflowServiceStubs().getRawChannel())
-                    .validateAndBuildWithDefaults()).blockingStub();
-        synchronized (TaskManagerTemporal.class) {
-            boolean createNamespace = !hasNamespace(workflowServiceBlockingStub, client.getOptions().getNamespace());
-            if (createNamespace) {
-                try {
-                    RegisterNamespaceRequest registerNamespaceRequest = RegisterNamespaceRequest.newBuilder()
-                        .setWorkflowExecutionRetentionPeriod(
-                            DEFAULT_NAMESPACE_CONFIG.getWorkflowExecutionRetentionTtl())
-                        .setNamespace(namespace).build();
-                    workflowServiceBlockingStub.registerNamespace(registerNamespaceRequest);
-                } catch (StatusRuntimeException ex) {
-                    if (!NAMESPACE_EXISTS.contains(ex.getStatus().getCode())) {
-                        throw ex;
-                    }
-                }
-            }
-            if (createNamespace) {
-                while (true) {
-                    if ((System.currentTimeMillis() - start >= timeoutMillis)) {
-                        throw new RuntimeException(
-                            "failed to setup namespace search attribute in less than " + timeout);
-                    }
-                    try {
-                        operatorServiceBlockingStub.addSearchAttributes(
-                            AddSearchAttributesRequest.newBuilder().setNamespace(namespace)
-                                .putAllSearchAttributes(CUSTOM_SEARCH_ATTRIBUTES).build()
-                        );
-                        break;
-                    } catch (StatusRuntimeException ex) {
-                        if (ex.getStatus().getCode().equals(Status.Code.NOT_FOUND)) {
-                            continue;
-                        }
-                        if (ex.getStatus().getCode().equals(Status.Code.FAILED_PRECONDITION)
-                            && ex.getMessage().contains("Namespace has invalid state")) {
-                            continue;
-                        }
-                        Thread.sleep(DEFAULT_NAMESPACE_POLL_INTERVAL.toMillis());
-                    }
-                }
-            }
-            while (!namespaceIsReady(operatorServiceBlockingStub, namespace)) {
-                if ((System.currentTimeMillis() - start >= timeoutMillis)) {
-                    throw new RuntimeException("failed to read namespace search attribute in less than " + timeout);
-                }
-            }
-        }
-    }
-
-    protected static void deleteNamespace(WorkflowClient client, Duration timeout) {
-        String namespace = client.getOptions().getNamespace();
-        OperatorServiceStubs.newServiceStubs(
-                OperatorServiceStubsOptions.newBuilder()
-                    .setChannel(client.getWorkflowServiceStubs().getRawChannel())
-                    .validateAndBuildWithDefaults())
-            .blockingStub()
-            .deleteNamespace(DeleteNamespaceRequest.newBuilder().setNamespace(namespace).build());
-        awaitNamespaceDeleted(client.getWorkflowServiceStubs().blockingStub(), namespace, timeout);
-    }
-
-    private static boolean hasNamespace(WorkflowServiceGrpc.WorkflowServiceBlockingStub workflowServiceBlockingStub,
-                                        String namespace) {
-        NamespaceState namespaceState;
-        try {
-            namespaceState = workflowServiceBlockingStub.describeNamespace(
-                DescribeNamespaceRequest.newBuilder().setNamespace(namespace).build()
-            ).getNamespaceInfo().getState();
-        } catch (StatusRuntimeException ex) {
-            if (!ex.getStatus().getCode().equals(Status.Code.NOT_FOUND)) {
-                throw ex;
-            }
-            return false;
-        }
-        return namespaceState.equals(NamespaceState.NAMESPACE_STATE_REGISTERED);
-    }
-
-    private static boolean namespaceIsReady(OperatorServiceGrpc.OperatorServiceBlockingStub operatorServiceBlockingStub,
-                                            String namespace) {
-        Set<String> searchAttributes = operatorServiceBlockingStub
-            .listSearchAttributes(ListSearchAttributesRequest.newBuilder().setNamespace(namespace).build())
-            .getCustomAttributesMap()
-            .keySet();
-        return searchAttributes.containsAll(CUSTOM_SEARCH_ATTRIBUTES.keySet());
-    }
-
-
     private Stream<WorkflowExecutionInfo> eventuallyConsistentListExecutions(TaskFilters filters) {
-        PageFetcher<WorkflowExecutionInfo> fetcher = getWorkflowExecutionFetcher(TemporalQueryBuilder.buildFromFilters(filters));
-        return StreamSupport.stream(Spliterators.spliteratorUnknownSize(new TemporalPageIterator<>(fetcher), Spliterator.ORDERED), false);
+        PageFetcher<WorkflowExecutionInfo> fetcher =
+            getWorkflowExecutionFetcher(TemporalQueryBuilder.buildFromFilters(filters));
+        return StreamSupport.stream(
+            Spliterators.spliteratorUnknownSize(new TemporalPageIterator<>(fetcher), Spliterator.ORDERED), false);
     }
 
     private <V extends Serializable> Task<V> parseTask(WorkflowExecutionMetadata response) {
@@ -536,7 +403,9 @@ public class TaskManagerTemporal implements TaskManager {
 
         private Iterator<WorkflowExecutionInfo> missingItems = null;
 
-        StronglyConsistentExecutionIterator(Stream<WorkflowExecutionInfo> listWorkflowsResults, Set<String> knownIds, Function<Set<String>, Stream<WorkflowExecutionInfo>> fetchKnownExecInfoFn, TaskFilters filters) {
+        StronglyConsistentExecutionIterator(Stream<WorkflowExecutionInfo> listWorkflowsResults, Set<String> knownIds,
+                                            Function<Set<String>, Stream<WorkflowExecutionInfo>> fetchKnownExecInfoFn,
+                                            TaskFilters filters) {
             this.listWorkflowsResults = listWorkflowsResults.iterator();
             this.remainingIds = new HashSet<>(knownIds);
             this.fetchKnownExecInfoFn = fetchKnownExecInfoFn;
@@ -631,25 +500,6 @@ public class TaskManagerTemporal implements TaskManager {
             }
         }
         throw new RuntimeException("failed to clear task in " + timeout + " " + timeUnit);
-    }
-
-    private static void awaitNamespaceDeleted(
-        WorkflowServiceGrpc.WorkflowServiceBlockingStub workflowServiceBlockingStub, String namespace, Duration timeout)
-        throws RuntimeException {
-        long startTime = System.currentTimeMillis();
-        long maxDuration = timeout.toMillis();
-        while ((System.currentTimeMillis() - startTime < maxDuration)) {
-            try {
-                workflowServiceBlockingStub.describeNamespace(
-                    DescribeNamespaceRequest.newBuilder().setNamespace(namespace).build());
-            } catch (StatusRuntimeException e) {
-                if (!e.getStatus().getCode().equals(Status.Code.NOT_FOUND)) {
-                    throw e;
-                }
-                return;
-            }
-        }
-        throw new RuntimeException("failed to delete namespace in " + timeout);
     }
 
     protected void awaitExecutionDeletion(Set<String> taskIds) throws InterruptedException {
