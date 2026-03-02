@@ -30,7 +30,7 @@ RUN apt-get -y update && \
         libjpeg8-dev libpng-dev pkg-config \
         libssl-dev libxml2-dev \
         # java & maven
-        openjdk-17-jdk \
+        openjdk-21-jdk \
         maven \
         tesseract-ocr 
 
@@ -51,10 +51,10 @@ ENV TERM xterm-256color
 ENV JDK_ARCH=${BUILDPLATFORM#*/}
 
 
-RUN ln -s /usr/lib/jvm/java-17-openjdk-$JDK_ARCH /usr/lib/jvm/java-17-openjdk
+RUN ln -s /usr/lib/jvm/java-21-openjdk-$JDK_ARCH /usr/lib/jvm/java-21-openjdk
 
 # Set JAVA_HOME environment variable
-ENV JAVA_HOME=/usr/lib/jvm/java-17-openjdk
+ENV JAVA_HOME=/usr/lib/jvm/java-21-openjdk
 ENV PATH="${JAVA_HOME}/bin:${PATH}"
 
 WORKDIR /home/dev/workspace/datashare

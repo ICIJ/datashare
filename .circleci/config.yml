@@ -2,7 +2,7 @@ version: 2.1
 
 # Shared environment variables
 ds_env: &ds_env
-  JAVA_HOME: /usr/lib/jvm/java-17-openjdk-amd64
+  JAVA_HOME: /usr/lib/jvm/java-21-openjdk-amd64
   DS_POSTGRES_HOST: localhost
   DS_POSTGRES_PORT: 5432
   DS_POSTGRES_USER: dstest
