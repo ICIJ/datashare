@@ -12,8 +12,8 @@ import org.junit.Test;
 import org.mockito.Mock;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 import java.util.stream.Stream;
 
 import static org.fest.assertions.Assertions.assertThat;
@@ -42,7 +42,7 @@ public class UserPolicyVerifierTest {
 
         UserPolicy policy = new UserPolicy(user.id, projectId, roles);
         when(jooqUserPolicyRepository.get(user.id, projectId)).thenReturn(policy);
-        return user.withPolicies(Set.of(policy));
+        return user.withPolicies(List.of(policy));
     }
 
     @Before

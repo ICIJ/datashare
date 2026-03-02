@@ -17,7 +17,7 @@ import org.mockito.Mock;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
-import java.util.Set;
+import java.util.List;
 
 import static org.icij.datashare.text.Project.project;
 import static org.icij.datashare.user.User.localUser;
@@ -47,7 +47,7 @@ public class WebAcceptanceTest extends AbstractProdWebServerTest {
 
         UserPolicy policy = new UserPolicy(user.id, projectId, roles);
         when(jooqUserPolicyRepository.get(user.id, projectId)).thenReturn(policy);
-        return user.withPolicies(Set.of(policy));
+        return user.withPolicies(List.of(policy));
     }
 
     @Test

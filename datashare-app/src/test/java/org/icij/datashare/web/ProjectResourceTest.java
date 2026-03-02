@@ -2,14 +2,13 @@ package org.icij.datashare.web;
 
 import net.codestory.http.filters.basic.BasicAuthFilter;
 import net.codestory.http.security.Users;
-import org.icij.datashare.EnvUtils;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Repository;
 import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.cli.Mode;
 import org.icij.datashare.db.JooqRepository;
-import org.icij.datashare.session.*;
 import org.icij.datashare.extract.MemoryDocumentCollectionFactory;
+import org.icij.datashare.session.*;
 import org.icij.datashare.tasks.DatashareTaskManager;
 import org.icij.datashare.text.Project;
 import org.icij.datashare.text.indexing.Indexer;
@@ -32,7 +31,6 @@ import java.io.IOException;
 import java.net.URISyntaxException;
 import java.nio.file.Path;
 import java.util.*;
-import java.util.Set;
 import java.util.stream.Stream;
 
 import static java.util.Arrays.asList;
@@ -250,7 +248,7 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
         UserPolicy policy = new UserPolicy(user.id, projectId, roles);
         when(jooqUserPolicyRepository.get(user.id, projectId)).thenReturn(policy);
         when(jooqUserPolicyRepository.getAllPolicies()).thenReturn(Stream.of(policy));
-        return user.withPolicies(Set.of(policy));
+        return user.withPolicies(List.of(policy));
     }
 
     @Test
