@@ -5,13 +5,7 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
-@BasePolicy
 @Target({ElementType.METHOD, ElementType.TYPE})
 @Retention(RetentionPolicy.RUNTIME)
-public @interface TaskPolicy {
-    String idParam() default "taskName:";
-
-    Role role() default Role.PROJECT_MEMBER;
-
-    boolean allowOwner() default true;
+public @interface BasePolicy {
 }

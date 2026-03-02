@@ -1,6 +1,7 @@
 package org.icij.datashare.policies;
 
 import net.codestory.http.Context;
+import net.codestory.http.errors.UnauthorizedException;
 import net.codestory.http.payload.Payload;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.asynctasks.TaskRepositoryMemory;
@@ -74,12 +75,10 @@ public class TaskPolicyAnnotationTest {
         mocks.close();
     }
 
-    @Test
-    public void should_return_forbidden_if_no_user() {
+    @Test(expected = UnauthorizedException.class)
+    public void should_throw_unauthorized_if_no_user() {
         Context context = mock(Context.class);
-        when(context.pathParam("taskName:")).thenReturn(taskId);
-        Payload result = annotation.apply(adminTaskPolicy, context, c -> Payload.ok());
-        assertEquals(403, result.code());
+        annotation.apply(adminTaskPolicy, context, (c) -> Payload.ok());
     }
 
     @Test

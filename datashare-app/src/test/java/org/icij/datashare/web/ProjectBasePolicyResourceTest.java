@@ -22,7 +22,7 @@ import static org.icij.datashare.text.Project.project;
 import static org.mockito.Mockito.when;
 import static org.mockito.MockitoAnnotations.openMocks;
 
-public class PolicyResourceTest extends AbstractProdWebServerTest {
+public class ProjectBasePolicyResourceTest extends AbstractProdWebServerTest {
     @Mock
     CasbinRuleAdapter adapter;
     @Mock
