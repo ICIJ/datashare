@@ -1,11 +1,14 @@
 package org.icij.datashare.policies;
 
 import junit.framework.TestCase;
+import net.codestory.http.Context;
+import org.icij.datashare.session.DatashareUser;
 import org.mockito.Mockito;
 
 import java.util.List;
 
 import static org.fest.assertions.Assertions.assertThat;
+import static org.mockito.Mockito.when;
 
 public class AuthorizerTest extends TestCase {
     private Authorizer authorizer;
@@ -239,4 +242,95 @@ public class AuthorizerTest extends TestCase {
                 .filter(p -> p.v2.equals("test::testProj"))
                 .count() >= 2);
     }
+
+    public void test_require_value() {
+        assertEquals("value", Authorizer.requireValue("value", false));
+        assertEquals("*", Authorizer.requireValue("*", true));
+
+        try {
+            Authorizer.requireValue(null, true);
+            fail("Expected IllegalArgumentException");
+        } catch (IllegalArgumentException e) {
+            assertEquals("The parameter cannot be null or blank", e.getMessage());
+        }
+
+        try {
+            Authorizer.requireValue("", true);
+            fail("Expected IllegalArgumentException");
+        } catch (IllegalArgumentException e) {
+            assertEquals("The parameter cannot be null or blank", e.getMessage());
+        }
+
+        try {
+            Authorizer.requireValue(" ", true);
+            fail("Expected IllegalArgumentException");
+        } catch (IllegalArgumentException e) {
+            assertEquals("The parameter cannot be null or blank", e.getMessage());
+        }
+
+        try {
+            Authorizer.requireValue("*", false);
+            fail("Expected IllegalArgumentException");
+        } catch (IllegalArgumentException e) {
+            assertEquals("The parameter cannot be a wildcard", e.getMessage());
+        }
+    }
+
+    public void test_require_role() {
+        assertEquals(Role.PROJECT_ADMIN, Authorizer.requireRole("PROJECT_ADMIN"));
+
+        try {
+            Authorizer.requireRole("INVALID_ROLE");
+            fail("Expected IllegalArgumentException");
+        } catch (IllegalArgumentException e) {
+            assertTrue(e.getMessage().contains("Invalid role value:INVALID_ROLE"));
+        }
+    }
+
+    public void test_require_current_user() {
+        Context context = Mockito.mock(Context.class);
+        DatashareUser user = new DatashareUser("alice");
+        when(context.currentUser()).thenReturn(user);
+
+        assertEquals(user, Authorizer.requireCurrentUser(context));
+
+        when(context.currentUser()).thenReturn(null);
+        try {
+            Authorizer.requireCurrentUser(context);
+            fail("Expected RuntimeException");
+        } catch (RuntimeException e) {
+            assertEquals("User not found in context", e.getMessage());
+        }
+    }
+
+    public void test_require_domain() {
+        Domain d = Authorizer.requireDomain("icij", false);
+        assertEquals("icij", d.id());
+
+        Domain wildcard = Authorizer.requireDomain("*", true);
+        assertEquals("*", wildcard.id());
+
+        try {
+            Authorizer.requireDomain("*", false);
+            fail("Expected IllegalArgumentException");
+        } catch (IllegalArgumentException e) {
+            assertEquals("The parameter cannot be a wildcard", e.getMessage());
+        }
+    }
+
+    public void test_require_id_param() {
+        Context context = Mockito.mock(Context.class);
+        when(context.pathParam("id")).thenReturn("123");
+
+        assertEquals("123", Authorizer.requireIdParam(context, "id"));
+
+        when(context.pathParam("id")).thenReturn(null);
+        try {
+            Authorizer.requireIdParam(context, "id");
+            fail("Expected IllegalArgumentException");
+        } catch (IllegalArgumentException e) {
+            assertEquals("The parameter cannot be null or blank", e.getMessage());
+        }
+    }
+
 }
