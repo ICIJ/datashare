@@ -39,6 +39,12 @@ public class PolicyResource {
         this.repository = repository;
     }
 
+    static class BlankParameterException extends IllegalArgumentException {
+        public BlankParameterException(String parameterName) {
+            super(parameterName + " cannot be null or blank");
+        }
+    }
+
     private void domainIsPresent(String name) {
         if (name == null || name.isBlank() || name.equals("*")) {
             throw new BlankParameterException("Domain cannot be null or blank or wildcard");
@@ -298,11 +304,5 @@ public class PolicyResource {
         }
     }
 
-
-    static class BlankParameterException extends IllegalArgumentException {
-        public BlankParameterException(String parameterName) {
-            super(parameterName + " cannot be null or blank");
-        }
-    }
 
 }
