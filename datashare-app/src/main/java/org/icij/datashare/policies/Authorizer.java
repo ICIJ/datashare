@@ -1,11 +1,13 @@
 package org.icij.datashare.policies;
 
 import com.google.inject.Inject;
+import net.codestory.http.Context;
 import org.apache.commons.io.IOUtils;
 import org.casbin.jcasbin.main.Enforcer;
 import org.casbin.jcasbin.model.Model;
 import org.casbin.jcasbin.rbac.DomainManager;
 import org.casbin.jcasbin.util.BuiltInFunctions;
+import org.icij.datashare.session.DatashareUser;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -213,5 +215,38 @@ public class Authorizer {
 
     public List<CasbinRule> getGroupPermissions(String user, Domain domain, String project) {
         return getFilteredPermissions(user, domain, project);
+    }
+
+    public static String requireValue(String value, boolean wildcardAllowed) {
+        if (value == null || value.isBlank()) {
+            throw new IllegalArgumentException("The parameter cannot be null or blank");
+        } else if (!wildcardAllowed && value.equals("*")) {
+            throw new IllegalArgumentException("The parameter cannot be a wildcard");
+        }
+        return value;
+    }
+
+    public static Role requireRole(String role) {
+        try {
+            return Role.valueOf(role);
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("Invalid role value:" + role);
+        }
+    }
+
+    public static DatashareUser requireCurrentUser(Context context) {
+        DatashareUser user = (DatashareUser) context.currentUser();
+        if (user == null) {
+            throw new RuntimeException("User not found in context");
+        }
+        return user;
+    }
+
+    public static Domain requireDomain(String domain, boolean wildcardAllowed) {
+        return Domain.of(requireValue(domain, wildcardAllowed));
+    }
+
+    protected static String requireIdParam(Context context, String idParam) {
+        return requireValue(context.pathParam(idParam), true);
     }
 }
