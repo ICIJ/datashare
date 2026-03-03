@@ -42,6 +42,9 @@ reset_database() {
     export PGPASSWORD="$password"
     psql -h "$host" -U "$user" -d postgres -c "DROP DATABASE IF EXISTS $db" || true
     psql -h "$host" -U "$user" -d postgres -c "CREATE DATABASE $db OWNER $user"
+    # this is not possible if user is not a superuser, check your datashare-devenv.properties for the postgres user configuration
+    psql -h "$host" -U "$user" -d postgres -c "grant all on schema public to $user"
+
     echo "  Created $db (user: $user) on $host"
 }
 
