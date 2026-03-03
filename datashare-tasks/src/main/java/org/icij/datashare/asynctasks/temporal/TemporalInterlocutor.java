@@ -80,7 +80,7 @@ public class TemporalInterlocutor {
                 OperatorServiceStubsOptions.newBuilder()
                     .setChannel(client.getWorkflowServiceStubs().getRawChannel())
                     .validateAndBuildWithDefaults()).blockingStub();
-        synchronized (TaskManagerTemporal.class) {
+        synchronized (this) {
             boolean createNamespace = !hasNamespace(workflowServiceBlockingStub, client.getOptions().getNamespace());
             if (createNamespace) {
                 try {
@@ -95,7 +95,7 @@ public class TemporalInterlocutor {
                     }
                 }
             }
-            if (createNamespace) {
+            if (!namespaceIsReady(operatorServiceBlockingStub, namespace)) {
                 while (true) {
                     if ((System.currentTimeMillis() - start >= timeoutMillis)) {
                         throw new RuntimeException(
@@ -123,6 +123,7 @@ public class TemporalInterlocutor {
                 if ((System.currentTimeMillis() - start >= timeoutMillis)) {
                     throw new RuntimeException("failed to read namespace search attribute in less than " + timeout);
                 }
+                Thread.sleep(DEFAULT_NAMESPACE_POLL_INTERVAL.toMillis());
             }
         }
     }
