@@ -1,8 +1,8 @@
 package org.icij.datashare.db;
 
+import org.icij.datashare.EnvUtils;
 import org.icij.datashare.batch.BatchSearch;
 import org.icij.datashare.batch.BatchSearchRepository;
-import org.icij.datashare.EnvUtils;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.user.User;
 import org.jooq.SQLDialect;
@@ -54,5 +54,7 @@ public class BenchBatchSearch {
        // repository.get(User.local());
         endTime = System.currentTimeMillis();
         logger.info("done in {}ms", endTime - beginTime);
+        // close the connection
+        dbRule.shutdown();
     }
 }

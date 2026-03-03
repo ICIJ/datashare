@@ -28,7 +28,7 @@ import static org.icij.datashare.text.Project.project;
 public class DatabaseSpewerTest {
     @Rule public DbSetupRule dbRule;
     @Rule public TemporaryFolder tmp = new TemporaryFolder();
-    private DatabaseSpewer dbSpewer;
+    private final DatabaseSpewer dbSpewer;
     private static final List<DbSetupRule> rulesToClose = new ArrayList<>();
 
     @Parameterized.Parameters

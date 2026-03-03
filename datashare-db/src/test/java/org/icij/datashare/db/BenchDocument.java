@@ -22,7 +22,7 @@ public class BenchDocument {
     static Logger logger = LoggerFactory.getLogger(BenchDocument.class);
     @Rule
     public DbSetupRule dbRule = new DbSetupRule(EnvUtils.resolveUri("postgres", "jdbc:postgresql://postgres/dstest?user=dstest&password=test"));
-    private JooqRepository repository = new JooqRepository(dbRule.dataSource, SQLDialect.POSTGRES);
+    private final JooqRepository repository = new JooqRepository(dbRule.dataSource, SQLDialect.POSTGRES);
 
     @Test
     public void testReadsAndWrites() {
@@ -78,6 +78,9 @@ public class BenchDocument {
         }
         endTime = System.currentTimeMillis();
         logger.info("done in {}ms", endTime - beginTime);
+
+        // close the connections
+        dbRule.shutdown();
     }
 
     private String generate(String seed, int nbBytes) {
