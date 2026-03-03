@@ -11,21 +11,21 @@ public class CasbinRuleTest {
     public void test_escape_quotes_values() {
         CasbinRule rule = new CasbinRule();
         rule.ptype = "p";
-        rule.v0 = "alice";
-        rule.v1 = "data1";
-        rule.v2 = "read";
-        rule.v3 = "";
+        rule.v0 = "PROJECT_ADMIN";
+        rule.v1 = "icij";
+        rule.v2 = "banana-papers";
+        rule.v3 = "p_admin";
         rule.v4 = "";
         rule.v5 = "";
 
         CasbinRule escaped = CasbinRule.escape(rule);
 
         assertEquals("p", escaped.ptype); // ptype is NOT escaped in the constructor
-        assertEquals("\"alice\"", escaped.v0);
-        assertEquals("\"data1\"", escaped.v1);
-        assertEquals("\"read\"", escaped.v2);
-        assertEquals("", escaped.v3); // empty string should not be escaped
-        assertEquals("", escaped.v4);
+        assertEquals("\"PROJECT_ADMIN\"", escaped.v0);
+        assertEquals("\"icij\"", escaped.v1);
+        assertEquals("\"banana-papers\"", escaped.v2);
+        assertEquals("\"p_admin\"", escaped.v3);
+        assertEquals("", escaped.v4); // empty string should not be escaped
         assertEquals("", escaped.v5);
     }
 
@@ -33,8 +33,8 @@ public class CasbinRuleTest {
     public void test_escape_does_not_double_quote() {
         CasbinRule rule = new CasbinRule();
         rule.ptype = "p";
-        rule.v0 = "\"alice\"";
-        rule.v1 = "data1";
+        rule.v0 = "\"PROJECT_ADMIN\"";
+        rule.v1 = "icij";
         rule.v2 = "";
         rule.v3 = "";
         rule.v4 = "";
@@ -42,8 +42,8 @@ public class CasbinRuleTest {
 
         CasbinRule escaped = CasbinRule.escape(rule);
 
-        assertEquals("\"alice\"", escaped.v0);
-        assertEquals("\"data1\"", escaped.v1);
+        assertEquals("\"PROJECT_ADMIN\"", escaped.v0);
+        assertEquals("\"icij\"", escaped.v1);
     }
 
     @Test
@@ -66,16 +66,16 @@ public class CasbinRuleTest {
     public void test_get_line_text() {
         CasbinRule rule = new CasbinRule();
         rule.ptype = "p";
-        rule.v0 = "alice";
-        rule.v1 = "data1";
-        rule.v2 = "read";
-        rule.v3 = "";
+        rule.v0 = "PROJECT_ADMIN";
+        rule.v1 = "icij";
+        rule.v2 = "banana-papers";
+        rule.v3 = "p_admin";
         rule.v4 = "";
         rule.v5 = "";
 
         String lineText = CasbinRule.getLineText(rule);
 
-        assertEquals("p, alice, data1, read", lineText);
+        assertEquals("p, PROJECT_ADMIN, icij, banana-papers, p_admin", lineText);
     }
 
     @Test
@@ -83,14 +83,14 @@ public class CasbinRuleTest {
         CasbinRule rule = new CasbinRule();
         rule.ptype = "g";
         rule.v0 = "alice";
-        rule.v1 = "data2";
-        rule.v2 = "write";
-        rule.v3 = "v3";
+        rule.v1 = "domain1";
+        rule.v2 = "project1";
+        rule.v3 = "PROJECT_ADMIN";
         rule.v4 = "v4";
         rule.v5 = "v5";
 
         String lineText = CasbinRule.getLineText(rule);
 
-        assertEquals("g, alice, data2, write, v3, v4, v5", lineText);
+        assertEquals("g, alice, domain1, project1, PROJECT_ADMIN, v4, v5", lineText);
     }
 }
