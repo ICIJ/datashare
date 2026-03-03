@@ -129,8 +129,5 @@ databaseChangeLog:
       file: changes/042-task-result-batch-search-migration.yml
       relativeToChangelogFile: true
   - include:
-      file: changes/043-adds-user-policy-table.yml
-      relativeToChangelogFile: true
-  - include:
-      file: changes/044-drop-user-policy-add-casbin-rule.yml
+      file: changes/043-add-casbin-rule.yml
       relativeToChangelogFile: true
