@@ -68,5 +68,6 @@ FROM temporalio/server:1.29.3 AS temporal-test-container
 COPY --chmod=755 --from=temporal-admin-tools /usr/local/bin/temporal-sql-tool /usr/local/bin/
 COPY --from=temporal-admin-tools /etc/temporal/schema /etc/temporal/schema
 COPY --chmod=755 ./temporal/dynamic.yml ./temporal/temporal.yml ./temporal/setup.sh ./temporal/entrypoint-override.sh /etc/temporal/.config/temporalio/
+ENV POSTGRES_STARTUP_TIMEOUT=15
 ENTRYPOINT [ "/etc/temporal/.config/temporalio/entrypoint-override.sh"]
 CMD [ "/etc/temporal/.config/temporalio/entrypoint-override.sh"]
