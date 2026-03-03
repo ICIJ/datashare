@@ -57,17 +57,16 @@ public class TaskPolicyAnnotationTest {
         }
 
     };
-    @Mock
-    CasbinRuleAdapter jooqCasbinRuleRepository;
+    private final String projectId = "test-datashare";
     Authorizer authorizer;
-    private String taskId = "test-task";
-    private String projectId = "test-datashare";
+    @Mock
+    CasbinRuleAdapter adapter;
     private TaskPolicyAnnotation annotation;
 
     @Before
     public void setUp() {
         mocks = openMocks(this);
-        authorizer = new Authorizer(jooqCasbinRuleRepository);
+        authorizer = new Authorizer(adapter);
         authorizer.addRoleForUserInProject("cecile", Role.PROJECT_ADMIN, Domain.DEFAULT, projectId);
         authorizer.addRoleForUserInProject("john", Role.PROJECT_MEMBER, Domain.DEFAULT, projectId);
         annotation = new TaskPolicyAnnotation(authorizer, taskManager);
@@ -93,6 +92,7 @@ public class TaskPolicyAnnotationTest {
         DatashareUser noPolicyUser = new DatashareUser("jane");
         when(context.currentUser()).thenReturn(noPolicyUser);
 
+        String taskId = "test-task";
         when(context.pathParam("taskName:")).thenReturn(taskId);
 
         Payload result = annotation.apply(adminTaskPolicy, context, c -> Payload.ok());
