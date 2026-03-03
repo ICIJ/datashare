@@ -22,5 +22,6 @@ datashare-web/src/main/resources/secret.properties
 doc/
 work
 *.swp
+**/.flattened-pom.xml
 # Devenv Properties File
 datashare-devenv.properties
