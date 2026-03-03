@@ -19,15 +19,12 @@ public class ProjectPolicyAnnotation extends AbstractPolicyAnnotation<ProjectPol
     public Payload apply(ProjectPolicy annotation, Context context, Function<Context, Payload> payloadSupplier) {
 
         DatashareUser user = requireUser(context);
+        //TODO #DOMAIN Currently Domain is not handled so we can't check it from query params
+        Domain domain = requireDomain(annotation.domain());
 
-        String projectId = context.pathParam(annotation.idParam());
-        if (projectId == null) {
-            return Payload.forbidden();
-        }
+        String projectId = requireIdParam(context, annotation.idParam());
 
-        Domain domain = Domain.of(annotation.domain());
-
-        if (!isAllowed(user, domain, projectId, annotation.role())) {
+        if (isNotAllowed(user, domain, projectId, annotation.role())) {
             return Payload.forbidden();
         }
 

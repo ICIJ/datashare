@@ -28,32 +28,30 @@ public class TaskPolicyAnnotation extends AbstractPolicyAnnotation<TaskPolicy> {
         this.taskManager = taskManager;
     }
 
+    private static boolean isTaskOwner(DatashareUser user, Task<Serializable> task) {
+        return task.getUser().equals(user);
+    }
     @Override
     public Payload apply(TaskPolicy annotation, Context context, Function<Context, Payload> payloadSupplier) {
 
         DatashareUser user = requireUser(context);
-
-        String taskId = context.pathParam(annotation.idParam());
-        if (taskId == null || taskId.isBlank()) {
-            return Payload.forbidden();
-        }
+        //TODO #DOMAIN Currently Domain is not handled so we can't check it from query params
+        Domain domain = requireDomain(annotation.domain());
+        String taskId = requireIdParam(context, annotation.idParam());
 
         try {
             Task<Serializable> task = taskManager.getTask(taskId);
 
+            // Tasks are linked to ONE project at a time
+            // BatchSearches are not handled yet (they are linked to multiple projects...)
             Project project = Project.project(ofNullable((String) task.args.get(DEFAULT_PROJECT_OPT)).orElse(DEFAULT_DEFAULT_PROJECT));
+            String projectId = requireValue(project.name);
 
-            String projectId = project.name;
-            if (projectId == null) {
+            // Check if user as role based rights or is owner (if an annotation allowOwner flag is true)
+            if (isNotAllowed(user, domain, projectId, annotation.role()) && (!annotation.allowOwner() || !isTaskOwner(user, task))) {
                 return Payload.forbidden();
             }
-
-            Domain domain = Domain.of(annotation.domain());
-            if (isAllowed(user, domain, projectId, annotation.role()) || (annotation.allowOwner() && task.getUser().equals(user))) {
-                return payloadSupplier.apply(context);
-            }
-
-            return Payload.forbidden();
+            return payloadSupplier.apply(context);
 
         } catch (UnknownTask | IOException e) {
             return Payload.notFound();
