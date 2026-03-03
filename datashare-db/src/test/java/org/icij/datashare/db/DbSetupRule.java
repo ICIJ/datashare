@@ -66,8 +66,8 @@ public class DbSetupRule extends ExternalResource {
         }})).createDatasource();
     }
 
-    public JooqCasbinRuleRepository createUserPolicyRepository() {
-        return new JooqCasbinRuleRepository(dataSource, RepositoryFactoryImpl.guessSqlDialectFrom(dataSourceUrl));
+    public JooqCasbinRuleAdapter createUserPolicyRepository() {
+        return new JooqCasbinRuleAdapter(dataSource, RepositoryFactoryImpl.guessSqlDialectFrom(dataSourceUrl));
     }
 
     protected void shutdown() {
