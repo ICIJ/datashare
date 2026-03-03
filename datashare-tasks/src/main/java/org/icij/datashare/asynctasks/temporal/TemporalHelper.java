@@ -28,6 +28,7 @@ import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -174,12 +175,10 @@ public class TemporalHelper {
             if (!filters.byState(asTaskState(execInfo.getStatus()))) {
                 return false;
             }
-            String userId = defaultDataConverter.fromPayload(
-                execInfo.getSearchAttributes().getIndexedFieldsOrThrow(USER_CUSTOM_ATTRIBUTE.getName()),
-                String.class,
-                String.class
-            );
-            return filters.byUser(new User(userId));
+            User user = Optional.ofNullable(execInfo.getSearchAttributes().getIndexedFieldsOrDefault(USER_CUSTOM_ATTRIBUTE.getName(), null))
+                    .map(userId -> new User (defaultDataConverter.fromPayload(userId, String.class, String.class))).orElse(null);
+
+            return filters.byUser(user);
         };
     }
 
