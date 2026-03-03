@@ -166,10 +166,18 @@ public class TemporalInterlocutor {
 
     private static boolean namespaceIsReady(OperatorServiceGrpc.OperatorServiceBlockingStub operatorServiceBlockingStub,
                                             String namespace) {
-        Set<String> searchAttributes = operatorServiceBlockingStub
-            .listSearchAttributes(ListSearchAttributesRequest.newBuilder().setNamespace(namespace).build())
-            .getCustomAttributesMap()
-            .keySet();
+        Set<String> searchAttributes;
+        try {
+            searchAttributes = operatorServiceBlockingStub
+                    .listSearchAttributes(ListSearchAttributesRequest.newBuilder().setNamespace(namespace).build())
+                    .getCustomAttributesMap()
+                    .keySet();
+        } catch (StatusRuntimeException e) {
+            if (!e.getStatus().getCode().equals(Status.Code.NOT_FOUND) && !e.getStatus().getCode().equals(Status.Code.FAILED_PRECONDITION)) {
+                throw e;
+            }
+            return false;
+        }
         return searchAttributes.containsAll(CUSTOM_SEARCH_ATTRIBUTES.keySet());
     }
 
