@@ -37,11 +37,10 @@ public class GrantAdminPolicyTask extends DefaultTask<Boolean> implements UserTa
     public Boolean call() {
         if (authorizer.addProjectAdmin(user.getId(), domain, project.getId())) {
             logger.info("Admin role granted to user {} for project {} in domain {}.", user.getId(), project.getId(), domain.id());
-            return true;
+        } else {
+            logger.info("Admin role for user {} on project {} in domain {} already exists, skipping.", user.getId(), project.getId(), domain.id());
         }
-        ;
-        logger.error("Failed to grant admin role: {}", "Already exists or user/project not found.");
-        return false;
+        return true;
     }
 
     @Override
