@@ -36,7 +36,15 @@ public class JooqCasbinRuleAdapter implements CasbinRuleAdapter {
         this.connectionProvider = connectionProvider;
         this.dialect = dialect;
         this.batchSize = batchSize;
-        logger.info("JooqCasbinRuleRepository initialized with dialect: {}", dialect);
+    }
+
+    private static int determineBatchSize(SQLDialect dialect) {
+        if (dialect.getName().contains("SQLite")) {
+            return 1000;  // SQLite: prefer larger batches in single transaction
+        } else if (dialect.getName().contains("Postgres")) {
+            return 10000;  // PostgreSQL: optimal for JDBC batching
+        }
+        return 1000;  // Default fallback
     }
 
     @Override
@@ -77,8 +85,7 @@ public class JooqCasbinRuleAdapter implements CasbinRuleAdapter {
             }
         }
 
-        int rowsDeleted = deleteQuery.execute();
-        logger.debug("Removed policy: ptype={}, rowsDeleted={}", ptype, rowsDeleted);
+        deleteQuery.execute();
     }
 
     @Override
@@ -102,11 +109,7 @@ public class JooqCasbinRuleAdapter implements CasbinRuleAdapter {
                     columnIndex++;
                 }
 
-                int rowsDeleted = deleteQuery.execute();
-
-                // Optional: log the deletion
-                logger.debug("Removed filtered policy: section={}, ptype={}, fieldIndex={}, rowsDeleted={}",
-                        sec, ptype, fieldIndex, rowsDeleted);
+                deleteQuery.execute();
             });
         }
     }
@@ -124,14 +127,7 @@ public class JooqCasbinRuleAdapter implements CasbinRuleAdapter {
         };
     }
 
-    private static int determineBatchSize(SQLDialect dialect) {
-        if (dialect.getName().contains("SQLite")) {
-            return 1000;  // SQLite: prefer larger batches in single transaction
-        } else if (dialect.getName().contains("Postgres")) {
-            return 10000;  // PostgreSQL: optimal for JDBC batching
-        }
-        return 1000;  // Default fallback
-    }
+
 
     private void saveSectionPolicyWithBatch(DSLContext ctx, Model model, String section) {
         if (!model.model.containsKey(section)) {
@@ -233,18 +229,7 @@ public class JooqCasbinRuleAdapter implements CasbinRuleAdapter {
     public void loadPolicy(Model model) {
         DSLContext ctx = using(connectionProvider, dialect);
         List<CasbinRuleRecord> records = ctx.selectFrom(CASBIN_RULE).fetch();
-        for (CasbinRuleRecord record : records) {
-            CasbinRule line = new CasbinRule();
-            line.ptype = record.get(CASBIN_RULE.PTYPE);
-            line.v0 = record.get(CASBIN_RULE.V0) != null ? record.get(CASBIN_RULE.V0) : "";
-            line.v1 = record.get(CASBIN_RULE.V1) != null ? record.get(CASBIN_RULE.V1) : "";
-            line.v2 = record.get(CASBIN_RULE.V2) != null ? record.get(CASBIN_RULE.V2) : "";
-            line.v3 = record.get(CASBIN_RULE.V3) != null ? record.get(CASBIN_RULE.V3) : "";
-            line.v4 = record.get(CASBIN_RULE.V4) != null ? record.get(CASBIN_RULE.V4) : "";
-            line.v5 = record.get(CASBIN_RULE.V5) != null ? record.get(CASBIN_RULE.V5) : "";
-            loadPolicyLine(line, model);
-        }
-
+        loadCasbinRuleRecords(model, records);
     }
 
     protected void loadPolicyLine(CasbinRule line, Model model) {
@@ -325,6 +310,10 @@ public class JooqCasbinRuleAdapter implements CasbinRuleAdapter {
             }
         }
         List<CasbinRuleRecord> records = ctx.selectFrom(CASBIN_RULE).where(condition).fetch();
+        loadCasbinRuleRecords(model, records);
+    }
+
+    private void loadCasbinRuleRecords(Model model, List<CasbinRuleRecord> records) {
         for (CasbinRuleRecord record : records) {
             CasbinRule line = new CasbinRule();
             line.ptype = record.get(CASBIN_RULE.PTYPE);
