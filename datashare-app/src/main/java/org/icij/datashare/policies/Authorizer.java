@@ -1,6 +1,7 @@
 package org.icij.datashare.policies;
 
 import com.google.inject.Inject;
+import com.google.inject.Singleton;
 import net.codestory.http.Context;
 import org.apache.commons.io.IOUtils;
 import org.casbin.jcasbin.main.Enforcer;
@@ -19,7 +20,8 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-public class Authorizer {
+@Singleton
+public final class Authorizer {
 
     private final static String SEPARATOR = "::";
     private static final String DEFAULT_POLICY_FILE = "casbin/model.conf";
@@ -27,10 +29,10 @@ public class Authorizer {
 
     @Inject
     public Authorizer(CasbinRuleAdapter adapter) {
-        this(adapter, true);
+        this(adapter, true, false);
     }
 
-    public Authorizer(CasbinRuleAdapter adapter, boolean enableAutoSave) {
+    private Authorizer(CasbinRuleAdapter adapter, boolean enableAutoSave, boolean enableLog) {
         Model model = new Model();
         try {
             String modelConf = loadCasbinConf(DEFAULT_POLICY_FILE);
@@ -38,7 +40,7 @@ public class Authorizer {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
-        enforcer = new Enforcer(model, adapter);
+        enforcer = new Enforcer(model, adapter, enableLog);
         enforcer.setRoleManager(new DomainManager(10, null, BuiltInFunctions::allMatch));
         enforcer.enableAutoSave(enableAutoSave);
         enforcer.loadPolicy();
