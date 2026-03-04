@@ -126,16 +126,6 @@ public class Document implements Entity, DocumentMetadataConstants {
                 tags);
     }
 
-    Document(Project project, String id, Path filePath, String content, List<Map<String,String>> content_translated, Language language, Charset charset,
-             String contentType, Map<String, Object> metadata, Status status, Set<Pipeline.Type> nerTags,
-             Date extractionDate, String parentDocument, String rootDocument, Short extractionLevel,
-             Long contentLength, Set<Tag> tags, String ocrParser) {
-        this(project, id, filePath, content, content_translated, language, extractionDate, charset,
-                contentType, extractionLevel, metadata, status, nerTags,
-                parentDocument, rootDocument, contentLength,
-                tags);
-    }
-
     @JsonCreator
     private Document(@JsonProperty("projectId") Project project, @JsonProperty("id") String id, @JsonProperty("path") Path path,
                      @JsonProperty("content") String content,
