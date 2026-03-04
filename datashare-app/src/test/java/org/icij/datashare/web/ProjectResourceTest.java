@@ -242,8 +242,8 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
 
     public User mockUser(String userId, String projectId, Role role) {
         Domain domain = Domain.DEFAULT;
-        authorizer.addRoleForUserInProject(userId, role, domain, projectId);
         DatashareUser user = new DatashareUser(localUser(userId, List.of(projectId)));
+        authorizer.addRoleForUserInProject(user, role, domain, project(projectId));
         user.addProject(projectId);
         when(jooqRepository.getProject(projectId)).thenReturn(project(projectId));
         when(users.find(user.id)).thenReturn(user);

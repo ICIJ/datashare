@@ -9,6 +9,7 @@ import org.icij.datashare.session.DatashareUser;
 import org.icij.datashare.tasks.TaskManagerMemory;
 import org.icij.datashare.tasks.TestSleepingTask;
 import org.icij.datashare.tasks.TestTaskUtils;
+import org.icij.datashare.text.Project;
 import org.icij.datashare.user.User;
 import org.junit.After;
 import org.junit.Before;
@@ -22,6 +23,8 @@ import java.util.Map;
 
 import static junit.framework.TestCase.assertEquals;
 import static org.icij.datashare.cli.DatashareCliOptions.TASK_MANAGER_POLLING_INTERVAL_OPT;
+import static org.icij.datashare.text.Project.project;
+import static org.icij.datashare.user.User.localUser;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.mockito.MockitoAnnotations.openMocks;
@@ -67,8 +70,11 @@ public class TaskPolicyAnnotationTest {
     public void setUp() {
         mocks = openMocks(this);
         authorizer = new Authorizer(adapter);
-        authorizer.addRoleForUserInProject("cecile", Role.PROJECT_ADMIN, Domain.DEFAULT, projectId);
-        authorizer.addRoleForUserInProject("john", Role.PROJECT_MEMBER, Domain.DEFAULT, projectId);
+        User cecile = localUser("cecile");
+        User john = localUser("john");
+        Project project = project(projectId);
+        authorizer.addRoleForUserInProject(cecile, Role.PROJECT_ADMIN, Domain.DEFAULT, project);
+        authorizer.addRoleForUserInProject(john, Role.PROJECT_MEMBER, Domain.DEFAULT, project);
         annotation = new TaskPolicyAnnotation(authorizer, taskManager);
     }
 

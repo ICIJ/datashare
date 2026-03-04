@@ -8,6 +8,7 @@ import org.icij.datashare.policies.Domain;
 import org.icij.datashare.policies.Role;
 import org.icij.datashare.session.DatashareUser;
 import org.icij.datashare.session.UsersWritable;
+import org.icij.datashare.text.Project;
 import org.icij.datashare.user.User;
 import org.icij.datashare.web.testhelpers.AbstractProdWebServerTest;
 import org.junit.Before;
@@ -19,6 +20,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.icij.datashare.text.Project.project;
+import static org.icij.datashare.user.User.localUser;
 import static org.mockito.Mockito.when;
 import static org.mockito.MockitoAnnotations.openMocks;
 
@@ -31,6 +33,8 @@ public class PolicyResourceTest extends AbstractProdWebServerTest {
     UsersWritable users;
     Authorizer authorizer;
 
+    User jane = localUser("jane");
+    User john = localUser("john");
     @Before
     public void setUp() {
         openMocks(this);
@@ -48,9 +52,11 @@ public class PolicyResourceTest extends AbstractProdWebServerTest {
     public void get_instance_policies_success() {
         Domain domain1 = Domain.of("icij");
         Domain domain2 = Domain.of("datashare");
-        authorizer.addRoleForUserInProject("jane", Role.PROJECT_MEMBER, domain1, "test-datashare");
-        authorizer.addRoleForUserInProject("john", Role.PROJECT_MEMBER, domain2, "test-datashare");
-        authorizer.addRoleForUserInProject("john", Role.PROJECT_MEMBER, domain1, "project2");
+        Project project = project("test-datashare");
+        Project project2 = project("project2");
+        authorizer.addRoleForUserInProject(jane, Role.PROJECT_MEMBER, domain1, project);
+        authorizer.addRoleForUserInProject(john, Role.PROJECT_MEMBER, domain2, project);
+        authorizer.addRoleForUserInProject(john, Role.PROJECT_MEMBER, domain1, project2);
         configure(routes -> routes.add(new PolicyResource(authorizer, repository)));
         get("/api/policies?from=0&to=10").should().respond(200).contain("\"count\":3");
     }
@@ -59,9 +65,11 @@ public class PolicyResourceTest extends AbstractProdWebServerTest {
     public void get_domain_policies_success() {
         Domain domain1 = Domain.of("icij");
         Domain domain2 = Domain.of("datashare");
-        authorizer.addRoleForUserInProject("jane", Role.PROJECT_MEMBER, domain1, "test-datashare");
-        authorizer.addRoleForUserInProject("john", Role.PROJECT_MEMBER, domain2, "test-datashare");
-        authorizer.addRoleForUserInProject("john", Role.PROJECT_MEMBER, domain1, "project2");
+        Project testDatashare = project("test-datashare");
+        Project project2 = project("project2");
+        authorizer.addRoleForUserInProject(jane, Role.PROJECT_MEMBER, domain1, testDatashare);
+        authorizer.addRoleForUserInProject(john, Role.PROJECT_MEMBER, domain2, testDatashare);
+        authorizer.addRoleForUserInProject(john, Role.PROJECT_MEMBER, domain1, project2);
         configure(routes -> routes.add(new PolicyResource(authorizer, repository)));
         get("/api/policies/icij?from=0&to=10").should().respond(200).contain("\"count\":2");
         get("/api/policies/?from=0&to=10").should().respond(404);
@@ -71,12 +79,14 @@ public class PolicyResourceTest extends AbstractProdWebServerTest {
     @Test
     public void get_project_policies_success() {
         Domain domain = Domain.of("icij");
-        when(repository.getProject("test-datashare")).thenReturn(project("test-datashare"));
-        when(repository.getProject("project2")).thenReturn(project("project2"));
+        Project testDatashare = project("test-datashare");
+        Project project2 = project("project2");
+        when(repository.getProject("test-datashare")).thenReturn(testDatashare);
+        when(repository.getProject("project2")).thenReturn(project2);
         when(repository.getProject("unknown")).thenReturn(null);
-        authorizer.addRoleForUserInProject("jane", Role.PROJECT_MEMBER, domain, "test-datashare");
-        authorizer.addRoleForUserInProject("john", Role.PROJECT_MEMBER, domain, "test-datashare");
-        authorizer.addRoleForUserInProject("john", Role.PROJECT_MEMBER, domain, "project2");
+        authorizer.addRoleForUserInProject(jane, Role.PROJECT_MEMBER, domain, testDatashare);
+        authorizer.addRoleForUserInProject(john, Role.PROJECT_MEMBER, domain, testDatashare);
+        authorizer.addRoleForUserInProject(john, Role.PROJECT_MEMBER, domain, project2);
         configure(routes -> routes.add(new PolicyResource(authorizer, repository)));
         get("/api/policies/icij/   ?from=0&to=10").should().respond(Payload.badRequest().code());
         get("/api/policies/icij/test-datashare?from=0&to=10").should().respond(200).contain("\"count\":2");
@@ -87,9 +97,10 @@ public class PolicyResourceTest extends AbstractProdWebServerTest {
     @Test
     public void filter_policies_by_user() {
         String projectId = "test-datashare";
-        authorizer.addRoleForUserInInstance("jane", Role.INSTANCE_ADMIN);
+        User janeWithProject = localUser("jane", projectId);
+        authorizer.addRoleForUserInInstance(janeWithProject, Role.INSTANCE_ADMIN);
         when(repository.getProject(projectId)).thenReturn(project(projectId));
-        when(repository.getUser("jane")).thenReturn(User.localUser("jane", projectId));
+        when(repository.getUser("jane")).thenReturn(janeWithProject);
 
         configure(routes -> routes.add(new PolicyResource(authorizer, repository)));
         get("/api/policies?user=nonExistingUser&from=0&to=10").should().respond(200).contain("\"items\":[]");

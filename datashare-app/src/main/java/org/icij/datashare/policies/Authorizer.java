@@ -9,7 +9,10 @@ import org.casbin.jcasbin.model.Model;
 import org.casbin.jcasbin.rbac.DomainManager;
 import org.casbin.jcasbin.util.BuiltInFunctions;
 import org.icij.datashare.session.DatashareUser;
+import org.icij.datashare.text.Project;
+import org.icij.datashare.user.User;
 
+import javax.annotation.Nullable;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
@@ -101,87 +104,80 @@ public final class Authorizer {
     /*
      *   Instance
      */
-    public boolean addRoleForUserInInstance(String user, Role role) {
-        return enforcer.addGroupingPolicy(user, role.name(), domainSepProject(Domain.of("*"), "*"));
+    public boolean addRoleForUserInInstance(User user, Role role) {
+        return enforcer.addGroupingPolicy(user.id, role.name(), domainSepProject(Domain.of("*"), "*"));
     }
 
-    public boolean deleteRoleForUserInInstance(String user, Role role) {
-        return enforcer.removeGroupingPolicy(user, role.name(), domainSepProject(Domain.of("*"), "*"));
+    public boolean deleteRoleForUserInInstance(User user, Role role) {
+        return enforcer.removeGroupingPolicy(user.id, role.name(), domainSepProject(Domain.of("*"), "*"));
     }
 
     /*
      *   Domain
      */
-    public boolean addRoleForUserInDomain(String user, Role role, Domain domain) {
-        return enforcer.addGroupingPolicy(user, role.name(), domainSepProject(domain, "*"));
+    public boolean addRoleForUserInDomain(User user, Role role, Domain domain) {
+        return enforcer.addGroupingPolicy(user.id, role.name(), domainSepProject(domain, "*"));
     }
 
-    public boolean deleteRoleForUserInDomain(String user, Role role, Domain domain) {
-        return enforcer.removeGroupingPolicy(user, role.name(), domainSepProject(domain, "*"));
+    public boolean deleteRoleForUserInDomain(User user, Role role, Domain domain) {
+        return enforcer.removeGroupingPolicy(user.id, role.name(), domainSepProject(domain, "*"));
     }
 
-    public boolean updateRoleForUserInDomain(String user, Role role, Domain domain) {
+    public boolean updateRoleForUserInDomain(User user, Role role, Domain domain) {
         // Remove existing role if present, then ensure the new role is added
         deleteRoleForUserInDomain(user, role, domain);
         return addRoleForUserInDomain(user, role, domain);
     }
 
-    public List<String> getRolesForUserInDomain(String user, Domain domain) {
-        return enforcer.getRolesForUserInDomain(user, domainSepProject(domain, "*"));
+    public List<String> getRolesForUserInDomain(User user, Domain domain) {
+        return enforcer.getRolesForUserInDomain(user.id, domainSepProject(domain, "*"));
     }
 
     /*
      *   Project
      */
-    public boolean addProjectAdmin(String user, Domain domain, String project) {
+    public boolean addProjectAdmin(User user, Domain domain, Project project) {
         return addRoleForUserInProject(user, Role.PROJECT_ADMIN, domain, project);
     }
 
-    public boolean addRoleForUserInProject(String user, Role role, Domain domain, String project) {
-        return enforcer.addGroupingPolicy(user, role.name(), domainSepProject(domain, project));
+    public boolean addRoleForUserInProject(User user, Role role, Domain domain, Project project) {
+        return enforcer.addGroupingPolicy(user.id, role.name(), domainSepProject(domain, project.getId()));
     }
 
-    public boolean deleteRoleForUserInProject(String user, Role role, Domain domain, String project) {
-        return enforcer.removeGroupingPolicy(user, role.name(), domainSepProject(domain, project));
+    public boolean deleteRoleForUserInProject(User user, Role role, Domain domain, Project project) {
+        return enforcer.removeGroupingPolicy(user.id, role.name(), domainSepProject(domain, project.getId()));
     }
 
-    public boolean updateRoleForUserInProject(String user, Role role, Domain domain, String project) {
+    public boolean updateRoleForUserInProject(User user, Role role, Domain domain, Project project) {
         // Remove existing role if present, then ensure the new role is added
         deleteRoleForUserInProject(user, role, domain, project);
         return addRoleForUserInProject(user, role, domain, project);
     }
 
-    public List<String> getRolesForUserInProject(String user, Domain domain, String project) {
-        return enforcer.getRolesForUserInDomain(user, domainSepProject(domain, project));
+    public List<String> getRolesForUserInProject(User user, Domain domain, Project project) {
+        return enforcer.getRolesForUserInDomain(user.id, domainSepProject(domain, project.getId()));
     }
 
-    public List<CasbinRule> getPermissionsForUserInDomain(String user, Domain domain) {
-        return enforcer.getImplicitPermissionsForUser(user, domainSepProject(domain, "*")).stream()
-                .map(rule -> streamToCasbinRule("p", rule))
-                .collect(Collectors.toList());
-    }
-
-
-    private List<CasbinRule> getFilteredPermissions(String user, Domain domain, String project) {
+    private List<CasbinRule> getFilteredPermissions(@Nullable User user, Domain domain, String projectId) {
         // Get all grouping policies for the user that provide instance-wide access
         // This includes: *::* (instance), domain::* (domain), and domain::project (project level)
         List<List<String>> list;
-        if (user != null) {
-            list = enforcer.getFilteredGroupingPolicy(0, user);
+        if (user != null && user.id != null) {
+            list = enforcer.getFilteredGroupingPolicy(0, user.id);
         } else {
             list = enforcer.getGroupingPolicy();
         }
         String domainId = domain != null ? domain.id() : "*";
-        String projectId = project != null ? project : "*";
-        String casbinDomain = domainSepProject(Domain.of(domainId), projectId);
+        String project = projectId != null ? projectId : "*";
+        String casbinDomain = domainSepProject(Domain.of(domainId), project);
 
         Predicate<List<String>> listPredicate = rule -> {
             if (rule.size() < 3) return false;
             String ruleDomain = rule.get(2);
-            if (domain == null && project == null) {
+            if (domainId.equals("*") && project.equals("*")) {
                 return true;
             }
-            if (domain != null && project == null) {
+            if (!domainId.equals("*") && project.equals("*")) {
                 return ruleDomain.equals("*::*") || ruleDomain.equals(domainId + "::*") || ruleDomain.startsWith(domainId + "::");
             }
             // When both domain and project are specified, only include exact matches for that domain-project scope.
@@ -199,11 +195,12 @@ public final class Authorizer {
         return getGroupPermissions(null, null, null);
     }
 
-    public List<CasbinRule> getGroupPermissions(String user) {
+    //TODO maybe be improved to retrieve partial match on user
+    public List<CasbinRule> getGroupPermissions(@Nullable User user) {
         return getFilteredPermissions(user, null, null);
     }
 
-    public List<CasbinRule> getGroupPermissions(String user, Domain domain) {
+    public List<CasbinRule> getGroupPermissions(@Nullable User user, Domain domain) {
         return getFilteredPermissions(user, domain, null);
     }
 
@@ -212,10 +209,11 @@ public final class Authorizer {
     }
 
     public List<CasbinRule> getGroupPermissions(Domain domain, String project) {
-        return getFilteredPermissions(null, domain, project);
+        return getGroupPermissions(null, domain, project);
     }
 
-    public List<CasbinRule> getGroupPermissions(String user, Domain domain, String project) {
+
+    public List<CasbinRule> getGroupPermissions(@Nullable User user, Domain domain, String project) {
         return getFilteredPermissions(user, domain, project);
     }
 
