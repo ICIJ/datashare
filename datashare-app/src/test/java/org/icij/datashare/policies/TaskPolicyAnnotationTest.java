@@ -121,4 +121,18 @@ public class TaskPolicyAnnotationTest {
         assertEquals(403, result.code());
     }
 
+    @Test(expected = IllegalStateException.class)
+    public void should_throw_exception_if_task_has_no_project() throws IOException {
+        Context context = mock(Context.class);
+        DatashareUser noPolicyUser = new DatashareUser("jane");
+        String dummyTaskId = taskManager.startTask(TestSleepingTask.class, User.local(), new HashMap<>() {{
+        }});
+
+        when(context.currentUser()).thenReturn(noPolicyUser);
+
+        when(context.pathParam("taskName:")).thenReturn(dummyTaskId);
+
+        annotation.apply(adminTaskPolicy, context, c -> Payload.ok());
+    }
+
 }
