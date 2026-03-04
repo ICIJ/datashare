@@ -90,11 +90,13 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
     Document getDocument(TikaDocument document, TikaDocument root, TikaDocument parent, short level) throws IOException {
         Charset charset = Charset.isSupported(ofNullable(document.getMetadata().get(CONTENT_ENCODING)).orElse(DEFAULT_VALUE_UNKNOWN)) ?
                 Charset.forName(document.getMetadata().get(CONTENT_ENCODING)) : StandardCharsets.US_ASCII;
+        String contentType = ofNullable(document.getMetadata().get(CONTENT_TYPE)).orElse(DEFAULT_VALUE_UNKNOWN).split(";")[0];
         DocumentBuilder builder = DocumentBuilder.createDoc(document.getId())
                 .with(document.getPath())
                 .with(Document.Status.INDEXED)
                 .with(getMetadata(document))
-                .ofContentType(ofNullable(document.getMetadata().get(CONTENT_TYPE)).orElse(DEFAULT_VALUE_UNKNOWN).split(";")[0])
+                .ofContentType(contentType)
+                .with(ContentTypeCategory.fromContentType(contentType))
                 .withContentLength(Long.parseLong(ofNullable(document.getMetadata().get(CONTENT_LENGTH)).orElse("-1")))
                 .with(charset)
                 .withExtractionLevel(level)

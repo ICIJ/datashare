@@ -499,6 +499,28 @@ public class ElasticsearchSpewerTest {
         Mockito.verify(indexer).createIndex("bar");
     }
 
+    @Test
+    public void test_write_fills_content_type_category() throws Exception {
+        TikaDocument doc = aTikaDocWithContentType("application/pdf");
+
+        spewer.write(doc);
+
+        GetResponse<ObjectNode> fields = es.client.get(d -> d.index(es.getIndexName()).id(doc.getId()),
+                ObjectNode.class);
+        assertThat(nodeToMap(fields.source())).includes(entry("contentTypeCategory", "DOCUMENT"));
+    }
+
+    @Test
+    public void test_write_fills_content_type_category_when_content_type_is_null() throws Exception {
+        TikaDocument doc = aTikaDocWithContentType(null);
+
+        spewer.write(doc);
+
+        GetResponse<ObjectNode> fields = es.client.get(d -> d.index(es.getIndexName()).id(doc.getId()),
+                ObjectNode.class);
+        assertThat(nodeToMap(fields.source())).includes(entry("contentTypeCategory", "OTHER"));
+    }
+
     @After
     public void after() {
         try {
@@ -548,4 +570,19 @@ public class ElasticsearchSpewerTest {
         Map<String, Object> src = nodeToMap(documentFields.source());
         assertThat(src.get("ocrParser")).isNull();
     }
+
+    public static TikaDocument aTikaDocWithContentType(String contentType) {
+        Metadata metadata = new Metadata();
+        metadata.add(TikaDocument.CONTENT_TYPE, contentType);
+        final ParsingReader reader;
+        try {
+            reader = new ParsingReader(new ByteArrayInputStream("Fake content in the doc".getBytes()));
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        TikaDocument res = new DocumentFactory().withIdentifier(new PathIdentifier()).create(get("fake-file.txt"), metadata);
+        res.setReader(reader);
+        return res;
+    }
 }
+
