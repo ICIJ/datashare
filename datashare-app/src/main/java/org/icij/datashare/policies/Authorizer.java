@@ -3,6 +3,7 @@ package org.icij.datashare.policies;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import net.codestory.http.Context;
+import net.codestory.http.errors.UnauthorizedException;
 import org.apache.commons.io.IOUtils;
 import org.casbin.jcasbin.main.Enforcer;
 import org.casbin.jcasbin.model.Model;
@@ -237,7 +238,7 @@ public final class Authorizer {
     public static DatashareUser requireCurrentUser(Context context) {
         DatashareUser user = (DatashareUser) context.currentUser();
         if (user == null) {
-            throw new RuntimeException("User not found in context");
+            throw new UnauthorizedException();
         }
         return user;
     }
