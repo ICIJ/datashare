@@ -91,6 +91,8 @@ services:
           - http.cors.allow-origin="*"
           - http.cors.allow-methods=OPTIONS, HEAD, GET, POST, PUT, DELETE
           - indices.query.bool.max_clause_count=20000
+          - xpack.security.enabled=false
+          - xpack.security.http.ssl.enabled=false
         ports:
           - "9200:9200"
 
