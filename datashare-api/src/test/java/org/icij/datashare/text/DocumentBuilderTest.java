@@ -91,6 +91,7 @@ public class DocumentBuilderTest {
         List<Map<String, String>> contentTranslated = List.of(Map.of("french", "ducontenu"));
         Map<String, Object> metadata = Map.of("some", "metadata", "tika_metadata_dcterms_created", "2024-03-10T10:00:00+01:00");
         String ocrParser = "org.apache.tika.parser.ocr.TesseractOCRParser";
+        ContentTypeCategory contentTypeCategory = ContentTypeCategory.AUDIO;
         return DocumentBuilder.createDoc()
                 .withDefaultValues(docId)
                 .withRootId(rootId)
@@ -109,6 +110,7 @@ public class DocumentBuilderTest {
                 .with(Language.ENGLISH)
                 .with(Path.of("some/path"))
                 .with("somecontent")
+                .with(contentTypeCategory)
                 .withOcrParser(ocrParser).build();
     }
 
