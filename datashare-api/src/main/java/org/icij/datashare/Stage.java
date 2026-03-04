@@ -10,6 +10,7 @@ public enum Stage {
     DEDUPLICATE(false),
     INDEX(true),
     ENQUEUEIDX(false),
+    CATEGORIZE(false),
     NLP(true),
     CREATENLPBATCHESFROMIDX(false),
     BATCHNLP(false),
