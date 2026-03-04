@@ -61,9 +61,13 @@ WORKDIR /home/dev/workspace/datashare
 
 RUN git config --global --add safe.directory "/home/dev/workspace/datashare"
 
-FROM temporalio/server:1.29.2 AS temporal-test-container
-COPY ./temporal/dynamic.yml ./temporal/temporal.yml /etc/temporal/.config/temporalio/
 
+FROM temporalio/admin-tools:1.29 AS temporal-admin-tools
 
-FROM temporalio/admin-tools:1.29 AS temporal-test-setup-container
-COPY ./temporal/dynamic.yml ./temporal/temporal.yml /etc/temporal/.config/temporalio/
+FROM temporalio/server:1.29.3 AS temporal-test-container
+COPY --chmod=755 --from=temporal-admin-tools /usr/local/bin/temporal-sql-tool /usr/local/bin/
+COPY --from=temporal-admin-tools /etc/temporal/schema /etc/temporal/schema
+COPY --chmod=755 ./temporal/dynamic.yml ./temporal/temporal.yml ./temporal/setup.sh ./temporal/entrypoint-override.sh /etc/temporal/.config/temporalio/
+ENV POSTGRES_STARTUP_TIMEOUT=15
+ENTRYPOINT [ "/etc/temporal/.config/temporalio/entrypoint-override.sh"]
+CMD [ "/etc/temporal/.config/temporalio/entrypoint-override.sh"]

@@ -31,11 +31,6 @@ services:
         file: .devcontainer/docker-compose.yml
         service: temporal
 
-    temporal-setup-db:
-      extends:
-        file: .devcontainer/docker-compose.yml
-        service: temporal-setup-db
-
     temporal-ui:
       extends:
         file: .devcontainer/docker-compose.yml
