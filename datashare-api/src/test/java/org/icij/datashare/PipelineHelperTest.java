@@ -27,6 +27,16 @@ public class PipelineHelperTest {
         }})).getOutputQueueNameFor(Stage.SCANIDX)).isEqualTo("extract:queue:index");
     }
 
+
+    @Test
+    public void test_get_queue_name_for_categorize_stage() {
+        PipelineHelper p = new PipelineHelper(new PropertiesProvider(new HashMap<>() {{
+            put("stages", "CATEGORIZE,SCAN,INDEX"); // voluntarily in the wrong order
+        }}));
+        assertThat(p.getQueueNameFor(Stage.CATEGORIZE)).isEqualTo("extract:queue:categorize");
+        assertThat(p.getOutputQueueNameFor(Stage.CATEGORIZE)).isEqualTo("extract:queue:nlp");
+    }
+
     @Test
     public void test_get_queue_name_for_enqueue_from_index() {
         assertThat(new PipelineHelper(new PropertiesProvider(new HashMap<>() {{

@@ -5,6 +5,7 @@ import org.icij.datashare.cli.spi.CliExtension;
 import org.icij.datashare.mode.CommonMode;
 import org.icij.datashare.tasks.ArtifactTask;
 import org.icij.datashare.tasks.CreateNlpBatchesFromIndex;
+import org.icij.datashare.tasks.CategorizeTask;
 import org.icij.datashare.tasks.DatashareTaskFactory;
 import org.icij.datashare.tasks.DatashareTaskManager;
 import org.icij.datashare.tasks.DeduplicateTask;
@@ -124,6 +125,10 @@ class CliApp {
 
         if (pipeline.has(Stage.ENQUEUEIDX)) {
             taskManager.startTask(EnqueueFromIndexTask.class, nullUser(), propertiesToMap(properties));
+        }
+
+        if (pipeline.has(Stage.CATEGORIZE)) {
+            taskManager.startTask(CategorizeTask.class, nullUser(), propertiesToMap(properties));
         }
 
         if (pipeline.has(Stage.CREATENLPBATCHESFROMIDX)) {
