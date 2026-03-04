@@ -43,7 +43,8 @@ public class TaskPolicyAnnotation implements ApplyAroundAnnotation<TaskPolicy> {
 
             // Tasks are linked to ONE project at a time
             // BatchSearches are not handled yet (they are linked to multiple projects...)
-            String projectId = ofNullable((String) task.args.get(DEFAULT_PROJECT_OPT)).orElseThrow(() -> new IllegalStateException("Task " + taskId + " does not have a project id in its arguments"));
+            String projectId = ofNullable((String) task.args.get(DEFAULT_PROJECT_OPT))
+                    .orElseThrow(() -> new IllegalStateException("Task " + taskId + " does not have a project id in its arguments"));
             Authorizer.requireValue(projectId, false);
 
             // Check if user as role based rights or is owner (if an annotation allowOwner flag is true)

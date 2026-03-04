@@ -719,7 +719,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         authorizer.addRoleForUserInProject(owner, Role.PROJECT_MEMBER, Domain.DEFAULT, project);
         when(users.find(owner.id)).thenReturn(owner);
 
-        String dummyTaskId = taskManager.startTask(TestTask.class, owner, new HashMap<>(Map.of(PropertiesProvider.DEFAULT_PROJECT_OPT, project)));
+        String dummyTaskId = taskManager.startTask(TestTask.class, owner, new HashMap<>(Map.of(PropertiesProvider.DEFAULT_PROJECT_OPT, projectId)));
         taskManager.waitTasksToBeDone(1, SECONDS);
 
         TaskPolicyAnnotation taskPolicyAnnotation = new TaskPolicyAnnotation(authorizer, taskManager);
