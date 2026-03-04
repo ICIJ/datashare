@@ -4,6 +4,7 @@ import net.codestory.http.Context;
 import net.codestory.http.errors.UnauthorizedException;
 import net.codestory.http.payload.Payload;
 import org.icij.datashare.session.DatashareUser;
+import org.icij.datashare.text.Project;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -12,6 +13,7 @@ import org.mockito.Mock;
 import java.lang.annotation.Annotation;
 
 import static junit.framework.TestCase.assertEquals;
+import static org.icij.datashare.text.Project.project;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.mockito.MockitoAnnotations.openMocks;
@@ -53,12 +55,13 @@ public class ProjectPolicyAnnotationTest {
     public void setUp() {
         mocks = openMocks(this);
         projectId = "test-datashare";
+        Project project = project(projectId);
         adminUser = new DatashareUser("cecile");
         nonAdminUser = new DatashareUser("john");
         authorizer = new Authorizer(adapter);
         //TODO #DOMAIN : currently only default domain is supported in the annotation
-        authorizer.addRoleForUserInProject("cecile", Role.PROJECT_ADMIN, Domain.DEFAULT, projectId);
-        authorizer.addRoleForUserInProject("john", Role.PROJECT_MEMBER, Domain.DEFAULT, projectId);
+        authorizer.addRoleForUserInProject(adminUser, Role.PROJECT_ADMIN, Domain.DEFAULT, project);
+        authorizer.addRoleForUserInProject(nonAdminUser, Role.PROJECT_MEMBER, Domain.DEFAULT, project);
         annotation = new ProjectPolicyAnnotation(authorizer);
     }
 

@@ -25,6 +25,7 @@ import org.icij.datashare.session.LocalUserFilter;
 import org.icij.datashare.session.UsersWritable;
 import org.icij.datashare.tasks.*;
 import org.icij.datashare.test.DatashareTimeRule;
+import org.icij.datashare.text.Project;
 import org.icij.datashare.text.ProjectProxy;
 import org.icij.datashare.text.nlp.AbstractModels;
 import org.icij.datashare.user.User;
@@ -683,6 +684,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
     public void test_clean_task_with_admin_policy() throws Exception {
         authorizer = new Authorizer(adapter);
         String projectId = "test-datashare";
+        Project project = project(projectId);
         DatashareUser notJohn = new DatashareUser("notJohn");
 
         String dummyTaskId = taskManager.startTask(TestTask.class, notJohn, new HashMap<>(Map.of(PropertiesProvider.DEFAULT_PROJECT_OPT, projectId)));
@@ -691,7 +693,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         // Setup user
         DatashareUser john = new DatashareUser("john");
         john.addProject(projectId);
-        authorizer.addRoleForUserInProject(john.id, Role.PROJECT_MEMBER, Domain.DEFAULT, projectId);
+        authorizer.addRoleForUserInProject(john, Role.PROJECT_MEMBER, Domain.DEFAULT, project);
         when(users.find(john.id)).thenReturn(john);
         TaskPolicyAnnotation taskPolicyAnnotation = new TaskPolicyAnnotation(authorizer, taskManager);
 
@@ -703,7 +705,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
 
         // MEMBER cannot clean
         delete("/api/task/clean/" + dummyTaskId).withPreemptiveAuthentication("john", "").should().respond(403);
-        authorizer.updateRoleForUserInProject(john.id, Role.PROJECT_ADMIN, Domain.DEFAULT, projectId);
+        authorizer.updateRoleForUserInProject(john, Role.PROJECT_ADMIN, Domain.DEFAULT, project);
         delete("/api/task/clean/" + dummyTaskId).withPreemptiveAuthentication("john", "").should().respond(200);
     }
 
@@ -711,12 +713,13 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
     public void test_clean_task_as_owner() throws Exception {
         authorizer = new Authorizer(adapter);
         String projectId = "test-datashare";
+        Project project = project(projectId);
         DatashareUser owner = new DatashareUser("owner");
         owner.addProject(projectId);
-        authorizer.addRoleForUserInProject(owner.id, Role.PROJECT_MEMBER, Domain.DEFAULT, projectId);
+        authorizer.addRoleForUserInProject(owner, Role.PROJECT_MEMBER, Domain.DEFAULT, project);
         when(users.find(owner.id)).thenReturn(owner);
 
-        String dummyTaskId = taskManager.startTask(TestTask.class, owner, new HashMap<>(Map.of(PropertiesProvider.DEFAULT_PROJECT_OPT, projectId)));
+        String dummyTaskId = taskManager.startTask(TestTask.class, owner, new HashMap<>(Map.of(PropertiesProvider.DEFAULT_PROJECT_OPT, project)));
         taskManager.waitTasksToBeDone(1, SECONDS);
 
         TaskPolicyAnnotation taskPolicyAnnotation = new TaskPolicyAnnotation(authorizer, taskManager);

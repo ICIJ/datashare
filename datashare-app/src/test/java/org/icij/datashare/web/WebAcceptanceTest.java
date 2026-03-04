@@ -44,8 +44,7 @@ public class WebAcceptanceTest extends AbstractProdWebServerTest {
         when(jooqRepository.getUser(userId)).thenReturn(user);
         when(jooqRepository.getProject(projectId)).thenReturn(project(projectId));
         when(users.find(user.id)).thenReturn(new DatashareUser(user));
-
-        authorizer.addRoleForUserInProject(userId, role, Domain.DEFAULT, projectId);
+        authorizer.addRoleForUserInProject(user, role, Domain.DEFAULT, project(projectId));
 
         return user;
     }

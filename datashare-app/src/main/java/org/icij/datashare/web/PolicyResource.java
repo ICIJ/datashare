@@ -12,7 +12,6 @@ import net.codestory.http.annotations.Get;
 import net.codestory.http.annotations.Prefix;
 import net.codestory.http.annotations.Put;
 import net.codestory.http.constants.HttpStatus;
-import net.codestory.http.errors.NotFoundException;
 import net.codestory.http.payload.Payload;
 import org.icij.datashare.Repository;
 import org.icij.datashare.policies.Authorizer;
@@ -20,9 +19,11 @@ import org.icij.datashare.policies.Domain;
 import org.icij.datashare.policies.ProjectPolicy;
 import org.icij.datashare.policies.Role;
 import org.icij.datashare.text.Project;
+import org.icij.datashare.user.User;
 
 import static java.util.Optional.ofNullable;
 import static net.codestory.http.constants.HttpStatus.NO_CONTENT;
+import static net.codestory.http.errors.NotFoundException.notFoundIfNull;
 import static net.codestory.http.payload.Payload.ok;
 import static org.icij.datashare.policies.Authorizer.*;
 
@@ -42,20 +43,14 @@ public class PolicyResource {
         return value != null && !value.isBlank() && !value.equals("*");
     }
 
-    private void projectExists(String name) {
+    private Project projectExists(String name) {
         requireValue(name, false);
-        Project project = repository.getProject(name);
-        if (project == null) {
-            throw new NotFoundException();
-        }
+        return notFoundIfNull(repository.getProject(name));
     }
 
-    private String userExists(String name) {
+    private User userExists(String name) {
         requireValue(name, false);
-        if (repository.getUser(name) == null) {
-            throw new NotFoundException();
-        }
-        return name;
+        return notFoundIfNull(repository.getUser(name));
     }
 
     /*
@@ -78,7 +73,7 @@ public class PolicyResource {
         int to = Integer.parseInt(ofNullable(context.get("to")).orElse("0"));
         // if we have a value, let's filter, else show all instance policies
         if (user != null && !user.isBlank()) {
-            return new Payload(WebResponse.fromStream(authorizer.getGroupPermissions(user).stream(), from, to));
+            return new Payload(WebResponse.fromStream(authorizer.getGroupPermissions(User.localUser(user)).stream(), from, to));
         }
         return new Payload(WebResponse.fromStream(authorizer.getGroupPermissions().stream(), from, to));
     }
@@ -89,7 +84,7 @@ public class PolicyResource {
     @ProjectPolicy(role = Role.INSTANCE_ADMIN)
     @Delete("")
     public Payload removeInstancePolicy(Context context) {
-        String user = userExists(context.query().get("user"));
+        User user = userExists(context.query().get("user"));
         Role role = requireRole(context.query().get("role"));
         try {
             authorizer.deleteRoleForUserInInstance(user, role);
@@ -105,7 +100,7 @@ public class PolicyResource {
     @Put("")
     public Payload saveInstancePolicy(
             Context context) {
-        String user = userExists(context.query().get("user"));
+        User user = userExists(context.query().get("user"));
         Role role = requireRole(context.query().get("role"));
         authorizer.updateRoleForUserInDomain(user, role, Domain.of("*"));
         return ok();
@@ -131,7 +126,7 @@ public class PolicyResource {
             Domain domainValue = requireDomain(domain, false);
             String userFilter = context.query().get("user");
             if (isFilterValue(userFilter)) {
-                return new Payload(WebResponse.fromStream(authorizer.getGroupPermissions(userFilter, domainValue).stream(), from, to));
+                return new Payload(WebResponse.fromStream(authorizer.getGroupPermissions(User.localUser(userFilter), domainValue).stream(), from, to));
             }
             return new Payload(WebResponse.fromStream(authorizer.getGroupPermissions(domainValue).stream(), from, to));
 
@@ -146,7 +141,7 @@ public class PolicyResource {
     @Delete("/:domain")
     public Payload removeDomainPolicy(String domain, Context context) {
         try {
-            String user = userExists(context.query().get("user"));
+            User user = userExists(context.query().get("user"));
             Role role = requireRole(context.query().get("role"));
             Domain domainValue = requireDomain(domain, false);
             authorizer.deleteRoleForUserInDomain(user, role, domainValue);
@@ -162,7 +157,7 @@ public class PolicyResource {
     @Put("/:domain")
     public Payload saveDomainPolicy(String domain, Context context) {
         try {
-            String user = userExists(context.query().get("user"));
+            User user = userExists(context.query().get("user"));
             Role role = requireRole(context.query().get("role"));
             Domain domainValue = requireDomain(domain, false);
             authorizer.updateRoleForUserInDomain(user, role, domainValue);
@@ -194,12 +189,12 @@ public class PolicyResource {
             int to = Integer.parseInt(ofNullable(context.get("to")).orElse("0"));
 
             Domain domainValue = requireDomain(domain, false);
-            projectExists(project);
+            Project projectValue = projectExists(project);
 
             if (isFilterValue(userFilter)) {
-                return new Payload(WebResponse.fromStream(authorizer.getGroupPermissions(userFilter, domainValue, project).stream(), from, to));
+                return new Payload(WebResponse.fromStream(authorizer.getGroupPermissions(User.localUser(userFilter), domainValue, projectValue.getId()).stream(), from, to));
             }
-            return new Payload(WebResponse.fromStream(authorizer.getGroupPermissions(domainValue, project).stream(), from, to));
+            return new Payload(WebResponse.fromStream(authorizer.getGroupPermissions(domainValue, projectValue.getId()).stream(), from, to));
         } catch (IllegalArgumentException e) {
             return new Payload(e.getMessage()).withCode(HttpStatus.BAD_REQUEST);
         }
@@ -211,11 +206,11 @@ public class PolicyResource {
     @Delete("/:domain/:project")
     public Payload removeProjectPolicy(String domain, String project, Context context) {
         try {
-            String user = userExists(context.query().get("user"));
+            User user = userExists(context.query().get("user"));
             Role role = requireRole(context.query().get("role"));
             Domain domainValue = requireDomain(domain, false);
-            projectExists(project);
-            authorizer.deleteRoleForUserInProject(user, role, domainValue, project);
+            Project projectValue = projectExists(project);
+            authorizer.deleteRoleForUserInProject(user, role, domainValue, projectValue);
 
             return new Payload(NO_CONTENT);
         } catch (IllegalArgumentException e) {
@@ -230,11 +225,11 @@ public class PolicyResource {
     @Put("/:domain/:project")
     public Payload saveProjectPolicy(String domain, String project, Context context) {
         try {
-            String user = userExists(context.query().get("user"));
+            User user = userExists(context.query().get("user"));
             Role role = requireRole(context.query().get("role"));
             Domain domainValue = requireDomain(domain, false);
-            projectExists(project);
-            authorizer.updateRoleForUserInProject(user, role, domainValue, project);
+            Project projectValue = projectExists(project);
+            authorizer.updateRoleForUserInProject(user, role, domainValue, projectValue);
             return ok();
         } catch (IllegalArgumentException e) {
             return new Payload(e.getMessage()).withCode(HttpStatus.BAD_REQUEST);

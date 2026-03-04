@@ -3,26 +3,31 @@ package org.icij.datashare.policies;
 import junit.framework.TestCase;
 import net.codestory.http.Context;
 import org.icij.datashare.session.DatashareUser;
+import org.icij.datashare.text.Project;
+import org.icij.datashare.user.User;
 import org.mockito.Mockito;
 
 import java.util.List;
 
 import static org.fest.assertions.Assertions.assertThat;
+import static org.icij.datashare.text.Project.project;
+import static org.icij.datashare.user.User.localUser;
 import static org.mockito.Mockito.when;
 
 public class AuthorizerTest extends TestCase {
     private Authorizer authorizer;
     private Domain domain;
-    private String userId;
-    private String project;
+    private User user;
+    private Project project;
 
     public void setUp() throws Exception {
         super.setUp();
         CasbinRuleAdapter adapter = Mockito.mock(CasbinRuleAdapter.class);
         authorizer = new Authorizer(adapter);
         domain = Domain.of("test_domain");
-        userId = "test_user";
-        project = "test_project";
+        String userId = "test_user";
+        user = new User(userId);
+        project = project("test_project");
     }
 
     public void tearDown() throws Exception {
@@ -30,93 +35,93 @@ public class AuthorizerTest extends TestCase {
     }
 
     public void test_can_with_role() {
-        authorizer.addRoleForUserInProject(userId, Role.PROJECT_ADMIN, domain, project);
-        assertTrue(authorizer.can(userId, domain, project, Role.PROJECT_ADMIN));
-        assertTrue(authorizer.can(userId, domain, project, Role.PROJECT_EDITOR));
+        authorizer.addRoleForUserInProject(user, Role.PROJECT_ADMIN, domain, project);
+        assertTrue(authorizer.can(user.id, domain, project.getId(), Role.PROJECT_ADMIN));
+        assertTrue(authorizer.can(user.id, domain, project.getId(), Role.PROJECT_EDITOR));
     }
 
     public void test_can_with_action_string() {
-        authorizer.addRoleForUserInProject(userId, Role.PROJECT_MEMBER, domain, project);
-        assertTrue(authorizer.can(userId, domain, project, "PROJECT_MEMBER"));
+        authorizer.addRoleForUserInProject(user, Role.PROJECT_MEMBER, domain, project);
+        assertTrue(authorizer.can(user.id, domain, project.getId(), "PROJECT_MEMBER"));
     }
 
     public void test_add_role_for_user_in_instance() {
-        assertTrue(authorizer.addRoleForUserInInstance(userId, Role.INSTANCE_ADMIN));
+        assertTrue(authorizer.addRoleForUserInInstance(user, Role.INSTANCE_ADMIN));
     }
 
     public void test_add_role_for_user_in_domain() {
-        assertTrue(authorizer.addRoleForUserInDomain(userId, Role.DOMAIN_ADMIN, domain));
+        assertTrue(authorizer.addRoleForUserInDomain(user, Role.DOMAIN_ADMIN, domain));
     }
 
     public void test_delete_role_for_user_in_domain() {
-        authorizer.addRoleForUserInDomain(userId, Role.DOMAIN_ADMIN, domain);
-        assertTrue(authorizer.deleteRoleForUserInDomain(userId, Role.DOMAIN_ADMIN, domain));
+        authorizer.addRoleForUserInDomain(user, Role.DOMAIN_ADMIN, domain);
+        assertTrue(authorizer.deleteRoleForUserInDomain(user, Role.DOMAIN_ADMIN, domain));
     }
 
     public void test_update_role_for_user_in_domain() {
-        authorizer.addRoleForUserInDomain(userId, Role.DOMAIN_ADMIN, domain);
-        assertTrue(authorizer.updateRoleForUserInDomain(userId, Role.DOMAIN_ADMIN, domain));
+        authorizer.addRoleForUserInDomain(user, Role.DOMAIN_ADMIN, domain);
+        assertTrue(authorizer.updateRoleForUserInDomain(user, Role.DOMAIN_ADMIN, domain));
     }
 
     public void test_get_roles_for_user_in_domain() {
-        List<String> roles = authorizer.getRolesForUserInDomain(userId, domain);
+        List<String> roles = authorizer.getRolesForUserInDomain(user, domain);
         assertNotNull(roles);
     }
 
     public void test_add_project_admin() {
-        assertTrue(authorizer.addProjectAdmin(userId, domain, project));
+        assertTrue(authorizer.addProjectAdmin(user, domain, project));
     }
 
     public void test_add_role_for_user_in_project() {
-        assertTrue(authorizer.addRoleForUserInProject(userId, Role.PROJECT_ADMIN, domain, project));
+        assertTrue(authorizer.addRoleForUserInProject(user, Role.PROJECT_ADMIN, domain, project));
     }
 
     public void test_delete_role_for_user_in_project() {
-        authorizer.addRoleForUserInProject(userId, Role.PROJECT_ADMIN, domain, project);
-        assertTrue(authorizer.deleteRoleForUserInProject(userId, Role.PROJECT_ADMIN, domain, project));
+        authorizer.addRoleForUserInProject(user, Role.PROJECT_ADMIN, domain, project);
+        assertTrue(authorizer.deleteRoleForUserInProject(user, Role.PROJECT_ADMIN, domain, project));
     }
 
     public void test_update_role_for_user_in_project() {
-        authorizer.addRoleForUserInProject(userId, Role.PROJECT_ADMIN, domain, project);
-        assertTrue(authorizer.updateRoleForUserInProject(userId, Role.PROJECT_ADMIN, domain, project));
+        authorizer.addRoleForUserInProject(user, Role.PROJECT_ADMIN, domain, project);
+        assertTrue(authorizer.updateRoleForUserInProject(user, Role.PROJECT_ADMIN, domain, project));
     }
 
     public void test_get_roles_for_user_in_project() {
-        List<String> roles = authorizer.getRolesForUserInProject(userId, domain, project);
+        List<String> roles = authorizer.getRolesForUserInProject(user, domain, project);
         assertNotNull(roles);
     }
 
     public void test_get_permissions_by_domain() {
-        authorizer.addRoleForUserInDomain(userId, Role.DOMAIN_ADMIN, domain);
-        authorizer.addRoleForUserInProject(userId, Role.DOMAIN_ADMIN, domain, "p1");
+        authorizer.addRoleForUserInDomain(user, Role.DOMAIN_ADMIN, domain);
+        authorizer.addRoleForUserInProject(user, Role.DOMAIN_ADMIN, domain, project("p1"));
         List<CasbinRule> permissions = authorizer.getGroupPermissions(domain);
         assertFalse(permissions.isEmpty());
-        assertTrue(permissions.stream().anyMatch(p -> p.ptype.equals("g") && p.v0.equals(userId) && p.v1.equals(Role.DOMAIN_ADMIN.name())));
+        assertTrue(permissions.stream().anyMatch(p -> p.ptype.equals("g") && p.v0.equals(user.id) && p.v1.equals(Role.DOMAIN_ADMIN.name())));
         assertThat(permissions.size()).isEqualTo(2);
     }
 
     public void test_get_permissions_by_project() {
-        authorizer.addRoleForUserInProject(userId, Role.PROJECT_ADMIN, domain, project);
-        authorizer.addRoleForUserInProject("other_user", Role.PROJECT_ADMIN, domain, project);
-        authorizer.addRoleForUserInProject(userId, Role.PROJECT_ADMIN, domain, "project2");
-        authorizer.addRoleForUserInProject(userId, Role.PROJECT_ADMIN, Domain.of("other"), project);
-        List<CasbinRule> permissions = authorizer.getGroupPermissions(domain, project);
+        authorizer.addRoleForUserInProject(user, Role.PROJECT_ADMIN, domain, project);
+        authorizer.addRoleForUserInProject(new User("other_user"), Role.PROJECT_ADMIN, domain, project);
+        authorizer.addRoleForUserInProject(user, Role.PROJECT_ADMIN, domain, project("project2"));
+        authorizer.addRoleForUserInProject(user, Role.PROJECT_ADMIN, Domain.of("other"), project);
+        List<CasbinRule> permissions = authorizer.getGroupPermissions(domain, project.getId());
         assertFalse(permissions.isEmpty());
         assertThat(permissions.size()).isEqualTo(2);
-        assertTrue(permissions.stream().anyMatch(p -> p.ptype.equals("g") && p.v0.equals(userId) && p.v1.equals(Role.PROJECT_ADMIN.name())));
+        assertTrue(permissions.stream().anyMatch(p -> p.ptype.equals("g") && p.v0.equals(user.id) && p.v1.equals(Role.PROJECT_ADMIN.name())));
         List<CasbinRule> permissionsP2 = authorizer.getGroupPermissions(domain, "project2");
         assertThat(permissionsP2.size()).isEqualTo(1);
     }
 
     public void test_role_hierarchy_with_g2() {
-        authorizer.addProjectAdmin("alice", Domain.of("icij"), "project1");
+        authorizer.addProjectAdmin(new User("alice"), Domain.of("icij"), project("project1"));
         assertTrue(authorizer.can("alice", Domain.of("icij"), "project1", "PROJECT_MEMBER"));
     }
 
 
     public void test_get_all_permissions_instance_level() {
         // GIVEN: A user with INSTANCE-level access (pattern: *::*)
-        String instUser = "alice";
+        User instUser = localUser("alice");
         authorizer.addRoleForUserInInstance(instUser, Role.INSTANCE_ADMIN);
 
         // WHEN: Get all permissions for the user
@@ -125,14 +130,14 @@ public class AuthorizerTest extends TestCase {
         // THEN: Verify instance-level permission is retrieved
         assertFalse(permissions.isEmpty());
         assertTrue(permissions.stream()
-                .anyMatch(p -> p.ptype.equals("g") && p.v0.equals(instUser)
+                .anyMatch(p -> p.ptype.equals("g") && p.v0.equals(instUser.getId())
                         && p.v1.equals(Role.INSTANCE_ADMIN.name())
                         && p.v2.equals("*::*")));
     }
 
     public void test_get_all_permissions_includes_domain_level() {
         // GIVEN: A user with DOMAIN-level access (pattern: domain::*)
-        String domainUser = "bob";
+        User domainUser = localUser("bob");
         Domain domain = Domain.of("icij");
 
         authorizer.addRoleForUserInDomain(domainUser, Role.DOMAIN_ADMIN, domain);
@@ -143,16 +148,16 @@ public class AuthorizerTest extends TestCase {
         // THEN: Verify domain-level permission is retrieved
         assertFalse(permissions.isEmpty());
         assertTrue(permissions.stream()
-                .anyMatch(p -> p.ptype.equals("g") && p.v0.equals(domainUser)
+                .anyMatch(p -> p.ptype.equals("g") && p.v0.equals(domainUser.getId())
                         && p.v1.equals(Role.DOMAIN_ADMIN.name())
                         && p.v2.equals("icij::*")));
     }
 
     public void test_get_all_permissions_includes_project_level() {
         // GIVEN: A user with PROJECT-level access (pattern: domain::project)
-        String projectUser = "charlie";
+        User projectUser = localUser("charlie");
         Domain domain = Domain.of("datashare");
-        String project = "myProject";
+        Project project = project("myProject");
 
         authorizer.addRoleForUserInProject(projectUser, Role.PROJECT_ADMIN, domain, project);
 
@@ -162,18 +167,18 @@ public class AuthorizerTest extends TestCase {
         // THEN: Verify project-level permission is retrieved
         assertFalse(permissions.isEmpty());
         assertTrue(permissions.stream()
-                .anyMatch(p -> p.ptype.equals("g") && p.v0.equals(projectUser)
+                .anyMatch(p -> p.ptype.equals("g") && p.v0.equals(projectUser.getId())
                         && p.v1.equals(Role.PROJECT_ADMIN.name())
                         && p.v2.equals("datashare::myProject")));
     }
 
     public void test_get_all_permissions_includes_all_access_levels() {
         // GIVEN: A user with permissions at all levels (instance, domain, and project)
-        String multiUser = "diana";
+        User multiUser = localUser("diana");
         Domain domain1 = Domain.of("icij");
         Domain domain2 = Domain.of("datashare");
-        String project1 = "project1";
-        String project2 = "project2";
+        Project project1 = project("project1");
+        Project project2 = project("project2");
 
         authorizer.addRoleForUserInInstance(multiUser, Role.INSTANCE_ADMIN);
         authorizer.addRoleForUserInDomain(multiUser, Role.DOMAIN_ADMIN, domain1);
@@ -197,7 +202,7 @@ public class AuthorizerTest extends TestCase {
 
     public void test_get_all_permissions_for_user_with_no_permissions() {
         // GIVEN: A user with no permissions
-        String noPermUser = "eve";
+        User noPermUser = localUser("eve");
 
         // WHEN: Get all permissions for the user
         List<CasbinRule> permissions = authorizer.getGroupPermissions(noPermUser);
@@ -208,8 +213,8 @@ public class AuthorizerTest extends TestCase {
 
     public void test_get_all_permissions_filters_by_user() {
         // GIVEN: Multiple users with different permissions
-        String user1 = "frank";
-        String user2 = "grace";
+        User user1 = localUser("frank");
+        User user2 = localUser("grace");
         Domain domain = Domain.of("shared");
 
         authorizer.addRoleForUserInInstance(user1, Role.INSTANCE_ADMIN);
@@ -219,16 +224,16 @@ public class AuthorizerTest extends TestCase {
         List<CasbinRule> user1Perms = authorizer.getGroupPermissions(user1);
 
         // THEN: Verify only user1's permissions are returned, not user2's
-        assertTrue(user1Perms.stream().allMatch(p -> p.v0.equals(user1)));
-        assertFalse(user1Perms.stream().anyMatch(p -> p.v0.equals(user2)));
+        assertTrue(user1Perms.stream().allMatch(p -> p.v0.equals(user1.getId())));
+        assertFalse(user1Perms.stream().anyMatch(p -> p.v0.equals(user2.getId())));
         assertThat(user1Perms.size()).isEqualTo(1);
     }
 
     public void test_get_all_permissions_includes_multiple_roles_for_same_domain() {
         // GIVEN: A user with multiple roles at the same domain/project level
-        String multiRoleUser = "hank";
+        User multiRoleUser = localUser("hank");
         Domain domain = Domain.of("test");
-        String project = "testProj";
+        Project project = project("testProj");
 
         authorizer.addRoleForUserInProject(multiRoleUser, Role.PROJECT_ADMIN, domain, project);
         authorizer.addRoleForUserInProject(multiRoleUser, Role.PROJECT_MEMBER, domain, project);
