@@ -8,7 +8,8 @@ import org.icij.datashare.session.DatashareUser;
 
 import java.util.function.Function;
 
-import static org.icij.datashare.policies.Authorizer.*;
+import static org.icij.datashare.policies.Authorizer.requireDomain;
+import static org.icij.datashare.policies.Authorizer.requireIdParam;
 
 
 public class ProjectPolicyAnnotation implements ApplyAroundAnnotation<ProjectPolicy> {
@@ -22,7 +23,8 @@ public class ProjectPolicyAnnotation implements ApplyAroundAnnotation<ProjectPol
     @Override
     public Payload apply(ProjectPolicy annotation, Context context, Function<Context, Payload> payloadSupplier) {
 
-        DatashareUser user = requireCurrentUser(context);
+        DatashareUser user = Authorizer.requireCurrentUser(context);
+
         //TODO #DOMAIN Currently Domain is not handled so we can't check it from query params
         Domain domain = requireDomain(annotation.domain(), true);
 
