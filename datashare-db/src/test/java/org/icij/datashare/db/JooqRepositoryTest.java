@@ -1,6 +1,5 @@
 package org.icij.datashare.db;
 
-import org.icij.datashare.EnvUtils;
 import org.icij.datashare.DocumentUserRecommendation;
 import org.icij.datashare.Note;
 import org.icij.datashare.Repository;
@@ -12,7 +11,6 @@ import org.icij.datashare.text.NamedEntity;
 import org.icij.datashare.text.Project;
 import org.icij.datashare.text.Tag;
 import org.icij.datashare.user.User;
-import org.junit.AfterClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -53,27 +51,18 @@ public class JooqRepositoryTest {
     @Rule public DatashareTimeRule time = new DatashareTimeRule("2021-06-30T12:13:14Z");
     @Rule public DbSetupRule dbRule;
     private final JooqRepository repository;
-    private static final List<DbSetupRule> rulesToClose = new ArrayList<>();
 
     @Parameters
     public static Collection<Object[]> dataSources() {
         return asList(new Object[][]{
-                {new DbSetupRule("jdbc:sqlite:file:memorydb.db?mode=memory&cache=shared")},
-                {new DbSetupRule(EnvUtils.resolveUri("postgres", "jdbc:postgresql://postgres/dstest?user=dstest&password=test"))}
+                {DbTestRuleProvider.getSqliteRule()},
+                {DbTestRuleProvider.getPostgresRule()}
         });
     }
 
     public JooqRepositoryTest(DbSetupRule rule) {
         dbRule = rule;
         repository = rule.createRepository();
-        rulesToClose.add(dbRule);
-    }
-
-    @AfterClass
-    public static void shutdownPools() {
-        for (DbSetupRule rule : rulesToClose) {
-            rule.shutdown();
-        }
     }
 
     @Test

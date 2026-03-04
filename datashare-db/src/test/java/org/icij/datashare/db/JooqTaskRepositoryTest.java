@@ -7,7 +7,6 @@ import static org.junit.Assert.assertThrows;
 import java.io.IOException;
 import java.io.Serializable;
 import java.net.URI;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -20,11 +19,9 @@ import org.icij.datashare.asynctasks.TaskResult;
 import org.icij.datashare.asynctasks.UnknownTask;
 import org.icij.datashare.asynctasks.bus.amqp.TaskError;
 import org.icij.datashare.asynctasks.bus.amqp.UriResult;
-import org.icij.datashare.EnvUtils;
 import org.icij.datashare.user.User;
 import org.jooq.exception.IntegrityConstraintViolationException;
 import org.junit.After;
-import org.junit.AfterClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -35,14 +32,12 @@ public class JooqTaskRepositoryTest {
     @Rule
     public DbSetupRule dbRule;
     private final JooqTaskRepository repository;
-    private static final List<DbSetupRule> rulesToClose = new ArrayList<>();
 
     @Parameterized.Parameters
     public static Collection<Object[]> dataSources() {
-        String postgresUrl = EnvUtils.resolveUri("postgres", "jdbc:postgresql://postgres/dstest?user=dstest&password=test");
         return asList(new Object[][] {
-            {new DbSetupRule("jdbc:sqlite:file:memorydb.db?mode=memory&cache=shared")},
-            {new DbSetupRule(postgresUrl)}
+            {DbTestRuleProvider.getSqliteRule()},
+            {DbTestRuleProvider.getPostgresRule()}
         });
     }
 
@@ -257,16 +252,8 @@ public class JooqTaskRepositoryTest {
         repository.deleteAll();
     }
 
-    @AfterClass
-    public static void shutdownPools() {
-        for (DbSetupRule rule : rulesToClose) {
-            rule.shutdown();
-        }
-    }
-
     public JooqTaskRepositoryTest(DbSetupRule rule) {
         dbRule = rule;
         repository = rule.createTaskRepository();
-        rulesToClose.add(dbRule);
     }
 }

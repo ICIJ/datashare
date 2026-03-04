@@ -6,6 +6,7 @@ import org.icij.datashare.batch.BatchSearchRepository;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.user.User;
 import org.jooq.SQLDialect;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.slf4j.Logger;

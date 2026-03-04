@@ -1,12 +1,10 @@
 package org.icij.datashare.db;
 
-import org.icij.datashare.EnvUtils;
 import org.icij.datashare.test.DatashareTimeRule;
 import org.icij.datashare.time.DatashareTime;
 import org.icij.datashare.user.ApiKey;
 import org.icij.datashare.user.DatashareApiKey;
 import org.icij.datashare.user.User;
-import org.junit.AfterClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -14,9 +12,7 @@ import org.junit.runners.Parameterized;
 
 import javax.crypto.SecretKey;
 import java.security.NoSuchAlgorithmException;
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.List;
 
 import static java.util.Arrays.asList;
 import static org.fest.assertions.Assertions.assertThat;
@@ -27,7 +23,6 @@ public class JooqApiKeyRepositoryTest {
     @Rule public DbSetupRule dbRule;
     @Rule public DatashareTimeRule time = new DatashareTimeRule("2020-07-08T12:13:14Z");
     private final JooqApiKeyRepository repository;
-    private static final List<DbSetupRule> rulesToClose = new ArrayList<>();
 
     @Test
     public void test_save_and_get_api_key() throws NoSuchAlgorithmException {
@@ -71,21 +66,13 @@ public class JooqApiKeyRepositoryTest {
     @Parameterized.Parameters
     public static Collection<Object[]> dataSources() {
         return asList(new Object[][]{
-                {new DbSetupRule("jdbc:sqlite:file:memorydb.db?mode=memory&cache=shared")},
-                {new DbSetupRule(EnvUtils.resolveUri("postgres", "jdbc:postgresql://postgres/dstest?user=dstest&password=test"))}
+                {DbTestRuleProvider.getSqliteRule()},
+                {DbTestRuleProvider.getPostgresRule()}
         });
-    }
-
-    @AfterClass
-    public static void shutdownPools() {
-        for (DbSetupRule rule : rulesToClose) {
-            rule.shutdown();
-        }
     }
 
     public JooqApiKeyRepositoryTest(DbSetupRule rule) {
         dbRule = rule;
         repository = rule.createApiKeyRepository();
-        rulesToClose.add(dbRule);
     }
 }

@@ -1,6 +1,5 @@
 package org.icij.datashare.db;
 
-import org.icij.datashare.EnvUtils;
 import org.icij.datashare.batch.*;
 import org.icij.datashare.batch.BatchSearchRecord.State;
 import org.icij.datashare.test.DatashareTimeRule;
@@ -10,7 +9,6 @@ import org.icij.datashare.text.indexing.SearchQuery;
 import org.icij.datashare.time.DatashareTime;
 import org.icij.datashare.user.User;
 import org.jooq.exception.DataAccessException;
-import org.junit.AfterClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -35,27 +33,18 @@ public class JooqBatchSearchRepositoryTest {
     @Rule public DbSetupRule dbRule;
     @Rule public TemporaryFolder dataFolder = new TemporaryFolder();
     private final JooqBatchSearchRepository repository;
-    private static final List<DbSetupRule> rulesToClose = new ArrayList<>();
 
     @Parameterized.Parameters
     public static Collection<Object[]> dataSources() {
         return asList(new Object[][]{
-                {new DbSetupRule("jdbc:sqlite:file:memorydb.db?mode=memory&cache=shared")},
-                {new DbSetupRule(EnvUtils.resolveUri("postgres", "jdbc:postgresql://postgres/dstest?user=dstest&password=test"))}
+                {DbTestRuleProvider.getSqliteRule()},
+                {DbTestRuleProvider.getPostgresRule()}
         });
-    }
-
-    @AfterClass
-    public static void shutdownPools() {
-        for (DbSetupRule rule : rulesToClose) {
-            rule.shutdown();
-        }
     }
 
     public JooqBatchSearchRepositoryTest(DbSetupRule rule) {
         dbRule = rule;
         repository = rule.createBatchSearchRepository();
-        rulesToClose.add(dbRule);
     }
 
     @Test

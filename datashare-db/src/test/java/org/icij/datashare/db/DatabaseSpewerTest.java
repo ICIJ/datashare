@@ -1,11 +1,9 @@
 package org.icij.datashare.db;
 
-import org.icij.datashare.EnvUtils;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.Language;
 import org.icij.extract.document.TikaDocument;
 import org.icij.extract.extractor.Extractor;
-import org.junit.AfterClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -14,9 +12,7 @@ import org.junit.runners.Parameterized;
 
 import java.io.File;
 import java.nio.file.Files;
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.List;
 
 import static java.nio.charset.Charset.forName;
 import static java.util.Arrays.asList;
@@ -29,27 +25,18 @@ public class DatabaseSpewerTest {
     @Rule public DbSetupRule dbRule;
     @Rule public TemporaryFolder tmp = new TemporaryFolder();
     private final DatabaseSpewer dbSpewer;
-    private static final List<DbSetupRule> rulesToClose = new ArrayList<>();
 
     @Parameterized.Parameters
     public static Collection<Object[]> dataSources() {
         return asList(new Object[][]{
-                {new DbSetupRule("jdbc:sqlite:file:memorydb.db?mode=memory&cache=shared")},
-                {new DbSetupRule(EnvUtils.resolveUri("postgres", "jdbc:postgresql://postgres/dstest?user=dstest&password=test"))}
+                {DbTestRuleProvider.getSqliteRule()},
+                {DbTestRuleProvider.getPostgresRule()}
         });
-    }
-
-    @AfterClass
-    public static void shutdownPools() {
-        for (DbSetupRule rule : rulesToClose) {
-            rule.shutdown();
-        }
     }
 
     public DatabaseSpewerTest(DbSetupRule rule) {
         dbRule = rule;
         dbSpewer = new DatabaseSpewer(project("prj"), rule.createRepository(), text -> Language.ENGLISH);
-        rulesToClose.add(dbRule);
     }
 
     @Test
