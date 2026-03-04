@@ -7,6 +7,7 @@ import org.icij.datashare.asynctasks.temporal.ActivityOpts;
 import org.icij.datashare.asynctasks.temporal.TemporalSingleActivityWorkflow;
 import org.icij.datashare.policies.Authorizer;
 import org.icij.datashare.policies.Domain;
+import org.icij.datashare.policies.Role;
 import org.icij.datashare.text.Project;
 import org.icij.datashare.user.User;
 import org.icij.datashare.user.UserTask;
@@ -35,12 +36,11 @@ public class GrantAdminPolicyTask extends DefaultTask<Boolean> implements UserTa
 
     @Override
     public Boolean call() {
-        if (authorizer.addProjectAdmin(user.getId(), domain, project.getId())) {
-            logger.info("Admin role granted to user {} for project {} in domain {}.", user.getId(), project.getId(), domain.id());
+        if (authorizer.can(user.getId(), domain, project.getId(), Role.PROJECT_ADMIN) || authorizer.addProjectAdmin(user.getId(), domain, project.getId())) {
+            logger.info("Project admin role granted to user '{}' for project '{}' in domain '{}'.", user.getId(), project.getId(), domain.id());
             return true;
         }
-        ;
-        logger.error("Failed to grant admin role: {}", "Already exists or user/project not found.");
+        logger.error("Failed to grant admin role to user '{}' for project '{}' in domain '{}'.", user.getId(), project.getId(), domain.id());
         return false;
     }
 
