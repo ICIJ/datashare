@@ -72,6 +72,9 @@
     "contentType": {
       "type": "keyword"
     },
+    "contentTypeCategory": {
+      "type": "keyword"
+    },
     "language": {
       "type": "keyword"
     },

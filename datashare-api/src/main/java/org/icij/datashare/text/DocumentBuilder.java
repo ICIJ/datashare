@@ -18,6 +18,7 @@ public class DocumentBuilder {
     private Path path;
     private Map<String, Object> metadata = new HashMap<>();
     private String contentType;
+    private ContentTypeCategory contentTypeCategory;
     private Set<Pipeline.Type> pipelines;
     private String parentId = null;
     private String rootId = null;
@@ -61,7 +62,8 @@ public class DocumentBuilder {
                 .withParentId(doc.getParentDocument())
                 .withRootId(doc.getRootDocument())
                 .withContentLength(doc.getContentLength())
-                .withTags(doc.getTags());
+                .withTags(doc.getTags())
+                .with(doc.getContentTypeCategory());
     }
 
     public DocumentBuilder withDefaultValues(String id){
@@ -174,6 +176,11 @@ public class DocumentBuilder {
         return this;
     }
 
+    public DocumentBuilder with(ContentTypeCategory contentTypeCategory) {
+        this.contentTypeCategory = contentTypeCategory;
+        return this;
+    }
+
     public Document build() {
         if(id == null && project == null && path == null && content == null){
             throw new NullPointerException("Id, Project, Path or content are missing.");
@@ -181,7 +188,7 @@ public class DocumentBuilder {
         return new Document(project, id, path, content, content_translated, language,
                 charset, contentType, metadata, documentStatus,
                 pipelines, extractionDate, parentId, rootId, extractionLevel,
-                contentLength, tags);
+                contentLength, tags, contentTypeCategory);
     }
 
 }
