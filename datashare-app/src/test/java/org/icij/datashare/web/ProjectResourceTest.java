@@ -51,7 +51,7 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
     PropertiesProvider propertiesProvider;
     Authorizer authorizer;
     @Mock
-    CasbinRuleAdapter jooqCasbinRuleRepository;
+    CasbinRuleAdapter adapter;
 
     private Users get_datashare_users(String uid, List<String> groups) {
         User user = new User(new HashMap<>() {{
@@ -222,7 +222,7 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
     @Before
     public void setUp() {
         initMocks(this);
-        authorizer = new Authorizer(jooqCasbinRuleRepository);
+        authorizer = new Authorizer(adapter);
 
         documentCollectionFactory = new MemoryDocumentCollectionFactory<>();
         when(jooqRepository.getProjects()).thenReturn(new ArrayList<>());

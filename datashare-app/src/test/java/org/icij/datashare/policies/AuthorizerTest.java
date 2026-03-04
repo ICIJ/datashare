@@ -19,7 +19,7 @@ public class AuthorizerTest extends TestCase {
     public void setUp() throws Exception {
         super.setUp();
         CasbinRuleAdapter adapter = Mockito.mock(CasbinRuleAdapter.class);
-        authorizer = new Authorizer(adapter, false);
+        authorizer = new Authorizer(adapter);
         domain = Domain.of("test_domain");
         userId = "test_user";
         project = "test_project";
