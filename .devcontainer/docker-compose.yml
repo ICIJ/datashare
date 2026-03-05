@@ -80,19 +80,20 @@ services:
     elasticsearch:
         image: docker.elastic.co/elasticsearch/elasticsearch:8.19.8
         environment:
-          - "ES_JAVA_OPTS=-Xms256m -Xmx256m"
-          - discovery.type=single-node
-          - cluster.name=datashare
-          - cluster.routing.allocation.disk.watermark.low=90%
-          - cluster.routing.allocation.disk.watermark.high=99%
-          - cluster.routing.allocation.disk.watermark.flood_stage=100%
-          - http.compression=false
-          - http.cors.enabled=true
-          - http.cors.allow-origin="*"
-          - http.cors.allow-methods=OPTIONS, HEAD, GET, POST, PUT, DELETE
-          - indices.query.bool.max_clause_count=20000
-          - xpack.security.enabled=false
-          - xpack.security.http.ssl.enabled=false
+          ES_JAVA_OPTS: -Xms256m -Xmx256m
+          discovery.type: single-node
+          cluster.name: datashare
+          cluster.routing.allocation.disk.watermark.low: 90%
+          cluster.routing.allocation.disk.watermark.high: 99%
+          cluster.routing.allocation.disk.watermark.flood_stage: 100%
+          http.compression: false
+          http.cors.enabled: true
+          http.cors.allow-origin: "'*'"
+          http.cors.allow-methods: OPTIONS, HEAD, GET, POST, PUT, DELETE
+          indices.query.bool.max_clause_count: 20000
+          indices.id_field_data.enabled: true
+          xpack.security.enabled: false
+          xpack.security.http.ssl.enabled: false
         ports:
           - "9200:9200"
 
