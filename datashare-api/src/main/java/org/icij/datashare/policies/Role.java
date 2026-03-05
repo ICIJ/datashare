@@ -6,7 +6,8 @@ public enum Role {
     PROJECT_ADMIN,
     PROJECT_EDITOR,
     PROJECT_MEMBER,
-    PROJECT_VISITOR
+    PROJECT_VISITOR,
+    NONE
 }
 
 

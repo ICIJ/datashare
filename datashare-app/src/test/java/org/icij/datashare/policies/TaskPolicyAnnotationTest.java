@@ -45,8 +45,35 @@ public class TaskPolicyAnnotationTest {
         }
 
         @Override
-        public boolean allowOwner() {
-            return true;
+        public Role ownerRole() {
+            return Role.PROJECT_MEMBER;
+        }
+
+        @Override
+        public String idParam() {
+            return "taskName:";
+        }
+
+        @Override
+        public String domain() {
+            return "default";
+        }
+
+    };
+    private final TaskPolicy noOwnerRoleTaskPolicy = new TaskPolicy() {
+        @Override
+        public Class<? extends Annotation> annotationType() {
+            return TaskPolicy.class;
+        }
+
+        @Override
+        public Role role() {
+            return Role.PROJECT_ADMIN;
+        }
+
+        @Override
+        public Role ownerRole() {
+            return Role.NONE;
         }
 
         @Override
@@ -133,6 +160,36 @@ public class TaskPolicyAnnotationTest {
         when(context.pathParam("taskName:")).thenReturn(dummyTaskId);
 
         annotation.apply(adminTaskPolicy, context, c -> Payload.ok());
+    }
+
+    @Test
+    public void should_allow_access_when_owner_role_is_none_and_user_has_required_role() throws IOException {
+        Context context = mock(Context.class);
+        DatashareUser cecile = new DatashareUser("cecile");
+        String dummyTaskId = taskManager.startTask(TestSleepingTask.class, User.local(), new HashMap<>() {{
+            put("defaultProject", projectId);
+        }});
+
+        when(context.currentUser()).thenReturn(cecile);
+        when(context.pathParam("taskName:")).thenReturn(dummyTaskId);
+
+        Payload result = annotation.apply(noOwnerRoleTaskPolicy, context, c -> Payload.ok());
+        assertEquals(200, result.code());
+    }
+
+    @Test
+    public void should_return_forbidden_when_owner_role_is_none_and_user_lacks_required_role() throws IOException {
+        Context context = mock(Context.class);
+        DatashareUser john = new DatashareUser("john");
+        String dummyTaskId = taskManager.startTask(TestSleepingTask.class, User.local(), new HashMap<>() {{
+            put("defaultProject", projectId);
+        }});
+
+        when(context.currentUser()).thenReturn(john);
+        when(context.pathParam("taskName:")).thenReturn(dummyTaskId);
+
+        Payload result = annotation.apply(noOwnerRoleTaskPolicy, context, c -> Payload.ok());
+        assertEquals(403, result.code());
     }
 
 }

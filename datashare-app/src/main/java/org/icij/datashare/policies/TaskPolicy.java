@@ -15,5 +15,5 @@ public @interface TaskPolicy {
 
     Role role() default Role.PROJECT_MEMBER;
 
-    boolean allowOwner() default true;
+    Role ownerRole() default Role.NONE;
 }

@@ -446,7 +446,7 @@ public class TaskResource {
     @ApiResponse(responseCode = "403", description = "returns 403 if the task is still in RUNNING state")
     @ApiResponse(responseCode = "404", description = "returns 404 if the task doesn't exist")
     @Delete("/clean/:taskName:")
-    @TaskPolicy(role = Role.PROJECT_ADMIN)
+    @TaskPolicy(role = Role.PROJECT_ADMIN, ownerRole = Role.PROJECT_MEMBER)
     public Payload cleanTask(@Parameter(name = "taskName", description = "name of the task to delete", in = ParameterIn.PATH) final String taskId, Context context) throws Exception {
         Task<?> task = notFoundIfUnknown(() -> taskManager.getTask(taskId));
         if (task.getState() == Task.State.RUNNING) {
