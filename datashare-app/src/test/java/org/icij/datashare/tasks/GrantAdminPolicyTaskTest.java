@@ -3,6 +3,7 @@ package org.icij.datashare.tasks;
 import org.icij.datashare.policies.*;
 import org.icij.datashare.text.Project;
 import org.icij.datashare.user.User;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
@@ -13,11 +14,22 @@ import java.util.List;
 import static org.fest.assertions.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
-import static org.mockito.MockitoAnnotations.initMocks;
+import static org.mockito.MockitoAnnotations.openMocks;
 
 public class GrantAdminPolicyTaskTest {
     @Mock
     public Authorizer authorizer;
+    private AutoCloseable mocks;
+
+    @Before
+    public void setUp() {
+        mocks = openMocks(this);
+    }
+
+    @After
+    public void tearDown() throws Exception {
+        mocks.close();
+    }
 
     @Test
     public void test_call_grant_admin_for_existing_user_and_project() {
@@ -61,6 +73,18 @@ public class GrantAdminPolicyTaskTest {
         assertThat(rule.getV1()).isEqualTo("PROJECT_ADMIN");
         assertThat(rule.getV2()).isEqualTo("default::local-datashare");
         assertThat(new GrantAdminPolicyTask(authorizer, User.local(), Domain.of("default"), project).call()).isFalse();
+    }
+
+    @Test
+    public void test_call_returns_true_when_add_fails_due_to_concurrent_grant() {
+        // Simulates race: can() = false, addProjectAdmin() = false (duplicate), second can() = true
+        Project project = Project.project("local-datashare");
+        when(authorizer.can(User.local().getId(), Domain.of("default"), project.getId(), Role.PROJECT_ADMIN))
+                .thenReturn(false)
+                .thenReturn(true);
+        when(authorizer.addProjectAdmin(any(), any(), any())).thenReturn(false);
+
+        assertThat(new GrantAdminPolicyTask(authorizer, User.local(), Domain.of("default"), project).call()).isTrue();
     }
 
     @Test
@@ -137,8 +161,5 @@ public class GrantAdminPolicyTaskTest {
         assertThat(rule.getV2()).isEqualTo("domain-a::local-datashare");
     }
 
-    @Before
-    public void setUp() {
-        initMocks(this);
-    }
+
 }
