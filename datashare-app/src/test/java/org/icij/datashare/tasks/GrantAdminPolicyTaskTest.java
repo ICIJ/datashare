@@ -56,10 +56,10 @@ public class GrantAdminPolicyTaskTest {
         List<CasbinRule> permissions = realAuthorizer.getGroupPermissions(user, domain, project.getId());
         assertThat(permissions).hasSize(1);
         CasbinRule rule = permissions.get(0);
-        assertThat(rule.ptype).isEqualTo("g");
-        assertThat(rule.v0).isEqualTo(user.getId());
-        assertThat(rule.v1).isEqualTo("PROJECT_ADMIN");
-        assertThat(rule.v2).isEqualTo("default::local-datashare");
+        assertThat(rule.getPtype()).isEqualTo("g");
+        assertThat(rule.getV0()).isEqualTo(user.getId());
+        assertThat(rule.getV1()).isEqualTo("PROJECT_ADMIN");
+        assertThat(rule.getV2()).isEqualTo("default::local-datashare");
         assertThat(new GrantAdminPolicyTask(authorizer, User.local(), Domain.of("default"), project).call()).isFalse();
     }
 
@@ -134,7 +134,7 @@ public class GrantAdminPolicyTaskTest {
         assertThat(realAuthorizer.getGroupPermissions(user, domain1, project.getId())).hasSize(1);
         assertThat(realAuthorizer.getGroupPermissions(user, domain2, project.getId())).hasSize(1);
         CasbinRule rule = realAuthorizer.getGroupPermissions(user, domain1, project.getId()).get(0);
-        assertThat(rule.v2).isEqualTo("domain-a::local-datashare");
+        assertThat(rule.getV2()).isEqualTo("domain-a::local-datashare");
     }
 
     @Before

@@ -109,7 +109,7 @@ public class AuthorizerTest {
         authorizer.addRoleForUserInProject(user, Role.DOMAIN_ADMIN, domain, project("p1"));
         List<CasbinRule> permissions = authorizer.getGroupPermissions(domain);
         assertFalse(permissions.isEmpty());
-        assertTrue(permissions.stream().anyMatch(p -> p.ptype.equals("g") && p.v0.equals(user.id) && p.v1.equals(Role.DOMAIN_ADMIN.name())));
+        assertTrue(permissions.stream().anyMatch(p -> p.getPtype().equals("g") && p.getV0().equals(user.id) && p.getV1().equals(Role.DOMAIN_ADMIN.name())));
         assertThat(permissions.size()).isEqualTo(2);
     }
 
@@ -122,7 +122,7 @@ public class AuthorizerTest {
         List<CasbinRule> permissions = authorizer.getGroupPermissions(domain, project.getId());
         assertFalse(permissions.isEmpty());
         assertThat(permissions.size()).isEqualTo(2);
-        assertTrue(permissions.stream().anyMatch(p -> p.ptype.equals("g") && p.v0.equals(user.id) && p.v1.equals(Role.PROJECT_ADMIN.name())));
+        assertTrue(permissions.stream().anyMatch(p -> p.getPtype().equals("g") && p.getV0().equals(user.id) && p.getV1().equals(Role.PROJECT_ADMIN.name())));
         List<CasbinRule> permissionsP2 = authorizer.getGroupPermissions(domain, "project2");
         assertThat(permissionsP2.size()).isEqualTo(1);
     }
@@ -145,9 +145,9 @@ public class AuthorizerTest {
         // THEN: Verify instance-level permission is retrieved
         assertFalse(permissions.isEmpty());
         assertTrue(permissions.stream()
-                .anyMatch(p -> p.ptype.equals("g") && p.v0.equals(instUser.getId())
-                        && p.v1.equals(Role.INSTANCE_ADMIN.name())
-                        && p.v2.equals("*::*")));
+                .anyMatch(p -> p.getPtype().equals("g") && p.getV0().equals(instUser.getId())
+                        && p.getV1().equals(Role.INSTANCE_ADMIN.name())
+                        && p.getV2().equals("*::*")));
     }
 
     @Test
@@ -164,9 +164,9 @@ public class AuthorizerTest {
         // THEN: Verify domain-level permission is retrieved
         assertFalse(permissions.isEmpty());
         assertTrue(permissions.stream()
-                .anyMatch(p -> p.ptype.equals("g") && p.v0.equals(domainUser.getId())
-                        && p.v1.equals(Role.DOMAIN_ADMIN.name())
-                        && p.v2.equals("icij::*")));
+                .anyMatch(p -> p.getPtype().equals("g") && p.getV0().equals(domainUser.getId())
+                        && p.getV1().equals(Role.DOMAIN_ADMIN.name())
+                        && p.getV2().equals("icij::*")));
     }
 
     @Test
@@ -184,9 +184,9 @@ public class AuthorizerTest {
         // THEN: Verify project-level permission is retrieved
         assertFalse(permissions.isEmpty());
         assertTrue(permissions.stream()
-                .anyMatch(p -> p.ptype.equals("g") && p.v0.equals(projectUser.getId())
-                        && p.v1.equals(Role.PROJECT_ADMIN.name())
-                        && p.v2.equals("datashare::myProject")));
+                .anyMatch(p -> p.getPtype().equals("g") && p.getV0().equals(projectUser.getId())
+                        && p.getV1().equals(Role.PROJECT_ADMIN.name())
+                        && p.getV2().equals("datashare::myProject")));
     }
 
     @Test
@@ -209,13 +209,13 @@ public class AuthorizerTest {
         // THEN: Verify all permissions across all levels are retrieved
         assertThat(permissions.size()).isEqualTo(4);
         assertTrue(permissions.stream()
-                .anyMatch(p -> p.v2.equals("*::*")));  // Instance level
+                .anyMatch(p -> p.getV2().equals("*::*")));  // Instance level
         assertTrue(permissions.stream()
-                .anyMatch(p -> p.v2.equals("icij::*")));  // Domain level
+                .anyMatch(p -> p.getV2().equals("icij::*")));  // Domain level
         assertTrue(permissions.stream()
-                .anyMatch(p -> p.v2.equals("datashare::project1")));  // Project level
+                .anyMatch(p -> p.getV2().equals("datashare::project1")));  // Project level
         assertTrue(permissions.stream()
-                .anyMatch(p -> p.v2.equals("icij::project2")));  // Project level
+                .anyMatch(p -> p.getV2().equals("icij::project2")));  // Project level
     }
 
     @Test
@@ -244,8 +244,8 @@ public class AuthorizerTest {
         List<CasbinRule> user1Perms = authorizer.getGroupPermissions(user1);
 
         // THEN: Verify only user1's permissions are returned, not user2's
-        assertTrue(user1Perms.stream().allMatch(p -> p.v0.equals(user1.getId())));
-        assertFalse(user1Perms.stream().anyMatch(p -> p.v0.equals(user2.getId())));
+        assertTrue(user1Perms.stream().allMatch(p -> p.getV0().equals(user1.getId())));
+        assertFalse(user1Perms.stream().anyMatch(p -> p.getV0().equals(user2.getId())));
         assertThat(user1Perms.size()).isEqualTo(1);
     }
 
@@ -265,7 +265,7 @@ public class AuthorizerTest {
         // THEN: Verify all role assignments are retrieved
         assertThat(permissions.size()).isGreaterThanOrEqualTo(2);
         assertTrue(permissions.stream()
-                .filter(p -> p.v2.equals("test::testProj"))
+                .filter(p -> p.getV2().equals("test::testProj"))
                 .count() >= 2);
     }
 

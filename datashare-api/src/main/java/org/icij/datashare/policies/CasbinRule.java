@@ -5,15 +5,22 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import java.util.List;
 
 public class CasbinRule {
-    public String ptype;
-    public String v0;
-    public String v1;
-    public String v2;
-    public String v3;
-    public String v4;
-    public String v5;
+    private final String ptype;
+    private final String v0;
+    private final String v1;
+    private final String v2;
+    private final String v3;
+    private final String v4;
+    private final String v5;
 
-    public CasbinRule() {
+    private CasbinRule() {
+        this.ptype = "";
+        this.v0 = "";
+        this.v1 = "";
+        this.v2 = "";
+        this.v3 = "";
+        this.v4 = "";
+        this.v5 = "";
     }
 
     public CasbinRule(String ptype, String... values) {
@@ -24,6 +31,34 @@ public class CasbinRule {
         this.v3 = values.length > 3 ? values[3] : "";
         this.v4 = values.length > 4 ? values[4] : "";
         this.v5 = values.length > 5 ? values[5] : "";
+    }
+
+    public String getPtype() {
+        return ptype;
+    }
+
+    public String getV0() {
+        return v0;
+    }
+
+    public String getV1() {
+        return v1;
+    }
+
+    public String getV2() {
+        return v2;
+    }
+
+    public String getV3() {
+        return v3;
+    }
+
+    public String getV4() {
+        return v4;
+    }
+
+    public String getV5() {
+        return v5;
     }
 
     public static String escapeSingleRule(String rule) {

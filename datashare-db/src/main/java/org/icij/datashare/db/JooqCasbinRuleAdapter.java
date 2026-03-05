@@ -149,7 +149,7 @@ public class JooqCasbinRuleAdapter implements CasbinRuleAdapter {
             CasbinRule line = savePolicyLine(ptype, rule);
             queries.add(
                     ctx.insertInto(CASBIN_RULE, CASBIN_RULE.PTYPE, CASBIN_RULE.V0, CASBIN_RULE.V1, CASBIN_RULE.V2, CASBIN_RULE.V3, CASBIN_RULE.V4, CASBIN_RULE.V5)
-                            .values(line.ptype, line.v0, line.v1, line.v2, line.v3, line.v4, line.v5)
+                            .values(line.getPtype(), line.getV0(), line.getV1(), line.getV2(), line.getV3(), line.getV4(), line.getV5())
             );
 
             // Execute batch immediately when reaching batch size
@@ -234,7 +234,7 @@ public class JooqCasbinRuleAdapter implements CasbinRuleAdapter {
                 // Insert the new rule
                 CasbinRule line = savePolicyLine(ptype, newRule);
                 trxCtx.insertInto(CASBIN_RULE, CASBIN_RULE.PTYPE, CASBIN_RULE.V0, CASBIN_RULE.V1, CASBIN_RULE.V2, CASBIN_RULE.V3, CASBIN_RULE.V4, CASBIN_RULE.V5)
-                        .values(line.ptype, line.v0, line.v1, line.v2, line.v3, line.v4, line.v5)
+                        .values(line.getPtype(), line.getV0(), line.getV1(), line.getV2(), line.getV3(), line.getV4(), line.getV5())
                         .execute();
 
                 logger.debug("Updated policy: ptype={}", ptype);
