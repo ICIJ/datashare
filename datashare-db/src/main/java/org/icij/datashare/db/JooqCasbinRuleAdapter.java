@@ -195,34 +195,8 @@ public class JooqCasbinRuleAdapter implements CasbinRuleAdapter {
         });
     }
 
-    private CasbinRule savePolicyLine(String ptype, List<String> rule) {
-        CasbinRule line = new CasbinRule();
-        line.ptype = ptype;
-        if (!rule.isEmpty()) {
-            line.v0 = rule.get(0);
-        }
-
-        if (rule.size() > 1) {
-            line.v1 = rule.get(1);
-        }
-
-        if (rule.size() > 2) {
-            line.v2 = rule.get(2);
-        }
-
-        if (rule.size() > 3) {
-            line.v3 = rule.get(3);
-        }
-
-        if (rule.size() > 4) {
-            line.v4 = rule.get(4);
-        }
-
-        if (rule.size() > 5) {
-            line.v5 = rule.get(5);
-        }
-
-        return line;
+    private static String nullToEmpty(String s) {
+        return s != null ? s : "";
     }
 
     @Override
@@ -313,16 +287,21 @@ public class JooqCasbinRuleAdapter implements CasbinRuleAdapter {
         loadCasbinRuleRecords(model, records);
     }
 
+    private CasbinRule savePolicyLine(String ptype, List<String> rule) {
+        return new CasbinRule(ptype, rule.toArray(new String[0]));
+    }
+
     private void loadCasbinRuleRecords(Model model, List<CasbinRuleRecord> records) {
         for (CasbinRuleRecord record : records) {
-            CasbinRule line = new CasbinRule();
-            line.ptype = record.get(CASBIN_RULE.PTYPE);
-            line.v0 = record.get(CASBIN_RULE.V0) != null ? record.get(CASBIN_RULE.V0) : "";
-            line.v1 = record.get(CASBIN_RULE.V1) != null ? record.get(CASBIN_RULE.V1) : "";
-            line.v2 = record.get(CASBIN_RULE.V2) != null ? record.get(CASBIN_RULE.V2) : "";
-            line.v3 = record.get(CASBIN_RULE.V3) != null ? record.get(CASBIN_RULE.V3) : "";
-            line.v4 = record.get(CASBIN_RULE.V4) != null ? record.get(CASBIN_RULE.V4) : "";
-            line.v5 = record.get(CASBIN_RULE.V5) != null ? record.get(CASBIN_RULE.V5) : "";
+            CasbinRule line = new CasbinRule(
+                    record.get(CASBIN_RULE.PTYPE),
+                    nullToEmpty(record.get(CASBIN_RULE.V0)),
+                    nullToEmpty(record.get(CASBIN_RULE.V1)),
+                    nullToEmpty(record.get(CASBIN_RULE.V2)),
+                    nullToEmpty(record.get(CASBIN_RULE.V3)),
+                    nullToEmpty(record.get(CASBIN_RULE.V4)),
+                    nullToEmpty(record.get(CASBIN_RULE.V5))
+            );
             loadPolicyLine(line, model);
         }
     }
