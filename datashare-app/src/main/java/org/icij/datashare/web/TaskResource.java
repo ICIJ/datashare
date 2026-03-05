@@ -467,6 +467,7 @@ public class TaskResource {
     @Operation(description = "Cancels the task with the given name.")
     @ApiResponse(responseCode = "200", description = "returns 200 with the cancellation status (true/false)", useReturnTypeSchema = true)
     @ApiResponse(responseCode = "404", description = "returns 404 if the task doesn't exist")
+    @TaskPolicy(role = Role.PROJECT_ADMIN, ownerRole = Role.PROJECT_MEMBER)
     @Put("/stop/:taskId:")
     public boolean stopTask(@Parameter(name = "taskName", description = "name of the task to cancel", in = ParameterIn.PATH) final String taskId) throws IOException {
         return notFoundIfUnknown(() -> taskManager.stopTask(notFoundIfUnknown(() -> taskManager.getTask(taskId)).id));
