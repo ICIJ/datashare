@@ -55,3 +55,22 @@ databaseChangeLog:
                   name: v1
               - column:
                   name: v2
+        - createIndex:
+            tableName: casbin_rule
+            indexName: uq_casbin_rule
+            unique: true
+            columns:
+              - column:
+                  name: ptype
+              - column:
+                  name: v0
+              - column:
+                  name: v1
+              - column:
+                  name: v2
+              - column:
+                  name: v3
+              - column:
+                  name: v4
+              - column:
+                  name: v5
