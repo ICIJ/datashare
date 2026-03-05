@@ -150,6 +150,7 @@ public class JooqCasbinRuleAdapter implements CasbinRuleAdapter {
             queries.add(
                     ctx.insertInto(CASBIN_RULE, CASBIN_RULE.PTYPE, CASBIN_RULE.V0, CASBIN_RULE.V1, CASBIN_RULE.V2, CASBIN_RULE.V3, CASBIN_RULE.V4, CASBIN_RULE.V5)
                             .values(line.getPtype(), line.getV0(), line.getV1(), line.getV2(), line.getV3(), line.getV4(), line.getV5())
+                            .onConflictDoNothing()
             );
 
             // Execute batch immediately when reaching batch size

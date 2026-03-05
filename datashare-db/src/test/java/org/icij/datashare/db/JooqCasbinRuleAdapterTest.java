@@ -55,6 +55,18 @@ public class JooqCasbinRuleAdapterTest extends TestCase {
     }
 
     @Test
+    public void test_add_policy_is_idempotent() {
+        List<String> rule = asList("alice", "icij", "banana-papers", "PROJECT_MEMBER");
+        repository.addPolicy("p", "p", rule);
+        repository.addPolicy("p", "p", rule); // duplicate — must not throw or create duplicate
+
+        Model model = new Model();
+        model.addDef("p", "p", "sub, dom, obj, act");
+        repository.loadPolicy(model);
+        assertThat(model.getPolicy("p", "p")).hasSize(1);
+    }
+
+    @Test
     public void test_add_policies() {
         List<List<String>> rules = asList(
                 asList("alice", "icij", "banana-papers", "PROJECT_MEMBER"),
