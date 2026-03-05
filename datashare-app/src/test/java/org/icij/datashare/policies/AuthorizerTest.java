@@ -344,6 +344,29 @@ public class AuthorizerTest {
     }
 
     @Test
+    public void test_is_grantable_by_same_role() {
+        assertTrue(authorizer.isGrantableBy(Role.PROJECT_EDITOR, Role.PROJECT_EDITOR));
+    }
+
+    @Test
+    public void test_is_grantable_by_inherited_role() {
+        // PROJECT_EDITOR inherits PROJECT_MEMBER → DOMAIN_ADMIN can be granted by PROJECT_EDITOR
+        assertTrue(authorizer.isGrantableBy(Role.DOMAIN_ADMIN, Role.PROJECT_EDITOR));
+    }
+
+    @Test
+    public void test_is_grantable_by_blocks_more_powerful_role() {
+        // PROJECT_ADMIN is more powerful than PROJECT_EDITOR — not grantable
+        assertFalse(authorizer.isGrantableBy(Role.PROJECT_ADMIN, Role.PROJECT_EDITOR));
+    }
+
+    @Test
+    public void test_is_grantable_by_domain_admin_blocks_project_member() {
+        // DOMAIN_ADMIN does not inherit PROJECT_MEMBER
+        assertFalse(authorizer.isGrantableBy(Role.PROJECT_MEMBER, Role.DOMAIN_ADMIN));
+    }
+
+    @Test
     public void test_require_id_param() {
         Context context = Mockito.mock(Context.class);
         when(context.pathParam("id")).thenReturn("123");

@@ -148,6 +148,27 @@ public class PolicyResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
+    public void domain_policy_save_cannot_escalate_to_project_member() {
+        when(repository.getUser("jane")).thenReturn(User.localUser("jane"));
+        configure(routes -> routes.add(new PolicyResource(authorizer, repository)));
+        put("/api/policies/icij?user=jane&role=PROJECT_MEMBER").should().respond(403);
+    }
+
+    @Test
+    public void domain_policy_save_cannot_escalate_to_project_admin() {
+        when(repository.getUser("jane")).thenReturn(User.localUser("jane"));
+        configure(routes -> routes.add(new PolicyResource(authorizer, repository)));
+        put("/api/policies/icij?user=jane&role=PROJECT_ADMIN").should().respond(403);
+    }
+
+    @Test
+    public void project_policy_save_cannot_escalate_to_project_admin() {
+        when(repository.getUser("jane")).thenReturn(User.localUser("jane"));
+        configure(routes -> routes.add(new PolicyResource(authorizer, repository)));
+        put("/api/policies/icij/test-datashare?user=jane&role=PROJECT_ADMIN").should().respond(403);
+    }
+
+    @Test
     public void project_policies_lifecycle_success() {
         when(repository.getUser("jane")).thenReturn(User.localUser("jane", "test-datashare"));
         when(repository.getProject("test-datashare")).thenReturn(project("test-datashare"));
