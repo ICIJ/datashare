@@ -192,4 +192,21 @@ public class TaskPolicyAnnotationTest {
         assertEquals(403, result.code());
     }
 
+    @Test
+    public void should_return_forbidden_without_npe_when_task_has_no_user() throws IOException {
+        Context context = mock(Context.class);
+        DatashareUser john = new DatashareUser("john");
+        // Build a task with null user; getUser() returns null
+        String taskId = taskManager.startTask(TestSleepingTask.class.getName(), null,
+                Map.of("defaultProject", projectId));
+
+        when(context.currentUser()).thenReturn(john);
+        when(context.pathParam("taskName:")).thenReturn(taskId);
+
+        // john has ownerRole (PROJECT_MEMBER) but is not the owner (task.getUser() == null)
+        // must return 403, not throw NullPointerException
+        Payload result = annotation.apply(adminTaskPolicy, context, c -> Payload.ok());
+        assertEquals(403, result.code());
+    }
+
 }
