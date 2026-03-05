@@ -266,7 +266,10 @@ public class JooqCasbinRuleAdapter implements CasbinRuleAdapter {
             if (g2Value instanceof String[] g2Arr) {
                 loadFilteredSectionPolicy(ctx, model, "g2", g2Arr);
             }
-        } catch (NoSuchFieldException | IllegalAccessException ignored) {
+        } catch (NoSuchFieldException ignored) {
+            // g2 is an optional field; absence is not an error
+        } catch (IllegalAccessException e) {
+            throw new CasbinAdapterException("Failed to access g2 field on filter: " + e.getMessage());
         }
     }
 

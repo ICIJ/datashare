@@ -4,7 +4,6 @@ import junit.framework.TestCase;
 import org.casbin.jcasbin.exception.CasbinAdapterException;
 import org.casbin.jcasbin.model.Model;
 import org.casbin.jcasbin.persist.file_adapter.FilteredAdapter.Filter;
-import org.icij.datashare.EnvUtils;
 import org.junit.AfterClass;
 import org.junit.Rule;
 import org.junit.Test;
@@ -272,6 +271,35 @@ public class JooqCasbinRuleAdapterTest extends TestCase {
         assertThat(model.hasPolicy("g", "g", asList("alice", "icij::project1", "PROJECT_ADMIN"))).isTrue();
         assertThat(model.hasPolicy("g", "g", asList("bob", "icij::project1", "PROJECT_MEMBER"))).isFalse();
         assertThat(repository.isFiltered()).isTrue();
+    }
+
+    // C2: NoSuchFieldException on g2 must be silently ignored (g2 is optional)
+    @Test
+    public void test_loadFilteredPolicy_does_not_throw_when_g2_absent_from_filter() {
+        repository.addPolicy("p", "p", asList("alice", "icij", "banana-papers", "PROJECT_MEMBER"));
+        Model model = new Model();
+        model.addDef("p", "p", "sub, dom, obj, act");
+        Filter filter = new Filter();
+        filter.p = new String[]{"alice"};
+        // Must not throw even if Filter has no g2 field (NoSuchFieldException silently ignored)
+        repository.loadFilteredPolicy(model, filter);
+        assertThat(model.hasPolicy("p", "p", asList("alice", "icij", "banana-papers", "PROJECT_MEMBER"))).isTrue();
+        assertThat(repository.isFiltered()).isTrue();
+    }
+
+    // C2: when g2 is not set in the filter, g2-section policies must not be loaded
+    @Test
+    public void test_loadFilteredPolicy_does_not_load_g2_when_not_specified_in_filter() {
+        repository.addPolicy("p", "p", asList("alice", "icij", "banana-papers", "PROJECT_MEMBER"));
+        repository.addPolicy("g2", "g2", asList("INSTANCE_ADMIN", "PROJECT_ADMIN"));
+        Model model = new Model();
+        model.addDef("p", "p", "sub, dom, obj, act");
+        model.addDef("g2", "g2", "_, _");
+        Filter filter = new Filter();
+        filter.p = new String[]{"alice"};
+        repository.loadFilteredPolicy(model, filter);
+        assertThat(model.hasPolicy("p", "p", asList("alice", "icij", "banana-papers", "PROJECT_MEMBER"))).isTrue();
+        assertThat(model.hasPolicy("g2", "g2", asList("INSTANCE_ADMIN", "PROJECT_ADMIN"))).isFalse();
     }
 
     @Test
