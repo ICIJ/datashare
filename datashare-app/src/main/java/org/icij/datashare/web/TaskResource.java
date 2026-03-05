@@ -610,7 +610,7 @@ public class TaskResource {
     }
 
     private static <V extends Serializable> Task<V> forbiddenIfNotSameUser(Context context, Task<V> task) {
-        if (!task.getUser().equals(context.currentUser())) throw new ForbiddenException();
+        if (!Objects.equals(task.getUser(), context.currentUser())) throw new ForbiddenException();
         return task;
     }
 
