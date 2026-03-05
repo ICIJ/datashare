@@ -32,11 +32,13 @@ public class TaskWorkerLoopIntTest {
 
     @Test(timeout = 20000)
     public void test_batch_download_task_view_properties() throws Exception {
+        // GIVEN
         DatashareTaskFactory factory = mock(DatashareTaskFactory.class);
         BatchDownload batchDownload = new BatchDownload(singletonList(project("prj")), User.local(), "foo");
         Map<String, Object> properties = Map.of("batchDownload", batchDownload);
         Task<File> taskView = new Task<>(BatchDownloadRunner.class.getName(), batchDownload.user, properties);
         BatchDownloadRunner runner = new BatchDownloadRunner(mock(Indexer.class), new PropertiesProvider(), taskView, taskView.progress(taskSupplier::progress));
+
         when(factory.createBatchDownloadRunner(any(), any())).thenReturn(runner);
 
         CountDownLatch workerStarted = new CountDownLatch(1);
@@ -44,12 +46,16 @@ public class TaskWorkerLoopIntTest {
         Thread worker = new Thread(taskWorkerLoop::call);
         worker.start();
         workerStarted.await();
+
+        // WHEN
         taskManager.startTask(BatchDownloadRunner.class.getName(), User.local(), properties);
-        Thread.sleep(100); // this is a symptom of a possible flaky test but for now I can't figure out how to be event driven
+
+        runner.getCallWaiterLatchForTests().await();
 
         taskManager.awaitTermination(1, TimeUnit.SECONDS);
         eventWaiter.await();
 
+        // THEN
         List<Task<?>> tasks = taskManager.getTasks().toList();
         assertThat(tasks).hasSize(1);
         assertThat(tasks.get(0).getError()).isNotNull();

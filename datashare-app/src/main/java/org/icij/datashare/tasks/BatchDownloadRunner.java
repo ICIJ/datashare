@@ -69,7 +69,8 @@ public class BatchDownloadRunner implements Callable<UriResult>, Monitorable, Us
     private final PropertiesProvider propertiesProvider;
     private final Function<Double, Void> progressCallback;
     private final Function<URI, MailSender> mailSenderSupplier;
-    private final CountDownLatch callWaiterLatch;
+    // This Latch will decrement when this runner starts to process a Task
+    private final CountDownLatch callWaiterLatchForTests;
     protected volatile boolean cancelAsked = false;
     protected volatile boolean requeueCancel;
     protected volatile Thread callThread;
@@ -87,7 +88,7 @@ public class BatchDownloadRunner implements Callable<UriResult>, Monitorable, Us
         this.progressCallback = progressCallback;
         this.mailSenderSupplier = mailSenderSupplier;
         this.documentVerifier = new DocumentVerifier(indexer, propertiesProvider);
-        this.callWaiterLatch = latch;
+        this.callWaiterLatchForTests = latch;
     }
 
     @Override
@@ -102,7 +103,7 @@ public class BatchDownloadRunner implements Callable<UriResult>, Monitorable, Us
         long maxZipSizeBytes = HumanReadableSize.parse(propertiesProvider.get(BATCH_DOWNLOAD_MAX_SIZE_OPT).orElse(DEFAULT_BATCH_DOWNLOAD_MAX_SIZE));
         long zippedFilesSize = 0;
         callThread = Thread.currentThread();
-        callWaiterLatch.countDown(); // for tests
+        callWaiterLatchForTests.countDown(); // for tests
         BatchDownload batchDownload = getBatchDownload();
 
         logger.info("running batch download for user {} on project {} with {} scroll with throttle {}ms and scroll size of {}",
@@ -178,6 +179,11 @@ public class BatchDownloadRunner implements Callable<UriResult>, Monitorable, Us
 
     private BatchDownload getBatchDownload() {
         return (BatchDownload) task.args.get("batchDownload");
+    }
+
+    // For tests purposes
+    protected CountDownLatch getCallWaiterLatchForTests() {
+        return this.callWaiterLatchForTests;
     }
 
     @Override
