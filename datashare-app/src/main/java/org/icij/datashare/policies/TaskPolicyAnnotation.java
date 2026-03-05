@@ -11,6 +11,7 @@ import org.icij.datashare.tasks.DatashareTaskManager;
 
 import java.io.IOException;
 import java.io.Serializable;
+import java.util.Objects;
 import java.util.function.Function;
 
 import static java.util.Optional.ofNullable;
@@ -28,7 +29,7 @@ public class TaskPolicyAnnotation implements ApplyAroundAnnotation<TaskPolicy> {
     }
 
     private static boolean isTaskOwner(DatashareUser user, Task<Serializable> task) {
-        return task.getUser().equals(user);
+        return Objects.equals(task.getUser(), user);
     }
     @Override
     public Payload apply(TaskPolicy annotation, Context context, Function<Context, Payload> payloadSupplier) {
