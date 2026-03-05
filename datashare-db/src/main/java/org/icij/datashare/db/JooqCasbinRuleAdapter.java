@@ -62,8 +62,7 @@ public class JooqCasbinRuleAdapter implements CasbinRuleAdapter {
             ctx.transaction((Configuration trx) -> {
                 DSLContext trxCtx = using(trx);
                 for (List<String> rule : rules) {
-                    // Call removePolicy with transaction context
-                    removePolicy(sec, ptype, rule);
+                    removePolicy(trxCtx, ptype, rule);
                 }
             });
         }
@@ -71,20 +70,18 @@ public class JooqCasbinRuleAdapter implements CasbinRuleAdapter {
 
     @Override
     public void removePolicy(String sec, String ptype, List<String> rule) {
-        DSLContext ctx = using(connectionProvider, dialect);
-        // Build and execute without wrapping in transaction
-        // Let caller manage transaction context
+        removePolicy(using(connectionProvider, dialect), ptype, rule);
+    }
+
+    private void removePolicy(DSLContext ctx, String ptype, List<String> rule) {
         DeleteConditionStep<CasbinRuleRecord> deleteQuery = ctx.deleteFrom(CASBIN_RULE)
                 .where(CASBIN_RULE.PTYPE.eq(ptype));
-
-        // Add conditions for each non-empty field in the rule
         for (int i = 0; i < rule.size(); i++) {
             String value = rule.get(i);
             if (!value.isEmpty()) {
                 deleteQuery = addFieldCondition(deleteQuery, i, value);
             }
         }
-
         deleteQuery.execute();
     }
 
