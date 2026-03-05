@@ -8,7 +8,7 @@ import java.lang.annotation.Target;
 @BasePolicy
 @Target({ElementType.METHOD, ElementType.TYPE})
 @Retention(RetentionPolicy.RUNTIME)
-public @interface ProjectPolicy {
+public @interface Policy {
     String idParam() default "index";
 
     String domain() default "default";

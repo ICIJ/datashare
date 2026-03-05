@@ -10,8 +10,8 @@ import net.codestory.http.security.SessionIdStore;
 import org.icij.datashare.cli.QueueType;
 import org.icij.datashare.db.JooqRepository;
 import org.icij.datashare.db.RepositoryFactoryImpl;
-import org.icij.datashare.policies.ProjectPolicy;
-import org.icij.datashare.policies.ProjectPolicyAnnotation;
+import org.icij.datashare.policies.Policy;
+import org.icij.datashare.policies.PolicyAnnotation;
 import org.icij.datashare.policies.TaskPolicy;
 import org.icij.datashare.policies.TaskPolicyAnnotation;
 import org.icij.datashare.session.*;
@@ -74,7 +74,7 @@ public class ServerMode extends CommonMode {
     protected void addPermissionConfiguration(final Routes routes) {
         // Use registerAroundAnnotation (not registerAfterAnnotation) so @ProjectPolicy checks
         // run BEFORE the endpoint handler and can block unauthorized requests with 403.
-        routes.registerAroundAnnotation(ProjectPolicy.class, get(ProjectPolicyAnnotation.class));
+        routes.registerAroundAnnotation(Policy.class, get(PolicyAnnotation.class));
         routes.registerAroundAnnotation(TaskPolicy.class, get(TaskPolicyAnnotation.class));
     }
 

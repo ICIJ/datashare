@@ -18,11 +18,32 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.mockito.MockitoAnnotations.openMocks;
 
-public class ProjectPolicyAnnotationTest {
-    private final ProjectPolicy adminProjectProjectPolicy = new ProjectPolicy() {
+public class PolicyAnnotationTest {
+    private final Policy instanceAdminPolicy = new Policy() {
         @Override
         public Class<? extends Annotation> annotationType() {
-            return ProjectPolicy.class;
+            return Policy.class;
+        }
+
+        @Override
+        public Role role() {
+            return Role.INSTANCE_ADMIN;
+        }
+
+        @Override
+        public String idParam() {
+            return "index";
+        }
+
+        @Override
+        public String domain() {
+            return "default";
+        }
+    };
+    private final Policy adminProjectPolicy = new Policy() {
+        @Override
+        public Class<? extends Annotation> annotationType() {
+            return Policy.class;
         }
 
         @Override
@@ -49,7 +70,7 @@ public class ProjectPolicyAnnotationTest {
     @Mock
     CasbinRuleAdapter adapter;
     Authorizer authorizer;
-    private ProjectPolicyAnnotation annotation;
+    private PolicyAnnotation annotation;
 
     @Before
     public void setUp() {
@@ -62,14 +83,15 @@ public class ProjectPolicyAnnotationTest {
         //TODO #DOMAIN : currently only default domain is supported in the annotation
         authorizer.addRoleForUserInProject(adminUser, Role.PROJECT_ADMIN, Domain.DEFAULT, project);
         authorizer.addRoleForUserInProject(nonAdminUser, Role.PROJECT_MEMBER, Domain.DEFAULT, project);
-        annotation = new ProjectPolicyAnnotation(authorizer);
+        authorizer.addRoleForUserInInstance(adminUser, Role.INSTANCE_ADMIN);
+        annotation = new PolicyAnnotation(authorizer);
     }
 
     @Test(expected = UnauthorizedException.class)
     public void should_throw_unauthorized_if_no_user() {
         Context context = mock(Context.class);
         when(context.pathParam("index")).thenReturn(projectId);
-        annotation.apply(adminProjectProjectPolicy, context, (c) -> Payload.ok());
+        annotation.apply(adminProjectPolicy, context, (c) -> Payload.ok());
     }
 
     @Test
@@ -81,7 +103,7 @@ public class ProjectPolicyAnnotationTest {
 
         when(context.pathParam("index")).thenReturn(projectId);
 
-        Payload result = annotation.apply(adminProjectProjectPolicy, context, c -> Payload.ok());
+        Payload result = annotation.apply(adminProjectPolicy, context, c -> Payload.ok());
         assertEquals(403, result.code());
     }
 
@@ -91,7 +113,7 @@ public class ProjectPolicyAnnotationTest {
 
         when(context.currentUser()).thenReturn(nonAdminUser);
         when(context.pathParam("index")).thenReturn(projectId);
-        Payload result = annotation.apply(adminProjectProjectPolicy, context, (c) -> Payload.forbidden());
+        Payload result = annotation.apply(adminProjectPolicy, context, (c) -> Payload.forbidden());
         assertEquals(403, result.code());
     }
 
@@ -101,8 +123,31 @@ public class ProjectPolicyAnnotationTest {
 
         when(context.currentUser()).thenReturn(adminUser);
         when(context.pathParam("index")).thenReturn(projectId);
-        Payload result = annotation.apply(adminProjectProjectPolicy, context, (c) -> Payload.ok());
+        Payload result = annotation.apply(adminProjectPolicy, context, (c) -> Payload.ok());
         assertEquals(200, result.code());
+    }
+
+    @Test
+    public void should_allow_instance_admin_with_no_project_param() {
+        Context context = mock(Context.class);
+        when(context.currentUser()).thenReturn(adminUser);
+        when(context.pathParam("index")).thenReturn(null);
+        assertEquals(200, annotation.apply(instanceAdminPolicy, context, c -> Payload.ok()).code());
+    }
+
+    @Test
+    public void should_forbid_non_instance_admin_with_no_project_param() {
+        Context context = mock(Context.class);
+        when(context.currentUser()).thenReturn(nonAdminUser);
+        when(context.pathParam("index")).thenReturn(null);
+        assertEquals(403, annotation.apply(instanceAdminPolicy, context, c -> Payload.ok()).code());
+    }
+
+    @Test(expected = UnauthorizedException.class)
+    public void should_throw_unauthorized_if_no_user_and_no_path_param() {
+        Context context = mock(Context.class);
+        when(context.pathParam("index")).thenReturn(null);
+        annotation.apply(instanceAdminPolicy, context, c -> Payload.ok());
     }
 
     @After
