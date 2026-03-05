@@ -36,7 +36,7 @@ databaseChangeLog:
                   type: VARCHAR(255)
 
   - changeSet:
-      id: 78
+      id: 73
       author: cdesprat
       changes:
         - createIndex:
