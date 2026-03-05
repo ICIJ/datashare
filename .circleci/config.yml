@@ -404,7 +404,7 @@ jobs:
       - run:
           name: Install elasticsearch
           command: |
-            make elasticsearch
+            ./datashare-dist/src/main/deb/bin/datashare-elasticsearch-setup.sh
       - run:
           name: Launch datashare
           command: java -jar datashare-dist/target/datashare-dist-${CIRCLE_TAG}-all.jar --dataSourceUrl 'jdbc:sqlite:file:memorydb.db?mode=memory&cache=shared' -m EMBEDDED
