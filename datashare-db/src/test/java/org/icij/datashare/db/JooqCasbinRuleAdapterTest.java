@@ -273,7 +273,7 @@ public class JooqCasbinRuleAdapterTest extends TestCase {
         assertThat(repository.isFiltered()).isTrue();
     }
 
-    // C2: NoSuchFieldException on g2 must be silently ignored (g2 is optional)
+    // NoSuchFieldException on g2 must be silently ignored (g2 is optional)
     @Test
     public void test_loadFilteredPolicy_does_not_throw_when_g2_absent_from_filter() {
         repository.addPolicy("p", "p", asList("alice", "icij", "banana-papers", "PROJECT_MEMBER"));
@@ -287,7 +287,7 @@ public class JooqCasbinRuleAdapterTest extends TestCase {
         assertThat(repository.isFiltered()).isTrue();
     }
 
-    // C2: when g2 is not set in the filter, g2-section policies must not be loaded
+    // when g2 is not set in the filter, g2-section policies must not be loaded
     @Test
     public void test_loadFilteredPolicy_does_not_load_g2_when_not_specified_in_filter() {
         repository.addPolicy("p", "p", asList("alice", "icij", "banana-papers", "PROJECT_MEMBER"));
