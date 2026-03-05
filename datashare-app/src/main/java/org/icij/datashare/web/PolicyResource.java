@@ -16,7 +16,7 @@ import net.codestory.http.payload.Payload;
 import org.icij.datashare.Repository;
 import org.icij.datashare.policies.Authorizer;
 import org.icij.datashare.policies.Domain;
-import org.icij.datashare.policies.ProjectPolicy;
+import org.icij.datashare.policies.Policy;
 import org.icij.datashare.policies.Role;
 import org.icij.datashare.text.Project;
 import org.icij.datashare.user.User;
@@ -63,7 +63,7 @@ public class PolicyResource {
             }
     )
     @ApiResponse(responseCode = "200", description = "Instance policies retrieved successfully.")
-    @ProjectPolicy(role = Role.INSTANCE_ADMIN)
+    @Policy(role = Role.INSTANCE_ADMIN)
     @Get()
     public Payload getInstancePolicies(
             Context context) {
@@ -81,7 +81,7 @@ public class PolicyResource {
 
     @Operation(description = "Remove an instance policy for a given user with a given role.")
     @ApiResponse(responseCode = "200", description = "Policy removed successfully.")
-    @ProjectPolicy(role = Role.INSTANCE_ADMIN)
+    @Policy(role = Role.INSTANCE_ADMIN)
     @Delete("")
     public Payload removeInstancePolicy(Context context) {
         User user = userExists(context.query().get("user"));
@@ -96,7 +96,7 @@ public class PolicyResource {
 
     @Operation(description = "Upsert a policy regarding a user a project a domain and its role.")
     @ApiResponse(responseCode = "200", description = "Policy added successfully.")
-    @ProjectPolicy(role = Role.INSTANCE_ADMIN)
+    @Policy(role = Role.INSTANCE_ADMIN)
     @Put("")
     public Payload saveInstancePolicy(
             Context context) {
@@ -117,7 +117,7 @@ public class PolicyResource {
     )
 
     @ApiResponse(responseCode = "200", description = "Domain policies retrieved successfully.")
-    @ProjectPolicy(role = Role.DOMAIN_ADMIN)
+    @Policy(role = Role.DOMAIN_ADMIN)
     @Get("/:domain")
     public Payload getDomainPolicies(@Parameter(name = "domain", description = "Domain name", in = ParameterIn.PATH) String domain, Context context) {
         try {
@@ -137,7 +137,7 @@ public class PolicyResource {
 
     @Operation(description = "Remove a domain policy for a given user with a given role.")
     @ApiResponse(responseCode = "200", description = "Policy removed successfully.")
-    @ProjectPolicy(role = Role.DOMAIN_ADMIN)
+    @Policy(role = Role.DOMAIN_ADMIN)
     @Delete("/:domain")
     public Payload removeDomainPolicy(String domain, Context context) {
         try {
@@ -153,12 +153,15 @@ public class PolicyResource {
 
     @Operation(description = "Upsert a policy regarding a user a project a domain and its role.")
     @ApiResponse(responseCode = "200", description = "Policy added successfully.")
-    @ProjectPolicy(role = Role.DOMAIN_ADMIN)
+    @Policy(role = Role.DOMAIN_ADMIN)
     @Put("/:domain")
     public Payload saveDomainPolicy(String domain, Context context) {
         try {
             User user = userExists(context.query().get("user"));
             Role role = requireRole(context.query().get("role"));
+            if (!authorizer.isGrantableBy(role, Role.DOMAIN_ADMIN)) {
+                return new Payload("Cannot grant a role with higher privileges than your own").withCode(HttpStatus.FORBIDDEN);
+            }
             Domain domainValue = requireDomain(domain, false);
             authorizer.updateRoleForUserInDomain(user, role, domainValue);
             return ok();
@@ -177,7 +180,7 @@ public class PolicyResource {
             }
     )
     @ApiResponse(responseCode = "200", description = "Project policies retrieved successfully.")
-    @ProjectPolicy(role = Role.PROJECT_MEMBER)
+    @Policy(role = Role.PROJECT_MEMBER)
     @Get("/:domain/:project")
     public Payload getProjectPolicies(
             @Parameter(name = "domain", description = "Domain name", in = ParameterIn.PATH) String domain,
@@ -202,7 +205,7 @@ public class PolicyResource {
 
     @Operation(description = "Remove a project policy for a given user with a given role.")
     @ApiResponse(responseCode = "200", description = "Policy removed successfully.")
-    @ProjectPolicy(role = Role.PROJECT_ADMIN)
+    @Policy(role = Role.PROJECT_ADMIN)
     @Delete("/:domain/:project")
     public Payload removeProjectPolicy(String domain, String project, Context context) {
         try {
@@ -221,12 +224,15 @@ public class PolicyResource {
 
     @Operation(description = "Upsert a policy regarding a user a project a domain and its role.")
     @ApiResponse(responseCode = "200", description = "Policy added successfully.")
-    @ProjectPolicy(role = Role.PROJECT_EDITOR)
+    @Policy(role = Role.PROJECT_EDITOR)
     @Put("/:domain/:project")
     public Payload saveProjectPolicy(String domain, String project, Context context) {
         try {
             User user = userExists(context.query().get("user"));
             Role role = requireRole(context.query().get("role"));
+            if (!authorizer.isGrantableBy(role, Role.PROJECT_EDITOR)) {
+                return new Payload("Cannot grant a role with higher privileges than your own").withCode(HttpStatus.FORBIDDEN);
+            }
             Domain domainValue = requireDomain(domain, false);
             Project projectValue = projectExists(project);
             authorizer.updateRoleForUserInProject(user, role, domainValue, projectValue);

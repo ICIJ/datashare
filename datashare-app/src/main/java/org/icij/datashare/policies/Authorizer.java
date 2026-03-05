@@ -250,4 +250,9 @@ public final class Authorizer {
     static String requireIdParam(Context context, String idParam) {
         return requireValue(context.pathParam(idParam), true);
     }
+
+    public boolean isGrantableBy(Role requestedRole, Role callerMinimumRole) {
+        if (requestedRole == callerMinimumRole) return true;
+        return enforcer.getNamedRoleManager("g2").hasLink(callerMinimumRole.name(), requestedRole.name());
+    }
 }
