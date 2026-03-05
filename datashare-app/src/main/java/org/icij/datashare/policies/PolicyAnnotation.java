@@ -9,7 +9,7 @@ import org.icij.datashare.session.DatashareUser;
 import java.util.function.Function;
 
 import static org.icij.datashare.policies.Authorizer.requireDomain;
-import static org.icij.datashare.policies.Authorizer.requireValue;
+import static org.icij.datashare.policies.Authorizer.requireIdParam;
 
 
 public class PolicyAnnotation implements ApplyAroundAnnotation<Policy> {
@@ -22,15 +22,17 @@ public class PolicyAnnotation implements ApplyAroundAnnotation<Policy> {
 
     @Override
     public Payload apply(Policy annotation, Context context, Function<Context, Payload> payloadSupplier) {
-
         DatashareUser user = Authorizer.requireCurrentUser(context);
 
-        String rawProjectId = context.pathParam(annotation.idParam());
-        boolean instanceLevel = rawProjectId == null || rawProjectId.isBlank();
-
-        //TODO #DOMAIN Currently Domain is not handled so we can't check it from query params
-        Domain domain = instanceLevel ? Domain.of("*") : requireDomain(annotation.domain(), true);
-        String projectId = instanceLevel ? "*" : requireValue(rawProjectId, true);
+        Domain domain;
+        String projectId;
+        if (annotation.role() == Role.INSTANCE_ADMIN) {
+            domain = Domain.of("*");
+            projectId = "*";
+        } else {
+            domain = requireDomain(annotation.domain(), true);
+            projectId = annotation.role() == Role.DOMAIN_ADMIN ? "*" : requireIdParam(context, annotation.idParam());
+        }
 
         if (!authorizer.can(user.id, domain, projectId, annotation.role())) {
             return Payload.forbidden();

@@ -62,8 +62,30 @@ public class PolicyAnnotationTest {
         }
 
     };
+    private final Policy domainAdminPolicy = new Policy() {
+        @Override
+        public Class<? extends Annotation> annotationType() {
+            return Policy.class;
+        }
+
+        @Override
+        public Role role() {
+            return Role.DOMAIN_ADMIN;
+        }
+
+        @Override
+        public String idParam() {
+            return "index";
+        }
+
+        @Override
+        public String domain() {
+            return "default";
+        }
+    };
     private DatashareUser adminUser;
     private DatashareUser nonAdminUser;
+    private DatashareUser domainAdminUser;
 
     private static AutoCloseable mocks;
     private String projectId = "test-datashare";
@@ -84,6 +106,8 @@ public class PolicyAnnotationTest {
         authorizer.addRoleForUserInProject(adminUser, Role.PROJECT_ADMIN, Domain.DEFAULT, project);
         authorizer.addRoleForUserInProject(nonAdminUser, Role.PROJECT_MEMBER, Domain.DEFAULT, project);
         authorizer.addRoleForUserInInstance(adminUser, Role.INSTANCE_ADMIN);
+        domainAdminUser = new DatashareUser("alice");
+        authorizer.addRoleForUserInDomain(domainAdminUser, Role.DOMAIN_ADMIN, Domain.DEFAULT);
         annotation = new PolicyAnnotation(authorizer);
     }
 
@@ -144,10 +168,30 @@ public class PolicyAnnotationTest {
     }
 
     @Test(expected = UnauthorizedException.class)
-    public void should_throw_unauthorized_if_no_user_and_no_path_param() {
+    public void should_throw_unauthorized_if_no_user_and_no_project_param() {
         Context context = mock(Context.class);
         when(context.pathParam("index")).thenReturn(null);
         annotation.apply(instanceAdminPolicy, context, c -> Payload.ok());
+    }
+
+    @Test
+    public void should_allow_domain_admin() {
+        Context context = mock(Context.class);
+        when(context.currentUser()).thenReturn(domainAdminUser);
+        assertEquals(200, annotation.apply(domainAdminPolicy, context, c -> Payload.ok()).code());
+    }
+
+    @Test
+    public void should_forbid_non_domain_admin() {
+        Context context = mock(Context.class);
+        when(context.currentUser()).thenReturn(nonAdminUser);
+        assertEquals(403, annotation.apply(domainAdminPolicy, context, c -> Payload.ok()).code());
+    }
+
+    @Test(expected = UnauthorizedException.class)
+    public void should_throw_unauthorized_if_no_user_for_domain_policy() {
+        Context context = mock(Context.class);
+        annotation.apply(domainAdminPolicy, context, c -> Payload.ok());
     }
 
     @After
