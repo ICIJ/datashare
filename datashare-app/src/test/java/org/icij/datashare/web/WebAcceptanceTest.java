@@ -35,6 +35,7 @@ public class WebAcceptanceTest extends AbstractProdWebServerTest {
         authorizer = new Authorizer(adapter);
     }
 
+    @After
     public void tearDown() throws Exception {
         mocks.close();
     }
@@ -83,11 +84,6 @@ public class WebAcceptanceTest extends AbstractProdWebServerTest {
             return "admin-content " + index;
         }
 
-    }
-
-    @After
-    public void teardown() throws Exception {
-        mocks.close();
     }
 
 
