@@ -247,7 +247,7 @@ public final class Authorizer {
         return Domain.of(requireValue(domain, wildcardAllowed));
     }
 
-    protected static String requireIdParam(Context context, String idParam) {
+    static String requireIdParam(Context context, String idParam) {
         return requireValue(context.pathParam(idParam), true);
     }
 }
