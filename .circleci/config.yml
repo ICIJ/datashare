@@ -168,7 +168,7 @@ jobs:
           discovery.type: single-node
           cluster.name: datashare
           http.cors.enabled: true
-          http.cors.allow-origin: "*"
+          http.cors.allow-origin: '*'
           http.cors.allow-methods: OPTIONS, HEAD, GET, POST, PUT, DELETE
         name: elasticsearch
     working_directory: /tmp
