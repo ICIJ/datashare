@@ -132,7 +132,7 @@ services:
         - TEMPORAL_ADDRESS=temporal:7233
         - TEMPORAL_CORS_ORIGINS=http://localhost:3000
       ports:
-        - "8080:8080"
+        - "8000:8080"
 
     temporal-setup-db:
       image: temporalio/admin-tools:1.29
