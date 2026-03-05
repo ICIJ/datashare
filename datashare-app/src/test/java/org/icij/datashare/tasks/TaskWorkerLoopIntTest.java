@@ -21,8 +21,7 @@ import static java.util.Collections.singletonList;
 import static org.fest.assertions.Assertions.assertThat;
 import static org.icij.datashare.text.Project.project;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 public class TaskWorkerLoopIntTest {
     private static final PropertiesProvider propertiesProvider = new PropertiesProvider(Map.of("redisAddress", EnvUtils.resolveUri("redis", "redis://redis:6379")));
@@ -32,24 +31,32 @@ public class TaskWorkerLoopIntTest {
 
     @Test(timeout = 20000)
     public void test_batch_download_task_view_properties() throws Exception {
+        // GIVEN
         DatashareTaskFactory factory = mock(DatashareTaskFactory.class);
         BatchDownload batchDownload = new BatchDownload(singletonList(project("prj")), User.local(), "foo");
         Map<String, Object> properties = Map.of("batchDownload", batchDownload);
         Task<File> taskView = new Task<>(BatchDownloadRunner.class.getName(), batchDownload.user, properties);
         BatchDownloadRunner runner = new BatchDownloadRunner(mock(Indexer.class), new PropertiesProvider(), taskView, taskView.progress(taskSupplier::progress));
-        when(factory.createBatchDownloadRunner(any(), any())).thenReturn(runner);
+
+        // Use latch that is decremented when the factory creates a BatchDownloadRunner.
+        // This is a bit hacky, we could consider adding a callback in TaskWorkerLoop if the issue is spread to other tests
+        CountDownLatch taskStarted = new CountDownLatch(1);
+        doAnswer(inv -> {taskStarted.countDown(); return runner;}).when(factory).createBatchDownloadRunner(any(), any());
 
         CountDownLatch workerStarted = new CountDownLatch(1);
         TaskWorkerLoop taskWorkerLoop = new TaskWorkerLoop(factory, taskSupplier, workerStarted, 10);
         Thread worker = new Thread(taskWorkerLoop::call);
         worker.start();
         workerStarted.await();
+        // WHEN
         taskManager.startTask(BatchDownloadRunner.class.getName(), User.local(), properties);
-        Thread.sleep(100); // this is a symptom of a possible flaky test but for now I can't figure out how to be event driven
+
+        taskStarted.await();
 
         taskManager.awaitTermination(1, TimeUnit.SECONDS);
         eventWaiter.await();
 
+        // THEN
         List<Task<?>> tasks = taskManager.getTasks().toList();
         assertThat(tasks).hasSize(1);
         assertThat(tasks.get(0).getError()).isNotNull();
