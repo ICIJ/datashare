@@ -9,26 +9,28 @@ import org.icij.datashare.session.DatashareUser;
 import java.util.function.Function;
 
 import static org.icij.datashare.policies.Authorizer.requireDomain;
-import static org.icij.datashare.policies.Authorizer.requireIdParam;
+import static org.icij.datashare.policies.Authorizer.requireValue;
 
 
-public class ProjectPolicyAnnotation implements ApplyAroundAnnotation<ProjectPolicy> {
+public class PolicyAnnotation implements ApplyAroundAnnotation<Policy> {
     private final Authorizer authorizer;
 
     @Inject
-    public ProjectPolicyAnnotation(Authorizer authorizer) {
+    public PolicyAnnotation(Authorizer authorizer) {
         this.authorizer = authorizer;
     }
 
     @Override
-    public Payload apply(ProjectPolicy annotation, Context context, Function<Context, Payload> payloadSupplier) {
+    public Payload apply(Policy annotation, Context context, Function<Context, Payload> payloadSupplier) {
 
         DatashareUser user = Authorizer.requireCurrentUser(context);
 
-        //TODO #DOMAIN Currently Domain is not handled so we can't check it from query params
-        Domain domain = requireDomain(annotation.domain(), true);
+        String rawProjectId = context.pathParam(annotation.idParam());
+        boolean instanceLevel = rawProjectId == null || rawProjectId.isBlank();
 
-        String projectId = requireIdParam(context, annotation.idParam());
+        //TODO #DOMAIN Currently Domain is not handled so we can't check it from query params
+        Domain domain = instanceLevel ? Domain.of("*") : requireDomain(annotation.domain(), true);
+        String projectId = instanceLevel ? "*" : requireValue(rawProjectId, true);
 
         if (!authorizer.can(user.id, domain, projectId, annotation.role())) {
             return Payload.forbidden();
