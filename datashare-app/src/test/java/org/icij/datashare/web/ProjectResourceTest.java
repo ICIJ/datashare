@@ -442,4 +442,10 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
         delete("/api/project/foo").should().respond(204);
         assertThat(reportMap.size()).isEqualTo(0);
     }
+
+    @Test
+    public void test_delete_project_not_existing_on_user_returns_401() {
+        when(repository.getProjects(any())).thenReturn(List.of());
+        delete("/api/project/unknown-project").should().respond(401);
+    }
 }

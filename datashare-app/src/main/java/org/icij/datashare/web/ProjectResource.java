@@ -12,6 +12,7 @@
     import net.codestory.http.Context;
     import net.codestory.http.annotations.*;
     import net.codestory.http.constants.HttpStatus;
+    import net.codestory.http.errors.UnauthorizedException;
     import net.codestory.http.payload.Payload;
     import org.apache.commons.io.FileUtils;
     import org.icij.datashare.PropertiesProvider;
@@ -171,6 +172,9 @@
             modeVerifier.checkAllowedMode(Mode.LOCAL, Mode.EMBEDDED);
             DatashareUser user = (DatashareUser) context.currentUser();
             Project project = getUserProject(user, id);
+            if (project == null) {
+                throw new UnauthorizedException();
+            }
             Logger logger = LoggerFactory.getLogger(getClass());
             logger.info("Deleted {}'s record: {}", id, repository.deleteAll(id));
             logger.info("Deleted {}'s index: {}", id, indexer.deleteAll(id));
