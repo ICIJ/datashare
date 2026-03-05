@@ -16,14 +16,14 @@ public class CasbinRule {
     public CasbinRule() {
     }
 
-    public CasbinRule(String ptype, String v0, String v1, String v2, String v3, String v4, String v5) {
+    public CasbinRule(String ptype, String... values) {
         this.ptype = ptype;
-        this.v0 = v0;
-        this.v1 = v1;
-        this.v2 = v2;
-        this.v3 = v3;
-        this.v4 = v4;
-        this.v5 = v5;
+        this.v0 = values.length > 0 ? values[0] : "";
+        this.v1 = values.length > 1 ? values[1] : "";
+        this.v2 = values.length > 2 ? values[2] : "";
+        this.v3 = values.length > 3 ? values[3] : "";
+        this.v4 = values.length > 4 ? values[4] : "";
+        this.v5 = values.length > 5 ? values[5] : "";
     }
 
     public static String escapeSingleRule(String rule) {
@@ -67,15 +67,10 @@ public class CasbinRule {
 
     @JsonCreator
     public static CasbinRule fromArray(List<String> arr) {
-        return new CasbinRule(
-                arr.size() > 0 ? arr.get(0) : "",
-                arr.size() > 1 ? arr.get(1) : "",
-                arr.size() > 2 ? arr.get(2) : "",
-                arr.size() > 3 ? arr.get(3) : "",
-                arr.size() > 4 ? arr.get(4) : "",
-                arr.size() > 5 ? arr.get(5) : "",
-                arr.size() > 6 ? arr.get(6) : ""
-        );
+        if (arr.isEmpty()) return new CasbinRule();
+        String ptype = arr.get(0);
+        String[] values = arr.subList(1, arr.size()).toArray(new String[0]);
+        return new CasbinRule(ptype, values);
     }
     public String[] toStringArray() {
         return new String[]{this.ptype, this.v0, this.v1, this.v2, this.v3, this.v4, this.v5};
