@@ -47,8 +47,10 @@ public class TaskPolicyAnnotation implements ApplyAroundAnnotation<TaskPolicy> {
                     .orElseThrow(() -> new IllegalStateException("Task " + taskId + " does not have a project id in its arguments"));
             Authorizer.requireValue(projectId, false);
 
-            // Check if user as role based rights or is owner (if an annotation allowOwner flag is true)
-            if (!authorizer.can(user.id, domain, projectId, annotation.role()) && (!annotation.allowOwner() || !isTaskOwner(user, task))) {
+            // Check if user as role based rights or is owner with access rights (if ownerRole is specified)
+            boolean hasRole = authorizer.can(user.id, domain, projectId, annotation.role());
+            boolean hasOwnerRole = annotation.ownerRole() != Role.NONE && authorizer.can(user.id, domain, projectId, annotation.ownerRole()) && isTaskOwner(user, task);
+            if (!hasRole && !hasOwnerRole) {
                 return Payload.forbidden();
             }
             return payloadSupplier.apply(context);
