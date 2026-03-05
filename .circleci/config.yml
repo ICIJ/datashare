@@ -402,6 +402,10 @@ jobs:
       - attach_workspace:
           at: /tmp/datashare
       - run:
+          name: Install elasticsearch
+          command: |
+            make elasticsearch
+      - run:
           name: Launch datashare
           command: java -jar datashare-dist/target/datashare-dist-${CIRCLE_TAG}-all.jar --dataSourceUrl 'jdbc:sqlite:file:memorydb.db?mode=memory&cache=shared' -m EMBEDDED
           background: true
