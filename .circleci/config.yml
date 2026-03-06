@@ -394,6 +394,30 @@ jobs:
             curl -X POST -s -m 120 -H "Accept: application/vnd.github.v3+json" -H "Authorization: token $GITHUB_TOKEN" -H "Content-Type: application/vnd.debian.binary-package" --data-binary "@/tmp/datashare/datashare-dist/target/datashare-dist-${CIRCLE_TAG}.deb" "$upload_url?name=datashare-${CIRCLE_TAG}.deb&label=datashare-${CIRCLE_TAG}.deb"
             curl -X POST -s -m 120 -H "Accept: application/vnd.github.v3+json" -H "Authorization: token $GITHUB_TOKEN" -H "Content-Type: application/gzip" --data-binary "@/tmp/datashare/datashare-dist/target/datashare-dist-${CIRCLE_TAG}.tgz" "$upload_url?name=datashare-${CIRCLE_TAG}.tgz&label=datashare-${CIRCLE_TAG}.tgz"
 
+  install_elastic_search:
+    docker:
+      - image: cimg/base:current
+    environment:
+      DATASHARE_HOME: "/tmp/datashare"
+    steps:
+      - checkout
+
+      - restore_cache:
+          keys:
+            # Use the checksum of the script to use a new cache entry if the version of es changes in the script
+            - elasticsearch-{{ checksum "datashare-dist/src/main/deb/bin/datashare-elasticsearch-setup.sh" }}
+      - run:
+          name: Install elasticsearch
+          command: make elasticsearch
+      - save_cache:
+          key: elasticsearch-{{ checksum "datashare-dist/src/main/deb/bin/datashare-elasticsearch-setup.sh" }}
+          paths:
+            - /tmp/datashare/elasticsearch
+      - persist_to_workspace:
+          root: /tmp/datashare
+          paths:
+            - elasticsearch
+
   create_openapi_json:
     docker:
       - image: cimg/openjdk:21.0.9
@@ -402,19 +426,15 @@ jobs:
       - attach_workspace:
           at: /tmp/datashare
       - run:
-          name: Install elasticsearch
-          command: |
-            ./datashare-dist/src/main/deb/bin/datashare-elasticsearch-setup.sh
-      - run:
           name: Launch datashare
-          command: java -jar datashare-dist/target/datashare-dist-${CIRCLE_TAG}-all.jar --dataSourceUrl 'jdbc:sqlite:file:memorydb.db?mode=memory&cache=shared' -m EMBEDDED
+          command: java -jar datashare-dist/target/datashare-dist-${CIRCLE_TAG}-all.jar --dataSourceUrl 'jdbc:sqlite:file:memorydb.db?mode=memory&cache=shared' --elasticsearchPath /tmp/datashare/elasticsearch -m EMBEDDED
           background: true
       - run:
+          name: Wait for datashare to be started
+          command: curl --retry 20 --retry-delay 5 --retry-all-errors 'http://localhost:8080/api/status'
+      - run:
           name: Generate openAPI json file
-          command: |
-            curl --retry 20 --retry-delay 5 --retry-all-errors -o /dev/null 'http://localhost:9200'
-            curl --retry 10 --retry-delay 5 --retry-all-errors -o /dev/null 'http://localhost:8080/api/openapi'
-            curl -s http://localhost:8080/api/openapi | jq > datashare_openapi.json
+          command: curl -s http://localhost:8080/api/openapi | jq > datashare_openapi.json
       - persist_to_workspace:
           root: /tmp/datashare
           paths:
@@ -528,6 +548,14 @@ workflows:
           filters:
               tags:
                   only: /^[0-9.]+\..*/
+      - install_elastic_search:
+          requires:
+            - package_back
+          filters:
+            tags:
+              only: /^[0-9]+\..*/
+            branches:
+              ignore: /.*/
       - deploy_back:
           requires:
             - create_openapi_json
@@ -562,6 +590,7 @@ workflows:
       - create_openapi_json:
           requires:
             - package_back
+            - install_elastic_search
           filters:
             tags:
               only: /^[0-9]+\..*/
