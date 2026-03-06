@@ -467,8 +467,8 @@ public class TaskResource {
     @Operation(description = "Cancels the task with the given name.")
     @ApiResponse(responseCode = "200", description = "returns 200 with the cancellation status (true/false)", useReturnTypeSchema = true)
     @ApiResponse(responseCode = "404", description = "returns 404 if the task doesn't exist")
-    @TaskPolicy(role = Role.PROJECT_ADMIN, ownerRole = Role.PROJECT_MEMBER)
     @Put("/stop/:taskId:")
+    @TaskPolicy(role = Role.PROJECT_ADMIN, ownerRole = Role.PROJECT_MEMBER, idParam = "taskId:")
     public boolean stopTask(@Parameter(name = "taskName", description = "name of the task to cancel", in = ParameterIn.PATH) final String taskId) throws IOException {
         return notFoundIfUnknown(() -> taskManager.stopTask(notFoundIfUnknown(() -> taskManager.getTask(taskId)).id));
     }
@@ -489,6 +489,7 @@ public class TaskResource {
                     @Parameter(name = "name", description = "as an example: pattern contained in the task name", in = ParameterIn.QUERY)},
             deprecated = true)
     @ApiResponse(responseCode = "200", description = "returns 200 and the tasks stop result map", useReturnTypeSchema = true)
+    @TaskPolicy(role = Role.PROJECT_ADMIN)
     @Put("/stopAll")
     public Map<String, Boolean> stopAllTasks(final Context context) throws IOException {
         modeVerifier.checkAllowedMode(Mode.LOCAL, Mode.EMBEDDED);
@@ -511,6 +512,7 @@ public class TaskResource {
             parameters = {
                     @Parameter(name = "name", description = "as an example: pattern contained in the task name", in = ParameterIn.QUERY)})
     @ApiResponse(responseCode = "200", description = "returns 200 and the tasks stop result map", useReturnTypeSchema = true)
+    @TaskPolicy(role = Role.PROJECT_ADMIN)
     @Put("/stop")
     public Map<String, Boolean> stopTasks(final Context context) throws IOException {
         modeVerifier.checkAllowedMode(Mode.LOCAL, Mode.EMBEDDED);
