@@ -36,9 +36,7 @@ public class GrantAdminPolicyTask extends DefaultTask<Boolean> implements UserTa
 
     @Override
     public Boolean call() {
-        // The retry can() call reads from jCasbin's authoritative store, so it reflects what any concurrent writer committed
-        if (authorizer.can(user.getId(), domain, project.getId(), Role.PROJECT_ADMIN)
-                || authorizer.addProjectAdmin(user, domain, project)
+        if (authorizer.addProjectAdmin(user, domain, project)
                 || authorizer.can(user.getId(), domain, project.getId(), Role.PROJECT_ADMIN)) {
             logger.info("Project admin role granted to user '{}' for project '{}' in domain '{}'.", user.getId(), project.getId(), domain.id());
             return true;
