@@ -6,45 +6,14 @@ import org.icij.datashare.DocumentUserRecommendation;
 import org.icij.datashare.Note;
 import org.icij.datashare.Repository;
 import org.icij.datashare.UserEvent;
-import org.icij.datashare.db.tables.records.DocumentRecord;
-import org.icij.datashare.db.tables.records.DocumentTagRecord;
-import org.icij.datashare.db.tables.records.DocumentUserRecommendationRecord;
-import org.icij.datashare.db.tables.records.DocumentUserStarRecord;
-import org.icij.datashare.db.tables.records.NamedEntityRecord;
-import org.icij.datashare.db.tables.records.NoteRecord;
-import org.icij.datashare.db.tables.records.ProjectRecord;
-import org.icij.datashare.db.tables.records.UserHistoryProjectRecord;
-import org.icij.datashare.db.tables.records.UserHistoryRecord;
-import org.icij.datashare.db.tables.records.UserInventoryRecord;
+import org.icij.datashare.db.tables.records.*;
 import org.icij.datashare.json.JsonObjectMapper;
-import org.icij.datashare.text.Document;
-import org.icij.datashare.text.DocumentBuilder;
-import org.icij.datashare.text.Language;
-import org.icij.datashare.text.NamedEntity;
-import org.icij.datashare.text.Project;
-import org.icij.datashare.text.ProjectProxy;
+import org.icij.datashare.text.*;
 import org.icij.datashare.text.Tag;
 import org.icij.datashare.text.nlp.Pipeline;
 import org.icij.datashare.user.User;
-import org.jooq.DSLContext;
-import org.jooq.Field;
-import org.jooq.InsertOnDuplicateSetMoreStep;
-import org.jooq.InsertValuesStep2;
-import org.jooq.InsertValuesStep3;
-import org.jooq.InsertValuesStep4;
-import org.jooq.InsertValuesStep5;
-import org.jooq.InsertValuesStep6;
-import org.jooq.InsertValuesStep9;
+import org.jooq.*;
 import org.jooq.Record;
-import org.jooq.Record1;
-import org.jooq.SQLDialect;
-import org.jooq.SelectConditionStep;
-import org.jooq.SelectJoinStep;
-import org.jooq.SelectOnConditionStep;
-import org.jooq.SelectSelectStep;
-import org.jooq.SortField;
-import org.jooq.UpdateConditionStep;
-import org.jooq.UpdateSetMoreStep;
 import org.jooq.exception.DataAccessException;
 import org.jooq.impl.DSL;
 import org.slf4j.LoggerFactory;
@@ -58,11 +27,7 @@ import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
-import java.util.Date;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.function.Predicate;
 
 import static java.nio.charset.Charset.forName;
@@ -86,11 +51,7 @@ import static org.icij.datashare.db.tables.UserInventory.USER_INVENTORY;
 import static org.icij.datashare.text.Document.Status.fromCode;
 import static org.icij.datashare.text.Language.parse;
 import static org.icij.datashare.text.Project.project;
-import static org.jooq.impl.DSL.condition;
-import static org.jooq.impl.DSL.count;
-import static org.jooq.impl.DSL.countDistinct;
-import static org.jooq.impl.DSL.using;
-import static org.jooq.impl.DSL.value;
+import static org.jooq.impl.DSL.*;
 
 public class JooqRepository implements Repository {
     private final DataSource connectionProvider;
@@ -580,6 +541,12 @@ public class JooqRepository implements Repository {
     public User getUser(String uid) {
         DSLContext ctx = using(connectionProvider, dialect);
         return createUserFrom(ctx.selectFrom(USER_INVENTORY).where(USER_INVENTORY.ID.eq(uid)).fetchOne());
+    }
+
+    @Override
+    public List<User> listUsers() {
+        DSLContext ctx = using(connectionProvider, dialect);
+        return ctx.selectFrom(USER_INVENTORY).fetch().stream().map(this::createUserFrom).collect(toList());
     }
 
     @Override

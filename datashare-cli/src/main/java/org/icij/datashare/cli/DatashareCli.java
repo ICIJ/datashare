@@ -19,10 +19,7 @@ import java.util.Properties;
 import static java.util.Optional.ofNullable;
 import static org.icij.datashare.PropertiesProvider.DEFAULT_PROJECT_OPT;
 import static org.icij.datashare.PropertiesProvider.DIGEST_PROJECT_NAME_OPT;
-import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_DEFAULT_PROJECT;
-import static org.icij.datashare.cli.DatashareCliOptions.NO_DIGEST_PROJECT_OPT;
-import static org.icij.datashare.cli.DatashareCliOptions.OAUTH_USER_PROJECTS_KEY_OPT;
-import static org.icij.datashare.cli.DatashareCliOptions.OPT_ALIASES;
+import static org.icij.datashare.cli.DatashareCliOptions.*;
 
 
 public class DatashareCli {
@@ -182,6 +179,7 @@ public class DatashareCli {
         DatashareCliOptions.delApiKey(parser);
         DatashareCliOptions.getApiKey(parser);
         DatashareCliOptions.grantAdminPolicy(parser);
+        DatashareCliOptions.importUserPolicies(parser);
         DatashareCliOptions.sessionSigningKey(parser);
         DatashareCliOptions.sessionTtlSeconds(parser);
         DatashareCliOptions.protectedUriPrefix(parser);

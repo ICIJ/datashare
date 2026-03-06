@@ -67,6 +67,8 @@ public interface Repository {
     boolean save(User user);
     User getUser(String userId);
 
+    List<User> listUsers();
+
     class AggregateList<T> {
         public final List<Aggregate<T>> aggregates;
         public final int totalCount;

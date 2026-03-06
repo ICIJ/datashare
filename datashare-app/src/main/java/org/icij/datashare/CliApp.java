@@ -96,6 +96,12 @@ class CliApp {
             System.exit(0);
         }
 
+        if (properties.getProperty(IMPORT_USER_POLICIES_OPT) != null) {
+            int count = taskFactory.createImportUserPoliciesTask().call();
+            logger.info("Imported {} user policies from OAuth2 DB.", count);
+            System.exit(0);
+        }
+
         PipelineHelper pipeline = new PipelineHelper(new PropertiesProvider(properties));
         logger.info("executing {}", pipeline);
         if (pipeline.has(Stage.DEDUPLICATE)) {

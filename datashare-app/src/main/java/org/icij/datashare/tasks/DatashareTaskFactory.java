@@ -28,4 +28,6 @@ public interface DatashareTaskFactory extends org.icij.datashare.asynctasks.Task
     GetApiKeyTask createGetApiKey(User user);
 
     GrantAdminPolicyTask createGrantAdminPolicyTask(User user, Domain domain, Project project);
+
+    ImportUserPoliciesTask createImportUserPoliciesTask();
 }
