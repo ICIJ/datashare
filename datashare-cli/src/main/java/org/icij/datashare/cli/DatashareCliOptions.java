@@ -401,7 +401,9 @@ public final class DatashareCliOptions {
     }
 
     static void importUserPolicies(OptionParser parser) {
-        parser.acceptsAll(singletonList(IMPORT_USER_POLICIES_OPT), "Import PROJECT_MEMBER policies for all OAuth2 users from the database");
+        parser.acceptsAll(singletonList(IMPORT_USER_POLICIES_OPT), "Import PROJECT_MEMBER policies for all OAuth2 users from the database (caller must have INSTANCE_ADMIN)")
+                .withRequiredArg()
+                .ofType(String.class);
     }
 
     static void dataDir(OptionParser parser) {

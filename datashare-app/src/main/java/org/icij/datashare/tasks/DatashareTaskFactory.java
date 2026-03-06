@@ -29,5 +29,5 @@ public interface DatashareTaskFactory extends org.icij.datashare.asynctasks.Task
 
     GrantAdminPolicyTask createGrantAdminPolicyTask(User user, Domain domain, Project project);
 
-    ImportUserPoliciesTask createImportUserPoliciesTask();
+    ImportUserPoliciesTask createImportUserPoliciesTask(User caller);
 }

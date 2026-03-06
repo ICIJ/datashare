@@ -97,8 +97,13 @@ class CliApp {
         }
 
         if (properties.getProperty(IMPORT_USER_POLICIES_OPT) != null) {
-            int count = taskFactory.createImportUserPoliciesTask().call();
-            logger.info("Imported {} user policies from OAuth2 DB.", count);
+            String userName = properties.getProperty(IMPORT_USER_POLICIES_OPT);
+            int count = taskFactory.createImportUserPoliciesTask(localUser(userName)).call();
+            if (count < 0) {
+                logger.error("Import aborted: caller '{}' lacks INSTANCE_ADMIN.", userName);
+            } else {
+                logger.info("Imported {} user policies from OAuth2 DB.", count);
+            }
             System.exit(0);
         }
 

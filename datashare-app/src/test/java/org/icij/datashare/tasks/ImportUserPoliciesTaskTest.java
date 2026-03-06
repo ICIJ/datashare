@@ -23,10 +23,12 @@ public class ImportUserPoliciesTaskTest {
     @Mock
     public Repository repository;
     private AutoCloseable mocks;
+    private final User caller = User.local();
 
     @Before
     public void setUp() {
         mocks = openMocks(this);
+        when(authorizer.can(any(), any(), any(), eq(Role.INSTANCE_ADMIN))).thenReturn(true);
     }
 
     @After
@@ -35,18 +37,25 @@ public class ImportUserPoliciesTaskTest {
     }
 
     @Test
+    public void test_caller_without_instance_admin_returns_minus_one() throws Exception {
+        when(authorizer.can(any(), any(), any(), eq(Role.INSTANCE_ADMIN))).thenReturn(false);
+        assertThat(new ImportUserPoliciesTask(authorizer, repository, caller).call()).isEqualTo(-1);
+        verifyNoInteractions(repository);
+    }
+
+    @Test
     public void test_no_users_returns_zero() throws Exception {
         when(repository.listUsers()).thenReturn(emptyList());
-        assertThat(new ImportUserPoliciesTask(authorizer, repository).call()).isEqualTo(0);
-        verifyNoInteractions(authorizer);
+        assertThat(new ImportUserPoliciesTask(authorizer, repository, caller).call()).isEqualTo(0);
+        verify(authorizer, never()).addRoleForUserInProject(any(), any(), any(), any());
     }
 
     @Test
     public void test_user_with_no_projects_returns_zero() throws Exception {
         User user = new User("uid", "name", "email", "oauth2", Map.of());
         when(repository.listUsers()).thenReturn(List.of(user));
-        assertThat(new ImportUserPoliciesTask(authorizer, repository).call()).isEqualTo(0);
-        verifyNoInteractions(authorizer);
+        assertThat(new ImportUserPoliciesTask(authorizer, repository, caller).call()).isEqualTo(0);
+        verify(authorizer, never()).addRoleForUserInProject(any(), any(), any(), any());
     }
 
     @Test
@@ -54,7 +63,7 @@ public class ImportUserPoliciesTaskTest {
         User user = User.localUser("alice", "project-a");
         when(repository.listUsers()).thenReturn(List.of(user));
 
-        assertThat(new ImportUserPoliciesTask(authorizer, repository).call()).isEqualTo(1);
+        assertThat(new ImportUserPoliciesTask(authorizer, repository, caller).call()).isEqualTo(1);
 
         verify(authorizer).addRoleForUserInProject(user, Role.PROJECT_MEMBER, Domain.DEFAULT, new Project("project-a"));
     }
@@ -64,7 +73,7 @@ public class ImportUserPoliciesTaskTest {
         User user = User.localUser("bob", "p1", "p2", "p3");
         when(repository.listUsers()).thenReturn(List.of(user));
 
-        assertThat(new ImportUserPoliciesTask(authorizer, repository).call()).isEqualTo(3);
+        assertThat(new ImportUserPoliciesTask(authorizer, repository, caller).call()).isEqualTo(3);
 
         verify(authorizer).addRoleForUserInProject(user, Role.PROJECT_MEMBER, Domain.DEFAULT, new Project("p1"));
         verify(authorizer).addRoleForUserInProject(user, Role.PROJECT_MEMBER, Domain.DEFAULT, new Project("p2"));
@@ -77,7 +86,7 @@ public class ImportUserPoliciesTaskTest {
         User bob = User.localUser("bob", "proj-x", "proj-y");
         when(repository.listUsers()).thenReturn(List.of(alice, bob));
 
-        assertThat(new ImportUserPoliciesTask(authorizer, repository).call()).isEqualTo(3);
+        assertThat(new ImportUserPoliciesTask(authorizer, repository, caller).call()).isEqualTo(3);
 
         verify(authorizer, times(3)).addRoleForUserInProject(any(), eq(Role.PROJECT_MEMBER), eq(Domain.DEFAULT), any());
     }
@@ -86,10 +95,11 @@ public class ImportUserPoliciesTaskTest {
     public void test_creates_correct_casbin_rule_with_real_authorizer() throws Exception {
         CasbinRuleAdapter adapter = mock(CasbinRuleAdapter.class);
         Authorizer realAuthorizer = new Authorizer(adapter);
+        realAuthorizer.addRoleForUserInInstance(caller, Role.INSTANCE_ADMIN);
         User user = User.localUser("alice", "project-a");
         when(repository.listUsers()).thenReturn(List.of(user));
 
-        new ImportUserPoliciesTask(realAuthorizer, repository).call();
+        new ImportUserPoliciesTask(realAuthorizer, repository, caller).call();
 
         List<CasbinRule> permissions = realAuthorizer.getGroupPermissions(user, Domain.DEFAULT, "project-a");
         assertThat(permissions).hasSize(1);
@@ -104,9 +114,10 @@ public class ImportUserPoliciesTaskTest {
     public void test_idempotent_with_real_authorizer() throws Exception {
         CasbinRuleAdapter adapter = mock(CasbinRuleAdapter.class);
         Authorizer realAuthorizer = new Authorizer(adapter);
+        realAuthorizer.addRoleForUserInInstance(caller, Role.INSTANCE_ADMIN);
         User user = User.localUser("alice", "project-a");
         when(repository.listUsers()).thenReturn(List.of(user));
-        ImportUserPoliciesTask task = new ImportUserPoliciesTask(realAuthorizer, repository);
+        ImportUserPoliciesTask task = new ImportUserPoliciesTask(realAuthorizer, repository, caller);
 
         assertThat(task.call()).isEqualTo(1);
         assertThat(task.call()).isEqualTo(1);
