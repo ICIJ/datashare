@@ -3,9 +3,7 @@ package org.icij.datashare;
 import org.icij.datashare.cli.CliExtensionService;
 import org.icij.datashare.cli.spi.CliExtension;
 import org.icij.datashare.mode.CommonMode;
-import org.icij.datashare.policies.Domain;
 import org.icij.datashare.tasks.*;
-import org.icij.datashare.text.Project;
 import org.icij.datashare.text.indexing.Indexer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -15,7 +13,6 @@ import java.util.List;
 import java.util.Properties;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
-import static org.icij.datashare.PropertiesProvider.DEFAULT_PROJECT_OPT;
 import static org.icij.datashare.PropertiesProvider.propertiesToMap;
 import static org.icij.datashare.cli.DatashareCliOptions.*;
 import static org.icij.datashare.user.User.localUser;
@@ -91,8 +88,7 @@ class CliApp {
 
         if (properties.getProperty(GRANT_ADMIN_OPT) != null) {
             String userName = properties.getProperty(GRANT_ADMIN_OPT);
-            String project = properties.getProperty(DEFAULT_PROJECT_OPT);
-            taskFactory.createGrantAdminPolicyTask(localUser(userName), Domain.DEFAULT, Project.project(project)).call();
+            taskFactory.createGrantAdminPolicyTask(localUser(userName)).call();
             System.exit(0);
         }
 
