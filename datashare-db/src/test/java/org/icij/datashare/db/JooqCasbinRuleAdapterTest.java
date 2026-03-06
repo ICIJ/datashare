@@ -4,7 +4,6 @@ import junit.framework.TestCase;
 import org.casbin.jcasbin.exception.CasbinAdapterException;
 import org.casbin.jcasbin.model.Model;
 import org.casbin.jcasbin.persist.file_adapter.FilteredAdapter.Filter;
-import org.junit.AfterClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -22,7 +21,6 @@ public class JooqCasbinRuleAdapterTest extends TestCase {
 
     @Rule public DbSetupRule dbRule;
     private final JooqCasbinRuleAdapter repository;
-    private static final List<DbSetupRule> rulesToClose = new ArrayList<>();
 
     @Parameterized.Parameters
     public static Collection<Object[]> dataSources() {
@@ -35,14 +33,6 @@ public class JooqCasbinRuleAdapterTest extends TestCase {
     public JooqCasbinRuleAdapterTest(DbSetupRule rule) {
         dbRule = rule;
         repository = rule.createUserPolicyRepository();
-        rulesToClose.add(dbRule);
-    }
-
-    @AfterClass
-    public static void shutdownPools() {
-        for (DbSetupRule rule : rulesToClose) {
-            rule.shutdown();
-        }
     }
 
     @Test
