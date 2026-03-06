@@ -159,10 +159,10 @@ public class PolicyResource {
         try {
             User user = userExists(context.query().get("user"));
             Role role = requireRole(context.query().get("role"));
-            if (!authorizer.isGrantableBy(role, Role.DOMAIN_ADMIN)) {
+            Domain domainValue = requireDomain(domain, false);
+            if (!authorizer.can(requireCurrentUser(context).id, domainValue, "*", role)) {
                 return new Payload("Cannot grant a role with higher privileges than your own").withCode(HttpStatus.FORBIDDEN);
             }
-            Domain domainValue = requireDomain(domain, false);
             authorizer.updateRoleForUserInDomain(user, role, domainValue);
             return ok();
         } catch (IllegalArgumentException e) {
@@ -230,11 +230,11 @@ public class PolicyResource {
         try {
             User user = userExists(context.query().get("user"));
             Role role = requireRole(context.query().get("role"));
-            if (!authorizer.isGrantableBy(role, Role.PROJECT_EDITOR)) {
-                return new Payload("Cannot grant a role with higher privileges than your own").withCode(HttpStatus.FORBIDDEN);
-            }
             Domain domainValue = requireDomain(domain, false);
             Project projectValue = projectExists(project);
+            if (!authorizer.can(requireCurrentUser(context).id, domainValue, projectValue.getId(), role)) {
+                return new Payload("Cannot grant a role with higher privileges than your own").withCode(HttpStatus.FORBIDDEN);
+            }
             authorizer.updateRoleForUserInProject(user, role, domainValue, projectValue);
             return ok();
         } catch (IllegalArgumentException e) {
