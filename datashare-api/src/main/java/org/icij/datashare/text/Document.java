@@ -98,6 +98,8 @@ public class Document implements Entity, DocumentMetadataConstants {
     private final List<Map<String,String>> content_translated;
     private final long contentLength;
     private final String contentType;
+    private final ContentTypeCategory contentTypeCategory;
+
     @JsonDeserialize(using = CharsetDeserializer.class)
     private final Charset contentEncoding;
     private final Language language;
@@ -113,27 +115,17 @@ public class Document implements Entity, DocumentMetadataConstants {
 
 
     Document(Project project, String id, Path filePath, String content, Language language, Charset charset, String mimetype, Map<String, Object> metadata, Status status, Set<Pipeline.Type> nerTags, Date extractionDate, String parentDocument, String rootDocument, Short extractionLevel, Long contentLength) {
-        this(project, id, filePath, content,null, language, extractionDate, charset, mimetype, extractionLevel, metadata, status, nerTags, parentDocument, rootDocument, contentLength, new HashSet<>());
+        this(project, id, filePath, content,null, language, extractionDate, charset, mimetype, extractionLevel, metadata, status, nerTags, parentDocument, rootDocument, contentLength, new HashSet<>(), null);
     }
 
     Document(Project project, String id, Path filePath, String content, List<Map<String,String>> content_translated, Language language, Charset charset,
                     String contentType, Map<String, Object> metadata, Status status, Set<Pipeline.Type> nerTags,
                     Date extractionDate, String parentDocument, String rootDocument, Short extractionLevel,
-                    Long contentLength, Set<Tag> tags) {
+                    Long contentLength, Set<Tag> tags, ContentTypeCategory contentTypeCategory) {
         this(project, id, filePath, content, content_translated, language, extractionDate, charset,
                 contentType, extractionLevel, metadata, status, nerTags,
                 parentDocument, rootDocument, contentLength,
-                tags);
-    }
-
-    Document(Project project, String id, Path filePath, String content, List<Map<String,String>> content_translated, Language language, Charset charset,
-             String contentType, Map<String, Object> metadata, Status status, Set<Pipeline.Type> nerTags,
-             Date extractionDate, String parentDocument, String rootDocument, Short extractionLevel,
-             Long contentLength, Set<Tag> tags, String ocrParser) {
-        this(project, id, filePath, content, content_translated, language, extractionDate, charset,
-                contentType, extractionLevel, metadata, status, nerTags,
-                parentDocument, rootDocument, contentLength,
-                tags);
+                tags, contentTypeCategory);
     }
 
     @JsonCreator
@@ -149,7 +141,9 @@ public class Document implements Entity, DocumentMetadataConstants {
                      @JsonProperty("parentDocument") String parentDocument,
                      @JsonProperty("rootDocument") String rootDocument,
                      @JsonProperty("contentLength") Long contentLength,
-                     @JsonProperty("tags") Set<Tag> tags) {
+                     @JsonProperty("tags") Set<Tag> tags,
+                     @JsonProperty("contentTypeCategory") ContentTypeCategory contentTypeCategory
+    ) {
         this.id = id;
         this.project = project;
         this.path = path;
@@ -168,6 +162,7 @@ public class Document implements Entity, DocumentMetadataConstants {
         this.parentDocument = parentDocument;
         this.rootDocument = rootDocument;
         this.tags = tags;
+        this.contentTypeCategory = contentTypeCategory;
     }
 
     static String getHash(Project project, Path path) {
@@ -189,6 +184,7 @@ public class Document implements Entity, DocumentMetadataConstants {
     public Charset getContentEncoding() { return contentEncoding; }
     public Long getContentLength() { return contentLength; }
     public String getContentType() { return contentType; }
+    public ContentTypeCategory getContentTypeCategory() { return contentTypeCategory; }
     public String getContentTypeOrDefault() { return ofNullable(getContentType()).orElse(DEFAULT_VALUE_UNKNOWN); }
     public Language getLanguage() { return language; }
     public short getExtractionLevel() { return extractionLevel;}

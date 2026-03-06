@@ -1,4 +1,4 @@
-VERSION = $(shell head pom.xml | grep '<version>[0-9.]\+' | sed 's/<version>\([0-9.]\+\)<\/version>/\1/g' | tr -d '[:space:]')
+VERSION = $(shell head pom.xml | grep '<version>[0-9.]\+' | sed -E 's/<version>([0-9a-z.-]+)<\/version>/\1/' | tr -d '[:space:]')
 DIST_TARGET = datashare-dist/target/datashare-dist-$(VERSION)-docker
 DEVENV_PROPERTIES = datashare-devenv.properties
 DEVENV_PROPERTIES_TEMPLATE = datashare-devenv.properties.template
@@ -49,7 +49,7 @@ dist: migrate
 
 ## Run all tests
 test:
-	$(MVN) test
+	$(MVN) test -Djava.io.tmpdir=/tmp
 
 ## Start Datashare locally
 run:

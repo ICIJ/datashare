@@ -15,6 +15,7 @@ public interface DatashareTaskFactory extends org.icij.datashare.asynctasks.Task
     ScanTask createScanTask(Task<Long> taskView, Function<Double, Void> updateCallback);
     IndexTask createIndexTask(Task<Long> taskView, Function<Double, Void> updateCallback);
     ScanIndexTask createScanIndexTask(Task<Long> taskView, Function<Double, Void> updateCallback);
+    CategorizeTask createCategorizeTask(Task<Long> taskView, Function<Double, Void> updateCallback);
     ExtractNlpTask createExtractNlpTask(Task<Long> taskView, Function<Double, Void> updateCallback);
     EnqueueFromIndexTask createEnqueueFromIndexTask(Task<Long> taskView, Function<Double, Void> updateCallback);
     CreateNlpBatchesFromIndex createBatchEnqueueFromIndexTask(Task<LinkedList<String>> taskView, Function<Double, Void> updateCallback);

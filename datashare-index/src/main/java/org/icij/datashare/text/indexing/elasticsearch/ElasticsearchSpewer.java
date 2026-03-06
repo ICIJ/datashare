@@ -35,18 +35,18 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
     private final LanguageGuesser languageGuesser;
     private final int maxContentLength;
     private final Hasher digestAlgorithm;
-    private final DocumentQueue<String> nlpQueue;
+    private final DocumentQueue<String> outputQueue;
     public String indexName;
 
     @Inject
-    public ElasticsearchSpewer(final Indexer indexer, DocumentCollectionFactory<String> nlpQueueFactory, LanguageGuesser languageGuesser, final FieldNames fields,
+    public ElasticsearchSpewer(final Indexer indexer, DocumentCollectionFactory<String> outputQueueFactory, LanguageGuesser languageGuesser, final FieldNames fields,
                                final PropertiesProvider propertiesProvider) {
         super(fields);
         this.indexer = indexer;
         this.languageGuesser = languageGuesser;
         this.maxContentLength = getMaxContentLength(propertiesProvider);
         this.digestAlgorithm = getDigestAlgorithm(propertiesProvider);
-        this.nlpQueue = nlpQueueFactory.createQueue(new PipelineHelper(propertiesProvider).getOutputQueueNameFor(Stage.INDEX), String.class);
+        this.outputQueue = outputQueueFactory.createQueue(new PipelineHelper(propertiesProvider).getOutputQueueNameFor(Stage.INDEX), String.class);
         this.indexName = propertiesProvider.get("defaultProject").orElse("local-datashare");
         logger.info("spewer defined with {}", indexer);
     }
@@ -67,8 +67,8 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
         } else {
             Document document = getDocument(doc, root, parent, (short) level);
             indexer.add(indexName, document);
-            if (!nlpQueue.offer(document.getId())) {
-                logger.warn("cannot offer {} to queue {}", document.getId(), nlpQueue.getName());
+            if (!outputQueue.offer(document.getId())) {
+                logger.warn("cannot offer {} to queue {}", document.getId(), outputQueue.getName());
             }
         }
         logger.info("{} {} added to elasticsearch in {}ms: {}", docType,
@@ -90,11 +90,13 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
     Document getDocument(TikaDocument document, TikaDocument root, TikaDocument parent, short level) throws IOException {
         Charset charset = Charset.isSupported(ofNullable(document.getMetadata().get(CONTENT_ENCODING)).orElse(DEFAULT_VALUE_UNKNOWN)) ?
                 Charset.forName(document.getMetadata().get(CONTENT_ENCODING)) : StandardCharsets.US_ASCII;
+        String contentType = ofNullable(document.getMetadata().get(CONTENT_TYPE)).orElse(DEFAULT_VALUE_UNKNOWN).split(";")[0];
         DocumentBuilder builder = DocumentBuilder.createDoc(document.getId())
                 .with(document.getPath())
                 .with(Document.Status.INDEXED)
                 .with(getMetadata(document))
-                .ofContentType(ofNullable(document.getMetadata().get(CONTENT_TYPE)).orElse(DEFAULT_VALUE_UNKNOWN).split(";")[0])
+                .ofContentType(contentType)
+                .with(ContentTypeCategory.fromContentType(contentType))
                 .withContentLength(Long.parseLong(ofNullable(document.getMetadata().get(CONTENT_LENGTH)).orElse("-1")))
                 .with(charset)
                 .withExtractionLevel(level)
@@ -148,7 +150,7 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
 
     @Override
     public void close() throws Exception {
-        nlpQueue.put("POISON");
+        outputQueue.put("POISON");
     }
 
     private void setIndex(String indexName) {

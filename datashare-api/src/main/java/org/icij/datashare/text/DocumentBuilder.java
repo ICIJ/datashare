@@ -18,6 +18,7 @@ public class DocumentBuilder {
     private Path path;
     private Map<String, Object> metadata = new HashMap<>();
     private String contentType;
+    private ContentTypeCategory contentTypeCategory;
     private Set<Pipeline.Type> pipelines;
     private String parentId = null;
     private String rootId = null;
@@ -39,6 +40,30 @@ public class DocumentBuilder {
     }
     public static DocumentBuilder createDoc(Project project, Path path) {
         return new DocumentBuilder().withDefaultValues(Document.getHash(project,path)).with(project).with(path);
+    }
+    public static DocumentBuilder from(Document doc){
+        if(doc == null) {
+            return new DocumentBuilder();
+        }
+        return new DocumentBuilder()
+                .with(doc.getProject())
+                .withId(doc.getId())
+                .with(doc.getPath())
+                .with(doc.getContentEncoding())
+                .with(doc.getContent())
+                .with(doc.getContentTranslated())
+                .with(doc.getLanguage())
+                .extractedAt(doc.getExtractionDate())
+                .ofContentType(doc.getContentType())
+                .withExtractionLevel(doc.getExtractionLevel())
+                .with(doc.getMetadata())
+                .with(doc.getStatus())
+                .withPipelines(doc.getNerTags())
+                .withParentId(doc.getParentDocument())
+                .withRootId(doc.getRootDocument())
+                .withContentLength(doc.getContentLength())
+                .withTags(doc.getTags())
+                .with(doc.getContentTypeCategory());
     }
 
     public DocumentBuilder withDefaultValues(String id){
@@ -105,6 +130,12 @@ public class DocumentBuilder {
         this.pipelines = Arrays.stream(pipelineTypes).collect(toSet());
         return this;
     }
+
+    public DocumentBuilder withPipelines(Set<Pipeline.Type> pipelines){
+        this.pipelines = pipelines;
+        return this;
+    }
+
     public DocumentBuilder with(Document.Status documentStatus) {
         this.documentStatus = documentStatus;
         return this;
@@ -117,6 +148,11 @@ public class DocumentBuilder {
         this.tags = Arrays.stream(tags).collect(toSet());
         return this;
     }
+    public DocumentBuilder withTags(Set<Tag> tags) {
+        this.tags = tags;
+        return this;
+    }
+
     public DocumentBuilder withExtractionLevel(short extractionLevel) {
         this.extractionLevel = extractionLevel;
         return this;
@@ -140,6 +176,11 @@ public class DocumentBuilder {
         return this;
     }
 
+    public DocumentBuilder with(ContentTypeCategory contentTypeCategory) {
+        this.contentTypeCategory = contentTypeCategory;
+        return this;
+    }
+
     public Document build() {
         if(id == null && project == null && path == null && content == null){
             throw new NullPointerException("Id, Project, Path or content are missing.");
@@ -147,7 +188,7 @@ public class DocumentBuilder {
         return new Document(project, id, path, content, content_translated, language,
                 charset, contentType, metadata, documentStatus,
                 pipelines, extractionDate, parentId, rootId, extractionLevel,
-                contentLength, tags);
+                contentLength, tags, contentTypeCategory);
     }
 
 }
