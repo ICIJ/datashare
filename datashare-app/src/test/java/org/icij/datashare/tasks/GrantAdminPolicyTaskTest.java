@@ -77,12 +77,11 @@ public class GrantAdminPolicyTaskTest {
 
     @Test
     public void test_call_returns_true_when_add_fails_due_to_concurrent_grant() {
-        // Simulates race: can() = false, addProjectAdmin() = false (duplicate), second can() = true
+        // Simulates race: addProjectAdmin() = false (concurrent insert), can() = true
         Project project = Project.project("local-datashare");
-        when(authorizer.can(User.local().getId(), Domain.of("default"), project.getId(), Role.PROJECT_ADMIN))
-                .thenReturn(false)
-                .thenReturn(true);
         when(authorizer.addProjectAdmin(any(), any(), any())).thenReturn(false);
+        when(authorizer.can(User.local().getId(), Domain.of("default"), project.getId(), Role.PROJECT_ADMIN))
+                .thenReturn(true);
 
         assertThat(new GrantAdminPolicyTask(authorizer, User.local(), Domain.of("default"), project).call()).isTrue();
     }
@@ -90,11 +89,10 @@ public class GrantAdminPolicyTaskTest {
     @Test
     public void test_call_returns_true_when_user_already_has_admin_role() {
         Project project = Project.project("local-datashare");
+        when(authorizer.addProjectAdmin(any(), any(), any())).thenReturn(false);
         when(authorizer.can(User.local().getId(), Domain.of("default"), project.getId(), Role.PROJECT_ADMIN)).thenReturn(true);
 
         assertThat(new GrantAdminPolicyTask(authorizer, User.local(), Domain.of("default"), project).call()).isTrue();
-
-        verify(authorizer, never()).addProjectAdmin(any(), any(), any());
     }
 
     @Test
