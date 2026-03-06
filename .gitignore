@@ -25,3 +25,4 @@ work
 **/.flattened-pom.xml
 # Devenv Properties File
 datashare-devenv.properties
+**/.flattened-pom.xml

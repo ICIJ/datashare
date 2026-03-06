@@ -1,6 +1,4 @@
-package org.icij.datashare.session;
-
-import org.icij.datashare.user.Role;
+package org.icij.datashare.policies;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -9,7 +7,5 @@ import java.lang.annotation.Target;
 
 @Target({ElementType.METHOD, ElementType.TYPE})
 @Retention(RetentionPolicy.RUNTIME)
-public @interface Policy {
-    Role[] roles() default {};
-    String projectIdParam() default "index";
+public @interface BasePolicy {
 }

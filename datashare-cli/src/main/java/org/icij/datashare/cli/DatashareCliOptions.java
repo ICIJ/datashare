@@ -6,9 +6,9 @@ import joptsimple.ValueConverter;
 import org.icij.datashare.EnvUtils;
 import org.icij.datashare.PipelineHelper;
 import org.icij.datashare.Stage;
+import org.icij.datashare.tasks.RoutingStrategy;
 import org.icij.datashare.user.User;
 import org.slf4j.event.Level;
-import org.icij.datashare.tasks.RoutingStrategy;
 
 import java.io.File;
 import java.net.URI;
@@ -72,6 +72,7 @@ public final class DatashareCliOptions {
     public static final String FOLLOW_SYMLINKS_OPT = "followSymlinks";
     public static final String GET_API_KEY_OPT = "apiKey";
     public static final String GRANT_ADMIN_OPT = "grantAdmin";
+    public static final String IMPORT_USER_POLICIES_OPT = "importUserPolicies";
     public static final String HELP_ABBR_OPT = "h";
     public static final String HELP_OPT = "help";
     public static final String INDEX_TIMEOUT_OPT = "indexTimeout";
@@ -395,6 +396,12 @@ public final class DatashareCliOptions {
 
     static void grantAdminPolicy(OptionParser parser) {
         parser.acceptsAll(singletonList(GRANT_ADMIN_OPT), "Grant admin policy to user if there is none")
+                .withRequiredArg()
+                .ofType(String.class);
+    }
+
+    static void importUserPolicies(OptionParser parser) {
+        parser.acceptsAll(singletonList(IMPORT_USER_POLICIES_OPT), "Import PROJECT_MEMBER policies for all OAuth2 users from the database (caller must have INSTANCE_ADMIN)")
                 .withRequiredArg()
                 .ofType(String.class);
     }

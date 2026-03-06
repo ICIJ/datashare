@@ -1,10 +1,9 @@
 package org.icij.datashare.tasks;
 
-import java.util.LinkedList;
 import org.icij.datashare.asynctasks.Task;
-import org.icij.datashare.text.Project;
 import org.icij.datashare.user.User;
 
+import java.util.LinkedList;
 import java.util.function.Function;
 
 
@@ -26,5 +25,7 @@ public interface DatashareTaskFactory extends org.icij.datashare.asynctasks.Task
     DelApiKeyTask createDelApiKey(User user);
     GetApiKeyTask createGetApiKey(User user);
 
-    GrantAdminPolicyTask createGrantAdminPolicyTask(User user, Project project);
+    GrantAdminPolicyTask createGrantAdminPolicyTask(User user);
+
+    ImportUserPoliciesTask createImportUserPoliciesTask(User caller);
 }
