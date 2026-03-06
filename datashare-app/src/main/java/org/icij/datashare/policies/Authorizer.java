@@ -63,8 +63,8 @@ public final class Authorizer {
     }
 
     private void initializeRoleHierarchy() {
-        addRoleHierarchy(Role.DOMAIN_ADMIN, Role.INSTANCE_ADMIN);
-        addRoleHierarchy(Role.PROJECT_MEMBER, Role.DOMAIN_ADMIN);
+        addRoleHierarchy(Role.INSTANCE_ADMIN, Role.DOMAIN_ADMIN);
+        addRoleHierarchy(Role.DOMAIN_ADMIN, Role.PROJECT_ADMIN);
         addRoleHierarchy(Role.PROJECT_ADMIN, Role.PROJECT_EDITOR);
         addRoleHierarchy(Role.PROJECT_EDITOR, Role.PROJECT_MEMBER);
         addRoleHierarchy(Role.PROJECT_MEMBER, Role.PROJECT_VISITOR);
@@ -251,8 +251,5 @@ public final class Authorizer {
         return requireValue(context.pathParam(idParam), true);
     }
 
-    public boolean isGrantableBy(Role requestedRole, Role callerMinimumRole) {
-        if (requestedRole == callerMinimumRole) return true;
-        return enforcer.getNamedRoleManager("g2").hasLink(callerMinimumRole.name(), requestedRole.name());
-    }
+
 }

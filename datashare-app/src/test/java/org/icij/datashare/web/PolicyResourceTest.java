@@ -1,5 +1,6 @@
 package org.icij.datashare.web;
 
+import net.codestory.http.filters.basic.BasicAuthFilter;
 import net.codestory.http.payload.Payload;
 import org.icij.datashare.db.JooqRepository;
 import org.icij.datashare.policies.Authorizer;
@@ -21,6 +22,7 @@ import java.util.Map;
 
 import static org.icij.datashare.text.Project.project;
 import static org.icij.datashare.user.User.localUser;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 import static org.mockito.MockitoAnnotations.openMocks;
 
@@ -44,7 +46,7 @@ public class PolicyResourceTest extends AbstractProdWebServerTest {
         }});
 
         authorizer = new Authorizer(adapter);
-        when(users.find("jane")).thenReturn(user);
+        when(users.find(anyString(), anyString())).thenReturn(user);
         when(repository.getProject("test-datashare")).thenReturn(project("test-datashare"));
     }
 
@@ -132,58 +134,86 @@ public class PolicyResourceTest extends AbstractProdWebServerTest {
     @Test
     public void domain_policies_lifecycle_success() {
         when(repository.getUser("jane")).thenReturn(User.localUser("jane", "test-datashare"));
-        configure(routes -> routes.add(new PolicyResource(authorizer, repository)));
+        authorizer.addRoleForUserInDomain(jane, Role.DOMAIN_ADMIN, Domain.of("icij"));
+        configure(routes -> routes.filter(new BasicAuthFilter("/", "icij", users)).add(new PolicyResource(authorizer, repository)));
 
         // PUT
-        put("/api/policies/icij?user=jane&role=DOMAIN_ADMIN").should().respond(200);
+        put("/api/policies/icij?user=jane&role=DOMAIN_ADMIN").withPreemptiveAuthentication("jane", "pass").should().respond(200);
 
         // GET
-        get("/api/policies/icij?user=jane&from=0&to=10").should().respond(200).contain("\"count\":1");
+        get("/api/policies/icij?user=jane&from=0&to=10").withPreemptiveAuthentication("jane", "pass").should().respond(200).contain("\"count\":1");
 
         // DELETE
-        delete("/api/policies/icij?user=jane&role=DOMAIN_ADMIN").should().respond(204);
+        delete("/api/policies/icij?user=jane&role=DOMAIN_ADMIN").withPreemptiveAuthentication("jane", "pass").should().respond(204);
 
         // GET
-        get("/api/policies/icij?user=jane&from=0&to=10").should().respond(200).contain("\"count\":0");
+        get("/api/policies/icij?user=jane&from=0&to=10").withPreemptiveAuthentication("jane", "pass").should().respond(200).contain("\"count\":0");
     }
 
     @Test
     public void domain_policy_save_cannot_escalate_to_project_member() {
         when(repository.getUser("jane")).thenReturn(User.localUser("jane"));
-        configure(routes -> routes.add(new PolicyResource(authorizer, repository)));
-        put("/api/policies/icij?user=jane&role=PROJECT_MEMBER").should().respond(403);
+        configure(routes -> routes.filter(new BasicAuthFilter("/", "icij", users)).add(new PolicyResource(authorizer, repository)));
+        put("/api/policies/icij?user=jane&role=PROJECT_MEMBER").withPreemptiveAuthentication("jane", "pass").should().respond(403);
     }
 
     @Test
     public void domain_policy_save_cannot_escalate_to_project_admin() {
         when(repository.getUser("jane")).thenReturn(User.localUser("jane"));
-        configure(routes -> routes.add(new PolicyResource(authorizer, repository)));
-        put("/api/policies/icij?user=jane&role=PROJECT_ADMIN").should().respond(403);
+        configure(routes -> routes.filter(new BasicAuthFilter("/", "icij", users)).add(new PolicyResource(authorizer, repository)));
+        put("/api/policies/icij?user=jane&role=PROJECT_ADMIN").withPreemptiveAuthentication("jane", "pass").should().respond(403);
     }
 
     @Test
     public void project_policy_save_cannot_escalate_to_project_admin() {
         when(repository.getUser("jane")).thenReturn(User.localUser("jane"));
-        configure(routes -> routes.add(new PolicyResource(authorizer, repository)));
-        put("/api/policies/icij/test-datashare?user=jane&role=PROJECT_ADMIN").should().respond(403);
+        configure(routes -> routes.filter(new BasicAuthFilter("/", "icij", users)).add(new PolicyResource(authorizer, repository)));
+        put("/api/policies/icij/test-datashare?user=jane&role=PROJECT_ADMIN").withPreemptiveAuthentication("jane", "pass").should().respond(403);
+    }
+
+    @Test
+    public void domain_policy_save_domain_admin_can_grant_project_admin() {
+        when(repository.getUser("jane")).thenReturn(User.localUser("jane"));
+        authorizer.addRoleForUserInDomain(jane, Role.DOMAIN_ADMIN, Domain.of("icij"));
+        configure(routes -> routes.filter(new BasicAuthFilter("/", "icij", users)).add(new PolicyResource(authorizer, repository)));
+        put("/api/policies/icij?user=jane&role=PROJECT_ADMIN").withPreemptiveAuthentication("jane", "pass").should().respond(200);
+    }
+
+    @Test
+    public void project_policy_save_project_admin_can_grant_project_member() {
+        when(repository.getUser("jane")).thenReturn(User.localUser("jane", "test-datashare"));
+        when(repository.getProject("test-datashare")).thenReturn(project("test-datashare"));
+        authorizer.addRoleForUserInProject(jane, Role.PROJECT_ADMIN, Domain.of("icij"), project("test-datashare"));
+        configure(routes -> routes.filter(new BasicAuthFilter("/", "icij", users)).add(new PolicyResource(authorizer, repository)));
+        put("/api/policies/icij/test-datashare?user=jane&role=PROJECT_MEMBER").withPreemptiveAuthentication("jane", "pass").should().respond(200);
+    }
+
+    @Test
+    public void project_policy_save_project_admin_cannot_grant_domain_admin() {
+        when(repository.getUser("jane")).thenReturn(User.localUser("jane", "test-datashare"));
+        when(repository.getProject("test-datashare")).thenReturn(project("test-datashare"));
+        authorizer.addRoleForUserInProject(jane, Role.PROJECT_ADMIN, Domain.of("icij"), project("test-datashare"));
+        configure(routes -> routes.filter(new BasicAuthFilter("/", "icij", users)).add(new PolicyResource(authorizer, repository)));
+        put("/api/policies/icij/test-datashare?user=jane&role=DOMAIN_ADMIN").withPreemptiveAuthentication("jane", "pass").should().respond(403);
     }
 
     @Test
     public void project_policies_lifecycle_success() {
         when(repository.getUser("jane")).thenReturn(User.localUser("jane", "test-datashare"));
         when(repository.getProject("test-datashare")).thenReturn(project("test-datashare"));
-        configure(routes -> routes.add(new PolicyResource(authorizer, repository)));
+        authorizer.addRoleForUserInProject(jane, Role.PROJECT_MEMBER, Domain.of("icij"), project("test-datashare"));
+        configure(routes -> routes.filter(new BasicAuthFilter("/", "icij", users)).add(new PolicyResource(authorizer, repository)));
 
         // PUT
-        put("/api/policies/icij/test-datashare?user=jane&role=PROJECT_MEMBER").should().respond(200);
+        put("/api/policies/icij/test-datashare?user=jane&role=PROJECT_MEMBER").withPreemptiveAuthentication("jane", "pass").should().respond(200);
 
         // GET
-        get("/api/policies/icij/test-datashare?user=jane&from=0&to=10").should().respond(200).contain("\"count\":1");
+        get("/api/policies/icij/test-datashare?user=jane&from=0&to=10").withPreemptiveAuthentication("jane", "pass").should().respond(200).contain("\"count\":1");
 
         // DELETE
-        delete("/api/policies/icij/test-datashare?user=jane&role=PROJECT_MEMBER").should().respond(204);
+        delete("/api/policies/icij/test-datashare?user=jane&role=PROJECT_MEMBER").withPreemptiveAuthentication("jane", "pass").should().respond(204);
 
         // GET
-        get("/api/policies/icij/test-datashare?user=jane&from=0&to=10").should().respond(200).contain("\"count\":0");
+        get("/api/policies/icij/test-datashare?user=jane&from=0&to=10").withPreemptiveAuthentication("jane", "pass").should().respond(200).contain("\"count\":0");
     }
 }
