@@ -9,17 +9,16 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.enums.ParameterIn;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import net.codestory.http.Context;
-import net.codestory.http.annotations.Delete;
-import net.codestory.http.annotations.Get;
-import net.codestory.http.annotations.Options;
-import net.codestory.http.annotations.Prefix;
-import net.codestory.http.annotations.Put;
+import net.codestory.http.annotations.*;
 import net.codestory.http.payload.Payload;
 import org.icij.datashare.Repository;
 import org.icij.datashare.UserEvent;
 import org.icij.datashare.UserEvent.Type;
+import org.icij.datashare.policies.Authorizer;
+import org.icij.datashare.policies.CasbinRule;
 import org.icij.datashare.session.DatashareUser;
 import org.icij.datashare.text.Project;
+import org.icij.datashare.user.User;
 import org.jetbrains.annotations.NotNull;
 
 import java.net.URI;
@@ -39,6 +38,7 @@ import static org.icij.datashare.db.tables.UserHistory.USER_HISTORY;
 @Prefix("/api/users")
 public class UserResource {
     private final Repository repository;
+    private final Authorizer authorizer;
 
     private List<Project> getDatashareUserProjects (DatashareUser datashareUser) {
         List<String> projectNames =  datashareUser.getProjectNames();
@@ -51,8 +51,9 @@ public class UserResource {
     }
 
     @Inject
-    public UserResource(Repository repository) {
+    public UserResource(Repository repository, Authorizer authorizer) {
         this.repository = repository;
+        this.authorizer = authorizer;
     }
 
     @Operation(description = "Gets the user's session information.")
@@ -61,8 +62,17 @@ public class UserResource {
     public Map<String, Object> getUser(Context context) {
         DatashareUser datashareUser = (DatashareUser) context.currentUser();
         Map<String, Object> details = datashareUser.getDetails();
+        //TODO #DOMAIN: change Domain.DEFAULT to variable when domain are operational
         details.put("projects", getDatashareUserProjects(datashareUser));
         return details;
+    }
+
+    @Operation(description = "Gets the current user's permissions.")
+    @ApiResponse(responseCode = "200", description = "returns the list of casbin rules for the current user", useReturnTypeSchema = true)
+    @Get("/me/permissions")
+    public List<CasbinRule> getUserPermissions(Context context) {
+        DatashareUser datashareUser = (DatashareUser) context.currentUser();
+        return authorizer.getGroupPermissions(User.localUser(datashareUser.id));
     }
 
     @Operation(description = "Preflight request for history")

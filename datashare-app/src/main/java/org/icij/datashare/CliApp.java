@@ -3,16 +3,8 @@ package org.icij.datashare;
 import org.icij.datashare.cli.CliExtensionService;
 import org.icij.datashare.cli.spi.CliExtension;
 import org.icij.datashare.mode.CommonMode;
-import org.icij.datashare.tasks.ArtifactTask;
-import org.icij.datashare.tasks.CreateNlpBatchesFromIndex;
-import org.icij.datashare.tasks.DatashareTaskFactory;
-import org.icij.datashare.tasks.DatashareTaskManager;
-import org.icij.datashare.tasks.DeduplicateTask;
-import org.icij.datashare.tasks.EnqueueFromIndexTask;
-import org.icij.datashare.tasks.ExtractNlpTask;
-import org.icij.datashare.tasks.IndexTask;
-import org.icij.datashare.tasks.ScanIndexTask;
-import org.icij.datashare.tasks.ScanTask;
+import org.icij.datashare.policies.Domain;
+import org.icij.datashare.tasks.*;
 import org.icij.datashare.text.Project;
 import org.icij.datashare.text.indexing.Indexer;
 import org.slf4j.Logger;
@@ -100,7 +92,7 @@ class CliApp {
         if (properties.getProperty(GRANT_ADMIN_OPT) != null) {
             String userName = properties.getProperty(GRANT_ADMIN_OPT);
             String project = properties.getProperty(DEFAULT_PROJECT_OPT);
-            taskFactory.createGrantAdminPolicyTask(localUser(userName), Project.project(project)).call();
+            taskFactory.createGrantAdminPolicyTask(localUser(userName), Domain.DEFAULT, Project.project(project)).call();
             System.exit(0);
         }
 

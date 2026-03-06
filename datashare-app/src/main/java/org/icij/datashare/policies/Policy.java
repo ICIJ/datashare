@@ -1,0 +1,17 @@
+package org.icij.datashare.policies;
+
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
+
+@BasePolicy
+@Target({ElementType.METHOD, ElementType.TYPE})
+@Retention(RetentionPolicy.RUNTIME)
+public @interface Policy {
+    String idParam() default "index";
+
+    String domain() default "default";
+
+    Role role() default Role.PROJECT_MEMBER;
+}
