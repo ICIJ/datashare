@@ -16,29 +16,45 @@ databaseChangeLog:
               - column:
                   name: ptype
                   type: VARCHAR(255)
+                  defaultValue: ""
+                  constraints:
+                    nullable: false
               - column:
                   name: v0
                   type: VARCHAR(255)
+                  defaultValue: ""
+                  constraints:
+                    nullable: false
               - column:
                   name: v1
                   type: VARCHAR(255)
+                  defaultValue: ""
+                  constraints:
+                    nullable: false
               - column:
                   name: v2
                   type: VARCHAR(255)
+                  defaultValue: ""
+                  constraints:
+                    nullable: false
               - column:
                   name: v3
                   type: VARCHAR(255)
+                  defaultValue: ""
+                  constraints:
+                    nullable: false
               - column:
                   name: v4
                   type: VARCHAR(255)
+                  defaultValue: ""
+                  constraints:
+                    nullable: false
               - column:
                   name: v5
                   type: VARCHAR(255)
-
-  - changeSet:
-      id: 73
-      author: cdesprat
-      changes:
+                  defaultValue: ""
+                  constraints:
+                    nullable: false
         - createIndex:
             tableName: casbin_rule
             indexName: idx_casbin_rule_ptype
@@ -74,66 +90,3 @@ databaseChangeLog:
                   name: v4
               - column:
                   name: v5
-        - addNotNullConstraint:
-            tableName: casbin_rule
-            columnName: ptype
-            columnDataType: VARCHAR(255)
-            defaultNullValue: ""
-        - addDefaultValue:
-            tableName: casbin_rule
-            columnName: ptype
-            defaultValue: ""
-        - addNotNullConstraint:
-            tableName: casbin_rule
-            columnName: v0
-            columnDataType: VARCHAR(255)
-            defaultNullValue: ""
-        - addDefaultValue:
-            tableName: casbin_rule
-            columnName: v0
-            defaultValue: ""
-        - addNotNullConstraint:
-            tableName: casbin_rule
-            columnName: v1
-            columnDataType: VARCHAR(255)
-            defaultNullValue: ""
-        - addDefaultValue:
-            tableName: casbin_rule
-            columnName: v1
-            defaultValue: ""
-        - addNotNullConstraint:
-            tableName: casbin_rule
-            columnName: v2
-            columnDataType: VARCHAR(255)
-            defaultNullValue: ""
-        - addDefaultValue:
-            tableName: casbin_rule
-            columnName: v2
-            defaultValue: ""
-        - addNotNullConstraint:
-            tableName: casbin_rule
-            columnName: v3
-            columnDataType: VARCHAR(255)
-            defaultNullValue: ""
-        - addDefaultValue:
-            tableName: casbin_rule
-            columnName: v3
-            defaultValue: ""
-        - addNotNullConstraint:
-            tableName: casbin_rule
-            columnName: v4
-            columnDataType: VARCHAR(255)
-            defaultNullValue: ""
-        - addDefaultValue:
-            tableName: casbin_rule
-            columnName: v4
-            defaultValue: ""
-        - addNotNullConstraint:
-            tableName: casbin_rule
-            columnName: v5
-            columnDataType: VARCHAR(255)
-            defaultNullValue: ""
-        - addDefaultValue:
-            tableName: casbin_rule
-            columnName: v5
-            defaultValue: ""
