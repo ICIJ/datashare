@@ -430,10 +430,11 @@ jobs:
           command: java -jar datashare-dist/target/datashare-dist-${CIRCLE_TAG}-all.jar --dataSourceUrl 'jdbc:sqlite:file:memorydb.db?mode=memory&cache=shared' --elasticsearchPath /tmp/datashare/elasticsearch -m EMBEDDED
           background: true
       - run:
+          name: Wait for datashare to be started
+          command: curl --retry 20 --retry-delay 5 --retry-all-errors 'http://localhost:8080/api/status'
+      - run:
           name: Generate openAPI json file
-          command: |
-            curl --retry 20 --retry-delay 5 --retry-all-errors 'http://localhost:8080/api/status'
-            curl -s http://localhost:8080/api/openapi | jq > datashare_openapi.json
+          command: curl -s http://localhost:8080/api/openapi | jq > datashare_openapi.json
       - persist_to_workspace:
           root: /tmp/datashare
           paths:
