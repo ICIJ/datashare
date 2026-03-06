@@ -17,6 +17,7 @@ import org.icij.datashare.ExtensionService;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.json.JsonObjectMapper;
 import org.junit.After;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class PythonNlpWorkerPoolTest {
@@ -24,6 +25,13 @@ public class PythonNlpWorkerPoolTest {
 
     private static final Path extDir = Path.of(Objects.requireNonNull(
         PythonNlpWorkerPoolTest.class.getClassLoader().getResource("extensions")).getPath());
+
+    @BeforeClass
+    public static void setUpExecutablePermissions() throws IOException {
+        Files.list(extDir)
+            .filter(p -> p.getFileName().toString().startsWith("datashare-extension-nlp-spacy"))
+            .forEach(p -> p.toFile().setExecutable(true));
+    }
 
     public static final String extRepoContent = "{\"deliverableList\": ["
         + "{\"id\":\"datashare-extension-nlp-spacy\", \"url\": \""
