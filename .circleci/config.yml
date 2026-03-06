@@ -432,7 +432,7 @@ jobs:
       - run:
           name: Generate openAPI json file
           command: |
-            curl --retry 20 --retry-delay 5 --retry-all-errors -o /dev/null 'http://localhost:8080/api/status'
+            curl --retry 20 --retry-delay 5 --retry-all-errors 'http://localhost:8080/api/status'
             curl -s http://localhost:8080/api/openapi | jq > datashare_openapi.json
       - persist_to_workspace:
           root: /tmp/datashare
