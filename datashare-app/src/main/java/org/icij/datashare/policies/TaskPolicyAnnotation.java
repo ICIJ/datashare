@@ -6,6 +6,8 @@ import net.codestory.http.annotations.ApplyAroundAnnotation;
 import net.codestory.http.payload.Payload;
 import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.asynctasks.UnknownTask;
+import org.icij.datashare.batch.BatchDownload;
+import org.icij.datashare.batch.BatchSearchRecord;
 import org.icij.datashare.session.DatashareUser;
 import org.icij.datashare.tasks.DatashareTaskManager;
 
@@ -42,16 +44,26 @@ public class TaskPolicyAnnotation implements ApplyAroundAnnotation<TaskPolicy> {
         try {
             Task<Serializable> task = taskManager.getTask(taskId);
 
+            boolean isAllowed;
+            Object batchSearchRecord = task.args.get("batchRecord");
+            Object batchDownload = task.args.get("batchDownload");
+            if (batchSearchRecord instanceof BatchSearchRecord) {
+                // BatchSearches are linked to multiple projects
+                isAllowed = ((BatchSearchRecord) batchSearchRecord).projects.stream().allMatch(p -> authorizer.can(user.id, domain, p.getId(), annotation.role()));
+            } else if (batchDownload instanceof BatchDownload) {
+                // BatchDownloads are linked to multiple projects
+                isAllowed = ((BatchDownload) batchDownload).projects.stream().allMatch(p -> authorizer.can(user.id, domain, p.getId(), annotation.role()));
+            } else {
             // Tasks are linked to ONE project at a time
-            // BatchSearches are not handled yet (they are linked to multiple projects...)
-            String projectId = ofNullable((String) task.args.get(DEFAULT_PROJECT_OPT))
-                    .orElseThrow(() -> new IllegalStateException("Task " + taskId + " does not have a project id in its arguments"));
-            Authorizer.requireValue(projectId, false);
+                String projectId = ofNullable((String) task.args.get(DEFAULT_PROJECT_OPT))
+                        .orElseThrow(() -> new IllegalStateException("Task " + taskId + " does not have a project id in its arguments"));
+                Authorizer.requireValue(projectId, false);
+                // Check if user as role based rights or is owner with access rights (if ownerRole is specified)
+                isAllowed = authorizer.can(user.id, domain, projectId, annotation.role());
+            }
 
-            // Check if user as role based rights or is owner with access rights (if ownerRole is specified)
-            boolean hasRole = authorizer.can(user.id, domain, projectId, annotation.role());
-            boolean hasOwnerRole = annotation.ownerRole() != Role.NONE && authorizer.can(user.id, domain, projectId, annotation.ownerRole()) && isTaskOwner(user, task);
-            if (!hasRole && !hasOwnerRole) {
+            boolean hasOwnerRole = annotation.ownerRole() != Role.NONE && isTaskOwner(user, task);
+            if (!isAllowed && !hasOwnerRole) {
                 return Payload.forbidden();
             }
             return payloadSupplier.apply(context);

@@ -5,11 +5,14 @@ import net.codestory.http.errors.UnauthorizedException;
 import net.codestory.http.payload.Payload;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.asynctasks.TaskRepositoryMemory;
+import org.icij.datashare.batch.BatchDownload;
+import org.icij.datashare.batch.BatchSearchRecord;
 import org.icij.datashare.session.DatashareUser;
 import org.icij.datashare.tasks.TaskManagerMemory;
 import org.icij.datashare.tasks.TestSleepingTask;
 import org.icij.datashare.tasks.TestTaskUtils;
 import org.icij.datashare.text.Project;
+import org.icij.datashare.text.ProjectProxy;
 import org.icij.datashare.user.User;
 import org.junit.After;
 import org.junit.Before;
@@ -18,7 +21,9 @@ import org.mockito.Mock;
 
 import java.io.IOException;
 import java.lang.annotation.Annotation;
+import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import static junit.framework.TestCase.assertEquals;
@@ -188,6 +193,101 @@ public class TaskPolicyAnnotationTest {
         when(context.currentUser()).thenReturn(john);
         when(context.pathParam("taskName:")).thenReturn(dummyTaskId);
 
+        Payload result = annotation.apply(noOwnerRoleTaskPolicy, context, c -> Payload.ok());
+        assertEquals(403, result.code());
+    }
+
+    @Test
+    public void should_allow_task_owner_via_owner_role_even_without_required_role() throws IOException {
+        Context context = mock(Context.class);
+        DatashareUser john = new DatashareUser("john");
+        // john (PROJECT_MEMBER) starts a task — he is the task owner
+        String taskId = taskManager.startTask(TestSleepingTask.class, john, new HashMap<>() {{
+            put("defaultProject", projectId);
+        }});
+
+        when(context.currentUser()).thenReturn(john);
+        when(context.pathParam("taskName:")).thenReturn(taskId);
+
+        // adminTaskPolicy requires PROJECT_ADMIN but has ownerRole=PROJECT_MEMBER;
+        // john lacks PROJECT_ADMIN but is the owner → must be allowed
+        Payload result = annotation.apply(adminTaskPolicy, context, c -> Payload.ok());
+        assertEquals(200, result.code());
+    }
+
+    @Test
+    public void should_allow_access_for_batch_search_when_user_has_role_on_all_projects() throws IOException {
+        Context context = mock(Context.class);
+        DatashareUser cecile = new DatashareUser("cecile");
+        BatchSearchRecord batchRecord = new BatchSearchRecord(
+                List.of(new ProjectProxy(projectId)), "test-search", "desc", 1, new Date(), null);
+        String taskId = taskManager.startTask(TestSleepingTask.class, User.local(), new HashMap<>() {{
+            put("batchRecord", batchRecord);
+        }});
+
+        when(context.currentUser()).thenReturn(cecile);
+        when(context.pathParam("taskName:")).thenReturn(taskId);
+
+        // cecile is PROJECT_ADMIN on projectId → all projects match
+        Payload result = annotation.apply(adminTaskPolicy, context, c -> Payload.ok());
+        assertEquals(200, result.code());
+    }
+
+    @Test
+    public void should_return_forbidden_for_batch_search_when_user_lacks_role_on_some_project() throws IOException {
+        Context context = mock(Context.class);
+        DatashareUser john = new DatashareUser("john");
+        String otherProjectId = "other-project";
+        // john has PROJECT_MEMBER on projectId but no role on otherProjectId
+        BatchSearchRecord batchRecord = new BatchSearchRecord(
+                List.of(new ProjectProxy(projectId), new ProjectProxy(otherProjectId)),
+                "test-search", "desc", 1, new Date(), null);
+        String taskId = taskManager.startTask(TestSleepingTask.class, User.local(), new HashMap<>() {{
+            put("batchRecord", batchRecord);
+        }});
+
+        when(context.currentUser()).thenReturn(john);
+        when(context.pathParam("taskName:")).thenReturn(taskId);
+
+        // noOwnerRoleTaskPolicy requires PROJECT_ADMIN; john lacks it on both projects
+        Payload result = annotation.apply(noOwnerRoleTaskPolicy, context, c -> Payload.ok());
+        assertEquals(403, result.code());
+    }
+
+    @Test
+    public void should_allow_access_for_batch_download_when_user_has_role_on_all_projects() throws IOException {
+        Context context = mock(Context.class);
+        DatashareUser cecile = new DatashareUser("cecile");
+        BatchDownload batchDownload = new BatchDownload(
+                List.of(Project.project(projectId)), User.local(), "*");
+        String taskId = taskManager.startTask(TestSleepingTask.class, User.local(), new HashMap<>() {{
+            put("batchDownload", batchDownload);
+        }});
+
+        when(context.currentUser()).thenReturn(cecile);
+        when(context.pathParam("taskName:")).thenReturn(taskId);
+
+        // cecile is PROJECT_ADMIN on projectId → all projects match
+        Payload result = annotation.apply(adminTaskPolicy, context, c -> Payload.ok());
+        assertEquals(200, result.code());
+    }
+
+    @Test
+    public void should_return_forbidden_for_batch_download_when_user_lacks_role_on_some_project() throws IOException {
+        Context context = mock(Context.class);
+        DatashareUser john = new DatashareUser("john");
+        String otherProjectId = "other-project";
+        // john has PROJECT_MEMBER on projectId but no role on otherProjectId
+        BatchDownload batchDownload = new BatchDownload(
+                List.of(Project.project(projectId), Project.project(otherProjectId)), User.local(), "*");
+        String taskId = taskManager.startTask(TestSleepingTask.class, User.local(), new HashMap<>() {{
+            put("batchDownload", batchDownload);
+        }});
+
+        when(context.currentUser()).thenReturn(john);
+        when(context.pathParam("taskName:")).thenReturn(taskId);
+
+        // noOwnerRoleTaskPolicy requires PROJECT_ADMIN; john lacks it on both projects
         Payload result = annotation.apply(noOwnerRoleTaskPolicy, context, c -> Payload.ok());
         assertEquals(403, result.code());
     }
