@@ -4,6 +4,7 @@ import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.asynctasks.CancelException;
 import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.batch.BatchSearch;
+import org.icij.datashare.batch.BatchSearchRecord;
 import org.icij.datashare.batch.BatchSearchRepository;
 import org.icij.datashare.batch.SearchException;
 import org.icij.datashare.test.DatashareTimeRule;
@@ -36,8 +37,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 import static org.mockito.MockitoAnnotations.initMocks;
 
 
@@ -123,20 +123,46 @@ public class BatchSearchRunnerTest {
         assertThat(timeRule.now().getTime() - beforeBatch.getTime()).isEqualTo(1000);
     }
 
+    // To avoid race conditions, this test relies heavily on synchronization.
+    // The goal is to avoid having the BatchSearchRunner execute itself before receiving the cancel request,
+    // which happened sometimes on the CI.
     @Test
     public void test_cancel_current_batch_search() throws Exception {
-        CountDownLatch countDownLatch = new CountDownLatch(1);
+        // Given
         Document[] documents = {createDoc("doc1").build(), createDoc("doc2").build()};
         mockSearch.willReturn(1, documents);
+        CountDownLatch runnerStarted = new CountDownLatch(1);
         BatchSearch search = new BatchSearch("uuid1", singletonList(project("test-datashare")), "name1", "desc1", asSet("query1", "query2"), new Date(), BatchSearch.State.QUEUED, User.local());
         when(repository.get(local(), search.uuid)).thenReturn(search);
-        BatchSearchRunner batchSearchRunner = new BatchSearchRunner(indexer, new PropertiesProvider(), repository, taskView(search), progressCb, countDownLatch);
 
+        // The following block will halt the execution of the BatchSearchRunner until it receives the cancel request
+        CountDownLatch cancelRequestedInRunner = new CountDownLatch(1);
+        doAnswer(inv -> {
+            //This will block the execution of the runner
+            cancelRequestedInRunner.await();
+            return null;
+        }).when(repository).setState(any(), eq(BatchSearchRecord.State.RUNNING));
+
+        // WHEN
+        BatchSearchRunner batchSearchRunner = new BatchSearchRunner(indexer, new PropertiesProvider(), repository, taskView(search), progressCb, runnerStarted);
         Future<BatchSearchRunnerResult> result = executor.submit(batchSearchRunner);
+        runnerStarted.await();
         executor.shutdown();
-        countDownLatch.await();
-        batchSearchRunner.cancel(false);
 
+        // BatchSearchRunner.cancel is blocking until the thread returns,
+        // so it must be started in a new thread to avoid interlocking
+        Thread cancelThread = new Thread(() -> batchSearchRunner.cancel(false));
+        cancelThread.start();
+
+        //Wait for the batchSearchRunner to receive the instruction that it must be canceled
+        while (!batchSearchRunner.cancelAsked) { Thread.yield(); }
+
+        //BatchSearchRunner received the instruction that it must be canceled : its execution can resume
+        cancelRequestedInRunner.countDown();
+
+        cancelThread.join();
+
+        // THEN
         assertThat(executor.awaitTermination(2, TimeUnit.SECONDS)).isTrue();
         assertThat(assertThrows(ExecutionException.class, result::get).getCause()).isInstanceOf(CancelException.class);
     }
