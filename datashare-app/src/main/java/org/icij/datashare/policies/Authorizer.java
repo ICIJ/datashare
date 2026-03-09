@@ -79,10 +79,6 @@ public final class Authorizer {
         return CasbinRule.fromArray(Stream.concat(Stream.of(ptype), rule.stream()).collect(Collectors.toList()));
     }
 
-    protected Enforcer enforcer() {
-        return enforcer;
-    }
-
     private String loadCasbinConf(String modelPath) throws IOException {
         // Load Casbin model from classpath in a way that works both from IDE and packaged JARs
         String path = Optional.ofNullable(modelPath).orElse(DEFAULT_POLICY_FILE);
