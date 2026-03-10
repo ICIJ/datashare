@@ -734,6 +734,111 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         delete("/api/task/clean/" + dummyTaskId).withPreemptiveAuthentication("owner", "").should().respond(200);
     }
 
+    @Test
+    public void test_stop_task_with_admin_policy() throws Exception {
+        authorizer = new Authorizer(adapter);
+        String projectId = "test-datashare";
+        Project project = project(projectId);
+        DatashareUser notJohn = new DatashareUser("notJohn");
+
+        String dummyTaskId = taskManager.startTask(TestSleepingTask.class, notJohn, new HashMap<>(Map.of(PropertiesProvider.DEFAULT_PROJECT_OPT, projectId)));
+
+        DatashareUser john = new DatashareUser("john");
+        john.addProject(projectId);
+        authorizer.addRoleForUserInProject(john, Role.PROJECT_MEMBER, Domain.DEFAULT, project);
+        when(users.find(john.id)).thenReturn(john);
+        TaskPolicyAnnotation taskPolicyAnnotation = new TaskPolicyAnnotation(authorizer, taskManager);
+
+        configure(routes -> routes
+                .registerAroundAnnotation(TaskPolicy.class, taskPolicyAnnotation)
+                .add(new TaskResource(taskFactory, taskManager, getDefaultPropertiesProvider(), batchSearchRepository))
+                .filter(new BasicAuthFilter("/", "icij", DatashareUser.users("john", "notJohn")))
+        );
+
+        // MEMBER cannot stop a task created by someone else
+        put("/api/task/stop/" + dummyTaskId).withPreemptiveAuthentication("john", "").should().respond(403);
+        authorizer.updateRoleForUserInProject(john, Role.PROJECT_ADMIN, Domain.DEFAULT, project);
+        put("/api/task/stop/" + dummyTaskId).withPreemptiveAuthentication("john", "").should().respond(200);
+    }
+
+    @Test
+    public void test_stop_task_as_owner() throws Exception {
+        authorizer = new Authorizer(adapter);
+        String projectId = "test-datashare";
+        Project project = project(projectId);
+        DatashareUser owner = new DatashareUser("owner");
+        owner.addProject(projectId);
+        authorizer.addRoleForUserInProject(owner, Role.PROJECT_MEMBER, Domain.DEFAULT, project);
+        when(users.find(owner.id)).thenReturn(owner);
+
+        String dummyTaskId = taskManager.startTask(TestSleepingTask.class, owner, new HashMap<>(Map.of(PropertiesProvider.DEFAULT_PROJECT_OPT, projectId)));
+
+        TaskPolicyAnnotation taskPolicyAnnotation = new TaskPolicyAnnotation(authorizer, taskManager);
+
+        configure(routes -> routes
+                .registerAroundAnnotation(TaskPolicy.class, taskPolicyAnnotation)
+                .add(new TaskResource(taskFactory, taskManager, getDefaultPropertiesProvider(), batchSearchRepository))
+                .filter(new BasicAuthFilter("/", "icij", DatashareUser.users("owner")))
+        );
+
+        // MEMBER cannot stop other's tasks but as owner it's ok
+        put("/api/task/stop/" + dummyTaskId).withPreemptiveAuthentication("owner", "").should().respond(200);
+    }
+
+    @Test
+    public void test_clean_done_tasks_with_admin_policy() throws Exception {
+        authorizer = new Authorizer(adapter);
+        String projectId = "test-datashare";
+        Project project = project(projectId);
+
+        taskManager.startTask(TestTask.class, User.local(), new HashMap<>(Map.of(PropertiesProvider.DEFAULT_PROJECT_OPT, projectId)));
+        taskManager.waitTasksToBeDone(1, SECONDS);
+
+        DatashareUser john = new DatashareUser("john");
+        john.addProject(projectId);
+        authorizer.addRoleForUserInProject(john, Role.PROJECT_MEMBER, Domain.DEFAULT, project);
+        when(users.find(john.id)).thenReturn(john);
+        TaskPolicyAnnotation taskPolicyAnnotation = new TaskPolicyAnnotation(authorizer, taskManager);
+
+        configure(routes -> routes
+                .registerAroundAnnotation(TaskPolicy.class, taskPolicyAnnotation)
+                .add(new TaskResource(taskFactory, taskManager, getDefaultPropertiesProvider(), batchSearchRepository))
+                .filter(new BasicAuthFilter("/", "icij", DatashareUser.users("john")))
+        );
+
+        // PROJECT_MEMBER on a specific project cannot clean all done tasks (requires domain-level DOMAIN_ADMIN)
+        post("/api/task/clean", "{}").withPreemptiveAuthentication("john", "").should().respond(403);
+        // DOMAIN_ADMIN on wildcard project grants domain-level access for singleTask=false endpoint
+        authorizer.addRoleForUserInDomain(john, Role.DOMAIN_ADMIN, Domain.DEFAULT);
+        post("/api/task/clean", "{}").withPreemptiveAuthentication("john", "").should().respond(200);
+    }
+
+    @Test
+    public void test_clean_done_tasks_forbidden_without_wildcard_role() throws Exception {
+        authorizer = new Authorizer(adapter);
+        String projectId = "test-datashare";
+        Project project = project(projectId);
+
+        taskManager.startTask(TestTask.class, User.local(), new HashMap<>(Map.of(PropertiesProvider.DEFAULT_PROJECT_OPT, projectId)));
+        taskManager.waitTasksToBeDone(1, SECONDS);
+
+        DatashareUser john = new DatashareUser("john");
+        john.addProject(projectId);
+        // PROJECT_ADMIN on a specific project (not *) is insufficient for singleTask=false wildcard check
+        authorizer.addRoleForUserInDomain(john, Role.PROJECT_ADMIN, Domain.DEFAULT);
+        when(users.find(john.id)).thenReturn(john);
+        TaskPolicyAnnotation taskPolicyAnnotation = new TaskPolicyAnnotation(authorizer, taskManager);
+
+        configure(routes -> routes
+                .registerAroundAnnotation(TaskPolicy.class, taskPolicyAnnotation)
+                .add(new TaskResource(taskFactory, taskManager, getDefaultPropertiesProvider(), batchSearchRepository))
+                .filter(new BasicAuthFilter("/", "icij", DatashareUser.users("john")))
+        );
+
+        // Even DOMAIN_ADMIN on a specific project is denied — singleTask=false requires wildcard access
+        post("/api/task/clean", "{}").withPreemptiveAuthentication("john", "").should().respond(403);
+    }
+
 
     @Test
     public void test_cannot_clean_unknown_task() {

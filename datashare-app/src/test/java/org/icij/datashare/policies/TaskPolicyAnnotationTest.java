@@ -61,7 +61,7 @@ public class TaskPolicyAnnotationTest {
 
         @Override
         public boolean singleTask() {
-            return false;
+            return true;
         }
 
         @Override
@@ -93,6 +93,39 @@ public class TaskPolicyAnnotationTest {
 
         @Override
         public boolean singleTask() {
+            return true;
+        }
+
+        @Override
+        public String domain() {
+            return "default";
+        }
+
+    };
+
+    private final TaskPolicy batchTaskPolicy = new TaskPolicy() {
+        @Override
+        public Class<? extends Annotation> annotationType() {
+            return TaskPolicy.class;
+        }
+
+        @Override
+        public Role role() {
+            return Role.DOMAIN_ADMIN;
+        }
+
+        @Override
+        public Role ownerRole() {
+            return Role.NONE;
+        }
+
+        @Override
+        public String idParam() {
+            return "taskName:";
+        }
+
+        @Override
+        public boolean singleTask() {
             return false;
         }
 
@@ -102,6 +135,7 @@ public class TaskPolicyAnnotationTest {
         }
 
     };
+
     private final String projectId = "test-datashare";
     Authorizer authorizer;
     @Mock
@@ -316,6 +350,47 @@ public class TaskPolicyAnnotationTest {
         // john has ownerRole (PROJECT_MEMBER) but is not the owner (task.getUser() == null)
         // must return 403, not throw NullPointerException
         Payload result = annotation.apply(adminTaskPolicy, context, c -> Payload.ok());
+        assertEquals(403, result.code());
+    }
+
+    @Test
+    public void should_allow_batch_operation_when_user_has_wildcard_role() {
+        Context context = mock(Context.class);
+        DatashareUser cecile = new DatashareUser("cecile");
+        // Give cecile DOMAIN_ADMIN on the wildcard project (domain-level)
+        authorizer.addRoleForUserInDomain(cecile, Role.DOMAIN_ADMIN, Domain.DEFAULT);
+
+        when(context.currentUser()).thenReturn(cecile);
+
+        // batchTaskPolicy (singleTask=false) checks wildcard project access
+        Payload result = annotation.apply(batchTaskPolicy, context, c -> Payload.ok());
+        assertEquals(200, result.code());
+    }
+
+    @Test
+    public void should_deny_batch_operation_when_user_has_only_specific_project_role() {
+        Context context = mock(Context.class);
+        DatashareUser cecile = new DatashareUser("cecile");
+        // cecile has PROJECT_ADMIN only on test-datashare (from setUp), not on *
+
+        when(context.currentUser()).thenReturn(cecile);
+
+        // batchTaskPolicy requires wildcard project access; specific project role is insufficient
+        Payload result = annotation.apply(batchTaskPolicy, context, c -> Payload.ok());
+        assertEquals(403, result.code());
+    }
+
+    @Test
+    public void should_deny_batch_operation_when_user_has_insufficient_role() {
+        Context context = mock(Context.class);
+        DatashareUser john = new DatashareUser("john");
+        // Give john PROJECT_MEMBER on * — insufficient for PROJECT_ADMIN requirement
+        authorizer.addRoleForUserInProject(john, Role.PROJECT_MEMBER, Domain.DEFAULT, project("*"));
+
+        when(context.currentUser()).thenReturn(john);
+
+        // batchTaskPolicy requires PROJECT_ADMIN; john has only PROJECT_MEMBER
+        Payload result = annotation.apply(batchTaskPolicy, context, c -> Payload.ok());
         assertEquals(403, result.code());
     }
 
