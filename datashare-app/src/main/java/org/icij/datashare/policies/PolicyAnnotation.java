@@ -22,7 +22,7 @@ public class PolicyAnnotation implements ApplyAroundAnnotation<Policy> {
 
     @Override
     public Payload apply(Policy annotation, Context context, Function<Context, Payload> payloadSupplier) {
-        DatashareUser user = Authorizer.requireCurrentUser(context);
+        DatashareUser user = Authorizer.requireUser((DatashareUser) context.currentUser());
 
         Domain domain;
         String projectId;

@@ -7,6 +7,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
 
+import java.io.IOException;
 import java.util.List;
 
 import static org.fest.assertions.Assertions.assertThat;
@@ -82,7 +83,7 @@ public class GrantAdminPolicyTaskTest {
     }
 
     @Test
-    public void test_grant_is_idempotent_with_real_authorizer() {
+    public void test_grant_is_idempotent_with_real_authorizer() throws IOException {
         CasbinRuleAdapter adapter = mock(CasbinRuleAdapter.class);
         Authorizer realAuthorizer = new Authorizer(adapter);
         User user = User.local();

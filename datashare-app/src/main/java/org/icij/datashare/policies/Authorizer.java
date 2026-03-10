@@ -19,10 +19,11 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
-import java.util.Optional;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
+import static java.util.Optional.ofNullable;
 
 @Singleton
 public final class Authorizer {
@@ -75,15 +76,8 @@ public final class Authorizer {
         return CasbinRule.fromArray(Stream.concat(Stream.of(ptype), rule.stream()).collect(Collectors.toList()));
     }
 
-    private String loadCasbinConf(String modelPath) throws IOException {
-        // Load Casbin model from classpath in a way that works both from IDE and packaged JARs
-        String path = Optional.ofNullable(modelPath).orElse(DEFAULT_POLICY_FILE);
-        InputStream inputStream = getClass().getClassLoader().getResourceAsStream(path);
-        if (inputStream != null) {
-            return IOUtils.toString(inputStream, StandardCharsets.UTF_8);
-        } else {
-            throw new FileNotFoundException(String.format("Unable to find : %s", path));
-        }
+    public static DatashareUser requireUser(DatashareUser user) {
+        return ofNullable(user).orElseThrow(UnauthorizedException::new);
     }
 
     public boolean can(String userId, Domain domain, String project, Role action) {
@@ -227,12 +221,15 @@ public final class Authorizer {
         }
     }
 
-    public static DatashareUser requireCurrentUser(Context context) {
-        DatashareUser user = (DatashareUser) context.currentUser();
-        if (user == null) {
-            throw new UnauthorizedException();
+    private String loadCasbinConf(String modelPath) throws IOException {
+        // Load Casbin model from classpath in a way that works both from IDE and packaged JARs
+        String path = ofNullable(modelPath).orElse(DEFAULT_POLICY_FILE);
+        InputStream inputStream = getClass().getClassLoader().getResourceAsStream(path);
+        if (inputStream != null) {
+            return IOUtils.toString(inputStream, StandardCharsets.UTF_8);
+        } else {
+            throw new FileNotFoundException(String.format("Unable to find : %s", path));
         }
-        return user;
     }
 
     public static Domain requireDomain(String domain, boolean wildcardAllowed) {

@@ -68,7 +68,7 @@ public class TaskPolicyAnnotation implements ApplyAroundAnnotation<TaskPolicy> {
     @Override
     public Payload apply(TaskPolicy annotation, Context context, Function<Context, Payload> payloadSupplier) {
 
-        DatashareUser user = Authorizer.requireCurrentUser(context);
+        DatashareUser user = Authorizer.requireUser((DatashareUser) context.currentUser());
         //TODO #DOMAIN Currently Domain is not handled so we can't check it from query params
         Domain domain = Authorizer.requireDomain(annotation.domain(), true);
         if (!annotation.singleTask()) {

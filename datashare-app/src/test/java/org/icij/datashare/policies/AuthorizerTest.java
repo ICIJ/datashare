@@ -321,10 +321,10 @@ public class AuthorizerTest {
         DatashareUser user = new DatashareUser("alice");
         when(context.currentUser()).thenReturn(user);
 
-        assertEquals(user, Authorizer.requireCurrentUser(context));
+        assertEquals(user, Authorizer.requireUser((DatashareUser) context.currentUser()));
 
         when(context.currentUser()).thenReturn(null);
-        Authorizer.requireCurrentUser(context);
+        Authorizer.requireUser((DatashareUser) context.currentUser());
         fail("Expected UnauthorizedException");
     }
 

@@ -18,6 +18,7 @@ import org.icij.datashare.policies.Authorizer;
 import org.icij.datashare.policies.Domain;
 import org.icij.datashare.policies.Policy;
 import org.icij.datashare.policies.Role;
+import org.icij.datashare.session.DatashareUser;
 import org.icij.datashare.text.Project;
 import org.icij.datashare.user.User;
 
@@ -159,7 +160,7 @@ public class PolicyResource {
             User user = userExists(context.query().get("user"));
             Role role = requireRole(context.query().get("role"));
             Domain domainValue = requireDomain(domain, false);
-            if (!authorizer.can(requireCurrentUser(context).id, domainValue, "*", role)) {
+            if (!authorizer.can(requireUser((DatashareUser) context.currentUser()).id, domainValue, "*", role)) {
                 return new Payload("Cannot grant a role with higher privileges than your own").withCode(HttpStatus.FORBIDDEN);
             }
             authorizer.updateRoleForUserInDomain(user, role, domainValue);
@@ -231,7 +232,7 @@ public class PolicyResource {
             Role role = requireRole(context.query().get("role"));
             Domain domainValue = requireDomain(domain, false);
             Project projectValue = projectExists(project);
-            if (!authorizer.can(requireCurrentUser(context).id, domainValue, projectValue.getId(), role)) {
+            if (!authorizer.can(requireUser((DatashareUser) context.currentUser()).id, domainValue, projectValue.getId(), role)) {
                 return new Payload("Cannot grant a role with higher privileges than your own").withCode(HttpStatus.FORBIDDEN);
             }
             authorizer.updateRoleForUserInProject(user, role, domainValue, projectValue);
