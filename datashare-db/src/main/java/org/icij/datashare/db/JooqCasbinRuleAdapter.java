@@ -145,6 +145,7 @@ public class JooqCasbinRuleAdapter implements CasbinRuleAdapter {
     }
 
     private void createInsertQueries(DSLContext ctx, List<Query> queries, String ptype, List<List<String>> rules) {
+        // TODO optimize query to do multiple inserts in a single query
         for (List<String> rule : rules) {
             CasbinRule line = savePolicyLine(ptype, rule);
             queries.add(
@@ -170,7 +171,7 @@ public class JooqCasbinRuleAdapter implements CasbinRuleAdapter {
             // Delete all existing rules
             trxCtx.deleteFrom(CASBIN_RULE).execute();
 
-            // Process both sections with immediate batch execution
+            // Process sections with immediate batch execution
             saveSectionPolicyWithBatch(trxCtx, model, "p");
             saveSectionPolicyWithBatch(trxCtx, model, "g");
             saveSectionPolicyWithBatch(trxCtx, model, "g2");
