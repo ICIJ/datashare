@@ -10,6 +10,8 @@ import org.icij.datashare.batch.BatchDownload;
 import org.icij.datashare.batch.BatchSearchRecord;
 import org.icij.datashare.session.DatashareUser;
 import org.icij.datashare.tasks.DatashareTaskManager;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.Serializable;
@@ -22,6 +24,7 @@ import static org.icij.datashare.PropertiesProvider.DEFAULT_PROJECT_OPT;
 public class TaskPolicyAnnotation implements ApplyAroundAnnotation<TaskPolicy> {
     private final Authorizer authorizer;
     private final DatashareTaskManager taskManager;
+    Logger logger = LoggerFactory.getLogger(TaskPolicyAnnotation.class);
 
     @Inject
     public TaskPolicyAnnotation(Authorizer authorizer,
@@ -68,8 +71,11 @@ public class TaskPolicyAnnotation implements ApplyAroundAnnotation<TaskPolicy> {
             }
             return payloadSupplier.apply(context);
 
-        } catch (UnknownTask | IOException e) {
+        } catch (UnknownTask e) {
             return Payload.notFound();
+        } catch (IOException e) {
+            logger.error("Failed to get task {}", taskId, e);
+            return new Payload(e.getMessage(), 500);
         }
     }
 }
