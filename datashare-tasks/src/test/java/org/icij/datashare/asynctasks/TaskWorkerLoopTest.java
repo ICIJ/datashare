@@ -29,7 +29,8 @@ public class TaskWorkerLoopTest {
     public void test_loop() throws Exception {
         TaskWorkerLoop app = new TaskWorkerLoop(registry, supplier);
         Task<Serializable> taskView = new Task<>(TestFactory.HelloWorld.class.getName(), User.local(), Map.of("greeted", "world"));
-        Mockito.when(supplier.get(ArgumentMatchers.anyInt(), ArgumentMatchers.any())).thenReturn(taskView);
+        //Return a task once, then return null to avoid the WorkerLoop processing multiple Tasks
+        Mockito.when(supplier.get(ArgumentMatchers.anyInt(), ArgumentMatchers.any())).thenReturn(taskView).thenReturn(null);
         CountDownLatch taskStarted = whenTaskHasStarted(taskView.id);
 
         Thread appThread = new Thread(app::call);
