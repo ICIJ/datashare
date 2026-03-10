@@ -60,6 +60,11 @@ public class TaskPolicyAnnotationTest {
         }
 
         @Override
+        public boolean singleTask() {
+            return false;
+        }
+
+        @Override
         public String domain() {
             return "default";
         }
@@ -87,6 +92,11 @@ public class TaskPolicyAnnotationTest {
         }
 
         @Override
+        public boolean singleTask() {
+            return false;
+        }
+
+        @Override
         public String domain() {
             return "default";
         }
@@ -99,7 +109,7 @@ public class TaskPolicyAnnotationTest {
     private TaskPolicyAnnotation annotation;
 
     @Before
-    public void setUp() {
+    public void setUp() throws IOException {
         mocks = openMocks(this);
         authorizer = new Authorizer(adapter);
         User cecile = localUser("cecile");
@@ -157,8 +167,8 @@ public class TaskPolicyAnnotationTest {
     public void should_throw_exception_if_task_has_no_project() throws IOException {
         Context context = mock(Context.class);
         DatashareUser noPolicyUser = new DatashareUser("jane");
-        String dummyTaskId = taskManager.startTask(TestSleepingTask.class, User.local(), new HashMap<>() {{
-        }});
+        String dummyTaskId = taskManager.startTask(TestSleepingTask.class, User.local(), new HashMap<>() {
+        });
 
         when(context.currentUser()).thenReturn(noPolicyUser);
 

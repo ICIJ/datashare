@@ -432,29 +432,17 @@ public class TaskResource {
                 .map(TaskResponse::new).orElseThrow(() -> new HttpException(500));
     }
 
+    public static TaskFilters taskFiltersFromContext(Context context) throws BadRequestException {
+        return taskFiltersFromContext(context, null);
+    }
+
     @Operation(description = "Cleans all DONE tasks.", parameters = {
             @Parameter(name = "name", description = "as an example: pattern contained in the task name", in = ParameterIn.QUERY)})
     @ApiResponse(responseCode = "200", description = "returns 200 and the list of removed tasks", useReturnTypeSchema = true)
+    @TaskPolicy(role = Role.DOMAIN_ADMIN, singleTask = false)
     @Post("/clean")
     public List<Task<?>> cleanDoneTasks(final Context context) throws IOException {
         return taskManager.clearDoneTasks(taskFiltersFromContext(context));
-    }
-
-    @Operation(description = "Cleans a specific task.")
-    @ApiResponse(responseCode = "200", description = "returns 200 if the task is removed")
-    @ApiResponse(responseCode = "403", description = "returns 403 if the task is still in RUNNING state")
-    @ApiResponse(responseCode = "403", description = "returns 403 if the task is still in RUNNING state")
-    @ApiResponse(responseCode = "404", description = "returns 404 if the task doesn't exist")
-    @Delete("/clean/:taskName:")
-    @TaskPolicy(role = Role.PROJECT_ADMIN, ownerRole = Role.PROJECT_MEMBER)
-    public Payload cleanTask(@Parameter(name = "taskName", description = "name of the task to delete", in = ParameterIn.PATH) final String taskId, Context context) throws Exception {
-        Task<?> task = notFoundIfUnknown(() -> taskManager.getTask(taskId));
-        if (task.getState() == Task.State.RUNNING) {
-            return forbidden();
-        } else {
-            taskManager.clearTask(task.id);
-            return ok();
-        }
     }
 
     @Operation(description = "Preflight request for task cleaning.")
@@ -630,8 +618,21 @@ public class TaskResource {
         return WebQueryPagination.fromMap(paginationMap);
     }
 
-    private static TaskFilters taskFiltersFromContext(Context context) throws BadRequestException {
-        return taskFiltersFromContext(context, null);
+    @Operation(description = "Cleans a specific task.")
+    @ApiResponse(responseCode = "200", description = "returns 200 if the task is removed")
+    @ApiResponse(responseCode = "403", description = "returns 403 if the task is still in RUNNING state")
+    @ApiResponse(responseCode = "403", description = "returns 403 if the task is still in RUNNING state")
+    @ApiResponse(responseCode = "404", description = "returns 404 if the task doesn't exist")
+    @TaskPolicy(role = Role.PROJECT_ADMIN, ownerRole = Role.PROJECT_MEMBER)
+    @Delete("/clean/:taskName:")
+    public Payload cleanTask(@Parameter(name = "taskName", description = "name of the task to delete", in = ParameterIn.PATH) final String taskId, Context context) throws Exception {
+        Task<?> task = notFoundIfUnknown(() -> taskManager.getTask(taskId));
+        if (task.getState() == Task.State.RUNNING) {
+            return forbidden();
+        } else {
+            taskManager.clearTask(task.id);
+            return ok();
+        }
     }
 
     // TODO: this is for backwards compatibility, we should updated APIs to use TaskFilters instead

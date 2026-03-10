@@ -10,6 +10,8 @@ import java.lang.annotation.Target;
 public @interface TaskPolicy {
     String idParam() default "taskName:";
 
+    boolean singleTask() default true;
+
     String domain() default "default";
 
     Role role() default Role.PROJECT_MEMBER;
