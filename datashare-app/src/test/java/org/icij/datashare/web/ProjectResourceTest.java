@@ -220,7 +220,7 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
     }
 
     @Before
-    public void setUp() {
+    public void setUp() throws IOException {
         initMocks(this);
         authorizer = new Authorizer(adapter);
 

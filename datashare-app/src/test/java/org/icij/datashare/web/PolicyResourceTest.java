@@ -16,6 +16,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
 
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -38,7 +39,7 @@ public class PolicyResourceTest extends AbstractProdWebServerTest {
     User jane = localUser("jane");
     User john = localUser("john");
     @Before
-    public void setUp() {
+    public void setUp() throws IOException {
         openMocks(this);
         DatashareUser user = new DatashareUser(new HashMap<>() {{
             put("uid", "jane");

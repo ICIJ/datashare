@@ -16,6 +16,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
 
+import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 
@@ -37,7 +38,7 @@ public class UserResourceTest extends AbstractProdWebServerTest {
     PropertiesProvider propertiesProvider = new PropertiesProvider();
 
     @Before
-    public void setUp() {
+    public void setUp() throws IOException {
         initMocks(this);
         authorizer = new Authorizer(casbinRuleAdapter);
         configure(routes -> routes.add(new UserResource(jooqRepository, authorizer)).filter(new LocalUserFilter(new PropertiesProvider(), jooqRepository)));

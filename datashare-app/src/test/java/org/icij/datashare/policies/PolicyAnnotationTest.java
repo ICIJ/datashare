@@ -10,6 +10,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
 
+import java.io.IOException;
 import java.lang.annotation.Annotation;
 
 import static junit.framework.TestCase.assertEquals;
@@ -95,7 +96,7 @@ public class PolicyAnnotationTest {
     private PolicyAnnotation annotation;
 
     @Before
-    public void setUp() {
+    public void setUp() throws IOException {
         mocks = openMocks(this);
         projectId = "test-datashare";
         Project project = project(projectId);
