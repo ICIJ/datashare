@@ -32,18 +32,14 @@ public final class Authorizer {
     private final Enforcer enforcer;
 
     @Inject
-    public Authorizer(CasbinRuleAdapter adapter) {
+    public Authorizer(CasbinRuleAdapter adapter) throws IOException {
         this(adapter, true, false);
     }
 
-    private Authorizer(CasbinRuleAdapter adapter, boolean enableAutoSave, boolean enableLog) {
+    private Authorizer(CasbinRuleAdapter adapter, boolean enableAutoSave, boolean enableLog) throws IOException {
         Model model = new Model();
-        try {
-            String modelConf = loadCasbinConf(DEFAULT_POLICY_FILE);
-            model.loadModelFromText(modelConf);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+        String modelConf = loadCasbinConf(DEFAULT_POLICY_FILE);
+        model.loadModelFromText(modelConf);
         enforcer = new Enforcer(model, adapter, enableLog);
         enforcer.setRoleManager(new DomainManager(10, null, BuiltInFunctions::allMatch));
         enforcer.enableAutoSave(enableAutoSave);

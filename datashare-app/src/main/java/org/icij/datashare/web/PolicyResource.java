@@ -115,7 +115,6 @@ public class PolicyResource {
                     @Parameter(name = "user", description = "user name to filter policies", in = ParameterIn.QUERY)
             }
     )
-
     @ApiResponse(responseCode = "200", description = "Domain policies retrieved successfully.")
     @Policy(role = Role.DOMAIN_ADMIN)
     @Get("/:domain")
