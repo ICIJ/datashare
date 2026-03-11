@@ -60,8 +60,7 @@ import static net.codestory.http.payload.Payload.*;
 import static org.apache.commons.lang3.SystemUtils.IS_OS_WINDOWS;
 import static org.icij.datashare.CollectionUtils.asSet;
 import static org.icij.datashare.PropertiesProvider.*;
-import static org.icij.datashare.cli.DatashareCliOptions.BATCH_DOWNLOAD_DIR_OPT;
-import static org.icij.datashare.cli.DatashareCliOptions.NLP_PIPELINE_OPT;
+import static org.icij.datashare.cli.DatashareCliOptions.*;
 import static org.icij.datashare.text.nlp.AbstractModels.syncModels;
 
 @Singleton
@@ -383,7 +382,7 @@ public class TaskResource {
     @ApiResponse(responseCode = "200", description = "returns 200 and the list of tasks created", useReturnTypeSchema = true)
     @Post("/batchUpdate/index/file")
     public Payload indexDefault(final OptionsWrapper<String> optionsWrapper, Context context) throws Exception {
-        return indexPath(propertiesProvider.get("dataDir").orElse("/home/datashare/data"), optionsWrapper, context);
+        return indexPath(propertiesProvider.get(DATA_DIR_OPT).orElse(DEFAULT_DATA_DIR), optionsWrapper, context);
     }
 
     @Operation(description = """
