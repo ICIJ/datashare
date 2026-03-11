@@ -13,6 +13,7 @@ import org.icij.datashare.text.Project;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import static org.icij.datashare.PropertiesProvider.DEFAULT_PROJECT_OPT;
 import static org.icij.datashare.user.User.localUser;
 
 public class YesCookieAuthFilter extends CookieAuthFilter {
@@ -25,7 +26,7 @@ public class YesCookieAuthFilter extends CookieAuthFilter {
         super(propertiesProvider.get("protectedUrlPrefix").orElse("/"), new UsersInRedis(propertiesProvider), new RedisSessionIdStore(propertiesProvider));
         this.ttl = Integer.valueOf(propertiesProvider.get("sessionTtlSeconds").orElse("1"));
         this.jooqRepository = jooqRepository;
-        this.defaultProject = propertiesProvider.get("defaultProject").orElse("local-datashare");
+        this.defaultProject = propertiesProvider.get(DEFAULT_PROJECT_OPT).orElse("local-datashare");
     }
 
     @Override
