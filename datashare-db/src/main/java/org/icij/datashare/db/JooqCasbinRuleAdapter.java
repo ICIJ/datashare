@@ -26,7 +26,7 @@ public class JooqCasbinRuleAdapter implements CasbinRuleAdapter {
     private final DataSource connectionProvider;
     private final SQLDialect dialect;
     private final int batchSize;
-    private volatile boolean isFiltered = false;
+    private boolean isFiltered = false;
 
     public JooqCasbinRuleAdapter(DataSource connectionProvider, SQLDialect dialect) {
         this(connectionProvider, dialect, determineBatchSize(dialect));
