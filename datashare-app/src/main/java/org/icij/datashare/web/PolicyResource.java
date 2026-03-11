@@ -23,7 +23,6 @@ import org.icij.datashare.session.DatashareUser;
 import org.icij.datashare.text.Project;
 import org.icij.datashare.user.User;
 
-import static java.util.Optional.ofNullable;
 import static net.codestory.http.constants.HttpStatus.NO_CONTENT;
 import static net.codestory.http.errors.NotFoundException.notFoundIfNull;
 import static net.codestory.http.payload.Payload.ok;
@@ -79,13 +78,12 @@ public class PolicyResource {
     public Payload getInstancePolicies(Context context) {
         //user is a filter so we don't put hard validation on the param
         String user = context.query().get("user");
-        int from = Integer.parseInt(ofNullable(context.get("from")).orElse("0"));
-        int to = Integer.parseInt(ofNullable(context.get("to")).orElse("0"));
+        WebResponseRange range = new WebResponseRange(context.get("from"), context.get("to"));
         // if we have a value, let's filter, else show all instance policies
         if (user != null && !user.isBlank()) {
-            return new Payload(WebResponse.fromStream(authorizer.getGroupPermissions(User.localUser(user)).stream(), from, to));
+            return new Payload(WebResponse.fromStream(authorizer.getGroupPermissions(User.localUser(user)).stream(), range));
         }
-        return new Payload(WebResponse.fromStream(authorizer.getGroupPermissions().stream(), from, to));
+        return new Payload(WebResponse.fromStream(authorizer.getGroupPermissions().stream(), range));
     }
 
 
@@ -129,14 +127,13 @@ public class PolicyResource {
     @Policy(role = Role.DOMAIN_ADMIN)
     @Get("/:domain")
     public Payload getDomainPolicies(@Parameter(name = "domain", description = "Domain name", in = ParameterIn.PATH) String domain, Context context) {
-            int from = Integer.parseInt(ofNullable(context.get("from")).orElse("0"));
-            int to = Integer.parseInt(ofNullable(context.get("to")).orElse("0"));
+        WebResponseRange range = new WebResponseRange(context.get("from"), context.get("to"));
         Domain domainValue = domainExists(domain, false);
             String userFilter = context.query().get("user");
             if (isFilterValue(userFilter)) {
-                return new Payload(WebResponse.fromStream(authorizer.getGroupPermissions(User.localUser(userFilter), domainValue).stream(), from, to));
+                return new Payload(WebResponse.fromStream(authorizer.getGroupPermissions(User.localUser(userFilter), domainValue).stream(), range));
             }
-            return new Payload(WebResponse.fromStream(authorizer.getGroupPermissions(domainValue).stream(), from, to));
+        return new Payload(WebResponse.fromStream(authorizer.getGroupPermissions(domainValue).stream(), range));
     }
 
     @Operation(description = "Remove a domain policy for a given user with a given role.")
@@ -182,16 +179,15 @@ public class PolicyResource {
             @Parameter(name = "project", description = "Project name", in = ParameterIn.PATH) String project,
             Context context) {
             String userFilter = context.query().get("user");
-            int from = Integer.parseInt(ofNullable(context.get("from")).orElse("0"));
-            int to = Integer.parseInt(ofNullable(context.get("to")).orElse("0"));
+        WebResponseRange range = new WebResponseRange(context.get("from"), context.get("to"));
 
         Domain domainValue = domainExists(domain, false);
-            Project projectValue = projectExists(project);
+        Project projectValue = projectExists(project);
 
-            if (isFilterValue(userFilter)) {
-                return new Payload(WebResponse.fromStream(authorizer.getGroupPermissions(User.localUser(userFilter), domainValue, projectValue.getId()).stream(), from, to));
-            }
-            return new Payload(WebResponse.fromStream(authorizer.getGroupPermissions(domainValue, projectValue.getId()).stream(), from, to));
+        if (isFilterValue(userFilter)) {
+            return new Payload(WebResponse.fromStream(authorizer.getGroupPermissions(User.localUser(userFilter), domainValue, projectValue.getId()).stream(), range));
+        }
+        return new Payload(WebResponse.fromStream(authorizer.getGroupPermissions(domainValue, projectValue.getId()).stream(), range));
     }
 
     @Operation(description = "Remove a project policy for a given user with a given role.")
