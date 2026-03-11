@@ -11,14 +11,12 @@ import net.codestory.http.annotations.Delete;
 import net.codestory.http.annotations.Get;
 import net.codestory.http.annotations.Prefix;
 import net.codestory.http.annotations.Put;
-import net.codestory.http.constants.HttpStatus;
 import net.codestory.http.payload.Payload;
 import org.icij.datashare.Repository;
 import org.icij.datashare.policies.Authorizer;
 import org.icij.datashare.policies.Domain;
 import org.icij.datashare.policies.Policy;
 import org.icij.datashare.policies.Role;
-import org.icij.datashare.policies.errors.InvalidValueException;
 import org.icij.datashare.session.DatashareUser;
 import org.icij.datashare.text.Project;
 import org.icij.datashare.user.User;
@@ -94,12 +92,8 @@ public class PolicyResource {
     public Payload removeInstancePolicy(Context context) {
         User user = userExists(context.query().get("user"));
         Role role = roleExists(context.query().get("role"));
-        try {
-            authorizer.deleteRoleForUserInInstance(user, role);
-            return new Payload(NO_CONTENT);
-        } catch (InvalidValueException e) {
-            return new Payload(e.getMessage()).withCode(HttpStatus.BAD_REQUEST);
-        }
+        authorizer.deleteRoleForUserInInstance(user, role);
+        return new Payload(NO_CONTENT);
     }
 
     @Operation(description = "Upsert a policy regarding a user a project a domain and its role.")

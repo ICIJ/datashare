@@ -156,7 +156,7 @@ public class PolicyResourceTest extends AbstractProdWebServerTest {
     public void domain_policy_save_cannot_escalate_to_instance_admin() {
         when(repository.getUser("jane")).thenReturn(User.localUser("jane"));
         configure(routes -> routes.filter(new BasicAuthFilter("/", "icij", users)).add(new PolicyResource(authorizer, repository)));
-        put("/api/policies/icij?user=jane&role=INSTANCE_ADMIN").withPreemptiveAuthentication("jane", "pass").should().respond(401);
+        put("/api/policies/icij?user=jane&role=INSTANCE_ADMIN").withPreemptiveAuthentication("jane", "pass").should().respond(403);
     }
 
     @Test
@@ -171,7 +171,7 @@ public class PolicyResourceTest extends AbstractProdWebServerTest {
     public void project_policy_save_cannot_escalate_to_domain_admin() {
         when(repository.getUser("jane")).thenReturn(User.localUser("jane"));
         configure(routes -> routes.filter(new BasicAuthFilter("/", "icij", users)).add(new PolicyResource(authorizer, repository)));
-        put("/api/policies/icij/test-datashare?user=jane&role=DOMAIN_ADMIN").withPreemptiveAuthentication("jane", "pass").should().respond(401);
+        put("/api/policies/icij/test-datashare?user=jane&role=DOMAIN_ADMIN").withPreemptiveAuthentication("jane", "pass").should().respond(403);
     }
 
     @Test
@@ -189,7 +189,7 @@ public class PolicyResourceTest extends AbstractProdWebServerTest {
         when(repository.getProject("test-datashare")).thenReturn(project("test-datashare"));
         authorizer.addRoleForUserInProject(jane, Role.PROJECT_ADMIN, Domain.of("icij"), project("test-datashare"));
         configure(routes -> routes.filter(new BasicAuthFilter("/", "icij", users)).add(new PolicyResource(authorizer, repository)));
-        put("/api/policies/icij/test-datashare?user=jane&role=DOMAIN_ADMIN").withPreemptiveAuthentication("jane", "pass").should().respond(401);
+        put("/api/policies/icij/test-datashare?user=jane&role=DOMAIN_ADMIN").withPreemptiveAuthentication("jane", "pass").should().respond(403);
     }
 
 

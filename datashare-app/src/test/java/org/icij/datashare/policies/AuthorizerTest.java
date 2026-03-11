@@ -2,6 +2,8 @@ package org.icij.datashare.policies;
 
 import net.codestory.http.Context;
 import net.codestory.http.errors.UnauthorizedException;
+import org.icij.datashare.policies.errors.InvalidValueException;
+import org.icij.datashare.policies.errors.UnknowRoleException;
 import org.icij.datashare.session.DatashareUser;
 import org.icij.datashare.text.Project;
 import org.icij.datashare.user.User;
@@ -277,29 +279,29 @@ public class AuthorizerTest {
 
         try {
             Authorizer.requireValue(null, true);
-            fail("Expected IllegalArgumentException");
-        } catch (IllegalArgumentException e) {
-            assertEquals("The parameter cannot be null or blank", e.getMessage());
+            fail("Expected InvalidValueException");
+        } catch (InvalidValueException e) {
+            assertEquals("The parameter cannot be null", e.getMessage());
         }
 
         try {
             Authorizer.requireValue("", true);
-            fail("Expected IllegalArgumentException");
-        } catch (IllegalArgumentException e) {
-            assertEquals("The parameter cannot be null or blank", e.getMessage());
+            fail("Expected InvalidValueException");
+        } catch (InvalidValueException e) {
+            assertEquals("The parameter cannot be blank", e.getMessage());
         }
 
         try {
             Authorizer.requireValue(" ", true);
-            fail("Expected IllegalArgumentException");
-        } catch (IllegalArgumentException e) {
-            assertEquals("The parameter cannot be null or blank", e.getMessage());
+            fail("Expected InvalidValueException");
+        } catch (InvalidValueException e) {
+            assertEquals("The parameter cannot be blank", e.getMessage());
         }
 
         try {
             Authorizer.requireValue("*", false);
-            fail("Expected IllegalArgumentException");
-        } catch (IllegalArgumentException e) {
+            fail("Expected InvalidValueException");
+        } catch (InvalidValueException e) {
             assertEquals("The parameter cannot be a wildcard", e.getMessage());
         }
     }
@@ -309,8 +311,8 @@ public class AuthorizerTest {
         assertEquals(Role.PROJECT_ADMIN, Authorizer.requireRole("PROJECT_ADMIN"));
         try {
             Authorizer.requireRole("INVALID_ROLE");
-            fail("Expected IllegalArgumentException");
-        } catch (IllegalArgumentException e) {
+            fail("Expected UnknowRoleException");
+        } catch (UnknowRoleException e) {
             assertTrue(e.getMessage().contains("Invalid role value:INVALID_ROLE"));
         }
     }
@@ -338,8 +340,8 @@ public class AuthorizerTest {
 
         try {
             Authorizer.requireDomain("*", false);
-            fail("Expected IllegalArgumentException");
-        } catch (IllegalArgumentException e) {
+            fail("Expected InvalidValueException");
+        } catch (InvalidValueException e) {
             assertEquals("The parameter cannot be a wildcard", e.getMessage());
         }
     }
@@ -354,9 +356,9 @@ public class AuthorizerTest {
         when(context.pathParam("id")).thenReturn(null);
         try {
             Authorizer.requireIdParam(context, "id");
-            fail("Expected IllegalArgumentException");
-        } catch (IllegalArgumentException e) {
-            assertEquals("The parameter cannot be null or blank", e.getMessage());
+            fail("Expected InvalidValueException");
+        } catch (InvalidValueException e) {
+            assertEquals("The parameter cannot be null", e.getMessage());
         }
     }
 
