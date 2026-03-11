@@ -17,6 +17,7 @@ public class ContentTypeCategoryConversionTest {
     public static Collection<Object[]> data() {
         return Arrays.asList(new Object[][]{
                 {"audio/vorbis", ContentTypeCategory.AUDIO},
+                // This one is from the properties file loaded at startup
                 {"application/vnd.wordperfect", ContentTypeCategory.DOCUMENT},
                 {"application/vnd.ms-outlook", ContentTypeCategory.EMAIL},
                 {"image/jpeg", ContentTypeCategory.IMAGE},
