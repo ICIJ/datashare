@@ -18,6 +18,7 @@ import org.icij.datashare.policies.Authorizer;
 import org.icij.datashare.policies.Domain;
 import org.icij.datashare.policies.Policy;
 import org.icij.datashare.policies.Role;
+import org.icij.datashare.policies.errors.InvalidValueException;
 import org.icij.datashare.session.DatashareUser;
 import org.icij.datashare.text.Project;
 import org.icij.datashare.user.User;
@@ -27,6 +28,8 @@ import static net.codestory.http.constants.HttpStatus.NO_CONTENT;
 import static net.codestory.http.errors.NotFoundException.notFoundIfNull;
 import static net.codestory.http.payload.Payload.ok;
 import static org.icij.datashare.policies.Authorizer.*;
+import static org.icij.datashare.web.errors.BadRequestException.badRequestIfInvalid;
+import static org.icij.datashare.web.errors.ForbiddenException.forbiddenIfNotEnoughRole;
 
 @Singleton
 @Prefix("/api/policies")
@@ -44,13 +47,20 @@ public class PolicyResource {
         return value != null && !value.isBlank() && !value.equals("*");
     }
 
+    private Domain domainExists(String name, boolean wildcard) {
+        return badRequestIfInvalid(() -> requireDomain(name, wildcard));
+    }
+
+    private Role roleExists(String name) {
+        return badRequestIfInvalid(() -> requireRole(name));
+    }
     private Project projectExists(String name) {
-        requireValue(name, false);
+        badRequestIfInvalid(() -> requireValue(name, false));
         return notFoundIfNull(repository.getProject(name));
     }
 
     private User userExists(String name) {
-        requireValue(name, false);
+        badRequestIfInvalid(() -> requireValue(name, false));
         return notFoundIfNull(repository.getUser(name));
     }
 
@@ -66,8 +76,7 @@ public class PolicyResource {
     @ApiResponse(responseCode = "200", description = "Instance policies retrieved successfully.")
     @Policy(role = Role.INSTANCE_ADMIN)
     @Get()
-    public Payload getInstancePolicies(
-            Context context) {
+    public Payload getInstancePolicies(Context context) {
         //user is a filter so we don't put hard validation on the param
         String user = context.query().get("user");
         int from = Integer.parseInt(ofNullable(context.get("from")).orElse("0"));
@@ -86,11 +95,11 @@ public class PolicyResource {
     @Delete("")
     public Payload removeInstancePolicy(Context context) {
         User user = userExists(context.query().get("user"));
-        Role role = requireRole(context.query().get("role"));
+        Role role = roleExists(context.query().get("role"));
         try {
             authorizer.deleteRoleForUserInInstance(user, role);
             return new Payload(NO_CONTENT);
-        } catch (IllegalArgumentException e) {
+        } catch (InvalidValueException e) {
             return new Payload(e.getMessage()).withCode(HttpStatus.BAD_REQUEST);
         }
     }
@@ -102,7 +111,7 @@ public class PolicyResource {
     public Payload saveInstancePolicy(
             Context context) {
         User user = userExists(context.query().get("user"));
-        Role role = requireRole(context.query().get("role"));
+        Role role = roleExists(context.query().get("role"));
         authorizer.updateRoleForUserInDomain(user, role, Domain.of("*"));
         return ok();
     }
@@ -120,19 +129,14 @@ public class PolicyResource {
     @Policy(role = Role.DOMAIN_ADMIN)
     @Get("/:domain")
     public Payload getDomainPolicies(@Parameter(name = "domain", description = "Domain name", in = ParameterIn.PATH) String domain, Context context) {
-        try {
             int from = Integer.parseInt(ofNullable(context.get("from")).orElse("0"));
             int to = Integer.parseInt(ofNullable(context.get("to")).orElse("0"));
-            Domain domainValue = requireDomain(domain, false);
+        Domain domainValue = domainExists(domain, false);
             String userFilter = context.query().get("user");
             if (isFilterValue(userFilter)) {
                 return new Payload(WebResponse.fromStream(authorizer.getGroupPermissions(User.localUser(userFilter), domainValue).stream(), from, to));
             }
             return new Payload(WebResponse.fromStream(authorizer.getGroupPermissions(domainValue).stream(), from, to));
-
-        } catch (IllegalArgumentException e) {
-            return new Payload(e.getMessage()).withCode(HttpStatus.BAD_REQUEST);
-        }
     }
 
     @Operation(description = "Remove a domain policy for a given user with a given role.")
@@ -140,15 +144,11 @@ public class PolicyResource {
     @Policy(role = Role.DOMAIN_ADMIN)
     @Delete("/:domain")
     public Payload removeDomainPolicy(String domain, Context context) {
-        try {
             User user = userExists(context.query().get("user"));
-            Role role = requireRole(context.query().get("role"));
-            Domain domainValue = requireDomain(domain, false);
+        Role role = roleExists(context.query().get("role"));
+        Domain domainValue = domainExists(domain, false);
             authorizer.deleteRoleForUserInDomain(user, role, domainValue);
             return new Payload(NO_CONTENT);
-        } catch (IllegalArgumentException e) {
-            return new Payload(e.getMessage()).withCode(HttpStatus.BAD_REQUEST);
-        }
     }
 
     @Operation(description = "Upsert a policy regarding a user a project a domain and its role.")
@@ -156,19 +156,14 @@ public class PolicyResource {
     @Policy(role = Role.DOMAIN_ADMIN)
     @Put("/:domain")
     public Payload saveDomainPolicy(String domain, Context context) {
-        try {
             User user = userExists(context.query().get("user"));
-            Role role = requireRole(context.query().get("role"));
-            Domain domainValue = requireDomain(domain, false);
-            if (!authorizer.can(requireUser((DatashareUser) context.currentUser()).id, domainValue, "*", role)) {
-                return new Payload("Cannot grant a role with higher privileges than your own").withCode(HttpStatus.FORBIDDEN);
-            }
+        Role role = roleExists(context.query().get("role"));
+        Domain domainValue = domainExists(domain, false);
+        User currentUser = requireUser((DatashareUser) context.currentUser());
+        boolean allowed = authorizer.can(currentUser.id, domainValue, "*", role);
+        forbiddenIfNotEnoughRole(allowed);
             authorizer.updateRoleForUserInDomain(user, role, domainValue);
             return ok();
-        } catch (IllegalArgumentException e) {
-            return new Payload(e.getMessage()).withCode(HttpStatus.BAD_REQUEST);
-        }
-
     }
     /*
     Project API
@@ -186,21 +181,17 @@ public class PolicyResource {
             @Parameter(name = "domain", description = "Domain name", in = ParameterIn.PATH) String domain,
             @Parameter(name = "project", description = "Project name", in = ParameterIn.PATH) String project,
             Context context) {
-        try {
             String userFilter = context.query().get("user");
             int from = Integer.parseInt(ofNullable(context.get("from")).orElse("0"));
             int to = Integer.parseInt(ofNullable(context.get("to")).orElse("0"));
 
-            Domain domainValue = requireDomain(domain, false);
+        Domain domainValue = domainExists(domain, false);
             Project projectValue = projectExists(project);
 
             if (isFilterValue(userFilter)) {
                 return new Payload(WebResponse.fromStream(authorizer.getGroupPermissions(User.localUser(userFilter), domainValue, projectValue.getId()).stream(), from, to));
             }
             return new Payload(WebResponse.fromStream(authorizer.getGroupPermissions(domainValue, projectValue.getId()).stream(), from, to));
-        } catch (IllegalArgumentException e) {
-            return new Payload(e.getMessage()).withCode(HttpStatus.BAD_REQUEST);
-        }
     }
 
     @Operation(description = "Remove a project policy for a given user with a given role.")
@@ -208,17 +199,13 @@ public class PolicyResource {
     @Policy(role = Role.PROJECT_ADMIN)
     @Delete("/:domain/:project")
     public Payload removeProjectPolicy(String domain, String project, Context context) {
-        try {
             User user = userExists(context.query().get("user"));
-            Role role = requireRole(context.query().get("role"));
-            Domain domainValue = requireDomain(domain, false);
+        Role role = roleExists(context.query().get("role"));
+        Domain domainValue = domainExists(domain, false);
             Project projectValue = projectExists(project);
             authorizer.deleteRoleForUserInProject(user, role, domainValue, projectValue);
 
             return new Payload(NO_CONTENT);
-        } catch (IllegalArgumentException e) {
-            return new Payload(e.getMessage()).withCode(HttpStatus.BAD_REQUEST);
-        }
     }
 
 
@@ -227,19 +214,15 @@ public class PolicyResource {
     @Policy(role = Role.PROJECT_EDITOR)
     @Put("/:domain/:project")
     public Payload saveProjectPolicy(String domain, String project, Context context) {
-        try {
             User user = userExists(context.query().get("user"));
-            Role role = requireRole(context.query().get("role"));
-            Domain domainValue = requireDomain(domain, false);
+        Role role = roleExists(context.query().get("role"));
+        Domain domainValue = domainExists(domain, false);
             Project projectValue = projectExists(project);
-            if (!authorizer.can(requireUser((DatashareUser) context.currentUser()).id, domainValue, projectValue.getId(), role)) {
-                return new Payload("Cannot grant a role with higher privileges than your own").withCode(HttpStatus.FORBIDDEN);
-            }
+
+        boolean allowed = authorizer.can(requireUser((DatashareUser) context.currentUser()).id, domainValue, projectValue.getId(), role);
+        forbiddenIfNotEnoughRole(allowed);
             authorizer.updateRoleForUserInProject(user, role, domainValue, projectValue);
             return ok();
-        } catch (IllegalArgumentException e) {
-            return new Payload(e.getMessage()).withCode(HttpStatus.BAD_REQUEST);
-        }
     }
 
 

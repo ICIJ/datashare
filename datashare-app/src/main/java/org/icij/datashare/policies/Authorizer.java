@@ -24,6 +24,8 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static java.util.Optional.ofNullable;
+import static org.icij.datashare.policies.errors.InvalidValueException.*;
+import static org.icij.datashare.policies.errors.UnknowRoleException.resolveRole;
 
 @Singleton
 public final class Authorizer {
@@ -205,20 +207,15 @@ public final class Authorizer {
     }
 
     public static String requireValue(String value, boolean wildcardAllowed) {
-        if (value == null || value.isBlank()) {
-            throw new IllegalArgumentException("The parameter cannot be null or blank");
-        } else if (!wildcardAllowed && value.equals("*")) {
-            throw new IllegalArgumentException("The parameter cannot be a wildcard");
+        invalidValueIfBlank(invalidValueIfNull(value));
+        if (!wildcardAllowed) {
+            invalidValueIfWildcard(value);
         }
         return value;
     }
 
     public static Role requireRole(String role) {
-        try {
-            return Role.valueOf(role);
-        } catch (IllegalArgumentException e) {
-            throw new IllegalArgumentException("Invalid role value:" + role);
-        }
+        return resolveRole(role);
     }
 
     private String loadCasbinConf(String modelPath) throws IOException {

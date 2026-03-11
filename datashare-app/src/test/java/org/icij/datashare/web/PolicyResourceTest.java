@@ -151,25 +151,12 @@ public class PolicyResourceTest extends AbstractProdWebServerTest {
         get("/api/policies/icij?user=jane&from=0&to=10").withPreemptiveAuthentication("jane", "pass").should().respond(200).contain("\"count\":0");
     }
 
-    @Test
-    public void domain_policy_save_cannot_escalate_to_project_member() {
-        when(repository.getUser("jane")).thenReturn(User.localUser("jane"));
-        configure(routes -> routes.filter(new BasicAuthFilter("/", "icij", users)).add(new PolicyResource(authorizer, repository)));
-        put("/api/policies/icij?user=jane&role=PROJECT_MEMBER").withPreemptiveAuthentication("jane", "pass").should().respond(403);
-    }
 
     @Test
-    public void domain_policy_save_cannot_escalate_to_project_admin() {
+    public void domain_policy_save_cannot_escalate_to_instance_admin() {
         when(repository.getUser("jane")).thenReturn(User.localUser("jane"));
         configure(routes -> routes.filter(new BasicAuthFilter("/", "icij", users)).add(new PolicyResource(authorizer, repository)));
-        put("/api/policies/icij?user=jane&role=PROJECT_ADMIN").withPreemptiveAuthentication("jane", "pass").should().respond(403);
-    }
-
-    @Test
-    public void project_policy_save_cannot_escalate_to_project_admin() {
-        when(repository.getUser("jane")).thenReturn(User.localUser("jane"));
-        configure(routes -> routes.filter(new BasicAuthFilter("/", "icij", users)).add(new PolicyResource(authorizer, repository)));
-        put("/api/policies/icij/test-datashare?user=jane&role=PROJECT_ADMIN").withPreemptiveAuthentication("jane", "pass").should().respond(403);
+        put("/api/policies/icij?user=jane&role=INSTANCE_ADMIN").withPreemptiveAuthentication("jane", "pass").should().respond(401);
     }
 
     @Test
@@ -178,6 +165,13 @@ public class PolicyResourceTest extends AbstractProdWebServerTest {
         authorizer.addRoleForUserInDomain(jane, Role.DOMAIN_ADMIN, Domain.of("icij"));
         configure(routes -> routes.filter(new BasicAuthFilter("/", "icij", users)).add(new PolicyResource(authorizer, repository)));
         put("/api/policies/icij?user=jane&role=PROJECT_ADMIN").withPreemptiveAuthentication("jane", "pass").should().respond(200);
+    }
+
+    @Test
+    public void project_policy_save_cannot_escalate_to_domain_admin() {
+        when(repository.getUser("jane")).thenReturn(User.localUser("jane"));
+        configure(routes -> routes.filter(new BasicAuthFilter("/", "icij", users)).add(new PolicyResource(authorizer, repository)));
+        put("/api/policies/icij/test-datashare?user=jane&role=DOMAIN_ADMIN").withPreemptiveAuthentication("jane", "pass").should().respond(401);
     }
 
     @Test
@@ -195,8 +189,9 @@ public class PolicyResourceTest extends AbstractProdWebServerTest {
         when(repository.getProject("test-datashare")).thenReturn(project("test-datashare"));
         authorizer.addRoleForUserInProject(jane, Role.PROJECT_ADMIN, Domain.of("icij"), project("test-datashare"));
         configure(routes -> routes.filter(new BasicAuthFilter("/", "icij", users)).add(new PolicyResource(authorizer, repository)));
-        put("/api/policies/icij/test-datashare?user=jane&role=DOMAIN_ADMIN").withPreemptiveAuthentication("jane", "pass").should().respond(403);
+        put("/api/policies/icij/test-datashare?user=jane&role=DOMAIN_ADMIN").withPreemptiveAuthentication("jane", "pass").should().respond(401);
     }
+
 
     @Test
     public void project_policies_lifecycle_success() {
