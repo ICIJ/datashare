@@ -57,7 +57,7 @@ public class ServerMode extends CommonMode {
     }
 
     protected ApiKeyFilter getDummyApiKeyFilter() {
-        return new ApiKeyFilter(null, apiKey -> null) {
+        return new ApiKeyFilter(null, apiKey -> null, null) {
             @Override
             public Payload apply(String uri, Context context, PayloadSupplier nextFilter) throws Exception {
                 return nextFilter.get();
