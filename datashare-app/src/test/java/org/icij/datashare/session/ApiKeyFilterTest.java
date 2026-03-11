@@ -23,7 +23,16 @@ public class ApiKeyFilterTest {
     private final ArgumentCaptor<User> user = forClass(User.class);
     @Mock private UsersWritable users;
     @Mock private ApiKeyStore apiKeyStore;
+    @Mock
+    private PostLoginEnroller postLoginEnroller;
     ApiKeyFilter apiKeyFilter;
+
+    @Before
+    public void setUp() {
+        MockitoAnnotations.initMocks(this);
+        when(context.cookies()).thenReturn(mock(Cookies.class));
+        apiKeyFilter = new ApiKeyFilter(users, apiKeyStore, postLoginEnroller);
+    }
 
     @Test
     public void test_matches() {
@@ -74,10 +83,28 @@ public class ApiKeyFilterTest {
         assertThat(payload).isSameAs(next);
     }
 
-    @Before
-    public void setUp() {
-        MockitoAnnotations.initMocks(this);
-        when(context.cookies()).thenReturn(mock(Cookies.class));
-        apiKeyFilter = new ApiKeyFilter(users, apiKeyStore);
+    @Test
+    public void test_enrolls_user_on_valid_api_key() throws Exception {
+        DatashareUser dsUser = new DatashareUser("user_id");
+        when(context.header("authorization")).thenReturn("Bearer session_id");
+        when(apiKeyStore.getLogin("session_id")).thenReturn("user_id");
+        when(users.find("user_id")).thenReturn(dsUser);
+
+        apiKeyFilter.apply("url", context, nextFilter);
+
+        verify(postLoginEnroller).enroll(dsUser);
     }
+
+    @Test
+    public void test_does_not_enroll_if_enroller_is_null() throws Exception {
+        when(context.header("authorization")).thenReturn("Bearer session_id");
+        when(apiKeyStore.getLogin("session_id")).thenReturn("user_id");
+        when(users.find("user_id")).thenReturn(new DatashareUser("user_id"));
+        ApiKeyFilter filterWithoutEnroller = new ApiKeyFilter(users, apiKeyStore, null);
+
+        Payload payload = filterWithoutEnroller.apply("url", context, nextFilter);
+
+        assertThat(payload.code()).isEqualTo(200);
+    }
+
 }
