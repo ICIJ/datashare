@@ -4,9 +4,15 @@ package org.icij.datashare.session;
 import net.codestory.http.WebServer;
 import net.codestory.http.filters.Filter;
 import net.codestory.http.misc.Env;
+import net.codestory.http.security.SessionIdStore;
 import net.codestory.rest.FluentRestTest;
 import net.codestory.rest.Response;
 import org.icij.datashare.PropertiesProvider;
+import org.icij.datashare.policies.Authorizer;
+import org.icij.datashare.policies.Domain;
+import org.icij.datashare.policies.Role;
+import org.icij.datashare.text.Project;
+import org.icij.datashare.user.User;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -17,6 +23,9 @@ import java.util.regex.Pattern;
 
 import static java.lang.String.format;
 import static org.fest.assertions.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.*;
 
 public class OAuth2CookieFilterTest implements FluentRestTest {
     private static final WebServer identityProvider = new WebServer() {
@@ -178,6 +187,88 @@ public class OAuth2CookieFilterTest implements FluentRestTest {
             return m.group(1);
         }
         return "";
+    }
+
+    @Test
+    public void test_oauth_login_enrolls_user_in_all_application_projects() throws Exception {
+        Authorizer authorizer = mock(Authorizer.class);
+        UsersWritable users = mock(UsersWritable.class);
+        SessionIdStore sessionIdStore = mock(SessionIdStore.class);
+        PropertiesProvider props = new PropertiesProvider(new HashMap<>() {{
+            put("oauthClientSecret", "secret");
+        }});
+        OAuth2CookieFilter filter = new OAuth2CookieFilter(props, users, sessionIdStore, authorizer);
+
+        com.github.scribejava.core.model.Response oauthResponse = mock(com.github.scribejava.core.model.Response.class);
+        when(oauthResponse.getBody()).thenReturn(
+                "{\"uid\":\"123\",\"name\":\"John\",\"groups_by_applications\":{\"datashare\":[\"project-a\",\"project-b\"]}}"
+        );
+
+        filter.processOAuthApiResponse(oauthResponse);
+
+        verify(authorizer).addRoleForUserInProject(any(User.class), eq(Role.PROJECT_MEMBER), eq(Domain.DEFAULT), eq(new Project("project-a")));
+        verify(authorizer).addRoleForUserInProject(any(User.class), eq(Role.PROJECT_MEMBER), eq(Domain.DEFAULT), eq(new Project("project-b")));
+    }
+
+    @Test
+    public void test_oauth_login_does_not_enroll_when_no_application_projects() throws Exception {
+        Authorizer authorizer = mock(Authorizer.class);
+        UsersWritable users = mock(UsersWritable.class);
+        SessionIdStore sessionIdStore = mock(SessionIdStore.class);
+        PropertiesProvider props = new PropertiesProvider(new HashMap<>() {{
+            put("oauthClientSecret", "secret");
+        }});
+        OAuth2CookieFilter filter = new OAuth2CookieFilter(props, users, sessionIdStore, authorizer);
+
+        com.github.scribejava.core.model.Response oauthResponse = mock(com.github.scribejava.core.model.Response.class);
+        when(oauthResponse.getBody()).thenReturn("{\"uid\":\"123\",\"name\":\"John\"}");
+
+        filter.processOAuthApiResponse(oauthResponse);
+
+        verify(authorizer, never()).addRoleForUserInProject(any(), any(), any(), any());
+    }
+
+    @Test
+    public void test_oauth_login_does_not_add_member_when_user_already_has_higher_role() throws Exception {
+        Authorizer authorizer = mock(Authorizer.class);
+        UsersWritable users = mock(UsersWritable.class);
+        SessionIdStore sessionIdStore = mock(SessionIdStore.class);
+        PropertiesProvider props = new PropertiesProvider(new HashMap<>() {{
+            put("oauthClientSecret", "secret");
+        }});
+        OAuth2CookieFilter filter = new OAuth2CookieFilter(props, users, sessionIdStore, authorizer);
+
+        com.github.scribejava.core.model.Response oauthResponse = mock(com.github.scribejava.core.model.Response.class);
+        when(oauthResponse.getBody()).thenReturn(
+                "{\"uid\":\"123\",\"name\":\"John\",\"groups_by_applications\":{\"datashare\":[\"project-a\",\"project-b\"]}}"
+        );
+        when(authorizer.can(any(), eq(Domain.DEFAULT), eq("project-a"), eq(Role.PROJECT_VISITOR))).thenReturn(true);
+
+        filter.processOAuthApiResponse(oauthResponse);
+
+        verify(authorizer, never()).addRoleForUserInProject(any(), any(), any(), eq(new Project("project-a")));
+        verify(authorizer).addRoleForUserInProject(any(org.icij.datashare.user.User.class), eq(Role.PROJECT_MEMBER), eq(Domain.DEFAULT), eq(new Project("project-b")));
+    }
+
+    @Test
+    public void test_oauth_login_does_not_upgrade_visitor_to_member() throws Exception {
+        Authorizer authorizer = mock(Authorizer.class);
+        UsersWritable users = mock(UsersWritable.class);
+        SessionIdStore sessionIdStore = mock(SessionIdStore.class);
+        PropertiesProvider props = new PropertiesProvider(new HashMap<>() {{
+            put("oauthClientSecret", "secret");
+        }});
+        OAuth2CookieFilter filter = new OAuth2CookieFilter(props, users, sessionIdStore, authorizer);
+
+        com.github.scribejava.core.model.Response oauthResponse = mock(com.github.scribejava.core.model.Response.class);
+        when(oauthResponse.getBody()).thenReturn(
+                "{\"uid\":\"123\",\"name\":\"John\",\"groups_by_applications\":{\"datashare\":[\"project-a\"]}}"
+        );
+        when(authorizer.can(any(), eq(Domain.DEFAULT), eq("project-a"), eq(Role.PROJECT_VISITOR))).thenReturn(true);
+
+        filter.processOAuthApiResponse(oauthResponse);
+
+        verify(authorizer, never()).addRoleForUserInProject(any(), any(), any(), eq(new Project("project-a")));
     }
 
     @Override

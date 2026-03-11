@@ -21,10 +21,15 @@ import net.codestory.http.payload.Payload;
 import net.codestory.http.security.SessionIdStore;
 import net.codestory.http.security.User;
 import org.icij.datashare.PropertiesProvider;
+import org.icij.datashare.policies.Authorizer;
+import org.icij.datashare.policies.Domain;
+import org.icij.datashare.policies.Role;
+import org.icij.datashare.text.Project;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.annotation.Nullable;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import java.io.IOException;
@@ -74,9 +79,15 @@ public class OAuth2CookieFilter extends CookieAuthFilter {
     private final byte[] sessionSigningKey;
     private final String oauthScope;
     private final String oauthClaimIdAttribute;
+    @Nullable
+    private final Authorizer authorizer;
+
+    public OAuth2CookieFilter(PropertiesProvider propertiesProvider, UsersWritable users, SessionIdStore sessionIdStore) {
+        this(propertiesProvider, users, sessionIdStore, null);
+    }
 
     @Inject
-    public OAuth2CookieFilter(PropertiesProvider propertiesProvider, UsersWritable users, SessionIdStore sessionIdStore) {
+    public OAuth2CookieFilter(PropertiesProvider propertiesProvider, UsersWritable users, SessionIdStore sessionIdStore, @Nullable Authorizer authorizer) {
         super(propertiesProvider.get("protectedUriPrefix").orElse("/"), users, sessionIdStore);
         this.oauthAuthorizeUrl = propertiesProvider.get("oauthAuthorizeUrl").orElse("http://localhost");
         this.oauthTokenUrl = propertiesProvider.get("oauthTokenUrl").orElse("http://localhost");
@@ -90,6 +101,7 @@ public class OAuth2CookieFilter extends CookieAuthFilter {
         this.oauthDefaultProject = propertiesProvider.get("oauthDefaultProject").orElse("");
         this.oauthClaimIdAttribute = propertiesProvider.get("oauthClaimIdAttribute").orElse("");
         this.oauthScope = propertiesProvider.get("oauthScope").orElse("");
+        this.authorizer = authorizer;
         logger.info("created OAuth filter with redirectUrl={} clientId={} callbackPath={} uriPrefix={} loginPath={}",
                 oauthAuthorizeUrl, oauthClientId, oauthCallbackPath, uriPrefix, oauthSigninPath);
         if (this.oauthCallbackPath.startsWith(this.oauthSigninPath)) {
@@ -192,7 +204,18 @@ public class OAuth2CookieFilter extends CookieAuthFilter {
         }
         DatashareUser datashareUser = createUser(userMap);
         ((UsersWritable)users).saveOrUpdate(datashareUser);
+        autoEnrollUser(datashareUser);
         return datashareUser;
+    }
+
+    private void autoEnrollUser(DatashareUser datashareUser) {
+        if (authorizer != null) {
+            for (Project project : datashareUser.getApplicationProjects()) {
+                if (!authorizer.can(datashareUser.id, Domain.DEFAULT, project.getId(), Role.PROJECT_VISITOR)) {
+                    authorizer.addRoleForUserInProject(datashareUser, Role.PROJECT_MEMBER, Domain.DEFAULT, project);
+                }
+            }
+        }
     }
 
     @NotNull
