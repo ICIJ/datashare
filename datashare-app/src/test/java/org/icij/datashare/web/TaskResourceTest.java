@@ -648,7 +648,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
 
         post("/api/task/clean", "{}").should().haveType("application/json");
         assertThat(taskManager.getTasks().toList()).hasSize(1);
-        assertThat(taskManager.getTasks().map(Task::getId).map(String::new).toList().contains(runningTask));
+        assertThat(taskManager.getTasks().map(Task::getId).map(String::new).toList().contains(runningTask)).isTrue();
     }
 
     @Test
@@ -694,11 +694,11 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
-    public void test_stop_task() throws IOException {
+    public void test_stop_task() throws IOException, InterruptedException {
         String dummyTaskId = taskManager.startTask(TestSleepingTask.class, User.local(), new HashMap<>());
         put("/api/task/stop/" + dummyTaskId).should().respond(200).contain("true");
 
-        assertThat(taskManager.getTask(dummyTaskId).getState()).isEqualTo(Task.State.CANCELLED);
+        assertHasState(dummyTaskId, Task.State.CANCELLED, taskManager, 1000, 100);
         get("/api/task/all").should().respond(200).contain("\"state\":\"CANCELLED\"");
     }
 
@@ -708,28 +708,28 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
-    public void test_stop_all() throws IOException {
+    public void test_stop_all() throws IOException, InterruptedException {
         String t1Id = taskManager.startTask(TestSleepingTask.class, User.local(), new HashMap<>());
         String t2Id = taskManager.startTask(TestSleepingTask.class, User.local(), new HashMap<>());
         put("/api/task/stop").should().respond(200).
                 contain(t1Id + "\":true").
                 contain(t2Id + "\":true");
 
-        assertThat(taskManager.getTask(t1Id).getState()).isEqualTo(Task.State.CANCELLED);
-        assertThat(taskManager.getTask(t2Id).getState()).isEqualTo(Task.State.CANCELLED);
+        assertHasState(t1Id, Task.State.CANCELLED, taskManager, 1000, 200);
+        assertHasState(t2Id, Task.State.CANCELLED, taskManager, 1000, 200);
     }
-    
+
     @Test
-    public void test_stop_all_filters() throws IOException {
+    public void test_stop_all_filters() throws IOException, InterruptedException {
         String t1Id = taskManager.startTask(TestSleepingTask.class, User.local(), new HashMap<>());
         String t2Id = taskManager.startTask(TestAnotherSleepingTask.class, User.local(), new HashMap<>());
         put("/api/task/stop?name=Another").should().respond(200).contain(t2Id + "\":true");
 
-        assertThat(taskManager.getTask(t1Id).getState()).isEqualTo(Task.State.RUNNING);
-        assertThat(taskManager.getTask(t2Id).getState()).isEqualTo(Task.State.CANCELLED);
+        assertHasState(t1Id, RUNNING, taskManager, 1000, 50);
+        assertHasState(t2Id, Task.State.CANCELLED, taskManager, 1000, 50);
 
         put("/api/task/stop?name=Sleeping").should().respond(200).contain(t1Id + "\":true");
-        assertThat(taskManager.getTask(t1Id).getState()).isEqualTo(Task.State.CANCELLED);
+        assertHasState(t1Id, Task.State.CANCELLED, taskManager, 1000, 50);
     }
 
     @Test
