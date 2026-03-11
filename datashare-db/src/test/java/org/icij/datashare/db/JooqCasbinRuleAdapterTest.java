@@ -183,6 +183,35 @@ public class JooqCasbinRuleAdapterTest extends TestCase {
     }
 
     @Test
+    public void test_add_policies_multi_value_insert_correctness_across_batch_boundaries() {
+        // Use a small batchSize (3) to exercise multiple batches: 7 rules → 3 + 3 + 1
+        JooqCasbinRuleAdapter smallBatchRepo = new JooqCasbinRuleAdapter(dbRule.dataSource, dbRule.dialect, 3) {
+        };
+        List<List<String>> rules = new ArrayList<>();
+        for (int i = 0; i < 7; i++) {
+            rules.add(asList("user" + i, "domain", "data" + i, "PROJECT_MEMBER"));
+        }
+        smallBatchRepo.addPolicies("p", "p", rules);
+
+        Model model = new Model();
+        model.addDef("p", "p", "sub, dom, obj, act");
+        smallBatchRepo.loadPolicy(model);
+
+        // All 7 rules present, no duplicates
+        assertThat(model.getPolicy("p", "p")).hasSize(7);
+        for (int i = 0; i < 7; i++) {
+            assertThat(model.hasPolicy("p", "p", asList("user" + i, "domain", "data" + i, "PROJECT_MEMBER"))).isTrue();
+        }
+
+        // Idempotency: adding same rules again must not create duplicates
+        smallBatchRepo.addPolicies("p", "p", rules);
+        Model model2 = new Model();
+        model2.addDef("p", "p", "sub, dom, obj, act");
+        smallBatchRepo.loadPolicy(model2);
+        assertThat(model2.getPolicy("p", "p")).hasSize(7);
+    }
+
+    @Test
     public void test_update_policy() {
         repository.addPolicy("p", "p", asList("alice", "icij", "banana-papers", "PROJECT_MEMBER"));
         repository.updatePolicy("p", "p", asList("alice", "icij", "banana-papers", "PROJECT_MEMBER"), asList("alice", "icij", "banana-papers", "PROJECT_EDITOR"));

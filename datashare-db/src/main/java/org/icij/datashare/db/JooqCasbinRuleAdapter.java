@@ -127,38 +127,30 @@ public class JooqCasbinRuleAdapter implements CasbinRuleAdapter {
 
 
     private void saveSectionPolicyWithBatch(DSLContext ctx, Model model, String section) {
-        if (!model.model.containsKey(section)) {
-            return;
-        }
-
-        List<Query> queries = new ArrayList<>();
-
+        if (!model.model.containsKey(section)) return;
         for (String ptype : model.model.get(section).keySet()) {
             List<List<String>> rules = model.model.get(section).get(ptype).policy;
-            createInsertQueries(ctx, queries, ptype, rules);
-        }
-
-        // Execute remaining queries
-        if (!queries.isEmpty()) {
-            ctx.batch(queries).execute();
+            createInsertQueries(ctx, ptype, rules);
         }
     }
 
-    private void createInsertQueries(DSLContext ctx, List<Query> queries, String ptype, List<List<String>> rules) {
-        // TODO optimize query to do multiple inserts in a single query
-        for (List<String> rule : rules) {
-            CasbinRule line = savePolicyLine(ptype, rule);
-            queries.add(
-                    ctx.insertInto(CASBIN_RULE, CASBIN_RULE.PTYPE, CASBIN_RULE.V0, CASBIN_RULE.V1, CASBIN_RULE.V2, CASBIN_RULE.V3, CASBIN_RULE.V4, CASBIN_RULE.V5)
-                            .values(line.getPtype(), line.getV0(), line.getV1(), line.getV2(), line.getV3(), line.getV4(), line.getV5())
-                            .onConflictDoNothing()
+    private void createInsertQueries(DSLContext ctx, String ptype, List<List<String>> rules) {
+        if (rules.isEmpty()) return;
+        for (int offset = 0; offset < rules.size(); offset += batchSize) {
+            List<List<String>> batch = rules.subList(offset, Math.min(offset + batchSize, rules.size()));
+            var insertQuery = ctx.insertInto(
+                    CASBIN_RULE,
+                    CASBIN_RULE.PTYPE, CASBIN_RULE.V0, CASBIN_RULE.V1,
+                    CASBIN_RULE.V2, CASBIN_RULE.V3, CASBIN_RULE.V4, CASBIN_RULE.V5
             );
-
-            // Execute batch immediately when reaching batch size
-            if (queries.size() == batchSize) {
-                ctx.batch(queries).execute();
-                queries.clear();
+            for (List<String> rule : batch) {
+                CasbinRule line = savePolicyLine(ptype, rule);
+                insertQuery = insertQuery.values(
+                        line.getPtype(), line.getV0(), line.getV1(),
+                        line.getV2(), line.getV3(), line.getV4(), line.getV5()
+                );
             }
+            insertQuery.onConflictDoNothing().execute();
         }
     }
 
@@ -180,18 +172,7 @@ public class JooqCasbinRuleAdapter implements CasbinRuleAdapter {
 
     public void addPolicies(String sec, String ptype, List<List<String>> rules) {
         DSLContext ctx = using(connectionProvider, dialect);
-        ctx.transaction((Configuration trx) -> {
-            DSLContext trxCtx = using(trx);
-
-            List<Query> queries = new ArrayList<>();
-
-            createInsertQueries(trxCtx, queries, ptype, rules);
-
-            // Execute remaining queries
-            if (!queries.isEmpty()) {
-                trxCtx.batch(queries).execute();
-            }
-        });
+        ctx.transaction((Configuration trx) -> createInsertQueries(using(trx), ptype, rules));
     }
 
     private static String nullToEmpty(String s) {
