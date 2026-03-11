@@ -25,7 +25,7 @@ import java.util.stream.Stream;
 
 import static java.util.Optional.ofNullable;
 import static org.icij.datashare.policies.errors.InvalidValueException.*;
-import static org.icij.datashare.policies.errors.UnknowRoleException.resolveRole;
+import static org.icij.datashare.policies.errors.UnknownRoleException.resolveRole;
 
 @Singleton
 public final class Authorizer {

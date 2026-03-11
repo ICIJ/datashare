@@ -3,7 +3,7 @@ package org.icij.datashare.policies;
 import net.codestory.http.Context;
 import net.codestory.http.errors.UnauthorizedException;
 import org.icij.datashare.policies.errors.InvalidValueException;
-import org.icij.datashare.policies.errors.UnknowRoleException;
+import org.icij.datashare.policies.errors.UnknownRoleException;
 import org.icij.datashare.session.DatashareUser;
 import org.icij.datashare.text.Project;
 import org.icij.datashare.user.User;
@@ -312,7 +312,7 @@ public class AuthorizerTest {
         try {
             Authorizer.requireRole("INVALID_ROLE");
             fail("Expected UnknowRoleException");
-        } catch (UnknowRoleException e) {
+        } catch (UnknownRoleException e) {
             assertTrue(e.getMessage().contains("Invalid role value:INVALID_ROLE"));
         }
     }
