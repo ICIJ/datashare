@@ -23,6 +23,9 @@ import static org.jooq.impl.DSL.using;
 public class JooqCasbinRuleAdapter implements CasbinRuleAdapter {
 
     private static final Logger logger = LoggerFactory.getLogger(JooqCasbinRuleAdapter.class);
+    public static final int SQLITE_BATCHSIZE = 1000;
+    public static final int PSQL_BATCHSIZE = 10000;
+    public static final int DEFAULT_BATCHSIZE = 1000;
     private final DataSource connectionProvider;
     private final SQLDialect dialect;
     private final int batchSize;
@@ -40,11 +43,11 @@ public class JooqCasbinRuleAdapter implements CasbinRuleAdapter {
 
     private static int determineBatchSize(SQLDialect dialect) {
         if (dialect.getName().contains("SQLite")) {
-            return 1000;  // SQLite: prefer larger batches in single transaction
+            return SQLITE_BATCHSIZE;  // SQLite: prefer larger batches in single transaction
         } else if (dialect.getName().contains("Postgres")) {
-            return 10000;  // PostgreSQL: optimal for JDBC batching
+            return PSQL_BATCHSIZE;  // PostgreSQL: optimal for JDBC batching
         }
-        return 1000;  // Default fallback
+        return DEFAULT_BATCHSIZE;  // Default fallback
     }
 
     @Override
