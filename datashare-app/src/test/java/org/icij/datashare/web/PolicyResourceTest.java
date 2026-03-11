@@ -1,7 +1,6 @@
 package org.icij.datashare.web;
 
 import net.codestory.http.filters.basic.BasicAuthFilter;
-import net.codestory.http.payload.Payload;
 import org.icij.datashare.db.JooqRepository;
 import org.icij.datashare.policies.Authorizer;
 import org.icij.datashare.policies.CasbinRuleAdapter;
@@ -91,7 +90,7 @@ public class PolicyResourceTest extends AbstractProdWebServerTest {
         authorizer.addRoleForUserInProject(john, Role.PROJECT_MEMBER, domain, testDatashare);
         authorizer.addRoleForUserInProject(john, Role.PROJECT_MEMBER, domain, project2);
         configure(routes -> routes.add(new PolicyResource(authorizer, repository)));
-        get("/api/policies/icij/   ?from=0&to=10").should().respond(Payload.badRequest().code());
+        get("/api/policies/icij/   ?from=0&to=10").should().respond(400);
         get("/api/policies/icij/test-datashare?from=0&to=10").should().respond(200).contain("\"count\":2");
         get("/api/policies/icij/project2?from=0&to=10").should().respond(200).contain("\"count\":1");
         get("/api/policies/icij/unknown?from=0&to=10").should().respond(404);

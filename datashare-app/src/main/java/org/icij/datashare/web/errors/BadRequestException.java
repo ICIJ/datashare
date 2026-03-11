@@ -11,9 +11,11 @@ public class BadRequestException extends HttpException {
 
     public static <T> T badRequestIfInvalid(ThrowingSupplier<T> supplier) {
         try {
-            return supplier.get();
+            return supplier.getThrows();
         } catch (InvalidValueException e) {
             throw new BadRequestException(e.getMessage(), e);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
     }
 }
