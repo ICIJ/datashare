@@ -61,13 +61,10 @@ function check_elasticsearch_installed() {
 
 download_elasticsearch() {
     echo "Downloading Elasticsearch $ES_VERSION from $ES_DOWNLOAD_URL..."
-    mkdir -p "$ES_HOME"
-    cd "$ES_HOME"
 
-    if [ -f "$ES_ARCHIVE" ]; then
-        echo "Archive already downloaded, skipping"
-        return
-    fi
+    TEMP_DIR=$(mktemp -d)
+    trap "rm -rf '$TEMP_DIR'" EXIT
+    cd "$TEMP_DIR"
 
     if command -v curl >/dev/null 2>&1; then
         if ! curl -s -L -o "$ES_ARCHIVE" "$ES_DOWNLOAD_URL"; then
@@ -83,6 +80,9 @@ download_elasticsearch() {
         echo "ERROR: Neither curl nor wget found. Please install one."
         exit 1
     fi
+
+    mkdir -p "$ES_HOME"
+    mv "$ES_ARCHIVE" "$ES_HOME/"
     echo "Download complete"
 }
 
