@@ -32,7 +32,7 @@ public class JooqCasbinRuleAdapterTest extends TestCase {
 
     public JooqCasbinRuleAdapterTest(DbSetupRule rule) {
         dbRule = rule;
-        repository = rule.createUserPolicyRepository();
+        repository = rule.createCasbinRuleRepository();
     }
 
     @Test
@@ -185,8 +185,7 @@ public class JooqCasbinRuleAdapterTest extends TestCase {
     @Test
     public void test_add_policies_multi_value_insert_correctness_across_batch_boundaries() {
         // Use a small batchSize (3) to exercise multiple batches: 7 rules → 3 + 3 + 1
-        JooqCasbinRuleAdapter smallBatchRepo = new JooqCasbinRuleAdapter(dbRule.dataSource, dbRule.dialect, 3) {
-        };
+        JooqCasbinRuleAdapter smallBatchRepo = dbRule.createCasbinRuleRepository(3);
         List<List<String>> rules = new ArrayList<>();
         for (int i = 0; i < 7; i++) {
             rules.add(asList("user" + i, "domain", "data" + i, "PROJECT_MEMBER"));
