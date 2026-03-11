@@ -373,7 +373,7 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
     public void test_delete_project_with_unauthorized_user() {
         configure(routes -> {
             PropertiesProvider propertiesProvider = new PropertiesProvider(Collections.singletonMap("mode", Mode.SERVER.name()));
-            routes.filter(new YesBasicAuthFilter(propertiesProvider))
+            routes.filter(new YesBasicAuthFilter(propertiesProvider, null))
                     .add(new ProjectResource(repository, indexer, taskManager, propertiesProvider, documentCollectionFactory));
         });
         when(repository.deleteAll("hacker-datashare")).thenReturn(true);

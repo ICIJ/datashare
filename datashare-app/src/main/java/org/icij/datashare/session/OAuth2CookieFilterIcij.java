@@ -6,15 +6,18 @@ import net.codestory.http.security.SessionIdStore;
 import org.icij.datashare.PropertiesProvider;
 import org.jetbrains.annotations.NotNull;
 
+import javax.annotation.Nullable;
 import java.util.Map;
 
 import static java.util.Collections.singletonList;
 
 @Singleton
 public class OAuth2CookieFilterIcij extends OAuth2CookieFilter {
+
     @Inject
-    public OAuth2CookieFilterIcij(PropertiesProvider propertiesProvider, UsersWritable users, SessionIdStore sessionIdStore) {
-        super(propertiesProvider, users, sessionIdStore);
+    public OAuth2CookieFilterIcij(PropertiesProvider propertiesProvider, UsersWritable users,
+                                  SessionIdStore sessionIdStore, @Nullable PostLoginEnroller postLoginEnroller) {
+        super(propertiesProvider, users, sessionIdStore, postLoginEnroller);
     }
 
     @NotNull

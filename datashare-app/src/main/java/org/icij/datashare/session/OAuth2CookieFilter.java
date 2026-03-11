@@ -78,10 +78,6 @@ public class OAuth2CookieFilter extends CookieAuthFilter {
     @Nullable
     private final PostLoginEnroller postLoginEnroller;
 
-    public OAuth2CookieFilter(PropertiesProvider propertiesProvider, UsersWritable users, SessionIdStore sessionIdStore) {
-        this(propertiesProvider, users, sessionIdStore, null);
-    }
-
     @Inject
     public OAuth2CookieFilter(PropertiesProvider propertiesProvider, UsersWritable users, SessionIdStore sessionIdStore, @Nullable PostLoginEnroller postLoginEnroller) {
         super(propertiesProvider.get("protectedUriPrefix").orElse("/"), users, sessionIdStore);

@@ -8,14 +8,20 @@ import net.codestory.http.filters.basic.BasicAuthFilter;
 import net.codestory.http.payload.Payload;
 import org.icij.datashare.PropertiesProvider;
 
+import javax.annotation.Nullable;
+
 public class BasicAuthAdaptorFilter extends BasicAuthFilter {
     String AUTH_PATH = "/auth";
     String AUTH_SIGNOUT_PATH = AUTH_PATH + "/signout";
     String COOKIE_NAME = "_ds_session_id";
+    @Nullable
+    private final PostLoginEnroller postLoginEnroller;
 
     @Inject
-    public BasicAuthAdaptorFilter(PropertiesProvider propertiesProvider, UsersWritable users) {
+    public BasicAuthAdaptorFilter(PropertiesProvider propertiesProvider, UsersWritable users,
+                                  @Nullable PostLoginEnroller postLoginEnroller) {
         super(propertiesProvider.get("protectedUriPrefix").orElse("/"), "datashare", users);
+        this.postLoginEnroller = postLoginEnroller;
     }
 
     @Override
@@ -35,7 +41,11 @@ public class BasicAuthAdaptorFilter extends BasicAuthFilter {
             return Payload.temporaryRedirect("/");
         }
         // We ensure the auth cookie is deleted
-        return super.apply(uri, context, nextFilter).withCookie(this.emptyAuthCookie());
+        Payload payload = super.apply(uri, context, nextFilter).withCookie(this.emptyAuthCookie());
+        if (postLoginEnroller != null && context.currentUser() instanceof DatashareUser user) {
+            postLoginEnroller.enroll(user);
+        }
+        return payload;
     }
 
     protected NewCookie emptyAuthCookie() {

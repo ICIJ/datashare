@@ -13,6 +13,7 @@ import java.util.HashMap;
 import static org.fest.assertions.Assertions.assertThat;
 import static org.fest.assertions.MapAssert.entry;
 import static org.mockito.ArgumentCaptor.forClass;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 /**
@@ -21,16 +22,18 @@ import static org.mockito.Mockito.*;
 public class YesBasicAuthFilterTest {
     private YesBasicAuthFilter filter;
 
-    private Payload next = Payload.ok();
-    private PayloadSupplier nextFilter = () -> next;
-    private Context context = mock(Context.class);
-    private ArgumentCaptor<DatashareUser> user = forClass(DatashareUser.class);
+    private final Payload next = Payload.ok();
+    private final PayloadSupplier nextFilter = () -> next;
+    private final Context context = mock(Context.class);
+    private final ArgumentCaptor<DatashareUser> user = forClass(DatashareUser.class);
+
+    private final PostLoginEnroller enroller = mock(PostLoginEnroller.class);
 
     @Before
     public void create_filter() {
       filter = new YesBasicAuthFilter(new PropertiesProvider(new HashMap<>() {{
           put("protectedUriPrefix", "secure");
-      }}));
+      }}), enroller);
     }
 
     @Test
@@ -49,5 +52,15 @@ public class YesBasicAuthFilterTest {
         assertThat(payload).isSameAs(next);
         verify(context).setCurrentUser(user.capture());
         assertThat(user.getValue().login()).isEqualTo("foo");
+    }
+
+    @Test
+    public void test_enroll_is_called_after_basic_auth() throws Exception {
+        when(context.currentUser()).thenReturn(new DatashareUser("foo"));
+        when(context.header("Authorization")).thenReturn("Basic Zm9vOmJhcg=="); // foo:bar
+
+        filter.apply("/secure/uri", context, nextFilter);
+
+        verify(enroller).enroll(any(DatashareUser.class));
     }
 }
