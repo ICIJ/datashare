@@ -50,14 +50,6 @@ jobs:
           command: |
             echo ${RELEASES_GPG_PRIV_BASE64} | base64 --decode | gpg --batch --no-tty --import --yes
 
-      - run: sudo apt-get update && sudo apt-get install -y tesseract-ocr-eng postgresql-client
-      - run: echo "amqpUri=${DS_AMQP_URI}" > datashare-devenv.properties
-      - run: echo "elasticsearchUri=${DS_ELASTICSEARCH_URI}" >> datashare-devenv.properties
-      - run: echo "postgresUri=${DS_POSTGRES_URI}" >> datashare-devenv.properties
-      - run: echo "temporalTarget=${DS_TEMPORAL_TARGET}" >> datashare-devenv.properties
-      - run: echo "postgresBuildUri=${DS_POSTGRES_BUILD_URI}" >> datashare-devenv.properties
-      - run: echo "redisUri=${DS_REDIS_URI}" >> datashare-devenv.properties
-      - run: echo "s3mockUri=${DS_S3MOCK_URI}" >> datashare-devenv.properties
       - run:
           name: Install system dependencies
           command: |
@@ -343,7 +335,7 @@ jobs:
           at: /tmp/datashare
       - restore_cache:
           keys:
-            - cargo-cache
+            - cargo-cache-{{ checksum ".circleci/config.yml" }}
       - run:
           name: Install dependencies
           command: |
@@ -355,7 +347,7 @@ jobs:
             wget https://nsis.sourceforge.io/mediawiki/images/9/9d/Untgz.zip  && unzip Untgz.zip && sudo cp untgz/untgz.dll /usr/share/nsis/Plugins/ && echo "cp untgz.dll done"
             cargo install --git https://github.com/indygreg/apple-platform-rs.git apple-codesign --tag apple-codesign/0.29.0 --locked
       - save_cache:
-          key: cargo-cache
+          key: cargo-cache-{{ checksum ".circleci/config.yml" }}
           paths:
             - $HOME/.cargo
       - run:
