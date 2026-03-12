@@ -28,6 +28,8 @@ import java.util.Set;
 import static java.lang.Integer.parseInt;
 import static java.util.Optional.ofNullable;
 import static org.apache.commons.lang3.SystemUtils.IS_OS_WINDOWS;
+import static org.icij.datashare.PropertiesProvider.DATA_DIR_OPT;
+import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_DATA_DIR;
 
 @Singleton
 @Prefix("/api/tree")
@@ -73,7 +75,7 @@ public class TreeResource {
     }
 
     protected String dataDir () {
-        return propertiesProvider.get("dataDir").orElse("/home/datashare/data");
+        return propertiesProvider.get(DATA_DIR_OPT).orElse(DEFAULT_DATA_DIR);
     }
 
     protected Path dataDirPath () {

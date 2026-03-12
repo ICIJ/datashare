@@ -6,7 +6,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.stream.Stream;
 
-class WebResponse<T> {
+public final class WebResponse<T> {
     public final List<T> items;
     public final Pagination pagination;
 
@@ -16,6 +16,10 @@ class WebResponse<T> {
     }
 
     record Pagination(int count, int from, int size, int total) { }
+
+    public static <S> WebResponse<S> fromStream(Stream<S> items, final WebResponseRange range) {
+        return fromStream(items, range.from(), range.size());
+    }
 
     public static <S> WebResponse<S> fromStream(Stream<S> items, final int from, final int size) {
         Iterator<S> iterator = items.iterator();

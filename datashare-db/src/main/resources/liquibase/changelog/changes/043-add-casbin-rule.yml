@@ -1,0 +1,92 @@
+databaseChangeLog:
+  - changeSet:
+      id: 72
+      author: cdesprat
+      changes:
+        - createTable:
+            tableName: casbin_rule
+            columns:
+              - column:
+                  name: id
+                  type: int
+                  autoIncrement: true
+                  constraints:
+                    nullable: false
+                    primaryKey: true
+              - column:
+                  name: ptype
+                  type: VARCHAR(255)
+                  defaultValue: ""
+                  constraints:
+                    nullable: false
+              - column:
+                  name: v0
+                  type: VARCHAR(255)
+                  defaultValue: ""
+                  constraints:
+                    nullable: false
+              - column:
+                  name: v1
+                  type: VARCHAR(255)
+                  defaultValue: ""
+                  constraints:
+                    nullable: false
+              - column:
+                  name: v2
+                  type: VARCHAR(255)
+                  defaultValue: ""
+                  constraints:
+                    nullable: false
+              - column:
+                  name: v3
+                  type: VARCHAR(255)
+                  defaultValue: ""
+                  constraints:
+                    nullable: false
+              - column:
+                  name: v4
+                  type: VARCHAR(255)
+                  defaultValue: ""
+                  constraints:
+                    nullable: false
+              - column:
+                  name: v5
+                  type: VARCHAR(255)
+                  defaultValue: ""
+                  constraints:
+                    nullable: false
+        - createIndex:
+            tableName: casbin_rule
+            indexName: idx_casbin_rule_ptype
+            columns:
+              - column:
+                  name: ptype
+        - createIndex:
+            tableName: casbin_rule
+            indexName: idx_casbin_rule_v0_v1_v2
+            columns:
+              - column:
+                  name: v0
+              - column:
+                  name: v1
+              - column:
+                  name: v2
+        - createIndex:
+            tableName: casbin_rule
+            indexName: uq_casbin_rule
+            unique: true
+            columns:
+              - column:
+                  name: ptype
+              - column:
+                  name: v0
+              - column:
+                  name: v1
+              - column:
+                  name: v2
+              - column:
+                  name: v3
+              - column:
+                  name: v4
+              - column:
+                  name: v5

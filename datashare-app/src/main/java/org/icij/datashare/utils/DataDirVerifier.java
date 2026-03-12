@@ -5,6 +5,9 @@ import org.icij.datashare.PropertiesProvider;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
+import static org.icij.datashare.PropertiesProvider.DATA_DIR_OPT;
+import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_DATA_DIR;
+
 public class DataDirVerifier {
     final PropertiesProvider propertiesProvider;
 
@@ -13,7 +16,7 @@ public class DataDirVerifier {
     }
 
     public String value () {
-        return propertiesProvider.get("dataDir").orElse("/home/datashare/data");
+        return propertiesProvider.get(DATA_DIR_OPT).orElse(DEFAULT_DATA_DIR);
     }
 
     public Path path () {

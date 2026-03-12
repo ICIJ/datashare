@@ -11,6 +11,8 @@ import net.codestory.http.security.Users;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.annotation.Nullable;
+
 import static net.codestory.http.constants.Headers.CACHE_CONTROL;
 import static net.codestory.http.constants.HttpStatus.UNAUTHORIZED;
 
@@ -20,11 +22,14 @@ public class ApiKeyFilter implements Filter {
     private final Users users;
     private final ApiKeyStore apiKeyStore;
     private final String protectedUrlPrefix;
+    @Nullable
+    private final PostLoginEnroller postLoginEnroller;
 
     @Inject
-    public ApiKeyFilter(UsersWritable users, ApiKeyStore apiKeyStore) {
+    public ApiKeyFilter(UsersWritable users, ApiKeyStore apiKeyStore, @Nullable PostLoginEnroller postLoginEnroller) {
         this.users = users;
         this.apiKeyStore = apiKeyStore;
+        this.postLoginEnroller = postLoginEnroller;
         protectedUrlPrefix = "/api";
         logger.info("api filter activated for url {} with store {}", protectedUrlPrefix, apiKeyStore.getClass());
     }
@@ -43,6 +48,9 @@ public class ApiKeyFilter implements Filter {
           if (login != null) {
             User user = users.find(login);
             context.setCurrentUser(user);
+              if (postLoginEnroller != null && user instanceof DatashareUser dsUser) {
+                  postLoginEnroller.enroll(dsUser);
+              }
             return nextFilter.get().withHeader(CACHE_CONTROL, "must-revalidate");
           }
         }

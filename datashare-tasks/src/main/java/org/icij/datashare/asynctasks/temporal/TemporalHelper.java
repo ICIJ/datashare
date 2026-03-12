@@ -1,19 +1,8 @@
 package org.icij.datashare.asynctasks.temporal;
 
-import static io.temporal.api.enums.v1.WorkflowExecutionStatus.WORKFLOW_EXECUTION_STATUS_CANCELED;
-import static io.temporal.api.enums.v1.WorkflowExecutionStatus.WORKFLOW_EXECUTION_STATUS_COMPLETED;
-import static io.temporal.api.enums.v1.WorkflowExecutionStatus.WORKFLOW_EXECUTION_STATUS_FAILED;
-import static io.temporal.api.enums.v1.WorkflowExecutionStatus.WORKFLOW_EXECUTION_STATUS_RUNNING;
-import static io.temporal.api.enums.v1.WorkflowExecutionStatus.WORKFLOW_EXECUTION_STATUS_TERMINATED;
-import static io.temporal.api.enums.v1.WorkflowExecutionStatus.WORKFLOW_EXECUTION_STATUS_TIMED_OUT;
-import static org.icij.datashare.LambdaExceptionUtils.rethrowConsumer;
-import static org.icij.datashare.LambdaExceptionUtils.rethrowFunction;
-import static org.icij.datashare.asynctasks.TaskManagerTemporal.resolveWfTaskQueue;
-import static org.icij.datashare.asynctasks.temporal.TemporalInterlocutor.USER_CUSTOM_ATTRIBUTE;
-
 import io.temporal.api.enums.v1.WorkflowExecutionStatus;
-import io.temporal.client.WorkflowClient;
 import io.temporal.api.workflow.v1.WorkflowExecutionInfo;
+import io.temporal.client.WorkflowClient;
 import io.temporal.common.converter.DefaultDataConverter;
 import io.temporal.failure.ApplicationFailure;
 import io.temporal.worker.Worker;
@@ -22,30 +11,33 @@ import io.temporal.worker.WorkerOptions;
 import io.temporal.worker.WorkflowImplementationOptions;
 import io.temporal.workflow.WorkflowInterface;
 import io.temporal.workflow.WorkflowMethod;
+import org.icij.datashare.asynctasks.Group;
+import org.icij.datashare.asynctasks.Task;
+import org.icij.datashare.asynctasks.TaskFactory;
+import org.icij.datashare.asynctasks.TaskFilters;
+import org.icij.datashare.function.ThrowingSupplier;
+import org.icij.datashare.tasks.RoutingStrategy;
+import org.icij.datashare.user.User;
+import org.reflections.Reflections;
+
 import java.io.Closeable;
 import java.io.IOException;
 import java.lang.reflect.Method;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import org.icij.datashare.asynctasks.Group;
-import org.icij.datashare.asynctasks.Task;
-import org.icij.datashare.asynctasks.TaskFilters;
-import org.icij.datashare.user.User;
-import org.icij.datashare.asynctasks.TaskFactory;
-import org.icij.datashare.function.ThrowingSupplier;
-import org.icij.datashare.tasks.RoutingStrategy;
-import org.reflections.Reflections;
+
+import static io.temporal.api.enums.v1.WorkflowExecutionStatus.*;
+import static org.icij.datashare.LambdaExceptionUtils.rethrowConsumer;
+import static org.icij.datashare.LambdaExceptionUtils.rethrowFunction;
+import static org.icij.datashare.asynctasks.TaskManagerTemporal.resolveWfTaskQueue;
+import static org.icij.datashare.asynctasks.temporal.TemporalInterlocutor.USER_CUSTOM_ATTRIBUTE;
 
 public class TemporalHelper {
-    public record RegisteredActivity(Supplier<?> activityFactory, String taskQueue) {
+    public record RegisteredActivity(ThrowingSupplier<?> activityFactory, String taskQueue) {
     }
 
     public record RegisteredWorkflow(Class<?> workflowCls, String taskQueue, List<RegisteredActivity> activities) {

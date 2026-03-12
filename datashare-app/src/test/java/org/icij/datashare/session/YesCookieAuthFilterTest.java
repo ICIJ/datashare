@@ -19,6 +19,7 @@ import java.util.Map;
 
 import static org.fest.assertions.Assertions.assertThat;
 import static org.mockito.ArgumentCaptor.forClass;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 import static org.mockito.MockitoAnnotations.initMocks;
 
@@ -84,6 +85,21 @@ public class YesCookieAuthFilterTest {
         assertThat(user.getValue().login()).isNotEmpty();
         assertThat(((DatashareUser)user.getValue()).getProjectNames()).contains("demo");
         assertThat(user.getValue().isInRole("local")).isFalse();
+    }
+
+    @Test
+    public void test_enroll_is_called_on_new_user_creation() throws Exception {
+        PostLoginEnroller enroller = mock(PostLoginEnroller.class);
+        when(jooqRepository.getProjects()).thenReturn(new ArrayList<>());
+        PropertiesProvider props = new PropertiesProvider();
+        String redisAddress = EnvUtils.resolveUri("redis", "redis://redis:6379");
+        props.getProperties().put("messageBusAddress", redisAddress);
+        props.getProperties().put("redisAddress", redisAddress);
+        YesCookieAuthFilter filter = new YesCookieAuthFilter(props, jooqRepository, enroller);
+
+        filter.apply("url", context, nextFilter);
+
+        verify(enroller).enroll(any(DatashareUser.class));
     }
 
     @Test

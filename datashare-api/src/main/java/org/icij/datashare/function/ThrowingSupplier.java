@@ -2,18 +2,16 @@ package org.icij.datashare.function;
 
 import java.util.Objects;
 import java.util.function.Function;
-import java.util.function.Supplier;
 
 /**
  * Created by julien on 9/1/16.
  */
-public interface ThrowingSupplier<T> extends Supplier<T> {
+@FunctionalInterface
+public interface ThrowingSupplier<T> {
 
-    @Override
     default T get() {
         try{
             return getThrows();
-
         } catch (Exception e) {
             throw new RuntimeException(e);
         }

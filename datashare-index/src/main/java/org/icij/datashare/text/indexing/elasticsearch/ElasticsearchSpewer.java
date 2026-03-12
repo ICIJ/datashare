@@ -25,6 +25,8 @@ import java.nio.file.Path;
 import static java.lang.System.currentTimeMillis;
 import static java.util.Optional.ofNullable;
 import static org.apache.tika.metadata.HttpHeaders.*;
+import static org.icij.datashare.PropertiesProvider.DEFAULT_PROJECT_OPT;
+import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_DEFAULT_PROJECT;
 import static org.icij.datashare.text.Hasher.shorten;
 
 public class ElasticsearchSpewer extends Spewer implements Serializable {
@@ -47,7 +49,7 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
         this.maxContentLength = getMaxContentLength(propertiesProvider);
         this.digestAlgorithm = getDigestAlgorithm(propertiesProvider);
         this.outputQueue = outputQueueFactory.createQueue(new PipelineHelper(propertiesProvider).getOutputQueueNameFor(Stage.INDEX), String.class);
-        this.indexName = propertiesProvider.get("defaultProject").orElse("local-datashare");
+        this.indexName = propertiesProvider.get(DEFAULT_PROJECT_OPT).orElse(DEFAULT_DEFAULT_PROJECT);
         logger.info("spewer defined with {}", indexer);
     }
 
@@ -133,7 +135,7 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
     @Override
     public Spewer configure(Options<String> options) {
         super.configure(options);
-        setIndex(options.valueIfPresent("projectName").orElse(options.get("defaultProject").value().get()));
+        setIndex(options.valueIfPresent("projectName").orElse(options.get(DEFAULT_PROJECT_OPT).value().get()));
         return this;
     }
 
