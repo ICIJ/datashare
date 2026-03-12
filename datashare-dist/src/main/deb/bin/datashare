@@ -44,18 +44,20 @@ mkdir -p \
 
 cd $datashare_home || exit
 
-# Setup Elasticsearch if needed
-setup_script="/usr/bin/datashare-elasticsearch-setup.sh"
-local_setup_script="$script_dir/datashare-elasticsearch-setup.sh"
-if [ -f "$local_setup_script" ]; then
-  bash "$local_setup_script" install
-elif [ -f "$setup_script" ]; then
-  bash "$setup_script" install
-fi
+# Setup Elasticsearch if needed (only in EMBEDDED mode)
+if [ "$datashare_mode" = "EMBEDDED" ]; then
+  setup_script="/usr/bin/datashare-elasticsearch-setup.sh"
+  local_setup_script="$script_dir/datashare-elasticsearch-setup.sh"
+  if [ -f "$local_setup_script" ]; then
+    bash "$local_setup_script" install
+  elif [ -f "$setup_script" ]; then
+    bash "$setup_script" install
+  fi
 
-checkEs=$?
-if [ $checkEs -ne 0 ]; then
-    exit $checkEs
+  checkEs=$?
+  if [ $checkEs -ne 0 ]; then
+      exit $checkEs
+  fi
 fi
 
 $java_bin $java_opts \
