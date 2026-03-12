@@ -44,8 +44,27 @@ mkdir -p \
 
 cd $datashare_home || exit
 
-# Setup Elasticsearch if needed (only in EMBEDDED mode)
-if [ "$datashare_mode" = "EMBEDDED" ]; then
+# Parse command line arguments to check for mode override and quick exit flags
+args=("$@")
+skip_es_setup=false
+for i in "${!args[@]}"; do
+  case "${args[i]}" in
+    -m|--mode)
+      if [ $((i+1)) -lt ${#args[@]} ]; then
+        datashare_mode="${args[i+1]}"
+      fi
+      ;;
+    --mode=*)
+      datashare_mode="${args[i]#*=}"
+      ;;
+    -h|--help|-v|--version)
+      skip_es_setup=true
+      ;;
+  esac
+done
+
+# Setup Elasticsearch if needed (only in EMBEDDED mode and not for help/version)
+if [ "$datashare_mode" = "EMBEDDED" ] && [ "$skip_es_setup" = false ]; then
   setup_script="/usr/bin/datashare-elasticsearch-setup.sh"
   local_setup_script="$script_dir/datashare-elasticsearch-setup.sh"
   if [ -f "$local_setup_script" ]; then
