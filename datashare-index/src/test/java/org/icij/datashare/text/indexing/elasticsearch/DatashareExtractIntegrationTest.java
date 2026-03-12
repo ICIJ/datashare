@@ -67,6 +67,18 @@ public class DatashareExtractIntegrationTest {
     }
 
     @Test
+    public void test_spew_and_read_csv() throws Exception {
+        Path path = get(Objects.requireNonNull(getClass().getResource("/docs/sample.csv")).getPath());
+        TikaDocument tikaDocument = createExtractor().extract(path);
+
+        spewer.write(tikaDocument);
+        Document doc = indexer.get(es.getIndexName(), tikaDocument.getId());
+
+        assertThat(doc).isNotNull();
+        assertThat(doc.getContent()).contains("Alice").contains("Bob").contains("Paris").contains("London");
+    }
+
+    @Test
     public void test_spew_and_read_embedded_doc() throws Exception {
         Path path = get(getClass().getResource("/docs/embedded_doc.eml").getPath());
         TikaDocument tikaDocument = createExtractor().extract(path);

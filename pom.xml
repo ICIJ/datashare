@@ -358,6 +358,13 @@
                 <scope>import</scope>
                 <type>pom</type>
             </dependency>
+            <!-- Force commons-csv to 1.14.0 to override jcasbin's 1.12.0 transitive dependency.
+                 Tika 3.x requires CSVParser.builder() which was added in 1.14.0. -->
+            <dependency>
+                <groupId>org.apache.commons</groupId>
+                <artifactId>commons-csv</artifactId>
+                <version>1.14.0</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 
