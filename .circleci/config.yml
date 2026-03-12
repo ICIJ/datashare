@@ -25,7 +25,7 @@ jobs:
   build_back:
     resource_class: large
     machine:
-      image: ubuntu-2004:current
+      image: ubuntu-2404:current
       docker_layer_caching: true
     working_directory: /tmp/datashare
 
@@ -77,7 +77,7 @@ jobs:
 
   publish_doc:
     machine:
-      image: ubuntu-2004:current
+      image: ubuntu-2404:current
       docker_layer_caching: true
     working_directory: ~/datashare
     environment:
@@ -443,7 +443,7 @@ jobs:
   deploy_datashare_tasks:
     resource_class: large
     machine:
-      image: ubuntu-2004:current
+      image: ubuntu-2404:current
       docker_layer_caching: true
 
     environment:
@@ -482,7 +482,7 @@ jobs:
 
   deploy_datashare_api:
     machine:
-      image: ubuntu-2004:current
+      image: ubuntu-2404:current
       docker_layer_caching: true
 
     environment:
@@ -511,7 +511,7 @@ jobs:
 
   deploy_datashare_cli:
     machine:
-      image: ubuntu-2004:current
+      image: ubuntu-2404:current
       docker_layer_caching: true
 
     environment:
