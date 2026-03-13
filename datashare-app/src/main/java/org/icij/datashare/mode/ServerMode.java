@@ -95,6 +95,7 @@ public class ServerMode extends CommonMode {
                 add(NerResource.class).
                 add(ApiKeyResource.class).
                 add(ProjectResource.class).
+                add(ContentTypeResource.class).
                 filter(CsrfFilter.class).
                 filter(ApiKeyFilter.class).
                 filter(Filter.class);
