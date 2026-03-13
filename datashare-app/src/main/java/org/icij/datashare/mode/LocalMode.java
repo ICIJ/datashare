@@ -52,6 +52,7 @@ public class LocalMode extends CommonMode {
                 add(FtmResource.class).
                 add(NoteResource.class).
                 add(NerResource.class).
+                add(ContentTypeResource.class).
                 filter(IndexWaiterFilter.class).
                 filter(CsrfFilter.class).
                 filter(LocalUserFilter.class);
