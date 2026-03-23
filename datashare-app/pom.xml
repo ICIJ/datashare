@@ -138,11 +138,6 @@
             <groupId>org.slf4j</groupId>
             <artifactId>log4j-over-slf4j</artifactId>
         </dependency>
-        <dependency>
-            <groupId>biz.paluch.logging</groupId>
-            <artifactId>logstash-gelf</artifactId>
-            <version>1.15.0</version>
-        </dependency>
 
         <!--test dependencies-->
         <dependency>

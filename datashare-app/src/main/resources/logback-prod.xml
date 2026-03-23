@@ -8,6 +8,5 @@
     </appender>
     <root level="INFO">
         <appender-ref ref="stdout"/>
-        <appender-ref ref="gelf" />
     </root>
 </configuration>
