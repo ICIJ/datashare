@@ -66,6 +66,9 @@ public interface Repository {
 
     boolean save(User user);
     User getUser(String userId);
+    // TODO: from version 21.0.3
+    //  remove this after version 22.0.0 (or in a few stable releases)
+    void temporaryFixLiquibaseIds();
 
     class AggregateList<T> {
         public final List<Aggregate<T>> aggregates;

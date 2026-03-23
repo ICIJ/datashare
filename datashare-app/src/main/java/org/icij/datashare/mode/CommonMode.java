@@ -328,7 +328,10 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
 
     void configurePersistence() {
         RepositoryFactoryImpl repositoryFactory = new RepositoryFactoryImpl(propertiesProvider);
-        bind(Repository.class).toInstance(repositoryFactory.createRepository());
+        Repository repository = repositoryFactory.createRepository();
+        // TODO: remove this in few stable releases (cf git commit comment)
+        repository.temporaryFixLiquibaseIds();
+        bind(Repository.class).toInstance(repository);
         bind(ApiKeyRepository.class).toInstance(repositoryFactory.createApiKeyRepository());
         bind(BatchSearchRepository.class).toInstance(repositoryFactory.createBatchSearchRepository());
         bind(CasbinRuleAdapter.class).toInstance(repositoryFactory.createCasbinRuleRepository());

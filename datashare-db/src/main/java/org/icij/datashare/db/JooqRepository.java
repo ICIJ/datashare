@@ -26,25 +26,8 @@ import org.icij.datashare.text.ProjectProxy;
 import org.icij.datashare.text.Tag;
 import org.icij.datashare.text.nlp.Pipeline;
 import org.icij.datashare.user.User;
-import org.jooq.DSLContext;
-import org.jooq.Field;
-import org.jooq.InsertOnDuplicateSetMoreStep;
-import org.jooq.InsertValuesStep2;
-import org.jooq.InsertValuesStep3;
-import org.jooq.InsertValuesStep4;
-import org.jooq.InsertValuesStep5;
-import org.jooq.InsertValuesStep6;
-import org.jooq.InsertValuesStep9;
+import org.jooq.*;
 import org.jooq.Record;
-import org.jooq.Record1;
-import org.jooq.SQLDialect;
-import org.jooq.SelectConditionStep;
-import org.jooq.SelectJoinStep;
-import org.jooq.SelectOnConditionStep;
-import org.jooq.SelectSelectStep;
-import org.jooq.SortField;
-import org.jooq.UpdateConditionStep;
-import org.jooq.UpdateSetMoreStep;
 import org.jooq.exception.DataAccessException;
 import org.jooq.impl.DSL;
 import org.slf4j.LoggerFactory;
@@ -89,6 +72,7 @@ import static org.icij.datashare.text.Project.project;
 import static org.jooq.impl.DSL.condition;
 import static org.jooq.impl.DSL.count;
 import static org.jooq.impl.DSL.countDistinct;
+import static org.jooq.impl.DSL.field;
 import static org.jooq.impl.DSL.using;
 import static org.jooq.impl.DSL.value;
 
@@ -534,8 +518,8 @@ public class JooqRepository implements Repository {
 
     @Override
     public boolean save(Project project) {
-        LocalDateTime projectCreationDate = project.creationDate == null ? null : LocalDateTime.ofInstant(project.creationDate.toInstant(),ZoneOffset.UTC);
-        LocalDateTime projectUpdateDate = project.updateDate == null ? null : LocalDateTime.ofInstant(project.updateDate.toInstant(),ZoneOffset.UTC);
+        LocalDateTime projectCreationDate = project.creationDate == null ? null : LocalDateTime.ofInstant(project.creationDate.toInstant(), ZoneOffset.UTC);
+        LocalDateTime projectUpdateDate = project.updateDate == null ? null : LocalDateTime.ofInstant(project.updateDate.toInstant(), ZoneOffset.UTC);
         InsertOnDuplicateSetMoreStep<ProjectRecord> innerSet = using(connectionProvider, dialect).insertInto(
                         PROJECT, PROJECT.ID, PROJECT.LABEL, PROJECT.DESCRIPTION, PROJECT.PATH, PROJECT.SOURCE_URL,
                         PROJECT.MAINTAINER_NAME, PROJECT.PUBLISHER_NAME, PROJECT.LOGO_URL,
@@ -580,6 +564,28 @@ public class JooqRepository implements Repository {
     public User getUser(String uid) {
         DSLContext ctx = using(connectionProvider, dialect);
         return createUserFrom(ctx.selectFrom(USER_INVENTORY).where(USER_INVENTORY.ID.eq(uid)).fetchOne());
+    }
+
+    @Override
+    public void temporaryFixLiquibaseIds() {
+        using(connectionProvider, dialect).transaction(configuration -> {
+            DSLContext inner = using(configuration);
+            Field<String> id = field("id", String.class);
+            Result<? extends Record1<String>> records = inner.select(id).from("databasechangelog").where("filename=?", "liquibase/changelog/changes/043-adds-user-policy-table.yml").fetch();
+            if (records.isNotEmpty()) {
+                inner.queries(
+                        inner.query("UPDATE databasechangelog set id='64' where filename='liquibase/changelog/changes/036-create_task.yml'"),
+                        inner.query("UPDATE databasechangelog set id='65' where filename='liquibase/changelog/changes/037-adds-task-result-and-error.yml'"),
+                        inner.query("UPDATE databasechangelog set id='66' where filename='liquibase/changelog/changes/038-adds-uri-column-batch-search.yml'"),
+                        inner.query("UPDATE databasechangelog set id='67' where filename='liquibase/changelog/changes/039-adds-column-nb-queries-without-results-batch-search.yml'"),
+                        inner.query("UPDATE databasechangelog set id='68' where filename='liquibase/changelog/changes/040-sqlite-pragma-journal-wal.yml'"),
+                        inner.query("UPDATE databasechangelog set id='69' where filename='liquibase/changelog/changes/041-adds-column-blur-sensitive-to-note.yml'"),
+                        inner.query("UPDATE databasechangelog set id='70' where id='42' and filename='liquibase/changelog/changes/042-task-result-batch-search-migration.yml'"),
+                        inner.query("UPDATE databasechangelog set id='71' where id='43' and filename='liquibase/changelog/changes/042-task-result-batch-search-migration.yml'"),
+                        inner.query("DELETE FROM databasechangelog where filename='liquibase/changelog/changes/043-adds-user-policy-table.yml'")
+                ).executeBatch();
+            }
+        });
     }
 
     @Override
@@ -701,7 +707,8 @@ public class JooqRepository implements Repository {
         DocumentRecord documentRecord = result.into(DOCUMENT);
         Map<String, Object> metadata;
         try {
-            metadata = JsonObjectMapper.readValue(documentRecord.getMetadata(), new TypeReference<>() {});
+            metadata = JsonObjectMapper.readValue(documentRecord.getMetadata(), new TypeReference<>() {
+            });
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
