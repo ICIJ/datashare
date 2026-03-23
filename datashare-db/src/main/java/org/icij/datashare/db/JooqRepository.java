@@ -30,6 +30,7 @@ import org.jooq.*;
 import org.jooq.Record;
 import org.jooq.exception.DataAccessException;
 import org.jooq.impl.DSL;
+import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.sql.DataSource;
@@ -54,7 +55,6 @@ import static java.util.Arrays.stream;
 import static java.util.Optional.ofNullable;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toSet;
-import static org.icij.datashare.Entity.LOGGER;
 import static org.icij.datashare.UserEvent.Type.fromId;
 import static org.icij.datashare.db.Tables.USER_HISTORY_PROJECT;
 import static org.icij.datashare.db.tables.Document.DOCUMENT;
@@ -79,6 +79,7 @@ import static org.jooq.impl.DSL.value;
 public class JooqRepository implements Repository {
     private final DataSource connectionProvider;
     private final SQLDialect dialect;
+    private static Logger logger = LoggerFactory.getLogger(JooqRepository.class);
 
     JooqRepository(final DataSource connectionProvider, final SQLDialect dialect) {
         this.connectionProvider = connectionProvider;
@@ -106,7 +107,7 @@ public class JooqRepository implements Repository {
                         ne.getCategory().getAbbreviation(), ne.getDocumentId(), ne.getRootDocument(),
                         ne.getExtractorLanguage().iso6391Code(), ne.isHidden());
             } catch (JsonProcessingException e) {
-                LOGGER.error("cannot serialize offsets {}", ne.getOffsets());
+                logger.error("cannot serialize offsets {}", ne.getOffsets());
             }
         });
         insertQuery.execute();
@@ -568,24 +569,29 @@ public class JooqRepository implements Repository {
 
     @Override
     public void temporaryFixLiquibaseIds() {
-        using(connectionProvider, dialect).transaction(configuration -> {
-            DSLContext inner = using(configuration);
-            Field<String> id = field("id", String.class);
-            Result<? extends Record1<String>> records = inner.select(id).from("databasechangelog").where("filename=?", "liquibase/changelog/changes/043-adds-user-policy-table.yml").fetch();
-            if (records.isNotEmpty()) {
-                inner.queries(
-                        inner.query("UPDATE databasechangelog set id='64' where filename='liquibase/changelog/changes/036-create_task.yml'"),
-                        inner.query("UPDATE databasechangelog set id='65' where filename='liquibase/changelog/changes/037-adds-task-result-and-error.yml'"),
-                        inner.query("UPDATE databasechangelog set id='66' where filename='liquibase/changelog/changes/038-adds-uri-column-batch-search.yml'"),
-                        inner.query("UPDATE databasechangelog set id='67' where filename='liquibase/changelog/changes/039-adds-column-nb-queries-without-results-batch-search.yml'"),
-                        inner.query("UPDATE databasechangelog set id='68' where filename='liquibase/changelog/changes/040-sqlite-pragma-journal-wal.yml'"),
-                        inner.query("UPDATE databasechangelog set id='69' where filename='liquibase/changelog/changes/041-adds-column-blur-sensitive-to-note.yml'"),
-                        inner.query("UPDATE databasechangelog set id='70' where id='42' and filename='liquibase/changelog/changes/042-task-result-batch-search-migration.yml'"),
-                        inner.query("UPDATE databasechangelog set id='71' where id='43' and filename='liquibase/changelog/changes/042-task-result-batch-search-migration.yml'"),
-                        inner.query("DELETE FROM databasechangelog where filename='liquibase/changelog/changes/043-adds-user-policy-table.yml'")
-                ).executeBatch();
-            }
-        });
+        try {
+            using(connectionProvider, dialect).transaction(configuration -> {
+                DSLContext inner = using(configuration);
+                Field<String> id = field("id", String.class);
+                Result<? extends Record1<String>> records = inner.select(id).from("databasechangelog").where("filename=?", "liquibase/changelog/changes/043-adds-user-policy-table.yml").fetch();
+                if (records.isNotEmpty()) {
+                    inner.queries(
+                            inner.query("UPDATE databasechangelog set id='64' where filename='liquibase/changelog/changes/036-create_task.yml'"),
+                            inner.query("UPDATE databasechangelog set id='65' where filename='liquibase/changelog/changes/037-adds-task-result-and-error.yml'"),
+                            inner.query("UPDATE databasechangelog set id='66' where filename='liquibase/changelog/changes/038-adds-uri-column-batch-search.yml'"),
+                            inner.query("UPDATE databasechangelog set id='67' where filename='liquibase/changelog/changes/039-adds-column-nb-queries-without-results-batch-search.yml'"),
+                            inner.query("UPDATE databasechangelog set id='68' where filename='liquibase/changelog/changes/040-sqlite-pragma-journal-wal.yml'"),
+                            inner.query("UPDATE databasechangelog set id='69' where filename='liquibase/changelog/changes/041-adds-column-blur-sensitive-to-note.yml'"),
+                            inner.query("UPDATE databasechangelog set id='70' where id='42' and filename='liquibase/changelog/changes/042-task-result-batch-search-migration.yml'"),
+                            inner.query("UPDATE databasechangelog set id='71' where id='43' and filename='liquibase/changelog/changes/042-task-result-batch-search-migration.yml'"),
+                            inner.query("DELETE FROM databasechangelog where filename='liquibase/changelog/changes/043-adds-user-policy-table.yml'")
+                    ).executeBatch();
+                }
+            });
+        } catch (DataAccessException tableDoesNotExist) {
+            logger.debug("SQL error during liquibase migration table fixing, presumably because databasechangelog " +
+                    "table doesn't exist (when starting from scratch). Ignoring.", tableDoesNotExist);
+        }
     }
 
     @Override
