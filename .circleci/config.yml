@@ -301,7 +301,7 @@ jobs:
 
   build_docker:
     docker:
-      - image: docker:27-git
+      - image: docker:27.5.1-git
     working_directory: /tmp
     steps:
       - attach_workspace:
