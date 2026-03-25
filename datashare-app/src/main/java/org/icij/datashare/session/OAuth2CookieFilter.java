@@ -16,10 +16,8 @@ import com.google.inject.Singleton;
 import net.codestory.http.Context;
 import net.codestory.http.errors.BadRequestException;
 import net.codestory.http.filters.PayloadSupplier;
-import net.codestory.http.filters.auth.CookieAuthFilter;
 import net.codestory.http.payload.Payload;
 import net.codestory.http.security.SessionIdStore;
-import net.codestory.http.security.User;
 import org.icij.datashare.PropertiesProvider;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
@@ -54,7 +52,7 @@ import static java.util.Optional.ofNullable;
  *
  */
 @Singleton
-public class OAuth2CookieFilter extends CookieAuthFilter {
+public class OAuth2CookieFilter extends DatashareAuthFilter {
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
     public static final String REQUEST_CODE_KEY = "code";
@@ -114,44 +112,6 @@ public class OAuth2CookieFilter extends CookieAuthFilter {
         } else {
             return uri.startsWith("/auth/signout") && "GET".equals(context.method()) ? this.signout(context) : nextFilter.get();
         }
-    }
-
-    @Override
-    public boolean matches(String uri, Context context) {
-        // Do not skip authentication based on file extension for API paths.
-        // CookieAuthFilter.matches() excludes URIs ending in static file
-        // extensions (.css, .js, .png, etc.), which allows attackers to bypass
-        // authentication by appending an extension to API routes.
-        if (uri.startsWith("/api/") || uri.startsWith("/auth/")) {
-            return true;
-        }
-        return super.matches(uri, context) || uri.isEmpty() || uri.equals("/");
-    }
-
-    @Override
-    protected Payload otherUri(String uri, Context context, PayloadSupplier nextFilter) throws Exception {
-        if (context.currentUser() != null) {
-            return nextFilter.get();
-        }
-
-        // Validate session by resolving the login to an actual user.
-        // This prevents OAuth2 state tokens (which map to timestamps,
-        // not real logins) from being accepted as valid sessions.
-        String sessionId = readSessionIdInCookie(context);
-        if (sessionId != null) {
-            String login = sessionIdStore.getLogin(sessionId);
-            if (login != null) {
-                User user = users.find(login);
-                if (user != null) {
-                    context.setCurrentUser(user);
-                    return nextFilter.get();
-                }
-            }
-        }
-        if (uri.equals("/") || uri.isEmpty()) {
-            return nextFilter.get();
-        }
-        return new Payload(401);
     }
 
     private Payload callback(Context context) throws IOException, ExecutionException, InterruptedException {
@@ -284,7 +244,5 @@ public class OAuth2CookieFilter extends CookieAuthFilter {
     @Override protected Payload signout(Context context) {
         return super.signout(context);
     }
-    @Override protected String cookieName() { return "_ds_session_id";}
     @Override protected int expiry() { return oauthTtl;}
-    @Override protected boolean redirectToLogin(String uri) { return false;}
 }
