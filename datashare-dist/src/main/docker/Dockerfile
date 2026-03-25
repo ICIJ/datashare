@@ -14,7 +14,7 @@ RUN apt update && apt install -y \
 RUN userdel -r ubuntu 2>/dev/null || true && \
     groupdel ubuntu 2>/dev/null || true && \
     addgroup --gid 1000 datashare && \
-    adduser --disabled-password -u 1000 --system datashare
+    adduser --disabled-password -u 1000 --system datashare --home /home/datashare
 
 ENV DATASHARE_LEGACY_HOME=/home/datashare
 ENV DATASHARE_HOME=/home/datashare/.local/share/datashare
