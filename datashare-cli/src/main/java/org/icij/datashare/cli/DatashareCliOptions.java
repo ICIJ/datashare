@@ -61,7 +61,7 @@ public final class DatashareCliOptions {
     public static final String DEL_API_KEY_OPT = "deleteApiKey";
     public static final String DIGEST_ALGORITHM_OPT = "digestAlgorithm";
     public static final String ELASTICSEARCH_ADDRESS_OPT = "elasticsearchAddress";
-    public static final String ELASTICSEARCH_SETTINGS_OPT = "elasticsearch.yaml";
+    public static final String ELASTICSEARCH_SETTINGS_OPT = "elasticsearchSettings";
     public static final String ELASTICSEARCH_PATH_OPT = "elasticsearchPath";
     public static final String ELASTICSEARCH_DATA_PATH_OPT = "elasticsearchDataPath";
     public static final String EMBEDDED_DOCUMENT_DOWNLOAD_MAX_SIZE_OPT = "embeddedDocumentDownloadMaxSize";

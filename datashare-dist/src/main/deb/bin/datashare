@@ -100,6 +100,6 @@ $java_bin $java_opts \
       --pluginsDir $datashare_plugins_dir \
       --extensionsDir $datashare_extensions_dir \
       --elasticsearchPath $datashare_elasticsearch_path \
-      --elasticsearch.yaml $datashare_elasticsearch_settings \
+      --elasticsearchSettings $datashare_elasticsearch_settings \
       --elasticsearchDataPath $datashare_elasticsearch_data_path \
       "$@"
