@@ -12,6 +12,8 @@ import org.junit.After;
 import org.junit.ClassRule;
 import org.junit.Test;
 
+import org.icij.datashare.test.LogbackAppenderWrapper;
+
 import java.io.IOException;
 import java.util.Map;
 
@@ -79,5 +81,21 @@ public class EnqueueFromIndexTaskTest {
         EnqueueFromIndexTask enqueueFromIndex = new EnqueueFromIndexTask(factory, indexer, new Task<>(EnqueueFromIndexTask.class.getName(), new User("test"), properties), null);
         enqueueFromIndex.call();
         assertThat(factory.queues.get("test:queue:nlp")).hasSize(1);
+    }
+
+    @Test
+    public void test_log_displays_correct_document_count() throws Exception {
+        LogbackAppenderWrapper logWrapper = new LogbackAppenderWrapper();
+        for (int i = 0; i < 3; i++) {
+            indexer.add(es.getIndexName(), createDoc("doc" + i).with(project(es.getIndexName())).build());
+        }
+        Map<String, Object> properties = Map.of(
+                "defaultProject", es.getIndexName(),
+                "stages", "ENQUEUEIDX",
+                "queueName", "test:queue",
+                "searchQuery", "{\"match_all\":{}}");
+        MemoryDocumentCollectionFactory<String> factory = new MemoryDocumentCollectionFactory<>();
+        new EnqueueFromIndexTask(factory, indexer, new Task<>(EnqueueFromIndexTask.class.getName(), new User("test"), properties), null).call();
+        assertThat(logWrapper.logs().stream().anyMatch(log -> log.contains("3 documents found"))).isTrue();
     }
 }
