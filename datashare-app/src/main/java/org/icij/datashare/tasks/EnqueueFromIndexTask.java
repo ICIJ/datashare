@@ -72,10 +72,10 @@ public class EnqueueFromIndexTask extends PipelineTask<String> {
                     .withoutSource("content", "contentTranslated").limit(scrollSize);
         }
         searcher.sort("language", Indexer.Searcher.SortOrder.ASC);
-        logger.info("enqueuing doc ids finding for index {} and {} with {} scroll and size of {} : {} documents found", projectName, nlpPipeline,
-                scrollDuration, scrollSize, searcher.totalHits());
         List<? extends Entity> docsToProcess = searcher.scroll(scrollDuration).collect(toList());
         long totalHits = searcher.totalHits();
+        logger.info("enqueuing doc ids for index {} and {} with {} scroll and size of {} : {} documents found", projectName, nlpPipeline,
+                scrollDuration, scrollSize, totalHits);
 
         try (DocumentQueue<String> outputQueue = factory.createQueue(getOutputQueueName(), String.class)) {
             do {
@@ -83,8 +83,8 @@ public class EnqueueFromIndexTask extends PipelineTask<String> {
                 docsToProcess = searcher.scroll(scrollDuration).toList();
             } while (!docsToProcess.isEmpty());
             searcher.clearScroll();
+            logger.info("enqueued into {} {} files", outputQueue.getName(), totalHits);
         }
-        logger.info("enqueued into {} {} files", outputQueue.getName(), totalHits);
         return totalHits;
     }
 }
