@@ -11,7 +11,6 @@ import java.security.SecureRandom;
 public class CsrfFilter implements Filter {
     static final String CSRF_COOKIE_NAME = "_ds_csrf_token";
     static final String CSRF_HEADER_NAME = "X-DS-CSRF-TOKEN";
-    static final String SESSION_COOKIE_NAME = "_ds_session_id";
     private static final SecureRandom RANDOM = new SecureRandom();
 
     @Override
@@ -23,9 +22,13 @@ public class CsrfFilter implements Filter {
     public Payload apply(String uri, Context context, PayloadSupplier nextFilter) throws Exception {
         String method = context.method();
         if ("GET".equals(method) || "HEAD".equals(method) || "OPTIONS".equals(method)) {
-            return nextFilter.get();
+            Payload payload = nextFilter.get();
+            if (payload.code() == 200 && needsCsrfCookie(context)) {
+                payload = payload.withCookie(csrfCookie(generateToken()));
+            }
+            return payload;
         }
-        if (context.cookies().get(SESSION_COOKIE_NAME) == null) {
+        if (context.currentUser() == null) {
             return nextFilter.get();
         }
         String cookieValue = null;
@@ -40,11 +43,16 @@ public class CsrfFilter implements Filter {
         return new Payload("application/json", "{\"error\":\"CSRF token wrong or missing\"}", 403);
     }
 
-    public static String generateToken() {
+    private boolean needsCsrfCookie(Context context) {
+        return context.currentUser() != null
+                && context.cookies().get(CSRF_COOKIE_NAME) == null;
+    }
+
+    private static String generateToken() {
         return Long.toHexString(RANDOM.nextLong()) + Long.toHexString(RANDOM.nextLong());
     }
 
-    public static NewCookie csrfCookie(String token) {
+    private static NewCookie csrfCookie(String token) {
         NewCookie cookie = new NewCookie(CSRF_COOKIE_NAME, token, "/");
         cookie.setHttpOnly(false);
         return cookie;
