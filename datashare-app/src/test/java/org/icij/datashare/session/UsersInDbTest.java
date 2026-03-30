@@ -49,6 +49,11 @@ public class UsersInDbTest {
     }
 
     @Test
+    public void find_user_returns_null_when_user_does_not_exist(){
+        assertThat(new UsersInDb(mock(Repository.class)).find("NotExistingUser")).isNull();
+    }
+
+    @Test
     public void find_user_in_db_with_bad_password() {
         Repository repository = mock(Repository.class);
         User expected = new User("foo", "bar", "mail", "icij", new HashMap<String, Object>() {{
