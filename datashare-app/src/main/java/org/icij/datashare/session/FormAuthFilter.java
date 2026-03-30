@@ -70,8 +70,7 @@ public class FormAuthFilter extends DatashareAuthFilter {
             postLoginEnroller.enroll((DatashareUser) user);
         }
         return new Payload(200)
-                .withCookie(this.authCookie(this.buildCookie(user, "/")))
-                .withCookie(CsrfFilter.csrfCookie(CsrfFilter.generateToken()));
+                .withCookie(this.authCookie(this.buildCookie(user, "/")));
     }
 
     @Override protected int expiry() { return sessionTtl; }
