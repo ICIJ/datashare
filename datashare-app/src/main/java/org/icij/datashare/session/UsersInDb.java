@@ -17,7 +17,11 @@ public class UsersInDb implements UsersWritable {
 
     @Override
     public User find(String login) {
-        return new DatashareUser(userRepository.getUser(login));
+        org.icij.datashare.user.User userInDb = userRepository.getUser(login);
+        if(userInDb == null) {
+            return null;
+        }
+        return new DatashareUser(userInDb);
     }
 
     @Override
