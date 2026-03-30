@@ -23,7 +23,7 @@ public class CsrfFilter implements Filter {
         String method = context.method();
         if ("GET".equals(method) || "HEAD".equals(method) || "OPTIONS".equals(method)) {
             Payload payload = nextFilter.get();
-            if (payload.code() == 200 && needsCsrfCookie(context)) {
+            if (payload.isSuccess() && needsCsrfCookie(context)) {
                 payload = payload.withCookie(csrfCookie(generateToken()));
             }
             return payload;

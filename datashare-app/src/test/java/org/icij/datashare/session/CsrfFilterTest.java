@@ -156,14 +156,16 @@ public class CsrfFilterTest {
     }
 
     @Test
-    public void test_get_does_not_set_csrf_cookie_on_non_200_response() throws Exception {
+    public void test_get_does_not_set_csrf_cookie_on_non_2xx_response() throws Exception {
         when(context.method()).thenReturn("GET");
         when(context.currentUser()).thenReturn(mock(User.class));
         when(context.cookies()).thenReturn(new SimpleCookies());
 
-        Payload payload = csrfFilter.apply("/api/users", context, () -> new Payload(401));
-        assertThat(payload.code()).isEqualTo(401);
-        assertThat(payload.cookies()).isEmpty();
+        for (int status : new int[]{301, 401, 403, 500}) {
+            Payload payload = csrfFilter.apply("/api/users", context, () -> new Payload(status));
+            assertThat(payload.code()).isEqualTo(status);
+            assertThat(payload.cookies()).as("Expected no CSRF cookie for status " + status).isEmpty();
+        }
     }
 
     @Test
