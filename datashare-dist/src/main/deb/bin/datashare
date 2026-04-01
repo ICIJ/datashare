@@ -44,6 +44,15 @@ mkdir -p \
 
 cd $datashare_home || exit
 
+# Detect whether the user is using the new subcommand style (first non-option arg is a known subcommand)
+first_arg="${1:-}"
+is_subcommand=false
+case "$first_arg" in
+  app|worker|stage|plugin|extension|api-key)
+    is_subcommand=true
+    ;;
+esac
+
 # Parse command line arguments to check for mode override and quick exit flags
 args=("$@")
 skip_es_setup=false
@@ -63,8 +72,8 @@ for i in "${!args[@]}"; do
   esac
 done
 
-# Setup Elasticsearch if needed (only in EMBEDDED mode and not for help/version)
-if [ "$datashare_mode" = "EMBEDDED" ] && [ "$skip_es_setup" = false ]; then
+# Setup Elasticsearch if needed (only in EMBEDDED mode and not for help/version, and not for subcommand help)
+if [ "$datashare_mode" = "EMBEDDED" ] && [ "$skip_es_setup" = false ] && [ "$is_subcommand" = false ]; then
   setup_script="/usr/bin/datashare-elasticsearch-setup.sh"
   local_setup_script="$script_dir/datashare-elasticsearch-setup.sh"
   if [ -f "$local_setup_script" ]; then
@@ -79,17 +88,27 @@ if [ "$datashare_mode" = "EMBEDDED" ] && [ "$skip_es_setup" = false ]; then
   fi
 fi
 
-$java_bin $java_opts \
-    --add-opens java.base/java.lang=ALL-UNNAMED \
-    --add-opens java.base/java.util=ALL-UNNAMED \
-    --add-opens java.base/java.util.concurrent.locks=ALL-UNNAMED \
-    --add-opens java.base/java.net=ALL-UNNAMED \
-    -DPROD_MODE=true \
-    -Dfile.encoding=UTF-8 \
-    -Djava.system.class.loader=org.icij.datashare.DynamicClassLoader \
-    -Djna.tmpdir=$datashare_jna_tmpdir \
-    -DDS_SYNC_NLP_MODELS=$datashare_sync_nlp_models \
-    -cp ./dist:$datashare_jar org.icij.datashare.Main \
+java_flags="
+  --add-opens java.base/java.lang=ALL-UNNAMED
+  --add-opens java.base/java.util=ALL-UNNAMED
+  --add-opens java.base/java.util.concurrent.locks=ALL-UNNAMED
+  --add-opens java.base/java.net=ALL-UNNAMED
+  -XX:UseSVE=0
+  -Xshare:off
+  -DPROD_MODE=true
+  -Dfile.encoding=UTF-8
+  -Djava.system.class.loader=org.icij.datashare.DynamicClassLoader
+  -Djna.tmpdir=$datashare_jna_tmpdir
+  -DDS_SYNC_NLP_MODELS=$datashare_sync_nlp_models
+"
+java_cmd="$java_bin $java_opts $java_flags -cp ./dist:$datashare_jar org.icij.datashare.Main"
+
+if [ "$is_subcommand" = true ]; then
+  # New subcommand style: pass args as-is, no legacy option injection
+  $java_cmd "$@"
+else
+  # Legacy style: inject default options before user args
+  $java_cmd \
       --mode $datashare_mode \
       --dataDir $datashare_data_dir \
       --queueType $datashare_queue_type \
@@ -103,3 +122,4 @@ $java_bin $java_opts \
       --elasticsearchSettings $datashare_elasticsearch_settings \
       --elasticsearchDataPath $datashare_elasticsearch_data_path \
       "$@"
+fi
