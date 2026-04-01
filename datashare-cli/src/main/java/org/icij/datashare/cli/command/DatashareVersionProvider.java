@@ -6,7 +6,7 @@ import java.io.InputStream;
 import java.util.Properties;
 
 public class DatashareVersionProvider implements CommandLine.IVersionProvider {
-    /** Returns a single-element array containing {@code "datashare <version>"}, read from {@code /git.properties}. */
+    /** Returns a single-element array containing "datashare <version>", read from /git.properties. */
     @Override
     public String[] getVersion() throws Exception {
         Properties versions = new Properties();
