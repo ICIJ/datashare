@@ -115,8 +115,20 @@ public class TaskManagerTemporalIntTest {
     }
 
     @Test
-    public void test_start_task_with_null_user() throws IOException {
+    public void test_start_task_without_user() throws IOException {
         String expectedTaskId = taskManager.startTask("taskName", null, Map.of("key", "value"));
+
+        List<String> taskIds = taskManager.getTaskIds().toList();
+        assertThat(taskIds).hasSize(1);
+        String taskId = taskIds.get(0);
+        assertThat(taskId).isEqualTo(expectedTaskId);
+        Task<?> task = taskManager.getTask(taskId);
+        assertThat(task.getState()).isEqualTo(RUNNING);
+    }
+
+    @Test
+    public void test_start_task_with_null_user() throws IOException {
+        String expectedTaskId = taskManager.startTask("taskName", User.nullUser(), Map.of("key", "value"));
 
         List<String> taskIds = taskManager.getTaskIds().toList();
         assertThat(taskIds).hasSize(1);

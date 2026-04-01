@@ -464,7 +464,11 @@ public class TaskManagerTemporal implements TaskManager {
         SearchAttributes.Builder builder = SearchAttributes.newBuilder()
             .set(PROGRESS_CUSTOM_ATTRIBUTE, 0d)
             .set(MAX_PROGRESS_CUSTOM_ATTRIBUTE, 0d);
-        Optional.ofNullable(taskView.getUser()).ifPresent(u -> builder.set(USER_CUSTOM_ATTRIBUTE, u.getId()));
+        Optional.ofNullable(taskView.getUser()).ifPresent(u -> {
+            if(u.getId() != null) {
+                builder.set(USER_CUSTOM_ATTRIBUTE, u.getId());
+            }
+        });
         return builder.build();
     }
 
