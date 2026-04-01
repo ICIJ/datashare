@@ -2,6 +2,7 @@ package org.icij.datashare.cli.command;
 
 import org.icij.datashare.EnvUtils;
 import picocli.CommandLine.Option;
+import picocli.CommandLine.ScopeType;
 
 import java.io.File;
 import java.nio.charset.Charset;
@@ -29,88 +30,88 @@ public class GlobalOptions {
 
     private static String home() { return System.getProperty("user.home", ""); }
 
-    @Option(names = {"-s", "--settings"}, description = "Property settings file")
+    @Option(names = {"-s", "--settings"}, description = "Property settings file", scope = ScopeType.INHERIT)
     String settings;
 
-    @Option(names = {"--logLevel"}, description = "Log level", defaultValue = "INFO")
+    @Option(names = {"--logLevel"}, description = "Log level", defaultValue = "INFO", scope = ScopeType.INHERIT)
     String logLevel;
 
-    @Option(names = {"--charset"}, description = "Datashare default charset")
+    @Option(names = {"--charset"}, description = "Datashare default charset", scope = ScopeType.INHERIT)
     String charset = Charset.defaultCharset().toString();
 
-    @Option(names = {"-P", "--defaultProject"}, description = "Default project name", defaultValue = "local-datashare")
+    @Option(names = {"-P", "--defaultProject"}, description = "Default project name", defaultValue = "local-datashare", scope = ScopeType.INHERIT)
     String defaultProject;
 
-    @Option(names = {"--digestAlgorithm"}, description = "Digest algorithm", defaultValue = "SHA_384")
+    @Option(names = {"--digestAlgorithm"}, description = "Digest algorithm", defaultValue = "SHA_384", scope = ScopeType.INHERIT)
     String digestAlgorithm;
 
-    @Option(names = {"--digestProjectName"}, description = "Include project name in document hash")
+    @Option(names = {"--digestProjectName"}, description = "Include project name in document hash", scope = ScopeType.INHERIT)
     String digestProjectName;
 
-    @Option(names = {"--noDigestProject"}, description = "Disable project name in document hash", defaultValue = "false")
+    @Option(names = {"--noDigestProject"}, description = "Disable project name in document hash", defaultValue = "false", scope = ScopeType.INHERIT)
     boolean noDigestProject;
 
-    @Option(names = {"--elasticsearchAddress"}, description = "Elasticsearch host address")
+    @Option(names = {"--elasticsearchAddress"}, description = "Elasticsearch host address", scope = ScopeType.INHERIT)
     String elasticsearchAddress = EnvUtils.resolveUri("elasticsearch", "http://elasticsearch:9200");
 
-    @Option(names = {"--elasticsearchPath"}, description = "Path for launching Elasticsearch")
+    @Option(names = {"--elasticsearchPath"}, description = "Path for launching Elasticsearch", scope = ScopeType.INHERIT)
     String elasticsearchPath = Paths.get(home(), ".local/share/datashare", "elasticsearch").toString();
 
-    @Option(names = {"--elasticsearchDataPath"}, description = "Data path for embedded Elasticsearch")
+    @Option(names = {"--elasticsearchDataPath"}, description = "Data path for embedded Elasticsearch", scope = ScopeType.INHERIT)
     String elasticsearchDataPath = Paths.get(home(), ".local/share/datashare", "es").toString();
 
-    @Option(names = {"--elasticsearchSettings"}, description = "Path to elasticsearch.yml settings")
+    @Option(names = {"--elasticsearchSettings"}, description = "Path to elasticsearch.yml settings", scope = ScopeType.INHERIT)
     String elasticsearchSettings = Paths.get(home(), ".local/share/datashare", "elasticsearch.yml").toString();
 
-    @Option(names = {"--redisAddress"}, description = "Redis address")
+    @Option(names = {"--redisAddress"}, description = "Redis address", scope = ScopeType.INHERIT)
     String redisAddress = EnvUtils.resolveUri("redis", "redis://redis:6379");
 
-    @Option(names = {"--redisPoolSize"}, description = "Redis pool size", defaultValue = "5")
+    @Option(names = {"--redisPoolSize"}, description = "Redis pool size", defaultValue = "5", scope = ScopeType.INHERIT)
     int redisPoolSize;
 
-    @Option(names = {"--messageBusAddress"}, description = "Message bus address")
+    @Option(names = {"--messageBusAddress"}, description = "Message bus address", scope = ScopeType.INHERIT)
     String messageBusAddress = EnvUtils.resolveUri("redis", "redis://redis:6379");
 
-    @Option(names = {"--busType"}, description = "Backend data bus type", defaultValue = "MEMORY")
+    @Option(names = {"--busType"}, description = "Backend data bus type", defaultValue = "MEMORY", scope = ScopeType.INHERIT)
     String busType;
 
-    @Option(names = {"--queueName"}, description = "Extract queue name", defaultValue = "extract:queue")
+    @Option(names = {"--queueName"}, description = "Extract queue name", defaultValue = "extract:queue", scope = ScopeType.INHERIT)
     String queueName;
 
-    @Option(names = {"--queueType"}, description = "Backend queues type", defaultValue = "MEMORY")
+    @Option(names = {"--queueType"}, description = "Backend queues type", defaultValue = "MEMORY", scope = ScopeType.INHERIT)
     String queueType;
 
-    @Option(names = {"--queueCapacity"}, description = "Queue capacity", defaultValue = "1000000")
+    @Option(names = {"--queueCapacity"}, description = "Queue capacity", defaultValue = "1000000", scope = ScopeType.INHERIT)
     int queueCapacity;
 
-    @Option(names = {"--dataSourceUrl"}, description = "Datasource URL")
+    @Option(names = {"--dataSourceUrl"}, description = "Datasource URL", scope = ScopeType.INHERIT)
     String dataSourceUrl = "jdbc:sqlite:file:" + Paths.get(home(), ".local/share/datashare", "dist/datashare.db");
 
-    @Option(names = {"--clusterName"}, description = "Cluster name", defaultValue = "datashare")
+    @Option(names = {"--clusterName"}, description = "Cluster name", defaultValue = "datashare", scope = ScopeType.INHERIT)
     String clusterName;
 
-    @Option(names = {"--pluginsDir"}, description = "Plugins directory")
+    @Option(names = {"--pluginsDir"}, description = "Plugins directory", scope = ScopeType.INHERIT)
     String pluginsDir = Paths.get(home(), ".local/share/datashare", "plugins").toString();
 
-    @Option(names = {"--extensionsDir"}, description = "Extensions directory")
+    @Option(names = {"--extensionsDir"}, description = "Extensions directory", scope = ScopeType.INHERIT)
     String extensionsDir = Paths.get(home(), ".local/share/datashare", "extensions").toString();
 
-    @Option(names = {"-u", "--defaultUserName"}, description = "Default local user name", defaultValue = "local")
+    @Option(names = {"-u", "--defaultUserName"}, description = "Default local user name", defaultValue = "local", scope = ScopeType.INHERIT)
     String defaultUserName;
 
-    @Option(names = {"--oauthUserProjectsAttribute"}, description = "OAuth user projects key", defaultValue = "groups_by_applications.datashare")
+    @Option(names = {"--oauthUserProjectsAttribute"}, description = "OAuth user projects key", defaultValue = "groups_by_applications.datashare", scope = ScopeType.INHERIT)
     String oauthUserProjectsAttribute;
 
-    @Option(names = {"--ext"}, description = "Run CLI extension")
+    @Option(names = {"--ext"}, description = "Run CLI extension", scope = ScopeType.INHERIT)
     String ext;
 
-    @Option(names = {"-d", "--dataDir"}, description = "Document source files directory")
+    @Option(names = {"-d", "--dataDir"}, description = "Document source files directory", scope = ScopeType.INHERIT)
     File dataDir = new File(Paths.get(home(), "Datashare").toString());
 
-    @Option(names = {"-l", "--language"}, description = "Indexing language")
+    @Option(names = {"-l", "--language"}, description = "Indexing language", scope = ScopeType.INHERIT)
     String language;
 
-    @Option(names = {"--no-color"}, description = "Disable ANSI color output", defaultValue = "false")
+    @Option(names = {"--no-color"}, description = "Disable ANSI color output", defaultValue = "false", scope = ScopeType.INHERIT)
     boolean noColor;
 
     /** Converts the parsed global option fields into a Properties map for the rest of the application. */
