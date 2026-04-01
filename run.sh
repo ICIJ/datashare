@@ -19,11 +19,13 @@ else
 fi
 
 export JDWP_TRANSPORT_PORT=${JDWP_TRANSPORT_PORT:-$port}
-export DS_JAVA_OPTS="-agentlib:jdwp=transport=dt_socket,server=y,address=$JDWP_TRANSPORT_PORT,suspend=n \
-  -Djava.net.preferIPv4Stack=true \
-  -Ddatashare.loghost=udp:localhost \
-  -Dlogback.configurationFile=logback.xml \
-  -Djavax.net.ssl.trustStorePassword=changeit"
+export DS_JAVA_OPTS="
+  -agentlib:jdwp=transport=dt_socket,server=y,address=$JDWP_TRANSPORT_PORT,suspend=n,quiet=y
+  -Djava.net.preferIPv4Stack=true
+  -Ddatashare.loghost=udp:localhost
+  -Dlogback.configurationFile=logback.xml
+  -Djavax.net.ssl.trustStorePassword=changeit
+"
 
 DATASHARE_POM_VERSION=$(head $DIR/pom.xml | grep '<version>[0-9.]\+' | sed -E 's/<version>([0-9a-z.-]+)<\/version>/\1/' | tr -d '[:space:]')
 export DATASHARE_HOME=$DIR
