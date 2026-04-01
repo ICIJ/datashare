@@ -92,6 +92,7 @@ public final class DatashareCliOptions {
     public static final String OAUTH_API_URL_OPT = "oauthApiUrl";
     public static final String OAUTH_AUTHORIZE_URL_OPT = "oauthAuthorizeUrl";
     public static final String OAUTH_CALLBACK_PATH_OPT = "oauthCallbackPath";
+    public static final String OAUTH_CLAIM_ID_ATTRIBUTE_OPT = "oauthClaimIdAttribute";
     public static final String OAUTH_CLIENT_ID_OPT = "oauthClientId";
     public static final String OAUTH_CLIENT_SECRET_OPT = "oauthClientSecret";
     public static final String OAUTH_DEFAULT_PROJECT_OPT = "oauthDefaultProject";
