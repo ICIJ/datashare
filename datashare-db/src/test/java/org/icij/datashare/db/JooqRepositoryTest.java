@@ -1,15 +1,11 @@
 package org.icij.datashare.db;
 
 import org.icij.datashare.DocumentUserRecommendation;
-import org.icij.datashare.Note;
+import org.icij.datashare.PathBanner;
 import org.icij.datashare.Repository;
 import org.icij.datashare.UserEvent;
 import org.icij.datashare.test.DatashareTimeRule;
-import org.icij.datashare.text.Document;
-import org.icij.datashare.text.DocumentBuilder;
-import org.icij.datashare.text.NamedEntity;
-import org.icij.datashare.text.Project;
-import org.icij.datashare.text.Tag;
+import org.icij.datashare.text.*;
 import org.icij.datashare.user.User;
 import org.junit.Rule;
 import org.junit.Test;
@@ -20,12 +16,7 @@ import org.junit.runners.Parameterized.Parameters;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static java.util.Arrays.asList;
@@ -34,16 +25,11 @@ import static org.fest.assertions.Assertions.assertThat;
 import static org.icij.datashare.UserEvent.Type.DOCUMENT;
 import static org.icij.datashare.UserEvent.Type.SEARCH;
 import static org.icij.datashare.db.tables.UserHistory.USER_HISTORY;
-import static org.icij.datashare.text.Language.ENGLISH;
-import static org.icij.datashare.text.Language.FRENCH;
-import static org.icij.datashare.text.Language.GERMAN;
+import static org.icij.datashare.text.Language.*;
 import static org.icij.datashare.text.NamedEntity.Category.PERSON;
 import static org.icij.datashare.text.Project.project;
 import static org.icij.datashare.text.Tag.tag;
-import static org.icij.datashare.text.nlp.Pipeline.Type.CORENLP;
-import static org.icij.datashare.text.nlp.Pipeline.Type.OPENNLP;
-import static org.icij.datashare.text.nlp.Pipeline.Type.SPACY;
-import static org.icij.datashare.text.nlp.Pipeline.Type.TEST;
+import static org.icij.datashare.text.nlp.Pipeline.Type.*;
 import static org.icij.datashare.user.User.nullUser;
 
 @RunWith(Parameterized.class)
@@ -497,21 +483,25 @@ public class JooqRepositoryTest {
     }
 
     @Test
-    public void test_create_get_notes() {
-        Note note1 = new Note(project("project"), Paths.get("/path"), "this is note 1");
-        Note note2 = new Note(project("project"), Paths.get("/path/to/note"), "this is note 2");
-        repository.save(note1);
-        repository.save(note2);
+    public void test_create_get_path_banners() {
+        PathBanner pathBanner1 = new PathBanner(project("project"), Paths.get("/path"), "this is note 1");
+        PathBanner pathBanner2 = new PathBanner(project("project"), Paths.get("/path/to/note"), "this is note 2");
+        repository.save(pathBanner1);
+        repository.save(pathBanner2);
 
-        assertThat(repository.getNotes(project("project"), "/doc.txt")).isEmpty();
-        assertThat(repository.getNotes(project("project"), "/other/path/to/doc.txt")).isEmpty();
+        assertThat(repository.getPathBanners(project("project"), "/doc.txt")).isEmpty();
+        assertThat(repository.getPathBanners(project("project"), "/other/path/to/doc.txt")).isEmpty();
 
-        assertThat(repository.getNotes(project("project"), "/path/to/doc.txt")).containsExactly(note1);
-        assertThat(repository.getNotes(project("project"), "/path/to/note/for/my/doc.txt")).containsExactly(note1, note2);
+        assertThat(repository.getPathBanners(project("project"), "/path/to/doc.txt")).containsExactly(pathBanner1);
+        assertThat(repository.getPathBanners(project("project"), "/path/to/note/for/my/doc.txt")).containsExactly(pathBanner1, pathBanner2);
 
-        assertThat(repository.getNotes(project("otherProject"))).isEmpty();
-        assertThat(repository.getNotes(project("project"))).containsExactly(note1, note2);
+        assertThat(repository.getProjectPathBanners(project("otherProject"))).isEmpty();
+        assertThat(repository.getProjectPathBanners(project("project"))).hasSize(2);
+        assertThat(repository.getProjectPathBanners(project("project"))).containsExactly(pathBanner1, pathBanner2);
+
+
     }
+
 
     @Test
     public void test_get_empty_user_history() {

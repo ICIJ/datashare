@@ -1,20 +1,12 @@
 package org.icij.datashare.mode;
 
 import net.codestory.http.routes.Routes;
-import org.icij.datashare.OsArchDetector;
-import org.icij.datashare.process.Process;
 import org.icij.datashare.session.CsrfFilter;
 import org.icij.datashare.session.LocalUserFilter;
 import org.icij.datashare.web.*;
 
 import java.util.Map;
 import java.util.Properties;
-import java.util.concurrent.atomic.AtomicBoolean;
-
-import static java.lang.String.format;
-import static org.icij.datashare.cli.DatashareCliOptions.ELASTICSEARCH_DATA_PATH_OPT;
-import static org.icij.datashare.cli.DatashareCliOptions.ELASTICSEARCH_PATH_OPT;
-
 
 public class LocalMode extends CommonMode {
     LocalMode(Properties properties) {
@@ -50,7 +42,7 @@ public class LocalMode extends CommonMode {
                 add(ExtensionResource.class).
                 add(ProjectResource.class).
                 add(FtmResource.class).
-                add(NoteResource.class).
+                add(PathBannerResource.class).
                 add(NerResource.class).
                 add(ContentTypeResource.class).
                 filter(IndexWaiterFilter.class).

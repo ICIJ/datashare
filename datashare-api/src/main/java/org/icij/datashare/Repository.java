@@ -57,10 +57,11 @@ public interface Repository {
     List<Project> getProjects(List<String> projectIds);
     boolean save(Project project);
 
-    List<Note> getNotes(Project prj, String pathPrefix);
-    boolean save(Note note);
+    List<PathBanner> getPathBanners(Project prj, String pathPrefix);
 
-    List<Note> getNotes(Project project);
+    List<PathBanner> getProjectPathBanners(Project project);
+
+    boolean save(PathBanner pathBanner);
 
     boolean getHealth();
 

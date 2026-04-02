@@ -3,26 +3,12 @@ package org.icij.datashare.db;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import org.icij.datashare.DocumentUserRecommendation;
-import org.icij.datashare.Note;
+import org.icij.datashare.PathBanner;
 import org.icij.datashare.Repository;
 import org.icij.datashare.UserEvent;
-import org.icij.datashare.db.tables.records.DocumentRecord;
-import org.icij.datashare.db.tables.records.DocumentTagRecord;
-import org.icij.datashare.db.tables.records.DocumentUserRecommendationRecord;
-import org.icij.datashare.db.tables.records.DocumentUserStarRecord;
-import org.icij.datashare.db.tables.records.NamedEntityRecord;
-import org.icij.datashare.db.tables.records.NoteRecord;
-import org.icij.datashare.db.tables.records.ProjectRecord;
-import org.icij.datashare.db.tables.records.UserHistoryProjectRecord;
-import org.icij.datashare.db.tables.records.UserHistoryRecord;
-import org.icij.datashare.db.tables.records.UserInventoryRecord;
+import org.icij.datashare.db.tables.records.*;
 import org.icij.datashare.json.JsonObjectMapper;
-import org.icij.datashare.text.Document;
-import org.icij.datashare.text.DocumentBuilder;
-import org.icij.datashare.text.Language;
-import org.icij.datashare.text.NamedEntity;
-import org.icij.datashare.text.Project;
-import org.icij.datashare.text.ProjectProxy;
+import org.icij.datashare.text.*;
 import org.icij.datashare.text.Tag;
 import org.icij.datashare.text.nlp.Pipeline;
 import org.icij.datashare.user.User;
@@ -42,11 +28,7 @@ import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
-import java.util.Date;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.function.Predicate;
 
 import static java.nio.charset.Charset.forName;
@@ -56,25 +38,20 @@ import static java.util.Optional.ofNullable;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toSet;
 import static org.icij.datashare.UserEvent.Type.fromId;
+import static org.icij.datashare.db.Tables.PATH_BANNER;
 import static org.icij.datashare.db.Tables.USER_HISTORY_PROJECT;
 import static org.icij.datashare.db.tables.Document.DOCUMENT;
 import static org.icij.datashare.db.tables.DocumentTag.DOCUMENT_TAG;
 import static org.icij.datashare.db.tables.DocumentUserRecommendation.DOCUMENT_USER_RECOMMENDATION;
 import static org.icij.datashare.db.tables.DocumentUserStar.DOCUMENT_USER_STAR;
 import static org.icij.datashare.db.tables.NamedEntity.NAMED_ENTITY;
-import static org.icij.datashare.db.tables.Note.NOTE;
 import static org.icij.datashare.db.tables.Project.PROJECT;
 import static org.icij.datashare.db.tables.UserHistory.USER_HISTORY;
 import static org.icij.datashare.db.tables.UserInventory.USER_INVENTORY;
 import static org.icij.datashare.text.Document.Status.fromCode;
 import static org.icij.datashare.text.Language.parse;
 import static org.icij.datashare.text.Project.project;
-import static org.jooq.impl.DSL.condition;
-import static org.jooq.impl.DSL.count;
-import static org.jooq.impl.DSL.countDistinct;
-import static org.jooq.impl.DSL.field;
-import static org.jooq.impl.DSL.using;
-import static org.jooq.impl.DSL.value;
+import static org.jooq.impl.DSL.*;
 
 public class JooqRepository implements Repository {
     private final DataSource connectionProvider;
@@ -464,21 +441,26 @@ public class JooqRepository implements Repository {
     }
 
     @Override
-    public List<Note> getNotes(Project prj, String documentPath) {
+    public List<PathBanner> getPathBanners(Project prj, String documentPath) {
         DSLContext ctx = using(connectionProvider, dialect);
-        return ctx.selectFrom(NOTE).
-                where(NOTE.PROJECT_ID.eq(prj.getId())).and(value(documentPath).like(NOTE.PATH.concat('%'))).
-                stream().map(this::createNoteFrom).collect(toList());
-
+        return ctx.selectFrom(PATH_BANNER).
+                where(PATH_BANNER.PROJECT_ID.eq(prj.getId())).and(value(documentPath).like(PATH_BANNER.PATH.concat('%'))).
+                stream().map(this::createPathBanner).collect(toList());
     }
 
     @Override
-    public List<Note> getNotes(Project prj) {
+    public boolean save(PathBanner pathBanner) {
         DSLContext ctx = using(connectionProvider, dialect);
-        return ctx.selectFrom(NOTE).
-                where(NOTE.PROJECT_ID.eq(prj.getId())).
-                stream().map(this::createNoteFrom).collect(toList());
+        return ctx.insertInto(PATH_BANNER, PATH_BANNER.PROJECT_ID, PATH_BANNER.PATH, PATH_BANNER.NOTE, PATH_BANNER.VARIANT).
+                values(pathBanner.project.name, pathBanner.path.toString(), pathBanner.note, pathBanner.variant.name()).execute() > 0;
+    }
 
+    @Override
+    public List<PathBanner> getProjectPathBanners(Project prj) {
+        DSLContext ctx = using(connectionProvider, dialect);
+        return ctx.selectFrom(PATH_BANNER).
+                where(PATH_BANNER.PROJECT_ID.eq(prj.getId())).
+                stream().map(this::createPathBanner).collect(toList());
     }
 
     @Override
@@ -509,13 +491,6 @@ public class JooqRepository implements Repository {
 
     }
 
-    @Override
-    public boolean save(Note note) {
-        DSLContext ctx = using(connectionProvider, dialect);
-        return ctx.insertInto(NOTE, NOTE.PROJECT_ID, NOTE.PATH, NOTE.NOTE_, NOTE.VARIANT).
-                values(note.project.name, note.path.toString(), note.note, note.variant.name()).execute() > 0;
-
-    }
 
     @Override
     public boolean save(Project project) {
@@ -646,15 +621,15 @@ public class JooqRepository implements Repository {
         return new User(userRecord.getId(), userRecord.getName(), userRecord.getEmail(), userRecord.getProvider(), userRecord.getDetails());
     }
 
-    private Note createNoteFrom(NoteRecord noteRecord) {
-        if (noteRecord == null) {
+    private PathBanner createPathBanner(PathBannerRecord pathBannerRecord) {
+        if (pathBannerRecord == null) {
             return null;
         }
-        return new Note(project(noteRecord.getProjectId()),
-                Paths.get(noteRecord.getPath()),
-                noteRecord.getNote(),
-                Note.Variant.valueOf(noteRecord.getVariant()),
-                ofNullable(noteRecord.getBlurSensitiveMedia()).orElse(false));
+        return new PathBanner(project(pathBannerRecord.getProjectId()),
+                Paths.get(pathBannerRecord.getPath()),
+                pathBannerRecord.getNote(),
+                PathBanner.Variant.valueOf(pathBannerRecord.getVariant()),
+                ofNullable(pathBannerRecord.getBlurSensitiveMedia()).orElse(false));
     }
 
     private Project createProjectFrom(ProjectRecord record) {

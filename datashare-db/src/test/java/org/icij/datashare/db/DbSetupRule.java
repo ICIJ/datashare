@@ -24,7 +24,7 @@ public class DbSetupRule extends ExternalResource {
     private final String dataSourceUrl;
     private static final Operation DELETE_ALL = deleteAllFrom(
             "document", "named_entity", "document_user_star", "document_tag", "batch_search_project", "batch_search", "user_inventory",
-            "batch_search_query", "batch_search_result", "project", "note", "document_user_recommendation", "api_key",
+            "batch_search_query", "batch_search_result", "project", "path_banner", "document_user_recommendation", "api_key",
             "user_history_project", "user_history_project", "user_history", "casbin_rule");
     private static final SqlOperation RESET_USER_HISTORY_ID_SEQ_POSTGRES = sql("ALTER SEQUENCE user_history_id_seq RESTART WITH 1;");
     private static final SqlOperation RESET_ID_SEQ_SQLITE = sql("DELETE FROM `sqlite_sequence`;");

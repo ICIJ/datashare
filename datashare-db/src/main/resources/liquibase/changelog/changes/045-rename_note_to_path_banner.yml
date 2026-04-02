@@ -1,0 +1,17 @@
+databaseChangeLog:
+  - changeSet:
+      id: 74
+      author: cdesprat
+      changes:
+        - renameTable:
+            newTableName: path_banner
+            oldTableName: note
+      dbms: "!sqlite"
+
+  - changeSet:
+      id: 75
+      author: cdesprat
+      dbms: sqlite
+      changes:
+        - sql:
+            sql: ALTER TABLE note RENAME TO path_banner
