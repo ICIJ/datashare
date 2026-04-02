@@ -19,12 +19,13 @@ import static org.icij.datashare.PropertiesProvider.SETTINGS_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.*;
 
 /**
- * Global options defined on the root command.
- * They must be specified before the subcommand name, e.g.:
+ * Global options available on all commands. Thanks to scope = ScopeType.INHERIT they can
+ * appear anywhere on the command line, before or after the subcommand name, e.g.:
  *   datashare --elasticsearchAddress http://... app start
+ *   datashare app start --elasticsearchAddress http://...
  *
- * They are NOT inherited into subcommands so that subcommand help pages
- * only show options that are relevant to that specific command.
+ * They are shown on the root command help page and in a dedicated "global options" section
+ * on each leaf subcommand help page, separate from the subcommand-specific options.
  */
 public class GlobalOptions {
 
