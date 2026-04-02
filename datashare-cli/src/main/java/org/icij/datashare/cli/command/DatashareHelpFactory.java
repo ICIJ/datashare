@@ -54,38 +54,25 @@ public final class DatashareHelpFactory {
         usage.width(HELP_WIDTH);
 
         if (isRoot) {
-            usage.footer(
-                    "",
+            usage.footer("",
                     "  Run '@|italic datashare COMMAND --help|@' for more information on a command.",
-                    "  Documentation and support: https://github.com/ICIJ/datashare"
-            );
+                    "  Documentation and support: https://github.com/ICIJ/datashare");
         }
 
         Map<String, CommandLine.IHelpSectionRenderer> sections = cmd.getHelpSectionMap();
-        // Headings are suppressed here and emitted by the list renderers only when non-empty.
+        // Headings are suppressed; they are emitted by the list renderers only when non-empty.
         // Bold markup (@|bold ...|@) is processed by picocli's ANSI pass at print time,
         // respecting --no-color / NO_COLOR automatically.
-        sections.put(SECTION_KEY_OPTION_LIST_HEADING,    help -> "");
-        sections.put(SECTION_KEY_COMMAND_LIST_HEADING,   help -> "");
-        sections.put(SECTION_KEY_PARAMETER_LIST_HEADING, help -> "");
-        sections.put(SECTION_KEY_DESCRIPTION_HEADING,    help -> "");
+        for (String key : List.of(SECTION_KEY_OPTION_LIST_HEADING, SECTION_KEY_COMMAND_LIST_HEADING,
+                                   SECTION_KEY_PARAMETER_LIST_HEADING, SECTION_KEY_DESCRIPTION_HEADING)) {
+            sections.put(key, h -> "");
+        }
 
         sections.put(SECTION_KEY_DESCRIPTION,    DatashareHelpFactory::renderDescription);
-        sections.put(SECTION_KEY_OPTION_LIST, h -> {
-            if (!h.commandSpec().subcommands().isEmpty()) return "";
-            List<String[]> rows = optionRows(h.commandSpec().options());
-            if (rows.isEmpty()) return "";
-            return "\n" + bold(h, "Options:") + "\n\n" + twoColumns(rows, sharedFirstColWidth(h));
-        });
-        sections.put(SECTION_KEY_COMMAND_LIST,   h -> { String s = renderCommandList(h);   return s.isEmpty() ? "" : "\n" + bold(h, "Commands:")   + "\n\n" + s; });
-        sections.put(SECTION_KEY_PARAMETER_LIST, h -> { String s = renderParameterList(h); return s.isEmpty() ? "" : "\n" + bold(h, "Arguments:") + "\n\n" + s; });
-
-        sections.put("globalOptionList", h -> {
-            if (h.commandSpec().parent() == null || !h.commandSpec().subcommands().isEmpty()) return "";
-            List<String[]> rows = optionRows(h.commandSpec().root().options());
-            if (rows.isEmpty()) return "";
-            return "\n" + bold(h, "Global Options:") + "\n\n" + twoColumns(rows, sharedFirstColWidth(h));
-        });
+        sections.put(SECTION_KEY_OPTION_LIST,    h -> headedSection(h, "Options:",        ownOptionRows(h),    sharedFirstColWidth(h)));
+        sections.put(SECTION_KEY_COMMAND_LIST,   h -> headedSection(h, "Commands:",       renderCommandList(h)));
+        sections.put(SECTION_KEY_PARAMETER_LIST, h -> headedSection(h, "Arguments:",      renderParameterList(h)));
+        sections.put("globalOptionList",         h -> headedSection(h, "Global Options:", globalOptionRows(h), sharedFirstColWidth(h)));
 
         List<String> keys = new ArrayList<>(usage.sectionKeys());
         int idx = keys.indexOf(SECTION_KEY_OPTION_LIST);
@@ -96,22 +83,49 @@ public final class DatashareHelpFactory {
     }
 
     static String renderOptionList(CommandLine.Help help) {
-        // Parent commands (with subcommands) show only the command list, not inherited options
-        if (!help.commandSpec().subcommands().isEmpty()) return "";
-        // Exclude scope=INHERIT options: they are already shown by renderGlobalOptionList
-        List<OptionSpec> ownOptions = help.commandSpec().options().stream()
-                .filter(o -> !o.inherited())
-                .collect(Collectors.toList());
-        List<String[]> rows = optionRows(ownOptions);
-        return rows.isEmpty() ? "" : twoColumns(rows);
+        List<String[]> rows = ownOptionRows(help);
+        if (rows.isEmpty()) {
+            return "";
+        }
+        return twoColumns(rows);
     }
 
     static String renderGlobalOptionList(CommandLine.Help help) {
-        // Only show on leaf subcommands (not root, not intermediate commands with subcommands)
-        if (help.commandSpec().parent() == null) return "";
-        if (!help.commandSpec().subcommands().isEmpty()) return "";
-        List<String[]> rows = optionRows(help.commandSpec().root().options());
-        return rows.isEmpty() ? "" : twoColumns(rows);
+        List<String[]> rows = globalOptionRows(help);
+        if (rows.isEmpty()) {
+            return "";
+        }
+        return twoColumns(rows);
+    }
+
+    private static List<String[]> ownOptionRows(CommandLine.Help help) {
+        if (!help.commandSpec().subcommands().isEmpty()) {
+            return List.of();
+        }
+        return optionRows(help.commandSpec().options().stream()
+                .filter(o -> !o.inherited())
+                .collect(Collectors.toList()));
+    }
+
+    private static List<String[]> globalOptionRows(CommandLine.Help help) {
+        if (help.commandSpec().parent() == null || !help.commandSpec().subcommands().isEmpty()) {
+            return List.of();
+        }
+        return optionRows(help.commandSpec().root().options());
+    }
+
+    private static String headedSection(CommandLine.Help h, String heading, String body) {
+        if (body.isEmpty()) {
+            return "";
+        }
+        return String.format("%n%s%n%n%s", bold(h, heading), body);
+    }
+
+    private static String headedSection(CommandLine.Help h, String heading, List<String[]> rows, int firstColWidth) {
+        if (rows.isEmpty()) {
+            return "";
+        }
+        return String.format("%n%s%n%n%s", bold(h, heading), twoColumns(rows, firstColWidth));
     }
 
     /** Filters, sorts, and maps a list of option specs to two-column row pairs. */
@@ -139,8 +153,9 @@ public final class DatashareHelpFactory {
 
     static String renderCommandList(CommandLine.Help help) {
         Map<String, CommandLine> subs = help.commandSpec().subcommands();
-        if (subs.isEmpty()) return "";
-
+        if (subs.isEmpty()) {
+            return "";
+        }
         List<String[]> rows = subs.entrySet().stream()
                 .map(e -> new String[]{ e.getKey(),
                         firstLine(e.getValue().getCommandSpec().usageMessage().description()) })
@@ -152,8 +167,9 @@ public final class DatashareHelpFactory {
         List<PositionalParamSpec> params = help.commandSpec().positionalParameters().stream()
                 .filter(p -> !p.hidden())
                 .collect(Collectors.toList());
-        if (params.isEmpty()) return "";
-
+        if (params.isEmpty()) {
+            return "";
+        }
         List<String[]> rows = params.stream()
                 .map(p -> new String[]{ p.paramLabel(), firstLine(p.description()) })
                 .collect(Collectors.toList());
@@ -167,7 +183,9 @@ public final class DatashareHelpFactory {
      */
     static String renderDescription(CommandLine.Help help) {
         String[] desc = help.commandSpec().usageMessage().description();
-        if (desc == null || desc.length == 0) return "";
+        if (desc == null || desc.length == 0) {
+            return "";
+        }
         StringBuilder sb = new StringBuilder("\n");
         for (String line : desc) {
             if (!line.isEmpty() && !Character.isWhitespace(line.charAt(0)) && line.endsWith(":")) {
@@ -243,17 +261,27 @@ public final class DatashareHelpFactory {
                 .replaceFirst("^-+", "")
                 .toLowerCase();
 
-        if (name.endsWith("url") || name.endsWith("address") || name.endsWith("uri")) return "<url>";
-        if (name.endsWith("dir") || name.endsWith("path") || name.endsWith("settings")) return "<path>";
-        if (name.endsWith("host") || name.equals("bind")) return "<host>";
-        if (name.endsWith("provider") || name.endsWith("filter")) return "<class>";
+        if (name.endsWith("url") || name.endsWith("address") || name.endsWith("uri")) {
+            return "<url>";
+        }
+        if (name.endsWith("dir") || name.endsWith("path") || name.endsWith("settings")) {
+            return "<path>";
+        }
+        if (name.endsWith("host") || name.equals("bind")) {
+            return "<host>";
+        }
+        if (name.endsWith("provider") || name.endsWith("filter")) {
+            return "<class>";
+        }
 
         return "<value>";
     }
 
     /** Returns the first non-blank description line, or empty string. */
     private static String firstLine(String[] lines) {
-        if (lines == null || lines.length == 0) return "";
+        if (lines == null || lines.length == 0) {
+            return "";
+        }
         return lines[0];
     }
 
