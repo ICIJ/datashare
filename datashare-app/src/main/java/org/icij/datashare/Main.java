@@ -35,53 +35,68 @@ public class Main {
      * parser based on isLegacyInvocation(), then starts the appropriate mode.
      */
     public static void main(String[] args) throws Exception {
-        Properties properties;
+        Properties properties = resolveProperties(args);
+        startApplication(properties);
+    }
 
+    private static Properties resolveProperties(String[] args) throws Exception {
         if (isLegacyInvocation(args)) {
             DatashareCli cli = new DatashareCli().parseArguments(args);
-            properties = cli.properties;
-        } else {
-            DatashareCommand cmd = new DatashareCommand();
-            CommandLine commandLine = DatashareHelpFactory.configure(new CommandLine(cmd));
-            commandLine.setOverwrittenOptionsAllowed(true);
-            commandLine.setAbbreviatedOptionsAllowed(false);
-            commandLine.setAbbreviatedSubcommandsAllowed(false);
-            commandLine.setCaseInsensitiveEnumValuesAllowed(true);
-            boolean noColor = System.getenv("NO_COLOR") != null
-                    || java.util.Arrays.asList(args).contains("--no-color");
-            if (noColor) {
-                commandLine.setColorScheme(CommandLine.Help.defaultColorScheme(CommandLine.Help.Ansi.OFF));
-            }
-            // The execution strategy works in two phases:
-            // 1. It scans the parse-result hierarchy for any --help or --version request and
-            //    delegates to RunLast if found, so the correct subcommand-level help page is shown.
-            // 2. It walks down to the deepest executed subcommand in the hierarchy (mirroring
-            //    picocli's RunLast behavior) and registers it on DatashareCommand so its
-            //    properties can be collected after execution.
-            commandLine.setExecutionStrategy(parseResult -> {
-                // Walk the parse-result hierarchy to the deepest subcommand, short-circuiting
-                // immediately if any level has requested help/version so RunLast shows the
-                // right help page.
-                CommandLine.ParseResult current = parseResult;
-                while (current != null) {
-                    if (current.isUsageHelpRequested() || current.isVersionHelpRequested()) {
-                        return new CommandLine.RunLast().execute(parseResult);
-                    }
-                    if (!current.hasSubcommand()) break;
-                    current = current.subcommand();
-                }
-                Object userObject = current.commandSpec().userObject();
-                if (userObject instanceof DatashareSubcommand) {
-                    cmd.setExecutedSubcommand((DatashareSubcommand) userObject);
-                }
-                return new CommandLine.RunLast().execute(parseResult);
-            });
-            int exitCode = commandLine.execute(args);
-            if (exitCode != 0) System.exit(exitCode);
-            if (cmd.getExecutedSubcommand() == null) System.exit(0);
-            properties = cmd.collectProperties();
+            return cli.properties;
         }
+        return runPicocli(args);
+    }
 
+    private static Properties runPicocli(String[] args) {
+        DatashareCommand cmd = new DatashareCommand();
+        CommandLine commandLine = DatashareHelpFactory.configure(new CommandLine(cmd));
+        commandLine.setOverwrittenOptionsAllowed(true);
+        commandLine.setAbbreviatedOptionsAllowed(false);
+        commandLine.setAbbreviatedSubcommandsAllowed(false);
+        commandLine.setCaseInsensitiveEnumValuesAllowed(true);
+        applyColorScheme(commandLine, args);
+        // The execution strategy walks the parse-result hierarchy to the deepest subcommand,
+        // short-circuiting to RunLast if --help or --version is requested at any level so the
+        // right help page is shown. Otherwise it registers the executed subcommand on
+        // DatashareCommand so its properties can be collected after execution.
+        commandLine.setExecutionStrategy(parseResult -> resolveSubcommand(parseResult, cmd));
+        int exitCode = commandLine.execute(args);
+        if (exitCode != 0) {
+            System.exit(exitCode);
+        }
+        if (cmd.getExecutedSubcommand() == null) {
+            System.exit(0);
+        }
+        return cmd.collectProperties();
+    }
+
+    private static void applyColorScheme(CommandLine commandLine, String[] args) {
+        boolean noColor = System.getenv("NO_COLOR") != null
+                || java.util.Arrays.asList(args).contains("--no-color");
+        if (noColor) {
+            commandLine.setColorScheme(CommandLine.Help.defaultColorScheme(CommandLine.Help.Ansi.OFF));
+        }
+    }
+
+    private static int resolveSubcommand(CommandLine.ParseResult parseResult, DatashareCommand cmd) {
+        CommandLine.ParseResult current = parseResult;
+        while (current != null) {
+            if (current.isUsageHelpRequested() || current.isVersionHelpRequested()) {
+                return new CommandLine.RunLast().execute(parseResult);
+            }
+            if (!current.hasSubcommand()) {
+                break;
+            }
+            current = current.subcommand();
+        }
+        Object userObject = current.commandSpec().userObject();
+        if (userObject instanceof DatashareSubcommand) {
+            cmd.setExecutedSubcommand((DatashareSubcommand) userObject);
+        }
+        return new CommandLine.RunLast().execute(parseResult);
+    }
+
+    private static void startApplication(Properties properties) throws Exception {
         Mode mode = Mode.valueOf(properties.getProperty("mode", "LOCAL"));
         LOGGER.info("Running datashare {}", mode.isWebServer() ? "web server" : "");
         LOGGER.info("JVM version {}", System.getProperty("java.version"));
@@ -96,8 +111,9 @@ public class Main {
         Runtime.getRuntime().addShutdownHook(commonMode.closeThread());
 
         if (mode.isWebServer()) {
-            ofNullable(DatashareSystemTray.create(commonMode.properties().getProperty(PropertiesProvider.TCP_LISTEN_PORT_OPT))).
-                    ifPresent(commonMode::addCloseable);
+            String port = commonMode.properties().getProperty(PropertiesProvider.TCP_LISTEN_PORT_OPT);
+            Closeable tray = DatashareSystemTray.create(port);
+            ofNullable(tray).ifPresent(commonMode::addCloseable);
             WebApp.start(commonMode);
         } else if (mode == Mode.TASK_WORKER) {
             TaskWorkerApp.start(commonMode);
@@ -114,9 +130,13 @@ public class Main {
      * matches a known subcommand.
      */
     static boolean isLegacyInvocation(String[] args) {
-        if (args.length == 0) return true;
+        if (args.length == 0) {
+            return true;
+        }
         String first = args[0].trim();
-        if (first.isEmpty() || first.startsWith("-")) return true;
+        if (first.isEmpty() || first.startsWith("-")) {
+            return true;
+        }
         return !SUBCOMMAND_NAMES.contains(first);
     }
 }
