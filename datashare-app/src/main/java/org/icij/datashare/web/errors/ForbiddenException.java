@@ -13,4 +13,11 @@ public class ForbiddenException extends HttpException {
         }
         return true;
     }
+
+    public static boolean forbiddenIfNotGranted(boolean allowed) {
+        if (!allowed) {
+            throw new ForbiddenException("Forbidden");
+        }
+        return true;
+    }
 }

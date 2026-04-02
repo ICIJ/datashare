@@ -11,8 +11,8 @@ import org.icij.datashare.text.Project;
 import java.nio.file.Path;
 import java.util.Objects;
 
-//@JsonSerialize(using = NoteSerializer.class)
-public class Note {
+//@JsonSerialize(using = PathBannerSerializer.class)
+public class PathBanner {
     public enum Variant {
         dark, light, danger, info, success, warning, primary, secondary
     }
@@ -24,20 +24,20 @@ public class Note {
     public final Variant variant;
     public final Boolean blurSensitiveMedia;
 
-    public Note(Project project, Path path, String note) {
+    public PathBanner(Project project, Path path, String note) {
         this(project, path, note, Variant.info, false);
     }
 
-    public Note(Project project, Path path, String note, Variant variant) {
+    public PathBanner(Project project, Path path, String note, Variant variant) {
         this(project, path, note, variant, false);
     }
 
     @JsonCreator
-    public Note(@JsonProperty("project") Project project,
-                @JsonProperty("path") Path path,
-                @JsonProperty("note") String note,
-                @JsonProperty("variant") Variant variant,
-                @JsonProperty("blurSensitiveMedia") Boolean blurSensitiveMedia) {
+    public PathBanner(@JsonProperty("project") Project project,
+                      @JsonProperty("path") Path path,
+                      @JsonProperty("note") String note,
+                      @JsonProperty("variant") Variant variant,
+                      @JsonProperty("blurSensitiveMedia") Boolean blurSensitiveMedia) {
         this.project = project;
         this.note = note;
         this.path = path;
@@ -49,13 +49,15 @@ public class Note {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        Note note = (Note) o;
-        return project.equals(note.project) &&
-                path.equals(note.path);
+        PathBanner pathBanner = (PathBanner) o;
+        return project.equals(pathBanner.project) &&
+                path.equals(pathBanner.path);
     }
 
     @Override
     public int hashCode() { return Objects.hash(project, path);}
     @Override
-    public String toString() {  return "Note{project=" + project.name + ", path=" + path + '}';}
+    public String toString() {
+        return "PathBanner{project=" + project.name + ", path=" + path + '}';
+    }
 }

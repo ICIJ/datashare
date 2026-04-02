@@ -134,3 +134,6 @@ databaseChangeLog:
   - include:
       file: changes/044-task-result-batch-download-migration.yml
       relativeToChangelogFile: true
+  - include:
+      file: changes/045-rename_note_to_path_banner.yml
+      relativeToChangelogFile: true
