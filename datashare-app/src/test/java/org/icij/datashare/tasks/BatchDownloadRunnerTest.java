@@ -3,7 +3,6 @@ package org.icij.datashare.tasks;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.asynctasks.TaskModifier;
-import org.icij.datashare.asynctasks.bus.amqp.UriResult;
 import org.icij.datashare.batch.BatchDownload;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.indexing.Indexer;
@@ -22,6 +21,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
+import java.util.List;
 import java.util.stream.IntStream;
 import java.util.zip.ZipFile;
 
@@ -46,29 +46,35 @@ public class BatchDownloadRunnerTest {
 
     @Test
     public void test_max_default_results() throws Exception {
-        Document[] documents = IntStream.range(0, 3).mapToObj(i -> createDoc("doc" + i).with(createFile(i)).build()).toArray(Document[]::new);
+        Document[] documents = createFiveHelloWorldDocs();
         mockSearch.willReturn(2, documents);
         BatchDownload batchDownload = new BatchDownload(singletonList(project("test-datashare")), User.local(), "query");
         Task<File> taskView = getTaskView(batchDownload);
-        UriResult result = new BatchDownloadRunner(indexer, new PropertiesProvider(new HashMap<>() {{
+        BatchDownloadRunnerResult result = new BatchDownloadRunner(indexer, new PropertiesProvider(new HashMap<>() {{
                     put(BATCH_DOWNLOAD_MAX_NB_FILES_OPT, "3");
                     put(SCROLL_SIZE_OPT, "3");
                 }}), taskView, taskView.progress(updater::progress)).call();
 
         assertThat(new ZipFile(new File(result.uri())).size()).isEqualTo(3);
+        assertThat(result.truncationReason()).isEqualTo(BatchDownloadRunnerResult.TruncationReason.FILE_COUNT_LIMIT);
     }
 
     @Test
     public void test_max_zip_size() throws Exception {
-        Document[] documents = IntStream.range(0, 3).mapToObj(i -> createDoc("doc" + i).with(createFile(i)).with("hello world " + i).build()).toArray(Document[]::new);
+        Document[] documents = createFiveHelloWorldDocs();
         mockSearch.willReturn(2, documents);
         Task<File> taskView = getTaskView(new BatchDownload(singletonList(project("test-datashare")), User.local(), "query"));
-        UriResult result = new BatchDownloadRunner(indexer, new PropertiesProvider(new HashMap<>() {{
-            put(BATCH_DOWNLOAD_MAX_SIZE_OPT, valueOf("hello world 1".getBytes(StandardCharsets.UTF_8).length * 3 - 1)); // to avoid adding the 4th doc
+        BatchDownloadRunnerResult result = new BatchDownloadRunner(indexer, new PropertiesProvider(new HashMap<>() {{
+            put(BATCH_DOWNLOAD_MAX_SIZE_OPT, valueOf(documents[0].getContent().getBytes(StandardCharsets.UTF_8).length * 3 - 1)); // to avoid adding the 4th & 5th doc
             put(SCROLL_SIZE_OPT, "3");
         }}), taskView, taskView.progress(updater::progress)).call();
 
-        assertThat(new ZipFile(new File(result.uri())).size()).isEqualTo(3); // the 4th doc must have been skipped
+        assertThat(new ZipFile(new File(result.uri())).size()).isEqualTo(3); // the 4th & 5th doc must have been skipped
+        assertThat(result.truncationReason()).isEqualTo(BatchDownloadRunnerResult.TruncationReason.SIZE_LIMIT);
+    }
+
+    private Document[] createFiveHelloWorldDocs() {
+        return IntStream.range(0, 5).mapToObj(i -> createDoc("doc" + i).with(createFile(i)).with("hello world " + i).build()).toArray(Document[]::new);
     }
 
     private Path createFile(int index) {
