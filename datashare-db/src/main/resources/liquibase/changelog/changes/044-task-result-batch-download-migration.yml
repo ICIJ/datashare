@@ -1,0 +1,8 @@
+databaseChangeLog:
+  - changeSet:
+      id: 73
+      author: lschimchowitsch
+      changes:
+        - sql: >
+            UPDATE task SET result = replace(result, '"@type":"UriResult"', '"@type":"BatchDownloadRunnerResult"') WHERE result LIKE '%"@type":"UriResult"%'
+            AND name LIKE '%BatchDownloadRunner%';

@@ -5,7 +5,6 @@ import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.asynctasks.CancelException;
 import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.asynctasks.TaskModifier;
-import org.icij.datashare.asynctasks.bus.amqp.UriResult;
 import org.icij.datashare.batch.BatchDownload;
 import org.icij.datashare.test.DatashareTimeRule;
 import org.icij.datashare.test.ElasticsearchRule;
@@ -101,7 +100,7 @@ public class BatchDownloadRunnerIntTest {
 
         BatchDownload bd = createBatchDownload("*");
         Task<File> taskView = createTaskView(bd);
-        UriResult result = new BatchDownloadRunner(indexer, createProvider(), taskView, taskView.progress(taskModifier::progress)).call();
+        BatchDownloadRunnerResult result = new BatchDownloadRunner(indexer, createProvider(), taskView, taskView.progress(taskModifier::progress)).call();
 
         assertThat(result.size()).isGreaterThan(0);
     }
@@ -200,7 +199,7 @@ public class BatchDownloadRunnerIntTest {
         Task<File> taskView = createTaskView(createBatchDownload("*"));
         BatchDownloadRunner batchDownloadRunner = new BatchDownloadRunner(indexer, createProvider(), taskView.progress(taskModifier::progress), taskView, null, countDownLatch);
 
-        Future<UriResult> result = executor.submit(batchDownloadRunner);
+        Future<BatchDownloadRunnerResult> result = executor.submit(batchDownloadRunner);
         executor.shutdown();
         countDownLatch.await();
         batchDownloadRunner.cancel(false);

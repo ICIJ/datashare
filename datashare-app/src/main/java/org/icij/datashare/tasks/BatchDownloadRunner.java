@@ -15,7 +15,6 @@ import org.icij.datashare.asynctasks.CancelException;
 import org.icij.datashare.asynctasks.CancellableTask;
 import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.asynctasks.TaskGroup;
-import org.icij.datashare.asynctasks.bus.amqp.UriResult;
 import org.icij.datashare.asynctasks.temporal.ActivityOpts;
 import org.icij.datashare.asynctasks.temporal.TemporalSingleActivityWorkflow;
 import org.icij.datashare.batch.BatchDownload;
@@ -57,7 +56,7 @@ import org.icij.datashare.asynctasks.TaskGroupType;
 
 @TemporalSingleActivityWorkflow(name = "batch-download", activityOptions = @ActivityOpts(timeout = "P7D"))
 @TaskGroup(TaskGroupType.Java)
-public class BatchDownloadRunner implements Callable<UriResult>, Monitorable, UserTask, CancellableTask {
+public class BatchDownloadRunner implements Callable<BatchDownloadRunnerResult>, Monitorable, UserTask, CancellableTask {
     private final static Logger logger = LoggerFactory.getLogger(BatchDownloadRunner.class);
     static final int MAX_SCROLL_SIZE = 3500;
     static final int MAX_BATCH_RESULT_SIZE = 10000;
@@ -92,7 +91,7 @@ public class BatchDownloadRunner implements Callable<UriResult>, Monitorable, Us
     }
 
     @Override
-    public UriResult call() throws Exception {
+    public BatchDownloadRunnerResult call() throws Exception {
         int throttleMs = parseInt(propertiesProvider.get(BATCH_THROTTLE_OPT).orElse(DEFAULT_BATCH_THROTTLE));
         int maxResultSize = parseInt(propertiesProvider.get(BATCH_DOWNLOAD_MAX_NB_FILES_OPT).orElse(valueOf(MAX_BATCH_RESULT_SIZE)));
         String scrollDuration = propertiesProvider.get(BATCH_DOWNLOAD_SCROLL_DURATION_OPT).orElse(DEFAULT_SCROLL_DURATION);
@@ -118,10 +117,6 @@ public class BatchDownloadRunner implements Callable<UriResult>, Monitorable, Us
                 return null;
             }
             docsToProcessSize = searcher.totalHits();
-            if (docsToProcessSize > maxResultSize) {
-                logger.warn("number of results for batch download > {} for {}/{} (nb zip entries will be limited)",
-                        maxResultSize, batchDownload.uuid, batchDownload.user);
-            }
 
             logger.info("creating zip file with max input files size of {} bytes", maxZipSizeBytes);
             try (Zipper zipper = createZipper(batchDownload, propertiesProvider, mailSenderSupplier)) {
@@ -147,7 +142,22 @@ public class BatchDownloadRunner implements Callable<UriResult>, Monitorable, Us
         } catch (ElasticsearchException esEx) {
             throw ElasticSearchAdapterException.createFrom(esEx);
         }
-        UriResult result = new UriResult(batchDownload.filename.toUri(), Files.size(batchDownload.filename));
+        BatchDownloadRunnerResult.TruncationReason truncationReason = null; //Can stay null if no truncation was made
+        if(numberOfResults.get() < docsToProcessSize) {
+            if(zippedFilesSize > maxZipSizeBytes) {
+                truncationReason = BatchDownloadRunnerResult.TruncationReason.SIZE_LIMIT;
+                logger.warn("File size of results for batch download {} of user {} exceeds size limit {}. Zip entries will be limited",
+                        batchDownload.uuid, batchDownload.user, maxZipSizeBytes);
+            } else if(numberOfResults.get() >= maxResultSize) {
+                truncationReason = BatchDownloadRunnerResult.TruncationReason.FILE_COUNT_LIMIT;
+                logger.warn("Number of files results for batch download {} of user {} exceeds file size limit {}. Zip entries will be limited",
+                        batchDownload.uuid, batchDownload.user, maxResultSize);
+            } else {
+                truncationReason = BatchDownloadRunnerResult.TruncationReason.UNKNOWN;
+            }
+        }
+
+        BatchDownloadRunnerResult result = new BatchDownloadRunnerResult(batchDownload.filename.toUri(), Files.size(batchDownload.filename), truncationReason);
         logger.info("created batch download file {} of {} entries for user {}", result, numberOfResults.get(), batchDownload.user.getId());
         return result;
     }
