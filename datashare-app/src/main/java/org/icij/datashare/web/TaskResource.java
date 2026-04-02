@@ -190,8 +190,8 @@ public class TaskResource {
     public Payload getTaskResult(@Parameter(name = "id", description = "task id", in = ParameterIn.PATH) String id, Context context) throws IOException {
         Task<?> task = forbiddenIfNotSameUser(context, notFoundIfUnknown(() -> taskManager.getTask(id)));
         Object result = ofNullable(task.getResult()).map(TaskResult::value).orElse(null);
-        if (result instanceof UriResult uriResult) {
-            Path filePath = Path.of(uriResult.uri().getPath());
+        if (result instanceof DownloadableResult downloadableResult) {
+            Path filePath = Path.of(downloadableResult.getUri().getPath());
             String fileName = filePath.getFileName().toString();
             String contentDisposition = "attachment;filename=\"" + fileName + "\"";
             InputStream fileInputStream = Files.newInputStream(filePath);
