@@ -113,7 +113,12 @@ public class EmbeddedMode extends LocalMode {
                     String[] parts = line.split(":", 2);
                     String key = parts[0].trim();
                     String value = parts[1].trim().replaceAll("^\\s*\"|\\s*\"$", "");
-                    args.add(format("-E%s=%s", key, value));
+                    // Skip empty values: older settings files wrote path.repo as a YAML list
+                    // ("path.repo:\n  - /path") which produces an empty value here. Passing
+                    // -Epath.repo= to elasticsearch causes a startup error.
+                    if (!value.isEmpty()) {
+                        args.add(format("-E%s=%s", key, value));
+                    }
                 }
             }
             logger.info("loaded {} elasticsearch settings from {}", args.size(), settingsFile);
