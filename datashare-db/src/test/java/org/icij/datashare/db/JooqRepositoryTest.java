@@ -504,6 +504,38 @@ public class JooqRepositoryTest {
 
 
     @Test
+    public void test_delete_path_banners() {
+        PathBanner pathBanner1 = new PathBanner(project("project"), Paths.get("/path"), "this is note 1");
+        PathBanner pathBanner2 = new PathBanner(project("project"), Paths.get("/path/to/note"), "this is note 2");
+        PathBanner pathBanner3 = new PathBanner(project("project"), Paths.get("/path/to/other/note"), "this is note 3");
+        PathBanner pathBanner4 = new PathBanner(project("project"), Paths.get("/path/to/other/note/next"), "this is note 4");
+        repository.save(pathBanner1);
+        repository.save(pathBanner2);
+        repository.save(pathBanner3);
+        repository.save(pathBanner4);
+
+        // When removing unexisting path banner
+        assertThat(repository.deletePathBanner(project("project"), "/notExisting.txt")).isEqualTo(false);
+        assertThat(repository.getProjectPathBanners(project("project"))).hasSize(4);
+
+        // When removing single path banner under the exact path (note2)
+        assertThat(repository.deletePathBanner(project("project"), "/path/to/note")).isEqualTo(true);
+        assertThat(repository.getProjectPathBanners(project("project"))).hasSize(3);
+
+        // When removing path banner under the specified path including children path banner (note 3 and note 4)
+        assertThat(repository.deleteGreedyPathBanner(project("project"), "/path/to")).isEqualTo(true);
+        assertThat(repository.getProjectPathBanners(project("project"))).hasSize(1);
+
+        // When removing from not existing project2
+        assertThat(repository.deleteProjectPathBanners(project("project2"))).isEqualTo(false);
+
+        // When removing all from project1
+        assertThat(repository.deleteProjectPathBanners(project("project"))).isEqualTo(true);
+        assertThat(repository.getProjectPathBanners(project("project"))).isEmpty();
+    }
+
+
+    @Test
     public void test_get_empty_user_history() {
         assertThat(repository.getUserHistory(User.local(), SEARCH, 0, 10, "modification_date", true)).isEmpty();
     }

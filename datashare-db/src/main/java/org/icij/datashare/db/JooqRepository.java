@@ -456,12 +456,36 @@ public class JooqRepository implements Repository {
     }
 
     @Override
+    public boolean deletePathBanner(Project project, String path) {
+        return using(connectionProvider, dialect).deleteFrom(PATH_BANNER)
+                .where(PATH_BANNER.PROJECT_ID.eq(project.getId()))
+                .and(PATH_BANNER.PATH.eq(value(path)))
+                .execute() > 0;
+    }
+
+    @Override
+    public boolean deleteGreedyPathBanner(Project project, String path) {
+        return using(connectionProvider, dialect).deleteFrom(PATH_BANNER)
+                .where(PATH_BANNER.PROJECT_ID.eq(project.getId()))
+                .and(PATH_BANNER.PATH.like(value(path).concat('%')))
+                .execute() > 0;
+    }
+
+    @Override
     public List<PathBanner> getProjectPathBanners(Project prj) {
         DSLContext ctx = using(connectionProvider, dialect);
         return ctx.selectFrom(PATH_BANNER).
                 where(PATH_BANNER.PROJECT_ID.eq(prj.getId())).
                 stream().map(this::createPathBanner).collect(toList());
     }
+
+    @Override
+    public boolean deleteProjectPathBanners(Project project) {
+        return using(connectionProvider, dialect).deleteFrom(PATH_BANNER)
+                .where(PATH_BANNER.PROJECT_ID.eq(project.getId()))
+                .execute() > 0;
+    }
+
 
     @Override
     public List<DocumentUserRecommendation> getDocumentUserRecommendations(int from, int size, List<Project> projects) {
