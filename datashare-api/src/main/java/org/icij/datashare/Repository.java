@@ -63,6 +63,12 @@ public interface Repository {
 
     boolean save(PathBanner pathBanner);
 
+    boolean deletePathBanner(Project project, String path);
+
+    boolean deleteGreedyPathBanner(Project project, String path);
+
+    boolean deleteProjectPathBanners(Project project);
+
     boolean getHealth();
 
     boolean save(User user);
