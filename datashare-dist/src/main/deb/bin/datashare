@@ -72,8 +72,8 @@ for i in "${!args[@]}"; do
   esac
 done
 
-# Setup Elasticsearch if needed (only in EMBEDDED mode and not for help/version, and not for subcommand help)
-if [ "$datashare_mode" = "EMBEDDED" ] && [ "$skip_es_setup" = false ] && [ "$is_subcommand" = false ]; then
+# Setup Elasticsearch if needed (only in EMBEDDED mode and not for help/version)
+if [ "$datashare_mode" = "EMBEDDED" ] && [ "$skip_es_setup" = false ]; then
   setup_script="/usr/bin/datashare-elasticsearch-setup.sh"
   local_setup_script="$script_dir/datashare-elasticsearch-setup.sh"
   if [ -f "$local_setup_script" ]; then
@@ -104,8 +104,13 @@ java_flags="
 java_cmd="$java_bin $java_opts $java_flags -cp ./dist:$datashare_jar org.icij.datashare.Main"
 
 if [ "$is_subcommand" = true ]; then
-  # New subcommand style: pass args as-is, no legacy option injection
-  $java_cmd "$@"
+  # New subcommand style: inject only environment-derived paths, then user args.
+  # ES paths are injected first so user-provided options override them.
+  $java_cmd \
+      --elasticsearchPath $datashare_elasticsearch_path \
+      --elasticsearchSettings $datashare_elasticsearch_settings \
+      --elasticsearchDataPath $datashare_elasticsearch_data_path \
+      "$@"
 else
   # Legacy style: inject default options before user args
   $java_cmd \
