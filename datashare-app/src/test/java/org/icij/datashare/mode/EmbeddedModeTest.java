@@ -54,6 +54,26 @@ public class EmbeddedModeTest {
     }
 
     @Test
+    public void test_buildElasticsearchArgs_skips_empty_values() throws Exception {
+        Path settingsFile = temporaryFolder.newFile("elasticsearch.yml").toPath();
+        // Older Datashare versions wrote path.repo as a YAML list, producing an empty value
+        // when the key line is parsed alone. Passing -Epath.repo= to elasticsearch causes a
+        // startup error; the empty value must be silently skipped.
+        String content = """
+                path.data: "/some/path"
+                path.repo:
+                  - "/some/path/backups"
+                xpack.security.enabled: false
+                """;
+        Files.writeString(settingsFile, content);
+
+        List<String> args = EmbeddedMode.buildElasticsearchArgs(settingsFile);
+
+        assertThat(args).containsOnly("-Epath.data=/some/path", "-Expack.security.enabled=false");
+        assertThat(args).excludes("-Epath.repo=");
+    }
+
+    @Test
     public void test_buildElasticsearchArgs_with_quoted_values() throws Exception {
         Path settingsFile = temporaryFolder.newFile("elasticsearch.yml").toPath();
         String content = """
