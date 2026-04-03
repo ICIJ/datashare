@@ -338,6 +338,48 @@ public class RetroCompatibilityTest {
     }
 
     @Test
+    public void test_parity_batch_download_max_size() {
+        Properties legacy = parseLegacy("--batchDownloadMaxSize", "500M");
+        Properties picocli = parseNew("app", "start", "--batchDownloadMaxSize", "500M");
+        assertPropertyEqual(legacy, picocli, "batchDownloadMaxSize");
+    }
+
+    @Test
+    public void test_parity_batch_download_max_nb_files() {
+        Properties legacy = parseLegacy("--batchDownloadMaxNbFiles", "50");
+        Properties picocli = parseNew("app", "start", "--batchDownloadMaxNbFiles", "50");
+        assertPropertyEqual(legacy, picocli, "batchDownloadMaxNbFiles");
+    }
+
+    @Test
+    public void test_parity_batch_search_max_time_seconds() {
+        Properties legacy = parseLegacy("--batchSearchMaxTimeSeconds", "120");
+        Properties picocli = parseNew("app", "start", "--batchSearchMaxTimeSeconds", "120");
+        assertPropertyEqual(legacy, picocli, "batchSearchMaxTimeSeconds");
+    }
+
+    @Test
+    public void test_parity_ocr_language() {
+        Properties legacy = parseLegacy("--ocrLanguage", "fra");
+        Properties picocli = parseNew("app", "start", "--ocrLanguage", "fra");
+        assertPropertyEqual(legacy, picocli, "ocrLanguage");
+    }
+
+    @Test
+    public void test_parity_nlp_parallelism() {
+        Properties legacy = parseLegacy("--nlpParallelism", "4", "--stages", "SCAN,INDEX,NLP");
+        Properties picocli = parseNew("stage", "run", "SCAN,INDEX,NLP", "--nlpParallelism", "4");
+        assertPropertyEqual(legacy, picocli, "nlpParallelism");
+    }
+
+    @Test
+    public void test_parity_task_routing_key() {
+        Properties legacy = parseLegacy("--taskRoutingKey", "mykey");
+        Properties picocli = parseNew("app", "start", "--taskRoutingKey", "mykey");
+        assertPropertyEqual(legacy, picocli, "taskRoutingKey");
+    }
+
+    @Test
     public void test_legacy_mode_default() {
         Properties props = parseLegacy("");
         assertThat(props.getProperty("mode")).isEqualTo("LOCAL");
