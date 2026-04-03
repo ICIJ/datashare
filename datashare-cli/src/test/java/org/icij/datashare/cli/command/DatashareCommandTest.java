@@ -134,21 +134,21 @@ public class DatashareCommandTest {
 
     @Test
     public void test_stage_run_scan_index() {
-        Properties props = parse("stage", "run", "SCAN,INDEX");
+        Properties props = parse("stage", "run", "--stages", "SCAN,INDEX");
         assertThat(props).includes(entry("mode", "CLI"));
         assertThat(props).includes(entry("stages", "SCAN,INDEX"));
     }
 
     @Test
     public void test_stage_run_single_stage() {
-        Properties props = parse("stage", "run", "SCAN");
+        Properties props = parse("stage", "run", "--stages", "SCAN");
         assertThat(props).includes(entry("mode", "CLI"));
         assertThat(props).includes(entry("stages", "SCAN"));
     }
 
     @Test
     public void test_stage_run_all_main_stages() {
-        Properties props = parse("stage", "run", "SCAN,INDEX,NLP");
+        Properties props = parse("stage", "run", "--stages", "SCAN,INDEX,NLP");
         assertThat(props).includes(entry("stages", "SCAN,INDEX,NLP"));
     }
 
@@ -160,7 +160,7 @@ public class DatashareCommandTest {
 
     @Test
     public void test_stage_run_with_data_dir() {
-        Properties props = parse("--dataDir", "/data/docs", "stage", "run", "SCAN,INDEX");
+        Properties props = parse("--dataDir", "/data/docs", "stage", "run", "--stages", "SCAN,INDEX");
         assertThat(props).includes(entry("mode", "CLI"));
         assertThat(props).includes(entry("stages", "SCAN,INDEX"));
         assertThat(props).includes(entry("dataDir", "/data/docs"));
@@ -612,7 +612,7 @@ public class DatashareCommandTest {
 
     @Test
     public void test_nlp_parallelism() {
-        Properties props = parse("stage", "run", "NLP", "--nlpParallelism", "4");
+        Properties props = parse("stage", "run", "--stages", "NLP", "--nlpParallelism", "4");
         assertThat(props).includes(entry("nlpParallelism", "4"));
     }
 
@@ -687,7 +687,7 @@ public class DatashareCommandTest {
 
     @Test
     public void test_stage_run_overrides_shared_mode() {
-        Properties props = parse("stage", "run", "SCAN");
+        Properties props = parse("stage", "run", "--stages", "SCAN");
         assertThat(props).includes(entry("mode", "CLI"));
     }
 
@@ -725,7 +725,7 @@ public class DatashareCommandTest {
                 "--dataDir", "/data/docs",
                 "--queueType", "REDIS",
                 "--redisAddress", "redis://redis:6379",
-                "stage", "run", "SCAN,INDEX");
+                "stage", "run", "--stages", "SCAN,INDEX");
         assertThat(props).includes(entry("elasticsearchAddress", "http://es:9200"));
         assertThat(props).includes(entry("dataDir", "/data/docs"));
         assertThat(props).includes(entry("queueType", "REDIS"));
@@ -858,7 +858,7 @@ public class DatashareCommandTest {
 
     @Test
     public void test_global_option_after_stage_run() {
-        Properties props = parse("stage", "run", "SCAN", "--dataDir", "/my/docs");
+        Properties props = parse("stage", "run", "--stages", "SCAN", "--dataDir", "/my/docs");
         assertThat(props).includes(entry("dataDir", "/my/docs"));
     }
 
