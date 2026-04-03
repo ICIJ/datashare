@@ -100,7 +100,7 @@ public class RetroCompatibilityTest {
     @Test
     public void test_parity_mode_cli_with_stages() {
         Properties legacy = parseLegacy("--mode=CLI", "--stages=SCAN,INDEX");
-        Properties picocli = parseNew("stage", "run", "SCAN,INDEX");
+        Properties picocli = parseNew("stage", "run", "--stages", "SCAN,INDEX");
         assertPropertyEqual(legacy, picocli, "mode");
         assertPropertyEqual(legacy, picocli, "stages");
     }
@@ -368,7 +368,7 @@ public class RetroCompatibilityTest {
     @Test
     public void test_parity_nlp_parallelism() {
         Properties legacy = parseLegacy("--nlpParallelism", "4", "--stages", "SCAN,INDEX,NLP");
-        Properties picocli = parseNew("stage", "run", "SCAN,INDEX,NLP", "--nlpParallelism", "4");
+        Properties picocli = parseNew("stage", "run", "--stages", "SCAN,INDEX,NLP", "--nlpParallelism", "4");
         assertPropertyEqual(legacy, picocli, "nlpParallelism");
     }
 
