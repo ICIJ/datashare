@@ -48,7 +48,7 @@ cd $datashare_home || exit
 first_arg="${1:-}"
 is_subcommand=false
 case "$first_arg" in
-  app|worker|stage|plugin|extension|api-key)
+  app|worker|stage|plugin|extension|api-key|help)
     is_subcommand=true
     ;;
 esac
@@ -66,7 +66,7 @@ for i in "${!args[@]}"; do
     --mode=*)
       datashare_mode="${args[i]#*=}"
       ;;
-    -h|--help|-v|--version)
+    -h|--help|-v|-V|--version)
       skip_es_setup=true
       ;;
   esac
