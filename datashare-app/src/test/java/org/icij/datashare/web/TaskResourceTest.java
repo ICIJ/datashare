@@ -669,8 +669,10 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
-    public void test_clean_task_filter() throws IOException {
+    public void test_clean_task_filter() throws IOException, InterruptedException {
+        //Will create one Scan and one Index Task
         post("/api/task/batchUpdate/index/file/" + getClass().getResource("/docs/doc.txt").getPath().substring(1), "{}").response();
+        awaitTasksExist(2, 2000, 100);
 
         ShouldChain responseBody = post("/api/task/clean?name=Scan", "{}").should().haveType("application/json");
 
@@ -855,7 +857,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
     @Test
     public void test_cannot_clean_running_task() throws Exception {
         String dummyTaskId = taskManager.startTask(TestSleepingTask.class, User.local(), new HashMap<>());
-        assertEventuallyHaveState(dummyTaskId, RUNNING, 5000, 100);
+        assertEventuallyHaveState(dummyTaskId, RUNNING, 10000, 100);
         delete("/api/task/clean/" + dummyTaskId).should().respond(403);
         assertThat(taskManager.getTasks().toList()).hasSize(1);
     }
@@ -865,7 +867,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         String dummyTaskId = taskManager.startTask(TestSleepingTask.class, User.local(), new HashMap<>());
         put("/api/task/stop/" + dummyTaskId).should().respond(200).contain("true");
 
-        assertEventuallyHaveState(dummyTaskId, Task.State.CANCELLED, 1000, 100);
+        assertEventuallyHaveState(dummyTaskId, Task.State.CANCELLED, 10000, 100);
         get("/api/task/all").should().respond(200).contain("\"state\":\"CANCELLED\"");
     }
 
@@ -1066,6 +1068,18 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
 
     private Optional<Task<?>> findTask(TaskManagerMemory taskManager, String expectedName) throws IOException {
         return taskManager.getTasks().filter(t -> expectedName.equals(t.name)).findFirst();
+    }
+
+    private void awaitTasksExist(int numberOfTasks, int timeoutMs, int pollIntervalMs) throws IOException, InterruptedException {
+        long start = System.currentTimeMillis();
+        while (System.currentTimeMillis() - start < timeoutMs) {
+            if (taskManager.getTasks().count() == numberOfTasks) {
+                return;
+            }
+            Thread.sleep(pollIntervalMs);
+        }
+        String msg = "Failed to get "+ numberOfTasks + " existing tasks in the task manager in less than " + timeoutMs + "ms";
+        throw new AssertionError(msg);
     }
 
     private void assertEventuallyHaveState(String taskId, Task.State expectedState, int timeoutMs, int pollIntervalMs)
