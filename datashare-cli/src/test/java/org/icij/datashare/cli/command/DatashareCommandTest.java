@@ -886,6 +886,76 @@ public class DatashareCommandTest {
         assertNoOverlap(globalNames, PipelineOptions.class);
     }
 
+    @Test
+    public void test_root_help_flag_exits_zero() {
+        assertThat(parseExitCode("--help")).isEqualTo(0);
+    }
+
+    @Test
+    public void test_root_help_short_flag_exits_zero() {
+        assertThat(parseExitCode("-h")).isEqualTo(0);
+    }
+
+    @Test
+    public void test_app_start_help_flag_exits_zero() {
+        assertThat(parseExitCode("app", "start", "--help")).isEqualTo(0);
+    }
+
+    @Test
+    public void test_worker_run_help_flag_exits_zero() {
+        assertThat(parseExitCode("worker", "run", "--help")).isEqualTo(0);
+    }
+
+    @Test
+    public void test_stage_run_help_flag_exits_zero() {
+        assertThat(parseExitCode("stage", "run", "--help")).isEqualTo(0);
+    }
+
+    @Test
+    public void test_version_flag_exits_zero() {
+        assertThat(parseExitCode("--version")).isEqualTo(0);
+    }
+
+    @Test
+    public void test_version_short_flag_exits_zero() {
+        assertThat(parseExitCode("-V")).isEqualTo(0);
+    }
+
+    @Test
+    public void test_help_subcommand_exits_zero() {
+        assertThat(parseExitCode("help")).isEqualTo(0);
+    }
+
+    @Test
+    public void test_help_subcommand_with_app_exits_zero() {
+        assertThat(parseExitCode("help", "app")).isEqualTo(0);
+    }
+
+    @Test
+    public void test_help_subcommand_with_app_start_exits_zero() {
+        assertThat(parseExitCode("help", "app", "start")).isEqualTo(0);
+    }
+
+    @Test
+    public void test_no_color_flag_is_accepted() {
+        assertThat(parseExitCode("--no-color", "app", "start")).isEqualTo(0);
+    }
+
+    @Test
+    public void test_no_color_flag_after_subcommand_is_accepted() {
+        assertThat(parseExitCode("app", "start", "--no-color")).isEqualTo(0);
+    }
+
+    @Test
+    public void test_unknown_flag_fails() {
+        assertThat(parseExitCode("--foo")).isNotEqualTo(0);
+    }
+
+    @Test
+    public void test_unknown_leaf_subcommand_fails() {
+        assertThat(parseExitCode("app", "foo")).isNotEqualTo(0);
+    }
+
     private static Set<String> optionNamesOf(Class<?> clazz) {
         Set<String> names = new HashSet<>();
         for (Field field : clazz.getDeclaredFields()) {
