@@ -1,7 +1,24 @@
 #!/bin/bash
 
 export DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
-export JDWP_TRANSPORT_PORT=${JDWP_TRANSPORT_PORT:-8090}
+## Find a free port for Java remote debugging
+BASE_PORT=8090
+port=$BASE_PORT
+isfree=$(lsof -i ":$port" -t)
+
+while [ -n "$isfree" ] && [ $port -lt 8093 ]; do
+    port=$((port+1))
+    isfree=$(lsof -i ":$port" -t)
+done
+
+if [ -n "$isfree" ]; then
+  echo "Warning : run.sh couldn't find an available port available between 8090 and 8190 for java debugging. Use default 8090, probably already in use"
+  port=$BASE_PORT
+else
+  echo "Use port $port"
+fi
+
+export JDWP_TRANSPORT_PORT=${JDWP_TRANSPORT_PORT:-$port}
 export DS_JAVA_OPTS="-agentlib:jdwp=transport=dt_socket,server=y,address=$JDWP_TRANSPORT_PORT,suspend=n \
   -Djava.net.preferIPv4Stack=true \
   -Ddatashare.loghost=udp:localhost \
