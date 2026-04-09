@@ -504,6 +504,25 @@ public class JooqRepositoryTest {
 
 
     @Test
+    public void test_upsert_path_banner() {
+        PathBanner pathBanner = new PathBanner(project("project"), Paths.get("/path"), "original note");
+
+        // First save creates the record and returns true
+        assertThat(repository.save(pathBanner)).isTrue();
+        assertThat(repository.getProjectPathBanners(project("project"))).hasSize(1);
+
+        // Second save with same project+path updates, does not duplicate, and returns false
+        PathBanner updatedBanner = new PathBanner(project("project"), Paths.get("/path"), "updated note", PathBanner.Variant.warning, true);
+        assertThat(repository.save(updatedBanner)).isFalse();
+
+        List<PathBanner> banners = repository.getProjectPathBanners(project("project"));
+        assertThat(banners).hasSize(1);
+        assertThat(banners.get(0).note).isEqualTo("updated note");
+        assertThat(banners.get(0).variant).isEqualTo(PathBanner.Variant.warning);
+        assertThat(banners.get(0).blurSensitiveMedia).isTrue();
+    }
+
+    @Test
     public void test_delete_path_banners() {
         PathBanner pathBanner1 = new PathBanner(project("project"), Paths.get("/path"), "this is note 1");
         PathBanner pathBanner2 = new PathBanner(project("project"), Paths.get("/path/to/note"), "this is note 2");
