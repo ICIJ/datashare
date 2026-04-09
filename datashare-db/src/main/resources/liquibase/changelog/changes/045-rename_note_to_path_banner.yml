@@ -14,4 +14,36 @@ databaseChangeLog:
       dbms: sqlite
       changes:
         - sql:
-            sql: ALTER TABLE note RENAME TO path_banner
+            sql: >
+              CREATE TABLE path_banner (
+                project_id VARCHAR(96) NOT NULL,
+                path VARCHAR(4096),
+                note TEXT,
+                variant VARCHAR(16),
+                blur_sensitive_media BOOLEAN NOT NULL DEFAULT false,
+                UNIQUE(project_id, path)
+              )
+
+  - changeSet:
+      id: 76
+      author: cdesprat
+      dbms: sqlite
+      changes:
+        - sql:
+            sql: INSERT INTO path_banner SELECT project_id, path, note, variant, blur_sensitive_media FROM note
+
+  - changeSet:
+      id: 77
+      author: cdesprat
+      dbms: sqlite
+      changes:
+        - sql:
+            sql: DROP TABLE note
+
+  - changeSet:
+      id: 78
+      author: cdesprat
+      dbms: sqlite
+      changes:
+        - sql:
+            sql: CREATE INDEX path_banner_project ON path_banner (project_id)
