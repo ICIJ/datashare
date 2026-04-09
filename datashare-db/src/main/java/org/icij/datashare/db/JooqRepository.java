@@ -451,8 +451,18 @@ public class JooqRepository implements Repository {
     @Override
     public boolean save(PathBanner pathBanner) {
         DSLContext ctx = using(connectionProvider, dialect);
-        return ctx.insertInto(PATH_BANNER, PATH_BANNER.PROJECT_ID, PATH_BANNER.PATH, PATH_BANNER.NOTE, PATH_BANNER.VARIANT).
-                values(pathBanner.project.name, pathBanner.path.toString(), pathBanner.note, pathBanner.variant.name()).execute() > 0;
+        boolean exists = ctx.fetchExists(ctx.selectOne().from(PATH_BANNER)
+                .where(PATH_BANNER.PROJECT_ID.eq(pathBanner.project.name))
+                .and(PATH_BANNER.PATH.eq(pathBanner.path.toString())));
+        ctx.insertInto(PATH_BANNER, PATH_BANNER.PROJECT_ID, PATH_BANNER.PATH, PATH_BANNER.NOTE, PATH_BANNER.VARIANT, PATH_BANNER.BLUR_SENSITIVE_MEDIA)
+                .values(pathBanner.project.name, pathBanner.path.toString(), pathBanner.note, pathBanner.variant.name(), pathBanner.blurSensitiveMedia)
+                .onConflict(PATH_BANNER.PROJECT_ID, PATH_BANNER.PATH)
+                .doUpdate()
+                .set(PATH_BANNER.NOTE, pathBanner.note)
+                .set(PATH_BANNER.VARIANT, pathBanner.variant.name())
+                .set(PATH_BANNER.BLUR_SENSITIVE_MEDIA, pathBanner.blurSensitiveMedia)
+                .execute();
+        return !exists;
     }
 
     @Override

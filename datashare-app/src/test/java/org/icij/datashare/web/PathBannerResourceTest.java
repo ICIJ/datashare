@@ -77,15 +77,15 @@ public class PathBannerResourceTest extends AbstractProdWebServerTest {
     public void test_save_path_banner() {
         PathBanner pathBanner = new PathBanner(project("local-datashare"), Paths.get("/path/to/note"), "this is a note");
         //create
-        when(jooqRepository.save(pathBanner)).thenReturn(false);
-        put("/api/local-datashare/pathBanners/path/to/note",
-                "{\"project\":{\"id\":\"local-datashare\"},\"note\":\"this is a note\",\"variant\":\"info\",\"blurSensitiveMedia\":false}")
-                .should().respond(200);
-        //update
         when(jooqRepository.save(pathBanner)).thenReturn(true);
         put("/api/local-datashare/pathBanners/path/to/note",
                 "{\"project\":{\"id\":\"local-datashare\"},\"note\":\"this is a note\",\"variant\":\"info\",\"blurSensitiveMedia\":false}")
                 .should().respond(201);
+        //update
+        when(jooqRepository.save(pathBanner)).thenReturn(false);
+        put("/api/local-datashare/pathBanners/path/to/note",
+                "{\"project\":{\"id\":\"local-datashare\"},\"note\":\"this is a note\",\"variant\":\"info\",\"blurSensitiveMedia\":false}")
+                .should().respond(200);
     }
 
 
