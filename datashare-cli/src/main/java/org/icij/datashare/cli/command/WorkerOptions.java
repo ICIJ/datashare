@@ -1,5 +1,6 @@
 package org.icij.datashare.cli.command;
 
+import org.icij.datashare.cli.TaskRepositoryType;
 import org.icij.datashare.tasks.RoutingStrategy;
 import picocli.CommandLine.Option;
 
@@ -25,7 +26,7 @@ public class WorkerOptions {
     String pollingInterval;
 
     @Option(names = {"--taskRepositoryType"}, description = "Task repository type", defaultValue = "DATABASE")
-    String taskRepositoryType;
+    TaskRepositoryType taskRepositoryType;
 
     @Option(names = {"--taskManagerPollingIntervalMilliseconds"}, description = "Task manager polling interval ms", defaultValue = "5000")
     int taskManagerPollingIntervalMilliseconds;
@@ -37,12 +38,12 @@ public class WorkerOptions {
     public Properties toProperties() {
         Properties props = new Properties();
         DatashareOptions.putIfNotNull(props, TASK_WORKERS_OPT, taskWorkers);
-        if (taskRoutingStrategy != null) props.setProperty(TASK_ROUTING_STRATEGY_OPT, taskRoutingStrategy.name());
+        DatashareOptions.putIfNotNull(props, TASK_ROUTING_STRATEGY_OPT, taskRoutingStrategy);
         DatashareOptions.putIfNotNull(props, TASK_ROUTING_KEY_OPT, taskRoutingKey);
         DatashareOptions.putIfNotNull(props, POLLING_INTERVAL_SECONDS_OPT, pollingInterval);
         DatashareOptions.putIfNotNull(props, TASK_REPOSITORY_OPT, taskRepositoryType);
-        props.setProperty(TASK_MANAGER_POLLING_INTERVAL_OPT, String.valueOf(taskManagerPollingIntervalMilliseconds));
-        props.setProperty(TASK_PROGRESS_INTERVAL_OPT, String.valueOf(taskProgressUpdateIntervalSeconds));
+        DatashareOptions.put(props, TASK_MANAGER_POLLING_INTERVAL_OPT, taskManagerPollingIntervalMilliseconds);
+        DatashareOptions.put(props, TASK_PROGRESS_INTERVAL_OPT, taskProgressUpdateIntervalSeconds);
         return props;
     }
 
