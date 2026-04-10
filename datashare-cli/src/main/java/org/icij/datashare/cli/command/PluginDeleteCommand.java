@@ -28,8 +28,8 @@ public class PluginDeleteCommand implements Runnable, DatashareSubcommand {
     @Override
     public Properties getSubcommandProperties() {
         Properties props = new Properties();
-        props.setProperty(MODE_OPT, Mode.CLI.name());
-        props.setProperty(PLUGIN_DELETE_OPT, pluginId);
+        DatashareOptions.put(props, MODE_OPT, Mode.CLI);
+        DatashareOptions.put(props, PLUGIN_DELETE_OPT, pluginId);
         return props;
     }
 }

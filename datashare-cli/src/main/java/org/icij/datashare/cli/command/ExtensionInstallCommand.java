@@ -29,8 +29,8 @@ public class ExtensionInstallCommand implements Runnable, DatashareSubcommand {
     @Override
     public Properties getSubcommandProperties() {
         Properties props = new Properties();
-        props.setProperty(MODE_OPT, Mode.CLI.name());
-        props.setProperty(EXTENSION_INSTALL_OPT, extensionId);
+        DatashareOptions.put(props, MODE_OPT, Mode.CLI);
+        DatashareOptions.put(props, EXTENSION_INSTALL_OPT, extensionId);
         return props;
     }
 }

@@ -30,7 +30,7 @@ public class WorkerRunCommand implements Runnable, DatashareSubcommand {
     @Override
     public Properties getSubcommandProperties() {
         Properties props = workerOptions.toProperties();
-        props.setProperty(MODE_OPT, Mode.TASK_WORKER.name());
+        DatashareOptions.put(props, MODE_OPT, Mode.TASK_WORKER);
         return props;
     }
 }

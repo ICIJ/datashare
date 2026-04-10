@@ -28,8 +28,8 @@ public class ExtensionDeleteCommand implements Runnable, DatashareSubcommand {
     @Override
     public Properties getSubcommandProperties() {
         Properties props = new Properties();
-        props.setProperty(MODE_OPT, Mode.CLI.name());
-        props.setProperty(EXTENSION_DELETE_OPT, extensionId);
+        DatashareOptions.put(props, MODE_OPT, Mode.CLI);
+        DatashareOptions.put(props, EXTENSION_DELETE_OPT, extensionId);
         return props;
     }
 }
