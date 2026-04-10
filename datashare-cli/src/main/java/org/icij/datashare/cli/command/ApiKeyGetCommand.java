@@ -27,8 +27,8 @@ public class ApiKeyGetCommand implements Runnable, DatashareSubcommand {
     @Override
     public Properties getSubcommandProperties() {
         Properties props = new Properties();
-        props.setProperty(MODE_OPT, Mode.CLI.name());
-        props.setProperty(GET_API_KEY_OPT, user);
+        DatashareOptions.put(props, MODE_OPT, Mode.CLI);
+        DatashareOptions.put(props, GET_API_KEY_OPT, user);
         return props;
     }
 }

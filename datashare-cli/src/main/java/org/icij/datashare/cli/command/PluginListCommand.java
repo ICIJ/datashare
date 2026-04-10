@@ -29,8 +29,8 @@ public class PluginListCommand implements Runnable, DatashareSubcommand {
     @Override
     public Properties getSubcommandProperties() {
         Properties props = new Properties();
-        props.setProperty(MODE_OPT, Mode.CLI.name());
-        props.setProperty(PLUGIN_LIST_OPT, filter);
+        DatashareOptions.put(props, MODE_OPT, Mode.CLI);
+        DatashareOptions.put(props, PLUGIN_LIST_OPT, filter);
         return props;
     }
 }

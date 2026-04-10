@@ -45,9 +45,7 @@ public class DatashareCommand implements Runnable {
      */
     public Properties collectProperties() {
         Properties props = globalOptions.toProperties();
-        if (executedSubcommand != null) {
-            props.putAll(executedSubcommand.getSubcommandProperties());
-        }
+        DatashareOptions.putAll(props, executedSubcommand);
         DatashareOptions.postProcess(props);
         return props;
     }

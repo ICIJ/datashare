@@ -35,8 +35,8 @@ public class StageRunCommand implements Runnable, DatashareSubcommand {
     @Override
     public Properties getSubcommandProperties() {
         Properties props = pipelineOptions.toProperties();
-        props.setProperty(MODE_OPT, Mode.CLI.name());
-        props.setProperty(PipelineHelper.STAGES_OPT, stages);
+        DatashareOptions.put(props, MODE_OPT, Mode.CLI);
+        DatashareOptions.put(props, PipelineHelper.STAGES_OPT, stages);
         return props;
     }
 }
