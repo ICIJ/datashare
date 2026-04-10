@@ -409,4 +409,46 @@ public class RetroCompatibilityTest {
         assertThat(props.getProperty("tcpListenPort")).isEqualTo("7777");
         assertThat(props.getProperty("port")).isNull();
     }
+
+    @Test
+    public void test_parity_bus_type() {
+        Properties legacy = parseLegacy("--busType", "REDIS");
+        Properties picocli = parseNew("app", "start", "--busType", "REDIS");
+        assertPropertyEqual(legacy, picocli, "busType");
+    }
+
+    @Test
+    public void test_parity_queue_type() {
+        Properties legacy = parseLegacy("--queueType", "REDIS");
+        Properties picocli = parseNew("app", "start", "--queueType", "REDIS");
+        assertPropertyEqual(legacy, picocli, "queueType");
+    }
+
+    @Test
+    public void test_parity_redis_address() {
+        Properties legacy = parseLegacy("--redisAddress", "redis://my-redis:6379");
+        Properties picocli = parseNew("app", "start", "--redisAddress", "redis://my-redis:6379");
+        assertPropertyEqual(legacy, picocli, "redisAddress");
+    }
+
+    @Test
+    public void test_parity_data_source_url() {
+        Properties legacy = parseLegacy("--dataSourceUrl", "jdbc:postgresql://db/ds");
+        Properties picocli = parseNew("app", "start", "--dataSourceUrl", "jdbc:postgresql://db/ds");
+        assertPropertyEqual(legacy, picocli, "dataSourceUrl");
+    }
+
+    @Test
+    public void test_parity_auth_filter() {
+        Properties legacy = parseLegacy("--authFilter", "org.icij.datashare.session.YesCookieAuthFilter", "--mode", "SERVER");
+        Properties picocli = parseNew("app", "start", "--authFilter", "org.icij.datashare.session.YesCookieAuthFilter");
+        assertPropertyEqual(legacy, picocli, "authFilter");
+    }
+
+    @Test
+    public void test_parity_parallelism() {
+        Properties legacy = parseLegacy("--parallelism", "8", "--stages", "SCAN,INDEX");
+        Properties picocli = parseNew("stage", "run", "--stages", "SCAN,INDEX", "--parallelism", "8");
+        assertPropertyEqual(legacy, picocli, "parallelism");
+    }
 }
