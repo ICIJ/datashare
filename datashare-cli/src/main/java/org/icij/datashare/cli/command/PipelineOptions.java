@@ -1,6 +1,7 @@
 package org.icij.datashare.cli.command;
 
 import org.icij.datashare.PipelineHelper;
+import org.icij.datashare.cli.OcrType;
 import org.icij.datashare.text.nlp.Pipeline;
 import picocli.CommandLine.Option;
 
@@ -33,7 +34,7 @@ public class PipelineOptions {
     boolean ocr;
 
     @Option(names = {"--ocrType"}, description = "OCR implementation: TESSERACT or TESS4J", defaultValue = "TESSERACT")
-    String ocrType;
+    OcrType ocrType;
 
     @Option(names = {"--ocrLanguage"}, description = "OCR languages for tesseract")
     String ocrLanguage;
@@ -63,19 +64,19 @@ public class PipelineOptions {
     public Properties toProperties() {
         Properties props = new Properties();
         DatashareOptions.putIfNotNull(props, ARTIFACT_DIR_OPT, artifactDir);
-        if (nlpPipeline != null) props.setProperty(NLP_PIPELINE_OPT, nlpPipeline.name());
-        props.setProperty(NLP_PARALLELISM_OPT, String.valueOf(nlpParallelism));
-        props.setProperty(NLP_BATCH_SIZE_OPT, String.valueOf(batchSize));
-        props.setProperty(NLP_MAX_TEXT_LENGTH_OPT, String.valueOf(maxTextLength));
-        props.setProperty(OCR_OPT, String.valueOf(ocr));
+        DatashareOptions.putIfNotNull(props, NLP_PIPELINE_OPT, nlpPipeline);
+        DatashareOptions.put(props, NLP_PARALLELISM_OPT, nlpParallelism);
+        DatashareOptions.put(props, NLP_BATCH_SIZE_OPT, batchSize);
+        DatashareOptions.put(props, NLP_MAX_TEXT_LENGTH_OPT, maxTextLength);
+        DatashareOptions.put(props, OCR_OPT, ocr);
         DatashareOptions.putIfNotNull(props, OCR_TYPE_OPT, ocrType);
         DatashareOptions.putIfNotNull(props, OCR_LANGUAGE_OPT, ocrLanguage);
-        if (parallelism != null) props.setProperty(PARALLELISM_OPT, String.valueOf(parallelism));
-        props.setProperty(PARSER_PARALLELISM_OPT, String.valueOf(parserParallelism));
-        if (resume) props.setProperty(RESUME_OPT, "true");
-        props.setProperty(FOLLOW_SYMLINKS_OPT, String.valueOf(followSymlinks));
+        DatashareOptions.putIfNotNull(props, PARALLELISM_OPT, parallelism);
+        DatashareOptions.put(props, PARSER_PARALLELISM_OPT, parserParallelism);
+        DatashareOptions.putIfTrue(props, RESUME_OPT, resume);
+        DatashareOptions.put(props, FOLLOW_SYMLINKS_OPT, followSymlinks);
         DatashareOptions.putIfNotNull(props, CREATE_INDEX_OPT, createIndex);
-        props.setProperty(INDEX_TIMEOUT_OPT, String.valueOf(indexTimeout));
+        DatashareOptions.put(props, INDEX_TIMEOUT_OPT, indexTimeout);
         DatashareOptions.putIfNotNull(props, SEARCH_QUERY_OPT, searchQuery);
         return props;
     }

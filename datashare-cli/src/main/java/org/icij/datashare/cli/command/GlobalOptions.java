@@ -1,6 +1,8 @@
 package org.icij.datashare.cli.command;
 
 import org.icij.datashare.EnvUtils;
+import org.icij.datashare.cli.DigestAlgorithm;
+import org.icij.datashare.cli.QueueType;
 import picocli.CommandLine.Option;
 import picocli.CommandLine.ScopeType;
 
@@ -44,7 +46,7 @@ public class GlobalOptions {
     String defaultProject;
 
     @Option(names = {"--digestAlgorithm"}, description = "Digest algorithm", defaultValue = "SHA_384", scope = ScopeType.INHERIT)
-    String digestAlgorithm;
+    DigestAlgorithm digestAlgorithm;
 
     @Option(names = {"--digestProjectName"}, description = "Include project name in document hash", scope = ScopeType.INHERIT)
     String digestProjectName;
@@ -74,13 +76,13 @@ public class GlobalOptions {
     String messageBusAddress = EnvUtils.resolveUri("redis", "redis://redis:6379");
 
     @Option(names = {"--busType"}, description = "Backend data bus type", defaultValue = "MEMORY", scope = ScopeType.INHERIT)
-    String busType;
+    QueueType busType;
 
     @Option(names = {"--queueName"}, description = "Extract queue name", defaultValue = "extract:queue", scope = ScopeType.INHERIT)
     String queueName;
 
     @Option(names = {"--queueType"}, description = "Backend queues type", defaultValue = "MEMORY", scope = ScopeType.INHERIT)
-    String queueType;
+    QueueType queueType;
 
     @Option(names = {"--queueCapacity"}, description = "Queue capacity", defaultValue = "1000000", scope = ScopeType.INHERIT)
     int queueCapacity;
@@ -125,18 +127,18 @@ public class GlobalOptions {
         DatashareOptions.putIfNotNull(props, DEFAULT_PROJECT_OPT, defaultProject);
         DatashareOptions.putIfNotNull(props, DIGEST_ALGORITHM_OPT, digestAlgorithm);
         DatashareOptions.putIfNotNull(props, DIGEST_PROJECT_NAME_OPT, digestProjectName);
-        props.setProperty(NO_DIGEST_PROJECT_OPT, String.valueOf(noDigestProject));
+        DatashareOptions.put(props, NO_DIGEST_PROJECT_OPT, noDigestProject);
         DatashareOptions.putIfNotNull(props, ELASTICSEARCH_ADDRESS_OPT, elasticsearchAddress);
         DatashareOptions.putIfNotNull(props, ELASTICSEARCH_PATH_OPT, elasticsearchPath);
         DatashareOptions.putIfNotNull(props, ELASTICSEARCH_DATA_PATH_OPT, elasticsearchDataPath);
         DatashareOptions.putIfNotNull(props, ELASTICSEARCH_SETTINGS_OPT, elasticsearchSettings);
         DatashareOptions.putIfNotNull(props, REDIS_ADDRESS_OPT, redisAddress);
-        props.setProperty(REDIS_POOL_SIZE_OPT, String.valueOf(redisPoolSize));
+        DatashareOptions.put(props, REDIS_POOL_SIZE_OPT, redisPoolSize);
         DatashareOptions.putIfNotNull(props, MESSAGE_BUS_OPT, messageBusAddress);
         DatashareOptions.putIfNotNull(props, BUS_TYPE_OPT, busType);
         DatashareOptions.putIfNotNull(props, QUEUE_NAME_OPT, queueName);
         DatashareOptions.putIfNotNull(props, QUEUE_TYPE_OPT, queueType);
-        props.setProperty(QUEUE_CAPACITY_OPT, String.valueOf(queueCapacity));
+        DatashareOptions.put(props, QUEUE_CAPACITY_OPT, queueCapacity);
         DatashareOptions.putIfNotNull(props, DATA_SOURCE_URL_OPT, dataSourceUrl);
         DatashareOptions.putIfNotNull(props, CLUSTER_NAME_OPT, clusterName);
         DatashareOptions.putIfNotNull(props, PLUGINS_DIR_OPT, pluginsDir);
@@ -144,7 +146,7 @@ public class GlobalOptions {
         DatashareOptions.putIfNotNull(props, DEFAULT_USER_NAME_OPT, defaultUserName);
         DatashareOptions.putIfNotNull(props, OAUTH_USER_PROJECTS_KEY_OPT, oauthUserProjectsAttribute);
         DatashareOptions.putIfNotNull(props, EXT_OPT, ext);
-        if (dataDir != null) props.setProperty(DATA_DIR_OPT, dataDir.toString());
+        DatashareOptions.putIfNotNull(props, DATA_DIR_OPT, dataDir);
         DatashareOptions.putIfNotNull(props, LANGUAGE_OPT, language);
 
         return props;

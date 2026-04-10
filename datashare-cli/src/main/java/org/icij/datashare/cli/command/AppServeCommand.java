@@ -36,7 +36,7 @@ public class AppServeCommand implements Runnable, DatashareSubcommand {
     @Override
     public Properties getSubcommandProperties() {
         Properties props = serverOptions.toProperties();
-        props.setProperty(MODE_OPT, mode.name());
+        DatashareOptions.putIfNotNull(props, MODE_OPT, mode);
         return props;
     }
 }

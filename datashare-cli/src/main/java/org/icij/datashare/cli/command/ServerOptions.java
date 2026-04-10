@@ -1,5 +1,6 @@
 package org.icij.datashare.cli.command;
 
+import org.icij.datashare.cli.QueueType;
 import picocli.CommandLine.Mixin;
 import picocli.CommandLine.Option;
 
@@ -83,11 +84,11 @@ public class ServerOptions {
     int sessionTtlSeconds;
 
     @Option(names = {"--sessionStoreType"}, description = "Session store type", defaultValue = "MEMORY")
-    String sessionStoreType;
+    QueueType sessionStoreType;
 
     // Batch / Download
     @Option(names = {"--batchQueueType"}, description = "Batch queue type", defaultValue = "MEMORY")
-    String batchQueueType;
+    QueueType batchQueueType;
 
     @Option(names = {"--batchSearchMaxTimeSeconds"}, description = "Max batch search time in seconds")
     Integer batchSearchMaxTimeSeconds;
@@ -157,11 +158,11 @@ public class ServerOptions {
         Properties props = new Properties();
 
         DatashareOptions.putIfNotNull(props, BIND_HOST_OPT, bind);
-        props.setProperty(TCP_LISTEN_PORT_OPT, String.valueOf(tcpListenPort));
+        DatashareOptions.put(props, TCP_LISTEN_PORT_OPT, tcpListenPort);
         DatashareOptions.putIfNotNull(props, CORS_OPT, cors);
         DatashareOptions.putIfNotNull(props, ROOT_HOST_OPT, rootHost);
         DatashareOptions.putIfNotNull(props, MAX_CONTENT_LENGTH_OPT, maxContentLength);
-        props.setProperty(BROWSER_OPEN_LINK_OPT, String.valueOf(browserOpenLink));
+        DatashareOptions.put(props, BROWSER_OPEN_LINK_OPT, browserOpenLink);
         DatashareOptions.putIfNotNull(props, PROTECTED_URI_PREFIX_OPT, protectedUriPrefix);
         DatashareOptions.putIfNotNull(props, STATUS_ALLOWED_NETS_OPT, statusAllowedNets);
 
@@ -177,33 +178,33 @@ public class ServerOptions {
         DatashareOptions.putIfNotNull(props, AUTH_USERS_PROVIDER_OPT, authUsersProvider);
         DatashareOptions.putIfNotNull(props, AUTH_FILTER_OPT, authFilter);
         DatashareOptions.putIfNotNull(props, SESSION_SIGNING_KEY_OPT, sessionSigningKey);
-        props.setProperty(SESSION_TTL_SECONDS_OPT, String.valueOf(sessionTtlSeconds));
+        DatashareOptions.put(props, SESSION_TTL_SECONDS_OPT, sessionTtlSeconds);
         DatashareOptions.putIfNotNull(props, SESSION_STORE_TYPE_OPT, sessionStoreType);
 
         DatashareOptions.putIfNotNull(props, BATCH_QUEUE_TYPE_OPT, batchQueueType);
-        if (batchSearchMaxTimeSeconds != null) props.setProperty(BATCH_SEARCH_MAX_TIME_OPT, String.valueOf(batchSearchMaxTimeSeconds));
-        if (batchThrottleMilliseconds != null) props.setProperty(BATCH_THROTTLE_OPT, String.valueOf(batchThrottleMilliseconds));
+        DatashareOptions.putIfNotNull(props, BATCH_SEARCH_MAX_TIME_OPT, batchSearchMaxTimeSeconds);
+        DatashareOptions.putIfNotNull(props, BATCH_THROTTLE_OPT, batchThrottleMilliseconds);
         DatashareOptions.putIfNotNull(props, BATCH_DOWNLOAD_DIR_OPT, resolveAbsolutePath(batchDownloadDir));
         DatashareOptions.putIfNotNull(props, BATCH_DOWNLOAD_MAX_SIZE_OPT, batchDownloadMaxSize);
-        props.setProperty(BATCH_DOWNLOAD_MAX_NB_FILES_OPT, String.valueOf(batchDownloadMaxNbFiles));
-        if (batchDownloadEncrypt != null) props.setProperty(BATCH_DOWNLOAD_ENCRYPT_OPT, String.valueOf(batchDownloadEncrypt));
-        props.setProperty(BATCH_DOWNLOAD_ZIP_TTL_OPT, String.valueOf(batchDownloadTimeToLive));
+        DatashareOptions.put(props, BATCH_DOWNLOAD_MAX_NB_FILES_OPT, batchDownloadMaxNbFiles);
+        DatashareOptions.putIfNotNull(props, BATCH_DOWNLOAD_ENCRYPT_OPT, batchDownloadEncrypt);
+        DatashareOptions.put(props, BATCH_DOWNLOAD_ZIP_TTL_OPT, batchDownloadTimeToLive);
         DatashareOptions.putIfNotNull(props, EMBEDDED_DOCUMENT_DOWNLOAD_MAX_SIZE_OPT, embeddedDocumentDownloadMaxSize);
 
         DatashareOptions.putIfNotNull(props, SCROLL_DURATION_OPT, scroll);
-        props.setProperty(SCROLL_SIZE_OPT, String.valueOf(scrollSize));
-        props.setProperty(SCROLL_SLICES_OPT, String.valueOf(scrollSlices));
+        DatashareOptions.put(props, SCROLL_SIZE_OPT, scrollSize);
+        DatashareOptions.put(props, SCROLL_SLICES_OPT, scrollSlices);
         DatashareOptions.putIfNotNull(props, BATCH_SEARCH_SCROLL_DURATION_OPT, batchSearchScroll);
-        props.setProperty(BATCH_SEARCH_SCROLL_SIZE_OPT, String.valueOf(batchSearchScrollSize));
+        DatashareOptions.put(props, BATCH_SEARCH_SCROLL_SIZE_OPT, batchSearchScrollSize);
         DatashareOptions.putIfNotNull(props, BATCH_DOWNLOAD_SCROLL_DURATION_OPT, batchDownloadScroll);
-        props.setProperty(BATCH_DOWNLOAD_SCROLL_SIZE_OPT, String.valueOf(batchDownloadScrollSize));
+        DatashareOptions.put(props, BATCH_DOWNLOAD_SCROLL_SIZE_OPT, batchDownloadScrollSize);
 
         DatashareOptions.putIfNotNull(props, REPORT_NAME_OPT, reportName);
         DatashareOptions.putIfNotNull(props, SMTP_URL_OPT, smtpUrl);
         DatashareOptions.putIfNotNull(props, TEMPORAL_NAMESPACE_OPT, temporalNamespace);
 
-        props.putAll(workerOptions.toProperties());
-        props.putAll(pipelineOptions.toProperties());
+        DatashareOptions.putAll(props, workerOptions.toProperties());
+        DatashareOptions.putAll(props, pipelineOptions.toProperties());
 
         return props;
     }
