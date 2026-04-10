@@ -31,7 +31,9 @@ import static org.icij.datashare.cli.DatashareCliOptions.*;
  */
 public class GlobalOptions {
 
-    private static String home() { return System.getProperty("user.home", ""); }
+    private static String userHome() {
+        return System.getProperty("user.home", "");
+    }
 
     @Option(names = {"-s", "--settings"}, description = "Property settings file", scope = ScopeType.INHERIT)
     String settings;
@@ -58,13 +60,13 @@ public class GlobalOptions {
     String elasticsearchAddress = EnvUtils.resolveUri("elasticsearch", "http://elasticsearch:9200");
 
     @Option(names = {"--elasticsearchPath"}, description = "Path for launching Elasticsearch", scope = ScopeType.INHERIT)
-    String elasticsearchPath = Paths.get(home(), ".local/share/datashare", "elasticsearch").toString();
+    String elasticsearchPath = Paths.get(userHome(), ".local/share/datashare", "elasticsearch").toString();
 
     @Option(names = {"--elasticsearchDataPath"}, description = "Data path for embedded Elasticsearch", scope = ScopeType.INHERIT)
-    String elasticsearchDataPath = Paths.get(home(), ".local/share/datashare", "es").toString();
+    String elasticsearchDataPath = Paths.get(userHome(), ".local/share/datashare", "es").toString();
 
     @Option(names = {"--elasticsearchSettings"}, description = "Path to elasticsearch.yml settings", scope = ScopeType.INHERIT)
-    String elasticsearchSettings = Paths.get(home(), ".local/share/datashare", "elasticsearch.yml").toString();
+    String elasticsearchSettings = Paths.get(userHome(), ".local/share/datashare", "elasticsearch.yml").toString();
 
     @Option(names = {"--redisAddress"}, description = "Redis address", scope = ScopeType.INHERIT)
     String redisAddress = EnvUtils.resolveUri("redis", "redis://redis:6379");
@@ -88,16 +90,16 @@ public class GlobalOptions {
     int queueCapacity;
 
     @Option(names = {"--dataSourceUrl"}, description = "Datasource URL", scope = ScopeType.INHERIT)
-    String dataSourceUrl = "jdbc:sqlite:file:" + Paths.get(home(), ".local/share/datashare", "dist/datashare.db");
+    String dataSourceUrl = "jdbc:sqlite:file:" + Paths.get(userHome(), ".local/share/datashare", "dist/datashare.db");
 
     @Option(names = {"--clusterName"}, description = "Cluster name", defaultValue = "datashare", scope = ScopeType.INHERIT)
     String clusterName;
 
     @Option(names = {"--pluginsDir"}, description = "Plugins directory", scope = ScopeType.INHERIT)
-    String pluginsDir = Paths.get(home(), ".local/share/datashare", "plugins").toString();
+    String pluginsDir = Paths.get(userHome(), ".local/share/datashare", "plugins").toString();
 
     @Option(names = {"--extensionsDir"}, description = "Extensions directory", scope = ScopeType.INHERIT)
-    String extensionsDir = Paths.get(home(), ".local/share/datashare", "extensions").toString();
+    String extensionsDir = Paths.get(userHome(), ".local/share/datashare", "extensions").toString();
 
     @Option(names = {"-u", "--defaultUserName"}, description = "Default local user name", defaultValue = "local", scope = ScopeType.INHERIT)
     String defaultUserName;
@@ -109,7 +111,7 @@ public class GlobalOptions {
     String ext;
 
     @Option(names = {"-d", "--dataDir"}, description = "Document source files directory", scope = ScopeType.INHERIT)
-    File dataDir = new File(Paths.get(home(), "Datashare").toString());
+    File dataDir = new File(Paths.get(userHome(), "Datashare").toString());
 
     @Option(names = {"-l", "--language"}, description = "Indexing language", scope = ScopeType.INHERIT)
     String language;
