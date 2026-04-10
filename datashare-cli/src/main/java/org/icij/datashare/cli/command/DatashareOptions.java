@@ -4,7 +4,6 @@ import org.icij.datashare.user.User;
 
 import java.util.Properties;
 
-import static java.util.Optional.ofNullable;
 import static org.icij.datashare.PropertiesProvider.DEFAULT_PROJECT_OPT;
 import static org.icij.datashare.PropertiesProvider.DIGEST_PROJECT_NAME_OPT;
 import static org.icij.datashare.PropertiesProvider.TCP_LISTEN_PORT_OPT;
@@ -47,19 +46,28 @@ public final class DatashareOptions {
      *    so downstream code does not need to know about the alias.
      */
     public static void postProcess(Properties props) {
-        if (!Boolean.parseBoolean(props.getProperty(NO_DIGEST_PROJECT_OPT))
-                && props.getProperty(DIGEST_PROJECT_NAME_OPT) == null) {
-            String defaultDigestProjectName = ofNullable(props.getProperty(DEFAULT_PROJECT_OPT))
-                    .filter(s -> !s.isEmpty())
-                    .orElse("local-datashare");
-            props.setProperty(DIGEST_PROJECT_NAME_OPT, defaultDigestProjectName);
+        // Default the digest project name to the current project so document
+        // hashes are project-scoped, unless the user explicitly disabled it.
+        boolean isDigestProjectDisabled = Boolean.parseBoolean(props.getProperty(NO_DIGEST_PROJECT_OPT));
+        boolean hasDigestProjectName = props.getProperty(DIGEST_PROJECT_NAME_OPT) != null;
+        if (!isDigestProjectDisabled && !hasDigestProjectName) {
+            String projectName = props.getProperty(DEFAULT_PROJECT_OPT);
+            boolean hasProjectName = projectName != null && !projectName.isEmpty();
+            String digestProjectName = hasProjectName ? projectName : "local-datashare";
+            props.setProperty(DIGEST_PROJECT_NAME_OPT, digestProjectName);
         }
 
-        String projectsAttr = props.getProperty(OAUTH_USER_PROJECTS_KEY_OPT);
-        if (projectsAttr != null && !User.DEFAULT_PROJECTS_KEY.equals(projectsAttr)) {
-            System.setProperty(User.JVM_PROJECT_KEY, projectsAttr);
+        // Propagate a custom OAuth projects attribute to a JVM system property
+        // so the User class can read it at runtime without accessing properties.
+        String projectsAttribute = props.getProperty(OAUTH_USER_PROJECTS_KEY_OPT);
+        boolean hasCustomProjectsAttribute = projectsAttribute != null
+                && !User.DEFAULT_PROJECTS_KEY.equals(projectsAttribute);
+        if (hasCustomProjectsAttribute) {
+            System.setProperty(User.JVM_PROJECT_KEY, projectsAttribute);
         }
 
+        // Resolve the legacy --port alias to the canonical tcpListenPort key
+        // so downstream code only needs to look up one property name.
         if (props.containsKey(PORT_OPT)) {
             props.setProperty(TCP_LISTEN_PORT_OPT, props.getProperty(PORT_OPT));
             props.remove(PORT_OPT);

@@ -71,9 +71,9 @@ public class Main {
     }
 
     private static void applyColorScheme(CommandLine commandLine, String[] args) {
-        boolean noColor = System.getenv("NO_COLOR") != null
+        boolean isColorDisabled = System.getenv("NO_COLOR") != null
                 || java.util.Arrays.asList(args).contains("--no-color");
-        if (noColor) {
+        if (isColorDisabled) {
             commandLine.setColorScheme(CommandLine.Help.defaultColorScheme(CommandLine.Help.Ansi.OFF));
         }
     }

@@ -16,7 +16,9 @@ import static org.icij.datashare.cli.DatashareCliOptions.*;
  */
 public class ServerOptions {
 
-    private static String home() { return System.getProperty("user.home", ""); }
+    private static String userHome() {
+        return System.getProperty("user.home", "");
+    }
 
     // HTTP server binding
     @Option(names = {"-b", "--bind"}, description = "Host/IP to bind the HTTP server to")
@@ -97,7 +99,7 @@ public class ServerOptions {
     Integer batchThrottleMilliseconds;
 
     @Option(names = {"--batchDownloadDir"}, description = "Batch download directory")
-    String batchDownloadDir = Paths.get(home(), ".local/share/datashare/tmp").toString();
+    String batchDownloadDir = Paths.get(userHome(), ".local/share/datashare/tmp").toString();
 
     @Option(names = {"--batchDownloadMaxSize"}, description = "Max batch download size", defaultValue = "100M")
     String batchDownloadMaxSize;

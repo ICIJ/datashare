@@ -24,7 +24,7 @@ public final class DatashareHelpFactory {
 
     static final int HELP_WIDTH = 120;
     private static final int INDENT = 2;
-    private static final int COL_GAP = 2;
+    private static final int COLUMN_GAP = 2;
 
     private DatashareHelpFactory() {}
 
@@ -293,7 +293,7 @@ public final class DatashareHelpFactory {
     /** Renders rows as a two-column table with an explicit first-column width. */
     private static String twoColumns(List<String[]> rows, int firstColWidth) {
         String prefix = " ".repeat(INDENT);
-        String fmt = prefix + "%-" + firstColWidth + "s" + " ".repeat(COL_GAP) + "%s%n";
+        String fmt = prefix + "%-" + firstColWidth + "s" + " ".repeat(COLUMN_GAP) + "%s%n";
         StringBuilder sb = new StringBuilder();
         for (String[] row : rows) {
             sb.append(String.format(fmt, row[0], row[1]));
