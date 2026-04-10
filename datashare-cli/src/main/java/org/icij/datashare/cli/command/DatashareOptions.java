@@ -57,8 +57,10 @@ public final class DatashareOptions {
             props.setProperty(DIGEST_PROJECT_NAME_OPT, digestProjectName);
         }
 
-        // Propagate a custom OAuth projects attribute to a JVM system property
-        // so the User class can read it at runtime without accessing properties.
+        // The User class reads the projects key from a JVM system property
+        // (System.getProperty) rather than from the Properties map. This bridges
+        // the two: without it, User.getDefaultProjectsKey() would always fall
+        // back to the hardcoded default "groups_by_applications.datashare".
         String projectsAttribute = props.getProperty(OAUTH_USER_PROJECTS_KEY_OPT);
         boolean hasCustomProjectsAttribute = projectsAttribute != null
                 && !User.DEFAULT_PROJECTS_KEY.equals(projectsAttribute);
