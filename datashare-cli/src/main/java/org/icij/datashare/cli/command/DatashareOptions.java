@@ -71,4 +71,38 @@ public final class DatashareOptions {
             props.setProperty(key, value);
         }
     }
+
+    static <E extends Enum<E>> void putIfNotNull(Properties props, String key, E value) {
+        if (value != null) {
+            props.setProperty(key, value.name());
+        }
+    }
+
+    static void putIfNotNull(Properties props, String key, Object value) {
+        if (value != null) {
+            props.setProperty(key, String.valueOf(value));
+        }
+    }
+
+    static void put(Properties props, String key, Object value) {
+        props.setProperty(key, String.valueOf(value));
+    }
+
+    static void putAll(Properties props, Properties source) {
+        if (source != null) {
+            props.putAll(source);
+        }
+    }
+
+    static void putIfTrue(Properties props, String key, boolean value) {
+        if (value) {
+            props.setProperty(key, "true");
+        }
+    }
+
+    static void putAll(Properties props, DatashareSubcommand subcommand) {
+        if (subcommand != null) {
+            props.putAll(subcommand.getSubcommandProperties());
+        }
+    }
 }
