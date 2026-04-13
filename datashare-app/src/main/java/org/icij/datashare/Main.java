@@ -28,7 +28,7 @@ import static java.util.Optional.ofNullable;
  */
 public class Main {
     private static final Logger LOGGER = LoggerFactory.getLogger(Main.class);
-    private static final Set<String> SUBCOMMAND_NAMES = Set.of("app", "worker", "stage", "plugin", "extension", "api-key", "help");
+    private static final Set<String> SUBCOMMAND_NAMES = new CommandLine(new DatashareCommand()).getSubcommands().keySet();
 
     /**
      * Application entry point. Routes to the legacy jopt-simple parser or the picocli subcommand
