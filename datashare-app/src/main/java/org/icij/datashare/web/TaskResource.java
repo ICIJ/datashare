@@ -22,7 +22,6 @@ import net.codestory.http.errors.NotFoundException;
 import net.codestory.http.payload.Payload;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.asynctasks.*;
-import org.icij.datashare.asynctasks.bus.amqp.UriResult;
 import org.icij.datashare.batch.*;
 import org.icij.datashare.cli.Mode;
 import org.icij.datashare.extract.OptionsWrapper;
@@ -70,6 +69,7 @@ public class TaskResource {
     public static final Set<String> TASK_FILTER_FIELDS = Set.of("args", "name", "state", "user");
     private final DatashareTaskFactory taskFactory;
     private final DatashareTaskManager taskManager;
+    private final TaskFinder taskFinder;
     private final PropertiesProvider propertiesProvider;
     private final BatchSearchRepository batchSearchRepository;;
     private final ModeVerifier modeVerifier;
@@ -80,12 +80,13 @@ public class TaskResource {
 
     @Inject
     public TaskResource(final DatashareTaskFactory taskFactory, final DatashareTaskManager taskManager,
-                        final PropertiesProvider propertiesProvider, final BatchSearchRepository batchSearchRepository) {
+                        final PropertiesProvider propertiesProvider, final BatchSearchRepository batchSearchRepository, final TaskFinder taskFinder) {
         this.taskFactory = taskFactory;
         this.taskManager = taskManager;
         this.propertiesProvider = propertiesProvider;
         this.batchSearchRepository = batchSearchRepository;
         this.modeVerifier = new ModeVerifier(propertiesProvider);
+        this.taskFinder = taskFinder;
     }
 
     @Operation(description = """
@@ -105,11 +106,8 @@ public class TaskResource {
     public Payload getTasks(Context context) throws IOException {
         WebQueryPagination pagination = getPagination(context);
         User user = (User) context.currentUser();
-        // We need the batch search records of the user to merge them into the tasks
-        List<BatchSearchRecord> batchSearchRecords = batchSearchRepository.getRecords(user, user.getProjectNames());
-        // We need ALL the tasks to paginate accordingly
-        Stream<Task<?>> tasks = taskManager.getTasks(taskFiltersFromContext(context, Pattern.CASE_INSENSITIVE), batchSearchRecords.stream())
-            .sorted(new Task.Comparator(pagination.sort, pagination.order));
+        Stream<Task<?>> tasks = taskFinder.findVisibleTasksFor(user, taskFiltersFromContext(context, Pattern.CASE_INSENSITIVE))
+                .sorted(new Task.Comparator(pagination.sort, pagination.order));
         WebResponse<Task<?>> paginatedTasks = WebResponse.fromStream(tasks, pagination.from, pagination.size);
         // Then finally, use WebResponse to take display the pagination for us
         return new Payload(paginatedTasks);
@@ -136,10 +134,7 @@ public class TaskResource {
     @Deprecated
     public List<Task<?>> getAllTasks(Context context) throws IOException {
         User user = (User) context.currentUser();
-        List<BatchSearchRecord> batchSearchRecords = batchSearchRepository.getRecords(user, user.getProjectNames());
-        Stream<Task<?>> tasks = taskManager.getTasks(
-            taskFiltersFromContext(context, Pattern.CASE_INSENSITIVE), batchSearchRecords.stream()
-        );
+        Stream<Task<?>> tasks = taskFinder.findVisibleTasksFor(user, taskFiltersFromContext(context, Pattern.CASE_INSENSITIVE));
         return getPagination(context).paginate(tasks, p -> new Task.Comparator(p.sort, p.order)).toList();
     }
 
@@ -150,14 +145,9 @@ public class TaskResource {
     public Task<?> getTask(@Parameter(name = "id", description = "task id", in = ParameterIn.PATH) String id, Context context) throws IOException {
         User user = (User) context.currentUser();
         try {
-            return taskManager.getTask(id);
+            return taskFinder.findVisibleTaskFor(user, id);
         } catch (UnknownTask e) {
-            return batchSearchRepository
-                    .getRecords(user, user.getProjectNames())
-                    .stream()
-                        .filter(r -> r.uuid.equals(id))
-                        .findFirst().map(DatashareTaskManager::taskify)
-                        .orElseThrow(NotFoundException::new);
+            throw new NotFoundException();
         }
     }
 
