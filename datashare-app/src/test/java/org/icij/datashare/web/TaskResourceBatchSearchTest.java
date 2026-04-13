@@ -10,6 +10,7 @@ import org.icij.datashare.batch.BatchSearchRepository;
 import org.icij.datashare.function.Pair;
 import org.icij.datashare.tasks.BatchSearchRunner;
 import org.icij.datashare.tasks.TaskManagerMemory;
+import org.icij.datashare.tasks.TaskFinder;
 import org.icij.datashare.tasks.TestTaskUtils;
 import org.icij.datashare.user.User;
 import org.icij.datashare.web.testhelpers.AbstractProdWebServerTest;
@@ -44,12 +45,13 @@ public class TaskResourceBatchSearchTest extends AbstractProdWebServerTest {
     @Mock BatchSearchRepository batchSearchRepository;
     private static final TestTaskUtils.DatashareTaskFactoryForTest taskFactory = mock(TestTaskUtils.DatashareTaskFactoryForTest.class);
     private static final TaskManagerMemory taskManager = new TaskManagerMemory(taskFactory, new TaskRepositoryMemory(), new PropertiesProvider());
-
+    private TaskFinder taskFinder;
     @Before
     public void setUp() throws Exception {
         initMocks(this);
         TestTaskUtils.init(taskFactory);
-        configure(routes -> routes.add(new TaskResource(taskFactory, taskManager, new PropertiesProvider(), batchSearchRepository)));
+        taskFinder = new TaskFinder(taskManager, batchSearchRepository);
+        configure(routes -> routes.add(new TaskResource(taskFactory, taskManager, new PropertiesProvider(), batchSearchRepository, taskFinder)));
     }
 
     @After

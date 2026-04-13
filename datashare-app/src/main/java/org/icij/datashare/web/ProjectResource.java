@@ -23,7 +23,7 @@
     import org.icij.datashare.policies.Policy;
     import org.icij.datashare.policies.Role;
     import org.icij.datashare.session.DatashareUser;
-    import org.icij.datashare.tasks.DatashareTaskManager;
+    import org.icij.datashare.asynctasks.TaskManager;
     import org.icij.datashare.text.Project;
     import org.icij.datashare.text.indexing.Indexer;
     import org.icij.datashare.utils.DataDirVerifier;

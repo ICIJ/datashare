@@ -72,7 +72,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
     private static final TaskManagerMemory taskManager = new TaskManagerMemory(taskFactory, new TaskRepositoryMemory(), new PropertiesProvider(Map.of(TASK_MANAGER_POLLING_INTERVAL_OPT, "500")));
 
     private static AutoCloseable mocks;
-
+    private TaskFinder taskFinder;
     Authorizer authorizer;
     @Mock
     CasbinRuleAdapter adapter;
@@ -82,13 +82,14 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
     @Before
     public void setUp() {
         mocks = openMocks(this);
+        this.taskFinder = new TaskFinder(taskManager, batchSearchRepository);
         when(jooqRepository.getProjects()).thenReturn(new ArrayList<>());
         when(batchSearchRepository.getRecords(any(), any())).thenReturn(new ArrayList<>());
         PipelineRegistry pipelineRegistry = new PipelineRegistry(getDefaultPropertiesProvider());
         pipelineRegistry.register(EmailPipeline.class);
         LocalUserFilter localUserFilter = new LocalUserFilter(getDefaultPropertiesProvider(), jooqRepository);
         configure(routes -> routes
-                .add(new TaskResource(taskFactory, taskManager, getDefaultPropertiesProvider(), batchSearchRepository))
+                .add(new TaskResource(taskFactory, taskManager, getDefaultPropertiesProvider(), batchSearchRepository, taskFinder))
                 .filter(localUserFilter)
         );
         TestTaskUtils.init(taskFactory);
@@ -314,7 +315,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
     public void test_index_file_forbidden_in_server_mode() {
         configure(routes -> {
             PropertiesProvider propertiesProvider = new PropertiesProvider(Map.of("mode", Mode.SERVER.name()));
-            TaskResource taskResource = new TaskResource(taskFactory, taskManager, propertiesProvider, batchSearchRepository);
+            TaskResource taskResource = new TaskResource(taskFactory, taskManager, propertiesProvider, batchSearchRepository, taskFinder);
             BasicAuthFilter basicAuthFilter = new BasicAuthFilter("/", "icij", singleUser(local()));
             routes.filter(basicAuthFilter).add(taskResource);
         });
@@ -328,7 +329,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
     public void test_index_forbidden_in_server_mode() {
         configure(routes -> {
             PropertiesProvider propertiesProvider = new PropertiesProvider(Map.of("mode", Mode.SERVER.name()));
-            TaskResource taskResource = new TaskResource(taskFactory, taskManager, propertiesProvider, batchSearchRepository);
+            TaskResource taskResource = new TaskResource(taskFactory, taskManager, propertiesProvider, batchSearchRepository, taskFinder);
             BasicAuthFilter basicAuthFilter = new BasicAuthFilter("/", "icij", singleUser(local()));
             routes.filter(basicAuthFilter).add(taskResource);
         });
@@ -501,7 +502,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
     public void test_scan_forbidden_in_server_mode() {
         configure(routes -> {
             PropertiesProvider propertiesProvider = new PropertiesProvider(Map.of("mode", Mode.SERVER.name()));
-            TaskResource taskResource = new TaskResource(taskFactory, taskManager, propertiesProvider, batchSearchRepository);
+            TaskResource taskResource = new TaskResource(taskFactory, taskManager, propertiesProvider, batchSearchRepository, taskFinder);
             BasicAuthFilter basicAuthFilter = new BasicAuthFilter("/", "icij", singleUser(local()));
             routes.filter(basicAuthFilter).add(taskResource);
         });
@@ -566,7 +567,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
     public void test_findNames_forbidden_in_server_mode() {
         configure(routes -> {
             PropertiesProvider propertiesProvider = new PropertiesProvider(Map.of("mode", Mode.SERVER.name()));
-            TaskResource taskResource = new TaskResource(taskFactory, taskManager, propertiesProvider, batchSearchRepository);
+            TaskResource taskResource = new TaskResource(taskFactory, taskManager, propertiesProvider, batchSearchRepository, taskFinder);
             BasicAuthFilter basicAuthFilter = new BasicAuthFilter("/", "icij", singleUser(local()));
             routes.filter(basicAuthFilter).add(taskResource);
         });
@@ -701,7 +702,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
 
         configure(routes -> routes
                 .registerAroundAnnotation(TaskPolicy.class, taskPolicyAnnotation)
-                .add(new TaskResource(taskFactory, taskManager, getDefaultPropertiesProvider(), batchSearchRepository))
+                .add(new TaskResource(taskFactory, taskManager, getDefaultPropertiesProvider(), batchSearchRepository, taskFinder))
                 .filter(new BasicAuthFilter("/", "icij", DatashareUser.users("john", "notJohn")))
         );
 
@@ -728,7 +729,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
 
         configure(routes -> routes
                 .registerAroundAnnotation(TaskPolicy.class, taskPolicyAnnotation)
-                .add(new TaskResource(taskFactory, taskManager, getDefaultPropertiesProvider(), batchSearchRepository))
+                .add(new TaskResource(taskFactory, taskManager, getDefaultPropertiesProvider(), batchSearchRepository, taskFinder))
                 .filter(new BasicAuthFilter("/", "icij", DatashareUser.users("owner")))
         );
 
@@ -753,7 +754,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
 
         configure(routes -> routes
                 .registerAroundAnnotation(TaskPolicy.class, taskPolicyAnnotation)
-                .add(new TaskResource(taskFactory, taskManager, getDefaultPropertiesProvider(), batchSearchRepository))
+                .add(new TaskResource(taskFactory, taskManager, getDefaultPropertiesProvider(), batchSearchRepository, taskFinder))
                 .filter(new BasicAuthFilter("/", "icij", DatashareUser.users("john", "notJohn")))
         );
 
@@ -779,7 +780,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
 
         configure(routes -> routes
                 .registerAroundAnnotation(TaskPolicy.class, taskPolicyAnnotation)
-                .add(new TaskResource(taskFactory, taskManager, getDefaultPropertiesProvider(), batchSearchRepository))
+                .add(new TaskResource(taskFactory, taskManager, getDefaultPropertiesProvider(), batchSearchRepository, taskFinder))
                 .filter(new BasicAuthFilter("/", "icij", DatashareUser.users("owner")))
         );
 
@@ -804,7 +805,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
 
         configure(routes -> routes
                 .registerAroundAnnotation(TaskPolicy.class, taskPolicyAnnotation)
-                .add(new TaskResource(taskFactory, taskManager, getDefaultPropertiesProvider(), batchSearchRepository))
+                .add(new TaskResource(taskFactory, taskManager, getDefaultPropertiesProvider(), batchSearchRepository, taskFinder))
                 .filter(new BasicAuthFilter("/", "icij", DatashareUser.users("john")))
         );
 
@@ -833,7 +834,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
 
         configure(routes -> routes
                 .registerAroundAnnotation(TaskPolicy.class, taskPolicyAnnotation)
-                .add(new TaskResource(taskFactory, taskManager, getDefaultPropertiesProvider(), batchSearchRepository))
+                .add(new TaskResource(taskFactory, taskManager, getDefaultPropertiesProvider(), batchSearchRepository, taskFinder))
                 .filter(new BasicAuthFilter("/", "icij", DatashareUser.users("john")))
         );
 
