@@ -131,4 +131,15 @@ public class MainTest {
     public void test_new_help_subcommand() {
         assertThat(Main.isLegacyInvocation(new String[]{"help"})).isFalse();
     }
+
+    @Test
+    public void test_new_subcommand_after_options() {
+        // Shell script injects --elasticsearch* options before the subcommand
+        assertThat(Main.isLegacyInvocation(new String[]{"--elasticsearchPath", "/path", "help"})).isFalse();
+    }
+
+    @Test
+    public void test_new_app_after_options() {
+        assertThat(Main.isLegacyInvocation(new String[]{"--elasticsearchPath", "/path", "app", "serve"})).isFalse();
+    }
 }
