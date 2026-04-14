@@ -124,19 +124,17 @@ public class Main {
     }
 
     /**
-     * Returns true (use legacy jopt-simple path) when: no args are given, the first arg is
-     * blank, the first arg starts with - (flag-style), or the first arg is not a recognized
-     * subcommand name. Returns false (use picocli path) only when the first arg exactly
-     * matches a known subcommand.
+     * Returns true (use legacy jopt-simple path) when no argument matches a recognized
+     * subcommand name. Returns false (use picocli path) when any argument exactly matches
+     * a known subcommand. This allows parent-command options (e.g. --elasticsearchPath)
+     * to appear before the subcommand name in the args array.
      */
     static boolean isLegacyInvocation(String[] args) {
-        if (args.length == 0) {
-            return true;
+        for (String arg : args) {
+            if (SUBCOMMAND_NAMES.contains(arg.trim())) {
+                return false;
+            }
         }
-        String first = args[0].trim();
-        if (first.isEmpty() || first.startsWith("-")) {
-            return true;
-        }
-        return !SUBCOMMAND_NAMES.contains(first);
+        return true;
     }
 }
