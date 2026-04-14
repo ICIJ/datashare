@@ -74,12 +74,12 @@ public class MainTest {
 
     @Test
     public void test_new_app() {
-        assertThat(Main.isLegacyInvocation(new String[]{"app", "serve"})).isFalse();
+        assertThat(Main.isLegacyInvocation(new String[]{"app", "start"})).isFalse();
     }
 
     @Test
     public void test_new_app_with_options() {
-        assertThat(Main.isLegacyInvocation(new String[]{"app", "serve", "server"})).isFalse();
+        assertThat(Main.isLegacyInvocation(new String[]{"app", "start", "--mode", "SERVER"})).isFalse();
     }
 
     @Test
@@ -140,6 +140,6 @@ public class MainTest {
 
     @Test
     public void test_new_app_after_options() {
-        assertThat(Main.isLegacyInvocation(new String[]{"--elasticsearchPath", "/path", "app", "serve"})).isFalse();
+        assertThat(Main.isLegacyInvocation(new String[]{"--elasticsearchPath", "/path", "app", "start"})).isFalse();
     }
 }
