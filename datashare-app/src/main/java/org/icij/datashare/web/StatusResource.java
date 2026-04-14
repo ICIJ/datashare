@@ -15,7 +15,7 @@ import net.codestory.http.payload.Payload;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Repository;
 import org.icij.datashare.openmetrics.StatusMapper;
-import org.icij.datashare.tasks.DatashareTaskManager;
+import org.icij.datashare.asynctasks.TaskManager;
 import org.icij.datashare.text.indexing.Indexer;
 
 import java.io.IOException;
@@ -26,10 +26,10 @@ public class StatusResource {
     private final PropertiesProvider propertiesProvider;
     private final Repository repository;
     private final Indexer indexer;
-    private final DatashareTaskManager taskManager;
+    private final TaskManager taskManager;
 
     @Inject
-    public StatusResource(PropertiesProvider propertiesProvider, Repository repository, Indexer indexer, DatashareTaskManager taskManager) {
+    public StatusResource(PropertiesProvider propertiesProvider, Repository repository, Indexer indexer, TaskManager taskManager) {
         this.propertiesProvider = propertiesProvider;
         this.repository = repository;
         this.indexer = indexer;

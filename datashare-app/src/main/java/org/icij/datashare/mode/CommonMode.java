@@ -39,10 +39,6 @@ import org.icij.datashare.session.StatusCidrFilter;
 import org.icij.datashare.session.UsersInDb;
 import org.icij.datashare.session.UsersWritable;
 import org.icij.datashare.tasks.*;
-import org.icij.datashare.tasks.TaskManagerAmqp;
-import org.icij.datashare.tasks.TaskManagerMemory;
-import org.icij.datashare.tasks.TaskManagerRedis;
-import org.icij.datashare.tasks.TaskManagerTemporal;
 import org.icij.datashare.tasks.TaskRepositoryMemory;
 import org.icij.datashare.tasks.TaskRepositoryRedis;
 import org.icij.datashare.tasks.TaskSupplierAmqp;
@@ -68,6 +64,7 @@ import java.io.Closeable;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.concurrent.CountDownLatch;
 import java.net.URISyntaxException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -183,20 +180,20 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
         QueueType batchQueueType = getQueueType(propertiesProvider, BATCH_QUEUE_TYPE_OPT, DEFAULT_BATCH_QUEUE_TYPE);
         switch ( batchQueueType ) {
             case REDIS:
-                bind(DatashareTaskManager.class).to(TaskManagerRedis.class);
+                bind(TaskManager.class).to(TaskManagerRedis.class);
                 bind(TaskModifier.class).to(TaskSupplierRedis.class);
                 bind(TaskSupplier.class).to(TaskSupplierRedis.class);
                 break;
             case AMQP:
-                bind(DatashareTaskManager.class).to(TaskManagerAmqp.class);
+                bind(TaskManager.class).to(TaskManagerAmqp.class);
                 bind(TaskSupplier.class).to(TaskSupplierAmqp.class);
                 bind(TaskModifier.class).to(TaskSupplierAmqp.class);
                 break;
             case TEMPORAL:
-                bind(DatashareTaskManager.class).to(TaskManagerTemporal.class);
+                bind(TaskManager.class).to(TaskManagerTemporal.class);
                 break;
             default:
-                bind(DatashareTaskManager.class).to(TaskManagerMemory.class);
+                bind(TaskManager.class).to(TaskManagerMemory.class);
                 bind(TaskModifier.class).to(TaskManagerMemory.class);
                 bind(TaskSupplier.class).to(TaskManagerMemory.class);
         }
@@ -224,6 +221,37 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
     @Provides @Singleton
     TemporalInterlocutor provideTemporal(final PropertiesProvider propertiesProvider) throws InterruptedException {
         return new TemporalInterlocutor(propertiesProvider);
+    }
+
+    @Provides @Singleton
+    TaskManagerMemory provideTaskManagerMemory(
+            DatashareTaskFactory taskFactory, TaskRepository taskRepository, PropertiesProvider propertiesProvider) {
+        return new TaskManagerMemory(
+                taskFactory, taskRepository, propertiesProvider, new CountDownLatch(1));
+    }
+
+    @Provides @Singleton
+    TaskManagerRedis provideTaskManagerRedis(
+            RedissonClient redissonClient, PropertiesProvider propertiesProvider, TaskRepository taskRepository) {
+        return new TaskManagerRedis(
+                redissonClient, taskRepository, Utils.getRoutingStrategy(propertiesProvider), null,
+                Integer.parseInt(propertiesProvider.get(TASK_MANAGER_POLLING_INTERVAL_OPT).orElse("5000")));
+    }
+
+    @Provides @Singleton
+    TaskManagerAmqp provideTaskManagerAmqp(
+            AmqpInterlocutor amqp,
+            TaskRepository taskRepository, PropertiesProvider propertiesProvider) throws IOException {
+        return new TaskManagerAmqp(
+                amqp, taskRepository, Utils.getRoutingStrategy(propertiesProvider), null,
+                Integer.parseInt(propertiesProvider.get(TASK_MANAGER_POLLING_INTERVAL_OPT).orElse("5000")));
+    }
+
+    @Provides @Singleton
+    TaskManagerTemporal provideTaskManagerTemporal(
+            TemporalInterlocutor temporal, PropertiesProvider propertiesProvider) {
+        return new TaskManagerTemporal(
+                temporal, Utils.getRoutingStrategy(propertiesProvider));
     }
 
     @Provides @Singleton

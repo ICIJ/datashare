@@ -9,7 +9,7 @@ import org.icij.datashare.asynctasks.UnknownTask;
 import org.icij.datashare.batch.BatchDownload;
 import org.icij.datashare.batch.BatchSearchRecord;
 import org.icij.datashare.session.DatashareUser;
-import org.icij.datashare.tasks.DatashareTaskManager;
+import org.icij.datashare.asynctasks.TaskManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -23,12 +23,12 @@ import static org.icij.datashare.PropertiesProvider.DEFAULT_PROJECT_OPT;
 
 public class TaskPolicyAnnotation implements ApplyAroundAnnotation<TaskPolicy> {
     private final Authorizer authorizer;
-    private final DatashareTaskManager taskManager;
+    private final TaskManager taskManager;
     Logger logger = LoggerFactory.getLogger(TaskPolicyAnnotation.class);
 
     @Inject
     public TaskPolicyAnnotation(Authorizer authorizer,
-                                DatashareTaskManager taskManager) {
+                                TaskManager taskManager) {
         this.authorizer = authorizer;
         this.taskManager = taskManager;
     }

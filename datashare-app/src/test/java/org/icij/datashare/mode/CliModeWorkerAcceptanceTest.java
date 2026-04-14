@@ -6,7 +6,6 @@ import org.icij.datashare.asynctasks.TaskSupplier;
 import org.icij.datashare.asynctasks.TaskWorkerLoop;
 import org.icij.datashare.cli.QueueType;
 import org.icij.datashare.tasks.DatashareTaskFactory;
-import org.icij.datashare.tasks.DatashareTaskManager;
 import org.icij.datashare.text.indexing.Indexer;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -59,8 +58,8 @@ public class CliModeWorkerAcceptanceTest {
         workerApp.start();
         workerStarted.await();
 
-        mode.get(DatashareTaskManager.class).shutdown(); // to send shutdown
-        mode.get(DatashareTaskManager.class).awaitTermination(1, TimeUnit.SECONDS);
+        mode.get(TaskManager.class).shutdown(); // to send shutdown
+        mode.get(TaskManager.class).awaitTermination(1, TimeUnit.SECONDS);
         workerApp.join();
         mode.get(Indexer.class).close();
     }

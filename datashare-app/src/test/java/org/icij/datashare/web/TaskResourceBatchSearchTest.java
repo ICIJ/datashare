@@ -9,7 +9,8 @@ import org.icij.datashare.batch.BatchSearchRecord;
 import org.icij.datashare.batch.BatchSearchRepository;
 import org.icij.datashare.function.Pair;
 import org.icij.datashare.tasks.BatchSearchRunner;
-import org.icij.datashare.tasks.TaskManagerMemory;
+import org.icij.datashare.asynctasks.TaskManagerMemory;
+import java.util.concurrent.CountDownLatch;
 import org.icij.datashare.tasks.TaskFinder;
 import org.icij.datashare.tasks.TestTaskUtils;
 import org.icij.datashare.user.User;
@@ -44,7 +45,7 @@ import static org.mockito.MockitoAnnotations.initMocks;
 public class TaskResourceBatchSearchTest extends AbstractProdWebServerTest {
     @Mock BatchSearchRepository batchSearchRepository;
     private static final TestTaskUtils.DatashareTaskFactoryForTest taskFactory = mock(TestTaskUtils.DatashareTaskFactoryForTest.class);
-    private static final TaskManagerMemory taskManager = new TaskManagerMemory(taskFactory, new TaskRepositoryMemory(), new PropertiesProvider());
+    private static final TaskManagerMemory taskManager = new TaskManagerMemory(taskFactory, new TaskRepositoryMemory(), new PropertiesProvider(), new CountDownLatch(1));
     private TaskFinder taskFinder;
     @Before
     public void setUp() throws Exception {

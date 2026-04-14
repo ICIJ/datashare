@@ -14,7 +14,9 @@ import java.util.Map;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.asynctasks.TaskManager;
+import org.icij.datashare.asynctasks.TaskManagerMemory;
 import org.icij.datashare.asynctasks.TaskRepositoryMemory;
+import java.util.concurrent.CountDownLatch;
 import org.icij.datashare.test.DatashareTimeRule;
 import org.icij.datashare.test.ElasticsearchRule;
 import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchIndexer;
@@ -34,13 +36,13 @@ public class CreateNlpBatchesFromIndexTest {
     public static ElasticsearchRule es = new ElasticsearchRule();
     private static final ElasticsearchIndexer indexer = new ElasticsearchIndexer(es.client, new PropertiesProvider())
         .withRefresh(Refresh.True);
-    private static DatashareTaskManager taskManager;
+    private static TaskManager taskManager;
 
     @Before
     public void setUp() {
         DatashareTaskFactory factory = mock(DatashareTaskFactory.class);
         when(factory.createBatchNlpTask(any(), any())).thenReturn(mock(BatchNlpTask.class));
-        taskManager = new TaskManagerMemory(factory, new TaskRepositoryMemory(), new PropertiesProvider());
+        taskManager = new TaskManagerMemory(factory, new TaskRepositoryMemory(), new PropertiesProvider(), new CountDownLatch(1));
     }
 
     @After

@@ -13,7 +13,7 @@ import org.icij.datashare.session.DatashareUser;
 import org.icij.datashare.session.LocalUserFilter;
 import org.icij.datashare.session.UsersWritable;
 import org.icij.datashare.session.YesBasicAuthFilter;
-import org.icij.datashare.tasks.DatashareTaskManager;
+import org.icij.datashare.asynctasks.TaskManager;
 import org.icij.datashare.text.Project;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.user.User;
@@ -45,7 +45,7 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
     @Mock JooqRepository jooqRepository;
     @Mock Indexer indexer;
     @Mock
-    DatashareTaskManager taskManager;
+    TaskManager taskManager;
     @Rule public TemporaryFolder artifactDir = new TemporaryFolder();
     MemoryDocumentCollectionFactory<Path> documentCollectionFactory;
     PropertiesProvider propertiesProvider;

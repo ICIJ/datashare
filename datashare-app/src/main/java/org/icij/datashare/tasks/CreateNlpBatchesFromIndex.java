@@ -55,7 +55,7 @@ public class CreateNlpBatchesFromIndex extends DefaultTask<List<String>> impleme
 
     private final User user;
     private volatile Thread taskThread;
-    private final DatashareTaskManager taskManager;
+    private final TaskManager taskManager;
     private final String searchQuery;
     private final Map<String, Object> batchTaskArgs;
     private final Pipeline.Type nlpPipeline;
@@ -75,7 +75,7 @@ public class CreateNlpBatchesFromIndex extends DefaultTask<List<String>> impleme
 
     @Inject
     public CreateNlpBatchesFromIndex(
-        final DatashareTaskManager taskManager, final Indexer indexer, @Assisted Task<LinkedList<String>> taskView,
+        final TaskManager taskManager, final Indexer indexer, @Assisted Task<LinkedList<String>> taskView,
         @Assisted final Function<Double, Void> ignored
     ) {
         this.user = taskView.getUser();
