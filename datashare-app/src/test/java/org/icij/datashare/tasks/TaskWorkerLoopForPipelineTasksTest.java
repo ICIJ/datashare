@@ -4,7 +4,9 @@ import java.util.List;
 import java.util.function.Function;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.asynctasks.Task;
+import org.icij.datashare.asynctasks.TaskManagerMemory;
 import org.icij.datashare.asynctasks.TaskRepositoryMemory;
+import java.util.concurrent.CountDownLatch;
 import org.icij.datashare.extension.PipelineRegistry;
 import org.icij.datashare.extract.DocumentCollectionFactory;
 import org.icij.datashare.text.indexing.Indexer;
@@ -31,7 +33,7 @@ public class TaskWorkerLoopForPipelineTasksTest {
     @Mock Function<Double, Void> updateCallback;
     @Mock ElasticsearchSpewer spewer;
     private final TaskManagerMemory taskSupplier = new TaskManagerMemory(taskFactory, new TaskRepositoryMemory(), new PropertiesProvider(
-            Map.of(TASK_MANAGER_POLLING_INTERVAL_OPT, "1000")));
+            Map.of(TASK_MANAGER_POLLING_INTERVAL_OPT, "1000")), new CountDownLatch(1));
 
     @Test
     public void test_scan_task() throws Exception {

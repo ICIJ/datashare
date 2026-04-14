@@ -2,7 +2,7 @@ package org.icij.datashare.web;
 
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Repository;
-import org.icij.datashare.tasks.DatashareTaskManager;
+import org.icij.datashare.asynctasks.TaskManager;
 import org.icij.datashare.test.DatashareTimeRule;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.web.testhelpers.AbstractProdWebServerTest;
@@ -23,7 +23,7 @@ public class StatusResourceTest extends AbstractProdWebServerTest {
     @Mock Repository repository;
     @Mock Indexer indexer;
     @Mock
-    DatashareTaskManager taskManager;
+    TaskManager taskManager;
 
     @Before
     public void setUp() {

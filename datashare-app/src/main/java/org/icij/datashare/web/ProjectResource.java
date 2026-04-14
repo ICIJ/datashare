@@ -58,14 +58,14 @@
     public class ProjectResource {
         private final Repository repository;
         private final Indexer indexer;
-        private final DatashareTaskManager taskManager;
+        private final TaskManager taskManager;
         private final DataDirVerifier dataDirVerifier;
         private final ModeVerifier modeVerifier;
         private final DocumentCollectionFactory<Path> documentCollectionFactory;
         private final PropertiesProvider propertiesProvider;
 
         @Inject
-        public ProjectResource(Repository repository, Indexer indexer, DatashareTaskManager taskManager, PropertiesProvider propertiesProvider, DocumentCollectionFactory<Path> documentCollectionFactory) {
+        public ProjectResource(Repository repository, Indexer indexer, TaskManager taskManager, PropertiesProvider propertiesProvider, DocumentCollectionFactory<Path> documentCollectionFactory) {
             this.repository = repository;
             this.indexer = indexer;
             this.taskManager = taskManager;

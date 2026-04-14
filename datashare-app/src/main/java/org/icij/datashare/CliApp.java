@@ -7,7 +7,7 @@ import org.icij.datashare.tasks.ArtifactTask;
 import org.icij.datashare.tasks.CreateNlpBatchesFromIndex;
 import org.icij.datashare.tasks.CategorizeTask;
 import org.icij.datashare.tasks.DatashareTaskFactory;
-import org.icij.datashare.tasks.DatashareTaskManager;
+import org.icij.datashare.asynctasks.TaskManager;
 import org.icij.datashare.tasks.DeduplicateTask;
 import org.icij.datashare.tasks.EnqueueFromIndexTask;
 import org.icij.datashare.tasks.ExtractNlpTask;
@@ -63,7 +63,7 @@ class CliApp {
     }
 
     private static void runTaskWorker(CommonMode mode, Properties properties) throws Exception {
-        DatashareTaskManager taskManager = mode.get(DatashareTaskManager.class);
+        TaskManager taskManager = mode.get(TaskManager.class);
         DatashareTaskFactory taskFactory = mode.get(DatashareTaskFactory.class);
         Indexer indexer = mode.get(Indexer.class);
 

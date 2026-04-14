@@ -68,7 +68,7 @@ public class TaskResource {
     public static final Set<String> PAGINATION_FIELDS = WebQueryPagination.fields();
     public static final Set<String> TASK_FILTER_FIELDS = Set.of("args", "name", "state", "user");
     private final DatashareTaskFactory taskFactory;
-    private final DatashareTaskManager taskManager;
+    private final TaskManager taskManager;
     private final TaskFinder taskFinder;
     private final PropertiesProvider propertiesProvider;
     private final BatchSearchRepository batchSearchRepository;;
@@ -79,7 +79,7 @@ public class TaskResource {
 
 
     @Inject
-    public TaskResource(final DatashareTaskFactory taskFactory, final DatashareTaskManager taskManager,
+    public TaskResource(final DatashareTaskFactory taskFactory, final TaskManager taskManager,
                         final PropertiesProvider propertiesProvider, final BatchSearchRepository batchSearchRepository, final TaskFinder taskFinder) {
         this.taskFactory = taskFactory;
         this.taskManager = taskManager;

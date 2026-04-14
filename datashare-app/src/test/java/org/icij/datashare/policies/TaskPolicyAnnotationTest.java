@@ -8,7 +8,8 @@ import org.icij.datashare.asynctasks.TaskRepositoryMemory;
 import org.icij.datashare.batch.BatchDownload;
 import org.icij.datashare.batch.BatchSearchRecord;
 import org.icij.datashare.session.DatashareUser;
-import org.icij.datashare.tasks.TaskManagerMemory;
+import org.icij.datashare.asynctasks.TaskManagerMemory;
+import java.util.concurrent.CountDownLatch;
 import org.icij.datashare.tasks.TestSleepingTask;
 import org.icij.datashare.tasks.TestTaskUtils;
 import org.icij.datashare.text.Project;
@@ -36,7 +37,7 @@ import static org.mockito.MockitoAnnotations.openMocks;
 
 public class TaskPolicyAnnotationTest {
     private static final TestTaskUtils.DatashareTaskFactoryForTest taskFactory = mock(TestTaskUtils.DatashareTaskFactoryForTest.class);
-    private static final TaskManagerMemory taskManager = new TaskManagerMemory(taskFactory, new TaskRepositoryMemory(), new PropertiesProvider(Map.of(TASK_MANAGER_POLLING_INTERVAL_OPT, "500")));
+    private static final TaskManagerMemory taskManager = new TaskManagerMemory(taskFactory, new TaskRepositoryMemory(), new PropertiesProvider(Map.of(TASK_MANAGER_POLLING_INTERVAL_OPT, "500")), new CountDownLatch(1));
     private static AutoCloseable mocks;
     private final TaskPolicy adminTaskPolicy = new TaskPolicy() {
         @Override

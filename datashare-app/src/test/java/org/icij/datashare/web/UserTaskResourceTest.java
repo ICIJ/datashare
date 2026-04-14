@@ -9,12 +9,14 @@ import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.asynctasks.TaskGroup;
 import org.icij.datashare.asynctasks.TaskGroupType;
+import org.icij.datashare.asynctasks.TaskManagerMemory;
 import org.icij.datashare.asynctasks.TaskRepositoryMemory;
 import org.icij.datashare.asynctasks.bus.amqp.UriResult;
 import org.icij.datashare.batch.BatchSearchRepository;
 import org.icij.datashare.tasks.DatashareTaskFactory;
 import org.icij.datashare.session.DatashareUser;
 import org.icij.datashare.tasks.*;
+import java.util.concurrent.CountDownLatch;
 import org.icij.datashare.user.User;
 import org.icij.datashare.user.UserTask;
 import org.icij.datashare.web.testhelpers.AbstractProdWebServerTest;
@@ -208,7 +210,7 @@ public class UserTaskResourceTest extends AbstractProdWebServerTest {
 
     private void setupAppWith(DatashareTaskFactory taskFactory, String... userLogins) {
         final PropertiesProvider propertiesProvider = new PropertiesProvider(Map.of("mode", "LOCAL"));
-        taskManager = new TaskManagerMemory(taskFactory, new TaskRepositoryMemory(), new PropertiesProvider());
+        taskManager = new TaskManagerMemory(taskFactory, new TaskRepositoryMemory(), new PropertiesProvider(), new CountDownLatch(1));
         configure(routes -> routes.add(new TaskResource(taskFactory, taskManager, propertiesProvider, batchSearchRepository, new TaskFinder(taskManager, batchSearchRepository)))
                 .filter(new BasicAuthFilter("/", "ds", DatashareUser.users(userLogins))));
     }
