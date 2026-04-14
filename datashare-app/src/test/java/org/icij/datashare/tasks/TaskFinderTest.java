@@ -20,6 +20,7 @@ import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.asynctasks.TaskFilters;
 import org.icij.datashare.asynctasks.TaskManagerMemory;
+import org.icij.datashare.asynctasks.TaskRepositoryMemory;
 import org.icij.datashare.batch.BatchSearchRecord;
 import org.icij.datashare.batch.BatchSearchRepository;
 import org.icij.datashare.text.ProjectProxy;

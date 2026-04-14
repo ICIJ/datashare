@@ -39,10 +39,6 @@ import org.icij.datashare.session.StatusCidrFilter;
 import org.icij.datashare.session.UsersInDb;
 import org.icij.datashare.session.UsersWritable;
 import org.icij.datashare.tasks.*;
-import org.icij.datashare.tasks.TaskRepositoryMemory;
-import org.icij.datashare.tasks.TaskRepositoryRedis;
-import org.icij.datashare.tasks.TaskSupplierAmqp;
-import org.icij.datashare.tasks.TaskSupplierRedis;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.text.indexing.LanguageGuesser;
 import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchIndexer;
@@ -255,6 +251,27 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
     }
 
     @Provides @Singleton
+    TaskRepositoryMemory provideTaskRepositoryMemory() {
+        return new TaskRepositoryMemory();
+    }
+
+    @Provides @Singleton
+    TaskRepositoryRedis provideTaskRepositoryRedis(RedissonClient redissonClient) {
+        return new TaskRepositoryRedis(redissonClient);
+    }
+
+    @Provides @Singleton
+    TaskSupplierRedis provideTaskSupplierRedis(RedissonClient redissonClient, PropertiesProvider propertiesProvider) {
+        return new TaskSupplierRedis(redissonClient, Utils.getRoutingKey(propertiesProvider));
+    }
+
+    @Provides @Singleton
+    TaskSupplierAmqp provideTaskSupplierAmqp(
+            org.icij.datashare.asynctasks.bus.amqp.AmqpInterlocutor amqp, PropertiesProvider propertiesProvider) throws IOException {
+        return new TaskSupplierAmqp(amqp, Utils.getRoutingKey(propertiesProvider));
+    }
+
+    @Provides @Singleton
     DocumentCollectionFactory<Path> provideScanQueue(final PropertiesProvider propertiesProvider) {
         return switch (getQueueType(propertiesProvider, QUEUE_TYPE_OPT, DEFAULT_QUEUE_TYPE)) {
             case MEMORY -> new MemoryDocumentCollectionFactory<>(propertiesProvider);
@@ -367,12 +384,8 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
 
         TaskRepositoryType taskRepositoryType = TaskRepositoryType.valueOf(propertiesProvider.get(TASK_REPOSITORY_OPT).orElse("DATABASE"));
         switch ( taskRepositoryType ) {
-            case MEMORY -> {
-                bind(TaskRepository.class).to(TaskRepositoryMemory.class);
-            }
-            case REDIS -> {
-                bind(TaskRepository.class).to(TaskRepositoryRedis.class);
-            }
+            case MEMORY -> bind(TaskRepository.class).to(TaskRepositoryMemory.class);
+            case REDIS -> bind(TaskRepository.class).to(TaskRepositoryRedis.class);
             case DATABASE -> {
                 JooqTaskRepository jooqTaskRepository = new JooqTaskRepository(repositoryFactory.getDataSource(), repositoryFactory.guessSqlDialect());
                 bind(TaskRepository.class).toInstance(jooqTaskRepository);

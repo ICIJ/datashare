@@ -10,7 +10,7 @@ public class Utils {
         return RoutingStrategy.valueOf(propertiesProvider.get(DatashareCliOptions.TASK_ROUTING_STRATEGY_OPT).orElse(DatashareCliOptions.DEFAULT_TASK_ROUTING_STRATEGY.name()));
     }
 
-    static String getRoutingKey(PropertiesProvider propertiesProvider) {
+    public static String getRoutingKey(PropertiesProvider propertiesProvider) {
         return propertiesProvider.get(DatashareCliOptions.TASK_ROUTING_KEY_OPT).orElse(null);
     }
 }
