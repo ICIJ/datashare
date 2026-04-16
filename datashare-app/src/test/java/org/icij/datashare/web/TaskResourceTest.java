@@ -71,7 +71,8 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
     BatchSearchRepository batchSearchRepository;
 
     private static final TestTaskUtils.DatashareTaskFactoryForTest taskFactory = mock(TestTaskUtils.DatashareTaskFactoryForTest.class);
-    private static final TaskManagerMemory taskManager = new TaskManagerMemory(taskFactory, new TaskRepositoryMemory(), new PropertiesProvider(Map.of(TASK_MANAGER_POLLING_INTERVAL_OPT, "500")), new CountDownLatch(1));
+    private static final TaskRepositoryMemory taskRepository = new TaskRepositoryMemory();
+    private static final TaskManagerMemory taskManager = new TaskManagerMemory(taskFactory, taskRepository, new PropertiesProvider(Map.of(TASK_MANAGER_POLLING_INTERVAL_OPT, "500")), new CountDownLatch(1));
 
     private static AutoCloseable mocks;
     private TaskFinder taskFinder;
@@ -101,8 +102,16 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
     public void tearDown() throws Exception {
         taskManager.stopTasks(User.local());
         taskManager.clear();
+        taskRepository.clear();
         mocks.close();
+    }
 
+    @Test
+    public void test_get_task_with_different_user() throws IOException {
+        String taskIdOfOtherUser = taskManager.startTask(TestSleepingTask.class, User.localUser("differentUser"), new HashMap<>());
+        taskManager.stopTask(taskIdOfOtherUser);
+        // The test setup will make the request come from local user different from "differentUser"
+        get("/api/task/"+taskIdOfOtherUser).should().respond(403);
     }
 
     @Test
