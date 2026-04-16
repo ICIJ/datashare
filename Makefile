@@ -49,7 +49,7 @@ dist: migrate
 
 ## Run all tests
 test:
-	$(MVN) test -Djava.io.tmpdir=/tmp
+	$(MVN) test
 
 ## Start Datashare locally
 run:
