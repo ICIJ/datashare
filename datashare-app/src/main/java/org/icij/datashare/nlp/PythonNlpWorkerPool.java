@@ -50,7 +50,8 @@ public class PythonNlpWorkerPool implements Closeable {
         ExecutableExtensionHelper extensionHelper = new ExecutableExtensionHelper(
             extensionService, "datashare-extension-nlp-spacy"
         );
-        Path tmpRoot = Path.of(System.getProperty("java.io.tmpdir"));
+        //Resolve symlinks
+        Path tmpRoot = Path.of(System.getProperty("java.io.tmpdir")).toRealPath();
         for (Path p : findPidPaths("regex:" + extensionHelper.getPidFilePattern(), tmpRoot)) {
             if (isProcessRunning(p, 1, TimeUnit.SECONDS)) {
                 String pid = Files.readAllLines(p).get(0);
