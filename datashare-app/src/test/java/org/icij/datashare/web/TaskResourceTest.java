@@ -1003,7 +1003,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         TaskFilters filters = taskFiltersFromContext(ctx, null);
         // Then
         TaskFilters expectedFilters = TaskFilters.empty().withStates(Set.of()).withArgs(List.of())
-            .withNames(".*someTask|someOtherTask.*");
+            .withNames("someTask|someOtherTask.*");
         assertThat(filters).isEqualTo(expectedFilters);
     }
 

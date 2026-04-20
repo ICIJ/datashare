@@ -26,7 +26,7 @@ public class TemporalQueryBuilder {
             // We don't handle args with are filtered afterward because we can't store them as search attributes
             ArrayList<String> statements = new ArrayList<>(3);
             Optional.ofNullable(fromStates(filters.getStates())).ifPresent(statements::add);
-            Optional.ofNullable(fromName(filters.getName())).ifPresent(statements::add);
+            Optional.ofNullable(fromNamePattern(filters.getName())).ifPresent(statements::add);
             Optional.ofNullable(fromUser(filters.getUser())).ifPresent(statements::add);
             if (!statements.isEmpty()) {
                 query = String.join(" AND ", statements.stream().map(s -> "( " + s + " )").toList());
@@ -54,23 +54,31 @@ public class TemporalQueryBuilder {
         );
     }
 
-    protected static String fromName(String name) {
-        if (name == null || name.isEmpty()) {
+    protected static String fromNamePattern(String namePattern) {
+        if (namePattern == null) {
             return null;
         }
-        String query = WORKFLOW_TYPE_ATTRIBUTE.getName();
-        if (!SUPPORTED_NAME_QUERY_PATTERN.matcher(name).matches()) {
-            String message = "invalid pattern " + name + " with Temporal, exact match or prefix queries are supported. "
-                + " Test your name query against the " + SUPPORTED_NAME_QUERY_PATTERN.pattern() + " pattern to ensure"
-                + " compatibility";
-            throw new RuntimeException(message);
+        if (namePattern.isEmpty()) {
+            throw new IllegalArgumentException("name pattern cannot be empty");
         }
-        if (name.endsWith(".*")) {
-            query += " STARTS_WITH " + "'" + name.substring(0, name.length() - 2) + "'";
-        } else {
-            query += " = " + "'" + name + "'";
+        String[] parts = namePattern.split("\\|");
+        List<String> clauses = new ArrayList<>();
+        for (String part : parts) {
+            if (part.isBlank()) {
+                throw new IllegalArgumentException("name pattern contains an empty alternative: '" + namePattern + "'");
+            }
+            String trimmed = part.trim();
+            if (!SUPPORTED_NAME_QUERY_PATTERN.matcher(trimmed).matches()) {
+                throw new IllegalArgumentException("invalid pattern " + trimmed + " with Temporal, exact match or prefix queries are supported."
+                    + " Test your name query against the " + SUPPORTED_NAME_QUERY_PATTERN.pattern() + " pattern to ensure compatibility");
+            }
+            if (trimmed.endsWith(".*")) {
+                clauses.add(WORKFLOW_TYPE_ATTRIBUTE.getName() + " STARTS_WITH '" + trimmed.substring(0, trimmed.length() - 2) + "'");
+            } else {
+                clauses.add(WORKFLOW_TYPE_ATTRIBUTE.getName() + " = '" + trimmed + "'");
+            }
         }
-        return query;
+        return String.join(" OR ", clauses);
     }
 
     protected static String fromUser(User user) {

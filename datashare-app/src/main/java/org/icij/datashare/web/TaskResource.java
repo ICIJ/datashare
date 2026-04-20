@@ -635,7 +635,7 @@ public class TaskResource {
         filters = filters.withStates(states);
         // Names
         Optional<String> maybeName = query.keys().stream().filter(k -> k.equals("name")).findAny()
-            .map(k -> ".*" + query.get(k) + ".*");
+            .map(k -> query.get(k) + ".*");
         if (maybeName.isPresent()) {
             filters = filters.withNames(maybeName.get());
         }
