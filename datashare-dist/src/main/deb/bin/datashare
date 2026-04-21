@@ -44,14 +44,18 @@ mkdir -p \
 
 cd $datashare_home || exit
 
-# Detect whether the user is using the new subcommand style (first non-option arg is a known subcommand)
-first_arg="${1:-}"
+# Detect whether the user is using the new subcommand style. Scan every arg so that
+# parent-command options (e.g. --pluginsDir) can appear before the subcommand name,
+# matching Main.isLegacyInvocation on the Java side.
 is_subcommand=false
-case "$first_arg" in
-  app|worker|stage|plugin|extension|api-key|help)
-    is_subcommand=true
-    ;;
-esac
+for _arg in "$@"; do
+  case "$_arg" in
+    app|worker|stage|plugin|extension|api-key|help)
+      is_subcommand=true
+      break
+      ;;
+  esac
+done
 
 # Parse command line arguments to check for mode override and quick exit flags
 args=("$@")
