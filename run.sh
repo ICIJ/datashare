@@ -4,11 +4,11 @@ export DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 ## Find a free port for Java remote debugging
 BASE_PORT=8090
 port=$BASE_PORT
-isfree=$(lsof -i ":$port" -t)
+isfree=$(ss -tlnH "sport = :$port" 2>/dev/null || lsof -i ":$port" -t 2>/dev/null)
 
 while [ -n "$isfree" ] && [ $port -lt 8093 ]; do
     port=$((port+1))
-    isfree=$(lsof -i ":$port" -t)
+    isfree=$(ss -tlnH "sport = :$port" 2>/dev/null || lsof -i ":$port" -t 2>/dev/null)
 done
 
 if [ -n "$isfree" ]; then
