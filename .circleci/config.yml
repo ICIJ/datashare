@@ -335,7 +335,7 @@ jobs:
           at: /tmp/datashare
       - restore_cache:
           keys:
-            - cargo-cache-{{ checksum ".circleci/config.yml" }}
+            - cargo-cache-v1
       - run:
           name: Install dependencies
           command: |
@@ -347,7 +347,7 @@ jobs:
             wget https://nsis.sourceforge.io/mediawiki/images/9/9d/Untgz.zip  && unzip Untgz.zip && sudo cp untgz/untgz.dll /usr/share/nsis/Plugins/ && echo "cp untgz.dll done"
             cargo install --git https://github.com/indygreg/apple-platform-rs.git apple-codesign --tag apple-codesign/0.29.0 --locked
       - save_cache:
-          key: cargo-cache-{{ checksum ".circleci/config.yml" }}
+          key: cargo-cache-v1
           paths:
             - $HOME/.cargo
       - run:
