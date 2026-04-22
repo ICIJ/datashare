@@ -88,12 +88,19 @@ if [ "$datashare_mode" = "EMBEDDED" ] && [ "$skip_es_setup" = false ]; then
   fi
 fi
 
+# -XX:UseSVE=0 disables Scalable Vector Extension on ARM; not valid on x86_64
+_arch=$(uname -m)
+_arm_flags=""
+if [ "$_arch" = "aarch64" ] || [ "$_arch" = "arm64" ]; then
+  _arm_flags="-XX:UseSVE=0"
+fi
+
 java_flags="
   --add-opens java.base/java.lang=ALL-UNNAMED
   --add-opens java.base/java.util=ALL-UNNAMED
   --add-opens java.base/java.util.concurrent.locks=ALL-UNNAMED
   --add-opens java.base/java.net=ALL-UNNAMED
-  -XX:UseSVE=0
+  $_arm_flags
   -Xshare:off
   -DPROD_MODE=true
   -Dfile.encoding=UTF-8
