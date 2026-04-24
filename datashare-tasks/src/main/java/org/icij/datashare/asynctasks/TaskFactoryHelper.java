@@ -11,6 +11,8 @@ public class TaskFactoryHelper {
     throws ReflectiveOperationException {
         Callable<?> taskFn;
             Class<? extends Callable<?>> taskClass = (Class<? extends Callable<?>>) Class.forName(name);
+            //TODO This call by reflection is very hard to track, and looks too hacky. Probable refactoring would
+            // be to use a registry
             Method method = factory.getClass().getMethod(format("create%s", taskClass.getSimpleName()), Task.class, Function.class);
             taskFn = (Callable<?>) method.invoke(factory, taskView, progress);
 
