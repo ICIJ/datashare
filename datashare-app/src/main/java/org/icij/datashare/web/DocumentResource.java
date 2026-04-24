@@ -14,11 +14,7 @@ import io.swagger.v3.oas.annotations.media.SchemaProperty;
 import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import net.codestory.http.Context;
-import net.codestory.http.annotations.Get;
-import net.codestory.http.annotations.Options;
-import net.codestory.http.annotations.Post;
-import net.codestory.http.annotations.Prefix;
-import net.codestory.http.annotations.Put;
+import net.codestory.http.annotations.*;
 import net.codestory.http.constants.HttpStatus;
 import net.codestory.http.errors.ForbiddenException;
 import net.codestory.http.payload.Payload;
@@ -28,11 +24,7 @@ import org.icij.datashare.Repository;
 import org.icij.datashare.Repository.AggregateList;
 import org.icij.datashare.cli.DatashareCliOptions;
 import org.icij.datashare.session.DatashareUser;
-import org.icij.datashare.text.Document;
-import org.icij.datashare.text.FileExtension;
-import org.icij.datashare.text.Hasher;
-import org.icij.datashare.text.Project;
-import org.icij.datashare.text.Tag;
+import org.icij.datashare.text.*;
 import org.icij.datashare.text.indexing.ExtractedText;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.text.indexing.SearchedText;
@@ -52,12 +44,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Path;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Properties;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static java.lang.Boolean.parseBoolean;
@@ -465,7 +452,7 @@ public class DocumentResource {
     @NotNull
     private Extractor getExtractor(Document doc) {
         Hasher hasher = Hasher.valueOf(doc.getId().length());
-        DocumentFactory documentFactory = new DocumentFactory().configure(org.icij.task.Options.from(Map.of("digestAlgorithm", hasher.toString())));
+        DocumentFactory documentFactory = new DocumentFactory().configure(org.icij.task.Options.from(Map.of("digestAlgorithm", hasher.toStringWithoutDash())));
         // we need to set the embedOutput from the project
         Properties props = new Properties() {{
             ofNullable(getArtifactPath(doc.getProject())).ifPresent(p -> put("embedOutput", p));

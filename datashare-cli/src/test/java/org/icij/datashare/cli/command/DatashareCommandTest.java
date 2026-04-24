@@ -1,19 +1,16 @@
 package org.icij.datashare.cli.command;
 
-import org.junit.Before;
 import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 import picocli.CommandLine;
-import picocli.CommandLine.Model.OptionSpec;
 
 import java.lang.reflect.Field;
 import java.nio.file.Path;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.HashSet;
 import java.util.Properties;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 import static org.fest.assertions.Assertions.assertThat;
 import static org.fest.assertions.MapAssert.entry;
@@ -964,6 +961,25 @@ public class DatashareCommandTest {
         }
         return names;
     }
+
+    @Test
+    public void test_default_digest_algorithm_is_tika_compatible() {
+        Properties props = parse("app", "start");
+        assertThat(props).includes(entry("digestAlgorithm", "SHA384"));
+    }
+
+    @Test
+    public void test_explicit_digest_algorithm_with_hyphen_is_tika_compatible() {
+        Properties props = parse("--digestAlgorithm", "SHA-256", "app", "start");
+        assertThat(props).includes(entry("digestAlgorithm", "SHA256"));
+    }
+
+    @Test
+    public void test_explicit_digest_algorithm_with_dash_is_tika_compatible() {
+        Properties props = parse("--digestAlgorithm", "SHA_256", "app", "start");
+        assertThat(props).includes(entry("digestAlgorithm", "SHA256"));
+    }
+
 
     private static void assertNoOverlap(Set<String> globalNames, Class<?> optionClass) {
         Set<String> subNames = optionNamesOf(optionClass);

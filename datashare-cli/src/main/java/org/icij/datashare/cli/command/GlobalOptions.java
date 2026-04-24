@@ -11,14 +11,9 @@ import java.nio.charset.Charset;
 import java.nio.file.Paths;
 import java.util.Properties;
 
-import static org.icij.datashare.PropertiesProvider.DATA_DIR_OPT;
-import static org.icij.datashare.PropertiesProvider.DEFAULT_PROJECT_OPT;
-import static org.icij.datashare.PropertiesProvider.DIGEST_PROJECT_NAME_OPT;
-import static org.icij.datashare.PropertiesProvider.EXTENSIONS_DIR_OPT;
-import static org.icij.datashare.PropertiesProvider.PLUGINS_DIR_OPT;
-import static org.icij.datashare.PropertiesProvider.QUEUE_NAME_OPT;
-import static org.icij.datashare.PropertiesProvider.SETTINGS_OPT;
+import static org.icij.datashare.PropertiesProvider.*;
 import static org.icij.datashare.cli.DatashareCliOptions.*;
+import static org.icij.datashare.cli.DatashareCliOptions.QUEUE_CAPACITY_OPT;
 
 /**
  * Global options available on all commands. Thanks to scope = ScopeType.INHERIT they can
@@ -47,7 +42,7 @@ public class GlobalOptions {
     @Option(names = {"-P", "--defaultProject"}, description = "Default project name", defaultValue = "local-datashare", scope = ScopeType.INHERIT)
     String defaultProject;
 
-    @Option(names = {"--digestAlgorithm"}, description = "Digest algorithm", defaultValue = "SHA_384", scope = ScopeType.INHERIT)
+    @Option(names = {"--digestAlgorithm"}, description = "Digest algorithm", defaultValue = "SHA384", converter = DigestAlgorithm.PicocliConverter.class, scope = ScopeType.INHERIT)
     DigestAlgorithm digestAlgorithm;
 
     @Option(names = {"--digestProjectName"}, description = "Include project name in document hash", scope = ScopeType.INHERIT)
@@ -127,7 +122,7 @@ public class GlobalOptions {
         DatashareOptions.putIfNotNull(props, LOG_LEVEL_OPT, logLevel);
         DatashareOptions.putIfNotNull(props, CHARSET_OPT, charset);
         DatashareOptions.putIfNotNull(props, DEFAULT_PROJECT_OPT, defaultProject);
-        DatashareOptions.putIfNotNull(props, DIGEST_ALGORITHM_OPT, digestAlgorithm);
+        DatashareOptions.putIfNotNull(props, DIGEST_ALGORITHM_OPT, digestAlgorithm != null ? digestAlgorithm.toString() : null);
         DatashareOptions.putIfNotNull(props, DIGEST_PROJECT_NAME_OPT, digestProjectName);
         DatashareOptions.put(props, NO_DIGEST_PROJECT_OPT, noDigestProject);
         DatashareOptions.putIfNotNull(props, ELASTICSEARCH_ADDRESS_OPT, elasticsearchAddress);
