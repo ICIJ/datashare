@@ -1,22 +1,13 @@
 package org.icij.datashare.web;
 
-import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.Map;
-import java.util.function.Function;
 import net.codestory.http.filters.basic.BasicAuthFilter;
 import org.icij.datashare.PropertiesProvider;
-import org.icij.datashare.asynctasks.Task;
-import org.icij.datashare.asynctasks.TaskGroup;
-import org.icij.datashare.asynctasks.TaskGroupType;
-import org.icij.datashare.asynctasks.TaskManagerMemory;
-import org.icij.datashare.asynctasks.TaskRepositoryMemory;
+import org.icij.datashare.asynctasks.*;
 import org.icij.datashare.asynctasks.bus.amqp.UriResult;
 import org.icij.datashare.batch.BatchSearchRepository;
-import org.icij.datashare.tasks.DatashareTaskFactory;
 import org.icij.datashare.session.DatashareUser;
-import org.icij.datashare.tasks.*;
-import java.util.concurrent.CountDownLatch;
+import org.icij.datashare.tasks.DatashareTaskFactory;
+import org.icij.datashare.tasks.TaskFinder;
 import org.icij.datashare.user.User;
 import org.icij.datashare.user.UserTask;
 import org.icij.datashare.web.testhelpers.AbstractProdWebServerTest;
@@ -27,9 +18,14 @@ import org.mockito.Mock;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.Serializable;
 import java.nio.file.Files;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.Callable;
+import java.util.concurrent.CountDownLatch;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
 import static java.lang.String.format;

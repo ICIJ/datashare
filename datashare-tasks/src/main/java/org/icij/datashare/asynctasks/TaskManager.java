@@ -121,7 +121,7 @@ public interface TaskManager extends Closeable {
         long nUnfinished = getTaskIds(filterNotCompleted).count();
         while (System.currentTimeMillis() - startTime < maxDuration && nUnfinished > 0) {
             try {
-                Thread.sleep(getTerminationPollingInterval());
+                Thread.sleep(Math.min(getTerminationPollingInterval(), maxDuration));
             } catch (InterruptedException e) {
                 throw new RuntimeException(e);
             }
