@@ -49,11 +49,12 @@ public abstract class TemporalActivityImpl<R, T extends Callable<R>> {
     protected R run(Map<String, Object> args) throws Exception {
         return taskWrapper(rethrowFunction(inputArgs -> {
             ActivityInfo info = Activity.getExecutionContext().getInfo();
-            String runId = info.getRunId();
             User user = Optional.ofNullable((HashMap<String, Object>) inputArgs.get("user"))
                 .map(User::new)
                 .orElse(null);
-            Task<?> task = new Task<>(runId, getTaskClass().getSimpleName(), user, inputArgs);
+            // TODO : BatchSearchRunner relies on the Task.id to retrieve the Queries to run from the DB.
+            // TODO : This is a design that relies on unwritten convention, so it should be changed
+            Task<?> task = new Task<>(info.getWorkflowId(), getTaskClass().getSimpleName(), user, inputArgs);
             BiConsumer<String, Double> progressFn = getProgressFn(info);
             ProgressSmoother smoothedProgress = new ProgressSmoother(progressFn, 1000);
             Callable<R> taskFn = (Callable<R>) TaskFactoryHelper.createTaskCallable(

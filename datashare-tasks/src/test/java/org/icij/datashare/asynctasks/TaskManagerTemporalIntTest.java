@@ -29,7 +29,12 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
+
 import org.icij.datashare.EnvUtils;
+import org.icij.datashare.asynctasks.temporal.DoNothingWorkflowImpl;
+import org.icij.datashare.asynctasks.temporal.DoNothingActivityImpl;
+import org.icij.datashare.asynctasks.temporal.DoNothingTask;
 import org.icij.datashare.asynctasks.temporal.FailingActivityImpl;
 import org.icij.datashare.asynctasks.temporal.FailingWorkflowImpl;
 import org.icij.datashare.asynctasks.temporal.HelloWorldActivityImpl;
@@ -290,6 +295,45 @@ public class TaskManagerTemporalIntTest {
             taskManager.clearDoneTasks(filter);
 
             taskManager.awaitCleared(Set.of(second.id), 1, TimeUnit.MINUTES);
+        }
+    }
+
+    /**
+     * This test makes sure that when a TemporalActivityImpl is started, the Task it receives has
+     * the id set to the workflowId (not Temporal's internal runId).
+     * BatchSearchRunner relies on the Task.id to retrieve the Queries to run from the DB.
+     // TODO : This is a design that relies on unwritten convention, so it should be changed
+     *
+     */
+    @Test(timeout = 10000)
+    public void test_task_id_matches_workflow_id() throws IOException {
+        AtomicReference<String> capturedId = new AtomicReference<>();
+        TaskFactory capturingFactory = new TaskFactory() {
+            // The factory will capture the Task id that will be set in the Task
+            public java.util.concurrent.Callable<String> createDoNothingTask(Task<?> task, java.util.function.Function<Double, Void> progress) {
+                capturedId.set(task.id);
+                return () -> task.id;
+            }
+        };
+        List<TemporalHelper.RegisteredWorkflow> workflows = List.of(
+            new TemporalHelper.RegisteredWorkflow(
+                DoNothingWorkflowImpl.class,
+                WORKFLOWS_DEFAULT,
+                List.of(new TemporalHelper.RegisteredActivity(
+                    activityFactory(DoNothingActivityImpl.class, capturingFactory, temporal.client, 1.0d),
+                    WORKFLOWS_DEFAULT
+                ))
+            )
+        );
+
+        try (TemporalHelper.CloseableWorkerFactoryHandle ignored =
+                new TemporalHelper.CloseableWorkerFactoryHandle(createTemporalWorkerFactory(workflows, temporal.client))) {
+            Task<String> task = new Task<>(DoNothingTask.class.getName(), User.local(), Map.of());
+
+            taskManager.startTask(task);
+            taskManager.waitTasksToBeDone(10, TimeUnit.SECONDS);
+
+            assertThat(capturedId.get()).isEqualTo(task.id);
         }
     }
 
