@@ -59,11 +59,14 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
+
+import io.temporal.common.converter.JacksonJsonPayloadConverter;
 import org.icij.datashare.asynctasks.bus.amqp.TaskError;
 import org.icij.datashare.asynctasks.temporal.TemporalInputPayload;
 import org.icij.datashare.asynctasks.temporal.TemporalInterlocutor;
 import org.icij.datashare.asynctasks.temporal.TemporalQueryBuilder;
 import org.icij.datashare.function.Pair;
+import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.tasks.RoutingStrategy;
 import org.icij.datashare.user.User;
 
@@ -85,7 +88,8 @@ public class TaskManagerTemporal implements TaskManager {
     private static final String TERMINATION_MSG = "terminated_by_user";
     public static final String WORKFLOWS_DEFAULT = "default-java";
 
-    private static final DefaultDataConverter defaultDataConverter = DefaultDataConverter.newDefaultInstance();
+    private static final DefaultDataConverter defaultDataConverter = DefaultDataConverter.newDefaultInstance()
+            .withPayloadConverterOverrides(new JacksonJsonPayloadConverter(JsonObjectMapper.getMapper()));
 
 
     private final WorkflowServiceGrpc.WorkflowServiceBlockingStub workflowServiceBlockingStub;
@@ -309,7 +313,7 @@ public class TaskManagerTemporal implements TaskManager {
                 TemporalInputPayload.class);
         if (payload != null) {
             args = payload.args();
-            args.computeIfPresent(USER_KEY, (k, v) -> new User((Map<String, Object>) v));
+            args.computeIfPresent(USER_KEY, (k, v) -> JsonObjectMapper.convertValue(v, User.class));
         }
         return args;
     }

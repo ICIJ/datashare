@@ -283,6 +283,10 @@ public class JsonObjectMapper {
         return MAPPER.convertValue(obj, typeReference);
     }
 
+    public static <T> T convertValue(Object obj, Class<T> toClass) {
+        return MAPPER.convertValue(obj, toClass);
+    }
+
     public static void registerSubtypes(NamedType... classesToRegister) {
         TYPE_INCLUSION_MAPPER.registerSubtypes(classesToRegister);
         MAPPER.registerSubtypes(classesToRegister);
