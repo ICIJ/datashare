@@ -13,7 +13,7 @@ import java.net.URI;
  * @param size
  * @param truncationReason can be null if no truncation was made, or have a value depending on the reason of the truncation
  */
-@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "@type")
+@JsonTypeInfo(use = JsonTypeInfo.Id.CLASS, property = "@type")
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record BatchDownloadRunnerResult(URI uri, long size, @Nullable TruncationReason truncationReason) implements Serializable, DownloadableResult {
 

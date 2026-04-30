@@ -286,7 +286,17 @@ public class TaskManagerTemporal implements TaskManager {
         if (Objects.requireNonNull(state) == Task.State.ERROR || state == Task.State.DONE) {
             try {
                 Serializable res = client.newUntypedWorkflowStub(workflowExecutionInfo.getExecution().getWorkflowId())
-                    .getResult(Serializable.class);
+                        .getResult(Serializable.class);
+                //TODO this is a big hack because Temporal does not use the TYPE_INCLUSION_MAPPER
+                // to deserialize for now
+                if (res instanceof Map<?, ?>) {
+                    try {
+                        res = JsonObjectMapper.readValueTyped(
+                                JsonObjectMapper.writeValueAsString(res), Serializable.class);
+                    } catch (IOException e) {
+                        logger.warn("could not convert result to typed object", e);
+                    }
+                }
                 if (res != null) {
                     result = new TaskResult<>((V) res);
                 }

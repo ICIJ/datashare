@@ -18,6 +18,7 @@ import org.icij.datashare.asynctasks.TaskGroup;
 import org.icij.datashare.asynctasks.temporal.ActivityOpts;
 import org.icij.datashare.asynctasks.temporal.TemporalSingleActivityWorkflow;
 import org.icij.datashare.batch.BatchDownload;
+import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.com.mail.Mail;
 import org.icij.datashare.com.mail.MailException;
 import org.icij.datashare.com.mail.MailSender;
@@ -188,7 +189,9 @@ public class BatchDownloadRunner implements Callable<BatchDownloadRunnerResult>,
     }
 
     private BatchDownload getBatchDownload() {
-        return (BatchDownload) task.args.get("batchDownload");
+        Object raw = task.args.get("batchDownload");
+        if (raw instanceof BatchDownload bd) return bd;
+        return JsonObjectMapper.convertValue(raw, BatchDownload.class);
     }
 
     // For tests purposes
