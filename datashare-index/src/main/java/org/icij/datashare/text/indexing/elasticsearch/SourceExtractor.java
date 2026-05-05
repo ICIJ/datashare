@@ -9,6 +9,7 @@ import org.icij.datashare.cli.Mode;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.Hasher;
 import org.icij.datashare.text.Project;
+import org.icij.datashare.text.nlp.DocumentMetadataConstants;
 import org.icij.extract.cleaner.MetadataCleaner;
 import org.icij.extract.document.DigestIdentifier;
 import org.icij.extract.document.DocumentFactory;
@@ -88,7 +89,8 @@ public class SourceExtractor {
         // used every available digesters to find it.
         for (DigestingParser.Digester digester : digesters) {
             Identifier identifier = new DigestIdentifier(hasher.toString(), Charset.defaultCharset());
-            TikaDocument rootDocument = new DocumentFactory().withIdentifier(identifier).create(document.getPath());
+            TikaDocument rootDocument = new DocumentFactory().withIdentifier(identifier).create(document.getPath(),
+                    (String) document.getMetadata().get(document.getField(DocumentMetadataConstants.TIKA_VERSION)));
 
             try {
                 EmbeddedDocumentExtractor embeddedExtractor = new EmbeddedDocumentExtractor(
