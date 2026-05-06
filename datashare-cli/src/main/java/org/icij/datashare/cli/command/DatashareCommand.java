@@ -1,6 +1,5 @@
 package org.icij.datashare.cli.command;
 
-import org.icij.datashare.cli.command.user.UserCommand;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Mixin;

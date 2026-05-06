@@ -1,4 +1,4 @@
-package org.icij.datashare.cli.command.user;
+package org.icij.datashare.cli.command;
 
 import picocli.CommandLine;
 import picocli.CommandLine.Command;

@@ -1,4 +1,4 @@
-package org.icij.datashare.cli.command.user;
+package org.icij.datashare.cli.command;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -6,8 +6,6 @@ import org.icij.datashare.cli.CliExitException;
 import org.icij.datashare.cli.Mode;
 import org.icij.datashare.cli.Validators;
 import org.icij.datashare.cli.Validators.InvalidValueException;
-import org.icij.datashare.cli.command.DatashareOptions;
-import org.icij.datashare.cli.command.DatashareSubcommand;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
