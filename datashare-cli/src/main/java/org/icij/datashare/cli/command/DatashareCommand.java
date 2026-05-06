@@ -1,5 +1,6 @@
 package org.icij.datashare.cli.command;
 
+import org.icij.datashare.cli.command.user.UserCommand;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Mixin;
@@ -16,6 +17,7 @@ import java.util.Properties;
                 PluginCommand.class,
                 ExtensionCommand.class,
                 ApiKeyCommand.class,
+                UserCommand.class,
                 CommandLine.HelpCommand.class
         },
         description = "Datashare - Index and search your documents")

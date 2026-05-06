@@ -138,6 +138,8 @@ public final class DatashareCliOptions {
     public static final String TASK_MANAGER_POLLING_INTERVAL_OPT = "taskManagerPollingIntervalMilliseconds";
     public static final String TASK_WORKERS_OPT = "taskWorkers";
     public static final String TASK_PROGRESS_INTERVAL_OPT = "taskProgressUpdateIntervalSeconds";
+    public static final String USER_CREATE_OPT = "userCreate";
+    public static final String USER_DELETE_OPT = "userDelete";
 
     private static final Path DEFAULT_DATASHARE_HOME = Paths.get(System.getProperty("user.home"), ".local/share/datashare");
     private static final Integer DEFAULT_NLP_PARALLELISM = 1;

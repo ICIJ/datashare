@@ -989,4 +989,10 @@ public class DatashareCommandTest {
             .as("Option name conflicts between GlobalOptions and " + optionClass.getSimpleName())
             .isEmpty();
     }
+
+    @Test
+    public void test_user_without_subcommand_shows_help() {
+        int exitCode = parseExitCode("user");
+        assertThat(exitCode).isEqualTo(0);
+    }
 }
