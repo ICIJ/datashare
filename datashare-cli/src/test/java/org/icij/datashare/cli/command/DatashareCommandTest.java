@@ -1092,4 +1092,39 @@ public class DatashareCommandTest {
                 "--email", "alice@example.org", "--password", "pw");
         assertThat(props).includes(entry("mode", "CLI"));
     }
+
+    @Test
+    public void test_user_delete_happy_path() {
+        Properties props = parse("user", "delete", "alice", "--yes");
+        assertThat(props).includes(entry("mode", "CLI"));
+        String payload = props.getProperty("userDelete");
+        assertThat(payload).isNotNull();
+        assertThat(payload).contains("\"login\":\"alice\"");
+        assertThat(payload).contains("\"yes\":true");
+        assertThat(payload).contains("\"ifExists\":false");
+    }
+
+    @Test
+    public void test_user_delete_if_exists() {
+        Properties props = parse("user", "delete", "alice", "--if-exists", "--yes");
+        assertThat(props.getProperty("userDelete")).contains("\"ifExists\":true");
+    }
+
+    @Test
+    public void test_user_delete_invalid_login_exits_5() {
+        int exit = parseExitCode("user", "delete", "Alice", "--yes");
+        assertThat(exit).isEqualTo(5);
+    }
+
+    @Test
+    public void test_user_delete_no_input_missing_login_exits_2() {
+        int exit = parseExitCode("user", "delete", "--no-input");
+        assertThat(exit).isEqualTo(2);
+    }
+
+    @Test
+    public void test_user_delete_json_flag() {
+        Properties props = parse("user", "delete", "alice", "--yes", "--json");
+        assertThat(props.getProperty("userDelete")).contains("\"json\":true");
+    }
 }
