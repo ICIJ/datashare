@@ -13,7 +13,6 @@ import java.util.Map;
 
 @Singleton
 public class UserAdminServiceImpl implements UserAdminService {
-    static final String LOCAL = "local";
     static final String OAUTH = "oauth";
     static final String EXTERNAL = "external";
 
@@ -61,11 +60,11 @@ public class UserAdminServiceImpl implements UserAdminService {
     }
 
     private void validate(UserCreateRequest req) throws ValidationException {
-        if (LOCAL.equals(req.provider()) && (req.password() == null || req.password().isEmpty())) {
+        if (User.LOCAL.equals(req.provider()) && (req.password() == null || req.password().isEmpty())) {
             throw new ValidationException("password",
                     "password is required when provider=local");
         }
-        if (!LOCAL.equals(req.provider()) && !OAUTH.equals(req.provider()) && !EXTERNAL.equals(req.provider())) {
+        if (!User.LOCAL.equals(req.provider()) && !OAUTH.equals(req.provider()) && !EXTERNAL.equals(req.provider())) {
             throw new ValidationException("provider",
                     "provider must be one of local|oauth|external");
         }
@@ -78,7 +77,7 @@ public class UserAdminServiceImpl implements UserAdminService {
         details.put("name", name);
         details.put("email", req.email());
 
-        if (LOCAL.equals(req.provider()) && req.password() != null) {
+        if (User.LOCAL.equals(req.provider()) && req.password() != null) {
             details.put("password", Hasher.SHA_256.hash(req.password()));
         }
 

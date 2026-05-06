@@ -116,6 +116,22 @@ public class UserAdminServiceImplTest {
     }
 
     @Test
+    public void test_create_with_unknown_provider_throws_validation() {
+        when(repository.getUser("alice")).thenReturn(null);
+
+        try {
+            service.create(new UserCreateRequest(
+                    "alice", "a@b.c", "Alice", null, "ldap", List.of()));
+            fail("expected ValidationException");
+        } catch (ValidationException e) {
+            assertThat(e.field()).isEqualTo("provider");
+        } catch (UserExistsException e) {
+            fail("unexpected UserExistsException");
+        }
+        verify(repository, never()).save(any(User.class));
+    }
+
+    @Test
     public void test_create_if_not_exists_returns_noop_when_user_exists() throws Exception {
         when(repository.getUser("alice"))
                 .thenReturn(new User("alice", "Alice", "a@b.c"));
