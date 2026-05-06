@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.icij.datashare.cli.CliExitException;
 import org.icij.datashare.cli.Mode;
+import org.icij.datashare.cli.Prompter;
 import org.icij.datashare.cli.Validators;
 import org.icij.datashare.cli.Validators.InvalidValueException;
 import picocli.CommandLine;
@@ -50,6 +51,9 @@ public class UserDeleteCommand implements Runnable, DatashareSubcommand {
     @CommandLine.Spec
     CommandLine.Model.CommandSpec spec;
 
+    // Package-visible for test injection; when non-null the TTY check is skipped.
+    Prompter prompterOverride;
+
     private String validatedPayload;
 
     @Override
@@ -64,9 +68,18 @@ public class UserDeleteCommand implements Runnable, DatashareSubcommand {
                             "error: --login is required when --no-input is set");
                     throw new CliExitException(2);
                 }
-                spec.commandLine().getErr().println(
-                        "error: missing --login (interactive prompt wired in next task)");
-                throw new CliExitException(2);
+                Prompter prompter = prompterOverride != null ? prompterOverride : new Prompter();
+                if (prompterOverride == null && !prompter.isInteractive()) {
+                    spec.commandLine().getErr().println(
+                            "error: --login is required and no TTY available");
+                    throw new CliExitException(2);
+                }
+                try {
+                    login = prompter.promptString("Login", Validators::login);
+                } catch (Prompter.ValidationFailedException e) {
+                    spec.commandLine().getErr().println("error: " + e.getMessage());
+                    throw new CliExitException(5);
+                }
             }
 
             Map<String, Object> payload = new LinkedHashMap<>();

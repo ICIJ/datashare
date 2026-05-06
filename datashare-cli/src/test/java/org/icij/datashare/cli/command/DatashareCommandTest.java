@@ -1,11 +1,16 @@
 package org.icij.datashare.cli.command;
 
 import org.icij.datashare.cli.CliExitException;
+import org.icij.datashare.cli.Prompter;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import picocli.CommandLine;
 
+import java.io.BufferedReader;
+import java.io.PrintWriter;
+import java.io.StringReader;
+import java.io.StringWriter;
 import java.lang.reflect.Field;
 import java.nio.file.Path;
 import java.util.Arrays;
@@ -1126,5 +1131,22 @@ public class DatashareCommandTest {
     public void test_user_delete_json_flag() {
         Properties props = parse("user", "delete", "alice", "--yes", "--json");
         assertThat(props.getProperty("userDelete")).contains("\"json\":true");
+    }
+
+    @Test
+    public void test_user_create_prompts_for_email_and_password() {
+        UserCreateCommand cmd = new UserCreateCommand();
+        StringWriter sink = new StringWriter();
+        cmd.prompterOverride = new Prompter(
+                new BufferedReader(new StringReader("alice@example.org\n")),
+                new PrintWriter(sink, true),
+                () -> "secret".toCharArray());
+        cmd.loginPositional = "alice";
+        cmd.provider = "local";
+        cmd.noInput = false;
+        cmd.run();
+        Properties props = cmd.getSubcommandProperties();
+        assertThat(props.getProperty("userCreate")).contains("\"email\":\"alice@example.org\"");
+        assertThat(props.getProperty("userCreate")).contains("\"password\":\"secret\"");
     }
 }
