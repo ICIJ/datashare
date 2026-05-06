@@ -88,17 +88,23 @@ public class ValidatorsTest {
 
     @Test
     public void test_groups_parses_comma_separated() {
-        assertThat(Validators.groups("a,b,c")).isEqualTo(List.of("a", "b", "c"));
-        assertThat(Validators.groups("a, b ,c")).isEqualTo(List.of("a", "b", "c"));
+        assertThat(Validators.groups("p1,p2,p3")).isEqualTo(List.of("p1", "p2", "p3"));
+        assertThat(Validators.groups("p1, p2 ,p3")).isEqualTo(List.of("p1", "p2", "p3"));
         assertThat(Validators.groups(null)).isEqualTo(List.of());
         assertThat(Validators.groups("")).isEqualTo(List.of());
     }
 
     @Test
-    public void test_groups_rejects_invalid_project_name() {
-        try { Validators.groups("a,B,c"); fail(); }
+    public void test_groups_rejects_single_char_project_name() {
+        try { Validators.groups("a"); fail(); }
         catch (Validators.InvalidValueException e) { assertThat(e.field()).isEqualTo("groups"); }
-        try { Validators.groups("a,-b,c"); fail(); }
+    }
+
+    @Test
+    public void test_groups_rejects_invalid_project_name() {
+        try { Validators.groups("p1,B,p3"); fail(); }
+        catch (Validators.InvalidValueException e) { assertThat(e.field()).isEqualTo("groups"); }
+        try { Validators.groups("p1,-b,p3"); fail(); }
         catch (Validators.InvalidValueException e) { assertThat(e.field()).isEqualTo("groups"); }
     }
 }
