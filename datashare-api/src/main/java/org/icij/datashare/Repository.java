@@ -72,6 +72,7 @@ public interface Repository {
     boolean getHealth();
 
     boolean save(User user);
+    boolean deleteUser(String userId);
     User getUser(String userId);
     // TODO: from version 21.0.3
     //  remove this after version 22.0.0 (or in a few stable releases)

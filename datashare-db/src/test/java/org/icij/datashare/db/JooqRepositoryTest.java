@@ -724,4 +724,39 @@ public class JooqRepositoryTest {
     public void test_db_status(){
         assertThat(repository.getHealth()).isTrue();
     }
+
+    @Test
+    public void test_delete_user_returns_false_when_user_does_not_exist() {
+        assertThat(repository.deleteUser("ghost")).isFalse();
+    }
+
+    @Test
+    public void test_delete_user_removes_user_inventory_row() {
+        User u = new User("alice", "Alice", "alice@example.org");
+        repository.save(u);
+        assertThat(repository.getUser("alice")).isNotNull();
+
+        assertThat(repository.deleteUser("alice")).isTrue();
+        assertThat(repository.getUser("alice")).isNull();
+    }
+
+    @Test
+    public void test_delete_user_cascades_user_history_and_recommendations_and_stars_and_tags() {
+        User u = new User("bob", "Bob", "bob@example.org");
+        Project p = project("prj-bob");
+        repository.save(u);
+        repository.save(p);
+
+        repository.addToUserHistory(singletonList(p), new UserEvent(u, UserEvent.Type.SEARCH, "name", Paths.get("/x").toUri()));
+        repository.recommend(p, u, singletonList("doc1"));
+        repository.star(p, u, singletonList("doc1"));
+        repository.tag(p, "doc1", new Tag("label", u, new Date()));
+
+        assertThat(repository.deleteUser("bob")).isTrue();
+
+        assertThat(repository.getUserEvents(u)).isEmpty();
+        assertThat(repository.getStarredDocuments(p, u)).isEmpty();
+        assertThat(repository.getTags(p, "doc1")).isEmpty();
+        assertThat(repository.getUser("bob")).isNull();
+    }
 }

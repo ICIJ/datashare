@@ -38,6 +38,7 @@ import static java.util.Optional.ofNullable;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toSet;
 import static org.icij.datashare.UserEvent.Type.fromId;
+import static org.icij.datashare.db.Tables.CASBIN_RULE;
 import static org.icij.datashare.db.Tables.PATH_BANNER;
 import static org.icij.datashare.db.Tables.USER_HISTORY_PROJECT;
 import static org.icij.datashare.db.tables.Document.DOCUMENT;
@@ -568,6 +569,47 @@ public class JooqRepository implements Repository {
                 set(USER_INVENTORY.NAME, user.name).
                 set(USER_INVENTORY.PROVIDER, user.provider).
                 execute() > 0;
+    }
+
+    @Override
+    public boolean deleteUser(String userId) {
+        DSLContext ctx = using(connectionProvider, dialect);
+        return ctx.transactionResult(configuration -> {
+            DSLContext inner = using(configuration);
+
+            // user_history_project FKs to user_history.id, so delete its rows
+            // for this user's history first
+            List<Integer> historyIds = inner.select(USER_HISTORY.ID)
+                    .from(USER_HISTORY)
+                    .where(USER_HISTORY.USER_ID.eq(userId))
+                    .fetch().getValues(USER_HISTORY.ID);
+            if (!historyIds.isEmpty()) {
+                inner.deleteFrom(USER_HISTORY_PROJECT)
+                        .where(USER_HISTORY_PROJECT.USER_HISTORY_ID.in(historyIds))
+                        .execute();
+                inner.deleteFrom(USER_HISTORY)
+                        .where(USER_HISTORY.ID.in(historyIds))
+                        .execute();
+            }
+
+            inner.deleteFrom(DOCUMENT_USER_RECOMMENDATION)
+                    .where(DOCUMENT_USER_RECOMMENDATION.USER_ID.eq(userId))
+                    .execute();
+            inner.deleteFrom(DOCUMENT_USER_STAR)
+                    .where(DOCUMENT_USER_STAR.USER_ID.eq(userId))
+                    .execute();
+            inner.deleteFrom(DOCUMENT_TAG)
+                    .where(DOCUMENT_TAG.USER_ID.eq(userId))
+                    .execute();
+            inner.deleteFrom(CASBIN_RULE)
+                    .where(CASBIN_RULE.V0.eq(userId))
+                    .execute();
+
+            int userDeleted = inner.deleteFrom(USER_INVENTORY)
+                    .where(USER_INVENTORY.ID.eq(userId))
+                    .execute();
+            return userDeleted > 0;
+        });
     }
 
     @Override
