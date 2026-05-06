@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.icij.datashare.cli.CliExitException;
 import org.icij.datashare.cli.Mode;
+import org.icij.datashare.cli.Prompter;
 import org.icij.datashare.cli.Validators;
 import org.icij.datashare.cli.Validators.InvalidValueException;
 import picocli.CommandLine;
@@ -65,6 +66,9 @@ public class UserCreateCommand implements Runnable, DatashareSubcommand {
     @CommandLine.Spec
     CommandLine.Model.CommandSpec spec;
 
+    // Package-visible for test injection; when non-null the TTY check is skipped.
+    Prompter prompterOverride;
+
     // Validated payload, populated during run(); consumed by getSubcommandProperties()
     private String validatedPayload;
 
@@ -79,20 +83,34 @@ public class UserCreateCommand implements Runnable, DatashareSubcommand {
             Validators.provider(provider);
             List<String> groups = Validators.groups(groupsCsv);
 
+            // Remember whether password was supplied via --password flag (before any prompting).
+            boolean passwordFromFlag = password != null;
+
             if (login == null || email == null || (("local".equals(provider)) && password == null)) {
                 if (noInput) {
                     spec.commandLine().getErr().println(
                             "error: missing required field; --no-input prevents prompting");
                     throw new CliExitException(2);
                 }
-                // Prompts are wired in Task 8. For now, emit exit 2 in non-prompt
-                // mode and rely on Task 8 to fill in missing fields.
-                spec.commandLine().getErr().println(
-                        "error: missing required field (interactive prompts wired in next task)");
-                throw new CliExitException(2);
+                Prompter prompter = prompterOverride != null ? prompterOverride : new Prompter();
+                if (prompterOverride == null && !prompter.isInteractive()) {
+                    spec.commandLine().getErr().println(
+                            "error: missing required field and no TTY available");
+                    throw new CliExitException(2);
+                }
+                try {
+                    if (login == null) login = prompter.promptString("Login", Validators::login);
+                    if (email == null) email = prompter.promptString("Email", Validators::email);
+                    if ("local".equals(provider) && password == null) {
+                        password = prompter.promptPassword();
+                    }
+                } catch (Prompter.ValidationFailedException e) {
+                    spec.commandLine().getErr().println("error: " + e.getMessage());
+                    throw new CliExitException(5);
+                }
             }
 
-            if (password != null) {
+            if (passwordFromFlag) {
                 spec.commandLine().getErr().println(
                         "warning: passing --password on the command line exposes it in process listings; consider using the interactive prompt instead");
             }
