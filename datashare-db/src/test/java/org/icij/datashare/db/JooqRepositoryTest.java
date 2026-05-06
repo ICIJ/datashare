@@ -755,6 +755,7 @@ public class JooqRepositoryTest {
         assertThat(repository.deleteUser("bob")).isTrue();
 
         assertThat(repository.getUserEvents(u)).isEmpty();
+        assertThat(repository.getRecommendationsBy(p, singletonList(u))).isEmpty();
         assertThat(repository.getStarredDocuments(p, u)).isEmpty();
         assertThat(repository.getTags(p, "doc1")).isEmpty();
         assertThat(repository.getUser("bob")).isNull();
