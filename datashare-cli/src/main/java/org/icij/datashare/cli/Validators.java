@@ -20,7 +20,7 @@ public final class Validators {
     }
 
     private static final Pattern LOGIN   = Pattern.compile("^[a-z0-9][a-z0-9._-]{1,63}$");
-    private static final Pattern PROJECT = Pattern.compile("^[a-z0-9][a-z0-9-]{0,63}$");
+    private static final Pattern PROJECT = Pattern.compile("^[a-z0-9][a-z0-9-]{1,63}$");
     private static final Set<String> PROVIDERS = Set.of("local", "oauth", "external");
 
     private Validators() {}
