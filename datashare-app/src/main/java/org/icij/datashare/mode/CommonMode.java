@@ -35,6 +35,8 @@ import org.icij.datashare.nlp.EmailPipeline;
 import org.icij.datashare.nlp.OptimaizeLanguageGuesser;
 import org.icij.datashare.policies.Authorizer;
 import org.icij.datashare.policies.CasbinRuleAdapter;
+import org.icij.datashare.user.admin.UserAdminService;
+import org.icij.datashare.user.admin.UserAdminServiceImpl;
 import org.icij.datashare.session.StatusCidrFilter;
 import org.icij.datashare.session.UsersInDb;
 import org.icij.datashare.session.UsersWritable;
@@ -381,6 +383,7 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
         bind(BatchSearchRepository.class).toInstance(repositoryFactory.createBatchSearchRepository());
         bind(CasbinRuleAdapter.class).toInstance(repositoryFactory.createCasbinRuleRepository());
         bind(Authorizer.class);
+        bind(UserAdminService.class).to(UserAdminServiceImpl.class).in(Singleton.class);
 
         TaskRepositoryType taskRepositoryType = TaskRepositoryType.valueOf(propertiesProvider.get(TASK_REPOSITORY_OPT).orElse("DATABASE"));
         switch ( taskRepositoryType ) {
