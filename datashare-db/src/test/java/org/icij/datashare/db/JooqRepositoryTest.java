@@ -24,6 +24,7 @@ import static java.util.Collections.singletonList;
 import static org.fest.assertions.Assertions.assertThat;
 import static org.icij.datashare.UserEvent.Type.DOCUMENT;
 import static org.icij.datashare.UserEvent.Type.SEARCH;
+import static org.icij.datashare.db.Tables.CASBIN_RULE;
 import static org.icij.datashare.db.tables.UserHistory.USER_HISTORY;
 import static org.icij.datashare.text.Language.*;
 import static org.icij.datashare.text.NamedEntity.Category.PERSON;
@@ -31,6 +32,7 @@ import static org.icij.datashare.text.Project.project;
 import static org.icij.datashare.text.Tag.tag;
 import static org.icij.datashare.text.nlp.Pipeline.Type.*;
 import static org.icij.datashare.user.User.nullUser;
+import static org.jooq.impl.DSL.using;
 
 @RunWith(Parameterized.class)
 public class JooqRepositoryTest {
@@ -751,6 +753,7 @@ public class JooqRepositoryTest {
         repository.recommend(p, u, singletonList("doc1"));
         repository.star(p, u, singletonList("doc1"));
         repository.tag(p, "doc1", new Tag("label", u, new Date()));
+        dbRule.createCasbinRuleRepository().addPolicy("p", "p", asList("bob", "prj-bob", "PROJECT_MEMBER"));
 
         assertThat(repository.deleteUser("bob")).isTrue();
 
@@ -759,5 +762,7 @@ public class JooqRepositoryTest {
         assertThat(repository.getStarredDocuments(p, u)).isEmpty();
         assertThat(repository.getTags(p, "doc1")).isEmpty();
         assertThat(repository.getUser("bob")).isNull();
+        assertThat(using(dbRule.dataSource, RepositoryFactoryImpl.guessSqlDialectFrom(dbRule.dataSourceUrl))
+                .fetchCount(CASBIN_RULE, CASBIN_RULE.V0.eq("bob"))).isEqualTo(0);
     }
 }
