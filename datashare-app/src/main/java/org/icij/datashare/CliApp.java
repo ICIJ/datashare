@@ -226,7 +226,15 @@ class CliApp {
                         new java.io.InputStreamReader(System.in)).readLine();
                 if (line == null || line.isEmpty()
                         || (line.charAt(0) != 'y' && line.charAt(0) != 'Y')) {
-                    System.err.println("aborted");
+                    if (json) {
+                        System.out.println(MAPPER.writeValueAsString(Map.of(
+                                "deleted", false,
+                                "noop", true,
+                                "aborted", true,
+                                "login", login)));
+                    } else {
+                        System.err.println("aborted");
+                    }
                     return 0;
                 }
             }
