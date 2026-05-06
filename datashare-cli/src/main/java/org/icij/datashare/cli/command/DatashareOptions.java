@@ -76,41 +76,41 @@ public final class DatashareOptions {
         }
     }
 
-    static void putIfNotNull(Properties props, String key, String value) {
+    public static void putIfNotNull(Properties props, String key, String value) {
         if (value != null) {
             props.setProperty(key, value);
         }
     }
 
-    static <E extends Enum<E>> void putIfNotNull(Properties props, String key, E value) {
+    public static <E extends Enum<E>> void putIfNotNull(Properties props, String key, E value) {
         if (value != null) {
             props.setProperty(key, value.name());
         }
     }
 
-    static void putIfNotNull(Properties props, String key, Object value) {
+    public static void putIfNotNull(Properties props, String key, Object value) {
         if (value != null) {
             props.setProperty(key, String.valueOf(value));
         }
     }
 
-    static void put(Properties props, String key, Object value) {
+    public static void put(Properties props, String key, Object value) {
         props.setProperty(key, String.valueOf(value));
     }
 
-    static void putAll(Properties props, Properties source) {
+    public static void putAll(Properties props, Properties source) {
         if (source != null) {
             props.putAll(source);
         }
     }
 
-    static void putIfTrue(Properties props, String key, boolean value) {
+    public static void putIfTrue(Properties props, String key, boolean value) {
         if (value) {
             props.setProperty(key, "true");
         }
     }
 
-    static void putAll(Properties props, DatashareSubcommand subcommand) {
+    public static void putAll(Properties props, DatashareSubcommand subcommand) {
         if (subcommand != null) {
             props.putAll(subcommand.getSubcommandProperties());
         }

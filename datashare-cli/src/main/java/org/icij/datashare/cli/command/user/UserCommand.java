@@ -6,7 +6,7 @@ import picocli.CommandLine.Spec;
 
 @Command(name = "user", mixinStandardHelpOptions = true,
         description = "Manage Datashare users (create, delete).",
-        subcommands = { /* leaves added in tasks 6 + 7 */ })
+        subcommands = { UserCreateCommand.class })
 public class UserCommand implements Runnable {
 
     @Spec

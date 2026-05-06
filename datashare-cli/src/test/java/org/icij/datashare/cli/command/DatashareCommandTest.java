@@ -1,5 +1,6 @@
 package org.icij.datashare.cli.command;
 
+import org.icij.datashare.cli.CliExitException;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -43,6 +44,17 @@ public class DatashareCommandTest {
             }
             return new CommandLine.RunLast().execute(parseResult);
         });
+        commandLine.setExecutionExceptionHandler((ex, cmd2, parseResult) -> {
+            if (ex instanceof CliExitException ce) {
+                return ce.exitCode();
+            }
+            Throwable cause = ex.getCause();
+            if (cause instanceof CliExitException ce2) {
+                return ce2.exitCode();
+            }
+            cmd2.getErr().println("error: " + ex.getMessage());
+            return 1;
+        });
         commandLine.execute(args);
         return cmd.collectProperties();
     }
@@ -62,6 +74,17 @@ public class DatashareCommandTest {
                 cmd.setExecutedSubcommand((DatashareSubcommand) userObject);
             }
             return new CommandLine.RunLast().execute(parseResult);
+        });
+        commandLine.setExecutionExceptionHandler((ex, cmd2, parseResult) -> {
+            if (ex instanceof CliExitException ce) {
+                return ce.exitCode();
+            }
+            Throwable cause = ex.getCause();
+            if (cause instanceof CliExitException ce2) {
+                return ce2.exitCode();
+            }
+            cmd2.getErr().println("error: " + ex.getMessage());
+            return 1;
         });
         return commandLine.execute(args);
     }
@@ -994,5 +1017,79 @@ public class DatashareCommandTest {
     public void test_user_without_subcommand_shows_help() {
         int exitCode = parseExitCode("user");
         assertThat(exitCode).isEqualTo(0);
+    }
+
+    @Test
+    public void test_user_create_happy_path() {
+        Properties props = parse("user", "create", "alice",
+                "--email", "alice@example.org",
+                "--password", "supersecret");
+        assertThat(props).includes(entry("mode", "CLI"));
+        String payload = props.getProperty("userCreate");
+        assertThat(payload).isNotNull();
+        assertThat(payload).contains("\"login\":\"alice\"");
+        assertThat(payload).contains("\"email\":\"alice@example.org\"");
+        assertThat(payload).contains("\"password\":\"supersecret\"");
+        assertThat(payload).contains("\"provider\":\"local\"");
+    }
+
+    @Test
+    public void test_user_create_with_groups() {
+        Properties props = parse("user", "create", "alice",
+                "--email", "alice@example.org",
+                "--password", "pw",
+                "--groups", "p1,p2");
+        assertThat(props.getProperty("userCreate")).contains("\"groups\":[\"p1\",\"p2\"]");
+    }
+
+    @Test
+    public void test_user_create_invalid_login_exits_5() {
+        int exit = parseExitCode("user", "create", "Alice",
+                "--email", "alice@example.org", "--password", "pw");
+        assertThat(exit).isEqualTo(5);
+    }
+
+    @Test
+    public void test_user_create_invalid_email_exits_5() {
+        int exit = parseExitCode("user", "create", "alice",
+                "--email", "not-an-email", "--password", "pw");
+        assertThat(exit).isEqualTo(5);
+    }
+
+    @Test
+    public void test_user_create_invalid_provider_exits_5() {
+        int exit = parseExitCode("user", "create", "alice",
+                "--email", "alice@example.org", "--password", "pw",
+                "--provider", "ldap");
+        assertThat(exit).isEqualTo(5);
+    }
+
+    @Test
+    public void test_user_create_no_input_missing_required_exits_2() {
+        int exit = parseExitCode("user", "create", "alice", "--no-input");
+        assertThat(exit).isEqualTo(2);
+    }
+
+    @Test
+    public void test_user_create_if_not_exists_flag() {
+        Properties props = parse("user", "create", "alice",
+                "--email", "alice@example.org", "--password", "pw",
+                "--if-not-exists");
+        assertThat(props.getProperty("userCreate")).contains("\"ifNotExists\":true");
+    }
+
+    @Test
+    public void test_user_create_json_flag() {
+        Properties props = parse("user", "create", "alice",
+                "--email", "alice@example.org", "--password", "pw",
+                "--json");
+        assertThat(props.getProperty("userCreate")).contains("\"json\":true");
+    }
+
+    @Test
+    public void test_user_create_overrides_shared_mode() {
+        Properties props = parse("user", "create", "alice",
+                "--email", "alice@example.org", "--password", "pw");
+        assertThat(props).includes(entry("mode", "CLI"));
     }
 }
