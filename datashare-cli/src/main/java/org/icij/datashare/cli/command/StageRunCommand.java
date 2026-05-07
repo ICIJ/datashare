@@ -13,9 +13,18 @@ import static org.icij.datashare.cli.DatashareCliOptions.MODE_OPT;
 @Command(name = "run", mixinStandardHelpOptions = true, description = {
         "Run one or more document processing pipeline stages.",
         "",
+        "Available stages (in pipeline order):",
+        "  SCAN           Scan filesystem for documents",
+        "  INDEX          Extract and index document content",
+        "  ENQUEUEIDX     Enqueue already-indexed document IDs for further processing",
+        "  CATEGORIZE     Enrich indexed documents with a contentTypeCategory field derived from their contentType",
+        "  NLP            Run named-entity recognition on indexed documents",
+        "  ARTIFACT       Generate document artifacts (thumbnails, etc.)",
+        "",
         "Examples:",
         "  datashare stage run --stages SCAN,INDEX",
         "  datashare stage run --stages SCAN,INDEX,NLP --nlpPipeline OPENNLP",
+        "  datashare stage run --stages ENQUEUEIDX,CATEGORIZE",
         "  datashare stage run --stages INDEX --resume",
         "  datashare --dataDir /data/docs -P my-project stage run --stages SCAN,INDEX,NLP"
 })
