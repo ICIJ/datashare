@@ -70,21 +70,19 @@ public class UserCreateCommand implements Runnable, DatashareSubcommand {
     // Package-visible for test injection; when non-null the TTY check is skipped.
     Prompter prompterOverride;
 
-    // Validated payload, populated during run(); consumed by getSubcommandProperties()
     private String validatedPayload;
 
     @Override
     public void run() {
         String login = loginPositional != null ? loginPositional : loginFlag;
         try {
-            // Validate non-null fields immediately; validation runs before the
-            // missing-field check so an invalid value exits 5, not 2.
+            // Validate supplied values before checking for missing fields so an
+            // invalid value exits 5, not 2.
             if (login != null) Validators.login(login);
             if (email != null) Validators.email(email);
             Validators.provider(provider);
             List<String> groups = Validators.groups(groupsCsv);
 
-            // Remember whether password was supplied via --password flag (before any prompting).
             boolean passwordFromFlag = password != null;
 
             if (login == null || email == null || (User.LOCAL.equals(provider) && password == null)) {
