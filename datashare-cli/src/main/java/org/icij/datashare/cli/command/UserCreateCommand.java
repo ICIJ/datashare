@@ -7,6 +7,7 @@ import org.icij.datashare.cli.Mode;
 import org.icij.datashare.cli.Prompter;
 import org.icij.datashare.cli.Validators;
 import org.icij.datashare.cli.Validators.InvalidValueException;
+import org.icij.datashare.user.User;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
@@ -86,7 +87,7 @@ public class UserCreateCommand implements Runnable, DatashareSubcommand {
             // Remember whether password was supplied via --password flag (before any prompting).
             boolean passwordFromFlag = password != null;
 
-            if (login == null || email == null || ("local".equals(provider) && password == null)) {
+            if (login == null || email == null || (User.LOCAL.equals(provider) && password == null)) {
                 if (noInput) {
                     spec.commandLine().getErr().println(
                             "error: missing required field; --no-input prevents prompting");
@@ -101,7 +102,7 @@ public class UserCreateCommand implements Runnable, DatashareSubcommand {
                 try {
                     if (login == null) login = prompter.promptString("Login", Validators::login);
                     if (email == null) email = prompter.promptString("Email", Validators::email);
-                    if ("local".equals(provider) && password == null) {
+                    if (User.LOCAL.equals(provider) && password == null) {
                         password = prompter.promptPassword();
                     }
                 } catch (Prompter.ValidationFailedException e) {
