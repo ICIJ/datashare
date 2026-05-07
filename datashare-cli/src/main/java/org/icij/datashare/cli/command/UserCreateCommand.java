@@ -86,7 +86,7 @@ public class UserCreateCommand implements Runnable, DatashareSubcommand {
             // Remember whether password was supplied via --password flag (before any prompting).
             boolean passwordFromFlag = password != null;
 
-            if (login == null || email == null || (("local".equals(provider)) && password == null)) {
+            if (login == null || email == null || ("local".equals(provider) && password == null)) {
                 if (noInput) {
                     spec.commandLine().getErr().println(
                             "error: missing required field; --no-input prevents prompting");
