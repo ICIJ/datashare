@@ -110,12 +110,12 @@ class CliApp {
             System.exit(0);
         }
 
-        if (properties.getProperty("userCreate") != null) {
+        if (properties.getProperty(USER_CREATE_OPT) != null) {
             UserAdminService userAdminService = mode.get(UserAdminService.class);
             System.exit(handleUserCreate(userAdminService, properties));
         }
 
-        if (properties.getProperty("userDelete") != null) {
+        if (properties.getProperty(USER_DELETE_OPT) != null) {
             UserAdminService userAdminService = mode.get(UserAdminService.class);
             System.exit(handleUserDelete(userAdminService, properties));
         }
@@ -164,20 +164,21 @@ class CliApp {
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
     static int handleUserCreate(UserAdminService service, Properties properties) {
-        String payload = (String) properties.remove("userCreate"); // remove after read
+        // Consume the property so the worker pipeline below does not re-process it.
+        String payload = (String) properties.remove(USER_CREATE_OPT);
         try {
             @SuppressWarnings("unchecked")
-            Map<String, Object> p = MAPPER.readValue(payload, Map.class);
-            boolean ifNotExists = Boolean.TRUE.equals(p.get("ifNotExists"));
-            boolean json = Boolean.TRUE.equals(p.get("json"));
+            Map<String, Object> fields = MAPPER.readValue(payload, Map.class);
+            boolean ifNotExists = Boolean.TRUE.equals(fields.get("ifNotExists"));
+            boolean json = Boolean.TRUE.equals(fields.get("json"));
 
             UserCreateRequest req = new UserCreateRequest(
-                    (String) p.get("login"),
-                    (String) p.get("email"),
-                    (String) p.get("name"),
-                    (String) p.get("password"),
-                    (String) p.get("provider"),
-                    ((List<?>) p.getOrDefault("groups", List.of())).stream()
+                    (String) fields.get("login"),
+                    (String) fields.get("email"),
+                    (String) fields.get("name"),
+                    (String) fields.get("password"),
+                    (String) fields.get("provider"),
+                    ((List<?>) fields.getOrDefault("groups", List.of())).stream()
                             .map(Object::toString).collect(java.util.stream.Collectors.toList()));
 
             UserCreated created = ifNotExists ? service.createIfNotExists(req) : service.create(req);
@@ -208,14 +209,15 @@ class CliApp {
     }
 
     static int handleUserDelete(UserAdminService service, Properties properties) {
-        String payload = (String) properties.remove("userDelete");
+        // Consume the property so the worker pipeline below does not re-process it.
+        String payload = (String) properties.remove(USER_DELETE_OPT);
         try {
             @SuppressWarnings("unchecked")
-            Map<String, Object> p = MAPPER.readValue(payload, Map.class);
-            boolean ifExists = Boolean.TRUE.equals(p.get("ifExists"));
-            boolean json = Boolean.TRUE.equals(p.get("json"));
-            boolean yes = Boolean.TRUE.equals(p.get("yes"));
-            String login = (String) p.get("login");
+            Map<String, Object> fields = MAPPER.readValue(payload, Map.class);
+            boolean ifExists = Boolean.TRUE.equals(fields.get("ifExists"));
+            boolean json = Boolean.TRUE.equals(fields.get("json"));
+            boolean yes = Boolean.TRUE.equals(fields.get("yes"));
+            String login = (String) fields.get("login");
 
             if (!yes) {
                 // Confirmation prompt — only matters in interactive mode. The CLI
@@ -264,8 +266,8 @@ class CliApp {
         if (payload == null) return false;
         try {
             @SuppressWarnings("unchecked")
-            Map<String, Object> p = MAPPER.readValue(payload, Map.class);
-            return Boolean.TRUE.equals(p.get("json"));
+            Map<String, Object> fields = MAPPER.readValue(payload, Map.class);
+            return Boolean.TRUE.equals(fields.get("json"));
         } catch (Exception e) { return false; }
     }
 
