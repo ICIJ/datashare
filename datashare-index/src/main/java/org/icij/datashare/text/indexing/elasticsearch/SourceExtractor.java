@@ -89,8 +89,10 @@ public class SourceExtractor {
         // used every available digesters to find it.
         for (DigestingParser.Digester digester : digesters) {
             Identifier identifier = new DigestIdentifier(hasher.toString(), Charset.defaultCharset());
-            TikaDocument rootDocument = new DocumentFactory().withIdentifier(identifier).create(document.getPath(),
-                    (String) document.getMetadata().get(document.getField(DocumentMetadataConstants.TIKA_VERSION)));
+            String tikaVersionField = document.getField(DocumentMetadataConstants.TIKA_VERSION);
+            String tikaVersion = (String) document.getMetadata().get(tikaVersionField);
+            TikaDocument rootDocument = new DocumentFactory().withIdentifier(identifier)
+                    .create(document.getPath(), tikaVersion);
 
             try {
                 EmbeddedDocumentExtractor embeddedExtractor = new EmbeddedDocumentExtractor(
