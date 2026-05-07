@@ -57,16 +57,16 @@ public final class Validators {
 
     public static List<String> groups(String csv) {
         if (csv == null || csv.isBlank()) return List.of();
-        List<String> out = new ArrayList<>();
+        List<String> validatedGroups = new ArrayList<>();
         for (String raw : csv.split(",")) {
-            String name = raw.trim();
-            if (name.isEmpty()) continue;
-            if (!PROJECT.matcher(name).matches()) {
+            String projectName = raw.trim();
+            if (projectName.isEmpty()) continue;
+            if (!PROJECT.matcher(projectName).matches()) {
                 throw new InvalidValueException("groups",
-                        "project name '" + name + "' must match ^[a-z0-9][a-z0-9-]{1,63}$");
+                        "project name '" + projectName + "' must match ^[a-z0-9][a-z0-9-]{1,63}$");
             }
-            out.add(name);
+            validatedGroups.add(projectName);
         }
-        return out;
+        return validatedGroups;
     }
 }
