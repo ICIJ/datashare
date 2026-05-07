@@ -577,20 +577,15 @@ public class JooqRepository implements Repository {
         return ctx.transactionResult(configuration -> {
             DSLContext inner = using(configuration);
 
-            // user_history_project FKs to user_history.id, so delete its rows
-            // for this user's history first
-            List<Integer> historyIds = inner.select(USER_HISTORY.ID)
-                    .from(USER_HISTORY)
+            // user_history_project FKs to user_history.id with no ON DELETE
+            // CASCADE — clear it before the parent rows.
+            inner.deleteFrom(USER_HISTORY_PROJECT)
+                    .where(USER_HISTORY_PROJECT.USER_HISTORY_ID.in(
+                            select(USER_HISTORY.ID).from(USER_HISTORY).where(USER_HISTORY.USER_ID.eq(userId))))
+                    .execute();
+            inner.deleteFrom(USER_HISTORY)
                     .where(USER_HISTORY.USER_ID.eq(userId))
-                    .fetch().getValues(USER_HISTORY.ID);
-            if (!historyIds.isEmpty()) {
-                inner.deleteFrom(USER_HISTORY_PROJECT)
-                        .where(USER_HISTORY_PROJECT.USER_HISTORY_ID.in(historyIds))
-                        .execute();
-                inner.deleteFrom(USER_HISTORY)
-                        .where(USER_HISTORY.ID.in(historyIds))
-                        .execute();
-            }
+                    .execute();
 
             inner.deleteFrom(DOCUMENT_USER_RECOMMENDATION)
                     .where(DOCUMENT_USER_RECOMMENDATION.USER_ID.eq(userId))
