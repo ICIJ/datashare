@@ -2,6 +2,7 @@ package org.icij.datashare.cli;
 
 import jakarta.mail.internet.AddressException;
 import jakarta.mail.internet.InternetAddress;
+import org.icij.datashare.user.User;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -21,7 +22,7 @@ public final class Validators {
 
     private static final Pattern LOGIN   = Pattern.compile("^[a-z0-9][a-z0-9._-]{1,63}$");
     private static final Pattern PROJECT = Pattern.compile("^[a-z0-9][a-z0-9-]{1,63}$");
-    private static final Set<String> PROVIDERS = Set.of("local", "oauth", "external");
+    private static final Set<String> PROVIDERS = Set.of(User.LOCAL, User.OAUTH, User.EXTERNAL);
 
     private Validators() {}
 

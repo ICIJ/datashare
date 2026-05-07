@@ -13,9 +13,6 @@ import java.util.Map;
 
 @Singleton
 public class UserAdminServiceImpl implements UserAdminService {
-    static final String OAUTH = "oauth";
-    static final String EXTERNAL = "external";
-
     private final Repository repository;
 
     @Inject
@@ -64,7 +61,7 @@ public class UserAdminServiceImpl implements UserAdminService {
             throw new ValidationException("password",
                     "password is required when provider=local");
         }
-        if (!User.LOCAL.equals(req.provider()) && !OAUTH.equals(req.provider()) && !EXTERNAL.equals(req.provider())) {
+        if (!User.LOCAL.equals(req.provider()) && !User.OAUTH.equals(req.provider()) && !User.EXTERNAL.equals(req.provider())) {
             throw new ValidationException("provider",
                     "provider must be one of local|oauth|external");
         }
