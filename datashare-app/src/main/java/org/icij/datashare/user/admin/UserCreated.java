@@ -9,8 +9,4 @@ public record UserCreated(
         String provider,
         List<String> groups,
         boolean noop
-) {
-    public UserCreated {
-        groups = groups == null ? List.of() : List.copyOf(groups);
-    }
-}
+) {}

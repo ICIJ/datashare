@@ -27,7 +27,7 @@ public class UserAdminServiceImpl implements UserAdminService {
         if (repository.getUser(req.login()) != null) {
             throw new UserExistsException(req.login());
         }
-        return persist(req, false);
+        return persist(req);
     }
 
     @Override
@@ -39,7 +39,7 @@ public class UserAdminServiceImpl implements UserAdminService {
             return new UserCreated(req.login(), req.email(), name,
                     req.provider(), req.groups(), true);
         }
-        return persist(req, false);
+        return persist(req);
     }
 
     @Override
@@ -67,7 +67,7 @@ public class UserAdminServiceImpl implements UserAdminService {
         }
     }
 
-    private UserCreated persist(UserCreateRequest req, boolean noop) {
+    private UserCreated persist(UserCreateRequest req) {
         String name = req.name() == null ? req.login() : req.name();
         Map<String, Object> details = new HashMap<>();
         details.put("uid", req.login());
@@ -85,6 +85,6 @@ public class UserAdminServiceImpl implements UserAdminService {
         User user = new User(req.login(), name, req.email(), req.provider(), details);
         repository.save(user);
         return new UserCreated(req.login(), req.email(), name,
-                req.provider(), req.groups(), noop);
+                req.provider(), req.groups(), false);
     }
 }
