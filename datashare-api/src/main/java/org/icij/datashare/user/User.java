@@ -18,6 +18,8 @@ import static org.icij.datashare.text.StringUtils.isEmpty;
 
 public class User implements Entity, Comparable<User> {
     public static final String LOCAL = "local";
+    public static final String OAUTH = "oauth";
+    public static final String EXTERNAL = "external";
     public static final String DEFAULT_PROJECTS_KEY = "groups_by_applications.datashare";
     public static final String JVM_PROJECT_KEY = "datashare.user.projects";
 
