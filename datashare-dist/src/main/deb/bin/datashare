@@ -50,7 +50,7 @@ cd $datashare_home || exit
 is_subcommand=false
 for _arg in "$@"; do
   case "$_arg" in
-    app|worker|stage|plugin|extension|api-key|help)
+    app|worker|stage|plugin|extension|api-key|user|help)
       is_subcommand=true
       break
       ;;
