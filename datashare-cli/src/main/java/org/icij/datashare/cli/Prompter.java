@@ -4,6 +4,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
+import java.util.Arrays;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
@@ -37,7 +38,7 @@ public class Prompter {
 
     public String promptString(String label, Consumer<String> validator) {
         String lastField = "unknown";
-        String lastMsg = "invalid value";
+        String lastMessage = "invalid value";
         for (int i = 0; i < MAX_RETRIES; i++) {
             out.print(label + ": ");
             out.flush();
@@ -53,29 +54,31 @@ public class Prompter {
                 return line;
             } catch (Validators.InvalidValueException e) {
                 lastField = e.field();
-                lastMsg = e.getMessage();
-                out.println("invalid: " + lastMsg);
+                lastMessage = e.getMessage();
+                out.println("invalid: " + lastMessage);
             }
         }
-        throw new ValidationFailedException(lastField, lastMsg);
+        throw new ValidationFailedException(lastField, lastMessage);
     }
 
     public String promptPassword() {
         for (int i = 0; i < MAX_RETRIES; i++) {
             out.print("Password: ");
             out.flush();
-            char[] first = passwordSupplier.get();
+            char[] firstEntry = passwordSupplier.get();
             out.print("Password (confirm): ");
             out.flush();
-            char[] second = passwordSupplier.get();
-            if (first != null && second != null
-                    && first.length == second.length
-                    && new String(first).equals(new String(second))
-                    && first.length > 0) {
-                String pw = new String(first);
-                java.util.Arrays.fill(first, '\0');
-                java.util.Arrays.fill(second, '\0');
-                return pw;
+            char[] confirmation = passwordSupplier.get();
+            if (firstEntry != null && confirmation != null
+                    && firstEntry.length == confirmation.length
+                    && new String(firstEntry).equals(new String(confirmation))
+                    && firstEntry.length > 0) {
+                String password = new String(firstEntry);
+                // Wipe the char[] copies so the password does not linger in
+                // memory longer than necessary; the String copy is unavoidable.
+                Arrays.fill(firstEntry, '\0');
+                Arrays.fill(confirmation, '\0');
+                return password;
             }
             out.println("invalid: passwords do not match or are empty");
         }
