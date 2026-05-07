@@ -37,8 +37,7 @@ public class Prompter {
     }
 
     public String promptString(String label, Consumer<String> validator) {
-        String lastField = "unknown";
-        String lastMessage = "invalid value";
+        Validators.InvalidValueException lastError = null;
         for (int i = 0; i < MAX_RETRIES; i++) {
             out.print(label + ": ");
             out.flush();
@@ -53,12 +52,11 @@ public class Prompter {
                 validator.accept(line);
                 return line;
             } catch (Validators.InvalidValueException e) {
-                lastField = e.field();
-                lastMessage = e.getMessage();
-                out.println("invalid: " + lastMessage);
+                lastError = e;
+                out.println("invalid: " + e.getMessage());
             }
         }
-        throw new ValidationFailedException(lastField, lastMessage);
+        throw new ValidationFailedException(lastError.field(), lastError.getMessage());
     }
 
     public String promptPassword() {
@@ -69,18 +67,18 @@ public class Prompter {
             out.print("Password (confirm): ");
             out.flush();
             char[] confirmation = passwordSupplier.get();
-            if (firstEntry != null && confirmation != null
-                    && firstEntry.length == confirmation.length
-                    && new String(firstEntry).equals(new String(confirmation))
-                    && firstEntry.length > 0) {
-                String password = new String(firstEntry);
-                // Wipe the char[] copies so the password does not linger in
-                // memory longer than necessary; the String copy is unavoidable.
-                Arrays.fill(firstEntry, '\0');
-                Arrays.fill(confirmation, '\0');
-                return password;
+            try {
+                if (firstEntry != null && confirmation != null
+                        && firstEntry.length > 0
+                        && Arrays.equals(firstEntry, confirmation)) {
+                    return new String(firstEntry);
+                }
+                out.println("invalid: passwords do not match or are empty");
+            } finally {
+                // Wipe char[] copies so the password does not linger in memory.
+                if (firstEntry != null) Arrays.fill(firstEntry, '\0');
+                if (confirmation != null) Arrays.fill(confirmation, '\0');
             }
-            out.println("invalid: passwords do not match or are empty");
         }
         throw new ValidationFailedException("password",
                 "password entry failed after " + MAX_RETRIES + " attempts");
