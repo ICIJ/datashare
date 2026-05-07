@@ -2,6 +2,7 @@ package org.icij.datashare;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.icij.datashare.cli.CliExtensionService;
+import org.icij.datashare.cli.Prompter;
 import org.icij.datashare.cli.spi.CliExtension;
 import org.icij.datashare.mode.CommonMode;
 import org.icij.datashare.tasks.ArtifactTask;
@@ -164,13 +165,13 @@ class CliApp {
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
     static int handleUserCreate(UserAdminService service, Properties properties) {
-        // Consume the property so the worker pipeline below does not re-process it.
         String payload = (String) properties.remove(USER_CREATE_OPT);
+        boolean json = false;
         try {
             @SuppressWarnings("unchecked")
             Map<String, Object> fields = MAPPER.readValue(payload, Map.class);
+            json = Boolean.TRUE.equals(fields.get("json"));
             boolean ifNotExists = Boolean.TRUE.equals(fields.get("ifNotExists"));
-            boolean json = Boolean.TRUE.equals(fields.get("json"));
 
             UserCreateRequest req = new UserCreateRequest(
                     (String) fields.get("login"),
@@ -200,45 +201,36 @@ class CliApp {
             }
             return 0;
         } catch (UserExistsException e) {
-            return error(e.getMessage(), "conflict", 4, propertyHasJson(payload));
+            return error(e.getMessage(), "conflict", 4, json);
         } catch (ValidationException e) {
-            return error(e.getMessage(), "validation", 5, propertyHasJson(payload));
+            return error(e.getMessage(), "validation", 5, json);
         } catch (Exception e) {
-            return error("runtime: " + e.getMessage(), "runtime", 1, propertyHasJson(payload));
+            return error("runtime: " + e.getMessage(), "runtime", 1, json);
         }
     }
 
     static int handleUserDelete(UserAdminService service, Properties properties) {
-        // Consume the property so the worker pipeline below does not re-process it.
         String payload = (String) properties.remove(USER_DELETE_OPT);
+        boolean json = false;
         try {
             @SuppressWarnings("unchecked")
             Map<String, Object> fields = MAPPER.readValue(payload, Map.class);
+            json = Boolean.TRUE.equals(fields.get("json"));
             boolean ifExists = Boolean.TRUE.equals(fields.get("ifExists"));
-            boolean json = Boolean.TRUE.equals(fields.get("json"));
             boolean yes = Boolean.TRUE.equals(fields.get("yes"));
             String login = (String) fields.get("login");
 
-            if (!yes) {
-                // Confirmation prompt — only matters in interactive mode. The CLI
-                // command already handles --yes / --no-input; if we got here without
-                // --yes the user is on a TTY and should confirm.
-                System.err.print("Really delete user '" + login + "'? [y/N]: ");
-                String line = new java.io.BufferedReader(
-                        new java.io.InputStreamReader(System.in)).readLine();
-                if (line == null || line.isEmpty()
-                        || (line.charAt(0) != 'y' && line.charAt(0) != 'Y')) {
-                    if (json) {
-                        System.out.println(MAPPER.writeValueAsString(Map.of(
-                                "deleted", false,
-                                "noop", true,
-                                "aborted", true,
-                                "login", login)));
-                    } else {
-                        System.err.println("aborted");
-                    }
-                    return 0;
+            if (!yes && !new Prompter().confirm("Really delete user '" + login + "'?")) {
+                if (json) {
+                    System.out.println(MAPPER.writeValueAsString(Map.of(
+                            "deleted", false,
+                            "noop", true,
+                            "aborted", true,
+                            "login", login)));
+                } else {
+                    System.err.println("aborted");
                 }
+                return 0;
             }
 
             boolean removed = ifExists ? service.deleteIfExists(login) : service.delete(login);
@@ -256,19 +248,10 @@ class CliApp {
             }
             return 0;
         } catch (UserNotFoundException e) {
-            return error(e.getMessage(), "not_found", 3, propertyHasJson(payload));
+            return error(e.getMessage(), "not_found", 3, json);
         } catch (Exception e) {
-            return error("runtime: " + e.getMessage(), "runtime", 1, propertyHasJson(payload));
+            return error("runtime: " + e.getMessage(), "runtime", 1, json);
         }
-    }
-
-    private static boolean propertyHasJson(String payload) {
-        if (payload == null) return false;
-        try {
-            @SuppressWarnings("unchecked")
-            Map<String, Object> fields = MAPPER.readValue(payload, Map.class);
-            return Boolean.TRUE.equals(fields.get("json"));
-        } catch (Exception e) { return false; }
     }
 
     private static int error(String message, String code, int exit, boolean json) {
