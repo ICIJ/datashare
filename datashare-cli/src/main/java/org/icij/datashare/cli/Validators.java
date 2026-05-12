@@ -26,15 +26,14 @@ public final class Validators {
 
     private Validators() {}
 
-    public static String login(String value) {
+    public static void login(String value) {
         if (value == null || !LOGIN.matcher(value).matches()) {
             throw new InvalidValueException("login",
                     "login must match ^[a-z0-9][a-z0-9._-]{1,63}$");
         }
-        return value;
     }
 
-    public static String email(String value) {
+    public static void email(String value) {
         if (value == null || value.isEmpty()) {
             throw new InvalidValueException("email", "email is required");
         }
@@ -45,15 +44,13 @@ public final class Validators {
             throw new InvalidValueException("email",
                     "email is not a valid RFC 5322 address: " + e.getMessage());
         }
-        return value;
     }
 
-    public static String provider(String value) {
+    public static void provider(String value) {
         if (!PROVIDERS.contains(value)) {
             throw new InvalidValueException("provider",
                     "provider must be one of " + PROVIDERS);
         }
-        return value;
     }
 
     public static List<String> groups(String csv) {
