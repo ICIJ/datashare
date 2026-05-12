@@ -1,116 +1,45 @@
 package org.icij.datashare.asynctasks;
 
-import static io.grpc.health.v1.HealthCheckResponse.ServingStatus.SERVING;
-import static io.temporal.api.enums.v1.WorkflowExecutionStatus.WORKFLOW_EXECUTION_STATUS_RUNNING;
-import static org.icij.datashare.LambdaExceptionUtils.rethrowConsumer;
-import static org.icij.datashare.LambdaExceptionUtils.rethrowFunction;
-import static org.icij.datashare.asynctasks.Task.State.FINAL_STATES;
-import static org.icij.datashare.asynctasks.Task.USER_KEY;
-import static org.icij.datashare.asynctasks.bus.amqp.Event.MAX_RETRIES_LEFT;
-import static org.icij.datashare.asynctasks.temporal.TemporalHelper.asExecInfoFilter;
-import static org.icij.datashare.asynctasks.temporal.TemporalHelper.asTaskState;
-import static org.icij.datashare.asynctasks.temporal.TemporalInterlocutor.DEFAULT_NAMESPACE_POLL_INTERVAL;
-import static org.icij.datashare.asynctasks.temporal.TemporalInterlocutor.MAX_PROGRESS_CUSTOM_ATTRIBUTE;
-import static org.icij.datashare.asynctasks.temporal.TemporalInterlocutor.PROGRESS_CUSTOM_ATTRIBUTE;
-import static org.icij.datashare.asynctasks.temporal.TemporalInterlocutor.USER_CUSTOM_ATTRIBUTE;
-
-import com.google.protobuf.ByteString;
-import com.google.protobuf.Timestamp;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
-import io.temporal.api.common.v1.Payloads;
-import io.temporal.api.common.v1.WorkflowExecution;
 import io.temporal.api.enums.v1.WorkflowIdConflictPolicy;
 import io.temporal.api.enums.v1.WorkflowIdReusePolicy;
-import io.temporal.api.workflow.v1.WorkflowExecutionInfo;
-import io.temporal.api.workflowservice.v1.DeleteWorkflowExecutionRequest;
-import io.temporal.api.workflowservice.v1.ListWorkflowExecutionsRequest;
-import io.temporal.api.workflowservice.v1.ListWorkflowExecutionsResponse;
-import io.temporal.api.workflowservice.v1.WorkflowServiceGrpc;
-import io.temporal.client.WorkflowClient;
-import io.temporal.client.WorkflowExecutionAlreadyStarted;
-import io.temporal.client.WorkflowExecutionDescription;
-import io.temporal.client.WorkflowExecutionMetadata;
-import io.temporal.client.WorkflowFailedException;
-import io.temporal.client.WorkflowNotFoundException;
-import io.temporal.client.WorkflowOptions;
-import io.temporal.client.WorkflowStub;
+import io.temporal.client.*;
 import io.temporal.common.SearchAttributes;
-import io.temporal.common.converter.DefaultDataConverter;
+import org.icij.datashare.asynctasks.temporal.TemporalInputPayload;
+import org.icij.datashare.asynctasks.temporal.TemporalInterlocutor;
+import org.icij.datashare.tasks.RoutingStrategy;
+
 import java.io.IOException;
 import java.io.Serializable;
 import java.time.Duration;
-import java.util.Comparator;
-import java.util.Date;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.NoSuchElementException;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
-import java.util.Spliterator;
-import java.util.Spliterators;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Consumer;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
 
-import io.temporal.common.converter.JacksonJsonPayloadConverter;
-import org.icij.datashare.asynctasks.bus.amqp.TaskError;
-import org.icij.datashare.asynctasks.temporal.TemporalInputPayload;
-import org.icij.datashare.asynctasks.temporal.TemporalInterlocutor;
-import org.icij.datashare.asynctasks.temporal.TemporalQueryBuilder;
-import org.icij.datashare.function.Pair;
-import org.icij.datashare.json.JsonObjectMapper;
-import org.icij.datashare.tasks.RoutingStrategy;
-import org.icij.datashare.user.User;
+import static io.temporal.api.enums.v1.WorkflowExecutionStatus.WORKFLOW_EXECUTION_STATUS_RUNNING;
+import static org.icij.datashare.LambdaExceptionUtils.rethrowConsumer;
+import static org.icij.datashare.asynctasks.Task.State.FINAL_STATES;
+import static org.icij.datashare.asynctasks.temporal.TemporalInterlocutor.*;
 
 public class TaskManagerTemporal implements TaskManager {
-    // TODO: in-memory hack for strong consistence, maybe a repository would be a better implem
-    private final ConcurrentHashMap.KeySetView<String, Boolean> executions = ConcurrentHashMap.newKeySet();
 
-    public static final String DEFAULT_NAMESPACE = "datashare-default";
-
-    private final WorkflowClient client;
-    private final String namespace;
+    private final TemporalInterlocutor temporal;
     private final RoutingStrategy routingStrategy;
+    private final TaskRepository taskRepository;
 
     private static final Duration DEFAULT_WORKFLOW_TASK_TIMEOUT = Duration.ofDays(7);
-    private static final int DEFAULT_PAGE_SIZE = 100;
 
     // TODO: add support for continue-as-new https://docs.temporal.io/develop/java/continue-as-new
 
     private static final String TERMINATION_MSG = "terminated_by_user";
     public static final String WORKFLOWS_DEFAULT = "default-java";
 
-    private static final DefaultDataConverter defaultDataConverter = DefaultDataConverter.newDefaultInstance()
-            .withPayloadConverterOverrides(new JacksonJsonPayloadConverter(JsonObjectMapper.getMapper()));
-
-
-    private final WorkflowServiceGrpc.WorkflowServiceBlockingStub workflowServiceBlockingStub;
-
-    public TaskManagerTemporal(TemporalInterlocutor temporal, RoutingStrategy routingStrategy) {
-        this(temporal.client, temporal.client.getWorkflowServiceStubs().blockingStub(), routingStrategy);
-    }
-
-    protected TaskManagerTemporal(WorkflowClient client, RoutingStrategy routingStrategy) {
-        this(client, client.getWorkflowServiceStubs().blockingStub(), routingStrategy);
-    }
-
-    protected TaskManagerTemporal(
-        WorkflowClient client,
-        WorkflowServiceGrpc.WorkflowServiceBlockingStub workflowServiceStubs,
-        RoutingStrategy routingStrategy
-    ) {
-        this.client = client;
-        this.namespace = client.getOptions().getNamespace();
-        this.workflowServiceBlockingStub = workflowServiceStubs;
+    public TaskManagerTemporal(TemporalInterlocutor temporal, TaskRepository taskRepository, RoutingStrategy routingStrategy) {
+        this.temporal = temporal;
         this.routingStrategy = routingStrategy;
+        this.taskRepository = taskRepository;
     }
 
     @Override
@@ -123,25 +52,25 @@ public class TaskManagerTemporal implements TaskManager {
             .setTypedSearchAttributes(generateSearchAttributes(taskView))
             .setTaskQueue(resolveWfTaskQueue(taskView.name, group));
         try {
-            client.newUntypedWorkflowStub(taskView.name, optionBuilder.build())
+            temporal.newUntypedWorkflowStub(taskView.name, optionBuilder.build())
                 .start(new TemporalInputPayload(taskView.args));
         } catch (WorkflowExecutionAlreadyStarted ex) {
             throw new TaskAlreadyExists(taskId, ex);
         }
-        executions.add(taskId);
+
         // Super important force description to refresh the cache and make the task visible
-        client.newUntypedWorkflowStub(taskId).describe();
+        temporal.newUntypedWorkflowStub(taskId).describe();
         return taskId;
     }
 
     @Override
     public <V extends Serializable> Task<V> getTask(String taskId) throws IOException, UnknownTask {
-        return parseTask(getWorkflowExecution(taskId));
+        return temporal.parseTask(getWorkflowExecution(taskId), this);
     }
 
     @Override
     public Stream<Task<?>> getTasks(TaskFilters filters) throws IOException {
-        Stream<Task<?>> tasks = eventuallyConsistentListExecutions(filters).map(rethrowFunction(this::parseTask));
+        Stream<Task<?>> tasks = temporal.getWorkflows(filters);
         // Temporal doesn't allow to search by args we have to post filter task retrieved with other filters
         if (filters.hasArgs()) {
             TaskFilters byArgs = TaskFilters.empty().withArgs(filters.getArgs());
@@ -152,34 +81,13 @@ public class TaskManagerTemporal implements TaskManager {
 
     @Override
     public Stream<String> getTaskIds(TaskFilters filters) throws IOException {
-        Stream<WorkflowExecutionInfo> execs = eventuallyConsistentListExecutions(filters);
-        Iterator<WorkflowExecutionInfo> iterator =
-            new StronglyConsistentExecutionIterator(execs, executions, this::fetchExecByIdsIfExist, filters);
-        execs = StreamSupport.stream(
-            Spliterators.spliteratorUnknownSize(iterator, Spliterator.ORDERED),
-            false // not parallel
-        );
-        // Temporal doesn't allow to search by args we have to post filter task retrieved with other filters
-        if (filters.hasArgs()) {
-            TaskFilters byArgs = TaskFilters.empty().withArgs(filters.getArgs());
-            execs = execs.map(e -> new Pair<>(e, getArgs(e)))
-                .filter(p -> byArgs.filter(p._2()))
-                .map(Pair::_1);
-        }
-        return execs.map(e -> e.getExecution().getWorkflowId());
+        return temporal.getWorkflowsIds(filters);
     }
 
     @Override
     public <V extends Serializable> Task<V> clearTask(String taskId) throws UnknownTask, IOException {
         Task<V> task = getTask(taskId);
-        unknownIfNotFound(rethrowConsumer(t -> {
-            DeleteWorkflowExecutionRequest.Builder requestBuilder = DeleteWorkflowExecutionRequest.newBuilder();
-            requestBuilder
-                .setNamespace(namespace)
-                .setWorkflowExecution(requestBuilder.getWorkflowExecutionBuilder().setWorkflowId(t).build());
-            workflowServiceBlockingStub.deleteWorkflowExecution(requestBuilder.build());
-        }), taskId);
-        executions.remove(taskId);
+        temporal.deleteExecution(taskId);
         return task;
     }
 
@@ -187,7 +95,7 @@ public class TaskManagerTemporal implements TaskManager {
     public boolean stopTask(String taskId) throws IOException, UnknownTask {
         // TODO: add support for cancellation rather than termination, update the TaskManager API accordingly
         return unknownIfNotFound(tId -> {
-            WorkflowStub workflowStub = client.newUntypedWorkflowStub(tId);
+            WorkflowStub workflowStub = temporal.newUntypedWorkflowStub(tId);
             boolean isRunning = workflowStub.describe().getStatus() == WORKFLOW_EXECUTION_STATUS_RUNNING;
             try {
                 workflowStub.terminate(TERMINATION_MSG);
@@ -207,7 +115,7 @@ public class TaskManagerTemporal implements TaskManager {
             states.retainAll(filters.getStates());
         }
         List<Task<?>> tasks = getTasks(filters.withStates(states)).toList();
-        tasks.stream().map(Task::getId).forEach(rethrowConsumer(this::deleteExecution));
+        tasks.stream().map(Task::getId).forEach(rethrowConsumer(temporal::deleteExecution));
         return tasks;
     }
 
@@ -220,13 +128,13 @@ public class TaskManagerTemporal implements TaskManager {
     @Override
     public void clear() throws IOException {
         Set<String> taskIds = getTaskIds().collect(Collectors.toSet());
-        taskIds.forEach(rethrowConsumer(this::deleteExecution));
+        taskIds.forEach(rethrowConsumer(temporal::deleteExecution));
     }
 
     @Override
     public boolean getHealth() throws IOException {
         try {
-            return client.getWorkflowServiceStubs().healthCheck().getStatus().equals(SERVING);
+            return temporal.getHealth();
         } catch (StatusRuntimeException ignored) {
             return false;
         }
@@ -258,220 +166,14 @@ public class TaskManagerTemporal implements TaskManager {
         }
     }
 
-    private Stream<WorkflowExecutionInfo> eventuallyConsistentListExecutions(TaskFilters filters) {
-        PageFetcher<WorkflowExecutionInfo> fetcher =
-            getWorkflowExecutionFetcher(TemporalQueryBuilder.buildFromFilters(filters));
-        return StreamSupport.stream(
-            Spliterators.spliteratorUnknownSize(new TemporalPageIterator<>(fetcher), Spliterator.ORDERED), false);
-    }
-
-    private <V extends Serializable> Task<V> parseTask(WorkflowExecutionMetadata response) {
-        return parseTask(response.getWorkflowExecutionInfo());
-    }
-
-    private <V extends Serializable> Task<V> parseTask(WorkflowExecutionInfo workflowExecutionInfo) {
-        WorkflowExecution execution = workflowExecutionInfo.getExecution();
-        String taskId = execution.getWorkflowId();
-        String taskName = workflowExecutionInfo.getType().getName();
-        double progress = parseProgress(workflowExecutionInfo);
-        Date createdAt = new Date(workflowExecutionInfo.getStartTime().getSeconds() * 1000);
-        Date completedAt = null;
-        Timestamp closeTime = workflowExecutionInfo.getCloseTime();
-        if (!closeTime.equals(Timestamp.getDefaultInstance())) {
-            completedAt = new Date(closeTime.getSeconds() * 1000);
-        }
-        TaskResult<V> result = null;
-        TaskError error = null;
-        Task.State state = asTaskState(workflowExecutionInfo.getStatus());
-        if (Objects.requireNonNull(state) == Task.State.ERROR || state == Task.State.DONE) {
-            try {
-                Serializable res = client.newUntypedWorkflowStub(workflowExecutionInfo.getExecution().getWorkflowId())
-                        .getResult(Serializable.class);
-                //TODO this is a big hack because Temporal does not use the TYPE_INCLUSION_MAPPER
-                // to deserialize for now
-                if (res instanceof Map<?, ?>) {
-                    try {
-                        res = JsonObjectMapper.readValueTyped(
-                                JsonObjectMapper.writeValueAsString(res), Serializable.class);
-                    } catch (IOException e) {
-                        logger.warn("could not convert result to typed object", e);
-                    }
-                }
-                if (res != null) {
-                    result = new TaskResult<>((V) res);
-                }
-            } catch (WorkflowFailedException ex) {
-                error = new TaskError(ex.getCause());
-            }
-        }
-        Map<String, Object> args = getArgs(workflowExecutionInfo);
-        int retriesLeft = MAX_RETRIES_LEFT; // retriesLeft makes no sense in the context of a workflow,
-        // it only makes sense for subtasks/activities
-        return new Task<>(taskId, taskName, state, progress, createdAt, retriesLeft, completedAt, args, result, error);
-    }
-
-    private Map<String, Object> getArgs(WorkflowExecutionInfo workflowExecutionInfo) {
-        Map<String, Object> args = null;
-        WorkflowExecution execution = workflowExecutionInfo.getExecution();
-        Payloads payloads = client.fetchHistory(execution.getWorkflowId(), execution.getRunId()).getEvents().get(0)
-            .getWorkflowExecutionStartedEventAttributes().getInput();
-        if (payloads.getPayloadsCount() > 1) {
-            throw new RuntimeException("invalid payload count, expected exactly 1 payload");
-        }
-        TemporalInputPayload payload =
-            defaultDataConverter.fromPayload(payloads.getPayloads(0), TemporalInputPayload.class,
-                TemporalInputPayload.class);
-        if (payload != null) {
-            args = payload.args();
-            args.computeIfPresent(USER_KEY, (k, v) -> JsonObjectMapper.convertValue(v, User.class));
-        }
-        return args;
-    }
-
-    private static double parseProgress(WorkflowExecutionInfo workflowExecutionInfo) {
-        double maxProgress = defaultDataConverter.fromPayload(workflowExecutionInfo.getSearchAttributes()
-            .getIndexedFieldsOrThrow(MAX_PROGRESS_CUSTOM_ATTRIBUTE.getName()), Double.class, Double.class);
-        if (maxProgress == 0) {
-            return 0.0;
-        }
-        double currentProgress = defaultDataConverter.fromPayload(
-            workflowExecutionInfo.getSearchAttributes().getIndexedFieldsOrThrow(PROGRESS_CUSTOM_ATTRIBUTE.getName()),
-            Double.class, Double.class);
-        return currentProgress / maxProgress;
-    }
-
     protected String resolveWfTaskQueue(String taskName, Group group) {
         return resolveWfTaskQueue(routingStrategy, taskName, group);
     }
 
     private WorkflowExecutionDescription getWorkflowExecution(String taskId) throws UnknownTask {
         return unknownIfNotFound(t -> {
-            return client.newUntypedWorkflowStub(taskId).describe();
+            return temporal.newUntypedWorkflowStub(taskId).describe();
         }, taskId);
-    }
-
-    @FunctionalInterface
-    interface PageFetcher<P> {
-        Page<P> fetchPage(ByteString nextPageToken);
-    }
-
-    record Page<P>(List<P> items, ByteString nextPageToken) {
-    }
-
-    private static class TemporalPageIterator<P> implements Iterator<P> {
-        // TODO: check if Temporal returns a null of empty token at the ned
-        private ByteString nextPageToken = null;
-        private final PageFetcher<P> fetcher;
-        private Iterator<P> itemsIterator;
-
-        TemporalPageIterator(PageFetcher<P> fetcher) {
-            this.fetcher = fetcher;
-        }
-
-        @Override
-        public boolean hasNext() {
-            if (itemsIterator != null && itemsIterator.hasNext()) {
-                return true;
-            }
-            if (itemsIterator != null && nextPageToken.equals(ByteString.EMPTY)) {
-                return false;
-            }
-            Page<P> newPage = fetcher.fetchPage(nextPageToken);
-            nextPageToken = newPage.nextPageToken;
-            itemsIterator = newPage.items.iterator();
-            return itemsIterator.hasNext();
-        }
-
-        @Override
-        public P next() {
-            if (!hasNext()) {
-                throw new NoSuchElementException();
-            }
-            return itemsIterator.next();
-        }
-    }
-
-    private PageFetcher<WorkflowExecutionInfo> getWorkflowExecutionFetcher(String query) {
-        return (ByteString nextPageToken) -> {
-            ListWorkflowExecutionsRequest.Builder requestBuilder =
-                ListWorkflowExecutionsRequest.newBuilder().setNamespace(namespace).setPageSize(DEFAULT_PAGE_SIZE);
-            if (nextPageToken != null) {
-                requestBuilder.setNextPageToken(nextPageToken);
-            }
-            Optional.ofNullable(query).ifPresent(q -> {
-                if (!q.isEmpty()) {
-                    requestBuilder.setQuery(q);
-                }
-            });
-            ListWorkflowExecutionsResponse response = workflowServiceBlockingStub
-                .listWorkflowExecutions(requestBuilder.build());
-            return new Page<>(response.getExecutionsList(), response.getNextPageToken());
-        };
-    }
-
-    private static class StronglyConsistentExecutionIterator implements Iterator<WorkflowExecutionInfo> {
-        private final Iterator<WorkflowExecutionInfo> listWorkflowsResults;
-        private final Set<String> remainingIds;
-        private final Function<Set<String>, Stream<WorkflowExecutionInfo>> fetchKnownExecInfoFn;
-        private final TaskFilters filters;
-
-        private Iterator<WorkflowExecutionInfo> missingItems = null;
-
-        StronglyConsistentExecutionIterator(Stream<WorkflowExecutionInfo> listWorkflowsResults, Set<String> knownIds,
-                                            Function<Set<String>, Stream<WorkflowExecutionInfo>> fetchKnownExecInfoFn,
-                                            TaskFilters filters) {
-            this.listWorkflowsResults = listWorkflowsResults.iterator();
-            this.remainingIds = new HashSet<>(knownIds);
-            this.fetchKnownExecInfoFn = fetchKnownExecInfoFn;
-            this.filters = filters;
-        }
-
-        @Override
-        public boolean hasNext() {
-            if (listWorkflowsResults.hasNext()) {
-                return true;
-            }
-            if (missingItems == null) {
-                if (!this.remainingIds.isEmpty()) {
-                    missingItems = fetchKnownExecInfoFn.apply(this.remainingIds)
-                        .filter(asExecInfoFilter(filters))
-                        .iterator();
-                } else {
-                    missingItems = Stream.<WorkflowExecutionInfo>of().iterator();
-                }
-            }
-            return missingItems.hasNext();
-        }
-
-        @Override
-        public WorkflowExecutionInfo next() {
-            if (listWorkflowsResults.hasNext()) {
-                WorkflowExecutionInfo fromSearch = listWorkflowsResults.next();
-                remainingIds.remove(fromSearch.getExecution().getWorkflowId());
-                return fromSearch;
-            }
-            return missingItems.next();
-        }
-    }
-
-    private static void unknownIfNotFound(Consumer<String> supplier, String taskId) {
-        unknownIfNotFound((t) -> {
-            supplier.accept(t);
-            return null;
-        }, taskId);
-    }
-
-    private static <T> T unknownIfNotFound(Function<String, T> function, String taskId) {
-        try {
-            return function.apply(taskId);
-        } catch (StatusRuntimeException e) {
-            if (e.getStatus().equals(Status.NOT_FOUND)) {
-                throw new UnknownTask(taskId);
-            }
-            throw e;
-        } catch (WorkflowNotFoundException e) {
-            throw new UnknownTask(taskId);
-        }
     }
 
     static SearchAttributes generateSearchAttributes(Task<?> taskView) {
@@ -502,31 +204,13 @@ public class TaskManagerTemporal implements TaskManager {
         throw new RuntimeException("failed to clear task in " + timeout + " " + timeUnit);
     }
 
-    protected void awaitCleared(int timeout, TimeUnit timeUnit) throws IOException {
-        long startTime = System.currentTimeMillis();
-        long maxDuration = timeUnit.toMillis(timeout);
-        while ((System.currentTimeMillis() - startTime < maxDuration)) {
-            try (Stream<String> taskIds = getTaskIds()) {
-                if (taskIds.count() == 0) {
-                    return;
-                }
-            }
-            try {
-                Thread.sleep(getTerminationPollingInterval());
-            } catch (InterruptedException e) {
-                throw new RuntimeException(e);
-            }
-        }
-        throw new RuntimeException("failed to clear task in " + timeout + " " + timeUnit);
-    }
-
     protected void awaitExecutionDeletion(Set<String> taskIds) throws InterruptedException {
         // TODO: avoid the infinite loop
         // TODO: implement throttling
         while (true) {
             boolean allDeleted = taskIds.stream().allMatch(tId -> {
                 try {
-                    client.newUntypedWorkflowStub(tId).describe();
+                    temporal.newUntypedWorkflowStub(tId).describe();
                 } catch (StatusRuntimeException ex) {
                     if (ex.getStatus().getCode().equals(Status.Code.NOT_FOUND)) {
                         return true;
@@ -542,40 +226,5 @@ public class TaskManagerTemporal implements TaskManager {
             // TODO: define a proper duration
             Thread.sleep(DEFAULT_NAMESPACE_POLL_INTERVAL.toMillis());
         }
-    }
-
-    private void deleteExecution(String workflowId) {
-        try {
-            DeleteWorkflowExecutionRequest deleteWorkflowExecutionRequest = DeleteWorkflowExecutionRequest.newBuilder()
-                .setNamespace(namespace)
-                .setWorkflowExecution(WorkflowExecution.newBuilder().setWorkflowId(workflowId))
-                .build();
-            workflowServiceBlockingStub.deleteWorkflowExecution(deleteWorkflowExecutionRequest);
-            // Try to refresh the cache
-            client.newUntypedWorkflowStub(workflowId).describe();
-        } catch (StatusRuntimeException ex) {
-            if (!ex.getStatus().getCode().equals(Status.Code.NOT_FOUND)) {
-                throw ex;
-            }
-        } catch (WorkflowNotFoundException ignored) {
-        }
-        executions.remove(workflowId);
-    }
-
-    private Stream<WorkflowExecutionInfo> fetchExecByIdsIfExist(Set<String> executionIds) {
-        return executionIds.stream()
-            .map(id -> {
-                try {
-                    return client.newUntypedWorkflowStub(id).describe().getWorkflowExecutionInfo();
-                } catch (StatusRuntimeException ex) {
-                    if (!ex.getStatus().getCode().equals(Status.Code.NOT_FOUND)) {
-                        throw ex;
-                    }
-                    return null;
-                } catch (WorkflowNotFoundException ignored) {
-                    return null;
-                }
-            })
-            .filter(Objects::nonNull);
     }
 }

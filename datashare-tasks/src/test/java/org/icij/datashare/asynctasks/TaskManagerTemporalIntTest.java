@@ -6,7 +6,7 @@ import static org.icij.datashare.asynctasks.Task.State.CANCELLED;
 import static org.icij.datashare.asynctasks.Task.State.DONE;
 import static org.icij.datashare.asynctasks.Task.State.ERROR;
 import static org.icij.datashare.asynctasks.Task.State.RUNNING;
-import static org.icij.datashare.asynctasks.TaskManagerTemporal.DEFAULT_NAMESPACE;
+import static org.icij.datashare.asynctasks.temporal.TemporalInterlocutor.DEFAULT_NAMESPACE;
 import static org.icij.datashare.asynctasks.TaskManagerTemporal.WORKFLOWS_DEFAULT;
 import static org.icij.datashare.asynctasks.temporal.TemporalHelper.activityFactory;
 import static org.icij.datashare.asynctasks.temporal.TemporalHelper.createTemporalWorkerFactory;
@@ -32,6 +32,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.icij.datashare.EnvUtils;
+import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.asynctasks.temporal.DoNothingWorkflowImpl;
 import org.icij.datashare.asynctasks.temporal.DoNothingActivityImpl;
 import org.icij.datashare.asynctasks.temporal.DoNothingTask;
@@ -43,15 +44,20 @@ import org.icij.datashare.asynctasks.temporal.TemporalHelper;
 import org.icij.datashare.asynctasks.temporal.TemporalInterlocutor;
 import org.icij.datashare.tasks.RoutingStrategy;
 import org.icij.datashare.user.User;
+import org.icij.extract.redis.RedissonClientFactory;
+import org.icij.task.Options;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.Mock;
+import org.redisson.api.RedissonClient;
 
 public class TaskManagerTemporalIntTest {
     private AutoCloseable mocks;
-
+    static RedissonClient redissonClient = new RedissonClientFactory().withOptions(
+            Options.from(new PropertiesProvider(Map.of("redisAddress", EnvUtils.resolveUri("redis", "redis://redis:6379"))).getProperties())).create();
+    static TaskRepository taskRepository = new TaskRepositoryRedis(redissonClient, "tasks:queue:test");
     @Mock
     private TaskFactory taskFactory;
 
@@ -65,7 +71,7 @@ public class TaskManagerTemporalIntTest {
     @BeforeClass
     public static void setUpClass() throws InterruptedException {
         temporal = new TemporalInterlocutor(EnvUtils.resolve("temporalTarget", "temporal:7233"), DEFAULT_NAMESPACE);
-        taskManager = new TaskManagerTemporal(temporal, RoutingStrategy.UNIQUE);
+        taskManager = new TaskManagerTemporal(temporal, taskRepository, RoutingStrategy.UNIQUE);
     }
 
     @Before
@@ -82,11 +88,11 @@ public class TaskManagerTemporalIntTest {
             new TemporalHelper.RegisteredWorkflow(
                 HelloWorldWorkflowImpl.class,
                 WORKFLOWS_DEFAULT,
-                List.of(new TemporalHelper.RegisteredActivity(activityFactory(HelloWorldActivityImpl.class, taskFactory, temporal.client, 1.0d), WORKFLOWS_DEFAULT))),
+                List.of(new TemporalHelper.RegisteredActivity(activityFactory(HelloWorldActivityImpl.class, taskFactory, temporal.getClient(), 1.0d), WORKFLOWS_DEFAULT))),
             new TemporalHelper.RegisteredWorkflow(
                 FailingWorkflowImpl.class,
                 WORKFLOWS_DEFAULT,
-                List.of(new TemporalHelper.RegisteredActivity(activityFactory(FailingActivityImpl.class, taskFactory, temporal.client, 1.0d), WORKFLOWS_DEFAULT)))
+                List.of(new TemporalHelper.RegisteredActivity(activityFactory(FailingActivityImpl.class, taskFactory, temporal.getClient(), 1.0d), WORKFLOWS_DEFAULT)))
         );
 
         temporal.setupNamespace(Duration.ofSeconds(5));
@@ -214,7 +220,7 @@ public class TaskManagerTemporalIntTest {
 
     @Test(timeout = 10000)
     public void test_get_task_result() throws IOException {
-        try (TemporalHelper.CloseableWorkerFactoryHandle ignored = testCloseableWorkerFactory(temporal.client)) {
+        try (TemporalHelper.CloseableWorkerFactoryHandle ignored = testCloseableWorkerFactory(temporal.getClient())) {
             Task<String> task = new Task<>("hello-world", User.local(), Map.of("name", "world"));
 
             taskManager.startTask(task);
@@ -228,7 +234,7 @@ public class TaskManagerTemporalIntTest {
 
     @Test(timeout = 20000)
     public void test_task_error() throws IOException, InterruptedException {
-        try (TemporalHelper.CloseableWorkerFactoryHandle ignored = testCloseableWorkerFactory(temporal.client)) {
+        try (TemporalHelper.CloseableWorkerFactoryHandle ignored = testCloseableWorkerFactory(temporal.getClient())) {
             Task<String> task = new Task<>("failing", User.local(), Map.of());
 
             taskManager.startTask(task);
@@ -268,7 +274,7 @@ public class TaskManagerTemporalIntTest {
     @Ignore("keeping this one for manual test as it can take very long to complete")
     @Test
     public void test_clear_done_tasks() throws Exception {
-        try (TemporalHelper.CloseableWorkerFactoryHandle ignored = testCloseableWorkerFactory(temporal.client)) {
+        try (TemporalHelper.CloseableWorkerFactoryHandle ignored = testCloseableWorkerFactory(temporal.getClient())) {
             Task<String> task = new Task<>("hello-world", User.local(), Map.of("key", "value"));
             taskManager.startTask(task);
             assertThat(taskManager.awaitTermination(2, TimeUnit.SECONDS));
@@ -283,7 +289,7 @@ public class TaskManagerTemporalIntTest {
     @Ignore("keeping this one for manual test as it can take very long to complete")
     @Test
     public void test_clear_done_tasks_with_args_filter() throws IOException, InterruptedException {
-        try (TemporalHelper.CloseableWorkerFactoryHandle ignored = testCloseableWorkerFactory(temporal.client)) {
+        try (TemporalHelper.CloseableWorkerFactoryHandle ignored = testCloseableWorkerFactory(temporal.getClient())) {
             Task<String> first = new Task<>("hello-world", User.local(), Map.of("key", "value"));
             Task<String> second = new Task<>("hello-world", User.local(), Map.of("otherKey", "otherValue"));
             taskManager.startTask(first);
@@ -320,14 +326,14 @@ public class TaskManagerTemporalIntTest {
                 DoNothingWorkflowImpl.class,
                 WORKFLOWS_DEFAULT,
                 List.of(new TemporalHelper.RegisteredActivity(
-                    activityFactory(DoNothingActivityImpl.class, capturingFactory, temporal.client, 1.0d),
+                    activityFactory(DoNothingActivityImpl.class, capturingFactory, temporal.getClient(), 1.0d),
                     WORKFLOWS_DEFAULT
                 ))
             )
         );
 
         try (TemporalHelper.CloseableWorkerFactoryHandle ignored =
-                new TemporalHelper.CloseableWorkerFactoryHandle(createTemporalWorkerFactory(workflows, temporal.client))) {
+                new TemporalHelper.CloseableWorkerFactoryHandle(createTemporalWorkerFactory(workflows, temporal.getClient()))) {
             Task<String> task = new Task<>(DoNothingTask.class.getName(), User.local(), Map.of());
 
             taskManager.startTask(task);
@@ -359,26 +365,4 @@ public class TaskManagerTemporalIntTest {
         boolean stoppedAgain = taskManager.stopTask(task.getId());
         assertThat(stoppedAgain).isFalse();
     }
-
-    @Test
-    public void test_health_ok() throws IOException {
-        assertThat(taskManager.getHealth()).isTrue();
-    }
-
-    @Test
-    public void test_health_ko() throws Exception {
-        WorkflowServiceStubsOptions serviceStubsOptions = WorkflowServiceStubsOptions.newBuilder()
-            .setTarget("localhost:1111")
-            .build();
-        WorkflowServiceStubs serviceStub = WorkflowServiceStubs.newServiceStubs(serviceStubsOptions);
-        WorkflowClient koClient = WorkflowClient.newInstance(
-            serviceStub, WorkflowClientOptions.newBuilder().setNamespace(DEFAULT_NAMESPACE).build()
-        );
-
-        try (
-            TaskManagerTemporal koTaskManager = new TaskManagerTemporal(koClient, RoutingStrategy.UNIQUE)) {
-            assertThat(koTaskManager.getHealth()).isFalse();
-        }
-    }
-
 }
