@@ -10,9 +10,12 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 @Singleton
 public class UserAdminServiceImpl implements UserAdminService {
+    private static final Set<String> KNOWN_PROVIDERS = Set.of(User.LOCAL, User.OAUTH, User.EXTERNAL);
+
     private final Repository repository;
 
     @Inject
@@ -21,25 +24,25 @@ public class UserAdminServiceImpl implements UserAdminService {
     }
 
     @Override
-    public UserCreated create(UserCreateRequest req)
+    public UserCreated create(UserCreateRequest request)
             throws UserExistsException, ValidationException {
-        validate(req);
-        if (repository.getUser(req.login()) != null) {
-            throw new UserExistsException(req.login());
+        validate(request);
+        if (repository.getUser(request.login()) != null) {
+            throw new UserExistsException(request.login());
         }
-        return persist(req);
+        return persist(request);
     }
 
     @Override
-    public UserCreated createIfNotExists(UserCreateRequest req)
+    public UserCreated createIfNotExists(UserCreateRequest request)
             throws ValidationException {
-        validate(req);
-        if (repository.getUser(req.login()) != null) {
-            String name = req.name() == null ? req.login() : req.name();
-            return new UserCreated(req.login(), req.email(), name,
-                    req.provider(), req.groups(), true);
+        validate(request);
+        if (repository.getUser(request.login()) != null) {
+            String name = request.name() == null ? request.login() : request.name();
+            return new UserCreated(request.login(), request.email(), name,
+                    request.provider(), request.groups(), true);
         }
-        return persist(req);
+        return persist(request);
     }
 
     @Override
@@ -56,35 +59,45 @@ public class UserAdminServiceImpl implements UserAdminService {
         return repository.deleteUser(login);
     }
 
-    private void validate(UserCreateRequest req) throws ValidationException {
-        if (User.LOCAL.equals(req.provider()) && (req.password() == null || req.password().isEmpty())) {
+    private static boolean isLocal(UserCreateRequest request) {
+        return User.LOCAL.equals(request.provider());
+    }
+
+    private void validate(UserCreateRequest request) throws ValidationException {
+        if (request.login() == null || request.login().isEmpty()) {
+            throw new ValidationException("login", "login is required");
+        }
+        if (request.email() == null || request.email().isEmpty()) {
+            throw new ValidationException("email", "email is required");
+        }
+        if (request.provider() == null || !KNOWN_PROVIDERS.contains(request.provider())) {
+            throw new ValidationException("provider",
+                    "provider must be one of " + KNOWN_PROVIDERS);
+        }
+        if (isLocal(request) && (request.password() == null || request.password().isEmpty())) {
             throw new ValidationException("password",
                     "password is required when provider=local");
         }
-        if (!User.LOCAL.equals(req.provider()) && !User.OAUTH.equals(req.provider()) && !User.EXTERNAL.equals(req.provider())) {
-            throw new ValidationException("provider",
-                    "provider must be one of local|oauth|external");
-        }
     }
 
-    private UserCreated persist(UserCreateRequest req) {
-        String name = req.name() == null ? req.login() : req.name();
+    private UserCreated persist(UserCreateRequest request) {
+        String name = request.name() == null ? request.login() : request.name();
         Map<String, Object> details = new HashMap<>();
-        details.put("uid", req.login());
+        details.put("uid", request.login());
         details.put("name", name);
-        details.put("email", req.email());
+        details.put("email", request.email());
 
-        if (User.LOCAL.equals(req.provider()) && req.password() != null) {
-            details.put("password", Hasher.SHA_256.hash(req.password()));
+        if (isLocal(request) && request.password() != null) {
+            details.put("password", Hasher.SHA_256.hash(request.password()));
         }
 
         Map<String, Object> appsByGroup = new LinkedHashMap<>();
-        appsByGroup.put("datashare", List.copyOf(req.groups()));
+        appsByGroup.put("datashare", List.copyOf(request.groups()));
         details.put("groups_by_applications", appsByGroup);
 
-        User user = new User(req.login(), name, req.email(), req.provider(), details);
+        User user = new User(request.login(), name, request.email(), request.provider(), details);
         repository.save(user);
-        return new UserCreated(req.login(), req.email(), name,
-                req.provider(), req.groups(), false);
+        return new UserCreated(request.login(), request.email(), name,
+                request.provider(), request.groups(), false);
     }
 }
