@@ -17,6 +17,8 @@ import java.util.Map;
 import java.util.Properties;
 
 import static org.icij.datashare.cli.DatashareCliOptions.MODE_OPT;
+import static org.icij.datashare.cli.DatashareCliOptions.USER_DELETE_IF_EXISTS_OPT;
+import static org.icij.datashare.cli.DatashareCliOptions.USER_DELETE_JSON_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.USER_DELETE_OPT;
 
 @Command(name = "delete", mixinStandardHelpOptions = true, description = {
@@ -54,7 +56,8 @@ public class UserDeleteCommand implements Runnable, DatashareSubcommand {
     // Package-visible for test injection; when non-null the TTY check is skipped.
     Prompter prompterOverride;
 
-    private String validatedPayload;
+    private String resolvedLogin;
+    private boolean ready;
 
     @Override
     public void run() {
@@ -62,13 +65,14 @@ public class UserDeleteCommand implements Runnable, DatashareSubcommand {
         try {
             if (login != null) Validators.login(login);
 
+            Prompter prompter = null;
             if (login == null) {
                 if (noInput) {
                     spec.commandLine().getErr().println(
                             "error: --login is required when --no-input is set");
                     throw new CliExitException(2);
                 }
-                Prompter prompter = prompterOverride != null ? prompterOverride : new Prompter();
+                prompter = prompterOverride != null ? prompterOverride : new Prompter();
                 if (prompterOverride == null && !prompter.isInteractive()) {
                     spec.commandLine().getErr().println(
                             "error: --login is required and no TTY available");
@@ -82,18 +86,43 @@ public class UserDeleteCommand implements Runnable, DatashareSubcommand {
                 }
             }
 
-            Map<String, Object> payload = new LinkedHashMap<>();
-            payload.put("login", login);
-            payload.put("yes", yes || noInput);
-            payload.put("ifExists", ifExists);
-            payload.put("json", json);
+            // Confirmation: prompt before scheduling the destructive action so
+            // CliApp stays IO-free and tests can drive the decline path via
+            // prompterOverride. --yes and --no-input both skip the prompt.
+            boolean confirmed = yes || noInput;
+            if (!confirmed) {
+                Prompter confirmPrompter = prompter != null
+                        ? prompter
+                        : (prompterOverride != null ? prompterOverride : new Prompter());
+                confirmed = confirmPrompter.confirm("Really delete user '" + login + "'?");
+            }
+            if (!confirmed) {
+                emitAborted(login);
+                throw new CliExitException(0);
+            }
 
-            validatedPayload = MAPPER.writeValueAsString(payload);
+            this.resolvedLogin = login;
+            this.ready = true;
         } catch (InvalidValueException e) {
             spec.commandLine().getErr().println("error: " + e.getMessage());
             throw new CliExitException(5);
-        } catch (JsonProcessingException e) {
-            throw new RuntimeException(e);
+        }
+    }
+
+    private void emitAborted(String login) {
+        if (json) {
+            Map<String, Object> payload = new LinkedHashMap<>();
+            payload.put("deleted", false);
+            payload.put("noop", true);
+            payload.put("aborted", true);
+            payload.put("login", login);
+            try {
+                spec.commandLine().getOut().println(MAPPER.writeValueAsString(payload));
+            } catch (JsonProcessingException e) {
+                spec.commandLine().getErr().println("aborted");
+            }
+        } else {
+            spec.commandLine().getErr().println("aborted");
         }
     }
 
@@ -101,9 +130,12 @@ public class UserDeleteCommand implements Runnable, DatashareSubcommand {
     public Properties getSubcommandProperties() {
         Properties props = new Properties();
         DatashareOptions.put(props, MODE_OPT, Mode.CLI);
-        if (validatedPayload != null) {
-            DatashareOptions.put(props, USER_DELETE_OPT, validatedPayload);
+        if (!ready) {
+            return props;
         }
+        DatashareOptions.put(props, USER_DELETE_OPT, resolvedLogin);
+        DatashareOptions.putIfTrue(props, USER_DELETE_IF_EXISTS_OPT, ifExists);
+        DatashareOptions.putIfTrue(props, USER_DELETE_JSON_OPT, json);
         return props;
     }
 }

@@ -1,7 +1,5 @@
 package org.icij.datashare.cli.command;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.icij.datashare.cli.CliExitException;
 import org.icij.datashare.cli.Mode;
 import org.icij.datashare.cli.Prompter;
@@ -13,13 +11,18 @@ import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 import picocli.CommandLine.Parameters;
 
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Properties;
 
 import static org.icij.datashare.cli.DatashareCliOptions.MODE_OPT;
+import static org.icij.datashare.cli.DatashareCliOptions.USER_CREATE_EMAIL_OPT;
+import static org.icij.datashare.cli.DatashareCliOptions.USER_CREATE_GROUPS_OPT;
+import static org.icij.datashare.cli.DatashareCliOptions.USER_CREATE_IF_NOT_EXISTS_OPT;
+import static org.icij.datashare.cli.DatashareCliOptions.USER_CREATE_JSON_OPT;
+import static org.icij.datashare.cli.DatashareCliOptions.USER_CREATE_NAME_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.USER_CREATE_OPT;
+import static org.icij.datashare.cli.DatashareCliOptions.USER_CREATE_PASSWORD_OPT;
+import static org.icij.datashare.cli.DatashareCliOptions.USER_CREATE_PROVIDER_OPT;
 
 @Command(name = "create", mixinStandardHelpOptions = true, description = {
         "Create a Datashare user.",
@@ -30,8 +33,6 @@ import static org.icij.datashare.cli.DatashareCliOptions.USER_CREATE_OPT;
         "  datashare user create alice --email alice@example.org --provider oauth --no-input"
 })
 public class UserCreateCommand implements Runnable, DatashareSubcommand {
-
-    private static final ObjectMapper MAPPER = new ObjectMapper();
 
     @Parameters(index = "0", arity = "0..1", description = "Login (positional)")
     String loginPositional;
@@ -70,7 +71,11 @@ public class UserCreateCommand implements Runnable, DatashareSubcommand {
     // Package-visible for test injection; when non-null the TTY check is skipped.
     Prompter prompterOverride;
 
-    private String validatedPayload;
+    private String resolvedLogin;
+    private String resolvedEmail;
+    private String resolvedPassword;
+    private String canonicalGroupsCsv;
+    private boolean ready;
 
     @Override
     public void run() {
@@ -114,22 +119,14 @@ public class UserCreateCommand implements Runnable, DatashareSubcommand {
                         "warning: passing --password on the command line exposes it in process listings; consider using the interactive prompt instead");
             }
 
-            Map<String, Object> payload = new LinkedHashMap<>();
-            payload.put("login", login);
-            payload.put("email", email);
-            payload.put("name", name == null ? login : name);
-            payload.put("password", password);
-            payload.put("provider", provider);
-            payload.put("groups", groups);
-            payload.put("ifNotExists", ifNotExists);
-            payload.put("json", json);
-
-            validatedPayload = MAPPER.writeValueAsString(payload);
+            this.resolvedLogin = login;
+            this.resolvedEmail = email;
+            this.resolvedPassword = password;
+            this.canonicalGroupsCsv = String.join(",", groups);
+            this.ready = true;
         } catch (InvalidValueException e) {
             spec.commandLine().getErr().println("error: " + e.getMessage());
             throw new CliExitException(5);
-        } catch (JsonProcessingException e) {
-            throw new RuntimeException(e);
         }
     }
 
@@ -137,9 +134,19 @@ public class UserCreateCommand implements Runnable, DatashareSubcommand {
     public Properties getSubcommandProperties() {
         Properties props = new Properties();
         DatashareOptions.put(props, MODE_OPT, Mode.CLI);
-        if (validatedPayload != null) {
-            DatashareOptions.put(props, USER_CREATE_OPT, validatedPayload);
+        if (!ready) {
+            return props;
         }
+        // The login is the dispatch marker (CliApp tests for USER_CREATE_OPT
+        // presence); siblings carry the remaining fields as typed strings.
+        DatashareOptions.put(props, USER_CREATE_OPT, resolvedLogin);
+        DatashareOptions.put(props, USER_CREATE_EMAIL_OPT, resolvedEmail);
+        DatashareOptions.putIfNotNull(props, USER_CREATE_NAME_OPT, name);
+        DatashareOptions.putIfNotNull(props, USER_CREATE_PASSWORD_OPT, resolvedPassword);
+        DatashareOptions.put(props, USER_CREATE_PROVIDER_OPT, provider);
+        DatashareOptions.put(props, USER_CREATE_GROUPS_OPT, canonicalGroupsCsv);
+        DatashareOptions.putIfTrue(props, USER_CREATE_IF_NOT_EXISTS_OPT, ifNotExists);
+        DatashareOptions.putIfTrue(props, USER_CREATE_JSON_OPT, json);
         return props;
     }
 }
