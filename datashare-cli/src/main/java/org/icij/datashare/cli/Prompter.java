@@ -31,6 +31,9 @@ public class Prompter {
     }
 
     public Prompter(BufferedReader in, PrintWriter out, Supplier<char[]> passwordSupplier) {
+        if (MAX_RETRIES < 1) {
+            throw new IllegalStateException("Prompter.MAX_RETRIES must be >= 1");
+        }
         this.in = in;
         this.out = out;
         this.passwordSupplier = passwordSupplier;
@@ -67,18 +70,12 @@ public class Prompter {
             out.print("Password (confirm): ");
             out.flush();
             char[] confirmation = passwordSupplier.get();
-            try {
-                if (firstEntry != null && confirmation != null
-                        && firstEntry.length > 0
-                        && Arrays.equals(firstEntry, confirmation)) {
-                    return new String(firstEntry);
-                }
-                out.println("invalid: passwords do not match or are empty");
-            } finally {
-                // Wipe char[] copies so the password does not linger in memory.
-                if (firstEntry != null) Arrays.fill(firstEntry, '\0');
-                if (confirmation != null) Arrays.fill(confirmation, '\0');
+            if (firstEntry != null && confirmation != null
+                    && firstEntry.length > 0
+                    && Arrays.equals(firstEntry, confirmation)) {
+                return new String(firstEntry);
             }
+            out.println("invalid: passwords do not match or are empty");
         }
         throw new ValidationFailedException("password",
                 "password entry failed after " + MAX_RETRIES + " attempts");
@@ -92,6 +89,8 @@ public class Prompter {
             return line != null && !line.isEmpty()
                     && (line.charAt(0) == 'y' || line.charAt(0) == 'Y');
         } catch (IOException e) {
+            // Treat IO failure as an implicit "no": refusing to delete on a
+            // broken stream is safer than acting on garbage input.
             return false;
         }
     }
