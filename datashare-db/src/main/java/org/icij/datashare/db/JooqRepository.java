@@ -573,6 +573,14 @@ public class JooqRepository implements Repository {
 
     @Override
     public boolean deleteUser(String userId) {
+        // Scope: this cascade removes the user's own footprint in tables that
+        // reference USER_INVENTORY.ID, plus the casbin rule rows where the
+        // user is the subject (V0). It intentionally does NOT touch:
+        //   - api_key, batch_search*: managed by separate admin commands;
+        //     deleting a user with active API keys or batch searches will
+        //     fail at the FK layer (callers must clean those up first).
+        //   - casbin_rule V1/V2: role/group rules where the user is named as
+        //     a target rather than a subject are out of scope for this DAO.
         DSLContext ctx = using(connectionProvider, dialect);
         return ctx.transactionResult(configuration -> {
             DSLContext inner = using(configuration);
