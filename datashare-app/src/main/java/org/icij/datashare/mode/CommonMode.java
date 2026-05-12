@@ -249,9 +249,9 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
 
     @Provides @Singleton
     TaskManagerTemporal provideTaskManagerTemporal(
-            TemporalInterlocutor temporal, PropertiesProvider propertiesProvider) {
+            TemporalInterlocutor temporal, TaskRepository taskRepository, PropertiesProvider propertiesProvider) {
         return new TaskManagerTemporal(
-                temporal, Utils.getRoutingStrategy(propertiesProvider));
+                temporal, taskRepository, Utils.getRoutingStrategy(propertiesProvider));
     }
 
     @Provides @Singleton
@@ -423,7 +423,7 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
                 workflows = TemporalHelper.discoverWorkflows(
                     "org.icij.datashare.tasks",
                     get(DatashareTaskFactory.class),
-                    temporal.client,
+                    temporal.getClient(),
                     Utils.getRoutingStrategy(propertiesProvider),
                     new Group(TaskGroupType.Java)
                 );
