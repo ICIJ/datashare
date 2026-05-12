@@ -1019,9 +1019,9 @@ public class DatashareCommandTest {
     }
 
     @Test
-    public void test_user_without_subcommand_shows_help() {
+    public void test_user_without_subcommand_exits_2() {
         int exitCode = parseExitCode("user");
-        assertThat(exitCode).isEqualTo(0);
+        assertThat(exitCode).isEqualTo(2);
     }
 
     @Test
