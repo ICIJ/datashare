@@ -138,8 +138,21 @@ public final class DatashareCliOptions {
     public static final String TASK_MANAGER_POLLING_INTERVAL_OPT = "taskManagerPollingIntervalMilliseconds";
     public static final String TASK_WORKERS_OPT = "taskWorkers";
     public static final String TASK_PROGRESS_INTERVAL_OPT = "taskProgressUpdateIntervalSeconds";
+    // Internal property keys for the CLI -> CliApp dispatch of the user
+    // commands. USER_CREATE_OPT and USER_DELETE_OPT carry the login; the
+    // .* siblings carry the remaining fields. Typed siblings replaced a
+    // JSON blob to keep the dispatch ABI compile-time-typed.
     public static final String USER_CREATE_OPT = "userCreate";
+    public static final String USER_CREATE_EMAIL_OPT = USER_CREATE_OPT + ".email";
+    public static final String USER_CREATE_NAME_OPT = USER_CREATE_OPT + ".name";
+    public static final String USER_CREATE_PASSWORD_OPT = USER_CREATE_OPT + ".password";
+    public static final String USER_CREATE_PROVIDER_OPT = USER_CREATE_OPT + ".provider";
+    public static final String USER_CREATE_GROUPS_OPT = USER_CREATE_OPT + ".groups";
+    public static final String USER_CREATE_IF_NOT_EXISTS_OPT = USER_CREATE_OPT + ".ifNotExists";
+    public static final String USER_CREATE_JSON_OPT = USER_CREATE_OPT + ".json";
     public static final String USER_DELETE_OPT = "userDelete";
+    public static final String USER_DELETE_IF_EXISTS_OPT = USER_DELETE_OPT + ".ifExists";
+    public static final String USER_DELETE_JSON_OPT = USER_DELETE_OPT + ".json";
 
     private static final Path DEFAULT_DATASHARE_HOME = Paths.get(System.getProperty("user.home"), ".local/share/datashare");
     private static final Integer DEFAULT_NLP_PARALLELISM = 1;

@@ -1030,12 +1030,12 @@ public class DatashareCommandTest {
                 "--email", "alice@example.org",
                 "--password", "supersecret");
         assertThat(props).includes(entry("mode", "CLI"));
-        String payload = props.getProperty("userCreate");
-        assertThat(payload).isNotNull();
-        assertThat(payload).contains("\"login\":\"alice\"");
-        assertThat(payload).contains("\"email\":\"alice@example.org\"");
-        assertThat(payload).contains("\"password\":\"supersecret\"");
-        assertThat(payload).contains("\"provider\":\"local\"");
+        assertThat(props.getProperty("userCreate")).isEqualTo("alice");
+        assertThat(props.getProperty("userCreate.email")).isEqualTo("alice@example.org");
+        assertThat(props.getProperty("userCreate.password")).isEqualTo("supersecret");
+        assertThat(props.getProperty("userCreate.provider")).isEqualTo("local");
+        // Name is omitted when not explicitly set; the service defaults it to login.
+        assertThat(props.getProperty("userCreate.name")).isNull();
     }
 
     @Test
@@ -1044,7 +1044,16 @@ public class DatashareCommandTest {
                 "--email", "alice@example.org",
                 "--password", "pw",
                 "--groups", "p1,p2");
-        assertThat(props.getProperty("userCreate")).contains("\"groups\":[\"p1\",\"p2\"]");
+        assertThat(props.getProperty("userCreate.groups")).isEqualTo("p1,p2");
+    }
+
+    @Test
+    public void test_user_create_with_name() {
+        Properties props = parse("user", "create", "alice",
+                "--email", "alice@example.org",
+                "--password", "pw",
+                "--name", "Alice Smith");
+        assertThat(props.getProperty("userCreate.name")).isEqualTo("Alice Smith");
     }
 
     @Test
@@ -1080,7 +1089,14 @@ public class DatashareCommandTest {
         Properties props = parse("user", "create", "alice",
                 "--email", "alice@example.org", "--password", "pw",
                 "--if-not-exists");
-        assertThat(props.getProperty("userCreate")).contains("\"ifNotExists\":true");
+        assertThat(props.getProperty("userCreate.ifNotExists")).isEqualTo("true");
+    }
+
+    @Test
+    public void test_user_create_if_not_exists_omitted_when_false() {
+        Properties props = parse("user", "create", "alice",
+                "--email", "alice@example.org", "--password", "pw");
+        assertThat(props.getProperty("userCreate.ifNotExists")).isNull();
     }
 
     @Test
@@ -1088,7 +1104,7 @@ public class DatashareCommandTest {
         Properties props = parse("user", "create", "alice",
                 "--email", "alice@example.org", "--password", "pw",
                 "--json");
-        assertThat(props.getProperty("userCreate")).contains("\"json\":true");
+        assertThat(props.getProperty("userCreate.json")).isEqualTo("true");
     }
 
     @Test
@@ -1102,17 +1118,17 @@ public class DatashareCommandTest {
     public void test_user_delete_happy_path() {
         Properties props = parse("user", "delete", "alice", "--yes");
         assertThat(props).includes(entry("mode", "CLI"));
-        String payload = props.getProperty("userDelete");
-        assertThat(payload).isNotNull();
-        assertThat(payload).contains("\"login\":\"alice\"");
-        assertThat(payload).contains("\"yes\":true");
-        assertThat(payload).contains("\"ifExists\":false");
+        assertThat(props.getProperty("userDelete")).isEqualTo("alice");
+        // ifExists defaults to false and is omitted from the dispatch props.
+        assertThat(props.getProperty("userDelete.ifExists")).isNull();
+        // The --yes flag is consumed by the CLI and never reaches dispatch.
+        assertThat(props.getProperty("userDelete.yes")).isNull();
     }
 
     @Test
     public void test_user_delete_if_exists() {
         Properties props = parse("user", "delete", "alice", "--if-exists", "--yes");
-        assertThat(props.getProperty("userDelete")).contains("\"ifExists\":true");
+        assertThat(props.getProperty("userDelete.ifExists")).isEqualTo("true");
     }
 
     @Test
@@ -1128,9 +1144,15 @@ public class DatashareCommandTest {
     }
 
     @Test
+    public void test_user_delete_no_input_acts_as_implicit_yes() {
+        Properties props = parse("user", "delete", "alice", "--no-input");
+        assertThat(props.getProperty("userDelete")).isEqualTo("alice");
+    }
+
+    @Test
     public void test_user_delete_json_flag() {
         Properties props = parse("user", "delete", "alice", "--yes", "--json");
-        assertThat(props.getProperty("userDelete")).contains("\"json\":true");
+        assertThat(props.getProperty("userDelete.json")).isEqualTo("true");
     }
 
     @Test
@@ -1144,9 +1166,51 @@ public class DatashareCommandTest {
         cmd.loginPositional = "alice";
         cmd.provider = "local";
         cmd.noInput = false;
+        cmd.spec = new CommandLine(cmd).getCommandSpec();
         cmd.run();
         Properties props = cmd.getSubcommandProperties();
-        assertThat(props.getProperty("userCreate")).contains("\"email\":\"alice@example.org\"");
-        assertThat(props.getProperty("userCreate")).contains("\"password\":\"secret\"");
+        assertThat(props.getProperty("userCreate.email")).isEqualTo("alice@example.org");
+        assertThat(props.getProperty("userCreate.password")).isEqualTo("secret");
+    }
+
+    @Test
+    public void test_user_delete_declined_at_confirm_emits_aborted_and_exits_0() {
+        UserDeleteCommand cmd = new UserDeleteCommand();
+        StringWriter sink = new StringWriter();
+        // Confirm prompt receives "n" and returns false; command should abort.
+        cmd.prompterOverride = new Prompter(
+                new BufferedReader(new StringReader("n\n")),
+                new PrintWriter(sink, true),
+                () -> new char[0]);
+        cmd.loginPositional = "alice";
+        cmd.yes = false;
+        cmd.noInput = false;
+        cmd.spec = new CommandLine(cmd).getCommandSpec();
+        try {
+            cmd.run();
+            org.junit.Assert.fail("expected CliExitException(0)");
+        } catch (CliExitException e) {
+            assertThat(e.exitCode()).isEqualTo(0);
+        }
+        Properties props = cmd.getSubcommandProperties();
+        // Aborted runs must not produce a dispatch marker.
+        assertThat(props.getProperty("userDelete")).isNull();
+    }
+
+    @Test
+    public void test_user_delete_confirmed_at_confirm_dispatches() {
+        UserDeleteCommand cmd = new UserDeleteCommand();
+        StringWriter sink = new StringWriter();
+        cmd.prompterOverride = new Prompter(
+                new BufferedReader(new StringReader("y\n")),
+                new PrintWriter(sink, true),
+                () -> new char[0]);
+        cmd.loginPositional = "alice";
+        cmd.yes = false;
+        cmd.noInput = false;
+        cmd.spec = new CommandLine(cmd).getCommandSpec();
+        cmd.run();
+        Properties props = cmd.getSubcommandProperties();
+        assertThat(props.getProperty("userDelete")).isEqualTo("alice");
     }
 }

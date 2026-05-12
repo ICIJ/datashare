@@ -2,7 +2,7 @@ package org.icij.datashare;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.icij.datashare.cli.CliExtensionService;
-import org.icij.datashare.cli.Prompter;
+import org.icij.datashare.cli.Validators;
 import org.icij.datashare.cli.spi.CliExtension;
 import org.icij.datashare.mode.CommonMode;
 import org.icij.datashare.tasks.ArtifactTask;
@@ -162,27 +162,25 @@ class CliApp {
         taskManager.shutdown();
     }
 
+    // Single ObjectMapper shared across handlers for serializing JSON output.
+    // Input is read from typed sibling properties, not parsed JSON, so this
+    // mapper never sees untrusted strings.
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
     static int handleUserCreate(UserAdminService service, Properties properties) {
-        String payload = (String) properties.remove(USER_CREATE_OPT);
-        boolean json = false;
+        String login = properties.getProperty(USER_CREATE_OPT);
+        boolean json = Boolean.parseBoolean(properties.getProperty(USER_CREATE_JSON_OPT));
+        boolean ifNotExists = Boolean.parseBoolean(properties.getProperty(USER_CREATE_IF_NOT_EXISTS_OPT));
         try {
-            @SuppressWarnings("unchecked")
-            Map<String, Object> fields = MAPPER.readValue(payload, Map.class);
-            json = Boolean.TRUE.equals(fields.get("json"));
-            boolean ifNotExists = Boolean.TRUE.equals(fields.get("ifNotExists"));
+            UserCreateRequest request = new UserCreateRequest(
+                    login,
+                    properties.getProperty(USER_CREATE_EMAIL_OPT),
+                    properties.getProperty(USER_CREATE_NAME_OPT),
+                    properties.getProperty(USER_CREATE_PASSWORD_OPT),
+                    properties.getProperty(USER_CREATE_PROVIDER_OPT),
+                    Validators.groups(properties.getProperty(USER_CREATE_GROUPS_OPT)));
 
-            UserCreateRequest req = new UserCreateRequest(
-                    (String) fields.get("login"),
-                    (String) fields.get("email"),
-                    (String) fields.get("name"),
-                    (String) fields.get("password"),
-                    (String) fields.get("provider"),
-                    ((List<?>) fields.getOrDefault("groups", List.of())).stream()
-                            .map(Object::toString).collect(java.util.stream.Collectors.toList()));
-
-            UserCreated created = ifNotExists ? service.createIfNotExists(req) : service.create(req);
+            UserCreated created = ifNotExists ? service.createIfNotExists(request) : service.create(request);
 
             if (json) {
                 System.out.println(MAPPER.writeValueAsString(Map.of(
@@ -206,33 +204,20 @@ class CliApp {
             return error(e.getMessage(), "validation", 5, json);
         } catch (Exception e) {
             return error("runtime: " + e.getMessage(), "runtime", 1, json);
+        } finally {
+            // Drop the password from the in-memory Properties as soon as the
+            // request has been built, even on the error path.
+            properties.remove(USER_CREATE_PASSWORD_OPT);
         }
     }
 
     static int handleUserDelete(UserAdminService service, Properties properties) {
-        String payload = (String) properties.remove(USER_DELETE_OPT);
-        boolean json = false;
+        // Confirmation is handled in UserDeleteCommand before dispatch; this
+        // path only runs when the user has already agreed (or passed --yes).
+        String login = properties.getProperty(USER_DELETE_OPT);
+        boolean json = Boolean.parseBoolean(properties.getProperty(USER_DELETE_JSON_OPT));
+        boolean ifExists = Boolean.parseBoolean(properties.getProperty(USER_DELETE_IF_EXISTS_OPT));
         try {
-            @SuppressWarnings("unchecked")
-            Map<String, Object> fields = MAPPER.readValue(payload, Map.class);
-            json = Boolean.TRUE.equals(fields.get("json"));
-            boolean ifExists = Boolean.TRUE.equals(fields.get("ifExists"));
-            boolean yes = Boolean.TRUE.equals(fields.get("yes"));
-            String login = (String) fields.get("login");
-
-            if (!yes && !new Prompter().confirm("Really delete user '" + login + "'?")) {
-                if (json) {
-                    System.out.println(MAPPER.writeValueAsString(Map.of(
-                            "deleted", false,
-                            "noop", true,
-                            "aborted", true,
-                            "login", login)));
-                } else {
-                    System.err.println("aborted");
-                }
-                return 0;
-            }
-
             boolean removed = ifExists ? service.deleteIfExists(login) : service.delete(login);
             boolean noop = !removed;
 
