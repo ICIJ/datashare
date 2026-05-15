@@ -1231,6 +1231,8 @@ public class DatashareCommandTest {
                 "--maintainer-name", "Maint",
                 "--publisher-name", "Pub",
                 "--logo-url", "https://logo.png",
+                "--creation-date", "2026-05-15T10:00:00Z",
+                "--update-date", "2026-05-16T10:00:00Z",
                 "--no-index",
                 "--if-not-exists",
                 "--json");
@@ -1244,9 +1246,17 @@ public class DatashareCommandTest {
         assertThat(props).includes(entry("projectCreate.maintainerName", "Maint"));
         assertThat(props).includes(entry("projectCreate.publisherName", "Pub"));
         assertThat(props).includes(entry("projectCreate.logoUrl", "https://logo.png"));
+        assertThat(props).includes(entry("projectCreate.creationDate", "2026-05-15T10:00:00Z"));
+        assertThat(props).includes(entry("projectCreate.updateDate", "2026-05-16T10:00:00Z"));
         assertThat(props).includes(entry("projectCreate.noIndex", "true"));
         assertThat(props).includes(entry("projectCreate.ifNotExists", "true"));
         assertThat(props).includes(entry("projectCreate.json", "true"));
+    }
+
+    @Test
+    public void test_project_create_invalid_creation_date_exits_5() {
+        int exit = parseExitCode("project", "create", "my-project", "--creation-date", "not-a-date");
+        assertThat(exit).isEqualTo(5);
     }
 
     @Test

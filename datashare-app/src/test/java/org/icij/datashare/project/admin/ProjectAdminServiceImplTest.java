@@ -19,6 +19,7 @@ import org.mockito.Mockito;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -55,7 +56,7 @@ public class ProjectAdminServiceImplTest {
     }
 
     private ProjectCreateRequest minimalRequest(String name) {
-        return new ProjectCreateRequest(name, null, null, null, null, null, null, null, null, true);
+        return new ProjectCreateRequest(name, null, null, null, null, null, null, null, null, null, null, true);
     }
 
     @Test
@@ -63,10 +64,13 @@ public class ProjectAdminServiceImplTest {
         when(repository.getProject("my-project")).thenReturn(null);
         when(repository.save(any(Project.class))).thenReturn(true);
 
+        Date suppliedCreation = Date.from(java.time.Instant.parse("2026-05-15T10:00:00Z"));
+        Date suppliedUpdate = Date.from(java.time.Instant.parse("2026-05-16T10:00:00Z"));
         ProjectCreated created = service.create(new ProjectCreateRequest(
                 "my-project", "My Project", "leak archive",
                 Path.of("/data/my"), "10.0.0.0",
                 "https://src/", "Maint", "Pub", "https://logo.png",
+                suppliedCreation, suppliedUpdate,
                 true));
 
         ArgumentCaptor<Project> captor = ArgumentCaptor.forClass(Project.class);
@@ -78,12 +82,40 @@ public class ProjectAdminServiceImplTest {
         assertThat(saved.getDescription()).isEqualTo("leak archive");
         assertThat((Object) saved.getSourcePath()).isEqualTo(Path.of("/data/my"));
         assertThat(saved.getAllowFromMask()).isEqualTo("10.0.0.0");
+        assertThat(saved.creationDate).isEqualTo(suppliedCreation);
+        assertThat(saved.updateDate).isEqualTo(suppliedUpdate);
 
         verify(indexer).createIndex("my-project");
 
         assertThat(created.name()).isEqualTo("my-project");
+        assertThat(created.creationDate()).isEqualTo(suppliedCreation);
+        assertThat(created.updateDate()).isEqualTo(suppliedUpdate);
         assertThat(created.indexCreated()).isTrue();
         assertThat(created.noop()).isFalse();
+    }
+
+    @Test
+    public void test_create_auto_stamps_dates_when_request_omits_them() throws Exception {
+        when(repository.getProject("foo")).thenReturn(null);
+        when(repository.save(any(Project.class))).thenReturn(true);
+
+        Date before = new Date();
+        ProjectCreated created = service.create(minimalRequest("foo"));
+        Date after = new Date();
+
+        ArgumentCaptor<Project> captor = ArgumentCaptor.forClass(Project.class);
+        verify(repository).save(captor.capture());
+        Project saved = captor.getValue();
+        assertThat(saved.creationDate).isNotNull();
+        assertThat(saved.updateDate).isNotNull();
+        // Both fields share the same "now" timestamp for a fresh row.
+        assertThat(saved.creationDate).isEqualTo(saved.updateDate);
+        // Stamped within the test window (allow a small tolerance below).
+        assertThat(saved.creationDate.getTime() >= before.getTime()).isTrue();
+        assertThat(saved.creationDate.getTime() <= after.getTime()).isTrue();
+
+        assertThat(created.creationDate()).isEqualTo(saved.creationDate);
+        assertThat(created.updateDate()).isEqualTo(saved.updateDate);
     }
 
     @Test
@@ -133,7 +165,7 @@ public class ProjectAdminServiceImplTest {
         when(repository.save(any(Project.class))).thenReturn(true);
 
         ProjectCreated created = service.create(new ProjectCreateRequest(
-                "foo", null, null, null, null, null, null, null, null, false));
+                "foo", null, null, null, null, null, null, null, null, null, null, false));
 
         verify(indexer, never()).createIndex(any());
         assertThat(created.indexCreated()).isFalse();
@@ -252,7 +284,7 @@ public class ProjectAdminServiceImplTest {
     public void test_create_with_invalid_allow_from_mask_throws_validation() throws Exception {
         try {
             service.create(new ProjectCreateRequest(
-                    "foo", null, null, null, "not-a-mask", null, null, null, null, true));
+                    "foo", null, null, null, "not-a-mask", null, null, null, null, null, null, true));
             fail("expected ValidationException");
         } catch (ValidationException e) {
             assertThat(e.field()).isEqualTo("allowFromMask");
@@ -266,7 +298,7 @@ public class ProjectAdminServiceImplTest {
     public void test_create_with_invalid_source_url_throws_validation() throws Exception {
         try {
             service.create(new ProjectCreateRequest(
-                    "foo", null, null, null, null, "not a uri", null, null, null, true));
+                    "foo", null, null, null, null, "not a uri", null, null, null, null, null, true));
             fail("expected ValidationException");
         } catch (ValidationException e) {
             assertThat(e.field()).isEqualTo("sourceUrl");
@@ -280,7 +312,7 @@ public class ProjectAdminServiceImplTest {
     public void test_create_with_invalid_logo_url_throws_validation() throws Exception {
         try {
             service.create(new ProjectCreateRequest(
-                    "foo", null, null, null, null, null, null, null, "not a uri", true));
+                    "foo", null, null, null, null, null, null, null, "not a uri", null, null, true));
             fail("expected ValidationException");
         } catch (ValidationException e) {
             assertThat(e.field()).isEqualTo("logoUrl");

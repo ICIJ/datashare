@@ -97,4 +97,16 @@ public final class Validators {
             throw new InvalidValueException("uri", "uri is not a valid RFC 3986 URI: " + e.getMessage());
         }
     }
+
+    public static void iso8601(String value) {
+        if (value == null || value.isBlank()) {
+            throw new InvalidValueException("iso8601", "date is required");
+        }
+        try {
+            java.time.Instant.parse(value);
+        } catch (java.time.format.DateTimeParseException e) {
+            throw new InvalidValueException("iso8601",
+                    "date must be ISO-8601 (e.g. 2026-05-15T10:00:00Z): " + e.getMessage());
+        }
+    }
 }

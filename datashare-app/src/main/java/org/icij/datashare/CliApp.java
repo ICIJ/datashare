@@ -37,6 +37,8 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.time.Instant;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -267,6 +269,13 @@ class CliApp {
         boolean noIndex = Boolean.parseBoolean(properties.getProperty(PROJECT_CREATE_NO_INDEX_OPT));
         try {
             String sourcePathOpt = properties.getProperty(PROJECT_CREATE_SOURCE_PATH_OPT);
+            String creationDateOpt = properties.getProperty(PROJECT_CREATE_CREATION_DATE_OPT);
+            String updateDateOpt = properties.getProperty(PROJECT_CREATE_UPDATE_DATE_OPT);
+            // The CLI command validates these strings as ISO-8601 before
+            // dispatch (Validators.iso8601), so parse failures here would
+            // indicate a programming error rather than user input.
+            Date creationDate = creationDateOpt == null ? null : Date.from(Instant.parse(creationDateOpt));
+            Date updateDate = updateDateOpt == null ? null : Date.from(Instant.parse(updateDateOpt));
             ProjectCreateRequest request = new ProjectCreateRequest(
                     name,
                     properties.getProperty(PROJECT_CREATE_LABEL_OPT),
@@ -277,6 +286,8 @@ class CliApp {
                     properties.getProperty(PROJECT_CREATE_MAINTAINER_NAME_OPT),
                     properties.getProperty(PROJECT_CREATE_PUBLISHER_NAME_OPT),
                     properties.getProperty(PROJECT_CREATE_LOGO_URL_OPT),
+                    creationDate,
+                    updateDate,
                     !noIndex);
 
             ProjectCreated created = ifNotExists
@@ -327,6 +338,8 @@ class CliApp {
                         Map.entry("maintainerName", created.maintainerName() == null ? "" : created.maintainerName()),
                         Map.entry("publisherName", created.publisherName() == null ? "" : created.publisherName()),
                         Map.entry("logoUrl", created.logoUrl() == null ? "" : created.logoUrl()),
+                        Map.entry("creationDate", created.creationDate() == null ? "" : created.creationDate().toInstant().toString()),
+                        Map.entry("updateDate", created.updateDate() == null ? "" : created.updateDate().toInstant().toString()),
                         Map.entry("indexCreated", created.indexCreated()),
                         Map.entry("creator", creator == null ? "" : creator),
                         Map.entry("grantApplied", granted))));

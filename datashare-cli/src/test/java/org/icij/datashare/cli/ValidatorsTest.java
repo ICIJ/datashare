@@ -182,4 +182,29 @@ public class ValidatorsTest {
             assertThat(e.field()).isEqualTo("uri");
         }
     }
+
+    @Test
+    public void test_iso8601_accepts_valid_instants() {
+        Validators.iso8601("2026-05-15T10:00:00Z");
+        Validators.iso8601("2026-05-15T10:00:00.123Z");
+        Validators.iso8601("1970-01-01T00:00:00Z");
+    }
+
+    @Test
+    public void test_iso8601_rejects_invalid() {
+        assertIso8601Invalid(null);
+        assertIso8601Invalid("");
+        assertIso8601Invalid("not-a-date");
+        assertIso8601Invalid("2026-05-15");                          // date only, no time
+        assertIso8601Invalid("2026-05-15T10:00:00");                 // missing zone
+    }
+
+    private void assertIso8601Invalid(String value) {
+        try {
+            Validators.iso8601(value);
+            fail("expected InvalidValueException for " + value);
+        } catch (Validators.InvalidValueException e) {
+            assertThat(e.field()).isEqualTo("iso8601");
+        }
+    }
 }

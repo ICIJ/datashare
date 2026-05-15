@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -84,6 +85,8 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
                     existing.getMaintainerName(),
                     existing.getPublisherName(),
                     existing.getLogoUrl(),
+                    existing.creationDate,
+                    existing.updateDate,
                     false,
                     true);
         }
@@ -259,6 +262,12 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
         String allowFromMask = request.allowFromMask() == null
                 ? DEFAULT_ALLOW_FROM_MASK
                 : request.allowFromMask();
+        // Auto-stamp on create. Backfill operators can override via explicit
+        // request.creationDate()/updateDate(); otherwise both fields share the
+        // same "now" timestamp (typical fresh-row pattern: a freshly created
+        // project hasn't been updated yet, so creation == update).
+        Date creationDate = request.creationDate() == null ? new Date() : request.creationDate();
+        Date updateDate = request.updateDate() == null ? creationDate : request.updateDate();
 
         Project project = new Project(
                 request.name(),
@@ -270,8 +279,8 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
                 request.publisherName(),
                 request.logoUrl(),
                 allowFromMask,
-                null,  // creationDate (null matches REST POST behavior)
-                null   // updateDate
+                creationDate,
+                updateDate
         );
 
         if (!repository.save(project)) {
@@ -306,6 +315,8 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
                 project.getMaintainerName(),
                 project.getPublisherName(),
                 project.getLogoUrl(),
+                creationDate,
+                updateDate,
                 indexCreated,
                 false);
     }
