@@ -546,9 +546,11 @@ public class ElasticsearchIndexer implements Indexer {
             LOGGER.warn("count() called on missing index {} (db/index drift); returning 0", indexName);
             return 0L;
         }
+        // term, not match: "type" is a keyword field and exact equality is what
+        // we want -- match would invoke the analyzer for no benefit.
         CountRequest request = CountRequest.of(c -> c
                 .index(indexName)
-                .query(q -> q.match(m -> m.field("type").query(getType(Document.class)))));
+                .query(q -> q.term(t -> t.field("type").value(getType(Document.class)))));
         return client.count(request).count();
     }
 
