@@ -74,20 +74,7 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
         validate(request);
         Project existing = repository.getProject(request.name());
         if (existing != null) {
-            return new ProjectCreated(
-                    existing.getName(),
-                    existing.getLabel(),
-                    existing.getDescription(),
-                    existing.getSourcePath(),
-                    existing.getAllowFromMask(),
-                    existing.getSourceUrl(),
-                    existing.getMaintainerName(),
-                    existing.getPublisherName(),
-                    existing.getLogoUrl(),
-                    existing.creationDate,
-                    existing.updateDate,
-                    false,
-                    true);
+            return toCreated(existing, false, true);
         }
         return persist(request);
     }
@@ -347,6 +334,10 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
 
         boolean indexCreated = request.createIndex() && createIndexOrRollback(request.name());
 
+        return toCreated(project, indexCreated, false);
+    }
+
+    private static ProjectCreated toCreated(Project project, boolean indexCreated, boolean noop) {
         return new ProjectCreated(
                 project.getName(),
                 project.getLabel(),
@@ -357,10 +348,10 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
                 project.getMaintainerName(),
                 project.getPublisherName(),
                 project.getLogoUrl(),
-                creationDate,
-                updateDate,
+                project.creationDate,
+                project.updateDate,
                 indexCreated,
-                false);
+                noop);
     }
 
     /**
