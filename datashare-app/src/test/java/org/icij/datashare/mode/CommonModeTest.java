@@ -10,6 +10,7 @@ import org.icij.datashare.asynctasks.TaskModifier;
 import org.icij.datashare.asynctasks.TaskSupplier;
 import org.icij.datashare.cli.Mode;
 import org.icij.datashare.cli.QueueType;
+import org.icij.datashare.policies.Authorizer;
 import org.icij.datashare.session.UsersInDb;
 import org.icij.datashare.session.UsersWritable;
 import org.junit.Test;
@@ -106,5 +107,16 @@ public class CommonModeTest {
             put("queueType", QueueType.MEMORY.name());
         }}));
         assertThat(injector.getInstance(AsyncSearchStore.class)).isInstanceOf(MemoryAsyncSearchStore.class);
+    }
+
+    @Test
+    public void test_authorizer_injectable_in_memory_mode() {
+        Injector injector = Guice.createInjector(CommonMode.create(new HashMap<>() {{
+            put("mode", Mode.LOCAL.name());
+            put("busType", QueueType.MEMORY.name());
+        }}));
+        Authorizer authorizer = injector.getInstance(Authorizer.class);
+        assertThat(authorizer).isNotNull();
+        assertThat(injector.getInstance(Authorizer.class)).isSameAs(authorizer);
     }
 }
