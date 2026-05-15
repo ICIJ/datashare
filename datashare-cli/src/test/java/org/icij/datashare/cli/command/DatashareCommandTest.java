@@ -1290,4 +1290,10 @@ public class DatashareCommandTest {
         int exit = parseExitCode("project", "delete", "Has-Uppercase");
         assertThat(exit).isEqualTo(5);
     }
+
+    @Test
+    public void test_project_with_no_subcommand_exits_2() {
+        int exit = parseExitCode("project");
+        assertThat(exit).isEqualTo(2);
+    }
 }
