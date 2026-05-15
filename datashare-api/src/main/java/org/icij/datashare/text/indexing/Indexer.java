@@ -25,6 +25,13 @@ public interface Indexer extends Closeable {
 
     boolean createIndex(String indexName) throws IOException;
     boolean deleteAll(String indexName) throws IOException;
+    /**
+     * Returns the number of documents indexed in {@code indexName}, or 0 if the index
+     * is empty or does not exist. Counts only first-class documents (filtered by
+     * {@code type: "Document"}), so embedded children and named entities sharing a
+     * root id are excluded.
+     */
+    long count(String indexName) throws IOException;
 
     boolean getHealth();
     boolean ping() throws IOException;
