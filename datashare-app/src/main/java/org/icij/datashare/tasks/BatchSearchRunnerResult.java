@@ -6,7 +6,7 @@ import com.fasterxml.jackson.annotation.JsonTypeName;
 import java.io.Serializable;
 
 @JsonTypeName("BatchSearchRunnerResult")
-public record BatchSearchRunnerResult(int nbResults, int nbQueriesWithoutResults) implements Serializable {
+public record BatchSearchRunnerResult(int nbResults, int nbQueriesWithoutResults) implements Serializable, PersistedResult {
     public BatchSearchRunnerResult(@JsonProperty("nbResults") int nbResults, @JsonProperty("nbQueriesWithoutResults") int nbQueriesWithoutResults) {
         this.nbResults = nbResults;
         this.nbQueriesWithoutResults = nbQueriesWithoutResults;
