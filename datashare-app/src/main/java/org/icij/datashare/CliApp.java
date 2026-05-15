@@ -286,13 +286,22 @@ class CliApp {
             // Auto-grant PROJECT_ADMIN to the creator. Skipped for no-op creates
             // (the project already existed; the creator's grant state is the
             // operator's concern) and for explicit absence of a creator.
+            //
+            // Warning policy: when --creator was set explicitly we warn on any
+            // miss (the operator asked for a specific grant and we should tell
+            // them it didn't happen). When the creator was resolved by falling
+            // back to --defaultUserName we stay silent on a missing user --
+            // typical dev setups have a custom login that doesn't match the
+            // launcher's default, and the noise isn't helpful.
+            String explicitCreator = properties.getProperty(PROJECT_CREATE_CREATOR_OPT);
+            boolean creatorExplicit = explicitCreator != null && !explicitCreator.isBlank();
             String creator = resolveCreator(properties);
             boolean granted = false;
             String grantWarning = null;
             if (creator != null && !created.noop()) {
                 try {
                     granted = service.addAdminToProject(created.name(), creator);
-                    if (!granted) {
+                    if (!granted && creatorExplicit) {
                         grantWarning = "user '" + creator
                                 + "' not found in inventory; auto-grant skipped";
                     }
