@@ -62,7 +62,7 @@ public class BatchSearchRunnerTest {
         BatchSearch search = new BatchSearch("uuid1", singletonList(project("test-datashare")), "name1", "desc1", asSet("query1", "query2"), new Date(), BatchSearch.State.QUEUED, User.local());
         when(repository.get(local(), search.uuid)).thenReturn(search);
 
-        assertThat(new BatchSearchRunner(indexer, new PropertiesProvider(), repository, taskView(search), progressCb).call().nbQueriesWithoutResults()).isEqualTo(2);
+        assertThat(new BatchSearchRunner(indexer, new PropertiesProvider(), repository, taskView(search), progressCb).call().nbQueriesWithoutResults()).isEqualTo(1);
 
         verify(progressCb).apply( 1.0);
     }

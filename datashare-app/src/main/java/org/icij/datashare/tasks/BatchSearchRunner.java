@@ -98,6 +98,7 @@ public class BatchSearchRunner implements CancellableTask, UserTask, Callable<Ba
             return new BatchSearchRunnerResult(0, 0);
         }
 
+        int nbQueriesWithoutResults = batchSearch.queries.size();
         String query = null;
         try {
             logger.info("running {} queries for batch search {} on projects {} with throttle {}ms and scroll size of {}",
@@ -130,6 +131,9 @@ public class BatchSearchRunner implements CancellableTask, UserTask, Callable<Ba
                         throw new CancelException(requeueCancel);
                     }
                     repository.saveResults(batchSearch.uuid, query, (List<Document>) docsToProcess, isFirstScroll);
+                    if (isFirstScroll) {
+                        nbQueriesWithoutResults--;
+                    }
                     if (DatashareTime.getInstance().currentTimeMillis() - beforeScrollLoop < maxTimeSeconds * 1000L) {
                         DatashareTime.getInstance().sleep(throttleMs);
                     } else {
@@ -157,7 +161,7 @@ public class BatchSearchRunner implements CancellableTask, UserTask, Callable<Ba
             repository.setState(taskView.id, searchException);
             throw searchException;
         }
-        return new BatchSearchRunnerResult(numberOfResults, batchSearch.nbQueriesWithoutResults);
+        return new BatchSearchRunnerResult(numberOfResults, nbQueriesWithoutResults);
     }
 
     @Override
