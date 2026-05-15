@@ -23,10 +23,10 @@ public interface ProjectAdminService {
      * Returns indexed-document count + member count for the named project.
      * Throws if the project row is missing. Used by the CLI confirmation prompt.
      *
-     * <p>When {@code includeIndexCount} is {@code false}, the {@code indexedDocuments}
-     * field on the returned {@code ProjectStats} is {@link ProjectStats#INDEX_CHECK_SKIPPED}
-     * and no Elasticsearch round-trip happens. Pass {@code false} when the caller plans to
-     * skip the index in the cascade (e.g. {@code --keep-index}).
+     * <p>When {@code includeIndexCount} is {@code false}, {@code indexedDocuments}
+     * on the returned {@code ProjectStats} is {@link java.util.OptionalLong#empty()}
+     * and no Elasticsearch round-trip happens. Pass {@code false} when the caller
+     * plans to skip the index in the cascade (e.g. {@code --keep-index}).
      */
     ProjectStats stats(String name, boolean includeIndexCount) throws ProjectNotFoundException, IOException;
 
@@ -50,11 +50,11 @@ public interface ProjectAdminService {
      * list in {@code user_inventory.details} and adds a casbin grouping policy
      * {@code g <userLogin> PROJECT_ADMIN datashare::<projectName>}.
      *
-     * @return {@code true} if the grant was applied, {@code false} if the user
-     *         does not exist in the user inventory (callers may treat this as a
-     *         soft failure for auto-grant in single-user dev setups).
+     * @return {@link GrantResult#GRANTED} on success, {@link GrantResult#USER_NOT_FOUND}
+     *         if the user does not exist in the user inventory (callers may treat
+     *         this as a soft failure for auto-grant in single-user dev setups).
      * @throws ProjectNotFoundException if the project row is missing.
      */
-    boolean addAdminToProject(String projectName, String userLogin)
+    GrantResult addAdminToProject(String projectName, String userLogin)
             throws ProjectNotFoundException;
 }
