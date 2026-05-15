@@ -346,18 +346,17 @@ class CliApp {
 
     /**
      * Resolves the user login to auto-grant PROJECT_ADMIN to on `project create`.
-     * Explicit {@code --creator} wins. Without one, only LOCAL/EMBEDDED mode
-     * falls back to {@code defaultUserName} (single-user dev setup).
-     * Returns {@code null} to mean "do not grant".
+     * Explicit {@code --creator} wins; otherwise we fall back to
+     * {@code defaultUserName} (the launcher injects this with the OS user in
+     * single-user dev setups). The service-level grant is lenient: if the
+     * resolved login does not exist in {@code user_inventory}, a warning is
+     * logged but the create still succeeds. Returns {@code null} to mean
+     * "do not grant".
      */
     private static String resolveCreator(Properties properties) {
         String explicit = properties.getProperty(PROJECT_CREATE_CREATOR_OPT);
-        if (explicit != null) {
+        if (explicit != null && !explicit.isBlank()) {
             return explicit;
-        }
-        String mode = properties.getProperty(MODE_OPT);
-        if (mode == null || (!"LOCAL".equals(mode) && !"EMBEDDED".equals(mode))) {
-            return null;
         }
         String defaultUser = properties.getProperty(DEFAULT_USER_NAME_OPT);
         return defaultUser == null || defaultUser.isBlank() ? null : defaultUser;
