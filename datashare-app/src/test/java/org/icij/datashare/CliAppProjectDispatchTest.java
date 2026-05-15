@@ -264,6 +264,96 @@ public class CliAppProjectDispatchTest {
     }
 
     @Test
+    public void test_create_auto_grants_creator_in_local_mode() throws Exception {
+        when(service.create(any(ProjectCreateRequest.class)))
+                .thenReturn(new ProjectCreated("foo", "foo", null, Path.of("/vault/foo"),
+                        "*.*.*.*", null, null, null, null, true, false));
+        when(service.addAdminToProject("foo", "promera")).thenReturn(true);
+
+        Properties props = new Properties();
+        props.setProperty(PROJECT_CREATE_OPT, "foo");
+        props.setProperty("mode", "LOCAL");
+        props.setProperty("defaultUserName", "promera");
+
+        int exit = CliApp.handleProjectCreate(service, props);
+
+        assertThat(exit).isEqualTo(0);
+        verify(service).addAdminToProject("foo", "promera");
+        assertThat(stdout.toString()).contains("granted PROJECT_ADMIN on 'foo' to 'promera'");
+    }
+
+    @Test
+    public void test_create_skips_auto_grant_in_server_mode() throws Exception {
+        when(service.create(any(ProjectCreateRequest.class)))
+                .thenReturn(new ProjectCreated("foo", "foo", null, Path.of("/vault/foo"),
+                        "*.*.*.*", null, null, null, null, true, false));
+
+        Properties props = new Properties();
+        props.setProperty(PROJECT_CREATE_OPT, "foo");
+        props.setProperty("mode", "SERVER");
+        props.setProperty("defaultUserName", "promera");
+
+        int exit = CliApp.handleProjectCreate(service, props);
+
+        assertThat(exit).isEqualTo(0);
+        verify(service, never()).addAdminToProject(any(), any());
+    }
+
+    @Test
+    public void test_create_explicit_creator_works_in_any_mode() throws Exception {
+        when(service.create(any(ProjectCreateRequest.class)))
+                .thenReturn(new ProjectCreated("foo", "foo", null, Path.of("/vault/foo"),
+                        "*.*.*.*", null, null, null, null, true, false));
+        when(service.addAdminToProject("foo", "alice")).thenReturn(true);
+
+        Properties props = new Properties();
+        props.setProperty(PROJECT_CREATE_OPT, "foo");
+        props.setProperty("mode", "SERVER");
+        props.setProperty("projectCreate.creator", "alice");
+
+        int exit = CliApp.handleProjectCreate(service, props);
+
+        assertThat(exit).isEqualTo(0);
+        verify(service).addAdminToProject("foo", "alice");
+    }
+
+    @Test
+    public void test_create_logs_warning_when_creator_user_missing() throws Exception {
+        when(service.create(any(ProjectCreateRequest.class)))
+                .thenReturn(new ProjectCreated("foo", "foo", null, Path.of("/vault/foo"),
+                        "*.*.*.*", null, null, null, null, true, false));
+        when(service.addAdminToProject("foo", "ghost")).thenReturn(false);
+
+        Properties props = new Properties();
+        props.setProperty(PROJECT_CREATE_OPT, "foo");
+        props.setProperty("projectCreate.creator", "ghost");
+
+        int exit = CliApp.handleProjectCreate(service, props);
+
+        assertThat(exit).isEqualTo(0);
+        assertThat(stderr.toString()).contains("warning");
+        assertThat(stderr.toString()).contains("ghost");
+    }
+
+    @Test
+    public void test_create_skips_auto_grant_when_noop() throws Exception {
+        when(service.createIfNotExists(any(ProjectCreateRequest.class)))
+                .thenReturn(new ProjectCreated("foo", "foo", null, Path.of("/vault/foo"),
+                        "*.*.*.*", null, null, null, null, false, true));
+
+        Properties props = new Properties();
+        props.setProperty(PROJECT_CREATE_OPT, "foo");
+        props.setProperty(PROJECT_CREATE_IF_NOT_EXISTS_OPT, "true");
+        props.setProperty("mode", "LOCAL");
+        props.setProperty("defaultUserName", "promera");
+
+        int exit = CliApp.handleProjectCreate(service, props);
+
+        assertThat(exit).isEqualTo(0);
+        verify(service, never()).addAdminToProject(any(), any());
+    }
+
+    @Test
     public void test_delete_aborts_when_prompter_exhausts_retries() throws Exception {
         when(service.stats(eq("foo"), eq(true))).thenReturn(new ProjectStats("foo", 42L, 3));
 

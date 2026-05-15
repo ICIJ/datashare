@@ -283,6 +283,28 @@ class CliApp {
                     ? service.createIfNotExists(request)
                     : service.create(request);
 
+            // Auto-grant PROJECT_ADMIN to the creator. Skipped for no-op creates
+            // (the project already existed; the creator's grant state is the
+            // operator's concern) and for explicit absence of a creator.
+            String creator = resolveCreator(properties);
+            boolean granted = false;
+            String grantWarning = null;
+            if (creator != null && !created.noop()) {
+                try {
+                    granted = service.addAdminToProject(created.name(), creator);
+                    if (!granted) {
+                        grantWarning = "user '" + creator
+                                + "' not found in inventory; auto-grant skipped";
+                    }
+                } catch (Exception e) {
+                    grantWarning = "failed to grant PROJECT_ADMIN on '" + created.name()
+                            + "' to '" + creator + "': " + e.getMessage();
+                }
+                if (grantWarning != null) {
+                    System.err.println("warning: " + grantWarning);
+                }
+            }
+
             if (json) {
                 System.out.println(MAPPER.writeValueAsString(Map.ofEntries(
                         Map.entry("created", !created.noop()),
@@ -296,7 +318,9 @@ class CliApp {
                         Map.entry("maintainerName", created.maintainerName() == null ? "" : created.maintainerName()),
                         Map.entry("publisherName", created.publisherName() == null ? "" : created.publisherName()),
                         Map.entry("logoUrl", created.logoUrl() == null ? "" : created.logoUrl()),
-                        Map.entry("indexCreated", created.indexCreated()))));
+                        Map.entry("indexCreated", created.indexCreated()),
+                        Map.entry("creator", creator == null ? "" : creator),
+                        Map.entry("grantApplied", granted))));
             } else if (created.noop()) {
                 System.out.println("project '" + created.name() + "' already exists (no-op)");
             } else {
@@ -305,6 +329,10 @@ class CliApp {
                         + (created.label() == null ? "" : created.label()) + "', source-path="
                         + created.sourcePath() + ", allow-from-mask=" + created.allowFromMask()
                         + ", " + indexBadge + ")");
+                if (granted) {
+                    System.out.println("granted PROJECT_ADMIN on '" + created.name()
+                            + "' to '" + creator + "'");
+                }
             }
             return 0;
         } catch (ProjectExistsException e) {
@@ -314,6 +342,25 @@ class CliApp {
         } catch (Exception e) {
             return error("runtime: " + e.getMessage(), "runtime", 1, json);
         }
+    }
+
+    /**
+     * Resolves the user login to auto-grant PROJECT_ADMIN to on `project create`.
+     * Explicit {@code --creator} wins. Without one, only LOCAL/EMBEDDED mode
+     * falls back to {@code defaultUserName} (single-user dev setup).
+     * Returns {@code null} to mean "do not grant".
+     */
+    private static String resolveCreator(Properties properties) {
+        String explicit = properties.getProperty(PROJECT_CREATE_CREATOR_OPT);
+        if (explicit != null) {
+            return explicit;
+        }
+        String mode = properties.getProperty(MODE_OPT);
+        if (mode == null || (!"LOCAL".equals(mode) && !"EMBEDDED".equals(mode))) {
+            return null;
+        }
+        String defaultUser = properties.getProperty(DEFAULT_USER_NAME_OPT);
+        return defaultUser == null || defaultUser.isBlank() ? null : defaultUser;
     }
 
     static int handleProjectDelete(ProjectAdminService service,

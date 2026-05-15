@@ -168,6 +168,7 @@ public final class DatashareCliOptions {
     public static final String PROJECT_CREATE_NO_INDEX_OPT = PROJECT_CREATE_OPT + ".noIndex";
     public static final String PROJECT_CREATE_IF_NOT_EXISTS_OPT = PROJECT_CREATE_OPT + ".ifNotExists";
     public static final String PROJECT_CREATE_JSON_OPT = PROJECT_CREATE_OPT + ".json";
+    public static final String PROJECT_CREATE_CREATOR_OPT = PROJECT_CREATE_OPT + ".creator";
     public static final String PROJECT_DELETE_OPT = "projectDelete";
     public static final String PROJECT_DELETE_YES_OPT = PROJECT_DELETE_OPT + ".yes";
     public static final String PROJECT_DELETE_KEEP_INDEX_OPT = PROJECT_DELETE_OPT + ".keepIndex";

@@ -8,6 +8,7 @@ import org.icij.datashare.policies.CasbinRule;
 import org.icij.datashare.policies.Domain;
 import org.icij.datashare.text.Project;
 import org.icij.datashare.text.indexing.Indexer;
+import org.icij.datashare.user.User;
 import org.icij.extract.queue.DocumentQueue;
 import org.icij.extract.report.ReportMap;
 import org.junit.Before;
@@ -18,7 +19,9 @@ import org.mockito.Mockito;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
 
@@ -380,6 +383,85 @@ public class ProjectAdminServiceImplTest {
         // Cascade aborts: queues, report-map, artifacts must NOT run.
         verify(documentCollectionFactory, never()).getQueues(any(String.class), any());
         verify(documentCollectionFactory, never()).createMap(any());
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void test_add_admin_to_project_appends_project_to_user_groups_and_grants_casbin() throws Exception {
+        Project project = new Project("demeter");
+        when(repository.getProject("demeter")).thenReturn(project);
+        Map<String, Object> apps = new HashMap<>();
+        apps.put("datashare", new java.util.ArrayList<>(List.of("existing-project")));
+        Map<String, Object> details = new HashMap<>();
+        details.put("uid", "promera");
+        details.put("groups_by_applications", apps);
+        User existingUser = new User("promera", "promera", "p@icij.org", "local", details);
+        when(repository.getUser("promera")).thenReturn(existingUser);
+        when(repository.save(any(User.class))).thenReturn(true);
+
+        boolean granted = service.addAdminToProject("demeter", "promera");
+
+        assertThat(granted).isTrue();
+
+        ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
+        verify(repository).save(userCaptor.capture());
+        User saved = userCaptor.getValue();
+        Map<String, Object> savedApps = (Map<String, Object>) saved.details.get("groups_by_applications");
+        List<String> datashareProjects = (List<String>) savedApps.get("datashare");
+        assertThat(datashareProjects).contains("existing-project");
+        assertThat(datashareProjects).contains("demeter");
+
+        verify(authorizer).addProjectAdmin(any(User.class), any(Domain.class), any(Project.class));
+    }
+
+    @Test
+    public void test_add_admin_to_project_returns_false_when_user_missing() throws Exception {
+        when(repository.getProject("demeter")).thenReturn(new Project("demeter"));
+        when(repository.getUser("ghost")).thenReturn(null);
+
+        boolean granted = service.addAdminToProject("demeter", "ghost");
+
+        assertThat(granted).isFalse();
+        verify(repository, never()).save(any(User.class));
+        verify(authorizer, never()).addProjectAdmin(any(), any(), any());
+    }
+
+    @Test
+    public void test_add_admin_to_project_throws_when_project_missing() throws Exception {
+        when(repository.getProject("ghost-project")).thenReturn(null);
+        try {
+            service.addAdminToProject("ghost-project", "promera");
+            fail("expected ProjectNotFoundException");
+        } catch (ProjectNotFoundException e) {
+            assertThat(e.getMessage()).contains("ghost-project");
+        }
+        verify(repository, never()).getUser(any());
+        verify(repository, never()).save(any(User.class));
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void test_add_admin_to_project_idempotent_when_already_in_list() throws Exception {
+        Project project = new Project("demeter");
+        when(repository.getProject("demeter")).thenReturn(project);
+        Map<String, Object> apps = new HashMap<>();
+        apps.put("datashare", new java.util.ArrayList<>(List.of("demeter")));
+        Map<String, Object> details = new HashMap<>();
+        details.put("uid", "promera");
+        details.put("groups_by_applications", apps);
+        User existingUser = new User("promera", "promera", "p@icij.org", "local", details);
+        when(repository.getUser("promera")).thenReturn(existingUser);
+        when(repository.save(any(User.class))).thenReturn(true);
+
+        boolean granted = service.addAdminToProject("demeter", "promera");
+
+        assertThat(granted).isTrue();
+        ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
+        verify(repository).save(userCaptor.capture());
+        Map<String, Object> savedApps = (Map<String, Object>) userCaptor.getValue().details.get("groups_by_applications");
+        List<String> datashareProjects = (List<String>) savedApps.get("datashare");
+        assertThat(datashareProjects).hasSize(1);
+        assertThat(datashareProjects).contains("demeter");
     }
 
     private static CasbinRule casbinRule(String userId, String role, String domainProject) {

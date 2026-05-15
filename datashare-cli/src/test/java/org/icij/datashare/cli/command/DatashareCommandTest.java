@@ -1250,6 +1250,13 @@ public class DatashareCommandTest {
     }
 
     @Test
+    public void test_project_create_creator_flag_propagates() {
+        Properties props = parse("project", "create", "my-project", "--creator", "promera");
+        assertThat(props).includes(entry("projectCreate", "my-project"));
+        assertThat(props).includes(entry("projectCreate.creator", "promera"));
+    }
+
+    @Test
     public void test_project_create_invalid_name_exits_5() {
         int exit = parseExitCode("project", "create", "Has-Uppercase");
         assertThat(exit).isEqualTo(5);

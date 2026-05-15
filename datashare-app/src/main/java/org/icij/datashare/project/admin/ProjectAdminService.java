@@ -43,4 +43,18 @@ public interface ProjectAdminService {
      * project is already missing.
      */
     ProjectDeleted deleteIfExists(String name, ProjectDeleteOptions options) throws IOException;
+
+    /**
+     * Grants {@code Role.PROJECT_ADMIN} on the named project to the named user.
+     * Appends the project to the user's {@code groups_by_applications.datashare}
+     * list in {@code user_inventory.details} and adds a casbin grouping policy
+     * {@code g <userLogin> PROJECT_ADMIN datashare::<projectName>}.
+     *
+     * @return {@code true} if the grant was applied, {@code false} if the user
+     *         does not exist in the user inventory (callers may treat this as a
+     *         soft failure for auto-grant in single-user dev setups).
+     * @throws ProjectNotFoundException if the project row is missing.
+     */
+    boolean addAdminToProject(String projectName, String userLogin)
+            throws ProjectNotFoundException;
 }
