@@ -1266,4 +1266,28 @@ public class DatashareCommandTest {
         int exit = parseExitCode("project", "create", "my-project", "--source-url", "not a uri");
         assertThat(exit).isEqualTo(5);
     }
+
+    @Test
+    public void test_project_delete_minimal_emits_name() {
+        Properties props = parse("project", "delete", "my-project");
+        assertThat(props).includes(entry("projectDelete", "my-project"));
+    }
+
+    @Test
+    public void test_project_delete_all_flags_propagate() {
+        Properties props = parse("project", "delete", "my-project",
+                "--yes", "--keep-index", "--if-exists", "--no-input", "--json");
+        assertThat(props).includes(entry("projectDelete", "my-project"));
+        assertThat(props).includes(entry("projectDelete.yes", "true"));
+        assertThat(props).includes(entry("projectDelete.keepIndex", "true"));
+        assertThat(props).includes(entry("projectDelete.ifExists", "true"));
+        assertThat(props).includes(entry("projectDelete.noInput", "true"));
+        assertThat(props).includes(entry("projectDelete.json", "true"));
+    }
+
+    @Test
+    public void test_project_delete_invalid_name_exits_5() {
+        int exit = parseExitCode("project", "delete", "Has-Uppercase");
+        assertThat(exit).isEqualTo(5);
+    }
 }
