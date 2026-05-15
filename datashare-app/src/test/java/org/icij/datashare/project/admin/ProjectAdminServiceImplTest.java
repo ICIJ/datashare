@@ -62,7 +62,7 @@ public class ProjectAdminServiceImplTest {
         assertThat(saved.getName()).isEqualTo("my-project");
         assertThat(saved.getLabel()).isEqualTo("My Project");
         assertThat(saved.getDescription()).isEqualTo("leak archive");
-        assertThat(saved.getSourcePath().toString()).isEqualTo(Path.of("/data/my").toString());
+        assertThat((Object) saved.getSourcePath()).isEqualTo(Path.of("/data/my"));
         assertThat(saved.getAllowFromMask()).isEqualTo("10.0.0.0");
 
         verify(indexer).createIndex("my-project");
@@ -82,7 +82,7 @@ public class ProjectAdminServiceImplTest {
         ArgumentCaptor<Project> captor = ArgumentCaptor.forClass(Project.class);
         verify(repository).save(captor.capture());
         assertThat(captor.getValue().getLabel()).isEqualTo("foo");
-        assertThat(captor.getValue().getSourcePath().toString()).isEqualTo(Path.of("/vault/foo").toString());
+        assertThat((Object) captor.getValue().getSourcePath()).isEqualTo(Path.of("/vault/foo"));
         assertThat(captor.getValue().getAllowFromMask()).isEqualTo("*.*.*.*");
     }
 
