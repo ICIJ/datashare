@@ -105,83 +105,84 @@ public class ProjectCreateCommand implements Runnable, DatashareSubcommand {
 
     @Override
     public void run() {
-        String name = namePositional != null ? namePositional : nameFlag;
         try {
-            // Validate supplied values before checking for missing fields so an
-            // invalid value exits 5, not 2.
-            if (name != null) Validators.projectName(name);
-            if (allowFromMask != null) Validators.allowFromMask(allowFromMask);
-            if (sourceUrl != null) Validators.uri(sourceUrl);
-            if (logoUrl != null) Validators.uri(logoUrl);
-            if (creator != null) Validators.login(creator);
-            if (creationDate != null) Validators.iso8601(creationDate);
-            if (updateDate != null) Validators.iso8601(updateDate);
-
-            // Resolve the prompter once. Null when --no-input is set or no TTY
-            // is available; we use it to gate every interactive prompt below.
-            Prompter prompter = null;
-            if (!noInput) {
-                prompter = prompterOverride != null ? prompterOverride : new Prompter();
-                if (prompterOverride == null && !prompter.isInteractive()) {
-                    prompter = null;
-                }
-            }
-
-            if (name == null) {
-                if (prompter == null) {
-                    spec.commandLine().getErr().println(
-                            "error: --name is required when --no-input is set or no TTY is available");
-                    throw new CliExitException(2);
-                }
-                try {
-                    name = prompter.promptString("Project name", Validators::projectName);
-                } catch (Prompter.ValidationFailedException e) {
-                    spec.commandLine().getErr().println("error: " + e.getMessage());
-                    throw new CliExitException(5);
-                }
-            }
-
-            // Prompt for every settable field that wasn't already passed as a
-            // flag. Auto-derived fields (allowFromMask via picocli default,
-            // creationDate/updateDate stamped by the service, creator from the
-            // launcher) are intentionally NOT prompted. Blank submission
-            // returns null, which the service treats as "use the default" for
-            // label / sourcePath and as "leave null" for the rest.
-            if (prompter != null) {
-                try {
-                    if (label == null) {
-                        label = promptOptional(prompter, "Label", name);
-                    }
-                    if (description == null) {
-                        description = promptOptional(prompter, "Description", null);
-                    }
-                    if (sourcePath == null) {
-                        sourcePath = promptOptionalPath(prompter, "Source path", "/vault/" + name);
-                    }
-                    if (sourceUrl == null) {
-                        sourceUrl = promptOptionalUri(prompter, "Source URL");
-                    }
-                    if (maintainerName == null) {
-                        maintainerName = promptOptional(prompter, "Maintainer name", null);
-                    }
-                    if (publisherName == null) {
-                        publisherName = promptOptional(prompter, "Publisher name", null);
-                    }
-                    if (logoUrl == null) {
-                        logoUrl = promptOptionalUri(prompter, "Logo URL");
-                    }
-                } catch (Prompter.ValidationFailedException e) {
-                    spec.commandLine().getErr().println("error: " + e.getMessage());
-                    throw new CliExitException(5);
-                }
-            }
-
+            validateProvidedFlags();
+            Prompter prompter = resolvePrompter();
+            String name = resolveName(prompter);
+            promptForUnsetFields(prompter, name);
             this.resolvedName = name;
             this.ready = true;
-        } catch (InvalidValueException e) {
+        } catch (InvalidValueException | Prompter.ValidationFailedException e) {
             spec.commandLine().getErr().println("error: " + e.getMessage());
             throw new CliExitException(5);
         }
+    }
+
+    private String effectiveName() {
+        return namePositional != null ? namePositional : nameFlag;
+    }
+
+    /**
+     * Validates every supplied flag before checking for missing fields so an
+     * invalid value exits 5, not 2.
+     */
+    private void validateProvidedFlags() {
+        String name = effectiveName();
+        if (name != null) Validators.projectName(name);
+        if (allowFromMask != null) Validators.allowFromMask(allowFromMask);
+        if (sourceUrl != null) Validators.uri(sourceUrl);
+        if (logoUrl != null) Validators.uri(logoUrl);
+        if (creator != null) Validators.login(creator);
+        if (creationDate != null) Validators.iso8601(creationDate);
+        if (updateDate != null) Validators.iso8601(updateDate);
+    }
+
+    /**
+     * Resolves the prompter once. Returns {@code null} when {@code --no-input}
+     * is set or no TTY is available; callers gate every interactive prompt on
+     * a non-null prompter. A test-injected {@link #prompterOverride} short-
+     * circuits the TTY check so unit tests can drive prompts deterministically.
+     */
+    private Prompter resolvePrompter() {
+        if (noInput) return null;
+        if (prompterOverride != null) return prompterOverride;
+        Prompter prompter = new Prompter();
+        return prompter.isInteractive() ? prompter : null;
+    }
+
+    /**
+     * Returns the project name, prompting when {@code --name} was omitted.
+     * Exits 2 if the name is missing and the operator has no way to provide
+     * one (no TTY or {@code --no-input}).
+     */
+    private String resolveName(Prompter prompter) {
+        String name = effectiveName();
+        if (name != null) return name;
+        if (prompter == null) {
+            spec.commandLine().getErr().println(
+                    "error: --name is required when --no-input is set or no TTY is available");
+            throw new CliExitException(2);
+        }
+        return prompter.promptString("Project name", Validators::projectName);
+    }
+
+    /**
+     * Prompts for every settable field that wasn't already passed as a flag.
+     * Auto-derived fields (allowFromMask via picocli default, creationDate /
+     * updateDate stamped by the service, creator from the launcher) are
+     * intentionally NOT prompted. Blank submission returns {@code null}, which
+     * the service treats as "use the default" for label / sourcePath and as
+     * "leave null" for the rest. No-op when {@code prompter} is {@code null}.
+     */
+    private void promptForUnsetFields(Prompter prompter, String name) {
+        if (prompter == null) return;
+        if (label == null) label = promptOptional(prompter, "Label", name);
+        if (description == null) description = promptOptional(prompter, "Description", null);
+        if (sourcePath == null) sourcePath = promptOptionalPath(prompter, "Source path", "/vault/" + name);
+        if (sourceUrl == null) sourceUrl = promptOptionalUri(prompter, "Source URL");
+        if (maintainerName == null) maintainerName = promptOptional(prompter, "Maintainer name", null);
+        if (publisherName == null) publisherName = promptOptional(prompter, "Publisher name", null);
+        if (logoUrl == null) logoUrl = promptOptionalUri(prompter, "Logo URL");
     }
 
     /**
