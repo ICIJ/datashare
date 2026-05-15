@@ -829,6 +829,14 @@ public class ElasticsearchIndexerTest {
     }
 
     @Test
+    public void test_count_returns_zero_for_missing_index() throws IOException {
+        // A missing ES index returns 0 (with a warn logged). The warn itself
+        // is observability, not contract -- this test only locks the value.
+        String index = ElasticsearchRule.generateIndexName();
+        assertThat(indexer.count(index)).isEqualTo(0L);
+    }
+
+    @Test
     public void test_search_by_path_parts_returns_documents_with_matching_path_components() throws IOException {
         Document doc1 = createDoc("doc1")
                 .with(Paths.get("/home/dev/foo.mp3"))
