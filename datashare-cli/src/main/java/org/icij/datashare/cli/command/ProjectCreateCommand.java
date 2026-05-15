@@ -14,6 +14,7 @@ import java.util.Properties;
 
 import static org.icij.datashare.cli.DatashareCliOptions.MODE_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.PROJECT_CREATE_ALLOW_FROM_MASK_OPT;
+import static org.icij.datashare.cli.DatashareCliOptions.PROJECT_CREATE_CREATION_DATE_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.PROJECT_CREATE_CREATOR_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.PROJECT_CREATE_DESCRIPTION_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.PROJECT_CREATE_IF_NOT_EXISTS_OPT;
@@ -26,6 +27,7 @@ import static org.icij.datashare.cli.DatashareCliOptions.PROJECT_CREATE_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.PROJECT_CREATE_PUBLISHER_NAME_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.PROJECT_CREATE_SOURCE_PATH_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.PROJECT_CREATE_SOURCE_URL_OPT;
+import static org.icij.datashare.cli.DatashareCliOptions.PROJECT_CREATE_UPDATE_DATE_OPT;
 
 @Command(name = "create", mixinStandardHelpOptions = true, description = {
         "Create a Datashare project.",
@@ -53,7 +55,7 @@ public class ProjectCreateCommand implements Runnable, DatashareSubcommand {
     @Option(names = "--source-path", description = "Filesystem source path (default: /vault/<name>)")
     String sourcePath;
 
-    @Option(names = "--allow-from-mask",
+    @Option(names = "--allow-from-mask", defaultValue = "*.*.*.*",
             description = "IP mask for download access (default: *.*.*.*)")
     String allowFromMask;
 
@@ -68,6 +70,12 @@ public class ProjectCreateCommand implements Runnable, DatashareSubcommand {
 
     @Option(names = "--logo-url", description = "URL to the project logo")
     String logoUrl;
+
+    @Option(names = "--creation-date", description = "Creation timestamp (ISO-8601, e.g. 2026-05-15T10:00:00Z). Defaults to now.")
+    String creationDate;
+
+    @Option(names = "--update-date", description = "Last-update timestamp (ISO-8601). Defaults to creation date.")
+    String updateDate;
 
     @Option(names = "--creator",
             description = "Grant PROJECT_ADMIN on the new project to this user "
@@ -106,6 +114,8 @@ public class ProjectCreateCommand implements Runnable, DatashareSubcommand {
             if (sourceUrl != null) Validators.uri(sourceUrl);
             if (logoUrl != null) Validators.uri(logoUrl);
             if (creator != null) Validators.login(creator);
+            if (creationDate != null) Validators.iso8601(creationDate);
+            if (updateDate != null) Validators.iso8601(updateDate);
 
             if (name == null) {
                 if (noInput) {
@@ -153,6 +163,8 @@ public class ProjectCreateCommand implements Runnable, DatashareSubcommand {
         DatashareOptions.putIfNotNull(props, PROJECT_CREATE_MAINTAINER_NAME_OPT, maintainerName);
         DatashareOptions.putIfNotNull(props, PROJECT_CREATE_PUBLISHER_NAME_OPT, publisherName);
         DatashareOptions.putIfNotNull(props, PROJECT_CREATE_LOGO_URL_OPT, logoUrl);
+        DatashareOptions.putIfNotNull(props, PROJECT_CREATE_CREATION_DATE_OPT, creationDate);
+        DatashareOptions.putIfNotNull(props, PROJECT_CREATE_UPDATE_DATE_OPT, updateDate);
         DatashareOptions.putIfNotNull(props, PROJECT_CREATE_CREATOR_OPT, creator);
         DatashareOptions.putIfTrue(props, PROJECT_CREATE_NO_INDEX_OPT, noIndex);
         DatashareOptions.putIfTrue(props, PROJECT_CREATE_IF_NOT_EXISTS_OPT, ifNotExists);

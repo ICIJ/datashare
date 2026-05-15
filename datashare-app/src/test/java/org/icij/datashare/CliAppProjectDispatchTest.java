@@ -16,14 +16,18 @@ import org.junit.Test;
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
 import java.nio.file.Path;
+import java.time.Instant;
+import java.util.Date;
 import java.util.Properties;
 import java.util.function.Supplier;
 
 import static org.fest.assertions.Assertions.assertThat;
+import static org.icij.datashare.cli.DatashareCliOptions.PROJECT_CREATE_CREATION_DATE_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.PROJECT_CREATE_IF_NOT_EXISTS_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.PROJECT_CREATE_JSON_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.PROJECT_CREATE_LABEL_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.PROJECT_CREATE_OPT;
+import static org.icij.datashare.cli.DatashareCliOptions.PROJECT_CREATE_UPDATE_DATE_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.PROJECT_DELETE_IF_EXISTS_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.PROJECT_DELETE_JSON_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.PROJECT_DELETE_KEEP_INDEX_OPT;
@@ -63,7 +67,7 @@ public class CliAppProjectDispatchTest {
     public void test_create_happy_path_text_output() throws Exception {
         when(service.create(any(ProjectCreateRequest.class)))
                 .thenReturn(new ProjectCreated("foo", "Foo", null, Path.of("/vault/foo"),
-                        "*.*.*.*", null, null, null, null, true, false));
+                        "*.*.*.*", null, null, null, null, null, null, true, false));
         Properties props = new Properties();
         props.setProperty(PROJECT_CREATE_OPT, "foo");
         props.setProperty(PROJECT_CREATE_LABEL_OPT, "Foo");
@@ -104,7 +108,7 @@ public class CliAppProjectDispatchTest {
     public void test_create_if_not_exists_routes_to_createIfNotExists() throws Exception {
         when(service.createIfNotExists(any(ProjectCreateRequest.class)))
                 .thenReturn(new ProjectCreated("foo", "foo", null, Path.of("/vault/foo"),
-                        "*.*.*.*", null, null, null, null, false, true));
+                        "*.*.*.*", null, null, null, null, null, null, false, true));
         Properties props = new Properties();
         props.setProperty(PROJECT_CREATE_OPT, "foo");
         props.setProperty(PROJECT_CREATE_IF_NOT_EXISTS_OPT, "true");
@@ -120,7 +124,7 @@ public class CliAppProjectDispatchTest {
     public void test_create_json_output() throws Exception {
         when(service.create(any(ProjectCreateRequest.class)))
                 .thenReturn(new ProjectCreated("foo", "foo", null, Path.of("/vault/foo"),
-                        "*.*.*.*", null, null, null, null, true, false));
+                        "*.*.*.*", null, null, null, null, null, null, true, false));
         Properties props = new Properties();
         props.setProperty(PROJECT_CREATE_OPT, "foo");
         props.setProperty(PROJECT_CREATE_JSON_OPT, "true");
@@ -267,7 +271,7 @@ public class CliAppProjectDispatchTest {
     public void test_create_auto_grants_default_user_when_no_creator_flag() throws Exception {
         when(service.create(any(ProjectCreateRequest.class)))
                 .thenReturn(new ProjectCreated("foo", "foo", null, Path.of("/vault/foo"),
-                        "*.*.*.*", null, null, null, null, true, false));
+                        "*.*.*.*", null, null, null, null, null, null, true, false));
         when(service.addAdminToProject("foo", "promera")).thenReturn(true);
 
         Properties props = new Properties();
@@ -285,7 +289,7 @@ public class CliAppProjectDispatchTest {
     public void test_create_skips_auto_grant_when_default_user_blank() throws Exception {
         when(service.create(any(ProjectCreateRequest.class)))
                 .thenReturn(new ProjectCreated("foo", "foo", null, Path.of("/vault/foo"),
-                        "*.*.*.*", null, null, null, null, true, false));
+                        "*.*.*.*", null, null, null, null, null, null, true, false));
 
         Properties props = new Properties();
         props.setProperty(PROJECT_CREATE_OPT, "foo");
@@ -301,7 +305,7 @@ public class CliAppProjectDispatchTest {
     public void test_create_explicit_creator_overrides_default_user() throws Exception {
         when(service.create(any(ProjectCreateRequest.class)))
                 .thenReturn(new ProjectCreated("foo", "foo", null, Path.of("/vault/foo"),
-                        "*.*.*.*", null, null, null, null, true, false));
+                        "*.*.*.*", null, null, null, null, null, null, true, false));
         when(service.addAdminToProject("foo", "alice")).thenReturn(true);
 
         Properties props = new Properties();
@@ -320,7 +324,7 @@ public class CliAppProjectDispatchTest {
     public void test_create_warns_when_explicit_creator_missing_from_inventory() throws Exception {
         when(service.create(any(ProjectCreateRequest.class)))
                 .thenReturn(new ProjectCreated("foo", "foo", null, Path.of("/vault/foo"),
-                        "*.*.*.*", null, null, null, null, true, false));
+                        "*.*.*.*", null, null, null, null, null, null, true, false));
         when(service.addAdminToProject("foo", "ghost")).thenReturn(false);
 
         Properties props = new Properties();
@@ -338,7 +342,7 @@ public class CliAppProjectDispatchTest {
     public void test_create_silent_when_fallback_default_user_missing_from_inventory() throws Exception {
         when(service.create(any(ProjectCreateRequest.class)))
                 .thenReturn(new ProjectCreated("foo", "foo", null, Path.of("/vault/foo"),
-                        "*.*.*.*", null, null, null, null, true, false));
+                        "*.*.*.*", null, null, null, null, null, null, true, false));
         when(service.addAdminToProject("foo", "local-datashare")).thenReturn(false);
 
         Properties props = new Properties();
@@ -356,10 +360,33 @@ public class CliAppProjectDispatchTest {
     }
 
     @Test
+    public void test_create_propagates_explicit_dates_to_request() throws Exception {
+        Date stampedCreation = Date.from(Instant.parse("2026-05-15T10:00:00Z"));
+        Date stampedUpdate = Date.from(Instant.parse("2026-05-16T10:00:00Z"));
+        org.mockito.ArgumentCaptor<ProjectCreateRequest> captor =
+                org.mockito.ArgumentCaptor.forClass(ProjectCreateRequest.class);
+        when(service.create(captor.capture()))
+                .thenReturn(new ProjectCreated("foo", "foo", null, Path.of("/vault/foo"),
+                        "*.*.*.*", null, null, null, null, stampedCreation, stampedUpdate, true, false));
+
+        Properties props = new Properties();
+        props.setProperty(PROJECT_CREATE_OPT, "foo");
+        props.setProperty(PROJECT_CREATE_CREATION_DATE_OPT, "2026-05-15T10:00:00Z");
+        props.setProperty(PROJECT_CREATE_UPDATE_DATE_OPT, "2026-05-16T10:00:00Z");
+
+        int exit = CliApp.handleProjectCreate(service, props);
+
+        assertThat(exit).isEqualTo(0);
+        ProjectCreateRequest request = captor.getValue();
+        assertThat(request.creationDate()).isEqualTo(stampedCreation);
+        assertThat(request.updateDate()).isEqualTo(stampedUpdate);
+    }
+
+    @Test
     public void test_create_skips_auto_grant_when_noop() throws Exception {
         when(service.createIfNotExists(any(ProjectCreateRequest.class)))
                 .thenReturn(new ProjectCreated("foo", "foo", null, Path.of("/vault/foo"),
-                        "*.*.*.*", null, null, null, null, false, true));
+                        "*.*.*.*", null, null, null, null, null, null, false, true));
 
         Properties props = new Properties();
         props.setProperty(PROJECT_CREATE_OPT, "foo");

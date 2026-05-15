@@ -61,11 +61,13 @@ changes. Called only from `ProjectAdminServiceImpl.stats`.
 | `--label` | no | Defaults to `<name>` (matches `Project(name)` constructor behavior) |
 | `--description` | no | Free-form string |
 | `--source-path` | no | Defaults to `/vault/<name>`. CLI does not verify the path against `DataDirVerifier`; that check is web-mode-only and CLI runs as a trusted operator |
-| `--allow-from-mask` | no | Defaults to `*.*.*.*`. Validated against `^[\d*]{1,3}(\.[\d*]{1,3}){3}$` |
+| `--allow-from-mask` | no | Defaults to `*.*.*.*` via picocli `defaultValue`, so the value is always populated and shows up in `--help`. Validated against `^[\d*]{1,3}(\.[\d*]{1,3}){3}$` |
 | `--source-url` | no | Validated as RFC 3986 URI if supplied |
 | `--maintainer-name` | no | Free-form string |
 | `--publisher-name` | no | Free-form string |
 | `--logo-url` | no | Validated as RFC 3986 URI if supplied |
+| `--creation-date` | no | Creation timestamp (ISO-8601, e.g. `2026-05-15T10:00:00Z`). Defaults to `now()` when omitted. Validated via `Validators.iso8601`. |
+| `--update-date` | no | Last-update timestamp (ISO-8601). Defaults to the creation date when omitted. Validated via `Validators.iso8601`. |
 | `--creator` | no | User login to auto-grant PROJECT_ADMIN on the new project. Validated against `Validators.login`. If omitted, falls back to `defaultUserName` (the bash launcher injects this with the OS user; service-side grant is a no-op if the user is missing from `user_inventory`). |
 | `--no-index` | no | Skip ES `createIndex`; only persist the project row |
 | `--if-not-exists` | no | Exit 0 instead of 4 when the project already exists |
@@ -223,6 +225,8 @@ public record ProjectCreateRequest(
     String maintainerName,   // nullable
     String publisherName,    // nullable
     String logoUrl,          // nullable
+    Date   creationDate,     // nullable; service stamps now() when omitted
+    Date   updateDate,       // nullable; service mirrors creationDate when omitted
     boolean createIndex      // true unless --no-index
 ) {}
 ```
@@ -246,6 +250,8 @@ public record ProjectCreated(
     String maintainerName,
     String publisherName,
     String logoUrl,
+    Date   creationDate,     // populated by the service (either request-supplied or auto-stamped)
+    Date   updateDate,       // populated by the service (either request-supplied or mirrored from creationDate)
     boolean indexCreated,    // true if ES index was created this call
     boolean noop             // true if --if-not-exists matched an existing project
 ) {}
@@ -334,11 +340,11 @@ Inside `ProjectAdminServiceImpl.create(ProjectCreateRequest)`:
      `ProjectCreated{noop=true, indexCreated=false}`. No further side-effects.
    - Else: throw `ProjectExistsException`.
 3. Apply defaults (label to name, sourcePath to `/vault/<name>`, allowFromMask
-   to `*.*.*.*`). `creationDate` and `updateDate` remain null, matching the
-   current REST POST behavior (`ProjectResource.projectCreate` does not stamp
-   them either, and `JooqRepository.save(Project)` accepts null dates). If we
-   later want server-side timestamps, that is a separate change touching both
-   call sites.
+   to `*.*.*.*`). Auto-stamp dates: if `request.creationDate()` is null, use
+   `new Date()`; if `request.updateDate()` is null, mirror the creation date.
+   Backfill operators can override both via `--creation-date` /
+   `--update-date`. The returned `ProjectCreated` carries the actual persisted
+   values (never null after `persist()`).
 4. Build `Project` and call `repository.save(project)`. If `false`, wrap as a
    runtime error (a `false` from `save` means DB failure; existing REST code
    does the same).
@@ -485,6 +491,7 @@ class Validators {
     static void projectName(String) throws ValidationException;       // ^[a-z0-9][a-z0-9-]{1,63}$
     static void allowFromMask(String) throws ValidationException;     // ^[\d*]{1,3}(\.[\d*]{1,3}){3}$
     static void uri(String) throws ValidationException;               // java.net.URI parse + scheme non-null
+    static void iso8601(String) throws ValidationException;           // java.time.Instant.parse
 }
 ```
 
@@ -538,9 +545,9 @@ quirks.
 ### JSON format (`--json`)
 
 ```json
-{"created":true,"noop":false,"name":"my-project","label":"My Project","description":"leak archive","sourcePath":"/vault/my-project","allowFromMask":"*.*.*.*","sourceUrl":null,"maintainerName":null,"publisherName":null,"logoUrl":null,"indexCreated":true}
+{"created":true,"noop":false,"name":"my-project","label":"My Project","description":"leak archive","sourcePath":"/vault/my-project","allowFromMask":"*.*.*.*","sourceUrl":null,"maintainerName":null,"publisherName":null,"logoUrl":null,"creationDate":"2026-05-15T10:00:00Z","updateDate":"2026-05-15T10:00:00Z","indexCreated":true}
 {"deleted":true,"noop":false,"name":"my-project","dbDeleted":true,"indexDeleted":true,"queuesDeleted":true,"reportMapDeleted":true,"artifactsDeleted":true}
-{"created":false,"noop":true,"name":"my-project","label":"My Project","description":"leak archive","sourcePath":"/vault/my-project","allowFromMask":"*.*.*.*","sourceUrl":null,"maintainerName":null,"publisherName":null,"logoUrl":null,"indexCreated":false}
+{"created":false,"noop":true,"name":"my-project","label":"My Project","description":"leak archive","sourcePath":"/vault/my-project","allowFromMask":"*.*.*.*","sourceUrl":null,"maintainerName":null,"publisherName":null,"logoUrl":null,"creationDate":"2026-05-15T10:00:00Z","updateDate":"2026-05-15T10:00:00Z","indexCreated":false}
 {"deleted":false,"noop":true,"name":"absent","dbDeleted":false,"indexDeleted":false,"queuesDeleted":false,"reportMapDeleted":false,"artifactsDeleted":false}
 ```
 

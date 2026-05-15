@@ -165,6 +165,8 @@ public final class DatashareCliOptions {
     public static final String PROJECT_CREATE_MAINTAINER_NAME_OPT = PROJECT_CREATE_OPT + ".maintainerName";
     public static final String PROJECT_CREATE_PUBLISHER_NAME_OPT = PROJECT_CREATE_OPT + ".publisherName";
     public static final String PROJECT_CREATE_LOGO_URL_OPT = PROJECT_CREATE_OPT + ".logoUrl";
+    public static final String PROJECT_CREATE_CREATION_DATE_OPT = PROJECT_CREATE_OPT + ".creationDate";
+    public static final String PROJECT_CREATE_UPDATE_DATE_OPT = PROJECT_CREATE_OPT + ".updateDate";
     public static final String PROJECT_CREATE_NO_INDEX_OPT = PROJECT_CREATE_OPT + ".noIndex";
     public static final String PROJECT_CREATE_IF_NOT_EXISTS_OPT = PROJECT_CREATE_OPT + ".ifNotExists";
     public static final String PROJECT_CREATE_JSON_OPT = PROJECT_CREATE_OPT + ".json";
