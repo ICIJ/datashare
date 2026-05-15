@@ -788,19 +788,44 @@ public class ElasticsearchIndexerTest {
 
     @Test
     public void test_count_returns_zero_for_empty_index() throws IOException {
-        indexer.createIndex("test-count-empty");
-        assertThat(indexer.count("test-count-empty")).isEqualTo(0L);
-        indexer.deleteAll("test-count-empty");
+        String index = ElasticsearchRule.generateIndexName();
+        indexer.createIndex(index);
+        try {
+            assertThat(indexer.count(index)).isEqualTo(0L);
+        } finally {
+            es.delete(index);
+        }
     }
 
     @Test
     public void test_count_returns_document_count() throws IOException {
-        indexer.createIndex("test-count-docs");
-        Document d1 = createDoc("id1").build();
-        Document d2 = createDoc("id2").build();
-        indexer.bulkAdd("test-count-docs", List.of(d1, d2));
-        assertThat(indexer.count("test-count-docs")).isEqualTo(2L);
-        indexer.deleteAll("test-count-docs");
+        String index = ElasticsearchRule.generateIndexName();
+        indexer.createIndex(index);
+        try {
+            Document d1 = createDoc("id1").build();
+            Document d2 = createDoc("id2").build();
+            indexer.bulkAdd(index, asList(d1, d2));
+            assertThat(indexer.count(index)).isEqualTo(2L);
+        } finally {
+            es.delete(index);
+        }
+    }
+
+    @Test
+    public void test_count_excludes_named_entities_and_only_counts_documents() throws IOException {
+        String index = ElasticsearchRule.generateIndexName();
+        indexer.createIndex(index);
+        try {
+            Document doc = createDoc("id").build();
+            indexer.add(index, doc);
+            NamedEntity ne1 = create(PERSON, "John Doe", singletonList(12L), "doc.txt", "root", CORENLP, Language.FRENCH);
+            NamedEntity ne2 = create(ORGANIZATION, "AAA", singletonList(123L), "doc.txt", "root", CORENLP, Language.FRENCH);
+            indexer.bulkAdd(index, CORENLP, asList(ne1, ne2), doc);
+
+            assertThat(indexer.count(index)).isEqualTo(1L);
+        } finally {
+            es.delete(index);
+        }
     }
 
     @Test
