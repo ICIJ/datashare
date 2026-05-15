@@ -6,6 +6,8 @@ import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Repository;
 import org.icij.datashare.extract.DocumentCollectionFactory;
 import org.icij.datashare.policies.Authorizer;
+import org.icij.datashare.policies.CasbinRule;
+import org.icij.datashare.policies.Domain;
 import org.icij.datashare.text.Project;
 import org.icij.datashare.text.indexing.Indexer;
 
@@ -74,7 +76,17 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
 
     @Override
     public ProjectStats stats(String name) throws ProjectNotFoundException, IOException {
-        throw new UnsupportedOperationException("implemented in Task 8");
+        if (repository.getProject(name) == null) {
+            throw new ProjectNotFoundException(name);
+        }
+        long indexedDocuments = indexer.count(name);
+        int memberCount = (int) authorizer
+                .getGroupPermissions(Domain.of("datashare"), name)
+                .stream()
+                .map(CasbinRule::getV0)
+                .distinct()
+                .count();
+        return new ProjectStats(name, indexedDocuments, memberCount);
     }
 
     @Override
