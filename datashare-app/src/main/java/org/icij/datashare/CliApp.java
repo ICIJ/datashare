@@ -262,6 +262,13 @@ class CliApp {
         }
     }
 
+    /**
+     * Outcome of the post-create auto-grant attempt. {@code creator} is the
+     * resolved login (or {@code null} when no grant was attempted);
+     * {@code granted} is {@code true} only when the grant actually applied.
+     */
+    private record GrantOutcome(String creator, boolean granted) {}
+
     // Signature asymmetry note: handleProjectCreate takes only (service, properties)
     // because ProjectCreateCommand runs all of its operator prompts in the picocli
     // layer before dispatch -- by the time we land here, every field is already in
@@ -270,98 +277,21 @@ class CliApp {
     // member count from service.stats() to show in the prompt, and the service is
     // only resolved in CliApp), so it takes a Supplier<Prompter> for test injection.
     static int handleProjectCreate(ProjectAdminService service, Properties properties) {
-        String name = properties.getProperty(PROJECT_CREATE_OPT);
         boolean json = Boolean.parseBoolean(properties.getProperty(PROJECT_CREATE_JSON_OPT));
         boolean ifNotExists = Boolean.parseBoolean(properties.getProperty(PROJECT_CREATE_IF_NOT_EXISTS_OPT));
-        boolean noIndex = Boolean.parseBoolean(properties.getProperty(PROJECT_CREATE_NO_INDEX_OPT));
         try {
-            String sourcePathOpt = properties.getProperty(PROJECT_CREATE_SOURCE_PATH_OPT);
-            String creationDateOpt = properties.getProperty(PROJECT_CREATE_CREATION_DATE_OPT);
-            String updateDateOpt = properties.getProperty(PROJECT_CREATE_UPDATE_DATE_OPT);
-            // The CLI command validates these strings as ISO-8601 before
-            // dispatch (Validators.iso8601), so parse failures here would
-            // indicate a programming error rather than user input.
-            Date creationDate = creationDateOpt == null ? null : Date.from(Instant.parse(creationDateOpt));
-            Date updateDate = updateDateOpt == null ? null : Date.from(Instant.parse(updateDateOpt));
-            ProjectCreateRequest request = new ProjectCreateRequest(
-                    name,
-                    properties.getProperty(PROJECT_CREATE_LABEL_OPT),
-                    properties.getProperty(PROJECT_CREATE_DESCRIPTION_OPT),
-                    sourcePathOpt == null ? null : Path.of(sourcePathOpt),
-                    properties.getProperty(PROJECT_CREATE_ALLOW_FROM_MASK_OPT),
-                    properties.getProperty(PROJECT_CREATE_SOURCE_URL_OPT),
-                    properties.getProperty(PROJECT_CREATE_MAINTAINER_NAME_OPT),
-                    properties.getProperty(PROJECT_CREATE_PUBLISHER_NAME_OPT),
-                    properties.getProperty(PROJECT_CREATE_LOGO_URL_OPT),
-                    creationDate,
-                    updateDate,
-                    !noIndex);
-
-            ProjectCreated created = ifNotExists
-                    ? service.createIfNotExists(request)
-                    : service.create(request);
-
-            // Auto-grant PROJECT_ADMIN to the creator. Skipped for no-op creates
-            // (the project already existed; the creator's grant state is the
-            // operator's concern) and for explicit absence of a creator.
-            //
-            // Warning policy: when --creator was set explicitly we warn on any
-            // miss (the operator asked for a specific grant and we should tell
-            // them it didn't happen). When the creator was resolved by falling
-            // back to --defaultUserName we stay silent on a missing user --
-            // typical dev setups have a custom login that doesn't match the
-            // launcher's default, and the noise isn't helpful.
-            String explicitCreator = properties.getProperty(PROJECT_CREATE_CREATOR_OPT);
-            boolean creatorExplicit = explicitCreator != null && !explicitCreator.isBlank();
-            String creator = resolveCreator(properties);
-            boolean granted = false;
-            String grantWarning = null;
-            if (creator != null && !created.noop()) {
-                try {
-                    granted = service.addAdminToProject(created.name(), creator);
-                    if (!granted && creatorExplicit) {
-                        grantWarning = "user '" + creator
-                                + "' not found in inventory; auto-grant skipped";
-                    }
-                } catch (Exception e) {
-                    grantWarning = "failed to grant PROJECT_ADMIN on '" + created.name()
-                            + "' to '" + creator + "': " + e.getMessage();
-                }
-                if (grantWarning != null) {
-                    System.err.println("warning: " + grantWarning);
-                }
-            }
-
-            if (json) {
-                System.out.println(MAPPER.writeValueAsString(Map.ofEntries(
-                        Map.entry("created", !created.noop()),
-                        Map.entry("noop", created.noop()),
-                        Map.entry("name", created.name()),
-                        Map.entry("label", created.label() == null ? "" : created.label()),
-                        Map.entry("description", created.description() == null ? "" : created.description()),
-                        Map.entry("sourcePath", created.sourcePath() == null ? "" : created.sourcePath().toString()),
-                        Map.entry("allowFromMask", created.allowFromMask() == null ? "" : created.allowFromMask()),
-                        Map.entry("sourceUrl", created.sourceUrl() == null ? "" : created.sourceUrl()),
-                        Map.entry("maintainerName", created.maintainerName() == null ? "" : created.maintainerName()),
-                        Map.entry("publisherName", created.publisherName() == null ? "" : created.publisherName()),
-                        Map.entry("logoUrl", created.logoUrl() == null ? "" : created.logoUrl()),
-                        Map.entry("creationDate", created.creationDate() == null ? "" : created.creationDate().toInstant().toString()),
-                        Map.entry("updateDate", created.updateDate() == null ? "" : created.updateDate().toInstant().toString()),
-                        Map.entry("indexCreated", created.indexCreated()),
-                        Map.entry("creator", creator == null ? "" : creator),
-                        Map.entry("grantApplied", granted))));
-            } else if (created.noop()) {
-                System.out.println("project '" + created.name() + "' already exists (no-op)");
+            ProjectCreateRequest request = buildCreateRequest(properties);
+            ProjectCreated created;
+            if (ifNotExists) {
+                created = service.createIfNotExists(request);
             } else {
-                String indexBadge = created.indexCreated() ? "index=created" : "index=skipped";
-                System.out.println("created project '" + created.name() + "' (label='"
-                        + (created.label() == null ? "" : created.label()) + "', source-path="
-                        + created.sourcePath() + ", allow-from-mask=" + created.allowFromMask()
-                        + ", " + indexBadge + ")");
-                if (granted) {
-                    System.out.println("granted PROJECT_ADMIN on '" + created.name()
-                            + "' to '" + creator + "'");
-                }
+                created = service.create(request);
+            }
+            GrantOutcome grant = attemptAutoGrant(service, created, properties);
+            if (json) {
+                System.out.println(MAPPER.writeValueAsString(createResultMap(created, grant)));
+            } else {
+                emitCreateText(created, grant);
             }
             return 0;
         } catch (ProjectExistsException e) {
@@ -371,6 +301,121 @@ class CliApp {
         } catch (Exception e) {
             return error("runtime: " + e.getMessage(), "runtime", 1, json);
         }
+    }
+
+    private static ProjectCreateRequest buildCreateRequest(Properties properties) {
+        String sourcePathOpt = properties.getProperty(PROJECT_CREATE_SOURCE_PATH_OPT);
+        boolean noIndex = Boolean.parseBoolean(properties.getProperty(PROJECT_CREATE_NO_INDEX_OPT));
+        // The CLI command validates these strings as ISO-8601 before dispatch
+        // (Validators.iso8601), so parse failures here would indicate a
+        // programming error rather than user input.
+        Date creationDate = parseInstantOrNull(properties.getProperty(PROJECT_CREATE_CREATION_DATE_OPT));
+        Date updateDate = parseInstantOrNull(properties.getProperty(PROJECT_CREATE_UPDATE_DATE_OPT));
+        Path sourcePath = sourcePathOpt == null ? null : Path.of(sourcePathOpt);
+        return new ProjectCreateRequest(
+                properties.getProperty(PROJECT_CREATE_OPT),
+                properties.getProperty(PROJECT_CREATE_LABEL_OPT),
+                properties.getProperty(PROJECT_CREATE_DESCRIPTION_OPT),
+                sourcePath,
+                properties.getProperty(PROJECT_CREATE_ALLOW_FROM_MASK_OPT),
+                properties.getProperty(PROJECT_CREATE_SOURCE_URL_OPT),
+                properties.getProperty(PROJECT_CREATE_MAINTAINER_NAME_OPT),
+                properties.getProperty(PROJECT_CREATE_PUBLISHER_NAME_OPT),
+                properties.getProperty(PROJECT_CREATE_LOGO_URL_OPT),
+                creationDate,
+                updateDate,
+                !noIndex);
+    }
+
+    private static Date parseInstantOrNull(String value) {
+        if (value == null) return null;
+        return Date.from(Instant.parse(value));
+    }
+
+    /**
+     * Auto-grant PROJECT_ADMIN to the project's creator. Skipped for no-op
+     * creates (the project already existed; the creator's grant state is the
+     * operator's concern) and when no creator was resolved.
+     *
+     * <p>Warning policy: when {@code --creator} was set explicitly we warn on
+     * any miss (the operator asked for a specific grant and we should tell
+     * them it didn't happen). When the creator was resolved by falling back to
+     * {@code --defaultUserName} we stay silent on a missing user -- typical
+     * dev setups have a custom login that does not match the launcher's
+     * default, and the noise isn't helpful.
+     */
+    private static GrantOutcome attemptAutoGrant(ProjectAdminService service,
+                                                 ProjectCreated created,
+                                                 Properties properties) {
+        String creator = resolveCreator(properties);
+        if (creator == null || created.noop()) {
+            return new GrantOutcome(creator, false);
+        }
+        String explicitCreator = properties.getProperty(PROJECT_CREATE_CREATOR_OPT);
+        boolean creatorExplicit = explicitCreator != null && !explicitCreator.isBlank();
+        boolean granted = false;
+        String warning = null;
+        try {
+            granted = service.addAdminToProject(created.name(), creator);
+            if (!granted && creatorExplicit) {
+                warning = "user '" + creator + "' not found in inventory; auto-grant skipped";
+            }
+        } catch (Exception e) {
+            warning = "failed to grant PROJECT_ADMIN on '" + created.name()
+                    + "' to '" + creator + "': " + e.getMessage();
+        }
+        if (warning != null) {
+            System.err.println("warning: " + warning);
+        }
+        return new GrantOutcome(creator, granted);
+    }
+
+    private static Map<String, Object> createResultMap(ProjectCreated created, GrantOutcome grant) {
+        return Map.ofEntries(
+                Map.entry("created", !created.noop()),
+                Map.entry("noop", created.noop()),
+                Map.entry("name", created.name()),
+                Map.entry("label", orEmpty(created.label())),
+                Map.entry("description", orEmpty(created.description())),
+                Map.entry("sourcePath", pathOrEmpty(created.sourcePath())),
+                Map.entry("allowFromMask", orEmpty(created.allowFromMask())),
+                Map.entry("sourceUrl", orEmpty(created.sourceUrl())),
+                Map.entry("maintainerName", orEmpty(created.maintainerName())),
+                Map.entry("publisherName", orEmpty(created.publisherName())),
+                Map.entry("logoUrl", orEmpty(created.logoUrl())),
+                Map.entry("creationDate", instantOrEmpty(created.creationDate())),
+                Map.entry("updateDate", instantOrEmpty(created.updateDate())),
+                Map.entry("indexCreated", created.indexCreated()),
+                Map.entry("creator", orEmpty(grant.creator())),
+                Map.entry("grantApplied", grant.granted()));
+    }
+
+    private static void emitCreateText(ProjectCreated created, GrantOutcome grant) {
+        if (created.noop()) {
+            System.out.println("project '" + created.name() + "' already exists (no-op)");
+            return;
+        }
+        String indexBadge = created.indexCreated() ? "index=created" : "index=skipped";
+        System.out.println("created project '" + created.name() + "' (label='"
+                + orEmpty(created.label()) + "', source-path="
+                + created.sourcePath() + ", allow-from-mask=" + created.allowFromMask()
+                + ", " + indexBadge + ")");
+        if (grant.granted()) {
+            System.out.println("granted PROJECT_ADMIN on '" + created.name()
+                    + "' to '" + grant.creator() + "'");
+        }
+    }
+
+    private static String orEmpty(String s) {
+        return s == null ? "" : s;
+    }
+
+    private static String pathOrEmpty(Path p) {
+        return p == null ? "" : p.toString();
+    }
+
+    private static String instantOrEmpty(Date d) {
+        return d == null ? "" : d.toInstant().toString();
     }
 
     /**
