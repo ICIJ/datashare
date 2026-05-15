@@ -54,6 +54,11 @@ import static org.icij.datashare.user.User.nullUser;
 class CliApp {
     private static final Logger logger = LoggerFactory.getLogger(CliApp.class);
 
+    // Single ObjectMapper shared across handlers for serializing JSON output.
+    // Input is read from typed sibling properties, not parsed JSON, so this
+    // mapper never sees untrusted strings.
+    private static final ObjectMapper MAPPER = new ObjectMapper();
+
     static void start(Properties properties) throws Exception {
         ExtensionService extensionService = new ExtensionService(new PropertiesProvider(properties));
         process(extensionService, properties);
@@ -185,11 +190,6 @@ class CliApp {
         taskManager.awaitTermination(Integer.MAX_VALUE, SECONDS);
         taskManager.shutdown();
     }
-
-    // Single ObjectMapper shared across handlers for serializing JSON output.
-    // Input is read from typed sibling properties, not parsed JSON, so this
-    // mapper never sees untrusted strings.
-    private static final ObjectMapper MAPPER = new ObjectMapper();
 
     static int handleUserCreate(UserAdminService service, Properties properties) {
         String login = properties.getProperty(USER_CREATE_OPT);
