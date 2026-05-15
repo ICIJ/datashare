@@ -5,6 +5,10 @@ import org.icij.datashare.cli.CliExtensionService;
 import org.icij.datashare.cli.Validators;
 import org.icij.datashare.cli.spi.CliExtension;
 import org.icij.datashare.mode.CommonMode;
+import org.icij.datashare.project.admin.ProjectAdminService;
+import org.icij.datashare.project.admin.ProjectCreateRequest;
+import org.icij.datashare.project.admin.ProjectCreated;
+import org.icij.datashare.project.admin.ProjectExistsException;
 import org.icij.datashare.tasks.ArtifactTask;
 import org.icij.datashare.tasks.CreateNlpBatchesFromIndex;
 import org.icij.datashare.tasks.CategorizeTask;
@@ -27,6 +31,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -119,6 +124,11 @@ class CliApp {
         if (properties.getProperty(USER_DELETE_OPT) != null) {
             UserAdminService userAdminService = mode.get(UserAdminService.class);
             System.exit(handleUserDelete(userAdminService, properties));
+        }
+
+        if (properties.getProperty(PROJECT_CREATE_OPT) != null) {
+            ProjectAdminService projectAdminService = mode.get(ProjectAdminService.class);
+            System.exit(handleProjectCreate(projectAdminService, properties));
         }
 
         PipelineHelper pipeline = new PipelineHelper(new PropertiesProvider(properties));
@@ -234,6 +244,62 @@ class CliApp {
             return 0;
         } catch (UserNotFoundException e) {
             return error(e.getMessage(), "not_found", 3, json);
+        } catch (Exception e) {
+            return error("runtime: " + e.getMessage(), "runtime", 1, json);
+        }
+    }
+
+    static int handleProjectCreate(ProjectAdminService service, Properties properties) {
+        String name = properties.getProperty(PROJECT_CREATE_OPT);
+        boolean json = Boolean.parseBoolean(properties.getProperty(PROJECT_CREATE_JSON_OPT));
+        boolean ifNotExists = Boolean.parseBoolean(properties.getProperty(PROJECT_CREATE_IF_NOT_EXISTS_OPT));
+        boolean noIndex = Boolean.parseBoolean(properties.getProperty(PROJECT_CREATE_NO_INDEX_OPT));
+        try {
+            String sourcePathOpt = properties.getProperty(PROJECT_CREATE_SOURCE_PATH_OPT);
+            ProjectCreateRequest request = new ProjectCreateRequest(
+                    name,
+                    properties.getProperty(PROJECT_CREATE_LABEL_OPT),
+                    properties.getProperty(PROJECT_CREATE_DESCRIPTION_OPT),
+                    sourcePathOpt == null ? null : Path.of(sourcePathOpt),
+                    properties.getProperty(PROJECT_CREATE_ALLOW_FROM_MASK_OPT),
+                    properties.getProperty(PROJECT_CREATE_SOURCE_URL_OPT),
+                    properties.getProperty(PROJECT_CREATE_MAINTAINER_NAME_OPT),
+                    properties.getProperty(PROJECT_CREATE_PUBLISHER_NAME_OPT),
+                    properties.getProperty(PROJECT_CREATE_LOGO_URL_OPT),
+                    !noIndex);
+
+            ProjectCreated created = ifNotExists
+                    ? service.createIfNotExists(request)
+                    : service.create(request);
+
+            if (json) {
+                System.out.println(MAPPER.writeValueAsString(Map.ofEntries(
+                        Map.entry("created", !created.noop()),
+                        Map.entry("noop", created.noop()),
+                        Map.entry("name", created.name()),
+                        Map.entry("label", created.label() == null ? "" : created.label()),
+                        Map.entry("description", created.description() == null ? "" : created.description()),
+                        Map.entry("sourcePath", created.sourcePath() == null ? "" : created.sourcePath().toString()),
+                        Map.entry("allowFromMask", created.allowFromMask() == null ? "" : created.allowFromMask()),
+                        Map.entry("sourceUrl", created.sourceUrl() == null ? "" : created.sourceUrl()),
+                        Map.entry("maintainerName", created.maintainerName() == null ? "" : created.maintainerName()),
+                        Map.entry("publisherName", created.publisherName() == null ? "" : created.publisherName()),
+                        Map.entry("logoUrl", created.logoUrl() == null ? "" : created.logoUrl()),
+                        Map.entry("indexCreated", created.indexCreated()))));
+            } else if (created.noop()) {
+                System.out.println("project '" + created.name() + "' already exists (no-op)");
+            } else {
+                String indexBadge = created.indexCreated() ? "index=created" : "index=skipped";
+                System.out.println("created project '" + created.name() + "' (label='"
+                        + (created.label() == null ? "" : created.label()) + "', source-path="
+                        + created.sourcePath() + ", allow-from-mask=" + created.allowFromMask()
+                        + ", " + indexBadge + ")");
+            }
+            return 0;
+        } catch (ProjectExistsException e) {
+            return error(e.getMessage(), "conflict", 4, json);
+        } catch (org.icij.datashare.project.admin.ValidationException e) {
+            return error(e.getMessage(), "validation", 5, json);
         } catch (Exception e) {
             return error("runtime: " + e.getMessage(), "runtime", 1, json);
         }
