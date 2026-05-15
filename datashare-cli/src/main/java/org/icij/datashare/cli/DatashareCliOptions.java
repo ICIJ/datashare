@@ -153,6 +153,27 @@ public final class DatashareCliOptions {
     public static final String USER_DELETE_OPT = "userDelete";
     public static final String USER_DELETE_IF_EXISTS_OPT = USER_DELETE_OPT + ".ifExists";
     public static final String USER_DELETE_JSON_OPT = USER_DELETE_OPT + ".json";
+    // Project admin CLI: keys consumed by CliApp.handleProjectCreate /
+    // handleProjectDelete. PROJECT_CREATE_OPT and PROJECT_DELETE_OPT carry the
+    // project name; the dotted siblings carry one typed field each.
+    public static final String PROJECT_CREATE_OPT = "projectCreate";
+    public static final String PROJECT_CREATE_LABEL_OPT = PROJECT_CREATE_OPT + ".label";
+    public static final String PROJECT_CREATE_DESCRIPTION_OPT = PROJECT_CREATE_OPT + ".description";
+    public static final String PROJECT_CREATE_SOURCE_PATH_OPT = PROJECT_CREATE_OPT + ".sourcePath";
+    public static final String PROJECT_CREATE_ALLOW_FROM_MASK_OPT = PROJECT_CREATE_OPT + ".allowFromMask";
+    public static final String PROJECT_CREATE_SOURCE_URL_OPT = PROJECT_CREATE_OPT + ".sourceUrl";
+    public static final String PROJECT_CREATE_MAINTAINER_NAME_OPT = PROJECT_CREATE_OPT + ".maintainerName";
+    public static final String PROJECT_CREATE_PUBLISHER_NAME_OPT = PROJECT_CREATE_OPT + ".publisherName";
+    public static final String PROJECT_CREATE_LOGO_URL_OPT = PROJECT_CREATE_OPT + ".logoUrl";
+    public static final String PROJECT_CREATE_NO_INDEX_OPT = PROJECT_CREATE_OPT + ".noIndex";
+    public static final String PROJECT_CREATE_IF_NOT_EXISTS_OPT = PROJECT_CREATE_OPT + ".ifNotExists";
+    public static final String PROJECT_CREATE_JSON_OPT = PROJECT_CREATE_OPT + ".json";
+    public static final String PROJECT_DELETE_OPT = "projectDelete";
+    public static final String PROJECT_DELETE_YES_OPT = PROJECT_DELETE_OPT + ".yes";
+    public static final String PROJECT_DELETE_KEEP_INDEX_OPT = PROJECT_DELETE_OPT + ".keepIndex";
+    public static final String PROJECT_DELETE_IF_EXISTS_OPT = PROJECT_DELETE_OPT + ".ifExists";
+    public static final String PROJECT_DELETE_NO_INPUT_OPT = PROJECT_DELETE_OPT + ".noInput";
+    public static final String PROJECT_DELETE_JSON_OPT = PROJECT_DELETE_OPT + ".json";
 
     private static final Path DEFAULT_DATASHARE_HOME = Paths.get(System.getProperty("user.home"), ".local/share/datashare");
     private static final Integer DEFAULT_NLP_PARALLELISM = 1;
