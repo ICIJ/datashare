@@ -2,6 +2,7 @@ package org.icij.datashare.cli;
 
 import jakarta.mail.internet.AddressException;
 import jakarta.mail.internet.InternetAddress;
+import org.icij.datashare.text.Project;
 import org.icij.datashare.user.User;
 
 import java.net.URI;
@@ -22,8 +23,8 @@ public final class Validators {
     }
 
     private static final Pattern LOGIN   = Pattern.compile("^[a-z0-9][a-z0-9._-]{1,63}$");
-    private static final Pattern PROJECT = Pattern.compile("^[a-z0-9][a-z0-9-]{1,63}$");
-    private static final Pattern ALLOW_FROM_MASK = Pattern.compile("^[\\d*]{1,3}(\\.[\\d*]{1,3}){3}$");
+    private static final Pattern PROJECT = Pattern.compile(Project.NAME_REGEX);
+    private static final Pattern ALLOW_FROM_MASK = Pattern.compile(Project.ALLOW_FROM_MASK_REGEX);
     private static final Set<String> PROVIDERS = Set.of(User.LOCAL, User.OAUTH, User.EXTERNAL);
 
     private Validators() {}
@@ -73,14 +74,14 @@ public final class Validators {
     public static void projectName(String value) {
         if (value == null || !PROJECT.matcher(value).matches()) {
             throw new InvalidValueException("projectName",
-                    "project name must match ^[a-z0-9][a-z0-9-]{1,63}$");
+                    "project name must match " + Project.NAME_REGEX);
         }
     }
 
     public static void allowFromMask(String value) {
         if (value == null || !ALLOW_FROM_MASK.matcher(value).matches()) {
             throw new InvalidValueException("allowFromMask",
-                    "allow-from-mask must match ^[\\d*]{1,3}(\\.[\\d*]{1,3}){3}$ (e.g. *.*.*.*)");
+                    "allow-from-mask must match " + Project.ALLOW_FROM_MASK_REGEX + " (e.g. *.*.*.*)");
         }
     }
 

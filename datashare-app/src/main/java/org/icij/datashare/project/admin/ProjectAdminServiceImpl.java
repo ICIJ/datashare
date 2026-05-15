@@ -35,8 +35,8 @@ import java.util.stream.Stream;
 public class ProjectAdminServiceImpl implements ProjectAdminService {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ProjectAdminServiceImpl.class);
-    private static final Pattern NAME = Pattern.compile("^[a-z0-9][a-z0-9-]{1,63}$");
-    private static final Pattern ALLOW_FROM_MASK = Pattern.compile("^[\\d*]{1,3}(\\.[\\d*]{1,3}){3}$");
+    private static final Pattern NAME = Pattern.compile(Project.NAME_REGEX);
+    private static final Pattern ALLOW_FROM_MASK = Pattern.compile(Project.ALLOW_FROM_MASK_REGEX);
     private static final String DEFAULT_ALLOW_FROM_MASK = "*.*.*.*";
     private static final Path DEFAULT_VAULT = Paths.get("/vault");
 
@@ -225,12 +225,12 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
     private void validate(ProjectCreateRequest request) throws ValidationException {
         if (request.name() == null || !NAME.matcher(request.name()).matches()) {
             throw new ValidationException("name",
-                    "project name must match ^[a-z0-9][a-z0-9-]{1,63}$");
+                    "project name must match " + Project.NAME_REGEX);
         }
         if (request.allowFromMask() != null
                 && !ALLOW_FROM_MASK.matcher(request.allowFromMask()).matches()) {
             throw new ValidationException("allowFromMask",
-                    "allow-from-mask must match ^[\\d*]{1,3}(\\.[\\d*]{1,3}){3}$");
+                    "allow-from-mask must match " + Project.ALLOW_FROM_MASK_REGEX);
         }
         if (request.sourceUrl() != null) {
             validateUri(request.sourceUrl(), "sourceUrl");

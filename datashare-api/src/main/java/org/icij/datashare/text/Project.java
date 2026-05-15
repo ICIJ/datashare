@@ -16,6 +16,10 @@ import static com.fasterxml.jackson.annotation.JsonCreator.Mode.PROPERTIES;
 
 public class Project extends ProjectProxy {
     private static final long serialVersionUID = 2568979856231459L;
+
+    public static final String NAME_REGEX = "^[a-z0-9][a-z0-9-]{1,63}$";
+    public static final String ALLOW_FROM_MASK_REGEX = "^[\\d*]{1,3}(\\.[\\d*]{1,3}){3}$";
+
     public final Path sourcePath;
     @JsonIgnore
     public final String allowFromMask;
