@@ -107,4 +107,79 @@ public class ValidatorsTest {
         try { Validators.groups("p1,-b,p3"); fail(); }
         catch (Validators.InvalidValueException e) { assertThat(e.field()).isEqualTo("groups"); }
     }
+
+    @Test
+    public void test_project_name_accepts_valid_name() {
+        Validators.projectName("foo");
+        Validators.projectName("project-1");
+        Validators.projectName("0abc");
+    }
+
+    @Test
+    public void test_project_name_rejects_invalid() {
+        assertProjectNameInvalid(null);
+        assertProjectNameInvalid("");
+        assertProjectNameInvalid("-leading-dash");
+        assertProjectNameInvalid("Has-Uppercase");
+        assertProjectNameInvalid("has_underscore");
+        assertProjectNameInvalid("a");                                // too short (1 char)
+        assertProjectNameInvalid("a".repeat(65));                     // too long
+    }
+
+    private void assertProjectNameInvalid(String value) {
+        try {
+            Validators.projectName(value);
+            fail("expected InvalidValueException for " + value);
+        } catch (Validators.InvalidValueException e) {
+            assertThat(e.field()).isEqualTo("projectName");
+        }
+    }
+
+    @Test
+    public void test_allow_from_mask_accepts_valid() {
+        Validators.allowFromMask("*.*.*.*");
+        Validators.allowFromMask("10.0.0.0");
+        Validators.allowFromMask("192.168.*.*");
+    }
+
+    @Test
+    public void test_allow_from_mask_rejects_invalid() {
+        assertAllowFromMaskInvalid(null);
+        assertAllowFromMaskInvalid("");
+        assertAllowFromMaskInvalid("192.168");                        // too few octets
+        assertAllowFromMaskInvalid("192.168.1.1.1");                  // too many
+        assertAllowFromMaskInvalid("a.b.c.d");                        // non-digit non-star
+    }
+
+    private void assertAllowFromMaskInvalid(String value) {
+        try {
+            Validators.allowFromMask(value);
+            fail("expected InvalidValueException for " + value);
+        } catch (Validators.InvalidValueException e) {
+            assertThat(e.field()).isEqualTo("allowFromMask");
+        }
+    }
+
+    @Test
+    public void test_uri_accepts_https_and_http() {
+        Validators.uri("https://example.org");
+        Validators.uri("http://example.org/path?q=1");
+    }
+
+    @Test
+    public void test_uri_rejects_invalid() {
+        assertUriInvalid(null);
+        assertUriInvalid("");
+        assertUriInvalid("not a uri");
+        assertUriInvalid("/just/a/path");                              // no scheme
+    }
+
+    private void assertUriInvalid(String value) {
+        try {
+            Validators.uri(value);
+            fail("expected InvalidValueException for " + value);
+        } catch (Validators.InvalidValueException e) {
+            assertThat(e.field()).isEqualTo("uri");
+        }
+    }
 }
