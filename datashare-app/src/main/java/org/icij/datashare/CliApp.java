@@ -6,6 +6,7 @@ import org.icij.datashare.cli.Prompter;
 import org.icij.datashare.cli.Validators;
 import org.icij.datashare.cli.spi.CliExtension;
 import org.icij.datashare.mode.CommonMode;
+import org.icij.datashare.project.admin.GrantResult;
 import org.icij.datashare.project.admin.ProjectAdminService;
 import org.icij.datashare.project.admin.ProjectCreateRequest;
 import org.icij.datashare.project.admin.ProjectCreated;
@@ -263,11 +264,28 @@ class CliApp {
     }
 
     /**
-     * Outcome of the post-create auto-grant attempt. {@code creator} is the
-     * resolved login (or {@code null} when no grant was attempted);
-     * {@code granted} is {@code true} only when the grant actually applied.
+     * Outcome of the post-create auto-grant attempt.
+     *
+     * <p>{@code creator} is the resolved login (or {@code null} when no grant
+     * was attempted). {@code status} captures why the attempt landed where it
+     * did so the dispatcher can choose between silence, info, and warning
+     * without re-deriving the reason from booleans.
      */
-    private record GrantOutcome(String creator, boolean granted) {}
+    private record GrantOutcome(String creator, GrantStatus status) {
+        boolean granted() { return status == GrantStatus.GRANTED; }
+        static GrantOutcome skipped() { return new GrantOutcome(null, GrantStatus.SKIPPED); }
+    }
+
+    private enum GrantStatus {
+        /** No creator resolved, or no-op create (project already existed). */
+        SKIPPED,
+        /** Grant applied. */
+        GRANTED,
+        /** Resolved login does not exist in user_inventory. */
+        USER_NOT_FOUND,
+        /** Grant call threw. {@code GrantOutcome.creator} carries the failure detail. */
+        ERROR
+    }
 
     // Signature asymmetry note: handleProjectCreate takes only (service, properties)
     // because ProjectCreateCommand runs all of its operator prompts in the picocli
@@ -303,14 +321,12 @@ class CliApp {
         }
     }
 
-    private static ProjectCreateRequest buildCreateRequest(Properties properties) {
+    private static ProjectCreateRequest buildCreateRequest(Properties properties)
+            throws org.icij.datashare.project.admin.ValidationException {
         String sourcePathOpt = properties.getProperty(PROJECT_CREATE_SOURCE_PATH_OPT);
         boolean noIndex = Boolean.parseBoolean(properties.getProperty(PROJECT_CREATE_NO_INDEX_OPT));
-        // The CLI command validates these strings as ISO-8601 before dispatch
-        // (Validators.iso8601), so parse failures here would indicate a
-        // programming error rather than user input.
-        Date creationDate = parseInstantOrNull(properties.getProperty(PROJECT_CREATE_CREATION_DATE_OPT));
-        Date updateDate = parseInstantOrNull(properties.getProperty(PROJECT_CREATE_UPDATE_DATE_OPT));
+        Date creationDate = parseInstantOrNull(properties.getProperty(PROJECT_CREATE_CREATION_DATE_OPT), "creationDate");
+        Date updateDate = parseInstantOrNull(properties.getProperty(PROJECT_CREATE_UPDATE_DATE_OPT), "updateDate");
         Path sourcePath = sourcePathOpt == null ? null : Path.of(sourcePathOpt);
         return new ProjectCreateRequest(
                 properties.getProperty(PROJECT_CREATE_OPT),
@@ -327,9 +343,21 @@ class CliApp {
                 !noIndex);
     }
 
-    private static Date parseInstantOrNull(String value) {
+    /**
+     * The CLI command pre-validates these strings as ISO-8601 before dispatch,
+     * but the dispatcher is also called directly from tests and could in
+     * theory be invoked from elsewhere. Surface bad input as a
+     * {@code ValidationException} (exit 5) instead of an opaque runtime error.
+     */
+    private static Date parseInstantOrNull(String value, String field)
+            throws org.icij.datashare.project.admin.ValidationException {
         if (value == null) return null;
-        return Date.from(Instant.parse(value));
+        try {
+            return Date.from(Instant.parse(value));
+        } catch (java.time.format.DateTimeParseException e) {
+            throw new org.icij.datashare.project.admin.ValidationException(
+                    field, field + " must be ISO-8601 (e.g. 2026-05-15T10:00:00Z): " + e.getMessage());
+        }
     }
 
     /**
@@ -349,25 +377,25 @@ class CliApp {
                                                  Properties properties) {
         String creator = resolveCreator(properties);
         if (creator == null || created.noop()) {
-            return new GrantOutcome(creator, false);
+            return GrantOutcome.skipped();
         }
         String explicitCreator = properties.getProperty(PROJECT_CREATE_CREATOR_OPT);
         boolean creatorExplicit = explicitCreator != null && !explicitCreator.isBlank();
-        boolean granted = false;
-        String warning = null;
         try {
-            granted = service.addAdminToProject(created.name(), creator);
-            if (!granted && creatorExplicit) {
-                warning = "user '" + creator + "' not found in inventory; auto-grant skipped";
+            GrantResult result = service.addAdminToProject(created.name(), creator);
+            if (result == GrantResult.GRANTED) {
+                return new GrantOutcome(creator, GrantStatus.GRANTED);
             }
+            if (creatorExplicit) {
+                System.err.println("warning: user '" + creator
+                        + "' not found in inventory; auto-grant skipped");
+            }
+            return new GrantOutcome(creator, GrantStatus.USER_NOT_FOUND);
         } catch (Exception e) {
-            warning = "failed to grant PROJECT_ADMIN on '" + created.name()
-                    + "' to '" + creator + "': " + e.getMessage();
+            System.err.println("warning: failed to grant PROJECT_ADMIN on '" + created.name()
+                    + "' to '" + creator + "': " + e.getMessage());
+            return new GrantOutcome(creator, GrantStatus.ERROR);
         }
-        if (warning != null) {
-            System.err.println("warning: " + warning);
-        }
-        return new GrantOutcome(creator, granted);
     }
 
     private static Map<String, Object> createResultMap(ProjectCreated created, GrantOutcome grant) {
@@ -448,69 +476,19 @@ class CliApp {
         ProjectDeleteOptions options = new ProjectDeleteOptions(keepIndex);
 
         try {
-            ProjectStats stats;
-            try {
-                stats = service.stats(name, !keepIndex);
-            } catch (ProjectNotFoundException e) {
-                if (ifExists) {
-                    emitDeleteNoop(name, json);
-                    return 0;
-                }
-                throw e;
-            }
+            ProjectStats stats = loadStatsOrNoop(service, name, options, ifExists, json);
+            if (stats == null) return 0; // not-found + --if-exists, already emitted
 
-            if (!(yes || noInput)) {
-                String docCount = stats.indexedDocuments() == ProjectStats.INDEX_CHECK_SKIPPED
-                        ? "(index check skipped)"
-                        : stats.indexedDocuments() + " indexed documents";
-                System.err.println("Project '" + name + "' has " + docCount
-                        + " and " + stats.memberCount() + " members.");
-                System.err.println("This will permanently delete the project, its index, "
-                        + "document queues, report map, and artifact directory. "
-                        + "This cannot be undone.");
-                Prompter prompter = prompterFactory.get();
-                String typed = prompter.promptString(
-                        "To confirm, type the project name",
-                        typedName -> {
-                            if (!typedName.trim().equals(name)) {
-                                throw new Validators.InvalidValueException(
-                                        "name", "typed name does not match");
-                            }
-                        });
-                if (!typed.trim().equals(name)) {
-                    emitDeleteAborted(name, json);
-                    return 0;
-                }
+            if (!(yes || noInput) && !confirmDeletion(stats, name, prompterFactory)) {
+                emitDeleteAborted(name, json);
+                return 0;
             }
 
             ProjectDeleted deleted = ifExists
                     ? service.deleteIfExists(name, options)
                     : service.delete(name, options);
 
-            if (json) {
-                System.out.println(MAPPER.writeValueAsString(deleteResultMap(deleted)));
-            } else if (deleted.noop()) {
-                System.out.println("project '" + deleted.name() + "' does not exist (no-op)");
-            } else {
-                String indexBadge = options.keepIndex()
-                        ? "index skipped"
-                        : (deleted.indexDeleted() ? "index OK" : "index FAILED");
-                String artifactsBadge = deleted.artifactsDeleted() ? "artifacts OK" : "artifacts skipped";
-                String dbBadge = deleted.dbDeleted() ? "db OK" : "db FAILED";
-                String queuesBadge = deleted.queuesDeleted() ? "queues OK" : "queues FAILED";
-                String reportMapBadge = deleted.reportMapDeleted() ? "report-map OK" : "report-map FAILED";
-                System.out.println("deleted project '" + deleted.name() + "' ("
-                        + dbBadge + ", " + indexBadge + ", " + queuesBadge + ", "
-                        + reportMapBadge + ", " + artifactsBadge + ")");
-                if (!deleted.dbDeleted() || (!options.keepIndex() && !deleted.indexDeleted())
-                        || !deleted.queuesDeleted() || !deleted.reportMapDeleted()) {
-                    // Some load-bearing step failed: keep the cascade exit code 0
-                    // (the cascade did run to completion) but nudge the operator
-                    // to retry with --if-exists, which is continuation-friendly.
-                    System.err.println("warning: cascade completed with failures; "
-                            + "re-run with --if-exists to retry");
-                }
-            }
+            emitDeleteResult(deleted, options, json);
             return 0;
         } catch (ProjectNotFoundException e) {
             return error(e.getMessage(), "not_found", 3, json);
@@ -520,6 +498,107 @@ class CliApp {
             return 0;
         } catch (Exception e) {
             return error("runtime: " + e.getMessage(), "runtime", 1, json);
+        }
+    }
+
+    /**
+     * Returns the project stats, or {@code null} when the project is missing and
+     * {@code --if-exists} converts that into a successful no-op (which this
+     * method emits before returning). Any other not-found case re-throws.
+     */
+    private static ProjectStats loadStatsOrNoop(ProjectAdminService service,
+                                                String name,
+                                                ProjectDeleteOptions options,
+                                                boolean ifExists,
+                                                boolean json)
+            throws ProjectNotFoundException, IOException {
+        try {
+            return service.stats(name, !options.keepIndex());
+        } catch (ProjectNotFoundException e) {
+            if (ifExists) {
+                emitDeleteNoop(name, json);
+                return null;
+            }
+            throw e;
+        }
+    }
+
+    /**
+     * Shows the impact summary and reads the typed-name confirmation. Trusts
+     * the prompter validator to throw on mismatch and bubble up as
+     * {@link Prompter.ValidationFailedException} when retries exhaust; a clean
+     * return from the prompter means the typed name matched.
+     */
+    private static boolean confirmDeletion(ProjectStats stats,
+                                           String name,
+                                           Supplier<Prompter> prompterFactory) {
+        String docCount = stats.indexedDocuments()
+                .stream().mapToObj(n -> n + " indexed documents")
+                .findFirst().orElse("(index check skipped)");
+        System.err.println("Project '" + name + "' has " + docCount
+                + " and " + stats.memberCount() + " members.");
+        System.err.println("This will permanently delete the project, its index, "
+                + "document queues, report map, and artifact directory. "
+                + "This cannot be undone.");
+        Prompter prompter = prompterFactory.get();
+        prompter.promptString(
+                "To confirm, type the project name",
+                typedName -> {
+                    if (!typedName.trim().equals(name)) {
+                        throw new Validators.InvalidValueException(
+                                "name", "typed name does not match");
+                    }
+                });
+        return true;
+    }
+
+    private static void emitDeleteResult(ProjectDeleted deleted,
+                                         ProjectDeleteOptions options,
+                                         boolean json) {
+        if (json) {
+            printJsonOrFallback(deleteResultMap(deleted),
+                    "deleted project '" + deleted.name() + "'");
+            return;
+        }
+        if (deleted.noop()) {
+            System.out.println("project '" + deleted.name() + "' does not exist (no-op)");
+            return;
+        }
+        String indexBadge = options.keepIndex()
+                ? "index skipped"
+                : (deleted.indexDeleted() ? "index OK" : "index FAILED");
+        String dbBadge = deleted.dbDeleted() ? "db OK" : "db FAILED";
+        String queuesBadge = deleted.queuesDeleted() ? "queues OK" : "queues FAILED";
+        String reportMapBadge = deleted.reportMapDeleted() ? "report-map OK" : "report-map FAILED";
+        String artifactsBadge = deleted.artifactsDeleted() ? "artifacts OK" : "artifacts skipped";
+        System.out.println("deleted project '" + deleted.name() + "' ("
+                + dbBadge + ", " + indexBadge + ", " + queuesBadge + ", "
+                + reportMapBadge + ", " + artifactsBadge + ")");
+        warnIfPartialFailure(deleted, options);
+    }
+
+    private static void warnIfPartialFailure(ProjectDeleted deleted, ProjectDeleteOptions options) {
+        boolean indexFailed = !options.keepIndex() && !deleted.indexDeleted();
+        if (!deleted.dbDeleted() || indexFailed
+                || !deleted.queuesDeleted() || !deleted.reportMapDeleted()) {
+            // Some load-bearing step failed: keep the cascade exit code 0
+            // (the cascade did run to completion) but nudge the operator
+            // to retry with --if-exists, which is continuation-friendly.
+            System.err.println("warning: cascade completed with failures; "
+                    + "re-run with --if-exists to retry");
+        }
+    }
+
+    /**
+     * Serializes {@code payload} to stdout, falling back to {@code fallbackLine}
+     * (also on stdout) if Jackson chokes. Shared between the happy-path JSON
+     * emitters that all use {@link #MAPPER} on a {@code Map} of typed values.
+     */
+    private static void printJsonOrFallback(Map<String, Object> payload, String fallbackLine) {
+        try {
+            System.out.println(MAPPER.writeValueAsString(payload));
+        } catch (Exception e) {
+            System.out.println(fallbackLine);
         }
     }
 
@@ -543,29 +622,27 @@ class CliApp {
     }
 
     private static void emitDeleteNoop(String name, boolean json) {
-        ProjectDeleted noop = new ProjectDeleted(name, false, false, false, false, false, true);
+        String fallback = "project '" + name + "' does not exist (no-op)";
         if (json) {
-            try {
-                System.out.println(MAPPER.writeValueAsString(deleteResultMap(noop)));
-            } catch (Exception e) {
-                System.out.println("project '" + name + "' does not exist (no-op)");
-            }
+            ProjectDeleted noop = new ProjectDeleted(name, false, false, false, false, false, true);
+            printJsonOrFallback(deleteResultMap(noop), fallback);
         } else {
-            System.out.println("project '" + name + "' does not exist (no-op)");
+            System.out.println(fallback);
         }
     }
 
     private static void emitDeleteAborted(String name, boolean json) {
         if (json) {
+            // aborted != noop: aborted means the operator cancelled, noop means
+            // the project did not exist. Consumers reading `noop` to learn
+            // whether the project still exists must not be misled.
+            Map<String, Object> payload = Map.ofEntries(
+                    Map.entry("deleted", false),
+                    Map.entry("noop", false),
+                    Map.entry("aborted", true),
+                    Map.entry("name", name));
             try {
-                // aborted != noop: aborted means the operator cancelled, noop means
-                // the project did not exist. Consumers reading `noop` to learn
-                // whether the project still exists must not be misled.
-                System.out.println(MAPPER.writeValueAsString(Map.ofEntries(
-                        Map.entry("deleted", false),
-                        Map.entry("noop", false),
-                        Map.entry("aborted", true),
-                        Map.entry("name", name))));
+                System.out.println(MAPPER.writeValueAsString(payload));
             } catch (Exception e) {
                 System.err.println("aborted");
             }

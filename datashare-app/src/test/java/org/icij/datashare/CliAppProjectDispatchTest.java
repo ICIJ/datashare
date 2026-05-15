@@ -1,6 +1,7 @@
 package org.icij.datashare;
 
 import org.icij.datashare.cli.Prompter;
+import org.icij.datashare.project.admin.GrantResult;
 import org.icij.datashare.project.admin.ProjectAdminService;
 import org.icij.datashare.project.admin.ProjectCreateRequest;
 import org.icij.datashare.project.admin.ProjectCreated;
@@ -151,16 +152,21 @@ public class CliAppProjectDispatchTest {
     }
 
     private static Supplier<Prompter> alwaysDeclining() {
+        // Models the real Prompter contract: when the validator inside the
+        // callback throws InvalidValueException on every retry, promptString
+        // exhausts MAX_RETRIES and propagates ValidationFailedException.
         return () -> {
             Prompter mock = mock(Prompter.class);
-            when(mock.promptString(any(), any())).thenReturn("WRONG");
+            when(mock.promptString(any(), any()))
+                    .thenThrow(new Prompter.ValidationFailedException(
+                            "name", "typed name does not match"));
             return mock;
         };
     }
 
     @Test
     public void test_delete_happy_path_with_yes_skips_prompt() throws Exception {
-        when(service.stats(eq("foo"), eq(true))).thenReturn(new ProjectStats("foo", 42L, 3));
+        when(service.stats(eq("foo"), eq(true))).thenReturn(ProjectStats.of("foo", 42L, 3));
         when(service.delete(eq("foo"), any(ProjectDeleteOptions.class)))
                 .thenReturn(new ProjectDeleted("foo", true, true, true, true, false, false));
         Properties props = new Properties();
@@ -176,7 +182,7 @@ public class CliAppProjectDispatchTest {
 
     @Test
     public void test_delete_with_typed_name_confirmation_proceeds() throws Exception {
-        when(service.stats(eq("foo"), eq(true))).thenReturn(new ProjectStats("foo", 42L, 3));
+        when(service.stats(eq("foo"), eq(true))).thenReturn(ProjectStats.of("foo", 42L, 3));
         when(service.delete(eq("foo"), any(ProjectDeleteOptions.class)))
                 .thenReturn(new ProjectDeleted("foo", true, true, true, true, false, false));
         Properties props = new Properties();
@@ -190,7 +196,7 @@ public class CliAppProjectDispatchTest {
 
     @Test
     public void test_delete_aborts_when_typed_name_mismatches() throws Exception {
-        when(service.stats(eq("foo"), eq(true))).thenReturn(new ProjectStats("foo", 42L, 3));
+        when(service.stats(eq("foo"), eq(true))).thenReturn(ProjectStats.of("foo", 42L, 3));
         Properties props = new Properties();
         props.setProperty(PROJECT_DELETE_OPT, "foo");
 
@@ -230,7 +236,7 @@ public class CliAppProjectDispatchTest {
 
     @Test
     public void test_delete_keep_index_passes_option() throws Exception {
-        when(service.stats(eq("foo"), eq(false))).thenReturn(new ProjectStats("foo", ProjectStats.INDEX_CHECK_SKIPPED, 3));
+        when(service.stats(eq("foo"), eq(false))).thenReturn(ProjectStats.withSkippedIndex("foo", 3));
         org.mockito.ArgumentCaptor<ProjectDeleteOptions> captor =
                 org.mockito.ArgumentCaptor.forClass(ProjectDeleteOptions.class);
         when(service.delete(eq("foo"), captor.capture()))
@@ -248,7 +254,7 @@ public class CliAppProjectDispatchTest {
 
     @Test
     public void test_delete_json_output() throws Exception {
-        when(service.stats(eq("foo"), eq(true))).thenReturn(new ProjectStats("foo", 42L, 3));
+        when(service.stats(eq("foo"), eq(true))).thenReturn(ProjectStats.of("foo", 42L, 3));
         when(service.delete(eq("foo"), any(ProjectDeleteOptions.class)))
                 .thenReturn(new ProjectDeleted("foo", true, true, true, true, true, false));
         Properties props = new Properties();
@@ -272,7 +278,7 @@ public class CliAppProjectDispatchTest {
         when(service.create(any(ProjectCreateRequest.class)))
                 .thenReturn(new ProjectCreated("foo", "foo", null, Path.of("/vault/foo"),
                         "*.*.*.*", null, null, null, null, null, null, true, false));
-        when(service.addAdminToProject("foo", "promera")).thenReturn(true);
+        when(service.addAdminToProject("foo", "promera")).thenReturn(GrantResult.GRANTED);
 
         Properties props = new Properties();
         props.setProperty(PROJECT_CREATE_OPT, "foo");
@@ -306,7 +312,7 @@ public class CliAppProjectDispatchTest {
         when(service.create(any(ProjectCreateRequest.class)))
                 .thenReturn(new ProjectCreated("foo", "foo", null, Path.of("/vault/foo"),
                         "*.*.*.*", null, null, null, null, null, null, true, false));
-        when(service.addAdminToProject("foo", "alice")).thenReturn(true);
+        when(service.addAdminToProject("foo", "alice")).thenReturn(GrantResult.GRANTED);
 
         Properties props = new Properties();
         props.setProperty(PROJECT_CREATE_OPT, "foo");
@@ -325,7 +331,7 @@ public class CliAppProjectDispatchTest {
         when(service.create(any(ProjectCreateRequest.class)))
                 .thenReturn(new ProjectCreated("foo", "foo", null, Path.of("/vault/foo"),
                         "*.*.*.*", null, null, null, null, null, null, true, false));
-        when(service.addAdminToProject("foo", "ghost")).thenReturn(false);
+        when(service.addAdminToProject("foo", "ghost")).thenReturn(GrantResult.USER_NOT_FOUND);
 
         Properties props = new Properties();
         props.setProperty(PROJECT_CREATE_OPT, "foo");
@@ -343,7 +349,7 @@ public class CliAppProjectDispatchTest {
         when(service.create(any(ProjectCreateRequest.class)))
                 .thenReturn(new ProjectCreated("foo", "foo", null, Path.of("/vault/foo"),
                         "*.*.*.*", null, null, null, null, null, null, true, false));
-        when(service.addAdminToProject("foo", "local-datashare")).thenReturn(false);
+        when(service.addAdminToProject("foo", "local-datashare")).thenReturn(GrantResult.USER_NOT_FOUND);
 
         Properties props = new Properties();
         props.setProperty(PROJECT_CREATE_OPT, "foo");
@@ -401,7 +407,7 @@ public class CliAppProjectDispatchTest {
 
     @Test
     public void test_delete_aborts_when_prompter_exhausts_retries() throws Exception {
-        when(service.stats(eq("foo"), eq(true))).thenReturn(new ProjectStats("foo", 42L, 3));
+        when(service.stats(eq("foo"), eq(true))).thenReturn(ProjectStats.of("foo", 42L, 3));
 
         Supplier<Prompter> exhaustingPrompter = () -> {
             Prompter mock = mock(Prompter.class);
