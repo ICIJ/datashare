@@ -317,7 +317,7 @@ public class CliAppProjectDispatchTest {
     }
 
     @Test
-    public void test_create_logs_warning_when_creator_user_missing() throws Exception {
+    public void test_create_warns_when_explicit_creator_missing_from_inventory() throws Exception {
         when(service.create(any(ProjectCreateRequest.class)))
                 .thenReturn(new ProjectCreated("foo", "foo", null, Path.of("/vault/foo"),
                         "*.*.*.*", null, null, null, null, true, false));
@@ -332,6 +332,27 @@ public class CliAppProjectDispatchTest {
         assertThat(exit).isEqualTo(0);
         assertThat(stderr.toString()).contains("warning");
         assertThat(stderr.toString()).contains("ghost");
+    }
+
+    @Test
+    public void test_create_silent_when_fallback_default_user_missing_from_inventory() throws Exception {
+        when(service.create(any(ProjectCreateRequest.class)))
+                .thenReturn(new ProjectCreated("foo", "foo", null, Path.of("/vault/foo"),
+                        "*.*.*.*", null, null, null, null, true, false));
+        when(service.addAdminToProject("foo", "local-datashare")).thenReturn(false);
+
+        Properties props = new Properties();
+        props.setProperty(PROJECT_CREATE_OPT, "foo");
+        // No --creator: launcher-injected --defaultUserName is the only signal.
+        props.setProperty("defaultUserName", "local-datashare");
+
+        int exit = CliApp.handleProjectCreate(service, props);
+
+        assertThat(exit).isEqualTo(0);
+        // The grant attempt happened (service was called) but the warning
+        // is suppressed for the fallback path.
+        verify(service).addAdminToProject("foo", "local-datashare");
+        assertThat(stderr.toString()).excludes("warning");
     }
 
     @Test
