@@ -1,9 +1,14 @@
 package org.icij.datashare;
 
+import org.icij.datashare.cli.Prompter;
 import org.icij.datashare.project.admin.ProjectAdminService;
 import org.icij.datashare.project.admin.ProjectCreateRequest;
 import org.icij.datashare.project.admin.ProjectCreated;
+import org.icij.datashare.project.admin.ProjectDeleteOptions;
+import org.icij.datashare.project.admin.ProjectDeleted;
 import org.icij.datashare.project.admin.ProjectExistsException;
+import org.icij.datashare.project.admin.ProjectNotFoundException;
+import org.icij.datashare.project.admin.ProjectStats;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -12,14 +17,22 @@ import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
 import java.nio.file.Path;
 import java.util.Properties;
+import java.util.function.Supplier;
 
 import static org.fest.assertions.Assertions.assertThat;
 import static org.icij.datashare.cli.DatashareCliOptions.PROJECT_CREATE_IF_NOT_EXISTS_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.PROJECT_CREATE_JSON_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.PROJECT_CREATE_LABEL_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.PROJECT_CREATE_OPT;
+import static org.icij.datashare.cli.DatashareCliOptions.PROJECT_DELETE_IF_EXISTS_OPT;
+import static org.icij.datashare.cli.DatashareCliOptions.PROJECT_DELETE_JSON_OPT;
+import static org.icij.datashare.cli.DatashareCliOptions.PROJECT_DELETE_KEEP_INDEX_OPT;
+import static org.icij.datashare.cli.DatashareCliOptions.PROJECT_DELETE_OPT;
+import static org.icij.datashare.cli.DatashareCliOptions.PROJECT_DELETE_YES_OPT;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -123,5 +136,130 @@ public class CliAppProjectDispatchTest {
         assertThat(captured).contains("\"noop\":false");
         assertThat(captured).contains("\"name\":\"foo\"");
         assertThat(captured).contains("\"indexCreated\":true");
+    }
+
+    private static Supplier<Prompter> alwaysConfirming(String expected) {
+        return () -> {
+            Prompter mock = mock(Prompter.class);
+            when(mock.promptString(any(), any())).thenReturn(expected);
+            return mock;
+        };
+    }
+
+    private static Supplier<Prompter> alwaysDeclining() {
+        return () -> {
+            Prompter mock = mock(Prompter.class);
+            when(mock.promptString(any(), any())).thenReturn("WRONG");
+            return mock;
+        };
+    }
+
+    @Test
+    public void test_delete_happy_path_with_yes_skips_prompt() throws Exception {
+        when(service.stats("foo")).thenReturn(new ProjectStats("foo", 42L, 3));
+        when(service.delete(eq("foo"), any(ProjectDeleteOptions.class)))
+                .thenReturn(new ProjectDeleted("foo", true, true, true, true, false, false));
+        Properties props = new Properties();
+        props.setProperty(PROJECT_DELETE_OPT, "foo");
+        props.setProperty(PROJECT_DELETE_YES_OPT, "true");
+
+        int exit = CliApp.handleProjectDelete(service, props, alwaysDeclining());  // prompt should not be reached
+
+        assertThat(exit).isEqualTo(0);
+        assertThat(stdout.toString()).contains("deleted project 'foo'");
+        verify(service).delete(eq("foo"), any(ProjectDeleteOptions.class));
+    }
+
+    @Test
+    public void test_delete_with_typed_name_confirmation_proceeds() throws Exception {
+        when(service.stats("foo")).thenReturn(new ProjectStats("foo", 42L, 3));
+        when(service.delete(eq("foo"), any(ProjectDeleteOptions.class)))
+                .thenReturn(new ProjectDeleted("foo", true, true, true, true, false, false));
+        Properties props = new Properties();
+        props.setProperty(PROJECT_DELETE_OPT, "foo");
+
+        int exit = CliApp.handleProjectDelete(service, props, alwaysConfirming("foo"));
+
+        assertThat(exit).isEqualTo(0);
+        verify(service).delete(eq("foo"), any(ProjectDeleteOptions.class));
+    }
+
+    @Test
+    public void test_delete_aborts_when_typed_name_mismatches() throws Exception {
+        when(service.stats("foo")).thenReturn(new ProjectStats("foo", 42L, 3));
+        Properties props = new Properties();
+        props.setProperty(PROJECT_DELETE_OPT, "foo");
+
+        int exit = CliApp.handleProjectDelete(service, props, alwaysDeclining());
+
+        assertThat(exit).isEqualTo(0);
+        assertThat(stderr.toString()).contains("aborted");
+        verify(service, never()).delete(any(), any());
+    }
+
+    @Test
+    public void test_delete_missing_returns_3() throws Exception {
+        when(service.stats("ghost")).thenThrow(new ProjectNotFoundException("ghost"));
+        Properties props = new Properties();
+        props.setProperty(PROJECT_DELETE_OPT, "ghost");
+        props.setProperty(PROJECT_DELETE_YES_OPT, "true");
+
+        int exit = CliApp.handleProjectDelete(service, props, alwaysConfirming("ghost"));
+
+        assertThat(exit).isEqualTo(3);
+        verify(service, never()).delete(any(), any());
+    }
+
+    @Test
+    public void test_delete_if_exists_missing_returns_0_noop() throws Exception {
+        when(service.stats("ghost")).thenThrow(new ProjectNotFoundException("ghost"));
+        Properties props = new Properties();
+        props.setProperty(PROJECT_DELETE_OPT, "ghost");
+        props.setProperty(PROJECT_DELETE_IF_EXISTS_OPT, "true");
+        props.setProperty(PROJECT_DELETE_YES_OPT, "true");
+
+        int exit = CliApp.handleProjectDelete(service, props, alwaysConfirming("ghost"));
+
+        assertThat(exit).isEqualTo(0);
+        assertThat(stdout.toString()).contains("does not exist (no-op)");
+    }
+
+    @Test
+    public void test_delete_keep_index_passes_option() throws Exception {
+        when(service.stats("foo")).thenReturn(new ProjectStats("foo", ProjectStats.INDEX_CHECK_SKIPPED, 3));
+        org.mockito.ArgumentCaptor<ProjectDeleteOptions> captor =
+                org.mockito.ArgumentCaptor.forClass(ProjectDeleteOptions.class);
+        when(service.delete(eq("foo"), captor.capture()))
+                .thenReturn(new ProjectDeleted("foo", true, false, true, true, false, false));
+        Properties props = new Properties();
+        props.setProperty(PROJECT_DELETE_OPT, "foo");
+        props.setProperty(PROJECT_DELETE_KEEP_INDEX_OPT, "true");
+        props.setProperty(PROJECT_DELETE_YES_OPT, "true");
+
+        int exit = CliApp.handleProjectDelete(service, props, alwaysConfirming("foo"));
+
+        assertThat(exit).isEqualTo(0);
+        assertThat(captor.getValue().keepIndex()).isTrue();
+    }
+
+    @Test
+    public void test_delete_json_output() throws Exception {
+        when(service.stats("foo")).thenReturn(new ProjectStats("foo", 42L, 3));
+        when(service.delete(eq("foo"), any(ProjectDeleteOptions.class)))
+                .thenReturn(new ProjectDeleted("foo", true, true, true, true, true, false));
+        Properties props = new Properties();
+        props.setProperty(PROJECT_DELETE_OPT, "foo");
+        props.setProperty(PROJECT_DELETE_YES_OPT, "true");
+        props.setProperty(PROJECT_DELETE_JSON_OPT, "true");
+
+        int exit = CliApp.handleProjectDelete(service, props, alwaysConfirming("foo"));
+
+        assertThat(exit).isEqualTo(0);
+        String out = stdout.toString();
+        assertThat(out).contains("\"deleted\":true");
+        assertThat(out).contains("\"noop\":false");
+        assertThat(out).contains("\"name\":\"foo\"");
+        assertThat(out).contains("\"dbDeleted\":true");
+        assertThat(out).contains("\"indexDeleted\":true");
     }
 }

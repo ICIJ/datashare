@@ -2,13 +2,18 @@ package org.icij.datashare;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.icij.datashare.cli.CliExtensionService;
+import org.icij.datashare.cli.Prompter;
 import org.icij.datashare.cli.Validators;
 import org.icij.datashare.cli.spi.CliExtension;
 import org.icij.datashare.mode.CommonMode;
 import org.icij.datashare.project.admin.ProjectAdminService;
 import org.icij.datashare.project.admin.ProjectCreateRequest;
 import org.icij.datashare.project.admin.ProjectCreated;
+import org.icij.datashare.project.admin.ProjectDeleteOptions;
+import org.icij.datashare.project.admin.ProjectDeleted;
 import org.icij.datashare.project.admin.ProjectExistsException;
+import org.icij.datashare.project.admin.ProjectNotFoundException;
+import org.icij.datashare.project.admin.ProjectStats;
 import org.icij.datashare.tasks.ArtifactTask;
 import org.icij.datashare.tasks.CreateNlpBatchesFromIndex;
 import org.icij.datashare.tasks.CategorizeTask;
@@ -35,6 +40,7 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.function.Supplier;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.icij.datashare.PropertiesProvider.propertiesToMap;
@@ -129,6 +135,11 @@ class CliApp {
         if (properties.getProperty(PROJECT_CREATE_OPT) != null) {
             ProjectAdminService projectAdminService = mode.get(ProjectAdminService.class);
             System.exit(handleProjectCreate(projectAdminService, properties));
+        }
+
+        if (properties.getProperty(PROJECT_DELETE_OPT) != null) {
+            ProjectAdminService projectAdminService = mode.get(ProjectAdminService.class);
+            System.exit(handleProjectDelete(projectAdminService, properties, Prompter::new));
         }
 
         PipelineHelper pipeline = new PipelineHelper(new PropertiesProvider(properties));
@@ -302,6 +313,119 @@ class CliApp {
             return error(e.getMessage(), "validation", 5, json);
         } catch (Exception e) {
             return error("runtime: " + e.getMessage(), "runtime", 1, json);
+        }
+    }
+
+    static int handleProjectDelete(ProjectAdminService service,
+                                   Properties properties,
+                                   Supplier<Prompter> prompterFactory) {
+        String name = properties.getProperty(PROJECT_DELETE_OPT);
+        boolean json = Boolean.parseBoolean(properties.getProperty(PROJECT_DELETE_JSON_OPT));
+        boolean ifExists = Boolean.parseBoolean(properties.getProperty(PROJECT_DELETE_IF_EXISTS_OPT));
+        boolean yes = Boolean.parseBoolean(properties.getProperty(PROJECT_DELETE_YES_OPT));
+        boolean noInput = Boolean.parseBoolean(properties.getProperty(PROJECT_DELETE_NO_INPUT_OPT));
+        boolean keepIndex = Boolean.parseBoolean(properties.getProperty(PROJECT_DELETE_KEEP_INDEX_OPT));
+        ProjectDeleteOptions options = new ProjectDeleteOptions(keepIndex);
+
+        try {
+            ProjectStats stats;
+            try {
+                stats = service.stats(name);
+            } catch (ProjectNotFoundException e) {
+                if (ifExists) {
+                    emitDeleteNoop(name, json);
+                    return 0;
+                }
+                throw e;
+            }
+
+            if (!(yes || noInput)) {
+                String docCount = stats.indexedDocuments() == ProjectStats.INDEX_CHECK_SKIPPED
+                        ? "(index check skipped)"
+                        : stats.indexedDocuments() + " indexed documents";
+                System.err.println("Project '" + name + "' has " + docCount
+                        + " and " + stats.memberCount() + " members.");
+                System.err.println("This will permanently delete the project, its index, "
+                        + "document queues, report map, and artifact directory. "
+                        + "This cannot be undone.");
+                Prompter prompter = prompterFactory.get();
+                String typed = prompter.promptString(
+                        "To confirm, type the project name",
+                        typedName -> {
+                            if (!typedName.trim().equals(name)) {
+                                throw new Validators.InvalidValueException(
+                                        "name", "typed name does not match");
+                            }
+                        });
+                if (!typed.trim().equals(name)) {
+                    emitDeleteAborted(name, json);
+                    return 0;
+                }
+            }
+
+            ProjectDeleted deleted = ifExists
+                    ? service.deleteIfExists(name, options)
+                    : service.delete(name, options);
+
+            if (json) {
+                System.out.println(MAPPER.writeValueAsString(Map.ofEntries(
+                        Map.entry("deleted", !deleted.noop()),
+                        Map.entry("noop", deleted.noop()),
+                        Map.entry("name", deleted.name()),
+                        Map.entry("dbDeleted", deleted.dbDeleted()),
+                        Map.entry("indexDeleted", deleted.indexDeleted()),
+                        Map.entry("queuesDeleted", deleted.queuesDeleted()),
+                        Map.entry("reportMapDeleted", deleted.reportMapDeleted()),
+                        Map.entry("artifactsDeleted", deleted.artifactsDeleted()))));
+            } else if (deleted.noop()) {
+                System.out.println("project '" + deleted.name() + "' does not exist (no-op)");
+            } else {
+                String indexBadge = options.keepIndex() ? "index skipped" : "index OK";
+                String artifactsBadge = deleted.artifactsDeleted() ? "artifacts OK" : "artifacts skipped";
+                System.out.println("deleted project '" + deleted.name() + "' (db OK, "
+                        + indexBadge + ", queues OK, report-map OK, " + artifactsBadge + ")");
+            }
+            return 0;
+        } catch (ProjectNotFoundException e) {
+            return error(e.getMessage(), "not_found", 3, json);
+        } catch (Exception e) {
+            return error("runtime: " + e.getMessage(), "runtime", 1, json);
+        }
+    }
+
+    private static void emitDeleteNoop(String name, boolean json) {
+        if (json) {
+            try {
+                System.out.println(MAPPER.writeValueAsString(Map.ofEntries(
+                        Map.entry("deleted", false),
+                        Map.entry("noop", true),
+                        Map.entry("name", name),
+                        Map.entry("dbDeleted", false),
+                        Map.entry("indexDeleted", false),
+                        Map.entry("queuesDeleted", false),
+                        Map.entry("reportMapDeleted", false),
+                        Map.entry("artifactsDeleted", false))));
+            } catch (Exception e) {
+                System.out.println("project '" + name + "' does not exist (no-op)");
+            }
+        } else {
+            System.out.println("project '" + name + "' does not exist (no-op)");
+        }
+    }
+
+    private static void emitDeleteAborted(String name, boolean json) {
+        if (json) {
+            try {
+                System.out.println(MAPPER.writeValueAsString(Map.ofEntries(
+                        Map.entry("deleted", false),
+                        Map.entry("noop", true),
+                        Map.entry("aborted", true),
+                        Map.entry("name", name))));
+            } catch (Exception e) {
+                System.err.println("aborted");
+            }
+        } else {
+            System.err.println("aborted");
         }
     }
 
