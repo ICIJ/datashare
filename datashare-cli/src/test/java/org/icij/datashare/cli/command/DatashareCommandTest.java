@@ -1213,4 +1213,57 @@ public class DatashareCommandTest {
         Properties props = cmd.getSubcommandProperties();
         assertThat(props.getProperty("userDelete")).isEqualTo("alice");
     }
+
+    @Test
+    public void test_project_create_minimal_emits_name() {
+        Properties props = parse("project", "create", "my-project");
+        assertThat(props).includes(entry("projectCreate", "my-project"));
+    }
+
+    @Test
+    public void test_project_create_all_flags_propagate_as_sibling_keys() {
+        Properties props = parse("project", "create", "my-project",
+                "--label", "My Project",
+                "--description", "leak archive",
+                "--source-path", "/data/my-project",
+                "--allow-from-mask", "10.0.0.0",
+                "--source-url", "https://src/",
+                "--maintainer-name", "Maint",
+                "--publisher-name", "Pub",
+                "--logo-url", "https://logo.png",
+                "--no-index",
+                "--if-not-exists",
+                "--json");
+
+        assertThat(props).includes(entry("projectCreate", "my-project"));
+        assertThat(props).includes(entry("projectCreate.label", "My Project"));
+        assertThat(props).includes(entry("projectCreate.description", "leak archive"));
+        assertThat(props).includes(entry("projectCreate.sourcePath", "/data/my-project"));
+        assertThat(props).includes(entry("projectCreate.allowFromMask", "10.0.0.0"));
+        assertThat(props).includes(entry("projectCreate.sourceUrl", "https://src/"));
+        assertThat(props).includes(entry("projectCreate.maintainerName", "Maint"));
+        assertThat(props).includes(entry("projectCreate.publisherName", "Pub"));
+        assertThat(props).includes(entry("projectCreate.logoUrl", "https://logo.png"));
+        assertThat(props).includes(entry("projectCreate.noIndex", "true"));
+        assertThat(props).includes(entry("projectCreate.ifNotExists", "true"));
+        assertThat(props).includes(entry("projectCreate.json", "true"));
+    }
+
+    @Test
+    public void test_project_create_invalid_name_exits_5() {
+        int exit = parseExitCode("project", "create", "Has-Uppercase");
+        assertThat(exit).isEqualTo(5);
+    }
+
+    @Test
+    public void test_project_create_invalid_allow_from_mask_exits_5() {
+        int exit = parseExitCode("project", "create", "my-project", "--allow-from-mask", "not-a-mask");
+        assertThat(exit).isEqualTo(5);
+    }
+
+    @Test
+    public void test_project_create_invalid_source_url_exits_5() {
+        int exit = parseExitCode("project", "create", "my-project", "--source-url", "not a uri");
+        assertThat(exit).isEqualTo(5);
+    }
 }
