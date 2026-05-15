@@ -10,6 +10,8 @@ import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 import picocli.CommandLine.Parameters;
 
+import java.nio.file.InvalidPathException;
+import java.nio.file.Path;
 import java.util.Properties;
 
 import static org.icij.datashare.cli.DatashareCliOptions.MODE_OPT;
@@ -212,8 +214,8 @@ public class ProjectCreateCommand implements Runnable, DatashareSubcommand {
     /**
      * Prompts for an optional filesystem path. Same display semantics as
      * {@link #promptOptional} (default shown in brackets, blank returns
-     * {@code null}); non-blank input is parsed with {@link java.nio.file.Path#of}
-     * so syntactic garbage (e.g. NUL byte) is caught before dispatch instead of
+     * {@code null}); non-blank input is parsed with {@link Path#of} so
+     * syntactic garbage (e.g. NUL byte) is caught before dispatch instead of
      * surfacing as a runtime error in the service.
      */
     private static String promptOptionalPath(Prompter prompter, String label, String defaultValue) {
@@ -221,9 +223,9 @@ public class ProjectCreateCommand implements Runnable, DatashareSubcommand {
         String line = prompter.promptString(displayLabel, s -> {
             if (s != null && !s.isBlank()) {
                 try {
-                    java.nio.file.Path.of(s.trim());
-                } catch (java.nio.file.InvalidPathException e) {
-                    throw new Validators.InvalidValueException(
+                    Path.of(s.trim());
+                } catch (InvalidPathException e) {
+                    throw new InvalidValueException(
                             "sourcePath", "path is not valid: " + e.getMessage());
                 }
             }
