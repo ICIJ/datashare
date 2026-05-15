@@ -2,23 +2,33 @@ package org.icij.datashare.project.admin;
 
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
+import org.apache.commons.io.FileUtils;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Repository;
+import org.icij.datashare.cli.DatashareCliOptions;
 import org.icij.datashare.extract.DocumentCollectionFactory;
 import org.icij.datashare.policies.Authorizer;
 import org.icij.datashare.policies.CasbinRule;
 import org.icij.datashare.policies.Domain;
 import org.icij.datashare.text.Project;
 import org.icij.datashare.text.indexing.Indexer;
+import org.icij.extract.queue.DocumentQueue;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Map;
+import java.util.Properties;
 import java.util.regex.Pattern;
+import java.util.stream.Stream;
 
 @Singleton
 public class ProjectAdminServiceImpl implements ProjectAdminService {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(ProjectAdminServiceImpl.class);
     private static final Pattern NAME = Pattern.compile("^[a-z0-9][a-z0-9-]{1,63}$");
     private static final String DEFAULT_ALLOW_FROM_MASK = "*.*.*.*";
     private static final Path DEFAULT_VAULT = Paths.get("/vault");
@@ -92,12 +102,72 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
     @Override
     public ProjectDeleted delete(String name, ProjectDeleteOptions options)
             throws ProjectNotFoundException, IOException {
-        throw new UnsupportedOperationException("implemented in Task 9");
+        Project project = repository.getProject(name);
+        if (project == null) {
+            throw new ProjectNotFoundException(name);
+        }
+        return cascade(project, options);
     }
 
     @Override
     public ProjectDeleted deleteIfExists(String name, ProjectDeleteOptions options) throws IOException {
-        throw new UnsupportedOperationException("implemented in Task 9");
+        Project project = repository.getProject(name);
+        if (project == null) {
+            return new ProjectDeleted(name, false, false, false, false, false, true);
+        }
+        return cascade(project, options);
+    }
+
+    private ProjectDeleted cascade(Project project, ProjectDeleteOptions options) throws IOException {
+        String name = project.getName();
+
+        boolean indexDeleted = false;
+        if (!options.keepIndex()) {
+            indexDeleted = indexer.deleteAll(name);
+        }
+
+        boolean dbDeleted = repository.deleteAll(name);
+
+        boolean queuesDeleted = deleteQueues(project);
+        boolean reportMapDeleted = deleteReportMap(project);
+        boolean artifactsDeleted = deleteArtifacts(name);
+
+        return new ProjectDeleted(name, dbDeleted, indexDeleted,
+                queuesDeleted, reportMapDeleted, artifactsDeleted, false);
+    }
+
+    private boolean deleteQueues(Project project) {
+        String name = project.getName();
+        Properties properties = propertiesProvider.createOverriddenWith(
+                Map.of(PropertiesProvider.DEFAULT_PROJECT_OPT, name));
+        String defaultQueueName = properties.getOrDefault(
+                PropertiesProvider.QUEUE_NAME_OPT, "extract:queue").toString();
+        String queuePrefix = defaultQueueName + PropertiesProvider.QUEUE_SEPARATOR + name;
+        String queuePattern = queuePrefix + PropertiesProvider.QUEUE_SEPARATOR + "*";
+        return Stream.concat(
+                        documentCollectionFactory.getQueues(queuePrefix, Path.class).stream(),
+                        documentCollectionFactory.getQueues(queuePattern, Path.class).stream())
+                .allMatch(DocumentQueue::delete);
+    }
+
+    private boolean deleteReportMap(Project project) {
+        String reportMapName = "extract:report:" + project.getName();
+        return documentCollectionFactory.createMap(reportMapName).delete();
+    }
+
+    private boolean deleteArtifacts(String name) {
+        return propertiesProvider.get(DatashareCliOptions.ARTIFACT_DIR_OPT)
+                .map(dir -> {
+                    try {
+                        File projectArtifactDir = Path.of(dir).resolve(name).toFile();
+                        FileUtils.deleteDirectory(projectArtifactDir);
+                        return true;
+                    } catch (IOException e) {
+                        LOGGER.error("cannot delete project {} artifact dir", name, e);
+                        return false;
+                    }
+                })
+                .orElse(false);
     }
 
     private void validate(ProjectCreateRequest request) throws ValidationException {

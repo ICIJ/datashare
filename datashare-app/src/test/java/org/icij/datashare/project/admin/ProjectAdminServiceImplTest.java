@@ -8,6 +8,8 @@ import org.icij.datashare.policies.CasbinRule;
 import org.icij.datashare.policies.Domain;
 import org.icij.datashare.text.Project;
 import org.icij.datashare.text.indexing.Indexer;
+import org.icij.extract.queue.DocumentQueue;
+import org.icij.extract.report.ReportMap;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
@@ -17,6 +19,8 @@ import org.mockito.Mockito;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Optional;
+import java.util.Properties;
 
 import static org.fest.assertions.Assertions.assertThat;
 import static org.junit.Assert.fail;
@@ -228,6 +232,101 @@ public class ProjectAdminServiceImplTest {
             assertThat(e.getMessage()).contains("ghost");
         }
         verify(indexer, never()).count(any());
+    }
+
+    @Test
+    public void test_delete_runs_full_cascade_in_order() throws Exception {
+        Project project = new Project("foo");
+        when(repository.getProject("foo")).thenReturn(project);
+        when(repository.deleteAll("foo")).thenReturn(true);
+        when(indexer.deleteAll("foo")).thenReturn(true);
+        DocumentQueue<Path> queue = mock(DocumentQueue.class);
+        when(queue.delete()).thenReturn(true);
+        when(documentCollectionFactory.getQueues(any(String.class), eq(Path.class))).thenReturn(List.of(queue));
+        ReportMap reportMap = mock(ReportMap.class);
+        when(reportMap.delete()).thenReturn(true);
+        when(documentCollectionFactory.createMap(any())).thenReturn(reportMap);
+        when(propertiesProvider.createOverriddenWith(any())).thenReturn(new Properties());
+        when(propertiesProvider.get(any())).thenReturn(Optional.empty()); // no artifact dir configured
+
+        ProjectDeleted deleted = service.delete("foo", new ProjectDeleteOptions(false));
+
+        InOrder inOrder = Mockito.inOrder(indexer, repository, queue, reportMap);
+        inOrder.verify(indexer).deleteAll("foo");
+        inOrder.verify(repository).deleteAll("foo");
+        // Two queue lookups (legacy prefix + new pattern) both return the same mock,
+        // so queue.delete() is called twice.
+        inOrder.verify(queue, Mockito.times(2)).delete();
+        inOrder.verify(reportMap).delete();
+
+        assertThat(deleted.name()).isEqualTo("foo");
+        assertThat(deleted.indexDeleted()).isTrue();
+        assertThat(deleted.dbDeleted()).isTrue();
+        assertThat(deleted.queuesDeleted()).isTrue();
+        assertThat(deleted.reportMapDeleted()).isTrue();
+        assertThat(deleted.artifactsDeleted()).isFalse(); // no artifact dir configured
+        assertThat(deleted.noop()).isFalse();
+    }
+
+    @Test
+    public void test_delete_skips_index_when_keepIndex_true() throws Exception {
+        when(repository.getProject("foo")).thenReturn(new Project("foo"));
+        when(repository.deleteAll("foo")).thenReturn(true);
+        when(documentCollectionFactory.getQueues(any(String.class), eq(Path.class))).thenReturn(List.of());
+        ReportMap reportMap = mock(ReportMap.class);
+        when(reportMap.delete()).thenReturn(true);
+        when(documentCollectionFactory.createMap(any())).thenReturn(reportMap);
+        when(propertiesProvider.createOverriddenWith(any())).thenReturn(new Properties());
+        when(propertiesProvider.get(any())).thenReturn(Optional.empty());
+
+        ProjectDeleted deleted = service.delete("foo", new ProjectDeleteOptions(true));
+
+        verify(indexer, never()).deleteAll(any());
+        assertThat(deleted.indexDeleted()).isFalse();
+        assertThat(deleted.dbDeleted()).isTrue();
+    }
+
+    @Test
+    public void test_delete_throws_when_project_missing() throws Exception {
+        when(repository.getProject("ghost")).thenReturn(null);
+        try {
+            service.delete("ghost", ProjectDeleteOptions.defaults());
+            fail("expected ProjectNotFoundException");
+        } catch (ProjectNotFoundException e) {
+            assertThat(e.getMessage()).contains("ghost");
+        }
+        verify(indexer, never()).deleteAll(any());
+        verify(repository, never()).deleteAll(any());
+    }
+
+    @Test
+    public void test_delete_if_exists_returns_noop_when_project_missing() throws Exception {
+        when(repository.getProject("ghost")).thenReturn(null);
+
+        ProjectDeleted deleted = service.deleteIfExists("ghost", ProjectDeleteOptions.defaults());
+
+        assertThat(deleted.noop()).isTrue();
+        assertThat(deleted.dbDeleted()).isFalse();
+        assertThat(deleted.indexDeleted()).isFalse();
+        verify(indexer, never()).deleteAll(any());
+        verify(repository, never()).deleteAll(any());
+    }
+
+    @Test
+    public void test_delete_aborts_when_db_delete_fails() throws Exception {
+        when(repository.getProject("foo")).thenReturn(new Project("foo"));
+        when(indexer.deleteAll("foo")).thenReturn(true);
+        when(repository.deleteAll("foo")).thenThrow(new RuntimeException("DB down"));
+
+        try {
+            service.delete("foo", ProjectDeleteOptions.defaults());
+            fail("expected RuntimeException");
+        } catch (RuntimeException e) {
+            assertThat(e.getMessage()).contains("DB down");
+        }
+        // Cascade aborts: queues, report-map, artifacts must NOT run.
+        verify(documentCollectionFactory, never()).getQueues(any(String.class), any());
+        verify(documentCollectionFactory, never()).createMap(any());
     }
 
     private static CasbinRule casbinRule(String userId, String role, String domainProject) {
