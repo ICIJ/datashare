@@ -303,9 +303,9 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
     }
 
     @Provides @Singleton
-    Authorizer provideAuthorizer(CasbinRuleAdapter adapter, RedissonClient redissonClient) throws IOException {
+    Authorizer provideAuthorizer(CasbinRuleAdapter adapter, Provider<RedissonClient> redissonProvider) throws IOException {
         if (QueueType.REDIS.name().equals(propertiesProvider.get(BUS_TYPE_OPT).orElse(null))) {
-            PolicyWatcher watcher = new PolicyWatcher(redissonClient);
+            PolicyWatcher watcher = new PolicyWatcher(redissonProvider.get());
             addCloseable(watcher);
             return new Authorizer(adapter, watcher);
         }
