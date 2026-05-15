@@ -19,6 +19,8 @@ public class Project extends ProjectProxy {
 
     public static final String NAME_REGEX = "^[a-z0-9][a-z0-9-]{1,63}$";
     public static final String ALLOW_FROM_MASK_REGEX = "^[\\d*]{1,3}(\\.[\\d*]{1,3}){3}$";
+    public static final Pattern NAME_PATTERN = Pattern.compile(NAME_REGEX);
+    public static final Pattern ALLOW_FROM_MASK_PATTERN = Pattern.compile(ALLOW_FROM_MASK_REGEX);
 
     public final Path sourcePath;
     @JsonIgnore

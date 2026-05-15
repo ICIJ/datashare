@@ -22,9 +22,7 @@ public final class Validators {
         public String field() { return field; }
     }
 
-    private static final Pattern LOGIN   = Pattern.compile("^[a-z0-9][a-z0-9._-]{1,63}$");
-    private static final Pattern PROJECT = Pattern.compile(Project.NAME_REGEX);
-    private static final Pattern ALLOW_FROM_MASK = Pattern.compile(Project.ALLOW_FROM_MASK_REGEX);
+    private static final Pattern LOGIN = Pattern.compile("^[a-z0-9][a-z0-9._-]{1,63}$");
     private static final Set<String> PROVIDERS = Set.of(User.LOCAL, User.OAUTH, User.EXTERNAL);
 
     private Validators() {}
@@ -62,7 +60,7 @@ public final class Validators {
         for (String raw : csv.split(",")) {
             String projectName = raw.trim();
             if (projectName.isEmpty()) continue;
-            if (!PROJECT.matcher(projectName).matches()) {
+            if (!Project.NAME_PATTERN.matcher(projectName).matches()) {
                 throw new InvalidValueException("groups",
                         "project name '" + projectName + "' must match ^[a-z0-9][a-z0-9-]{1,63}$");
             }
@@ -72,14 +70,14 @@ public final class Validators {
     }
 
     public static void projectName(String value) {
-        if (value == null || !PROJECT.matcher(value).matches()) {
+        if (value == null || !Project.NAME_PATTERN.matcher(value).matches()) {
             throw new InvalidValueException("projectName",
                     "project name must match " + Project.NAME_REGEX);
         }
     }
 
     public static void allowFromMask(String value) {
-        if (value == null || !ALLOW_FROM_MASK.matcher(value).matches()) {
+        if (value == null || !Project.ALLOW_FROM_MASK_PATTERN.matcher(value).matches()) {
             throw new InvalidValueException("allowFromMask",
                     "allow-from-mask must match " + Project.ALLOW_FROM_MASK_REGEX + " (e.g. *.*.*.*)");
         }
