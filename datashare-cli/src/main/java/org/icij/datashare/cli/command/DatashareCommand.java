@@ -17,6 +17,7 @@ import java.util.Properties;
                 ExtensionCommand.class,
                 ApiKeyCommand.class,
                 UserCommand.class,
+                ProjectCommand.class,
                 CommandLine.HelpCommand.class
         },
         description = "Datashare - Index and search your documents")
