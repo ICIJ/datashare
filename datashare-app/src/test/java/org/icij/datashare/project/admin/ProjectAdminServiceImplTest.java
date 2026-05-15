@@ -9,7 +9,10 @@ import org.icij.datashare.text.indexing.Indexer;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InOrder;
+import org.mockito.Mockito;
 
+import java.io.IOException;
 import java.nio.file.Path;
 
 import static org.fest.assertions.Assertions.assertThat;
@@ -123,5 +126,73 @@ public class ProjectAdminServiceImplTest {
 
         verify(indexer, never()).createIndex(any());
         assertThat(created.indexCreated()).isFalse();
+    }
+
+    @Test
+    public void test_create_compensates_db_when_index_creation_fails() throws Exception {
+        when(repository.getProject("foo")).thenReturn(null);
+        when(repository.save(any(Project.class))).thenReturn(true);
+        when(indexer.createIndex("foo")).thenThrow(new IOException("ES down"));
+
+        try {
+            service.create(minimalRequest("foo"));
+            fail("expected IOException");
+        } catch (IOException e) {
+            assertThat(e.getMessage()).contains("ES down");
+        }
+
+        InOrder inOrder = Mockito.inOrder(repository, indexer);
+        inOrder.verify(repository).save(any(Project.class));
+        inOrder.verify(indexer).createIndex("foo");
+        inOrder.verify(repository).deleteAll("foo");
+    }
+
+    @Test
+    public void test_create_logs_suppressed_when_compensating_delete_also_fails() throws Exception {
+        when(repository.getProject("foo")).thenReturn(null);
+        when(repository.save(any(Project.class))).thenReturn(true);
+        when(indexer.createIndex("foo")).thenThrow(new IOException("ES down"));
+        when(repository.deleteAll("foo")).thenThrow(new RuntimeException("rollback boom"));
+
+        try {
+            service.create(minimalRequest("foo"));
+            fail("expected IOException");
+        } catch (IOException e) {
+            assertThat(e.getMessage()).contains("ES down");
+            Throwable[] suppressed = e.getSuppressed();
+            assertThat(suppressed).hasSize(1);
+            assertThat(suppressed[0].getMessage()).contains("rollback boom");
+        }
+    }
+
+    @Test
+    public void test_create_if_not_exists_returns_noop_when_project_exists() throws Exception {
+        Project existing = new Project("foo", "Existing", "existing desc",
+                Path.of("/old/foo"), "https://old/", null, null, null, "*.*.*.*", null, null);
+        when(repository.getProject("foo")).thenReturn(existing);
+
+        ProjectCreated created = service.createIfNotExists(minimalRequest("foo"));
+
+        assertThat(created.noop()).isTrue();
+        assertThat(created.indexCreated()).isFalse();
+        assertThat(created.name()).isEqualTo("foo");
+        assertThat(created.label()).isEqualTo("Existing");
+        assertThat(created.description()).isEqualTo("existing desc");
+        assertThat((Object) created.sourcePath()).isEqualTo(Path.of("/old/foo"));
+        verify(repository, never()).save(any(Project.class));
+        verify(indexer, never()).createIndex(any());
+    }
+
+    @Test
+    public void test_create_if_not_exists_persists_when_project_missing() throws Exception {
+        when(repository.getProject("foo")).thenReturn(null);
+        when(repository.save(any(Project.class))).thenReturn(true);
+
+        ProjectCreated created = service.createIfNotExists(minimalRequest("foo"));
+
+        verify(repository).save(any(Project.class));
+        verify(indexer).createIndex("foo");
+        assertThat(created.noop()).isFalse();
+        assertThat(created.indexCreated()).isTrue();
     }
 }
