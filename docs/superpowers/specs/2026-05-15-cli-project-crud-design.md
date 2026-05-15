@@ -21,11 +21,12 @@ of scope for this branch and tracked separately.
 
 ## Non-goals
 
-- `datashare project grant` / `datashare project revoke`. Will reuse this spec's
-  `Validators`, dispatcher plumbing, and exit-code conventions. `--creator` is
-  included in this spec and auto-resolved from `defaultUserName` in
-  LOCAL/EMBEDDED mode. Per-role grants and the full `project grant` /
-  `project revoke` surface remain deferred to the next spec.
+- `datashare project grant` / `datashare project revoke`. Will reuse this
+  spec's `Validators`, dispatcher plumbing, and exit-code conventions.
+  `--creator` is included in this spec and auto-resolves from
+  `defaultUserName` when omitted. Per-role grants and the full
+  `project grant` / `project revoke` surface remain deferred to the next
+  spec.
 - Read-only commands (`project list`, `project get`).
 - Refactoring `ProjectResource` to delegate to the new service. The service is
   built so that refactor is mechanical, but it is a separate PR.
@@ -65,7 +66,7 @@ changes. Called only from `ProjectAdminServiceImpl.stats`.
 | `--maintainer-name` | no | Free-form string |
 | `--publisher-name` | no | Free-form string |
 | `--logo-url` | no | Validated as RFC 3986 URI if supplied |
-| `--creator` | no | User login to auto-grant PROJECT_ADMIN on the new project. Validated against `Validators.login`. If omitted, falls back to `defaultUserName` in LOCAL/EMBEDDED mode only. |
+| `--creator` | no | User login to auto-grant PROJECT_ADMIN on the new project. Validated against `Validators.login`. If omitted, falls back to `defaultUserName` (the bash launcher injects this with the OS user; service-side grant is a no-op if the user is missing from `user_inventory`). |
 | `--no-index` | no | Skip ES `createIndex`; only persist the project row |
 | `--if-not-exists` | no | Exit 0 instead of 4 when the project already exists |
 | `--no-input` | no | Disable interactive prompts; missing required field exits 2 |

@@ -116,11 +116,11 @@ java_flags="
 java_cmd="$java_bin $java_opts $java_flags -cp ./dist:$datashare_jar org.icij.datashare.Main"
 
 if [ "$is_subcommand" = true ]; then
-  # New subcommand style: inject mode, default user, and ES paths so the
-  # picocli dispatcher has the same environment-derived defaults the legacy
-  # path provides. User-supplied flags still override these.
+  # New subcommand style: inject default user and ES paths. We do NOT inject
+  # --mode here because picocli subcommands force mode=CLI internally; passing
+  # it from the launcher would be ignored at best and rejected at worst.
+  # User-supplied flags still override the injected defaults.
   $java_cmd \
-      --mode $datashare_mode \
       --defaultUserName $datashare_default_user \
       --elasticsearchPath $datashare_elasticsearch_path \
       --elasticsearchSettings $datashare_elasticsearch_settings \

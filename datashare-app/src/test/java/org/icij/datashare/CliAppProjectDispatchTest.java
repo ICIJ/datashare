@@ -264,7 +264,7 @@ public class CliAppProjectDispatchTest {
     }
 
     @Test
-    public void test_create_auto_grants_creator_in_local_mode() throws Exception {
+    public void test_create_auto_grants_default_user_when_no_creator_flag() throws Exception {
         when(service.create(any(ProjectCreateRequest.class)))
                 .thenReturn(new ProjectCreated("foo", "foo", null, Path.of("/vault/foo"),
                         "*.*.*.*", null, null, null, null, true, false));
@@ -272,7 +272,6 @@ public class CliAppProjectDispatchTest {
 
         Properties props = new Properties();
         props.setProperty(PROJECT_CREATE_OPT, "foo");
-        props.setProperty("mode", "LOCAL");
         props.setProperty("defaultUserName", "promera");
 
         int exit = CliApp.handleProjectCreate(service, props);
@@ -283,15 +282,14 @@ public class CliAppProjectDispatchTest {
     }
 
     @Test
-    public void test_create_skips_auto_grant_in_server_mode() throws Exception {
+    public void test_create_skips_auto_grant_when_default_user_blank() throws Exception {
         when(service.create(any(ProjectCreateRequest.class)))
                 .thenReturn(new ProjectCreated("foo", "foo", null, Path.of("/vault/foo"),
                         "*.*.*.*", null, null, null, null, true, false));
 
         Properties props = new Properties();
         props.setProperty(PROJECT_CREATE_OPT, "foo");
-        props.setProperty("mode", "SERVER");
-        props.setProperty("defaultUserName", "promera");
+        // No defaultUserName set: nothing to grant to.
 
         int exit = CliApp.handleProjectCreate(service, props);
 
@@ -300,7 +298,7 @@ public class CliAppProjectDispatchTest {
     }
 
     @Test
-    public void test_create_explicit_creator_works_in_any_mode() throws Exception {
+    public void test_create_explicit_creator_overrides_default_user() throws Exception {
         when(service.create(any(ProjectCreateRequest.class)))
                 .thenReturn(new ProjectCreated("foo", "foo", null, Path.of("/vault/foo"),
                         "*.*.*.*", null, null, null, null, true, false));
@@ -308,13 +306,14 @@ public class CliAppProjectDispatchTest {
 
         Properties props = new Properties();
         props.setProperty(PROJECT_CREATE_OPT, "foo");
-        props.setProperty("mode", "SERVER");
+        props.setProperty("defaultUserName", "promera");
         props.setProperty("projectCreate.creator", "alice");
 
         int exit = CliApp.handleProjectCreate(service, props);
 
         assertThat(exit).isEqualTo(0);
         verify(service).addAdminToProject("foo", "alice");
+        verify(service, never()).addAdminToProject("foo", "promera");
     }
 
     @Test
@@ -344,7 +343,6 @@ public class CliAppProjectDispatchTest {
         Properties props = new Properties();
         props.setProperty(PROJECT_CREATE_OPT, "foo");
         props.setProperty(PROJECT_CREATE_IF_NOT_EXISTS_OPT, "true");
-        props.setProperty("mode", "LOCAL");
         props.setProperty("defaultUserName", "promera");
 
         int exit = CliApp.handleProjectCreate(service, props);
