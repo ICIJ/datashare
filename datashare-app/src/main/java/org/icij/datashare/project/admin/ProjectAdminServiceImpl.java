@@ -119,7 +119,7 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
         );
 
         if (!repository.save(project)) {
-            throw new IOException("repository.save(Project) returned false for " + request.name());
+            throw new IllegalStateException("repository.save(Project) returned false for " + request.name());
         }
 
         boolean indexCreated = false;
