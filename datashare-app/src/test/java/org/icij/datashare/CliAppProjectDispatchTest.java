@@ -262,4 +262,26 @@ public class CliAppProjectDispatchTest {
         assertThat(out).contains("\"dbDeleted\":true");
         assertThat(out).contains("\"indexDeleted\":true");
     }
+
+    @Test
+    public void test_delete_aborts_when_prompter_exhausts_retries() throws Exception {
+        when(service.stats("foo")).thenReturn(new ProjectStats("foo", 42L, 3));
+
+        Supplier<Prompter> exhaustingPrompter = () -> {
+            Prompter mock = mock(Prompter.class);
+            when(mock.promptString(any(), any()))
+                    .thenThrow(new Prompter.ValidationFailedException("name", "typed name does not match"));
+            return mock;
+        };
+
+        Properties props = new Properties();
+        props.setProperty(PROJECT_DELETE_OPT, "foo");
+        // No --yes / --no-input: confirmation flow runs.
+
+        int exit = CliApp.handleProjectDelete(service, props, exhaustingPrompter);
+
+        assertThat(exit).isEqualTo(0);
+        assertThat(stderr.toString()).contains("aborted");
+        verify(service, never()).delete(any(), any());
+    }
 }
