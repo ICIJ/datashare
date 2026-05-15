@@ -117,20 +117,59 @@ public class ProjectCreateCommand implements Runnable, DatashareSubcommand {
             if (creationDate != null) Validators.iso8601(creationDate);
             if (updateDate != null) Validators.iso8601(updateDate);
 
-            if (name == null) {
-                if (noInput) {
-                    spec.commandLine().getErr().println(
-                            "error: --name is required when --no-input is set");
-                    throw new CliExitException(2);
-                }
-                Prompter prompter = prompterOverride != null ? prompterOverride : new Prompter();
+            // Resolve the prompter once. Null when --no-input is set or no TTY
+            // is available; we use it to gate every interactive prompt below.
+            Prompter prompter = null;
+            if (!noInput) {
+                prompter = prompterOverride != null ? prompterOverride : new Prompter();
                 if (prompterOverride == null && !prompter.isInteractive()) {
+                    prompter = null;
+                }
+            }
+
+            if (name == null) {
+                if (prompter == null) {
                     spec.commandLine().getErr().println(
-                            "error: --name is required and no TTY available");
+                            "error: --name is required when --no-input is set or no TTY is available");
                     throw new CliExitException(2);
                 }
                 try {
                     name = prompter.promptString("Project name", Validators::projectName);
+                } catch (Prompter.ValidationFailedException e) {
+                    spec.commandLine().getErr().println("error: " + e.getMessage());
+                    throw new CliExitException(5);
+                }
+            }
+
+            // Prompt for every settable field that wasn't already passed as a
+            // flag. Auto-derived fields (allowFromMask via picocli default,
+            // creationDate/updateDate stamped by the service, creator from the
+            // launcher) are intentionally NOT prompted. Blank submission
+            // returns null, which the service treats as "use the default" for
+            // label / sourcePath and as "leave null" for the rest.
+            if (prompter != null) {
+                try {
+                    if (label == null) {
+                        label = promptOptional(prompter, "Label", name);
+                    }
+                    if (description == null) {
+                        description = promptOptional(prompter, "Description", null);
+                    }
+                    if (sourcePath == null) {
+                        sourcePath = promptOptional(prompter, "Source path", "/vault/" + name);
+                    }
+                    if (sourceUrl == null) {
+                        sourceUrl = promptOptionalUri(prompter, "Source URL");
+                    }
+                    if (maintainerName == null) {
+                        maintainerName = promptOptional(prompter, "Maintainer name", null);
+                    }
+                    if (publisherName == null) {
+                        publisherName = promptOptional(prompter, "Publisher name", null);
+                    }
+                    if (logoUrl == null) {
+                        logoUrl = promptOptionalUri(prompter, "Logo URL");
+                    }
                 } catch (Prompter.ValidationFailedException e) {
                     spec.commandLine().getErr().println("error: " + e.getMessage());
                     throw new CliExitException(5);
@@ -143,6 +182,28 @@ public class ProjectCreateCommand implements Runnable, DatashareSubcommand {
             spec.commandLine().getErr().println("error: " + e.getMessage());
             throw new CliExitException(5);
         }
+    }
+
+    /**
+     * Prompts for an optional string field, showing the default in brackets
+     * when present. Blank input (the operator pressed enter without typing)
+     * returns {@code null} so the downstream service applies its own default.
+     */
+    private static String promptOptional(Prompter prompter, String label, String defaultValue) {
+        String displayLabel = defaultValue == null ? label : label + " [" + defaultValue + "]";
+        String line = prompter.promptString(displayLabel, s -> {});
+        return line == null || line.isBlank() ? null : line.trim();
+    }
+
+    /**
+     * Prompts for an optional URI field. Blank input returns {@code null};
+     * non-blank input is validated against {@link Validators#uri(String)}.
+     */
+    private static String promptOptionalUri(Prompter prompter, String label) {
+        String line = prompter.promptString(label, s -> {
+            if (s != null && !s.isBlank()) Validators.uri(s);
+        });
+        return line == null || line.isBlank() ? null : line.trim();
     }
 
     @Override

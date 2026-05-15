@@ -1331,6 +1331,78 @@ public class DatashareCommandTest {
     }
 
     @Test
+    public void test_project_create_prompts_for_settable_fields_when_missing() {
+        // Operator types: blank for label (accept default), a description, a custom
+        // source path, blank for source-url, blank for maintainer, blank for publisher,
+        // blank for logo. Each newline submits one prompt's answer.
+        String typed = String.join("\n",
+                "",                          // Label: blank -> null -> service defaults to name
+                "leak archive",              // Description
+                "/data/my-project",          // Source path
+                "",                          // Source URL: blank -> null
+                "ICIJ",                      // Maintainer name
+                "",                          // Publisher name: blank -> null
+                ""                           // Logo URL: blank -> null
+        ) + "\n";
+        ProjectCreateCommand cmd = new ProjectCreateCommand();
+        StringWriter sink = new StringWriter();
+        cmd.prompterOverride = new Prompter(
+                new java.io.BufferedReader(new java.io.StringReader(typed)),
+                new PrintWriter(sink, true),
+                () -> new char[0]);
+        cmd.namePositional = "my-project";
+        cmd.noInput = false;
+        cmd.spec = new CommandLine(cmd).getCommandSpec();
+        cmd.run();
+        Properties props = cmd.getSubcommandProperties();
+
+        assertThat(props.getProperty("projectCreate")).isEqualTo("my-project");
+        // Blank label -> not emitted (service applies default = name).
+        assertThat(props.getProperty("projectCreate.label")).isNull();
+        assertThat(props.getProperty("projectCreate.description")).isEqualTo("leak archive");
+        assertThat(props.getProperty("projectCreate.sourcePath")).isEqualTo("/data/my-project");
+        assertThat(props.getProperty("projectCreate.sourceUrl")).isNull();
+        assertThat(props.getProperty("projectCreate.maintainerName")).isEqualTo("ICIJ");
+        assertThat(props.getProperty("projectCreate.publisherName")).isNull();
+        assertThat(props.getProperty("projectCreate.logoUrl")).isNull();
+        // Auto-derived fields are never prompted: creationDate/updateDate are
+        // stamped by the service. (allowFromMask defaults via picocli's
+        // defaultValue annotation, which is only applied when the command is
+        // routed through CommandLine.execute(); this direct-instantiation
+        // test bypasses that, so the field stays null here.)
+        assertThat(props.getProperty("projectCreate.creationDate")).isNull();
+        assertThat(props.getProperty("projectCreate.updateDate")).isNull();
+    }
+
+    @Test
+    public void test_project_create_skips_prompts_for_flags_already_passed() {
+        // Operator passes --label and --description on the command line; only the
+        // remaining settable fields should prompt. The reader has exactly 5 blank
+        // lines (source-path, source-url, maintainer, publisher, logo-url).
+        ProjectCreateCommand cmd = new ProjectCreateCommand();
+        StringWriter sink = new StringWriter();
+        cmd.prompterOverride = new Prompter(
+                new java.io.BufferedReader(new java.io.StringReader("\n\n\n\n\n")),
+                new PrintWriter(sink, true),
+                () -> new char[0]);
+        cmd.namePositional = "my-project";
+        cmd.label = "My Project";
+        cmd.description = "preset description";
+        cmd.noInput = false;
+        cmd.spec = new CommandLine(cmd).getCommandSpec();
+        cmd.run();
+        Properties props = cmd.getSubcommandProperties();
+
+        assertThat(props.getProperty("projectCreate.label")).isEqualTo("My Project");
+        assertThat(props.getProperty("projectCreate.description")).isEqualTo("preset description");
+        // Prompt for label / description never displayed because flags were set.
+        assertThat(sink.toString()).excludes("Label [");
+        assertThat(sink.toString()).excludes("Description");
+        // The other prompts did display.
+        assertThat(sink.toString()).contains("Source path [/vault/my-project]");
+    }
+
+    @Test
     public void test_project_delete_smoke_end_to_end() {
         Properties props = parse("project", "delete", "my-project", "--yes", "--keep-index", "--json");
         assertThat(props).includes(entry("projectDelete", "my-project"));
