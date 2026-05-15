@@ -166,7 +166,7 @@ public class PolicyResource {
             }
     )
     @ApiResponse(responseCode = "200", description = "Project policies retrieved successfully.")
-    @Policy(role = Role.PROJECT_MEMBER)
+    @Policy(role = Role.PROJECT_MEMBER, idParam = "project")
     @Get("/:domain/:project")
     public Payload getProjectPolicies(
             @Parameter(name = "domain", description = "Domain name", in = ParameterIn.PATH) String domain,
@@ -186,7 +186,7 @@ public class PolicyResource {
 
     @Operation(description = "Remove a project policy for a given user with a given role.")
     @ApiResponse(responseCode = "200", description = "Policy removed successfully.")
-    @Policy(role = Role.PROJECT_ADMIN)
+    @Policy(role = Role.PROJECT_ADMIN, idParam = "project")
     @Delete("/:domain/:project")
     public Payload removeProjectPolicy(String domain, String project, Context context) {
             User user = userExists(context.query().get("user"));
@@ -201,7 +201,7 @@ public class PolicyResource {
 
     @Operation(description = "Upsert a policy regarding a user a project a domain and its role.")
     @ApiResponse(responseCode = "200", description = "Policy added successfully.")
-    @Policy(role = Role.PROJECT_EDITOR)
+    @Policy(role = Role.PROJECT_EDITOR, idParam = "project")
     @Put("/:domain/:project")
     public Payload saveProjectPolicy(String domain, String project, Context context) {
             User user = userExists(context.query().get("user"));
