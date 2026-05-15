@@ -130,7 +130,6 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
     }
 
     @Override
-    @SuppressWarnings("unchecked")
     public boolean addAdminToProject(String projectName, String userLogin)
             throws ProjectNotFoundException {
         Project project = repository.getProject(projectName);
@@ -145,16 +144,12 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
         }
 
         // 1. Append projectName to user.details["groups_by_applications.datashare"]
-        //    via a fresh details map (User.details is unmodifiable).
+        //    via a fresh details map (User.details is unmodifiable). Defensive
+        //    shape checks: if a prior write produced unexpected types we start
+        //    from a clean map/list rather than ClassCastException at runtime.
         Map<String, Object> newDetails = new HashMap<>(user.details);
-        Object appsRaw = newDetails.get("groups_by_applications");
-        Map<String, Object> apps = appsRaw instanceof Map<?, ?>
-                ? new LinkedHashMap<>((Map<String, Object>) appsRaw)
-                : new LinkedHashMap<>();
-        Object datashareRaw = apps.get("datashare");
-        List<String> currentProjects = datashareRaw instanceof List<?>
-                ? new ArrayList<>((List<String>) datashareRaw)
-                : new ArrayList<>();
+        Map<String, Object> apps = copyStringKeyedMap(newDetails.get("groups_by_applications"));
+        List<String> currentProjects = copyStringList(apps.get("datashare"));
         if (!currentProjects.contains(projectName)) {
             currentProjects.add(projectName);
         }
@@ -164,10 +159,51 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
         User updated = new User(user.id, user.name, user.email, user.provider, newDetails);
         repository.save(updated);
 
-        // 2. Casbin grouping policy: g <user.id> PROJECT_ADMIN datashare::<projectName>
-        authorizer.addProjectAdmin(updated, Domain.of("datashare"), project);
+        // 2. Casbin grouping policy: g <user.id> PROJECT_ADMIN datashare::<projectName>.
+        //    Casbin is the load-bearing grant (the inventory list is a UI convenience).
+        //    If casbin fails we roll the inventory write back so the operator does not
+        //    see a project listed under their account that they actually cannot
+        //    administer. Best-effort: a rollback failure leaves the user with the
+        //    stale list, which is the lesser evil compared to surfacing the original
+        //    casbin error.
+        try {
+            authorizer.addProjectAdmin(updated, Domain.of("datashare"), project);
+        } catch (RuntimeException casbinFailure) {
+            try {
+                repository.save(user);
+            } catch (RuntimeException rollback) {
+                casbinFailure.addSuppressed(rollback);
+            }
+            throw casbinFailure;
+        }
 
         return true;
+    }
+
+    private static Map<String, Object> copyStringKeyedMap(Object raw) {
+        if (!(raw instanceof Map<?, ?> source)) {
+            return new LinkedHashMap<>();
+        }
+        Map<String, Object> copy = new LinkedHashMap<>();
+        for (Map.Entry<?, ?> entry : source.entrySet()) {
+            if (entry.getKey() instanceof String key) {
+                copy.put(key, entry.getValue());
+            }
+        }
+        return copy;
+    }
+
+    private static List<String> copyStringList(Object raw) {
+        if (!(raw instanceof List<?> source)) {
+            return new ArrayList<>();
+        }
+        List<String> copy = new ArrayList<>();
+        for (Object element : source) {
+            if (element instanceof String s) {
+                copy.add(s);
+            }
+        }
+        return copy;
     }
 
     private ProjectDeleted cascade(Project project, ProjectDeleteOptions options) {

@@ -527,6 +527,86 @@ public class ProjectAdminServiceImplTest {
         assertThat(datashareProjects).contains("demeter");
     }
 
+    @Test
+    public void test_add_admin_to_project_rolls_back_inventory_when_casbin_fails() throws Exception {
+        Project project = new Project("demeter");
+        when(repository.getProject("demeter")).thenReturn(project);
+        Map<String, Object> apps = new HashMap<>();
+        apps.put("datashare", new java.util.ArrayList<>(List.of("existing-project")));
+        Map<String, Object> details = new HashMap<>();
+        details.put("uid", "promera");
+        details.put("groups_by_applications", apps);
+        User existingUser = new User("promera", "promera", "p@icij.org", "local", details);
+        when(repository.getUser("promera")).thenReturn(existingUser);
+        when(repository.save(any(User.class))).thenReturn(true);
+        Mockito.doThrow(new RuntimeException("casbin down"))
+                .when(authorizer).addProjectAdmin(any(User.class), any(Domain.class), any(Project.class));
+
+        try {
+            service.addAdminToProject("demeter", "promera");
+            fail("expected RuntimeException");
+        } catch (RuntimeException e) {
+            assertThat(e.getMessage()).contains("casbin down");
+        }
+
+        // Two saves: 1) the augmented details, 2) rollback to the original user.
+        ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
+        verify(repository, Mockito.times(2)).save(userCaptor.capture());
+        User rollback = userCaptor.getAllValues().get(1);
+        assertThat(rollback).isSameAs(existingUser);
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void test_add_admin_to_project_handles_malformed_apps_map() throws Exception {
+        // user_inventory has a corrupted "groups_by_applications" entry (string
+        // where a map is expected). The service should drop the malformed entry
+        // and start fresh rather than throw ClassCastException.
+        Project project = new Project("demeter");
+        when(repository.getProject("demeter")).thenReturn(project);
+        Map<String, Object> details = new HashMap<>();
+        details.put("uid", "promera");
+        details.put("groups_by_applications", "not a map");
+        User existingUser = new User("promera", "promera", "p@icij.org", "local", details);
+        when(repository.getUser("promera")).thenReturn(existingUser);
+        when(repository.save(any(User.class))).thenReturn(true);
+
+        boolean granted = service.addAdminToProject("demeter", "promera");
+
+        assertThat(granted).isTrue();
+        ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
+        verify(repository).save(userCaptor.capture());
+        Map<String, Object> savedApps = (Map<String, Object>) userCaptor.getValue().details.get("groups_by_applications");
+        List<String> datashareProjects = (List<String>) savedApps.get("datashare");
+        assertThat(datashareProjects).contains("demeter");
+        assertThat(datashareProjects).hasSize(1);
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void test_add_admin_to_project_handles_malformed_datashare_list() throws Exception {
+        // "groups_by_applications.datashare" is a string instead of a list.
+        Project project = new Project("demeter");
+        when(repository.getProject("demeter")).thenReturn(project);
+        Map<String, Object> apps = new HashMap<>();
+        apps.put("datashare", "garbage");
+        Map<String, Object> details = new HashMap<>();
+        details.put("groups_by_applications", apps);
+        User existingUser = new User("promera", "promera", "p@icij.org", "local", details);
+        when(repository.getUser("promera")).thenReturn(existingUser);
+        when(repository.save(any(User.class))).thenReturn(true);
+
+        boolean granted = service.addAdminToProject("demeter", "promera");
+
+        assertThat(granted).isTrue();
+        ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
+        verify(repository).save(userCaptor.capture());
+        Map<String, Object> savedApps = (Map<String, Object>) userCaptor.getValue().details.get("groups_by_applications");
+        List<String> datashareProjects = (List<String>) savedApps.get("datashare");
+        assertThat(datashareProjects).hasSize(1);
+        assertThat(datashareProjects).contains("demeter");
+    }
+
     private static CasbinRule casbinRule(String userId, String role, String domainProject) {
         return new CasbinRule("g", userId, role, domainProject);
     }
