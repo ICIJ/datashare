@@ -305,11 +305,16 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
     @Provides @Singleton
     Authorizer provideAuthorizer(CasbinRuleAdapter adapter, Provider<RedissonClient> redissonProvider) throws IOException {
         if (QueueType.REDIS.name().equals(propertiesProvider.get(BUS_TYPE_OPT).orElse(null))) {
+            // Event-driven: RTopic notifies all instances immediately on policy change.
             PolicyWatcher watcher = new PolicyWatcher(redissonProvider.get());
             addCloseable(watcher);
             return new Authorizer(adapter, watcher);
         }
-        return new Authorizer(adapter);
+        // Fallback: periodic reload from DB when Redis is not available.
+        long interval = Long.parseLong(propertiesProvider.get(POLICY_RELOAD_INTERVAL_OPT).orElse("0"));
+        Authorizer authorizer = new Authorizer(adapter, interval);
+        addCloseable(authorizer);
+        return authorizer;
     }
 
     @Provides @Singleton
