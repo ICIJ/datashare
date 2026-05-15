@@ -787,6 +787,23 @@ public class ElasticsearchIndexerTest {
     }
 
     @Test
+    public void test_count_returns_zero_for_empty_index() throws IOException {
+        indexer.createIndex("test-count-empty");
+        assertThat(indexer.count("test-count-empty")).isEqualTo(0L);
+        indexer.deleteAll("test-count-empty");
+    }
+
+    @Test
+    public void test_count_returns_document_count() throws IOException {
+        indexer.createIndex("test-count-docs");
+        Document d1 = createDoc("id1").build();
+        Document d2 = createDoc("id2").build();
+        indexer.bulkAdd("test-count-docs", List.of(d1, d2));
+        assertThat(indexer.count("test-count-docs")).isEqualTo(2L);
+        indexer.deleteAll("test-count-docs");
+    }
+
+    @Test
     public void test_search_by_path_parts_returns_documents_with_matching_path_components() throws IOException {
         Document doc1 = createDoc("doc1")
                 .with(Paths.get("/home/dev/foo.mp3"))
