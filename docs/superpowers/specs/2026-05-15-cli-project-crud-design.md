@@ -32,6 +32,13 @@ of scope for this branch and tracked separately.
 - Liquibase migrations. The `project` and `casbin_rule` tables already exist;
   no schema change is needed.
 
+## One new interface method
+
+`Indexer.count(String indexName)` is added to the `datashare-api` interface
+(thin wrapper over the existing `Searcher.totalHits()` machinery used by
+`ElasticsearchSearcher`). This is purely additive: no existing call site
+changes. Called only from `ProjectAdminServiceImpl.stats`.
+
 ## Inherits from the user-CRUD spec
 
 - Typed sibling-key properties on the picocli to dispatcher boundary
@@ -138,11 +145,16 @@ Three layers, matching the user-CRUD shape:
                  │
                  ▼
 ┌──────────────────────────────────────────────────────┐
-│  Existing dependencies (no new methods needed)       │
+│  Existing dependencies                               │
 │  - Repository.save(Project) / getProject / deleteAll │
-│  - Indexer.createIndex / .deleteAll / .count         │
+│  - Indexer.createIndex / .deleteAll                  │
 │  - Authorizer.getGroupPermissions(domain, projectId) │
 │  - DocumentCollectionFactory.createQueue / .createMap│
+│                                                      │
+│  One new method on Indexer:                          │
+│  - long count(String indexName)                      │
+│    (used by stats(); thin wrapper over the existing  │
+│     Searcher.totalHits() machinery)                  │
 └──────────────────────────────────────────────────────┘
 ```
 
@@ -610,6 +622,11 @@ This is the worst-case path we can reach. Making it loud is the whole point.
 - `datashare-cli/src/main/java/org/icij/datashare/cli/Validators.java`. Add `projectName`, `allowFromMask`, `uri`; factor the shared `PROJECT_NAME_REGEX` constant.
 - `datashare-app/src/main/java/org/icij/datashare/CliApp.java`. Two new `if` blocks in `runTaskWorker` (`projectCreate`, `projectDelete`). For `projectDelete` the dispatcher calls `stats` then prompts before `delete`.
 - DI module wiring. Bind `ProjectAdminService` to `ProjectAdminServiceImpl` (singleton). Module file is whichever one already binds `UserAdminService` from the prior PR.
+
+### Modified (datashare-api / datashare-index)
+
+- `datashare-api/src/main/java/org/icij/datashare/text/indexing/Indexer.java`. Add `long count(String indexName) throws IOException`.
+- `datashare-index/src/main/java/org/icij/datashare/text/indexing/elasticsearch/ElasticsearchIndexer.java`. Implement the new method by running a `limit(0)` search and returning `totalHits()`.
 
 ### Files not touched in this PR (notable)
 
