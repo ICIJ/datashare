@@ -330,7 +330,7 @@ class CliApp {
         try {
             ProjectStats stats;
             try {
-                stats = service.stats(name);
+                stats = service.stats(name, !keepIndex);
             } catch (ProjectNotFoundException e) {
                 if (ifExists) {
                     emitDeleteNoop(name, json);

@@ -30,6 +30,7 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ProjectAdminServiceImpl.class);
     private static final Pattern NAME = Pattern.compile("^[a-z0-9][a-z0-9-]{1,63}$");
+    private static final Pattern ALLOW_FROM_MASK = Pattern.compile("^[\\d*]{1,3}(\\.[\\d*]{1,3}){3}$");
     private static final String DEFAULT_ALLOW_FROM_MASK = "*.*.*.*";
     private static final Path DEFAULT_VAULT = Paths.get("/vault");
 
@@ -85,11 +86,13 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
     }
 
     @Override
-    public ProjectStats stats(String name) throws ProjectNotFoundException, IOException {
+    public ProjectStats stats(String name, boolean includeIndexCount) throws ProjectNotFoundException, IOException {
         if (repository.getProject(name) == null) {
             throw new ProjectNotFoundException(name);
         }
-        long indexedDocuments = indexer.count(name);
+        long indexedDocuments = includeIndexCount
+                ? indexer.count(name)
+                : ProjectStats.INDEX_CHECK_SKIPPED;
         int memberCount = (int) authorizer
                 .getGroupPermissions(Domain.of("datashare"), name)
                 .stream()
@@ -174,6 +177,31 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
         if (request.name() == null || !NAME.matcher(request.name()).matches()) {
             throw new ValidationException("name",
                     "project name must match ^[a-z0-9][a-z0-9-]{1,63}$");
+        }
+        if (request.allowFromMask() != null
+                && !ALLOW_FROM_MASK.matcher(request.allowFromMask()).matches()) {
+            throw new ValidationException("allowFromMask",
+                    "allow-from-mask must match ^[\\d*]{1,3}(\\.[\\d*]{1,3}){3}$");
+        }
+        if (request.sourceUrl() != null) {
+            validateUri(request.sourceUrl(), "sourceUrl");
+        }
+        if (request.logoUrl() != null) {
+            validateUri(request.logoUrl(), "logoUrl");
+        }
+    }
+
+    private static void validateUri(String value, String field) throws ValidationException {
+        if (value.isBlank()) {
+            throw new ValidationException(field, field + " must not be blank");
+        }
+        try {
+            java.net.URI parsed = java.net.URI.create(value);
+            if (parsed.getScheme() == null) {
+                throw new ValidationException(field, field + " must include a scheme (e.g. https://)");
+            }
+        } catch (IllegalArgumentException e) {
+            throw new ValidationException(field, field + " is not a valid RFC 3986 URI: " + e.getMessage());
         }
     }
 

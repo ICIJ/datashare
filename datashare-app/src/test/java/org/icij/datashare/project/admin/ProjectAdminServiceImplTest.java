@@ -215,7 +215,7 @@ public class ProjectAdminServiceImplTest {
                         casbinRule("alice", "PROJECT_VISITOR", "datashare::foo")  // duplicate user
                 ));
 
-        ProjectStats stats = service.stats("foo");
+        ProjectStats stats = service.stats("foo", true);
 
         assertThat(stats.name()).isEqualTo("foo");
         assertThat(stats.indexedDocuments()).isEqualTo(42L);
@@ -226,12 +226,65 @@ public class ProjectAdminServiceImplTest {
     public void test_stats_throws_when_project_missing() throws Exception {
         when(repository.getProject("ghost")).thenReturn(null);
         try {
-            service.stats("ghost");
+            service.stats("ghost", true);
             fail("expected ProjectNotFoundException");
         } catch (ProjectNotFoundException e) {
             assertThat(e.getMessage()).contains("ghost");
         }
         verify(indexer, never()).count(any());
+    }
+
+    @Test
+    public void test_stats_skips_index_count_when_includeIndexCount_false() throws Exception {
+        when(repository.getProject("foo")).thenReturn(new Project("foo"));
+        when(authorizer.getGroupPermissions(any(Domain.class), eq("foo"))).thenReturn(List.of());
+
+        ProjectStats stats = service.stats("foo", false);
+
+        assertThat(stats.indexedDocuments()).isEqualTo(ProjectStats.INDEX_CHECK_SKIPPED);
+        verify(indexer, never()).count(any());
+    }
+
+    @Test
+    public void test_create_with_invalid_allow_from_mask_throws_validation() throws Exception {
+        try {
+            service.create(new ProjectCreateRequest(
+                    "foo", null, null, null, "not-a-mask", null, null, null, null, true));
+            fail("expected ValidationException");
+        } catch (ValidationException e) {
+            assertThat(e.field()).isEqualTo("allowFromMask");
+        } catch (ProjectExistsException e) {
+            fail("unexpected ProjectExistsException");
+        }
+        verify(repository, never()).save(any(Project.class));
+    }
+
+    @Test
+    public void test_create_with_invalid_source_url_throws_validation() throws Exception {
+        try {
+            service.create(new ProjectCreateRequest(
+                    "foo", null, null, null, null, "not a uri", null, null, null, true));
+            fail("expected ValidationException");
+        } catch (ValidationException e) {
+            assertThat(e.field()).isEqualTo("sourceUrl");
+        } catch (ProjectExistsException e) {
+            fail("unexpected ProjectExistsException");
+        }
+        verify(repository, never()).save(any(Project.class));
+    }
+
+    @Test
+    public void test_create_with_invalid_logo_url_throws_validation() throws Exception {
+        try {
+            service.create(new ProjectCreateRequest(
+                    "foo", null, null, null, null, null, null, null, "not a uri", true));
+            fail("expected ValidationException");
+        } catch (ValidationException e) {
+            assertThat(e.field()).isEqualTo("logoUrl");
+        } catch (ProjectExistsException e) {
+            fail("unexpected ProjectExistsException");
+        }
+        verify(repository, never()).save(any(Project.class));
     }
 
     @Test
