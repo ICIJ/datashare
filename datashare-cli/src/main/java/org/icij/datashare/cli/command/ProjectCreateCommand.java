@@ -14,6 +14,7 @@ import java.util.Properties;
 
 import static org.icij.datashare.cli.DatashareCliOptions.MODE_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.PROJECT_CREATE_ALLOW_FROM_MASK_OPT;
+import static org.icij.datashare.cli.DatashareCliOptions.PROJECT_CREATE_CREATOR_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.PROJECT_CREATE_DESCRIPTION_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.PROJECT_CREATE_IF_NOT_EXISTS_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.PROJECT_CREATE_JSON_OPT;
@@ -68,6 +69,11 @@ public class ProjectCreateCommand implements Runnable, DatashareSubcommand {
     @Option(names = "--logo-url", description = "URL to the project logo")
     String logoUrl;
 
+    @Option(names = "--creator",
+            description = "Grant PROJECT_ADMIN on the new project to this user "
+                    + "(default: defaultUserName in LOCAL/EMBEDDED mode)")
+    String creator;
+
     @Option(names = "--no-index", description = "Skip Elasticsearch index creation")
     boolean noIndex;
 
@@ -99,6 +105,7 @@ public class ProjectCreateCommand implements Runnable, DatashareSubcommand {
             if (allowFromMask != null) Validators.allowFromMask(allowFromMask);
             if (sourceUrl != null) Validators.uri(sourceUrl);
             if (logoUrl != null) Validators.uri(logoUrl);
+            if (creator != null) Validators.login(creator);
 
             if (name == null) {
                 if (noInput) {
@@ -146,6 +153,7 @@ public class ProjectCreateCommand implements Runnable, DatashareSubcommand {
         DatashareOptions.putIfNotNull(props, PROJECT_CREATE_MAINTAINER_NAME_OPT, maintainerName);
         DatashareOptions.putIfNotNull(props, PROJECT_CREATE_PUBLISHER_NAME_OPT, publisherName);
         DatashareOptions.putIfNotNull(props, PROJECT_CREATE_LOGO_URL_OPT, logoUrl);
+        DatashareOptions.putIfNotNull(props, PROJECT_CREATE_CREATOR_OPT, creator);
         DatashareOptions.putIfTrue(props, PROJECT_CREATE_NO_INDEX_OPT, noIndex);
         DatashareOptions.putIfTrue(props, PROJECT_CREATE_IF_NOT_EXISTS_OPT, ifNotExists);
         DatashareOptions.putIfTrue(props, PROJECT_CREATE_JSON_OPT, json);

@@ -22,9 +22,10 @@ of scope for this branch and tracked separately.
 ## Non-goals
 
 - `datashare project grant` / `datashare project revoke`. Will reuse this spec's
-  `Validators`, dispatcher plumbing, and exit-code conventions.
-- `--creator` flag on `project create`. Overlaps with grant/revoke (would have
-  to wire `Authorizer.addRoleForUserInProject` from this PR).
+  `Validators`, dispatcher plumbing, and exit-code conventions. `--creator` is
+  included in this spec and auto-resolved from `defaultUserName` in
+  LOCAL/EMBEDDED mode. Per-role grants and the full `project grant` /
+  `project revoke` surface remain deferred to the next spec.
 - Read-only commands (`project list`, `project get`).
 - Refactoring `ProjectResource` to delegate to the new service. The service is
   built so that refactor is mechanical, but it is a separate PR.
@@ -64,6 +65,7 @@ changes. Called only from `ProjectAdminServiceImpl.stats`.
 | `--maintainer-name` | no | Free-form string |
 | `--publisher-name` | no | Free-form string |
 | `--logo-url` | no | Validated as RFC 3986 URI if supplied |
+| `--creator` | no | User login to auto-grant PROJECT_ADMIN on the new project. Validated against `Validators.login`. If omitted, falls back to `defaultUserName` in LOCAL/EMBEDDED mode only. |
 | `--no-index` | no | Skip ES `createIndex`; only persist the project row |
 | `--if-not-exists` | no | Exit 0 instead of 4 when the project already exists |
 | `--no-input` | no | Disable interactive prompts; missing required field exits 2 |
@@ -310,9 +312,12 @@ New classes under `org.icij.datashare.project`:
 A created project maps to one `project` row (existing schema;
 `Repository.save(Project)` is an upsert on `PROJECT.ID`). The ES index is
 created via `indexer.createIndex(name)` (matching
-`ProjectResource.createIndexOnce`). No `casbin_rule` rows are written by
-`project create`; see the `--creator` scope decision. Grant/revoke is a
-separate spec.
+`ProjectResource.createIndexOnce`). When `--creator` resolves to a non-null
+user, one `casbin_rule` row is written via
+`Authorizer.addProjectAdmin(user, Domain("datashare"), project)` and the user's
+`user_inventory.details["groups_by_applications"]["datashare"]` list gains the
+project name. Full `project grant` / `project revoke` (per-role, non-admin)
+remains a separate spec.
 
 ## Cascade semantics
 

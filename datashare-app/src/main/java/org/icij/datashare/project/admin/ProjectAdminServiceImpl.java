@@ -12,6 +12,7 @@ import org.icij.datashare.policies.CasbinRule;
 import org.icij.datashare.policies.Domain;
 import org.icij.datashare.text.Project;
 import org.icij.datashare.text.indexing.Indexer;
+import org.icij.datashare.user.User;
 import org.icij.extract.queue.DocumentQueue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,6 +21,10 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.regex.Pattern;
@@ -119,6 +124,47 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
             return new ProjectDeleted(name, false, false, false, false, false, true);
         }
         return cascade(project, options);
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    public boolean addAdminToProject(String projectName, String userLogin)
+            throws ProjectNotFoundException {
+        Project project = repository.getProject(projectName);
+        if (project == null) {
+            throw new ProjectNotFoundException(projectName);
+        }
+        User user = repository.getUser(userLogin);
+        if (user == null) {
+            // No row in user_inventory: cannot update the per-user project list.
+            // Caller (CLI dispatcher) may log a warning and continue.
+            return false;
+        }
+
+        // 1. Append projectName to user.details["groups_by_applications.datashare"]
+        //    via a fresh details map (User.details is unmodifiable).
+        Map<String, Object> newDetails = new HashMap<>(user.details);
+        Object appsRaw = newDetails.get("groups_by_applications");
+        Map<String, Object> apps = appsRaw instanceof Map<?, ?>
+                ? new LinkedHashMap<>((Map<String, Object>) appsRaw)
+                : new LinkedHashMap<>();
+        Object datashareRaw = apps.get("datashare");
+        List<String> currentProjects = datashareRaw instanceof List<?>
+                ? new ArrayList<>((List<String>) datashareRaw)
+                : new ArrayList<>();
+        if (!currentProjects.contains(projectName)) {
+            currentProjects.add(projectName);
+        }
+        apps.put("datashare", currentProjects);
+        newDetails.put("groups_by_applications", apps);
+
+        User updated = new User(user.id, user.name, user.email, user.provider, newDetails);
+        repository.save(updated);
+
+        // 2. Casbin grouping policy: g <user.id> PROJECT_ADMIN datashare::<projectName>
+        authorizer.addProjectAdmin(updated, Domain.of("datashare"), project);
+
+        return true;
     }
 
     private ProjectDeleted cascade(Project project, ProjectDeleteOptions options) throws IOException {

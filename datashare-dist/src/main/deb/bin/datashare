@@ -7,6 +7,7 @@ datashare_jar=${DATASHARE_JAR:-/usr/share/java/datashare.jar}
 datashare_home=${DATASHARE_HOME:-$HOME/.local/share/datashare}
 datashare_data_dir=${DATASHARE_DATA_DIR:-$HOME/Datashare}
 datashare_mode=${DATASHARE_MODE:-EMBEDDED}
+datashare_default_user=${DATASHARE_DEFAULT_USER:-${USER:-local}}
 datashare_queue_type=${DATASHARE_QUEUE_TYPE:-MEMORY}
 datashare_bus_type=${DATASHARE_BUSTYPE:-MEMORY}
 datashare_data_source_url=${DATASHARE_DATA_SOURCE_URL:-jdbc:sqlite:file:$datashare_home/dist/datashare.db}
@@ -115,9 +116,12 @@ java_flags="
 java_cmd="$java_bin $java_opts $java_flags -cp ./dist:$datashare_jar org.icij.datashare.Main"
 
 if [ "$is_subcommand" = true ]; then
-  # New subcommand style: inject only environment-derived paths, then user args.
-  # ES paths are injected first so user-provided options override them.
+  # New subcommand style: inject mode, default user, and ES paths so the
+  # picocli dispatcher has the same environment-derived defaults the legacy
+  # path provides. User-supplied flags still override these.
   $java_cmd \
+      --mode $datashare_mode \
+      --defaultUserName $datashare_default_user \
       --elasticsearchPath $datashare_elasticsearch_path \
       --elasticsearchSettings $datashare_elasticsearch_settings \
       --elasticsearchDataPath $datashare_elasticsearch_data_path \
