@@ -4,6 +4,8 @@ import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Repository;
 import org.icij.datashare.extract.DocumentCollectionFactory;
 import org.icij.datashare.policies.Authorizer;
+import org.icij.datashare.policies.CasbinRule;
+import org.icij.datashare.policies.Domain;
 import org.icij.datashare.text.Project;
 import org.icij.datashare.text.indexing.Indexer;
 import org.junit.Before;
@@ -14,10 +16,12 @@ import org.mockito.Mockito;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.List;
 
 import static org.fest.assertions.Assertions.assertThat;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -194,5 +198,39 @@ public class ProjectAdminServiceImplTest {
         verify(indexer).createIndex("foo");
         assertThat(created.noop()).isFalse();
         assertThat(created.indexCreated()).isTrue();
+    }
+
+    @Test
+    public void test_stats_returns_index_count_and_distinct_member_count() throws Exception {
+        when(repository.getProject("foo")).thenReturn(new Project("foo"));
+        when(indexer.count("foo")).thenReturn(42L);
+        when(authorizer.getGroupPermissions(any(Domain.class), eq("foo")))
+                .thenReturn(List.of(
+                        casbinRule("alice", "PROJECT_ADMIN", "datashare::foo"),
+                        casbinRule("bob", "PROJECT_MEMBER", "datashare::foo"),
+                        casbinRule("alice", "PROJECT_VISITOR", "datashare::foo")  // duplicate user
+                ));
+
+        ProjectStats stats = service.stats("foo");
+
+        assertThat(stats.name()).isEqualTo("foo");
+        assertThat(stats.indexedDocuments()).isEqualTo(42L);
+        assertThat(stats.memberCount()).isEqualTo(2);  // alice + bob, deduped
+    }
+
+    @Test
+    public void test_stats_throws_when_project_missing() throws Exception {
+        when(repository.getProject("ghost")).thenReturn(null);
+        try {
+            service.stats("ghost");
+            fail("expected ProjectNotFoundException");
+        } catch (ProjectNotFoundException e) {
+            assertThat(e.getMessage()).contains("ghost");
+        }
+        verify(indexer, never()).count(any());
+    }
+
+    private static CasbinRule casbinRule(String userId, String role, String domainProject) {
+        return new CasbinRule("g", userId, role, domainProject);
     }
 }
