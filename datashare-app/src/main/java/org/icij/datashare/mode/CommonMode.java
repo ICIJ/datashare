@@ -35,6 +35,7 @@ import org.icij.datashare.nlp.EmailPipeline;
 import org.icij.datashare.nlp.OptimaizeLanguageGuesser;
 import org.icij.datashare.policies.Authorizer;
 import org.icij.datashare.policies.CasbinRuleAdapter;
+import org.icij.datashare.policies.PolicyWatcher;
 import org.icij.datashare.user.admin.UserAdminService;
 import org.icij.datashare.user.admin.UserAdminServiceImpl;
 import org.icij.datashare.project.admin.ProjectAdminService;
@@ -305,6 +306,16 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
     }
 
     @Provides @Singleton
+    Authorizer provideAuthorizer(CasbinRuleAdapter adapter, RedissonClient redissonClient) throws IOException {
+        if (QueueType.REDIS.name().equals(propertiesProvider.get(BUS_TYPE_OPT).orElse(null))) {
+            PolicyWatcher watcher = new PolicyWatcher(redissonClient);
+            addCloseable(watcher);
+            return new Authorizer(adapter, watcher);
+        }
+        return new Authorizer(adapter);
+    }
+
+    @Provides @Singleton
     Indexer provideIndexer() {
         ElasticsearchIndexer indexer = new ElasticsearchIndexer(createESClient(propertiesProvider), propertiesProvider);
         addCloseable(indexer);
@@ -413,7 +424,6 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
         bind(ApiKeyRepository.class).toInstance(repositoryFactory.createApiKeyRepository());
         bind(BatchSearchRepository.class).toInstance(repositoryFactory.createBatchSearchRepository());
         bind(CasbinRuleAdapter.class).toInstance(repositoryFactory.createCasbinRuleRepository());
-        bind(Authorizer.class);
         bind(UserAdminService.class).to(UserAdminServiceImpl.class).in(Singleton.class);
         bind(ProjectAdminService.class).to(ProjectAdminServiceImpl.class).in(Singleton.class);
 
