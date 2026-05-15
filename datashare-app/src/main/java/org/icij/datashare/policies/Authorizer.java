@@ -15,6 +15,7 @@ import org.icij.datashare.text.Project;
 import org.icij.datashare.user.User;
 
 import javax.annotation.Nullable;
+import java.io.Closeable;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
@@ -29,7 +30,7 @@ import static org.icij.datashare.policies.errors.InvalidValueException.*;
 import static org.icij.datashare.policies.errors.UnknownRoleException.resolveRole;
 
 @Singleton
-public final class Authorizer {
+public final class Authorizer implements Closeable {
 
     private final static String SEPARATOR = "::";
     private static final String DEFAULT_POLICY_FILE = "casbin/model.conf";
@@ -43,6 +44,11 @@ public final class Authorizer {
     public Authorizer(CasbinRuleAdapter adapter, Watcher watcher) throws IOException {
         this(adapter, true, false);
         if (watcher != null) enforcer.setWatcher(watcher);
+    }
+
+    public Authorizer(CasbinRuleAdapter adapter, long reloadIntervalMs) throws IOException {
+        this(adapter, true, false);
+        if (reloadIntervalMs > 0) enforcer.startAutoLoadPolicy(reloadIntervalMs);
     }
 
     private Authorizer(CasbinRuleAdapter adapter, boolean enableAutoSave, boolean enableLog) throws IOException {
@@ -239,6 +245,11 @@ public final class Authorizer {
 
     static String requireIdParam(Context context, String idParam) {
         return requireValue(context.pathParam(idParam), true);
+    }
+
+    @Override
+    public void close() {
+        enforcer.stopAutoLoadPolicy();
     }
 
 
