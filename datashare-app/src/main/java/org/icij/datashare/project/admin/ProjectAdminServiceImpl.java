@@ -214,9 +214,8 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
         // intact is a sticky state if the cascade aborts mid-stream.
         String name = project.getName();
 
-        boolean indexDeleted = options.keepIndex()
-                ? false
-                : runStep("index", name, () -> indexer.deleteAll(name));
+        boolean indexDeleted = !options.keepIndex()
+                && runStep("index", name, () -> indexer.deleteAll(name));
         boolean dbDeleted = runStep("db", name, () -> repository.deleteAll(name));
         boolean queuesDeleted = runStep("queues", name, () -> deleteQueues(project));
         boolean reportMapDeleted = runStep("report map", name, () -> deleteReportMap(project));
