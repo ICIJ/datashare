@@ -388,6 +388,10 @@ class CliApp {
             return 0;
         } catch (ProjectNotFoundException e) {
             return error(e.getMessage(), "not_found", 3, json);
+        } catch (Prompter.ValidationFailedException e) {
+            // Confirmation prompt exhausted retries: treat as user-initiated abort.
+            emitDeleteAborted(name, json);
+            return 0;
         } catch (Exception e) {
             return error("runtime: " + e.getMessage(), "runtime", 1, json);
         }
