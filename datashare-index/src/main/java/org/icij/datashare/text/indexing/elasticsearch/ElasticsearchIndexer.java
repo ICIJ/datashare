@@ -542,16 +542,10 @@ public class ElasticsearchIndexer implements Indexer {
         if (!exists(indexName)) {
             return 0L;
         }
-        // Issue a size:0 search filtered on type=Document so we only count first-class
-        // documents (not embedded children or named entities), and read the total
-        // straight from the response.
-        SearchRequest request = SearchRequest.of(s -> s
+        CountRequest request = CountRequest.of(c -> c
                 .index(indexName)
-                .size(0)
-                .trackTotalHits(t -> t.enabled(true))
-                .query(q -> q.match(m -> m.field("type").query(JsonObjectMapper.getType(Document.class)))));
-        SearchResponse<ObjectNode> response = client.search(request, ObjectNode.class);
-        return response.hits().total() == null ? 0L : response.hits().total().value();
+                .query(q -> q.match(m -> m.field("type").query(getType(Document.class)))));
+        return client.count(request).count();
     }
 
     public ElasticsearchIndexer withRefresh(Refresh refresh) {
