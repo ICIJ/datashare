@@ -60,35 +60,51 @@ public class ProjectDeleteCommand implements Runnable, DatashareSubcommand {
 
     @Override
     public void run() {
-        String name = namePositional != null ? namePositional : nameFlag;
         try {
+            String name = effectiveName();
             if (name != null) Validators.projectName(name);
-
             if (name == null) {
-                if (noInput) {
-                    spec.commandLine().getErr().println(
-                            "error: --name is required when --no-input is set");
-                    throw new CliExitException(2);
-                }
-                Prompter prompter = prompterOverride != null ? prompterOverride : new Prompter();
-                if (prompterOverride == null && !prompter.isInteractive()) {
-                    spec.commandLine().getErr().println(
-                            "error: --name is required and no TTY available");
-                    throw new CliExitException(2);
-                }
-                try {
-                    name = prompter.promptString("Project name", Validators::projectName);
-                } catch (Prompter.ValidationFailedException e) {
-                    spec.commandLine().getErr().println("error: " + e.getMessage());
-                    throw new CliExitException(5);
-                }
+                name = resolveNameFromPrompt(resolvePrompter());
             }
-
             this.validatedName = name;
-        } catch (InvalidValueException e) {
+        } catch (InvalidValueException | Prompter.ValidationFailedException e) {
             spec.commandLine().getErr().println("error: " + e.getMessage());
             throw new CliExitException(5);
         }
+    }
+
+    private String effectiveName() {
+        return namePositional != null ? namePositional : nameFlag;
+    }
+
+    /**
+     * Resolves the prompter once. Returns {@code null} when {@code --no-input}
+     * is set or no TTY is available; the caller turns that into the missing-name
+     * error path. A test-injected {@link #prompterOverride} short-circuits the
+     * TTY check so unit tests can drive prompts deterministically.
+     */
+    private Prompter resolvePrompter() {
+        if (noInput) return null;
+        if (prompterOverride != null) return prompterOverride;
+        Prompter prompter = new Prompter();
+        return prompter.isInteractive() ? prompter : null;
+    }
+
+    /**
+     * Prompts for the project name when no flag was provided. Exits 2 when no
+     * prompter is available; the error message distinguishes the
+     * {@code --no-input} case from the missing-TTY case so the operator knows
+     * which one to fix.
+     */
+    private String resolveNameFromPrompt(Prompter prompter) {
+        if (prompter == null) {
+            String reason = noInput
+                    ? "error: --name is required when --no-input is set"
+                    : "error: --name is required and no TTY available";
+            spec.commandLine().getErr().println(reason);
+            throw new CliExitException(2);
+        }
+        return prompter.promptString("Project name", Validators::projectName);
     }
 
     @Override
