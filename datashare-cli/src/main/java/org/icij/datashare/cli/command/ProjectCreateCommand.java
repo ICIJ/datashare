@@ -100,8 +100,11 @@ public class ProjectCreateCommand implements Runnable, DatashareSubcommand {
     // Package-visible for test injection; when non-null the TTY check is skipped.
     Prompter prompterOverride;
 
-    private String resolvedName;
-    private boolean ready;
+    // Validated and (optionally) prompt-filled name, set by run() and read by
+    // getSubcommandProperties(). null until run() completes successfully; the
+    // dispatcher uses that nullability to decide whether to emit
+    // PROJECT_CREATE_OPT or just the mode marker.
+    private String validatedName;
 
     @Override
     public void run() {
@@ -110,8 +113,7 @@ public class ProjectCreateCommand implements Runnable, DatashareSubcommand {
             Prompter prompter = resolvePrompter();
             String name = resolveName(prompter);
             promptForUnsetFields(prompter, name);
-            this.resolvedName = name;
-            this.ready = true;
+            this.validatedName = name;
         } catch (InvalidValueException | Prompter.ValidationFailedException e) {
             spec.commandLine().getErr().println("error: " + e.getMessage());
             throw new CliExitException(5);
@@ -233,12 +235,12 @@ public class ProjectCreateCommand implements Runnable, DatashareSubcommand {
     public Properties getSubcommandProperties() {
         Properties props = new Properties();
         DatashareOptions.put(props, MODE_OPT, Mode.CLI);
-        if (!ready) {
+        if (validatedName == null) {
             return props;
         }
         // The project name is the dispatch marker; siblings carry the remaining
         // fields as typed strings.
-        DatashareOptions.put(props, PROJECT_CREATE_OPT, resolvedName);
+        DatashareOptions.put(props, PROJECT_CREATE_OPT, validatedName);
         DatashareOptions.putIfNotNull(props, PROJECT_CREATE_LABEL_OPT, label);
         DatashareOptions.putIfNotNull(props, PROJECT_CREATE_DESCRIPTION_OPT, description);
         DatashareOptions.putIfNotNull(props, PROJECT_CREATE_SOURCE_PATH_OPT, sourcePath);
