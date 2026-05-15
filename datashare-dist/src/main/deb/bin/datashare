@@ -116,12 +116,17 @@ java_flags="
 java_cmd="$java_bin $java_opts $java_flags -cp ./dist:$datashare_jar org.icij.datashare.Main"
 
 if [ "$is_subcommand" = true ]; then
-  # New subcommand style: inject default user and ES paths. We do NOT inject
-  # --mode here because picocli subcommands force mode=CLI internally; passing
-  # it from the launcher would be ignored at best and rejected at worst.
-  # User-supplied flags still override the injected defaults.
+  # New subcommand style: inject the same environment-derived paths the legacy
+  # path uses so CLI invocations talk to the same DB / data dir / config as
+  # the running web server. --mode is omitted because picocli subcommands
+  # force mode=CLI internally. User-supplied flags still override these.
   $java_cmd \
       --defaultUserName $datashare_default_user \
+      --dataDir $datashare_data_dir \
+      --dataSourceUrl $datashare_data_source_url \
+      --settings $datashare_settings \
+      --pluginsDir $datashare_plugins_dir \
+      --extensionsDir $datashare_extensions_dir \
       --elasticsearchPath $datashare_elasticsearch_path \
       --elasticsearchSettings $datashare_elasticsearch_settings \
       --elasticsearchDataPath $datashare_elasticsearch_data_path \
