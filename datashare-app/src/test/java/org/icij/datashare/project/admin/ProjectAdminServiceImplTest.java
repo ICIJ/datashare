@@ -401,20 +401,51 @@ public class ProjectAdminServiceImplTest {
     }
 
     @Test
-    public void test_delete_aborts_when_db_delete_fails() throws Exception {
+    public void test_delete_continues_cascade_when_db_delete_fails() throws Exception {
         when(repository.getProject("foo")).thenReturn(new Project("foo"));
         when(indexer.deleteAll("foo")).thenReturn(true);
         when(repository.deleteAll("foo")).thenThrow(new RuntimeException("DB down"));
+        DocumentQueue<Path> queue = mock(DocumentQueue.class);
+        when(queue.delete()).thenReturn(true);
+        when(documentCollectionFactory.getQueues(any(String.class), eq(Path.class)))
+                .thenReturn(List.of(queue));
+        ReportMap reportMap = mock(ReportMap.class);
+        when(reportMap.delete()).thenReturn(true);
+        when(documentCollectionFactory.createMap(any())).thenReturn(reportMap);
+        when(propertiesProvider.createOverriddenWith(any())).thenReturn(new Properties());
+        when(propertiesProvider.get(any())).thenReturn(Optional.empty());
 
-        try {
-            service.delete("foo", ProjectDeleteOptions.defaults());
-            fail("expected RuntimeException");
-        } catch (RuntimeException e) {
-            assertThat(e.getMessage()).contains("DB down");
-        }
-        // Cascade aborts: queues, report-map, artifacts must NOT run.
-        verify(documentCollectionFactory, never()).getQueues(any(String.class), any());
-        verify(documentCollectionFactory, never()).createMap(any());
+        ProjectDeleted deleted = service.delete("foo", ProjectDeleteOptions.defaults());
+
+        // Cascade continues past the DB failure: queues and report-map still run.
+        assertThat(deleted.indexDeleted()).isTrue();
+        assertThat(deleted.dbDeleted()).isFalse();
+        assertThat(deleted.queuesDeleted()).isTrue();
+        assertThat(deleted.reportMapDeleted()).isTrue();
+        verify(documentCollectionFactory).createMap(any());
+    }
+
+    @Test
+    public void test_delete_continues_cascade_when_index_delete_fails() throws Exception {
+        when(repository.getProject("foo")).thenReturn(new Project("foo"));
+        when(indexer.deleteAll("foo")).thenThrow(new IOException("ES down"));
+        when(repository.deleteAll("foo")).thenReturn(true);
+        DocumentQueue<Path> queue = mock(DocumentQueue.class);
+        when(queue.delete()).thenReturn(true);
+        when(documentCollectionFactory.getQueues(any(String.class), eq(Path.class)))
+                .thenReturn(List.of(queue));
+        ReportMap reportMap = mock(ReportMap.class);
+        when(reportMap.delete()).thenReturn(true);
+        when(documentCollectionFactory.createMap(any())).thenReturn(reportMap);
+        when(propertiesProvider.createOverriddenWith(any())).thenReturn(new Properties());
+        when(propertiesProvider.get(any())).thenReturn(Optional.empty());
+
+        ProjectDeleted deleted = service.delete("foo", ProjectDeleteOptions.defaults());
+
+        assertThat(deleted.indexDeleted()).isFalse();
+        assertThat(deleted.dbDeleted()).isTrue();
+        assertThat(deleted.queuesDeleted()).isTrue();
+        assertThat(deleted.reportMapDeleted()).isTrue();
     }
 
     @Test

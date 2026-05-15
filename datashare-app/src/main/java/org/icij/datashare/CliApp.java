@@ -448,10 +448,24 @@ class CliApp {
             } else if (deleted.noop()) {
                 System.out.println("project '" + deleted.name() + "' does not exist (no-op)");
             } else {
-                String indexBadge = options.keepIndex() ? "index skipped" : "index OK";
+                String indexBadge = options.keepIndex()
+                        ? "index skipped"
+                        : (deleted.indexDeleted() ? "index OK" : "index FAILED");
                 String artifactsBadge = deleted.artifactsDeleted() ? "artifacts OK" : "artifacts skipped";
-                System.out.println("deleted project '" + deleted.name() + "' (db OK, "
-                        + indexBadge + ", queues OK, report-map OK, " + artifactsBadge + ")");
+                String dbBadge = deleted.dbDeleted() ? "db OK" : "db FAILED";
+                String queuesBadge = deleted.queuesDeleted() ? "queues OK" : "queues FAILED";
+                String reportMapBadge = deleted.reportMapDeleted() ? "report-map OK" : "report-map FAILED";
+                System.out.println("deleted project '" + deleted.name() + "' ("
+                        + dbBadge + ", " + indexBadge + ", " + queuesBadge + ", "
+                        + reportMapBadge + ", " + artifactsBadge + ")");
+                if (!deleted.dbDeleted() || (!options.keepIndex() && !deleted.indexDeleted())
+                        || !deleted.queuesDeleted() || !deleted.reportMapDeleted()) {
+                    // Some load-bearing step failed: keep the cascade exit code 0
+                    // (the cascade did run to completion) but nudge the operator
+                    // to retry with --if-exists, which is continuation-friendly.
+                    System.err.println("warning: cascade completed with failures; "
+                            + "re-run with --if-exists to retry");
+                }
             }
             return 0;
         } catch (ProjectNotFoundException e) {

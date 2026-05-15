@@ -170,18 +170,45 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
         return true;
     }
 
-    private ProjectDeleted cascade(Project project, ProjectDeleteOptions options) throws IOException {
+    private ProjectDeleted cascade(Project project, ProjectDeleteOptions options) {
+        // Per-step containment: each cleanup step swallows its own failures and
+        // sets the corresponding bool to false. A partial-failure cascade is
+        // worse than a continuing one -- operators can rerun with --if-exists
+        // to converge once they have fixed the failing dependency, but a
+        // half-deleted project where (say) the index is gone but queues are
+        // intact is a sticky state if the cascade aborts mid-stream.
         String name = project.getName();
 
         boolean indexDeleted = false;
         if (!options.keepIndex()) {
-            indexDeleted = indexer.deleteAll(name);
+            try {
+                indexDeleted = indexer.deleteAll(name);
+            } catch (Exception e) {
+                LOGGER.error("cannot delete index for project {}", name, e);
+            }
         }
 
-        boolean dbDeleted = repository.deleteAll(name);
+        boolean dbDeleted = false;
+        try {
+            dbDeleted = repository.deleteAll(name);
+        } catch (Exception e) {
+            LOGGER.error("cannot delete db rows for project {}", name, e);
+        }
 
-        boolean queuesDeleted = deleteQueues(project);
-        boolean reportMapDeleted = deleteReportMap(project);
+        boolean queuesDeleted = false;
+        try {
+            queuesDeleted = deleteQueues(project);
+        } catch (Exception e) {
+            LOGGER.error("cannot delete queues for project {}", name, e);
+        }
+
+        boolean reportMapDeleted = false;
+        try {
+            reportMapDeleted = deleteReportMap(project);
+        } catch (Exception e) {
+            LOGGER.error("cannot delete report map for project {}", name, e);
+        }
+
         boolean artifactsDeleted = deleteArtifacts(name);
 
         return new ProjectDeleted(name, dbDeleted, indexDeleted,
@@ -194,6 +221,10 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
                 Map.of(PropertiesProvider.DEFAULT_PROJECT_OPT, name));
         String defaultQueueName = properties.getOrDefault(
                 PropertiesProvider.QUEUE_NAME_OPT, "extract:queue").toString();
+        // Two lookups: legacy queues stored under the bare prefix
+        // "extract:queue:<name>" and per-stage queues under
+        // "extract:queue:<name>:*" (one per stage). Both must be drained on
+        // delete; concatenating the streams keeps a single allMatch result.
         String queuePrefix = defaultQueueName + PropertiesProvider.QUEUE_SEPARATOR + name;
         String queuePattern = queuePrefix + PropertiesProvider.QUEUE_SEPARATOR + "*";
         return Stream.concat(
