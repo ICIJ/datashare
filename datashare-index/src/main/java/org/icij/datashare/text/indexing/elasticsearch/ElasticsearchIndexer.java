@@ -540,6 +540,10 @@ public class ElasticsearchIndexer implements Indexer {
     @Override
     public long count(String indexName) throws IOException {
         if (!exists(indexName)) {
+            // The DB row exists (callers gate on that) but the ES index does not.
+            // Surface the drift so an operator running `project delete` knows
+            // why the indexed-document count came back as 0.
+            LOGGER.warn("count() called on missing index {} (db/index drift); returning 0", indexName);
             return 0L;
         }
         CountRequest request = CountRequest.of(c -> c
