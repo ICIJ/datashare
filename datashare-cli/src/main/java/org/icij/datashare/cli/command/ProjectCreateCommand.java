@@ -156,7 +156,7 @@ public class ProjectCreateCommand implements Runnable, DatashareSubcommand {
                         description = promptOptional(prompter, "Description", null);
                     }
                     if (sourcePath == null) {
-                        sourcePath = promptOptional(prompter, "Source path", "/vault/" + name);
+                        sourcePath = promptOptionalPath(prompter, "Source path", "/vault/" + name);
                     }
                     if (sourceUrl == null) {
                         sourceUrl = promptOptionalUri(prompter, "Source URL");
@@ -202,6 +202,28 @@ public class ProjectCreateCommand implements Runnable, DatashareSubcommand {
     private static String promptOptionalUri(Prompter prompter, String label) {
         String line = prompter.promptString(label, s -> {
             if (s != null && !s.isBlank()) Validators.uri(s);
+        });
+        return line == null || line.isBlank() ? null : line.trim();
+    }
+
+    /**
+     * Prompts for an optional filesystem path. Same display semantics as
+     * {@link #promptOptional} (default shown in brackets, blank returns
+     * {@code null}); non-blank input is parsed with {@link java.nio.file.Path#of}
+     * so syntactic garbage (e.g. NUL byte) is caught before dispatch instead of
+     * surfacing as a runtime error in the service.
+     */
+    private static String promptOptionalPath(Prompter prompter, String label, String defaultValue) {
+        String displayLabel = defaultValue == null ? label : label + " [" + defaultValue + "]";
+        String line = prompter.promptString(displayLabel, s -> {
+            if (s != null && !s.isBlank()) {
+                try {
+                    java.nio.file.Path.of(s.trim());
+                } catch (java.nio.file.InvalidPathException e) {
+                    throw new Validators.InvalidValueException(
+                            "sourcePath", "path is not valid: " + e.getMessage());
+                }
+            }
         });
         return line == null || line.isBlank() ? null : line.trim();
     }

@@ -262,6 +262,13 @@ class CliApp {
         }
     }
 
+    // Signature asymmetry note: handleProjectCreate takes only (service, properties)
+    // because ProjectCreateCommand runs all of its operator prompts in the picocli
+    // layer before dispatch -- by the time we land here, every field is already in
+    // the typed sibling properties. handleProjectDelete on the other hand defers
+    // the typed-name confirmation to the dispatcher (it needs the index count and
+    // member count from service.stats() to show in the prompt, and the service is
+    // only resolved in CliApp), so it takes a Supplier<Prompter> for test injection.
     static int handleProjectCreate(ProjectAdminService service, Properties properties) {
         String name = properties.getProperty(PROJECT_CREATE_OPT);
         boolean json = Boolean.parseBoolean(properties.getProperty(PROJECT_CREATE_JSON_OPT));
@@ -436,15 +443,7 @@ class CliApp {
                     : service.delete(name, options);
 
             if (json) {
-                System.out.println(MAPPER.writeValueAsString(Map.ofEntries(
-                        Map.entry("deleted", !deleted.noop()),
-                        Map.entry("noop", deleted.noop()),
-                        Map.entry("name", deleted.name()),
-                        Map.entry("dbDeleted", deleted.dbDeleted()),
-                        Map.entry("indexDeleted", deleted.indexDeleted()),
-                        Map.entry("queuesDeleted", deleted.queuesDeleted()),
-                        Map.entry("reportMapDeleted", deleted.reportMapDeleted()),
-                        Map.entry("artifactsDeleted", deleted.artifactsDeleted()))));
+                System.out.println(MAPPER.writeValueAsString(deleteResultMap(deleted)));
             } else if (deleted.noop()) {
                 System.out.println("project '" + deleted.name() + "' does not exist (no-op)");
             } else {
@@ -479,18 +478,30 @@ class CliApp {
         }
     }
 
+    /**
+     * Shared shape for the delete JSON payload. Keeping a single field list
+     * here means a new step in {@link ProjectDeleted} (e.g. a future
+     * {@code policiesDeleted}) only has to be added in one place to flow
+     * through the happy-path, no-op, and missing-with-{@code --if-exists}
+     * emitters.
+     */
+    private static Map<String, Object> deleteResultMap(ProjectDeleted deleted) {
+        return Map.ofEntries(
+                Map.entry("deleted", !deleted.noop()),
+                Map.entry("noop", deleted.noop()),
+                Map.entry("name", deleted.name()),
+                Map.entry("dbDeleted", deleted.dbDeleted()),
+                Map.entry("indexDeleted", deleted.indexDeleted()),
+                Map.entry("queuesDeleted", deleted.queuesDeleted()),
+                Map.entry("reportMapDeleted", deleted.reportMapDeleted()),
+                Map.entry("artifactsDeleted", deleted.artifactsDeleted()));
+    }
+
     private static void emitDeleteNoop(String name, boolean json) {
+        ProjectDeleted noop = new ProjectDeleted(name, false, false, false, false, false, true);
         if (json) {
             try {
-                System.out.println(MAPPER.writeValueAsString(Map.ofEntries(
-                        Map.entry("deleted", false),
-                        Map.entry("noop", true),
-                        Map.entry("name", name),
-                        Map.entry("dbDeleted", false),
-                        Map.entry("indexDeleted", false),
-                        Map.entry("queuesDeleted", false),
-                        Map.entry("reportMapDeleted", false),
-                        Map.entry("artifactsDeleted", false))));
+                System.out.println(MAPPER.writeValueAsString(deleteResultMap(noop)));
             } catch (Exception e) {
                 System.out.println("project '" + name + "' does not exist (no-op)");
             }
@@ -502,9 +513,12 @@ class CliApp {
     private static void emitDeleteAborted(String name, boolean json) {
         if (json) {
             try {
+                // aborted != noop: aborted means the operator cancelled, noop means
+                // the project did not exist. Consumers reading `noop` to learn
+                // whether the project still exists must not be misled.
                 System.out.println(MAPPER.writeValueAsString(Map.ofEntries(
                         Map.entry("deleted", false),
-                        Map.entry("noop", true),
+                        Map.entry("noop", false),
                         Map.entry("aborted", true),
                         Map.entry("name", name))));
             } catch (Exception e) {
