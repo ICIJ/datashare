@@ -19,6 +19,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.URI;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -27,16 +28,14 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.OptionalLong;
 import java.util.Properties;
-import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 @Singleton
 public class ProjectAdminServiceImpl implements ProjectAdminService {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ProjectAdminServiceImpl.class);
-    private static final Pattern NAME = Pattern.compile(Project.NAME_REGEX);
-    private static final Pattern ALLOW_FROM_MASK = Pattern.compile(Project.ALLOW_FROM_MASK_REGEX);
     private static final String DEFAULT_ALLOW_FROM_MASK = "*.*.*.*";
     private static final Path DEFAULT_VAULT = Paths.get("/vault");
 
@@ -98,9 +97,9 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
         if (repository.getProject(name) == null) {
             throw new ProjectNotFoundException(name);
         }
-        long indexedDocuments = includeIndexCount
-                ? indexer.count(name)
-                : ProjectStats.INDEX_CHECK_SKIPPED;
+        OptionalLong indexedDocuments = includeIndexCount
+                ? OptionalLong.of(indexer.count(name))
+                : OptionalLong.empty();
         int memberCount = (int) authorizer
                 .getGroupPermissions(Domain.of("datashare"), name)
                 .stream()
@@ -130,7 +129,7 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
     }
 
     @Override
-    public boolean addAdminToProject(String projectName, String userLogin)
+    public GrantResult addAdminToProject(String projectName, String userLogin)
             throws ProjectNotFoundException {
         Project project = repository.getProject(projectName);
         if (project == null) {
@@ -140,7 +139,7 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
         if (user == null) {
             // No row in user_inventory: cannot update the per-user project list.
             // Caller (CLI dispatcher) may log a warning and continue.
-            return false;
+            return GrantResult.USER_NOT_FOUND;
         }
 
         // 1. Append projectName to user.details["groups_by_applications.datashare"]
@@ -148,8 +147,8 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
         //    shape checks: if a prior write produced unexpected types we start
         //    from a clean map/list rather than ClassCastException at runtime.
         Map<String, Object> newDetails = new HashMap<>(user.details);
-        Map<String, Object> apps = copyStringKeyedMap(newDetails.get("groups_by_applications"));
-        List<String> currentProjects = copyStringList(apps.get("datashare"));
+        Map<String, Object> apps = safeStringKeyedMapOf(newDetails.get("groups_by_applications"));
+        List<String> currentProjects = safeStringListOf(apps.get("datashare"));
         if (!currentProjects.contains(projectName)) {
             currentProjects.add(projectName);
         }
@@ -177,10 +176,10 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
             throw casbinFailure;
         }
 
-        return true;
+        return GrantResult.GRANTED;
     }
 
-    private static Map<String, Object> copyStringKeyedMap(Object raw) {
+    private static Map<String, Object> safeStringKeyedMapOf(Object raw) {
         if (!(raw instanceof Map<?, ?> source)) {
             return new LinkedHashMap<>();
         }
@@ -193,7 +192,7 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
         return copy;
     }
 
-    private static List<String> copyStringList(Object raw) {
+    private static List<String> safeStringListOf(Object raw) {
         if (!(raw instanceof List<?> source)) {
             return new ArrayList<>();
         }
@@ -215,40 +214,30 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
         // intact is a sticky state if the cascade aborts mid-stream.
         String name = project.getName();
 
-        boolean indexDeleted = false;
-        if (!options.keepIndex()) {
-            try {
-                indexDeleted = indexer.deleteAll(name);
-            } catch (Exception e) {
-                LOGGER.error("cannot delete index for project {}", name, e);
-            }
-        }
-
-        boolean dbDeleted = false;
-        try {
-            dbDeleted = repository.deleteAll(name);
-        } catch (Exception e) {
-            LOGGER.error("cannot delete db rows for project {}", name, e);
-        }
-
-        boolean queuesDeleted = false;
-        try {
-            queuesDeleted = deleteQueues(project);
-        } catch (Exception e) {
-            LOGGER.error("cannot delete queues for project {}", name, e);
-        }
-
-        boolean reportMapDeleted = false;
-        try {
-            reportMapDeleted = deleteReportMap(project);
-        } catch (Exception e) {
-            LOGGER.error("cannot delete report map for project {}", name, e);
-        }
-
+        boolean indexDeleted = options.keepIndex()
+                ? false
+                : runStep("index", name, () -> indexer.deleteAll(name));
+        boolean dbDeleted = runStep("db", name, () -> repository.deleteAll(name));
+        boolean queuesDeleted = runStep("queues", name, () -> deleteQueues(project));
+        boolean reportMapDeleted = runStep("report map", name, () -> deleteReportMap(project));
         boolean artifactsDeleted = deleteArtifacts(name);
 
         return new ProjectDeleted(name, dbDeleted, indexDeleted,
                 queuesDeleted, reportMapDeleted, artifactsDeleted, false);
+    }
+
+    @FunctionalInterface
+    private interface CascadeStep {
+        boolean run() throws Exception;
+    }
+
+    private static boolean runStep(String label, String project, CascadeStep step) {
+        try {
+            return step.run();
+        } catch (Exception e) {
+            LOGGER.error("cannot delete {} for project {}", label, project, e);
+            return false;
+        }
     }
 
     private boolean deleteQueues(Project project) {
@@ -260,13 +249,16 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
         // Two lookups: legacy queues stored under the bare prefix
         // "extract:queue:<name>" and per-stage queues under
         // "extract:queue:<name>:*" (one per stage). Both must be drained on
-        // delete; concatenating the streams keeps a single allMatch result.
+        // delete; concatenating the streams covers them in a single pass.
         String queuePrefix = defaultQueueName + PropertiesProvider.QUEUE_SEPARATOR + name;
         String queuePattern = queuePrefix + PropertiesProvider.QUEUE_SEPARATOR + "*";
+        // reduce() rather than allMatch() so every queue.delete() runs even
+        // if an earlier one fails; we want the cascade-containment property,
+        // not allMatch's short-circuit.
         return Stream.concat(
                         documentCollectionFactory.getQueues(queuePrefix, Path.class).stream(),
                         documentCollectionFactory.getQueues(queuePattern, Path.class).stream())
-                .allMatch(DocumentQueue::delete);
+                .reduce(true, (acc, q) -> q.delete() && acc, Boolean::logicalAnd);
     }
 
     private boolean deleteReportMap(Project project) {
@@ -290,12 +282,12 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
     }
 
     private void validate(ProjectCreateRequest request) throws ValidationException {
-        if (request.name() == null || !NAME.matcher(request.name()).matches()) {
+        if (request.name() == null || !Project.NAME_PATTERN.matcher(request.name()).matches()) {
             throw new ValidationException("name",
                     "project name must match " + Project.NAME_REGEX);
         }
         if (request.allowFromMask() != null
-                && !ALLOW_FROM_MASK.matcher(request.allowFromMask()).matches()) {
+                && !Project.ALLOW_FROM_MASK_PATTERN.matcher(request.allowFromMask()).matches()) {
             throw new ValidationException("allowFromMask",
                     "allow-from-mask must match " + Project.ALLOW_FROM_MASK_REGEX);
         }
@@ -312,7 +304,7 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
             throw new ValidationException(field, field + " must not be blank");
         }
         try {
-            java.net.URI parsed = java.net.URI.create(value);
+            URI parsed = URI.create(value);
             if (parsed.getScheme() == null) {
                 throw new ValidationException(field, field + " must include a scheme (e.g. https://)");
             }
@@ -354,23 +346,7 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
             throw new IllegalStateException("repository.save(Project) returned false for " + request.name());
         }
 
-        boolean indexCreated = false;
-        if (request.createIndex()) {
-            try {
-                indexer.createIndex(request.name());
-                indexCreated = true;
-            } catch (RuntimeException | IOException e) {
-                // Compensating delete: a DB row pointing at a missing index
-                // is the worst end-state. Roll back, then rethrow.
-                try {
-                    repository.deleteAll(request.name());
-                } catch (RuntimeException rollback) {
-                    e.addSuppressed(rollback);
-                }
-                if (e instanceof IOException io) throw io;
-                throw (RuntimeException) e;
-            }
-        }
+        boolean indexCreated = request.createIndex() && createIndexOrRollback(request.name());
 
         return new ProjectCreated(
                 project.getName(),
@@ -386,5 +362,26 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
                 updateDate,
                 indexCreated,
                 false);
+    }
+
+    /**
+     * Creates the ES index for {@code name} and compensates the DB row if the
+     * call fails. A DB row pointing at a missing index is the worst end-state,
+     * so on failure we delete the row and rethrow. Rollback failure is attached
+     * to the original exception via {@code addSuppressed}.
+     */
+    private boolean createIndexOrRollback(String name) throws IOException {
+        try {
+            indexer.createIndex(name);
+            return true;
+        } catch (RuntimeException | IOException e) {
+            try {
+                repository.deleteAll(name);
+            } catch (RuntimeException rollback) {
+                e.addSuppressed(rollback);
+            }
+            if (e instanceof IOException io) throw io;
+            throw (RuntimeException) e;
+        }
     }
 }

@@ -24,6 +24,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.OptionalLong;
 import java.util.Properties;
 
 import static org.fest.assertions.Assertions.assertThat;
@@ -253,7 +254,7 @@ public class ProjectAdminServiceImplTest {
         ProjectStats stats = service.stats("foo", true);
 
         assertThat(stats.name()).isEqualTo("foo");
-        assertThat(stats.indexedDocuments()).isEqualTo(42L);
+        assertThat(stats.indexedDocuments()).isEqualTo(OptionalLong.of(42L));
         assertThat(stats.memberCount()).isEqualTo(2);  // alice + bob, deduped
     }
 
@@ -276,7 +277,7 @@ public class ProjectAdminServiceImplTest {
 
         ProjectStats stats = service.stats("foo", false);
 
-        assertThat(stats.indexedDocuments()).isEqualTo(ProjectStats.INDEX_CHECK_SKIPPED);
+        assertThat(stats.indexedDocuments().isPresent()).isFalse();
         verify(indexer, never()).count(any());
     }
 
@@ -378,7 +379,7 @@ public class ProjectAdminServiceImplTest {
     public void test_delete_throws_when_project_missing() throws Exception {
         when(repository.getProject("ghost")).thenReturn(null);
         try {
-            service.delete("ghost", ProjectDeleteOptions.defaults());
+            service.delete("ghost", new ProjectDeleteOptions(false));
             fail("expected ProjectNotFoundException");
         } catch (ProjectNotFoundException e) {
             assertThat(e.getMessage()).contains("ghost");
@@ -391,7 +392,7 @@ public class ProjectAdminServiceImplTest {
     public void test_delete_if_exists_returns_noop_when_project_missing() throws Exception {
         when(repository.getProject("ghost")).thenReturn(null);
 
-        ProjectDeleted deleted = service.deleteIfExists("ghost", ProjectDeleteOptions.defaults());
+        ProjectDeleted deleted = service.deleteIfExists("ghost", new ProjectDeleteOptions(false));
 
         assertThat(deleted.noop()).isTrue();
         assertThat(deleted.dbDeleted()).isFalse();
@@ -415,7 +416,7 @@ public class ProjectAdminServiceImplTest {
         when(propertiesProvider.createOverriddenWith(any())).thenReturn(new Properties());
         when(propertiesProvider.get(any())).thenReturn(Optional.empty());
 
-        ProjectDeleted deleted = service.delete("foo", ProjectDeleteOptions.defaults());
+        ProjectDeleted deleted = service.delete("foo", new ProjectDeleteOptions(false));
 
         // Cascade continues past the DB failure: queues and report-map still run.
         assertThat(deleted.indexDeleted()).isTrue();
@@ -440,7 +441,7 @@ public class ProjectAdminServiceImplTest {
         when(propertiesProvider.createOverriddenWith(any())).thenReturn(new Properties());
         when(propertiesProvider.get(any())).thenReturn(Optional.empty());
 
-        ProjectDeleted deleted = service.delete("foo", ProjectDeleteOptions.defaults());
+        ProjectDeleted deleted = service.delete("foo", new ProjectDeleteOptions(false));
 
         assertThat(deleted.indexDeleted()).isFalse();
         assertThat(deleted.dbDeleted()).isTrue();
@@ -462,9 +463,9 @@ public class ProjectAdminServiceImplTest {
         when(repository.getUser("promera")).thenReturn(existingUser);
         when(repository.save(any(User.class))).thenReturn(true);
 
-        boolean granted = service.addAdminToProject("demeter", "promera");
+        GrantResult granted = service.addAdminToProject("demeter", "promera");
 
-        assertThat(granted).isTrue();
+        assertThat(granted).isEqualTo(GrantResult.GRANTED);
 
         ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
         verify(repository).save(userCaptor.capture());
@@ -482,9 +483,9 @@ public class ProjectAdminServiceImplTest {
         when(repository.getProject("demeter")).thenReturn(new Project("demeter"));
         when(repository.getUser("ghost")).thenReturn(null);
 
-        boolean granted = service.addAdminToProject("demeter", "ghost");
+        GrantResult granted = service.addAdminToProject("demeter", "ghost");
 
-        assertThat(granted).isFalse();
+        assertThat(granted).isEqualTo(GrantResult.USER_NOT_FOUND);
         verify(repository, never()).save(any(User.class));
         verify(authorizer, never()).addProjectAdmin(any(), any(), any());
     }
@@ -516,9 +517,9 @@ public class ProjectAdminServiceImplTest {
         when(repository.getUser("promera")).thenReturn(existingUser);
         when(repository.save(any(User.class))).thenReturn(true);
 
-        boolean granted = service.addAdminToProject("demeter", "promera");
+        GrantResult granted = service.addAdminToProject("demeter", "promera");
 
-        assertThat(granted).isTrue();
+        assertThat(granted).isEqualTo(GrantResult.GRANTED);
         ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
         verify(repository).save(userCaptor.capture());
         Map<String, Object> savedApps = (Map<String, Object>) userCaptor.getValue().details.get("groups_by_applications");
@@ -571,9 +572,9 @@ public class ProjectAdminServiceImplTest {
         when(repository.getUser("promera")).thenReturn(existingUser);
         when(repository.save(any(User.class))).thenReturn(true);
 
-        boolean granted = service.addAdminToProject("demeter", "promera");
+        GrantResult granted = service.addAdminToProject("demeter", "promera");
 
-        assertThat(granted).isTrue();
+        assertThat(granted).isEqualTo(GrantResult.GRANTED);
         ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
         verify(repository).save(userCaptor.capture());
         Map<String, Object> savedApps = (Map<String, Object>) userCaptor.getValue().details.get("groups_by_applications");
@@ -596,9 +597,9 @@ public class ProjectAdminServiceImplTest {
         when(repository.getUser("promera")).thenReturn(existingUser);
         when(repository.save(any(User.class))).thenReturn(true);
 
-        boolean granted = service.addAdminToProject("demeter", "promera");
+        GrantResult granted = service.addAdminToProject("demeter", "promera");
 
-        assertThat(granted).isTrue();
+        assertThat(granted).isEqualTo(GrantResult.GRANTED);
         ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
         verify(repository).save(userCaptor.capture());
         Map<String, Object> savedApps = (Map<String, Object>) userCaptor.getValue().details.get("groups_by_applications");
