@@ -56,8 +56,7 @@ public class ProjectDeleteCommand implements Runnable, DatashareSubcommand {
 
     Prompter prompterOverride;
 
-    private String resolvedName;
-    private boolean ready;
+    private String validatedName;
 
     @Override
     public void run() {
@@ -85,8 +84,7 @@ public class ProjectDeleteCommand implements Runnable, DatashareSubcommand {
                 }
             }
 
-            this.resolvedName = name;
-            this.ready = true;
+            this.validatedName = name;
         } catch (InvalidValueException e) {
             spec.commandLine().getErr().println("error: " + e.getMessage());
             throw new CliExitException(5);
@@ -97,10 +95,10 @@ public class ProjectDeleteCommand implements Runnable, DatashareSubcommand {
     public Properties getSubcommandProperties() {
         Properties props = new Properties();
         DatashareOptions.put(props, MODE_OPT, Mode.CLI);
-        if (!ready) {
+        if (validatedName == null) {
             return props;
         }
-        DatashareOptions.put(props, PROJECT_DELETE_OPT, resolvedName);
+        DatashareOptions.put(props, PROJECT_DELETE_OPT, validatedName);
         DatashareOptions.putIfTrue(props, PROJECT_DELETE_YES_OPT, yes);
         DatashareOptions.putIfTrue(props, PROJECT_DELETE_KEEP_INDEX_OPT, keepIndex);
         DatashareOptions.putIfTrue(props, PROJECT_DELETE_IF_EXISTS_OPT, ifExists);
