@@ -22,8 +22,13 @@ public interface ProjectAdminService {
     /**
      * Returns indexed-document count + member count for the named project.
      * Throws if the project row is missing. Used by the CLI confirmation prompt.
+     *
+     * <p>When {@code includeIndexCount} is {@code false}, the {@code indexedDocuments}
+     * field on the returned {@code ProjectStats} is {@link ProjectStats#INDEX_CHECK_SKIPPED}
+     * and no Elasticsearch round-trip happens. Pass {@code false} when the caller plans to
+     * skip the index in the cascade (e.g. {@code --keep-index}).
      */
-    ProjectStats stats(String name) throws ProjectNotFoundException, IOException;
+    ProjectStats stats(String name, boolean includeIndexCount) throws ProjectNotFoundException, IOException;
 
     /**
      * Deletes the project and every dependent resource (ES index unless

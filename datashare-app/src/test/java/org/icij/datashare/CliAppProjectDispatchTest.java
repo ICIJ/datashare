@@ -156,7 +156,7 @@ public class CliAppProjectDispatchTest {
 
     @Test
     public void test_delete_happy_path_with_yes_skips_prompt() throws Exception {
-        when(service.stats("foo")).thenReturn(new ProjectStats("foo", 42L, 3));
+        when(service.stats(eq("foo"), eq(true))).thenReturn(new ProjectStats("foo", 42L, 3));
         when(service.delete(eq("foo"), any(ProjectDeleteOptions.class)))
                 .thenReturn(new ProjectDeleted("foo", true, true, true, true, false, false));
         Properties props = new Properties();
@@ -172,7 +172,7 @@ public class CliAppProjectDispatchTest {
 
     @Test
     public void test_delete_with_typed_name_confirmation_proceeds() throws Exception {
-        when(service.stats("foo")).thenReturn(new ProjectStats("foo", 42L, 3));
+        when(service.stats(eq("foo"), eq(true))).thenReturn(new ProjectStats("foo", 42L, 3));
         when(service.delete(eq("foo"), any(ProjectDeleteOptions.class)))
                 .thenReturn(new ProjectDeleted("foo", true, true, true, true, false, false));
         Properties props = new Properties();
@@ -186,7 +186,7 @@ public class CliAppProjectDispatchTest {
 
     @Test
     public void test_delete_aborts_when_typed_name_mismatches() throws Exception {
-        when(service.stats("foo")).thenReturn(new ProjectStats("foo", 42L, 3));
+        when(service.stats(eq("foo"), eq(true))).thenReturn(new ProjectStats("foo", 42L, 3));
         Properties props = new Properties();
         props.setProperty(PROJECT_DELETE_OPT, "foo");
 
@@ -199,7 +199,7 @@ public class CliAppProjectDispatchTest {
 
     @Test
     public void test_delete_missing_returns_3() throws Exception {
-        when(service.stats("ghost")).thenThrow(new ProjectNotFoundException("ghost"));
+        when(service.stats(eq("ghost"), eq(true))).thenThrow(new ProjectNotFoundException("ghost"));
         Properties props = new Properties();
         props.setProperty(PROJECT_DELETE_OPT, "ghost");
         props.setProperty(PROJECT_DELETE_YES_OPT, "true");
@@ -212,7 +212,7 @@ public class CliAppProjectDispatchTest {
 
     @Test
     public void test_delete_if_exists_missing_returns_0_noop() throws Exception {
-        when(service.stats("ghost")).thenThrow(new ProjectNotFoundException("ghost"));
+        when(service.stats(eq("ghost"), eq(true))).thenThrow(new ProjectNotFoundException("ghost"));
         Properties props = new Properties();
         props.setProperty(PROJECT_DELETE_OPT, "ghost");
         props.setProperty(PROJECT_DELETE_IF_EXISTS_OPT, "true");
@@ -226,7 +226,7 @@ public class CliAppProjectDispatchTest {
 
     @Test
     public void test_delete_keep_index_passes_option() throws Exception {
-        when(service.stats("foo")).thenReturn(new ProjectStats("foo", ProjectStats.INDEX_CHECK_SKIPPED, 3));
+        when(service.stats(eq("foo"), eq(false))).thenReturn(new ProjectStats("foo", ProjectStats.INDEX_CHECK_SKIPPED, 3));
         org.mockito.ArgumentCaptor<ProjectDeleteOptions> captor =
                 org.mockito.ArgumentCaptor.forClass(ProjectDeleteOptions.class);
         when(service.delete(eq("foo"), captor.capture()))
@@ -244,7 +244,7 @@ public class CliAppProjectDispatchTest {
 
     @Test
     public void test_delete_json_output() throws Exception {
-        when(service.stats("foo")).thenReturn(new ProjectStats("foo", 42L, 3));
+        when(service.stats(eq("foo"), eq(true))).thenReturn(new ProjectStats("foo", 42L, 3));
         when(service.delete(eq("foo"), any(ProjectDeleteOptions.class)))
                 .thenReturn(new ProjectDeleted("foo", true, true, true, true, true, false));
         Properties props = new Properties();
@@ -265,7 +265,7 @@ public class CliAppProjectDispatchTest {
 
     @Test
     public void test_delete_aborts_when_prompter_exhausts_retries() throws Exception {
-        when(service.stats("foo")).thenReturn(new ProjectStats("foo", 42L, 3));
+        when(service.stats(eq("foo"), eq(true))).thenReturn(new ProjectStats("foo", 42L, 3));
 
         Supplier<Prompter> exhaustingPrompter = () -> {
             Prompter mock = mock(Prompter.class);
