@@ -1296,4 +1296,29 @@ public class DatashareCommandTest {
         int exit = parseExitCode("project");
         assertThat(exit).isEqualTo(2);
     }
+
+    @Test
+    public void test_project_create_smoke_end_to_end() {
+        Properties props = parse("project", "create", "my-project",
+                "--label", "My Project",
+                "--source-path", "/data/my-project",
+                "--json");
+
+        // The CLI layer only produces properties; the dispatcher (tested separately
+        // in CliAppProjectDispatchTest) consumes them. This smoke test confirms the
+        // picocli graph hands off a coherent set of typed sibling keys.
+        assertThat(props).includes(entry("projectCreate", "my-project"));
+        assertThat(props).includes(entry("projectCreate.label", "My Project"));
+        assertThat(props).includes(entry("projectCreate.sourcePath", "/data/my-project"));
+        assertThat(props).includes(entry("projectCreate.json", "true"));
+    }
+
+    @Test
+    public void test_project_delete_smoke_end_to_end() {
+        Properties props = parse("project", "delete", "my-project", "--yes", "--keep-index", "--json");
+        assertThat(props).includes(entry("projectDelete", "my-project"));
+        assertThat(props).includes(entry("projectDelete.yes", "true"));
+        assertThat(props).includes(entry("projectDelete.keepIndex", "true"));
+        assertThat(props).includes(entry("projectDelete.json", "true"));
+    }
 }
