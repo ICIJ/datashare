@@ -2,8 +2,6 @@ package org.icij.datashare.asynctasks;
 
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
-import io.temporal.client.WorkflowClient;
-import io.temporal.worker.WorkerFactory;
 import org.icij.datashare.EnvUtils;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.asynctasks.temporal.*;
@@ -29,7 +27,6 @@ import static org.icij.datashare.LambdaExceptionUtils.rethrowConsumer;
 import static org.icij.datashare.asynctasks.Task.State.*;
 import static org.icij.datashare.asynctasks.TaskManagerTemporal.WORKFLOWS_DEFAULT;
 import static org.icij.datashare.asynctasks.temporal.TemporalHelper.activityFactory;
-import static org.icij.datashare.asynctasks.temporal.TemporalHelper.createTemporalWorkerFactory;
 import static org.icij.datashare.asynctasks.temporal.TemporalInterlocutor.DEFAULT_NAMESPACE;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
@@ -42,13 +39,9 @@ public class TaskManagerTemporalIntTest {
     static TaskRepository taskRepository = new TaskRepositoryRedis(redissonClient, "tasks:queue:test");
     @Mock
     private TaskFactory taskFactory;
-
     private static TemporalInterlocutor temporal;
-
     private static TaskManagerTemporal taskManager;
-
-    private List<TemporalHelper.RegisteredWorkflow> registeredWorkflows;
-
+    private List<TemporalInterlocutor.RegisteredWorkflow> registeredWorkflows;
 
     @BeforeClass
     public static void setUpClass() throws InterruptedException {
@@ -67,14 +60,14 @@ public class TaskManagerTemporalIntTest {
             }
         }
         registeredWorkflows = List.of(
-            new TemporalHelper.RegisteredWorkflow(
+            new TemporalInterlocutor.RegisteredWorkflow(
                 HelloWorldWorkflowImpl.class,
                 WORKFLOWS_DEFAULT,
-                List.of(new TemporalHelper.RegisteredActivity(activityFactory(HelloWorldActivityImpl.class, taskFactory, temporal.getClient(), 1.0d), WORKFLOWS_DEFAULT))),
-            new TemporalHelper.RegisteredWorkflow(
+                List.of(new TemporalInterlocutor.RegisteredActivity(activityFactory(HelloWorldActivityImpl.class, taskFactory, temporal.getClient(), 1.0d), WORKFLOWS_DEFAULT))),
+            new TemporalInterlocutor.RegisteredWorkflow(
                 FailingWorkflowImpl.class,
                 WORKFLOWS_DEFAULT,
-                List.of(new TemporalHelper.RegisteredActivity(activityFactory(FailingActivityImpl.class, taskFactory, temporal.getClient(), 1.0d), WORKFLOWS_DEFAULT)))
+                List.of(new TemporalInterlocutor.RegisteredActivity(activityFactory(FailingActivityImpl.class, taskFactory, temporal.getClient(), 1.0d), WORKFLOWS_DEFAULT)))
         );
 
         temporal.setupNamespace(Duration.ofSeconds(5));
@@ -85,14 +78,6 @@ public class TaskManagerTemporalIntTest {
     @Before
     public void tearDown() throws Exception {
         Optional.ofNullable(mocks).ifPresent(rethrowConsumer(AutoCloseable::close));
-    }
-
-    private TemporalHelper.CloseableWorkerFactoryHandle testCloseableWorkerFactory(WorkflowClient client) {
-        return new TemporalHelper.CloseableWorkerFactoryHandle(testWorkerFactory(client));
-    }
-
-    private WorkerFactory testWorkerFactory(WorkflowClient client) {
-        return createTemporalWorkerFactory(registeredWorkflows, client);
     }
 
     @Test
@@ -202,7 +187,7 @@ public class TaskManagerTemporalIntTest {
 
     @Test(timeout = 10000)
     public void test_get_task_result() throws IOException {
-        try (TemporalHelper.CloseableWorkerFactoryHandle ignored = testCloseableWorkerFactory(temporal.getClient())) {
+        try (TemporalInterlocutor.CloseableWorkerFactoryHandle ignored = testCloseableWorkerFactory(temporal)) {
             Task<String> task = new Task<>("hello-world", User.local(), Map.of("name", "world"));
 
             taskManager.startTask(task);
@@ -216,7 +201,7 @@ public class TaskManagerTemporalIntTest {
 
     @Test(timeout = 20000)
     public void test_task_error() throws IOException, InterruptedException {
-        try (TemporalHelper.CloseableWorkerFactoryHandle ignored = testCloseableWorkerFactory(temporal.getClient())) {
+        try (TemporalInterlocutor.CloseableWorkerFactoryHandle ignored = testCloseableWorkerFactory(temporal)) {
             Task<String> task = new Task<>("failing", User.local(), Map.of());
 
             taskManager.startTask(task);
@@ -256,7 +241,7 @@ public class TaskManagerTemporalIntTest {
     @Ignore("keeping this one for manual test as it can take very long to complete")
     @Test
     public void test_clear_done_tasks() throws Exception {
-        try (TemporalHelper.CloseableWorkerFactoryHandle ignored = testCloseableWorkerFactory(temporal.getClient())) {
+        try (TemporalInterlocutor.CloseableWorkerFactoryHandle ignored = testCloseableWorkerFactory(temporal)) {
             Task<String> task = new Task<>("hello-world", User.local(), Map.of("key", "value"));
             taskManager.startTask(task);
             assertThat(taskManager.awaitTermination(2, TimeUnit.SECONDS));
@@ -271,7 +256,7 @@ public class TaskManagerTemporalIntTest {
     @Ignore("keeping this one for manual test as it can take very long to complete")
     @Test
     public void test_clear_done_tasks_with_args_filter() throws IOException, InterruptedException {
-        try (TemporalHelper.CloseableWorkerFactoryHandle ignored = testCloseableWorkerFactory(temporal.getClient())) {
+        try (TemporalInterlocutor.CloseableWorkerFactoryHandle ignored = testCloseableWorkerFactory(temporal)) {
             Task<String> first = new Task<>("hello-world", User.local(), Map.of("key", "value"));
             Task<String> second = new Task<>("hello-world", User.local(), Map.of("otherKey", "otherValue"));
             taskManager.startTask(first);
@@ -303,19 +288,18 @@ public class TaskManagerTemporalIntTest {
                 return () -> task.id;
             }
         };
-        List<TemporalHelper.RegisteredWorkflow> workflows = List.of(
-            new TemporalHelper.RegisteredWorkflow(
+        List<TemporalInterlocutor.RegisteredWorkflow> workflows = List.of(
+            new TemporalInterlocutor.RegisteredWorkflow(
                 DoNothingWorkflowImpl.class,
                 WORKFLOWS_DEFAULT,
-                List.of(new TemporalHelper.RegisteredActivity(
+                List.of(new TemporalInterlocutor.RegisteredActivity(
                     activityFactory(DoNothingActivityImpl.class, capturingFactory, temporal.getClient(), 1.0d),
                     WORKFLOWS_DEFAULT
                 ))
             )
         );
 
-        try (TemporalHelper.CloseableWorkerFactoryHandle ignored =
-                new TemporalHelper.CloseableWorkerFactoryHandle(createTemporalWorkerFactory(workflows, temporal.getClient()))) {
+        try (TemporalInterlocutor.CloseableWorkerFactoryHandle ignored = temporal.createFactory(1, workflows)) {
             Task<String> task = new Task<>(DoNothingTask.class.getName(), User.local(), Map.of());
 
             taskManager.startTask(task);
@@ -346,5 +330,9 @@ public class TaskManagerTemporalIntTest {
         assertThat(stopped).isTrue();
         boolean stoppedAgain = taskManager.stopTask(task.getId());
         assertThat(stoppedAgain).isFalse();
+    }
+
+    private TemporalInterlocutor.CloseableWorkerFactoryHandle testCloseableWorkerFactory(TemporalInterlocutor temporal) {
+        return temporal.createFactory(1, registeredWorkflows);
     }
 }
