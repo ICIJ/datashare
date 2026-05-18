@@ -1,47 +1,12 @@
 package org.icij.datashare.asynctasks;
 
-import static org.fest.assertions.Assertions.assertThat;
-import static org.icij.datashare.LambdaExceptionUtils.rethrowConsumer;
-import static org.icij.datashare.asynctasks.Task.State.CANCELLED;
-import static org.icij.datashare.asynctasks.Task.State.DONE;
-import static org.icij.datashare.asynctasks.Task.State.ERROR;
-import static org.icij.datashare.asynctasks.Task.State.RUNNING;
-import static org.icij.datashare.asynctasks.temporal.TemporalInterlocutor.DEFAULT_NAMESPACE;
-import static org.icij.datashare.asynctasks.TaskManagerTemporal.WORKFLOWS_DEFAULT;
-import static org.icij.datashare.asynctasks.temporal.TemporalHelper.activityFactory;
-import static org.icij.datashare.asynctasks.temporal.TemporalHelper.createTemporalWorkerFactory;
-import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.MockitoAnnotations.openMocks;
-
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 import io.temporal.client.WorkflowClient;
-import io.temporal.client.WorkflowClientOptions;
-import io.temporal.serviceclient.WorkflowServiceStubs;
-import io.temporal.serviceclient.WorkflowServiceStubsOptions;
 import io.temporal.worker.WorkerFactory;
-import java.io.IOException;
-import java.time.Duration;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
-
 import org.icij.datashare.EnvUtils;
 import org.icij.datashare.PropertiesProvider;
-import org.icij.datashare.asynctasks.temporal.DoNothingWorkflowImpl;
-import org.icij.datashare.asynctasks.temporal.DoNothingActivityImpl;
-import org.icij.datashare.asynctasks.temporal.DoNothingTask;
-import org.icij.datashare.asynctasks.temporal.FailingActivityImpl;
-import org.icij.datashare.asynctasks.temporal.FailingWorkflowImpl;
-import org.icij.datashare.asynctasks.temporal.HelloWorldActivityImpl;
-import org.icij.datashare.asynctasks.temporal.HelloWorldWorkflowImpl;
-import org.icij.datashare.asynctasks.temporal.TemporalHelper;
-import org.icij.datashare.asynctasks.temporal.TemporalInterlocutor;
+import org.icij.datashare.asynctasks.temporal.*;
 import org.icij.datashare.tasks.RoutingStrategy;
 import org.icij.datashare.user.User;
 import org.icij.extract.redis.RedissonClientFactory;
@@ -52,6 +17,23 @@ import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.Mock;
 import org.redisson.api.RedissonClient;
+
+import java.io.IOException;
+import java.time.Duration;
+import java.util.*;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
+
+import static org.fest.assertions.Assertions.assertThat;
+import static org.icij.datashare.LambdaExceptionUtils.rethrowConsumer;
+import static org.icij.datashare.asynctasks.Task.State.*;
+import static org.icij.datashare.asynctasks.TaskManagerTemporal.WORKFLOWS_DEFAULT;
+import static org.icij.datashare.asynctasks.temporal.TemporalHelper.activityFactory;
+import static org.icij.datashare.asynctasks.temporal.TemporalHelper.createTemporalWorkerFactory;
+import static org.icij.datashare.asynctasks.temporal.TemporalInterlocutor.DEFAULT_NAMESPACE;
+import static org.junit.Assert.assertThrows;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.MockitoAnnotations.openMocks;
 
 public class TaskManagerTemporalIntTest {
     private AutoCloseable mocks;

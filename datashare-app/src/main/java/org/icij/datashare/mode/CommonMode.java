@@ -430,7 +430,7 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
             } catch (ClassNotFoundException e) {
                 throw new RuntimeException(e);
             }
-            WorkerFactory workerFactory = TemporalHelper.createTemporalWorkerFactory(workflows, temporal.client, workerOptions);
+            WorkerFactory workerFactory = TemporalHelper.createTemporalWorkerFactory(workflows, temporal.getClient(), workerOptions);
             executorService.submit(() -> {
                 // Start and add to closable
                 closeables.add(new TemporalHelper.CloseableWorkerFactoryHandle(workerFactory));

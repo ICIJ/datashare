@@ -9,6 +9,8 @@ import io.temporal.api.common.v1.Payloads;
 import io.temporal.api.common.v1.WorkflowExecution;
 import io.temporal.api.enums.v1.IndexedValueType;
 import io.temporal.api.enums.v1.NamespaceState;
+import io.temporal.api.enums.v1.WorkflowIdConflictPolicy;
+import io.temporal.api.enums.v1.WorkflowIdReusePolicy;
 import io.temporal.api.namespace.v1.NamespaceConfig;
 import io.temporal.api.operatorservice.v1.AddSearchAttributesRequest;
 import io.temporal.api.operatorservice.v1.DeleteNamespaceRequest;
@@ -18,6 +20,7 @@ import io.temporal.api.workflow.v1.WorkflowExecutionInfo;
 import io.temporal.api.workflowservice.v1.*;
 import io.temporal.client.*;
 import io.temporal.common.SearchAttributeKey;
+import io.temporal.common.SearchAttributes;
 import io.temporal.common.converter.DefaultDataConverter;
 import io.temporal.common.converter.JacksonJsonPayloadConverter;
 import io.temporal.serviceclient.OperatorServiceStubs;
@@ -45,6 +48,7 @@ import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 import static io.grpc.health.v1.HealthCheckResponse.ServingStatus.SERVING;
+import static io.temporal.api.enums.v1.WorkflowExecutionStatus.WORKFLOW_EXECUTION_STATUS_RUNNING;
 import static org.icij.datashare.LambdaExceptionUtils.rethrowConsumer;
 import static org.icij.datashare.LambdaExceptionUtils.rethrowFunction;
 import static org.icij.datashare.asynctasks.Task.USER_KEY;
@@ -54,6 +58,8 @@ import static org.icij.datashare.asynctasks.temporal.TemporalHelper.asTaskState;
 
 public class TemporalInterlocutor {
     private static final int DEFAULT_PAGE_SIZE = 100;
+    private static final Duration DEFAULT_WORKFLOW_TASK_TIMEOUT = Duration.ofDays(7);
+    private static final String TERMINATION_MSG = "terminated_by_user";
     // TODO: in-memory hack for strong consistence, maybe a repository would be a better implem
     private final ConcurrentHashMap.KeySetView<String, Boolean> executions = ConcurrentHashMap.newKeySet();
 
@@ -102,7 +108,7 @@ public class TemporalInterlocutor {
         this.workflowServiceStubs = client.getWorkflowServiceStubs().blockingStub();
     }
 
-    // for tests
+    // for TaskManagerTemporal tests
     public TemporalInterlocutor(WorkflowClient client, WorkflowServiceGrpc.WorkflowServiceBlockingStub workflowServiceBlockingStub) {
         this.client = client;
         this.workflowServiceStubs = workflowServiceBlockingStub;
@@ -147,7 +153,7 @@ public class TemporalInterlocutor {
     public void setupNamespace(Duration timeout) throws InterruptedException {
         long start = System.currentTimeMillis();
         long timeoutMillis = timeout.toMillis();
-        String namespace = client.getOptions().getNamespace();
+        String namespace = getNamespace();
         WorkflowServiceGrpc.WorkflowServiceBlockingStub workflowServiceBlockingStub =
             client.getWorkflowServiceStubs().blockingStub();
         OperatorServiceGrpc.OperatorServiceBlockingStub operatorServiceBlockingStub =
@@ -275,18 +281,42 @@ public class TemporalInterlocutor {
         throw new RuntimeException("failed to delete namespace in " + timeout);
     }
 
-    public WorkflowStub newUntypedWorkflowStub(String name, WorkflowOptions build) {
-        //executions.add(taskId);
-        return null;
+    public void createWorkflow(String taskId, String name, String queueName, SearchAttributes searchAttributes, Map<String, Object> args) {
+        WorkflowOptions.Builder optionBuilder = WorkflowOptions.newBuilder().setWorkflowId(taskId)
+                .setWorkflowTaskTimeout(DEFAULT_WORKFLOW_TASK_TIMEOUT) // TODO: set this per task
+                .setWorkflowIdReusePolicy(WorkflowIdReusePolicy.WORKFLOW_ID_REUSE_POLICY_REJECT_DUPLICATE)
+                .setWorkflowIdConflictPolicy(WorkflowIdConflictPolicy.WORKFLOW_ID_CONFLICT_POLICY_FAIL)
+                .setTypedSearchAttributes(searchAttributes)
+                .setTaskQueue(queueName);
+        WorkflowStub workflowStub = client.newUntypedWorkflowStub(name, optionBuilder.build());
+        workflowStub.start(new TemporalInputPayload(args));
+        // Super important force description to refresh the cache and make the task visible
+        workflowStub.describe();
+        executions.add(taskId);
     }
 
-    public WorkflowStub newUntypedWorkflowStub(String taskId) {
-        executions.add(taskId);
-        return null;
+    public WorkflowStub createWorkflowStub(String workflowId) {
+        return client.newUntypedWorkflowStub(workflowId);
     }
 
     public String getNamespace() {
-        return null;
+        return client.getOptions().getNamespace();
+    }
+
+    public boolean terminateWorkflow(String taskId) {
+        // TODO: add support for cancellation rather than termination, update the TaskManager API accordingly
+        return unknownIfNotFound(tId -> {
+            WorkflowStub workflowStub = createWorkflowStub(tId);
+            boolean isRunning = workflowStub.describe().getStatus() == WORKFLOW_EXECUTION_STATUS_RUNNING;
+            try {
+                workflowStub.terminate(TERMINATION_MSG);
+            } catch (WorkflowNotFoundException ex) {
+                if (!ex.getCause().getMessage().contains("workflow execution already completed")) {
+                    throw ex;
+                }
+            }
+            return isRunning;
+        }, taskId);
     }
 
     public void deleteWorkflowExecution(String taskId) {
@@ -408,7 +438,7 @@ public class TemporalInterlocutor {
         Task.State state = asTaskState(workflowExecutionInfo.getStatus());
         if (Objects.requireNonNull(state) == Task.State.ERROR || state == Task.State.DONE) {
             try {
-                Serializable res = newUntypedWorkflowStub(workflowExecutionInfo.getExecution().getWorkflowId())
+                Serializable res = createWorkflowStub(workflowExecutionInfo.getExecution().getWorkflowId())
                         .getResult(Serializable.class);
                 //TODO this is a big hack because Temporal does not use the TYPE_INCLUSION_MAPPER
                 // to deserialize for now
@@ -437,7 +467,7 @@ public class TemporalInterlocutor {
         return executionIds.stream()
             .map(id -> {
                 try {
-                    return newUntypedWorkflowStub(id).describe().getWorkflowExecutionInfo();
+                    return createWorkflowStub(id).describe().getWorkflowExecutionInfo();
                 } catch (StatusRuntimeException ex) {
                     if (!ex.getStatus().getCode().equals(Status.Code.NOT_FOUND)) {
                         throw ex;
@@ -476,6 +506,36 @@ public class TemporalInterlocutor {
      */
     public WorkflowClient getClient() {
         return client;
+    }
+
+    protected void awaitExecutionDeletion(Set<String> taskIds) throws InterruptedException {
+        // TODO: avoid the infinite loop
+        // TODO: implement throttling
+        while (true) {
+            boolean allDeleted = taskIds.stream().allMatch(tId -> {
+                try {
+                    createWorkflowStub(tId).describe();
+                } catch (StatusRuntimeException ex) {
+                    if (ex.getStatus().getCode().equals(Status.Code.NOT_FOUND)) {
+                        return true;
+                    }
+                } catch (WorkflowNotFoundException ignored) {
+                    return true;
+                }
+                return false;
+            });
+            if (allDeleted) {
+                break;
+            }
+            // TODO: define a proper duration
+            Thread.sleep(DEFAULT_NAMESPACE_POLL_INTERVAL.toMillis());
+        }
+    }
+
+    public WorkflowExecutionDescription getWorkflowExecution(String taskId) throws UnknownTask {
+        return unknownIfNotFound(t -> {
+            return createWorkflowStub(taskId).describe();
+        }, taskId);
     }
 
     public record Page<P>(List<P> items, ByteString nextPageToken) {
