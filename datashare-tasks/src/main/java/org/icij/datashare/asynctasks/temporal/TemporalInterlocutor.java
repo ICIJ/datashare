@@ -163,6 +163,16 @@ public class TemporalInterlocutor {
         }
     }
 
+    public <A extends TemporalActivityImpl<?, ?>> ThrowingSupplier<A> activityFactory(
+        Class<A> activityCls,
+        TaskFactory taskFactory,
+        double progressWeight
+    ) {
+        return () -> activityCls
+            .getConstructor(TaskFactory.class, WorkflowClient.class, Double.class)
+            .newInstance(taskFactory, client, progressWeight);
+    }
+
     public void setupNamespace(Duration timeout) throws InterruptedException {
         long start = System.currentTimeMillis();
         long timeoutMillis = timeout.toMillis();
@@ -511,16 +521,6 @@ public class TemporalInterlocutor {
         throw new RuntimeException("failed to clear task in " + timeout + " " + timeUnit);
     }
 
-    /**
-     * this should not be used normally TemporalInterlocutor should encapsulate
-     * all interactions with the server.
-     * it is used in TemporalHelper
-     * @return WorkflowClient
-     */
-    public WorkflowClient getClient() {
-        return client;
-    }
-
     protected void awaitExecutionDeletion(Set<String> taskIds) throws InterruptedException {
         // TODO: avoid the infinite loop
         // TODO: implement throttling
@@ -566,7 +566,7 @@ public class TemporalInterlocutor {
                         Class<TemporalWorkflowImpl> wfImplClass = (Class<TemporalWorkflowImpl>) Class.forName(workflowClassName + "Impl");
                         Class<TemporalActivityImpl<?, ?>> actImplCls = (Class<TemporalActivityImpl<?, ?>>) Class.forName(baseName + "ActivityImpl");
                         String taskQueue = resolveWfTaskQueue(routingStrategy, workflowKey, group);
-                        List<RegisteredActivity> activities = List.of(new RegisteredActivity(activityFactory(actImplCls, taskFactory, client, 1d), taskQueue));
+                        List<RegisteredActivity> activities = List.of(new RegisteredActivity(activityFactory(actImplCls, taskFactory, 1d), taskQueue));
                         return new RegisteredWorkflow(wfImplClass, taskQueue, activities);
                     }))
                     .toList();
