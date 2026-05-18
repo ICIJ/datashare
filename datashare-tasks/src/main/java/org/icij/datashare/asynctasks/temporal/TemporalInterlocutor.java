@@ -150,7 +150,7 @@ public class TemporalInterlocutor {
         }, taskId);
     }
 
-    public static <T> T unknownIfNotFound(Function<String, T> function, String taskId) {
+    private static <T> T unknownIfNotFound(Function<String, T> function, String taskId) {
         try {
             return function.apply(taskId);
         } catch (StatusRuntimeException e) {
@@ -342,18 +342,6 @@ public class TemporalInterlocutor {
         }, taskId);
     }
 
-    public void deleteWorkflowExecution(String taskId) {
-        unknownIfNotFound(rethrowConsumer(t -> {
-            DeleteWorkflowExecutionRequest.Builder requestBuilder = DeleteWorkflowExecutionRequest.newBuilder();
-            requestBuilder
-                    .setNamespace(getNamespace())
-                    .setWorkflowExecution(requestBuilder.getWorkflowExecutionBuilder().setWorkflowId(t).build());
-            workflowServiceStubs.deleteWorkflowExecution(requestBuilder.build());
-        }), taskId);
-
-        executions.remove(taskId);
-    }
-
     public boolean getHealth() {
         return client.getWorkflowServiceStubs().healthCheck().getStatus().equals(SERVING);
     }
@@ -501,48 +489,6 @@ public class TemporalInterlocutor {
                 }
             })
             .filter(Objects::nonNull);
-    }
-
-    protected void awaitCleared(int timeout, TimeUnit timeUnit, TaskManagerTemporal taskManagerTemporal) throws IOException {
-        long startTime = System.currentTimeMillis();
-        long maxDuration = timeUnit.toMillis(timeout);
-        while ((System.currentTimeMillis() - startTime < maxDuration)) {
-            try (Stream<String> taskIds = taskManagerTemporal.getTaskIds()) {
-                if (taskIds.count() == 0) {
-                    return;
-                }
-            }
-            try {
-                Thread.sleep(taskManagerTemporal.getTerminationPollingInterval());
-            } catch (InterruptedException e) {
-                throw new RuntimeException(e);
-            }
-        }
-        throw new RuntimeException("failed to clear task in " + timeout + " " + timeUnit);
-    }
-
-    protected void awaitExecutionDeletion(Set<String> taskIds) throws InterruptedException {
-        // TODO: avoid the infinite loop
-        // TODO: implement throttling
-        while (true) {
-            boolean allDeleted = taskIds.stream().allMatch(tId -> {
-                try {
-                    createWorkflowStub(tId).describe();
-                } catch (StatusRuntimeException ex) {
-                    if (ex.getStatus().getCode().equals(Status.Code.NOT_FOUND)) {
-                        return true;
-                    }
-                } catch (WorkflowNotFoundException ignored) {
-                    return true;
-                }
-                return false;
-            });
-            if (allDeleted) {
-                break;
-            }
-            // TODO: define a proper duration
-            Thread.sleep(DEFAULT_NAMESPACE_POLL_INTERVAL.toMillis());
-        }
     }
 
     public WorkflowExecutionDescription getWorkflowExecution(String taskId) throws UnknownTask {
