@@ -5,11 +5,6 @@ import io.temporal.api.workflow.v1.WorkflowExecutionInfo;
 import io.temporal.client.WorkflowClient;
 import io.temporal.common.converter.DefaultDataConverter;
 import io.temporal.failure.ApplicationFailure;
-import io.temporal.worker.Worker;
-import io.temporal.worker.WorkerFactory;
-import io.temporal.worker.WorkerOptions;
-import io.temporal.worker.WorkflowImplementationOptions;
-import io.temporal.workflow.WorkflowInterface;
 import io.temporal.workflow.WorkflowMethod;
 import org.icij.datashare.asynctasks.Group;
 import org.icij.datashare.asynctasks.Task;
@@ -18,12 +13,12 @@ import org.icij.datashare.asynctasks.TaskFilters;
 import org.icij.datashare.function.ThrowingSupplier;
 import org.icij.datashare.tasks.RoutingStrategy;
 import org.icij.datashare.user.User;
-import org.reflections.Reflections;
 
-import java.io.Closeable;
-import java.io.IOException;
 import java.lang.reflect.Method;
-import java.util.*;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
@@ -31,93 +26,13 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static io.temporal.api.enums.v1.WorkflowExecutionStatus.*;
-import static org.icij.datashare.LambdaExceptionUtils.rethrowConsumer;
-import static org.icij.datashare.LambdaExceptionUtils.rethrowFunction;
-import static org.icij.datashare.asynctasks.TaskManagerTemporal.resolveWfTaskQueue;
 import static org.icij.datashare.asynctasks.temporal.TemporalInterlocutor.USER_CUSTOM_ATTRIBUTE;
 
 public class TemporalHelper {
-    public record RegisteredActivity(ThrowingSupplier<?> activityFactory, String taskQueue) {
-    }
-
-    public record RegisteredWorkflow(Class<?> workflowCls, String taskQueue, List<RegisteredActivity> activities) {
-    }
-
-    private static WorkflowImplementationOptions WF_IMPLEMENTATION_DEFAULT_OPTIONS = WorkflowImplementationOptions.newBuilder()
-            .setFailWorkflowExceptionTypes(Error.class) // Unregistered workflows
-            .build();
 
     private static final String WORKFLOW_METHOD_CLASS_NAME = WorkflowMethod.class.getName();
         private static final DefaultDataConverter defaultDataConverter = DefaultDataConverter.newDefaultInstance();
 
-    public static class CloseableWorkerFactoryHandle implements Closeable {
-        private final WorkerFactory factory;
-
-        public CloseableWorkerFactoryHandle(WorkerFactory factory) {
-            this.factory = factory;
-            this.factory.start();
-        }
-
-        @Override
-        public void close() throws IOException {
-            synchronized (factory) {
-                if (!this.factory.isShutdown()) {
-                    this.factory.shutdown();
-                }
-            }
-        }
-
-        public WorkerFactory getFactory() {
-            return factory;
-        }
-    }
-
-    public static List<RegisteredWorkflow> discoverWorkflows(
-        String packageName,
-        TaskFactory taskFactory,
-        WorkflowClient client,
-        RoutingStrategy routingStrategy,
-        Group workerGroup
-    ) throws ClassNotFoundException {
-        Reflections reflections = new Reflections(packageName);
-        Predicate<Class<?>> workflowFilter = makeWorkflowFilter(routingStrategy, workerGroup);
-        // We rely on naming convention rather than on inspection, that's OK as code is generated
-        return reflections.getTypesAnnotatedWith(WorkflowInterface.class)
-            .stream()
-            .filter(workflowFilter)
-            .map(rethrowFunction(c -> {
-                String workflowKey = parseWorkflowKey(c);
-                String workflowClassName = c.getName();
-                String baseName = workflowClassName.replace("Workflow", "");
-                Class<TemporalWorkflowImpl> wfImplClass = (Class<TemporalWorkflowImpl>) Class.forName(workflowClassName + "Impl");
-                Class<TemporalActivityImpl<?, ?>> actImplCls = (Class<TemporalActivityImpl<?, ?>>) Class.forName(baseName + "ActivityImpl");
-                String taskQueue = resolveWfTaskQueue(routingStrategy, workflowKey, workerGroup);
-                List<RegisteredActivity> activities = List.of(new RegisteredActivity(activityFactory(actImplCls, taskFactory, client, 1d), taskQueue));
-                return new RegisteredWorkflow(wfImplClass, taskQueue, activities);
-            }))
-            .toList();
-    }
-
-    public static WorkerFactory createTemporalWorkerFactory(List<RegisteredWorkflow> registeredWorkflows, WorkflowClient client) {
-        return createTemporalWorkerFactory(registeredWorkflows, client, null);
-    }
-
-    public static WorkerFactory createTemporalWorkerFactory(
-        List<RegisteredWorkflow> registeredWorkflows, WorkflowClient client, WorkerOptions workerOptions
-    ) {
-        WorkerFactory workerFactory = WorkerFactory.newInstance(client);
-        HashMap<String, Worker> workers = new HashMap<>();
-        registeredWorkflows.forEach(rethrowConsumer(wf -> {
-            String wfTaskQueue = wf.taskQueue;
-            workers.computeIfAbsent(wfTaskQueue, workerFactory::newWorker)
-                .registerWorkflowImplementationTypes(WF_IMPLEMENTATION_DEFAULT_OPTIONS, wf.workflowCls);
-            wf.activities.forEach(rethrowConsumer(act -> {
-                workers.computeIfAbsent(act.taskQueue, q -> workerFactory.newWorker(q, workerOptions))
-                    .registerActivitiesImplementations(act.activityFactory.get());
-            }));
-        }));
-        return workerFactory;
-    }
 
     public static Task.State asTaskState(WorkflowExecutionStatus status) {
         return switch (status) {
@@ -198,7 +113,7 @@ public class TemporalHelper {
         return taskWrapper((t) -> taskSupplier.get(), null, Set.of());
     }
 
-    private static String parseWorkflowKey(Class<?> workflowInterface) {
+    static String parseWorkflowKey(Class<?> workflowInterface) {
         // We have to get method by name because of the dynamic class loader and proxies... inspection doesn't work
         // properly: m.isAnnotationPresent(WorkflowMethod.class) fails
         List<Method> annotated = Arrays.stream(workflowInterface.getDeclaredMethods())
@@ -210,7 +125,7 @@ public class TemporalHelper {
         return annotated.get(0).getAnnotation(WorkflowMethod.class).name();
     }
 
-    private static Predicate<Class<?>> makeWorkflowFilter(RoutingStrategy routingStrategy, Group workerGroup) {
+    static Predicate<Class<?>> makeWorkflowFilter(RoutingStrategy routingStrategy, Group workerGroup) {
         return c -> {
             if (!c.isInterface()) {
                 return false;

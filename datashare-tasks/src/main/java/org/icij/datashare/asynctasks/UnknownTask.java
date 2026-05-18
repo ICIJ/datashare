@@ -7,4 +7,9 @@ public class UnknownTask extends RuntimeException {
         super("unknown task \"%s\"".formatted(taskId));
         this.taskId = taskId;
     }
+
+    public UnknownTask(String taskId, Throwable throwable) {
+        super("unknown task \"%s\"".formatted(taskId), throwable);
+        this.taskId = taskId;
+    }
 }

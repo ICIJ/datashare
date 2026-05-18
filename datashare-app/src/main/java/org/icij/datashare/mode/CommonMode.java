@@ -4,8 +4,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.inject.*;
 import com.google.inject.Module;
 import com.google.inject.assistedinject.FactoryModuleBuilder;
-import io.temporal.worker.WorkerFactory;
-import io.temporal.worker.WorkerOptions;
 import net.codestory.http.Configuration;
 import net.codestory.http.annotations.Get;
 import net.codestory.http.annotations.Prefix;
@@ -16,7 +14,6 @@ import net.codestory.http.routes.Routes;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Repository;
 import org.icij.datashare.asynctasks.*;
-import org.icij.datashare.asynctasks.temporal.TemporalHelper;
 import org.icij.datashare.asynctasks.temporal.TemporalInterlocutor;
 import org.icij.datashare.batch.BatchSearchRepository;
 import org.icij.datashare.cli.Mode;
@@ -42,7 +39,9 @@ import org.icij.datashare.project.admin.ProjectAdminServiceImpl;
 import org.icij.datashare.session.StatusCidrFilter;
 import org.icij.datashare.session.UsersInDb;
 import org.icij.datashare.session.UsersWritable;
-import org.icij.datashare.tasks.*;
+import org.icij.datashare.tasks.DatashareTaskFactory;
+import org.icij.datashare.tasks.TaskResultSubtypes;
+import org.icij.datashare.tasks.Utils;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.text.indexing.LanguageGuesser;
 import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchIndexer;
@@ -64,7 +63,6 @@ import java.io.Closeable;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.util.concurrent.CountDownLatch;
 import java.net.URISyntaxException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -72,6 +70,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.function.Consumer;
@@ -414,26 +413,10 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
     private ExecutorService runTemporalWorkers() {
         if (getTaskWorkersNb() > 0) {
             TemporalInterlocutor temporal = get(TemporalInterlocutor.class);
-            WorkerOptions workerOptions = WorkerOptions.newBuilder()
-                .setMaxConcurrentWorkflowTaskExecutionSize(getTaskWorkersNb())
-                .setMaxConcurrentActivityExecutionSize(getTaskWorkersNb())
-                .build();
-            List<TemporalHelper.RegisteredWorkflow> workflows;
-            try {
-                workflows = TemporalHelper.discoverWorkflows(
-                    "org.icij.datashare.tasks",
-                    get(DatashareTaskFactory.class),
-                    temporal.getClient(),
-                    Utils.getRoutingStrategy(propertiesProvider),
-                    new Group(TaskGroupType.Java)
-                );
-            } catch (ClassNotFoundException e) {
-                throw new RuntimeException(e);
-            }
-            WorkerFactory workerFactory = TemporalHelper.createTemporalWorkerFactory(workflows, temporal.getClient(), workerOptions);
             executorService.submit(() -> {
-                // Start and add to closable
-                closeables.add(new TemporalHelper.CloseableWorkerFactoryHandle(workerFactory));
+                closeables.add(temporal.discoverWorkflows(getTaskWorkersNb(), get(DatashareTaskFactory.class),
+                                Utils.getRoutingStrategy(propertiesProvider),
+                                new Group(TaskGroupType.Java)));
             });
         }
         return executorService;
