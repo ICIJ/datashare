@@ -26,7 +26,6 @@ import static org.fest.assertions.Assertions.assertThat;
 import static org.icij.datashare.LambdaExceptionUtils.rethrowConsumer;
 import static org.icij.datashare.asynctasks.Task.State.*;
 import static org.icij.datashare.asynctasks.TaskManagerTemporal.WORKFLOWS_DEFAULT;
-import static org.icij.datashare.asynctasks.temporal.TemporalHelper.activityFactory;
 import static org.icij.datashare.asynctasks.temporal.TemporalInterlocutor.DEFAULT_NAMESPACE;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
@@ -63,11 +62,11 @@ public class TaskManagerTemporalIntTest {
             new TemporalInterlocutor.RegisteredWorkflow(
                 HelloWorldWorkflowImpl.class,
                 WORKFLOWS_DEFAULT,
-                List.of(new TemporalInterlocutor.RegisteredActivity(activityFactory(HelloWorldActivityImpl.class, taskFactory, temporal.getClient(), 1.0d), WORKFLOWS_DEFAULT))),
+                List.of(new TemporalInterlocutor.RegisteredActivity(temporal.activityFactory(HelloWorldActivityImpl.class, taskFactory, 1.0d), WORKFLOWS_DEFAULT))),
             new TemporalInterlocutor.RegisteredWorkflow(
                 FailingWorkflowImpl.class,
                 WORKFLOWS_DEFAULT,
-                List.of(new TemporalInterlocutor.RegisteredActivity(activityFactory(FailingActivityImpl.class, taskFactory, temporal.getClient(), 1.0d), WORKFLOWS_DEFAULT)))
+                List.of(new TemporalInterlocutor.RegisteredActivity(temporal.activityFactory(FailingActivityImpl.class, taskFactory, 1.0d), WORKFLOWS_DEFAULT)))
         );
 
         temporal.setupNamespace(Duration.ofSeconds(5));
@@ -293,7 +292,7 @@ public class TaskManagerTemporalIntTest {
                 DoNothingWorkflowImpl.class,
                 WORKFLOWS_DEFAULT,
                 List.of(new TemporalInterlocutor.RegisteredActivity(
-                    activityFactory(DoNothingActivityImpl.class, capturingFactory, temporal.getClient(), 1.0d),
+                    temporal.activityFactory(DoNothingActivityImpl.class, capturingFactory, 1.0d),
                     WORKFLOWS_DEFAULT
                 ))
             )

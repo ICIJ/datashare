@@ -2,15 +2,12 @@ package org.icij.datashare.asynctasks.temporal;
 
 import io.temporal.api.enums.v1.WorkflowExecutionStatus;
 import io.temporal.api.workflow.v1.WorkflowExecutionInfo;
-import io.temporal.client.WorkflowClient;
 import io.temporal.common.converter.DefaultDataConverter;
 import io.temporal.failure.ApplicationFailure;
 import io.temporal.workflow.WorkflowMethod;
 import org.icij.datashare.asynctasks.Group;
 import org.icij.datashare.asynctasks.Task;
-import org.icij.datashare.asynctasks.TaskFactory;
 import org.icij.datashare.asynctasks.TaskFilters;
-import org.icij.datashare.function.ThrowingSupplier;
 import org.icij.datashare.tasks.RoutingStrategy;
 import org.icij.datashare.user.User;
 
@@ -61,17 +58,6 @@ public class TemporalHelper {
             case ERROR -> Stream.of(WORKFLOW_EXECUTION_STATUS_FAILED, WORKFLOW_EXECUTION_STATUS_TIMED_OUT);
             case DONE -> Stream.of(WORKFLOW_EXECUTION_STATUS_COMPLETED);
         };
-    }
-
-    public static <A extends TemporalActivityImpl<?, ?>> ThrowingSupplier<A> activityFactory(
-        Class<A> activityCls,
-        TaskFactory taskFactory,
-        WorkflowClient client,
-        double progressWeight
-    ) {
-        return () -> activityCls
-            .getConstructor(TaskFactory.class, WorkflowClient.class, Double.class)
-            .newInstance(taskFactory, client, progressWeight);
     }
 
     public static Predicate<WorkflowExecutionInfo> asExecInfoFilter(TaskFilters filters) {
