@@ -50,8 +50,6 @@ import java.time.Duration;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.TimeUnit;
-import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
@@ -125,42 +123,6 @@ public class TemporalInterlocutor {
     public TemporalInterlocutor(WorkflowClient client, WorkflowServiceGrpc.WorkflowServiceBlockingStub workflowServiceBlockingStub) {
         this.client = client;
         this.workflowServiceStubs = workflowServiceBlockingStub;
-    }
-
-    private static WorkflowClient buildClient(WorkflowServiceStubs serviceStub, WorkflowClientOptions clientOptions) {
-        return WorkflowClient.newInstance(serviceStub, clientOptions);
-    }
-
-    private static double parseProgress(WorkflowExecutionInfo workflowExecutionInfo) {
-        double maxProgress = defaultDataConverter.fromPayload(workflowExecutionInfo.getSearchAttributes()
-            .getIndexedFieldsOrThrow(MAX_PROGRESS_CUSTOM_ATTRIBUTE.getName()), Double.class, Double.class);
-        if (maxProgress == 0) {
-            return 0.0;
-        }
-        double currentProgress = defaultDataConverter.fromPayload(
-            workflowExecutionInfo.getSearchAttributes().getIndexedFieldsOrThrow(PROGRESS_CUSTOM_ATTRIBUTE.getName()),
-            Double.class, Double.class);
-        return currentProgress / maxProgress;
-    }
-
-    private static void unknownIfNotFound(Consumer<String> supplier, String taskId) {
-        unknownIfNotFound((t) -> {
-            supplier.accept(t);
-            return null;
-        }, taskId);
-    }
-
-    private static <T> T unknownIfNotFound(Function<String, T> function, String taskId) {
-        try {
-            return function.apply(taskId);
-        } catch (StatusRuntimeException e) {
-            if (e.getStatus().equals(Status.NOT_FOUND)) {
-                throw new UnknownTask(taskId);
-            }
-            throw e;
-        } catch (WorkflowNotFoundException e) {
-            throw new UnknownTask(taskId);
-        }
     }
 
     public <A extends TemporalActivityImpl<?, ?>> ThrowingSupplier<A> activityFactory(
@@ -241,67 +203,6 @@ public class TemporalInterlocutor {
             .blockingStub()
             .deleteNamespace(DeleteNamespaceRequest.newBuilder().setNamespace(namespace).build());
         awaitNamespaceDeleted(client.getWorkflowServiceStubs().blockingStub(), namespace, timeout);
-    }
-
-    private static WorkflowClient buildClient(String target, String namespace) {
-        WorkflowClientOptions clientOptions = WorkflowClientOptions.newBuilder().setNamespace(namespace).build();
-        WorkflowServiceStubsOptions serviceStubsOptions = WorkflowServiceStubsOptions.newBuilder()
-            .setTarget(target)
-            .build();
-        WorkflowServiceStubs serviceStub = WorkflowServiceStubs.newServiceStubs(serviceStubsOptions);
-        return buildClient(serviceStub, clientOptions);
-    }
-
-    private static boolean hasNamespace(WorkflowServiceGrpc.WorkflowServiceBlockingStub workflowServiceBlockingStub,
-                                        String namespace) {
-        NamespaceState namespaceState;
-        try {
-            namespaceState = workflowServiceBlockingStub.describeNamespace(
-                DescribeNamespaceRequest.newBuilder().setNamespace(namespace).build()
-            ).getNamespaceInfo().getState();
-        } catch (StatusRuntimeException ex) {
-            if (!ex.getStatus().getCode().equals(Status.Code.NOT_FOUND)) {
-                throw ex;
-            }
-            return false;
-        }
-        return namespaceState.equals(NamespaceState.NAMESPACE_STATE_REGISTERED);
-    }
-
-    private static boolean namespaceIsReady(OperatorServiceGrpc.OperatorServiceBlockingStub operatorServiceBlockingStub,
-                                            String namespace) {
-        Set<String> searchAttributes;
-        try {
-            searchAttributes = operatorServiceBlockingStub
-                    .listSearchAttributes(ListSearchAttributesRequest.newBuilder().setNamespace(namespace).build())
-                    .getCustomAttributesMap()
-                    .keySet();
-        } catch (StatusRuntimeException e) {
-            if (!e.getStatus().getCode().equals(Status.Code.NOT_FOUND) && !e.getStatus().getCode().equals(Status.Code.FAILED_PRECONDITION)) {
-                throw e;
-            }
-            return false;
-        }
-        return searchAttributes.containsAll(CUSTOM_SEARCH_ATTRIBUTES.keySet());
-    }
-
-    private static void awaitNamespaceDeleted(
-        WorkflowServiceGrpc.WorkflowServiceBlockingStub workflowServiceBlockingStub, String namespace, Duration timeout)
-        throws RuntimeException {
-        long startTime = System.currentTimeMillis();
-        long maxDuration = timeout.toMillis();
-        while ((System.currentTimeMillis() - startTime < maxDuration)) {
-            try {
-                workflowServiceBlockingStub.describeNamespace(
-                    DescribeNamespaceRequest.newBuilder().setNamespace(namespace).build());
-            } catch (StatusRuntimeException e) {
-                if (!e.getStatus().getCode().equals(Status.Code.NOT_FOUND)) {
-                    throw e;
-                }
-                return;
-            }
-        }
-        throw new RuntimeException("failed to delete namespace in " + timeout);
     }
 
     public void createWorkflow(String taskId, String name, String queueName, SearchAttributes searchAttributes, Map<String, Object> args) {
@@ -429,72 +330,8 @@ public class TemporalInterlocutor {
         return eventuallyConsistentListExecutions(filters).map(rethrowFunction(this::parseTask));
     }
 
-    public <V extends Serializable> Task<V> parseTask(WorkflowExecutionMetadata response, TaskManagerTemporal taskManagerTemporal) {
-        return parseTask(response.getWorkflowExecutionInfo());
-    }
-
-    private <V extends Serializable> Task<V> parseTask(WorkflowExecutionInfo workflowExecutionInfo) {
-        WorkflowExecution execution = workflowExecutionInfo.getExecution();
-        String taskId = execution.getWorkflowId();
-        String taskName = workflowExecutionInfo.getType().getName();
-        double progress = parseProgress(workflowExecutionInfo);
-        Date createdAt = new Date(workflowExecutionInfo.getStartTime().getSeconds() * 1000);
-        Date completedAt = null;
-        Timestamp closeTime = workflowExecutionInfo.getCloseTime();
-        if (!closeTime.equals(Timestamp.getDefaultInstance())) {
-            completedAt = new Date(closeTime.getSeconds() * 1000);
-        }
-        TaskResult<V> result = null;
-        TaskError error = null;
-        Task.State state = asTaskState(workflowExecutionInfo.getStatus());
-        if (Objects.requireNonNull(state) == Task.State.ERROR || state == Task.State.DONE) {
-            try {
-                Serializable res = createWorkflowStub(workflowExecutionInfo.getExecution().getWorkflowId())
-                        .getResult(Serializable.class);
-                //TODO this is a big hack because Temporal does not use the TYPE_INCLUSION_MAPPER
-                // to deserialize for now
-                if (res instanceof Map<?, ?>) {
-                    try {
-                        res = JsonObjectMapper.readValueTyped(
-                                JsonObjectMapper.writeValueAsString(res), Serializable.class);
-                    } catch (IOException e) {
-                        TaskManager.logger.warn("could not convert result to typed object", e);
-                    }
-                }
-                if (res != null) {
-                    result = new TaskResult<>((V) res);
-                }
-            } catch (WorkflowFailedException ex) {
-                error = new TaskError(ex.getCause());
-            }
-        }
-        Map<String, Object> args = getArgs(workflowExecutionInfo);
-        int retriesLeft = MAX_RETRIES_LEFT; // retriesLeft makes no sense in the context of a workflow,
-        // it only makes sense for subtasks/activities
-        return new Task<>(taskId, taskName, state, progress, createdAt, retriesLeft, completedAt, args, result, error);
-    }
-
-    private Stream<WorkflowExecutionInfo> fetchExecByIdsIfExist(Set<String> executionIds) {
-        return executionIds.stream()
-            .map(id -> {
-                try {
-                    return createWorkflowStub(id).describe().getWorkflowExecutionInfo();
-                } catch (StatusRuntimeException ex) {
-                    if (!ex.getStatus().getCode().equals(Status.Code.NOT_FOUND)) {
-                        throw ex;
-                    }
-                    return null;
-                } catch (WorkflowNotFoundException ignored) {
-                    return null;
-                }
-            })
-            .filter(Objects::nonNull);
-    }
-
     public WorkflowExecutionDescription getWorkflowExecution(String taskId) throws UnknownTask {
-        return unknownIfNotFound(t -> {
-            return createWorkflowStub(taskId).describe();
-        }, taskId);
+        return unknownIfNotFound(t -> createWorkflowStub(taskId).describe(), taskId);
     }
 
     List<RegisteredWorkflow> discoverWorkflows(String packageName, TaskFactory taskFactory, RoutingStrategy routingStrategy, Group group) {
@@ -543,6 +380,10 @@ public class TemporalInterlocutor {
             }));
         }));
         return new CloseableWorkerFactoryHandle(workerFactory);
+    }
+
+    public <V extends Serializable> Task<V> getTask(String taskId) {
+        return parseTask(getWorkflowExecution(taskId));
     }
 
     public record Page<P>(List<P> items, ByteString nextPageToken) { }
@@ -647,4 +488,157 @@ public class TemporalInterlocutor {
 
     public record RegisteredActivity(ThrowingSupplier<?> activityFactory, String taskQueue) { }
     public record RegisteredWorkflow(Class<?> workflowCls, String taskQueue, List<RegisteredActivity> activities) { }
+
+    // ------------------------
+    // private utility functions
+    private <V extends Serializable> Task<V> parseTask(WorkflowExecutionMetadata response) {
+        return parseTask(response.getWorkflowExecutionInfo());
+    }
+    private <V extends Serializable> Task<V> parseTask(WorkflowExecutionInfo workflowExecutionInfo) {
+        WorkflowExecution execution = workflowExecutionInfo.getExecution();
+        String taskId = execution.getWorkflowId();
+        String taskName = workflowExecutionInfo.getType().getName();
+        double progress = parseProgress(workflowExecutionInfo);
+        Date createdAt = new Date(workflowExecutionInfo.getStartTime().getSeconds() * 1000);
+        Date completedAt = null;
+        Timestamp closeTime = workflowExecutionInfo.getCloseTime();
+        if (!closeTime.equals(Timestamp.getDefaultInstance())) {
+            completedAt = new Date(closeTime.getSeconds() * 1000);
+        }
+        TaskResult<V> result = null;
+        TaskError error = null;
+        Task.State state = asTaskState(workflowExecutionInfo.getStatus());
+        if (Objects.requireNonNull(state) == Task.State.ERROR || state == Task.State.DONE) {
+            try {
+                Serializable res = createWorkflowStub(workflowExecutionInfo.getExecution().getWorkflowId())
+                        .getResult(Serializable.class);
+                //TODO this is a big hack because Temporal does not use the TYPE_INCLUSION_MAPPER
+                // to deserialize for now
+                if (res instanceof Map<?, ?>) {
+                    try {
+                        res = JsonObjectMapper.readValueTyped(
+                                JsonObjectMapper.writeValueAsString(res), Serializable.class);
+                    } catch (IOException e) {
+                        TaskManager.logger.warn("could not convert result to typed object", e);
+                    }
+                }
+                if (res != null) {
+                    result = new TaskResult<>((V) res);
+                }
+            } catch (WorkflowFailedException ex) {
+                error = new TaskError(ex.getCause());
+            }
+        }
+        Map<String, Object> args = getArgs(workflowExecutionInfo);
+        int retriesLeft = MAX_RETRIES_LEFT; // retriesLeft makes no sense in the context of a workflow,
+        // it only makes sense for subtasks/activities
+        return new Task<>(taskId, taskName, state, progress, createdAt, retriesLeft, completedAt, args, result, error);
+    }
+
+    private static WorkflowClient buildClient(WorkflowServiceStubs serviceStub, WorkflowClientOptions clientOptions) {
+        return WorkflowClient.newInstance(serviceStub, clientOptions);
+    }
+
+    private Stream<WorkflowExecutionInfo> fetchExecByIdsIfExist(Set<String> executionIds) {
+        return executionIds.stream()
+                .map(id -> {
+                    try {
+                        return createWorkflowStub(id).describe().getWorkflowExecutionInfo();
+                    } catch (StatusRuntimeException ex) {
+                        if (!ex.getStatus().getCode().equals(Status.Code.NOT_FOUND)) {
+                            throw ex;
+                        }
+                        return null;
+                    } catch (WorkflowNotFoundException ignored) {
+                        return null;
+                    }
+                })
+                .filter(Objects::nonNull);
+    }
+
+    private static double parseProgress(WorkflowExecutionInfo workflowExecutionInfo) {
+        double maxProgress = defaultDataConverter.fromPayload(workflowExecutionInfo.getSearchAttributes()
+                .getIndexedFieldsOrThrow(MAX_PROGRESS_CUSTOM_ATTRIBUTE.getName()), Double.class, Double.class);
+        if (maxProgress == 0) {
+            return 0.0;
+        }
+        double currentProgress = defaultDataConverter.fromPayload(
+                workflowExecutionInfo.getSearchAttributes().getIndexedFieldsOrThrow(PROGRESS_CUSTOM_ATTRIBUTE.getName()),
+                Double.class, Double.class);
+        return currentProgress / maxProgress;
+    }
+
+    private static <T> T unknownIfNotFound(Function<String, T> function, String taskId) {
+        try {
+            return function.apply(taskId);
+        } catch (StatusRuntimeException e) {
+            if (e.getStatus().equals(Status.NOT_FOUND)) {
+                throw new UnknownTask(taskId);
+            }
+            throw e;
+        } catch (WorkflowNotFoundException e) {
+            throw new UnknownTask(taskId);
+        }
+    }
+
+    private static WorkflowClient buildClient(String target, String namespace) {
+        WorkflowClientOptions clientOptions = WorkflowClientOptions.newBuilder().setNamespace(namespace).build();
+        WorkflowServiceStubsOptions serviceStubsOptions = WorkflowServiceStubsOptions.newBuilder()
+                .setTarget(target)
+                .build();
+        WorkflowServiceStubs serviceStub = WorkflowServiceStubs.newServiceStubs(serviceStubsOptions);
+        return buildClient(serviceStub, clientOptions);
+    }
+
+    private static boolean hasNamespace(WorkflowServiceGrpc.WorkflowServiceBlockingStub workflowServiceBlockingStub,
+                                        String namespace) {
+        NamespaceState namespaceState;
+        try {
+            namespaceState = workflowServiceBlockingStub.describeNamespace(
+                    DescribeNamespaceRequest.newBuilder().setNamespace(namespace).build()
+            ).getNamespaceInfo().getState();
+        } catch (StatusRuntimeException ex) {
+            if (!ex.getStatus().getCode().equals(Status.Code.NOT_FOUND)) {
+                throw ex;
+            }
+            return false;
+        }
+        return namespaceState.equals(NamespaceState.NAMESPACE_STATE_REGISTERED);
+    }
+
+    private static boolean namespaceIsReady(OperatorServiceGrpc.OperatorServiceBlockingStub operatorServiceBlockingStub,
+                                            String namespace) {
+        Set<String> searchAttributes;
+        try {
+            searchAttributes = operatorServiceBlockingStub
+                    .listSearchAttributes(ListSearchAttributesRequest.newBuilder().setNamespace(namespace).build())
+                    .getCustomAttributesMap()
+                    .keySet();
+        } catch (StatusRuntimeException e) {
+            if (!e.getStatus().getCode().equals(Status.Code.NOT_FOUND) && !e.getStatus().getCode().equals(Status.Code.FAILED_PRECONDITION)) {
+                throw e;
+            }
+            return false;
+        }
+        return searchAttributes.containsAll(CUSTOM_SEARCH_ATTRIBUTES.keySet());
+    }
+
+    private static void awaitNamespaceDeleted(
+            WorkflowServiceGrpc.WorkflowServiceBlockingStub workflowServiceBlockingStub, String namespace, Duration timeout)
+            throws RuntimeException {
+        long startTime = System.currentTimeMillis();
+        long maxDuration = timeout.toMillis();
+        while ((System.currentTimeMillis() - startTime < maxDuration)) {
+            try {
+                workflowServiceBlockingStub.describeNamespace(
+                        DescribeNamespaceRequest.newBuilder().setNamespace(namespace).build());
+            } catch (StatusRuntimeException e) {
+                if (!e.getStatus().getCode().equals(Status.Code.NOT_FOUND)) {
+                    throw e;
+                }
+                return;
+            }
+        }
+        throw new RuntimeException("failed to delete namespace in " + timeout);
+    }
 }

@@ -47,7 +47,7 @@ public class TaskManagerTemporal implements TaskManager {
 
     @Override
     public <V extends Serializable> Task<V> getTask(String taskId) throws IOException, UnknownTask {
-        return temporal.parseTask(temporal.getWorkflowExecution(taskId), this);
+        return temporal.getTask(taskId);
     }
 
     @Override
