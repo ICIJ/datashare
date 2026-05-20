@@ -59,6 +59,16 @@ class CliApp {
     // mapper never sees untrusted strings.
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
+    // Exit codes returned by the admin dispatchers (handleUserCreate, etc.).
+    // Picocli itself owns exit code 2 (usage errors) and signals it before
+    // dispatch, so it does not appear here. Kept in sync with the "code"
+    // string in error() output; operators reading scripts can match either.
+    static final int EXIT_SUCCESS    = 0;
+    static final int EXIT_RUNTIME    = 1;
+    static final int EXIT_NOT_FOUND  = 3;
+    static final int EXIT_CONFLICT   = 4;
+    static final int EXIT_VALIDATION = 5;
+
     static void start(Properties properties) throws Exception {
         ExtensionService extensionService = new ExtensionService(new PropertiesProvider(properties));
         process(extensionService, properties);
@@ -221,13 +231,13 @@ class CliApp {
                 System.out.println("created user '" + created.login() + "' (provider="
                         + created.provider() + ", groups=" + created.groups() + ")");
             }
-            return 0;
+            return EXIT_SUCCESS;
         } catch (UserExistsException e) {
-            return error(e.getMessage(), "conflict", 4, json);
+            return error(e.getMessage(), "conflict", EXIT_CONFLICT, json);
         } catch (ValidationException e) {
-            return error(e.getMessage(), "validation", 5, json);
+            return error(e.getMessage(), "validation", EXIT_VALIDATION, json);
         } catch (Exception e) {
-            return error("runtime: " + e.getMessage(), "runtime", 1, json);
+            return error("runtime: " + e.getMessage(), "runtime", EXIT_RUNTIME, json);
         } finally {
             // Drop the password from the in-memory Properties as soon as the
             // request has been built, even on the error path.
@@ -255,11 +265,11 @@ class CliApp {
             } else {
                 System.out.println("deleted user '" + login + "'");
             }
-            return 0;
+            return EXIT_SUCCESS;
         } catch (UserNotFoundException e) {
-            return error(e.getMessage(), "not_found", 3, json);
+            return error(e.getMessage(), "not_found", EXIT_NOT_FOUND, json);
         } catch (Exception e) {
-            return error("runtime: " + e.getMessage(), "runtime", 1, json);
+            return error("runtime: " + e.getMessage(), "runtime", EXIT_RUNTIME, json);
         }
     }
 
@@ -311,13 +321,13 @@ class CliApp {
             } else {
                 emitCreateText(created, grant);
             }
-            return 0;
+            return EXIT_SUCCESS;
         } catch (ProjectExistsException e) {
-            return error(e.getMessage(), "conflict", 4, json);
+            return error(e.getMessage(), "conflict", EXIT_CONFLICT, json);
         } catch (org.icij.datashare.project.admin.ValidationException e) {
-            return error(e.getMessage(), "validation", 5, json);
+            return error(e.getMessage(), "validation", EXIT_VALIDATION, json);
         } catch (Exception e) {
-            return error("runtime: " + e.getMessage(), "runtime", 1, json);
+            return error("runtime: " + e.getMessage(), "runtime", EXIT_RUNTIME, json);
         }
     }
 
@@ -477,11 +487,11 @@ class CliApp {
 
         try {
             ProjectStats stats = loadStatsOrNoop(service, name, options, ifExists, json);
-            if (stats == null) return 0; // not-found + --if-exists, already emitted
+            if (stats == null) return EXIT_SUCCESS; // not-found + --if-exists, already emitted
 
             if (!(yes || noInput) && !confirmDeletion(stats, name, prompterFactory)) {
                 emitDeleteAborted(name, json);
-                return 0;
+                return EXIT_SUCCESS;
             }
 
             ProjectDeleted deleted = ifExists
@@ -489,15 +499,15 @@ class CliApp {
                     : service.delete(name, options);
 
             emitDeleteResult(deleted, options, json);
-            return 0;
+            return EXIT_SUCCESS;
         } catch (ProjectNotFoundException e) {
-            return error(e.getMessage(), "not_found", 3, json);
+            return error(e.getMessage(), "not_found", EXIT_NOT_FOUND, json);
         } catch (Prompter.ValidationFailedException e) {
             // Confirmation prompt exhausted retries: treat as user-initiated abort.
             emitDeleteAborted(name, json);
-            return 0;
+            return EXIT_SUCCESS;
         } catch (Exception e) {
-            return error("runtime: " + e.getMessage(), "runtime", 1, json);
+            return error("runtime: " + e.getMessage(), "runtime", EXIT_RUNTIME, json);
         }
     }
 
