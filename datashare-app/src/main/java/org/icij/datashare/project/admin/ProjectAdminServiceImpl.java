@@ -88,7 +88,7 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
                 ? OptionalLong.of(indexer.count(name))
                 : OptionalLong.empty();
         int memberCount = (int) authorizer
-                .getGroupPermissions(Domain.of("datashare"), name)
+                .getGroupPermissions(Domain.DEFAULT, name)
                 .stream()
                 .map(CasbinRule::getV0)
                 .distinct()
@@ -145,7 +145,11 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
         User updated = new User(user.id, user.name, user.email, user.provider, newDetails);
         repository.save(updated);
 
-        // 2. Casbin grouping policy: g <user.id> PROJECT_ADMIN datashare::<projectName>.
+        // 2. Casbin grouping policy: g <user.id> PROJECT_ADMIN default::<projectName>.
+        //    The Casbin domain ("default") is unrelated to the inventory app key
+        //    ("datashare"); existing instances store all project policies under
+        //    Domain.DEFAULT, and multi-domain support is still future work (see
+        //    the TODO #DOMAIN markers elsewhere).
         //    Casbin is the load-bearing grant (the inventory list is a UI convenience).
         //    If casbin fails we roll the inventory write back so the operator does not
         //    see a project listed under their account that they actually cannot
@@ -153,7 +157,7 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
         //    stale list, which is the lesser evil compared to surfacing the original
         //    casbin error.
         try {
-            authorizer.addProjectAdmin(updated, Domain.of("datashare"), project);
+            authorizer.addProjectAdmin(updated, Domain.DEFAULT, project);
         } catch (RuntimeException casbinFailure) {
             try {
                 repository.save(user);

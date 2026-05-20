@@ -244,11 +244,13 @@ public class ProjectAdminServiceImplTest {
     public void test_stats_returns_index_count_and_distinct_member_count() throws Exception {
         when(repository.getProject("foo")).thenReturn(new Project("foo"));
         when(indexer.count("foo")).thenReturn(42L);
-        when(authorizer.getGroupPermissions(any(Domain.class), eq("foo")))
+        // Pin the Casbin domain to Domain.DEFAULT: that is where existing
+        // instances store project-scoped grants, so stats() must read from it.
+        when(authorizer.getGroupPermissions(eq(Domain.DEFAULT), eq("foo")))
                 .thenReturn(List.of(
-                        casbinRule("alice", "PROJECT_ADMIN", "datashare::foo"),
-                        casbinRule("bob", "PROJECT_MEMBER", "datashare::foo"),
-                        casbinRule("alice", "PROJECT_VISITOR", "datashare::foo")  // duplicate user
+                        casbinRule("alice", "PROJECT_ADMIN", "default::foo"),
+                        casbinRule("bob", "PROJECT_MEMBER", "default::foo"),
+                        casbinRule("alice", "PROJECT_VISITOR", "default::foo")  // duplicate user
                 ));
 
         ProjectStats stats = service.stats("foo", true);
@@ -273,7 +275,7 @@ public class ProjectAdminServiceImplTest {
     @Test
     public void test_stats_skips_index_count_when_includeIndexCount_false() throws Exception {
         when(repository.getProject("foo")).thenReturn(new Project("foo"));
-        when(authorizer.getGroupPermissions(any(Domain.class), eq("foo"))).thenReturn(List.of());
+        when(authorizer.getGroupPermissions(eq(Domain.DEFAULT), eq("foo"))).thenReturn(List.of());
 
         ProjectStats stats = service.stats("foo", false);
 
@@ -475,7 +477,9 @@ public class ProjectAdminServiceImplTest {
         assertThat(datashareProjects).contains("existing-project");
         assertThat(datashareProjects).contains("demeter");
 
-        verify(authorizer).addProjectAdmin(any(User.class), any(Domain.class), any(Project.class));
+        // Pin the Casbin domain to Domain.DEFAULT so we cannot silently regress
+        // to a fresh domain that existing instances do not query against.
+        verify(authorizer).addProjectAdmin(any(User.class), eq(Domain.DEFAULT), any(Project.class));
     }
 
     @Test
@@ -541,7 +545,7 @@ public class ProjectAdminServiceImplTest {
         when(repository.getUser("promera")).thenReturn(existingUser);
         when(repository.save(any(User.class))).thenReturn(true);
         Mockito.doThrow(new RuntimeException("casbin down"))
-                .when(authorizer).addProjectAdmin(any(User.class), any(Domain.class), any(Project.class));
+                .when(authorizer).addProjectAdmin(any(User.class), eq(Domain.DEFAULT), any(Project.class));
 
         try {
             service.addAdminToProject("demeter", "promera");
