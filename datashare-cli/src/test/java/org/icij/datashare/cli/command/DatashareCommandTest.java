@@ -1,16 +1,8 @@
 package org.icij.datashare.cli.command;
 
-import org.icij.datashare.cli.CliExitException;
-import org.icij.datashare.cli.Prompter;
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Test;
 import picocli.CommandLine;
 
-import java.io.BufferedReader;
-import java.io.PrintWriter;
-import java.io.StringReader;
-import java.io.StringWriter;
 import java.lang.reflect.Field;
 import java.nio.file.Path;
 import java.util.Arrays;
@@ -21,324 +13,14 @@ import java.util.Set;
 import static org.fest.assertions.Assertions.assertThat;
 import static org.fest.assertions.MapAssert.entry;
 
-public class DatashareCommandTest {
+/**
+ * Cross-cutting tests for the root command: global option defaults, shared-mode
+ * behavior across subcommands, option positioning, help/version, and parser
+ * error handling. Per-subcommand tests live in dedicated *CommandTest classes.
+ */
+public class DatashareCommandTest extends AbstractDatashareCommandTest {
 
-    @Before
-    public void setUp() {
-        System.setProperty("user.home", "/home/datashare");
-    }
-
-    @After
-    public void tearDown() {
-        System.clearProperty("user.home");
-    }
-
-    private Properties parse(String... args) {
-        DatashareCommand cmd = new DatashareCommand();
-        CommandLine commandLine = new CommandLine(cmd);
-        commandLine.setOverwrittenOptionsAllowed(true);
-        commandLine.setCaseInsensitiveEnumValuesAllowed(true);
-        commandLine.setExecutionStrategy(parseResult -> {
-            CommandLine.ParseResult sub = parseResult;
-            while (sub.hasSubcommand()) {
-                sub = sub.subcommand();
-            }
-            Object userObject = sub.commandSpec().userObject();
-            if (userObject instanceof DatashareSubcommand) {
-                cmd.setExecutedSubcommand((DatashareSubcommand) userObject);
-            }
-            return new CommandLine.RunLast().execute(parseResult);
-        });
-        commandLine.setExecutionExceptionHandler((ex, cmd2, parseResult) -> {
-            if (ex instanceof CliExitException ce) {
-                return ce.exitCode();
-            }
-            Throwable cause = ex.getCause();
-            if (cause instanceof CliExitException ce2) {
-                return ce2.exitCode();
-            }
-            cmd2.getErr().println("error: " + ex.getMessage());
-            return 1;
-        });
-        commandLine.execute(args);
-        return cmd.collectProperties();
-    }
-
-    private int parseExitCode(String... args) {
-        DatashareCommand cmd = new DatashareCommand();
-        CommandLine commandLine = new CommandLine(cmd);
-        commandLine.setOverwrittenOptionsAllowed(true);
-        commandLine.setCaseInsensitiveEnumValuesAllowed(true);
-        commandLine.setExecutionStrategy(parseResult -> {
-            CommandLine.ParseResult sub = parseResult;
-            while (sub.hasSubcommand()) {
-                sub = sub.subcommand();
-            }
-            Object userObject = sub.commandSpec().userObject();
-            if (userObject instanceof DatashareSubcommand) {
-                cmd.setExecutedSubcommand((DatashareSubcommand) userObject);
-            }
-            return new CommandLine.RunLast().execute(parseResult);
-        });
-        commandLine.setExecutionExceptionHandler((ex, cmd2, parseResult) -> {
-            if (ex instanceof CliExitException ce) {
-                return ce.exitCode();
-            }
-            Throwable cause = ex.getCause();
-            if (cause instanceof CliExitException ce2) {
-                return ce2.exitCode();
-            }
-            cmd2.getErr().println("error: " + ex.getMessage());
-            return 1;
-        });
-        return commandLine.execute(args);
-    }
-
-    @Test
-    public void test_app_serve_defaults_to_local() {
-        Properties props = parse("app", "start");
-        assertThat(props).includes(entry("mode", "LOCAL"));
-    }
-
-    @Test
-    public void test_app_serve_server() {
-        Properties props = parse("app", "start", "--mode", "server");
-        assertThat(props).includes(entry("mode", "SERVER"));
-    }
-
-    @Test
-    public void test_app_serve_embedded() {
-        Properties props = parse("app", "start", "--mode", "embedded");
-        assertThat(props).includes(entry("mode", "EMBEDDED"));
-    }
-
-    @Test
-    public void test_app_serve_ner() {
-        Properties props = parse("app", "start", "--mode", "ner");
-        assertThat(props).includes(entry("mode", "NER"));
-    }
-
-    @Test
-    public void test_app_serve_case_insensitive_uppercase() {
-        Properties props = parse("app", "start", "--mode", "SERVER");
-        assertThat(props).includes(entry("mode", "SERVER"));
-    }
-
-    @Test
-    public void test_app_serve_case_insensitive_mixed() {
-        Properties props = parse("app", "start", "--mode", "Local");
-        assertThat(props).includes(entry("mode", "LOCAL"));
-    }
-
-    @Test
-    public void test_app_serve_invalid_mode_rejected_by_parser() {
-        // picocli rejects unknown enum values at parse time — expect non-zero exit
-        int exitCode = parseExitCode("app", "start", "--mode", "INVALID");
-        assertThat(exitCode).isNotEqualTo(0);
-    }
-
-    @Test
-    public void test_worker_run() {
-        Properties props = parse("worker", "run");
-        assertThat(props).includes(entry("mode", "TASK_WORKER"));
-    }
-
-    @Test
-    public void test_worker_run_with_shared_options() {
-        Properties props = parse("--redisAddress", "redis://my-redis:6379", "worker", "run");
-        assertThat(props).includes(entry("mode", "TASK_WORKER"));
-        assertThat(props).includes(entry("redisAddress", "redis://my-redis:6379"));
-    }
-
-    @Test
-    public void test_worker_run_with_task_workers() {
-        Properties props = parse("worker", "run", "--taskWorkers", "4");
-        assertThat(props).includes(entry("mode", "TASK_WORKER"));
-        assertThat(props).includes(entry("taskWorkers", "4"));
-    }
-
-    @Test
-    public void test_stage_run_scan_index() {
-        Properties props = parse("stage", "run", "--stages", "SCAN,INDEX");
-        assertThat(props).includes(entry("mode", "CLI"));
-        assertThat(props).includes(entry("stages", "SCAN,INDEX"));
-    }
-
-    @Test
-    public void test_stage_run_single_stage() {
-        Properties props = parse("stage", "run", "--stages", "SCAN");
-        assertThat(props).includes(entry("mode", "CLI"));
-        assertThat(props).includes(entry("stages", "SCAN"));
-    }
-
-    @Test
-    public void test_stage_run_all_main_stages() {
-        Properties props = parse("stage", "run", "--stages", "SCAN,INDEX,NLP");
-        assertThat(props).includes(entry("stages", "SCAN,INDEX,NLP"));
-    }
-
-    @Test
-    public void test_stage_run_missing_stages_fails() {
-        int exitCode = parseExitCode("stage", "run");
-        assertThat(exitCode).isNotEqualTo(0);
-    }
-
-    @Test
-    public void test_stage_run_with_data_dir() {
-        Properties props = parse("--dataDir", "/data/docs", "stage", "run", "--stages", "SCAN,INDEX");
-        assertThat(props).includes(entry("mode", "CLI"));
-        assertThat(props).includes(entry("stages", "SCAN,INDEX"));
-        assertThat(props).includes(entry("dataDir", "/data/docs"));
-    }
-
-    @Test
-    public void test_plugin_list_no_filter() {
-        Properties props = parse("plugin", "list");
-        assertThat(props).includes(entry("mode", "CLI"));
-        assertThat(props).includes(entry("pluginList", "true"));
-    }
-
-    @Test
-    public void test_plugin_list_with_filter() {
-        Properties props = parse("plugin", "list", ".*foo.*");
-        assertThat(props).includes(entry("pluginList", ".*foo.*"));
-    }
-
-    @Test
-    public void test_plugin_install_by_id() {
-        Properties props = parse("plugin", "install", "my-plugin");
-        assertThat(props).includes(entry("mode", "CLI"));
-        assertThat(props).includes(entry("pluginInstall", "my-plugin"));
-    }
-
-    @Test
-    public void test_plugin_install_by_url() {
-        Properties props = parse("plugin", "install", "https://example.com/plugin.jar");
-        assertThat(props).includes(entry("pluginInstall", "https://example.com/plugin.jar"));
-    }
-
-    @Test
-    public void test_plugin_install_by_path() {
-        Properties props = parse("plugin", "install", "/opt/plugins/my-plugin.jar");
-        assertThat(props).includes(entry("pluginInstall", "/opt/plugins/my-plugin.jar"));
-    }
-
-    @Test
-    public void test_plugin_install_missing_id_fails() {
-        int exitCode = parseExitCode("plugin", "install");
-        assertThat(exitCode).isNotEqualTo(0);
-    }
-
-    @Test
-    public void test_plugin_delete() {
-        Properties props = parse("plugin", "delete", "my-plugin");
-        assertThat(props).includes(entry("mode", "CLI"));
-        assertThat(props).includes(entry("pluginDelete", "my-plugin"));
-    }
-
-    @Test
-    public void test_plugin_delete_missing_id_fails() {
-        int exitCode = parseExitCode("plugin", "delete");
-        assertThat(exitCode).isNotEqualTo(0);
-    }
-
-    @Test
-    public void test_plugin_list_with_custom_plugins_dir() {
-        Properties props = parse("--pluginsDir", "/custom/plugins", "plugin", "list");
-        assertThat(props).includes(entry("pluginsDir", "/custom/plugins"));
-        assertThat(props).includes(entry("pluginList", "true"));
-    }
-
-    @Test
-    public void test_extension_list_no_filter() {
-        Properties props = parse("extension", "list");
-        assertThat(props).includes(entry("mode", "CLI"));
-        assertThat(props).includes(entry("extensionList", "true"));
-    }
-
-    @Test
-    public void test_extension_list_with_filter() {
-        Properties props = parse("extension", "list", ".*nlp.*");
-        assertThat(props).includes(entry("extensionList", ".*nlp.*"));
-    }
-
-    @Test
-    public void test_extension_install_by_id() {
-        Properties props = parse("extension", "install", "my-ext");
-        assertThat(props).includes(entry("mode", "CLI"));
-        assertThat(props).includes(entry("extensionInstall", "my-ext"));
-    }
-
-    @Test
-    public void test_extension_install_by_url() {
-        Properties props = parse("extension", "install", "https://example.com/ext.jar");
-        assertThat(props).includes(entry("extensionInstall", "https://example.com/ext.jar"));
-    }
-
-    @Test
-    public void test_extension_install_missing_id_fails() {
-        int exitCode = parseExitCode("extension", "install");
-        assertThat(exitCode).isNotEqualTo(0);
-    }
-
-    @Test
-    public void test_extension_delete() {
-        Properties props = parse("extension", "delete", "my-ext");
-        assertThat(props).includes(entry("mode", "CLI"));
-        assertThat(props).includes(entry("extensionDelete", "my-ext"));
-    }
-
-    @Test
-    public void test_extension_delete_missing_id_fails() {
-        int exitCode = parseExitCode("extension", "delete");
-        assertThat(exitCode).isNotEqualTo(0);
-    }
-
-    @Test
-    public void test_extension_list_with_custom_extensions_dir() {
-        Properties props = parse("--extensionsDir", "/custom/ext", "extension", "list");
-        assertThat(props).includes(entry("extensionsDir", "/custom/ext"));
-        assertThat(props).includes(entry("extensionList", "true"));
-    }
-
-    @Test
-    public void test_api_key_create() {
-        Properties props = parse("api-key", "create", "alice");
-        assertThat(props).includes(entry("mode", "CLI"));
-        assertThat(props).includes(entry("createApiKey", "alice"));
-    }
-
-    @Test
-    public void test_api_key_get() {
-        Properties props = parse("api-key", "get", "alice");
-        assertThat(props).includes(entry("mode", "CLI"));
-        assertThat(props).includes(entry("apiKey", "alice"));
-    }
-
-    @Test
-    public void test_api_key_delete() {
-        Properties props = parse("api-key", "delete", "alice");
-        assertThat(props).includes(entry("mode", "CLI"));
-        assertThat(props).includes(entry("deleteApiKey", "alice"));
-    }
-
-    @Test
-    public void test_api_key_create_missing_user_fails() {
-        int exitCode = parseExitCode("api-key", "create");
-        assertThat(exitCode).isNotEqualTo(0);
-    }
-
-    @Test
-    public void test_api_key_get_missing_user_fails() {
-        int exitCode = parseExitCode("api-key", "get");
-        assertThat(exitCode).isNotEqualTo(0);
-    }
-
-    @Test
-    public void test_api_key_delete_missing_user_fails() {
-        int exitCode = parseExitCode("api-key", "delete");
-        assertThat(exitCode).isNotEqualTo(0);
-    }
+    // --- Global option defaults --------------------------------------------
 
     @Test
     public void test_default_mode_is_local() {
@@ -636,12 +318,6 @@ public class DatashareCommandTest {
     }
 
     @Test
-    public void test_nlp_parallelism() {
-        Properties props = parse("stage", "run", "--stages", "NLP", "--nlpParallelism", "4");
-        assertThat(props).includes(entry("nlpParallelism", "4"));
-    }
-
-    @Test
     public void test_settings_opt() {
         Properties props = parse("-s", "/path/to/settings.properties", "app", "start");
         assertThat(props).includes(entry("settings", "/path/to/settings.properties"));
@@ -695,6 +371,8 @@ public class DatashareCommandTest {
         assertThat(props).includes(entry("defaultProject", "myproject"));
         assertThat(props).includes(entry("digestProjectName", "myproject"));
     }
+
+    // --- Shared-mode override per subcommand -------------------------------
 
     @Test
     public void test_subcommand_overrides_shared_mode() {
@@ -759,6 +437,8 @@ public class DatashareCommandTest {
         assertThat(props).includes(entry("mode", "CLI"));
     }
 
+    // --- Subcommand groups without a leaf show help ------------------------
+
     @Test
     public void test_unknown_subcommand_fails() {
         int exitCode = parseExitCode("unknown");
@@ -800,6 +480,8 @@ public class DatashareCommandTest {
         int exitCode = parseExitCode("api-key");
         assertThat(exitCode).isEqualTo(0);
     }
+
+    // --- Optional fields with no defaults ----------------------------------
 
     @Test
     public void test_oauth_client_id_not_set_by_default() {
@@ -861,7 +543,7 @@ public class DatashareCommandTest {
         assertThat(props.getProperty("taskRoutingKey")).isNull();
     }
 
-    // Global options accepted after subcommand name
+    // --- Global options accepted after subcommand name ---------------------
 
     @Test
     public void test_global_option_after_app_start() {
@@ -901,7 +583,7 @@ public class DatashareCommandTest {
         assertThat(props).includes(entry("redisAddress", "redis://x:6379"));
     }
 
-    // Guard: no option name conflicts between GlobalOptions and subcommand-specific option classes
+    // --- Guard: no option-name conflicts -----------------------------------
 
     @Test
     public void test_no_option_name_conflicts_between_global_and_subcommand_options() {
@@ -910,6 +592,8 @@ public class DatashareCommandTest {
         assertNoOverlap(globalNames, WorkerOptions.class);
         assertNoOverlap(globalNames, PipelineOptions.class);
     }
+
+    // --- Help / version / no-color / unknown flags -------------------------
 
     @Test
     public void test_root_help_flag_exits_zero() {
@@ -981,14 +665,7 @@ public class DatashareCommandTest {
         assertThat(parseExitCode("app", "foo")).isNotEqualTo(0);
     }
 
-    private static Set<String> optionNamesOf(Class<?> clazz) {
-        Set<String> names = new HashSet<>();
-        for (Field field : clazz.getDeclaredFields()) {
-            CommandLine.Option opt = field.getAnnotation(CommandLine.Option.class);
-            if (opt != null) names.addAll(Arrays.asList(opt.names()));
-        }
-        return names;
-    }
+    // --- Digest algorithm normalization ------------------------------------
 
     @Test
     public void test_default_digest_algorithm_is_tika_compatible() {
@@ -1008,6 +685,16 @@ public class DatashareCommandTest {
         assertThat(props).includes(entry("digestAlgorithm", "SHA256"));
     }
 
+    // --- Reflection helpers for the no-conflicts guard ---------------------
+
+    private static Set<String> optionNamesOf(Class<?> clazz) {
+        Set<String> names = new HashSet<>();
+        for (Field field : clazz.getDeclaredFields()) {
+            CommandLine.Option opt = field.getAnnotation(CommandLine.Option.class);
+            if (opt != null) names.addAll(Arrays.asList(opt.names()));
+        }
+        return names;
+    }
 
     private static void assertNoOverlap(Set<String> globalNames, Class<?> optionClass) {
         Set<String> subNames = optionNamesOf(optionClass);
@@ -1016,398 +703,5 @@ public class DatashareCommandTest {
         assertThat(conflicts)
             .as("Option name conflicts between GlobalOptions and " + optionClass.getSimpleName())
             .isEmpty();
-    }
-
-    @Test
-    public void test_user_without_subcommand_exits_2() {
-        int exitCode = parseExitCode("user");
-        assertThat(exitCode).isEqualTo(2);
-    }
-
-    @Test
-    public void test_user_create_happy_path() {
-        Properties props = parse("user", "create", "alice",
-                "--email", "alice@example.org",
-                "--password", "supersecret");
-        assertThat(props).includes(entry("mode", "CLI"));
-        assertThat(props.getProperty("userCreate")).isEqualTo("alice");
-        assertThat(props.getProperty("userCreate.email")).isEqualTo("alice@example.org");
-        assertThat(props.getProperty("userCreate.password")).isEqualTo("supersecret");
-        assertThat(props.getProperty("userCreate.provider")).isEqualTo("local");
-        // Name is omitted when not explicitly set; the service defaults it to login.
-        assertThat(props.getProperty("userCreate.name")).isNull();
-    }
-
-    @Test
-    public void test_user_create_with_groups() {
-        Properties props = parse("user", "create", "alice",
-                "--email", "alice@example.org",
-                "--password", "pw",
-                "--groups", "p1,p2");
-        assertThat(props.getProperty("userCreate.groups")).isEqualTo("p1,p2");
-    }
-
-    @Test
-    public void test_user_create_with_name() {
-        Properties props = parse("user", "create", "alice",
-                "--email", "alice@example.org",
-                "--password", "pw",
-                "--name", "Alice Smith");
-        assertThat(props.getProperty("userCreate.name")).isEqualTo("Alice Smith");
-    }
-
-    @Test
-    public void test_user_create_invalid_login_exits_5() {
-        int exit = parseExitCode("user", "create", "Alice",
-                "--email", "alice@example.org", "--password", "pw");
-        assertThat(exit).isEqualTo(5);
-    }
-
-    @Test
-    public void test_user_create_invalid_email_exits_5() {
-        int exit = parseExitCode("user", "create", "alice",
-                "--email", "not-an-email", "--password", "pw");
-        assertThat(exit).isEqualTo(5);
-    }
-
-    @Test
-    public void test_user_create_invalid_provider_exits_5() {
-        int exit = parseExitCode("user", "create", "alice",
-                "--email", "alice@example.org", "--password", "pw",
-                "--provider", "ldap");
-        assertThat(exit).isEqualTo(5);
-    }
-
-    @Test
-    public void test_user_create_no_input_missing_required_exits_2() {
-        int exit = parseExitCode("user", "create", "alice", "--no-input");
-        assertThat(exit).isEqualTo(2);
-    }
-
-    @Test
-    public void test_user_create_if_not_exists_flag() {
-        Properties props = parse("user", "create", "alice",
-                "--email", "alice@example.org", "--password", "pw",
-                "--if-not-exists");
-        assertThat(props.getProperty("userCreate.ifNotExists")).isEqualTo("true");
-    }
-
-    @Test
-    public void test_user_create_if_not_exists_omitted_when_false() {
-        Properties props = parse("user", "create", "alice",
-                "--email", "alice@example.org", "--password", "pw");
-        assertThat(props.getProperty("userCreate.ifNotExists")).isNull();
-    }
-
-    @Test
-    public void test_user_create_json_flag() {
-        Properties props = parse("user", "create", "alice",
-                "--email", "alice@example.org", "--password", "pw",
-                "--json");
-        assertThat(props.getProperty("userCreate.json")).isEqualTo("true");
-    }
-
-    @Test
-    public void test_user_create_overrides_shared_mode() {
-        Properties props = parse("user", "create", "alice",
-                "--email", "alice@example.org", "--password", "pw");
-        assertThat(props).includes(entry("mode", "CLI"));
-    }
-
-    @Test
-    public void test_user_delete_happy_path() {
-        Properties props = parse("user", "delete", "alice", "--yes");
-        assertThat(props).includes(entry("mode", "CLI"));
-        assertThat(props.getProperty("userDelete")).isEqualTo("alice");
-        // ifExists defaults to false and is omitted from the dispatch props.
-        assertThat(props.getProperty("userDelete.ifExists")).isNull();
-        // The --yes flag is consumed by the CLI and never reaches dispatch.
-        assertThat(props.getProperty("userDelete.yes")).isNull();
-    }
-
-    @Test
-    public void test_user_delete_if_exists() {
-        Properties props = parse("user", "delete", "alice", "--if-exists", "--yes");
-        assertThat(props.getProperty("userDelete.ifExists")).isEqualTo("true");
-    }
-
-    @Test
-    public void test_user_delete_invalid_login_exits_5() {
-        int exit = parseExitCode("user", "delete", "Alice", "--yes");
-        assertThat(exit).isEqualTo(5);
-    }
-
-    @Test
-    public void test_user_delete_no_input_missing_login_exits_2() {
-        int exit = parseExitCode("user", "delete", "--no-input");
-        assertThat(exit).isEqualTo(2);
-    }
-
-    @Test
-    public void test_user_delete_no_input_acts_as_implicit_yes() {
-        Properties props = parse("user", "delete", "alice", "--no-input");
-        assertThat(props.getProperty("userDelete")).isEqualTo("alice");
-    }
-
-    @Test
-    public void test_user_delete_json_flag() {
-        Properties props = parse("user", "delete", "alice", "--yes", "--json");
-        assertThat(props.getProperty("userDelete.json")).isEqualTo("true");
-    }
-
-    @Test
-    public void test_user_create_prompts_for_email_and_password() {
-        UserCreateCommand cmd = new UserCreateCommand();
-        StringWriter sink = new StringWriter();
-        cmd.prompterOverride = new Prompter(
-                new BufferedReader(new StringReader("alice@example.org\n")),
-                new PrintWriter(sink, true),
-                () -> "secret".toCharArray());
-        cmd.loginPositional = "alice";
-        cmd.provider = "local";
-        cmd.noInput = false;
-        cmd.spec = new CommandLine(cmd).getCommandSpec();
-        cmd.run();
-        Properties props = cmd.getSubcommandProperties();
-        assertThat(props.getProperty("userCreate.email")).isEqualTo("alice@example.org");
-        assertThat(props.getProperty("userCreate.password")).isEqualTo("secret");
-    }
-
-    @Test
-    public void test_user_delete_declined_at_confirm_emits_aborted_and_exits_0() {
-        UserDeleteCommand cmd = new UserDeleteCommand();
-        StringWriter sink = new StringWriter();
-        // Confirm prompt receives "n" and returns false; command should abort.
-        cmd.prompterOverride = new Prompter(
-                new BufferedReader(new StringReader("n\n")),
-                new PrintWriter(sink, true),
-                () -> new char[0]);
-        cmd.loginPositional = "alice";
-        cmd.yes = false;
-        cmd.noInput = false;
-        cmd.spec = new CommandLine(cmd).getCommandSpec();
-        try {
-            cmd.run();
-            org.junit.Assert.fail("expected CliExitException(0)");
-        } catch (CliExitException e) {
-            assertThat(e.exitCode()).isEqualTo(0);
-        }
-        Properties props = cmd.getSubcommandProperties();
-        // Aborted runs must not produce a dispatch marker.
-        assertThat(props.getProperty("userDelete")).isNull();
-    }
-
-    @Test
-    public void test_user_delete_confirmed_at_confirm_dispatches() {
-        UserDeleteCommand cmd = new UserDeleteCommand();
-        StringWriter sink = new StringWriter();
-        cmd.prompterOverride = new Prompter(
-                new BufferedReader(new StringReader("y\n")),
-                new PrintWriter(sink, true),
-                () -> new char[0]);
-        cmd.loginPositional = "alice";
-        cmd.yes = false;
-        cmd.noInput = false;
-        cmd.spec = new CommandLine(cmd).getCommandSpec();
-        cmd.run();
-        Properties props = cmd.getSubcommandProperties();
-        assertThat(props.getProperty("userDelete")).isEqualTo("alice");
-    }
-
-    @Test
-    public void test_project_create_minimal_emits_name() {
-        Properties props = parse("project", "create", "my-project");
-        assertThat(props).includes(entry("projectCreate", "my-project"));
-    }
-
-    @Test
-    public void test_project_create_all_flags_propagate_as_sibling_keys() {
-        Properties props = parse("project", "create", "my-project",
-                "--label", "My Project",
-                "--description", "leak archive",
-                "--source-path", "/data/my-project",
-                "--allow-from-mask", "10.0.0.0",
-                "--source-url", "https://src/",
-                "--maintainer-name", "Maint",
-                "--publisher-name", "Pub",
-                "--logo-url", "https://logo.png",
-                "--creation-date", "2026-05-15T10:00:00Z",
-                "--update-date", "2026-05-16T10:00:00Z",
-                "--no-index",
-                "--if-not-exists",
-                "--json");
-
-        assertThat(props).includes(entry("projectCreate", "my-project"));
-        assertThat(props).includes(entry("projectCreate.label", "My Project"));
-        assertThat(props).includes(entry("projectCreate.description", "leak archive"));
-        assertThat(props).includes(entry("projectCreate.sourcePath", "/data/my-project"));
-        assertThat(props).includes(entry("projectCreate.allowFromMask", "10.0.0.0"));
-        assertThat(props).includes(entry("projectCreate.sourceUrl", "https://src/"));
-        assertThat(props).includes(entry("projectCreate.maintainerName", "Maint"));
-        assertThat(props).includes(entry("projectCreate.publisherName", "Pub"));
-        assertThat(props).includes(entry("projectCreate.logoUrl", "https://logo.png"));
-        assertThat(props).includes(entry("projectCreate.creationDate", "2026-05-15T10:00:00Z"));
-        assertThat(props).includes(entry("projectCreate.updateDate", "2026-05-16T10:00:00Z"));
-        assertThat(props).includes(entry("projectCreate.noIndex", "true"));
-        assertThat(props).includes(entry("projectCreate.ifNotExists", "true"));
-        assertThat(props).includes(entry("projectCreate.json", "true"));
-    }
-
-    @Test
-    public void test_project_create_invalid_creation_date_exits_5() {
-        int exit = parseExitCode("project", "create", "my-project", "--creation-date", "not-a-date");
-        assertThat(exit).isEqualTo(5);
-    }
-
-    @Test
-    public void test_project_create_creator_flag_propagates() {
-        Properties props = parse("project", "create", "my-project", "--creator", "promera");
-        assertThat(props).includes(entry("projectCreate", "my-project"));
-        assertThat(props).includes(entry("projectCreate.creator", "promera"));
-    }
-
-    @Test
-    public void test_project_create_invalid_name_exits_5() {
-        int exit = parseExitCode("project", "create", "Has-Uppercase");
-        assertThat(exit).isEqualTo(5);
-    }
-
-    @Test
-    public void test_project_create_invalid_allow_from_mask_exits_5() {
-        int exit = parseExitCode("project", "create", "my-project", "--allow-from-mask", "not-a-mask");
-        assertThat(exit).isEqualTo(5);
-    }
-
-    @Test
-    public void test_project_create_invalid_source_url_exits_5() {
-        int exit = parseExitCode("project", "create", "my-project", "--source-url", "not a uri");
-        assertThat(exit).isEqualTo(5);
-    }
-
-    @Test
-    public void test_project_delete_minimal_emits_name() {
-        Properties props = parse("project", "delete", "my-project");
-        assertThat(props).includes(entry("projectDelete", "my-project"));
-    }
-
-    @Test
-    public void test_project_delete_all_flags_propagate() {
-        Properties props = parse("project", "delete", "my-project",
-                "--yes", "--keep-index", "--if-exists", "--no-input", "--json");
-        assertThat(props).includes(entry("projectDelete", "my-project"));
-        assertThat(props).includes(entry("projectDelete.yes", "true"));
-        assertThat(props).includes(entry("projectDelete.keepIndex", "true"));
-        assertThat(props).includes(entry("projectDelete.ifExists", "true"));
-        assertThat(props).includes(entry("projectDelete.noInput", "true"));
-        assertThat(props).includes(entry("projectDelete.json", "true"));
-    }
-
-    @Test
-    public void test_project_delete_invalid_name_exits_5() {
-        int exit = parseExitCode("project", "delete", "Has-Uppercase");
-        assertThat(exit).isEqualTo(5);
-    }
-
-    @Test
-    public void test_project_with_no_subcommand_exits_2() {
-        int exit = parseExitCode("project");
-        assertThat(exit).isEqualTo(2);
-    }
-
-    @Test
-    public void test_project_create_smoke_end_to_end() {
-        Properties props = parse("project", "create", "my-project",
-                "--label", "My Project",
-                "--source-path", "/data/my-project",
-                "--json");
-
-        // The CLI layer only produces properties; the dispatcher (tested separately
-        // in CliAppProjectDispatchTest) consumes them. This smoke test confirms the
-        // picocli graph hands off a coherent set of typed sibling keys.
-        assertThat(props).includes(entry("projectCreate", "my-project"));
-        assertThat(props).includes(entry("projectCreate.label", "My Project"));
-        assertThat(props).includes(entry("projectCreate.sourcePath", "/data/my-project"));
-        assertThat(props).includes(entry("projectCreate.json", "true"));
-    }
-
-    @Test
-    public void test_project_create_prompts_for_settable_fields_when_missing() {
-        // Operator types: blank for label (accept default), a description, a custom
-        // source path, blank for source-url, blank for maintainer, blank for publisher,
-        // blank for logo. Each newline submits one prompt's answer.
-        String typed = String.join("\n",
-                "",                          // Label: blank -> null -> service defaults to name
-                "leak archive",              // Description
-                "/data/my-project",          // Source path
-                "",                          // Source URL: blank -> null
-                "ICIJ",                      // Maintainer name
-                "",                          // Publisher name: blank -> null
-                ""                           // Logo URL: blank -> null
-        ) + "\n";
-        ProjectCreateCommand cmd = new ProjectCreateCommand();
-        StringWriter sink = new StringWriter();
-        cmd.prompterOverride = new Prompter(
-                new java.io.BufferedReader(new java.io.StringReader(typed)),
-                new PrintWriter(sink, true),
-                () -> new char[0]);
-        cmd.namePositional = "my-project";
-        cmd.noInput = false;
-        cmd.spec = new CommandLine(cmd).getCommandSpec();
-        cmd.run();
-        Properties props = cmd.getSubcommandProperties();
-
-        assertThat(props.getProperty("projectCreate")).isEqualTo("my-project");
-        // Blank label -> not emitted (service applies default = name).
-        assertThat(props.getProperty("projectCreate.label")).isNull();
-        assertThat(props.getProperty("projectCreate.description")).isEqualTo("leak archive");
-        assertThat(props.getProperty("projectCreate.sourcePath")).isEqualTo("/data/my-project");
-        assertThat(props.getProperty("projectCreate.sourceUrl")).isNull();
-        assertThat(props.getProperty("projectCreate.maintainerName")).isEqualTo("ICIJ");
-        assertThat(props.getProperty("projectCreate.publisherName")).isNull();
-        assertThat(props.getProperty("projectCreate.logoUrl")).isNull();
-        // Auto-derived fields are never prompted: creationDate/updateDate are
-        // stamped by the service. (allowFromMask defaults via picocli's
-        // defaultValue annotation, which is only applied when the command is
-        // routed through CommandLine.execute(); this direct-instantiation
-        // test bypasses that, so the field stays null here.)
-        assertThat(props.getProperty("projectCreate.creationDate")).isNull();
-        assertThat(props.getProperty("projectCreate.updateDate")).isNull();
-    }
-
-    @Test
-    public void test_project_create_skips_prompts_for_flags_already_passed() {
-        // Operator passes --label and --description on the command line; only the
-        // remaining settable fields should prompt. The reader has exactly 5 blank
-        // lines (source-path, source-url, maintainer, publisher, logo-url).
-        ProjectCreateCommand cmd = new ProjectCreateCommand();
-        StringWriter sink = new StringWriter();
-        cmd.prompterOverride = new Prompter(
-                new java.io.BufferedReader(new java.io.StringReader("\n\n\n\n\n")),
-                new PrintWriter(sink, true),
-                () -> new char[0]);
-        cmd.namePositional = "my-project";
-        cmd.label = "My Project";
-        cmd.description = "preset description";
-        cmd.noInput = false;
-        cmd.spec = new CommandLine(cmd).getCommandSpec();
-        cmd.run();
-        Properties props = cmd.getSubcommandProperties();
-
-        assertThat(props.getProperty("projectCreate.label")).isEqualTo("My Project");
-        assertThat(props.getProperty("projectCreate.description")).isEqualTo("preset description");
-        // Prompt for label / description never displayed because flags were set.
-        assertThat(sink.toString()).excludes("Label [");
-        assertThat(sink.toString()).excludes("Description");
-        // The other prompts did display.
-        assertThat(sink.toString()).contains("Source path [/vault/my-project]");
-    }
-
-    @Test
-    public void test_project_delete_smoke_end_to_end() {
-        Properties props = parse("project", "delete", "my-project", "--yes", "--keep-index", "--json");
-        assertThat(props).includes(entry("projectDelete", "my-project"));
-        assertThat(props).includes(entry("projectDelete.yes", "true"));
-        assertThat(props).includes(entry("projectDelete.keepIndex", "true"));
-        assertThat(props).includes(entry("projectDelete.json", "true"));
     }
 }
