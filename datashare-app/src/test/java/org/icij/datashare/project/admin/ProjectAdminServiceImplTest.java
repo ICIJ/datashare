@@ -452,6 +452,150 @@ public class ProjectAdminServiceImplTest {
     }
 
     @Test
+    public void test_grant_writes_casbin_policy_and_appends_inventory_for_new_user() throws Exception {
+        Project project = new Project("demeter");
+        when(repository.getProject("demeter")).thenReturn(project);
+        User user = new User("promera", "Pierre", "p@icij.org", "local", new HashMap<>());
+        when(repository.getUser("promera")).thenReturn(user);
+        when(authorizer.getRolesForUserInProject(any(User.class), eq(Domain.DEFAULT), eq(project)))
+                .thenReturn(List.of());
+        when(repository.save(any(User.class))).thenReturn(true);
+
+        ProjectGranted granted = service.grant("demeter", "promera",
+                org.icij.datashare.policies.Role.PROJECT_EDITOR);
+
+        assertThat(granted.name()).isEqualTo("demeter");
+        assertThat(granted.userLogin()).isEqualTo("promera");
+        assertThat(granted.role()).isEqualTo(org.icij.datashare.policies.Role.PROJECT_EDITOR);
+        assertThat(granted.previousRole()).isNull();
+        assertThat(granted.noop()).isFalse();
+
+        // Inventory write: groups_by_applications.datashare contains "demeter".
+        ArgumentCaptor<User> savedUser = ArgumentCaptor.forClass(User.class);
+        verify(repository).save(savedUser.capture());
+        @SuppressWarnings("unchecked")
+        Map<String, Object> apps = (Map<String, Object>) savedUser.getValue().details
+                .get("groups_by_applications");
+        @SuppressWarnings("unchecked")
+        List<String> ds = (List<String>) apps.get("datashare");
+        assertThat(ds).contains("demeter");
+
+        // Casbin write: the new role grouping policy was added.
+        verify(authorizer).addRoleForUserInProject(
+                any(User.class),
+                eq(org.icij.datashare.policies.Role.PROJECT_EDITOR),
+                eq(Domain.DEFAULT),
+                eq(project));
+    }
+
+    @Test
+    public void test_grant_replaces_existing_role_and_reports_previousRole() throws Exception {
+        Project project = new Project("demeter");
+        when(repository.getProject("demeter")).thenReturn(project);
+        User user = new User("promera", "Pierre", "p@icij.org", "local", new HashMap<>());
+        when(repository.getUser("promera")).thenReturn(user);
+        when(authorizer.getRolesForUserInProject(any(User.class), eq(Domain.DEFAULT), eq(project)))
+                .thenReturn(List.of("PROJECT_ADMIN"));
+        when(repository.save(any(User.class))).thenReturn(true);
+
+        ProjectGranted granted = service.grant("demeter", "promera",
+                org.icij.datashare.policies.Role.PROJECT_EDITOR);
+
+        assertThat(granted.previousRole()).isEqualTo(org.icij.datashare.policies.Role.PROJECT_ADMIN);
+        assertThat(granted.role()).isEqualTo(org.icij.datashare.policies.Role.PROJECT_EDITOR);
+        verify(authorizer).deleteRoleForUserInProject(
+                any(User.class), eq(org.icij.datashare.policies.Role.PROJECT_ADMIN),
+                eq(Domain.DEFAULT), eq(project));
+        verify(authorizer).addRoleForUserInProject(
+                any(User.class), eq(org.icij.datashare.policies.Role.PROJECT_EDITOR),
+                eq(Domain.DEFAULT), eq(project));
+    }
+
+    @Test
+    public void test_grant_throws_project_not_found_when_project_missing() {
+        when(repository.getProject("ghost")).thenReturn(null);
+        try {
+            service.grant("ghost", "promera", org.icij.datashare.policies.Role.PROJECT_EDITOR);
+            fail("expected ProjectNotFoundException");
+        } catch (ProjectNotFoundException e) {
+            assertThat(e.getMessage()).contains("ghost");
+        } catch (Exception other) {
+            fail("unexpected " + other);
+        }
+    }
+
+    @Test
+    public void test_grant_throws_user_not_found_when_user_missing() throws Exception {
+        when(repository.getProject("demeter")).thenReturn(new Project("demeter"));
+        when(repository.getUser("ghost")).thenReturn(null);
+        try {
+            service.grant("demeter", "ghost", org.icij.datashare.policies.Role.PROJECT_EDITOR);
+            fail("expected UserNotFoundException");
+        } catch (UserNotFoundException e) {
+            assertThat(e.getMessage()).contains("ghost");
+        }
+    }
+
+    @Test
+    public void test_grant_rejects_non_project_roles() {
+        when(repository.getProject("demeter")).thenReturn(new Project("demeter"));
+        for (org.icij.datashare.policies.Role bad : new org.icij.datashare.policies.Role[]{
+                org.icij.datashare.policies.Role.INSTANCE_ADMIN,
+                org.icij.datashare.policies.Role.DOMAIN_ADMIN,
+                org.icij.datashare.policies.Role.NONE}) {
+            try {
+                service.grant("demeter", "promera", bad);
+                fail("expected ValidationException for " + bad);
+            } catch (ValidationException e) {
+                assertThat(e.getMessage()).contains("PROJECT_");
+            } catch (Exception other) {
+                fail("unexpected " + other);
+            }
+        }
+    }
+
+    @Test
+    public void test_grant_rolls_back_inventory_when_casbin_fails() throws Exception {
+        Project project = new Project("demeter");
+        when(repository.getProject("demeter")).thenReturn(project);
+        User user = new User("promera", "Pierre", "p@icij.org", "local", new HashMap<>());
+        when(repository.getUser("promera")).thenReturn(user);
+        when(authorizer.getRolesForUserInProject(any(User.class), eq(Domain.DEFAULT), eq(project)))
+                .thenReturn(List.of());
+        when(authorizer.addRoleForUserInProject(any(User.class), any(), any(), any()))
+                .thenThrow(new RuntimeException("casbin boom"));
+        when(repository.save(any(User.class))).thenReturn(true);
+
+        try {
+            service.grant("demeter", "promera", org.icij.datashare.policies.Role.PROJECT_EDITOR);
+            fail("expected RuntimeException");
+        } catch (RuntimeException e) {
+            assertThat(e.getMessage()).isEqualTo("casbin boom");
+        }
+
+        // Two saves: the forward write and the rollback write.
+        verify(repository, Mockito.times(2)).save(any(User.class));
+    }
+
+    @Test
+    public void test_grantIfNotExists_returns_noop_when_user_already_holds_exact_role() throws Exception {
+        Project project = new Project("demeter");
+        when(repository.getProject("demeter")).thenReturn(project);
+        when(repository.getUser("promera")).thenReturn(
+                new User("promera", "Pierre", "p@icij.org", "local", new HashMap<>()));
+        when(authorizer.getRolesForUserInProject(any(User.class), eq(Domain.DEFAULT), eq(project)))
+                .thenReturn(List.of("PROJECT_EDITOR"));
+
+        ProjectGranted granted = service.grantIfNotExists("demeter", "promera",
+                org.icij.datashare.policies.Role.PROJECT_EDITOR);
+
+        assertThat(granted.noop()).isTrue();
+        assertThat(granted.previousRole()).isNull();
+        verify(repository, never()).save(any(User.class));
+        verify(authorizer, never()).addRoleForUserInProject(any(), any(), any(), any());
+    }
+
+    @Test
     @SuppressWarnings("unchecked")
     public void test_add_admin_to_project_appends_project_to_user_groups_and_grants_casbin() throws Exception {
         Project project = new Project("demeter");

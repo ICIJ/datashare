@@ -10,6 +10,7 @@ import org.icij.datashare.extract.DocumentCollectionFactory;
 import org.icij.datashare.policies.Authorizer;
 import org.icij.datashare.policies.CasbinRule;
 import org.icij.datashare.policies.Domain;
+import org.icij.datashare.policies.Role;
 import org.icij.datashare.text.Project;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.user.User;
@@ -23,6 +24,7 @@ import java.net.URI;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -30,6 +32,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.OptionalLong;
 import java.util.Properties;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 @Singleton
@@ -168,6 +171,92 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
         }
 
         return GrantResult.GRANTED;
+    }
+
+    @Override
+    public ProjectGranted grant(String projectName, String userLogin, Role role)
+            throws ProjectNotFoundException, UserNotFoundException, ValidationException {
+        return doGrant(projectName, userLogin, role, false);
+    }
+
+    @Override
+    public ProjectGranted grantIfNotExists(String projectName, String userLogin, Role role)
+            throws ProjectNotFoundException, UserNotFoundException, ValidationException {
+        return doGrant(projectName, userLogin, role, true);
+    }
+
+    private ProjectGranted doGrant(String projectName, String userLogin, Role role, boolean ifNotExists)
+            throws ProjectNotFoundException, UserNotFoundException, ValidationException {
+        validateProjectRole(role);
+        Project project = repository.getProject(projectName);
+        if (project == null) {
+            throw new ProjectNotFoundException(projectName);
+        }
+        User user = repository.getUser(userLogin);
+        if (user == null) {
+            throw new UserNotFoundException(userLogin);
+        }
+
+        List<Role> existing = readProjectRoles(user, project);
+        if (ifNotExists && existing.size() == 1 && existing.get(0) == role) {
+            return new ProjectGranted(projectName, userLogin, role, null, true);
+        }
+
+        // Snapshot the user before mutation so we can roll inventory back
+        // if Casbin throws below. Inventory-first / Casbin-second is the
+        // load-bearing order (see ADR in spec): a Casbin write without an
+        // inventory entry is the only end-state we cannot self-heal from.
+        User original = user;
+        Map<String, Object> newDetails = new HashMap<>(user.details);
+        Map<String, Object> apps = safeStringKeyedMapOf(newDetails.get("groups_by_applications"));
+        List<String> currentProjects = safeStringListOf(apps.get("datashare"));
+        if (!currentProjects.contains(projectName)) {
+            currentProjects.add(projectName);
+        }
+        apps.put("datashare", currentProjects);
+        newDetails.put("groups_by_applications", apps);
+        User updated = new User(user.id, user.name, user.email, user.provider, newDetails);
+        repository.save(updated);
+
+        Role previousRole = highestRole(existing);
+        try {
+            for (Role r : existing) {
+                authorizer.deleteRoleForUserInProject(updated, r, Domain.DEFAULT, project);
+            }
+            authorizer.addRoleForUserInProject(updated, role, Domain.DEFAULT, project);
+        } catch (RuntimeException casbinFailure) {
+            try {
+                repository.save(original);
+            } catch (RuntimeException rollback) {
+                casbinFailure.addSuppressed(rollback);
+            }
+            throw casbinFailure;
+        }
+
+        return new ProjectGranted(projectName, userLogin, role, previousRole, false);
+    }
+
+    private List<Role> readProjectRoles(User user, Project project) {
+        return authorizer.getRolesForUserInProject(user, Domain.DEFAULT, project)
+                .stream()
+                .map(name -> {
+                    try { return Role.valueOf(name); }
+                    catch (IllegalArgumentException e) { return null; }
+                })
+                .filter(r -> r != null)
+                .collect(Collectors.toList());
+    }
+
+    private static Role highestRole(List<Role> roles) {
+        // Lower ordinal == higher tier in Role enum (INSTANCE_ADMIN=0, ..., NONE=6).
+        return roles.stream().min(Comparator.comparingInt(Enum::ordinal)).orElse(null);
+    }
+
+    private static void validateProjectRole(Role role) throws ValidationException {
+        if (role == null || (role != Role.PROJECT_ADMIN && role != Role.PROJECT_EDITOR
+                && role != Role.PROJECT_MEMBER && role != Role.PROJECT_VISITOR)) {
+            throw new ValidationException("role", "role must be a PROJECT_* role");
+        }
     }
 
     private static Map<String, Object> safeStringKeyedMapOf(Object raw) {
