@@ -6,12 +6,14 @@ import org.icij.datashare.cli.Prompter;
 import org.icij.datashare.cli.Validators;
 import org.icij.datashare.cli.spi.CliExtension;
 import org.icij.datashare.mode.CommonMode;
+import org.icij.datashare.policies.Role;
 import org.icij.datashare.project.admin.ProjectAdminService;
 import org.icij.datashare.project.admin.ProjectCreateRequest;
 import org.icij.datashare.project.admin.ProjectCreated;
 import org.icij.datashare.project.admin.ProjectDeleteOptions;
 import org.icij.datashare.project.admin.ProjectDeleted;
 import org.icij.datashare.project.admin.ProjectExistsException;
+import org.icij.datashare.project.admin.ProjectGranted;
 import org.icij.datashare.project.admin.ProjectNotFoundException;
 import org.icij.datashare.project.admin.ProjectStats;
 import org.icij.datashare.tasks.ArtifactTask;
@@ -157,6 +159,11 @@ class CliApp {
         if (properties.getProperty(PROJECT_DELETE_OPT) != null) {
             ProjectAdminService projectAdminService = mode.get(ProjectAdminService.class);
             System.exit(handleProjectDelete(projectAdminService, properties, Prompter::new));
+        }
+
+        if (properties.getProperty(PROJECT_GRANT_OPT) != null) {
+            ProjectAdminService projectAdminService = mode.get(ProjectAdminService.class);
+            System.exit(handleProjectGrant(projectAdminService, properties));
         }
 
         PipelineHelper pipeline = new PipelineHelper(new PropertiesProvider(properties));
@@ -659,6 +666,65 @@ class CliApp {
         } else {
             System.err.println("aborted");
         }
+    }
+
+    static int handleProjectGrant(ProjectAdminService service, Properties properties) {
+        String project = properties.getProperty(PROJECT_GRANT_OPT);
+        String user    = properties.getProperty(PROJECT_GRANT_USER_OPT);
+        String alias   = properties.getProperty(PROJECT_GRANT_ROLE_OPT);
+        boolean ifNotExists = Boolean.parseBoolean(properties.getProperty(PROJECT_GRANT_IF_NOT_EXISTS_OPT));
+        boolean json        = Boolean.parseBoolean(properties.getProperty(PROJECT_GRANT_JSON_OPT));
+        try {
+            Role role = org.icij.datashare.cli.Validators.projectRole(alias);
+            ProjectGranted granted = ifNotExists
+                    ? service.grantIfNotExists(project, user, role)
+                    : service.grant(project, user, role);
+            emitGrantResult(granted, json);
+            return EXIT_SUCCESS;
+        } catch (ProjectNotFoundException e) {
+            return error(e.getMessage(), "not_found", EXIT_NOT_FOUND, json);
+        } catch (org.icij.datashare.project.admin.UserNotFoundException e) {
+            return error(e.getMessage(), "not_found", EXIT_NOT_FOUND, json);
+        } catch (org.icij.datashare.project.admin.ValidationException
+                 | org.icij.datashare.cli.Validators.InvalidValueException e) {
+            return error(e.getMessage(), "validation", EXIT_VALIDATION, json);
+        } catch (Exception e) {
+            return error("runtime: " + e.getMessage(), "runtime", EXIT_RUNTIME, json);
+        }
+    }
+
+    private static void emitGrantResult(ProjectGranted granted, boolean json) {
+        String roleShort  = stripPrefix(granted.role());
+        String prevShort  = granted.previousRole() == null ? null : stripPrefix(granted.previousRole());
+        if (json) {
+            // LinkedHashMap (not Map.ofEntries) because previousRole may be null
+            // and we want it to serialize as a JSON null, matching the contract
+            // in the design spec.
+            java.util.LinkedHashMap<String, Object> payload = new java.util.LinkedHashMap<>();
+            payload.put("project", granted.name());
+            payload.put("user", granted.userLogin());
+            payload.put("role", roleShort);
+            payload.put("previousRole", prevShort);
+            payload.put("noop", granted.noop());
+            printJsonOrFallback(payload, fallbackGrantLine(granted, roleShort, prevShort));
+            return;
+        }
+        System.out.println(fallbackGrantLine(granted, roleShort, prevShort));
+    }
+
+    private static String fallbackGrantLine(ProjectGranted granted, String roleShort, String prevShort) {
+        if (granted.noop()) {
+            return "'" + granted.userLogin() + "' already has " + roleShort
+                    + " on '" + granted.name() + "' (no-op)";
+        }
+        String tail = prevShort == null ? "" : " (was " + prevShort + ")";
+        return "granted " + roleShort + " on '" + granted.name()
+                + "' to '" + granted.userLogin() + "'" + tail;
+    }
+
+    private static String stripPrefix(Role role) {
+        String n = role.name();
+        return n.startsWith("PROJECT_") ? n.substring("PROJECT_".length()) : n;
     }
 
     private static int error(String message, String code, int exit, boolean json) {
