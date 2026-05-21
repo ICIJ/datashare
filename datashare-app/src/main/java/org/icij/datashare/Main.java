@@ -1,7 +1,10 @@
 package org.icij.datashare;
 
+import org.icij.datashare.asynctasks.TaskManager;
+import org.icij.datashare.asynctasks.TaskManagerTemporal;
 import org.icij.datashare.cli.DatashareCli;
 import org.icij.datashare.cli.Mode;
+import org.icij.datashare.cli.QueueType;
 import org.icij.datashare.cli.command.DatashareCommand;
 import org.icij.datashare.cli.command.DatashareHelpFactory;
 import org.icij.datashare.cli.command.DatashareSubcommand;
@@ -115,6 +118,10 @@ public class Main {
             Closeable tray = DatashareSystemTray.create(port);
             ofNullable(tray).ifPresent(commonMode::addCloseable);
             WebApp.start(commonMode);
+            if(QueueType.TEMPORAL == commonMode.getCurrentQueueType()) {
+                TaskManagerTemporal taskManager = (TaskManagerTemporal) commonMode.get(TaskManager.class);
+                taskManager.reconcileTasks();
+            }
         } else if (mode == Mode.TASK_WORKER) {
             TaskWorkerApp.start(commonMode);
         } else {

@@ -24,7 +24,7 @@ public class TaskManagerTemporal implements TaskManager {
     private final TemporalInterlocutor temporal;
     private final RoutingStrategy routingStrategy;
     private final TaskRepository taskRepository;
-    private final ConcurrentHashMap<String, CompletableFuture<Serializable>> pendingListeners = new ConcurrentHashMap<>();
+    protected final ConcurrentHashMap<String, CompletableFuture<Serializable>> pendingListeners = new ConcurrentHashMap<>();
 
     // TODO: add support for continue-as-new https://docs.temporal.io/develop/java/continue-as-new
 
@@ -101,6 +101,28 @@ public class TaskManagerTemporal implements TaskManager {
             taskRepository.delete(id);
         }));
         return tasks;
+    }
+
+    /**
+     * Retrieves running task in DB to get their status in Temporal, and attach completion listener if needed
+     * @throws IOException
+     */
+    public void reconcileTasks() throws IOException {
+        taskRepository.getTasks(TaskFilters.empty().withStates(Set.of(Task.State.RUNNING)))
+            .forEach(repoTask -> {
+                try {
+                    Task<Serializable> temporalTask = temporal.getTask(repoTask.id);
+                    if (temporalTask.isFinished()) {
+                        taskRepository.update(temporalTask);
+                    } else {
+                        attachCompletionListener(repoTask.id);
+                    }
+                } catch (UnknownTask e) {
+                    logger.warn("Task {} is RUNNING in repository but not found in Temporal. The task will never complete", repoTask.id);
+                } catch (IOException e) {
+                    logger.warn("Failed to reconcile task {}", repoTask.id, e);
+                }
+            });
     }
 
     /**

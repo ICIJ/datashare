@@ -96,6 +96,33 @@ public class TaskManagerTemporalTest {
     }
 
     @Test
+    public void test_reconcile_tasks_attaches_listener_for_running_task() throws Exception {
+        Task<String> runningTask = new Task<>("taskName", User.local(), Map.of());
+        runningTask.setState(Task.State.RUNNING);
+        when(taskRepository.getTasks(argThat(f -> f.getStates().equals(Set.of(Task.State.RUNNING)))))
+            .thenReturn(Stream.of(runningTask));
+        doReturn(runningTask).when(temporal).getTask(runningTask.id);
+
+        taskManager.reconcileTasks();
+
+        assertThat(taskManager.pendingListeners.get(runningTask.id)).isNotNull();
+    }
+
+    @Test
+    public void test_reconcile_Tasks_updates_repo_for_finished_task() throws Exception {
+        Task<String> runningTask = new Task<>("taskName", User.local(), Map.of());
+        runningTask.setState(Task.State.RUNNING);
+        Task<String> doneTask = new Task<>(runningTask.id, runningTask.name, Task.State.DONE, 1.0, runningTask.createdAt, 0, null, runningTask.args, new TaskResult<>("result"), null);
+        when(taskRepository.getTasks(argThat(f -> f.getStates().equals(Set.of(Task.State.RUNNING)))))
+            .thenReturn(Stream.of(runningTask));
+        doReturn(doneTask).when(temporal).getTask(runningTask.id);
+
+        taskManager.reconcileTasks();
+
+        verify(taskRepository).update(argThat(t -> t.getState() == Task.State.DONE));
+    }
+
+    @Test
     public void test_completion_listener_updates_repo_on_success() throws Exception {
         CompletableFuture<Serializable> future = new CompletableFuture<>();
         when(workflowStubMock.getResultAsync(any(Class.class))).thenReturn(future);
