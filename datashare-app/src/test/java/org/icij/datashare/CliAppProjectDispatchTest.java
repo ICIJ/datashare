@@ -9,6 +9,7 @@ import org.icij.datashare.project.admin.ProjectDeleted;
 import org.icij.datashare.project.admin.ProjectExistsException;
 import org.icij.datashare.project.admin.ProjectNotFoundException;
 import org.icij.datashare.project.admin.ProjectStats;
+import org.icij.datashare.project.admin.UserNotFoundException;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -33,6 +34,11 @@ import static org.icij.datashare.cli.DatashareCliOptions.PROJECT_DELETE_JSON_OPT
 import static org.icij.datashare.cli.DatashareCliOptions.PROJECT_DELETE_KEEP_INDEX_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.PROJECT_DELETE_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.PROJECT_DELETE_YES_OPT;
+import static org.icij.datashare.cli.DatashareCliOptions.PROJECT_GRANT_OPT;
+import static org.icij.datashare.cli.DatashareCliOptions.PROJECT_GRANT_USER_OPT;
+import static org.icij.datashare.cli.DatashareCliOptions.PROJECT_GRANT_ROLE_OPT;
+import static org.icij.datashare.cli.DatashareCliOptions.PROJECT_GRANT_IF_NOT_EXISTS_OPT;
+import static org.icij.datashare.cli.DatashareCliOptions.PROJECT_GRANT_JSON_OPT;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
@@ -430,5 +436,116 @@ public class CliAppProjectDispatchTest {
         assertThat(exit).isEqualTo(0);
         assertThat(stderr.toString()).contains("aborted");
         verify(service, never()).delete(any(), any());
+    }
+
+    @Test
+    public void test_handleProjectGrant_emits_text_and_returns_success() throws Exception {
+        ProjectAdminService service = mock(ProjectAdminService.class);
+        when(service.grant("demeter", "promera", org.icij.datashare.policies.Role.PROJECT_EDITOR))
+                .thenReturn(new org.icij.datashare.project.admin.ProjectGranted(
+                        "demeter", "promera",
+                        org.icij.datashare.policies.Role.PROJECT_EDITOR, null, false));
+        Properties props = new Properties();
+        props.setProperty(PROJECT_GRANT_OPT, "demeter");
+        props.setProperty(PROJECT_GRANT_USER_OPT, "promera");
+        props.setProperty(PROJECT_GRANT_ROLE_OPT, "editor");
+
+        int exit = CliApp.handleProjectGrant(service, props);
+
+        assertThat(exit).isEqualTo(0);
+        assertThat(stdout.toString()).contains("granted EDITOR on 'demeter' to 'promera'");
+        assertThat(stdout.toString()).excludes("(was");
+    }
+
+    @Test
+    public void test_handleProjectGrant_replace_reports_previous_role() throws Exception {
+        ProjectAdminService service = mock(ProjectAdminService.class);
+        when(service.grant("demeter", "promera", org.icij.datashare.policies.Role.PROJECT_EDITOR))
+                .thenReturn(new org.icij.datashare.project.admin.ProjectGranted(
+                        "demeter", "promera",
+                        org.icij.datashare.policies.Role.PROJECT_EDITOR,
+                        org.icij.datashare.policies.Role.PROJECT_ADMIN,
+                        false));
+        Properties props = new Properties();
+        props.setProperty(PROJECT_GRANT_OPT, "demeter");
+        props.setProperty(PROJECT_GRANT_USER_OPT, "promera");
+        props.setProperty(PROJECT_GRANT_ROLE_OPT, "editor");
+
+        assertThat(CliApp.handleProjectGrant(service, props)).isEqualTo(0);
+        assertThat(stdout.toString()).contains("granted EDITOR on 'demeter' to 'promera' (was ADMIN)");
+    }
+
+    @Test
+    public void test_handleProjectGrant_json_payload() throws Exception {
+        ProjectAdminService service = mock(ProjectAdminService.class);
+        when(service.grant("demeter", "promera", org.icij.datashare.policies.Role.PROJECT_ADMIN))
+                .thenReturn(new org.icij.datashare.project.admin.ProjectGranted(
+                        "demeter", "promera",
+                        org.icij.datashare.policies.Role.PROJECT_ADMIN, null, false));
+        Properties props = new Properties();
+        props.setProperty(PROJECT_GRANT_OPT, "demeter");
+        props.setProperty(PROJECT_GRANT_USER_OPT, "promera");
+        props.setProperty(PROJECT_GRANT_ROLE_OPT, "admin");
+        props.setProperty(PROJECT_GRANT_JSON_OPT, "true");
+
+        assertThat(CliApp.handleProjectGrant(service, props)).isEqualTo(0);
+        assertThat(stdout.toString()).contains("\"role\":\"ADMIN\"");
+        assertThat(stdout.toString()).contains("\"project\":\"demeter\"");
+        assertThat(stdout.toString()).contains("\"noop\":false");
+    }
+
+    @Test
+    public void test_handleProjectGrant_idempotent_noop_when_user_has_role() throws Exception {
+        ProjectAdminService service = mock(ProjectAdminService.class);
+        when(service.grantIfNotExists("demeter", "promera", org.icij.datashare.policies.Role.PROJECT_EDITOR))
+                .thenReturn(new org.icij.datashare.project.admin.ProjectGranted(
+                        "demeter", "promera",
+                        org.icij.datashare.policies.Role.PROJECT_EDITOR, null, true));
+        Properties props = new Properties();
+        props.setProperty(PROJECT_GRANT_OPT, "demeter");
+        props.setProperty(PROJECT_GRANT_USER_OPT, "promera");
+        props.setProperty(PROJECT_GRANT_ROLE_OPT, "editor");
+        props.setProperty(PROJECT_GRANT_IF_NOT_EXISTS_OPT, "true");
+
+        assertThat(CliApp.handleProjectGrant(service, props)).isEqualTo(0);
+        assertThat(stdout.toString()).contains("already has EDITOR");
+        assertThat(stdout.toString()).contains("(no-op)");
+    }
+
+    @Test
+    public void test_handleProjectGrant_returns_3_when_project_not_found() throws Exception {
+        ProjectAdminService service = mock(ProjectAdminService.class);
+        when(service.grant("ghost", "promera", org.icij.datashare.policies.Role.PROJECT_ADMIN))
+                .thenThrow(new org.icij.datashare.project.admin.ProjectNotFoundException("ghost"));
+        Properties props = new Properties();
+        props.setProperty(PROJECT_GRANT_OPT, "ghost");
+        props.setProperty(PROJECT_GRANT_USER_OPT, "promera");
+        props.setProperty(PROJECT_GRANT_ROLE_OPT, "admin");
+
+        assertThat(CliApp.handleProjectGrant(service, props)).isEqualTo(3);
+    }
+
+    @Test
+    public void test_handleProjectGrant_returns_3_when_user_not_found() throws Exception {
+        ProjectAdminService service = mock(ProjectAdminService.class);
+        when(service.grant("demeter", "ghost", org.icij.datashare.policies.Role.PROJECT_ADMIN))
+                .thenThrow(new UserNotFoundException("ghost"));
+        Properties props = new Properties();
+        props.setProperty(PROJECT_GRANT_OPT, "demeter");
+        props.setProperty(PROJECT_GRANT_USER_OPT, "ghost");
+        props.setProperty(PROJECT_GRANT_ROLE_OPT, "admin");
+
+        assertThat(CliApp.handleProjectGrant(service, props)).isEqualTo(3);
+    }
+
+    @Test
+    public void test_handleProjectGrant_returns_5_on_invalid_role_alias() {
+        ProjectAdminService service = mock(ProjectAdminService.class);
+        Properties props = new Properties();
+        props.setProperty(PROJECT_GRANT_OPT, "demeter");
+        props.setProperty(PROJECT_GRANT_USER_OPT, "promera");
+        props.setProperty(PROJECT_GRANT_ROLE_OPT, "owner");
+
+        assertThat(CliApp.handleProjectGrant(service, props)).isEqualTo(5);
     }
 }
