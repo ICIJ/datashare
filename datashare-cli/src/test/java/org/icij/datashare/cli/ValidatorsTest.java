@@ -1,5 +1,6 @@
 package org.icij.datashare.cli;
 
+import org.icij.datashare.policies.Role;
 import org.junit.Test;
 
 import java.util.List;
@@ -206,5 +207,41 @@ public class ValidatorsTest {
         } catch (Validators.InvalidValueException e) {
             assertThat(e.field()).isEqualTo("iso8601");
         }
+    }
+
+    @Test
+    public void test_projectRole_accepts_friendly_aliases() {
+        assertThat(Validators.projectRole("admin")).isEqualTo(Role.PROJECT_ADMIN);
+        assertThat(Validators.projectRole("editor")).isEqualTo(Role.PROJECT_EDITOR);
+        assertThat(Validators.projectRole("member")).isEqualTo(Role.PROJECT_MEMBER);
+        assertThat(Validators.projectRole("visitor")).isEqualTo(Role.PROJECT_VISITOR);
+    }
+
+    @Test
+    public void test_projectRole_is_case_insensitive_and_trims() {
+        assertThat(Validators.projectRole(" ADMIN ")).isEqualTo(Role.PROJECT_ADMIN);
+        assertThat(Validators.projectRole("Editor")).isEqualTo(Role.PROJECT_EDITOR);
+    }
+
+    @Test
+    public void test_projectRole_rejects_unknown() {
+        try {
+            Validators.projectRole("owner");
+            fail("expected InvalidValueException");
+        } catch (Validators.InvalidValueException e) {
+            assertThat(e.getMessage()).contains("admin|editor|member|visitor");
+        }
+    }
+
+    @Test
+    public void test_projectRole_rejects_null_or_blank() {
+        try {
+            Validators.projectRole(null);
+            fail("expected InvalidValueException");
+        } catch (Validators.InvalidValueException e) { /* expected */ }
+        try {
+            Validators.projectRole("  ");
+            fail("expected InvalidValueException");
+        } catch (Validators.InvalidValueException e) { /* expected */ }
     }
 }

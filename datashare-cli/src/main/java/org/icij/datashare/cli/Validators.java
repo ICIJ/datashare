@@ -2,6 +2,7 @@ package org.icij.datashare.cli;
 
 import jakarta.mail.internet.AddressException;
 import jakarta.mail.internet.InternetAddress;
+import org.icij.datashare.policies.Role;
 import org.icij.datashare.text.Project;
 import org.icij.datashare.user.User;
 
@@ -74,6 +75,21 @@ public final class Validators {
             throw new InvalidValueException("projectName",
                     "project name must match " + Project.NAME_REGEX);
         }
+    }
+
+    public static Role projectRole(String alias) {
+        if (alias == null || alias.isBlank()) {
+            throw new InvalidValueException("role",
+                    "role must be one of admin|editor|member|visitor");
+        }
+        return switch (alias.trim().toLowerCase(java.util.Locale.ROOT)) {
+            case "admin"   -> Role.PROJECT_ADMIN;
+            case "editor"  -> Role.PROJECT_EDITOR;
+            case "member"  -> Role.PROJECT_MEMBER;
+            case "visitor" -> Role.PROJECT_VISITOR;
+            default -> throw new InvalidValueException("role",
+                    "role must be one of admin|editor|member|visitor");
+        };
     }
 
     public static void allowFromMask(String value) {
