@@ -460,6 +460,10 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
                 get(propertyName).orElse(defaultQueueType.name()).toUpperCase());
     }
 
+    public QueueType getCurrentQueueType() {
+        return getQueueType(propertiesProvider, QUEUE_TYPE_OPT, DEFAULT_QUEUE_TYPE);
+    }
+
     public void addCloseable(Closeable client) {
         closeables.add(client);
     }
