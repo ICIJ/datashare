@@ -687,9 +687,7 @@ class CliApp {
                     : service.grant(project, user, role);
             emitGrantResult(granted, json);
             return EXIT_SUCCESS;
-        } catch (ProjectNotFoundException e) {
-            return error(e.getMessage(), "not_found", EXIT_NOT_FOUND, json);
-        } catch (org.icij.datashare.project.admin.UserNotFoundException e) {
+        } catch (ProjectNotFoundException | org.icij.datashare.project.admin.UserNotFoundException e) {
             return error(e.getMessage(), "not_found", EXIT_NOT_FOUND, json);
         } catch (org.icij.datashare.project.admin.ValidationException
                  | org.icij.datashare.cli.Validators.InvalidValueException e) {
@@ -755,9 +753,8 @@ class CliApp {
                     : service.revoke(project, user);
             emitRevokeResult(revoked, json);
             return EXIT_SUCCESS;
-        } catch (org.icij.datashare.project.admin.ProjectNotFoundException e) {
-            return error(e.getMessage(), "not_found", EXIT_NOT_FOUND, json);
-        } catch (org.icij.datashare.project.admin.UserNotFoundException e) {
+        } catch (org.icij.datashare.project.admin.ProjectNotFoundException
+                 | org.icij.datashare.project.admin.UserNotFoundException e) {
             return error(e.getMessage(), "not_found", EXIT_NOT_FOUND, json);
         } catch (Exception e) {
             return error("runtime: " + e.getMessage(), "runtime", EXIT_RUNTIME, json);
