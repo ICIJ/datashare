@@ -236,6 +236,67 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
         return new ProjectGranted(projectName, userLogin, role, previousRole, false);
     }
 
+    @Override
+    public ProjectRevoked revoke(String projectName, String userLogin)
+            throws ProjectNotFoundException, UserNotFoundException {
+        Project project = repository.getProject(projectName);
+        if (project == null) {
+            throw new ProjectNotFoundException(projectName);
+        }
+        User user = repository.getUser(userLogin);
+        if (user == null) {
+            throw new UserNotFoundException(userLogin);
+        }
+        return doRevoke(project, user, userLogin);
+    }
+
+    @Override
+    public ProjectRevoked revokeIfExists(String projectName, String userLogin)
+            throws ProjectNotFoundException {
+        Project project = repository.getProject(projectName);
+        if (project == null) {
+            throw new ProjectNotFoundException(projectName);
+        }
+        User user = repository.getUser(userLogin);
+        if (user == null) {
+            return new ProjectRevoked(projectName, userLogin, List.of(), true);
+        }
+        List<Role> existing = readProjectRoles(user, project);
+        if (existing.isEmpty()) {
+            return new ProjectRevoked(projectName, userLogin, List.of(), true);
+        }
+        return doRevoke(project, user, userLogin);
+    }
+
+    private ProjectRevoked doRevoke(Project project, User user, String userLogin) {
+        List<Role> existing = readProjectRoles(user, project);
+
+        User original = user;
+        Map<String, Object> newDetails = new HashMap<>(user.details);
+        Map<String, Object> apps = safeStringKeyedMapOf(newDetails.get("groups_by_applications"));
+        List<String> currentProjects = safeStringListOf(apps.get("datashare"));
+        currentProjects.remove(project.getName());
+        apps.put("datashare", currentProjects);
+        newDetails.put("groups_by_applications", apps);
+        User updated = new User(user.id, user.name, user.email, user.provider, newDetails);
+        repository.save(updated);
+
+        try {
+            for (Role r : existing) {
+                authorizer.deleteRoleForUserInProject(updated, r, Domain.DEFAULT, project);
+            }
+        } catch (RuntimeException casbinFailure) {
+            try {
+                repository.save(original);
+            } catch (RuntimeException rollback) {
+                casbinFailure.addSuppressed(rollback);
+            }
+            throw casbinFailure;
+        }
+
+        return new ProjectRevoked(project.getName(), userLogin, existing, false);
+    }
+
     private List<Role> readProjectRoles(User user, Project project) {
         return authorizer.getRolesForUserInProject(user, Domain.DEFAULT, project)
                 .stream()

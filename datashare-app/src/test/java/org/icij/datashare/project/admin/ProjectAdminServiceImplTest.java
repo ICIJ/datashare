@@ -776,6 +776,106 @@ public class ProjectAdminServiceImplTest {
         assertThat(datashareProjects).contains("demeter");
     }
 
+    @Test
+    public void test_revoke_removes_casbin_policy_and_prunes_inventory_entry() throws Exception {
+        Project project = new Project("demeter");
+        when(repository.getProject("demeter")).thenReturn(project);
+        Map<String, Object> details = new HashMap<>();
+        Map<String, Object> apps = new HashMap<>();
+        apps.put("datashare", new java.util.ArrayList<>(List.of("demeter", "athena")));
+        details.put("groups_by_applications", apps);
+        User user = new User("promera", "Pierre", "p@icij.org", "local", details);
+        when(repository.getUser("promera")).thenReturn(user);
+        when(authorizer.getRolesForUserInProject(any(User.class), eq(Domain.DEFAULT), eq(project)))
+                .thenReturn(List.of("PROJECT_EDITOR"));
+        when(repository.save(any(User.class))).thenReturn(true);
+
+        ProjectRevoked revoked = service.revoke("demeter", "promera");
+
+        assertThat(revoked.name()).isEqualTo("demeter");
+        assertThat(revoked.userLogin()).isEqualTo("promera");
+        assertThat(revoked.noop()).isFalse();
+        assertThat(revoked.revokedRoles())
+                .containsOnly(org.icij.datashare.policies.Role.PROJECT_EDITOR);
+
+        verify(authorizer).deleteRoleForUserInProject(
+                any(User.class), eq(org.icij.datashare.policies.Role.PROJECT_EDITOR),
+                eq(Domain.DEFAULT), eq(project));
+
+        ArgumentCaptor<User> saved = ArgumentCaptor.forClass(User.class);
+        verify(repository).save(saved.capture());
+        @SuppressWarnings("unchecked")
+        Map<String, Object> savedApps = (Map<String, Object>) saved.getValue().details.get("groups_by_applications");
+        @SuppressWarnings("unchecked")
+        List<String> ds = (List<String>) savedApps.get("datashare");
+        assertThat(ds).containsOnly("athena");
+    }
+
+    @Test
+    public void test_revoke_throws_project_not_found_when_project_missing() {
+        when(repository.getProject("ghost")).thenReturn(null);
+        try {
+            service.revoke("ghost", "promera");
+            fail("expected ProjectNotFoundException");
+        } catch (ProjectNotFoundException e) {
+            assertThat(e.getMessage()).contains("ghost");
+        } catch (Exception other) {
+            fail("unexpected " + other);
+        }
+    }
+
+    @Test
+    public void test_revoke_throws_user_not_found_when_user_missing() {
+        when(repository.getProject("demeter")).thenReturn(new Project("demeter"));
+        when(repository.getUser("ghost")).thenReturn(null);
+        try {
+            service.revoke("demeter", "ghost");
+            fail("expected UserNotFoundException");
+        } catch (UserNotFoundException e) {
+            assertThat(e.getMessage()).contains("ghost");
+        } catch (Exception other) {
+            fail("unexpected " + other);
+        }
+    }
+
+    @Test
+    public void test_revokeIfExists_noop_when_user_missing() throws Exception {
+        when(repository.getProject("demeter")).thenReturn(new Project("demeter"));
+        when(repository.getUser("ghost")).thenReturn(null);
+
+        ProjectRevoked revoked = service.revokeIfExists("demeter", "ghost");
+
+        assertThat(revoked.noop()).isTrue();
+        assertThat(revoked.revokedRoles()).isEmpty();
+        verify(repository, never()).save(any(User.class));
+    }
+
+    @Test
+    public void test_revokeIfExists_noop_when_user_has_no_roles() throws Exception {
+        Project project = new Project("demeter");
+        when(repository.getProject("demeter")).thenReturn(project);
+        when(repository.getUser("promera")).thenReturn(
+                new User("promera", "Pierre", "p@icij.org", "local", new HashMap<>()));
+        when(authorizer.getRolesForUserInProject(any(User.class), eq(Domain.DEFAULT), eq(project)))
+                .thenReturn(List.of());
+
+        ProjectRevoked revoked = service.revokeIfExists("demeter", "promera");
+
+        assertThat(revoked.noop()).isTrue();
+        verify(repository, never()).save(any(User.class));
+    }
+
+    @Test
+    public void test_revokeIfExists_still_throws_project_not_found() {
+        when(repository.getProject("ghost")).thenReturn(null);
+        try {
+            service.revokeIfExists("ghost", "promera");
+            fail("expected ProjectNotFoundException");
+        } catch (ProjectNotFoundException e) {
+            assertThat(e.getMessage()).contains("ghost");
+        }
+    }
+
     private static CasbinRule casbinRule(String userId, String role, String domainProject) {
         return new CasbinRule("g", userId, role, domainProject);
     }
