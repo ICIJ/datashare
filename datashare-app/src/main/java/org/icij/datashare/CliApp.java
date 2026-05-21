@@ -15,6 +15,7 @@ import org.icij.datashare.project.admin.ProjectDeleted;
 import org.icij.datashare.project.admin.ProjectExistsException;
 import org.icij.datashare.project.admin.ProjectGranted;
 import org.icij.datashare.project.admin.ProjectNotFoundException;
+import org.icij.datashare.project.admin.ProjectRevoked;
 import org.icij.datashare.project.admin.ProjectStats;
 import org.icij.datashare.tasks.ArtifactTask;
 import org.icij.datashare.tasks.CreateNlpBatchesFromIndex;
@@ -164,6 +165,11 @@ class CliApp {
         if (properties.getProperty(PROJECT_GRANT_OPT) != null) {
             ProjectAdminService projectAdminService = mode.get(ProjectAdminService.class);
             System.exit(handleProjectGrant(projectAdminService, properties));
+        }
+
+        if (properties.getProperty(PROJECT_REVOKE_OPT) != null) {
+            ProjectAdminService projectAdminService = mode.get(ProjectAdminService.class);
+            System.exit(handleProjectRevoke(projectAdminService, properties, Prompter::new));
         }
 
         PipelineHelper pipeline = new PipelineHelper(new PropertiesProvider(properties));
@@ -725,6 +731,79 @@ class CliApp {
     private static String stripPrefix(Role role) {
         String n = role.name();
         return n.startsWith("PROJECT_") ? n.substring("PROJECT_".length()) : n;
+    }
+
+    static int handleProjectRevoke(ProjectAdminService service,
+                                   Properties properties,
+                                   java.util.function.Supplier<Prompter> prompterFactory) {
+        String project   = properties.getProperty(PROJECT_REVOKE_OPT);
+        String user      = properties.getProperty(PROJECT_REVOKE_USER_OPT);
+        boolean yes      = Boolean.parseBoolean(properties.getProperty(PROJECT_REVOKE_YES_OPT));
+        boolean noInput  = Boolean.parseBoolean(properties.getProperty(PROJECT_REVOKE_NO_INPUT_OPT));
+        boolean ifExists = Boolean.parseBoolean(properties.getProperty(PROJECT_REVOKE_IF_EXISTS_OPT));
+        boolean json     = Boolean.parseBoolean(properties.getProperty(PROJECT_REVOKE_JSON_OPT));
+        try {
+            if (!yes && !noInput) {
+                System.err.println("Will remove '" + user + "' from '" + project + "' (all roles).");
+                if (!prompterFactory.get().confirm("Continue?")) {
+                    emitRevokeAborted(project, user, json);
+                    return EXIT_SUCCESS;
+                }
+            }
+            ProjectRevoked revoked = ifExists
+                    ? service.revokeIfExists(project, user)
+                    : service.revoke(project, user);
+            emitRevokeResult(revoked, json);
+            return EXIT_SUCCESS;
+        } catch (org.icij.datashare.project.admin.ProjectNotFoundException e) {
+            return error(e.getMessage(), "not_found", EXIT_NOT_FOUND, json);
+        } catch (org.icij.datashare.project.admin.UserNotFoundException e) {
+            return error(e.getMessage(), "not_found", EXIT_NOT_FOUND, json);
+        } catch (Exception e) {
+            return error("runtime: " + e.getMessage(), "runtime", EXIT_RUNTIME, json);
+        }
+    }
+
+    private static void emitRevokeResult(ProjectRevoked revoked, boolean json) {
+        java.util.List<String> shortRoles = revoked.revokedRoles().stream()
+                .map(CliApp::stripPrefix)
+                .toList();
+        if (json) {
+            printJsonOrFallback(java.util.Map.ofEntries(
+                    java.util.Map.entry("project", revoked.name()),
+                    java.util.Map.entry("user", revoked.userLogin()),
+                    java.util.Map.entry("revokedRoles", shortRoles),
+                    java.util.Map.entry("noop", revoked.noop())),
+                    fallbackRevokeLine(revoked, shortRoles));
+            return;
+        }
+        System.out.println(fallbackRevokeLine(revoked, shortRoles));
+    }
+
+    private static String fallbackRevokeLine(ProjectRevoked revoked, java.util.List<String> shortRoles) {
+        if (revoked.noop()) {
+            return "'" + revoked.userLogin() + "' has no roles on '" + revoked.name() + "' (no-op)";
+        }
+        return "revoked " + String.join(", ", shortRoles)
+                + " from '" + revoked.userLogin() + "' on '" + revoked.name() + "'";
+    }
+
+    private static void emitRevokeAborted(String project, String user, boolean json) {
+        if (json) {
+            java.util.Map<String, Object> payload = java.util.Map.ofEntries(
+                    java.util.Map.entry("revoked", false),
+                    java.util.Map.entry("noop", false),
+                    java.util.Map.entry("aborted", true),
+                    java.util.Map.entry("project", project),
+                    java.util.Map.entry("user", user));
+            try {
+                System.out.println(MAPPER.writeValueAsString(payload));
+            } catch (Exception e) {
+                System.err.println("aborted");
+            }
+        } else {
+            System.err.println("aborted");
+        }
     }
 
     private static int error(String message, String code, int exit, boolean json) {
