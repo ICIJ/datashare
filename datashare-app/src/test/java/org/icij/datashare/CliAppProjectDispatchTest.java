@@ -10,6 +10,7 @@ import org.icij.datashare.project.admin.ProjectExistsException;
 import org.icij.datashare.project.admin.ProjectNotFoundException;
 import org.icij.datashare.project.admin.ProjectStats;
 import org.icij.datashare.project.admin.UserNotFoundException;
+import org.mockito.Mockito;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -39,6 +40,12 @@ import static org.icij.datashare.cli.DatashareCliOptions.PROJECT_GRANT_USER_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.PROJECT_GRANT_ROLE_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.PROJECT_GRANT_IF_NOT_EXISTS_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.PROJECT_GRANT_JSON_OPT;
+import static org.icij.datashare.cli.DatashareCliOptions.PROJECT_REVOKE_OPT;
+import static org.icij.datashare.cli.DatashareCliOptions.PROJECT_REVOKE_USER_OPT;
+import static org.icij.datashare.cli.DatashareCliOptions.PROJECT_REVOKE_YES_OPT;
+import static org.icij.datashare.cli.DatashareCliOptions.PROJECT_REVOKE_NO_INPUT_OPT;
+import static org.icij.datashare.cli.DatashareCliOptions.PROJECT_REVOKE_IF_EXISTS_OPT;
+import static org.icij.datashare.cli.DatashareCliOptions.PROJECT_REVOKE_JSON_OPT;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
@@ -547,5 +554,136 @@ public class CliAppProjectDispatchTest {
         props.setProperty(PROJECT_GRANT_ROLE_OPT, "owner");
 
         assertThat(CliApp.handleProjectGrant(service, props)).isEqualTo(5);
+    }
+
+    @Test
+    public void test_handleProjectRevoke_with_yes_skips_confirm_and_emits_text() throws Exception {
+        ProjectAdminService service = mock(ProjectAdminService.class);
+        when(service.revoke("demeter", "promera"))
+                .thenReturn(new org.icij.datashare.project.admin.ProjectRevoked(
+                        "demeter", "promera",
+                        java.util.List.of(org.icij.datashare.policies.Role.PROJECT_EDITOR),
+                        false));
+        Properties props = new Properties();
+        props.setProperty(PROJECT_REVOKE_OPT, "demeter");
+        props.setProperty(PROJECT_REVOKE_USER_OPT, "promera");
+        props.setProperty(PROJECT_REVOKE_YES_OPT, "true");
+
+        int exit = CliApp.handleProjectRevoke(service, props, alwaysDecliningConfirm());
+
+        assertThat(exit).isEqualTo(0);
+        assertThat(stdout.toString()).contains("revoked EDITOR from 'promera' on 'demeter'");
+    }
+
+    @Test
+    public void test_handleProjectRevoke_decline_emits_aborted_and_returns_0() throws Exception {
+        ProjectAdminService service = mock(ProjectAdminService.class);
+        Properties props = new Properties();
+        props.setProperty(PROJECT_REVOKE_OPT, "demeter");
+        props.setProperty(PROJECT_REVOKE_USER_OPT, "promera");
+
+        int exit = CliApp.handleProjectRevoke(service, props, alwaysDecliningConfirm());
+
+        assertThat(exit).isEqualTo(0);
+        assertThat(stderr.toString()).contains("aborted");
+        Mockito.verify(service, never()).revoke(any(), any());
+    }
+
+    @Test
+    public void test_handleProjectRevoke_with_confirm_yes_calls_service() throws Exception {
+        ProjectAdminService service = mock(ProjectAdminService.class);
+        when(service.revoke("demeter", "promera"))
+                .thenReturn(new org.icij.datashare.project.admin.ProjectRevoked(
+                        "demeter", "promera",
+                        java.util.List.of(org.icij.datashare.policies.Role.PROJECT_ADMIN),
+                        false));
+        Properties props = new Properties();
+        props.setProperty(PROJECT_REVOKE_OPT, "demeter");
+        props.setProperty(PROJECT_REVOKE_USER_OPT, "promera");
+
+        int exit = CliApp.handleProjectRevoke(service, props, alwaysConfirmingConfirm());
+
+        assertThat(exit).isEqualTo(0);
+        Mockito.verify(service).revoke("demeter", "promera");
+    }
+
+    @Test
+    public void test_handleProjectRevoke_json_payload() throws Exception {
+        ProjectAdminService service = mock(ProjectAdminService.class);
+        when(service.revoke("demeter", "promera"))
+                .thenReturn(new org.icij.datashare.project.admin.ProjectRevoked(
+                        "demeter", "promera",
+                        java.util.List.of(org.icij.datashare.policies.Role.PROJECT_EDITOR),
+                        false));
+        Properties props = new Properties();
+        props.setProperty(PROJECT_REVOKE_OPT, "demeter");
+        props.setProperty(PROJECT_REVOKE_USER_OPT, "promera");
+        props.setProperty(PROJECT_REVOKE_YES_OPT, "true");
+        props.setProperty(PROJECT_REVOKE_JSON_OPT, "true");
+
+        assertThat(CliApp.handleProjectRevoke(service, props, alwaysDecliningConfirm())).isEqualTo(0);
+        assertThat(stdout.toString()).contains("\"revokedRoles\":[\"EDITOR\"]");
+        assertThat(stdout.toString()).contains("\"noop\":false");
+    }
+
+    @Test
+    public void test_handleProjectRevoke_ifExists_noop_when_user_missing() throws Exception {
+        ProjectAdminService service = mock(ProjectAdminService.class);
+        when(service.revokeIfExists("demeter", "ghost"))
+                .thenReturn(new org.icij.datashare.project.admin.ProjectRevoked(
+                        "demeter", "ghost", java.util.List.of(), true));
+        Properties props = new Properties();
+        props.setProperty(PROJECT_REVOKE_OPT, "demeter");
+        props.setProperty(PROJECT_REVOKE_USER_OPT, "ghost");
+        props.setProperty(PROJECT_REVOKE_YES_OPT, "true");
+        props.setProperty(PROJECT_REVOKE_IF_EXISTS_OPT, "true");
+
+        int exit = CliApp.handleProjectRevoke(service, props, alwaysDecliningConfirm());
+
+        assertThat(exit).isEqualTo(0);
+        assertThat(stdout.toString()).contains("'ghost' has no roles on 'demeter' (no-op)");
+    }
+
+    @Test
+    public void test_handleProjectRevoke_no_input_skips_confirm() throws Exception {
+        ProjectAdminService service = mock(ProjectAdminService.class);
+        when(service.revoke("demeter", "promera"))
+                .thenReturn(new org.icij.datashare.project.admin.ProjectRevoked(
+                        "demeter", "promera",
+                        java.util.List.of(org.icij.datashare.policies.Role.PROJECT_ADMIN), false));
+        Properties props = new Properties();
+        props.setProperty(PROJECT_REVOKE_OPT, "demeter");
+        props.setProperty(PROJECT_REVOKE_USER_OPT, "promera");
+        props.setProperty(PROJECT_REVOKE_NO_INPUT_OPT, "true");
+
+        assertThat(CliApp.handleProjectRevoke(service, props, alwaysDecliningConfirm())).isEqualTo(0);
+        Mockito.verify(service).revoke("demeter", "promera");
+    }
+
+    @Test
+    public void test_handleProjectRevoke_project_not_found_returns_3() throws Exception {
+        ProjectAdminService service = mock(ProjectAdminService.class);
+        when(service.revoke("ghost", "promera"))
+                .thenThrow(new org.icij.datashare.project.admin.ProjectNotFoundException("ghost"));
+        Properties props = new Properties();
+        props.setProperty(PROJECT_REVOKE_OPT, "ghost");
+        props.setProperty(PROJECT_REVOKE_USER_OPT, "promera");
+        props.setProperty(PROJECT_REVOKE_YES_OPT, "true");
+
+        assertThat(CliApp.handleProjectRevoke(service, props, alwaysDecliningConfirm())).isEqualTo(3);
+    }
+
+    private static java.util.function.Supplier<Prompter> alwaysDecliningConfirm() {
+        return () -> new Prompter(
+                new java.io.BufferedReader(new java.io.StringReader("n\n")),
+                new java.io.PrintWriter(new java.io.StringWriter(), true),
+                () -> new char[0]);
+    }
+
+    private static java.util.function.Supplier<Prompter> alwaysConfirmingConfirm() {
+        return () -> new Prompter(
+                new java.io.BufferedReader(new java.io.StringReader("y\n")),
+                new java.io.PrintWriter(new java.io.StringWriter(), true),
+                () -> new char[0]);
     }
 }
