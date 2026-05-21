@@ -57,4 +57,26 @@ public interface ProjectAdminService {
      */
     GrantResult addAdminToProject(String projectName, String userLogin)
             throws ProjectNotFoundException;
+
+    /**
+     * Grants {@code role} on the named project to the named user, replacing
+     * any existing project role. Appends {@code projectName} to the user's
+     * {@code groups_by_applications.datashare} list, deletes every existing
+     * project grouping policy for the user, then writes the new Casbin
+     * grouping policy {@code g <userLogin> <role> default::<projectName>}.
+     *
+     * @throws ValidationException if {@code role} is not a {@code PROJECT_*} role.
+     * @throws ProjectNotFoundException if the project row is missing.
+     * @throws UserNotFoundException if the user is missing.
+     */
+    ProjectGranted grant(String projectName, String userLogin, org.icij.datashare.policies.Role role)
+            throws ProjectNotFoundException, UserNotFoundException, ValidationException;
+
+    /**
+     * Idempotent counterpart of {@link #grant}: returns {@code noop=true}
+     * when the user already holds exactly the requested role and no other
+     * project roles.
+     */
+    ProjectGranted grantIfNotExists(String projectName, String userLogin, org.icij.datashare.policies.Role role)
+            throws ProjectNotFoundException, UserNotFoundException, ValidationException;
 }
