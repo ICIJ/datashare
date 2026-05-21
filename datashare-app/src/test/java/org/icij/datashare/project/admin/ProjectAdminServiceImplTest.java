@@ -533,6 +533,8 @@ public class ProjectAdminServiceImplTest {
             fail("expected UserNotFoundException");
         } catch (UserNotFoundException e) {
             assertThat(e.getMessage()).contains("ghost");
+        } catch (Exception other) {
+            fail("unexpected " + other);
         }
     }
 
@@ -573,8 +575,26 @@ public class ProjectAdminServiceImplTest {
             assertThat(e.getMessage()).isEqualTo("casbin boom");
         }
 
-        // Two saves: the forward write and the rollback write.
-        verify(repository, Mockito.times(2)).save(any(User.class));
+        ArgumentCaptor<User> savedUsers = ArgumentCaptor.forClass(User.class);
+        verify(repository, Mockito.times(2)).save(savedUsers.capture());
+        java.util.List<User> saves = savedUsers.getAllValues();
+
+        // Forward write: inventory contains "demeter".
+        @SuppressWarnings("unchecked")
+        Map<String, Object> forwardApps = (Map<String, Object>) saves.get(0).details
+                .get("groups_by_applications");
+        @SuppressWarnings("unchecked")
+        List<String> forwardDs = (List<String>) forwardApps.get("datashare");
+        assertThat(forwardDs).contains("demeter");
+
+        // Rollback write: restored to the original empty inventory.
+        Object rollbackApps = saves.get(1).details.get("groups_by_applications");
+        if (rollbackApps instanceof Map<?, ?> map) {
+            Object ds = map.get("datashare");
+            if (ds instanceof List<?> list) {
+                assertThat(list).excludes("demeter");
+            }
+        }
     }
 
     @Test
