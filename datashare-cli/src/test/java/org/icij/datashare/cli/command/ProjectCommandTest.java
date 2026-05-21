@@ -211,4 +211,66 @@ public class ProjectCommandTest extends AbstractDatashareCommandTest {
         assertThat(props).includes(entry("projectDelete.keepIndex", "true"));
         assertThat(props).includes(entry("projectDelete.json", "true"));
     }
+
+    @Test
+    public void test_project_grant_minimal_emits_project_user_role() {
+        Properties props = parse("project", "grant", "demeter", "promera", "admin");
+        assertThat(props).includes(entry("projectGrant", "demeter"));
+        assertThat(props).includes(entry("projectGrant.user", "promera"));
+        assertThat(props).includes(entry("projectGrant.role", "admin"));
+    }
+
+    @Test
+    public void test_project_grant_all_flags_propagate() {
+        Properties props = parse("project", "grant", "demeter", "promera", "editor",
+                "--if-not-exists", "--json");
+        assertThat(props).includes(entry("projectGrant", "demeter"));
+        assertThat(props).includes(entry("projectGrant.user", "promera"));
+        assertThat(props).includes(entry("projectGrant.role", "editor"));
+        assertThat(props).includes(entry("projectGrant.ifNotExists", "true"));
+        assertThat(props).includes(entry("projectGrant.json", "true"));
+    }
+
+    @Test
+    public void test_project_grant_invalid_project_exits_5() {
+        int exit = parseExitCode("project", "grant", "Has-Uppercase", "promera", "admin");
+        assertThat(exit).isEqualTo(5);
+    }
+
+    @Test
+    public void test_project_grant_invalid_role_exits_5() {
+        int exit = parseExitCode("project", "grant", "demeter", "promera", "owner");
+        assertThat(exit).isEqualTo(5);
+    }
+
+    @Test
+    public void test_project_grant_missing_role_with_no_input_exits_2() {
+        int exit = parseExitCode("project", "grant", "demeter", "promera", "--no-input");
+        assertThat(exit).isEqualTo(2);
+    }
+
+    @Test
+    public void test_project_grant_role_canonicalised_lowercase() {
+        Properties props = parse("project", "grant", "demeter", "promera", "ADMIN");
+        assertThat(props).includes(entry("projectGrant.role", "admin"));
+    }
+
+    @Test
+    public void test_project_grant_prompts_for_missing_positionals() {
+        String typed = String.join("\n", "demeter", "promera", "editor") + "\n";
+        ProjectGrantCommand cmd = new ProjectGrantCommand();
+        StringWriter sink = new StringWriter();
+        cmd.prompterOverride = new Prompter(
+                new BufferedReader(new StringReader(typed)),
+                new PrintWriter(sink, true),
+                () -> new char[0]);
+        cmd.noInput = false;
+        cmd.spec = new CommandLine(cmd).getCommandSpec();
+        cmd.run();
+        Properties props = cmd.getSubcommandProperties();
+
+        assertThat(props.getProperty("projectGrant")).isEqualTo("demeter");
+        assertThat(props.getProperty("projectGrant.user")).isEqualTo("promera");
+        assertThat(props.getProperty("projectGrant.role")).isEqualTo("editor");
+    }
 }
