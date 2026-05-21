@@ -9,6 +9,7 @@ import org.icij.datashare.tasks.RoutingStrategy;
 import org.icij.datashare.user.User;
 import org.icij.extract.redis.RedissonClientFactory;
 import org.icij.task.Options;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
@@ -35,6 +36,7 @@ public class TaskManagerTemporalIntTest {
     private AutoCloseable mocks;
     static RedissonClient redissonClient = new RedissonClientFactory().withOptions(
             Options.from(new PropertiesProvider(Map.of("redisAddress", EnvUtils.resolveUri("redis", "redis://redis:6379"))).getProperties())).create();
+    // Warning : the order is not guaranteed for redisson map for tasks
     static TaskRepository taskRepository = new TaskRepositoryRedis(redissonClient, "tasks:queue:test");
     @Mock
     private TaskFactory taskFactory;
@@ -124,7 +126,6 @@ public class TaskManagerTemporalIntTest {
         Thread.sleep(1000); // Sleep 1sec to test the sort on timestamp in ms
         taskManager.startTask(bar);
 
-        // Get task is only eventually consistent, we just check that result are returned within a decent timeout
         TaskFilters filter = TaskFilters.empty();
         List<Task<?>> tasks;
         while (true) {
@@ -136,7 +137,8 @@ public class TaskManagerTemporalIntTest {
                 Thread.sleep(100);
             }
         }
-        assertThat(tasks.stream().map(Task::getId).toList()).isEqualTo(List.of(foo.id, bar.id));
+        // The order is not guaranteed by Redisson map for tasks
+        assertThat(tasks.stream().map(Task::getId).toList()).contains(foo.id, bar.id);
     }
 
     @Test(timeout = 5000)
@@ -248,7 +250,7 @@ public class TaskManagerTemporalIntTest {
 
             taskManager.clearDoneTasks();
 
-            taskManager.awaitCleared(Set.of(task.id), 30, TimeUnit.SECONDS);
+            awaitClearedInTemporal(Set.of(task.id), 30, TimeUnit.SECONDS);
         }
     }
 
@@ -266,7 +268,7 @@ public class TaskManagerTemporalIntTest {
 
             taskManager.clearDoneTasks(filter);
 
-            taskManager.awaitCleared(Set.of(second.id), 1, TimeUnit.MINUTES);
+            awaitClearedInTemporal(Set.of(second.id), 1, TimeUnit.MINUTES);
         }
     }
 
@@ -333,5 +335,21 @@ public class TaskManagerTemporalIntTest {
 
     private TemporalInterlocutor.CloseableWorkerFactoryHandle testCloseableWorkerFactory(TemporalInterlocutor temporal) {
         return temporal.createFactory(1, registeredWorkflows);
+    }
+
+    protected void awaitClearedInTemporal(Set<String> taskIds, int timeout, TimeUnit timeUnit) throws IOException {
+        long startTime = System.currentTimeMillis();
+        long maxDuration = timeUnit.toMillis(timeout);
+        while ((System.currentTimeMillis() - startTime < maxDuration)) {
+            if (taskManager.getTaskIds().noneMatch(taskIds::contains)) {
+                return;
+            }
+            try {
+                Thread.sleep(taskManager.getTerminationPollingInterval());
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+        }
+        Assert.fail("failed to clear task in " + timeout + " " + timeUnit);
     }
 }

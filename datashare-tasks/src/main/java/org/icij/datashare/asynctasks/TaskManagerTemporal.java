@@ -9,7 +9,9 @@ import org.icij.datashare.tasks.RoutingStrategy;
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.*;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -22,6 +24,7 @@ public class TaskManagerTemporal implements TaskManager {
     private final TemporalInterlocutor temporal;
     private final RoutingStrategy routingStrategy;
     private final TaskRepository taskRepository;
+    private final ConcurrentHashMap<String, CompletableFuture<Serializable>> pendingListeners = new ConcurrentHashMap<>();
 
     // TODO: add support for continue-as-new https://docs.temporal.io/develop/java/continue-as-new
 
@@ -34,11 +37,15 @@ public class TaskManagerTemporal implements TaskManager {
     }
 
     @Override
-    public <V extends Serializable> String startTask(Task<V> taskView, Group group) throws TaskAlreadyExists {
+    public <V extends Serializable> String startTask(Task<V> taskView, Group group) throws IOException, TaskAlreadyExists {
         String taskId = taskView.id;
         try {
+            taskRepository.insert(taskView, group);
             temporal.createWorkflow(taskId, taskView.name, resolveWfTaskQueue(taskView.name ,group),
                     generateSearchAttributes(taskView), taskView.args);
+            taskView.setState(Task.State.RUNNING);
+            taskRepository.update(taskView);
+            attachCompletionListener(taskId);
         } catch (WorkflowExecutionAlreadyStarted ex) {
             throw new TaskAlreadyExists(taskId, ex);
         }
@@ -47,35 +54,39 @@ public class TaskManagerTemporal implements TaskManager {
 
     @Override
     public <V extends Serializable> Task<V> getTask(String taskId) throws IOException, UnknownTask {
-        return temporal.getTask(taskId);
+        return taskRepository.getTask(taskId);
     }
 
     @Override
     public Stream<Task<?>> getTasks(TaskFilters filters) throws IOException {
-        Stream<Task<?>> tasks = temporal.getWorkflows(filters);
-        // Temporal doesn't allow to search by args we have to post filter task retrieved with other filters
-        if (filters.hasArgs()) {
-            TaskFilters byArgs = TaskFilters.empty().withArgs(filters.getArgs());
-            tasks = tasks.filter(byArgs::filter);
-        }
-        return tasks.sorted(Comparator.comparing(t -> t.createdAt));
+        return taskRepository.getTasks(filters);
     }
 
     @Override
     public Stream<String> getTaskIds(TaskFilters filters) throws IOException {
-        return temporal.getWorkflowsIds(filters);
+        return taskRepository.getTaskIds(filters);
     }
 
     @Override
     public <V extends Serializable> Task<V> clearTask(String taskId) throws UnknownTask, IOException {
-        Task<V> task = getTask(taskId);
+        if (this.getTask(taskId).getState() == Task.State.RUNNING) {
+            throw new IllegalStateException(String.format("task id <%s> is in RUNNING state", taskId));
+        }
+        logger.info("deleting task id <{}>", taskId);
         temporal.deleteExecution(taskId);
-        return task;
+        return taskRepository.delete(taskId);
     }
 
     @Override
     public boolean stopTask(String taskId) throws IOException, UnknownTask {
-        return temporal.terminateWorkflow(taskId);
+        //TODO Check if synchronous call
+        if(temporal.terminateWorkflow(taskId)) {
+            Task<?> task = taskRepository.getTask(taskId);
+            task.setState(Task.State.CANCELLED);
+            taskRepository.update(task);
+            return true;
+        }
+        return false;
     }
 
     @Override
@@ -85,8 +96,42 @@ public class TaskManagerTemporal implements TaskManager {
             states.retainAll(filters.getStates());
         }
         List<Task<?>> tasks = getTasks(filters.withStates(states)).toList();
-        tasks.stream().map(Task::getId).forEach(rethrowConsumer(temporal::deleteExecution));
+        tasks.stream().map(Task::getId).forEach(rethrowConsumer(id -> {
+            temporal.deleteExecution(id);
+            taskRepository.delete(id);
+        }));
         return tasks;
+    }
+
+    /**
+     * Add a listener to execute upon completion of a Task.
+     * Can be used upon creation of a Task, or at startup for reconciliation
+     * @param taskId
+     */
+    private void attachCompletionListener(String taskId) {
+        CompletableFuture<Serializable> future = temporal.createWorkflowStub(taskId)
+            .getResultAsync(Serializable.class);
+        pendingListeners.put(taskId, future);
+        future.whenComplete((result, ex) -> {
+            pendingListeners.remove(taskId);
+            if (ex instanceof CancellationException) {
+                return;
+            }
+            try {
+                Task<Serializable> storedTask = taskRepository.getTask(taskId);
+                if (storedTask.isFinished()) {
+                    //Do nothing
+                    return;
+                }
+                //Parse the state from temporal.
+                //Maybe we might want to limit the scope of what is retrieved
+                // (no need to get again the args for instance)
+                Task<Serializable> temporalTask = temporal.getTask(taskId);
+                taskRepository.update(temporalTask);
+            } catch (IOException | UnknownTask e) {
+                logger.warn("failed to update task {} on completion", taskId, e);
+            }
+        });
     }
 
     @Override
@@ -97,8 +142,14 @@ public class TaskManagerTemporal implements TaskManager {
 
     @Override
     public void clear() throws IOException {
+        // We need to cancel the Future first, or else it's complete lambda function will be called by Temporal,
+        // reintroducing it in the taskRepository.
+        new HashMap<>(pendingListeners).values().forEach(f -> f.cancel(false));
         Set<String> taskIds = getTaskIds().collect(Collectors.toSet());
-        taskIds.forEach(rethrowConsumer(temporal::deleteExecution));
+        taskIds.forEach(rethrowConsumer(id -> {
+            temporal.deleteExecution(id);
+            taskRepository.delete(id);
+        }));
     }
 
     @Override
@@ -151,21 +202,4 @@ public class TaskManagerTemporal implements TaskManager {
         });
         return builder.build();
     }
-
-    protected void awaitCleared(Set<String> taskIds, int timeout, TimeUnit timeUnit) throws IOException {
-        long startTime = System.currentTimeMillis();
-        long maxDuration = timeUnit.toMillis(timeout);
-        while ((System.currentTimeMillis() - startTime < maxDuration)) {
-            if (getTaskIds().noneMatch(taskIds::contains)) {
-                return;
-            }
-            try {
-                Thread.sleep(getTerminationPollingInterval());
-            } catch (InterruptedException e) {
-                throw new RuntimeException(e);
-            }
-        }
-        throw new RuntimeException("failed to clear task in " + timeout + " " + timeUnit);
-    }
-
 }

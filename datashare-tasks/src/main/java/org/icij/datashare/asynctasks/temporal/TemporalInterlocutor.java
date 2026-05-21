@@ -56,7 +56,7 @@ import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 import static io.grpc.health.v1.HealthCheckResponse.ServingStatus.SERVING;
-import static io.temporal.api.enums.v1.WorkflowExecutionStatus.WORKFLOW_EXECUTION_STATUS_RUNNING;
+import static io.temporal.api.enums.v1.WorkflowExecutionStatus.*;
 import static org.icij.datashare.LambdaExceptionUtils.rethrowConsumer;
 import static org.icij.datashare.LambdaExceptionUtils.rethrowFunction;
 import static org.icij.datashare.asynctasks.Task.USER_KEY;
@@ -213,7 +213,7 @@ public class TemporalInterlocutor {
                 .setTypedSearchAttributes(searchAttributes)
                 .setTaskQueue(queueName);
         WorkflowStub workflowStub = client.newUntypedWorkflowStub(name, optionBuilder.build());
-        workflowStub.start(new TemporalInputPayload(args));
+        WorkflowExecution exec = workflowStub.start(new TemporalInputPayload(args));
         // Super important force description to refresh the cache and make the task visible
         workflowStub.describe();
         executions.add(taskId);
@@ -231,7 +231,9 @@ public class TemporalInterlocutor {
         // TODO: add support for cancellation rather than termination, update the TaskManager API accordingly
         return unknownIfNotFound(tId -> {
             WorkflowStub workflowStub = createWorkflowStub(tId);
-            boolean isRunning = workflowStub.describe().getStatus() == WORKFLOW_EXECUTION_STATUS_RUNNING;
+            if(workflowStub.describe().getStatus() != WORKFLOW_EXECUTION_STATUS_RUNNING) {
+                return false;
+            }
             try {
                 workflowStub.terminate(TERMINATION_MSG);
             } catch (WorkflowNotFoundException ex) {
@@ -239,7 +241,7 @@ public class TemporalInterlocutor {
                     throw ex;
                 }
             }
-            return isRunning;
+            return workflowStub.describe().getStatus() == WORKFLOW_EXECUTION_STATUS_TERMINATED;
         }, taskId);
     }
 
@@ -382,6 +384,11 @@ public class TemporalInterlocutor {
         return new CloseableWorkerFactoryHandle(workerFactory);
     }
 
+    /**
+     * Get the information of a Workflow running in Temporal represented as a Task
+     * @param taskId
+     * @return
+     */
     public <V extends Serializable> Task<V> getTask(String taskId) {
         return parseTask(getWorkflowExecution(taskId));
     }
