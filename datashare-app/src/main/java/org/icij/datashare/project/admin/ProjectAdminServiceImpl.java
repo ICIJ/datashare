@@ -41,6 +41,11 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
     private static final Logger LOGGER = LoggerFactory.getLogger(ProjectAdminServiceImpl.class);
     private static final String DEFAULT_ALLOW_FROM_MASK = "*.*.*.*";
     private static final Path DEFAULT_VAULT = Paths.get("/vault");
+    // Keys into User.details: per-application membership lists. The "datashare"
+    // entry under "groups_by_applications" is the load-bearing projection used
+    // by the UI/API to list a user's projects.
+    private static final String GROUPS_BY_APPLICATIONS = "groups_by_applications";
+    private static final String DATASHARE_APP = "datashare";
 
     private final Repository repository;
     private final Indexer indexer;
@@ -153,13 +158,13 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
         // inventory entry is the only end-state we cannot self-heal from.
         User original = user;
         Map<String, Object> newDetails = new HashMap<>(user.details);
-        Map<String, Object> apps = safeStringKeyedMapOf(newDetails.get("groups_by_applications"));
-        List<String> currentProjects = safeStringListOf(apps.get("datashare"));
+        Map<String, Object> apps = safeStringKeyedMapOf(newDetails.get(GROUPS_BY_APPLICATIONS));
+        List<String> currentProjects = safeStringListOf(apps.get(DATASHARE_APP));
         if (!currentProjects.contains(projectName)) {
             currentProjects.add(projectName);
         }
-        apps.put("datashare", currentProjects);
-        newDetails.put("groups_by_applications", apps);
+        apps.put(DATASHARE_APP, currentProjects);
+        newDetails.put(GROUPS_BY_APPLICATIONS, apps);
         User updated = new User(user.id, user.name, user.email, user.provider, newDetails);
         repository.save(updated);
 
@@ -192,7 +197,7 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
         if (user == null) {
             throw new UserNotFoundException(userLogin);
         }
-        return doRevoke(project, user, userLogin);
+        return doRevoke(project, user, userLogin, readProjectRoles(user, project));
     }
 
     @Override
@@ -210,19 +215,17 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
         if (existing.isEmpty()) {
             return new ProjectRevoked(projectName, userLogin, List.of(), true);
         }
-        return doRevoke(project, user, userLogin);
+        return doRevoke(project, user, userLogin, existing);
     }
 
-    private ProjectRevoked doRevoke(Project project, User user, String userLogin) {
-        List<Role> existing = readProjectRoles(user, project);
-
+    private ProjectRevoked doRevoke(Project project, User user, String userLogin, List<Role> existing) {
         User original = user;
         Map<String, Object> newDetails = new HashMap<>(user.details);
-        Map<String, Object> apps = safeStringKeyedMapOf(newDetails.get("groups_by_applications"));
-        List<String> currentProjects = safeStringListOf(apps.get("datashare"));
+        Map<String, Object> apps = safeStringKeyedMapOf(newDetails.get(GROUPS_BY_APPLICATIONS));
+        List<String> currentProjects = safeStringListOf(apps.get(DATASHARE_APP));
         currentProjects.remove(project.getName());
-        apps.put("datashare", currentProjects);
-        newDetails.put("groups_by_applications", apps);
+        apps.put(DATASHARE_APP, currentProjects);
+        newDetails.put(GROUPS_BY_APPLICATIONS, apps);
         User updated = new User(user.id, user.name, user.email, user.provider, newDetails);
         repository.save(updated);
 
@@ -246,8 +249,17 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
         return authorizer.getRolesForUserInProject(user, Domain.DEFAULT, project)
                 .stream()
                 .map(name -> {
-                    try { return Role.valueOf(name); }
-                    catch (IllegalArgumentException e) { return null; }
+                    try {
+                        return Role.valueOf(name);
+                    } catch (IllegalArgumentException e) {
+                        // Casbin row holds a role string this codebase doesn't recognise
+                        // (stale enum value, hand-edited row, custom role from an extension).
+                        // Surface it in the log so operators can investigate, but don't
+                        // break grant/revoke on an unparseable peer entry.
+                        LOGGER.warn("ignoring unparseable role '{}' for user {} on project {}",
+                                name, user.id, project.getName());
+                        return null;
+                    }
                 })
                 .filter(r -> r != null)
                 .collect(Collectors.toList());
