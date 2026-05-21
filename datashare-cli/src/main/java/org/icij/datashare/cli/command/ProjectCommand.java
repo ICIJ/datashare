@@ -6,8 +6,12 @@ import picocli.CommandLine.Command;
 import picocli.CommandLine.Spec;
 
 @Command(name = "project", mixinStandardHelpOptions = true,
-        description = "Manage Datashare projects (create, delete).",
-        subcommands = { ProjectCreateCommand.class, ProjectDeleteCommand.class })
+        description = "Manage Datashare projects (create, delete, grant, revoke).",
+        subcommands = {
+            ProjectCreateCommand.class,
+            ProjectDeleteCommand.class,
+            ProjectGrantCommand.class
+        })
 public class ProjectCommand implements Runnable {
 
     @Spec
