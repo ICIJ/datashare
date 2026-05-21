@@ -616,6 +616,65 @@ public class ProjectAdminServiceImplTest {
     }
 
     @Test
+    public void test_grant_handles_malformed_groups_by_applications() throws Exception {
+        // Inventory has groups_by_applications stored as a String instead of a Map
+        // (e.g., from a hand-edited row). doGrant must not ClassCastException.
+        Project project = new Project("demeter");
+        when(repository.getProject("demeter")).thenReturn(project);
+        Map<String, Object> details = new HashMap<>();
+        details.put("groups_by_applications", "not-a-map");
+        User user = new User("promera", "Pierre", "p@icij.org", "local", details);
+        when(repository.getUser("promera")).thenReturn(user);
+        when(authorizer.getRolesForUserInProject(any(User.class), eq(Domain.DEFAULT), eq(project)))
+                .thenReturn(List.of());
+        when(repository.save(any(User.class))).thenReturn(true);
+
+        ProjectGranted granted = service.grant("demeter", "promera",
+                org.icij.datashare.policies.Role.PROJECT_ADMIN);
+
+        assertThat(granted.role()).isEqualTo(org.icij.datashare.policies.Role.PROJECT_ADMIN);
+        // The save still happened and now contains a well-formed map with "demeter" in it.
+        ArgumentCaptor<User> saved = ArgumentCaptor.forClass(User.class);
+        verify(repository).save(saved.capture());
+        @SuppressWarnings("unchecked")
+        Map<String, Object> apps = (Map<String, Object>) saved.getValue().details
+                .get("groups_by_applications");
+        @SuppressWarnings("unchecked")
+        List<String> ds = (List<String>) apps.get("datashare");
+        assertThat(ds).containsOnly("demeter");
+    }
+
+    @Test
+    public void test_grant_handles_malformed_datashare_list() throws Exception {
+        // Inventory has groups_by_applications.datashare stored as a String instead
+        // of a List. doGrant must not ClassCastException.
+        Project project = new Project("demeter");
+        when(repository.getProject("demeter")).thenReturn(project);
+        Map<String, Object> details = new HashMap<>();
+        Map<String, Object> apps = new HashMap<>();
+        apps.put("datashare", "not-a-list");
+        details.put("groups_by_applications", apps);
+        User user = new User("promera", "Pierre", "p@icij.org", "local", details);
+        when(repository.getUser("promera")).thenReturn(user);
+        when(authorizer.getRolesForUserInProject(any(User.class), eq(Domain.DEFAULT), eq(project)))
+                .thenReturn(List.of());
+        when(repository.save(any(User.class))).thenReturn(true);
+
+        ProjectGranted granted = service.grant("demeter", "promera",
+                org.icij.datashare.policies.Role.PROJECT_ADMIN);
+
+        assertThat(granted.role()).isEqualTo(org.icij.datashare.policies.Role.PROJECT_ADMIN);
+        ArgumentCaptor<User> saved = ArgumentCaptor.forClass(User.class);
+        verify(repository).save(saved.capture());
+        @SuppressWarnings("unchecked")
+        Map<String, Object> savedApps = (Map<String, Object>) saved.getValue().details
+                .get("groups_by_applications");
+        @SuppressWarnings("unchecked")
+        List<String> ds = (List<String>) savedApps.get("datashare");
+        assertThat(ds).containsOnly("demeter");
+    }
+
+    @Test
     public void test_revoke_removes_casbin_policy_and_prunes_inventory_entry() throws Exception {
         Project project = new Project("demeter");
         when(repository.getProject("demeter")).thenReturn(project);
