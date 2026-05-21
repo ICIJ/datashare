@@ -6,7 +6,6 @@ import org.icij.datashare.cli.Prompter;
 import org.icij.datashare.cli.Validators;
 import org.icij.datashare.cli.spi.CliExtension;
 import org.icij.datashare.mode.CommonMode;
-import org.icij.datashare.project.admin.GrantResult;
 import org.icij.datashare.project.admin.ProjectAdminService;
 import org.icij.datashare.project.admin.ProjectCreateRequest;
 import org.icij.datashare.project.admin.ProjectCreated;
@@ -385,18 +384,19 @@ class CliApp {
     private static GrantOutcome attemptAutoGrant(ProjectAdminService service,
                                                  ProjectCreated created,
                                                  Properties properties) {
-        String creator = resolveCreator(properties);
-        if (creator == null || created.noop()) {
+        if (created.noop()) {
             return GrantOutcome.skipped();
         }
-        String explicitCreator = properties.getProperty(PROJECT_CREATE_CREATOR_OPT);
-        boolean creatorExplicit = explicitCreator != null && !explicitCreator.isBlank();
+        String creator = resolveCreator(properties);
+        if (creator == null) {
+            return GrantOutcome.skipped();
+        }
+        boolean defaulted = properties.getProperty(PROJECT_CREATE_CREATOR_OPT) == null;
         try {
-            GrantResult result = service.addAdminToProject(created.name(), creator);
-            if (result == GrantResult.GRANTED) {
-                return new GrantOutcome(creator, GrantStatus.GRANTED);
-            }
-            if (creatorExplicit) {
+            service.grant(created.name(), creator, org.icij.datashare.policies.Role.PROJECT_ADMIN);
+            return new GrantOutcome(creator, GrantStatus.GRANTED);
+        } catch (org.icij.datashare.project.admin.UserNotFoundException e) {
+            if (!defaulted) {
                 System.err.println("warning: user '" + creator
                         + "' not found in inventory; auto-grant skipped");
             }

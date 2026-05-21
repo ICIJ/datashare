@@ -119,61 +119,6 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
     }
 
     @Override
-    public GrantResult addAdminToProject(String projectName, String userLogin)
-            throws ProjectNotFoundException {
-        Project project = repository.getProject(projectName);
-        if (project == null) {
-            throw new ProjectNotFoundException(projectName);
-        }
-        User user = repository.getUser(userLogin);
-        if (user == null) {
-            // No row in user_inventory: cannot update the per-user project list.
-            // Caller (CLI dispatcher) may log a warning and continue.
-            return GrantResult.USER_NOT_FOUND;
-        }
-
-        // 1. Append projectName to user.details["groups_by_applications.datashare"]
-        //    via a fresh details map (User.details is unmodifiable). Defensive
-        //    shape checks: if a prior write produced unexpected types we start
-        //    from a clean map/list rather than ClassCastException at runtime.
-        Map<String, Object> newDetails = new HashMap<>(user.details);
-        Map<String, Object> apps = safeStringKeyedMapOf(newDetails.get("groups_by_applications"));
-        List<String> currentProjects = safeStringListOf(apps.get("datashare"));
-        if (!currentProjects.contains(projectName)) {
-            currentProjects.add(projectName);
-        }
-        apps.put("datashare", currentProjects);
-        newDetails.put("groups_by_applications", apps);
-
-        User updated = new User(user.id, user.name, user.email, user.provider, newDetails);
-        repository.save(updated);
-
-        // 2. Casbin grouping policy: g <user.id> PROJECT_ADMIN default::<projectName>.
-        //    The Casbin domain ("default") is unrelated to the inventory app key
-        //    ("datashare"); existing instances store all project policies under
-        //    Domain.DEFAULT, and multi-domain support is still future work (see
-        //    the TODO #DOMAIN markers elsewhere).
-        //    Casbin is the load-bearing grant (the inventory list is a UI convenience).
-        //    If casbin fails we roll the inventory write back so the operator does not
-        //    see a project listed under their account that they actually cannot
-        //    administer. Best-effort: a rollback failure leaves the user with the
-        //    stale list, which is the lesser evil compared to surfacing the original
-        //    casbin error.
-        try {
-            authorizer.addProjectAdmin(updated, Domain.DEFAULT, project);
-        } catch (RuntimeException casbinFailure) {
-            try {
-                repository.save(user);
-            } catch (RuntimeException rollback) {
-                casbinFailure.addSuppressed(rollback);
-            }
-            throw casbinFailure;
-        }
-
-        return GrantResult.GRANTED;
-    }
-
-    @Override
     public ProjectGranted grant(String projectName, String userLogin, Role role)
             throws ProjectNotFoundException, UserNotFoundException, ValidationException {
         return doGrant(projectName, userLogin, role, false);

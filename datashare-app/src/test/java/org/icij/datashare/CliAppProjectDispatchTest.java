@@ -1,7 +1,6 @@
 package org.icij.datashare;
 
 import org.icij.datashare.cli.Prompter;
-import org.icij.datashare.project.admin.GrantResult;
 import org.icij.datashare.project.admin.ProjectAdminService;
 import org.icij.datashare.project.admin.ProjectCreateRequest;
 import org.icij.datashare.project.admin.ProjectCreated;
@@ -278,7 +277,9 @@ public class CliAppProjectDispatchTest {
         when(service.create(any(ProjectCreateRequest.class)))
                 .thenReturn(new ProjectCreated("foo", "foo", null, Path.of("/vault/foo"),
                         "*.*.*.*", null, null, null, null, null, null, true, false));
-        when(service.addAdminToProject("foo", "promera")).thenReturn(GrantResult.GRANTED);
+        when(service.grant("foo", "promera", org.icij.datashare.policies.Role.PROJECT_ADMIN))
+                .thenReturn(new org.icij.datashare.project.admin.ProjectGranted(
+                        "foo", "promera", org.icij.datashare.policies.Role.PROJECT_ADMIN, null, false));
 
         Properties props = new Properties();
         props.setProperty(PROJECT_CREATE_OPT, "foo");
@@ -287,7 +288,7 @@ public class CliAppProjectDispatchTest {
         int exit = CliApp.handleProjectCreate(service, props);
 
         assertThat(exit).isEqualTo(0);
-        verify(service).addAdminToProject("foo", "promera");
+        verify(service).grant("foo", "promera", org.icij.datashare.policies.Role.PROJECT_ADMIN);
         assertThat(stdout.toString()).contains("granted PROJECT_ADMIN on 'foo' to 'promera'");
     }
 
@@ -304,7 +305,7 @@ public class CliAppProjectDispatchTest {
         int exit = CliApp.handleProjectCreate(service, props);
 
         assertThat(exit).isEqualTo(0);
-        verify(service, never()).addAdminToProject(any(), any());
+        verify(service, never()).grant(any(), any(), any());
     }
 
     @Test
@@ -312,7 +313,9 @@ public class CliAppProjectDispatchTest {
         when(service.create(any(ProjectCreateRequest.class)))
                 .thenReturn(new ProjectCreated("foo", "foo", null, Path.of("/vault/foo"),
                         "*.*.*.*", null, null, null, null, null, null, true, false));
-        when(service.addAdminToProject("foo", "alice")).thenReturn(GrantResult.GRANTED);
+        when(service.grant("foo", "alice", org.icij.datashare.policies.Role.PROJECT_ADMIN))
+                .thenReturn(new org.icij.datashare.project.admin.ProjectGranted(
+                        "foo", "alice", org.icij.datashare.policies.Role.PROJECT_ADMIN, null, false));
 
         Properties props = new Properties();
         props.setProperty(PROJECT_CREATE_OPT, "foo");
@@ -322,8 +325,8 @@ public class CliAppProjectDispatchTest {
         int exit = CliApp.handleProjectCreate(service, props);
 
         assertThat(exit).isEqualTo(0);
-        verify(service).addAdminToProject("foo", "alice");
-        verify(service, never()).addAdminToProject("foo", "promera");
+        verify(service).grant("foo", "alice", org.icij.datashare.policies.Role.PROJECT_ADMIN);
+        verify(service, never()).grant("foo", "promera", org.icij.datashare.policies.Role.PROJECT_ADMIN);
     }
 
     @Test
@@ -331,7 +334,8 @@ public class CliAppProjectDispatchTest {
         when(service.create(any(ProjectCreateRequest.class)))
                 .thenReturn(new ProjectCreated("foo", "foo", null, Path.of("/vault/foo"),
                         "*.*.*.*", null, null, null, null, null, null, true, false));
-        when(service.addAdminToProject("foo", "ghost")).thenReturn(GrantResult.USER_NOT_FOUND);
+        when(service.grant("foo", "ghost", org.icij.datashare.policies.Role.PROJECT_ADMIN))
+                .thenThrow(new org.icij.datashare.project.admin.UserNotFoundException("ghost"));
 
         Properties props = new Properties();
         props.setProperty(PROJECT_CREATE_OPT, "foo");
@@ -349,7 +353,8 @@ public class CliAppProjectDispatchTest {
         when(service.create(any(ProjectCreateRequest.class)))
                 .thenReturn(new ProjectCreated("foo", "foo", null, Path.of("/vault/foo"),
                         "*.*.*.*", null, null, null, null, null, null, true, false));
-        when(service.addAdminToProject("foo", "local-datashare")).thenReturn(GrantResult.USER_NOT_FOUND);
+        when(service.grant("foo", "local-datashare", org.icij.datashare.policies.Role.PROJECT_ADMIN))
+                .thenThrow(new org.icij.datashare.project.admin.UserNotFoundException("local-datashare"));
 
         Properties props = new Properties();
         props.setProperty(PROJECT_CREATE_OPT, "foo");
@@ -361,7 +366,7 @@ public class CliAppProjectDispatchTest {
         assertThat(exit).isEqualTo(0);
         // The grant attempt happened (service was called) but the warning
         // is suppressed for the fallback path.
-        verify(service).addAdminToProject("foo", "local-datashare");
+        verify(service).grant("foo", "local-datashare", org.icij.datashare.policies.Role.PROJECT_ADMIN);
         assertThat(stderr.toString()).excludes("warning");
     }
 
@@ -402,7 +407,7 @@ public class CliAppProjectDispatchTest {
         int exit = CliApp.handleProjectCreate(service, props);
 
         assertThat(exit).isEqualTo(0);
-        verify(service, never()).addAdminToProject(any(), any());
+        verify(service, never()).grant(any(), any(), any());
     }
 
     @Test
