@@ -304,4 +304,16 @@ public class ProjectCommandTest extends AbstractDatashareCommandTest {
         int exit = parseExitCode("project", "revoke", "demeter", "--no-input");
         assertThat(exit).isEqualTo(2);
     }
+
+    @Test
+    public void test_project_grant_help_exits_0() {
+        int exit = parseExitCode("project", "grant", "-h");
+        assertThat(exit).isEqualTo(0);
+    }
+
+    @Test
+    public void test_project_revoke_help_exits_0() {
+        int exit = parseExitCode("project", "revoke", "-h");
+        assertThat(exit).isEqualTo(0);
+    }
 }
