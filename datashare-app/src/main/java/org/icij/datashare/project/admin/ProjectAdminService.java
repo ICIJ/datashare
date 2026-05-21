@@ -79,4 +79,23 @@ public interface ProjectAdminService {
      */
     ProjectGranted grantIfNotExists(String projectName, String userLogin, org.icij.datashare.policies.Role role)
             throws ProjectNotFoundException, UserNotFoundException, ValidationException;
+
+    /**
+     * Removes every project-scoped Casbin grouping policy the user holds on
+     * the project, and prunes {@code projectName} from the user's
+     * {@code groups_by_applications.datashare} list.
+     *
+     * @throws ProjectNotFoundException if the project row is missing.
+     * @throws UserNotFoundException if the user is missing.
+     */
+    ProjectRevoked revoke(String projectName, String userLogin)
+            throws ProjectNotFoundException, UserNotFoundException;
+
+    /**
+     * Idempotent counterpart of {@link #revoke}: returns {@code noop=true}
+     * when the user does not exist or holds no roles on the project. Still
+     * throws {@link ProjectNotFoundException} when the project is missing.
+     */
+    ProjectRevoked revokeIfExists(String projectName, String userLogin)
+            throws ProjectNotFoundException;
 }
