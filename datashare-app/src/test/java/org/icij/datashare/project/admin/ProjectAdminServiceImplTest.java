@@ -876,6 +876,51 @@ public class ProjectAdminServiceImplTest {
         }
     }
 
+    @Test
+    public void test_revoke_rolls_back_inventory_when_casbin_fails() throws Exception {
+        Project project = new Project("demeter");
+        when(repository.getProject("demeter")).thenReturn(project);
+        Map<String, Object> details = new HashMap<>();
+        Map<String, Object> apps = new HashMap<>();
+        apps.put("datashare", new java.util.ArrayList<>(List.of("demeter", "athena")));
+        details.put("groups_by_applications", apps);
+        User user = new User("promera", "Pierre", "p@icij.org", "local", details);
+        when(repository.getUser("promera")).thenReturn(user);
+        when(authorizer.getRolesForUserInProject(any(User.class), eq(Domain.DEFAULT), eq(project)))
+                .thenReturn(List.of("PROJECT_EDITOR"));
+        when(authorizer.deleteRoleForUserInProject(any(User.class), any(), any(), any()))
+                .thenThrow(new RuntimeException("casbin boom"));
+        when(repository.save(any(User.class))).thenReturn(true);
+
+        try {
+            service.revoke("demeter", "promera");
+            fail("expected RuntimeException");
+        } catch (RuntimeException e) {
+            assertThat(e.getMessage()).isEqualTo("casbin boom");
+        }
+
+        ArgumentCaptor<User> savedUsers = ArgumentCaptor.forClass(User.class);
+        verify(repository, Mockito.times(2)).save(savedUsers.capture());
+        java.util.List<User> saves = savedUsers.getAllValues();
+
+        // Forward write: "demeter" pruned from inventory.
+        @SuppressWarnings("unchecked")
+        Map<String, Object> forwardApps = (Map<String, Object>) saves.get(0).details
+                .get("groups_by_applications");
+        @SuppressWarnings("unchecked")
+        List<String> forwardDs = (List<String>) forwardApps.get("datashare");
+        assertThat(forwardDs).excludes("demeter");
+        assertThat(forwardDs).contains("athena");
+
+        // Rollback write: "demeter" restored to inventory.
+        @SuppressWarnings("unchecked")
+        Map<String, Object> rollbackApps = (Map<String, Object>) saves.get(1).details
+                .get("groups_by_applications");
+        @SuppressWarnings("unchecked")
+        List<String> rollbackDs = (List<String>) rollbackApps.get("datashare");
+        assertThat(rollbackDs).contains("demeter");
+    }
+
     private static CasbinRule casbinRule(String userId, String role, String domainProject) {
         return new CasbinRule("g", userId, role, domainProject);
     }
