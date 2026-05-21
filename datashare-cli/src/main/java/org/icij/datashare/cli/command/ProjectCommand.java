@@ -10,7 +10,8 @@ import picocli.CommandLine.Spec;
         subcommands = {
             ProjectCreateCommand.class,
             ProjectDeleteCommand.class,
-            ProjectGrantCommand.class
+            ProjectGrantCommand.class,
+            ProjectRevokeCommand.class
         })
 public class ProjectCommand implements Runnable {
 

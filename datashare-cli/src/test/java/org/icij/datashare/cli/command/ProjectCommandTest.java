@@ -273,4 +273,35 @@ public class ProjectCommandTest extends AbstractDatashareCommandTest {
         assertThat(props.getProperty("projectGrant.user")).isEqualTo("promera");
         assertThat(props.getProperty("projectGrant.role")).isEqualTo("editor");
     }
+
+    @Test
+    public void test_project_revoke_minimal_emits_project_user() {
+        Properties props = parse("project", "revoke", "demeter", "promera");
+        assertThat(props).includes(entry("projectRevoke", "demeter"));
+        assertThat(props).includes(entry("projectRevoke.user", "promera"));
+    }
+
+    @Test
+    public void test_project_revoke_all_flags_propagate() {
+        Properties props = parse("project", "revoke", "demeter", "promera",
+                "--yes", "--if-exists", "--no-input", "--json");
+        assertThat(props).includes(entry("projectRevoke", "demeter"));
+        assertThat(props).includes(entry("projectRevoke.user", "promera"));
+        assertThat(props).includes(entry("projectRevoke.yes", "true"));
+        assertThat(props).includes(entry("projectRevoke.noInput", "true"));
+        assertThat(props).includes(entry("projectRevoke.ifExists", "true"));
+        assertThat(props).includes(entry("projectRevoke.json", "true"));
+    }
+
+    @Test
+    public void test_project_revoke_invalid_project_exits_5() {
+        int exit = parseExitCode("project", "revoke", "Has-Uppercase", "promera");
+        assertThat(exit).isEqualTo(5);
+    }
+
+    @Test
+    public void test_project_revoke_missing_user_with_no_input_exits_2() {
+        int exit = parseExitCode("project", "revoke", "demeter", "--no-input");
+        assertThat(exit).isEqualTo(2);
+    }
 }
