@@ -178,6 +178,19 @@ public final class DatashareCliOptions {
     public static final String PROJECT_DELETE_NO_INPUT_OPT = PROJECT_DELETE_OPT + ".noInput";
     public static final String PROJECT_DELETE_JSON_OPT = PROJECT_DELETE_OPT + ".json";
 
+    public static final String PROJECT_GRANT_OPT              = "projectGrant";
+    public static final String PROJECT_GRANT_USER_OPT         = PROJECT_GRANT_OPT + ".user";
+    public static final String PROJECT_GRANT_ROLE_OPT         = PROJECT_GRANT_OPT + ".role";
+    public static final String PROJECT_GRANT_IF_NOT_EXISTS_OPT = PROJECT_GRANT_OPT + ".ifNotExists";
+    public static final String PROJECT_GRANT_JSON_OPT          = PROJECT_GRANT_OPT + ".json";
+
+    public static final String PROJECT_REVOKE_OPT             = "projectRevoke";
+    public static final String PROJECT_REVOKE_USER_OPT        = PROJECT_REVOKE_OPT + ".user";
+    public static final String PROJECT_REVOKE_YES_OPT         = PROJECT_REVOKE_OPT + ".yes";
+    public static final String PROJECT_REVOKE_NO_INPUT_OPT    = PROJECT_REVOKE_OPT + ".noInput";
+    public static final String PROJECT_REVOKE_IF_EXISTS_OPT   = PROJECT_REVOKE_OPT + ".ifExists";
+    public static final String PROJECT_REVOKE_JSON_OPT        = PROJECT_REVOKE_OPT + ".json";
+
     private static final Path DEFAULT_DATASHARE_HOME = Paths.get(System.getProperty("user.home"), ".local/share/datashare");
     private static final Integer DEFAULT_NLP_PARALLELISM = 1;
     private static final Integer DEFAULT_PARALLELISM = Runtime.getRuntime().availableProcessors() == 1 ? 2 : Runtime.getRuntime().availableProcessors();
