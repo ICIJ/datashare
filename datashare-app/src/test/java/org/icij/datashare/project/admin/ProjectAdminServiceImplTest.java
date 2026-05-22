@@ -764,6 +764,30 @@ public class ProjectAdminServiceImplTest {
     }
 
     @Test
+    public void test_revokeIfExists_removes_casbin_and_prunes_inventory_when_user_has_roles() throws Exception {
+        Project project = new Project("demeter");
+        when(repository.getProject("demeter")).thenReturn(project);
+        Map<String, Object> details = new HashMap<>();
+        Map<String, Object> apps = new HashMap<>();
+        apps.put("datashare", new java.util.ArrayList<>(List.of("demeter", "athena")));
+        details.put("groups_by_applications", apps);
+        User user = new User("promera", "Pierre", "p@icij.org", "local", details);
+        when(repository.getUser("promera")).thenReturn(user);
+        when(authorizer.getRolesForUserInProject(any(User.class), eq(Domain.DEFAULT), eq(project)))
+                .thenReturn(List.of("PROJECT_EDITOR"));
+        when(repository.save(any(User.class))).thenReturn(true);
+
+        ProjectRevoked revoked = service.revokeIfExists("demeter", "promera");
+
+        assertThat(revoked.noop()).isFalse();
+        assertThat(revoked.revokedRoles())
+                .containsOnly(org.icij.datashare.policies.Role.PROJECT_EDITOR);
+        verify(authorizer).deleteRoleForUserInProject(
+                any(User.class), eq(org.icij.datashare.policies.Role.PROJECT_EDITOR),
+                eq(Domain.DEFAULT), eq(project));
+    }
+
+    @Test
     public void test_revokeIfExists_still_throws_project_not_found() {
         when(repository.getProject("ghost")).thenReturn(null);
         try {

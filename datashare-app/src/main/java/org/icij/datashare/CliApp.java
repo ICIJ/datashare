@@ -681,7 +681,7 @@ class CliApp {
         boolean ifNotExists = Boolean.parseBoolean(properties.getProperty(PROJECT_GRANT_IF_NOT_EXISTS_OPT));
         boolean json        = Boolean.parseBoolean(properties.getProperty(PROJECT_GRANT_JSON_OPT));
         try {
-            Role role = org.icij.datashare.cli.Validators.projectRole(alias);
+            Role role = Validators.projectRole(alias);
             ProjectGranted granted = ifNotExists
                     ? service.grantIfNotExists(project, user, role)
                     : service.grant(project, user, role);
@@ -690,7 +690,7 @@ class CliApp {
         } catch (ProjectNotFoundException | org.icij.datashare.project.admin.UserNotFoundException e) {
             return error(e.getMessage(), "not_found", EXIT_NOT_FOUND, json);
         } catch (org.icij.datashare.project.admin.ValidationException
-                 | org.icij.datashare.cli.Validators.InvalidValueException e) {
+                 | Validators.InvalidValueException e) {
             return error(e.getMessage(), "validation", EXIT_VALIDATION, json);
         } catch (Exception e) {
             return error("runtime: " + e.getMessage(), "runtime", EXIT_RUNTIME, json);
