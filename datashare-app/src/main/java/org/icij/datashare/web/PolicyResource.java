@@ -21,6 +21,7 @@ import org.icij.datashare.session.DatashareUser;
 import org.icij.datashare.text.Project;
 import org.icij.datashare.user.User;
 
+import static java.util.Optional.ofNullable;
 import static net.codestory.http.constants.HttpStatus.NO_CONTENT;
 import static net.codestory.http.errors.NotFoundException.notFoundIfNull;
 import static net.codestory.http.payload.Payload.ok;
@@ -58,7 +59,7 @@ public class PolicyResource {
 
     private User userExists(String name) {
         badRequestIfInvalid(() -> requireValue(name, false));
-        return notFoundIfNull(repository.getUser(name));
+        return ofNullable(repository.getUser(name)).orElse(User.localUser(name));
     }
 
     /*

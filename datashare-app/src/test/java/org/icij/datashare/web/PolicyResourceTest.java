@@ -193,6 +193,28 @@ public class PolicyResourceTest extends AbstractProdWebServerTest {
 
 
     @Test
+    public void save_instance_policy_for_user_not_in_repository() {
+        configure(routes -> routes.add(new PolicyResource(authorizer, repository)));
+        put("/api/policies?user=bar&role=INSTANCE_ADMIN").should().respond(200);
+    }
+
+    @Test
+    public void save_domain_policy_for_user_not_in_repository() {
+        when(repository.getUser("jane")).thenReturn(localUser("jane"));
+        authorizer.addRoleForUserInDomain(jane, Role.DOMAIN_ADMIN, Domain.of("icij"));
+        configure(routes -> routes.filter(new BasicAuthFilter("/", "icij", users)).add(new PolicyResource(authorizer, repository)));
+        put("/api/policies/icij?user=bar&role=DOMAIN_ADMIN").withPreemptiveAuthentication("jane", "pass").should().respond(200);
+    }
+
+    @Test
+    public void save_project_policy_for_user_not_in_repository() {
+        when(repository.getUser("jane")).thenReturn(localUser("jane", "test-datashare"));
+        authorizer.addRoleForUserInProject(jane, Role.PROJECT_ADMIN, Domain.of("icij"), project("test-datashare"));
+        configure(routes -> routes.filter(new BasicAuthFilter("/", "icij", users)).add(new PolicyResource(authorizer, repository)));
+        put("/api/policies/icij/test-datashare?user=bar&role=PROJECT_MEMBER").withPreemptiveAuthentication("jane", "pass").should().respond(200);
+    }
+
+    @Test
     public void project_policies_lifecycle_success() {
         when(repository.getUser("jane")).thenReturn(User.localUser("jane", "test-datashare"));
         when(repository.getProject("test-datashare")).thenReturn(project("test-datashare"));
