@@ -741,7 +741,7 @@ class CliApp {
         boolean json     = Boolean.parseBoolean(properties.getProperty(PROJECT_REVOKE_JSON_OPT));
         try {
             if (!yes && !noInput) {
-                System.err.println("Will remove '" + user + "' from '" + project + "' (all roles).");
+                System.err.println("Will revoke all roles for '" + user + "' on '" + project + "'.");
                 if (!prompterFactory.get().confirm("Continue?")) {
                     emitRevokeAborted(project, user, json);
                     return EXIT_SUCCESS;

@@ -306,6 +306,16 @@ public class ProjectCommandTest extends AbstractDatashareCommandTest {
     }
 
     @Test
+    public void test_project_revoke_positional_wins_over_flag() {
+        // Spec contract: positional values win when also passed as flags.
+        Properties props = parse("project", "revoke", "demeter", "promera",
+                "--project", "ignored-project",
+                "--user", "ignored-user");
+        assertThat(props).includes(entry("projectRevoke", "demeter"));
+        assertThat(props).includes(entry("projectRevoke.user", "promera"));
+    }
+
+    @Test
     public void test_project_grant_help_exits_0() {
         int exit = parseExitCode("project", "grant", "-h");
         assertThat(exit).isEqualTo(0);
