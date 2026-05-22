@@ -172,11 +172,11 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
         // and convert null / no-roles into a noop without going through doRevoke.
         User user = repository.getUser(userLogin);
         if (user == null) {
-            return new ProjectRevoked(projectName, userLogin, List.of(), true);
+            return noopRevoke(projectName, userLogin);
         }
         List<Role> existing = readProjectRoles(user, project);
         if (existing.isEmpty()) {
-            return new ProjectRevoked(projectName, userLogin, List.of(), true);
+            return noopRevoke(projectName, userLogin);
         }
         return doRevoke(project, user, userLogin, existing);
     }
@@ -239,6 +239,10 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
 
     private static boolean isExactlyThisRole(List<Role> existing, Role role) {
         return existing.size() == 1 && existing.get(0) == role;
+    }
+
+    private static ProjectRevoked noopRevoke(String projectName, String userLogin) {
+        return new ProjectRevoked(projectName, userLogin, List.of(), true);
     }
 
     // Inventory mutations: return a fresh User with the per-application list
