@@ -140,77 +140,36 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
     private ProjectGranted doGrant(String projectName, String userLogin, Role role, boolean ifNotExists)
             throws ProjectNotFoundException, UserNotFoundException, ValidationException {
         validateProjectRole(role);
-        Project project = repository.getProject(projectName);
-        if (project == null) {
-            throw new ProjectNotFoundException(projectName);
-        }
-        User user = repository.getUser(userLogin);
-        if (user == null) {
-            throw new UserNotFoundException(userLogin);
-        }
-
+        Project project = requireProject(projectName);
+        User user = requireUser(userLogin);
         List<Role> existing = readProjectRoles(user, project);
-        // Noop only when the user has exactly this role and nothing else: any extra
-        // project roles must still be replaced under the spec's replace-semantics.
-        if (ifNotExists && existing.size() == 1 && existing.get(0) == role) {
+
+        // Replace-semantics make "noop" strict: any extra project roles would still
+        // need clearing, so a noop is only safe when this exact role is the only one.
+        if (ifNotExists && isExactlyThisRole(existing, role)) {
             return new ProjectGranted(projectName, userLogin, role, null, true);
         }
 
-        // Snapshot the user before mutation so we can roll inventory back
-        // if Casbin throws below. Inventory-first / Casbin-second is the
-        // load-bearing order (see ADR in spec): a Casbin write without an
-        // inventory entry is the only end-state we cannot self-heal from.
-        User original = user;  // User is immutable; we hold the pre-mutation reference for rollback.
-        Map<String, Object> newDetails = new HashMap<>(user.details);
-        Map<String, Object> apps = safeStringKeyedMapOf(newDetails.get(GROUPS_BY_APPLICATIONS));
-        List<String> currentProjects = safeStringListOf(apps.get(DATASHARE_APP));
-        if (!currentProjects.contains(projectName)) {
-            currentProjects.add(projectName);
-        }
-        apps.put(DATASHARE_APP, currentProjects);
-        newDetails.put(GROUPS_BY_APPLICATIONS, apps);
-        User updated = new User(user.id, user.name, user.email, user.provider, newDetails);
-        repository.save(updated);
-
-        Role previousRole = highestRole(existing);
-        try {
-            for (Role r : existing) {
-                authorizer.deleteRoleForUserInProject(updated, r, Domain.DEFAULT, project);
-            }
-            authorizer.addRoleForUserInProject(updated, role, Domain.DEFAULT, project);
-        } catch (RuntimeException casbinFailure) {
-            try {
-                repository.save(original);
-            } catch (RuntimeException rollback) {
-                casbinFailure.addSuppressed(rollback);
-            }
-            throw casbinFailure;
-        }
-
-        return new ProjectGranted(projectName, userLogin, role, previousRole, false);
+        User updated = appendProjectToInventory(user, projectName);
+        swapCasbinRole(user, updated, project, existing, role);
+        return new ProjectGranted(projectName, userLogin, role, highestRole(existing), false);
     }
 
     @Override
     public ProjectRevoked revoke(String projectName, String userLogin)
             throws ProjectNotFoundException, UserNotFoundException {
-        Project project = repository.getProject(projectName);
-        if (project == null) {
-            throw new ProjectNotFoundException(projectName);
-        }
-        User user = repository.getUser(userLogin);
-        if (user == null) {
-            throw new UserNotFoundException(userLogin);
-        }
+        Project project = requireProject(projectName);
+        User user = requireUser(userLogin);
         return doRevoke(project, user, userLogin, readProjectRoles(user, project));
     }
 
     @Override
     public ProjectRevoked revokeIfExists(String projectName, String userLogin)
             throws ProjectNotFoundException {
-        Project project = repository.getProject(projectName);
-        if (project == null) {
-            throw new ProjectNotFoundException(projectName);
-        }
+        Project project = requireProject(projectName);
+
+        // revokeIfExists swallows a missing user (unlike revoke); resolve directly
+        // and convert null / no-roles into a noop without going through doRevoke.
         User user = repository.getUser(userLogin);
         if (user == null) {
             return new ProjectRevoked(projectName, userLogin, List.of(), true);
@@ -223,29 +182,8 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
     }
 
     private ProjectRevoked doRevoke(Project project, User user, String userLogin, List<Role> existing) {
-        User original = user;
-        Map<String, Object> newDetails = new HashMap<>(user.details);
-        Map<String, Object> apps = safeStringKeyedMapOf(newDetails.get(GROUPS_BY_APPLICATIONS));
-        List<String> currentProjects = safeStringListOf(apps.get(DATASHARE_APP));
-        currentProjects.remove(project.getName());
-        apps.put(DATASHARE_APP, currentProjects);
-        newDetails.put(GROUPS_BY_APPLICATIONS, apps);
-        User updated = new User(user.id, user.name, user.email, user.provider, newDetails);
-        repository.save(updated);
-
-        try {
-            for (Role r : existing) {
-                authorizer.deleteRoleForUserInProject(updated, r, Domain.DEFAULT, project);
-            }
-        } catch (RuntimeException casbinFailure) {
-            try {
-                repository.save(original);
-            } catch (RuntimeException rollback) {
-                casbinFailure.addSuppressed(rollback);
-            }
-            throw casbinFailure;
-        }
-
+        User updated = removeProjectFromInventory(user, project.getName());
+        pruneCasbinRoles(user, updated, project, existing);
         return new ProjectRevoked(project.getName(), userLogin, existing, false);
     }
 
@@ -277,6 +215,95 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
         if (role == null || (role != Role.PROJECT_ADMIN && role != Role.PROJECT_EDITOR
                 && role != Role.PROJECT_MEMBER && role != Role.PROJECT_VISITOR)) {
             throw new ValidationException("role", "role must be a PROJECT_* role");
+        }
+    }
+
+    // Existence guards: callers either get a non-null entity or a typed not-found
+    // exception. Keeps grant/revoke flows linear instead of nested null checks.
+
+    private Project requireProject(String name) throws ProjectNotFoundException {
+        Project project = repository.getProject(name);
+        if (project == null) {
+            throw new ProjectNotFoundException(name);
+        }
+        return project;
+    }
+
+    private User requireUser(String login) throws UserNotFoundException {
+        User user = repository.getUser(login);
+        if (user == null) {
+            throw new UserNotFoundException(login);
+        }
+        return user;
+    }
+
+    private static boolean isExactlyThisRole(List<Role> existing, Role role) {
+        return existing.size() == 1 && existing.get(0) == role;
+    }
+
+    // Inventory mutations: return a fresh User with the per-application list
+    // adjusted. The caller persists. Both helpers go through the same safe-cast
+    // helpers so a stale or hand-edited details shape doesn't ClassCastException.
+
+    private User appendProjectToInventory(User user, String projectName) {
+        Map<String, Object> newDetails = new HashMap<>(user.details);
+        Map<String, Object> apps = safeStringKeyedMapOf(newDetails.get(GROUPS_BY_APPLICATIONS));
+        List<String> currentProjects = safeStringListOf(apps.get(DATASHARE_APP));
+        if (!currentProjects.contains(projectName)) {
+            currentProjects.add(projectName);
+        }
+        apps.put(DATASHARE_APP, currentProjects);
+        newDetails.put(GROUPS_BY_APPLICATIONS, apps);
+        User updated = new User(user.id, user.name, user.email, user.provider, newDetails);
+        repository.save(updated);
+        return updated;
+    }
+
+    private User removeProjectFromInventory(User user, String projectName) {
+        Map<String, Object> newDetails = new HashMap<>(user.details);
+        Map<String, Object> apps = safeStringKeyedMapOf(newDetails.get(GROUPS_BY_APPLICATIONS));
+        List<String> currentProjects = safeStringListOf(apps.get(DATASHARE_APP));
+        currentProjects.remove(projectName);
+        apps.put(DATASHARE_APP, currentProjects);
+        newDetails.put(GROUPS_BY_APPLICATIONS, apps);
+        User updated = new User(user.id, user.name, user.email, user.provider, newDetails);
+        repository.save(updated);
+        return updated;
+    }
+
+    // Casbin operations with compensating-write rollback. Inventory-first /
+    // Casbin-second is the load-bearing order (see ADR in spec): a Casbin write
+    // without an inventory entry is the only end-state we cannot self-heal from.
+    // If Casbin throws, restore the pre-mutation snapshot of the user row.
+
+    private void swapCasbinRole(User original, User updated, Project project,
+                                List<Role> existing, Role newRole) {
+        casbinWithRollback(original, () -> {
+            for (Role r : existing) {
+                authorizer.deleteRoleForUserInProject(updated, r, Domain.DEFAULT, project);
+            }
+            authorizer.addRoleForUserInProject(updated, newRole, Domain.DEFAULT, project);
+        });
+    }
+
+    private void pruneCasbinRoles(User original, User updated, Project project, List<Role> existing) {
+        casbinWithRollback(original, () -> {
+            for (Role r : existing) {
+                authorizer.deleteRoleForUserInProject(updated, r, Domain.DEFAULT, project);
+            }
+        });
+    }
+
+    private void casbinWithRollback(User original, Runnable casbinAction) {
+        try {
+            casbinAction.run();
+        } catch (RuntimeException casbinFailure) {
+            try {
+                repository.save(original);
+            } catch (RuntimeException rollback) {
+                casbinFailure.addSuppressed(rollback);
+            }
+            throw casbinFailure;
         }
     }
 
