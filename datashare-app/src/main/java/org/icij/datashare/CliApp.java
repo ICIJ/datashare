@@ -702,8 +702,7 @@ class CliApp {
         String prevShort  = granted.previousRole() == null ? null : stripPrefix(granted.previousRole());
         if (json) {
             // LinkedHashMap (not Map.ofEntries) because previousRole may be null
-            // and we want it to serialize as a JSON null, matching the contract
-            // in the design spec.
+            // and we want it to serialize as a JSON null.
             java.util.LinkedHashMap<String, Object> payload = new java.util.LinkedHashMap<>();
             payload.put("project", granted.name());
             payload.put("user", granted.userLogin());
