@@ -81,6 +81,10 @@ public interface ProjectAdminService {
      * Idempotent counterpart of {@link #revoke}: returns {@code noop=true}
      * when the user does not exist or holds no roles on the project. Still
      * throws {@link ProjectNotFoundException} when the project is missing.
+     *
+     * <p>Unlike {@link #revoke}, this method does <strong>not</strong> throw
+     * {@link UserNotFoundException}; a missing user is converted to a noop
+     * result. Only a missing project propagates as an exception.
      */
     ProjectRevoked revokeIfExists(String projectName, String userLogin)
             throws ProjectNotFoundException;

@@ -80,6 +80,8 @@ public class ProjectGrantCommand implements Runnable, DatashareSubcommand {
             Prompter prompter = resolvePrompter();
             if (project == null) project = require(prompter, "Project name", Validators::projectName, "--project");
             if (user    == null) user    = require(prompter, "User login",   Validators::login,        "--user");
+            // Validators.projectRole returns Role; wrap as Consumer for the require() signature.
+            // We only care that it doesn't throw.
             if (roleIn  == null) roleIn  = require(prompter, "Role (admin|editor|member|visitor)",
                                                   s -> Validators.projectRole(s), "--role");
 

@@ -46,6 +46,8 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
     // by the UI/API to list a user's projects.
     private static final String GROUPS_BY_APPLICATIONS = "groups_by_applications";
     private static final String DATASHARE_APP = "datashare";
+    // Lower ordinal == higher tier in Role enum (INSTANCE_ADMIN=0, ..., NONE=6).
+    private static final Comparator<Role> ROLE_BY_TIER = Comparator.comparingInt(Enum::ordinal);
 
     private final Repository repository;
     private final Indexer indexer;
@@ -148,6 +150,8 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
         }
 
         List<Role> existing = readProjectRoles(user, project);
+        // Noop only when the user has exactly this role and nothing else: any extra
+        // project roles must still be replaced under the spec's replace-semantics.
         if (ifNotExists && existing.size() == 1 && existing.get(0) == role) {
             return new ProjectGranted(projectName, userLogin, role, null, true);
         }
@@ -156,7 +160,7 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
         // if Casbin throws below. Inventory-first / Casbin-second is the
         // load-bearing order (see ADR in spec): a Casbin write without an
         // inventory entry is the only end-state we cannot self-heal from.
-        User original = user;
+        User original = user;  // User is immutable; we hold the pre-mutation reference for rollback.
         Map<String, Object> newDetails = new HashMap<>(user.details);
         Map<String, Object> apps = safeStringKeyedMapOf(newDetails.get(GROUPS_BY_APPLICATIONS));
         List<String> currentProjects = safeStringListOf(apps.get(DATASHARE_APP));
@@ -266,8 +270,7 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
     }
 
     private static Role highestRole(List<Role> roles) {
-        // Lower ordinal == higher tier in Role enum (INSTANCE_ADMIN=0, ..., NONE=6).
-        return roles.stream().min(Comparator.comparingInt(Enum::ordinal)).orElse(null);
+        return roles.stream().min(ROLE_BY_TIER).orElse(null);
     }
 
     private static void validateProjectRole(Role role) throws ValidationException {

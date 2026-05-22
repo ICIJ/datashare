@@ -557,6 +557,21 @@ public class CliAppProjectDispatchTest {
     }
 
     @Test
+    public void test_handleProjectGrant_returns_1_on_runtime_exception() throws Exception {
+        ProjectAdminService service = mock(ProjectAdminService.class);
+        when(service.grant("demeter", "promera", org.icij.datashare.policies.Role.PROJECT_ADMIN))
+                .thenThrow(new RuntimeException("casbin kapow"));
+        Properties props = new Properties();
+        props.setProperty(PROJECT_GRANT_OPT, "demeter");
+        props.setProperty(PROJECT_GRANT_USER_OPT, "promera");
+        props.setProperty(PROJECT_GRANT_ROLE_OPT, "admin");
+
+        assertThat(CliApp.handleProjectGrant(service, props)).isEqualTo(1);
+        assertThat(stderr.toString()).contains("runtime:");
+        assertThat(stderr.toString()).contains("casbin kapow");
+    }
+
+    @Test
     public void test_handleProjectRevoke_with_yes_skips_confirm_and_emits_text() throws Exception {
         ProjectAdminService service = mock(ProjectAdminService.class);
         when(service.revoke("demeter", "promera"))
@@ -673,6 +688,23 @@ public class CliAppProjectDispatchTest {
         assertThat(CliApp.handleProjectRevoke(service, props, alwaysDecliningConfirm())).isEqualTo(3);
     }
 
+    @Test
+    public void test_handleProjectRevoke_returns_1_on_runtime_exception() throws Exception {
+        ProjectAdminService service = mock(ProjectAdminService.class);
+        when(service.revoke("demeter", "promera"))
+                .thenThrow(new RuntimeException("casbin kapow"));
+        Properties props = new Properties();
+        props.setProperty(PROJECT_REVOKE_OPT, "demeter");
+        props.setProperty(PROJECT_REVOKE_USER_OPT, "promera");
+        props.setProperty(PROJECT_REVOKE_YES_OPT, "true");
+
+        assertThat(CliApp.handleProjectRevoke(service, props, alwaysDecliningConfirm())).isEqualTo(1);
+        assertThat(stderr.toString()).contains("runtime:");
+        assertThat(stderr.toString()).contains("casbin kapow");
+    }
+
+    // y/N flavour: used by handleProjectRevoke (Prompter.confirm reads one line from stdin).
+    // The non-Confirm variants above are for handleProjectDelete's typed-name promptString.
     private static java.util.function.Supplier<Prompter> alwaysDecliningConfirm() {
         return () -> new Prompter(
                 new java.io.BufferedReader(new java.io.StringReader("n\n")),
