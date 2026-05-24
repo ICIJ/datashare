@@ -31,3 +31,9 @@ work
 
 # Devenv Properties File
 datashare-devenv.properties
+
+# Local worktrees (kc-swarm orchestration)
+.worktrees/
+
+# Local swarm runtime state
+.claude-flow/
