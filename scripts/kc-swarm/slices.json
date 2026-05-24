@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 1,
+  "vault": "/home/dev/Obsidian/Datashare",
+  "repos": {
+    "datashare":        { "path": "/home/dev/Repositories/datashare",        "commit": "4cc8b4fae" },
+    "datashare-client": { "path": "/home/dev/Repositories/datashare-client", "commit": "b323bd75c" },
+    "datashare-docs":   { "path": "/home/dev/Repositories/datashare-docs",   "commit": "d94877a1b" }
+  },
+  "slices": [
+    { "id": "api-core",       "repo": "datashare",        "paths": ["datashare-api/src/main/java/org/icij/datashare/"],                                                                                       "sourceSlug": "source-datashare-api",         "softCap": 12 },
+    { "id": "db-schema",      "repo": "datashare",        "paths": ["datashare-db/src/main/", "datashare-db/src/main/resources/liquibase/changelog/"],                                                        "sourceSlug": "source-datashare-db",          "softCap": 12 },
+    { "id": "index-es",       "repo": "datashare",        "paths": ["datashare-index/src/main/java/", "datashare-index/src/main/resources/"],                                                                "sourceSlug": "source-datashare-index",       "softCap": 15 },
+    { "id": "app-rest",       "repo": "datashare",        "paths": ["datashare-app/src/main/java/org/icij/datashare/web/"],                                                                                  "sourceSlug": "source-datashare-app-rest",    "softCap": 15 },
+    { "id": "tasks",          "repo": "datashare",        "paths": ["datashare-tasks/src/main/java/"],                                                                                                       "sourceSlug": "source-datashare-tasks",       "softCap": 12 },
+    { "id": "cli",            "repo": "datashare",        "paths": ["datashare-cli/src/main/", "datashare-app/src/main/java/org/icij/datashare/mode/"],                                                       "sourceSlug": "source-datashare-cli",         "softCap": 10 },
+    { "id": "nlp",            "repo": "datashare",        "paths": ["datashare-nlp-corenlp/src/main/"],                                                                                                      "sourceSlug": "source-datashare-nlp",         "softCap": 8  },
+
+    { "id": "client-api",     "repo": "datashare-client", "paths": ["src/api/"],                                                                                                                              "sourceSlug": "source-client-api",            "softCap": 10 },
+    { "id": "client-stores",  "repo": "datashare-client", "paths": ["src/store/"],                                                                                                                            "sourceSlug": "source-client-stores",         "softCap": 15 },
+    { "id": "client-views",   "repo": "datashare-client", "paths": ["src/views/", "src/router/"],                                                                                                             "sourceSlug": "source-client-views",          "softCap": 12 },
+    { "id": "doc-viewer",     "repo": "datashare-client", "paths": ["src/components/Document/", "src/components/Document/DocumentViewer/", "src/components/Document/DocumentViewerModal/"],                  "sourceSlug": "source-client-doc-viewer",     "softCap": 12 },
+    { "id": "search-ui",      "repo": "datashare-client", "paths": ["src/components/Search/", "src/components/Filter/"],                                                                                      "sourceSlug": "source-client-search-ui",      "softCap": 12 },
+    { "id": "insights",       "repo": "datashare-client", "paths": ["src/components/Widget/"],                                                                                                                "sourceSlug": "source-client-insights",       "softCap": 10 },
+    { "id": "core-plugins",   "repo": "datashare-client", "paths": ["src/core/", "src/mixins/", "src/composables/", "src/directives/", "src/mode/"],                                                          "sourceSlug": "source-client-core-plugins",   "softCap": 10 },
+
+    { "id": "docs-local",     "repo": "datashare-docs",   "paths": ["local-mode/"],                                                                                                                           "sourceSlug": "source-docs-local",            "softCap": 8  },
+    { "id": "docs-server",    "repo": "datashare-docs",   "paths": ["server-mode/"],                                                                                                                          "sourceSlug": "source-docs-server",           "softCap": 10 },
+    { "id": "docs-usage",     "repo": "datashare-docs",   "paths": ["usage/"],                                                                                                                                "sourceSlug": "source-docs-usage",            "softCap": 12 },
+    { "id": "docs-dev",       "repo": "datashare-docs",   "paths": ["developers/"],                                                                                                                           "sourceSlug": "source-docs-dev",              "softCap": 10 },
+    { "id": "docs-concepts",  "repo": "datashare-docs",   "paths": ["concepts/"],                                                                                                                             "sourceSlug": "source-docs-concepts",         "softCap": 8  },
+
+    { "id": "overview",       "repo": "datashare",        "paths": ["README.md"],                                                                                                                             "sourceSlug": "source-overview",              "softCap": 8,  "extraReads": ["/home/dev/Repositories/datashare-client/README.md", "/home/dev/Repositories/datashare-client/AGENTS.md", "/home/dev/Repositories/datashare-docs/README.md", "/home/dev/Repositories/datashare-docs/SUMMARY.md"], "extraSyntheses": ["project-datashare"] },
+    { "id": "openapi",        "repo": "datashare",        "paths": [],                                                                                                                                        "sourceSlug": "source-openapi",               "softCap": 6,  "extraSyntheses": ["rest-api-catalog"], "fetch": { "url": "https://github.com/ICIJ/datashare/releases/latest/download/datashare_openapi.json", "to": "scripts/kc-swarm/.cache/datashare_openapi.json" } }
+  ],
+  "dedup": {
+    "embeddingsThreshold": 0.85,
+    "namespaceDiscovery": "kc-discovery",
+    "namespaceWrite": "kc-write",
+    "namespaceDeltas": "kc-deltas",
+    "namespaceMerge": "kc-merge"
+  },
+  "limits": {
+    "perWorkerInputTokens": 30000,
+    "perWorkerOutputTokens": 10000,
+    "queenInputTokens": 50000,
+    "queenOutputTokens": 5000
+  }
+}
