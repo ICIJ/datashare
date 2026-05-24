@@ -37,3 +37,5 @@ datashare-devenv.properties
 
 # Local swarm runtime state
 .claude-flow/
+.swarm/
+ruvector.db
