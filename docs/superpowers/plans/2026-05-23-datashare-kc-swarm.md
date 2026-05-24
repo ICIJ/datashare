@@ -6,7 +6,9 @@
 
 **Architecture:** Two-phase hierarchical swarm (discover then write, queen-merged) per `docs/superpowers/specs/2026-05-23-datashare-kc-swarm-design.md`. Orchestration artifacts (slice manifest, prompt templates, runbook) live under `scripts/kc-swarm/` in this repo. Workers are spawned via `mcp__ruflo__agent_spawn`; shared state lives in `mcp__ruflo__memory_store` namespaces; queen runs dedup, write coordination, and merge. **Execution isolation:** plan runs in a datashare-repo worktree on branch `kc-swarm/2026-05-23`; each write-phase worker writes into its own private vault worktree on branch `ingest/<slice-id>-2026-05-23`, with queen merging all 21 vault branches into a single `ingest/2026-05-23-full-sweep` branch before applying deltas and rebuilding `index.md`/`log.md`.
 
-**Tech Stack:** RuFlo MCP tools (`swarm_init`, `agent_spawn`, `memory_store`, `embeddings_search`, `hive_mind_init`), JSON for slice manifest, markdown for prompts, `jq` for manifest validation, git worktrees for parallel-write isolation, git for vault checkpointing.
+**Tech Stack:** Claude Code's native `Agent` tool for worker execution (it has Read/Grep/Write/Edit on the host filesystem); RuFlo MCP tools (`memory_store`, `embeddings_search`, `hive_mind_init`, `claims_board`) for shared cross-worker state, dedup, and merge coordination; JSON for slice manifest, markdown for prompts, `jq` for manifest validation, git worktrees for parallel-write isolation, git for vault checkpointing.
+
+**Execution mode (Hybrid):** Ruflo's `agent_spawn`/`agent_execute` is plain Anthropic Messages API with no tool loop; it cannot Read host files. We therefore spawn each of the 21 workers (and the two queens) via Claude Code's `Agent` tool with subagent_type `general-purpose`. Ruflo's MCP server provides the coordination overlay (memory, embeddings, hive-mind, claims). Wherever this plan or the runbook says `mcp__ruflo__agent_spawn`, treat it as a notation for "spawn via Agent with the rendered prompt as the `prompt` field." Memory/embeddings/hive-mind/claims calls remain via ruflo MCP as written.
 
 ---
 
