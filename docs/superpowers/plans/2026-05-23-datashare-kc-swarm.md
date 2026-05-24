@@ -4,9 +4,9 @@
 
 **Goal:** Build and execute a 21-worker RuFlo swarm that ingests datashare, datashare-client, and datashare-docs into the Karpathy LLM-Wiki at `~/Obsidian/Datashare/`.
 
-**Architecture:** Two-phase hierarchical swarm (discover then write, queen-merged) per `docs/superpowers/specs/2026-05-23-datashare-kc-swarm-design.md`. Orchestration artifacts (slice manifest, prompt templates, runbook) live under `scripts/kc-swarm/` in this repo. Workers are spawned via `mcp__ruflo__agent_spawn`; shared state lives in `mcp__ruflo__memory_store` namespaces; queen runs dedup, write coordination, and merge.
+**Architecture:** Two-phase hierarchical swarm (discover then write, queen-merged) per `docs/superpowers/specs/2026-05-23-datashare-kc-swarm-design.md`. Orchestration artifacts (slice manifest, prompt templates, runbook) live under `scripts/kc-swarm/` in this repo. Workers are spawned via `mcp__ruflo__agent_spawn`; shared state lives in `mcp__ruflo__memory_store` namespaces; queen runs dedup, write coordination, and merge. **Execution isolation:** plan runs in a datashare-repo worktree on branch `kc-swarm/2026-05-23`; each write-phase worker writes into its own private vault worktree on branch `ingest/<slice-id>-2026-05-23`, with queen merging all 21 vault branches into a single `ingest/2026-05-23-full-sweep` branch before applying deltas and rebuilding `index.md`/`log.md`.
 
-**Tech Stack:** RuFlo MCP tools (`swarm_init`, `agent_spawn`, `memory_store`, `embeddings_search`, `hive_mind_init`), JSON for slice manifest, markdown for prompts, `jq` for manifest validation, git for vault checkpointing.
+**Tech Stack:** RuFlo MCP tools (`swarm_init`, `agent_spawn`, `memory_store`, `embeddings_search`, `hive_mind_init`), JSON for slice manifest, markdown for prompts, `jq` for manifest validation, git worktrees for parallel-write isolation, git for vault checkpointing.
 
 ---
 
@@ -41,6 +41,24 @@ Datashare/
 ```
 
 The plan is split into five phases (Phase A builds the artifacts; B validates; C-E execute). Each phase has bite-sized tasks; commit after each phase.
+
+## Worktree layout (dual)
+
+**Orchestration worktree** (already created before Phase A):
+
+```
+/home/dev/Repositories/datashare/.worktrees/kc-swarm   on branch  kc-swarm/2026-05-23
+```
+
+All Phase A artifact creation (slices.json, prompts, runbook) happens here. The branch merges back into `main` at the end of the run.
+
+**Vault worktrees** (one per write-phase worker, created at start of Phase D):
+
+```
+/home/dev/Obsidian-kc-worktrees/<slice-id>             on branch  ingest/<slice-id>-2026-05-23
+```
+
+Each of the 21 write-phase workers writes ONLY to its own worktree's `Datashare/wiki/` subtree. Workers never read or write outside their assigned worktree. Queen consolidates the 21 branches into `ingest/2026-05-23-full-sweep` on the main vault checkout at the start of Phase E (Pass 0 of merge). All 22 worktrees (1 orchestration + 21 vault) get cleaned up at the very end.
 
 ---
 
@@ -305,7 +323,7 @@ git commit -m "feat(kc-swarm): add discovery phase worker prompt"
 ```markdown
 # Worker prompt: write phase
 
-You are KC worker `{{SLICE_ID}}`, one of 21 in a hierarchical RuFlo swarm performing the **write phase** of an ingest into the Karpathy LLM-Wiki at `/home/dev/Obsidian/Datashare`.
+You are KC worker `{{SLICE_ID}}`, one of 21 in a hierarchical RuFlo swarm performing the **write phase** of an ingest into the Karpathy LLM-Wiki.
 
 ## Your slice (unchanged from discovery)
 
@@ -313,6 +331,13 @@ You are KC worker `{{SLICE_ID}}`, one of 21 in a hierarchical RuFlo swarm perfor
 - Repo: `{{REPO_PATH}}` pinned at commit `{{REPO_COMMIT}}`
 - Paths to read: `{{PATHS_JSON}}`
 - Source page slug to write: `{{SOURCE_SLUG}}`
+
+## Your private vault worktree
+
+- **You write ONLY here:** `{{WORKTREE_PATH}}/Datashare/wiki/`
+- Worktree branch: `ingest/{{SLICE_ID}}-2026-05-23`
+- This is your private workspace. Other workers have their own; queen will merge all 21 into a single ingest branch at the end of the run.
+- You MUST NOT read or write outside `{{WORKTREE_PATH}}/Datashare/wiki/`. The queen will refuse to merge a worktree that has touched anything else.
 
 ## Your assignment (NEW: produced by queen dedup)
 
@@ -356,7 +381,7 @@ updated: {{TODAY}}
 For each `owned` slug:
 
 1. Read the slice files in depth for that topic.
-2. Write `wiki/{type}/<slug>.md` with frontmatter as above.
+2. Write `{{WORKTREE_PATH}}/Datashare/wiki/<type>/<slug>.md` with frontmatter as above.
 3. Body structure:
    - H1 = the page title in human-readable form (e.g. `# Document (ES parent type)`).
    - One sentence under H1: a definition. Not "this page describes...". The definition itself.
@@ -392,13 +417,14 @@ memory_store({
 
 For your source page:
 
-1. Write `wiki/sources/{{SOURCE_SLUG}}.md`.
+1. Write `{{WORKTREE_PATH}}/Datashare/wiki/sources/{{SOURCE_SLUG}}.md`.
 2. Body: one paragraph naming the slice (repo + paths + commit), then a bulleted list of every entity/concept/synthesis slug derived from this slice (each as a `[[wiki-link]]`).
 
 ## What you do NOT do in this phase
 
 - Do NOT write to `index.md` or `log.md`. The queen builds those in merge phase.
-- Do NOT write outside `/home/dev/Obsidian/Datashare/wiki/`.
+- Do NOT write outside `{{WORKTREE_PATH}}/Datashare/wiki/`.
+- Do NOT run git commands inside the worktree. Queen handles all git operations.
 - Do NOT spawn other agents.
 - Do NOT modify another worker's owned page; emit a delta instead.
 - Do NOT call `Bash` or `WebFetch`.
@@ -536,7 +562,33 @@ git commit -m "feat(kc-swarm): add queen dedup prompt with allocation report"
 ```markdown
 # Queen prompt: merge phase
 
-You are the queen of a 21-worker RuFlo swarm. Phase 2 (write) just completed. You run four ordered passes alone (no workers spawned in this phase).
+You are the queen of a 21-worker RuFlo swarm. Phase 2 (write) just completed. You run five ordered passes alone (no workers spawned in this phase). Each of the 21 workers wrote to its own private vault worktree on branch `ingest/<slice-id>-2026-05-23`. Your first job is consolidating them.
+
+## Pass 0: consolidate 21 worktrees into one ingest branch
+
+```
+# 0.1 Per-worktree commit (workers leave files unstaged in their worktree)
+For each slice in slices.json:
+  WT=/home/dev/Obsidian-kc-worktrees/<slice-id>
+  cd $WT
+  # Refuse merge if the worker dirtied anything outside Datashare/wiki/
+  dirty_outside=$(git status --porcelain | awk '{print $2}' | grep -v '^Datashare/wiki/' || true)
+  If dirty_outside is non-empty: log "REFUSED: <slice-id> dirtied $dirty_outside" and SKIP this slice.
+  git add Datashare/wiki/
+  git commit -m "ingest from <slice-id>" --allow-empty
+
+# 0.2 Build the consolidated ingest branch in the MAIN vault checkout
+cd /home/dev/Obsidian
+git fetch --multiple .  # not needed; worktrees share .git
+git checkout -B ingest/2026-05-23-full-sweep main
+
+# 0.3 Merge each worker branch in (octopus merge if all clean, else sequential)
+For each slice in slices.json (alphabetical for determinism):
+  git merge --no-ff --no-edit ingest/<slice-id>-2026-05-23
+  If a conflict happens: this is a bug in the assignment map (two workers owned the same file). Abort the merge, log offending files, and HALT. Operator must fix and rerun.
+```
+
+After Pass 0 completes, the main vault checkout is on `ingest/2026-05-23-full-sweep` with every owned page from every worker present and committed. Passes 1-4 below operate on this checkout.
 
 ## Pass 1: apply deltas to owned pages
 
@@ -662,9 +714,15 @@ Operator (a human running an MCP-enabled Claude session) follows these steps in 
 ## Prerequisites
 
 - All three repos cloned at the pinned commits in `scripts/kc-swarm/slices.json`.
-- Vault at `/home/dev/Obsidian/Datashare` is at a clean git state (no uncommitted changes).
+- Vault at `/home/dev/Obsidian/Datashare` is at a clean git state (no uncommitted changes), on branch `main`.
 - `mcp__ruflo__*` tools are available in your MCP client.
 - `./scripts/kc-swarm/validate.sh` exits 0.
+- Orchestration worktree exists at `.worktrees/kc-swarm` on branch `kc-swarm/2026-05-23` (the runbook operator runs from there).
+
+## Worktree pattern (dual)
+
+- **Orchestration worktree:** `.worktrees/kc-swarm` (this repo). All plan artifacts and the runbook live here.
+- **Vault worktrees (per worker):** `/home/dev/Obsidian-kc-worktrees/<slice-id>`, branch `ingest/<slice-id>-2026-05-23`. Created in Phase D step 8.5, destroyed in Phase E cleanup.
 
 ## Phase B: validate
 
@@ -729,7 +787,20 @@ mcp__ruflo__agent_spawn({
 
 ## Phase D: write
 
-9. Spawn 21 write workers in parallel. Same shape as step 4 but with `prompts/worker-write.md` and `phase: "write"`. Each worker also reads `memory_retrieve("kc-write:assignments")` filtered to its slice.
+8.5. Create the 21 vault worktrees on a clean main:
+
+```bash
+cd /home/dev/Obsidian && git status   # expect clean
+mkdir -p /home/dev/Obsidian-kc-worktrees
+VAULT_BASE=$(git -C /home/dev/Obsidian rev-parse HEAD)
+for slice in $(jq -r '.slices[].id' scripts/kc-swarm/slices.json); do
+  git -C /home/dev/Obsidian worktree add \
+    "/home/dev/Obsidian-kc-worktrees/$slice" \
+    -b "ingest/$slice-2026-05-23" "$VAULT_BASE"
+done
+```
+
+9. Spawn 21 write workers in parallel. Same shape as step 4 but with `prompts/worker-write.md` and `phase: "write"`. Each worker spawn passes `WORKTREE_PATH=/home/dev/Obsidian-kc-worktrees/<slice-id>` and reads `memory_retrieve("kc-write:assignments")` filtered to its slice.
 
 10. Wait for all owned-slug done markers:
 
@@ -752,8 +823,9 @@ mcp__ruflo__agent_spawn({
 ```
 
 12. Inspect output:
+- Pass 0: 21 worker commits merged into `ingest/2026-05-23-full-sweep`.
 - Lint report on console.
-- Vault git status should show changes only under `Datashare/wiki/`, `Datashare/index.md`, `Datashare/log.md`, `Datashare/CLAUDE.md`.
+- Vault git status should be clean on `ingest/2026-05-23-full-sweep` (queen committed all changes).
 
 13. Quality sample (operator):
 ```
@@ -762,20 +834,22 @@ ls /home/dev/Obsidian/Datashare/wiki/entities/*.md | shuf | head -5 | xargs -I{}
 
 Check each: H1 + one-sentence definition + at least one citation + frontmatter parses + all `[[links]]` resolve.
 
-14. If quality is acceptable, commit the vault (operator runs this in `~/Obsidian`):
+14. If quality is acceptable, merge the ingest branch to main:
 
 ```bash
 cd /home/dev/Obsidian
-git add Datashare/
-git commit -m "ingest: full-sweep KC populate via 21-worker RuFlo swarm"
+git checkout main
+git merge --no-ff ingest/2026-05-23-full-sweep -m "ingest: full-sweep KC populate via 21-worker RuFlo swarm"
 ```
+
+15. Cleanup: remove the 21 vault worktrees and their merged branches; merge the orchestration branch back to datashare main and remove the orchestration worktree. See plan Task 15 for the exact commands.
 
 ## Failure recovery
 
 - Any worker failed in discovery: rerun step 4 with only the failed slice ids (queen reads existing done markers and skips).
-- Worker failed in write: rerun step 9 with the same trick.
-- Queen merge halted on guard: read its output, fix the issue (typically a stray file outside `wiki/`), rerun.
-- Want a clean restart: delete the relevant `memory_store` namespaces (`kc-discovery`, `kc-write`, `kc-deltas`, `kc-merge`) and `git checkout -- .` inside the vault.
+- Worker failed in write: rerun step 9 with the same trick (the same vault worktree is reused; partial writes are overwritten).
+- Queen merge halted on Pass 0 conflict: this means the assignment map gave two workers the same file. Re-inspect the assignment map, fix the duplicate ownership, respawn the affected workers, rerun queen merge.
+- Want a clean restart: delete the relevant `memory_store` namespaces (`kc-discovery`, `kc-write`, `kc-deltas`, `kc-merge`), remove the 21 vault worktrees with `git worktree remove`, and delete the `ingest/*-2026-05-23` branches.
 
 ## Cost ceiling reminder
 
@@ -969,11 +1043,54 @@ If unhappy entirely: STOP. Reset via the failure-recovery section of `RUN.md`.
 
 ## Phase D: Write
 
+### Task 11a: Create the 21 vault worktrees
+
+**Files:**
+- Read: `scripts/kc-swarm/slices.json`
+- Create (filesystem): 21 directories under `/home/dev/Obsidian-kc-worktrees/`
+
+- [ ] **Step 1: Confirm vault is clean and on main**
+
+```bash
+cd /home/dev/Obsidian && git status && git rev-parse --abbrev-ref HEAD
+```
+
+Expected: clean tree, branch `main`. If dirty, commit or stash before continuing.
+
+- [ ] **Step 2: Create the 21 vault worktrees in one batch**
+
+Run this loop (it reads slice ids from `slices.json` via `jq`):
+
+```bash
+cd /home/dev/Obsidian
+mkdir -p /home/dev/Obsidian-kc-worktrees
+VAULT_BASE=$(git rev-parse HEAD)
+for slice in $(jq -r '.slices[].id' /home/dev/Repositories/datashare/.worktrees/kc-swarm/scripts/kc-swarm/slices.json); do
+  git worktree add "/home/dev/Obsidian-kc-worktrees/$slice" \
+    -b "ingest/$slice-2026-05-23" "$VAULT_BASE"
+done
+git worktree list
+```
+
+Expected last command output: 22 entries (1 main + 21 ingest worktrees), all pointing at the same SHA.
+
+- [ ] **Step 3: Verify each worktree has clean Datashare/wiki/ subtree**
+
+```bash
+for slice in $(jq -r '.slices[].id' /home/dev/Repositories/datashare/.worktrees/kc-swarm/scripts/kc-swarm/slices.json); do
+  cd "/home/dev/Obsidian-kc-worktrees/$slice"
+  status=$(git status --porcelain)
+  if [[ -n "$status" ]]; then echo "DIRTY: $slice"; fi
+done
+```
+
+Expected: no `DIRTY:` lines printed.
+
 ### Task 11: Full write phase
 
 - [ ] **Step 1: Spawn 21 write workers in one parallel batch**
 
-In ONE message with 21 tool calls, spawn each worker with the rendered `worker-write.md` prompt and `phase: "write"`.
+In ONE message with 21 tool calls, spawn each worker with the rendered `worker-write.md` prompt and `phase: "write"`. Crucially, set `WORKTREE_PATH=/home/dev/Obsidian-kc-worktrees/<slice-id>` per worker so each one writes to its own private workspace.
 
 - [ ] **Step 2: Poll for owned-slug completion**
 
@@ -985,25 +1102,30 @@ Expected count: equal to the canonical page count from Task 10 step 4.
 
 - [ ] **Step 3: Spot-check 3 written pages mid-run**
 
-Pick 3 random slugs from the assignment map. For each:
+Pick 3 random slugs from the assignment map. For each, identify which slice owns it (from the assignment map), then read from that slice's worktree:
 
 ```bash
-cat /home/dev/Obsidian/Datashare/wiki/<type>/<slug>.md
+slug=<chosen-slug>; slice=<owning-slice>; type=<entity|concept|synthesis>
+cat /home/dev/Obsidian-kc-worktrees/$slice/Datashare/wiki/$type/$slug.md
 ```
 
 Verify: frontmatter parses, H1 present, one-sentence definition, at least one file-path citation.
 
 If any fail egregiously, halt the run; fix `prompts/worker-write.md`; respawn affected workers.
 
-- [ ] **Step 4: Verify no writes outside wiki/**
+- [ ] **Step 4: Verify no writes outside Datashare/wiki/ in any worktree**
 
 ```bash
-cd /home/dev/Obsidian && git status
+for slice in $(jq -r '.slices[].id' /home/dev/Repositories/datashare/.worktrees/kc-swarm/scripts/kc-swarm/slices.json); do
+  cd "/home/dev/Obsidian-kc-worktrees/$slice"
+  bad=$(git status --porcelain | awk '{print $2}' | grep -v '^Datashare/wiki/' || true)
+  if [[ -n "$bad" ]]; then echo "BAD: $slice touched $bad"; fi
+done
 ```
 
-Expected: only `Datashare/wiki/` paths are dirty. `index.md`, `log.md`, `CLAUDE.md`, and other folders should be unchanged.
+Expected: no `BAD:` lines printed.
 
-If any other path is dirty: `git -C /home/dev/Obsidian checkout -- <offending-path>`, investigate the offending worker via `agent_logs`, tighten the prompt, respawn.
+If any worker dirtied paths outside `Datashare/wiki/`: discard those changes in the offending worktree with `git -C /home/dev/Obsidian-kc-worktrees/<slice> checkout -- <bad-path>`, then investigate via `agent_logs`, tighten the prompt, and respawn just that worker.
 
 ---
 
@@ -1078,18 +1200,32 @@ Re-read the queen output from Task 12 Step 2. Convert the "follow-up flagged" or
 
 ### Task 14: Commit the vault
 
-- [ ] **Step 1: Final git status**
+The queen-merge phase already merged 21 worker branches into `ingest/2026-05-23-full-sweep` and committed `index.md`/`log.md`/`CLAUDE.md` deltas on top of that branch. This task verifies and merges to main.
+
+- [ ] **Step 1: Confirm we are on the ingest branch and clean**
 
 ```bash
-cd /home/dev/Obsidian && git status
+cd /home/dev/Obsidian && git status && git rev-parse --abbrev-ref HEAD
 ```
 
-- [ ] **Step 2: Stage and commit the vault**
+Expected: clean working tree, branch `ingest/2026-05-23-full-sweep`.
+
+- [ ] **Step 2: Inspect the ingest branch diff against main**
 
 ```bash
 cd /home/dev/Obsidian
-git add Datashare/
-git commit -m "ingest: full-sweep KC populate via 21-worker RuFlo swarm
+git log --oneline main..ingest/2026-05-23-full-sweep
+git diff --stat main..ingest/2026-05-23-full-sweep
+```
+
+Expected: 21 worker commits + 1 queen-merge commit. Diff stat lists only paths under `Datashare/`.
+
+- [ ] **Step 3: Merge into main**
+
+```bash
+cd /home/dev/Obsidian
+git checkout main
+git merge --no-ff ingest/2026-05-23-full-sweep -m "ingest: full-sweep KC populate via 21-worker RuFlo swarm
 
 - 21 slices across datashare, datashare-client, datashare-docs
 - <C> canonical pages: <E> entities, <C2> concepts, <S> sources, <Y> syntheses
@@ -1098,22 +1234,67 @@ git commit -m "ingest: full-sweep KC populate via 21-worker RuFlo swarm
 "
 ```
 
-Fill in actual counts from Task 12 Step 2.
+Fill in counts from Task 12 Step 2. Push is left to the operator.
+
+### Task 15: Worktree cleanup
+
+- [ ] **Step 1: Remove the 21 vault worktrees**
+
+```bash
+cd /home/dev/Obsidian
+for slice in $(jq -r '.slices[].id' /home/dev/Repositories/datashare/.worktrees/kc-swarm/scripts/kc-swarm/slices.json); do
+  git worktree remove "/home/dev/Obsidian-kc-worktrees/$slice"
+  # Worker branches were merged into main; safe to delete the refs
+  git branch -d "ingest/$slice-2026-05-23" 2>/dev/null || true
+done
+rmdir /home/dev/Obsidian-kc-worktrees 2>/dev/null
+git worktree list
+```
+
+Expected: only the main vault checkout remains.
+
+- [ ] **Step 2: Optionally delete the consolidated ingest branch (after the merge into main is confirmed)**
+
+```bash
+cd /home/dev/Obsidian
+git branch -d ingest/2026-05-23-full-sweep
+```
+
+- [ ] **Step 3: Merge orchestration worktree branch back into datashare main**
+
+This is run from the datashare repo (operator's main checkout):
+
+```bash
+cd /home/dev/Repositories/datashare
+git checkout main
+git merge --no-ff kc-swarm/2026-05-23 -m "feat(kc-swarm): KC ingest orchestration artifacts + run completed"
+```
+
+- [ ] **Step 4: Remove the orchestration worktree**
+
+```bash
+cd /home/dev/Repositories/datashare
+git worktree remove .worktrees/kc-swarm
+git branch -d kc-swarm/2026-05-23 2>/dev/null || true
+git worktree list
+```
+
+Expected: only the main datashare checkout remains.
 
 ---
 
 ## Acceptance criteria (from spec section 13)
 
-After Task 14, verify all of:
+After Task 14 (merge to main), verify all of:
 
 - [ ] Every slice has a source page in `wiki/sources/`. Count: `ls /home/dev/Obsidian/Datashare/wiki/sources/*.md | wc -l` returns 21.
 - [ ] Assignment map was reviewed at the Task 10 human gate.
-- [ ] Every entity/concept slug in the assignment map exists as a file.
+- [ ] Every entity/concept slug in the assignment map exists as a file on `main`.
 - [ ] `index.md` lists every page in the vault. No `wiki/` file is missing from the index.
 - [ ] `log.md` has exactly one new entry, action = `ingest`, with real counts.
 - [ ] Lint report shows zero dangling `[[links]]`.
 - [ ] Project `CLAUDE.md` source-of-truth section is filled in (no more TBD).
-- [ ] Vault `git status` shows changes only under `Datashare/wiki/`, `Datashare/index.md`, `Datashare/log.md`, `Datashare/CLAUDE.md`.
+- [ ] `git -C /home/dev/Obsidian diff --stat main~1..main` shows changes only under `Datashare/wiki/`, `Datashare/index.md`, `Datashare/log.md`, `Datashare/CLAUDE.md`.
 
 If any fail: do not declare done. Patch via targeted respawn or manual edit, then re-verify.
 
