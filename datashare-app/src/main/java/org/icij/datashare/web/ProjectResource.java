@@ -131,12 +131,15 @@
             return notFoundIfNull(getUserProject((DatashareUser) context.currentUser(), id));
         }
 
-        @Operation(description = "Updates a project",
+        @Operation(description = "Updates a project, or creates it if it does not exist. Creation requires INSTANCE_ADMIN or DOMAIN_ADMIN; PROJECT_ADMIN can only update existing projects.",
                 requestBody = @RequestBody(content = @Content(mediaType = "application/json", schema = @Schema(implementation = Project.class)), required = true)
         )
         @ApiResponse(responseCode = "200", description = "if project has been updated")
-        @ApiResponse(responseCode = "404", description = "if project doesn't exist in database")
-        @ApiResponse(responseCode = "500", description = "if project json id is not the same as the url id or if save failed")
+        @ApiResponse(responseCode = "201", description = "if project did not exist and has been created")
+        @ApiResponse(responseCode = "400", description = "if `name` is empty or `sourcePath` is null or outside data dir")
+        @ApiResponse(responseCode = "403", description = "if the user lacks PROJECT_ADMIN+ on the project id")
+        @ApiResponse(responseCode = "404", description = "if path id does not match body id, or if existing project is not accessible to the user")
+        @ApiResponse(responseCode = "500", description = "if save failed")
         @Put("/:id")
         @Policy(role = Role.PROJECT_ADMIN, idParam = "id")
         public Payload projectUpdate(String id, Project projectPayload, Context context) {
