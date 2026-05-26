@@ -394,6 +394,34 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
         put("/api/project/foo", body).withPreemptiveAuthentication("john", "pass").should().respond(403);
     }
 
+    @Test
+    public void test_put_update_still_requires_user_access() {
+        PropertiesProvider propertiesProvider = new PropertiesProvider(new HashMap<>() {{
+            put("mode", Mode.SERVER.name());
+            put("dataDir", "/my-dir");
+        }});
+        ProjectResource projectResource = new ProjectResource(repository, indexer, taskManager, propertiesProvider, documentCollectionFactory);
+
+        // jane is INSTANCE_ADMIN so policy check passes, but getUserProject must still gate the update branch
+        DatashareUser jane = new DatashareUser(localUser("jane"));
+        authorizer.addRoleForUserInInstance(jane, Role.INSTANCE_ADMIN);
+        PolicyAnnotation policyAnnotation = new PolicyAnnotation(authorizer);
+
+        configure(routes -> {
+            BasicAuthFilter basicAuthFilter = new BasicAuthFilter("/", "icij", DatashareUser.singleUser(jane));
+            routes.filter(basicAuthFilter).registerAroundAnnotation(Policy.class, policyAnnotation).add(new PolicyResource(authorizer, repository)).add(projectResource);
+        });
+
+        // project EXISTS in repo, but jane does NOT have it in her project list
+        Project existingFoo = new Project("foo", Path.of("/my-dir/foo"));
+        when(repository.getProject("foo")).thenReturn(existingFoo);
+        when(repository.getProjects(any())).thenReturn(new ArrayList<>()); // jane sees no projects
+        when(repository.save((Project) any())).thenReturn(true);
+
+        String body = "{ \"name\": \"foo\", \"sourcePath\": \"/my-dir/foo\"}";
+        put("/api/project/foo", body).withPreemptiveAuthentication("jane", "pass").should().respond(404);
+    }
+
 
     @Test
     public void test_is_allowed() {
