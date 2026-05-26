@@ -113,8 +113,7 @@ public final class Authorizer {
     }
 
     public boolean updateRoleForUserInDomain(User user, Role role, Domain domain) {
-        // Remove existing role if present, then ensure the new role is added
-        deleteRoleForUserInDomain(user, role, domain);
+        enforcer.removeFilteredGroupingPolicy(0, user.id, "", domainSepProject(domain, "*"));
         return addRoleForUserInDomain(user, role, domain);
     }
 
@@ -138,8 +137,7 @@ public final class Authorizer {
     }
 
     public boolean updateRoleForUserInProject(User user, Role role, Domain domain, Project project) {
-        // Remove existing role if present, then ensure the new role is added
-        deleteRoleForUserInProject(user, role, domain, project);
+        enforcer.removeFilteredGroupingPolicy(0, user.id, "", domainSepProject(domain, project.getId()));
         return addRoleForUserInProject(user, role, domain, project);
     }
 

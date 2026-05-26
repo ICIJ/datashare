@@ -100,6 +100,24 @@ public class AuthorizerTest {
     }
 
     @Test
+    public void test_update_role_for_user_in_project_replaces_existing_role() {
+        authorizer.addRoleForUserInProject(user, Role.PROJECT_MEMBER, domain, project);
+        authorizer.updateRoleForUserInProject(user, Role.PROJECT_EDITOR, domain, project);
+        List<String> roles = authorizer.getRolesForUserInProject(user, domain, project);
+        assertThat(roles).hasSize(1);
+        assertThat(roles).contains(Role.PROJECT_EDITOR.name());
+    }
+
+    @Test
+    public void test_update_role_for_user_in_domain_replaces_existing_role() {
+        authorizer.addRoleForUserInDomain(user, Role.DOMAIN_ADMIN, domain);
+        authorizer.updateRoleForUserInDomain(user, Role.PROJECT_ADMIN, domain);
+        List<String> roles = authorizer.getRolesForUserInDomain(user, domain);
+        assertThat(roles).hasSize(1);
+        assertThat(roles).contains(Role.PROJECT_ADMIN.name());
+    }
+
+    @Test
     public void test_get_roles_for_user_in_project() {
         List<String> roles = authorizer.getRolesForUserInProject(user, domain, project);
         assertNotNull(roles);
