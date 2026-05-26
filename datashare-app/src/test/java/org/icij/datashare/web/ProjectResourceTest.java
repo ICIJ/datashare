@@ -233,6 +233,15 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
                 .contain("\"sourcePath\":\"file:///vault/foo\"");
     }
 
+    @Test
+    public void test_put_create_returns_400_when_source_path_outside_data_dir() {
+        when(repository.getProjects(any())).thenReturn(new ArrayList<>());
+        when(repository.getProject("foo")).thenReturn(null);
+
+        String body = "{ \"name\": \"foo\", \"label\": \"Foo\", \"sourcePath\": \"/etc/passwd\"}";
+        put("/api/project/foo", body).should().respond(400);
+    }
+
     @Before
     public void setUp() throws IOException {
         initMocks(this);
