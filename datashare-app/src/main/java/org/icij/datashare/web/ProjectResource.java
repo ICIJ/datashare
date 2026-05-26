@@ -143,25 +143,30 @@
             if (isProjectNameEmpty(projectPayload)) {
                 return PayloadFormatter.error("`name` field is required.", HttpStatus.BAD_REQUEST);
             }
-            //check if the current user has access to the requested project
-            DatashareUser user = (DatashareUser) context.currentUser();
-            Project project = getUserProject(user, id);
-            if (project == null || !Objects.equals(projectPayload.getId(), id) || !projectExists(projectPayload)) {
-                return PayloadFormatter.error("Project not found", HttpStatus.NOT_FOUND);
+            if (!Objects.equals(projectPayload.getId(), id)) {
+                return PayloadFormatter.error("Project id mismatch.", HttpStatus.NOT_FOUND);
             }
-
             if (isProjectSourcePathNull(projectPayload) || !dataDirVerifier.allowed(projectPayload.getSourcePath())) {
                 return PayloadFormatter.error(String.format("`sourcePath` is required and must not be outside %s.", dataDirVerifier.value()), HttpStatus.BAD_REQUEST);
             }
 
+            if (!projectExists(projectPayload)) {
+                if (!repository.save(projectPayload) || !createIndexOnce(projectPayload.getId())) {
+                    return PayloadFormatter.error("Unable to create the project", HttpStatus.INTERNAL_SERVER_ERROR);
+                }
+                return new Payload(projectPayload).withCode(HttpStatus.CREATED);
+            }
+
+            DatashareUser user = (DatashareUser) context.currentUser();
+            if (getUserProject(user, id) == null) {
+                return PayloadFormatter.error("Project not found", HttpStatus.NOT_FOUND);
+            }
             if (!repository.save(projectPayload)) {
                 return PayloadFormatter.error("Unable to save the project", HttpStatus.INTERNAL_SERVER_ERROR);
             }
 
             return new Payload(projectPayload).withCode(HttpStatus.OK);
         }
-
-
 
         @Operation(description = "Deletes the project from database and elasticsearch index.",
                 parameters = {@Parameter(name = "id", description = "project id")}

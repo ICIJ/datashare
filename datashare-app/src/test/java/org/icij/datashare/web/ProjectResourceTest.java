@@ -219,6 +219,20 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
                 .contain("\"sourcePath\":\"file:///vault/newFoo/test\"");
     }
 
+    @Test
+    public void test_put_creates_project_when_it_does_not_exist() throws IOException {
+        when(repository.getProjects(any())).thenReturn(new ArrayList<>());
+        when(repository.getProject("foo")).thenReturn(null);
+        when(repository.save((Project) any())).thenReturn(true);
+        when(indexer.createIndex("foo")).thenReturn(true);
+
+        String body = "{ \"name\": \"foo\", \"label\": \"Foo\", \"sourcePath\": \"/vault/foo\"}";
+        put("/api/project/foo", body).should().respond(201)
+                .contain("\"name\":\"foo\"")
+                .contain("\"label\":\"Foo\"")
+                .contain("\"sourcePath\":\"file:///vault/foo\"");
+    }
+
     @Before
     public void setUp() throws IOException {
         initMocks(this);
