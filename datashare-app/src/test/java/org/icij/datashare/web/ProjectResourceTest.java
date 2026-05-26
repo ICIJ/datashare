@@ -242,6 +242,15 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
         put("/api/project/foo", body).should().respond(400);
     }
 
+    @Test
+    public void test_put_create_returns_400_when_name_empty() {
+        when(repository.getProjects(any())).thenReturn(new ArrayList<>());
+        when(repository.getProject("foo")).thenReturn(null);
+
+        String body = "{ \"name\": \"\", \"label\": \"Foo\", \"sourcePath\": \"/vault/foo\"}";
+        put("/api/project/foo", body).should().respond(400);
+    }
+
     @Before
     public void setUp() throws IOException {
         initMocks(this);
