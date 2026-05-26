@@ -419,7 +419,7 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
         when(repository.save((Project) any())).thenReturn(true);
 
         String body = "{ \"name\": \"foo\", \"sourcePath\": \"/my-dir/foo\"}";
-        put("/api/project/foo", body).withPreemptiveAuthentication("jane", "pass").should().respond(404);
+        put("/api/project/foo", body).withPreemptiveAuthentication("jane", "pass").should().respond(404).contain("Project not found");
     }
 
 
