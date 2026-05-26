@@ -251,6 +251,16 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
         put("/api/project/foo", body).should().respond(400);
     }
 
+    @Test
+    public void test_put_returns_404_when_body_id_does_not_match_path_id() {
+        when(repository.getProjects(any())).thenReturn(new ArrayList<>());
+        when(repository.getProject("foo")).thenReturn(null);
+
+        // path id is "foo", body id is "bar"
+        String body = "{ \"name\": \"bar\", \"label\": \"Bar\", \"sourcePath\": \"/vault/bar\"}";
+        put("/api/project/foo", body).should().respond(404);
+    }
+
     @Before
     public void setUp() throws IOException {
         initMocks(this);
