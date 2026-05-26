@@ -239,7 +239,7 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
         when(repository.getProject("foo")).thenReturn(null);
 
         String body = "{ \"name\": \"foo\", \"label\": \"Foo\", \"sourcePath\": \"/etc/passwd\"}";
-        put("/api/project/foo", body).should().respond(400);
+        put("/api/project/foo", body).should().respond(400).contain("sourcePath");
     }
 
     @Test
@@ -248,7 +248,7 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
         when(repository.getProject("foo")).thenReturn(null);
 
         String body = "{ \"name\": \"\", \"label\": \"Foo\", \"sourcePath\": \"/vault/foo\"}";
-        put("/api/project/foo", body).should().respond(400);
+        put("/api/project/foo", body).should().respond(400).contain("name");
     }
 
     @Test
@@ -258,7 +258,7 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
 
         // path id is "foo", body id is "bar"
         String body = "{ \"name\": \"bar\", \"label\": \"Bar\", \"sourcePath\": \"/vault/bar\"}";
-        put("/api/project/foo", body).should().respond(404);
+        put("/api/project/foo", body).should().respond(404).contain("mismatch");
     }
 
     @Before
