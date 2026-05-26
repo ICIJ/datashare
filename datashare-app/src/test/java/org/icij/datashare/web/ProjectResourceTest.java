@@ -371,6 +371,29 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
                 .contain("\"name\":\"foo\"");
     }
 
+    @Test
+    public void test_put_create_in_server_mode_forbidden_for_project_admin_of_other_project() {
+        PropertiesProvider propertiesProvider = new PropertiesProvider(new HashMap<>() {{
+            put("mode", Mode.SERVER.name());
+            put("dataDir", "/my-dir");
+        }});
+        ProjectResource projectResource = new ProjectResource(repository, indexer, taskManager, propertiesProvider, documentCollectionFactory);
+
+        // grant PROJECT_ADMIN on "bar", then PUT to "foo" (which does not exist)
+        User john = mockUser("john", "bar", Role.PROJECT_ADMIN);
+        PolicyAnnotation policyAnnotation = new PolicyAnnotation(authorizer);
+
+        configure(routes -> {
+            BasicAuthFilter basicAuthFilter = new BasicAuthFilter("/", "icij", DatashareUser.singleUser(john));
+            routes.filter(basicAuthFilter).registerAroundAnnotation(Policy.class, policyAnnotation).add(new PolicyResource(authorizer, repository)).add(projectResource);
+        });
+
+        when(repository.getProject("foo")).thenReturn(null);
+
+        String body = "{ \"name\": \"foo\", \"sourcePath\": \"/my-dir/foo\"}";
+        put("/api/project/foo", body).withPreemptiveAuthentication("john", "pass").should().respond(403);
+    }
+
 
     @Test
     public void test_is_allowed() {
