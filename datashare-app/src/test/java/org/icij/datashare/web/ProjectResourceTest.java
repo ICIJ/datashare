@@ -342,6 +342,35 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
         put("/api/project/foo", body).withPreemptiveAuthentication("elios", "pass").should().respond(403);
     }
 
+    @Test
+    public void test_put_create_in_server_mode_by_instance_admin() throws IOException {
+        String projectId = "foo";
+        PropertiesProvider propertiesProvider = new PropertiesProvider(new HashMap<>() {{
+            put("mode", Mode.SERVER.name());
+            put("dataDir", "/my-dir");
+        }});
+
+        ProjectResource projectResource = new ProjectResource(repository, indexer, taskManager, propertiesProvider, documentCollectionFactory);
+
+        DatashareUser jane = new DatashareUser(localUser("jane"));
+        authorizer.addRoleForUserInInstance(jane, Role.INSTANCE_ADMIN);
+        PolicyAnnotation policyAnnotation = new PolicyAnnotation(authorizer);
+
+        configure(routes -> {
+            BasicAuthFilter basicAuthFilter = new BasicAuthFilter("/", "icij", DatashareUser.singleUser(jane));
+            routes.filter(basicAuthFilter).registerAroundAnnotation(Policy.class, policyAnnotation).add(new PolicyResource(authorizer, repository)).add(projectResource);
+        });
+
+        when(repository.getProjects(any())).thenReturn(new ArrayList<>());
+        when(repository.getProject(projectId)).thenReturn(null);
+        when(repository.save((Project) any())).thenReturn(true);
+        when(indexer.createIndex(projectId)).thenReturn(true);
+
+        String body = "{ \"name\": \"foo\", \"sourcePath\": \"/my-dir/foo\", \"label\": \"Foo\"}";
+        put("/api/project/foo", body).withPreemptiveAuthentication("jane", "pass").should().respond(201)
+                .contain("\"name\":\"foo\"");
+    }
+
 
     @Test
     public void test_is_allowed() {
