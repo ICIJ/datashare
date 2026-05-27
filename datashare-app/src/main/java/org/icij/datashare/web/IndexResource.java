@@ -200,6 +200,18 @@ public class IndexResource {
         }
     }
 
+    @Operation(description = "Cancel an async search. Only the async-search status path (_async_search/<id>) is allowed; any other DELETE is rejected.")
+    @ApiResponse(responseCode = "200", description = "async search cancelled")
+    @ApiResponse(responseCode = "404", description = "async search not found or not owned by the current user")
+    @ApiResponse(responseCode = "405", description = "DELETE is not allowed on non async-search paths")
+    @Delete("/search/:path:")
+    public Payload esDelete(@Parameter(name = "path", description = "elasticsearch path", in = ParameterIn.PATH) final String path, Context context) throws IOException {
+        if (!IndexAccessVerifier.isAsyncSearchStatusPath(path)) {
+            return PayloadFormatter.error("method not allowed", HttpStatus.METHOD_NOT_ALLOWED);
+        }
+        return asyncSearchStatus("DELETE", path, context);
+    }
+
     @Operation(description = "Preflight request with OPTIONS")
     @ApiResponse(responseCode = "200", description = "returns OPTIONS")
     @ApiResponse(responseCode = "400", description = "returns 400 if there is an error from ElasticSearch")

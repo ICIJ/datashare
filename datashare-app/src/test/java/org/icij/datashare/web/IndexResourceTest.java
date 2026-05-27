@@ -383,6 +383,40 @@ public class IndexResourceTest extends AbstractProdWebServerTest {
         assertThat(asyncSearchStore.get(id).isPresent()).isFalse();
     }
 
+    @Test
+    public void test_async_search_cancel_as_owner_removes_record() throws IOException {
+        configure(routes -> routes.add(new IndexResource(indexer, asyncSearchStore, propertiesProvider))
+                .filter(new BasicAuthFilter("/", "icij", twoUsersGrantedTo(es.getIndexName()))));
+        indexer.add(es.getIndexName(), DocumentBuilder.createDoc("doc-cancel-1").build());
+
+        String id = submitAsyncSearchAs("alice", es.getIndexName());
+        assertThat(asyncSearchStore.get(id).isPresent()).isTrue();
+
+        delete("/api/index/search/_async_search/" + urlEncode(id))
+                .withPreemptiveAuthentication("alice", "").should().respond(200);
+        assertThat(asyncSearchStore.get(id).isPresent()).isFalse();
+    }
+
+    @Test
+    public void test_async_search_cancel_as_other_user_returns_404() throws IOException {
+        configure(routes -> routes.add(new IndexResource(indexer, asyncSearchStore, propertiesProvider))
+                .filter(new BasicAuthFilter("/", "icij", twoUsersGrantedTo(es.getIndexName()))));
+        indexer.add(es.getIndexName(), DocumentBuilder.createDoc("doc-cancel-2").build());
+
+        String id = submitAsyncSearchAs("alice", es.getIndexName());
+        delete("/api/index/search/_async_search/" + urlEncode(id))
+                .withPreemptiveAuthentication("bob", "").should().respond(404);
+        // alice's record is untouched
+        assertThat(asyncSearchStore.get(id).isPresent()).isTrue();
+    }
+
+    @Test
+    public void test_delete_on_non_async_path_still_method_not_allowed() {
+        configure(routes -> routes.add(new IndexResource(indexer, asyncSearchStore, propertiesProvider))
+                .filter(new LocalUserFilter(propertiesProvider, jooqRepository, es.getIndexNames())));
+        delete("/api/index/search/foo/bar").should().respond(405);
+    }
+
     @Before
     public void setUp() {
         initMocks(this);
