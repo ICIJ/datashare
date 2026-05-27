@@ -13,6 +13,9 @@ import net.codestory.http.misc.Env;
 import net.codestory.http.routes.Routes;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Repository;
+import org.icij.datashare.asyncsearch.AsyncSearchStore;
+import org.icij.datashare.asyncsearch.MemoryAsyncSearchStore;
+import org.icij.datashare.asyncsearch.RedisAsyncSearchStore;
 import org.icij.datashare.asynctasks.*;
 import org.icij.datashare.asynctasks.temporal.TemporalInterlocutor;
 import org.icij.datashare.batch.BatchSearchRepository;
@@ -287,6 +290,14 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
         return switch (getQueueType(propertiesProvider, QUEUE_TYPE_OPT, DEFAULT_QUEUE_TYPE)) {
             case MEMORY -> new MemoryDocumentCollectionFactory<>(propertiesProvider);
             case REDIS, AMQP, TEMPORAL -> new RedisDocumentCollectionFactory<>(propertiesProvider, get(RedissonClient.class));
+        };
+    }
+
+    @Provides @Singleton
+    AsyncSearchStore provideAsyncSearchStore(final PropertiesProvider propertiesProvider) {
+        return switch (getQueueType(propertiesProvider, QUEUE_TYPE_OPT, DEFAULT_QUEUE_TYPE)) {
+            case MEMORY -> new MemoryAsyncSearchStore();
+            case REDIS, AMQP, TEMPORAL -> new RedisAsyncSearchStore(get(RedissonClient.class));
         };
     }
 

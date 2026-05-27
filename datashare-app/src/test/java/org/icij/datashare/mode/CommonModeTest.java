@@ -3,6 +3,8 @@ package org.icij.datashare.mode;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
 import org.icij.datashare.PropertiesProvider;
+import org.icij.datashare.asyncsearch.AsyncSearchStore;
+import org.icij.datashare.asyncsearch.MemoryAsyncSearchStore;
 import org.icij.datashare.asynctasks.TaskManager;
 import org.icij.datashare.asynctasks.TaskModifier;
 import org.icij.datashare.asynctasks.TaskSupplier;
@@ -95,5 +97,14 @@ public class CommonModeTest {
             put("authUsersProvider", "org.icij.UnknownClass");
         }});
         assertThat(mode.get(UsersWritable.class)).isInstanceOf(UsersInDb.class);
+    }
+
+    @Test
+    public void test_async_search_store_is_memory_in_memory_mode() {
+        Injector injector = Guice.createInjector(CommonMode.create(new HashMap<>() {{
+            put("mode", Mode.LOCAL.name());
+            put("queueType", QueueType.MEMORY.name());
+        }}));
+        assertThat(injector.getInstance(AsyncSearchStore.class)).isInstanceOf(MemoryAsyncSearchStore.class);
     }
 }
