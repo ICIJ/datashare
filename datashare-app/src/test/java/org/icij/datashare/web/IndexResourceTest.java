@@ -4,7 +4,9 @@ import co.elastic.clients.elasticsearch._types.Refresh;
 import net.codestory.http.filters.basic.BasicAuthFilter;
 import net.codestory.http.security.Users;
 import org.icij.datashare.PropertiesProvider;
+import org.icij.datashare.asyncsearch.MemoryAsyncSearchStore;
 import org.icij.datashare.db.JooqRepository;
+import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.session.DatashareUser;
 import org.icij.datashare.session.LocalUserFilter;
 import org.icij.datashare.test.ElasticsearchRule;
@@ -17,12 +19,15 @@ import org.junit.ClassRule;
 import org.junit.Test;
 import org.mockito.Mock;
 
+import net.codestory.rest.Response;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static org.fest.assertions.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 import static org.mockito.MockitoAnnotations.initMocks;
 
@@ -284,6 +289,26 @@ public class IndexResourceTest extends AbstractProdWebServerTest {
         configure(routes -> routes.add(new IndexResource(indexer, serverModeProvider))
                 .filter(new LocalUserFilter(serverModeProvider, jooqRepository, es.getIndexNames())));
         get("/api/index/_cluster/settings").should().respond(403);
+    }
+
+    private final MemoryAsyncSearchStore asyncSearchStore = new MemoryAsyncSearchStore();
+
+    @Test
+    public void test_async_search_submit_records_ownership() throws IOException {
+        configure(routes -> routes.add(new IndexResource(indexer, asyncSearchStore, propertiesProvider))
+                .filter(new BasicAuthFilter("/", "icij", DatashareUser.singleUser("cecile"))));
+        indexer.add("cecile-datashare", DocumentBuilder.createDoc("doc-async-1").build());
+
+        // keep_on_completion=true forces ES to return an id even on a fast/tiny index
+        Response response = post(
+                "/api/index/search/cecile-datashare/_async_search?wait_for_completion_timeout=0&keep_on_completion=true&keep_alive=5m",
+                "{\"query\":{\"match_all\":{}}}")
+                .withPreemptiveAuthentication("cecile", "").response();
+
+        String id = JsonObjectMapper.getMapper().readTree(response.content()).get("id").asText();
+        assertThat(asyncSearchStore.get(id).isPresent()).isTrue();
+        assertThat(asyncSearchStore.get(id).get().userId).isEqualTo("cecile");
+        assertThat(asyncSearchStore.get(id).get().projects).containsExactly("cecile-datashare");
     }
 
     @Before

@@ -1,5 +1,6 @@
 package org.icij.datashare.web;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import io.swagger.v3.oas.annotations.Operation;
@@ -11,13 +12,21 @@ import net.codestory.http.annotations.*;
 import net.codestory.http.constants.HttpStatus;
 import net.codestory.http.payload.Payload;
 import org.icij.datashare.PropertiesProvider;
+import org.icij.datashare.asyncsearch.AsyncSearchOwner;
+import org.icij.datashare.asyncsearch.AsyncSearchStore;
+import org.icij.datashare.asyncsearch.EsDuration;
+import org.icij.datashare.asyncsearch.MemoryAsyncSearchStore;
 import org.icij.datashare.cli.Mode;
+import org.icij.datashare.json.JsonObjectMapper;
+import org.icij.datashare.session.DatashareUser;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.utils.IndexAccessVerifier;
 import org.icij.datashare.utils.ModeVerifier;
 import org.icij.datashare.utils.PayloadFormatter;
 
 import java.io.IOException;
+import java.time.Duration;
+import java.util.List;
 
 import static net.codestory.http.payload.Payload.created;
 import static net.codestory.http.payload.Payload.ok;
@@ -26,12 +35,23 @@ import static net.codestory.http.payload.Payload.ok;
 @Prefix("/api/index")
 public class IndexResource {
     private final Indexer indexer;
+    private final AsyncSearchStore asyncSearchStore;
     private final ModeVerifier modeVerifier;
+    private final Duration defaultKeepAlive;
 
     @Inject
-    public IndexResource(Indexer indexer, PropertiesProvider propertiesProvider) {
+    public IndexResource(Indexer indexer, AsyncSearchStore asyncSearchStore, PropertiesProvider propertiesProvider) {
         this.indexer = indexer;
+        this.asyncSearchStore = asyncSearchStore;
         this.modeVerifier = new ModeVerifier(propertiesProvider);
+        this.defaultKeepAlive = EsDuration.parse(
+                propertiesProvider.get("asyncSearchKeepAlive").orElse("5m"), Duration.ofMinutes(5));
+    }
+
+    // Backwards-compatible constructor used by existing tests; defaults to an
+    // in-memory ownership store.
+    public IndexResource(Indexer indexer, PropertiesProvider propertiesProvider) {
+        this(indexer, new MemoryAsyncSearchStore(), propertiesProvider);
     }
 
     @Operation(description = "Get Elasticsearch cluster info (root endpoint). Only available in LOCAL and EMBEDDED modes.")
@@ -93,16 +113,34 @@ public class IndexResource {
             - index_name1,index_name2/_count
             - index_name/doc/_search
             - index_name1,index_name2/doc/_search
+            - index_name/_async_search
+            - index_name1,index_name2/_async_search
             """)
     @ApiResponse(responseCode = "200", description = "returns 200")
     @ApiResponse(responseCode = "400", description = "returns 400 if there is an error from ElasticSearch")
     @Post("/search/:path:")
     public Payload esPost(@Parameter(name = "index", description = "elasticsearch path", in = ParameterIn.PATH) final String path, Context context, final net.codestory.http.Request request) throws IOException {
         try {
-            return PayloadFormatter.json(indexer.executeRaw("POST", IndexAccessVerifier.checkPath(path, context), new String(request.contentAsBytes())));
+            String response = indexer.executeRaw("POST", IndexAccessVerifier.checkPath(path, context), new String(request.contentAsBytes()));
+            if (IndexAccessVerifier.isAsyncSearchSubmit(path)) {
+                recordAsyncSearchOwnership(path, context, response);
+            }
+            return PayloadFormatter.json(response);
         } catch ( IllegalArgumentException e){
             return PayloadFormatter.error(e, HttpStatus.BAD_REQUEST);
         }
+    }
+
+    private void recordAsyncSearchOwnership(String path, Context context, String esResponse) throws IOException {
+        JsonNode idNode = JsonObjectMapper.getMapper().readTree(esResponse).get("id");
+        if (idNode == null || idNode.isNull()) {
+            return; // search completed within wait_for_completion_timeout: no id, no polling
+        }
+        DatashareUser user = (DatashareUser) context.currentUser();
+        // pathParts[0] was already validated as granted indices by checkPath() above
+        List<String> projects = List.of(path.split("/")[0].split(","));
+        Duration keepAlive = EsDuration.parse(context.get("keep_alive"), defaultKeepAlive);
+        asyncSearchStore.put(idNode.asText(), new AsyncSearchOwner(user.id, projects), keepAlive);
     }
 
     @Operation(description = """
