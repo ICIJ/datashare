@@ -417,6 +417,18 @@ public class IndexResourceTest extends AbstractProdWebServerTest {
         delete("/api/index/search/foo/bar").should().respond(405);
     }
 
+    @Test
+    public void test_async_search_options_advertises_get_and_delete() {
+        configure(routes -> routes.add(new IndexResource(indexer, asyncSearchStore, propertiesProvider))
+                .filter(new LocalUserFilter(propertiesProvider, jooqRepository, es.getIndexNames())));
+        options("/api/index/search/_async_search/some-id").should().respond(200);
+        // The short-circuit must advertise GET/DELETE (set by allowMethods via the
+        // Access-Control-Allow-Methods header), not just return a generic 200.
+        Response response = options("/api/index/search/_async_search/some-id").response();
+        String allowMethods = String.join(",", response.header("Access-Control-Allow-Methods"));
+        assertThat(allowMethods).contains("GET").contains("DELETE");
+    }
+
     @Before
     public void setUp() {
         initMocks(this);
