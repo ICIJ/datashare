@@ -9,6 +9,9 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 import static org.mockito.MockitoAnnotations.initMocks;
 
+import net.codestory.http.errors.ForbiddenException;
+import org.icij.datashare.asynctasks.UnknownTask;
+
 import java.io.IOException;
 import java.util.Date;
 import java.util.HashMap;
@@ -154,6 +157,52 @@ public class TaskFinderTest {
         List<Task<?>> tasks = taskFinder.findVisibleTasksFor(user, TaskFilters.empty()).toList();
         assertThat(tasks).hasSize(1);
         assertThat(tasks.get(0).name).isEqualTo("name");
+    }
+
+    @Test
+    public void test_find_visible_task_for_owner() throws IOException {
+        User user = User.local();
+        Task<String> task = new Task<>("name", user, new HashMap<>());
+        taskManager.startTask(task, null);
+
+        assertThat(taskFinder.findVisibleTaskFor(user, task.id)).isEqualTo(task);
+    }
+
+    @Test(expected = ForbiddenException.class)
+    public void test_find_visible_task_for_non_owner_without_batch_search() throws IOException {
+        User owner = User.localUser("owner");
+        User other = User.localUser("other");
+        Task<String> task = new Task<>("name", owner, new HashMap<>());
+        taskManager.startTask(task, null);
+        when(batchSearchRepository.getRecords(eq(other), anyList())).thenReturn(List.of());
+
+        taskFinder.findVisibleTaskFor(other, task.id);
+    }
+
+    @Test
+    public void test_find_visible_task_for_published_batch_search_in_task_manager() throws IOException {
+        String uri = "/?q=&from=0&size=25&sort=relevance&indices=test&field=all";
+        User owner = User.localUser("owner");
+        User member = User.localUser("member");
+        List<String> projects = List.of("project");
+        BatchSearchRecord publishedRecord = new BatchSearchRecord(
+                UUID.randomUUID().toString(), projects, "name", "description",
+                123, 0, new Date(), BatchSearchRecord.State.RUNNING, uri, owner, 0, true, null, null);
+        // Simulate the batch search task is also live in the task manager (owned by owner)
+        Task<Integer> liveTask = new Task<>(publishedRecord.uuid, "org.icij.datashare.tasks.BatchSearchRunnerProxy", owner, new HashMap<>());
+        taskManager.startTask(liveTask, null);
+        // member belongs to the project, so getRecords returns the published batch search
+        when(batchSearchRepository.getRecords(eq(member), anyList())).thenReturn(List.of(publishedRecord));
+
+        Task<?> result = taskFinder.findVisibleTaskFor(member, publishedRecord.uuid);
+        assertThat(result.id).isEqualTo(publishedRecord.uuid);
+        assertThat(result.getUser()).isEqualTo(owner);
+    }
+
+    @Test(expected = UnknownTask.class)
+    public void test_find_visible_task_for_unknown_id() throws IOException {
+        when(batchSearchRepository.getRecords(any(), anyList())).thenReturn(List.of());
+        taskFinder.findVisibleTaskFor(User.local(), "nonexistent-id");
     }
 
     @After
