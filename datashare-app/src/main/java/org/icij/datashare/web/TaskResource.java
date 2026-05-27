@@ -143,7 +143,7 @@ public class TaskResource {
     @ApiResponse(responseCode = "404", description = "returns 404 if the task doesn't exist")
     @Get("/:id")
     public Task<?> getTask(@Parameter(name = "id", description = "task id", in = ParameterIn.PATH) String id, Context context) throws IOException {
-        return forbiddenIfNotSameUser(context, notFoundIfUnknown(() -> taskFinder.findVisibleTaskFor((User) context.currentUser(), id)));
+        return notFoundIfUnknown(() -> taskFinder.findVisibleTaskFor((User) context.currentUser(), id));
     }
 
     @Operation(description = "Create a task with JSON body",
