@@ -309,6 +309,24 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
     }
 
     @Provides @Singleton
+    Authorizer provideAuthorizer(CasbinRuleAdapter adapter, Provider<RedissonClient> redissonProvider) throws IOException {
+        if (QueueType.REDIS.name().equals(propertiesProvider.get(BUS_TYPE_OPT).orElse(null))) {
+            String redisAddress = propertiesProvider.get("redisAddress").orElse("redis://redis:6379");
+            io.lettuce.core.RedisURI redisUri = io.lettuce.core.RedisURI.create(redisAddress);
+            org.casbin.watcherEx.WatcherOptions options = new org.casbin.watcherEx.WatcherOptions();
+            options.setOptions(redisUri);
+            options.setChannel("datashare:policy-updated");
+            options.setIgnoreSelf(false);
+            org.casbin.watcherEx.RedisWatcherEx watcher = new org.casbin.watcherEx.RedisWatcherEx(options);
+            return new Authorizer(adapter, watcher);
+        }
+        long interval = Long.parseLong(propertiesProvider.get("policyReloadInterval").orElse("0"));
+        Authorizer authorizer = new Authorizer(adapter, interval);
+        addCloseable(authorizer);
+        return authorizer;
+    }
+
+    @Provides @Singleton
     UsersWritable provideUsersWritable(final PropertiesProvider propertiesProvider, final Injector injector) {
         String authUsersProviderClassName = propertiesProvider.get("authUsersProvider").orElse(UsersInDb.class.getName());
         Class<? extends UsersWritable> authUsersProviderClass;
@@ -394,7 +412,6 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
         bind(ApiKeyRepository.class).toInstance(repositoryFactory.createApiKeyRepository());
         bind(BatchSearchRepository.class).toInstance(repositoryFactory.createBatchSearchRepository());
         bind(CasbinRuleAdapter.class).toInstance(repositoryFactory.createCasbinRuleRepository());
-        bind(Authorizer.class);
         bind(UserAdminService.class).to(UserAdminServiceImpl.class).in(Singleton.class);
         bind(ProjectAdminService.class).to(ProjectAdminServiceImpl.class).in(Singleton.class);
 
