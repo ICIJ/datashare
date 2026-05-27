@@ -138,6 +138,7 @@ public final class DatashareCliOptions {
     public static final String TASK_MANAGER_POLLING_INTERVAL_OPT = "taskManagerPollingIntervalMilliseconds";
     public static final String TASK_WORKERS_OPT = "taskWorkers";
     public static final String TASK_PROGRESS_INTERVAL_OPT = "taskProgressUpdateIntervalSeconds";
+    public static final String POLICY_RELOAD_INTERVAL_OPT = "policyReloadInterval";
     // Internal property keys for the CLI -> CliApp dispatch of the user
     // commands. USER_CREATE_OPT and USER_DELETE_OPT carry the login; the
     // .* siblings carry the remaining fields. Typed siblings replaced a
@@ -248,6 +249,7 @@ public final class DatashareCliOptions {
     public static final int DEFAULT_TASK_MANAGER_POLLING_INTERVAL = 5000;
     public static final String DEFAULT_TASK_WORKERS = "1";
     public static final double DEFAULT_TASK_PROGRESS_INTERVAL_SECONDS = 10;
+    public static final int DEFAULT_POLICY_RELOAD_INTERVAL = 30_000;
 
     // A list of aliases for retro-compatibility when an option changed
     public static final Map<String, String> OPT_ALIASES = Map.ofEntries(
@@ -1033,6 +1035,16 @@ public final class DatashareCliOptions {
                 .withRequiredArg()
                 .ofType( String.class )
                 .defaultsTo("datashare-default");
+    }
+
+    static void policyReloadInterval(OptionParser parser) {
+        parser.acceptsAll(
+                        singletonList(POLICY_RELOAD_INTERVAL_OPT),
+                        "Interval in milliseconds to reload Casbin policies from DB (default 30s). " +
+                        "Used as fallback when busType is not REDIS; set to 0 to disable.")
+                .withRequiredArg()
+                .ofType(Integer.class)
+                .defaultsTo(DEFAULT_POLICY_RELOAD_INTERVAL);
     }
 
     public static ValueConverter<String> toAbsolute() {
