@@ -38,4 +38,10 @@ public class EsDurationTest {
         assertThat(EsDuration.parse("banana", fallback)).isEqualTo(fallback);
         assertThat(EsDuration.parse("5", fallback)).isEqualTo(fallback);
     }
+
+    @Test
+    public void test_zero_amount_returns_fallback() {
+        assertThat(EsDuration.parse("0m", fallback)).isEqualTo(fallback);
+        assertThat(EsDuration.parse("0s", fallback)).isEqualTo(fallback);
+    }
 }
