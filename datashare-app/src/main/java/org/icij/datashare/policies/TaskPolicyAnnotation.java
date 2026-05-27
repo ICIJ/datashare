@@ -5,16 +5,18 @@ import net.codestory.http.Context;
 import net.codestory.http.annotations.ApplyAroundAnnotation;
 import net.codestory.http.payload.Payload;
 import org.icij.datashare.asynctasks.Task;
+import org.icij.datashare.asynctasks.TaskManager;
 import org.icij.datashare.asynctasks.UnknownTask;
 import org.icij.datashare.batch.BatchDownload;
 import org.icij.datashare.batch.BatchSearchRecord;
 import org.icij.datashare.session.DatashareUser;
-import org.icij.datashare.asynctasks.TaskManager;
+import org.icij.datashare.text.ProjectProxy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.Serializable;
+import java.util.List;
 import java.util.Objects;
 import java.util.function.Function;
 
@@ -37,32 +39,35 @@ public class TaskPolicyAnnotation implements ApplyAroundAnnotation<TaskPolicy> {
         return Objects.equals(task.getUser(), user);
     }
 
-    private boolean isAllowedSingleTask(Task<Serializable> task, TaskPolicy annotation, DatashareUser user, Domain domain) {
-        boolean isAllowed;
+    private boolean isAllowedForProjects(List<String> projectIds, TaskPolicy annotation, DatashareUser user, Domain domain, Task<Serializable> task) {
+        boolean roleAllowed = projectIds.stream().allMatch(id -> authorizer.can(user.id, domain, id, annotation.role()));
+        boolean ownershipEnabled = annotation.ownerRole() != Role.NONE;
+        boolean ownerAllowed = ownershipEnabled && isTaskOwner(user, task)
+                && projectIds.stream().allMatch(id -> authorizer.can(user.id, domain, id, annotation.ownerRole()));
+        return roleAllowed || ownerAllowed;
+    }
 
+    private boolean isAllowedSingleTask(Task<Serializable> task, TaskPolicy annotation, DatashareUser user, Domain domain) {
         Object batchSearchRecord = task.args.get("batchRecord");
         Object batchDownload = task.args.get("batchDownload");
-        if (batchSearchRecord instanceof BatchSearchRecord) {
+        if (batchSearchRecord instanceof BatchSearchRecord bsr) {
             // BatchSearches are linked to multiple projects
-            isAllowed = ((BatchSearchRecord) batchSearchRecord).projects.stream().allMatch(p -> authorizer.can(user.id, domain, p.getId(), annotation.role()));
-        } else if (batchDownload instanceof BatchDownload) {
+            return isAllowedForProjects(bsr.projects.stream().map(ProjectProxy::getId).toList(), annotation, user, domain, task);
+        } else if (batchDownload instanceof BatchDownload bd) {
             // BatchDownloads are linked to multiple projects
-            isAllowed = ((BatchDownload) batchDownload).projects.stream().allMatch(p -> authorizer.can(user.id, domain, p.getId(), annotation.role()));
+            return isAllowedForProjects(bd.projects.stream().map(ProjectProxy::getId).toList(), annotation, user, domain, task);
         } else {
             // Tasks are linked to ONE project at a time
             String projectId = ofNullable((String) task.args.get(DEFAULT_PROJECT_OPT))
                     .orElseThrow(() -> new IllegalStateException("Task " + task.id + " does not have a project id in its arguments"));
             Authorizer.requireValue(projectId, false);
             // Check if user as role based rights or is owner with access rights (if ownerRole is specified)
-            isAllowed = authorizer.can(user.id, domain, projectId, annotation.role());
-
+            boolean isAllowed = authorizer.can(user.id, domain, projectId, annotation.role());
             boolean ownershipEnabled = annotation.ownerRole() != Role.NONE;
             boolean canAsOwner = authorizer.can(user.id, domain, projectId, annotation.ownerRole());
-            boolean hasOwnerRole = ownershipEnabled && canAsOwner && isTaskOwner(user, task); //
-
-            isAllowed = isAllowed || hasOwnerRole;
+            boolean hasOwnerRole = ownershipEnabled && canAsOwner && isTaskOwner(user, task);
+            return isAllowed || hasOwnerRole;
         }
-        return isAllowed;
     }
 
     @Override
