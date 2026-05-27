@@ -12,7 +12,6 @@ import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.asynctasks.TaskFilters;
 import org.icij.datashare.asynctasks.TaskManagerMemory;
 import org.icij.datashare.asynctasks.TaskRepositoryMemory;
-import java.util.concurrent.CountDownLatch;
 import org.icij.datashare.asynctasks.bus.amqp.TaskCreation;
 import org.icij.datashare.batch.BatchSearchRecord;
 import org.icij.datashare.batch.BatchSearchRepository;
@@ -43,6 +42,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.InetSocketAddress;
 import java.util.*;
+import java.util.concurrent.CountDownLatch;
 
 import static java.lang.String.format;
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -112,6 +112,16 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         taskManager.stopTask(taskIdOfOtherUser);
         // The test setup will make the request come from local user different from "differentUser"
         get("/api/task/"+taskIdOfOtherUser).should().respond(403);
+    }
+
+    @Test
+    public void test_get_task_for_published_batch_search_owned_by_different_user() {
+        BatchSearchRecord publishedRecord = new BatchSearchRecord(
+                UUID.randomUUID().toString(), List.of("project"), "name", "description",
+                123, 123, new Date(), BatchSearchRecord.State.SUCCESS, "/",
+                User.localUser("differentUser"), 0, true, null, null);
+        when(batchSearchRepository.getRecords(any(), any())).thenReturn(List.of(publishedRecord));
+        get("/api/task/" + publishedRecord.uuid).should().respond(200);
     }
 
     @Test

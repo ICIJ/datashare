@@ -2,21 +2,15 @@ package org.icij.datashare.tasks;
 
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
+import net.codestory.http.errors.ForbiddenException;
 import org.icij.datashare.Entity;
-import org.icij.datashare.asynctasks.Task;
-import org.icij.datashare.asynctasks.TaskFilters;
-import org.icij.datashare.asynctasks.TaskManager;
-import org.icij.datashare.asynctasks.TaskResult;
-import org.icij.datashare.asynctasks.UnknownTask;
+import org.icij.datashare.asynctasks.*;
 import org.icij.datashare.batch.BatchSearchRecord;
 import org.icij.datashare.batch.BatchSearchRepository;
 import org.icij.datashare.user.User;
 
 import java.io.IOException;
-import java.util.EnumMap;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Stream;
 
 import static java.util.stream.Collectors.toMap;
@@ -91,7 +85,9 @@ public class TaskFinder {
      */
     public Task<?> findVisibleTaskFor(User user, String id) throws IOException {
         try {
-            return taskManager.getTask(id);
+            Task<?> task = taskManager.getTask(id);
+            if (!Objects.equals(task.getUser(), user)) throw new ForbiddenException();
+            return task;
         } catch (UnknownTask e) {
             return batchSearchRepository.getRecords(user, user.getProjectNames())
                     .stream()
