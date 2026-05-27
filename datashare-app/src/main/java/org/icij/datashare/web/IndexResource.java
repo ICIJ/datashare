@@ -212,11 +212,17 @@ public class IndexResource {
         return asyncSearchStatus("DELETE", path, context);
     }
 
-    @Operation(description = "Preflight request with OPTIONS")
-    @ApiResponse(responseCode = "200", description = "returns OPTIONS")
+    @Operation(description = "Preflight request with OPTIONS. For an async-search status path (_async_search/<id>) it returns Allow: OPTIONS, GET, DELETE without forwarding to Elasticsearch.")
+    @ApiResponse(responseCode = "200", description = "returns OPTIONS (or OPTIONS, GET, DELETE for an async-search status path)")
     @ApiResponse(responseCode = "400", description = "returns 400 if there is an error from ElasticSearch")
     @Options("/search/:path:")
     public Payload esOptions(final String index, final String path, Context context) throws IOException {
+        // For OPTIONS on "_async_search/<id>", net.codestory puts the whole splat in
+        // `index` and leaves `path` empty, so fall back to `index` in that case.
+        String effectivePath = (path != null && !path.isEmpty()) ? path : index;
+        if (effectivePath != null && IndexAccessVerifier.isAsyncSearchStatusPath(effectivePath)) {
+            return PayloadFormatter.allowMethods("OPTIONS", "GET", "DELETE");
+        }
         try {
             IndexAccessVerifier.checkIndices(index);
             return PayloadFormatter.allowMethods(indexer.executeRaw("OPTIONS", path, null));
