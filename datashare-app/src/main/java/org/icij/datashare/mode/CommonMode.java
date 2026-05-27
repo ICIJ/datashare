@@ -322,7 +322,9 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
             // ignoreSelf=false: writing instance also gets notified and reloads — harmless since policy is fresh
             options.setIgnoreSelf(false);
             RedisWatcherEx watcher = new RedisWatcherEx(options);
-            return new Authorizer(adapter, watcher);
+            Authorizer authorizer = new Authorizer(adapter, watcher);
+            addCloseable(authorizer);  // stopAutoLoadPolicy is no-op but lifecycle is consistent
+            return authorizer;
         }
         long interval = Long.parseLong(propertiesProvider.get("policyReloadInterval").orElse("0"));
         Authorizer authorizer = new Authorizer(adapter, interval);

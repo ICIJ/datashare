@@ -3,6 +3,7 @@ package org.icij.datashare.policies;
 import net.codestory.http.Context;
 import net.codestory.http.errors.UnauthorizedException;
 import org.casbin.jcasbin.persist.Watcher;
+import org.casbin.jcasbin.persist.WatcherEx;
 import org.icij.datashare.policies.errors.InvalidValueException;
 import org.icij.datashare.policies.errors.UnknownRoleException;
 import org.icij.datashare.session.DatashareUser;
@@ -386,12 +387,17 @@ public class AuthorizerTest {
     @Test
     public void test_watcher_is_notified_on_policy_mutation() throws Exception {
         CasbinRuleAdapter adapter = Mockito.mock(CasbinRuleAdapter.class);
-        Watcher mockWatcher = Mockito.mock(Watcher.class);
+        WatcherEx mockWatcher = Mockito.mock(WatcherEx.class);
         Authorizer watchedAuthorizer = new Authorizer(adapter, mockWatcher);
 
         watchedAuthorizer.addRoleForUserInProject(user, Role.PROJECT_MEMBER, domain, project);
 
-        verify(mockWatcher, atLeastOnce()).update();
+        verify(mockWatcher, atLeastOnce()).updateForAddPolicy(
+                org.mockito.ArgumentMatchers.anyString(),
+                org.mockito.ArgumentMatchers.anyString(),
+                org.mockito.ArgumentMatchers.anyString(),
+                org.mockito.ArgumentMatchers.anyString(),
+                org.mockito.ArgumentMatchers.anyString());
     }
 
     @Test
