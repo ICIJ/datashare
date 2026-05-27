@@ -27,6 +27,9 @@ import org.icij.datashare.utils.PayloadFormatter;
 import java.io.IOException;
 import java.time.Duration;
 import java.util.List;
+import java.util.Optional;
+import org.apache.http.util.EntityUtils;
+import org.elasticsearch.client.ResponseException;
 
 import static net.codestory.http.payload.Payload.created;
 import static net.codestory.http.payload.Payload.ok;
@@ -153,9 +156,47 @@ public class IndexResource {
     @Get("/search/:path:")
     public Payload esGet(@Parameter(name = "path", description = "elasticsearch path", in = ParameterIn.PATH) final String path, Context context) throws IOException {
         try {
+            if (IndexAccessVerifier.isAsyncSearchStatusPath(path)) {
+                return asyncSearchStatus("GET", path, context);
+            }
             return PayloadFormatter.json(indexer.executeRaw("GET", IndexAccessVerifier.checkPath(path, context), ""));
         } catch (IllegalArgumentException e){
             return PayloadFormatter.error(e, HttpStatus.BAD_REQUEST);
+        }
+    }
+
+    private Payload asyncSearchStatus(String method, String path, Context context) throws IOException {
+        String id = IndexAccessVerifier.asyncSearchId(path);
+        DatashareUser user = (DatashareUser) context.currentUser();
+        Optional<AsyncSearchOwner> owner = asyncSearchStore.get(id);
+        if (owner.isEmpty()) {
+            return PayloadFormatter.error("async search not found", HttpStatus.NOT_FOUND);
+        }
+        AsyncSearchOwner record = owner.get();
+        if (!record.userId.equals(user.id) || !record.projects.stream().allMatch(user::isGranted)) {
+            return PayloadFormatter.error("async search not found", HttpStatus.NOT_FOUND);
+        }
+        try {
+            String response = indexer.executeRaw(method, withQueryParams(path, context), null);
+            if ("DELETE".equalsIgnoreCase(method)) {
+                asyncSearchStore.remove(id);
+            } else {
+                Duration keepAlive = EsDuration.parse(context.get("keep_alive"), null);
+                if (keepAlive != null) {
+                    asyncSearchStore.refresh(id, keepAlive);
+                }
+            }
+            return PayloadFormatter.json(response);
+        // Deliberate: this endpoint is an ES proxy, so we translate the ES low-level
+        // client's ResponseException into the same HTTP status/body rather than a 500.
+        } catch (ResponseException e) {
+            int status = e.getResponse().getStatusLine().getStatusCode();
+            if (status == HttpStatus.NOT_FOUND) {
+                asyncSearchStore.remove(id); // ES dropped it before our record expired
+            }
+            String body = e.getResponse().getEntity() != null
+                    ? EntityUtils.toString(e.getResponse().getEntity()) : "";
+            return PayloadFormatter.json(body).withCode(status);
         }
     }
 

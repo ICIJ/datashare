@@ -311,6 +311,78 @@ public class IndexResourceTest extends AbstractProdWebServerTest {
         assertThat(asyncSearchStore.get(id).get().projects).containsExactly("cecile-datashare");
     }
 
+    private net.codestory.http.security.Users twoUsersGrantedTo(String index) {
+        DatashareUser alice = new DatashareUser(org.icij.datashare.user.User.localUser("alice", index));
+        DatashareUser bob = new DatashareUser(org.icij.datashare.user.User.localUser("bob", index));
+        return new net.codestory.http.security.Users() {
+            @Override public net.codestory.http.security.User find(String login, String pass) { return find(login); }
+            @Override public net.codestory.http.security.User find(String login) {
+                if ("alice".equals(login)) return alice;
+                if ("bob".equals(login)) return bob;
+                return null;
+            }
+        };
+    }
+
+    private String submitAsyncSearchAs(String login, String index) throws IOException {
+        Response response = post(
+                "/api/index/search/%s/_async_search?wait_for_completion_timeout=0&keep_on_completion=true&keep_alive=5m".formatted(index),
+                "{\"query\":{\"match_all\":{}}}")
+                .withPreemptiveAuthentication(login, "").response();
+        return JsonObjectMapper.getMapper().readTree(response.content()).get("id").asText();
+    }
+
+    private String urlEncode(String value) {
+        return java.net.URLEncoder.encode(value, java.nio.charset.StandardCharsets.UTF_8);
+    }
+
+    @Test
+    public void test_async_search_poll_as_owner_returns_result() throws IOException {
+        configure(routes -> routes.add(new IndexResource(indexer, asyncSearchStore, propertiesProvider))
+                .filter(new BasicAuthFilter("/", "icij", twoUsersGrantedTo(es.getIndexName()))));
+        indexer.add(es.getIndexName(), DocumentBuilder.createDoc("doc-poll-1").build());
+
+        String id = submitAsyncSearchAs("alice", es.getIndexName());
+        get("/api/index/search/_async_search/" + urlEncode(id))
+                .withPreemptiveAuthentication("alice", "").should()
+                .respond(200).contain("\"is_running\"");
+    }
+
+    @Test
+    public void test_async_search_poll_as_other_user_returns_404() throws IOException {
+        configure(routes -> routes.add(new IndexResource(indexer, asyncSearchStore, propertiesProvider))
+                .filter(new BasicAuthFilter("/", "icij", twoUsersGrantedTo(es.getIndexName()))));
+        indexer.add(es.getIndexName(), DocumentBuilder.createDoc("doc-poll-2").build());
+
+        String id = submitAsyncSearchAs("alice", es.getIndexName());
+        get("/api/index/search/_async_search/" + urlEncode(id))
+                .withPreemptiveAuthentication("bob", "").should().respond(404);
+    }
+
+    @Test
+    public void test_async_search_poll_unknown_id_returns_404() {
+        configure(routes -> routes.add(new IndexResource(indexer, asyncSearchStore, propertiesProvider))
+                .filter(new BasicAuthFilter("/", "icij", twoUsersGrantedTo(es.getIndexName()))));
+        get("/api/index/search/_async_search/does-not-exist")
+                .withPreemptiveAuthentication("alice", "").should().respond(404);
+    }
+
+    @Test
+    public void test_async_search_poll_after_es_expiry_returns_404_and_cleans_up() throws IOException {
+        configure(routes -> routes.add(new IndexResource(indexer, asyncSearchStore, propertiesProvider))
+                .filter(new BasicAuthFilter("/", "icij", twoUsersGrantedTo(es.getIndexName()))));
+        indexer.add(es.getIndexName(), DocumentBuilder.createDoc("doc-poll-3").build());
+
+        String id = submitAsyncSearchAs("alice", es.getIndexName());
+        // Drop it directly on ES, leaving the ownership record behind so the
+        // proxy's GET hits an ES 404 (the store-vs-ES divergence case).
+        indexer.executeRaw("DELETE", "_async_search/" + id, null);
+
+        get("/api/index/search/_async_search/" + urlEncode(id))
+                .withPreemptiveAuthentication("alice", "").should().respond(404);
+        assertThat(asyncSearchStore.get(id).isPresent()).isFalse();
+    }
+
     @Before
     public void setUp() {
         initMocks(this);
