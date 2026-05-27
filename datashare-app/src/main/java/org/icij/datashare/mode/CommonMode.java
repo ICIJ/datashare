@@ -4,6 +4,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.inject.*;
 import com.google.inject.Module;
 import com.google.inject.assistedinject.FactoryModuleBuilder;
+import io.lettuce.core.RedisURI;
+import org.casbin.watcherEx.RedisWatcherEx;
+import org.casbin.watcherEx.WatcherOptions;
 import net.codestory.http.Configuration;
 import net.codestory.http.annotations.Get;
 import net.codestory.http.annotations.Prefix;
@@ -309,15 +312,16 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
     }
 
     @Provides @Singleton
-    Authorizer provideAuthorizer(CasbinRuleAdapter adapter, Provider<RedissonClient> redissonProvider) throws IOException {
+    Authorizer provideAuthorizer(CasbinRuleAdapter adapter) throws IOException {
         if (QueueType.REDIS.name().equals(propertiesProvider.get(BUS_TYPE_OPT).orElse(null))) {
-            String redisAddress = propertiesProvider.get("redisAddress").orElse("redis://redis:6379");
-            io.lettuce.core.RedisURI redisUri = io.lettuce.core.RedisURI.create(redisAddress);
-            org.casbin.watcherEx.WatcherOptions options = new org.casbin.watcherEx.WatcherOptions();
+            String redisAddress = propertiesProvider.get(REDIS_ADDRESS_OPT).orElse(DEFAULT_REDIS_ADDRESS);
+            RedisURI redisUri = RedisURI.create(redisAddress);
+            WatcherOptions options = new WatcherOptions();
             options.setOptions(redisUri);
             options.setChannel("datashare:policy-updated");
+            // ignoreSelf=false: writing instance also gets notified and reloads — harmless since policy is fresh
             options.setIgnoreSelf(false);
-            org.casbin.watcherEx.RedisWatcherEx watcher = new org.casbin.watcherEx.RedisWatcherEx(options);
+            RedisWatcherEx watcher = new RedisWatcherEx(options);
             return new Authorizer(adapter, watcher);
         }
         long interval = Long.parseLong(propertiesProvider.get("policyReloadInterval").orElse("0"));
