@@ -84,20 +84,23 @@ public class TaskFinder {
      * @throws IOException if an I/O error occurs while fetching batch search records
      */
     public Task<?> findVisibleTaskFor(User user, String id) throws IOException {
-        boolean foundInManager = false;
-        try {
-            Task<?> task = taskManager.getTask(id);
-            if (Objects.equals(task.getUser(), user)) return task;
-            foundInManager = true;
-        } catch (UnknownTask ignored) {
-            // not in task manager, fall through to batch search check
+        Optional<Task<?>> managed = getTaskFromManager(id);
+        if (managed.filter(t -> Objects.equals(t.getUser(), user)).isPresent()) {
+            return managed.get();
         }
-        Optional<BatchSearchRecord> record = batchSearchRepository.getRecords(user, user.getProjectNames())
-                .stream()
+        return batchSearchRepository.getRecords(user, user.getProjectNames()).stream()
                 .filter(r -> r.uuid.equals(id))
-                .findFirst();
-        if (record.isPresent()) return taskify(record.get());
-        throw foundInManager ? new ForbiddenException() : new UnknownTask(id);
+                .findFirst()
+                .map(TaskFinder::taskify)
+                .orElseThrow(() -> managed.isPresent() ? new ForbiddenException() : new UnknownTask(id));
+    }
+
+    private Optional<Task<?>> getTaskFromManager(String id) throws IOException {
+        try {
+            return Optional.of(taskManager.getTask(id));
+        } catch (UnknownTask e) {
+            return Optional.empty();
+        }
     }
 
     private static Task<Integer> taskify(BatchSearchRecord batchSearchRecord) {
