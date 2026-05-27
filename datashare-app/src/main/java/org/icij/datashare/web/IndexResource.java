@@ -127,14 +127,7 @@ public class IndexResource {
     @Post("/search/:path:")
     public Payload esPost(@Parameter(name = "index", description = "elasticsearch path", in = ParameterIn.PATH) final String path, Context context, final net.codestory.http.Request request) throws IOException {
         try {
-            String esUrl = IndexAccessVerifier.checkPath(path, context);
-            String keepAlive = context.get("keep_alive");
-            if (IndexAccessVerifier.isAsyncSearchSubmit(path) && (keepAlive == null || keepAlive.isEmpty())) {
-                // Keep ES's result lifetime in lockstep with our ownership record: when the client
-                // omits keep_alive, inject our default so ES doesn't retain the search for its
-                // multi-day default while our record expires in minutes.
-                esUrl += (esUrl.contains("?") ? "&" : "?") + "keep_alive=" + defaultKeepAliveParam;
-            }
+            String esUrl = withInjectedKeepAlive(IndexAccessVerifier.checkPath(path, context), path, context);
             String response = indexer.executeRaw("POST", esUrl, new String(request.contentAsBytes()));
             if (IndexAccessVerifier.isAsyncSearchSubmit(path)) {
                 recordAsyncSearchOwnership(path, context, response);
@@ -145,16 +138,36 @@ public class IndexResource {
         }
     }
 
+    // Keep ES's result lifetime in lockstep with our ownership record: when an async-search submit
+    // omits keep_alive, ES would otherwise retain the result for its multi-day default while our
+    // record expires in minutes. Injecting our default keeps the two on the same schedule.
+    private String withInjectedKeepAlive(String esUrl, String path, Context context) {
+        boolean isSubmitWithoutKeepAlive = IndexAccessVerifier.isAsyncSearchSubmit(path)
+                && isBlank(context.get("keep_alive"));
+        if (!isSubmitWithoutKeepAlive) {
+            return esUrl;
+        }
+        String parameterSeparator = esUrl.contains("?") ? "&" : "?";
+        return esUrl + parameterSeparator + "keep_alive=" + defaultKeepAliveParam;
+    }
+
+    private static boolean isBlank(String value) {
+        return value == null || value.isEmpty();
+    }
+
     private void recordAsyncSearchOwnership(String path, Context context, String esResponse) throws IOException {
         JsonNode idNode = JsonObjectMapper.getMapper().readTree(esResponse).get("id");
+        // an async submit that completed within wait_for_completion_timeout has no id, so nothing to poll later
         if (idNode == null || idNode.isNull()) {
-            return; // search completed within wait_for_completion_timeout: no id, no polling
+            return;
         }
-        DatashareUser user = (DatashareUser) context.currentUser();
-        // pathParts[0] was already validated as granted indices by checkPath() above
-        List<String> projects = List.of(path.split("/")[0].split(","));
+        DatashareUser submitter = (DatashareUser) context.currentUser();
+        // the first path segment holds the comma-separated indices, already validated as granted by checkPath() above
+        String indexSegment = path.split("/")[0];
+        List<String> grantedProjects = List.of(indexSegment.split(","));
         Duration keepAlive = EsDuration.parse(context.get("keep_alive"), defaultKeepAlive);
-        asyncSearchStore.put(idNode.asText(), new AsyncSearchOwner(user.id, projects), keepAlive);
+        String asyncSearchId = idNode.asText();
+        asyncSearchStore.put(asyncSearchId, new AsyncSearchOwner(submitter.id, grantedProjects), keepAlive);
     }
 
     @Operation(description = """
@@ -183,8 +196,8 @@ public class IndexResource {
         if (owner.isEmpty()) {
             return PayloadFormatter.error("async search not found", HttpStatus.NOT_FOUND);
         }
-        AsyncSearchOwner record = owner.get();
-        if (!record.userId.equals(user.id) || !record.projects.stream().allMatch(user::isGranted)) {
+        AsyncSearchOwner ownerRecord = owner.get();
+        if (!isOwnedByCurrentUser(ownerRecord, user)) {
             return PayloadFormatter.error("async search not found", HttpStatus.NOT_FOUND);
         }
         try {
@@ -209,6 +222,14 @@ public class IndexResource {
                     ? EntityUtils.toString(e.getResponse().getEntity()) : "";
             return PayloadFormatter.json(body).withCode(status);
         }
+    }
+
+    // The current user owns the async search only if they submitted it AND still hold a grant on
+    // every project it spans (a project grant can be revoked between submit and a later poll/cancel).
+    private boolean isOwnedByCurrentUser(AsyncSearchOwner ownerRecord, DatashareUser user) {
+        boolean isSubmitter = ownerRecord.userId.equals(user.id);
+        boolean isStillGrantedAllProjects = ownerRecord.projects.stream().allMatch(user::isGranted);
+        return isSubmitter && isStillGrantedAllProjects;
     }
 
     @Operation(description = "Cancel an async search. Only the async-search status path (_async_search/<id>) is allowed; any other DELETE is rejected.")
