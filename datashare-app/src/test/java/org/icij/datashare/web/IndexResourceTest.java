@@ -456,6 +456,25 @@ public class IndexResourceTest extends AbstractProdWebServerTest {
                 .withPreemptiveAuthentication("cecile", "").should().respond(200).contain("\"is_running\"");
     }
 
+    @Test
+    public void test_async_search_submit_injects_default_keep_alive_when_absent() throws IOException {
+        configure(routes -> routes.add(new IndexResource(indexer, asyncSearchStore, propertiesProvider))
+                .filter(new BasicAuthFilter("/", "icij", DatashareUser.singleUser("cecile"))));
+        indexer.add("cecile-datashare", DocumentBuilder.createDoc("doc-ka-1").build());
+
+        // No keep_alive param: the proxy must inject the default (5m) into the ES request.
+        Response response = post(
+                "/api/index/search/cecile-datashare/_async_search?wait_for_completion_timeout=0&keep_on_completion=true",
+                "{\"query\":{\"match_all\":{}}}")
+                .withPreemptiveAuthentication("cecile", "").response();
+
+        com.fasterxml.jackson.databind.JsonNode root = JsonObjectMapper.getMapper().readTree(response.content());
+        long expiration = root.get("expiration_time_in_millis").asLong();
+        long now = System.currentTimeMillis();
+        // With the 5m default injected, expiration is minutes away; ES's un-injected default is ~5 days.
+        assertThat(expiration - now).isLessThan(java.time.Duration.ofHours(1).toMillis());
+    }
+
     @Before
     public void setUp() {
         initMocks(this);

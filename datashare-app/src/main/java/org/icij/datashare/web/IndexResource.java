@@ -41,14 +41,17 @@ public class IndexResource {
     private final AsyncSearchStore asyncSearchStore;
     private final ModeVerifier modeVerifier;
     private final Duration defaultKeepAlive;
+    private final String defaultKeepAliveParam;
 
     @Inject
     public IndexResource(Indexer indexer, AsyncSearchStore asyncSearchStore, PropertiesProvider propertiesProvider) {
         this.indexer = indexer;
         this.asyncSearchStore = asyncSearchStore;
         this.modeVerifier = new ModeVerifier(propertiesProvider);
-        this.defaultKeepAlive = EsDuration.parse(
-                propertiesProvider.get("asyncSearchKeepAlive").orElse("5m"), Duration.ofMinutes(5));
+        String configuredKeepAlive = propertiesProvider.get("asyncSearchKeepAlive").orElse("5m");
+        Duration parsedKeepAlive = EsDuration.parse(configuredKeepAlive, null);
+        this.defaultKeepAlive = parsedKeepAlive != null ? parsedKeepAlive : Duration.ofMinutes(5);
+        this.defaultKeepAliveParam = parsedKeepAlive != null ? configuredKeepAlive : "5m";
     }
 
     // Backwards-compatible constructor used by existing tests; defaults to an
@@ -124,7 +127,15 @@ public class IndexResource {
     @Post("/search/:path:")
     public Payload esPost(@Parameter(name = "index", description = "elasticsearch path", in = ParameterIn.PATH) final String path, Context context, final net.codestory.http.Request request) throws IOException {
         try {
-            String response = indexer.executeRaw("POST", IndexAccessVerifier.checkPath(path, context), new String(request.contentAsBytes()));
+            String esUrl = IndexAccessVerifier.checkPath(path, context);
+            String keepAlive = context.get("keep_alive");
+            if (IndexAccessVerifier.isAsyncSearchSubmit(path) && (keepAlive == null || keepAlive.isEmpty())) {
+                // Keep ES's result lifetime in lockstep with our ownership record: when the client
+                // omits keep_alive, inject our default so ES doesn't retain the search for its
+                // multi-day default while our record expires in minutes.
+                esUrl += (esUrl.contains("?") ? "&" : "?") + "keep_alive=" + defaultKeepAliveParam;
+            }
+            String response = indexer.executeRaw("POST", esUrl, new String(request.contentAsBytes()));
             if (IndexAccessVerifier.isAsyncSearchSubmit(path)) {
                 recordAsyncSearchOwnership(path, context, response);
             }
