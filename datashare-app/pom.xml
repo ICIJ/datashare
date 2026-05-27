@@ -64,6 +64,11 @@
             <version>1.1.0</version>
         </dependency>
         <dependency>
+            <groupId>org.casbin</groupId>
+            <artifactId>jcasbin</artifactId>
+            <version>1.96.0</version>
+        </dependency>
+        <dependency>
             <groupId>com.optimaize.languagedetector</groupId>
             <artifactId>language-detector</artifactId>
             <version>0.6</version>
