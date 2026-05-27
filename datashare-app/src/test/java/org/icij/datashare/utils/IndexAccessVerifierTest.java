@@ -33,4 +33,29 @@ public class IndexAccessVerifierTest {
             IndexAccessVerifier.checkIndices("bar,foo!");
         });
     }
+
+    @Test
+    public void test_is_async_search_submit() {
+        assertThat(IndexAccessVerifier.isAsyncSearchSubmit("my-index/_async_search")).isTrue();
+        assertThat(IndexAccessVerifier.isAsyncSearchSubmit("a,b/_async_search")).isTrue();
+        assertThat(IndexAccessVerifier.isAsyncSearchSubmit("my-index/_search")).isFalse();
+        assertThat(IndexAccessVerifier.isAsyncSearchSubmit("_async_search/some-id")).isFalse();
+        assertThat(IndexAccessVerifier.isAsyncSearchSubmit("_async_search")).isFalse();
+    }
+
+    @Test
+    public void test_is_async_search_status_path() {
+        assertThat(IndexAccessVerifier.isAsyncSearchStatusPath("_async_search/some-id")).isTrue();
+        assertThat(IndexAccessVerifier.isAsyncSearchStatusPath("_async_search/a/b==")).isTrue();
+        assertThat(IndexAccessVerifier.isAsyncSearchStatusPath("my-index/_async_search")).isFalse();
+        assertThat(IndexAccessVerifier.isAsyncSearchStatusPath("my-index/_search")).isFalse();
+        assertThat(IndexAccessVerifier.isAsyncSearchStatusPath("_async_search")).isFalse();
+    }
+
+    @Test
+    public void test_async_search_id_reconstructs_full_id() {
+        assertThat(IndexAccessVerifier.asyncSearchId("_async_search/abc==")).isEqualTo("abc==");
+        // ES ids may contain slashes; the id is everything after "_async_search/"
+        assertThat(IndexAccessVerifier.asyncSearchId("_async_search/ab/cd==")).isEqualTo("ab/cd==");
+    }
 }
