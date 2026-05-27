@@ -5,6 +5,7 @@ import com.google.inject.Injector;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.asyncsearch.AsyncSearchStore;
 import org.icij.datashare.asyncsearch.MemoryAsyncSearchStore;
+import org.icij.datashare.asyncsearch.RedisAsyncSearchStore;
 import org.icij.datashare.asynctasks.TaskManager;
 import org.icij.datashare.asynctasks.TaskModifier;
 import org.icij.datashare.asynctasks.TaskSupplier;
@@ -106,5 +107,15 @@ public class CommonModeTest {
             put("queueType", QueueType.MEMORY.name());
         }}));
         assertThat(injector.getInstance(AsyncSearchStore.class)).isInstanceOf(MemoryAsyncSearchStore.class);
+    }
+
+    @Test
+    public void test_async_search_store_is_redis_in_redis_mode() {
+        Injector injector = Guice.createInjector(CommonMode.create(new HashMap<>() {{
+            put("mode", Mode.LOCAL.name());
+            put("queueType", QueueType.REDIS.name());
+            put("redisAddress", "redis://redis:6379");
+        }}));
+        assertThat(injector.getInstance(AsyncSearchStore.class)).isInstanceOf(RedisAsyncSearchStore.class);
     }
 }

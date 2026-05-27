@@ -429,6 +429,33 @@ public class IndexResourceTest extends AbstractProdWebServerTest {
         assertThat(allowMethods).contains("GET").contains("DELETE");
     }
 
+    @Test
+    public void test_async_search_submit_records_both_projects_for_multi_index() throws IOException {
+        String idx1 = es.getIndexNames()[1];
+        String idx2 = es.getIndexNames()[2];
+        DatashareUser user = new DatashareUser(new HashMap<>() {{
+            put("uid", "cecile");
+            put("groups_by_applications", Map.of("datashare", List.of(idx1, idx2)));
+        }});
+        configure(routes -> routes.add(new IndexResource(indexer, asyncSearchStore, propertiesProvider))
+                .filter(new BasicAuthFilter("/", "icij", DatashareUser.singleUser(user))));
+        indexer.add(idx1, DocumentBuilder.createDoc("doc-multi-1").build());
+        indexer.add(idx2, DocumentBuilder.createDoc("doc-multi-2").build());
+
+        Response response = post(
+                "/api/index/search/%s,%s/_async_search?wait_for_completion_timeout=0&keep_on_completion=true&keep_alive=5m".formatted(idx1, idx2),
+                "{\"query\":{\"match_all\":{}}}")
+                .withPreemptiveAuthentication("cecile", "").response();
+        String id = JsonObjectMapper.getMapper().readTree(response.content()).get("id").asText();
+
+        assertThat(asyncSearchStore.get(id).isPresent()).isTrue();
+        assertThat(asyncSearchStore.get(id).get().projects).containsExactly(idx1, idx2);
+
+        // owner can poll the multi-index async search
+        get("/api/index/search/_async_search/" + urlEncode(id))
+                .withPreemptiveAuthentication("cecile", "").should().respond(200).contain("\"is_running\"");
+    }
+
     @Before
     public void setUp() {
         initMocks(this);

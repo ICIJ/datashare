@@ -24,6 +24,9 @@ public final class EsDuration {
             return fallback;
         }
         long amount = Long.parseLong(matcher.group(1));
+        if (amount < 1) {
+            return fallback;
+        }
         return switch (matcher.group(2)) {
             case "ms" -> Duration.ofMillis(amount);
             case "s" -> Duration.ofSeconds(amount);
