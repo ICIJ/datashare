@@ -1,6 +1,10 @@
 package org.icij.datashare;
 
 
+import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
+import org.apache.commons.compress.archivers.tar.TarArchiveOutputStream;
+import org.apache.commons.compress.archivers.zip.ZipArchiveEntry;
+import org.apache.commons.compress.archivers.zip.ZipArchiveOutputStream;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -8,6 +12,7 @@ import org.junit.rules.TemporaryFolder;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.URL;
 import java.nio.file.Files;
@@ -327,6 +332,55 @@ public class PluginServiceTest {
         // Then
         assertThat(extensionDir.toPath().resolve("my-extension-1.0.1.jar").toFile()).exists();
         assertThat(pluginFolder.getRoot().toPath().resolve("my-plugin-1.1.0").toFile()).exists();
+    }
+
+    @Test(expected = IOException.class)
+    public void test_install_rejects_zip_slip_entry() throws Exception {
+        File maliciousZip = pluginFolder.newFile("malicious.zip");
+        try (ZipArchiveOutputStream zos = new ZipArchiveOutputStream(maliciousZip)) {
+            ZipArchiveEntry entry = new ZipArchiveEntry("../../evil.txt");
+            zos.putArchiveEntry(entry);
+            zos.write("pwned".getBytes());
+            zos.closeArchiveEntry();
+        }
+        new Plugin(maliciousZip.toURI().toURL())
+                .install(maliciousZip, pluginFolder.getRoot().toPath());
+    }
+
+    @Test(expected = IOException.class)
+    public void test_install_rejects_too_many_entries() throws Exception {
+        File bomb = pluginFolder.newFile("bomb.zip");
+        try (ZipArchiveOutputStream zos = new ZipArchiveOutputStream(bomb)) {
+            for (int i = 0; i <= 10_001; i++) {
+                ZipArchiveEntry entry = new ZipArchiveEntry("file" + i + ".txt");
+                zos.putArchiveEntry(entry);
+                zos.write(new byte[0]);
+                zos.closeArchiveEntry();
+            }
+        }
+        new Plugin(bomb.toURI().toURL())
+                .install(bomb, pluginFolder.getRoot().toPath());
+    }
+
+    @Test(expected = IOException.class)
+    public void test_install_rejects_oversized_entry() throws Exception {
+        File bomb = pluginFolder.newFile("bomb.tar");
+        try (TarArchiveOutputStream tos = new TarArchiveOutputStream(new FileOutputStream(bomb))) {
+            long size = 101L * 1024 * 1024; // just over 100 MB
+            TarArchiveEntry entry = new TarArchiveEntry("huge.bin");
+            entry.setSize(size);
+            tos.putArchiveEntry(entry);
+            byte[] chunk = new byte[8192];
+            long written = 0;
+            while (written < size) {
+                int len = (int) Math.min(chunk.length, size - written);
+                tos.write(chunk, 0, len);
+                written += len;
+            }
+            tos.closeArchiveEntry();
+        }
+        new Plugin(bomb.toURI().toURL())
+                .install(bomb, pluginFolder.getRoot().toPath());
     }
 
 }
