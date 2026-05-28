@@ -201,7 +201,7 @@ public class IndexResource {
             return PayloadFormatter.error("async search not found", HttpStatus.NOT_FOUND);
         }
         try {
-            String response = indexer.executeRaw(method, withQueryParams(path, context), null);
+            String response = indexer.executeRaw(method, IndexAccessVerifier.getUrlString(context, path), null);
             if ("DELETE".equalsIgnoreCase(method)) {
                 asyncSearchStore.remove(id);
             } else {
@@ -275,7 +275,7 @@ public class IndexResource {
         modeVerifier.checkAllowedMode(Mode.LOCAL, Mode.EMBEDDED);
         try {
             String path = IndexAccessVerifier.checkIndices(index) + "/_close";
-            return PayloadFormatter.json(indexer.executeRaw("POST", withQueryParams(path, context), null));
+            return PayloadFormatter.json(indexer.executeRaw("POST", IndexAccessVerifier.getUrlString(context, path), null));
         } catch (IllegalArgumentException e) {
             return PayloadFormatter.error(e, HttpStatus.BAD_REQUEST);
         }
@@ -293,7 +293,7 @@ public class IndexResource {
         modeVerifier.checkAllowedMode(Mode.LOCAL, Mode.EMBEDDED);
         try {
             String path = IndexAccessVerifier.checkIndices(index) + "/_open";
-            return PayloadFormatter.json(indexer.executeRaw("POST", withQueryParams(path, context), null));
+            return PayloadFormatter.json(indexer.executeRaw("POST", IndexAccessVerifier.getUrlString(context, path), null));
         } catch (IllegalArgumentException e) {
             return PayloadFormatter.error(e, HttpStatus.BAD_REQUEST);
         }
@@ -380,7 +380,7 @@ public class IndexResource {
         modeVerifier.checkAllowedMode(Mode.LOCAL, Mode.EMBEDDED);
         String path = "_snapshot/" + repository + "/" + snapshot;
         String body = request.contentAsBytes().length > 0 ? new String(request.contentAsBytes()) : null;
-        return PayloadFormatter.json(indexer.executeRaw("PUT", withQueryParams(path, context), body));
+        return PayloadFormatter.json(indexer.executeRaw("PUT", IndexAccessVerifier.getUrlString(context, path), body));
     }
 
     @Operation(description = "Restore a snapshot. Only available in LOCAL and EMBEDDED modes.")
@@ -397,7 +397,7 @@ public class IndexResource {
         modeVerifier.checkAllowedMode(Mode.LOCAL, Mode.EMBEDDED);
         String path = "_snapshot/" + repository + "/" + snapshot + "/_restore";
         String body = request.contentAsBytes().length > 0 ? new String(request.contentAsBytes()) : null;
-        return PayloadFormatter.json(indexer.executeRaw("POST", withQueryParams(path, context), body));
+        return PayloadFormatter.json(indexer.executeRaw("POST", IndexAccessVerifier.getUrlString(context, path), body));
     }
 
     @Operation(description = "Delete a snapshot. Only available in LOCAL and EMBEDDED modes.")
@@ -438,13 +438,5 @@ public class IndexResource {
     public Payload getClusterSettings() throws IOException {
         modeVerifier.checkAllowedMode(Mode.LOCAL, Mode.EMBEDDED);
         return PayloadFormatter.json(indexer.executeRaw("GET", "_cluster/settings", null));
-    }
-
-    private String withQueryParams(String path, Context context) {
-        String queryString = context.query().keyValues().entrySet().stream()
-                .map(e -> e.getKey() + "=" + e.getValue())
-                .reduce((a, b) -> a + "&" + b)
-                .orElse("");
-        return queryString.isEmpty() ? path : path + "?" + queryString;
     }
 }
