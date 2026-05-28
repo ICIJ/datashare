@@ -169,7 +169,7 @@ public class TaskResource {
     @Operation(description = "Gets task result with its id")
     @ApiResponse(responseCode = "200", description = "returns 200 and the result")
     @ApiResponse(responseCode = "204", description = "returns 204 if there is no result")
-    @ApiResponse(responseCode = "403", description = "returns 403 if the task is not belonging to current user")
+    @ApiResponse(responseCode = "403", description = "returns 403 if the task belongs to another user and is not a published batch search")
     @ApiResponse(responseCode = "404", description = "returns 404 if the task doesn't exist")
     @Get("/:id/result")
     public Payload getTaskResult(@Parameter(name = "id", description = "task id", in = ParameterIn.PATH) String id, Context context) throws IOException {
