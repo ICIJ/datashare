@@ -75,7 +75,7 @@ public class IndexAccessVerifier {
         return areAllIndexesGranted && (isMethodGet || isSearchPath || isCountPath || isAsyncSearchPath);
     }
 
-    static String getUrlString(Context context, String s) {
+    public static String getUrlString(Context context, String s) {
         if (context.query().keyValues().size() > 0) {
             s += "?" + getQueryAsString(context.query());
         }
