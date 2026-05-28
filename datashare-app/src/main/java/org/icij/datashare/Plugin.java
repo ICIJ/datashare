@@ -10,7 +10,6 @@ import org.apache.commons.compress.archivers.ArchiveException;
 import org.apache.commons.compress.archivers.ArchiveInputStream;
 import org.apache.commons.compress.archivers.ArchiveStreamFactory;
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.IOUtils;
 
 import java.io.*;
 import java.net.URL;
@@ -27,6 +26,9 @@ import static org.apache.commons.io.FilenameUtils.getExtension;
 
 public class Plugin extends Extension {
     private static final Pattern versionBeginsWithV = Pattern.compile("v[0-9.]*");
+    private static final int  MAX_ENTRY_COUNT = 10_000;
+    private static final long MAX_ENTRY_SIZE  = 100L * 1024 * 1024;  // 100 MB per entry
+    private static final long MAX_TOTAL_SIZE  = 1024L * 1024 * 1024; // 1 GB total
     public final List<String> extensions;
 
     @JsonCreator
@@ -87,6 +89,10 @@ public class Plugin extends Extension {
         }
         logger.info("installing plugin from file {} into {}", pluginFile, pluginsDir);
 
+        Path canonicalPluginsDir = pluginsDir.toAbsolutePath().normalize();
+        long totalExtractedSize = 0;
+        int entryCount = 0;
+
         InputStream is = new BufferedInputStream(new FileInputStream(pluginFile));
         if (pluginFile.getName().endsWith("gz")) {
             is = new BufferedInputStream(new GZIPInputStream(is));
@@ -94,17 +100,25 @@ public class Plugin extends Extension {
         try (ArchiveInputStream zippedArchiveInputStream = new ArchiveStreamFactory().createArchiveInputStream(is)) {
             ArchiveEntry entry;
             while ((entry = zippedArchiveInputStream.getNextEntry()) != null) {
-                final File outputFile = new File(pluginsDir.toFile(), entry.getName());
+                if (++entryCount > MAX_ENTRY_COUNT) {
+                    throw new IOException("Archive contains too many entries (limit: " + MAX_ENTRY_COUNT + ")");
+                }
+                Path resolvedPath = canonicalPluginsDir.resolve(entry.getName()).normalize();
+                if (!resolvedPath.startsWith(canonicalPluginsDir)) {
+                    throw new IOException("Archive entry escapes target directory: " + entry.getName());
+                }
+                final File outputFile = resolvedPath.toFile();
                 if (entry.isDirectory()) {
-                    if (!outputFile.exists()) {
-                        if (!outputFile.mkdirs()) {
-                            throw new IllegalStateException(String.format("Couldn't create directory %s.", outputFile.getAbsolutePath()));
-                        }
+                    if (!outputFile.exists() && !outputFile.mkdirs()) {
+                        throw new IllegalStateException("Couldn't create directory " + outputFile.getAbsolutePath());
                     }
                 } else {
-                    final OutputStream outputFileStream = new FileOutputStream(outputFile);
-                    IOUtils.copy(zippedArchiveInputStream, outputFileStream);
-                    outputFileStream.close();
+                    try (OutputStream outputFileStream = new FileOutputStream(outputFile)) {
+                        totalExtractedSize += copyBounded(zippedArchiveInputStream, outputFileStream, MAX_ENTRY_SIZE);
+                    }
+                    if (totalExtractedSize > MAX_TOTAL_SIZE) {
+                        throw new IOException("Archive total extracted size exceeds limit (" + MAX_TOTAL_SIZE + " bytes)");
+                    }
                 }
             }
         } catch (ArchiveException e) {
@@ -126,5 +140,19 @@ public class Plugin extends Extension {
 
     protected boolean isHostSpecific() {
         return false;
+    }
+
+    private long copyBounded(InputStream in, OutputStream out, long maxBytes) throws IOException {
+        byte[] buf = new byte[8192];
+        long total = 0;
+        int n;
+        while ((n = in.read(buf)) != -1) {
+            total += n;
+            if (total > maxBytes) {
+                throw new IOException("Archive entry exceeds size limit (" + maxBytes + " bytes)");
+            }
+            out.write(buf, 0, n);
+        }
+        return total;
     }
 }
