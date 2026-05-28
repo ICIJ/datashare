@@ -173,7 +173,7 @@ public class TaskResource {
     @ApiResponse(responseCode = "404", description = "returns 404 if the task doesn't exist")
     @Get("/:id/result")
     public Payload getTaskResult(@Parameter(name = "id", description = "task id", in = ParameterIn.PATH) String id, Context context) throws IOException {
-        Task<?> task = forbiddenIfNotSameUser(context, notFoundIfUnknown(() -> taskManager.getTask(id)));
+        Task<?> task = notFoundIfUnknown(() -> taskFinder.findVisibleTaskFor((User) context.currentUser(), id));
         Object result = ofNullable(task.getResult()).map(TaskResult::value).orElse(null);
         if (result instanceof DownloadableResult downloadableResult) {
             Path filePath = Path.of(downloadableResult.getUri().getPath());

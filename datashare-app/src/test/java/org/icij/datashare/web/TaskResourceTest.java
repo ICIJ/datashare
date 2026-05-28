@@ -125,6 +125,16 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
+    public void test_get_task_result_for_published_batch_search_owned_by_different_user() {
+        BatchSearchRecord publishedRecord = new BatchSearchRecord(
+                UUID.randomUUID().toString(), List.of("project"), "name", "description",
+                123, 123, new Date(), BatchSearchRecord.State.SUCCESS, "/",
+                User.localUser("differentUser"), 0, true, null, null);
+        when(batchSearchRepository.getRecords(any(), any())).thenReturn(List.of(publishedRecord));
+        get("/api/task/" + publishedRecord.uuid + "/result").should().respond(200);
+    }
+
+    @Test
     public void test_get_tasks_with_correct_id() throws IOException {
         String dummyTaskId = taskManager.startTask(TestSleepingTask.class, User.local(), new HashMap<>());
         get("/api/task").should()
