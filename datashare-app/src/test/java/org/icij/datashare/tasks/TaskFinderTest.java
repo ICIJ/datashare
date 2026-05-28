@@ -200,6 +200,21 @@ public class TaskFinderTest {
     }
 
     @Test(expected = UnknownTask.class)
+    public void test_find_visible_task_for_non_published_batch_search_owned_by_different_user() throws IOException {
+        String uri = "/?q=&from=0&size=25&sort=relevance&indices=test&field=all";
+        User owner = User.localUser("owner");
+        User member = User.localUser("member");
+        List<String> projects = List.of("project");
+        BatchSearchRecord nonPublishedRecord = new BatchSearchRecord(
+                UUID.randomUUID().toString(), projects, "name", "description",
+                123, 0, new Date(), BatchSearchRecord.State.SUCCESS, uri, owner, 0, false, null, null);
+        // getRecords returns empty for member because the record is not published (SQL filter)
+        when(batchSearchRepository.getRecords(eq(member), anyList())).thenReturn(List.of());
+
+        taskFinder.findVisibleTaskFor(member, nonPublishedRecord.uuid);
+    }
+
+    @Test(expected = UnknownTask.class)
     public void test_find_visible_task_for_unknown_id() throws IOException {
         when(batchSearchRepository.getRecords(any(), anyList())).thenReturn(List.of());
         taskFinder.findVisibleTaskFor(User.local(), "nonexistent-id");

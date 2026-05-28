@@ -81,6 +81,7 @@ public class TaskFinder {
      * @param id   the task id
      * @return the task, either from the task repository or converted from a batch search record
      * @throws UnknownTask if no task or batch search record matches the given id
+     * @throws net.codestory.http.errors.ForbiddenException if a managed task exists but the user has no access to it
      * @throws IOException if an I/O error occurs while fetching batch search records
      */
     public Task<?> findVisibleTaskFor(User user, String id) throws IOException {
