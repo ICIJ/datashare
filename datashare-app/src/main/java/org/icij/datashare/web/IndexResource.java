@@ -23,6 +23,8 @@ import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.utils.IndexAccessVerifier;
 import org.icij.datashare.utils.ModeVerifier;
 import org.icij.datashare.utils.PayloadFormatter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.time.Duration;
@@ -37,6 +39,7 @@ import static net.codestory.http.payload.Payload.ok;
 @Singleton
 @Prefix("/api/index")
 public class IndexResource {
+    private static final Logger logger = LoggerFactory.getLogger(IndexResource.class);
     private final Indexer indexer;
     private final AsyncSearchStore asyncSearchStore;
     private final ModeVerifier modeVerifier;
@@ -130,7 +133,12 @@ public class IndexResource {
             String esUrl = withInjectedKeepAlive(IndexAccessVerifier.checkPath(path, context), path, context);
             String response = indexer.executeRaw("POST", esUrl, new String(request.contentAsBytes()));
             if (IndexAccessVerifier.isAsyncSearchSubmit(path)) {
-                recordAsyncSearchOwnership(path, context, response);
+                try {
+                    recordAsyncSearchOwnership(path, context, response);
+                } catch (IOException e) {
+                    logger.warn("async search submitted but ownership could not be recorded: {}", e.getMessage());
+                    return PayloadFormatter.error("async search submitted but response could not be parsed", HttpStatus.BAD_GATEWAY);
+                }
             }
             return PayloadFormatter.json(response);
         } catch ( IllegalArgumentException e){
@@ -142,17 +150,14 @@ public class IndexResource {
     // omits keep_alive, ES would otherwise retain the result for its multi-day default while our
     // record expires in minutes. Injecting our default keeps the two on the same schedule.
     private String withInjectedKeepAlive(String esUrl, String path, Context context) {
+        String keepAlive = context.get("keep_alive");
         boolean isSubmitWithoutKeepAlive = IndexAccessVerifier.isAsyncSearchSubmit(path)
-                && isBlank(context.get("keep_alive"));
+                && (keepAlive == null || keepAlive.isBlank());
         if (!isSubmitWithoutKeepAlive) {
             return esUrl;
         }
         String parameterSeparator = esUrl.contains("?") ? "&" : "?";
         return esUrl + parameterSeparator + "keep_alive=" + defaultKeepAliveParam;
-    }
-
-    private static boolean isBlank(String value) {
-        return value == null || value.isEmpty();
     }
 
     private void recordAsyncSearchOwnership(String path, Context context, String esResponse) throws IOException {
@@ -203,7 +208,13 @@ public class IndexResource {
         try {
             String response = indexer.executeRaw(method, IndexAccessVerifier.getUrlString(context, path), null);
             if ("DELETE".equalsIgnoreCase(method)) {
-                asyncSearchStore.remove(id);
+                // ES already cancelled the search; a store failure (e.g. Redis down) shouldn't surface
+                // as a 500 to the user. The TTL will reap the orphaned record on its own.
+                try {
+                    asyncSearchStore.remove(id);
+                } catch (Exception e) {
+                    logger.warn("async search cancelled on ES but ownership record could not be removed: {}", e.getMessage());
+                }
             } else {
                 Duration keepAlive = EsDuration.parse(context.get("keep_alive"), null);
                 if (keepAlive != null) {
