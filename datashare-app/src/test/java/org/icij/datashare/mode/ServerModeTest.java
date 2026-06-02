@@ -93,14 +93,6 @@ public class ServerModeTest {
     }
 
     @Test
-    public void test_auth_mode_default_is_oauth_when_nothing_set() {
-        CommonMode mode = CommonMode.create(new HashMap<>() {{
-            put("mode", "SERVER");
-        }});
-        assertThat(mode.get(Filter.class)).isInstanceOf(OAuth2CookieFilter.class);
-    }
-
-    @Test
     public void test_auth_mode_wins_over_deprecated_auth_filter() {
         CommonMode mode = CommonMode.create(new HashMap<>() {{
             put("mode", "SERVER");
@@ -117,5 +109,23 @@ public class ServerModeTest {
             put("authFilter", "org.icij.datashare.session.BasicAuthAdaptorFilter");
         }});
         assertThat(mode.get(Filter.class)).isInstanceOf(BasicAuthAdaptorFilter.class);
+    }
+
+    @Test
+    public void test_invalid_auth_value_fails_fast() {
+        // An unknown `auth` value (this programmatic path bypasses the picocli converter)
+        // must make SERVER mode creation fail rather than silently falling back to a default.
+        // AuthMode.fromString throws IllegalArgumentException("Unknown auth mode: ...") inside
+        // ServerMode.configure(); Guice aborts injector creation and propagates a Throwable.
+        Throwable thrown = null;
+        try {
+            CommonMode.create(new HashMap<>() {{
+                put("mode", "SERVER");
+                put("auth", "garbage");
+            }});
+        } catch (Throwable t) {
+            thrown = t;
+        }
+        assertThat(thrown).isNotNull();
     }
 }
