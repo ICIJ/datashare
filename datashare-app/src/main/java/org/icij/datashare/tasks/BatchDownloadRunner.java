@@ -11,17 +11,14 @@ import org.apache.commons.lang3.StringUtils;
 import org.icij.datashare.Entity;
 import org.icij.datashare.HumanReadableSize;
 import org.icij.datashare.PropertiesProvider;
-import org.icij.datashare.asynctasks.CancelException;
-import org.icij.datashare.asynctasks.CancellableTask;
-import org.icij.datashare.asynctasks.Task;
-import org.icij.datashare.asynctasks.TaskGroup;
+import org.icij.datashare.asynctasks.*;
 import org.icij.datashare.asynctasks.temporal.ActivityOpts;
 import org.icij.datashare.asynctasks.temporal.TemporalSingleActivityWorkflow;
 import org.icij.datashare.batch.BatchDownload;
-import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.com.mail.Mail;
 import org.icij.datashare.com.mail.MailException;
 import org.icij.datashare.com.mail.MailSender;
+import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.monitoring.Monitorable;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.Project;
@@ -53,7 +50,6 @@ import static java.lang.Integer.parseInt;
 import static java.lang.String.valueOf;
 import static java.util.stream.Collectors.toList;
 import static org.icij.datashare.cli.DatashareCliOptions.*;
-import org.icij.datashare.asynctasks.TaskGroupType;
 
 @TemporalSingleActivityWorkflow(name = "batch-download", activityOptions = @ActivityOpts(timeout = "P7D"))
 @TaskGroup(TaskGroupType.Java)

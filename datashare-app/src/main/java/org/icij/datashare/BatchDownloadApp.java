@@ -1,17 +1,21 @@
 package org.icij.datashare;
 
-import static java.util.Optional.ofNullable;
-import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_TASK_PROGRESS_INTERVAL_SECONDS;
-import static org.icij.datashare.cli.DatashareCliOptions.TASK_PROGRESS_INTERVAL_OPT;
-
 import org.icij.datashare.asynctasks.TaskFactory;
-import org.icij.datashare.asynctasks.TaskWorkerLoop;
 import org.icij.datashare.asynctasks.TaskSupplier;
+import org.icij.datashare.asynctasks.TaskWorkerLoop;
 import org.icij.datashare.mode.CommonMode;
+import org.icij.datashare.tasks.BatchDownloadCleaner;
 import org.icij.datashare.text.indexing.Indexer;
 import org.redisson.api.RedissonClient;
 
 import java.util.Properties;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+
+import static java.util.Optional.ofNullable;
+import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_TASK_PROGRESS_INTERVAL_SECONDS;
+import static org.icij.datashare.cli.DatashareCliOptions.TASK_PROGRESS_INTERVAL_OPT;
 
 
 public class BatchDownloadApp {
@@ -19,9 +23,17 @@ public class BatchDownloadApp {
         CommonMode commonMode = CommonMode.create(properties);
         double progressMinIntervalS = (double) ofNullable(properties.get(TASK_PROGRESS_INTERVAL_OPT))
                 .orElse(DEFAULT_TASK_PROGRESS_INTERVAL_SECONDS);
+        ScheduledExecutorService cleanupScheduler = scheduleCleanup(commonMode.get(BatchDownloadCleaner.class));
         TaskWorkerLoop taskWorkerLoop = new TaskWorkerLoop(commonMode.get(TaskFactory.class), commonMode.get(TaskSupplier.class), progressMinIntervalS);
         taskWorkerLoop.call();
+        cleanupScheduler.shutdown();
         commonMode.get(Indexer.class).close();
         commonMode.get(RedissonClient.class).shutdown();
+    }
+
+    static ScheduledExecutorService scheduleCleanup(Runnable cleaner) {
+        ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
+        scheduler.scheduleAtFixedRate(cleaner, 0, 60, TimeUnit.SECONDS);
+        return scheduler;
     }
 }
