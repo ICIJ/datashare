@@ -9,6 +9,7 @@ import org.icij.datashare.text.indexing.Indexer;
 import org.redisson.api.RedissonClient;
 
 import java.util.Properties;
+import java.util.concurrent.Callable;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -23,12 +24,16 @@ public class BatchDownloadApp {
         CommonMode commonMode = CommonMode.create(properties);
         double progressMinIntervalS = (double) ofNullable(properties.get(TASK_PROGRESS_INTERVAL_OPT))
                 .orElse(DEFAULT_TASK_PROGRESS_INTERVAL_SECONDS);
-        ScheduledExecutorService cleanupScheduler = scheduleCleanup(commonMode.get(BatchDownloadCleaner.class));
         TaskWorkerLoop taskWorkerLoop = new TaskWorkerLoop(commonMode.get(TaskFactory.class), commonMode.get(TaskSupplier.class), progressMinIntervalS);
-        taskWorkerLoop.call();
-        cleanupScheduler.shutdown();
+        start(commonMode.get(BatchDownloadCleaner.class), taskWorkerLoop);
         commonMode.get(Indexer.class).close();
         commonMode.get(RedissonClient.class).shutdown();
+    }
+
+    static void start(Runnable cleaner, Callable<Integer> workerLoop) throws Exception {
+        ScheduledExecutorService cleanupScheduler = scheduleCleanup(cleaner);
+        workerLoop.call();
+        cleanupScheduler.shutdown();
     }
 
     static ScheduledExecutorService scheduleCleanup(Runnable cleaner) {
