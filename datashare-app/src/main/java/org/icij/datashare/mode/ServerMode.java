@@ -7,6 +7,7 @@ import net.codestory.http.filters.basic.BasicAuthFilter;
 import net.codestory.http.payload.Payload;
 import net.codestory.http.routes.Routes;
 import net.codestory.http.security.SessionIdStore;
+import org.icij.datashare.cli.AuthMode;
 import org.icij.datashare.cli.QueueType;
 import org.icij.datashare.db.JooqRepository;
 import org.icij.datashare.db.RepositoryFactoryImpl;
@@ -54,6 +55,17 @@ public class ServerMode extends CommonMode {
         }
         bind(StatusResource.class).asEagerSingleton();
         configurePersistence();
+    }
+
+    static Class<? extends Filter> filterClassFor(AuthMode mode) {
+        switch (mode) {
+            case OAUTH:      return OAuth2CookieFilter.class;
+            case FORM:       return FormAuthFilter.class;
+            case BASIC:      return BasicAuthAdaptorFilter.class;
+            case YES_COOKIE: return YesCookieAuthFilter.class;
+            case YES_BASIC:  return YesBasicAuthFilter.class;
+            default:         throw new IllegalStateException("Unhandled auth mode: " + mode);
+        }
     }
 
     protected ApiKeyFilter getDummyApiKeyFilter() {
