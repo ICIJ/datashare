@@ -29,6 +29,9 @@ public enum AuthMode {
     }
 
     public static AuthMode fromString(String s) {
+        if (s == null) {
+            throw new IllegalArgumentException("Auth mode must not be null");
+        }
         String normalized = normalize(s);
         for (AuthMode v : values()) {
             if (normalize(v.cliName).equals(normalized)) {
