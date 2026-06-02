@@ -12,7 +12,7 @@ import org.icij.datashare.user.User;
 import org.icij.datashare.user.UserTask;
 import org.icij.task.DefaultTask;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 
 @TemporalSingleActivityWorkflow(name = "get-api-key", activityOptions = @ActivityOpts(timeout = "P1D"))
 @TaskGroup(TaskGroupType.Java)
