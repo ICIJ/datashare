@@ -29,6 +29,7 @@ import static org.icij.datashare.PropertiesProvider.*;
 
 public final class DatashareCliOptions {
     public static final String AUTH_FILTER_OPT = "authFilter";
+    public static final String AUTH_MODE_OPT = "auth";
     public static final String AUTH_USERS_PROVIDER_OPT = "authUsersProvider";
     public static final String BIND_HOST_ABBR_OPT = "b";
     public static final String BIND_HOST_OPT = "bind";

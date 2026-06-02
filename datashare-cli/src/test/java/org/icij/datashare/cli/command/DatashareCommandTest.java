@@ -312,6 +312,24 @@ public class DatashareCommandTest extends AbstractDatashareCommandTest {
     }
 
     @Test
+    public void test_auth_mode() {
+        Properties props = parse("app", "start", "--mode", "server", "--auth", "form");
+        assertThat(props).includes(entry("auth", "form"));
+    }
+
+    @Test
+    public void test_auth_mode_normalizes_value() {
+        Properties props = parse("app", "start", "--auth", "yes-cookie");
+        assertThat(props).includes(entry("auth", "yesCookie"));
+    }
+
+    @Test
+    public void test_auth_mode_absent_writes_no_property() {
+        Properties props = parse("app", "start");
+        assertThat(props.containsKey("auth")).isFalse();
+    }
+
+    @Test
     public void test_nlp_pipeline() {
         Properties props = parse("app", "start", "--nlpPipeline", "SPACY");
         assertThat(props).includes(entry("nlpPipeline", "SPACY"));
