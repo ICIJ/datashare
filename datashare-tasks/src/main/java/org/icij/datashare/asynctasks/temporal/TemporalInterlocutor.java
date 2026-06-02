@@ -109,7 +109,7 @@ public class TemporalInterlocutor {
     }
 
     public TemporalInterlocutor(PropertiesProvider propertiesProvider) throws InterruptedException {
-        this(propertiesProvider.get("messageBusAddress").orElse(EnvUtils.resolveUri("temporalTarget", "temporal:7233")),
+        this(propertiesProvider.get("temporalTarget").orElse(EnvUtils.resolveUri("temporalTarget", "temporal:7233")),
             propertiesProvider.get("temporalNamespace").orElse(DEFAULT_NAMESPACE));
     }
 
