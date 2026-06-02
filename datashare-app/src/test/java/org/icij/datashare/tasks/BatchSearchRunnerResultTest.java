@@ -26,8 +26,7 @@ public class BatchSearchRunnerResultTest {
 
     @Test
     public void test_deserialize() throws IOException {
-        String json = "{\"nbResults\":10,\"nbQueriesWithoutResults\":5}";
-
+        String json = "{\"@type\":\"org.icij.datashare.tasks.BatchSearchRunnerResult\",\"nbResults\":10,\"nbQueriesWithoutResults\":5}";
         assertThat(JsonObjectMapper.readValueTyped(json, BatchSearchRunnerResult.class)).isEqualTo(new BatchSearchRunnerResult(10, 5));
     }
 
