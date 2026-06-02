@@ -407,4 +407,11 @@ public class AuthorizerTest {
         pollingAuthorizer.close();  // must not throw
     }
 
+    @Test
+    public void test_zero_interval_does_not_start_polling_and_close_is_safe() throws Exception {
+        CasbinRuleAdapter adapter = Mockito.mock(CasbinRuleAdapter.class);
+        Authorizer noPollingAuthorizer = new Authorizer(adapter, 0L);
+        noPollingAuthorizer.close();
+    }
+
 }
