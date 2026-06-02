@@ -73,4 +73,49 @@ public class ServerModeTest {
         }});
         assertThat(mode.get(SessionIdStore.class)).isInstanceOf(net.codestory.http.security.SessionIdStore.inMemory().getClass());
     }
+
+    @Test
+    public void test_auth_mode_form() {
+        CommonMode mode = CommonMode.create(new HashMap<>() {{
+            put("mode", "SERVER");
+            put("auth", "form");
+        }});
+        assertThat(mode.get(Filter.class)).isInstanceOf(FormAuthFilter.class);
+    }
+
+    @Test
+    public void test_auth_mode_basic() {
+        CommonMode mode = CommonMode.create(new HashMap<>() {{
+            put("mode", "SERVER");
+            put("auth", "basic");
+        }});
+        assertThat(mode.get(Filter.class)).isInstanceOf(BasicAuthAdaptorFilter.class);
+    }
+
+    @Test
+    public void test_auth_mode_default_is_oauth_when_nothing_set() {
+        CommonMode mode = CommonMode.create(new HashMap<>() {{
+            put("mode", "SERVER");
+        }});
+        assertThat(mode.get(Filter.class)).isInstanceOf(OAuth2CookieFilter.class);
+    }
+
+    @Test
+    public void test_auth_mode_wins_over_deprecated_auth_filter() {
+        CommonMode mode = CommonMode.create(new HashMap<>() {{
+            put("mode", "SERVER");
+            put("auth", "form");
+            put("authFilter", "org.icij.datashare.session.BasicAuthAdaptorFilter");
+        }});
+        assertThat(mode.get(Filter.class)).isInstanceOf(FormAuthFilter.class);
+    }
+
+    @Test
+    public void test_legacy_auth_filter_still_resolves() {
+        CommonMode mode = CommonMode.create(new HashMap<>() {{
+            put("mode", "SERVER");
+            put("authFilter", "org.icij.datashare.session.BasicAuthAdaptorFilter");
+        }});
+        assertThat(mode.get(Filter.class)).isInstanceOf(BasicAuthAdaptorFilter.class);
+    }
 }

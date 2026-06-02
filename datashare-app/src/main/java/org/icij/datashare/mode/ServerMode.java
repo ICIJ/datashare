@@ -21,6 +21,8 @@ import org.icij.datashare.web.*;
 import java.util.Map;
 import java.util.Properties;
 
+import static org.icij.datashare.cli.DatashareCliOptions.AUTH_FILTER_OPT;
+import static org.icij.datashare.cli.DatashareCliOptions.AUTH_MODE_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.SESSION_STORE_TYPE_OPT;
 
 public class ServerMode extends CommonMode {
@@ -37,22 +39,7 @@ public class ServerMode extends CommonMode {
             bind(SessionIdStore.class).to(RedisSessionIdStore.class);
         }
         bind(ApiKeyStore.class).to(ApiKeyStoreAdapter.class);
-        String authFilterClassName = propertiesProvider.get("authFilter").orElse("");
-        Class<? extends Filter> authFilterClass = OAuth2CookieFilter.class;
-        if (!authFilterClassName.isEmpty()) {
-            try {
-                authFilterClass = (Class<? extends Filter>) Class.forName(authFilterClassName, true, ClassLoader.getSystemClassLoader());
-                logger.info("setting auth filter to {}", authFilterClass);
-            } catch (ClassNotFoundException e) {
-                logger.warn("\"{}\" auth filter class not found. Setting filter to {}", authFilterClassName, authFilterClass);
-            }
-        }
-        bind(Filter.class).to(authFilterClass);
-        if (BasicAuthFilter.class.isAssignableFrom(authFilterClass)) {
-            bind(ApiKeyFilter.class).toInstance(getDummyApiKeyFilter());
-        } else if (authFilterClass.equals(YesCookieAuthFilter.class)) {
-            bind(YesCookieAuthFilter.class).toInstance(getYesCookieAuthFilter());
-        }
+        bindAuthFilter(resolveAuthFilterClass());
         bind(StatusResource.class).asEagerSingleton();
         configurePersistence();
     }
@@ -65,6 +52,38 @@ public class ServerMode extends CommonMode {
             case YES_COOKIE: return YesCookieAuthFilter.class;
             case YES_BASIC:  return YesBasicAuthFilter.class;
             default:         throw new IllegalStateException("Unhandled auth mode: " + mode);
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    Class<? extends Filter> resolveAuthFilterClass() {
+        String authMode = propertiesProvider.get(AUTH_MODE_OPT).orElse("");
+        String authFilterClassName = propertiesProvider.get(AUTH_FILTER_OPT).orElse("");
+        if (!authMode.isEmpty()) {
+            if (!authFilterClassName.isEmpty()) {
+                logger.warn("--authFilter is deprecated and ignored because --auth is set");
+            }
+            return filterClassFor(AuthMode.fromString(authMode));
+        }
+        if (!authFilterClassName.isEmpty()) {
+            logger.warn("--authFilter is deprecated; prefer --auth (oauth, form, basic, yesCookie, yesBasic)");
+            try {
+                return (Class<? extends Filter>) Class.forName(authFilterClassName, true, ClassLoader.getSystemClassLoader());
+            } catch (ClassNotFoundException e) {
+                logger.warn("\"{}\" auth filter class not found. Using default {}", authFilterClassName, OAuth2CookieFilter.class);
+                return OAuth2CookieFilter.class;
+            }
+        }
+        return filterClassFor(AuthMode.OAUTH);
+    }
+
+    void bindAuthFilter(Class<? extends Filter> authFilterClass) {
+        logger.info("setting auth filter to {}", authFilterClass);
+        bind(Filter.class).to(authFilterClass);
+        if (BasicAuthFilter.class.isAssignableFrom(authFilterClass)) {
+            bind(ApiKeyFilter.class).toInstance(getDummyApiKeyFilter());
+        } else if (authFilterClass.equals(YesCookieAuthFilter.class)) {
+            bind(YesCookieAuthFilter.class).toInstance(getYesCookieAuthFilter());
         }
     }
 
