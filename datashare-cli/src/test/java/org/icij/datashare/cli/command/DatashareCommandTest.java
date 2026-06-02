@@ -278,6 +278,12 @@ public class DatashareCommandTest extends AbstractDatashareCommandTest {
     }
 
     @Test
+    public void test_policy_reload_interval_has_default() {
+        Properties props = parse("app", "start");
+        assertThat(props).includes(entry("policyReloadInterval", "30000"));
+    }
+
+    @Test
     public void test_follow_symlinks_default() {
         Properties props = parse("app", "start");
         assertThat(props).includes(entry("followSymlinks", "true"));
