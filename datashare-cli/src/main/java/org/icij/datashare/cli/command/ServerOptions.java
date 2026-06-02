@@ -81,7 +81,7 @@ public class ServerOptions {
     String authFilter;
 
     @Option(names = {"--auth"}, converter = AuthMode.PicocliConverter.class,
-            description = "Authentication method (default: oauth when not set): form, basic, yesCookie, yesBasic. Preferred over the deprecated --authFilter.")
+            description = "Authentication method: oauth, form, basic, yesCookie, yesBasic (default: oauth when not set). Preferred over the deprecated --authFilter.")
     AuthMode auth;
 
     @Option(names = {"--sessionSigningKey"}, description = "HMAC key for session signing. Prefer passing via a settings file to avoid leaking into shell history.")
