@@ -1,5 +1,6 @@
 package org.icij.datashare.cli.command;
 
+import org.icij.datashare.cli.AuthMode;
 import org.icij.datashare.cli.QueueType;
 import picocli.CommandLine.Mixin;
 import picocli.CommandLine.Option;
@@ -78,6 +79,10 @@ public class ServerOptions {
 
     @Option(names = {"--authFilter"}, description = "Auth filter class")
     String authFilter;
+
+    @Option(names = {"--auth"}, converter = AuthMode.PicocliConverter.class,
+            description = "Authentication method: oauth (default), form, basic, yesCookie, yesBasic. Preferred over the deprecated --authFilter.")
+    AuthMode auth;
 
     @Option(names = {"--sessionSigningKey"}, description = "HMAC key for session signing. Prefer passing via a settings file to avoid leaking into shell history.")
     String sessionSigningKey;
@@ -178,6 +183,9 @@ public class ServerOptions {
         DatashareOptions.putIfNotNull(props, OAUTH_SCOPE_OPT, oauthScope);
         DatashareOptions.putIfNotNull(props, OAUTH_CLAIM_ID_ATTRIBUTE_OPT, oauthClaimIdAttribute);
         DatashareOptions.putIfNotNull(props, AUTH_USERS_PROVIDER_OPT, authUsersProvider);
+        if (auth != null) {
+            DatashareOptions.put(props, AUTH_MODE_OPT, auth.cliName);
+        }
         DatashareOptions.putIfNotNull(props, AUTH_FILTER_OPT, authFilter);
         DatashareOptions.putIfNotNull(props, SESSION_SIGNING_KEY_OPT, sessionSigningKey);
         DatashareOptions.put(props, SESSION_TTL_SECONDS_OPT, sessionTtlSeconds);
