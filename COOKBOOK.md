@@ -169,6 +169,8 @@ Standard server mode using OAuth (e.g., Keycloak). This is the recommended setup
 
 Basic authentication is intended for testing or constrained environments.
 
+> The authentication method is selected with `--auth` (`oauth` is the default; other values: `form`, `basic`, `yesCookie`, `yesBasic`). The older `--authFilter=<class-name>` option is deprecated and kept only for custom filter classes.
+
 **Basic Auth with Redis:**
 
 See: [Basic with Redis documentation](https://icij.gitbook.io/datashare/server-mode/authentication-providers/basic-with-redis)
@@ -176,7 +178,7 @@ See: [Basic with Redis documentation](https://icij.gitbook.io/datashare/server-m
 ```sh
 ./run.sh \
   --mode SERVER \
-  --authFilter org.icij.datashare.session.BasicAuthAdaptorFilter \
+  --auth basic \
   --redisAddress redis://redis:6379
 ```
 
@@ -187,7 +189,7 @@ See: [Basic with Database documentation](https://icij.gitbook.io/datashare/serve
 ```sh
 ./run.sh \
   --mode SERVER \
-  --authFilter org.icij.datashare.session.BasicAuthAdaptorFilter \
+  --auth basic \
   --authUsersProvider org.icij.datashare.session.UsersInDb \
   --dataSourceUrl "jdbc:postgresql://postgres/datashare?user=dstest&password=test"
 ```
