@@ -2,6 +2,7 @@ package org.icij.datashare.mode;
 
 import net.codestory.http.filters.Filter;
 import net.codestory.http.security.SessionIdStore;
+import org.icij.datashare.cli.AuthMode;
 import org.icij.datashare.cli.QueueType;
 import org.icij.datashare.session.*;
 import org.junit.Test;
@@ -53,6 +54,15 @@ public class ServerModeTest {
             put("sessionStoreType", QueueType.REDIS.name());
         }});
         assertThat(mode.get(SessionIdStore.class)).isInstanceOf(RedisSessionIdStore.class);
+    }
+
+    @Test
+    public void test_filter_class_for_maps_every_auth_mode() {
+        assertThat(ServerMode.filterClassFor(AuthMode.OAUTH)).isEqualTo(OAuth2CookieFilter.class);
+        assertThat(ServerMode.filterClassFor(AuthMode.FORM)).isEqualTo(FormAuthFilter.class);
+        assertThat(ServerMode.filterClassFor(AuthMode.BASIC)).isEqualTo(BasicAuthAdaptorFilter.class);
+        assertThat(ServerMode.filterClassFor(AuthMode.YES_COOKIE)).isEqualTo(YesCookieAuthFilter.class);
+        assertThat(ServerMode.filterClassFor(AuthMode.YES_BASIC)).isEqualTo(YesBasicAuthFilter.class);
     }
 
     @Test
