@@ -7,8 +7,10 @@ import org.junit.rules.TemporaryFolder;
 import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Map;
 
+import static java.nio.file.Paths.get;
 import static org.fest.assertions.Assertions.assertThat;
 
 public class ReportDiagnosticTest {
@@ -46,5 +48,26 @@ public class ReportDiagnosticTest {
         assertThat(failures.get("/b.pdf")).isEqualTo("8");
         assertThat(failures.get("/c.xlsx")).isEqualTo("4");
         assertThat(failures.containsKey("/a.txt")).isFalse();
+    }
+
+    @Test public void test_diagnose_records_failure_for_corrupt_ooxml() {
+        Path file = get(getClass().getResource("/diagnostic/corrupt.docx").getPath());
+        ReportDiagnostic.Result result = ReportDiagnostic.diagnose(file, "FAILURE_NOT_PARSED");
+        assertThat(result.newStatus()).isEqualTo("FAILURE");
+        assertThat(result.rootCauseClass()).isNotEmpty();
+        assertThat(result.originalStatus()).isEqualTo("FAILURE_NOT_PARSED");
+    }
+
+    @Test public void test_diagnose_records_success_for_valid_text() {
+        Path file = get(getClass().getResource("/diagnostic/hello.txt").getPath());
+        ReportDiagnostic.Result result = ReportDiagnostic.diagnose(file, "FAILURE_NOT_PARSED");
+        assertThat(result.newStatus()).isEqualTo("SUCCESS");
+        assertThat(result.rootCauseClass()).isEqualTo("");
+    }
+
+    @Test public void test_diagnose_records_failure_for_missing_file() {
+        ReportDiagnostic.Result result = ReportDiagnostic.diagnose(get("/does/not/exist.pdf"), "FAILURE_NOT_FOUND");
+        assertThat(result.newStatus()).isEqualTo("FAILURE");
+        assertThat(result.rootCauseClass()).isNotEmpty();
     }
 }
