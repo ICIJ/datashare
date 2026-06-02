@@ -26,6 +26,19 @@ public class OptimaizeLanguageGuesser implements LanguageGuesser {
     @Override
     public Language guess(String text) {
         TextObjectFactory textObjectFactory = CommonTextObjectFactories.forDetectingOnLargeText();
-        return Language.parse(languageDetector.detect(textObjectFactory.forText(text)).or(LdLocale.fromString("en")).getLanguage());
+        return toLanguage(languageDetector.detect(textObjectFactory.forText(text)).or(LdLocale.fromString("en")).getLanguage());
+    }
+
+    /**
+     * Maps a detected language code to a {@link Language}. The detector draws from a wider profile
+     * set than the {@link Language} enum (e.g. Asturian "ast"), so a code with no enum match must
+     * degrade to {@link Language#UNKNOWN} rather than abort extraction with an exception.
+     */
+    static Language toLanguage(String detectedCode) {
+        try {
+            return Language.parse(detectedCode);
+        } catch (IllegalArgumentException unsupported) {
+            return Language.UNKNOWN;
+        }
     }
 }

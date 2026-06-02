@@ -1,6 +1,7 @@
 package org.icij.datashare.text;
 
 import java.io.Serializable;
+import java.util.Locale;
 
 
 public enum Language implements Serializable {
@@ -215,7 +216,7 @@ public enum Language implements Serializable {
                 return lang;
             }
         }
-        return UNKNOWN;
+        return valueOf(language.toUpperCase(Locale.ROOT));
     }
 
 }

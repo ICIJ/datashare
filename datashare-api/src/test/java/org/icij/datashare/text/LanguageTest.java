@@ -22,8 +22,13 @@ public class LanguageTest {
         assertThat(Language.parse("")).isEqualTo(Language.UNKNOWN);
     }
 
-    @Test public void test_parse_unlisted_language_is_unknown_not_exception() {
-        assertThat(Language.parse("ast")).isEqualTo(Language.UNKNOWN);
-        assertThat(Language.parse("xyz")).isEqualTo(Language.UNKNOWN);
+    @Test public void test_parse_resolves_enum_name_case_insensitively() {
+        assertThat(Language.parse("Maltese")).isEqualTo(Language.MALTESE);
+        assertThat(Language.parse("ENGLISH")).isEqualTo(Language.ENGLISH);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void test_parse_unknown_code_throws() {
+        Language.parse("foo");
     }
 }

@@ -19,6 +19,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.*;
+import java.util.stream.Stream;
 
 import static net.codestory.http.payload.Payload.ok;
 
@@ -110,18 +111,14 @@ public class SettingsResource {
     private List<Map<String, String>> languageListToMap (String[] languageStrings)  {
         List<Map<String, String>> languages = new ArrayList<>();
         for (String languageString : languageStrings) {
-            Language language = Language.parse(languageString);
-            // parse() returns UNKNOWN (no longer throws) for codes it doesn't recognise;
-            // preserve the raw string for genuinely unrecognised codes.
-            boolean recognised = language != Language.UNKNOWN
-                    || "un".equalsIgnoreCase(languageString)
-                    || "ukn".equalsIgnoreCase(languageString);
-            if (recognised) {
+            try {
+                Language language = Language.parse(languageString);
                 languages.add(new HashMap<String, String>() {{
                     put("iso6392", language.iso6392Code());
                     put("name", language.name());
                 }});
-            } else {
+            // Ignore unknown languages
+            } catch (IllegalArgumentException ignore) {
                 languages.add(new HashMap<String, String>() {{
                     put("iso6392", null);
                     put("name", languageString);
@@ -133,14 +130,8 @@ public class SettingsResource {
 
 
     private List<Map<String, String>> languageListToMap (Language[] languages)  {
-        List<Map<String, String>> result = new ArrayList<>();
-        for (Language language : languages) {
-            result.add(new HashMap<String, String>() {{
-                put("iso6392", language.iso6392Code());
-                put("name", language.name());
-            }});
-        }
-        return result;
+        String[] languageStrings = Stream.of(languages).map(Language::name).toArray(String[]::new);
+        return languageListToMap(languageStrings);
     }
 
     private List<Map<String, String>> languageListToMap (Set<String> languages) {
