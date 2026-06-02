@@ -28,7 +28,7 @@ public class BatchDownloadAppTest {
     }
 
     @Test
-    public void test_expired_batch_download_zip_is_deleted_by_scheduled_cleaner() throws Exception {
+    public void test_start_schedules_cleanup_that_deletes_expired_zips() throws Exception {
         File expiredZip = downloadDir.newFile("archive_local_0000-00-00T00_00_00Z[GMT].zip");
         expiredZip.setLastModified(0);
 
@@ -36,9 +36,10 @@ public class BatchDownloadAppTest {
             put(BATCH_DOWNLOAD_DIR_OPT, downloadDir.getRoot().toPath().toString());
             put(BATCH_DOWNLOAD_ZIP_TTL_OPT, "1");
         }}));
-        ScheduledExecutorService scheduler = BatchDownloadApp.scheduleCleanup(cleaner);
-        Thread.sleep(100);
-        scheduler.shutdown();
+        BatchDownloadApp.start(cleaner, () -> {
+            Thread.sleep(100);
+            return 0;
+        });
 
         assertThat(expiredZip).doesNotExist();
     }
