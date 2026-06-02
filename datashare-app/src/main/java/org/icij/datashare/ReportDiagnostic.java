@@ -135,13 +135,8 @@ public class ReportDiagnostic {
                 Collectors.counting()));
     }
 
-    public static void main(String[] args) throws IOException {
-        if (args.length < 1) {
-            System.err.println("usage: ReportDiagnostic <reportmap.json> [outDir]");
-            System.exit(1);
-        }
-        Path jsonFile = Paths.get(args[0]);
-        Path outDir = Paths.get(args.length > 1 ? args[1] : ".");
+    /** Re-runs every failed entry of the exported report map and writes diagnostic.jsonl + diagnostic-summary.txt. */
+    public static void run(Path jsonFile, Path outDir) throws IOException {
         Files.createDirectories(outDir);
 
         Map<String, String> failures = loadFailures(jsonFile);

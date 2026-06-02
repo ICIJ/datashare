@@ -87,7 +87,7 @@ public class ReportDiagnosticTest {
         assertThat(summary.get("SUCCESS |  | ")).isEqualTo(1L);
     }
 
-    @Test public void test_main_writes_outputs_and_survives_per_entry() throws Exception {
+    @Test public void test_run_writes_outputs_and_survives_per_entry() throws Exception {
         String corrupt = getClass().getResource("/diagnostic/corrupt.docx").getPath();
         String valid = getClass().getResource("/diagnostic/hello.txt").getPath();
         File json = folder.newFile("in.json");
@@ -95,7 +95,7 @@ public class ReportDiagnosticTest {
             ("{\"" + corrupt + "\":\"4|x\",\"" + valid + "\":\"4|y\"}").getBytes(StandardCharsets.ISO_8859_1));
         File outDir = folder.newFolder("out");
 
-        ReportDiagnostic.main(new String[]{json.getAbsolutePath(), outDir.getAbsolutePath()});
+        ReportDiagnostic.run(json.toPath(), outDir.toPath());
 
         Path jsonl = outDir.toPath().resolve("diagnostic.jsonl");
         Path summary = outDir.toPath().resolve("diagnostic-summary.txt");

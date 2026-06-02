@@ -114,6 +114,8 @@ public final class DatashareCliOptions {
     public static final String QUEUE_CAPACITY_OPT = "queueCapacity";
     public static final String REDIS_ADDRESS_OPT = "redisAddress";
     public static final String REDIS_POOL_SIZE_OPT = "redisPoolSize";
+    public static final String REPORT_DIAGNOSTIC_MAP_OPT = "reportDiagnosticMap";
+    public static final String REPORT_DIAGNOSTIC_OUT_OPT = "reportDiagnosticOut";
     public static final String RESUME_ABBR_OPT = "r";
     public static final String ROOT_HOST_OPT = "rootHost";
     public static final String SCROLL_DURATION_OPT = "scroll";

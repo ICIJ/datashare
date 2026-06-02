@@ -73,6 +73,7 @@ class CliApp {
         ExtensionService extensionService = new ExtensionService(new PropertiesProvider(properties));
         process(extensionService, properties);
         process(new PluginService(new PropertiesProvider(properties), extensionService), properties);
+        processReportDiagnostic(properties);
         try (CommonMode commonMode = CommonMode.create(properties)) {
             List<CliExtension> extensions = CliExtensionService.getInstance().getExtensions();
 
@@ -85,6 +86,16 @@ class CliApp {
             }
             runTaskWorker(commonMode, properties);
         }
+    }
+
+    private static void processReportDiagnostic(Properties properties) throws IOException {
+        String reportMap = properties.getProperty(REPORT_DIAGNOSTIC_MAP_OPT);
+        if (reportMap == null) {
+            return;
+        }
+        String outDir = properties.getProperty(REPORT_DIAGNOSTIC_OUT_OPT, ".");
+        ReportDiagnostic.run(Path.of(reportMap), Path.of(outDir));
+        System.exit(0);
     }
 
     private static void process(DeliverableService<?> deliverableService, Properties properties) throws IOException {
