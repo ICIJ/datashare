@@ -10,6 +10,7 @@ import org.icij.extract.extractor.Extractor;
 import org.icij.spewer.FieldNames;
 import org.icij.spewer.PrintStreamSpewer;
 
+import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
@@ -20,8 +21,13 @@ import java.io.StringWriter;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
+import java.util.stream.Collectors;
 
 public class ReportDiagnostic {
 
@@ -119,5 +125,58 @@ public class ReportDiagnostic {
         StringWriter sw = new StringWriter();
         t.printStackTrace(new PrintWriter(sw));
         return sw.toString();
+    }
+
+    /** Counts results bucketed by "newStatus | rootCauseClass | normalizedMessage". */
+    static Map<String, Long> summarize(List<Result> results) {
+        return results.stream().collect(Collectors.groupingBy(
+                r -> r.newStatus() + " | " + r.rootCauseClass() + " | " + r.message(),
+                TreeMap::new,
+                Collectors.counting()));
+    }
+
+    public static void main(String[] args) throws IOException {
+        if (args.length < 1) {
+            System.err.println("usage: ReportDiagnostic <reportmap.json> [outDir]");
+            System.exit(1);
+        }
+        Path jsonFile = Paths.get(args[0]);
+        Path outDir = Paths.get(args.length > 1 ? args[1] : ".");
+        Files.createDirectories(outDir);
+
+        Map<String, String> failures = loadFailures(jsonFile);
+        System.out.printf("Re-running %d failed files...%n", failures.size());
+
+        ObjectMapper mapper = new ObjectMapper(); // default: no pretty-printing -> one JSON object per line (JSONL)
+        List<Result> results = new ArrayList<>();
+        Path jsonl = outDir.resolve("diagnostic.jsonl");
+        int done = 0;
+        try (BufferedWriter writer = Files.newBufferedWriter(jsonl)) {
+            for (Map.Entry<String, String> entry : failures.entrySet()) {
+                Result result = diagnose(Paths.get(entry.getKey()), statusName(entry.getValue()));
+                results.add(result);
+                writer.write(mapper.writeValueAsString(result));
+                writer.newLine();
+                if (++done % 50 == 0) {
+                    System.out.printf("  %d/%d%n", done, failures.size());
+                }
+            }
+        }
+
+        Map<String, Long> summary = summarize(results);
+        Path summaryFile = outDir.resolve("diagnostic-summary.txt");
+        try (BufferedWriter writer = Files.newBufferedWriter(summaryFile)) {
+            long stillFailing = results.stream().filter(r -> r.newStatus().equals("FAILURE")).count();
+            writer.write(String.format("total re-run: %d | still failing: %d | now succeeding: %d%n%n",
+                    results.size(), stillFailing, results.size() - stillFailing));
+            summary.forEach((bucket, count) -> {
+                try {
+                    writer.write(String.format("%6d  %s%n", count, bucket));
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            });
+        }
+        System.out.printf("Wrote %s and %s%n", jsonl, summaryFile);
     }
 }

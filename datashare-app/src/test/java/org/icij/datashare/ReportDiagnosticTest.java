@@ -8,6 +8,7 @@ import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.Map;
 
 import static java.nio.file.Paths.get;
@@ -69,5 +70,20 @@ public class ReportDiagnosticTest {
         ReportDiagnostic.Result result = ReportDiagnostic.diagnose(get("/does/not/exist.pdf"), "FAILURE_NOT_FOUND");
         assertThat(result.newStatus()).isEqualTo("FAILURE");
         assertThat(result.rootCauseClass()).isNotEmpty();
+    }
+
+    @Test public void test_summarize_groups_by_status_and_cause() {
+        List<ReportDiagnostic.Result> results = List.of(
+            new ReportDiagnostic.Result("/a", 1, "FAILURE_NOT_PARSED", "FAILURE",
+                "java.io.IOException", "java.io.IOException", "offset N", "Frame.a", "trace", 5),
+            new ReportDiagnostic.Result("/b", 1, "FAILURE_NOT_PARSED", "FAILURE",
+                "java.io.IOException", "java.io.IOException", "offset N", "Frame.a", "trace", 5),
+            new ReportDiagnostic.Result("/c", 1, "FAILURE_UNKNOWN", "SUCCESS",
+                "", "", "", "", "", 5));
+
+        Map<String, Long> summary = ReportDiagnostic.summarize(results);
+
+        assertThat(summary.get("FAILURE | java.io.IOException | offset N")).isEqualTo(2L);
+        assertThat(summary.get("SUCCESS |  | ")).isEqualTo(1L);
     }
 }
