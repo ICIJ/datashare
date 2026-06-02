@@ -30,6 +30,11 @@ public class AuthModeTest {
     }
 
     @Test
+    public void test_from_string_null_throws() {
+        assertThrows(IllegalArgumentException.class, () -> AuthMode.fromString(null));
+    }
+
+    @Test
     public void test_to_string_returns_cli_name() {
         assertThat(AuthMode.YES_COOKIE.toString()).isEqualTo("yesCookie");
     }
