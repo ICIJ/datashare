@@ -153,10 +153,15 @@ public class ReportDiagnostic {
         int done = 0;
         try (BufferedWriter writer = Files.newBufferedWriter(jsonl)) {
             for (Map.Entry<String, String> entry : failures.entrySet()) {
-                Result result = diagnose(Paths.get(entry.getKey()), statusName(entry.getValue()));
-                results.add(result);
-                writer.write(mapper.writeValueAsString(result));
-                writer.newLine();
+                try {
+                    Result result = diagnose(Paths.get(entry.getKey()), statusName(entry.getValue()));
+                    results.add(result);
+                    writer.write(mapper.writeValueAsString(result));
+                    writer.newLine();
+                    writer.flush();
+                } catch (Exception e) {
+                    System.err.printf("skipped %s: %s%n", entry.getKey(), e);
+                }
                 if (++done % 50 == 0) {
                     System.out.printf("  %d/%d%n", done, failures.size());
                 }
@@ -169,13 +174,9 @@ public class ReportDiagnostic {
             long stillFailing = results.stream().filter(r -> r.newStatus().equals("FAILURE")).count();
             writer.write(String.format("total re-run: %d | still failing: %d | now succeeding: %d%n%n",
                     results.size(), stillFailing, results.size() - stillFailing));
-            summary.forEach((bucket, count) -> {
-                try {
-                    writer.write(String.format("%6d  %s%n", count, bucket));
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
-            });
+            for (Map.Entry<String, Long> e : summary.entrySet()) {
+                writer.write(String.format("%6d  %s%n", e.getValue(), e.getKey()));
+            }
         }
         System.out.printf("Wrote %s and %s%n", jsonl, summaryFile);
     }
