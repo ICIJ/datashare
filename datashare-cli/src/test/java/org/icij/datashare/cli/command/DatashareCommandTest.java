@@ -330,6 +330,18 @@ public class DatashareCommandTest extends AbstractDatashareCommandTest {
     }
 
     @Test
+    public void test_auth_users_provider_label() {
+        Properties props = parse("app", "start", "--mode", "server", "--authUsersProvider", "database");
+        assertThat(props).includes(entry("authUsersProvider", "database"));
+    }
+
+    @Test
+    public void test_auth_users_provider_class_name_passthrough() {
+        Properties props = parse("app", "start", "--authUsersProvider", "org.icij.datashare.session.UsersInDb");
+        assertThat(props).includes(entry("authUsersProvider", "org.icij.datashare.session.UsersInDb"));
+    }
+
+    @Test
     public void test_nlp_pipeline() {
         Properties props = parse("app", "start", "--nlpPipeline", "SPACY");
         assertThat(props).includes(entry("nlpPipeline", "SPACY"));
