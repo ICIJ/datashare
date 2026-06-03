@@ -70,11 +70,11 @@ public class ServerMode extends CommonMode {
             try {
                 return (Class<? extends Filter>) Class.forName(authFilterClassName, true, ClassLoader.getSystemClassLoader());
             } catch (ClassNotFoundException e) {
-                logger.warn("\"{}\" auth filter class not found. Using default {}", authFilterClassName, OAuth2CookieFilter.class);
-                return OAuth2CookieFilter.class;
+                logger.warn("\"{}\" auth filter class not found. Using default {}", authFilterClassName, FormAuthFilter.class);
+                return FormAuthFilter.class;
             }
         }
-        return filterClassFor(AuthMode.OAUTH);
+        return filterClassFor(AuthMode.FORM);
     }
 
     void bindAuthFilter(Class<? extends Filter> authFilterClass) {
