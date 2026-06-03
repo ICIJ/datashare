@@ -74,14 +74,14 @@ public class ServerOptions {
     @Option(names = {"--oauthClaimIdAttribute"}, description = "OAuth claim id attribute")
     String oauthClaimIdAttribute;
 
-    @Option(names = {"--authUsersProvider"}, description = "Auth users provider class")
+    @Option(names = {"--authUsersProvider"}, description = "Users provider: database, redis, or a fully-qualified class name (default: database when not set)")
     String authUsersProvider;
 
     @Option(names = {"--authFilter"}, description = "Auth filter class")
     String authFilter;
 
     @Option(names = {"--auth"}, converter = AuthMode.PicocliConverter.class,
-            description = "Authentication method: oauth, form, basic, yesCookie, yesBasic (default: oauth when not set). Preferred over the deprecated --authFilter.")
+            description = "Authentication method: oauth, form, basic, yesCookie, yesBasic (default: form when not set). Preferred over the deprecated --authFilter.")
     AuthMode auth;
 
     @Option(names = {"--sessionSigningKey"}, description = "HMAC key for session signing. Prefer passing via a settings file to avoid leaking into shell history.")
