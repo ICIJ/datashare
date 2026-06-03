@@ -214,17 +214,17 @@ public class ProjectCommandTest extends AbstractDatashareCommandTest {
 
     @Test
     public void test_project_grant_minimal_emits_project_user_role() {
-        Properties props = parse("project", "grant", "demeter", "promera", "admin");
-        assertThat(props).includes(entry("projectGrant", "demeter"));
+        Properties props = parse("project", "grant", "banana", "promera", "admin");
+        assertThat(props).includes(entry("projectGrant", "banana"));
         assertThat(props).includes(entry("projectGrant.user", "promera"));
         assertThat(props).includes(entry("projectGrant.role", "admin"));
     }
 
     @Test
     public void test_project_grant_all_flags_propagate() {
-        Properties props = parse("project", "grant", "demeter", "promera", "editor",
+        Properties props = parse("project", "grant", "banana", "promera", "editor",
                 "--if-not-exists", "--json");
-        assertThat(props).includes(entry("projectGrant", "demeter"));
+        assertThat(props).includes(entry("projectGrant", "banana"));
         assertThat(props).includes(entry("projectGrant.user", "promera"));
         assertThat(props).includes(entry("projectGrant.role", "editor"));
         assertThat(props).includes(entry("projectGrant.ifNotExists", "true"));
@@ -239,25 +239,25 @@ public class ProjectCommandTest extends AbstractDatashareCommandTest {
 
     @Test
     public void test_project_grant_invalid_role_exits_5() {
-        int exit = parseExitCode("project", "grant", "demeter", "promera", "owner");
+        int exit = parseExitCode("project", "grant", "banana", "promera", "owner");
         assertThat(exit).isEqualTo(5);
     }
 
     @Test
     public void test_project_grant_missing_role_with_no_input_exits_2() {
-        int exit = parseExitCode("project", "grant", "demeter", "promera", "--no-input");
+        int exit = parseExitCode("project", "grant", "banana", "promera", "--no-input");
         assertThat(exit).isEqualTo(2);
     }
 
     @Test
     public void test_project_grant_role_canonicalised_lowercase() {
-        Properties props = parse("project", "grant", "demeter", "promera", "ADMIN");
+        Properties props = parse("project", "grant", "banana", "promera", "ADMIN");
         assertThat(props).includes(entry("projectGrant.role", "admin"));
     }
 
     @Test
     public void test_project_grant_prompts_for_missing_positionals() {
-        String typed = String.join("\n", "demeter", "promera", "editor") + "\n";
+        String typed = String.join("\n", "banana", "promera", "editor") + "\n";
         ProjectGrantCommand cmd = new ProjectGrantCommand();
         StringWriter sink = new StringWriter();
         cmd.prompterOverride = new Prompter(
@@ -269,23 +269,23 @@ public class ProjectCommandTest extends AbstractDatashareCommandTest {
         cmd.run();
         Properties props = cmd.getSubcommandProperties();
 
-        assertThat(props.getProperty("projectGrant")).isEqualTo("demeter");
+        assertThat(props.getProperty("projectGrant")).isEqualTo("banana");
         assertThat(props.getProperty("projectGrant.user")).isEqualTo("promera");
         assertThat(props.getProperty("projectGrant.role")).isEqualTo("editor");
     }
 
     @Test
     public void test_project_revoke_minimal_emits_project_user() {
-        Properties props = parse("project", "revoke", "demeter", "promera");
-        assertThat(props).includes(entry("projectRevoke", "demeter"));
+        Properties props = parse("project", "revoke", "banana", "promera");
+        assertThat(props).includes(entry("projectRevoke", "banana"));
         assertThat(props).includes(entry("projectRevoke.user", "promera"));
     }
 
     @Test
     public void test_project_revoke_all_flags_propagate() {
-        Properties props = parse("project", "revoke", "demeter", "promera",
+        Properties props = parse("project", "revoke", "banana", "promera",
                 "--yes", "--if-exists", "--no-input", "--json");
-        assertThat(props).includes(entry("projectRevoke", "demeter"));
+        assertThat(props).includes(entry("projectRevoke", "banana"));
         assertThat(props).includes(entry("projectRevoke.user", "promera"));
         assertThat(props).includes(entry("projectRevoke.yes", "true"));
         assertThat(props).includes(entry("projectRevoke.noInput", "true"));
@@ -301,17 +301,17 @@ public class ProjectCommandTest extends AbstractDatashareCommandTest {
 
     @Test
     public void test_project_revoke_missing_user_with_no_input_exits_2() {
-        int exit = parseExitCode("project", "revoke", "demeter", "--no-input");
+        int exit = parseExitCode("project", "revoke", "banana", "--no-input");
         assertThat(exit).isEqualTo(2);
     }
 
     @Test
     public void test_project_revoke_positional_wins_over_flag() {
         // Spec contract: positional values win when also passed as flags.
-        Properties props = parse("project", "revoke", "demeter", "promera",
+        Properties props = parse("project", "revoke", "banana", "promera",
                 "--project", "ignored-project",
                 "--user", "ignored-user");
-        assertThat(props).includes(entry("projectRevoke", "demeter"));
+        assertThat(props).includes(entry("projectRevoke", "banana"));
         assertThat(props).includes(entry("projectRevoke.user", "promera"));
     }
 
@@ -330,11 +330,11 @@ public class ProjectCommandTest extends AbstractDatashareCommandTest {
     @Test
     public void test_project_grant_positional_wins_over_flag() {
         // Spec contract: positional values win when also passed as flags.
-        Properties props = parse("project", "grant", "demeter", "promera", "admin",
+        Properties props = parse("project", "grant", "banana", "promera", "admin",
                 "--project", "ignored-project",
                 "--user", "ignored-user",
                 "--role", "editor");
-        assertThat(props).includes(entry("projectGrant", "demeter"));
+        assertThat(props).includes(entry("projectGrant", "banana"));
         assertThat(props).includes(entry("projectGrant.user", "promera"));
         assertThat(props).includes(entry("projectGrant.role", "admin"));
     }

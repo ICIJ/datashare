@@ -448,68 +448,68 @@ public class CliAppProjectDispatchTest {
     @Test
     public void test_handleProjectGrant_emits_text_and_returns_success() throws Exception {
         ProjectAdminService service = mock(ProjectAdminService.class);
-        when(service.grant("demeter", "promera", org.icij.datashare.policies.Role.PROJECT_EDITOR))
+        when(service.grant("banana", "promera", org.icij.datashare.policies.Role.PROJECT_EDITOR))
                 .thenReturn(new org.icij.datashare.project.admin.ProjectGranted(
-                        "demeter", "promera",
+                        "banana", "promera",
                         org.icij.datashare.policies.Role.PROJECT_EDITOR, null, false));
         Properties props = new Properties();
-        props.setProperty(PROJECT_GRANT_OPT, "demeter");
+        props.setProperty(PROJECT_GRANT_OPT, "banana");
         props.setProperty(PROJECT_GRANT_USER_OPT, "promera");
         props.setProperty(PROJECT_GRANT_ROLE_OPT, "editor");
 
         int exit = CliApp.handleProjectGrant(service, props);
 
         assertThat(exit).isEqualTo(0);
-        assertThat(stdout.toString()).contains("granted EDITOR on 'demeter' to 'promera'");
+        assertThat(stdout.toString()).contains("granted EDITOR on 'banana' to 'promera'");
         assertThat(stdout.toString()).excludes("(was");
     }
 
     @Test
     public void test_handleProjectGrant_replace_reports_previous_role() throws Exception {
         ProjectAdminService service = mock(ProjectAdminService.class);
-        when(service.grant("demeter", "promera", org.icij.datashare.policies.Role.PROJECT_EDITOR))
+        when(service.grant("banana", "promera", org.icij.datashare.policies.Role.PROJECT_EDITOR))
                 .thenReturn(new org.icij.datashare.project.admin.ProjectGranted(
-                        "demeter", "promera",
+                        "banana", "promera",
                         org.icij.datashare.policies.Role.PROJECT_EDITOR,
                         org.icij.datashare.policies.Role.PROJECT_ADMIN,
                         false));
         Properties props = new Properties();
-        props.setProperty(PROJECT_GRANT_OPT, "demeter");
+        props.setProperty(PROJECT_GRANT_OPT, "banana");
         props.setProperty(PROJECT_GRANT_USER_OPT, "promera");
         props.setProperty(PROJECT_GRANT_ROLE_OPT, "editor");
 
         assertThat(CliApp.handleProjectGrant(service, props)).isEqualTo(0);
-        assertThat(stdout.toString()).contains("granted EDITOR on 'demeter' to 'promera' (was ADMIN)");
+        assertThat(stdout.toString()).contains("granted EDITOR on 'banana' to 'promera' (was ADMIN)");
     }
 
     @Test
     public void test_handleProjectGrant_json_payload() throws Exception {
         ProjectAdminService service = mock(ProjectAdminService.class);
-        when(service.grant("demeter", "promera", org.icij.datashare.policies.Role.PROJECT_ADMIN))
+        when(service.grant("banana", "promera", org.icij.datashare.policies.Role.PROJECT_ADMIN))
                 .thenReturn(new org.icij.datashare.project.admin.ProjectGranted(
-                        "demeter", "promera",
+                        "banana", "promera",
                         org.icij.datashare.policies.Role.PROJECT_ADMIN, null, false));
         Properties props = new Properties();
-        props.setProperty(PROJECT_GRANT_OPT, "demeter");
+        props.setProperty(PROJECT_GRANT_OPT, "banana");
         props.setProperty(PROJECT_GRANT_USER_OPT, "promera");
         props.setProperty(PROJECT_GRANT_ROLE_OPT, "admin");
         props.setProperty(PROJECT_GRANT_JSON_OPT, "true");
 
         assertThat(CliApp.handleProjectGrant(service, props)).isEqualTo(0);
         assertThat(stdout.toString()).contains("\"role\":\"ADMIN\"");
-        assertThat(stdout.toString()).contains("\"project\":\"demeter\"");
+        assertThat(stdout.toString()).contains("\"project\":\"banana\"");
         assertThat(stdout.toString()).contains("\"noop\":false");
     }
 
     @Test
     public void test_handleProjectGrant_idempotent_noop_when_user_has_role() throws Exception {
         ProjectAdminService service = mock(ProjectAdminService.class);
-        when(service.grantIfNotExists("demeter", "promera", org.icij.datashare.policies.Role.PROJECT_EDITOR))
+        when(service.grantIfNotExists("banana", "promera", org.icij.datashare.policies.Role.PROJECT_EDITOR))
                 .thenReturn(new org.icij.datashare.project.admin.ProjectGranted(
-                        "demeter", "promera",
+                        "banana", "promera",
                         org.icij.datashare.policies.Role.PROJECT_EDITOR, null, true));
         Properties props = new Properties();
-        props.setProperty(PROJECT_GRANT_OPT, "demeter");
+        props.setProperty(PROJECT_GRANT_OPT, "banana");
         props.setProperty(PROJECT_GRANT_USER_OPT, "promera");
         props.setProperty(PROJECT_GRANT_ROLE_OPT, "editor");
         props.setProperty(PROJECT_GRANT_IF_NOT_EXISTS_OPT, "true");
@@ -535,10 +535,10 @@ public class CliAppProjectDispatchTest {
     @Test
     public void test_handleProjectGrant_returns_3_when_user_not_found() throws Exception {
         ProjectAdminService service = mock(ProjectAdminService.class);
-        when(service.grant("demeter", "ghost", org.icij.datashare.policies.Role.PROJECT_ADMIN))
+        when(service.grant("banana", "ghost", org.icij.datashare.policies.Role.PROJECT_ADMIN))
                 .thenThrow(new UserNotFoundException("ghost"));
         Properties props = new Properties();
-        props.setProperty(PROJECT_GRANT_OPT, "demeter");
+        props.setProperty(PROJECT_GRANT_OPT, "banana");
         props.setProperty(PROJECT_GRANT_USER_OPT, "ghost");
         props.setProperty(PROJECT_GRANT_ROLE_OPT, "admin");
 
@@ -549,7 +549,7 @@ public class CliAppProjectDispatchTest {
     public void test_handleProjectGrant_returns_5_on_invalid_role_alias() {
         ProjectAdminService service = mock(ProjectAdminService.class);
         Properties props = new Properties();
-        props.setProperty(PROJECT_GRANT_OPT, "demeter");
+        props.setProperty(PROJECT_GRANT_OPT, "banana");
         props.setProperty(PROJECT_GRANT_USER_OPT, "promera");
         props.setProperty(PROJECT_GRANT_ROLE_OPT, "owner");
 
@@ -559,10 +559,10 @@ public class CliAppProjectDispatchTest {
     @Test
     public void test_handleProjectGrant_returns_1_on_runtime_exception() throws Exception {
         ProjectAdminService service = mock(ProjectAdminService.class);
-        when(service.grant("demeter", "promera", org.icij.datashare.policies.Role.PROJECT_ADMIN))
+        when(service.grant("banana", "promera", org.icij.datashare.policies.Role.PROJECT_ADMIN))
                 .thenThrow(new RuntimeException("casbin kapow"));
         Properties props = new Properties();
-        props.setProperty(PROJECT_GRANT_OPT, "demeter");
+        props.setProperty(PROJECT_GRANT_OPT, "banana");
         props.setProperty(PROJECT_GRANT_USER_OPT, "promera");
         props.setProperty(PROJECT_GRANT_ROLE_OPT, "admin");
 
@@ -574,27 +574,27 @@ public class CliAppProjectDispatchTest {
     @Test
     public void test_handleProjectRevoke_with_yes_skips_confirm_and_emits_text() throws Exception {
         ProjectAdminService service = mock(ProjectAdminService.class);
-        when(service.revoke("demeter", "promera"))
+        when(service.revoke("banana", "promera"))
                 .thenReturn(new org.icij.datashare.project.admin.ProjectRevoked(
-                        "demeter", "promera",
+                        "banana", "promera",
                         java.util.List.of(org.icij.datashare.policies.Role.PROJECT_EDITOR),
                         false));
         Properties props = new Properties();
-        props.setProperty(PROJECT_REVOKE_OPT, "demeter");
+        props.setProperty(PROJECT_REVOKE_OPT, "banana");
         props.setProperty(PROJECT_REVOKE_USER_OPT, "promera");
         props.setProperty(PROJECT_REVOKE_YES_OPT, "true");
 
         int exit = CliApp.handleProjectRevoke(service, props, alwaysDecliningConfirm());
 
         assertThat(exit).isEqualTo(0);
-        assertThat(stdout.toString()).contains("revoked EDITOR from 'promera' on 'demeter'");
+        assertThat(stdout.toString()).contains("revoked EDITOR from 'promera' on 'banana'");
     }
 
     @Test
     public void test_handleProjectRevoke_decline_emits_aborted_and_returns_0() throws Exception {
         ProjectAdminService service = mock(ProjectAdminService.class);
         Properties props = new Properties();
-        props.setProperty(PROJECT_REVOKE_OPT, "demeter");
+        props.setProperty(PROJECT_REVOKE_OPT, "banana");
         props.setProperty(PROJECT_REVOKE_USER_OPT, "promera");
 
         int exit = CliApp.handleProjectRevoke(service, props, alwaysDecliningConfirm());
@@ -607,31 +607,31 @@ public class CliAppProjectDispatchTest {
     @Test
     public void test_handleProjectRevoke_with_confirm_yes_calls_service() throws Exception {
         ProjectAdminService service = mock(ProjectAdminService.class);
-        when(service.revoke("demeter", "promera"))
+        when(service.revoke("banana", "promera"))
                 .thenReturn(new org.icij.datashare.project.admin.ProjectRevoked(
-                        "demeter", "promera",
+                        "banana", "promera",
                         java.util.List.of(org.icij.datashare.policies.Role.PROJECT_ADMIN),
                         false));
         Properties props = new Properties();
-        props.setProperty(PROJECT_REVOKE_OPT, "demeter");
+        props.setProperty(PROJECT_REVOKE_OPT, "banana");
         props.setProperty(PROJECT_REVOKE_USER_OPT, "promera");
 
         int exit = CliApp.handleProjectRevoke(service, props, alwaysConfirmingConfirm());
 
         assertThat(exit).isEqualTo(0);
-        Mockito.verify(service).revoke("demeter", "promera");
+        Mockito.verify(service).revoke("banana", "promera");
     }
 
     @Test
     public void test_handleProjectRevoke_json_payload() throws Exception {
         ProjectAdminService service = mock(ProjectAdminService.class);
-        when(service.revoke("demeter", "promera"))
+        when(service.revoke("banana", "promera"))
                 .thenReturn(new org.icij.datashare.project.admin.ProjectRevoked(
-                        "demeter", "promera",
+                        "banana", "promera",
                         java.util.List.of(org.icij.datashare.policies.Role.PROJECT_EDITOR),
                         false));
         Properties props = new Properties();
-        props.setProperty(PROJECT_REVOKE_OPT, "demeter");
+        props.setProperty(PROJECT_REVOKE_OPT, "banana");
         props.setProperty(PROJECT_REVOKE_USER_OPT, "promera");
         props.setProperty(PROJECT_REVOKE_YES_OPT, "true");
         props.setProperty(PROJECT_REVOKE_JSON_OPT, "true");
@@ -644,11 +644,11 @@ public class CliAppProjectDispatchTest {
     @Test
     public void test_handleProjectRevoke_ifExists_noop_when_user_missing() throws Exception {
         ProjectAdminService service = mock(ProjectAdminService.class);
-        when(service.revokeIfExists("demeter", "ghost"))
+        when(service.revokeIfExists("banana", "ghost"))
                 .thenReturn(new org.icij.datashare.project.admin.ProjectRevoked(
-                        "demeter", "ghost", java.util.List.of(), true));
+                        "banana", "ghost", java.util.List.of(), true));
         Properties props = new Properties();
-        props.setProperty(PROJECT_REVOKE_OPT, "demeter");
+        props.setProperty(PROJECT_REVOKE_OPT, "banana");
         props.setProperty(PROJECT_REVOKE_USER_OPT, "ghost");
         props.setProperty(PROJECT_REVOKE_YES_OPT, "true");
         props.setProperty(PROJECT_REVOKE_IF_EXISTS_OPT, "true");
@@ -656,23 +656,23 @@ public class CliAppProjectDispatchTest {
         int exit = CliApp.handleProjectRevoke(service, props, alwaysDecliningConfirm());
 
         assertThat(exit).isEqualTo(0);
-        assertThat(stdout.toString()).contains("'ghost' has no roles on 'demeter' (no-op)");
+        assertThat(stdout.toString()).contains("'ghost' has no roles on 'banana' (no-op)");
     }
 
     @Test
     public void test_handleProjectRevoke_no_input_skips_confirm() throws Exception {
         ProjectAdminService service = mock(ProjectAdminService.class);
-        when(service.revoke("demeter", "promera"))
+        when(service.revoke("banana", "promera"))
                 .thenReturn(new org.icij.datashare.project.admin.ProjectRevoked(
-                        "demeter", "promera",
+                        "banana", "promera",
                         java.util.List.of(org.icij.datashare.policies.Role.PROJECT_ADMIN), false));
         Properties props = new Properties();
-        props.setProperty(PROJECT_REVOKE_OPT, "demeter");
+        props.setProperty(PROJECT_REVOKE_OPT, "banana");
         props.setProperty(PROJECT_REVOKE_USER_OPT, "promera");
         props.setProperty(PROJECT_REVOKE_NO_INPUT_OPT, "true");
 
         assertThat(CliApp.handleProjectRevoke(service, props, alwaysDecliningConfirm())).isEqualTo(0);
-        Mockito.verify(service).revoke("demeter", "promera");
+        Mockito.verify(service).revoke("banana", "promera");
     }
 
     @Test
@@ -691,10 +691,10 @@ public class CliAppProjectDispatchTest {
     @Test
     public void test_handleProjectRevoke_returns_1_on_runtime_exception() throws Exception {
         ProjectAdminService service = mock(ProjectAdminService.class);
-        when(service.revoke("demeter", "promera"))
+        when(service.revoke("banana", "promera"))
                 .thenThrow(new RuntimeException("casbin kapow"));
         Properties props = new Properties();
-        props.setProperty(PROJECT_REVOKE_OPT, "demeter");
+        props.setProperty(PROJECT_REVOKE_OPT, "banana");
         props.setProperty(PROJECT_REVOKE_USER_OPT, "promera");
         props.setProperty(PROJECT_REVOKE_YES_OPT, "true");
 

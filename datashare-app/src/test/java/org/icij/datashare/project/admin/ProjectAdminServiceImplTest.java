@@ -453,24 +453,24 @@ public class ProjectAdminServiceImplTest {
 
     @Test
     public void test_grant_writes_casbin_policy_and_appends_inventory_for_new_user() throws Exception {
-        Project project = new Project("demeter");
-        when(repository.getProject("demeter")).thenReturn(project);
+        Project project = new Project("banana");
+        when(repository.getProject("banana")).thenReturn(project);
         User user = new User("promera", "Pierre", "p@icij.org", "local", new HashMap<>());
         when(repository.getUser("promera")).thenReturn(user);
         when(authorizer.getRolesForUserInProject(any(User.class), eq(Domain.DEFAULT), eq(project)))
                 .thenReturn(List.of());
         when(repository.save(any(User.class))).thenReturn(true);
 
-        ProjectGranted granted = service.grant("demeter", "promera",
+        ProjectGranted granted = service.grant("banana", "promera",
                 org.icij.datashare.policies.Role.PROJECT_EDITOR);
 
-        assertThat(granted.name()).isEqualTo("demeter");
+        assertThat(granted.name()).isEqualTo("banana");
         assertThat(granted.userLogin()).isEqualTo("promera");
         assertThat(granted.role()).isEqualTo(org.icij.datashare.policies.Role.PROJECT_EDITOR);
         assertThat(granted.previousRole()).isNull();
         assertThat(granted.noop()).isFalse();
 
-        // Inventory write: groups_by_applications.datashare contains "demeter".
+        // Inventory write: groups_by_applications.datashare contains "banana".
         ArgumentCaptor<User> savedUser = ArgumentCaptor.forClass(User.class);
         verify(repository).save(savedUser.capture());
         @SuppressWarnings("unchecked")
@@ -478,7 +478,7 @@ public class ProjectAdminServiceImplTest {
                 .get("groups_by_applications");
         @SuppressWarnings("unchecked")
         List<String> ds = (List<String>) apps.get("datashare");
-        assertThat(ds).contains("demeter");
+        assertThat(ds).contains("banana");
 
         // Casbin write: the new role grouping policy was added.
         verify(authorizer).addRoleForUserInProject(
@@ -490,15 +490,15 @@ public class ProjectAdminServiceImplTest {
 
     @Test
     public void test_grant_replaces_existing_role_and_reports_previousRole() throws Exception {
-        Project project = new Project("demeter");
-        when(repository.getProject("demeter")).thenReturn(project);
+        Project project = new Project("banana");
+        when(repository.getProject("banana")).thenReturn(project);
         User user = new User("promera", "Pierre", "p@icij.org", "local", new HashMap<>());
         when(repository.getUser("promera")).thenReturn(user);
         when(authorizer.getRolesForUserInProject(any(User.class), eq(Domain.DEFAULT), eq(project)))
                 .thenReturn(List.of("PROJECT_ADMIN"));
         when(repository.save(any(User.class))).thenReturn(true);
 
-        ProjectGranted granted = service.grant("demeter", "promera",
+        ProjectGranted granted = service.grant("banana", "promera",
                 org.icij.datashare.policies.Role.PROJECT_EDITOR);
 
         assertThat(granted.previousRole()).isEqualTo(org.icij.datashare.policies.Role.PROJECT_ADMIN);
@@ -526,10 +526,10 @@ public class ProjectAdminServiceImplTest {
 
     @Test
     public void test_grant_throws_user_not_found_when_user_missing() throws Exception {
-        when(repository.getProject("demeter")).thenReturn(new Project("demeter"));
+        when(repository.getProject("banana")).thenReturn(new Project("banana"));
         when(repository.getUser("ghost")).thenReturn(null);
         try {
-            service.grant("demeter", "ghost", org.icij.datashare.policies.Role.PROJECT_EDITOR);
+            service.grant("banana", "ghost", org.icij.datashare.policies.Role.PROJECT_EDITOR);
             fail("expected UserNotFoundException");
         } catch (UserNotFoundException e) {
             assertThat(e.getMessage()).contains("ghost");
@@ -540,13 +540,13 @@ public class ProjectAdminServiceImplTest {
 
     @Test
     public void test_grant_rejects_non_project_roles() {
-        when(repository.getProject("demeter")).thenReturn(new Project("demeter"));
+        when(repository.getProject("banana")).thenReturn(new Project("banana"));
         for (org.icij.datashare.policies.Role bad : new org.icij.datashare.policies.Role[]{
                 org.icij.datashare.policies.Role.INSTANCE_ADMIN,
                 org.icij.datashare.policies.Role.DOMAIN_ADMIN,
                 org.icij.datashare.policies.Role.NONE}) {
             try {
-                service.grant("demeter", "promera", bad);
+                service.grant("banana", "promera", bad);
                 fail("expected ValidationException for " + bad);
             } catch (ValidationException e) {
                 assertThat(e.getMessage()).contains("PROJECT_");
@@ -558,8 +558,8 @@ public class ProjectAdminServiceImplTest {
 
     @Test
     public void test_grant_rolls_back_inventory_when_casbin_fails() throws Exception {
-        Project project = new Project("demeter");
-        when(repository.getProject("demeter")).thenReturn(project);
+        Project project = new Project("banana");
+        when(repository.getProject("banana")).thenReturn(project);
         User user = new User("promera", "Pierre", "p@icij.org", "local", new HashMap<>());
         when(repository.getUser("promera")).thenReturn(user);
         when(authorizer.getRolesForUserInProject(any(User.class), eq(Domain.DEFAULT), eq(project)))
@@ -569,7 +569,7 @@ public class ProjectAdminServiceImplTest {
         when(repository.save(any(User.class))).thenReturn(true);
 
         try {
-            service.grant("demeter", "promera", org.icij.datashare.policies.Role.PROJECT_EDITOR);
+            service.grant("banana", "promera", org.icij.datashare.policies.Role.PROJECT_EDITOR);
             fail("expected RuntimeException");
         } catch (RuntimeException e) {
             assertThat(e.getMessage()).isEqualTo("casbin boom");
@@ -579,34 +579,34 @@ public class ProjectAdminServiceImplTest {
         verify(repository, Mockito.times(2)).save(savedUsers.capture());
         java.util.List<User> saves = savedUsers.getAllValues();
 
-        // Forward write: inventory contains "demeter".
+        // Forward write: inventory contains "banana".
         @SuppressWarnings("unchecked")
         Map<String, Object> forwardApps = (Map<String, Object>) saves.get(0).details
                 .get("groups_by_applications");
         @SuppressWarnings("unchecked")
         List<String> forwardDs = (List<String>) forwardApps.get("datashare");
-        assertThat(forwardDs).contains("demeter");
+        assertThat(forwardDs).contains("banana");
 
         // Rollback write: restored to the original empty inventory.
         Object rollbackApps = saves.get(1).details.get("groups_by_applications");
         if (rollbackApps instanceof Map<?, ?> map) {
             Object ds = map.get("datashare");
             if (ds instanceof List<?> list) {
-                assertThat(list).excludes("demeter");
+                assertThat(list).excludes("banana");
             }
         }
     }
 
     @Test
     public void test_grantIfNotExists_returns_noop_when_user_already_holds_exact_role() throws Exception {
-        Project project = new Project("demeter");
-        when(repository.getProject("demeter")).thenReturn(project);
+        Project project = new Project("banana");
+        when(repository.getProject("banana")).thenReturn(project);
         when(repository.getUser("promera")).thenReturn(
                 new User("promera", "Pierre", "p@icij.org", "local", new HashMap<>()));
         when(authorizer.getRolesForUserInProject(any(User.class), eq(Domain.DEFAULT), eq(project)))
                 .thenReturn(List.of("PROJECT_EDITOR"));
 
-        ProjectGranted granted = service.grantIfNotExists("demeter", "promera",
+        ProjectGranted granted = service.grantIfNotExists("banana", "promera",
                 org.icij.datashare.policies.Role.PROJECT_EDITOR);
 
         assertThat(granted.noop()).isTrue();
@@ -619,8 +619,8 @@ public class ProjectAdminServiceImplTest {
     public void test_grant_handles_malformed_groups_by_applications() throws Exception {
         // Inventory has groups_by_applications stored as a String instead of a Map
         // (e.g., from a hand-edited row). doGrant must not ClassCastException.
-        Project project = new Project("demeter");
-        when(repository.getProject("demeter")).thenReturn(project);
+        Project project = new Project("banana");
+        when(repository.getProject("banana")).thenReturn(project);
         Map<String, Object> details = new HashMap<>();
         details.put("groups_by_applications", "not-a-map");
         User user = new User("promera", "Pierre", "p@icij.org", "local", details);
@@ -629,11 +629,11 @@ public class ProjectAdminServiceImplTest {
                 .thenReturn(List.of());
         when(repository.save(any(User.class))).thenReturn(true);
 
-        ProjectGranted granted = service.grant("demeter", "promera",
+        ProjectGranted granted = service.grant("banana", "promera",
                 org.icij.datashare.policies.Role.PROJECT_ADMIN);
 
         assertThat(granted.role()).isEqualTo(org.icij.datashare.policies.Role.PROJECT_ADMIN);
-        // The save still happened and now contains a well-formed map with "demeter" in it.
+        // The save still happened and now contains a well-formed map with "banana" in it.
         ArgumentCaptor<User> saved = ArgumentCaptor.forClass(User.class);
         verify(repository).save(saved.capture());
         @SuppressWarnings("unchecked")
@@ -641,15 +641,15 @@ public class ProjectAdminServiceImplTest {
                 .get("groups_by_applications");
         @SuppressWarnings("unchecked")
         List<String> ds = (List<String>) apps.get("datashare");
-        assertThat(ds).containsOnly("demeter");
+        assertThat(ds).containsOnly("banana");
     }
 
     @Test
     public void test_grant_handles_malformed_datashare_list() throws Exception {
         // Inventory has groups_by_applications.datashare stored as a String instead
         // of a List. doGrant must not ClassCastException.
-        Project project = new Project("demeter");
-        when(repository.getProject("demeter")).thenReturn(project);
+        Project project = new Project("banana");
+        when(repository.getProject("banana")).thenReturn(project);
         Map<String, Object> details = new HashMap<>();
         Map<String, Object> apps = new HashMap<>();
         apps.put("datashare", "not-a-list");
@@ -660,7 +660,7 @@ public class ProjectAdminServiceImplTest {
                 .thenReturn(List.of());
         when(repository.save(any(User.class))).thenReturn(true);
 
-        ProjectGranted granted = service.grant("demeter", "promera",
+        ProjectGranted granted = service.grant("banana", "promera",
                 org.icij.datashare.policies.Role.PROJECT_ADMIN);
 
         assertThat(granted.role()).isEqualTo(org.icij.datashare.policies.Role.PROJECT_ADMIN);
@@ -671,16 +671,16 @@ public class ProjectAdminServiceImplTest {
                 .get("groups_by_applications");
         @SuppressWarnings("unchecked")
         List<String> ds = (List<String>) savedApps.get("datashare");
-        assertThat(ds).containsOnly("demeter");
+        assertThat(ds).containsOnly("banana");
     }
 
     @Test
     public void test_revoke_removes_casbin_policy_and_prunes_inventory_entry() throws Exception {
-        Project project = new Project("demeter");
-        when(repository.getProject("demeter")).thenReturn(project);
+        Project project = new Project("banana");
+        when(repository.getProject("banana")).thenReturn(project);
         Map<String, Object> details = new HashMap<>();
         Map<String, Object> apps = new HashMap<>();
-        apps.put("datashare", new java.util.ArrayList<>(List.of("demeter", "athena")));
+        apps.put("datashare", new java.util.ArrayList<>(List.of("banana", "athena")));
         details.put("groups_by_applications", apps);
         User user = new User("promera", "Pierre", "p@icij.org", "local", details);
         when(repository.getUser("promera")).thenReturn(user);
@@ -688,9 +688,9 @@ public class ProjectAdminServiceImplTest {
                 .thenReturn(List.of("PROJECT_EDITOR"));
         when(repository.save(any(User.class))).thenReturn(true);
 
-        ProjectRevoked revoked = service.revoke("demeter", "promera");
+        ProjectRevoked revoked = service.revoke("banana", "promera");
 
-        assertThat(revoked.name()).isEqualTo("demeter");
+        assertThat(revoked.name()).isEqualTo("banana");
         assertThat(revoked.userLogin()).isEqualTo("promera");
         assertThat(revoked.noop()).isFalse();
         assertThat(revoked.revokedRoles())
@@ -724,10 +724,10 @@ public class ProjectAdminServiceImplTest {
 
     @Test
     public void test_revoke_throws_user_not_found_when_user_missing() {
-        when(repository.getProject("demeter")).thenReturn(new Project("demeter"));
+        when(repository.getProject("banana")).thenReturn(new Project("banana"));
         when(repository.getUser("ghost")).thenReturn(null);
         try {
-            service.revoke("demeter", "ghost");
+            service.revoke("banana", "ghost");
             fail("expected UserNotFoundException");
         } catch (UserNotFoundException e) {
             assertThat(e.getMessage()).contains("ghost");
@@ -738,10 +738,10 @@ public class ProjectAdminServiceImplTest {
 
     @Test
     public void test_revokeIfExists_noop_when_user_missing() throws Exception {
-        when(repository.getProject("demeter")).thenReturn(new Project("demeter"));
+        when(repository.getProject("banana")).thenReturn(new Project("banana"));
         when(repository.getUser("ghost")).thenReturn(null);
 
-        ProjectRevoked revoked = service.revokeIfExists("demeter", "ghost");
+        ProjectRevoked revoked = service.revokeIfExists("banana", "ghost");
 
         assertThat(revoked.noop()).isTrue();
         assertThat(revoked.revokedRoles()).isEmpty();
@@ -750,14 +750,14 @@ public class ProjectAdminServiceImplTest {
 
     @Test
     public void test_revokeIfExists_noop_when_user_has_no_roles() throws Exception {
-        Project project = new Project("demeter");
-        when(repository.getProject("demeter")).thenReturn(project);
+        Project project = new Project("banana");
+        when(repository.getProject("banana")).thenReturn(project);
         when(repository.getUser("promera")).thenReturn(
                 new User("promera", "Pierre", "p@icij.org", "local", new HashMap<>()));
         when(authorizer.getRolesForUserInProject(any(User.class), eq(Domain.DEFAULT), eq(project)))
                 .thenReturn(List.of());
 
-        ProjectRevoked revoked = service.revokeIfExists("demeter", "promera");
+        ProjectRevoked revoked = service.revokeIfExists("banana", "promera");
 
         assertThat(revoked.noop()).isTrue();
         verify(repository, never()).save(any(User.class));
@@ -765,11 +765,11 @@ public class ProjectAdminServiceImplTest {
 
     @Test
     public void test_revokeIfExists_removes_casbin_and_prunes_inventory_when_user_has_roles() throws Exception {
-        Project project = new Project("demeter");
-        when(repository.getProject("demeter")).thenReturn(project);
+        Project project = new Project("banana");
+        when(repository.getProject("banana")).thenReturn(project);
         Map<String, Object> details = new HashMap<>();
         Map<String, Object> apps = new HashMap<>();
-        apps.put("datashare", new java.util.ArrayList<>(List.of("demeter", "athena")));
+        apps.put("datashare", new java.util.ArrayList<>(List.of("banana", "athena")));
         details.put("groups_by_applications", apps);
         User user = new User("promera", "Pierre", "p@icij.org", "local", details);
         when(repository.getUser("promera")).thenReturn(user);
@@ -777,7 +777,7 @@ public class ProjectAdminServiceImplTest {
                 .thenReturn(List.of("PROJECT_EDITOR"));
         when(repository.save(any(User.class))).thenReturn(true);
 
-        ProjectRevoked revoked = service.revokeIfExists("demeter", "promera");
+        ProjectRevoked revoked = service.revokeIfExists("banana", "promera");
 
         assertThat(revoked.noop()).isFalse();
         assertThat(revoked.revokedRoles())
@@ -800,11 +800,11 @@ public class ProjectAdminServiceImplTest {
 
     @Test
     public void test_revoke_rolls_back_inventory_when_casbin_fails() throws Exception {
-        Project project = new Project("demeter");
-        when(repository.getProject("demeter")).thenReturn(project);
+        Project project = new Project("banana");
+        when(repository.getProject("banana")).thenReturn(project);
         Map<String, Object> details = new HashMap<>();
         Map<String, Object> apps = new HashMap<>();
-        apps.put("datashare", new java.util.ArrayList<>(List.of("demeter", "athena")));
+        apps.put("datashare", new java.util.ArrayList<>(List.of("banana", "athena")));
         details.put("groups_by_applications", apps);
         User user = new User("promera", "Pierre", "p@icij.org", "local", details);
         when(repository.getUser("promera")).thenReturn(user);
@@ -815,7 +815,7 @@ public class ProjectAdminServiceImplTest {
         when(repository.save(any(User.class))).thenReturn(true);
 
         try {
-            service.revoke("demeter", "promera");
+            service.revoke("banana", "promera");
             fail("expected RuntimeException");
         } catch (RuntimeException e) {
             assertThat(e.getMessage()).isEqualTo("casbin boom");
@@ -825,22 +825,22 @@ public class ProjectAdminServiceImplTest {
         verify(repository, Mockito.times(2)).save(savedUsers.capture());
         java.util.List<User> saves = savedUsers.getAllValues();
 
-        // Forward write: "demeter" pruned from inventory.
+        // Forward write: "banana" pruned from inventory.
         @SuppressWarnings("unchecked")
         Map<String, Object> forwardApps = (Map<String, Object>) saves.get(0).details
                 .get("groups_by_applications");
         @SuppressWarnings("unchecked")
         List<String> forwardDs = (List<String>) forwardApps.get("datashare");
-        assertThat(forwardDs).excludes("demeter");
+        assertThat(forwardDs).excludes("banana");
         assertThat(forwardDs).contains("athena");
 
-        // Rollback write: "demeter" restored to inventory.
+        // Rollback write: "banana" restored to inventory.
         @SuppressWarnings("unchecked")
         Map<String, Object> rollbackApps = (Map<String, Object>) saves.get(1).details
                 .get("groups_by_applications");
         @SuppressWarnings("unchecked")
         List<String> rollbackDs = (List<String>) rollbackApps.get("datashare");
-        assertThat(rollbackDs).contains("demeter");
+        assertThat(rollbackDs).contains("banana");
     }
 
     private static CasbinRule casbinRule(String userId, String role, String domainProject) {
