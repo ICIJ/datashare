@@ -10,7 +10,9 @@ import org.icij.datashare.asynctasks.TaskModifier;
 import org.icij.datashare.asynctasks.TaskSupplier;
 import org.icij.datashare.cli.Mode;
 import org.icij.datashare.cli.QueueType;
+import org.icij.datashare.cli.AuthUsersProvider;
 import org.icij.datashare.session.UsersInDb;
+import org.icij.datashare.session.UsersInRedis;
 import org.icij.datashare.session.UsersWritable;
 import org.junit.Test;
 
@@ -95,6 +97,38 @@ public class CommonModeTest {
         CommonMode mode = CommonMode.create(new HashMap<>() {{
             put("mode", Mode.LOCAL.name());
             put("authUsersProvider", "org.icij.UnknownClass");
+        }});
+        assertThat(mode.get(UsersWritable.class)).isInstanceOf(UsersInDb.class);
+    }
+
+    @Test
+    public void test_class_for_maps_every_users_provider() {
+        assertThat(CommonMode.classFor(AuthUsersProvider.DATABASE)).isEqualTo(UsersInDb.class);
+        assertThat(CommonMode.classFor(AuthUsersProvider.REDIS)).isEqualTo(UsersInRedis.class);
+    }
+
+    @Test
+    public void test_users_provider_label_database() {
+        CommonMode mode = CommonMode.create(new HashMap<>() {{
+            put("mode", Mode.LOCAL.name());
+            put("authUsersProvider", "database");
+        }});
+        assertThat(mode.get(UsersWritable.class)).isInstanceOf(UsersInDb.class);
+    }
+
+    @Test
+    public void test_users_provider_default_is_database() {
+        CommonMode mode = CommonMode.create(new HashMap<>() {{
+            put("mode", Mode.LOCAL.name());
+        }});
+        assertThat(mode.get(UsersWritable.class)).isInstanceOf(UsersInDb.class);
+    }
+
+    @Test
+    public void test_legacy_users_provider_class_name_still_resolves() {
+        CommonMode mode = CommonMode.create(new HashMap<>() {{
+            put("mode", Mode.LOCAL.name());
+            put("authUsersProvider", "org.icij.datashare.session.UsersInDb");
         }});
         assertThat(mode.get(UsersWritable.class)).isInstanceOf(UsersInDb.class);
     }

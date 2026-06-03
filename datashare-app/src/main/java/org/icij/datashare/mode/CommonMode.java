@@ -40,7 +40,9 @@ import org.icij.datashare.user.admin.UserAdminServiceImpl;
 import org.icij.datashare.project.admin.ProjectAdminService;
 import org.icij.datashare.project.admin.ProjectAdminServiceImpl;
 import org.icij.datashare.session.StatusCidrFilter;
+import org.icij.datashare.cli.AuthUsersProvider;
 import org.icij.datashare.session.UsersInDb;
+import org.icij.datashare.session.UsersInRedis;
 import org.icij.datashare.session.UsersWritable;
 import org.icij.datashare.tasks.DatashareTaskFactory;
 import org.icij.datashare.tasks.TaskResultSubtypes;
@@ -72,6 +74,7 @@ import java.nio.file.Paths;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Properties;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
@@ -310,16 +313,34 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
 
     @Provides @Singleton
     UsersWritable provideUsersWritable(final PropertiesProvider propertiesProvider, final Injector injector) {
-        String authUsersProviderClassName = propertiesProvider.get("authUsersProvider").orElse(UsersInDb.class.getName());
-        Class<? extends UsersWritable> authUsersProviderClass;
-        try {
-            authUsersProviderClass = (Class<? extends UsersWritable>) Class.forName(authUsersProviderClassName, true, ClassLoader.getSystemClassLoader());
-            logger.info("setting auth users provider to {}", authUsersProviderClass);
-        } catch (ClassNotFoundException | ClassCastException e) {
-            logger.warn("\"{}\" auth users provider class not found or invalid. Setting provider to UsersInDb", authUsersProviderClassName);
-            authUsersProviderClass = UsersInDb.class;
+        return injector.getInstance(resolveUsersProviderClass());
+    }
+
+    static Class<? extends UsersWritable> classFor(AuthUsersProvider provider) {
+        switch (provider) {
+            case DATABASE: return UsersInDb.class;
+            case REDIS:    return UsersInRedis.class;
+            default:       throw new IllegalStateException("Unhandled users provider: " + provider);
         }
-        return injector.getInstance(authUsersProviderClass);
+    }
+
+    @SuppressWarnings("unchecked")
+    Class<? extends UsersWritable> resolveUsersProviderClass() {
+        String raw = propertiesProvider.get(AUTH_USERS_PROVIDER_OPT).orElse(AuthUsersProvider.DATABASE.cliName);
+        Optional<AuthUsersProvider> provider = AuthUsersProvider.tryFromString(raw);
+        if (provider.isPresent()) {
+            Class<? extends UsersWritable> providerClass = classFor(provider.get());
+            logger.info("setting auth users provider to {}", providerClass);
+            return providerClass;
+        }
+        try {
+            Class<? extends UsersWritable> providerClass = (Class<? extends UsersWritable>) Class.forName(raw, true, ClassLoader.getSystemClassLoader());
+            logger.info("setting auth users provider to {}", providerClass);
+            return providerClass;
+        } catch (ClassNotFoundException | ClassCastException e) {
+            logger.warn("\"{}\" auth users provider class not found or invalid. Setting provider to UsersInDb", raw);
+            return UsersInDb.class;
+        }
     }
 
 
