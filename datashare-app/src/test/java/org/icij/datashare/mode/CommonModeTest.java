@@ -117,6 +117,16 @@ public class CommonModeTest {
     }
 
     @Test
+    public void test_users_provider_label_redis() {
+        // UsersInRedis builds its JedisPool lazily, so this resolves without a live Redis.
+        CommonMode mode = CommonMode.create(new HashMap<>() {{
+            put("mode", Mode.LOCAL.name());
+            put("authUsersProvider", "redis");
+        }});
+        assertThat(mode.get(UsersWritable.class)).isInstanceOf(UsersInRedis.class);
+    }
+
+    @Test
     public void test_users_provider_default_is_database() {
         CommonMode mode = CommonMode.create(new HashMap<>() {{
             put("mode", Mode.LOCAL.name());

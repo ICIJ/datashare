@@ -787,7 +787,7 @@ public final class DatashareCliOptions {
 
     static void authUsersProvider(OptionParser parser) {
         parser.acceptsAll(
-                singletonList(AUTH_USERS_PROVIDER_OPT), "Server mode auth users provider class")
+                singletonList(AUTH_USERS_PROVIDER_OPT), "Server mode users provider: database, redis, or a fully-qualified class name (default: database)")
                 .withRequiredArg()
                 .ofType(String.class);
     }
