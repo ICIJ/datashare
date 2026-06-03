@@ -312,8 +312,10 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
     }
 
     @Provides @Singleton
-    UsersWritable provideUsersWritable(final PropertiesProvider propertiesProvider, final Injector injector) {
-        return injector.getInstance(resolveUsersProviderClass());
+    UsersWritable provideUsersWritable(final Injector injector) {
+        Class<? extends UsersWritable> providerClass = resolveUsersProviderClass();
+        logger.info("setting auth users provider to {}", providerClass);
+        return injector.getInstance(providerClass);
     }
 
     static Class<? extends UsersWritable> classFor(AuthUsersProvider provider) {
@@ -329,14 +331,10 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
         String raw = propertiesProvider.get(AUTH_USERS_PROVIDER_OPT).orElse(AuthUsersProvider.DATABASE.cliName);
         Optional<AuthUsersProvider> provider = AuthUsersProvider.tryFromString(raw);
         if (provider.isPresent()) {
-            Class<? extends UsersWritable> providerClass = classFor(provider.get());
-            logger.info("setting auth users provider to {}", providerClass);
-            return providerClass;
+            return classFor(provider.get());
         }
         try {
-            Class<? extends UsersWritable> providerClass = (Class<? extends UsersWritable>) Class.forName(raw, true, ClassLoader.getSystemClassLoader());
-            logger.info("setting auth users provider to {}", providerClass);
-            return providerClass;
+            return (Class<? extends UsersWritable>) Class.forName(raw, true, ClassLoader.getSystemClassLoader());
         } catch (ClassNotFoundException | ClassCastException e) {
             logger.warn("\"{}\" auth users provider class not found or invalid. Setting provider to UsersInDb", raw);
             return UsersInDb.class;
