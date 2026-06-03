@@ -17,7 +17,7 @@ public class ServerModeTest {
         CommonMode mode = CommonMode.create(new HashMap<>() {{
             put("mode", "SERVER");
         }});
-        assertThat(mode.get(Filter.class)).isInstanceOf(OAuth2CookieFilter.class);
+        assertThat(mode.get(Filter.class)).isInstanceOf(FormAuthFilter.class);
     }
 
     @Test
@@ -35,7 +35,7 @@ public class ServerModeTest {
             put("mode", "SERVER");
             put("authFilter", "org.icij.UnknownClass");
         }});
-        assertThat(mode.get(Filter.class)).isInstanceOf(OAuth2CookieFilter.class);
+        assertThat(mode.get(Filter.class)).isInstanceOf(FormAuthFilter.class);
     }
 
     @Test
