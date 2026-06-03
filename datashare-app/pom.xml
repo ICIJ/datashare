@@ -59,6 +59,31 @@
             <version>2.9.0</version>
         </dependency>
         <dependency>
+            <groupId>org.casbin</groupId>
+            <artifactId>jcasbin-redis-watcher-ex</artifactId>
+            <version>1.1.0</version>
+            <exclusions>
+                <!-- Lettuce pulls in Netty 4.1.68 which conflicts with Redisson (4.1.90) and AWS SDK (4.1.126) -->
+                <exclusion>
+                    <groupId>io.netty</groupId>
+                    <artifactId>netty-common</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>io.netty</groupId>
+                    <artifactId>netty-handler</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>io.netty</groupId>
+                    <artifactId>netty-transport</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>org.casbin</groupId>
+            <artifactId>jcasbin</artifactId>
+            <version>1.96.0</version>
+        </dependency>
+        <dependency>
             <groupId>com.optimaize.languagedetector</groupId>
             <artifactId>language-detector</artifactId>
             <version>0.6</version>

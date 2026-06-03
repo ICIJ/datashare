@@ -4,6 +4,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.inject.*;
 import com.google.inject.Module;
 import com.google.inject.assistedinject.FactoryModuleBuilder;
+import io.lettuce.core.RedisURI;
+import org.casbin.watcherEx.RedisWatcherEx;
+import org.casbin.watcherEx.WatcherOptions;
 import net.codestory.http.Configuration;
 import net.codestory.http.annotations.Get;
 import net.codestory.http.annotations.Prefix;
@@ -309,6 +312,27 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
     }
 
     @Provides @Singleton
+    Authorizer provideAuthorizer(CasbinRuleAdapter adapter) throws IOException {
+        if (QueueType.REDIS.name().equals(propertiesProvider.get(BUS_TYPE_OPT).orElse(null))) {
+            String redisAddress = propertiesProvider.get(REDIS_ADDRESS_OPT).orElse(DEFAULT_REDIS_ADDRESS);
+            RedisURI redisUri = RedisURI.create(redisAddress);
+            WatcherOptions options = new WatcherOptions();
+            options.setOptions(redisUri);
+            options.setChannel("datashare:policy-updated");
+            // ignoreSelf=false: writing instance also gets notified and reloads — harmless since policy is fresh
+            options.setIgnoreSelf(false);
+            RedisWatcherEx watcher = new RedisWatcherEx(options);
+            Authorizer authorizer = new Authorizer(adapter, watcher);
+            addCloseable(authorizer);  // stopAutoLoadPolicy is no-op but lifecycle is consistent
+            return authorizer;
+        }
+        long interval = Long.parseLong(propertiesProvider.get("policyReloadInterval").orElse("0"));
+        Authorizer authorizer = new Authorizer(adapter, interval);
+        addCloseable(authorizer);
+        return authorizer;
+    }
+
+    @Provides @Singleton
     UsersWritable provideUsersWritable(final PropertiesProvider propertiesProvider, final Injector injector) {
         String authUsersProviderClassName = propertiesProvider.get("authUsersProvider").orElse(UsersInDb.class.getName());
         Class<? extends UsersWritable> authUsersProviderClass;
@@ -394,7 +418,6 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
         bind(ApiKeyRepository.class).toInstance(repositoryFactory.createApiKeyRepository());
         bind(BatchSearchRepository.class).toInstance(repositoryFactory.createBatchSearchRepository());
         bind(CasbinRuleAdapter.class).toInstance(repositoryFactory.createCasbinRuleRepository());
-        bind(Authorizer.class);
         bind(UserAdminService.class).to(UserAdminServiceImpl.class).in(Singleton.class);
         bind(ProjectAdminService.class).to(ProjectAdminServiceImpl.class).in(Singleton.class);
 

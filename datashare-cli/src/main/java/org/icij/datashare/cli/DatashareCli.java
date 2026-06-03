@@ -174,6 +174,7 @@ public class DatashareCli {
         DatashareCliOptions.queueCapacity(parser);
         DatashareCliOptions.cors(parser);
         DatashareCliOptions.busType(parser);
+        DatashareCliOptions.policyReloadInterval(parser);
         DatashareCliOptions.messageBusAddress(parser);
         DatashareCliOptions.redisAddress(parser);
         DatashareCliOptions.dataSourceUrl(parser);

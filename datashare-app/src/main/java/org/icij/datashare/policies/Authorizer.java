@@ -5,8 +5,9 @@ import com.google.inject.Singleton;
 import net.codestory.http.Context;
 import net.codestory.http.errors.UnauthorizedException;
 import org.apache.commons.io.IOUtils;
-import org.casbin.jcasbin.main.Enforcer;
+import org.casbin.jcasbin.main.SyncedEnforcer;
 import org.casbin.jcasbin.model.Model;
+import org.casbin.jcasbin.persist.Watcher;
 import org.casbin.jcasbin.rbac.DomainManager;
 import org.casbin.jcasbin.util.BuiltInFunctions;
 import org.icij.datashare.session.DatashareUser;
@@ -14,6 +15,7 @@ import org.icij.datashare.text.Project;
 import org.icij.datashare.user.User;
 
 import javax.annotation.Nullable;
+import java.io.Closeable;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
@@ -28,22 +30,33 @@ import static org.icij.datashare.policies.errors.InvalidValueException.*;
 import static org.icij.datashare.policies.errors.UnknownRoleException.resolveRole;
 
 @Singleton
-public final class Authorizer {
+public final class Authorizer implements Closeable {
 
     private final static String SEPARATOR = "::";
     private static final String DEFAULT_POLICY_FILE = "casbin/model.conf";
-    private final Enforcer enforcer;
+    private final SyncedEnforcer enforcer;
 
     @Inject
     public Authorizer(CasbinRuleAdapter adapter) throws IOException {
         this(adapter, true, false);
     }
 
+    public Authorizer(CasbinRuleAdapter adapter, Watcher watcher) throws IOException {
+        this(adapter, true, false);
+        if (watcher != null) enforcer.setWatcher(watcher);
+    }
+
+    public Authorizer(CasbinRuleAdapter adapter, long reloadIntervalMs) throws IOException {
+        this(adapter, true, false);
+        if (reloadIntervalMs > 0) enforcer.startAutoLoadPolicy(reloadIntervalMs);
+    }
+
     private Authorizer(CasbinRuleAdapter adapter, boolean enableAutoSave, boolean enableLog) throws IOException {
         Model model = new Model();
         String modelConf = loadCasbinConf(DEFAULT_POLICY_FILE);
         model.loadModelFromText(modelConf);
-        enforcer = new Enforcer(model, adapter, enableLog);
+        enforcer = new SyncedEnforcer(model, adapter);
+        if (enableLog) enforcer.enableLog(true);
         enforcer.setRoleManager(new DomainManager(10, null, BuiltInFunctions::allMatch));
         enforcer.enableAutoSave(enableAutoSave);
         enforcer.loadPolicy();
@@ -235,5 +248,9 @@ public final class Authorizer {
         return requireValue(context.pathParam(idParam), true);
     }
 
+    @Override
+    public void close() {
+        enforcer.stopAutoLoadPolicy();
+    }
 
 }
