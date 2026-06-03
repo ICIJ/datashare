@@ -42,6 +42,11 @@ public enum AuthUsersProvider {
         return Optional.empty();
     }
 
+    /**
+     * Strict label lookup that throws on unknown/null input. Retained for symmetry with
+     * {@code AuthMode.fromString}; the dual-mode resolver uses {@link #tryFromString} instead
+     * (it must tolerate non-label values to fall through to class-name resolution).
+     */
     public static AuthUsersProvider fromString(String s) {
         if (s == null) {
             throw new IllegalArgumentException("Auth users provider must not be null");
