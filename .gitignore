@@ -20,7 +20,7 @@ datashare-web/src/main/resources/secret.properties
 .settings
 .classpath
 doc/
-docs/superpower
+docs/superpowers/
 work
 *.swp
 
@@ -33,7 +33,8 @@ work
 # Devenv Properties File
 datashare-devenv.properties
 
-# Local worktrees (kc-swarm orchestration)
+# Local kc-swarm orchestration (scripts + worktrees)
+scripts/kc-swarm/
 .worktrees/
 
 # Local swarm runtime state
