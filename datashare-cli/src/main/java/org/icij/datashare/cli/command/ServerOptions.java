@@ -150,9 +150,6 @@ public class ServerOptions {
     @Option(names = {"--smtpUrl"}, description = "SMTP URL for sending emails")
     String smtpUrl;
 
-    @Option(names = {"--temporalNamespace"}, description = "Temporal namespace", defaultValue = "datashare-default")
-    String temporalNamespace;
-
     // Task management and document processing options — shared with WorkerRunCommand and StageRunCommand
     @Mixin
     WorkerOptions workerOptions = new WorkerOptions();
@@ -212,8 +209,6 @@ public class ServerOptions {
 
         DatashareOptions.putIfNotNull(props, REPORT_NAME_OPT, reportName);
         DatashareOptions.putIfNotNull(props, SMTP_URL_OPT, smtpUrl);
-        DatashareOptions.putIfNotNull(props, TEMPORAL_NAMESPACE_OPT, temporalNamespace);
-
         DatashareOptions.putAll(props, workerOptions.toProperties());
         DatashareOptions.putAll(props, pipelineOptions.toProperties());
 

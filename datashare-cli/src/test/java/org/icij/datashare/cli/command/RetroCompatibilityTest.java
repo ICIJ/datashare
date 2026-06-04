@@ -451,4 +451,25 @@ public class RetroCompatibilityTest {
         Properties picocli = parseNew("stage", "run", "--stages", "SCAN,INDEX", "--parallelism", "8");
         assertPropertyEqual(legacy, picocli, "parallelism");
     }
+
+    @Test
+    public void test_parity_temporal_server_address_app_start() {
+        Properties legacy = parseLegacy("--temporalAddress", "http://my-temporal:7233");
+        Properties picocli = parseNew("--temporalAddress", "http://my-temporal:7233", "app", "start");
+        assertPropertyEqual(legacy, picocli, "temporalAddress");
+    }
+
+    @Test
+    public void test_parity_temporal_server_address_worker_run() {
+        Properties legacy = parseLegacy("--temporalAddress", "http://my-temporal:7233", "--mode", "TASK_WORKER");
+        Properties picocli = parseNew("--temporalAddress", "http://my-temporal:7233", "worker", "run");
+        assertPropertyEqual(legacy, picocli, "temporalAddress");
+    }
+
+    @Test
+    public void test_parity_temporal_namespace() {
+        Properties legacy = parseLegacy("--temporalNamespace", "my-ns");
+        Properties picocli = parseNew("--temporalNamespace", "my-ns", "app", "start");
+        assertPropertyEqual(legacy, picocli, "temporalNamespace");
+    }
 }

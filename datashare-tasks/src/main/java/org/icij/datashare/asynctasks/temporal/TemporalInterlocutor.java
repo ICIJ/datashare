@@ -59,6 +59,8 @@ import static io.grpc.health.v1.HealthCheckResponse.ServingStatus.SERVING;
 import static io.temporal.api.enums.v1.WorkflowExecutionStatus.*;
 import static org.icij.datashare.LambdaExceptionUtils.rethrowConsumer;
 import static org.icij.datashare.LambdaExceptionUtils.rethrowFunction;
+import static org.icij.datashare.PropertiesProvider.TEMPORAL_NAMESPACE_OPT;
+import static org.icij.datashare.PropertiesProvider.TEMPORAL_ADDRESS_OPT;
 import static org.icij.datashare.asynctasks.Task.USER_KEY;
 import static org.icij.datashare.asynctasks.TaskManagerTemporal.resolveWfTaskQueue;
 import static org.icij.datashare.asynctasks.bus.amqp.Event.MAX_RETRIES_LEFT;
@@ -109,8 +111,8 @@ public class TemporalInterlocutor {
     }
 
     public TemporalInterlocutor(PropertiesProvider propertiesProvider) throws InterruptedException {
-        this(propertiesProvider.get("temporalTarget").orElse(EnvUtils.resolveUri("temporalTarget", "temporal:7233")),
-            propertiesProvider.get("temporalNamespace").orElse(DEFAULT_NAMESPACE));
+        this(propertiesProvider.get(TEMPORAL_ADDRESS_OPT).orElse(EnvUtils.resolveUri("temporalAddress", "temporal:7233")),
+            propertiesProvider.get(TEMPORAL_NAMESPACE_OPT).orElse(DEFAULT_NAMESPACE));
     }
 
     // for tests

@@ -62,7 +62,7 @@ jobs:
             echo "amqpUri=${DS_AMQP_URI}" > datashare-devenv.properties
             echo "elasticsearchUri=${DS_ELASTICSEARCH_URI}" >> datashare-devenv.properties
             echo "postgresUri=${DS_POSTGRES_URI}" >> datashare-devenv.properties
-            echo "temporalTarget=${DS_TEMPORAL_TARGET}" >> datashare-devenv.properties
+            echo "temporalAddress=${DS_TEMPORAL_TARGET}" >> datashare-devenv.properties
             echo "postgresBuildUri=${DS_POSTGRES_BUILD_URI}" >> datashare-devenv.properties
             echo "redisUri=${DS_REDIS_URI}" >> datashare-devenv.properties
             echo "s3mockUri=${DS_S3MOCK_URI}" >> datashare-devenv.properties
@@ -473,7 +473,7 @@ jobs:
           command: |
             echo "amqpUri=${DS_AMQP_URI}" > datashare-devenv.properties
             echo "s3mockUri=${DS_S3MOCK_URI}" >> datashare-devenv.properties
-            echo "temporalTarget=${DS_TEMPORAL_TARGET}" >> datashare-devenv.properties
+            echo "temporalAddress=${DS_TEMPORAL_TARGET}" >> datashare-devenv.properties
             echo "redisUri=${DS_REDIS_URI}" >> datashare-devenv.properties
             echo "postgresBuildUri=${DS_POSTGRES_BUILD_URI}" >> datashare-devenv.properties
             echo "postgresUri=${DS_POSTGRES_URI}" >> datashare-devenv.properties
