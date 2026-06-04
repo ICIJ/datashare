@@ -115,6 +115,10 @@ public class GlobalOptions {
     @Option(names = {"--no-color"}, description = "Disable ANSI color output", defaultValue = "false", scope = ScopeType.INHERIT)
     boolean noColor;
 
+    // Batch / Download
+    @Option(names = {"--batchQueueType"}, description = "Batch queue type", defaultValue = "MEMORY", scope = ScopeType.INHERIT)
+    QueueType batchQueueType;
+
     @Option(names = {"--temporalAddress"}, description = "Temporal address", scope = ScopeType.INHERIT)
     String temporalAddress = EnvUtils.resolveUri("temporal", "temporal:7233");
 
@@ -152,6 +156,7 @@ public class GlobalOptions {
         DatashareOptions.putIfNotNull(props, EXT_OPT, ext);
         DatashareOptions.putIfNotNull(props, DATA_DIR_OPT, dataDir);
         DatashareOptions.putIfNotNull(props, LANGUAGE_OPT, language);
+        DatashareOptions.putIfNotNull(props, BATCH_QUEUE_TYPE_OPT, batchQueueType);
         DatashareOptions.putIfNotNull(props, DatashareCliOptions.TEMPORAL_ADDRESS_OPT, temporalAddress);
         DatashareOptions.putIfNotNull(props, DatashareCliOptions.TEMPORAL_NAMESPACE_OPT, temporalNamespace);
         return props;

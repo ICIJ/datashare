@@ -93,10 +93,6 @@ public class ServerOptions {
     @Option(names = {"--sessionStoreType"}, description = "Session store type", defaultValue = "MEMORY")
     QueueType sessionStoreType;
 
-    // Batch / Download
-    @Option(names = {"--batchQueueType"}, description = "Batch queue type", defaultValue = "MEMORY")
-    QueueType batchQueueType;
-
     @Option(names = {"--batchSearchMaxTimeSeconds"}, description = "Max batch search time in seconds")
     Integer batchSearchMaxTimeSeconds;
 
@@ -189,7 +185,6 @@ public class ServerOptions {
         DatashareOptions.put(props, SESSION_TTL_SECONDS_OPT, sessionTtlSeconds);
         DatashareOptions.putIfNotNull(props, SESSION_STORE_TYPE_OPT, sessionStoreType);
 
-        DatashareOptions.putIfNotNull(props, BATCH_QUEUE_TYPE_OPT, batchQueueType);
         DatashareOptions.putIfNotNull(props, BATCH_SEARCH_MAX_TIME_OPT, batchSearchMaxTimeSeconds);
         DatashareOptions.putIfNotNull(props, BATCH_THROTTLE_OPT, batchThrottleMilliseconds);
         DatashareOptions.putIfNotNull(props, BATCH_DOWNLOAD_DIR_OPT, resolveAbsolutePath(batchDownloadDir));
