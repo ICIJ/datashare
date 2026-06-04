@@ -15,7 +15,7 @@ import static org.icij.datashare.asynctasks.temporal.TemporalInterlocutor.DEFAUL
 public class TemporalInterlocutorTest {
     @Test
     public void test_health_ok() throws InterruptedException {
-        TemporalInterlocutor temporal = new TemporalInterlocutor(EnvUtils.resolve("temporalTarget", "temporal:7233"), DEFAULT_NAMESPACE);
+        TemporalInterlocutor temporal = new TemporalInterlocutor(EnvUtils.resolve("temporalAddress", "temporal:7233"), DEFAULT_NAMESPACE);
         assertThat(temporal.getHealth()).isTrue();
     }
 

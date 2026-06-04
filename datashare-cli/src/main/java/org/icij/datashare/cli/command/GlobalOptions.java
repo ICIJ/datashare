@@ -1,6 +1,7 @@
 package org.icij.datashare.cli.command;
 
 import org.icij.datashare.EnvUtils;
+import org.icij.datashare.cli.DatashareCliOptions;
 import org.icij.datashare.cli.DigestAlgorithm;
 import org.icij.datashare.cli.QueueType;
 import picocli.CommandLine.Option;
@@ -114,6 +115,12 @@ public class GlobalOptions {
     @Option(names = {"--no-color"}, description = "Disable ANSI color output", defaultValue = "false", scope = ScopeType.INHERIT)
     boolean noColor;
 
+    @Option(names = {"--temporalAddress"}, description = "Temporal address", scope = ScopeType.INHERIT)
+    String temporalAddress = EnvUtils.resolveUri("temporal", "temporal:7233");
+
+    @Option(names = {"--temporalNamespace"}, description = "Temporal namespace", defaultValue = "datashare-default", scope = ScopeType.INHERIT)
+    String temporalNamespace;
+
     /** Converts the parsed global option fields into a Properties map for the rest of the application. */
     public Properties toProperties() {
         Properties props = new Properties();
@@ -145,7 +152,8 @@ public class GlobalOptions {
         DatashareOptions.putIfNotNull(props, EXT_OPT, ext);
         DatashareOptions.putIfNotNull(props, DATA_DIR_OPT, dataDir);
         DatashareOptions.putIfNotNull(props, LANGUAGE_OPT, language);
-
+        DatashareOptions.putIfNotNull(props, DatashareCliOptions.TEMPORAL_ADDRESS_OPT, temporalAddress);
+        DatashareOptions.putIfNotNull(props, DatashareCliOptions.TEMPORAL_NAMESPACE_OPT, temporalNamespace);
         return props;
     }
 

@@ -51,4 +51,16 @@ public class AppServeCommandTest extends AbstractDatashareCommandTest {
         int exitCode = parseExitCode("app", "start", "--mode", "INVALID");
         assertThat(exitCode).isNotEqualTo(0);
     }
+
+    @Test
+    public void test_app_serve_with_temporal_address() {
+        Properties props = parse("--temporalAddress", "http://my-temporal:7233", "app", "start");
+        assertThat(props).includes(entry("temporalAddress", "http://my-temporal:7233"));
+    }
+
+    @Test
+    public void test_app_serve_with_temporal_namespace() {
+        Properties props = parse("--temporalNamespace", "my-ns", "app", "start");
+        assertThat(props).includes(entry("temporalNamespace", "my-ns"));
+    }
 }

@@ -46,7 +46,7 @@ public class TaskManagerTemporalIntTest {
 
     @BeforeClass
     public static void setUpClass() throws InterruptedException {
-        temporal = new TemporalInterlocutor(EnvUtils.resolve("temporalTarget", "temporal:7233"), DEFAULT_NAMESPACE);
+        temporal = new TemporalInterlocutor(EnvUtils.resolve("temporalAddress", "temporal:7233"), DEFAULT_NAMESPACE);
         taskManager = new TaskManagerTemporal(temporal, taskRepository, RoutingStrategy.UNIQUE);
     }
 

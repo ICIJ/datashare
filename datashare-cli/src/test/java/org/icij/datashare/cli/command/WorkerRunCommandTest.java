@@ -28,4 +28,16 @@ public class WorkerRunCommandTest extends AbstractDatashareCommandTest {
         assertThat(props).includes(entry("mode", "TASK_WORKER"));
         assertThat(props).includes(entry("taskWorkers", "4"));
     }
+
+    @Test
+    public void test_worker_run_with_temporal_address() {
+        Properties props = parse("--temporalAddress", "http://my-temporal:7233", "worker", "run");
+        assertThat(props).includes(entry("temporalAddress", "http://my-temporal:7233"));
+    }
+
+    @Test
+    public void test_worker_run_with_temporal_namespace() {
+        Properties props = parse("--temporalNamespace", "my-ns", "worker", "run");
+        assertThat(props).includes(entry("temporalNamespace", "my-ns"));
+    }
 }

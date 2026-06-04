@@ -46,6 +46,8 @@ public class PropertiesProvider {
     public static final String SETTINGS_OPT = "settings";
     public static final String BIND_HOST_OPT = "bind";
     public static final String TCP_LISTEN_PORT_OPT = "tcpListenPort";
+    public static final String TEMPORAL_ADDRESS_OPT = "temporalAddress";
+    public static final String TEMPORAL_NAMESPACE_OPT = "temporalNamespace";
 
     private final Logger logger = LoggerFactory.getLogger(getClass());
     private final Path settingsPath;
