@@ -314,7 +314,7 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
 
     @Provides @Singleton
     Authorizer provideAuthorizer(CasbinRuleAdapter adapter) throws IOException {
-        long interval = Long.parseLong(propertiesProvider.get("policyReloadInterval").orElse("0"));
+        long interval = parseInt(propertiesProvider.get("policyReloadInterval").orElse("0"));
         if (QueueType.REDIS.name().equals(propertiesProvider.get(BUS_TYPE_OPT).orElse(null))) {
             String redisAddress = propertiesProvider.get(REDIS_ADDRESS_OPT).orElse(DEFAULT_REDIS_ADDRESS);
             RedisURI redisUri = RedisURI.create(redisAddress);
