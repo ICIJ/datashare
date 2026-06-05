@@ -32,8 +32,11 @@ public class BatchDownloadApp {
 
     static void start(Runnable cleaner, Callable<Integer> workerLoop) throws Exception {
         ScheduledExecutorService cleanupScheduler = scheduleCleanup(cleaner);
-        workerLoop.call();
-        cleanupScheduler.shutdown();
+        try {
+            workerLoop.call();
+        } finally {
+            cleanupScheduler.shutdown();
+        }
     }
 
     static ScheduledExecutorService scheduleCleanup(Runnable cleaner) {
