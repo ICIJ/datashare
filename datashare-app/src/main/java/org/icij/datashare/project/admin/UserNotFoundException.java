@@ -10,4 +10,8 @@ public class UserNotFoundException extends Exception {
     public UserNotFoundException(String login) {
         super("user '" + login + "' not found");
     }
+
+    public UserNotFoundException(String login, String hint) {
+        super("user '" + login + "' not found; " + hint);
+    }
 }
