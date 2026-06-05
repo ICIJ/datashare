@@ -98,13 +98,6 @@
             <scope>provided</scope>
         </dependency>
         <dependency>
-            <!-- Needed to compile datashare-app main sources that import ElasticsearchException;
-                 datashare-index bundles this at runtime but doesn't expose it in its pom -->
-            <groupId>co.elastic.clients</groupId>
-            <artifactId>elasticsearch-java</artifactId>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
             <groupId>org.icij.datashare</groupId>
             <artifactId>datashare-db</artifactId>
             <scope>provided</scope>
