@@ -248,6 +248,10 @@ public final class Authorizer implements Closeable {
         return requireValue(context.pathParam(idParam), true);
     }
 
+    public void startAutoLoadPolicy(long intervalMs) {
+        if (intervalMs > 0) enforcer.startAutoLoadPolicy(intervalMs);
+    }
+
     @Override
     public void close() {
         enforcer.stopAutoLoadPolicy();
