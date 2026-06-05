@@ -20,7 +20,7 @@ public class PolicyWatcher implements Watcher, Closeable {
     // an unnecessary loadPolicy() reload on the very instance that just wrote
     // the change, momentarily clearing the in-memory model.
     private final String instanceId = UUID.randomUUID().toString();
-    private int listenerId = -1;
+    private volatile int listenerId = -1;
 
     public PolicyWatcher(RedissonClient redisson) {
         this.topic = redisson.getTopic(TOPIC);
