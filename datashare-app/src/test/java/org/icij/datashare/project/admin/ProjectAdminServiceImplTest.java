@@ -6,6 +6,7 @@ import org.icij.datashare.extract.DocumentCollectionFactory;
 import org.icij.datashare.policies.Authorizer;
 import org.icij.datashare.policies.CasbinRule;
 import org.icij.datashare.policies.Domain;
+import org.icij.datashare.session.UsersWritable;
 import org.icij.datashare.text.Project;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.user.User;
@@ -31,10 +32,7 @@ import static org.fest.assertions.Assertions.assertThat;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 public class ProjectAdminServiceImplTest {
 
@@ -43,6 +41,7 @@ public class ProjectAdminServiceImplTest {
     private Authorizer authorizer;
     private DocumentCollectionFactory<Path> documentCollectionFactory;
     private PropertiesProvider propertiesProvider;
+    private UsersWritable usersWritable;
     private ProjectAdminServiceImpl service;
 
     @Before
@@ -52,8 +51,9 @@ public class ProjectAdminServiceImplTest {
         authorizer = mock(Authorizer.class);
         documentCollectionFactory = mock(DocumentCollectionFactory.class);
         propertiesProvider = mock(PropertiesProvider.class);
+        usersWritable = mock(UsersWritable.class);
         service = new ProjectAdminServiceImpl(
-                repository, indexer, authorizer, documentCollectionFactory, propertiesProvider);
+                repository, indexer, authorizer, documentCollectionFactory, propertiesProvider, usersWritable);
     }
 
     private ProjectCreateRequest minimalRequest(String name) {
@@ -528,6 +528,7 @@ public class ProjectAdminServiceImplTest {
     public void test_grant_throws_user_not_found_when_user_missing() throws Exception {
         when(repository.getProject("demeter")).thenReturn(new Project("demeter"));
         when(repository.getUser("ghost")).thenReturn(null);
+        when(usersWritable.find("ghost")).thenReturn(null);
         try {
             service.grant("demeter", "ghost", org.icij.datashare.policies.Role.PROJECT_EDITOR);
             fail("expected UserNotFoundException");
@@ -536,6 +537,32 @@ public class ProjectAdminServiceImplTest {
         } catch (Exception other) {
             fail("unexpected " + other);
         }
+    }
+
+    @Test
+    public void test_grant_falls_back_to_users_writable_when_user_not_in_sql() throws Exception {
+        // Simulates a setup where --authUsersProvider UsersInRedis is set:
+        // the user exists in Redis but has no SQL user_inventory row yet.
+        Project project = new Project("local-datashare");
+        when(repository.getProject("local-datashare")).thenReturn(project);
+        when(repository.getUser("test")).thenReturn(null);
+        User redisUser = new User("test", "Test User", "test@icij.org", "redis", new java.util.HashMap<>());
+        when(usersWritable.find("test")).thenReturn(new org.icij.datashare.session.DatashareUser(redisUser));
+        when(authorizer.getRolesForUserInProject(any(User.class), eq(Domain.DEFAULT), eq(project)))
+                .thenReturn(List.of());
+        when(repository.save(any(User.class))).thenReturn(true);
+
+        ProjectGranted granted = service.grant("local-datashare", "test",
+                org.icij.datashare.policies.Role.PROJECT_MEMBER);
+
+        assertThat(granted.userLogin()).isEqualTo("test");
+        assertThat(granted.role()).isEqualTo(org.icij.datashare.policies.Role.PROJECT_MEMBER);
+        assertThat(granted.noop()).isFalse();
+        verify(authorizer).addRoleForUserInProject(
+                any(User.class),
+                eq(org.icij.datashare.policies.Role.PROJECT_MEMBER),
+                eq(Domain.DEFAULT),
+                eq(project));
     }
 
     @Test
