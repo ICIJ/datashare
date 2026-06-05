@@ -51,15 +51,22 @@ public class UsersInRedis implements UsersWritable {
     public boolean saveOrUpdate(User user) {
         try (Jedis jedis = redis.getResource()) {
             String key = user.login();
-            // ttl() returns -1 for persistent keys (no expiry), -2 for missing keys.
-            // Don't add an expiry to a persistent entry (e.g. a manually-provisioned
-            // user with no TTL); only apply sessionTtlSeconds for new or session-backed entries.
+            // SET clears an existing TTL in Redis, so we must always re-stamp it.
+            // -1 = persistent (no expiry, e.g. manually-provisioned form-auth user)
+            // -2 = key doesn't exist yet
+            //  N = active session with N seconds remaining
+            // Rule: extend-only — never shorten an existing session or add an expiry
+            // to a persistent key. Prevents the CLI (sessionTtlSeconds=1) from
+            // logging out OAuth2 users with active sessions or erasing persistent users.
             long existingTtl = jedis.ttl(key);
             Transaction transaction = jedis.multi();
             transaction.set(key, JsonObjectMapper.serialize(((DatashareUser)user).details));
-            if (existingTtl != -1L) {
+            if (existingTtl == -2L) {
                 transaction.expire(key, this.ttl);
+            } else if (existingTtl > 0L) {
+                transaction.expire(key, (int) Math.max(existingTtl, this.ttl));
             }
+            // existingTtl == -1: persistent — SET already cleared the TTL (no-op), don't add one.
             List<Object> exec = transaction.exec();
             return !exec.isEmpty();
         }
