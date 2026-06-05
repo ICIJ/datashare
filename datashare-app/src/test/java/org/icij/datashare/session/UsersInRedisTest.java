@@ -87,4 +87,26 @@ public class UsersInRedisTest {
             jedis.del("persistent-user");
         }
     }
+
+    @Test
+    public void saveOrUpdate_does_not_shorten_active_session_ttl() {
+        // Simulates an active OAuth2 session (TTL >> 1s). The CLI's sessionTtlSeconds
+        // defaults to 1; saveOrUpdate must not shorten the session, which would log
+        // the user out immediately after a project-grant command.
+        String redisAddress = EnvUtils.resolveUri("redis", "redis://redis:6379");
+        try (JedisPool pool = new JedisPool(redisAddress); Jedis jedis = pool.getResource()) {
+            jedis.setex("oauth-user", 600, "{\"uid\":\"oauth-user\"}");
+
+            users.saveOrUpdate(new DatashareUser(new HashMap<String, Object>() {{
+                put("uid", "oauth-user");
+                put("groups_by_applications", new HashMap<String, Object>() {{
+                    put("datashare", asList("project-a"));
+                }});
+            }}));
+
+            long remainingTtl = jedis.ttl("oauth-user");
+            assertThat(remainingTtl).isGreaterThan(1L);
+            jedis.del("oauth-user");
+        }
+    }
 }
