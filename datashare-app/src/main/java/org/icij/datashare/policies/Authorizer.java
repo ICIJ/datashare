@@ -125,7 +125,7 @@ public final class Authorizer {
      *   Project
      */
     public boolean addProjectAdmin(User user, Domain domain, Project project) {
-        return addRoleForUserInProject(user, Role.PROJECT_ADMIN, domain, project);
+        return updateRoleForUserInProject(user, Role.PROJECT_ADMIN, domain, project);
     }
 
     public boolean addRoleForUserInProject(User user, Role role, Domain domain, Project project) {
