@@ -173,9 +173,10 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
             throws ProjectNotFoundException {
         Project project = requireProject(projectName);
 
-        // revokeIfExists swallows a missing user (unlike revoke); resolve directly
-        // and convert null / no-roles into a noop without going through doRevoke.
-        User user = repository.getUser(userLogin);
+        // revokeIfExists swallows a missing user (unlike revoke); resolve via the
+        // same SQL→Redis fallback used by requireUser so that OAuth2 users who
+        // exist only in Redis are not silently skipped.
+        User user = findUser(userLogin);
         if (user == null) {
             return noopRevoke(projectName, userLogin);
         }
@@ -234,7 +235,7 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
         return project;
     }
 
-    private User requireUser(String login) throws UserNotFoundException {
+    private User findUser(String login) {
         User user = repository.getUser(login);
         if (user == null) {
             // Fall back to the configured auth provider (e.g. UsersInRedis).
@@ -244,6 +245,11 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
                 user = (User) httpUser;
             }
         }
+        return user;
+    }
+
+    private User requireUser(String login) throws UserNotFoundException {
+        User user = findUser(login);
         if (user == null) {
             if (!(usersWritable instanceof UsersInRedis)) {
                 // usersWritable didn't cover Redis: an OAuth2 user whose session was created
@@ -325,6 +331,14 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
         } catch (RuntimeException casbinFailure) {
             try {
                 repository.save(original);
+            } catch (RuntimeException rollback) {
+                casbinFailure.addSuppressed(rollback);
+            }
+            // Roll back the Redis inventory write that preceded the Casbin call.
+            // Without this, SQL = original but Redis = updated: the user sees the
+            // project in their dashboard but every Casbin enforce() returns false.
+            try {
+                usersWritable.saveOrUpdate(new DatashareUser(original));
             } catch (RuntimeException rollback) {
                 casbinFailure.addSuppressed(rollback);
             }
