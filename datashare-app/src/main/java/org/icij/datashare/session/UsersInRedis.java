@@ -50,11 +50,18 @@ public class UsersInRedis implements UsersWritable {
     @Override
     public boolean saveOrUpdate(User user) {
         try (Jedis jedis = redis.getResource()) {
+            String key = user.login();
+            // ttl() returns -1 for persistent keys (no expiry), -2 for missing keys.
+            // Don't add an expiry to a persistent entry (e.g. a manually-provisioned
+            // user with no TTL); only apply sessionTtlSeconds for new or session-backed entries.
+            long existingTtl = jedis.ttl(key);
             Transaction transaction = jedis.multi();
-            transaction.set(user.login(), JsonObjectMapper.serialize(((DatashareUser)user).details));
-            transaction.expire(user.login(), this.ttl);
+            transaction.set(key, JsonObjectMapper.serialize(((DatashareUser)user).details));
+            if (existingTtl != -1L) {
+                transaction.expire(key, this.ttl);
+            }
             List<Object> exec = transaction.exec();
-            return exec.size() == 2;
+            return !exec.isEmpty();
         }
     }
 }
