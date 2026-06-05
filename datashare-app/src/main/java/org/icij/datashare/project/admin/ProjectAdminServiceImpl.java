@@ -12,6 +12,7 @@ import org.icij.datashare.policies.CasbinRule;
 import org.icij.datashare.policies.Domain;
 import org.icij.datashare.policies.Role;
 import org.icij.datashare.session.DatashareUser;
+import org.icij.datashare.session.UsersInRedis;
 import org.icij.datashare.session.UsersWritable;
 import org.icij.datashare.text.Project;
 import org.icij.datashare.text.indexing.Indexer;
@@ -243,6 +244,12 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
             }
         }
         if (user == null) {
+            if (!(usersWritable instanceof UsersInRedis)) {
+                // usersWritable didn't cover Redis: an OAuth2 user whose session was created
+                // before the first grant won't be found unless UsersInRedis is configured.
+                throw new UserNotFoundException(login,
+                        "OAuth2 sessions exist only in Redis; pass --authUsersProvider=UsersInRedis");
+            }
             throw new UserNotFoundException(login);
         }
         return user;
