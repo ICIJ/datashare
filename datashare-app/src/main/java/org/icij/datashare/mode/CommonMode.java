@@ -314,6 +314,7 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
 
     @Provides @Singleton
     Authorizer provideAuthorizer(CasbinRuleAdapter adapter) throws IOException {
+        long interval = Long.parseLong(propertiesProvider.get("policyReloadInterval").orElse("0"));
         if (QueueType.REDIS.name().equals(propertiesProvider.get(BUS_TYPE_OPT).orElse(null))) {
             String redisAddress = propertiesProvider.get(REDIS_ADDRESS_OPT).orElse(DEFAULT_REDIS_ADDRESS);
             RedisURI redisUri = RedisURI.create(redisAddress);
@@ -324,10 +325,12 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
             options.setIgnoreSelf(false);
             RedisWatcherEx watcher = new RedisWatcherEx(options);
             Authorizer authorizer = new Authorizer(adapter, new SafeWatcherEx(watcher));
-            addCloseable(authorizer);  // stopAutoLoadPolicy is no-op but lifecycle is consistent
+            // startAutoLoadPolicy as a backstop: if the server misses publications during
+            // a Redis outage, periodic reloads guarantee convergence after reconnection.
+            authorizer.startAutoLoadPolicy(interval);
+            addCloseable(authorizer);
             return authorizer;
         }
-        long interval = Long.parseLong(propertiesProvider.get("policyReloadInterval").orElse("0"));
         Authorizer authorizer = new Authorizer(adapter, interval);
         addCloseable(authorizer);
         return authorizer;
