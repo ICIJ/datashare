@@ -51,24 +51,38 @@ public class UsersInRedis implements UsersWritable {
     public boolean saveOrUpdate(User user) {
         try (Jedis jedis = redis.getResource()) {
             String key = user.login();
-            // SET clears an existing TTL in Redis, so we must always re-stamp it.
-            // -1 = persistent (no expiry, e.g. manually-provisioned form-auth user)
-            // -2 = key doesn't exist yet
-            //  N = active session with N seconds remaining
-            // Rule: extend-only — never shorten an existing session or add an expiry
-            // to a persistent key. Prevents the CLI (sessionTtlSeconds=1) from
-            // logging out OAuth2 users with active sessions or erasing persistent users.
-            long existingTtl = jedis.ttl(key);
-            Transaction transaction = jedis.multi();
-            transaction.set(key, JsonObjectMapper.serialize(((DatashareUser)user).details));
-            if (existingTtl == -2L) {
-                transaction.expire(key, this.ttl);
-            } else if (existingTtl > 0L) {
-                transaction.expire(key, (int) Math.max(existingTtl, this.ttl));
+            String value = JsonObjectMapper.serialize(((DatashareUser) user).details);
+            // WATCH + retry loop to eliminate the TOCTOU race between ttl() and EXEC:
+            // without WATCH, a concurrent login could create the key with a long TTL
+            // after we read -2, then our EXEC would overwrite it with EXPIRE=1s.
+            // WATCH makes EXEC return null if the key changes; we re-read the TTL and retry.
+            //
+            // TTL extend-only rule (applied atomically per iteration):
+            //   -2 (key absent)  → apply this.ttl on new key
+            //   >0 (live session) → max(existing, this.ttl): never shorten
+            //   -1 (persistent)   → omit EXPIRE; SET already cleared the TTL, keep persistent
+            while (true) {
+                jedis.watch(key);
+                long existingTtl = jedis.ttl(key);
+                Transaction transaction = jedis.multi();
+                try {
+                    transaction.set(key, value);
+                    if (existingTtl == -2L) {
+                        transaction.expire(key, this.ttl);
+                    } else if (existingTtl > 0L) {
+                        transaction.expire(key, (int) Math.max(existingTtl, this.ttl));
+                    }
+                    List<Object> exec = transaction.exec();
+                    if (exec != null) {
+                        return !exec.isEmpty();
+                    }
+                    // exec == null: WATCH conflict — key was modified between watch() and exec().
+                    // Loop retries with a fresh TTL read.
+                } catch (RuntimeException e) {
+                    transaction.discard();
+                    throw e;
+                }
             }
-            // existingTtl == -1: persistent — SET already cleared the TTL (no-op), don't add one.
-            List<Object> exec = transaction.exec();
-            return !exec.isEmpty();
         }
     }
 }
