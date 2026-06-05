@@ -56,7 +56,7 @@ public final class Authorizer implements Closeable {
         String modelConf = loadCasbinConf(DEFAULT_POLICY_FILE);
         model.loadModelFromText(modelConf);
         enforcer = new SyncedEnforcer(model, adapter);
-        if (enableLog) enforcer.enableLog(true);
+        enforcer.enableLog(enableLog);
         enforcer.setRoleManager(new DomainManager(10, null, BuiltInFunctions::allMatch));
         enforcer.enableAutoSave(enableAutoSave);
         enforcer.loadPolicy();
