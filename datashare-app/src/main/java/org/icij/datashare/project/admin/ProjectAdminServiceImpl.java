@@ -11,6 +11,7 @@ import org.icij.datashare.policies.Authorizer;
 import org.icij.datashare.policies.CasbinRule;
 import org.icij.datashare.policies.Domain;
 import org.icij.datashare.policies.Role;
+import org.icij.datashare.session.DatashareUser;
 import org.icij.datashare.session.UsersWritable;
 import org.icij.datashare.text.Project;
 import org.icij.datashare.text.indexing.Indexer;
@@ -271,6 +272,7 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
         newDetails.put(GROUPS_BY_APPLICATIONS, apps);
         User updated = new User(user.id, user.name, user.email, user.provider, newDetails);
         repository.save(updated);
+        usersWritable.saveOrUpdate(new DatashareUser(updated));
         return updated;
     }
 
@@ -283,6 +285,7 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
         newDetails.put(GROUPS_BY_APPLICATIONS, apps);
         User updated = new User(user.id, user.name, user.email, user.provider, newDetails);
         repository.save(updated);
+        usersWritable.saveOrUpdate(new DatashareUser(updated));
         return updated;
     }
 
