@@ -38,6 +38,7 @@ import org.icij.datashare.nlp.EmailPipeline;
 import org.icij.datashare.nlp.OptimaizeLanguageGuesser;
 import org.icij.datashare.policies.Authorizer;
 import org.icij.datashare.policies.CasbinRuleAdapter;
+import org.icij.datashare.policies.SafeWatcherEx;
 import org.icij.datashare.user.admin.UserAdminService;
 import org.icij.datashare.user.admin.UserAdminServiceImpl;
 import org.icij.datashare.project.admin.ProjectAdminService;
@@ -322,7 +323,7 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
             // ignoreSelf=false: writing instance also gets notified and reloads — harmless since policy is fresh
             options.setIgnoreSelf(false);
             RedisWatcherEx watcher = new RedisWatcherEx(options);
-            Authorizer authorizer = new Authorizer(adapter, watcher);
+            Authorizer authorizer = new Authorizer(adapter, new SafeWatcherEx(watcher));
             addCloseable(authorizer);  // stopAutoLoadPolicy is no-op but lifecycle is consistent
             return authorizer;
         }
