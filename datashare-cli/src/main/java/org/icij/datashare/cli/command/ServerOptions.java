@@ -93,6 +93,10 @@ public class ServerOptions {
     @Option(names = {"--sessionStoreType"}, description = "Session store type", defaultValue = "MEMORY")
     QueueType sessionStoreType;
 
+    // Batch / Download
+    @Option(names = {"--batchQueueType"}, description = "Batch queue type", defaultValue = "MEMORY")
+    QueueType batchQueueType;
+
     @Option(names = {"--batchSearchMaxTimeSeconds"}, description = "Max batch search time in seconds")
     Integer batchSearchMaxTimeSeconds;
 
@@ -146,6 +150,9 @@ public class ServerOptions {
     @Option(names = {"--smtpUrl"}, description = "SMTP URL for sending emails")
     String smtpUrl;
 
+    @Option(names = {"--temporalNamespace"}, description = "Temporal namespace", defaultValue = "datashare-default")
+    String temporalNamespace;
+
     // Task management and document processing options — shared with WorkerRunCommand and StageRunCommand
     @Mixin
     WorkerOptions workerOptions = new WorkerOptions();
@@ -180,11 +187,13 @@ public class ServerOptions {
         if (auth != null) {
             DatashareOptions.put(props, AUTH_MODE_OPT, auth.cliName);
         }
+        // authUsersProvider is a GlobalOption (ScopeType.INHERIT) — collected from there.
         DatashareOptions.putIfNotNull(props, AUTH_FILTER_OPT, authFilter);
         DatashareOptions.putIfNotNull(props, SESSION_SIGNING_KEY_OPT, sessionSigningKey);
         DatashareOptions.put(props, SESSION_TTL_SECONDS_OPT, sessionTtlSeconds);
         DatashareOptions.putIfNotNull(props, SESSION_STORE_TYPE_OPT, sessionStoreType);
 
+        DatashareOptions.putIfNotNull(props, BATCH_QUEUE_TYPE_OPT, batchQueueType);
         DatashareOptions.putIfNotNull(props, BATCH_SEARCH_MAX_TIME_OPT, batchSearchMaxTimeSeconds);
         DatashareOptions.putIfNotNull(props, BATCH_THROTTLE_OPT, batchThrottleMilliseconds);
         DatashareOptions.putIfNotNull(props, BATCH_DOWNLOAD_DIR_OPT, resolveAbsolutePath(batchDownloadDir));
@@ -204,6 +213,8 @@ public class ServerOptions {
 
         DatashareOptions.putIfNotNull(props, REPORT_NAME_OPT, reportName);
         DatashareOptions.putIfNotNull(props, SMTP_URL_OPT, smtpUrl);
+        DatashareOptions.putIfNotNull(props, TEMPORAL_NAMESPACE_OPT, temporalNamespace);
+
         DatashareOptions.putAll(props, workerOptions.toProperties());
         DatashareOptions.putAll(props, pipelineOptions.toProperties());
 
