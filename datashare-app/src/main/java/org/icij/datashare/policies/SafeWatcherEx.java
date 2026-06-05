@@ -22,7 +22,7 @@ public class SafeWatcherEx implements WatcherEx {
             + " Cause: {}";
     private final RedisWatcherEx delegate;
 
-    SafeWatcherEx(RedisWatcherEx delegate) {
+    public SafeWatcherEx(RedisWatcherEx delegate) {
         this.delegate = delegate;
     }
 
