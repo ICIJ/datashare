@@ -6,6 +6,7 @@ import org.icij.datashare.extract.DocumentCollectionFactory;
 import org.icij.datashare.policies.Authorizer;
 import org.icij.datashare.policies.CasbinRule;
 import org.icij.datashare.policies.Domain;
+import org.icij.datashare.session.UsersWritable;
 import org.icij.datashare.text.Project;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.user.User;
@@ -43,6 +44,7 @@ public class ProjectAdminServiceImplTest {
     private Authorizer authorizer;
     private DocumentCollectionFactory<Path> documentCollectionFactory;
     private PropertiesProvider propertiesProvider;
+    private UsersWritable usersWritable;
     private ProjectAdminServiceImpl service;
 
     @Before
@@ -52,8 +54,9 @@ public class ProjectAdminServiceImplTest {
         authorizer = mock(Authorizer.class);
         documentCollectionFactory = mock(DocumentCollectionFactory.class);
         propertiesProvider = mock(PropertiesProvider.class);
+        usersWritable = mock(UsersWritable.class);
         service = new ProjectAdminServiceImpl(
-                repository, indexer, authorizer, documentCollectionFactory, propertiesProvider);
+                repository, indexer, authorizer, documentCollectionFactory, propertiesProvider, usersWritable);
     }
 
     private ProjectCreateRequest minimalRequest(String name) {

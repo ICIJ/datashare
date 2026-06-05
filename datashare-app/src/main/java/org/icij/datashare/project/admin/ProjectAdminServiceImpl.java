@@ -11,6 +11,8 @@ import org.icij.datashare.policies.Authorizer;
 import org.icij.datashare.policies.CasbinRule;
 import org.icij.datashare.policies.Domain;
 import org.icij.datashare.policies.Role;
+import org.icij.datashare.session.DatashareUser;
+import org.icij.datashare.session.UsersWritable;
 import org.icij.datashare.text.Project;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.user.User;
@@ -54,18 +56,21 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
     private final Authorizer authorizer;
     private final DocumentCollectionFactory<Path> documentCollectionFactory;
     private final PropertiesProvider propertiesProvider;
+    private final UsersWritable usersWritable;
 
     @Inject
     public ProjectAdminServiceImpl(Repository repository,
                                    Indexer indexer,
                                    Authorizer authorizer,
                                    DocumentCollectionFactory<Path> documentCollectionFactory,
-                                   PropertiesProvider propertiesProvider) {
+                                   PropertiesProvider propertiesProvider,
+                                   UsersWritable usersWritable) {
         this.repository = repository;
         this.indexer = indexer;
         this.authorizer = authorizer;
         this.documentCollectionFactory = documentCollectionFactory;
         this.propertiesProvider = propertiesProvider;
+        this.usersWritable = usersWritable;
     }
 
     @Override
@@ -232,6 +237,12 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
     private User requireUser(String login) throws UserNotFoundException {
         User user = repository.getUser(login);
         if (user == null) {
+            net.codestory.http.security.User httpUser = usersWritable.find(login);
+            if (httpUser instanceof User) {
+                user = (User) httpUser;
+            }
+        }
+        if (user == null) {
             throw new UserNotFoundException(login);
         }
         return user;
@@ -260,6 +271,7 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
         newDetails.put(GROUPS_BY_APPLICATIONS, apps);
         User updated = new User(user.id, user.name, user.email, user.provider, newDetails);
         repository.save(updated);
+        usersWritable.saveOrUpdate(new DatashareUser(updated));
         return updated;
     }
 
@@ -272,6 +284,7 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
         newDetails.put(GROUPS_BY_APPLICATIONS, apps);
         User updated = new User(user.id, user.name, user.email, user.provider, newDetails);
         repository.save(updated);
+        usersWritable.saveOrUpdate(new DatashareUser(updated));
         return updated;
     }
 
