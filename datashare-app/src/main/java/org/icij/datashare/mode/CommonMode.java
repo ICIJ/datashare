@@ -311,7 +311,9 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
             // Event-driven: RTopic notifies all instances immediately on policy change.
             PolicyWatcher watcher = new PolicyWatcher(redissonProvider.get());
             addCloseable(watcher);
-            return new Authorizer(adapter, watcher);
+            Authorizer authorizer = new Authorizer(adapter, watcher);
+            addCloseable(authorizer);
+            return authorizer;
         }
         // Fallback: periodic reload from DB when Redis is not available.
         long interval = Long.parseLong(propertiesProvider.get(POLICY_RELOAD_INTERVAL_OPT).orElse("0"));
