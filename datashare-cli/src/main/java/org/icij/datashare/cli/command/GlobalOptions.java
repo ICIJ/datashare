@@ -114,6 +114,9 @@ public class GlobalOptions {
     @Option(names = {"-l", "--language"}, description = "Indexing language", scope = ScopeType.INHERIT)
     String language;
 
+    @Option(names = {"--authUsersProvider"}, description = "Auth users provider class", scope = ScopeType.INHERIT)
+    String authUsersProvider;
+
     @Option(names = {"--no-color"}, description = "Disable ANSI color output", defaultValue = "false", scope = ScopeType.INHERIT)
     boolean noColor;
 
@@ -149,6 +152,7 @@ public class GlobalOptions {
         DatashareOptions.putIfNotNull(props, EXT_OPT, ext);
         DatashareOptions.putIfNotNull(props, DATA_DIR_OPT, dataDir);
         DatashareOptions.putIfNotNull(props, LANGUAGE_OPT, language);
+        DatashareOptions.putIfNotNull(props, AUTH_USERS_PROVIDER_OPT, authUsersProvider);
 
         return props;
     }
