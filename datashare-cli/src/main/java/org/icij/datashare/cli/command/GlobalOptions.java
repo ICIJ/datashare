@@ -115,6 +115,9 @@ public class GlobalOptions {
     @Option(names = {"-l", "--language"}, description = "Indexing language", scope = ScopeType.INHERIT)
     String language;
 
+    @Option(names = {"--authUsersProvider"}, description = "Auth users provider class", scope = ScopeType.INHERIT)
+    String authUsersProvider;
+
     @Option(names = {"--no-color"}, description = "Disable ANSI color output", defaultValue = "false", scope = ScopeType.INHERIT)
     boolean noColor;
 
@@ -163,6 +166,8 @@ public class GlobalOptions {
         DatashareOptions.putIfNotNull(props, BATCH_QUEUE_TYPE_OPT, batchQueueType);
         DatashareOptions.putIfNotNull(props, DatashareCliOptions.TEMPORAL_ADDRESS_OPT, temporalAddress);
         DatashareOptions.putIfNotNull(props, DatashareCliOptions.TEMPORAL_NAMESPACE_OPT, temporalNamespace);
+        DatashareOptions.putIfNotNull(props, AUTH_USERS_PROVIDER_OPT, authUsersProvider);
+
         return props;
     }
 
