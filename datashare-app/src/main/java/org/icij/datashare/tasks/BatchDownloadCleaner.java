@@ -28,8 +28,10 @@ public class BatchDownloadCleaner implements Runnable {
 
     @Inject
     public BatchDownloadCleaner(final PropertiesProvider propertiesProvider) {
-        downloadDir = Paths.get(propertiesProvider.getProperties().getProperty(DatashareCliOptions.BATCH_DOWNLOAD_DIR_OPT));
-        ttlHour = Integer.parseInt(propertiesProvider.getProperties().getProperty(DatashareCliOptions.BATCH_DOWNLOAD_ZIP_TTL_OPT));
+        downloadDir = Paths.get(propertiesProvider.getProperties().getProperty(
+                DatashareCliOptions.BATCH_DOWNLOAD_DIR_OPT, DatashareCliOptions.DEFAULT_BATCH_DOWNLOAD_DIR));
+        ttlHour = Integer.parseInt(propertiesProvider.getProperties().getProperty(
+                DatashareCliOptions.BATCH_DOWNLOAD_ZIP_TTL_OPT, String.valueOf(DatashareCliOptions.DEFAULT_BATCH_DOWNLOAD_ZIP_TTL)));
     }
 
     @Override

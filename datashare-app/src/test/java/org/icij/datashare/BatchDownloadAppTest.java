@@ -8,6 +8,7 @@ import org.junit.rules.TemporaryFolder;
 import java.io.File;
 import java.util.HashMap;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.fest.assertions.Assertions.assertThat;
@@ -22,8 +23,8 @@ public class BatchDownloadAppTest {
     public void test_cleaner_runs_immediately_when_scheduled() throws Exception {
         AtomicInteger callCount = new AtomicInteger(0);
         ScheduledExecutorService scheduler = BatchDownloadApp.scheduleCleanup(callCount::incrementAndGet);
-        Thread.sleep(100);
         scheduler.shutdown();
+        scheduler.awaitTermination(500, TimeUnit.MILLISECONDS);
         assertThat(callCount.get()).isGreaterThan(0);
     }
 
