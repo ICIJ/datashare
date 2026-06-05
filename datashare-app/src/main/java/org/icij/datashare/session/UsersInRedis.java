@@ -61,7 +61,7 @@ public class UsersInRedis implements UsersWritable {
             //   -2 (key absent)  → apply this.ttl on new key
             //   >0 (live session) → max(existing, this.ttl): never shorten
             //   -1 (persistent)   → omit EXPIRE; SET already cleared the TTL, keep persistent
-            while (true) {
+            for (int attempt = 0; attempt < 10; attempt++) {
                 jedis.watch(key);
                 long existingTtl = jedis.ttl(key);
                 Transaction transaction = jedis.multi();
@@ -83,6 +83,7 @@ public class UsersInRedis implements UsersWritable {
                     throw e;
                 }
             }
+            throw new IllegalStateException("saveOrUpdate for '" + key + "' failed after 10 WATCH conflicts");
         }
     }
 }
