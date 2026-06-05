@@ -83,6 +83,15 @@ public class AuthorizerTest {
     }
 
     @Test
+    public void test_add_project_admin_replaces_existing_role() {
+        authorizer.addRoleForUserInProject(user, Role.PROJECT_MEMBER, domain, project);
+        authorizer.addProjectAdmin(user, domain, project);
+        List<String> roles = authorizer.getRolesForUserInProject(user, domain, project);
+        assertThat(roles).hasSize(1);
+        assertThat(roles).contains(Role.PROJECT_ADMIN.name());
+    }
+
+    @Test
     public void test_add_role_for_user_in_project() {
         assertTrue(authorizer.addRoleForUserInProject(user, Role.PROJECT_ADMIN, domain, project));
     }
