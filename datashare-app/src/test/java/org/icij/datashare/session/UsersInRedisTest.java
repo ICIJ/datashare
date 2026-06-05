@@ -4,6 +4,8 @@ import org.icij.datashare.EnvUtils;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.text.Hasher;
 import org.junit.Test;
+import redis.clients.jedis.Jedis;
+import redis.clients.jedis.JedisPool;
 
 import java.util.HashMap;
 import java.util.List;
@@ -62,5 +64,27 @@ public class UsersInRedisTest {
             put("password", Hasher.SHA_256.hash("bar"));
         }}));
         assertThat(users.find("foo", "bad")).isNull();
+    }
+
+    @Test
+    public void saveOrUpdate_preserves_persistent_entry_without_adding_ttl() {
+        // Simulates a manually-provisioned Redis user (no TTL). The CLI's
+        // project-grant path calls saveOrUpdate; it must not stamp an expiry
+        // onto a persistent key, which would log the user out after 1 second.
+        String redisAddress = EnvUtils.resolveUri("redis", "redis://redis:6379");
+        try (JedisPool pool = new JedisPool(redisAddress); Jedis jedis = pool.getResource()) {
+            jedis.set("persistent-user", "{\"uid\":\"persistent-user\",\"password\":\"hash\"}");
+            // key has no TTL (-1)
+
+            users.saveOrUpdate(new DatashareUser(new HashMap<String, Object>() {{
+                put("uid", "persistent-user");
+                put("groups_by_applications", new HashMap<String, Object>() {{
+                    put("datashare", asList("project-a"));
+                }});
+            }}));
+
+            assertThat(jedis.ttl("persistent-user")).isEqualTo(-1L);
+            jedis.del("persistent-user");
+        }
     }
 }
