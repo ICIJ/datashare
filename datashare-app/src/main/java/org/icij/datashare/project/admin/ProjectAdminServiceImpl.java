@@ -7,6 +7,7 @@ import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Repository;
 import org.icij.datashare.cli.DatashareCliOptions;
 import org.icij.datashare.extract.DocumentCollectionFactory;
+import org.icij.datashare.utils.DataDirVerifier;
 import org.icij.datashare.policies.Authorizer;
 import org.icij.datashare.policies.CasbinRule;
 import org.icij.datashare.policies.Domain;
@@ -22,7 +23,6 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URI;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Date;
@@ -40,7 +40,6 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ProjectAdminServiceImpl.class);
     private static final String DEFAULT_ALLOW_FROM_MASK = "*.*.*.*";
-    private static final Path DEFAULT_VAULT = Paths.get("/vault");
     // Keys into User.details: per-application membership lists. The "datashare"
     // entry under "groups_by_applications" is the load-bearing projection used
     // by the UI/API to list a user's projects.
@@ -447,7 +446,7 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
     private ProjectCreated persist(ProjectCreateRequest request) throws IOException {
         String label = request.label() == null ? request.name() : request.label();
         Path sourcePath = request.sourcePath() == null
-                ? DEFAULT_VAULT.resolve(request.name())
+                ? new DataDirVerifier(propertiesProvider).path()
                 : request.sourcePath();
         String allowFromMask = request.allowFromMask() == null
                 ? DEFAULT_ALLOW_FROM_MASK

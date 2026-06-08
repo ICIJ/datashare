@@ -120,16 +120,17 @@ public class ProjectAdminServiceImplTest {
     }
 
     @Test
-    public void test_create_defaults_label_to_name_and_path_to_vault() throws Exception {
+    public void test_create_defaults_label_to_name_and_path_to_data_dir() throws Exception {
         when(repository.getProject("foo")).thenReturn(null);
         when(repository.save(any(Project.class))).thenReturn(true);
+        when(propertiesProvider.get("dataDir")).thenReturn(Optional.of("/srv/data"));
 
         service.create(minimalRequest("foo"));
 
         ArgumentCaptor<Project> captor = ArgumentCaptor.forClass(Project.class);
         verify(repository).save(captor.capture());
         assertThat(captor.getValue().getLabel()).isEqualTo("foo");
-        assertThat((Object) captor.getValue().getSourcePath()).isEqualTo(Path.of("/vault/foo"));
+        assertThat((Object) captor.getValue().getSourcePath()).isEqualTo(Path.of("/srv/data"));
         assertThat(captor.getValue().getAllowFromMask()).isEqualTo("*.*.*.*");
     }
 
