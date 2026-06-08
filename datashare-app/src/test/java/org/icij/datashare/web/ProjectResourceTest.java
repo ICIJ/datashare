@@ -178,10 +178,15 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
-    public void test_cannot_create_project_without_source_path() {
-        String body = "{ \"name\": \"projectId\", \"label\": \"Project ID\", \"sourceUrl\": \"https://icij.org\", \"publisherName\":\"ICIJ\" }";
+    public void test_create_project_without_source_path_defaults_to_data_dir() throws IOException {
+        String body = "{ \"name\": \"foo\", \"label\": \"Foo Bar\", \"publisherName\":\"ICIJ\" }";
+        when(indexer.createIndex("foo")).thenReturn(true);
         when(repository.getProject("foo")).thenReturn(null);
-        post("/api/project/", body).should().respond(400);
+        when(repository.save((Project) any())).thenReturn(true);
+        post("/api/project/", body).should().respond(201)
+                .contain("\"name\":\"foo\"")
+                .contain("\"publisherName\":\"ICIJ\"")
+                .contain("\"sourcePath\":\"file:///vault\"");
     }
 
     @Test
@@ -231,6 +236,19 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
                 .contain("\"name\":\"foo\"")
                 .contain("\"label\":\"Foo\"")
                 .contain("\"sourcePath\":\"file:///vault/foo\"");
+    }
+
+    @Test
+    public void test_put_creates_project_without_source_path_defaults_to_data_dir() throws IOException {
+        when(repository.getProjects(any())).thenReturn(new ArrayList<>());
+        when(repository.getProject("foo")).thenReturn(null);
+        when(repository.save((Project) any())).thenReturn(true);
+        when(indexer.createIndex("foo")).thenReturn(true);
+
+        String body = "{ \"name\": \"foo\", \"label\": \"Foo\" }";
+        put("/api/project/foo", body).should().respond(201)
+                .contain("\"name\":\"foo\"")
+                .contain("\"sourcePath\":\"file:///vault\"");
     }
 
     @Test

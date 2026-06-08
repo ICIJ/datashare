@@ -105,13 +105,14 @@
                 return PayloadFormatter.error("Project already exists.", HttpStatus.CONFLICT);
             } else if (isProjectNameEmpty(project)) {
                 return PayloadFormatter.error("`name` field is required.", HttpStatus.BAD_REQUEST);
-            } else if (isProjectSourcePathNull(project) || !dataDirVerifier.allowed(project.getSourcePath())) {
-                return PayloadFormatter.error(String.format("`sourcePath` is required and must not be outside %s.", dataDirVerifier.value()), HttpStatus.BAD_REQUEST);
-            } else if (!repository.save(project) || !this.createIndexOnce(project.getId())) {
+            }
+            Project effectiveProject = isProjectSourcePathNull(project) ? withDefaultSourcePath(project) : project;
+            if (!dataDirVerifier.allowed(effectiveProject.getSourcePath())) {
+                return PayloadFormatter.error(String.format("`sourcePath` must not be outside %s.", dataDirVerifier.value()), HttpStatus.BAD_REQUEST);
+            } else if (!repository.save(effectiveProject) || !this.createIndexOnce(effectiveProject.getId())) {
                 return PayloadFormatter.error("Unable to create the project", HttpStatus.INTERNAL_SERVER_ERROR);
             }
-
-            return new Payload(project).withCode(HttpStatus.CREATED);
+            return new Payload(effectiveProject).withCode(HttpStatus.CREATED);
         }
 
         @Operation(description = "Preflight project resource option request",
@@ -149,26 +150,27 @@
             if (!Objects.equals(projectPayload.getId(), id)) {
                 return PayloadFormatter.error("Project id mismatch.", HttpStatus.NOT_FOUND);
             }
-            if (isProjectSourcePathNull(projectPayload) || !dataDirVerifier.allowed(projectPayload.getSourcePath())) {
-                return PayloadFormatter.error(String.format("`sourcePath` is required and must not be outside %s.", dataDirVerifier.value()), HttpStatus.BAD_REQUEST);
+            Project effectiveProject = isProjectSourcePathNull(projectPayload) ? withDefaultSourcePath(projectPayload) : projectPayload;
+            if (!dataDirVerifier.allowed(effectiveProject.getSourcePath())) {
+                return PayloadFormatter.error(String.format("`sourcePath` must not be outside %s.", dataDirVerifier.value()), HttpStatus.BAD_REQUEST);
             }
 
-            if (!projectExists(projectPayload)) {
-                if (!repository.save(projectPayload) || !createIndexOnce(projectPayload.getId())) {
+            if (!projectExists(effectiveProject)) {
+                if (!repository.save(effectiveProject) || !createIndexOnce(effectiveProject.getId())) {
                     return PayloadFormatter.error("Unable to create the project", HttpStatus.INTERNAL_SERVER_ERROR);
                 }
-                return new Payload(projectPayload).withCode(HttpStatus.CREATED);
+                return new Payload(effectiveProject).withCode(HttpStatus.CREATED);
             }
 
             DatashareUser user = (DatashareUser) context.currentUser();
             if (getUserProject(user, id) == null) {
                 return PayloadFormatter.error("Project not found", HttpStatus.NOT_FOUND);
             }
-            if (!repository.save(projectPayload)) {
+            if (!repository.save(effectiveProject)) {
                 return PayloadFormatter.error("Unable to save the project", HttpStatus.INTERNAL_SERVER_ERROR);
             }
 
-            return new Payload(projectPayload).withCode(HttpStatus.OK);
+            return new Payload(effectiveProject).withCode(HttpStatus.OK);
         }
 
         @Operation(description = "Deletes the project from database and elasticsearch index.",
@@ -310,6 +312,21 @@
 
         private boolean projectExists(String name) {
             return repository.getProject(name) != null;
+        }
+
+        private Project withDefaultSourcePath(Project project) {
+            return new Project(
+                    project.getName(),
+                    project.getLabel(),
+                    project.getDescription(),
+                    dataDirVerifier.path(),
+                    project.getSourceUrl(),
+                    project.getMaintainerName(),
+                    project.getPublisherName(),
+                    project.getLogoUrl(),
+                    project.getAllowFromMask(),
+                    project.creationDate,
+                    project.updateDate);
         }
 
         private boolean isProjectNameEmpty(Project project) {
