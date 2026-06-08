@@ -8,6 +8,8 @@ import org.icij.datashare.cli.QueueType;
 import org.icij.datashare.session.*;
 import org.junit.Test;
 
+import org.icij.datashare.PropertiesProvider;
+
 import java.util.HashMap;
 
 import static org.fest.assertions.Assertions.assertThat;
@@ -124,6 +126,42 @@ public class ServerModeTest {
     @Test
     public void test_mode_for_filter_class_returns_empty_for_unknown_class() {
         assertThat(ServerMode.modeForFilterClass(BasicAuthFilter.class).isPresent()).isFalse();
+    }
+
+    @Test
+    public void test_default_materializes_form_auth_property() {
+        CommonMode mode = CommonMode.create(new HashMap<>() {{
+            put("mode", "SERVER");
+        }});
+        assertThat(mode.get(PropertiesProvider.class).get("auth").orElse(null)).isEqualTo("form");
+    }
+
+    @Test
+    public void test_explicit_auth_mode_is_materialized() {
+        CommonMode mode = CommonMode.create(new HashMap<>() {{
+            put("mode", "SERVER");
+            put("auth", "basic");
+        }});
+        assertThat(mode.get(PropertiesProvider.class).get("auth").orElse(null)).isEqualTo("basic");
+    }
+
+    @Test
+    public void test_recognized_legacy_auth_filter_is_mapped_back() {
+        CommonMode mode = CommonMode.create(new HashMap<>() {{
+            put("mode", "SERVER");
+            put("authFilter", "org.icij.datashare.session.BasicAuthAdaptorFilter");
+        }});
+        assertThat(mode.get(PropertiesProvider.class).get("auth").orElse(null)).isEqualTo("basic");
+    }
+
+    @Test
+    public void test_unrecognized_legacy_auth_filter_falls_back_to_form() {
+        CommonMode mode = CommonMode.create(new HashMap<>() {{
+            put("mode", "SERVER");
+            put("authFilter", "org.icij.UnknownClass");
+        }});
+        // resolveAuthFilterClass falls back to FormAuthFilter; modeForFilterClass maps it back to "form"
+        assertThat(mode.get(PropertiesProvider.class).get("auth").orElse(null)).isEqualTo("form");
     }
 
     @Test

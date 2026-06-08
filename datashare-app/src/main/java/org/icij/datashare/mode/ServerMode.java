@@ -41,7 +41,10 @@ public class ServerMode extends CommonMode {
             bind(SessionIdStore.class).to(RedisSessionIdStore.class);
         }
         bind(ApiKeyStore.class).to(ApiKeyStoreAdapter.class);
-        bindAuthFilter(resolveAuthFilterClass());
+        Class<? extends Filter> authFilterClass = resolveAuthFilterClass();
+        modeForFilterClass(authFilterClass)
+                .ifPresent(mode -> propertiesProvider.setProperty(AUTH_MODE_OPT, mode.cliName));
+        bindAuthFilter(authFilterClass);
         bind(StatusResource.class).asEagerSingleton();
         configurePersistence();
     }
