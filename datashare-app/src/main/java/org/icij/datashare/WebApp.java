@@ -12,6 +12,7 @@ import org.icij.datashare.batch.BatchSearchRecord;
 import org.icij.datashare.batch.BatchSearchRepository;
 import org.icij.datashare.cli.Mode;
 import org.icij.datashare.mode.CommonMode;
+import org.icij.datashare.tasks.BatchDownloadCleaner;
 import org.icij.datashare.tasks.BatchSearchRunner;
 import org.icij.datashare.asynctasks.TaskManager;
 import org.icij.datashare.utils.WebBrowserUtils;
@@ -39,6 +40,8 @@ public class WebApp {
                 .withWebSocketThreads(1)
                 .configure(mode.createWebConfiguration())
                 .start(parseInt(mode.properties().getProperty(PropertiesProvider.TCP_LISTEN_PORT_OPT)));
+
+        mode.addCloseable(BatchDownloadApp.scheduleCleanup(mode.get(BatchDownloadCleaner.class))::shutdown);
 
         if (mode.shouldRunWorker()) {
             mode.runWorkers();
