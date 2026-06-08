@@ -145,16 +145,38 @@ public class TaskManagerTemporal implements TaskManager {
                     //Do nothing
                     return;
                 }
-                //Parse the state from temporal.
-                //Maybe we might want to limit the scope of what is retrieved
-                // (no need to get again the args for instance)
-                Task<Serializable> temporalTask = temporal.getTask(taskId);
-                taskRepository.update(temporalTask);
+                updateTaskWithCompletionInfoFromTemporal(storedTask);
+                taskRepository.update(storedTask);
             } catch (IOException | UnknownTask e) {
                 logger.warn("failed to update task {} on completion", taskId, e);
             }
         });
     }
+
+
+    /**
+     * Updates the task in parameter {@param inRepository} with state, result and error from Temporal
+     * @param inRepository
+     */
+    private <T extends Serializable> void updateTaskWithCompletionInfoFromTemporal(Task<T> inRepository) {
+        Task<T> inTemporal = temporal.getTask(inRepository.getId());
+        if(inTemporal == null) {
+            logger.warn("Unable to retrieve task {} from Temporal. Cannot update completion infos in repository", inRepository.getId());
+            return;
+        }
+        inRepository.setState(inTemporal.getState());
+
+        if(inTemporal.getResult() != null) {
+            inRepository.setResult(inTemporal.getResult());
+        }
+
+        if(inTemporal.getError() != null) {
+            inRepository.setError(inTemporal.getError());
+        }
+
+    }
+
+
 
     @Override
     public boolean shutdown() throws IOException {
@@ -216,7 +238,7 @@ public class TaskManagerTemporal implements TaskManager {
     static SearchAttributes generateSearchAttributes(Task<?> taskView) {
         SearchAttributes.Builder builder = SearchAttributes.newBuilder()
             .set(PROGRESS_CUSTOM_ATTRIBUTE, 0d)
-            .set(MAX_PROGRESS_CUSTOM_ATTRIBUTE, 0d);
+            .set(MAX_PROGRESS_CUSTOM_ATTRIBUTE, 1d);
         Optional.ofNullable(taskView.getUser()).ifPresent(u -> {
             if(u.getId() != null) {
                 builder.set(USER_CUSTOM_ATTRIBUTE, u.getId());

@@ -44,6 +44,7 @@ import javax.lang.model.type.MirroredTypesException;
 import javax.lang.model.type.TypeMirror;
 import javax.tools.JavaFileObject;
 import org.icij.datashare.asynctasks.TaskFactory;
+import org.icij.datashare.asynctasks.TaskRepository;
 
 @SupportedAnnotationTypes("org.icij.datashare.asynctasks.temporal.TemporalSingleActivityWorkflow")
 @SupportedSourceVersion(SourceVersion.RELEASE_17)
@@ -206,8 +207,9 @@ public class TemporalWorkflowGenerator extends AbstractProcessor {
             .addModifiers(Modifier.PUBLIC)
             .addParameter(TaskFactory.class, "factory")
             .addParameter(WorkflowClient.class, "client")
+            .addParameter(TaskRepository.class, "taskRepository")
             .addParameter(Double.class, "progressWeight")
-            .addCode("super(factory, client, progressWeight);")
+            .addCode("super(factory, client, taskRepository, progressWeight);")
             .build();
         MethodSpec run = MethodSpec.methodBuilder("run")
             .addAnnotation(Override.class)

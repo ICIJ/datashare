@@ -445,6 +445,7 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
             TemporalInterlocutor temporal = get(TemporalInterlocutor.class);
             executorService.submit(() -> {
                 closeables.add(temporal.discoverWorkflows(getTaskWorkersNb(), get(DatashareTaskFactory.class),
+                                get(TaskRepository.class),
                                 Utils.getRoutingStrategy(propertiesProvider),
                                 new Group(TaskGroupType.Java)));
             });

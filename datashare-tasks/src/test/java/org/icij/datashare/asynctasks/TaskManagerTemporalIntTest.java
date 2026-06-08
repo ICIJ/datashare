@@ -64,11 +64,11 @@ public class TaskManagerTemporalIntTest {
             new TemporalInterlocutor.RegisteredWorkflow(
                 HelloWorldWorkflowImpl.class,
                 WORKFLOWS_DEFAULT,
-                List.of(new TemporalInterlocutor.RegisteredActivity(temporal.activityFactory(HelloWorldActivityImpl.class, taskFactory, 1.0d), WORKFLOWS_DEFAULT))),
+                List.of(new TemporalInterlocutor.RegisteredActivity(temporal.activityFactory(HelloWorldActivityImpl.class, taskFactory, taskRepository, 1.0d), WORKFLOWS_DEFAULT))),
             new TemporalInterlocutor.RegisteredWorkflow(
                 FailingWorkflowImpl.class,
                 WORKFLOWS_DEFAULT,
-                List.of(new TemporalInterlocutor.RegisteredActivity(temporal.activityFactory(FailingActivityImpl.class, taskFactory, 1.0d), WORKFLOWS_DEFAULT)))
+                List.of(new TemporalInterlocutor.RegisteredActivity(temporal.activityFactory(FailingActivityImpl.class, taskFactory, taskRepository, 1.0d), WORKFLOWS_DEFAULT)))
         );
 
         temporal.setupNamespace(Duration.ofSeconds(5));
@@ -294,7 +294,7 @@ public class TaskManagerTemporalIntTest {
                 DoNothingWorkflowImpl.class,
                 WORKFLOWS_DEFAULT,
                 List.of(new TemporalInterlocutor.RegisteredActivity(
-                    temporal.activityFactory(DoNothingActivityImpl.class, capturingFactory, 1.0d),
+                    temporal.activityFactory(DoNothingActivityImpl.class, capturingFactory, taskRepository, 1.0d),
                     WORKFLOWS_DEFAULT
                 ))
             )
