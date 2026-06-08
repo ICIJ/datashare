@@ -1,15 +1,12 @@
 package org.icij.datashare;
 
+import com.google.inject.Inject;
+import com.google.inject.Singleton;
 import org.icij.datashare.asynctasks.TaskFactory;
 import org.icij.datashare.asynctasks.TaskSupplier;
 import org.icij.datashare.asynctasks.TaskWorkerLoop;
-import org.icij.datashare.mode.CommonMode;
 import org.icij.datashare.tasks.BatchDownloadCleaner;
-import org.icij.datashare.text.indexing.Indexer;
-import org.redisson.api.RedissonClient;
 
-import java.util.Properties;
-import java.util.concurrent.Callable;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -18,20 +15,24 @@ import static java.util.Optional.ofNullable;
 import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_TASK_PROGRESS_INTERVAL_SECONDS;
 import static org.icij.datashare.cli.DatashareCliOptions.TASK_PROGRESS_INTERVAL_OPT;
 
-
+@Singleton
 public class BatchDownloadApp {
-    public static void start(Properties properties) throws Exception {
-        CommonMode commonMode = CommonMode.create(properties);
-        double progressMinIntervalS = (double) ofNullable(properties.get(TASK_PROGRESS_INTERVAL_OPT))
+    private final ScheduledExecutorService cleanupScheduler;
+    private final TaskFactory taskFactory;
+    private final TaskSupplier taskSupplier;
+    private final double progressMinIntervalS;
+
+    @Inject
+    public BatchDownloadApp(BatchDownloadCleaner cleaner, TaskFactory taskFactory, TaskSupplier taskSupplier, PropertiesProvider propertiesProvider) {
+        this.taskFactory = taskFactory;
+        this.taskSupplier = taskSupplier;
+        this.progressMinIntervalS = (double) ofNullable(propertiesProvider.getProperties().get(TASK_PROGRESS_INTERVAL_OPT))
                 .orElse(DEFAULT_TASK_PROGRESS_INTERVAL_SECONDS);
-        TaskWorkerLoop taskWorkerLoop = new TaskWorkerLoop(commonMode.get(TaskFactory.class), commonMode.get(TaskSupplier.class), progressMinIntervalS);
-        start(commonMode.get(BatchDownloadCleaner.class), taskWorkerLoop);
-        commonMode.get(Indexer.class).close();
-        commonMode.get(RedissonClient.class).shutdown();
+        this.cleanupScheduler = scheduleCleanup(cleaner);
     }
 
-    static void start(Runnable cleaner, Callable<Integer> workerLoop) throws Exception {
-        ScheduledExecutorService cleanupScheduler = scheduleCleanup(cleaner);
+    public void start() throws Exception {
+        TaskWorkerLoop workerLoop = new TaskWorkerLoop(taskFactory, taskSupplier, progressMinIntervalS);
         try {
             workerLoop.call();
         } finally {
@@ -39,9 +40,19 @@ public class BatchDownloadApp {
         }
     }
 
-    static ScheduledExecutorService scheduleCleanup(Runnable cleaner) {
+    static ScheduledExecutorService scheduleCleanup(BatchDownloadCleaner cleaner) {
+        long period = cleaner.tickPeriodSeconds();
+        if (period == 0) {
+            ScheduledExecutorService noop = Executors.newSingleThreadScheduledExecutor();
+            noop.shutdown();
+            return noop;
+        }
+        return scheduleCleanup(cleaner, period);
+    }
+
+    static ScheduledExecutorService scheduleCleanup(Runnable cleaner, long periodSeconds) {
         ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
-        scheduler.scheduleAtFixedRate(cleaner, 0, 60, TimeUnit.SECONDS);
+        scheduler.scheduleAtFixedRate(cleaner, 0, periodSeconds, TimeUnit.SECONDS);
         return scheduler;
     }
 }

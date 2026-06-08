@@ -29,6 +29,15 @@ public class BatchDownloadCleaner implements Runnable {
                 DatashareCliOptions.BATCH_DOWNLOAD_DIR_OPT, DatashareCliOptions.DEFAULT_BATCH_DOWNLOAD_DIR));
         ttlHour = Integer.parseInt(propertiesProvider.getProperties().getProperty(
                 DatashareCliOptions.BATCH_DOWNLOAD_ZIP_TTL_OPT, String.valueOf(DatashareCliOptions.DEFAULT_BATCH_DOWNLOAD_ZIP_TTL)));
+        if (ttlHour == 0) {
+            logger.info("batch download cleaner disabled (ttl=0, zip files will never be deleted)");
+        } else {
+            logger.info("batch download cleaner scheduled (dir={}, ttl={}h, tick={}min)", downloadDir, ttlHour, tickPeriodSeconds() / 60);
+        }
+    }
+
+    public long tickPeriodSeconds() {
+        return (long) ttlHour * 30 * 60;
     }
 
     @Override
