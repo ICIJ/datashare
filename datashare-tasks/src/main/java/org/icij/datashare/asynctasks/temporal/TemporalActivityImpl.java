@@ -7,6 +7,7 @@ import io.temporal.activity.Activity;
 import io.temporal.activity.ActivityInfo;
 import io.temporal.client.WorkflowClient;
 import io.temporal.client.WorkflowStub;
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -17,16 +18,22 @@ import org.icij.datashare.asynctasks.ProgressSmoother;
 import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.asynctasks.TaskFactory;
 import org.icij.datashare.asynctasks.TaskFactoryHelper;
+import org.icij.datashare.asynctasks.TaskRepository;
 import org.icij.datashare.user.User;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public abstract class TemporalActivityImpl<R, T extends Callable<R>> {
+    private final Logger logger = LoggerFactory.getLogger(getClass());
     private final TaskFactory factory;
-    private final Double progressWeight;
     private final WorkflowClient client;
+    private final TaskRepository taskRepository;
+    private final Double progressWeight;
 
-    public TemporalActivityImpl(TaskFactory factory, WorkflowClient client, Double progressWeight) {
+    public TemporalActivityImpl(TaskFactory factory, WorkflowClient client, TaskRepository taskRepository, Double progressWeight) {
         this.factory = factory;
         this.client = client;
+        this.taskRepository = taskRepository;
         this.progressWeight = progressWeight;
     }
 
@@ -38,8 +45,18 @@ public abstract class TemporalActivityImpl<R, T extends Callable<R>> {
 
     protected BiConsumer<String, Double> getProgressFn(ActivityInfo info) {
         WorkflowStub workflow = client.newUntypedWorkflowStub(info.getWorkflowId());
-        return (ignored, progress) -> workflow.signal("progress",
-            new ProgressSignal(info.getRunId(), info.getActivityId(), progress, this.progressWeight));
+        String taskId = info.getWorkflowId();
+        return (ignored, progress) -> {
+            workflow.signal("progress", new ProgressSignal(info.getRunId(), info.getActivityId(), progress, this.progressWeight));
+            try {
+                logger.debug("Setting progress of {} to {}", taskId, progress);
+                Task<?> task = taskRepository.getTask(taskId);
+                task.setProgress(progress);
+                taskRepository.update(task);
+            } catch (IOException | RuntimeException e) {
+                logger.warn("failed to update progress for task {}", taskId, e);
+            }
+        };
     }
 
     protected Set<Class<? extends Exception>> getRetriables() {
@@ -56,7 +73,7 @@ public abstract class TemporalActivityImpl<R, T extends Callable<R>> {
             // TODO : This is a design that relies on unwritten convention, so it should be changed
             Task<?> task = new Task<>(info.getWorkflowId(), getTaskClass().getSimpleName(), user, inputArgs);
             BiConsumer<String, Double> progressFn = getProgressFn(info);
-            ProgressSmoother smoothedProgress = new ProgressSmoother(progressFn, 1000);
+            ProgressSmoother smoothedProgress = new ProgressSmoother(progressFn, 10);
             Callable<R> taskFn = (Callable<R>) TaskFactoryHelper.createTaskCallable(
                 getTaskFactory(), getTaskClass().getName(), task, task.progress(smoothedProgress)
             );

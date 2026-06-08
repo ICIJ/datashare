@@ -130,11 +130,12 @@ public class TemporalInterlocutor {
     public <A extends TemporalActivityImpl<?, ?>> ThrowingSupplier<A> activityFactory(
         Class<A> activityCls,
         TaskFactory taskFactory,
+        TaskRepository taskRepository,
         double progressWeight
     ) {
         return () -> activityCls
-            .getConstructor(TaskFactory.class, WorkflowClient.class, Double.class)
-            .newInstance(taskFactory, client, progressWeight);
+            .getConstructor(TaskFactory.class, WorkflowClient.class, TaskRepository.class, Double.class)
+            .newInstance(taskFactory, client, taskRepository, progressWeight);
     }
 
     public void setupNamespace(Duration timeout) throws InterruptedException {
@@ -338,7 +339,7 @@ public class TemporalInterlocutor {
         return unknownIfNotFound(t -> createWorkflowStub(taskId).describe(), taskId);
     }
 
-    List<RegisteredWorkflow> discoverWorkflows(String packageName, TaskFactory taskFactory, RoutingStrategy routingStrategy, Group group) {
+    List<RegisteredWorkflow> discoverWorkflows(String packageName, TaskFactory taskFactory, TaskRepository taskRepository, RoutingStrategy routingStrategy, Group group) {
         Reflections reflections = new Reflections(packageName);
         Predicate<Class<?>> workflowFilter = makeWorkflowFilter(routingStrategy, group);
         // We rely on naming convention rather than on inspection, that's OK as code is generated
@@ -353,7 +354,7 @@ public class TemporalInterlocutor {
                         Class<TemporalWorkflowImpl> wfImplClass = (Class<TemporalWorkflowImpl>) Class.forName(workflowClassName + "Impl");
                         Class<TemporalActivityImpl<?, ?>> actImplCls = (Class<TemporalActivityImpl<?, ?>>) Class.forName(baseName + "ActivityImpl");
                         String taskQueue = resolveWfTaskQueue(routingStrategy, workflowKey, group);
-                        List<RegisteredActivity> activities = List.of(new RegisteredActivity(activityFactory(actImplCls, taskFactory, 1d), taskQueue));
+                        List<RegisteredActivity> activities = List.of(new RegisteredActivity(activityFactory(actImplCls, taskFactory, taskRepository, 1d), taskQueue));
                         return new RegisteredWorkflow(wfImplClass, taskQueue, activities);
                     }))
                     .toList();
@@ -362,8 +363,8 @@ public class TemporalInterlocutor {
         }
     }
 
-    public Closeable discoverWorkflows(int taskWorkersNb, TaskFactory taskFactory, RoutingStrategy routingStrategy, Group group) {
-        List<RegisteredWorkflow> registeredWorkflows = discoverWorkflows("org.icij.datashare.tasks", taskFactory, routingStrategy, group);
+    public Closeable discoverWorkflows(int taskWorkersNb, TaskFactory taskFactory, TaskRepository taskRepository, RoutingStrategy routingStrategy, Group group) {
+        List<RegisteredWorkflow> registeredWorkflows = discoverWorkflows("org.icij.datashare.tasks", taskFactory, taskRepository, routingStrategy, group);
         return createFactory(taskWorkersNb, registeredWorkflows);
     }
 
