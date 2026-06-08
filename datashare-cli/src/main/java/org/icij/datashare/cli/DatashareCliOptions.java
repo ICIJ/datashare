@@ -250,6 +250,9 @@ public final class DatashareCliOptions {
     public static final int DEFAULT_TASK_MANAGER_POLLING_INTERVAL = 5000;
     public static final String DEFAULT_TASK_WORKERS = "1";
     public static final double DEFAULT_TASK_PROGRESS_INTERVAL_SECONDS = 10;
+    public static final String DEFAULT_TEMPORAL_NAMESPACE = "datashare-default";
+    public static final String DEFAULT_TEMPORAL_ADDRESS = EnvUtils.resolveUri("temporal", "temporal:7233");
+
 
     // A list of aliases for retro-compatibility when an option changed
     public static final Map<String, String> OPT_ALIASES = Map.ofEntries(
@@ -1034,7 +1037,7 @@ public final class DatashareCliOptions {
                 singletonList(TEMPORAL_NAMESPACE_OPT), "temporal namespace")
                 .withRequiredArg()
                 .ofType( String.class )
-                .defaultsTo("datashare-default");
+                .defaultsTo(DEFAULT_TEMPORAL_NAMESPACE);
     }
 
     static void temporalAddressOpt(OptionParser parser) {
@@ -1042,7 +1045,7 @@ public final class DatashareCliOptions {
                 List.of(TEMPORAL_ADDRESS_OPT), "Temporal address")
                 .withRequiredArg()
                 .ofType( String.class )
-                .defaultsTo("temporal:7233");
+                .defaultsTo(DEFAULT_TEMPORAL_ADDRESS);
     }
 
     public static ValueConverter<String> toAbsolute() {
