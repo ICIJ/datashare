@@ -7,7 +7,7 @@ import org.icij.datashare.policies.CasbinRuleAdapter;
 import org.icij.datashare.policies.Domain;
 import org.icij.datashare.policies.Role;
 import org.icij.datashare.session.DatashareUser;
-import org.icij.datashare.session.UsersWritable;
+import net.codestory.http.security.Users;
 import org.icij.datashare.text.Project;
 import org.icij.datashare.user.User;
 import org.icij.datashare.web.testhelpers.AbstractProdWebServerTest;
@@ -32,7 +32,7 @@ public class PolicyResourceTest extends AbstractProdWebServerTest {
     @Mock
     JooqRepository repository;
     @Mock
-    UsersWritable users;
+    Users users;
     Authorizer authorizer;
 
     User jane = localUser("jane");

@@ -5,6 +5,7 @@ import net.codestory.http.filters.basic.BasicAuthFilter;
 import net.codestory.http.security.SessionIdStore;
 import org.icij.datashare.cli.AuthMode;
 import org.icij.datashare.cli.QueueType;
+import net.codestory.http.security.Users;
 import org.icij.datashare.session.*;
 import org.junit.Test;
 
@@ -54,7 +55,7 @@ public class ServerModeTest {
             put("mode", "SERVER");
             put("authUsersProvider", "org.icij.datashare.session.UsersInDb");
         }});
-        assertThat(mode.get(UsersWritable.class)).isInstanceOf(UsersInDb.class);
+        assertThat(mode.get(Users.class)).isInstanceOf(UsersInDb.class);
     }
 
     @Test
