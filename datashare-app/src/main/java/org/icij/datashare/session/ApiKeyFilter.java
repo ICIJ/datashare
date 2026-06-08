@@ -26,7 +26,7 @@ public class ApiKeyFilter implements Filter {
     private final PostLoginEnroller postLoginEnroller;
 
     @Inject
-    public ApiKeyFilter(UsersWritable users, ApiKeyStore apiKeyStore, @Nullable PostLoginEnroller postLoginEnroller) {
+    public ApiKeyFilter(Users users, ApiKeyStore apiKeyStore, @Nullable PostLoginEnroller postLoginEnroller) {
         this.users = users;
         this.apiKeyStore = apiKeyStore;
         this.postLoginEnroller = postLoginEnroller;
