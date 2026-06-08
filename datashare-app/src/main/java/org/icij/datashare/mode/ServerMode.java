@@ -18,7 +18,9 @@ import org.icij.datashare.policies.TaskPolicyAnnotation;
 import org.icij.datashare.session.*;
 import org.icij.datashare.web.*;
 
+import java.util.Arrays;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Properties;
 
 import static org.icij.datashare.cli.DatashareCliOptions.AUTH_FILTER_OPT;
@@ -53,6 +55,12 @@ public class ServerMode extends CommonMode {
             case YES_BASIC:  return YesBasicAuthFilter.class;
             default:         throw new IllegalStateException("Unhandled auth mode: " + mode);
         }
+    }
+
+    static Optional<AuthMode> modeForFilterClass(Class<? extends Filter> clazz) {
+        return Arrays.stream(AuthMode.values())
+                .filter(mode -> filterClassFor(mode).equals(clazz))
+                .findFirst();
     }
 
     @SuppressWarnings("unchecked")

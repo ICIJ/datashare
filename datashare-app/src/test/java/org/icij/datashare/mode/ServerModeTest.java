@@ -1,6 +1,7 @@
 package org.icij.datashare.mode;
 
 import net.codestory.http.filters.Filter;
+import net.codestory.http.filters.basic.BasicAuthFilter;
 import net.codestory.http.security.SessionIdStore;
 import org.icij.datashare.cli.AuthMode;
 import org.icij.datashare.cli.QueueType;
@@ -109,6 +110,20 @@ public class ServerModeTest {
             put("authFilter", "org.icij.datashare.session.BasicAuthAdaptorFilter");
         }});
         assertThat(mode.get(Filter.class)).isInstanceOf(BasicAuthAdaptorFilter.class);
+    }
+
+    @Test
+    public void test_mode_for_filter_class_maps_known_classes() {
+        assertThat(ServerMode.modeForFilterClass(OAuth2CookieFilter.class).get()).isEqualTo(AuthMode.OAUTH);
+        assertThat(ServerMode.modeForFilterClass(FormAuthFilter.class).get()).isEqualTo(AuthMode.FORM);
+        assertThat(ServerMode.modeForFilterClass(BasicAuthAdaptorFilter.class).get()).isEqualTo(AuthMode.BASIC);
+        assertThat(ServerMode.modeForFilterClass(YesCookieAuthFilter.class).get()).isEqualTo(AuthMode.YES_COOKIE);
+        assertThat(ServerMode.modeForFilterClass(YesBasicAuthFilter.class).get()).isEqualTo(AuthMode.YES_BASIC);
+    }
+
+    @Test
+    public void test_mode_for_filter_class_returns_empty_for_unknown_class() {
+        assertThat(ServerMode.modeForFilterClass(BasicAuthFilter.class).isPresent()).isFalse();
     }
 
     @Test
