@@ -2,7 +2,6 @@ package org.icij.datashare.tasks;
 
 import com.google.inject.Inject;
 import org.icij.datashare.PropertiesProvider;
-import org.icij.datashare.asynctasks.TaskGroup;
 import org.icij.datashare.batch.BatchDownload;
 import org.icij.datashare.cli.DatashareCliOptions;
 import org.icij.datashare.time.DatashareTime;
@@ -17,9 +16,7 @@ import java.util.regex.Pattern;
 import static java.util.Arrays.stream;
 import static java.util.Optional.ofNullable;
 import static java.util.regex.Pattern.compile;
-import org.icij.datashare.asynctasks.TaskGroupType;
 
-@TaskGroup(TaskGroupType.Java)
 public class BatchDownloadCleaner implements Runnable {
     private final Logger logger = LoggerFactory.getLogger(getClass());
     private final Pattern filePattern = compile(BatchDownload.ZIP_FORMAT.replace("%s", "[a-z0-9\\.:|_Z\\-\\[GMT\\]]+"));
@@ -36,10 +33,19 @@ public class BatchDownloadCleaner implements Runnable {
 
     @Override
     public void run() {
-        logger.debug("deleting temporary zip files from {}", downloadDir);
-        stream(ofNullable(downloadDir.toFile().listFiles()).orElse(new File[] {}))
-                .filter(f -> filePattern.matcher(f.getName()).matches())
-                .filter(f -> DatashareTime.getInstance().currentTimeMillis() - f.lastModified() >= ttlHour * 1000L * 60 * 60)
-                .forEach(File::delete);
+        try {
+            stream(ofNullable(downloadDir.toFile().listFiles()).orElse(new File[] {}))
+                    .filter(f -> filePattern.matcher(f.getName()).matches())
+                    .filter(f -> DatashareTime.getInstance().currentTimeMillis() - f.lastModified() >= ttlHour * 1000L * 60 * 60)
+                    .forEach(f -> {
+                        if (f.delete()) {
+                            logger.info("deleted expired zip {}", f.getName());
+                        } else {
+                            logger.warn("could not delete expired zip {} (file in use?)", f.getName());
+                        }
+                    });
+        } catch (Exception e) {
+            logger.error("batch download cleaner failed", e);
+        }
     }
 }
