@@ -23,7 +23,7 @@ import org.icij.datashare.nlp.EmailPipeline;
 import org.icij.datashare.policies.*;
 import org.icij.datashare.session.DatashareUser;
 import org.icij.datashare.session.LocalUserFilter;
-import org.icij.datashare.session.UsersWritable;
+import net.codestory.http.security.Users;
 import org.icij.datashare.tasks.*;
 import org.icij.datashare.test.DatashareTimeRule;
 import org.icij.datashare.text.Project;
@@ -80,7 +80,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
     @Mock
     CasbinRuleAdapter adapter;
     @Mock
-    UsersWritable users;
+    Users users;
 
     @Before
     public void setUp() {

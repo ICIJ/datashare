@@ -15,7 +15,7 @@ import static java.util.Collections.singletonList;
 public class OAuth2CookieFilterIcij extends OAuth2CookieFilter {
 
     @Inject
-    public OAuth2CookieFilterIcij(PropertiesProvider propertiesProvider, UsersWritable users,
+    public OAuth2CookieFilterIcij(PropertiesProvider propertiesProvider, UsersIdProviderCache users,
                                   SessionIdStore sessionIdStore, @Nullable PostLoginEnroller postLoginEnroller) {
         super(propertiesProvider, users, sessionIdStore, postLoginEnroller);
     }

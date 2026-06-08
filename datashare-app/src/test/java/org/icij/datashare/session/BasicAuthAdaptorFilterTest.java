@@ -3,6 +3,7 @@ package org.icij.datashare.session;
 import net.codestory.http.Context;
 import net.codestory.http.filters.PayloadSupplier;
 import net.codestory.http.payload.Payload;
+import net.codestory.http.security.Users;
 import org.icij.datashare.PropertiesProvider;
 import org.junit.Before;
 import org.junit.Test;
@@ -20,7 +21,7 @@ public class BasicAuthAdaptorFilterTest {
     private final PayloadSupplier nextFilter = () -> next;
     private final Context context = mock(Context.class);
     @Mock
-    UsersWritable users;
+    Users users;
 
     @Before
     public void setUp() {
@@ -48,7 +49,7 @@ public class BasicAuthAdaptorFilterTest {
     public void test_enroll_is_not_called_on_signout() throws Exception {
         PostLoginEnroller enroller = mock(PostLoginEnroller.class);
         BasicAuthAdaptorFilter filter = new BasicAuthAdaptorFilter(
-                new PropertiesProvider(), mock(UsersWritable.class), enroller);
+                new PropertiesProvider(), mock(Users.class), enroller);
 
         filter.apply("/auth/signout", context, nextFilter);
 

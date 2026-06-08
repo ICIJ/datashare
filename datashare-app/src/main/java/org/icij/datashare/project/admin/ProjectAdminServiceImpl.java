@@ -13,8 +13,7 @@ import org.icij.datashare.policies.CasbinRule;
 import org.icij.datashare.policies.Domain;
 import org.icij.datashare.policies.Role;
 import org.icij.datashare.session.DatashareUser;
-import org.icij.datashare.session.UsersInRedis;
-import org.icij.datashare.session.UsersWritable;
+import org.icij.datashare.session.UsersIdProviderCache;
 import org.icij.datashare.text.Project;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.user.User;
@@ -55,7 +54,7 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
     private final Authorizer authorizer;
     private final DocumentCollectionFactory<Path> documentCollectionFactory;
     private final PropertiesProvider propertiesProvider;
-    private final UsersWritable usersWritable;
+    private final UsersIdProviderCache usersWritable;
 
     @Inject
     public ProjectAdminServiceImpl(Repository repository,
@@ -63,7 +62,7 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
                                    Authorizer authorizer,
                                    DocumentCollectionFactory<Path> documentCollectionFactory,
                                    PropertiesProvider propertiesProvider,
-                                   UsersWritable usersWritable) {
+                                   UsersIdProviderCache usersWritable) {
         this.repository = repository;
         this.indexer = indexer;
         this.authorizer = authorizer;
@@ -250,7 +249,7 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
     private User requireUser(String login) throws UserNotFoundException {
         User user = findUser(login);
         if (user == null) {
-            if (!(usersWritable instanceof UsersInRedis)) {
+            if (!(usersWritable instanceof UsersIdProviderCache)) {
                 // usersWritable didn't cover Redis: an OAuth2 user whose session was created
                 // before the first grant won't be found unless UsersInRedis is configured.
                 throw new UserNotFoundException(login,
