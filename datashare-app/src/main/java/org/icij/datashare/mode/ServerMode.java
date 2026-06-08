@@ -42,6 +42,8 @@ public class ServerMode extends CommonMode {
         }
         bind(ApiKeyStore.class).to(ApiKeyStoreAdapter.class);
         Class<? extends Filter> authFilterClass = resolveAuthFilterClass();
+        // Materialize the effective auth mode back into the properties so the public /settings
+        // endpoint reports it (e.g. "form" by default). Unrecognized custom filters write nothing.
         modeForFilterClass(authFilterClass)
                 .ifPresent(mode -> propertiesProvider.setProperty(AUTH_MODE_OPT, mode.cliName));
         bindAuthFilter(authFilterClass);
@@ -60,6 +62,8 @@ public class ServerMode extends CommonMode {
         }
     }
 
+    // Inverse of filterClassFor. Relies on filterClassFor being total over AuthMode: a new enum
+    // value without a matching case there makes this throw, so keep the switch above exhaustive.
     static Optional<AuthMode> modeForFilterClass(Class<? extends Filter> clazz) {
         return Arrays.stream(AuthMode.values())
                 .filter(mode -> filterClassFor(mode).equals(clazz))
