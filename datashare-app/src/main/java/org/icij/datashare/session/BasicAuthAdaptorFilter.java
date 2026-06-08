@@ -6,6 +6,7 @@ import net.codestory.http.NewCookie;
 import net.codestory.http.filters.PayloadSupplier;
 import net.codestory.http.filters.basic.BasicAuthFilter;
 import net.codestory.http.payload.Payload;
+import net.codestory.http.security.Users;
 import org.icij.datashare.PropertiesProvider;
 
 import javax.annotation.Nullable;
@@ -18,7 +19,7 @@ public class BasicAuthAdaptorFilter extends BasicAuthFilter {
     private final PostLoginEnroller postLoginEnroller;
 
     @Inject
-    public BasicAuthAdaptorFilter(PropertiesProvider propertiesProvider, UsersWritable users,
+    public BasicAuthAdaptorFilter(PropertiesProvider propertiesProvider, Users users,
                                   @Nullable PostLoginEnroller postLoginEnroller) {
         super(propertiesProvider.get("protectedUriPrefix").orElse("/"), "datashare", users);
         this.postLoginEnroller = postLoginEnroller;
