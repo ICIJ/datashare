@@ -36,6 +36,8 @@ import org.icij.datashare.nlp.OptimaizeLanguageGuesser;
 import org.icij.datashare.policies.Authorizer;
 import org.icij.datashare.policies.CasbinRuleAdapter;
 import org.icij.datashare.policies.PolicyWatcher;
+import org.icij.datashare.session.UsersInRedis;
+import org.icij.datashare.session.UsersWritable;
 import org.icij.datashare.user.admin.UserAdminService;
 import org.icij.datashare.user.admin.UserAdminServiceImpl;
 import org.icij.datashare.project.admin.ProjectAdminService;
@@ -43,8 +45,9 @@ import org.icij.datashare.project.admin.ProjectAdminServiceImpl;
 import org.icij.datashare.session.StatusCidrFilter;
 import org.icij.datashare.cli.AuthUsersProvider;
 import org.icij.datashare.session.UsersInDb;
-import org.icij.datashare.session.UsersInRedis;
-import org.icij.datashare.session.UsersWritable;
+import net.codestory.http.security.Users;
+import org.icij.datashare.session.UsersIdProviderCache;
+import org.icij.datashare.session.UsersIdProviderRedisCache;
 import org.icij.datashare.tasks.DatashareTaskFactory;
 import org.icij.datashare.tasks.TaskResultSubtypes;
 import org.icij.datashare.tasks.Utils;
@@ -333,13 +336,13 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
     }
 
     @Provides @Singleton
-    UsersWritable provideUsersWritable(final Injector injector) {
-        Class<? extends UsersWritable> providerClass = resolveUsersProviderClass();
+    Users provideUsers(final PropertiesProvider propertiesProvider, final Injector injector) {
+        Class<? extends Users> providerClass = resolveUsersProviderClass();
         logger.info("setting auth users provider to {}", providerClass);
         return injector.getInstance(providerClass);
     }
 
-    static Class<? extends UsersWritable> classFor(AuthUsersProvider provider) {
+    static Class<? extends Users> classFor(AuthUsersProvider provider) {
         switch (provider) {
             case DATABASE: return UsersInDb.class;
             case REDIS:    return UsersInRedis.class;
@@ -348,7 +351,7 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
     }
 
     @SuppressWarnings("unchecked")
-    Class<? extends UsersWritable> resolveUsersProviderClass() {
+    Class<? extends Users> resolveUsersProviderClass() {
         String raw = propertiesProvider.get(AUTH_USERS_PROVIDER_OPT).orElse(AuthUsersProvider.DATABASE.cliName);
         Optional<AuthUsersProvider> provider = AuthUsersProvider.tryFromString(raw);
         if (provider.isPresent()) {
@@ -360,6 +363,10 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
             logger.warn("\"{}\" auth users provider class not found or invalid. Setting provider to UsersInDb", raw);
             return UsersInDb.class;
         }
+    }
+    @Provides @Singleton
+    UsersIdProviderCache provideUsersIdProviderCache(final Injector injector) {
+        return injector.getInstance(UsersIdProviderRedisCache.class);
     }
 
 
