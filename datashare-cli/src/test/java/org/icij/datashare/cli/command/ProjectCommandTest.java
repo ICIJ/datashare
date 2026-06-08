@@ -12,6 +12,7 @@ import java.util.Properties;
 
 import static org.fest.assertions.Assertions.assertThat;
 import static org.fest.assertions.MapAssert.entry;
+import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_DATA_DIR;
 
 public class ProjectCommandTest extends AbstractDatashareCommandTest {
 
@@ -176,7 +177,7 @@ public class ProjectCommandTest extends AbstractDatashareCommandTest {
         assertThat(sink.toString()).excludes("Label [");
         assertThat(sink.toString()).excludes("Description");
         // The other prompts did display.
-        assertThat(sink.toString()).contains("Source path [/vault/my-project]");
+        assertThat(sink.toString()).contains("Source path [" + DEFAULT_DATA_DIR + "]");
     }
 
     @Test

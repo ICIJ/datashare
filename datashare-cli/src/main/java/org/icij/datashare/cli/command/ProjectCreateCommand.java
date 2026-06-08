@@ -14,6 +14,7 @@ import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.util.Properties;
 
+import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_DATA_DIR;
 import static org.icij.datashare.cli.DatashareCliOptions.MODE_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.PROJECT_CREATE_ALLOW_FROM_MASK_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.PROJECT_CREATE_CREATION_DATE_OPT;
@@ -54,7 +55,7 @@ public class ProjectCreateCommand implements Runnable, DatashareSubcommand {
     @Option(names = "--description", description = "Free-form description")
     String description;
 
-    @Option(names = "--source-path", description = "Filesystem source path (default: /vault/<name>)")
+    @Option(names = "--source-path", description = "Filesystem source path (default: the data directory)")
     String sourcePath;
 
     @Option(names = "--allow-from-mask", defaultValue = "*.*.*.*",
@@ -182,7 +183,7 @@ public class ProjectCreateCommand implements Runnable, DatashareSubcommand {
         if (prompter == null) return;
         if (label == null) label = promptOptional(prompter, "Label", name);
         if (description == null) description = promptOptional(prompter, "Description", null);
-        if (sourcePath == null) sourcePath = promptOptionalPath(prompter, "Source path", "/vault/" + name);
+        if (sourcePath == null) sourcePath = promptOptionalPath(prompter, "Source path", DEFAULT_DATA_DIR);
         if (sourceUrl == null) sourceUrl = promptOptionalUri(prompter, "Source URL");
         if (maintainerName == null) maintainerName = promptOptional(prompter, "Maintainer name", null);
         if (publisherName == null) publisherName = promptOptional(prompter, "Publisher name", null);
