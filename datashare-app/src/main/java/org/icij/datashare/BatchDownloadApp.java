@@ -52,7 +52,8 @@ public class BatchDownloadApp {
 
     static ScheduledExecutorService scheduleCleanup(Runnable cleaner, long periodSeconds) {
         ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
-        scheduler.scheduleAtFixedRate(cleaner, 0, periodSeconds, TimeUnit.SECONDS);
+        scheduler.execute(cleaner);
+        scheduler.scheduleAtFixedRate(cleaner, periodSeconds, periodSeconds, TimeUnit.SECONDS);
         return scheduler;
     }
 }
