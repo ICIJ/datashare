@@ -225,6 +225,18 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
+    public void test_update_existing_project_without_source_path_defaults_to_data_dir() {
+        Project oldFoo = new Project("foo", "Foo", Path.of("/vault/foo"), "", "", "", "", "*.*.*.*", null, null);
+        when(repository.getProjects(any())).thenReturn(List.of(oldFoo));
+        when(repository.getProject("foo")).thenReturn(oldFoo);
+        when(repository.save((Project) any())).thenReturn(true);
+        String body = "{ \"name\": \"foo\", \"label\": \"Foo v4\" }";
+        put("/api/project/foo", body).should().respond(200)
+                .contain("\"label\":\"Foo v4\"")
+                .contain("\"sourcePath\":\"file:///vault\"");
+    }
+
+    @Test
     public void test_put_creates_project_when_it_does_not_exist() throws IOException {
         when(repository.getProjects(any())).thenReturn(new ArrayList<>());
         when(repository.getProject("foo")).thenReturn(null);
