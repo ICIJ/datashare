@@ -9,6 +9,7 @@ import net.codestory.http.filters.PayloadSupplier;
 import net.codestory.http.payload.Payload;
 import net.codestory.http.security.SessionIdStore;
 import net.codestory.http.security.User;
+import net.codestory.http.security.Users;
 import org.icij.datashare.PropertiesProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,7 +31,7 @@ public class FormAuthFilter extends DatashareAuthFilter {
     private final PostLoginEnroller postLoginEnroller;
 
     @Inject
-    public FormAuthFilter(PropertiesProvider propertiesProvider, UsersWritable users,
+    public FormAuthFilter(PropertiesProvider propertiesProvider, Users users,
                           SessionIdStore sessionIdStore, @Nullable PostLoginEnroller postLoginEnroller) {
         super(propertiesProvider.get("protectedUriPrefix").orElse("/"), users, sessionIdStore);
         this.sessionTtl = Integer.parseInt(ofNullable(propertiesProvider.getProperties().getProperty("sessionTtlSeconds")).orElse("600"));
