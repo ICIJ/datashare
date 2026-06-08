@@ -15,6 +15,13 @@ import java.util.HashMap;
 import static org.fest.assertions.Assertions.assertThat;
 
 public class ServerModeTest {
+    public static class DummyTestFilter implements net.codestory.http.filters.Filter {
+        @Override
+        public net.codestory.http.payload.Payload apply(String uri, net.codestory.http.Context context, net.codestory.http.filters.PayloadSupplier nextFilter) throws Exception {
+            return nextFilter.get();
+        }
+    }
+
     @Test
     public void test_server_mode_default_auth_class() {
         CommonMode mode = CommonMode.create(new HashMap<>() {{
@@ -103,6 +110,7 @@ public class ServerModeTest {
             put("authFilter", "org.icij.datashare.session.BasicAuthAdaptorFilter");
         }});
         assertThat(mode.get(Filter.class)).isInstanceOf(FormAuthFilter.class);
+        assertThat(mode.get(PropertiesProvider.class).get("auth").orElse(null)).isEqualTo("form");
     }
 
     @Test
@@ -180,5 +188,46 @@ public class ServerModeTest {
             thrown = t;
         }
         assertThat(thrown).isNotNull();
+    }
+
+    // Addition 1: a custom Filter class that loads successfully but is not one of the five
+    // known auth filters, so modeForFilterClass returns empty and "auth" is never written.
+    @Test
+    public void test_unknown_loadable_auth_filter_leaves_auth_absent() {
+        CommonMode mode = CommonMode.create(new HashMap<>() {{
+            put("mode", "SERVER");
+            put("authFilter", "org.icij.datashare.mode.ServerModeTest$DummyTestFilter");
+        }});
+        assertThat(mode.get(PropertiesProvider.class).get("auth").orElse(null)).isNull();
+    }
+
+    // Addition 2a: oauth mode materializes "oauth" into the auth property.
+    @Test
+    public void test_oauth_auth_mode_is_materialized() {
+        CommonMode mode = CommonMode.create(new HashMap<>() {{
+            put("mode", "SERVER");
+            put("auth", "oauth");
+        }});
+        assertThat(mode.get(PropertiesProvider.class).get("auth").orElse(null)).isEqualTo("oauth");
+    }
+
+    // Addition 2b: yesCookie mode materializes "yesCookie" into the auth property.
+    @Test
+    public void test_yes_cookie_auth_mode_is_materialized() {
+        CommonMode mode = CommonMode.create(new HashMap<>() {{
+            put("mode", "SERVER");
+            put("auth", "yesCookie");
+        }});
+        assertThat(mode.get(PropertiesProvider.class).get("auth").orElse(null)).isEqualTo("yesCookie");
+    }
+
+    // Addition 2c: yesBasic mode materializes "yesBasic" into the auth property.
+    @Test
+    public void test_yes_basic_auth_mode_is_materialized() {
+        CommonMode mode = CommonMode.create(new HashMap<>() {{
+            put("mode", "SERVER");
+            put("auth", "yesBasic");
+        }});
+        assertThat(mode.get(PropertiesProvider.class).get("auth").orElse(null)).isEqualTo("yesBasic");
     }
 }
