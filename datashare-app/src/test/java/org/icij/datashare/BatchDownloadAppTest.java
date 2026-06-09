@@ -51,8 +51,8 @@ public class BatchDownloadAppTest {
             put(BATCH_DOWNLOAD_ZIP_TTL_OPT, "0");
         }}));
         ScheduledExecutorService scheduler = BatchDownloadApp.scheduleCleanup(cleaner);
-        scheduler.awaitTermination(200, TimeUnit.MILLISECONDS);
 
+        assertThat(scheduler.isShutdown()).isTrue();
         assertThat(zip).exists();
     }
 
