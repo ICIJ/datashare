@@ -285,6 +285,21 @@ public class BatchSearchResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
+    public void test_update_batch_search_non_string_name_returns_400() {
+        patch("/api/batch/search/batchId", "{\"data\": {\"name\": 42}}").should().respond(400);
+    }
+
+    @Test
+    public void test_update_batch_search_non_string_description_returns_400() {
+        patch("/api/batch/search/batchId", "{\"data\": {\"description\": 42}}").should().respond(400);
+    }
+
+    @Test
+    public void test_update_batch_search_missing_data_returns_400() {
+        patch("/api/batch/search/batchId", "{}").should().respond(400);
+    }
+
+    @Test
     public void test_delete_batch_search_by_id() {
         when(batchSearchRepository.delete(User.local(), "myid")).thenReturn(true).thenReturn(false);
 
