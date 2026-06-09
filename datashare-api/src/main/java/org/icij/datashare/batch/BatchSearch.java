@@ -21,6 +21,28 @@ public class BatchSearch extends BatchSearchRecord {
     public final int fuzziness;
     public final boolean phraseMatches;
     public final SearchQuery queryTemplate;
+
+    public static final int MAX_NAME_LENGTH = 255;
+    public static final int MAX_DESCRIPTION_LENGTH = 4096;
+
+    public static String validateName(String name) {
+        if (name == null || name.trim().isEmpty()) {
+            throw new IllegalArgumentException("Batch search name cannot be empty.");
+        }
+        if (name.length() > MAX_NAME_LENGTH) {
+            throw new IllegalArgumentException("Batch search name exceeds " + MAX_NAME_LENGTH + " characters.");
+        }
+        return name;
+    }
+
+    public static String validateDescription(String description) {
+        String value = description == null ? "" : description;
+        if (value.length() > MAX_DESCRIPTION_LENGTH) {
+            throw new IllegalArgumentException("Batch search description exceeds " + MAX_DESCRIPTION_LENGTH + " characters.");
+        }
+        return value;
+    }
+
     // batch search creation
 
     public BatchSearch(final List<ProjectProxy> projects, final String name, final String description, User user) {
