@@ -42,6 +42,7 @@ public class BatchDownloadCleaner implements Runnable {
 
     @Override
     public void run() {
+        if (ttlHour == 0) return;
         try {
             stream(ofNullable(downloadDir.toFile().listFiles()).orElse(new File[] {}))
                     .filter(f -> filePattern.matcher(f.getName()).matches())

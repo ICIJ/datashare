@@ -23,9 +23,11 @@ public class BatchDownloadCleanerTest {
     public void test_no_not_remove_zip_with_other_filename_patterns() throws IOException {
         downloadDir.newFile("test.zip");
 
+        DatashareTime.getInstance().addMilliseconds(1000 * 60 * 60 + 100);
+
         new BatchDownloadCleaner(new PropertiesProvider(new HashMap<>() {{
             put("batchDownloadDir", downloadDir.getRoot().toPath().toString());
-            put("batchDownloadTimeToLive", "0");
+            put("batchDownloadTimeToLive", "1");
         }})).run();
         Assertions.assertThat(downloadDir.getRoot().listFiles()).hasSize(1);
     }
@@ -35,12 +37,11 @@ public class BatchDownloadCleanerTest {
         File file = downloadDir.newFile(createFilename(User.local()).toString());
         File fileWithDoubleDots = downloadDir.newFile("archive_local_0000-00-00T00:00:00Z[GMT].zip");
 
-        // we must advance the delay between time fixed by the time rule and file creation date ~60ms
-        DatashareTime.getInstance().addMilliseconds(100);
+        DatashareTime.getInstance().addMilliseconds(1000 * 60 * 60 + 100);
 
         new BatchDownloadCleaner(new PropertiesProvider(new HashMap<>() {{
             put("batchDownloadDir", downloadDir.getRoot().toPath().toString());
-            put("batchDownloadTimeToLive", "0");
+            put("batchDownloadTimeToLive", "1");
         }})).run();
 
         Assertions.assertThat(file).doesNotExist();
