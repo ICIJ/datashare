@@ -218,7 +218,11 @@ public class BatchSearchResource {
 
         boolean updated = false;
         if (hasPublished) {
-            updated |= batchSearchRepository.publish(user, batchId, data.asBoolean("published"));
+            Object published = body.get("published");
+            if (!(published instanceof Boolean)) {
+                return PayloadFormatter.error("Batch search published must be a boolean.", HttpStatus.BAD_REQUEST);
+            }
+            updated |= batchSearchRepository.publish(user, batchId, (Boolean) published);
         }
         if (hasName) {
             updated |= batchSearchRepository.setName(user, batchId, name);

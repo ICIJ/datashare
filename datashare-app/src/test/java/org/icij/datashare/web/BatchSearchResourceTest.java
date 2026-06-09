@@ -268,6 +268,11 @@ public class BatchSearchResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
+    public void test_update_batch_search_null_published_returns_400() {
+        patch("/api/batch/search/batchId", "{\"data\": {\"published\": null}}").should().respond(400);
+    }
+
+    @Test
     public void test_update_batch_search_name_too_long_returns_400() {
         String longName = "x".repeat(256);
         patch("/api/batch/search/batchId", "{\"data\": {\"name\": \"" + longName + "\"}}").should().respond(400);
