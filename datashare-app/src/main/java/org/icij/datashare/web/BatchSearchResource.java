@@ -186,6 +186,9 @@ public class BatchSearchResource {
     public Payload updateBatch(String batchId, Context context, JsonData data) {
         User user = (User) context.currentUser();
         Map<String, Object> body = data.data;
+        if (body == null) {
+            return PayloadFormatter.error("Request body must contain a data object.", HttpStatus.BAD_REQUEST);
+        }
         boolean hasPublished = body.containsKey("published");
         boolean hasName = body.containsKey("name");
         boolean hasDescription = body.containsKey("description");
@@ -196,7 +199,11 @@ public class BatchSearchResource {
 
         String name = null;
         if (hasName) {
-            name = (String) body.get("name");
+            Object rawName = body.get("name");
+            if (rawName != null && !(rawName instanceof String)) {
+                return PayloadFormatter.error("Batch search name must be a string.", HttpStatus.BAD_REQUEST);
+            }
+            name = (String) rawName;
             if (name == null || name.trim().isEmpty()) {
                 return PayloadFormatter.error("Batch search name cannot be empty.", HttpStatus.BAD_REQUEST);
             }
@@ -207,7 +214,11 @@ public class BatchSearchResource {
 
         String description = null;
         if (hasDescription) {
-            description = (String) body.get("description");
+            Object rawDescription = body.get("description");
+            if (rawDescription != null && !(rawDescription instanceof String)) {
+                return PayloadFormatter.error("Batch search description must be a string.", HttpStatus.BAD_REQUEST);
+            }
+            description = (String) rawDescription;
             if (description == null) {
                 description = "";
             }
