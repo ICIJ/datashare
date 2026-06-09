@@ -170,6 +170,27 @@ public class TaskResourceBatchSearchTest extends AbstractProdWebServerTest {
     }
 
     @Test
+    public void test_create_batch_search_with_invalid_name_returns_400() {
+        when(batchSearchRepository.save(any())).thenThrow(new IllegalArgumentException("Batch search name exceeds 255 characters."));
+        postRaw("/api/task/batchSearch/prj", "multipart/form-data;boundary=AaB03x",
+                new MultipartContentBuilder("AaB03x")
+                        .addField("name", "x".repeat(256))
+                        .addFile(new FileUpload("csvFile").withFilename("search.csv").withContentType("text/csv").withContent("query one\r\n"))
+                        .build()).should().respond(400);
+    }
+
+    @Test
+    public void test_copy_batch_search_with_invalid_name_returns_400() {
+        BatchSearch sourceSearch = new BatchSearch(asList(project("prj1"), project("prj2")), "name", "description1",
+                asSet("query 1", "query 2"), "/?q=", User.local());
+        when(batchSearchRepository.get(null, sourceSearch.uuid)).thenReturn(sourceSearch);
+        when(batchSearchRepository.save(any())).thenThrow(new IllegalArgumentException("Batch search name exceeds 255 characters."));
+
+        post("/api/task/batchSearch/copy/" + sourceSearch.uuid,
+                "{\"name\": \"" + "x".repeat(256) + "\"}").should().respond(400);
+    }
+
+    @Test
     public void test_rerun_batch_search_not_found() {
         post("/api/task/batchSearch/copy/bad_uuid", "{}").should().respond(404);
     }

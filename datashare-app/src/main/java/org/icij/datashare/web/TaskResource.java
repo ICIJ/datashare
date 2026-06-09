@@ -244,7 +244,7 @@ public class TaskResource {
                     in = ParameterIn.PATH, examples = @ExampleObject(value = "prj1,prj2"))}
     )
     @ApiResponse(responseCode = "413", description = "if the CSV file is more than 60K lines")
-    @ApiResponse(responseCode = "400", description = "if either name or CSV file is missing")
+    @ApiResponse(responseCode = "400", description = "if name or CSV file is missing, or name/description are empty or exceed their maximum length")
     @Post("/batchSearch/:coma_separated_projects")
     public Payload search(String comaSeparatedProjects, Context context) throws IOException {
         List<Part> parts = context.parts();
@@ -271,7 +271,12 @@ public class TaskResource {
 
         BatchSearch batchSearch = new BatchSearch(stream(comaSeparatedProjects.split(",")).map(Project::project).collect(Collectors.toList()), name, description, queries,uri,
                 (User) context.currentUser(), published, fileTypes, queryTemplate, paths, fuzziness,phraseMatches);
-        boolean isSaved = batchSearchRepository.save(batchSearch);
+        boolean isSaved;
+        try {
+            isSaved = batchSearchRepository.save(batchSearch);
+        } catch (IllegalArgumentException e) {
+            return badRequest();
+        }
         if (isSaved) {
             taskManager.startTask(batchSearch.uuid, BatchSearchRunner.class, (User) context.currentUser(), Map.of("batchRecord", new BatchSearchRecord(batchSearch)));
         }
@@ -301,7 +306,12 @@ public class TaskResource {
             throw new NotFoundException();
         }
         BatchSearch copy = new BatchSearch(sourceBatchSearch, context.extract(HashMap.class));
-        boolean isSaved = batchSearchRepository.save(copy);
+        boolean isSaved;
+        try {
+            isSaved = batchSearchRepository.save(copy);
+        } catch (IllegalArgumentException e) {
+            throw new BadRequestException();
+        }
         if (isSaved) taskManager.startTask(copy.uuid, BatchSearchRunner.class, (User) context.currentUser(), Map.of("batchRecord", new BatchSearchRecord(copy)));
         return copy.uuid;
     }
