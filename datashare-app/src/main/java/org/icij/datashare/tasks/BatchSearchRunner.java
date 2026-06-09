@@ -160,8 +160,12 @@ public class BatchSearchRunner implements CancellableTask, UserTask, Callable<Ba
         // NB_QUERIES_WITHOUT_RESULTS is maintained incrementally in DB by saveResults (decremented on
         // the first scroll that persists results for a query), so it is the source of truth. Reload the
         // batch search to report the persisted value rather than recomputing it from what this run observed.
-        int nbQueriesWithoutResults = repository.get(taskView.getUser(), taskView.id).nbQueriesWithoutResults;
-        return new BatchSearchRunnerResult(numberOfResults, nbQueriesWithoutResults);
+        BatchSearch persisted = repository.get(taskView.getUser(), taskView.id);
+        if (persisted == null) {
+            logger.warn("batch search {} disappeared before reloading final counters, reporting last known nbQueriesWithoutResults", taskView.id);
+            return new BatchSearchRunnerResult(numberOfResults, batchSearch.nbQueriesWithoutResults);
+        }
+        return new BatchSearchRunnerResult(numberOfResults, persisted.nbQueriesWithoutResults);
     }
 
     @Override

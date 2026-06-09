@@ -289,10 +289,18 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
         DSLContext context = DSL.using(dataSource, dialect);
         return context.transactionResult(configuration -> {
             DSLContext inner = DSL.using(configuration);
-            UpdateSetMoreStep<org.icij.datashare.db.tables.records.BatchSearchRecord> updateBatchSearch = inner.update(BATCH_SEARCH).set(BATCH_SEARCH.STATE, State.QUEUED.name());
-            updateBatchSearch.where(BATCH_SEARCH.UUID.eq(batchId)).execute();
+            // requeue the batch and restore the live progress counters maintained by saveResults to their
+            // initial values, so a rerun starts from a clean slate instead of double-counting results or
+            // ending up with a stale (possibly negative) NB_QUERIES_WITHOUT_RESULTS
+            inner.update(BATCH_SEARCH)
+                    .set(BATCH_SEARCH.STATE, State.QUEUED.name())
+                    .set(BATCH_SEARCH.BATCH_RESULTS, 0)
+                    .set(BATCH_SEARCH.NB_QUERIES_WITHOUT_RESULTS, BATCH_SEARCH.NB_QUERIES)
+                    .where(BATCH_SEARCH.UUID.eq(batchId)).execute();
+            inner.update(BATCH_SEARCH_QUERY)
+                    .set(BATCH_SEARCH_QUERY.QUERY_RESULTS, 0)
+                    .where(BATCH_SEARCH_QUERY.SEARCH_UUID.eq(batchId)).execute();
             return inner.deleteFrom(BATCH_SEARCH_RESULT).where(BATCH_SEARCH_RESULT.SEARCH_UUID.eq(batchId)).execute() > 0;
-
         });
 
     }
