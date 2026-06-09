@@ -177,8 +177,9 @@ public class BatchSearchResource {
         return new Payload(204);
     }
 
-    @Operation(description = "Updates a batch search with the given id.",
+    @Operation(description = "Updates a batch search with the given id. The JSON body may contain any of `published` (boolean), `name` (string) and `description` (string); only the provided fields are updated.",
             requestBody = @RequestBody(content = @Content(schema = @Schema(implementation = JsonData.class))))
+    @ApiResponse(responseCode = "400", description = "If no updatable field is provided, the name is empty, or name/description exceed their maximum length")
     @ApiResponse(responseCode = "404", description = "If the user issuing the request is not the same as the batch owner in database, it will do nothing (thus returning 404)")
     @ApiResponse(responseCode = "200", description = "If the batch has been updated")
     @Patch("/search/:batchid")
