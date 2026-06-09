@@ -36,6 +36,8 @@ import static org.icij.datashare.function.ThrowingFunctions.parseBoolean;
 public class BatchSearchResource {
     private final BatchSearchRepository batchSearchRepository;
     private final PropertiesProvider propertiesProvider;
+    private static final int MAX_NAME_LENGTH = 255;
+    private static final int MAX_DESCRIPTION_LENGTH = 4096;
 
     @Inject
     public BatchSearchResource(PropertiesProvider propertiesProvider, final BatchSearchRepository batchSearchRepository) {
@@ -181,10 +183,49 @@ public class BatchSearchResource {
     @ApiResponse(responseCode = "200", description = "If the batch has been updated")
     @Patch("/search/:batchid")
     public Payload updateBatch(String batchId, Context context, JsonData data) {
-        if (batchSearchRepository.publish((User) context.currentUser(), batchId, data.asBoolean("published"))) {
-            return ok();
+        User user = (User) context.currentUser();
+        Map<String, Object> body = data.data;
+        boolean hasPublished = body.containsKey("published");
+        boolean hasName = body.containsKey("name");
+        boolean hasDescription = body.containsKey("description");
+
+        if (!hasPublished && !hasName && !hasDescription) {
+            return PayloadFormatter.error("No updatable field provided (expected published, name or description).", HttpStatus.BAD_REQUEST);
         }
-        return notFound();
+
+        String name = null;
+        if (hasName) {
+            name = (String) body.get("name");
+            if (name == null || name.trim().isEmpty()) {
+                return PayloadFormatter.error("Batch search name cannot be empty.", HttpStatus.BAD_REQUEST);
+            }
+            if (name.length() > MAX_NAME_LENGTH) {
+                return PayloadFormatter.error("Batch search name exceeds " + MAX_NAME_LENGTH + " characters.", HttpStatus.BAD_REQUEST);
+            }
+        }
+
+        String description = null;
+        if (hasDescription) {
+            description = (String) body.get("description");
+            if (description == null) {
+                description = "";
+            }
+            if (description.length() > MAX_DESCRIPTION_LENGTH) {
+                return PayloadFormatter.error("Batch search description exceeds " + MAX_DESCRIPTION_LENGTH + " characters.", HttpStatus.BAD_REQUEST);
+            }
+        }
+
+        boolean updated = false;
+        if (hasPublished) {
+            updated |= batchSearchRepository.publish(user, batchId, data.asBoolean("published"));
+        }
+        if (hasName) {
+            updated |= batchSearchRepository.setName(user, batchId, name);
+        }
+        if (hasDescription) {
+            updated |= batchSearchRepository.setDescription(user, batchId, description);
+        }
+        return updated ? ok() : notFound();
     }
 
     @Operation( description = """

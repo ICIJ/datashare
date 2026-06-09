@@ -213,11 +213,70 @@ public class BatchSearchResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
-    public void test_update_batch_search() {
+    public void test_update_batch_search_published() {
         when(batchSearchRepository.publish(User.local(), "batchId", true)).thenReturn(true).thenReturn(false);
 
         patch("/api/batch/search/batchId", "{\"data\": {\"published\": true}}").should().respond(200);
         patch("/api/batch/search/batchId", "{\"data\": {\"published\": true}}").should().respond(404);
+    }
+
+    @Test
+    public void test_update_batch_search_name() {
+        when(batchSearchRepository.setName(User.local(), "batchId", "new name")).thenReturn(true);
+
+        patch("/api/batch/search/batchId", "{\"data\": {\"name\": \"new name\"}}").should().respond(200);
+    }
+
+    @Test
+    public void test_update_batch_search_description() {
+        when(batchSearchRepository.setDescription(User.local(), "batchId", "new description")).thenReturn(true);
+
+        patch("/api/batch/search/batchId", "{\"data\": {\"description\": \"new description\"}}").should().respond(200);
+    }
+
+    @Test
+    public void test_update_batch_search_all_fields() {
+        when(batchSearchRepository.publish(User.local(), "batchId", true)).thenReturn(true);
+        when(batchSearchRepository.setName(User.local(), "batchId", "new name")).thenReturn(true);
+        when(batchSearchRepository.setDescription(User.local(), "batchId", "new description")).thenReturn(true);
+
+        patch("/api/batch/search/batchId",
+                "{\"data\": {\"published\": true, \"name\": \"new name\", \"description\": \"new description\"}}")
+                .should().respond(200);
+    }
+
+    @Test
+    public void test_update_batch_search_unauthorized_returns_404() {
+        when(batchSearchRepository.setName(User.local(), "batchId", "new name")).thenReturn(false);
+
+        patch("/api/batch/search/batchId", "{\"data\": {\"name\": \"new name\"}}").should().respond(404);
+    }
+
+    @Test
+    public void test_update_batch_search_empty_body_returns_400() {
+        patch("/api/batch/search/batchId", "{\"data\": {}}").should().respond(400);
+    }
+
+    @Test
+    public void test_update_batch_search_blank_name_returns_400() {
+        patch("/api/batch/search/batchId", "{\"data\": {\"name\": \"  \"}}").should().respond(400);
+    }
+
+    @Test
+    public void test_update_batch_search_null_name_returns_400() {
+        patch("/api/batch/search/batchId", "{\"data\": {\"name\": null}}").should().respond(400);
+    }
+
+    @Test
+    public void test_update_batch_search_name_too_long_returns_400() {
+        String longName = "x".repeat(256);
+        patch("/api/batch/search/batchId", "{\"data\": {\"name\": \"" + longName + "\"}}").should().respond(400);
+    }
+
+    @Test
+    public void test_update_batch_search_description_too_long_returns_400() {
+        String longDescription = "x".repeat(4097);
+        patch("/api/batch/search/batchId", "{\"data\": {\"description\": \"" + longDescription + "\"}}").should().respond(400);
     }
 
     @Test
