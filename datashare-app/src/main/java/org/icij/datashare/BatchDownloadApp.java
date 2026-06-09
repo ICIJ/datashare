@@ -19,6 +19,7 @@ public class BatchDownloadApp {
         return scheduleCleanup(cleaner, period);
     }
 
+    // package-private for testing
     static ScheduledExecutorService scheduleCleanup(Runnable cleaner, long periodSeconds) {
         ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
         scheduler.execute(cleaner);
