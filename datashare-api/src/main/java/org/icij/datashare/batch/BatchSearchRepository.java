@@ -37,6 +37,8 @@ public interface BatchSearchRepository extends Closeable {
 
     boolean setName(User user, String batchId, String name);
 
+    boolean setDescription(User user, String batchId, String description);
+
     BatchSearch get(String id);
     BatchSearch get(User user, String batchId);
     BatchSearch get(User user, String batchId, boolean withQueries);
