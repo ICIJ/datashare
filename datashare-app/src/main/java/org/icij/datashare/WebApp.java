@@ -1,12 +1,7 @@
 package org.icij.datashare;
 
-import static java.lang.Boolean.parseBoolean;
-import static java.lang.Integer.parseInt;
-import static org.icij.datashare.cli.DatashareCliOptions.BROWSER_OPEN_LINK_OPT;
-
-import java.io.IOException;
-import java.util.Map;
 import org.icij.datashare.asynctasks.TaskAlreadyExists;
+import org.icij.datashare.asynctasks.TaskManager;
 import org.icij.datashare.batch.BatchSearch;
 import org.icij.datashare.batch.BatchSearchRecord;
 import org.icij.datashare.batch.BatchSearchRepository;
@@ -14,10 +9,18 @@ import org.icij.datashare.cli.Mode;
 import org.icij.datashare.mode.CommonMode;
 import org.icij.datashare.tasks.BatchDownloadCleaner;
 import org.icij.datashare.tasks.BatchSearchRunner;
-import org.icij.datashare.asynctasks.TaskManager;
 import org.icij.datashare.utils.WebBrowserUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
+import java.util.Map;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+
+import static java.lang.Boolean.parseBoolean;
+import static java.lang.Integer.parseInt;
+import static org.icij.datashare.cli.DatashareCliOptions.BROWSER_OPEN_LINK_OPT;
 
 public class WebApp {
     private static final Logger LOGGER = LoggerFactory.getLogger(WebApp.class);
@@ -41,7 +44,15 @@ public class WebApp {
                 .configure(mode.createWebConfiguration())
                 .start(parseInt(mode.properties().getProperty(PropertiesProvider.TCP_LISTEN_PORT_OPT)));
 
-        mode.addCloseable(BatchDownloadApp.scheduleCleanup(mode.get(BatchDownloadCleaner.class))::shutdown);
+        ScheduledExecutorService cleanupScheduler = BatchDownloadApp.scheduleCleanup(mode.get(BatchDownloadCleaner.class));
+        mode.addCloseable(() -> {
+            cleanupScheduler.shutdown();
+            try {
+                cleanupScheduler.awaitTermination(5, TimeUnit.SECONDS);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        });
 
         if (mode.shouldRunWorker()) {
             mode.runWorkers();
