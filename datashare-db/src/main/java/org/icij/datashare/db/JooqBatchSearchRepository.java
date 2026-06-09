@@ -349,6 +349,14 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
 
     }
 
+    @Override
+    public boolean setName(User user, String batchId, String name) {
+        return DSL.using(dataSource, dialect).update(BATCH_SEARCH).
+                set(BATCH_SEARCH.NAME, name).
+                where(BATCH_SEARCH.UUID.eq(batchId).
+                        and(BATCH_SEARCH.USER_ID.eq(user.id))).execute() > 0;
+    }
+
     private List<BatchSearch> mergeBatchSearches(final List<BatchSearch> flatBatchSearches) {
         Map<String, List<BatchSearch>> collect = flatBatchSearches.stream().collect(groupingBy(bs -> bs.uuid));
         return collect.values().stream().map(batchSearches ->

@@ -691,6 +691,24 @@ public class JooqBatchSearchRepositoryTest {
     }
 
     @Test
+    public void test_set_name() {
+        repository.save(new BatchSearch("uuid", singletonList(proxy("prj")), "name", "description",
+                asSet("q1", "q2"), new Date(), State.FAILURE, User.local()));
+
+        assertThat(repository.setName(User.local(), "uuid", "new name")).isTrue();
+        assertThat(repository.get(User.local(), "uuid").name).isEqualTo("new name");
+    }
+
+    @Test
+    public void test_set_name_unauthorized_user_does_nothing() {
+        repository.save(new BatchSearch("uuid", singletonList(proxy("prj")), "name1", "description1",
+                asSet("q1", "q2"), new Date(), State.FAILURE, User.local()));
+
+        assertThat(repository.setName(new User("unauthorized"), "uuid", "hacked")).isFalse();
+        assertThat(repository.get(User.local(), "uuid").name).isEqualTo("name1");
+    }
+
+    @Test
     public void test_reset_batch_search() {
         BatchSearch batchSearch = new BatchSearch("uuid", singletonList(proxy("prj")), "name1", "description1",
                 asSet("q1", "q2"), new Date(), State.RUNNING, User.local());
