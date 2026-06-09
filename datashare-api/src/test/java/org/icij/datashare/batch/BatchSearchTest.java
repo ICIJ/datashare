@@ -89,4 +89,41 @@ public class BatchSearchTest {
         assertThat(copy.name).isEqualTo("new name");
         assertThat(copy.description).isEqualTo("new description");
     }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void test_validate_name_rejects_null() {
+        BatchSearch.validateName(null);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void test_validate_name_rejects_blank() {
+        BatchSearch.validateName("   ");
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void test_validate_name_rejects_too_long() {
+        BatchSearch.validateName("x".repeat(BatchSearch.MAX_NAME_LENGTH + 1));
+    }
+
+    @Test
+    public void test_validate_name_accepts_max_length() {
+        String name = "x".repeat(BatchSearch.MAX_NAME_LENGTH);
+        assertThat(BatchSearch.validateName(name)).isEqualTo(name);
+    }
+
+    @Test
+    public void test_validate_description_null_becomes_empty_string() {
+        assertThat(BatchSearch.validateDescription(null)).isEqualTo("");
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void test_validate_description_rejects_too_long() {
+        BatchSearch.validateDescription("x".repeat(BatchSearch.MAX_DESCRIPTION_LENGTH + 1));
+    }
+
+    @Test
+    public void test_validate_description_accepts_max_length() {
+        String description = "x".repeat(BatchSearch.MAX_DESCRIPTION_LENGTH);
+        assertThat(BatchSearch.validateDescription(description)).isEqualTo(description);
+    }
 }
