@@ -57,12 +57,13 @@ public class BatchSearchRunnerTest {
 
     @Test
     public void test_run_batch_search() throws Exception {
-        // query1 matches two documents, query2 matches nothing
         Document[] documents = {createDoc("doc1").build(), createDoc("doc2").build()};
         mockSearch.willReturn("query1", documents);
         mockSearch.willReturn("query2");
         BatchSearch search = new BatchSearch("uuid1", singletonList(project("test-datashare")), "name1", "desc1", asSet("query1", "query2"), new Date(), BatchSearch.State.QUEUED, User.local());
-        when(repository.get(local(), search.uuid)).thenReturn(search);
+        // the runner reloads the batch search at the end to report the persisted NB_QUERIES_WITHOUT_RESULTS,
+        // which saveResults decremented once (query1 had results), leaving one query without results
+        when(repository.get(local(), search.uuid)).thenReturn(search, reloaded(search, 1));
 
         BatchSearchRunnerResult result = new BatchSearchRunner(indexer, new PropertiesProvider(), repository, taskView(search), progressCb).call();
 
@@ -72,27 +73,28 @@ public class BatchSearchRunnerTest {
     }
 
     @Test
-    public void test_run_batch_search_when_all_queries_have_results() throws Exception {
+    public void test_run_batch_search_reports_persisted_count_not_observed() throws Exception {
+        // both queries observe hits during the run, yet the persisted count is the source of truth:
+        // the runner must report what the reloaded record holds, not what it counted from the scrolls
         mockSearch.willReturn("query1", createDoc("doc1").build());
         mockSearch.willReturn("query2", createDoc("doc2").build());
         BatchSearch search = new BatchSearch("uuid1", singletonList(project("test-datashare")), "name1", "desc1", asSet("query1", "query2"), new Date(), BatchSearch.State.QUEUED, User.local());
-        when(repository.get(local(), search.uuid)).thenReturn(search);
+        when(repository.get(local(), search.uuid)).thenReturn(search, reloaded(search, 1));
 
-        assertThat(new BatchSearchRunner(indexer, new PropertiesProvider(), repository, taskView(search), progressCb).call().nbQueriesWithoutResults()).isEqualTo(0);
-    }
-
-    @Test
-    public void test_run_batch_search_when_no_query_has_results() throws Exception {
-        mockSearch.willReturn("query1");
-        mockSearch.willReturn("query2");
-        BatchSearch search = new BatchSearch("uuid1", singletonList(project("test-datashare")), "name1", "desc1", asSet("query1", "query2"), new Date(), BatchSearch.State.QUEUED, User.local());
-        when(repository.get(local(), search.uuid)).thenReturn(search);
-
-        assertThat(new BatchSearchRunner(indexer, new PropertiesProvider(), repository, taskView(search), progressCb).call().nbQueriesWithoutResults()).isEqualTo(2);
+        assertThat(new BatchSearchRunner(indexer, new PropertiesProvider(), repository, taskView(search), progressCb).call().nbQueriesWithoutResults()).isEqualTo(1);
     }
 
     private Task<?> taskView(BatchSearch search) {
         return new Task<>(search.uuid, BatchSearchRunner.class.getName(), local());
+    }
+
+    // builds the batch search as it would be reloaded from DB after the run, carrying the persisted
+    // NB_QUERIES_WITHOUT_RESULTS value maintained by saveResults
+    private BatchSearch reloaded(BatchSearch search, int nbQueriesWithoutResults) {
+        return new BatchSearch(search.uuid, search.projects, search.name, search.description, search.queries,
+                nbQueriesWithoutResults, search.date, BatchSearch.State.SUCCESS, search.uri, search.user,
+                search.nbResults, search.published, search.fileTypes, null, search.paths, search.fuzziness,
+                search.phraseMatches, search.errorMessage, search.errorQuery);
     }
 
     @Test(expected = RuntimeException.class)
