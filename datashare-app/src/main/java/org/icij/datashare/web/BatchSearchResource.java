@@ -186,62 +186,71 @@ public class BatchSearchResource {
     public Payload updateBatch(String batchId, Context context, JsonData data) {
         User user = (User) context.currentUser();
         Map<String, Object> body = data.data;
-        if (body == null) {
-            return PayloadFormatter.error("Request body must contain a data object.", HttpStatus.BAD_REQUEST);
-        }
-        boolean hasPublished = body.containsKey("published");
-        boolean hasName = body.containsKey("name");
-        boolean hasDescription = body.containsKey("description");
-
-        if (!hasPublished && !hasName && !hasDescription) {
+        if (body == null || !hasUpdatableField(body)) {
             return PayloadFormatter.error("No updatable field provided (expected published, name or description).", HttpStatus.BAD_REQUEST);
         }
-
-        String name = null;
-        if (hasName) {
-            Object rawName = body.get("name");
-            if (rawName != null && !(rawName instanceof String)) {
-                return PayloadFormatter.error("Batch search name must be a string.", HttpStatus.BAD_REQUEST);
-            }
-            name = (String) rawName;
-            if (name == null || name.trim().isEmpty()) {
-                return PayloadFormatter.error("Batch search name cannot be empty.", HttpStatus.BAD_REQUEST);
-            }
-            if (name.length() > MAX_NAME_LENGTH) {
-                return PayloadFormatter.error("Batch search name exceeds " + MAX_NAME_LENGTH + " characters.", HttpStatus.BAD_REQUEST);
-            }
+        try {
+            return applyEdits(user, batchId, body) ? ok() : notFound();
+        } catch (IllegalArgumentException invalidField) {
+            return PayloadFormatter.error(invalidField.getMessage(), HttpStatus.BAD_REQUEST);
         }
+    }
 
-        String description = null;
-        if (hasDescription) {
-            Object rawDescription = body.get("description");
-            if (rawDescription != null && !(rawDescription instanceof String)) {
-                return PayloadFormatter.error("Batch search description must be a string.", HttpStatus.BAD_REQUEST);
-            }
-            description = (String) rawDescription;
-            if (description == null) {
-                description = "";
-            }
-            if (description.length() > MAX_DESCRIPTION_LENGTH) {
-                return PayloadFormatter.error("Batch search description exceeds " + MAX_DESCRIPTION_LENGTH + " characters.", HttpStatus.BAD_REQUEST);
-            }
-        }
+    private static boolean hasUpdatableField(Map<String, Object> body) {
+        return body.containsKey("published") || body.containsKey("name") || body.containsKey("description");
+    }
+
+    private boolean applyEdits(User user, String batchId, Map<String, Object> body) {
+        // Validate every present field before applying any, so an invalid field never leaves a partial update.
+        Boolean published = body.containsKey("published") ? validBoolean(body.get("published"), "published") : null;
+        String name = body.containsKey("name") ? validName(body.get("name")) : null;
+        String description = body.containsKey("description") ? validDescription(body.get("description")) : null;
 
         boolean updated = false;
-        if (hasPublished) {
-            Object published = body.get("published");
-            if (!(published instanceof Boolean)) {
-                return PayloadFormatter.error("Batch search published must be a boolean.", HttpStatus.BAD_REQUEST);
-            }
-            updated |= batchSearchRepository.publish(user, batchId, (Boolean) published);
+        if (published != null) {
+            updated |= batchSearchRepository.publish(user, batchId, published);
         }
-        if (hasName) {
+        if (name != null) {
             updated |= batchSearchRepository.setName(user, batchId, name);
         }
-        if (hasDescription) {
+        if (description != null) {
             updated |= batchSearchRepository.setDescription(user, batchId, description);
         }
-        return updated ? ok() : notFound();
+        return updated;
+    }
+
+    private static String validName(Object value) {
+        String name = validString(value, "name");
+        if (name == null || name.trim().isEmpty()) {
+            throw new IllegalArgumentException("Batch search name cannot be empty.");
+        }
+        return withinMaxLength(name, MAX_NAME_LENGTH, "name");
+    }
+
+    private static String validDescription(Object value) {
+        String description = validString(value, "description");
+        return withinMaxLength(description == null ? "" : description, MAX_DESCRIPTION_LENGTH, "description");
+    }
+
+    private static String validString(Object value, String field) {
+        if (value != null && !(value instanceof String)) {
+            throw new IllegalArgumentException("Batch search " + field + " must be a string.");
+        }
+        return (String) value;
+    }
+
+    private static boolean validBoolean(Object value, String field) {
+        if (!(value instanceof Boolean)) {
+            throw new IllegalArgumentException("Batch search " + field + " must be a boolean.");
+        }
+        return (Boolean) value;
+    }
+
+    private static String withinMaxLength(String value, int maxLength, String field) {
+        if (value.length() > maxLength) {
+            throw new IllegalArgumentException("Batch search " + field + " exceeds " + maxLength + " characters.");
+        }
+        return value;
     }
 
     @Operation( description = """
