@@ -50,6 +50,8 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
 
     @Override
     public boolean save(final BatchSearch batchSearch) {
+        BatchSearch.validateName(batchSearch.name);
+        BatchSearch.validateDescription(batchSearch.description);
         DSLContext context = DSL.using(dataSource, dialect);
         return context.transactionResult(configuration -> {
             DSLContext inner = DSL.using(configuration);
@@ -351,6 +353,7 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
 
     @Override
     public boolean setName(User user, String batchId, String name) {
+        BatchSearch.validateName(name);
         return DSL.using(dataSource, dialect).update(BATCH_SEARCH).
                 set(BATCH_SEARCH.NAME, name).
                 where(BATCH_SEARCH.UUID.eq(batchId).
@@ -359,6 +362,7 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
 
     @Override
     public boolean setDescription(User user, String batchId, String description) {
+        BatchSearch.validateDescription(description);
         return DSL.using(dataSource, dialect).update(BATCH_SEARCH).
                 set(BATCH_SEARCH.DESCRIPTION, description).
                 where(BATCH_SEARCH.UUID.eq(batchId).

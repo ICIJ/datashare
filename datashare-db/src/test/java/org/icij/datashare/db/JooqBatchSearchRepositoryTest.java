@@ -920,6 +920,33 @@ public class JooqBatchSearchRepositoryTest {
                 WebQueryBuilder.createWebQuery().queryAll().withSortOrder("(SELECT password FROM users)", "asc").build());
     }
 
+    @Test(expected = IllegalArgumentException.class)
+    public void test_set_name_too_long_throws() {
+        repository.setName(User.local(), "uuid", "x".repeat(BatchSearch.MAX_NAME_LENGTH + 1));
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void test_set_name_blank_throws() {
+        repository.setName(User.local(), "uuid", "   ");
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void test_set_description_too_long_throws() {
+        repository.setDescription(User.local(), "uuid", "x".repeat(BatchSearch.MAX_DESCRIPTION_LENGTH + 1));
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void test_save_with_too_long_name_throws() {
+        repository.save(new BatchSearch(singletonList(proxy("prj")), "x".repeat(BatchSearch.MAX_NAME_LENGTH + 1),
+                "description", asSet("q1", "q2"), null, User.local()));
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void test_save_with_too_long_description_throws() {
+        repository.save(new BatchSearch(singletonList(proxy("prj")), "name",
+                "x".repeat(BatchSearch.MAX_DESCRIPTION_LENGTH + 1), asSet("q1", "q2"), null, User.local()));
+    }
+
     private SearchResult resultFrom(Document doc, int docNb, String queryName) {
         return new SearchResult(queryName, doc.getId(), doc.getRootDocument(), doc.getPath(), doc.getCreationDate(), doc.getContentType(), doc.getContentLength(), docNb);
     }
