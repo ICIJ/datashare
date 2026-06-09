@@ -36,9 +36,6 @@ import static org.icij.datashare.function.ThrowingFunctions.parseBoolean;
 public class BatchSearchResource {
     private final BatchSearchRepository batchSearchRepository;
     private final PropertiesProvider propertiesProvider;
-    private static final int MAX_NAME_LENGTH = 255;
-    private static final int MAX_DESCRIPTION_LENGTH = 4096;
-
     @Inject
     public BatchSearchResource(PropertiesProvider propertiesProvider, final BatchSearchRepository batchSearchRepository) {
         this.batchSearchRepository = batchSearchRepository;
@@ -203,8 +200,8 @@ public class BatchSearchResource {
     private boolean applyEdits(User user, String batchId, Map<String, Object> body) {
         // Validate every present field before applying any, so an invalid field never leaves a partial update.
         Boolean published = body.containsKey("published") ? validBoolean(body.get("published"), "published") : null;
-        String name = body.containsKey("name") ? validName(body.get("name")) : null;
-        String description = body.containsKey("description") ? validDescription(body.get("description")) : null;
+        String name = body.containsKey("name") ? BatchSearch.validateName(validString(body.get("name"), "name")) : null;
+        String description = body.containsKey("description") ? BatchSearch.validateDescription(validString(body.get("description"), "description")) : null;
 
         boolean updated = false;
         if (published != null) {
@@ -219,19 +216,6 @@ public class BatchSearchResource {
         return updated;
     }
 
-    private static String validName(Object value) {
-        String name = validString(value, "name");
-        if (name == null || name.trim().isEmpty()) {
-            throw new IllegalArgumentException("Batch search name cannot be empty.");
-        }
-        return withinMaxLength(name, MAX_NAME_LENGTH, "name");
-    }
-
-    private static String validDescription(Object value) {
-        String description = validString(value, "description");
-        return withinMaxLength(description == null ? "" : description, MAX_DESCRIPTION_LENGTH, "description");
-    }
-
     private static String validString(Object value, String field) {
         if (value != null && !(value instanceof String)) {
             throw new IllegalArgumentException("Batch search " + field + " must be a string.");
@@ -244,13 +228,6 @@ public class BatchSearchResource {
             throw new IllegalArgumentException("Batch search " + field + " must be a boolean.");
         }
         return (Boolean) value;
-    }
-
-    private static String withinMaxLength(String value, int maxLength, String field) {
-        if (value.length() > maxLength) {
-            throw new IllegalArgumentException("Batch search " + field + " exceeds " + maxLength + " characters.");
-        }
-        return value;
     }
 
     @Operation( description = """
