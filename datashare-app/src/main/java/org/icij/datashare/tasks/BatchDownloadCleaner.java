@@ -44,16 +44,11 @@ public class BatchDownloadCleaner implements Runnable {
     public void run() {
         if (ttlHour == 0) return;
         try {
+            logger.debug("deleting expired batch download zip files from {}", downloadDir);
             stream(ofNullable(downloadDir.toFile().listFiles()).orElse(new File[] {}))
                     .filter(f -> filePattern.matcher(f.getName()).matches())
                     .filter(f -> DatashareTime.getInstance().currentTimeMillis() - f.lastModified() >= ttlHour * 1000L * 60 * 60)
-                    .forEach(f -> {
-                        if (f.delete()) {
-                            logger.info("deleted expired zip {}", f.getName());
-                        } else {
-                            logger.warn("could not delete expired zip {} (file in use?)", f.getName());
-                        }
-                    });
+                    .forEach(File::delete);
         } catch (Exception e) {
             logger.error("batch download cleaner failed", e);
         }
