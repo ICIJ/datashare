@@ -3,6 +3,7 @@ package org.icij.datashare.tasks;
 import org.icij.datashare.Entity;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.indexing.Indexer;
+import org.icij.datashare.text.indexing.SearchQuery;
 import org.mockito.stubbing.OngoingStubbing;
 
 import java.io.IOException;
@@ -26,7 +27,7 @@ class MockSearch<S extends Indexer.Searcher> {
         Indexer.Searcher searcher = mock(Indexer.Searcher.class);
         when(searcher.scroll(any(String.class))).thenThrow(expectedClassException);
         when(searcher.scroll(any(String.class), any(String.class))).thenThrow(expectedClassException);
-        prepareSearcher(0, searcher);
+        prepareSearcher(0, searcher, null);
     }
 
     void willReturn(int nbOfScrolls, Document... documents) throws IOException {
@@ -41,10 +42,26 @@ class MockSearch<S extends Indexer.Searcher> {
             ongoingStubbing = ongoingStubbing.thenAnswer(a -> Stream.of(documents));
         }
         ongoingStubbing.thenAnswer(a -> Stream.empty());
-        prepareSearcher(documents.length, searcher);
+        prepareSearcher(documents.length, searcher, null);
     }
 
-    private void prepareSearcher(long length, Indexer.Searcher searcher) {
+    /**
+     * Stubs the search of a single query so it returns the given documents on its first scroll
+     * (then empty), or returns nothing at all when no document is passed. Unlike
+     * {@link #willReturn(int, Document...)}, each query gets its own searcher, so emptiness
+     * reflects the query rather than a shared, sequentially-drained stub.
+     */
+    void willReturn(String query, Document... documents) throws IOException {
+        S searcher = mock(searcherInstance);
+        OngoingStubbing<? extends Stream<? extends Entity>> ongoingStubbing = when(searcher.scroll(anyString()));
+        if (documents.length > 0) {
+            ongoingStubbing = ongoingStubbing.thenAnswer(a -> Stream.of(documents));
+        }
+        ongoingStubbing.thenAnswer(a -> Stream.empty());
+        prepareSearcher(documents.length, searcher, new SearchQuery(query));
+    }
+
+    private void prepareSearcher(long length, Indexer.Searcher searcher, SearchQuery query) {
         when(searcher.with(anyInt(), anyBoolean())).thenReturn(searcher);
         when(searcher.withoutSource(any())).thenReturn(searcher);
         if (searcher instanceof Indexer.QueryBuilderSearcher) {
@@ -53,6 +70,10 @@ class MockSearch<S extends Indexer.Searcher> {
         }
         when(searcher.limit(anyInt())).thenReturn(searcher);
         when(searcher.totalHits()).thenReturn(length).thenReturn(0L);
-        when(mockIndexer.search(eq(singletonList("test-datashare")), eq(Document.class), any())).thenReturn(searcher);
+        if (query == null) {
+            when(mockIndexer.search(eq(singletonList("test-datashare")), eq(Document.class), any())).thenReturn(searcher);
+        } else {
+            when(mockIndexer.search(eq(singletonList("test-datashare")), eq(Document.class), eq(query))).thenReturn(searcher);
+        }
     }
 }

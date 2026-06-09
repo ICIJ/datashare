@@ -82,6 +82,7 @@ public class BatchSearchRunner implements CancellableTask, UserTask, Callable<Ba
     public BatchSearchRunnerResult call() throws Exception {
         int numberOfResults = 0;
         int totalProcessed = 0;
+        int queriesWithoutResults = 0;
 
         int throttleMs = parseInt(propertiesProvider.get(BATCH_THROTTLE_OPT).orElse(DEFAULT_BATCH_THROTTLE));
         int maxTimeSeconds = parseInt(propertiesProvider.get(BATCH_SEARCH_MAX_TIME_OPT).orElse(DEFAULT_BATCH_SEARCH_MAX_TIME));
@@ -121,9 +122,15 @@ public class BatchSearchRunner implements CancellableTask, UserTask, Callable<Ba
                     docsToProcess = searcher.scroll(scrollDuration).collect(toList());
                 }
 
+                // count queries with no hits from what this run observes; the DB NB_QUERIES_WITHOUT_RESULTS
+                // column is a live progress counter and is not the source of truth for the task result
+                if (docsToProcess.isEmpty()) {
+                    queriesWithoutResults++;
+                }
+
                 long beforeScrollLoop = DatashareTime.getInstance().currentTimeMillis();
                 boolean isFirstScroll = true;
-                while (docsToProcess.size() != 0 && numberOfResults < MAX_BATCH_RESULT_SIZE - MAX_SCROLL_SIZE) {
+                while (!docsToProcess.isEmpty() && numberOfResults < MAX_BATCH_RESULT_SIZE - MAX_SCROLL_SIZE) {
                     if (cancelAsked) {
                         logger.info("cancelling batch search {} requeue={}", batchSearch.uuid, requeueCancel);
                         repository.reset(batchSearch.uuid);
@@ -157,7 +164,7 @@ public class BatchSearchRunner implements CancellableTask, UserTask, Callable<Ba
             repository.setState(taskView.id, searchException);
             throw searchException;
         }
-        return new BatchSearchRunnerResult(numberOfResults, batchSearch.nbQueriesWithoutResults);
+        return new BatchSearchRunnerResult(numberOfResults, queriesWithoutResults);
     }
 
     @Override

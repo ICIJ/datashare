@@ -57,14 +57,38 @@ public class BatchSearchRunnerTest {
 
     @Test
     public void test_run_batch_search() throws Exception {
+        // query1 matches two documents, query2 matches nothing
         Document[] documents = {createDoc("doc1").build(), createDoc("doc2").build()};
-        mockSearch.willReturn(1, documents);
+        mockSearch.willReturn("query1", documents);
+        mockSearch.willReturn("query2");
+        BatchSearch search = new BatchSearch("uuid1", singletonList(project("test-datashare")), "name1", "desc1", asSet("query1", "query2"), new Date(), BatchSearch.State.QUEUED, User.local());
+        when(repository.get(local(), search.uuid)).thenReturn(search);
+
+        BatchSearchRunnerResult result = new BatchSearchRunner(indexer, new PropertiesProvider(), repository, taskView(search), progressCb).call();
+
+        assertThat(result.nbResults()).isEqualTo(2);
+        assertThat(result.nbQueriesWithoutResults()).isEqualTo(1);
+        verify(progressCb).apply( 1.0);
+    }
+
+    @Test
+    public void test_run_batch_search_when_all_queries_have_results() throws Exception {
+        mockSearch.willReturn("query1", createDoc("doc1").build());
+        mockSearch.willReturn("query2", createDoc("doc2").build());
+        BatchSearch search = new BatchSearch("uuid1", singletonList(project("test-datashare")), "name1", "desc1", asSet("query1", "query2"), new Date(), BatchSearch.State.QUEUED, User.local());
+        when(repository.get(local(), search.uuid)).thenReturn(search);
+
+        assertThat(new BatchSearchRunner(indexer, new PropertiesProvider(), repository, taskView(search), progressCb).call().nbQueriesWithoutResults()).isEqualTo(0);
+    }
+
+    @Test
+    public void test_run_batch_search_when_no_query_has_results() throws Exception {
+        mockSearch.willReturn("query1");
+        mockSearch.willReturn("query2");
         BatchSearch search = new BatchSearch("uuid1", singletonList(project("test-datashare")), "name1", "desc1", asSet("query1", "query2"), new Date(), BatchSearch.State.QUEUED, User.local());
         when(repository.get(local(), search.uuid)).thenReturn(search);
 
         assertThat(new BatchSearchRunner(indexer, new PropertiesProvider(), repository, taskView(search), progressCb).call().nbQueriesWithoutResults()).isEqualTo(2);
-
-        verify(progressCb).apply( 1.0);
     }
 
     private Task<?> taskView(BatchSearch search) {
