@@ -84,6 +84,19 @@ public class BatchSearchRunnerTest {
         assertThat(new BatchSearchRunner(indexer, new PropertiesProvider(), repository, taskView(search), progressCb).call().nbQueriesWithoutResults()).isEqualTo(1);
     }
 
+    @Test
+    public void test_run_batch_search_when_reload_returns_null_falls_back_without_npe() throws Exception {
+        mockSearch.willReturn("query1", createDoc("doc1").build());
+        mockSearch.willReturn("query2");
+        BatchSearch search = new BatchSearch("uuid1", singletonList(project("test-datashare")), "name1", "desc1", asSet("query1", "query2"), new Date(), BatchSearch.State.QUEUED, User.local());
+        // the batch search is deleted concurrently before the final reload
+        when(repository.get(local(), search.uuid)).thenReturn(search, (BatchSearch) null);
+
+        BatchSearchRunnerResult result = new BatchSearchRunner(indexer, new PropertiesProvider(), repository, taskView(search), progressCb).call();
+
+        assertThat(result.nbQueriesWithoutResults()).isEqualTo(2); // last known in-memory value
+    }
+
     private Task<?> taskView(BatchSearch search) {
         return new Task<>(search.uuid, BatchSearchRunner.class.getName(), local());
     }

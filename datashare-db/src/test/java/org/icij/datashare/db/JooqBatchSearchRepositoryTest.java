@@ -731,11 +731,21 @@ public class JooqBatchSearchRepositoryTest {
         BatchSearch batchSearch = new BatchSearch("uuid", singletonList(proxy("prj")), "name1", "description1",
                 asSet("q1", "q2"), new Date(), State.RUNNING, User.local());
         repository.save(batchSearch);
-        repository.saveResults(batchSearch.uuid, "query",asList(createDoc("doc1").build(),createDoc("doc2").build()));
+        repository.saveResults(batchSearch.uuid, "q1", asList(createDoc("doc1").build(), createDoc("doc2").build()));
+
+        // the partial run decremented the live progress counters maintained by saveResults
+        assertThat(repository.get(User.local(), batchSearch.uuid).nbResults).isEqualTo(2);
+        assertThat(repository.get(User.local(), batchSearch.uuid).nbQueriesWithoutResults).isEqualTo(1);
 
         assertThat(repository.reset(batchSearch.uuid)).isTrue();
         assertThat(repository.get(batchSearch.uuid).state).isEqualTo(State.QUEUED);
         assertThat(repository.getResults(User.local(), batchSearch.uuid)).hasSize(0);
+
+        // counters are restored to their initial values so a rerun starts from a clean slate
+        BatchSearch afterReset = repository.get(User.local(), batchSearch.uuid);
+        assertThat(afterReset.nbResults).isEqualTo(0);
+        assertThat(afterReset.nbQueriesWithoutResults).isEqualTo(2);
+        assertThat(afterReset.queries).includes(entry("q1", 0), entry("q2", 0));
     }
 
     @Test
