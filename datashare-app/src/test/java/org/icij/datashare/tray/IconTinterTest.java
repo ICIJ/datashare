@@ -59,4 +59,31 @@ public class IconTinterTest {
         int mid = out.getRGB(8, 8);
         assertTrue("centre content is opaque", ((mid >>> 24) & 0xFF) > 0);
     }
+
+    @Test
+    public void test_large_downscale_averages_instead_of_aliasing() {
+        // 256x256 of 8px-tall alternating opaque/transparent bands (50% coverage).
+        // A naive single bilinear pass to 8px samples a 2x2 neighbourhood, lands in
+        // one band phase and aliases to ~all-opaque or ~all-transparent. High-quality
+        // (progressive) downscaling averages the bands, so every pixel lands near 50%.
+        BufferedImage src = new BufferedImage(256, 256, BufferedImage.TYPE_INT_ARGB);
+        for (int y = 0; y < 256; y++) {
+            int alpha = ((y / 8) % 2 == 0) ? 0xFF : 0x00;
+            for (int x = 0; x < 256; x++) {
+                src.setRGB(x, y, alpha << 24);
+            }
+        }
+
+        BufferedImage out = IconTinter.tint(src, Color.WHITE, 8);
+
+        long sum = 0;
+        for (int y = 0; y < 8; y++) {
+            for (int x = 0; x < 8; x++) {
+                sum += (out.getRGB(x, y) >>> 24) & 0xFF;
+            }
+        }
+        double meanAlpha = sum / 64.0;
+        assertTrue("downscale should average ~50% coverage, not alias; mean alpha=" + meanAlpha,
+                meanAlpha > 96 && meanAlpha < 160);
+    }
 }
