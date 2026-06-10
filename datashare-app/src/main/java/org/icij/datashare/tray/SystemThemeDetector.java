@@ -3,6 +3,7 @@ package org.icij.datashare.tray;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
@@ -54,12 +55,26 @@ public class SystemThemeDetector {
             if (out.contains("prefer-dark")) {
                 return Theme.DARK;
             }
-            if (out.contains("prefer-light") || out.contains("default")) {
+            if (out.contains("prefer-light")) {
                 return Theme.LIGHT;
             }
-            return Theme.UNKNOWN;
+            // 'default' means "no explicit colour-scheme preference", NOT "light":
+            // many desktops ship a dark default. Fall back to the GTK theme name.
+            return detectLinuxGtkTheme();
         } catch (Exception e) {
             LOGGER.warn("Could not detect Linux theme, defaulting to UNKNOWN", e);
+            return Theme.UNKNOWN;
+        }
+    }
+
+    private Theme detectLinuxGtkTheme() {
+        try {
+            String theme = runner.run(TIMEOUT_MS,
+                    "gsettings", "get", "org.gnome.desktop.interface", "gtk-theme")
+                    .toLowerCase(Locale.ROOT);
+            return theme.contains("dark") ? Theme.DARK : Theme.LIGHT;
+        } catch (Exception e) {
+            LOGGER.warn("Could not read GTK theme, defaulting to UNKNOWN", e);
             return Theme.UNKNOWN;
         }
     }
@@ -97,18 +112,36 @@ public class SystemThemeDetector {
     private static final class ProcessCommandRunner implements CommandRunner {
         @Override
         public String run(long timeoutMillis, String... command) throws Exception {
-            Process process = new ProcessBuilder(command).start();
-            boolean finished = process.waitFor(timeoutMillis, TimeUnit.MILLISECONDS);
-            if (!finished) {
-                process.destroyForcibly();
-                throw new IOException("Command timed out: " + String.join(" ", command));
+            // Discard stderr (we never parse it) so the child can never block on a full
+            // stderr pipe, and so there is one fewer stream to drain.
+            Process process = new ProcessBuilder(command)
+                    .redirectError(ProcessBuilder.Redirect.DISCARD)
+                    .start();
+            try {
+                if (!process.waitFor(timeoutMillis, TimeUnit.MILLISECONDS)) {
+                    throw new IOException("Command timed out: " + String.join(" ", command));
+                }
+                if (process.exitValue() != 0) {
+                    throw new IOException("Command exited " + process.exitValue()
+                            + ": " + String.join(" ", command));
+                }
+                try (InputStream in = process.getInputStream()) {
+                    return new String(in.readAllBytes(), StandardCharsets.UTF_8).trim();
+                }
+            } finally {
+                // Release the process and its pipe file descriptors on every path
+                // (timeout, non-zero exit, success). destroy() is a no-op once exited.
+                process.destroy();
+                closeQuietly(process.getInputStream());
+                closeQuietly(process.getOutputStream());
             }
-            if (process.exitValue() != 0) {
-                throw new IOException("Command exited " + process.exitValue()
-                        + ": " + String.join(" ", command));
-            }
-            try (InputStream in = process.getInputStream()) {
-                return new String(in.readAllBytes(), StandardCharsets.UTF_8).trim();
+        }
+
+        private static void closeQuietly(Closeable closeable) {
+            try {
+                closeable.close();
+            } catch (IOException ignored) {
+                // best-effort cleanup
             }
         }
     }

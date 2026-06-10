@@ -20,9 +20,28 @@ public class SystemThemeDetectorTest {
     }
 
     @Test
-    public void test_linux_default_is_light() {
-        assertEquals(LIGHT, detector(OsFamily.LINUX,
-                (t, cmd) -> "'default'").detect());
+    public void test_linux_default_falls_back_to_light_gtk_theme() {
+        // color-scheme 'default' is not a colour preference; fall back to the GTK theme.
+        assertEquals(LIGHT, detector(OsFamily.LINUX, (t, cmd) ->
+                String.join(" ", cmd).contains("color-scheme") ? "'default'" : "'Adwaita'").detect());
+    }
+
+    @Test
+    public void test_linux_default_with_dark_gtk_theme_is_dark() {
+        // 'default' colour-scheme but an explicitly dark GTK theme -> DARK (was wrongly LIGHT).
+        assertEquals(DARK, detector(OsFamily.LINUX, (t, cmd) ->
+                String.join(" ", cmd).contains("color-scheme") ? "'default'" : "'Adwaita-dark'").detect());
+    }
+
+    @Test
+    public void test_linux_default_with_unreadable_gtk_theme_is_unknown() {
+        // 'default' colour-scheme and the GTK theme read fails -> UNKNOWN (no blind guess).
+        assertEquals(UNKNOWN, detector(OsFamily.LINUX, (t, cmd) -> {
+            if (String.join(" ", cmd).contains("color-scheme")) {
+                return "'default'";
+            }
+            throw new RuntimeException("no gtk-theme");
+        }).detect());
     }
 
     @Test
