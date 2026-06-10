@@ -37,7 +37,6 @@ import org.icij.datashare.policies.Authorizer;
 import org.icij.datashare.policies.CasbinRuleAdapter;
 import org.icij.datashare.policies.PolicyWatcher;
 import org.icij.datashare.session.UsersInRedis;
-import org.icij.datashare.session.UsersWritable;
 import org.icij.datashare.user.admin.UserAdminService;
 import org.icij.datashare.user.admin.UserAdminServiceImpl;
 import org.icij.datashare.project.admin.ProjectAdminService;
@@ -358,7 +357,7 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
             return classFor(provider.get());
         }
         try {
-            return (Class<? extends UsersWritable>) Class.forName(raw, true, ClassLoader.getSystemClassLoader());
+            return (Class<? extends Users>) Class.forName(raw, true, ClassLoader.getSystemClassLoader());
         } catch (ClassNotFoundException | ClassCastException e) {
             logger.warn("\"{}\" auth users provider class not found or invalid. Setting provider to UsersInDb", raw);
             return UsersInDb.class;
