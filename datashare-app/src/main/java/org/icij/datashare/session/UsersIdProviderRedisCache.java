@@ -13,7 +13,8 @@ import redis.clients.jedis.Transaction;
 
 import java.util.List;
 
-import static java.util.Optional.ofNullable;
+import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_SESSION_TTL_SECONDS;
+import static org.icij.datashare.cli.DatashareCliOptions.SESSION_TTL_SECONDS_OPT;
 import static org.icij.datashare.user.User.fromJson;
 
 @Singleton
@@ -24,7 +25,7 @@ public class UsersIdProviderRedisCache implements UsersIdProviderCache {
     @Inject
     public UsersIdProviderRedisCache(PropertiesProvider propertiesProvider) {
         redis = new JedisPool(propertiesProvider.get("redisAddress").orElse(EnvUtils.resolveUri("redis", "redis://redis:6379")));
-        this.ttl = Integer.valueOf(ofNullable(propertiesProvider.getProperties().getProperty("sessionTtlSeconds")).orElse("1"));
+        this.ttl = Integer.valueOf(propertiesProvider.get(SESSION_TTL_SECONDS_OPT).orElse(String.valueOf(DEFAULT_SESSION_TTL_SECONDS)));
     }
 
     @Override
