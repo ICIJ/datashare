@@ -74,9 +74,6 @@ public class ServerOptions {
     @Option(names = {"--oauthClaimIdAttribute"}, description = "OAuth claim id attribute")
     String oauthClaimIdAttribute;
 
-    @Option(names = {"--authUsersProvider"}, description = "Users provider: database, redis, or a fully-qualified class name (default: database when not set)")
-    String authUsersProvider;
-
     @Option(names = {"--authFilter"}, description = "Auth filter class")
     String authFilter;
 
@@ -94,9 +91,6 @@ public class ServerOptions {
     QueueType sessionStoreType;
 
     // Batch / Download
-    @Option(names = {"--batchQueueType"}, description = "Batch queue type", defaultValue = "MEMORY")
-    QueueType batchQueueType;
-
     @Option(names = {"--batchSearchMaxTimeSeconds"}, description = "Max batch search time in seconds")
     Integer batchSearchMaxTimeSeconds;
 
@@ -150,9 +144,6 @@ public class ServerOptions {
     @Option(names = {"--smtpUrl"}, description = "SMTP URL for sending emails")
     String smtpUrl;
 
-    @Option(names = {"--temporalNamespace"}, description = "Temporal namespace", defaultValue = "datashare-default")
-    String temporalNamespace;
-
     // Task management and document processing options — shared with WorkerRunCommand and StageRunCommand
     @Mixin
     WorkerOptions workerOptions = new WorkerOptions();
@@ -182,7 +173,6 @@ public class ServerOptions {
         DatashareOptions.putIfNotNull(props, OAUTH_DEFAULT_PROJECT_OPT, oauthDefaultProject);
         DatashareOptions.putIfNotNull(props, OAUTH_SCOPE_OPT, oauthScope);
         DatashareOptions.putIfNotNull(props, OAUTH_CLAIM_ID_ATTRIBUTE_OPT, oauthClaimIdAttribute);
-        DatashareOptions.putIfNotNull(props, AUTH_USERS_PROVIDER_OPT, authUsersProvider);
         // Use cliName ("yesCookie"), not the enum name() ("YES_COOKIE") that the generic putIfNotNull overload would write.
         if (auth != null) {
             DatashareOptions.put(props, AUTH_MODE_OPT, auth.cliName);
@@ -193,7 +183,6 @@ public class ServerOptions {
         DatashareOptions.put(props, SESSION_TTL_SECONDS_OPT, sessionTtlSeconds);
         DatashareOptions.putIfNotNull(props, SESSION_STORE_TYPE_OPT, sessionStoreType);
 
-        DatashareOptions.putIfNotNull(props, BATCH_QUEUE_TYPE_OPT, batchQueueType);
         DatashareOptions.putIfNotNull(props, BATCH_SEARCH_MAX_TIME_OPT, batchSearchMaxTimeSeconds);
         DatashareOptions.putIfNotNull(props, BATCH_THROTTLE_OPT, batchThrottleMilliseconds);
         DatashareOptions.putIfNotNull(props, BATCH_DOWNLOAD_DIR_OPT, resolveAbsolutePath(batchDownloadDir));
@@ -213,7 +202,6 @@ public class ServerOptions {
 
         DatashareOptions.putIfNotNull(props, REPORT_NAME_OPT, reportName);
         DatashareOptions.putIfNotNull(props, SMTP_URL_OPT, smtpUrl);
-        DatashareOptions.putIfNotNull(props, TEMPORAL_NAMESPACE_OPT, temporalNamespace);
 
         DatashareOptions.putAll(props, workerOptions.toProperties());
         DatashareOptions.putAll(props, pipelineOptions.toProperties());
