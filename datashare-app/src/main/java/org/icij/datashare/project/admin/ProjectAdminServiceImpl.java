@@ -3,6 +3,7 @@ package org.icij.datashare.project.admin;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import org.apache.commons.io.FileUtils;
+import net.codestory.http.security.Users;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Repository;
 import org.icij.datashare.cli.DatashareCliOptions;
@@ -12,8 +13,6 @@ import org.icij.datashare.policies.Authorizer;
 import org.icij.datashare.policies.CasbinRule;
 import org.icij.datashare.policies.Domain;
 import org.icij.datashare.policies.Role;
-import org.icij.datashare.session.DatashareUser;
-import org.icij.datashare.session.UsersIdProviderCache;
 import org.icij.datashare.text.Project;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.user.User;
@@ -52,9 +51,9 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
     private final Repository repository;
     private final Indexer indexer;
     private final Authorizer authorizer;
+    private final Users users;
     private final DocumentCollectionFactory<Path> documentCollectionFactory;
     private final PropertiesProvider propertiesProvider;
-    private final UsersIdProviderCache usersWritable;
 
     @Inject
     public ProjectAdminServiceImpl(Repository repository,
@@ -62,13 +61,13 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
                                    Authorizer authorizer,
                                    DocumentCollectionFactory<Path> documentCollectionFactory,
                                    PropertiesProvider propertiesProvider,
-                                   UsersIdProviderCache usersWritable) {
+                                   Users users) {
         this.repository = repository;
         this.indexer = indexer;
         this.authorizer = authorizer;
+        this.users = users;
         this.documentCollectionFactory = documentCollectionFactory;
         this.propertiesProvider = propertiesProvider;
-        this.usersWritable = usersWritable;
     }
 
     @Override
@@ -171,11 +170,9 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
             throws ProjectNotFoundException {
         Project project = requireProject(projectName);
 
-        // revokeIfExists swallows a missing user (unlike revoke); resolve via the
-        // same SQL→Redis fallback used by requireUser so that OAuth2 users who
-        // exist only in Redis are not silently skipped.
-        User user = findUser(userLogin);
-        if (user == null) {
+        // revokeIfExists swallows a missing user (unlike revoke); resolve directly
+        // and convert null / no-roles into a noop without going through doRevoke.
+        if (!(users.find(userLogin) instanceof User user)) {
             return noopRevoke(projectName, userLogin);
         }
         List<Role> existing = readProjectRoles(user, project);
@@ -233,22 +230,8 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
         return project;
     }
 
-    private User findUser(String login) {
-        User user = repository.getUser(login);
-        if (user == null) {
-            // Fall back to the configured auth provider (e.g. UsersInRedis).
-            // DatashareUser extends User, so the cast is safe for all bundled providers.
-            net.codestory.http.security.User httpUser = usersWritable.find(login);
-            if (httpUser instanceof User) {
-                user = (User) httpUser;
-            }
-        }
-        return user;
-    }
-
     private User requireUser(String login) throws UserNotFoundException {
-        User user = findUser(login);
-        if (user == null) {
+        if (!(users.find(login) instanceof User user)) {
             throw new UserNotFoundException(login);
         }
         return user;
@@ -277,7 +260,6 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
         newDetails.put(GROUPS_BY_APPLICATIONS, apps);
         User updated = new User(user.id, user.name, user.email, user.provider, newDetails);
         repository.save(updated);
-        usersWritable.saveOrUpdate(new DatashareUser(updated));
         return updated;
     }
 
@@ -290,7 +272,6 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
         newDetails.put(GROUPS_BY_APPLICATIONS, apps);
         User updated = new User(user.id, user.name, user.email, user.provider, newDetails);
         repository.save(updated);
-        usersWritable.saveOrUpdate(new DatashareUser(updated));
         return updated;
     }
 
@@ -323,14 +304,6 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
         } catch (RuntimeException casbinFailure) {
             try {
                 repository.save(original);
-            } catch (RuntimeException rollback) {
-                casbinFailure.addSuppressed(rollback);
-            }
-            // Roll back the Redis inventory write that preceded the Casbin call.
-            // Without this, SQL = original but Redis = updated: the user sees the
-            // project in their dashboard but every Casbin enforce() returns false.
-            try {
-                usersWritable.saveOrUpdate(new DatashareUser(original));
             } catch (RuntimeException rollback) {
                 casbinFailure.addSuppressed(rollback);
             }
