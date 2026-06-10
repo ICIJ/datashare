@@ -50,32 +50,13 @@ public class UsersIdProviderRedisCache implements UsersIdProviderCache {
         }
     }
 
-    @Override
     public boolean saveOrUpdate(User user) {
         try (Jedis jedis = redis.getResource()) {
-            String key = user.login();
-            String value = JsonObjectMapper.serialize(((DatashareUser) user).details);
-            for (int attempt = 0; attempt < 10; attempt++) {
-                jedis.watch(key);
-                long existingTtl = jedis.ttl(key);
-                Transaction transaction = jedis.multi();
-                try {
-                    transaction.set(key, value);
-                    if (existingTtl == -2L) {
-                        transaction.expire(key, this.ttl);
-                    } else if (existingTtl > 0L) {
-                        transaction.expire(key, (int) Math.max(existingTtl, this.ttl));
-                    }
-                    List<Object> exec = transaction.exec();
-                    if (exec != null) {
-                        return !exec.isEmpty();
-                    }
-                } catch (RuntimeException e) {
-                    transaction.discard();
-                    throw e;
-                }
-            }
-            throw new IllegalStateException("saveOrUpdate for '" + key + "' failed after 10 WATCH conflicts");
+            Transaction transaction = jedis.multi();
+            transaction.set(user.login(), JsonObjectMapper.serialize(((DatashareUser)user).details));
+            transaction.expire(user.login(), this.ttl);
+            List<Object> exec = transaction.exec();
+            return exec.size() == 2;
         }
     }
 }
