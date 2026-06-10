@@ -22,7 +22,8 @@ import java.io.InputStream;
  */
 public class TrayIconProvider {
     private static final Logger LOGGER = LoggerFactory.getLogger(TrayIconProvider.class);
-    private static final String TEMPLATE_ICON = "datashare-template.png";
+    /** Pre-rendered square silhouettes shipped as resources, ascending. */
+    static final int[] AVAILABLE_SIZES = {16, 24, 32, 48, 64};
     private static final int MAC_ICON_SIZE = 22;
     private static final int DEFAULT_ICON_SIZE = 16;
 
@@ -53,25 +54,41 @@ public class TrayIconProvider {
 
     /** Returns the tray image, or null if the silhouette asset is unavailable. */
     public Image loadTrayImage(int preferredSize) {
-        BufferedImage silhouette = loadSilhouette();
+        int size = preferredSize > 0 ? preferredSize : defaultSize();
+        BufferedImage silhouette = loadSilhouette(size);
         if (silhouette == null) {
             return null;
         }
-        int size = preferredSize > 0 ? preferredSize : defaultSize();
         return IconTinter.tint(silhouette, iconColor(), size);
     }
 
-    protected BufferedImage loadSilhouette() {
-        try (InputStream in = getClass().getClassLoader().getResourceAsStream(TEMPLATE_ICON)) {
+    /**
+     * Loads the pre-rendered silhouette best suited to {@code targetSize}: the smallest
+     * shipped size that is &ge; the target (so it is only ever downscaled, never upscaled),
+     * falling back to the largest when the target exceeds every shipped size.
+     */
+    protected BufferedImage loadSilhouette(int targetSize) {
+        String resource = "datashare-template-" + nearestAvailableSize(targetSize) + ".png";
+        try (InputStream in = getClass().getClassLoader().getResourceAsStream(resource)) {
             if (in == null) {
-                LOGGER.warn("Tray silhouette '{}' not found on classpath", TEMPLATE_ICON);
+                LOGGER.warn("Tray silhouette '{}' not found on classpath", resource);
                 return null;
             }
             return ImageIO.read(in);
         } catch (IOException e) {
-            LOGGER.warn("Could not read tray silhouette '{}'", TEMPLATE_ICON, e);
+            LOGGER.warn("Could not read tray silhouette '{}'", resource, e);
             return null;
         }
+    }
+
+    /** Smallest shipped size &ge; {@code targetSize}, or the largest shipped size if none qualifies. */
+    static int nearestAvailableSize(int targetSize) {
+        for (int size : AVAILABLE_SIZES) {
+            if (size >= targetSize) {
+                return size;
+            }
+        }
+        return AVAILABLE_SIZES[AVAILABLE_SIZES.length - 1];
     }
 
     private int defaultSize() {
