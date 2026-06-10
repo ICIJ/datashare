@@ -76,7 +76,10 @@ public class DatashareSystemTray implements Closeable {
     }
 
     private void loadIcon() {
-        Image image = iconProvider.loadTrayImage(systemTray.getMenuImageSize());
+        // Size to the tray icon size (not the menu-row icon size): dorkbox re-resizes
+        // whatever we hand it up to getTrayImageSize(), so providing a smaller image
+        // would force an upscale and blur the icon.
+        Image image = iconProvider.loadTrayImage(systemTray.getTrayImageSize());
         if (image != null) {
             systemTray.setImage(image);
             return;
