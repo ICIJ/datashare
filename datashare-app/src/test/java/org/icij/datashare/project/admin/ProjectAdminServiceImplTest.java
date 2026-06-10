@@ -54,7 +54,7 @@ public class ProjectAdminServiceImplTest {
         documentCollectionFactory = mock(DocumentCollectionFactory.class);
         propertiesProvider = mock(PropertiesProvider.class);
         service = new ProjectAdminServiceImpl(
-                repository, indexer, authorizer, users, documentCollectionFactory, propertiesProvider);
+                repository, indexer, authorizer, documentCollectionFactory, propertiesProvider, users);
     }
 
     private ProjectCreateRequest minimalRequest(String name) {
