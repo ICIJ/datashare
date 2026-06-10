@@ -52,11 +52,17 @@ public class UsersIdProviderRedisCache implements UsersIdProviderCache {
 
     public boolean saveOrUpdate(User user) {
         try (Jedis jedis = redis.getResource()) {
+            long existingTtl = jedis.ttl(user.login());
             Transaction transaction = jedis.multi();
             transaction.set(user.login(), JsonObjectMapper.serialize(((DatashareUser)user).details));
-            transaction.expire(user.login(), this.ttl);
+            // -1 = persistent key: never add an expiry
+            // -2 = new key: apply configured TTL
+            // existing TTL >= configured TTL: don't shorten an active session
+            if (existingTtl != -1 && (existingTtl == -2 || existingTtl < this.ttl)) {
+                transaction.expire(user.login(), this.ttl);
+            }
             List<Object> exec = transaction.exec();
-            return exec.size() == 2;
+            return !exec.isEmpty();
         }
     }
 }
