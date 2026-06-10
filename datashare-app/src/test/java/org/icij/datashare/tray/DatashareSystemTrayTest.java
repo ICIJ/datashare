@@ -12,8 +12,10 @@ import java.awt.Image;
 import java.awt.event.ActionListener;
 import java.awt.image.BufferedImage;
 
+import static org.icij.datashare.tray.SystemThemeDetector.Theme;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 import static org.mockito.MockitoAnnotations.initMocks;
 
@@ -28,8 +30,9 @@ public class DatashareSystemTrayTest {
     public void setUp() {
         initMocks(this);
         when(systemTray.getMenu()).thenReturn(menu);
-        when(iconProvider.loadTrayImage(anyInt()))
+        when(iconProvider.loadInitialTrayImage(anyInt()))
                 .thenReturn(new BufferedImage(16, 16, BufferedImage.TYPE_INT_ARGB));
+        when(iconProvider.tracksSystemTheme()).thenReturn(false); // no background watcher in unit tests
         datashareSystemTray = new DatashareSystemTray(systemTray, trayActions, iconProvider);
     }
 
@@ -42,11 +45,35 @@ public class DatashareSystemTrayTest {
     public void test_falls_back_to_default_when_no_icon_image() {
         reset(systemTray);
         when(systemTray.getMenu()).thenReturn(menu);
-        when(iconProvider.loadTrayImage(anyInt())).thenReturn(null);
+        when(iconProvider.loadInitialTrayImage(anyInt())).thenReturn(null);
 
         new DatashareSystemTray(systemTray, trayActions, iconProvider);
 
         verify(systemTray).setImage(any(Image.class)); // default pink image
+    }
+
+    @Test
+    public void test_refresh_applies_newly_detected_theme() {
+        when(iconProvider.currentTheme()).thenReturn(Theme.DARK);
+        when(iconProvider.loadTrayImage(anyInt(), eq(Theme.DARK)))
+                .thenReturn(new BufferedImage(16, 16, BufferedImage.TYPE_INT_ARGB));
+
+        datashareSystemTray.refreshThemeIcon();
+
+        verify(iconProvider).loadTrayImage(anyInt(), eq(Theme.DARK));
+        verify(systemTray, times(2)).setImage(any(Image.class)); // initial + refreshed
+    }
+
+    @Test
+    public void test_refresh_skips_setImage_when_theme_unchanged() {
+        when(iconProvider.currentTheme()).thenReturn(Theme.DARK);
+        when(iconProvider.loadTrayImage(anyInt(), eq(Theme.DARK)))
+                .thenReturn(new BufferedImage(16, 16, BufferedImage.TYPE_INT_ARGB));
+
+        datashareSystemTray.refreshThemeIcon(); // applies DARK
+        datashareSystemTray.refreshThemeIcon(); // same theme -> no extra setImage
+
+        verify(systemTray, times(2)).setImage(any(Image.class)); // initial + first refresh only
     }
 
     @Test
