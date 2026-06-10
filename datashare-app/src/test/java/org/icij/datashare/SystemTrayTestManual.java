@@ -6,7 +6,15 @@ import org.junit.Test;
 
 // this test is not executed by CI because it doesn't end with "Test"
 // its goal is to test manually the SystemTray
-// it has not been automated because it tests UI elements have to be manaaged in the CI
+// it has not been automated because UI elements cannot be managed in the CI
+//
+// Monochrome tray icon manual checks:
+//  - macOS: the icon must appear as a single-color template that the OS recolors
+//    to match the menu bar; toggle System Settings > Appearance (Light/Dark) and
+//    confirm it recolors live without restarting.
+//  - Gnome/Ubuntu: the icon is white on the (typically dark) top bar; switching
+//    the theme requires a restart to update (startup detection only).
+//  - Windows: the icon matches the taskbar theme at startup; restart to update.
 @Ignore
 public class SystemTrayTestManual {
 
