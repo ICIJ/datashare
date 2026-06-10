@@ -74,7 +74,8 @@ import java.io.IOException;
 import java.net.URISyntaxException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.LinkedList;
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -100,7 +101,7 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
     protected final PropertiesProvider propertiesProvider;
     protected final Mode mode;
     private final Injector injector;
-    private final List<Closeable> closeables = new LinkedList<>();
+    private final Deque<Closeable> closeables = new ArrayDeque<>();
     private final ExecutorService executorService;
 
     protected CommonMode(Properties properties) {
@@ -363,11 +364,11 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
             return UsersInDb.class;
         }
     }
+
     @Provides @Singleton
     UsersIdProviderCache provideUsersIdProviderCache(final Injector injector) {
         return injector.getInstance(UsersIdProviderRedisCache.class);
     }
-
 
     @Provides @Singleton
     LanguageGuesser provideLanguageGuesser() throws IOException {
@@ -532,7 +533,7 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
     }
 
     public void close() throws IOException {
-        closeables.forEach(rethrowConsumer(Closeable::close));
+        closeables.descendingIterator().forEachRemaining(rethrowConsumer(Closeable::close));
     }
 
     public Thread closeThread() {
