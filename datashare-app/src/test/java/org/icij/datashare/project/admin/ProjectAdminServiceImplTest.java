@@ -2,11 +2,12 @@ package org.icij.datashare.project.admin;
 
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Repository;
+import net.codestory.http.security.Users;
 import org.icij.datashare.extract.DocumentCollectionFactory;
 import org.icij.datashare.policies.Authorizer;
 import org.icij.datashare.policies.CasbinRule;
 import org.icij.datashare.policies.Domain;
-import org.icij.datashare.session.UsersIdProviderCache;
+import org.icij.datashare.session.DatashareUser;
 import org.icij.datashare.text.Project;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.user.User;
@@ -39,9 +40,9 @@ public class ProjectAdminServiceImplTest {
     private Repository repository;
     private Indexer indexer;
     private Authorizer authorizer;
+    private Users users;
     private DocumentCollectionFactory<Path> documentCollectionFactory;
     private PropertiesProvider propertiesProvider;
-    private UsersIdProviderCache usersWritable;
     private ProjectAdminServiceImpl service;
 
     @Before
@@ -49,11 +50,11 @@ public class ProjectAdminServiceImplTest {
         repository = mock(Repository.class);
         indexer = mock(Indexer.class);
         authorizer = mock(Authorizer.class);
+        users = mock(Users.class);
         documentCollectionFactory = mock(DocumentCollectionFactory.class);
         propertiesProvider = mock(PropertiesProvider.class);
-        usersWritable = mock(UsersIdProviderCache.class);
         service = new ProjectAdminServiceImpl(
-                repository, indexer, authorizer, documentCollectionFactory, propertiesProvider, usersWritable);
+                repository, indexer, authorizer, users, documentCollectionFactory, propertiesProvider);
     }
 
     private ProjectCreateRequest minimalRequest(String name) {
@@ -456,17 +457,17 @@ public class ProjectAdminServiceImplTest {
     public void test_grant_writes_casbin_policy_and_appends_inventory_for_new_user() throws Exception {
         Project project = new Project("banana");
         when(repository.getProject("banana")).thenReturn(project);
-        User user = new User("promera", "Pierre", "p@icij.org", "local", new HashMap<>());
-        when(repository.getUser("promera")).thenReturn(user);
+        User user = new User("jdoe", "Jane Doe", "jdoe@icij.org", "local", new HashMap<>());
+        when(users.find("jdoe")).thenReturn(new DatashareUser(user));
         when(authorizer.getRolesForUserInProject(any(User.class), eq(Domain.DEFAULT), eq(project)))
                 .thenReturn(List.of());
         when(repository.save(any(User.class))).thenReturn(true);
 
-        ProjectGranted granted = service.grant("banana", "promera",
+        ProjectGranted granted = service.grant("banana", "jdoe",
                 org.icij.datashare.policies.Role.PROJECT_EDITOR);
 
         assertThat(granted.name()).isEqualTo("banana");
-        assertThat(granted.userLogin()).isEqualTo("promera");
+        assertThat(granted.userLogin()).isEqualTo("jdoe");
         assertThat(granted.role()).isEqualTo(org.icij.datashare.policies.Role.PROJECT_EDITOR);
         assertThat(granted.previousRole()).isNull();
         assertThat(granted.noop()).isFalse();
@@ -493,13 +494,13 @@ public class ProjectAdminServiceImplTest {
     public void test_grant_replaces_existing_role_and_reports_previousRole() throws Exception {
         Project project = new Project("banana");
         when(repository.getProject("banana")).thenReturn(project);
-        User user = new User("promera", "Pierre", "p@icij.org", "local", new HashMap<>());
-        when(repository.getUser("promera")).thenReturn(user);
+        User user = new User("jdoe", "Jane Doe", "jdoe@icij.org", "local", new HashMap<>());
+        when(users.find("jdoe")).thenReturn(new DatashareUser(user));
         when(authorizer.getRolesForUserInProject(any(User.class), eq(Domain.DEFAULT), eq(project)))
                 .thenReturn(List.of("PROJECT_ADMIN"));
         when(repository.save(any(User.class))).thenReturn(true);
 
-        ProjectGranted granted = service.grant("banana", "promera",
+        ProjectGranted granted = service.grant("banana", "jdoe",
                 org.icij.datashare.policies.Role.PROJECT_EDITOR);
 
         assertThat(granted.previousRole()).isEqualTo(org.icij.datashare.policies.Role.PROJECT_ADMIN);
@@ -516,7 +517,7 @@ public class ProjectAdminServiceImplTest {
     public void test_grant_throws_project_not_found_when_project_missing() {
         when(repository.getProject("ghost")).thenReturn(null);
         try {
-            service.grant("ghost", "promera", org.icij.datashare.policies.Role.PROJECT_EDITOR);
+            service.grant("ghost", "jdoe", org.icij.datashare.policies.Role.PROJECT_EDITOR);
             fail("expected ProjectNotFoundException");
         } catch (ProjectNotFoundException e) {
             assertThat(e.getMessage()).contains("ghost");
@@ -528,8 +529,7 @@ public class ProjectAdminServiceImplTest {
     @Test
     public void test_grant_throws_user_not_found_when_user_missing() throws Exception {
         when(repository.getProject("banana")).thenReturn(new Project("banana"));
-        when(repository.getUser("ghost")).thenReturn(null);
-        when(usersWritable.find("ghost")).thenReturn(null);
+        when(users.find("ghost")).thenReturn(null);
         try {
             service.grant("banana", "ghost", org.icij.datashare.policies.Role.PROJECT_EDITOR);
             fail("expected UserNotFoundException");
@@ -541,14 +541,13 @@ public class ProjectAdminServiceImplTest {
     }
 
     @Test
-    public void test_grant_falls_back_to_users_writable_when_user_not_in_sql() throws Exception {
-        // Simulates a setup where --authUsersProvider UsersInRedis is set:
-        // the user exists in Redis but has no SQL user_inventory row yet.
+    public void test_grant_finds_user_via_users_provider() throws Exception {
+        // Simulates --authUsersProvider UsersInRedis: user exists in Redis, not in SQL.
+        // Users.find() is the sole lookup — no SQL fallback.
         Project project = new Project("local-datashare");
         when(repository.getProject("local-datashare")).thenReturn(project);
-        when(repository.getUser("test")).thenReturn(null);
         User redisUser = new User("test", "Test User", "test@icij.org", "redis", new java.util.HashMap<>());
-        when(usersWritable.find("test")).thenReturn(new org.icij.datashare.session.DatashareUser(redisUser));
+        when(users.find("test")).thenReturn(new DatashareUser(redisUser));
         when(authorizer.getRolesForUserInProject(any(User.class), eq(Domain.DEFAULT), eq(project)))
                 .thenReturn(List.of());
         when(repository.save(any(User.class))).thenReturn(true);
@@ -574,7 +573,7 @@ public class ProjectAdminServiceImplTest {
                 org.icij.datashare.policies.Role.DOMAIN_ADMIN,
                 org.icij.datashare.policies.Role.NONE}) {
             try {
-                service.grant("banana", "promera", bad);
+                service.grant("banana", "jdoe", bad);
                 fail("expected ValidationException for " + bad);
             } catch (ValidationException e) {
                 assertThat(e.getMessage()).contains("PROJECT_");
@@ -588,8 +587,8 @@ public class ProjectAdminServiceImplTest {
     public void test_grant_rolls_back_inventory_when_casbin_fails() throws Exception {
         Project project = new Project("banana");
         when(repository.getProject("banana")).thenReturn(project);
-        User user = new User("promera", "Pierre", "p@icij.org", "local", new HashMap<>());
-        when(repository.getUser("promera")).thenReturn(user);
+        User user = new User("jdoe", "Jane Doe", "jdoe@icij.org", "local", new HashMap<>());
+        when(users.find("jdoe")).thenReturn(new DatashareUser(user));
         when(authorizer.getRolesForUserInProject(any(User.class), eq(Domain.DEFAULT), eq(project)))
                 .thenReturn(List.of());
         when(authorizer.addRoleForUserInProject(any(User.class), any(), any(), any()))
@@ -597,7 +596,7 @@ public class ProjectAdminServiceImplTest {
         when(repository.save(any(User.class))).thenReturn(true);
 
         try {
-            service.grant("banana", "promera", org.icij.datashare.policies.Role.PROJECT_EDITOR);
+            service.grant("banana", "jdoe", org.icij.datashare.policies.Role.PROJECT_EDITOR);
             fail("expected RuntimeException");
         } catch (RuntimeException e) {
             assertThat(e.getMessage()).isEqualTo("casbin boom");
@@ -629,12 +628,12 @@ public class ProjectAdminServiceImplTest {
     public void test_grantIfNotExists_returns_noop_when_user_already_holds_exact_role() throws Exception {
         Project project = new Project("banana");
         when(repository.getProject("banana")).thenReturn(project);
-        when(repository.getUser("promera")).thenReturn(
-                new User("promera", "Pierre", "p@icij.org", "local", new HashMap<>()));
+        when(users.find("jdoe")).thenReturn(new DatashareUser(
+                new User("jdoe", "Jane Doe", "jdoe@icij.org", "local", new HashMap<>())));
         when(authorizer.getRolesForUserInProject(any(User.class), eq(Domain.DEFAULT), eq(project)))
                 .thenReturn(List.of("PROJECT_EDITOR"));
 
-        ProjectGranted granted = service.grantIfNotExists("banana", "promera",
+        ProjectGranted granted = service.grantIfNotExists("banana", "jdoe",
                 org.icij.datashare.policies.Role.PROJECT_EDITOR);
 
         assertThat(granted.noop()).isTrue();
@@ -651,13 +650,13 @@ public class ProjectAdminServiceImplTest {
         when(repository.getProject("banana")).thenReturn(project);
         Map<String, Object> details = new HashMap<>();
         details.put("groups_by_applications", "not-a-map");
-        User user = new User("promera", "Pierre", "p@icij.org", "local", details);
-        when(repository.getUser("promera")).thenReturn(user);
+        User user = new User("jdoe", "Jane Doe", "jdoe@icij.org", "local", details);
+        when(users.find("jdoe")).thenReturn(new DatashareUser(user));
         when(authorizer.getRolesForUserInProject(any(User.class), eq(Domain.DEFAULT), eq(project)))
                 .thenReturn(List.of());
         when(repository.save(any(User.class))).thenReturn(true);
 
-        ProjectGranted granted = service.grant("banana", "promera",
+        ProjectGranted granted = service.grant("banana", "jdoe",
                 org.icij.datashare.policies.Role.PROJECT_ADMIN);
 
         assertThat(granted.role()).isEqualTo(org.icij.datashare.policies.Role.PROJECT_ADMIN);
@@ -682,13 +681,13 @@ public class ProjectAdminServiceImplTest {
         Map<String, Object> apps = new HashMap<>();
         apps.put("datashare", "not-a-list");
         details.put("groups_by_applications", apps);
-        User user = new User("promera", "Pierre", "p@icij.org", "local", details);
-        when(repository.getUser("promera")).thenReturn(user);
+        User user = new User("jdoe", "Jane Doe", "jdoe@icij.org", "local", details);
+        when(users.find("jdoe")).thenReturn(new DatashareUser(user));
         when(authorizer.getRolesForUserInProject(any(User.class), eq(Domain.DEFAULT), eq(project)))
                 .thenReturn(List.of());
         when(repository.save(any(User.class))).thenReturn(true);
 
-        ProjectGranted granted = service.grant("banana", "promera",
+        ProjectGranted granted = service.grant("banana", "jdoe",
                 org.icij.datashare.policies.Role.PROJECT_ADMIN);
 
         assertThat(granted.role()).isEqualTo(org.icij.datashare.policies.Role.PROJECT_ADMIN);
@@ -710,16 +709,16 @@ public class ProjectAdminServiceImplTest {
         Map<String, Object> apps = new HashMap<>();
         apps.put("datashare", new java.util.ArrayList<>(List.of("banana", "athena")));
         details.put("groups_by_applications", apps);
-        User user = new User("promera", "Pierre", "p@icij.org", "local", details);
-        when(repository.getUser("promera")).thenReturn(user);
+        User user = new User("jdoe", "Jane Doe", "jdoe@icij.org", "local", details);
+        when(users.find("jdoe")).thenReturn(new DatashareUser(user));
         when(authorizer.getRolesForUserInProject(any(User.class), eq(Domain.DEFAULT), eq(project)))
                 .thenReturn(List.of("PROJECT_EDITOR"));
         when(repository.save(any(User.class))).thenReturn(true);
 
-        ProjectRevoked revoked = service.revoke("banana", "promera");
+        ProjectRevoked revoked = service.revoke("banana", "jdoe");
 
         assertThat(revoked.name()).isEqualTo("banana");
-        assertThat(revoked.userLogin()).isEqualTo("promera");
+        assertThat(revoked.userLogin()).isEqualTo("jdoe");
         assertThat(revoked.noop()).isFalse();
         assertThat(revoked.revokedRoles())
                 .containsOnly(org.icij.datashare.policies.Role.PROJECT_EDITOR);
@@ -741,7 +740,7 @@ public class ProjectAdminServiceImplTest {
     public void test_revoke_throws_project_not_found_when_project_missing() {
         when(repository.getProject("ghost")).thenReturn(null);
         try {
-            service.revoke("ghost", "promera");
+            service.revoke("ghost", "jdoe");
             fail("expected ProjectNotFoundException");
         } catch (ProjectNotFoundException e) {
             assertThat(e.getMessage()).contains("ghost");
@@ -753,7 +752,7 @@ public class ProjectAdminServiceImplTest {
     @Test
     public void test_revoke_throws_user_not_found_when_user_missing() {
         when(repository.getProject("banana")).thenReturn(new Project("banana"));
-        when(repository.getUser("ghost")).thenReturn(null);
+        when(users.find("ghost")).thenReturn(null);
         try {
             service.revoke("banana", "ghost");
             fail("expected UserNotFoundException");
@@ -767,7 +766,7 @@ public class ProjectAdminServiceImplTest {
     @Test
     public void test_revokeIfExists_noop_when_user_missing() throws Exception {
         when(repository.getProject("banana")).thenReturn(new Project("banana"));
-        when(repository.getUser("ghost")).thenReturn(null);
+        when(users.find("ghost")).thenReturn(null);
 
         ProjectRevoked revoked = service.revokeIfExists("banana", "ghost");
 
@@ -780,12 +779,12 @@ public class ProjectAdminServiceImplTest {
     public void test_revokeIfExists_noop_when_user_has_no_roles() throws Exception {
         Project project = new Project("banana");
         when(repository.getProject("banana")).thenReturn(project);
-        when(repository.getUser("promera")).thenReturn(
-                new User("promera", "Pierre", "p@icij.org", "local", new HashMap<>()));
+        when(users.find("jdoe")).thenReturn(new DatashareUser(
+                new User("jdoe", "Jane Doe", "jdoe@icij.org", "local", new HashMap<>())));
         when(authorizer.getRolesForUserInProject(any(User.class), eq(Domain.DEFAULT), eq(project)))
                 .thenReturn(List.of());
 
-        ProjectRevoked revoked = service.revokeIfExists("banana", "promera");
+        ProjectRevoked revoked = service.revokeIfExists("banana", "jdoe");
 
         assertThat(revoked.noop()).isTrue();
         verify(repository, never()).save(any(User.class));
@@ -799,13 +798,13 @@ public class ProjectAdminServiceImplTest {
         Map<String, Object> apps = new HashMap<>();
         apps.put("datashare", new java.util.ArrayList<>(List.of("banana", "athena")));
         details.put("groups_by_applications", apps);
-        User user = new User("promera", "Pierre", "p@icij.org", "local", details);
-        when(repository.getUser("promera")).thenReturn(user);
+        User user = new User("jdoe", "Jane Doe", "jdoe@icij.org", "local", details);
+        when(users.find("jdoe")).thenReturn(new DatashareUser(user));
         when(authorizer.getRolesForUserInProject(any(User.class), eq(Domain.DEFAULT), eq(project)))
                 .thenReturn(List.of("PROJECT_EDITOR"));
         when(repository.save(any(User.class))).thenReturn(true);
 
-        ProjectRevoked revoked = service.revokeIfExists("banana", "promera");
+        ProjectRevoked revoked = service.revokeIfExists("banana", "jdoe");
 
         assertThat(revoked.noop()).isFalse();
         assertThat(revoked.revokedRoles())
@@ -819,7 +818,7 @@ public class ProjectAdminServiceImplTest {
     public void test_revokeIfExists_still_throws_project_not_found() {
         when(repository.getProject("ghost")).thenReturn(null);
         try {
-            service.revokeIfExists("ghost", "promera");
+            service.revokeIfExists("ghost", "jdoe");
             fail("expected ProjectNotFoundException");
         } catch (ProjectNotFoundException e) {
             assertThat(e.getMessage()).contains("ghost");
@@ -834,8 +833,8 @@ public class ProjectAdminServiceImplTest {
         Map<String, Object> apps = new HashMap<>();
         apps.put("datashare", new java.util.ArrayList<>(List.of("banana", "athena")));
         details.put("groups_by_applications", apps);
-        User user = new User("promera", "Pierre", "p@icij.org", "local", details);
-        when(repository.getUser("promera")).thenReturn(user);
+        User user = new User("jdoe", "Jane Doe", "jdoe@icij.org", "local", details);
+        when(users.find("jdoe")).thenReturn(new DatashareUser(user));
         when(authorizer.getRolesForUserInProject(any(User.class), eq(Domain.DEFAULT), eq(project)))
                 .thenReturn(List.of("PROJECT_EDITOR"));
         when(authorizer.deleteRoleForUserInProject(any(User.class), any(), any(), any()))
@@ -843,7 +842,7 @@ public class ProjectAdminServiceImplTest {
         when(repository.save(any(User.class))).thenReturn(true);
 
         try {
-            service.revoke("banana", "promera");
+            service.revoke("banana", "jdoe");
             fail("expected RuntimeException");
         } catch (RuntimeException e) {
             assertThat(e.getMessage()).isEqualTo("casbin boom");
