@@ -20,8 +20,10 @@ import org.redisson.api.RedissonClient;
 import java.io.IOException;
 import java.time.Duration;
 import java.util.*;
+import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Function;
 
 import static org.fest.assertions.Assertions.assertThat;
 import static org.icij.datashare.LambdaExceptionUtils.rethrowConsumer;
@@ -331,6 +333,42 @@ public class TaskManagerTemporalIntTest {
         assertThat(stopped).isTrue();
         boolean stoppedAgain = taskManager.stopTask(task.getId());
         assertThat(stoppedAgain).isFalse();
+    }
+
+    @Test(timeout = 15000)
+    public void test_progress_is_stored_in_repository_and_temporal() throws Exception {
+        TaskFactory progressFactory = new TaskFactory() {
+            public Callable<String> createDoNothingTask(Task<?> task, Function<Double, Void> progress) {
+                return () -> {
+                    progress.apply(0.5);
+                    return "done";
+                };
+            }
+        };
+        List<TemporalInterlocutor.RegisteredWorkflow> workflows = List.of(
+            new TemporalInterlocutor.RegisteredWorkflow(
+                DoNothingWorkflowImpl.class,
+                WORKFLOWS_DEFAULT,
+                List.of(new TemporalInterlocutor.RegisteredActivity(
+                    temporal.activityFactory(DoNothingActivityImpl.class, progressFactory, taskRepository, 1d),
+                    WORKFLOWS_DEFAULT
+                ))
+            )
+        );
+
+        try (TemporalInterlocutor.CloseableWorkerFactoryHandle ignored = temporal.createFactory(1, workflows)) {
+            Task<String> task = new Task<>(DoNothingTask.class.getName(), User.local(), Map.of());
+            taskManager.startTask(task);
+            taskManager.waitTasksToBeDone(15, TimeUnit.SECONDS);
+
+            // Repository side: progress must have reached 1.0
+            Task<?> fromRepo = taskRepository.getTask(task.id);
+            assertThat(fromRepo.getProgress()).isEqualTo(1.0);
+
+            // Temporal side: search attributes must reflect final progress 1.0
+            Task<?> fromTemporal = temporal.getTask(task.id);
+            assertThat(fromTemporal.getProgress()).isEqualTo(1.0);
+        }
     }
 
     private TemporalInterlocutor.CloseableWorkerFactoryHandle testCloseableWorkerFactory(TemporalInterlocutor temporal) {
