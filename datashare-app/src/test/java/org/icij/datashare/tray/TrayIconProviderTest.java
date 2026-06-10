@@ -9,6 +9,7 @@ import java.awt.Image;
 import java.awt.image.BufferedImage;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -53,6 +54,12 @@ public class TrayIconProviderTest {
     private static boolean isBlack(int argb) {
         return ((argb >> 16) & 0xFF) == 0x00 && ((argb >> 8) & 0xFF) == 0x00 && (argb & 0xFF) == 0x00;
     }
+    /** A saturated (non-grey) pixel: clearly part of the colour logo, not the mono silhouettes. */
+    private static boolean isColorful(int argb) {
+        int r = (argb >> 16) & 0xFF, g = (argb >> 8) & 0xFF, b = argb & 0xFF;
+        int max = Math.max(r, Math.max(g, b)), min = Math.min(r, Math.min(g, b));
+        return max - min > 40;
+    }
 
     private static int firstOpaquePixel(BufferedImage img) {
         for (int y = 0; y < img.getHeight(); y++) {
@@ -63,6 +70,24 @@ public class TrayIconProviderTest {
             }
         }
         throw new AssertionError("no fully opaque pixel found");
+    }
+
+    private interface PixelMatch { boolean matches(int argb); }
+
+    private static boolean hasOpaquePixel(BufferedImage img, PixelMatch match) {
+        for (int y = 0; y < img.getHeight(); y++) {
+            for (int x = 0; x < img.getWidth(); x++) {
+                int argb = img.getRGB(x, y);
+                if (alpha(argb) == 0xFF && match.matches(argb)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private static SystemThemeDetector throwingDetector(OsFamily os) {
+        return new SystemThemeDetector(os, (timeout, cmd) -> { throw new java.io.IOException("unavailable"); });
     }
 
     @Test
@@ -84,11 +109,44 @@ public class TrayIconProviderTest {
     }
 
     @Test
-    public void test_unknown_theme_defaults_to_white() {
-        TrayIconProvider provider = new TrayIconProvider(OsFamily.LINUX,
-                fixedDetector(OsFamily.LINUX, SystemThemeDetector.Theme.UNKNOWN));
+    public void test_unknown_theme_yields_colour_logo_visible_on_any_background() {
+        // Detection fails (e.g. non-GNOME desktop / gsettings absent) -> UNKNOWN. A single
+        // mono colour would be invisible on a same-coloured panel, so the full-colour logo
+        // (which reads on either light or dark) is used instead.
+        TrayIconProvider provider = new TrayIconProvider(OsFamily.LINUX, throwingDetector(OsFamily.LINUX));
         BufferedImage img = (BufferedImage) provider.loadTrayImage(16);
-        assertTrue("unknown -> white silhouette", isWhite(firstOpaquePixel(img)));
+        assertNotNull(img);
+        assertEquals(16, img.getWidth());
+        assertTrue("unknown -> colour logo", hasOpaquePixel(img, TrayIconProviderTest::isColorful));
+    }
+
+    @Test
+    public void test_initial_icon_needs_no_theme_detection() {
+        // A detector that would blow up if consulted; the initial icon must not call it.
+        TrayIconProvider provider = new TrayIconProvider(OsFamily.LINUX, throwingDetector(OsFamily.LINUX)) {
+            @Override
+            public SystemThemeDetector.Theme currentTheme() {
+                throw new AssertionError("initial icon must not detect the theme");
+            }
+        };
+        BufferedImage img = (BufferedImage) provider.loadInitialTrayImage(16);
+        assertNotNull(img);
+        // colour logo (any-background) on Linux, with no detection
+        assertTrue("colour logo present", hasOpaquePixel(img, TrayIconProviderTest::isColorful));
+    }
+
+    @Test
+    public void test_tracks_system_theme_only_on_linux_and_windows() {
+        assertTrue(new TrayIconProvider(OsFamily.LINUX, fixedDetector(OsFamily.LINUX, SystemThemeDetector.Theme.DARK)).tracksSystemTheme());
+        assertTrue(new TrayIconProvider(OsFamily.WINDOWS, fixedDetector(OsFamily.WINDOWS, SystemThemeDetector.Theme.DARK)).tracksSystemTheme());
+        assertFalse(new TrayIconProvider(OsFamily.MAC, fixedDetector(OsFamily.MAC, SystemThemeDetector.Theme.LIGHT)).tracksSystemTheme());
+    }
+
+    @Test
+    public void test_macos_initial_icon_is_black_template_without_detection() {
+        TrayIconProvider provider = new TrayIconProvider(OsFamily.MAC, throwingDetector(OsFamily.MAC));
+        BufferedImage img = (BufferedImage) provider.loadInitialTrayImage(0);
+        assertTrue("macOS template is black", isBlack(firstOpaquePixel(img)));
     }
 
     @Test
@@ -124,7 +182,7 @@ public class TrayIconProviderTest {
         TrayIconProvider provider = new TrayIconProvider(OsFamily.LINUX,
                 fixedDetector(OsFamily.LINUX, SystemThemeDetector.Theme.DARK)) {
             @Override
-            protected BufferedImage loadSilhouette(int targetSize) {
+            protected BufferedImage loadVariant(Variant variant, int targetSize) {
                 return null;
             }
         };
@@ -138,6 +196,8 @@ public class TrayIconProviderTest {
         assertEquals(24, TrayIconProvider.nearestAvailableSize(24));
         assertEquals(48, TrayIconProvider.nearestAvailableSize(40));
         assertEquals(64, TrayIconProvider.nearestAvailableSize(64));
-        assertEquals(64, TrayIconProvider.nearestAvailableSize(200)); // beyond ladder -> largest
+        assertEquals(96, TrayIconProvider.nearestAvailableSize(80));   // HiDPI rungs
+        assertEquals(128, TrayIconProvider.nearestAvailableSize(128));
+        assertEquals(128, TrayIconProvider.nearestAvailableSize(256)); // beyond ladder -> largest
     }
 }
