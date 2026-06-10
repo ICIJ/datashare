@@ -123,10 +123,20 @@ public class TrayIconProviderTest {
         TrayIconProvider provider = new TrayIconProvider(OsFamily.LINUX,
                 fixedDetector(OsFamily.LINUX, SystemThemeDetector.Theme.DARK)) {
             @Override
-            protected BufferedImage loadSilhouette() {
+            protected BufferedImage loadSilhouette(int targetSize) {
                 return null;
             }
         };
         assertNull(provider.loadTrayImage(16));
+    }
+
+    @Test
+    public void test_nearest_available_size_picks_smallest_not_smaller_than_target() {
+        assertEquals(16, TrayIconProvider.nearestAvailableSize(16));
+        assertEquals(24, TrayIconProvider.nearestAvailableSize(17)); // round up, never down
+        assertEquals(24, TrayIconProvider.nearestAvailableSize(24));
+        assertEquals(48, TrayIconProvider.nearestAvailableSize(40));
+        assertEquals(64, TrayIconProvider.nearestAvailableSize(64));
+        assertEquals(64, TrayIconProvider.nearestAvailableSize(200)); // beyond ladder -> largest
     }
 }
