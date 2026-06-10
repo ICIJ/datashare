@@ -42,6 +42,7 @@ import org.icij.datashare.user.admin.UserAdminServiceImpl;
 import org.icij.datashare.project.admin.ProjectAdminService;
 import org.icij.datashare.project.admin.ProjectAdminServiceImpl;
 import org.icij.datashare.session.StatusCidrFilter;
+import org.icij.datashare.cli.AuthMode;
 import org.icij.datashare.cli.AuthUsersProvider;
 import org.icij.datashare.session.UsersInDb;
 import net.codestory.http.security.Users;
@@ -367,7 +368,20 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
 
     @Provides @Singleton
     UsersIdProviderCache provideUsersIdProviderCache(final Injector injector) {
-        return injector.getInstance(UsersIdProviderRedisCache.class);
+        boolean isOAuth = propertiesProvider.get(AUTH_MODE_OPT)
+                .filter(m -> !m.isEmpty())
+                .map(m -> { try { return AuthMode.fromString(m) == AuthMode.OAUTH; } catch (IllegalArgumentException e) { return false; } })
+                .orElse(false);
+        if (isOAuth) {
+            return injector.getInstance(UsersIdProviderRedisCache.class);
+        }
+        // Non-OAuth2 auth modes have no Redis session cache: saveOrUpdate is a no-op.
+        // Reads are handled by the Users binding (provideUsers); these find() methods are unused.
+        return new UsersIdProviderCache() {
+            @Override public net.codestory.http.security.User find(String login) { return null; }
+            @Override public net.codestory.http.security.User find(String login, String password) { return null; }
+            @Override public boolean saveOrUpdate(net.codestory.http.security.User user) { return true; }
+        };
     }
 
     @Provides @Singleton
