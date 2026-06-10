@@ -11,6 +11,15 @@ import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.io.InputStream;
 
+/**
+ * Resolves the system-tray icon image per platform and theme.
+ *
+ * <p>On macOS, {@link #prepare()} MUST be called before {@link dorkbox.systemTray.SystemTray#get()}:
+ * it forces the AWT-backed tray and enables template images so the OS recolors the black
+ * silhouette to match the menu bar. Setting these after the tray has initialised has no effect.
+ * On Linux/Windows {@code prepare()} is a no-op and the icon colour is chosen once from the
+ * detected theme.</p>
+ */
 public class TrayIconProvider {
     private static final Logger LOGGER = LoggerFactory.getLogger(TrayIconProvider.class);
     private static final String TEMPLATE_ICON = "datashare-template.png";

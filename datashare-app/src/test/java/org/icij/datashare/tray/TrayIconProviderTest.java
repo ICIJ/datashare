@@ -1,9 +1,9 @@
 package org.icij.datashare.tray;
 
 import dorkbox.systemTray.SystemTray;
-import org.junit.After;
-import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExternalResource;
 
 import java.awt.Image;
 import java.awt.image.BufferedImage;
@@ -30,17 +30,21 @@ public class TrayIconProviderTest {
         return new SystemThemeDetector(os, runner);
     }
 
-    @Before
-    public void resetTrayState() {
-        System.clearProperty("apple.awt.enableTemplateImages");
-        SystemTray.FORCE_TRAY_TYPE = SystemTray.TrayType.AutoDetect;
-    }
-
-    @After
-    public void clearTrayState() {
-        System.clearProperty("apple.awt.enableTemplateImages");
-        SystemTray.FORCE_TRAY_TYPE = SystemTray.TrayType.AutoDetect;
-    }
+    @Rule
+    public final ExternalResource trayState = new ExternalResource() {
+        @Override
+        protected void before() {
+            reset();
+        }
+        @Override
+        protected void after() {
+            reset();
+        }
+        private void reset() {
+            System.clearProperty("apple.awt.enableTemplateImages");
+            SystemTray.FORCE_TRAY_TYPE = SystemTray.TrayType.AutoDetect;
+        }
+    };
 
     private static int alpha(int argb) { return (argb >>> 24) & 0xFF; }
     private static boolean isWhite(int argb) {
