@@ -278,9 +278,17 @@ public class DatashareCommandTest extends AbstractDatashareCommandTest {
     }
 
     @Test
-    public void test_policy_reload_interval_has_default() {
+    public void test_policy_reload_interval_absent_when_not_set() {
+        // When --policyReloadInterval is not passed, the property must be absent so
+        // CommonMode can apply its own per-bus-type defaults (30s non-Redis, 0 Redis).
         Properties props = parse("app", "start");
-        assertThat(props).includes(entry("policyReloadInterval", "30000"));
+        assertThat(props).excludes(entry("policyReloadInterval", "30000"));
+    }
+
+    @Test
+    public void test_policy_reload_interval_propagated_when_set() {
+        Properties props = parse("app", "start", "--policyReloadInterval=5000");
+        assertThat(props).includes(entry("policyReloadInterval", "5000"));
     }
 
     @Test
