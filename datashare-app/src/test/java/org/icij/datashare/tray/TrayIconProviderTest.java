@@ -95,8 +95,9 @@ public class TrayIconProviderTest {
     public void test_macos_yields_black_template_and_uses_default_size() {
         TrayIconProvider provider = new TrayIconProvider(OsFamily.MAC,
                 fixedDetector(OsFamily.MAC, SystemThemeDetector.Theme.LIGHT));
-        BufferedImage img = (BufferedImage) provider.loadTrayImage(0); // 0 -> platform default
-        assertEquals(22, img.getWidth());
+        BufferedImage img = (BufferedImage) provider.loadTrayImage(0); // 0 -> platform default (22)
+        // handed over at its native ladder size (nearest >= 22), not resized here
+        assertEquals(24, img.getWidth());
         assertTrue("macOS template is black", isBlack(firstOpaquePixel(img)));
     }
 
