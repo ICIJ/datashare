@@ -331,10 +331,6 @@ public class TemporalInterlocutor {
             Spliterators.spliteratorUnknownSize(new TemporalPageIterator<>(fetcher), Spliterator.ORDERED), false);
     }
 
-    public Stream<Task<?>> getWorkflows(TaskFilters filters) {
-        return eventuallyConsistentListExecutions(filters).map(rethrowFunction(this::parseTask));
-    }
-
     public WorkflowExecutionDescription getWorkflowExecution(String taskId) throws UnknownTask {
         return unknownIfNotFound(t -> createWorkflowStub(taskId).describe(), taskId);
     }
@@ -501,14 +497,15 @@ public class TemporalInterlocutor {
 
     // ------------------------
     // private utility functions
-    private <V extends Serializable> Task<V> parseTask(WorkflowExecutionMetadata response) {
-        return parseTask(response.getWorkflowExecutionInfo());
-    }
-    private <V extends Serializable> Task<V> parseTask(WorkflowExecutionInfo workflowExecutionInfo) {
+    private <V extends Serializable> Task<V> parseTask(WorkflowExecutionDescription workflowExecutionDescription) {
+        WorkflowExecutionInfo workflowExecutionInfo = workflowExecutionDescription.getWorkflowExecutionInfo();
         WorkflowExecution execution = workflowExecutionInfo.getExecution();
         String taskId = execution.getWorkflowId();
+
+        // Use the search attributes of the workflowExecutionDescription which retrieves the updated search attributes.
+        // The search attributes from workflowExecutionInfo are called indexedFields, and are not updated over time
+        double progress = parseProgress(workflowExecutionDescription.getTypedSearchAttributes());
         String taskName = workflowExecutionInfo.getType().getName();
-        double progress = parseProgress(workflowExecutionInfo);
         Date createdAt = new Date(workflowExecutionInfo.getStartTime().getSeconds() * 1000);
         Date completedAt = null;
         Timestamp closeTime = workflowExecutionInfo.getCloseTime();
@@ -566,16 +563,13 @@ public class TemporalInterlocutor {
                 .filter(Objects::nonNull);
     }
 
-    private static double parseProgress(WorkflowExecutionInfo workflowExecutionInfo) {
-        double maxProgress = defaultDataConverter.fromPayload(workflowExecutionInfo.getSearchAttributes()
-                .getIndexedFieldsOrThrow(MAX_PROGRESS_CUSTOM_ATTRIBUTE.getName()), Double.class, Double.class);
-        if (maxProgress == 0) {
+    private static double parseProgress(SearchAttributes searchAttributes) {
+        Double progress = searchAttributes.get(PROGRESS_CUSTOM_ATTRIBUTE);
+        Double maxProgress = searchAttributes.get(MAX_PROGRESS_CUSTOM_ATTRIBUTE);
+        if(maxProgress == 0d) {
             return 0.0;
         }
-        double currentProgress = defaultDataConverter.fromPayload(
-                workflowExecutionInfo.getSearchAttributes().getIndexedFieldsOrThrow(PROGRESS_CUSTOM_ATTRIBUTE.getName()),
-                Double.class, Double.class);
-        return currentProgress / maxProgress;
+        return progress == null ? 0.0 : progress / maxProgress;
     }
 
     private static <T> T unknownIfNotFound(Function<String, T> function, String taskId) {

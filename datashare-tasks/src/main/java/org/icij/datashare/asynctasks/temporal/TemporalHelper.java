@@ -111,9 +111,23 @@ public class TemporalHelper {
         return annotated.get(0).getAnnotation(WorkflowMethod.class).name();
     }
 
+    /**
+     * Returns a predicate that filters all the interfaces that can be used as effective Workflow interfaces.
+     * The filter will reject all the interfaces that don't have at least one WorkflowMethod
+     * @param routingStrategy
+     * @param workerGroup
+     * @return
+     */
     static Predicate<Class<?>> makeWorkflowFilter(RoutingStrategy routingStrategy, Group workerGroup) {
         return c -> {
             if (!c.isInterface()) {
+                return false;
+            }
+            // Skip signal/query-only interfaces (like TemporalWorkflow) that have no @WorkflowMethod
+            boolean hasWorkflowMethod = Arrays.stream(c.getDeclaredMethods())
+                .anyMatch(m -> Arrays.stream(m.getAnnotations())
+                    .anyMatch(a -> a.annotationType().getName().equals(WORKFLOW_METHOD_CLASS_NAME)));
+            if (!hasWorkflowMethod) {
                 return false;
             }
             switch (routingStrategy) {

@@ -1,39 +1,27 @@
 package org.icij.datashare.asynctasks.temporal;
 
-import io.temporal.workflow.QueryMethod;
-import io.temporal.workflow.SignalMethod;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import org.icij.datashare.function.Pair;
+import io.temporal.workflow.Workflow;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-public abstract class TemporalWorkflowImpl {
-    ConcurrentHashMap<Pair<String, String>, Double> progress = new ConcurrentHashMap<>();
-    ConcurrentHashMap<Pair<String, String>, Double> maxProgress = new ConcurrentHashMap<>();
+import static org.icij.datashare.asynctasks.temporal.TemporalInterlocutor.PROGRESS_CUSTOM_ATTRIBUTE;
 
-    @SignalMethod
+public abstract class TemporalWorkflowImpl implements TemporalWorkflow {
+    public static final Logger logger = LoggerFactory.getLogger(TemporalWorkflowImpl.class);
+
+    private double currentProgress = 0d;
+
+    @Override
     public void progress(ProgressSignal progressSignal) {
-        Pair<String, String> key = new Pair<>(progressSignal.runId(), progressSignal.activityId());
-        progress.putIfAbsent(key, 0.0);
-        maxProgress.putIfAbsent(key, 0.0);
-        progress.compute(key, (ignored, p) -> p + progressSignal.progress());
-        maxProgress.compute(key, (ignored, maxP) -> maxP + progressSignal.progress());
+        logger.info("Received progressSignal for activity {}, currentProgress : {}",progressSignal.activityId(), progressSignal.progress());
+        currentProgress = progressSignal.progress();
+        Workflow.upsertTypedSearchAttributes(
+            PROGRESS_CUSTOM_ATTRIBUTE.valueSet(currentProgress)
+        );
     }
 
-    @QueryMethod(name = "progress")
-    public double getProgress(String runId) {
-        double maxP = maxProgress.entrySet()
-            .stream()
-            .filter(e -> e.getKey()._1().equals(runId))
-            .map(Map.Entry::getValue)
-            .reduce(0.0, Double::sum);
-        if (maxP == 0.0) {
-            return maxP;
-        }
-        double p = progress.entrySet()
-            .stream()
-            .filter(e -> e.getKey()._1().equals(runId))
-            .map(Map.Entry::getValue)
-            .reduce(0.0, Double::sum);
-        return p / maxP;
+    @Override
+    public double getProgress() {
+        return this.currentProgress;
     }
 }
