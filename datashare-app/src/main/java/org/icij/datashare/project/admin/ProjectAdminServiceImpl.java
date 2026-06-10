@@ -249,12 +249,6 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
     private User requireUser(String login) throws UserNotFoundException {
         User user = findUser(login);
         if (user == null) {
-            if (!(usersWritable instanceof UsersIdProviderCache)) {
-                // usersWritable didn't cover Redis: an OAuth2 user whose session was created
-                // before the first grant won't be found unless UsersInRedis is configured.
-                throw new UserNotFoundException(login,
-                        "OAuth2 sessions exist only in Redis; pass --authUsersProvider=UsersInRedis");
-            }
             throw new UserNotFoundException(login);
         }
         return user;
