@@ -13,28 +13,32 @@ import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.Closeable;
 import java.io.IOException;
-import java.net.URL;
 
 import static java.lang.String.format;
-import static java.util.Optional.ofNullable;
 
 public class DatashareSystemTray implements Closeable {
     private static final Logger LOGGER = LoggerFactory.getLogger(DatashareSystemTray.class);
-    private static final String DATASHARE_ICON_FILENAME = "datashare.png";
     private static final int DEFAULT_ICON_SIZE = 16;
 
     private final SystemTray systemTray;
     private final TrayActions actions;
+    private final TrayIconProvider iconProvider;
 
-
-    DatashareSystemTray(SystemTray systemTray, TrayActions actions) {
+    DatashareSystemTray(SystemTray systemTray, TrayActions actions, TrayIconProvider iconProvider) {
         this.systemTray = systemTray;
         this.actions = actions;
+        this.iconProvider = iconProvider;
         configure();
     }
 
     public static DatashareSystemTray create(String port) {
-        return ofNullable(createSystemTray()).map(st -> new DatashareSystemTray(st, new TrayActions() {
+        TrayIconProvider iconProvider = TrayIconProvider.forCurrentPlatform();
+        iconProvider.prepare(); // macOS: force AWT tray + template images BEFORE SystemTray.get()
+        SystemTray systemTray = createSystemTray();
+        if (systemTray == null) {
+            return null;
+        }
+        return new DatashareSystemTray(systemTray, new TrayActions() {
             @Override
             public void openBrowser() {
                 WebBrowserUtils.openBrowser(format("http://localhost:%s", port));
@@ -45,7 +49,7 @@ public class DatashareSystemTray implements Closeable {
                 LOGGER.info("Shutdown requested from system tray");
                 System.exit(0);
             }
-        })).orElse(null);
+        }, iconProvider);
     }
 
     @Nullable
@@ -72,21 +76,17 @@ public class DatashareSystemTray implements Closeable {
     }
 
     private void loadIcon() {
-        try {
-            URL datashareIcon = DatashareSystemTray.class.getClassLoader().getResource(DATASHARE_ICON_FILENAME);
-            if (datashareIcon != null) {
-                systemTray.setImage(datashareIcon);
-                return;
-            }
-            LOGGER.warn("Tray icon not found in resources, using default");
-        } catch (Exception e) {
-            LOGGER.warn("Could not load Datashare tray icon, using default", e);
+        Image image = iconProvider.loadTrayImage(systemTray.getMenuImageSize());
+        if (image != null) {
+            systemTray.setImage(image);
+            return;
         }
+        LOGGER.warn("Tray icon could not be prepared, using default");
         setDefaultIcon();
     }
 
     private void setDefaultIcon() {
-        BufferedImage defaultImage = new BufferedImage(16, 16, BufferedImage.TYPE_INT_ARGB);
+        BufferedImage defaultImage = new BufferedImage(DEFAULT_ICON_SIZE, DEFAULT_ICON_SIZE, BufferedImage.TYPE_INT_ARGB);
         Graphics2D g2d = defaultImage.createGraphics();
         g2d.setColor(Color.PINK);
         g2d.fillRect(0, 0, DEFAULT_ICON_SIZE, DEFAULT_ICON_SIZE);

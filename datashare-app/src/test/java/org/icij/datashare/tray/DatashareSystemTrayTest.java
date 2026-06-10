@@ -3,15 +3,17 @@ package org.icij.datashare.tray;
 import dorkbox.systemTray.Menu;
 import dorkbox.systemTray.MenuItem;
 import dorkbox.systemTray.SystemTray;
-import org.icij.datashare.mode.CommonMode;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
-import java.awt.event.ActionListener;
-import java.net.URL;
 
-import static org.fest.assertions.Fail.fail;
+import java.awt.Image;
+import java.awt.event.ActionListener;
+import java.awt.image.BufferedImage;
+
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.*;
 import static org.mockito.MockitoAnnotations.initMocks;
 
@@ -19,18 +21,32 @@ public class DatashareSystemTrayTest {
     @Mock private TrayActions trayActions;
     @Mock private SystemTray systemTray;
     @Mock private Menu menu;
+    @Mock private TrayIconProvider iconProvider;
     private DatashareSystemTray datashareSystemTray;
 
     @Before
     public void setUp() {
         initMocks(this);
         when(systemTray.getMenu()).thenReturn(menu);
-        datashareSystemTray = new DatashareSystemTray(systemTray, trayActions);
+        when(iconProvider.loadTrayImage(anyInt()))
+                .thenReturn(new BufferedImage(16, 16, BufferedImage.TYPE_INT_ARGB));
+        datashareSystemTray = new DatashareSystemTray(systemTray, trayActions, iconProvider);
     }
 
     @Test
     public void test_set_icon() {
-        verify(systemTray).setImage(any(URL.class));
+        verify(systemTray).setImage(any(Image.class));
+    }
+
+    @Test
+    public void test_falls_back_to_default_when_no_icon_image() {
+        reset(systemTray);
+        when(systemTray.getMenu()).thenReturn(menu);
+        when(iconProvider.loadTrayImage(anyInt())).thenReturn(null);
+
+        new DatashareSystemTray(systemTray, trayActions, iconProvider);
+
+        verify(systemTray).setImage(any(Image.class)); // default pink image
     }
 
     @Test
@@ -73,7 +89,7 @@ public class DatashareSystemTrayTest {
     @Test
     public void test_close_shuts_down_tray() throws Exception {
         datashareSystemTray.close();
-        
+
         verify(systemTray).shutdown();
     }
 }
