@@ -4,6 +4,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.BufferedInputStream;
+import java.io.Closeable;
 import java.io.File;
 import java.io.InputStream;
 import java.lang.ProcessBuilder.Redirect;
@@ -12,11 +13,13 @@ import java.util.Scanner;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import static org.icij.datashare.utils.ProcessHandler.killProcessById;
+
 /**
  * Class to launch a process originally from
  * cf <a href="https://github.com/owenthereal/gaffer">owenthereal/gaffer</a>
  */
-public class Process {
+public class Process implements Closeable {
     private final class StdoutRunnable implements Runnable {
         private final InputStream src;
 
@@ -110,8 +113,20 @@ public class Process {
 
     public void kill() {
         if (isAlive()) {
-            p.destroy();
+            // Kill the whole process tree, not just the direct child: launchers such as
+            // elasticsearch's run the real server in a descendant JVM that would otherwise be
+            // orphaned and keep running after datashare exits.
+            killProcessById(p.pid());
         }
+    }
+
+    public long pid() {
+        return p.pid();
+    }
+
+    @Override
+    public void close() {
+        kill();
     }
 
     public String getName() {

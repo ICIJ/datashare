@@ -38,14 +38,21 @@ public class EmbeddedMode extends LocalMode {
                         format("Missing required option %s.", ELASTICSEARCH_DATA_PATH_OPT))
         );
         createDefaultSettingsFileIfNeeded(elasticsearchSettings, elasticsearchDataPath);
+        
         List<String> args = buildElasticsearchArgs(Path.of(elasticsearchSettings));
         String elasticsearchScript = new OsArchDetector().isWindows() ? "elasticsearch.bat" : "elasticsearch";
         args.add(0, format("%s/current/bin/%s", elasticsearchDir, elasticsearchScript));
         logger.info("Starting Elasticsearch from local install {} within a new JVM.", elasticsearchDir);
-        new Process(elasticsearchDir,
+        Process elasticsearchProcess = new Process(elasticsearchDir,
                 "elasticsearch",
                 args.toArray(new String[0]),
-                9200).start();
+                9200);
+        elasticsearchProcess.start();
+        // Register the process so the JVM shutdown hook kills it (and its descendant server
+        // JVM) on exit. Without this, stopping datashare relied on the OS propagating SIGHUP
+        // through the process group, which is racy and left Elasticsearch running.
+        addCloseable(elasticsearchProcess);
+        
         if (propertiesProvider.getProperties().contains(QueueType.AMQP.name())) {
             addCloseable(new QpidAmqpServer(AMQP_PORT).start());
             ExtensionService extensionService = new ExtensionService(propertiesProvider);
