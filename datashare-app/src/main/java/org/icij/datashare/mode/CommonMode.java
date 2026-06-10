@@ -311,11 +311,11 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
 
     @Provides @Singleton
     Authorizer provideAuthorizer(CasbinRuleAdapter adapter, Provider<RedissonClient> redissonProvider) throws IOException {
-        long interval = parseInt(propertiesProvider.get(POLICY_RELOAD_INTERVAL_OPT).orElse("0"));
         if (QueueType.REDIS.name().equals(propertiesProvider.get(BUS_TYPE_OPT).orElse(null))) {
             // Event-driven: RTopic notifies all instances immediately on policy change.
-            // startAutoLoadPolicy is also called as a backstop: if the server misses
-            // publications during a Redis outage, periodic reloads guarantee convergence.
+            // startAutoLoadPolicy backstop defaults to 0 (disabled); set policyReloadInterval
+            // explicitly to enable periodic reloads as a hedge against missed publications.
+            long interval = parseInt(propertiesProvider.get(POLICY_RELOAD_INTERVAL_OPT).orElse("0"));
             PolicyWatcher watcher = new PolicyWatcher(redissonProvider.get());
             addCloseable(watcher);
             Authorizer authorizer = new Authorizer(adapter, watcher);
@@ -323,7 +323,8 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
             addCloseable(authorizer);
             return authorizer;
         }
-        // Fallback: periodic reload from DB when Redis is not available.
+        // Fallback: periodic reload from DB when Redis is not available. Default to 30s.
+        long interval = parseInt(propertiesProvider.get(POLICY_RELOAD_INTERVAL_OPT).orElse(String.valueOf(DEFAULT_POLICY_RELOAD_INTERVAL)));
         Authorizer authorizer = new Authorizer(adapter, interval);
         addCloseable(authorizer);
         return authorizer;
