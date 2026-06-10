@@ -1,28 +1,23 @@
 package org.icij.datashare.tray;
 
-import java.util.Locale;
+import org.apache.commons.lang3.SystemUtils;
 
 public enum OsFamily {
     MAC, WINDOWS, LINUX, OTHER;
 
-    public static OsFamily fromName(String osName) {
-        if (osName == null) {
-            return OTHER;
-        }
-        String name = osName.toLowerCase(Locale.ROOT);
-        if (name.contains("mac") || name.contains("darwin")) {
+    public static OsFamily current() {
+        // Reuse commons-lang3's os.name classification (already a dependency, used elsewhere
+        // in this module) rather than parsing os.name a third time. Unlike OsArchDetector.OS,
+        // it degrades to OTHER instead of throwing on an unrecognised platform.
+        if (SystemUtils.IS_OS_MAC) {
             return MAC;
         }
-        if (name.contains("win")) {
+        if (SystemUtils.IS_OS_WINDOWS) {
             return WINDOWS;
         }
-        if (name.contains("nix") || name.contains("nux") || name.contains("linux")) {
+        if (SystemUtils.IS_OS_LINUX) {
             return LINUX;
         }
         return OTHER;
-    }
-
-    public static OsFamily current() {
-        return fromName(System.getProperty("os.name"));
     }
 }
