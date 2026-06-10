@@ -76,8 +76,8 @@ public class GlobalOptions {
     @Option(names = {"--busType"}, description = "Backend data bus type", defaultValue = "MEMORY", scope = ScopeType.INHERIT)
     QueueType busType;
 
-    @Option(names = {"--policyReloadInterval"}, description = "Interval in milliseconds to reload Casbin policies from DB (default 30s). Used as fallback when busType is not REDIS; set to 0 to disable.", defaultValue = "30000", scope = ScopeType.INHERIT)
-    int policyReloadInterval;
+    @Option(names = {"--policyReloadInterval"}, description = "Interval in milliseconds for Casbin policy reload. In non-Redis mode defaults to 30s; in Redis mode defaults to 0 (event-driven only). Set to 0 to disable.", scope = ScopeType.INHERIT)
+    Integer policyReloadInterval;
 
     @Option(names = {"--queueName"}, description = "Extract queue name", defaultValue = "extract:queue", scope = ScopeType.INHERIT)
     String queueName;
@@ -150,7 +150,7 @@ public class GlobalOptions {
         DatashareOptions.put(props, REDIS_POOL_SIZE_OPT, redisPoolSize);
         DatashareOptions.putIfNotNull(props, MESSAGE_BUS_OPT, messageBusAddress);
         DatashareOptions.putIfNotNull(props, BUS_TYPE_OPT, busType);
-        DatashareOptions.put(props, POLICY_RELOAD_INTERVAL_OPT, policyReloadInterval);
+        DatashareOptions.putIfNotNull(props, POLICY_RELOAD_INTERVAL_OPT, policyReloadInterval);
         DatashareOptions.putIfNotNull(props, QUEUE_NAME_OPT, queueName);
         DatashareOptions.putIfNotNull(props, QUEUE_TYPE_OPT, queueType);
         DatashareOptions.put(props, QUEUE_CAPACITY_OPT, queueCapacity);
