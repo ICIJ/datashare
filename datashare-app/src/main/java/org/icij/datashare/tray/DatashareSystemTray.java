@@ -1,4 +1,3 @@
-
 package org.icij.datashare.tray;
 
 import dorkbox.systemTray.Menu;
@@ -143,10 +142,10 @@ public class DatashareSystemTray implements Closeable {
         try {
             int size = TrayIconProvider.DEFAULT_ICON_SIZE;
             BufferedImage defaultImage = new BufferedImage(size, size, BufferedImage.TYPE_INT_ARGB);
-            Graphics2D g2d = defaultImage.createGraphics();
-            g2d.setColor(Color.PINK);
-            g2d.fillRect(0, 0, size, size);
-            g2d.dispose();
+            Graphics2D graphics = defaultImage.createGraphics();
+            graphics.setColor(Color.PINK);
+            graphics.fillRect(0, 0, size, size);
+            graphics.dispose();
             systemTray.setImage(defaultImage);
         } catch (Exception e) {
             LOGGER.warn("Could not set default tray icon", e);
