@@ -52,20 +52,25 @@ public class TrayIconProvider {
         }
     }
 
-    /** Returns the tray image, or null if the silhouette asset is unavailable. */
+    /**
+     * Returns the tray image, recolored for the current theme and handed over at its
+     * native pre-rendered size (the OS/tray does any final scaling). Null if the
+     * silhouette asset is unavailable.
+     */
     public Image loadTrayImage(int preferredSize) {
         int size = preferredSize > 0 ? preferredSize : defaultSize();
         BufferedImage silhouette = loadSilhouette(size);
         if (silhouette == null) {
             return null;
         }
-        return IconTinter.tint(silhouette, iconColor(), size);
+        return IconTinter.tint(silhouette, iconColor());
     }
 
     /**
      * Loads the pre-rendered silhouette best suited to {@code targetSize}: the smallest
-     * shipped size that is &ge; the target (so it is only ever downscaled, never upscaled),
-     * falling back to the largest when the target exceeds every shipped size.
+     * shipped size that is &ge; the target, so when the tray resizes it down to the exact
+     * indicator size it only ever downscales (a crisp pre-rendered source), never upscales.
+     * Falls back to the largest shipped size when the target exceeds every shipped size.
      */
     protected BufferedImage loadSilhouette(int targetSize) {
         String resource = "datashare-template-" + nearestAvailableSize(targetSize) + ".png";
