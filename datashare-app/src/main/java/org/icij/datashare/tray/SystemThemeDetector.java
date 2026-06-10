@@ -49,13 +49,13 @@ public class SystemThemeDetector {
 
     private Theme detectLinux() {
         try {
-            String out = runner.run(TIMEOUT_MS,
+            String colorScheme = runner.run(TIMEOUT_MS,
                     "gsettings", "get", "org.gnome.desktop.interface", "color-scheme")
                     .toLowerCase(Locale.ROOT);
-            if (out.contains("prefer-dark")) {
+            if (colorScheme.contains("prefer-dark")) {
                 return Theme.DARK;
             }
-            if (out.contains("prefer-light")) {
+            if (colorScheme.contains("prefer-light")) {
                 return Theme.LIGHT;
             }
             // 'default' means "no explicit colour-scheme preference", NOT "light":
@@ -81,15 +81,15 @@ public class SystemThemeDetector {
 
     private Theme detectWindows() {
         try {
-            String out = runner.run(TIMEOUT_MS,
+            String registryValue = runner.run(TIMEOUT_MS,
                     "reg", "query",
                     "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize",
                     "/v", "SystemUsesLightTheme")
                     .toLowerCase(Locale.ROOT);
-            if (out.contains("0x1")) {
+            if (registryValue.contains("0x1")) {
                 return Theme.LIGHT;
             }
-            if (out.contains("0x0")) {
+            if (registryValue.contains("0x0")) {
                 return Theme.DARK;
             }
             return Theme.UNKNOWN;
@@ -101,8 +101,8 @@ public class SystemThemeDetector {
 
     private Theme detectMac() {
         try {
-            String out = runner.run(TIMEOUT_MS, "defaults", "read", "-g", "AppleInterfaceStyle");
-            return out.trim().equalsIgnoreCase("Dark") ? Theme.DARK : Theme.LIGHT;
+            String interfaceStyle = runner.run(TIMEOUT_MS, "defaults", "read", "-g", "AppleInterfaceStyle");
+            return interfaceStyle.trim().equalsIgnoreCase("Dark") ? Theme.DARK : Theme.LIGHT;
         } catch (Exception e) {
             // key absent => Light mode
             return Theme.LIGHT;
