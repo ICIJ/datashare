@@ -28,7 +28,7 @@ export DS_JAVA_OPTS="
 "
 
 DATASHARE_POM_VERSION=$(head $DIR/pom.xml | grep '<version>[0-9.]\+' | sed -E 's/<version>([0-9a-z.-]+)<\/version>/\1/' | tr -d '[:space:]')
-export DATASHARE_HOME=$DIR
+export DATASHARE_HOME=${DATASHARE_HOME:-$DIR}
 export DATASHARE_VERSION=${DATASHARE_VERSION:-$DATASHARE_POM_VERSION}
 export DATASHARE_JAR=${DATASHARE_JAR:-$DIR/datashare-dist/target/datashare-dist-${DATASHARE_VERSION}-all.jar}
 export DATASHARE_SYNC_NLP_MODELS=${DATASHARE_SYNC_NLP_MODELS:-true}
