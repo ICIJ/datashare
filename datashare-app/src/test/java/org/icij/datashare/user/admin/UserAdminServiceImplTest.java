@@ -188,6 +188,19 @@ public class UserAdminServiceImplTest {
     }
 
     @Test
+    public void test_create_if_not_exists_saves_when_user_absent() throws Exception {
+        when(userStore.find("dave")).thenReturn(null);
+        when(userStore.save(any(User.class))).thenReturn(true);
+
+        UserCreated created = service.createIfNotExists(new UserCreateRequest(
+                "dave", "dave@example.org", "Dave", "pw", "local", List.of("p1")));
+
+        verify(userStore).save(any(User.class));
+        assertThat(created.noop()).isFalse();
+        assertThat(created.login()).isEqualTo("dave");
+    }
+
+    @Test
     public void test_delete_returns_true_when_user_existed() throws Exception {
         when(userStore.delete("alice")).thenReturn(true);
         assertThat(service.delete("alice")).isTrue();
