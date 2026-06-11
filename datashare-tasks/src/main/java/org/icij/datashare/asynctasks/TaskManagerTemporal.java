@@ -108,13 +108,17 @@ public class TaskManagerTemporal implements TaskManager {
      * @throws IOException
      */
     public void reconcileTasks() throws IOException {
+        logger.info("Scanning repository for tasks to reconcile");
         taskRepository.getTasks(TaskFilters.empty().withStates(Set.of(Task.State.RUNNING)))
             .forEach(repoTask -> {
+                logger.info("Reconciling task {} with Temporal", repoTask.getId());
                 try {
                     Task<Serializable> temporalTask = temporal.getTask(repoTask.id);
                     if (temporalTask.isFinished()) {
+                        logger.info("Task {} is finished in Temporal, update the completion information in repository", repoTask.getId());
                         taskRepository.update(temporalTask);
                     } else {
+                        logger.info("Task {} is still running in Temporal, attaching completion listener", repoTask.getId());
                         attachCompletionListener(repoTask.id);
                     }
                 } catch (UnknownTask e) {
