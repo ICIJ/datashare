@@ -278,6 +278,18 @@ public class DatashareCliTest {
     }
 
     @Test
+    public void test_policy_reload_interval_absent_when_not_set() {
+        cli.parseArguments(new String[] {});
+        assertThat(cli.properties.getProperty("policyReloadInterval")).isNull();
+    }
+
+    @Test
+    public void test_policy_reload_interval_propagated_when_set() {
+        cli.parseArguments(new String[] {"--policyReloadInterval", "5000"});
+        assertThat(cli.properties).includes(entry("policyReloadInterval", "5000"));
+    }
+
+    @Test
     public void test_queue_capacity_exists() {
         cli.parseArguments(new String[] {});
         assertThat(cli.properties).includes(entry("queueCapacity", "1000000")); // 1e6
