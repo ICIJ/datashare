@@ -74,6 +74,12 @@ public class SourceExtractor {
 
     public InputStream getEmbeddedSource(final Project project, final Document document) {
         Hasher hasher = Hasher.valueOf(document.getId().length());
+        // Embedded documents produced by the OCR pipeline (e.g. inline images extracted from
+        // PDFs) only exist when extraction runs with OCR enabled. Re-extracting with OCR off
+        // never regenerates them, so their digest is never matched. Mirror the OCR-awareness
+        // that the pages endpoints already use (DocumentResource#getOcrParser) and re-enable
+        // OCR when the document was originally produced by an OCR parser.
+        boolean useOcr = document.getOcrParser() != null;
         int i = 0;
         List<DigestingParser.Digester> digesters = new ArrayList<>(List.of());
         // Digester without the project name
@@ -97,7 +103,7 @@ public class SourceExtractor {
             try {
                 EmbeddedDocumentExtractor embeddedExtractor = new EmbeddedDocumentExtractor(
                         digester, hasher.toString(),
-                        getArtifactPath(project),false);
+                        getArtifactPath(project), useOcr);
                 TikaDocumentSource source = embeddedExtractor.extract(rootDocument, document.getId());
                 InputStream inputStream = source.get();
                 if (filterMetadata) {
