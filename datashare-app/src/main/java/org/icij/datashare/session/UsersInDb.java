@@ -8,7 +8,7 @@ import org.icij.datashare.Repository;
 import org.icij.datashare.text.Hasher;
 
 @Singleton
-public class UsersInDb implements Users {
+public class UsersInDb implements UserStore {
     private final Repository userRepository;
 
     @Inject
@@ -29,5 +29,15 @@ public class UsersInDb implements Users {
     public User find(String login, String password) {
         org.icij.datashare.user.User user = userRepository.getUser(login);
         return user != null && Hasher.SHA_256.hash(password).equals(user.details.get("password")) ? new DatashareUser(user): null;
+    }
+
+    @Override
+    public boolean save(org.icij.datashare.user.User user) {
+        return userRepository.save(user);
+    }
+
+    @Override
+    public boolean delete(String login) {
+        return userRepository.deleteUser(login);
     }
 }

@@ -2,9 +2,9 @@ package org.icij.datashare.session;
 
 import com.google.inject.Inject;
 import net.codestory.http.security.User;
-import net.codestory.http.security.Users;
 import org.icij.datashare.EnvUtils;
 import org.icij.datashare.PropertiesProvider;
+import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.text.Hasher;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
@@ -12,7 +12,7 @@ import redis.clients.jedis.JedisPool;
 import static java.util.Optional.ofNullable;
 import static org.icij.datashare.user.User.fromJson;
 
-public class UsersInRedis implements Users {
+public class UsersInRedis implements UserStore {
     private final JedisPool redis;
     private final Integer ttl;
 
@@ -38,9 +38,18 @@ public class UsersInRedis implements Users {
         }
     }
 
-    void removeUser(String login) {
+    @Override
+    public boolean save(org.icij.datashare.user.User user) {
         try (Jedis jedis = redis.getResource()) {
-            jedis.del(login);
+            jedis.set(user.id, JsonObjectMapper.serialize(user.details));
+            return true;
+        }
+    }
+
+    @Override
+    public boolean delete(String login) {
+        try (Jedis jedis = redis.getResource()) {
+            return jedis.del(login) > 0;
         }
     }
 }

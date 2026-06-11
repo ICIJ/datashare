@@ -1,6 +1,7 @@
 package org.icij.datashare.user.admin;
 
-import org.icij.datashare.Repository;
+import org.icij.datashare.session.DatashareUser;
+import org.icij.datashare.session.UserStore;
 import org.icij.datashare.text.Hasher;
 import org.icij.datashare.user.User;
 import org.junit.Before;
@@ -19,26 +20,26 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.when;
 
 public class UserAdminServiceImplTest {
-    private Repository repository;
+    private UserStore userStore;
     private UserAdminServiceImpl service;
 
     @Before
     public void setUp() {
-        repository = mock(Repository.class);
-        service = new UserAdminServiceImpl(repository);
+        userStore = mock(UserStore.class);
+        service = new UserAdminServiceImpl(userStore);
     }
 
     @Test
     public void test_create_local_user_persists_hashed_password_and_groups() throws Exception {
-        when(repository.getUser("alice")).thenReturn(null);
-        when(repository.save(any(User.class))).thenReturn(true);
+        when(userStore.find("alice")).thenReturn(null);
+        when(userStore.save(any(User.class))).thenReturn(true);
 
         UserCreated created = service.create(new UserCreateRequest(
                 "alice", "alice@example.org", "Alice",
                 "supersecret", "local", List.of("p1", "p2")));
 
         ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
-        verify(repository).save(captor.capture());
+        verify(userStore).save(captor.capture());
         User saved = captor.getValue();
 
         assertThat(saved.id).isEqualTo("alice");
@@ -57,36 +58,36 @@ public class UserAdminServiceImplTest {
 
     @Test
     public void test_create_oauth_user_does_not_store_password() throws Exception {
-        when(repository.getUser("bob")).thenReturn(null);
-        when(repository.save(any(User.class))).thenReturn(true);
+        when(userStore.find("bob")).thenReturn(null);
+        when(userStore.save(any(User.class))).thenReturn(true);
 
         service.create(new UserCreateRequest(
                 "bob", "bob@example.org", null,
                 null, "oauth", List.of()));
 
         ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
-        verify(repository).save(captor.capture());
+        verify(userStore).save(captor.capture());
         assertThat(captor.getValue().details.containsKey("password")).isFalse();
     }
 
     @Test
     public void test_create_defaults_name_to_login_when_null() throws Exception {
-        when(repository.getUser("carol")).thenReturn(null);
-        when(repository.save(any(User.class))).thenReturn(true);
+        when(userStore.find("carol")).thenReturn(null);
+        when(userStore.save(any(User.class))).thenReturn(true);
 
         service.create(new UserCreateRequest(
                 "carol", "carol@example.org", null,
                 "pw", "local", List.of()));
 
         ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
-        verify(repository).save(captor.capture());
+        verify(userStore).save(captor.capture());
         assertThat(captor.getValue().name).isEqualTo("carol");
     }
 
     @Test
     public void test_create_throws_when_user_exists() {
-        when(repository.getUser("alice"))
-                .thenReturn(new User("alice", "Alice", "a@b.c"));
+        when(userStore.find("alice"))
+                .thenReturn(new DatashareUser(new User("alice", "Alice", "a@b.c")));
 
         try {
             service.create(new UserCreateRequest(
@@ -97,12 +98,12 @@ public class UserAdminServiceImplTest {
         } catch (ValidationException e) {
             fail("unexpected ValidationException: " + e.getMessage());
         }
-        verify(repository, never()).save(any(User.class));
+        verify(userStore, never()).save(any(User.class));
     }
 
     @Test
     public void test_create_local_without_password_throws_validation() {
-        when(repository.getUser("alice")).thenReturn(null);
+        when(userStore.find("alice")).thenReturn(null);
 
         try {
             service.create(new UserCreateRequest(
@@ -117,7 +118,7 @@ public class UserAdminServiceImplTest {
 
     @Test
     public void test_create_with_unknown_provider_throws_validation() {
-        when(repository.getUser("alice")).thenReturn(null);
+        when(userStore.find("alice")).thenReturn(null);
 
         try {
             service.create(new UserCreateRequest(
@@ -128,7 +129,7 @@ public class UserAdminServiceImplTest {
         } catch (UserExistsException e) {
             fail("unexpected UserExistsException");
         }
-        verify(repository, never()).save(any(User.class));
+        verify(userStore, never()).save(any(User.class));
     }
 
     @Test
@@ -142,7 +143,7 @@ public class UserAdminServiceImplTest {
         } catch (UserExistsException e) {
             fail("unexpected UserExistsException");
         }
-        verify(repository, never()).save(any(User.class));
+        verify(userStore, never()).save(any(User.class));
     }
 
     @Test
@@ -156,7 +157,7 @@ public class UserAdminServiceImplTest {
         } catch (UserExistsException e) {
             fail("unexpected UserExistsException");
         }
-        verify(repository, never()).save(any(User.class));
+        verify(userStore, never()).save(any(User.class));
     }
 
     @Test
@@ -170,31 +171,31 @@ public class UserAdminServiceImplTest {
         } catch (UserExistsException e) {
             fail("unexpected UserExistsException");
         }
-        verify(repository, never()).save(any(User.class));
+        verify(userStore, never()).save(any(User.class));
     }
 
     @Test
     public void test_create_if_not_exists_returns_noop_when_user_exists() throws Exception {
-        when(repository.getUser("alice"))
-                .thenReturn(new User("alice", "Alice", "a@b.c"));
+        when(userStore.find("alice"))
+                .thenReturn(new DatashareUser(new User("alice", "Alice", "a@b.c")));
 
         UserCreated created = service.createIfNotExists(new UserCreateRequest(
                 "alice", "a@b.c", "Alice", "pw", "local", List.of()));
 
         assertThat(created.noop()).isTrue();
         assertThat(created.login()).isEqualTo("alice");
-        verify(repository, never()).save(any(User.class));
+        verify(userStore, never()).save(any(User.class));
     }
 
     @Test
     public void test_delete_returns_true_when_user_existed() throws Exception {
-        when(repository.deleteUser("alice")).thenReturn(true);
+        when(userStore.delete("alice")).thenReturn(true);
         assertThat(service.delete("alice")).isTrue();
     }
 
     @Test
     public void test_delete_throws_when_user_missing() {
-        when(repository.deleteUser("ghost")).thenReturn(false);
+        when(userStore.delete("ghost")).thenReturn(false);
         try {
             service.delete("ghost");
             fail("expected UserNotFoundException");
@@ -205,13 +206,13 @@ public class UserAdminServiceImplTest {
 
     @Test
     public void test_delete_if_exists_returns_false_when_user_missing() {
-        when(repository.deleteUser("ghost")).thenReturn(false);
+        when(userStore.delete("ghost")).thenReturn(false);
         assertThat(service.deleteIfExists("ghost")).isFalse();
     }
 
     @Test
     public void test_delete_if_exists_returns_true_when_user_existed() {
-        when(repository.deleteUser("alice")).thenReturn(true);
+        when(userStore.delete("alice")).thenReturn(true);
         assertThat(service.deleteIfExists("alice")).isTrue();
     }
 }
