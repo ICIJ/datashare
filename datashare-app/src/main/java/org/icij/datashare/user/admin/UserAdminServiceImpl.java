@@ -2,7 +2,7 @@ package org.icij.datashare.user.admin;
 
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
-import org.icij.datashare.Repository;
+import org.icij.datashare.session.UserStore;
 import org.icij.datashare.text.Hasher;
 import org.icij.datashare.user.User;
 
@@ -16,18 +16,18 @@ import java.util.Set;
 public class UserAdminServiceImpl implements UserAdminService {
     private static final Set<String> KNOWN_PROVIDERS = Set.of(User.LOCAL, User.OAUTH, User.EXTERNAL);
 
-    private final Repository repository;
+    private final UserStore userStore;
 
     @Inject
-    public UserAdminServiceImpl(Repository repository) {
-        this.repository = repository;
+    public UserAdminServiceImpl(UserStore userStore) {
+        this.userStore = userStore;
     }
 
     @Override
     public UserCreated create(UserCreateRequest request)
             throws UserExistsException, ValidationException {
         validate(request);
-        if (repository.getUser(request.login()) != null) {
+        if (userStore.find(request.login()) != null) {
             throw new UserExistsException(request.login());
         }
         return persist(request);
@@ -37,7 +37,7 @@ public class UserAdminServiceImpl implements UserAdminService {
     public UserCreated createIfNotExists(UserCreateRequest request)
             throws ValidationException {
         validate(request);
-        if (repository.getUser(request.login()) != null) {
+        if (userStore.find(request.login()) != null) {
             String name = request.name() == null ? request.login() : request.name();
             return new UserCreated(request.login(), request.email(), name,
                     request.provider(), request.groups(), true);
@@ -47,7 +47,7 @@ public class UserAdminServiceImpl implements UserAdminService {
 
     @Override
     public boolean delete(String login) throws UserNotFoundException {
-        boolean removed = repository.deleteUser(login);
+        boolean removed = userStore.delete(login);
         if (!removed) {
             throw new UserNotFoundException(login);
         }
@@ -56,7 +56,7 @@ public class UserAdminServiceImpl implements UserAdminService {
 
     @Override
     public boolean deleteIfExists(String login) {
-        return repository.deleteUser(login);
+        return userStore.delete(login);
     }
 
     private static boolean isLocal(UserCreateRequest request) {
@@ -96,7 +96,7 @@ public class UserAdminServiceImpl implements UserAdminService {
         details.put("groups_by_applications", appsByGroup);
 
         User user = new User(request.login(), name, request.email(), request.provider(), details);
-        repository.save(user);
+        userStore.save(user);
         return new UserCreated(request.login(), request.email(), name,
                 request.provider(), request.groups(), false);
     }

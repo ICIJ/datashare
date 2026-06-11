@@ -37,6 +37,7 @@ import org.icij.datashare.policies.Authorizer;
 import org.icij.datashare.policies.CasbinRuleAdapter;
 import org.icij.datashare.policies.PolicyWatcher;
 import org.icij.datashare.session.UsersInRedis;
+import org.icij.datashare.session.UserStore;
 import org.icij.datashare.user.admin.UserAdminService;
 import org.icij.datashare.user.admin.UserAdminServiceImpl;
 import org.icij.datashare.project.admin.ProjectAdminService;
@@ -338,13 +339,18 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
     }
 
     @Provides @Singleton
-    Users provideUsers(final PropertiesProvider propertiesProvider, final Injector injector) {
-        Class<? extends Users> providerClass = resolveUsersProviderClass();
+    UserStore provideUserStore(final Injector injector) {
+        Class<? extends UserStore> providerClass = resolveUserStoreClass();
         logger.info("setting auth users provider to {}", providerClass);
         return injector.getInstance(providerClass);
     }
 
-    static Class<? extends Users> classFor(AuthUsersProvider provider) {
+    @Provides @Singleton
+    Users provideUsers(UserStore userStore) {
+        return userStore;
+    }
+
+    static Class<? extends UserStore> classFor(AuthUsersProvider provider) {
         switch (provider) {
             case DATABASE: return UsersInDb.class;
             case REDIS:    return UsersInRedis.class;
@@ -353,14 +359,19 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
     }
 
     @SuppressWarnings("unchecked")
-    Class<? extends Users> resolveUsersProviderClass() {
+    Class<? extends UserStore> resolveUserStoreClass() {
         String raw = propertiesProvider.get(AUTH_USERS_PROVIDER_OPT).orElse(AuthUsersProvider.DATABASE.cliName);
         Optional<AuthUsersProvider> provider = AuthUsersProvider.tryFromString(raw);
         if (provider.isPresent()) {
             return classFor(provider.get());
         }
         try {
-            return (Class<? extends Users>) Class.forName(raw, true, ClassLoader.getSystemClassLoader());
+            Class<?> cls = Class.forName(raw, true, ClassLoader.getSystemClassLoader());
+            if (!UserStore.class.isAssignableFrom(cls)) {
+                logger.warn("\"{}\" does not implement UserStore. Setting provider to UsersInDb", raw);
+                return UsersInDb.class;
+            }
+            return (Class<? extends UserStore>) cls;
         } catch (ClassNotFoundException | ClassCastException e) {
             logger.warn("\"{}\" auth users provider class not found or invalid. Setting provider to UsersInDb", raw);
             return UsersInDb.class;
