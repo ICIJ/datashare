@@ -487,6 +487,12 @@ public class DocumentResource {
         try {
             InputStream from = new SourceExtractor(propertiesProvider, filterMetadata).getSource(project(index), doc);
             String contentType = ofNullable(doc.getContentType()).orElse(ContentTypes.get(doc.getPath().toFile().getName()));
+            // OCR-routed embedded images are stored with a synthetic "image/ocr-<fmt>" content type
+            // (the "ocr-" prefix routes them through the OCR parser). Serve the real media type so the
+            // Content-Type header and the download filename extension are correct (otherwise ".bin").
+            if (contentType != null && contentType.startsWith("image/ocr-")) {
+                contentType = "image/" + contentType.substring("image/ocr-".length());
+            }
             Payload payload = new Payload(contentType, from);
             String fileName = doc.isRootDocument() ? doc.getName(): doc.getId().substring(0, 10) + "." + FileExtension.get(contentType);
             return inline ? payload: payload.withHeader("Content-Disposition", "attachment;filename=\"" + fileName + "\"");
