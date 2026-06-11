@@ -4,6 +4,7 @@ import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Repository;
 import net.codestory.http.security.Users;
 import org.icij.datashare.extract.DocumentCollectionFactory;
+import org.icij.datashare.session.UserStore;
 import org.icij.datashare.policies.Authorizer;
 import org.icij.datashare.policies.CasbinRule;
 import org.icij.datashare.policies.Domain;
@@ -41,6 +42,7 @@ public class ProjectAdminServiceImplTest {
     private Indexer indexer;
     private Authorizer authorizer;
     private Users users;
+    private UserStore userStore;
     private DocumentCollectionFactory<Path> documentCollectionFactory;
     private PropertiesProvider propertiesProvider;
     private ProjectAdminServiceImpl service;
@@ -51,10 +53,11 @@ public class ProjectAdminServiceImplTest {
         indexer = mock(Indexer.class);
         authorizer = mock(Authorizer.class);
         users = mock(Users.class);
+        userStore = mock(UserStore.class);
         documentCollectionFactory = mock(DocumentCollectionFactory.class);
         propertiesProvider = mock(PropertiesProvider.class);
         service = new ProjectAdminServiceImpl(
-                repository, indexer, authorizer, documentCollectionFactory, propertiesProvider, users);
+                repository, indexer, authorizer, documentCollectionFactory, propertiesProvider, users, userStore);
     }
 
     private ProjectCreateRequest minimalRequest(String name) {
@@ -461,7 +464,7 @@ public class ProjectAdminServiceImplTest {
         when(users.find("jdoe")).thenReturn(new DatashareUser(user));
         when(authorizer.getRolesForUserInProject(any(User.class), eq(Domain.DEFAULT), eq(project)))
                 .thenReturn(List.of());
-        when(repository.save(any(User.class))).thenReturn(true);
+        when(userStore.save(any(User.class))).thenReturn(true);
 
         ProjectGranted granted = service.grant("banana", "jdoe",
                 org.icij.datashare.policies.Role.PROJECT_EDITOR);
@@ -474,7 +477,7 @@ public class ProjectAdminServiceImplTest {
 
         // Inventory write: groups_by_applications.datashare contains "banana".
         ArgumentCaptor<User> savedUser = ArgumentCaptor.forClass(User.class);
-        verify(repository).save(savedUser.capture());
+        verify(userStore).save(savedUser.capture());
         @SuppressWarnings("unchecked")
         Map<String, Object> apps = (Map<String, Object>) savedUser.getValue().details
                 .get("groups_by_applications");
@@ -498,7 +501,7 @@ public class ProjectAdminServiceImplTest {
         when(users.find("jdoe")).thenReturn(new DatashareUser(user));
         when(authorizer.getRolesForUserInProject(any(User.class), eq(Domain.DEFAULT), eq(project)))
                 .thenReturn(List.of("PROJECT_ADMIN"));
-        when(repository.save(any(User.class))).thenReturn(true);
+        when(userStore.save(any(User.class))).thenReturn(true);
 
         ProjectGranted granted = service.grant("banana", "jdoe",
                 org.icij.datashare.policies.Role.PROJECT_EDITOR);
@@ -550,7 +553,7 @@ public class ProjectAdminServiceImplTest {
         when(users.find("test")).thenReturn(new DatashareUser(redisUser));
         when(authorizer.getRolesForUserInProject(any(User.class), eq(Domain.DEFAULT), eq(project)))
                 .thenReturn(List.of());
-        when(repository.save(any(User.class))).thenReturn(true);
+        when(userStore.save(any(User.class))).thenReturn(true);
 
         ProjectGranted granted = service.grant("local-datashare", "test",
                 org.icij.datashare.policies.Role.PROJECT_MEMBER);
@@ -563,6 +566,31 @@ public class ProjectAdminServiceImplTest {
                 eq(org.icij.datashare.policies.Role.PROJECT_MEMBER),
                 eq(Domain.DEFAULT),
                 eq(project));
+    }
+
+    @Test
+    public void test_grant_updates_groups_by_applications_in_user_store_not_repository() throws Exception {
+        // Regression: grant must persist updated project list via userStore, not repository.save(User).
+        // Without this, Redis users would not see the granted project in the app (scenario 3).
+        Project project = new Project("local-datashare");
+        when(repository.getProject("local-datashare")).thenReturn(project);
+        Map<String, Object> details = new HashMap<>();
+        User user = new User("jdoe", "Jane Doe", "jdoe@icij.org", "local", details);
+        when(users.find("jdoe")).thenReturn(new DatashareUser(user));
+        when(authorizer.getRolesForUserInProject(any(User.class), eq(Domain.DEFAULT), eq(project)))
+                .thenReturn(List.of());
+        when(userStore.save(any(User.class))).thenReturn(true);
+
+        service.grant("local-datashare", "jdoe", org.icij.datashare.policies.Role.PROJECT_MEMBER);
+
+        ArgumentCaptor<User> saved = ArgumentCaptor.forClass(User.class);
+        verify(userStore).save(saved.capture());
+        @SuppressWarnings("unchecked")
+        Map<String, Object> apps = (Map<String, Object>) saved.getValue().details.get("groups_by_applications");
+        @SuppressWarnings("unchecked")
+        List<String> ds = (List<String>) apps.get("datashare");
+        assertThat(ds).containsOnly("local-datashare");
+        verify(repository, never()).save(any(User.class));
     }
 
     @Test
@@ -593,7 +621,7 @@ public class ProjectAdminServiceImplTest {
                 .thenReturn(List.of());
         when(authorizer.addRoleForUserInProject(any(User.class), any(), any(), any()))
                 .thenThrow(new RuntimeException("casbin boom"));
-        when(repository.save(any(User.class))).thenReturn(true);
+        when(userStore.save(any(User.class))).thenReturn(true);
 
         try {
             service.grant("banana", "jdoe", org.icij.datashare.policies.Role.PROJECT_EDITOR);
@@ -603,7 +631,7 @@ public class ProjectAdminServiceImplTest {
         }
 
         ArgumentCaptor<User> savedUsers = ArgumentCaptor.forClass(User.class);
-        verify(repository, Mockito.times(2)).save(savedUsers.capture());
+        verify(userStore, Mockito.times(2)).save(savedUsers.capture());
         java.util.List<User> saves = savedUsers.getAllValues();
 
         // Forward write: inventory contains "banana".
@@ -638,7 +666,7 @@ public class ProjectAdminServiceImplTest {
 
         assertThat(granted.noop()).isTrue();
         assertThat(granted.previousRole()).isNull();
-        verify(repository, never()).save(any(User.class));
+        verify(userStore, never()).save(any(User.class));
         verify(authorizer, never()).addRoleForUserInProject(any(), any(), any(), any());
     }
 
@@ -654,7 +682,7 @@ public class ProjectAdminServiceImplTest {
         when(users.find("jdoe")).thenReturn(new DatashareUser(user));
         when(authorizer.getRolesForUserInProject(any(User.class), eq(Domain.DEFAULT), eq(project)))
                 .thenReturn(List.of());
-        when(repository.save(any(User.class))).thenReturn(true);
+        when(userStore.save(any(User.class))).thenReturn(true);
 
         ProjectGranted granted = service.grant("banana", "jdoe",
                 org.icij.datashare.policies.Role.PROJECT_ADMIN);
@@ -662,7 +690,7 @@ public class ProjectAdminServiceImplTest {
         assertThat(granted.role()).isEqualTo(org.icij.datashare.policies.Role.PROJECT_ADMIN);
         // The save still happened and now contains a well-formed map with "banana" in it.
         ArgumentCaptor<User> saved = ArgumentCaptor.forClass(User.class);
-        verify(repository).save(saved.capture());
+        verify(userStore).save(saved.capture());
         @SuppressWarnings("unchecked")
         Map<String, Object> apps = (Map<String, Object>) saved.getValue().details
                 .get("groups_by_applications");
@@ -685,14 +713,14 @@ public class ProjectAdminServiceImplTest {
         when(users.find("jdoe")).thenReturn(new DatashareUser(user));
         when(authorizer.getRolesForUserInProject(any(User.class), eq(Domain.DEFAULT), eq(project)))
                 .thenReturn(List.of());
-        when(repository.save(any(User.class))).thenReturn(true);
+        when(userStore.save(any(User.class))).thenReturn(true);
 
         ProjectGranted granted = service.grant("banana", "jdoe",
                 org.icij.datashare.policies.Role.PROJECT_ADMIN);
 
         assertThat(granted.role()).isEqualTo(org.icij.datashare.policies.Role.PROJECT_ADMIN);
         ArgumentCaptor<User> saved = ArgumentCaptor.forClass(User.class);
-        verify(repository).save(saved.capture());
+        verify(userStore).save(saved.capture());
         @SuppressWarnings("unchecked")
         Map<String, Object> savedApps = (Map<String, Object>) saved.getValue().details
                 .get("groups_by_applications");
@@ -713,7 +741,7 @@ public class ProjectAdminServiceImplTest {
         when(users.find("jdoe")).thenReturn(new DatashareUser(user));
         when(authorizer.getRolesForUserInProject(any(User.class), eq(Domain.DEFAULT), eq(project)))
                 .thenReturn(List.of("PROJECT_EDITOR"));
-        when(repository.save(any(User.class))).thenReturn(true);
+        when(userStore.save(any(User.class))).thenReturn(true);
 
         ProjectRevoked revoked = service.revoke("banana", "jdoe");
 
@@ -728,7 +756,7 @@ public class ProjectAdminServiceImplTest {
                 eq(Domain.DEFAULT), eq(project));
 
         ArgumentCaptor<User> saved = ArgumentCaptor.forClass(User.class);
-        verify(repository).save(saved.capture());
+        verify(userStore).save(saved.capture());
         @SuppressWarnings("unchecked")
         Map<String, Object> savedApps = (Map<String, Object>) saved.getValue().details.get("groups_by_applications");
         @SuppressWarnings("unchecked")
@@ -772,7 +800,7 @@ public class ProjectAdminServiceImplTest {
 
         assertThat(revoked.noop()).isTrue();
         assertThat(revoked.revokedRoles()).isEmpty();
-        verify(repository, never()).save(any(User.class));
+        verify(userStore, never()).save(any(User.class));
     }
 
     @Test
@@ -787,7 +815,7 @@ public class ProjectAdminServiceImplTest {
         ProjectRevoked revoked = service.revokeIfExists("banana", "jdoe");
 
         assertThat(revoked.noop()).isTrue();
-        verify(repository, never()).save(any(User.class));
+        verify(userStore, never()).save(any(User.class));
     }
 
     @Test
@@ -802,7 +830,7 @@ public class ProjectAdminServiceImplTest {
         when(users.find("jdoe")).thenReturn(new DatashareUser(user));
         when(authorizer.getRolesForUserInProject(any(User.class), eq(Domain.DEFAULT), eq(project)))
                 .thenReturn(List.of("PROJECT_EDITOR"));
-        when(repository.save(any(User.class))).thenReturn(true);
+        when(userStore.save(any(User.class))).thenReturn(true);
 
         ProjectRevoked revoked = service.revokeIfExists("banana", "jdoe");
 
@@ -839,7 +867,7 @@ public class ProjectAdminServiceImplTest {
                 .thenReturn(List.of("PROJECT_EDITOR"));
         when(authorizer.deleteRoleForUserInProject(any(User.class), any(), any(), any()))
                 .thenThrow(new RuntimeException("casbin boom"));
-        when(repository.save(any(User.class))).thenReturn(true);
+        when(userStore.save(any(User.class))).thenReturn(true);
 
         try {
             service.revoke("banana", "jdoe");
@@ -849,7 +877,7 @@ public class ProjectAdminServiceImplTest {
         }
 
         ArgumentCaptor<User> savedUsers = ArgumentCaptor.forClass(User.class);
-        verify(repository, Mockito.times(2)).save(savedUsers.capture());
+        verify(userStore, Mockito.times(2)).save(savedUsers.capture());
         java.util.List<User> saves = savedUsers.getAllValues();
 
         // Forward write: "banana" pruned from inventory.
