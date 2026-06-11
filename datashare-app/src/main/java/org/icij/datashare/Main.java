@@ -118,7 +118,7 @@ public class Main {
             Closeable tray = DatashareSystemTray.create(port);
             ofNullable(tray).ifPresent(commonMode::addCloseable);
             WebApp.start(commonMode);
-            if(QueueType.TEMPORAL == commonMode.getCurrentQueueType()) {
+            if(QueueType.TEMPORAL == commonMode.getCurrentBatchQueueType()) {
                 TaskManagerTemporal taskManager = (TaskManagerTemporal) commonMode.get(TaskManager.class);
                 taskManager.reconcileTasks();
             }
