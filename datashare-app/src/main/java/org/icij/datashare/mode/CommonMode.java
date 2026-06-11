@@ -346,7 +346,23 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
     }
 
     @Provides @Singleton
-    Users provideUsers(UserStore userStore) {
+    Users provideUsers(UserStore userStore, UsersIdProviderCache usersIdProviderCache) {
+        // When busType=REDIS the session cache is live. Return a composite that checks it first
+        // so that OAuth2 session users (not in the local store) are found by grant/revoke without
+        // requiring --authUsersProvider on the CLI command.
+        boolean isRedis = QueueType.REDIS.name().equals(propertiesProvider.get(BUS_TYPE_OPT).orElse(null));
+        if (isRedis) {
+            return new Users() {
+                @Override public net.codestory.http.security.User find(String login) {
+                    net.codestory.http.security.User u = usersIdProviderCache.find(login);
+                    return u != null ? u : userStore.find(login);
+                }
+                @Override public net.codestory.http.security.User find(String login, String password) {
+                    net.codestory.http.security.User u = usersIdProviderCache.find(login, password);
+                    return u != null ? u : userStore.find(login, password);
+                }
+            };
+        }
         return userStore;
     }
 
@@ -384,11 +400,11 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
                 .filter(m -> !m.isEmpty())
                 .map(m -> { try { return AuthMode.fromString(m) == AuthMode.OAUTH; } catch (IllegalArgumentException e) { return false; } })
                 .orElse(false);
-        if (isOAuth) {
+        boolean isRedis = QueueType.REDIS.name().equals(propertiesProvider.get(BUS_TYPE_OPT).orElse(null));
+        if (isOAuth || isRedis) {
             return injector.getInstance(UsersIdProviderRedisCache.class);
         }
-        // Non-OAuth2 auth modes have no Redis session cache: saveOrUpdate is a no-op.
-        // Reads are handled by the Users binding (provideUsers); these find() methods are unused.
+        // No Redis available: saveOrUpdate is a no-op, reads return null.
         return new UsersIdProviderCache() {
             @Override public net.codestory.http.security.User find(String login) { return null; }
             @Override public net.codestory.http.security.User find(String login, String password) { return null; }
