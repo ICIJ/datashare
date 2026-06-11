@@ -29,14 +29,24 @@ public class PolicyWatcher implements Watcher, Closeable {
     @Override
     public void setUpdateCallback(Runnable callback) {
         listenerId = topic.addListener(String.class, (ch, msg) -> {
-            if (!msg.startsWith(instanceId)) callback.run();
+            if (msg.startsWith(instanceId)) {
+                LOGGER.debug("Ignoring own policy-update notification");
+            } else {
+                LOGGER.info("Received policy-update notification from remote instance, reloading");
+                callback.run();
+            }
         });
     }
 
     @Override
     public void setUpdateCallback(Consumer<String> callback) {
         listenerId = topic.addListener(String.class, (ch, msg) -> {
-            if (!msg.startsWith(instanceId)) callback.accept(msg);
+            if (msg.startsWith(instanceId)) {
+                LOGGER.debug("Ignoring own policy-update notification");
+            } else {
+                LOGGER.info("Received policy-update notification from remote instance, reloading");
+                callback.accept(msg);
+            }
         });
     }
 
