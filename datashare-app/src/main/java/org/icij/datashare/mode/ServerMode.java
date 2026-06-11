@@ -29,7 +29,6 @@ import static org.icij.datashare.cli.DatashareCliOptions.SESSION_STORE_TYPE_OPT;
 
 public class ServerMode extends CommonMode {
     ServerMode(Properties properties) { super(properties);}
-    ServerMode(Map<String, Object> properties) { super(properties);}
 
     @Override
     protected void configure() {
