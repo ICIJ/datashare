@@ -28,6 +28,7 @@ public class PolicyWatcher implements Watcher, Closeable {
 
     @Override
     public void setUpdateCallback(Runnable callback) {
+        if (listenerId != -1) topic.removeListener(listenerId);
         listenerId = topic.addListener(String.class, (ch, msg) -> {
             if (msg.startsWith(instanceId)) {
                 LOGGER.debug("Ignoring own policy-update notification");
@@ -40,6 +41,7 @@ public class PolicyWatcher implements Watcher, Closeable {
 
     @Override
     public void setUpdateCallback(Consumer<String> callback) {
+        if (listenerId != -1) topic.removeListener(listenerId);
         listenerId = topic.addListener(String.class, (ch, msg) -> {
             if (msg.startsWith(instanceId)) {
                 LOGGER.debug("Ignoring own policy-update notification");

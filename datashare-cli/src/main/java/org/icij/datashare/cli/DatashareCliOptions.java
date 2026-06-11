@@ -1018,10 +1018,9 @@ public final class DatashareCliOptions {
 
     static void policyReloadInterval(OptionParser parser) {
         parser.acceptsAll(
-                        singletonList(POLICY_RELOAD_INTERVAL_OPT), "Interval in milliseconds to reload Casbin policies from DB (default 30s). Used as fallback when busType is not REDIS; set to 0 to disable.")
+                        singletonList(POLICY_RELOAD_INTERVAL_OPT), "Interval in milliseconds to reload Casbin policies from DB. In non-Redis mode defaults to 30s; in Redis mode defaults to 0 (event-driven only). Set to 0 to disable.")
                 .withRequiredArg()
-                .ofType(Integer.class)
-                .defaultsTo(DEFAULT_POLICY_RELOAD_INTERVAL);
+                .ofType(Integer.class);
     }
 
     static void taskProgressUpdateInterval(OptionParser parser) {
