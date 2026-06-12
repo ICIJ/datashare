@@ -41,7 +41,6 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
@@ -188,29 +187,25 @@ public class DocumentResource {
             }
     )
     @ApiResponse(responseCode = "200", description = "JSON {\"pages\": N}")
-    @ApiResponse(responseCode = "404", description = "if the document or its structure pages are not found")
+    @ApiResponse(responseCode = "404", description = "if the document or a complete structure is not found")
     @ApiResponse(responseCode = "403", description = "forbidden if the user doesn't have access to the project")
     @Get("/:project/documents/structure/:id?routing=:routing")
     public Payload getStructure(final String project, final String id, final String routing, final Context context) {
-        if (!((DatashareUser) context.currentUser()).isGranted(project)) {
-            return PayloadFormatter.error("You are not allowed to access this document", HttpStatus.FORBIDDEN);
-        }
-        Document document = indexer.get(project, id, ofNullable(routing).orElse(id), List.of("content", "content_translated"));
-        if (document == null) {
+        Path structureDir = resolveStructureDir(project, id, routing, context);
+        // Only report a finished extraction: ArtifactTask writes the completion marker last.
+        if (structureDir == null || !structureDir.resolve(ArtifactPath.STRUCTURE_COMPLETE_MARKER).toFile().isFile()) {
             return Payload.notFound();
         }
-        Path artifactProjectDir = getArtifactPath(project(project));
-        if (artifactProjectDir == null) {
+        // Count contiguous pages from 1 so the manifest never advertises a page that the page endpoint
+        // would 404 on (a gap stops the count).
+        int pages = 0;
+        while (structureDir.resolve(ArtifactPath.pageFileName(pages + 1)).toFile().isFile()) {
+            pages++;
+        }
+        if (pages == 0) {
             return Payload.notFound();
         }
-        File[] pageFiles = ArtifactPath.structureDir(artifactProjectDir, document.getId()).toFile()
-                .listFiles((dir, name) -> name.matches("page-\\d+\\.md"));
-        if (pageFiles == null || pageFiles.length == 0) {
-            return Payload.notFound();
-        }
-        // ArtifactTask writes pages sequentially (page-0001..page-NNNN) with no gaps, so the file
-        // count equals the highest page number; the page endpoint will resolve every page 1..N.
-        return new Payload(Map.of("pages", pageFiles.length)).withCode(200);
+        return new Payload(Map.of("pages", pages)).withCode(200);
     }
 
     @Operation(description = "Fetches a single page of structure Markdown for a document.",
@@ -227,8 +222,9 @@ public class DocumentResource {
     @Get("/:project/documents/structure/:id/:page?routing=:routing")
     public Payload getStructurePage(final String project, final String id, final String page,
                                     final String routing, final Context context) throws IOException {
-        if (!((DatashareUser) context.currentUser()).isGranted(project)) {
-            return PayloadFormatter.error("You are not allowed to access this document", HttpStatus.FORBIDDEN);
+        Path structureDir = resolveStructureDir(project, id, routing, context);
+        if (structureDir == null) {
+            return Payload.notFound();
         }
         int pageNumber;
         try {
@@ -239,19 +235,28 @@ public class DocumentResource {
         if (pageNumber < 1) {
             return Payload.notFound();
         }
-        Document document = indexer.get(project, id, ofNullable(routing).orElse(id), List.of("content", "content_translated"));
-        if (document == null) {
-            return Payload.notFound();
-        }
-        Path artifactProjectDir = getArtifactPath(project(project));
-        if (artifactProjectDir == null) {
-            return Payload.notFound();
-        }
-        Path pageFile = ArtifactPath.structurePage(artifactProjectDir, document.getId(), pageNumber);
+        Path pageFile = structureDir.resolve(ArtifactPath.pageFileName(pageNumber));
         if (!pageFile.toFile().isFile()) {
             return Payload.notFound();
         }
         return new Payload("text/markdown;charset=UTF-8", Files.readString(pageFile, StandardCharsets.UTF_8)).withCode(200);
+    }
+
+    /**
+     * Resolves the on-disk structure directory for a granted, existing document. Returns null when the
+     * document is unknown or artifactDir is unset; throws ForbiddenException (-> 403) when the project is
+     * not granted. Shared by the structure manifest and page endpoints.
+     */
+    private Path resolveStructureDir(final String project, final String id, final String routing, final Context context) {
+        if (!((DatashareUser) context.currentUser()).isGranted(project)) {
+            throw new ForbiddenException();
+        }
+        Document document = indexer.get(project, id, ofNullable(routing).orElse(id), List.of("content", "content_translated"));
+        if (document == null) {
+            return null;
+        }
+        Path artifactProjectDir = getArtifactPath(project(project));
+        return artifactProjectDir == null ? null : ArtifactPath.structureDir(artifactProjectDir, document.getId());
     }
 
     @Operation(description = "Fetches document extracted text paginated in a json list of texts. It will use the source document and not the indexed extracted content.",

@@ -534,8 +534,34 @@ public class DocumentResourceTest extends AbstractProdWebServerTest {
         File structureDir = temp.newFolder("local-datashare", "6a", "bb", id, "structure");
         MockIndexer.write(new File(structureDir, "page-0001.md"), "# Page one");
         MockIndexer.write(new File(structureDir, "page-0002.md"), "# Page two");
+        MockIndexer.write(new File(structureDir, ".complete"), "");
 
         get("/api/local-datashare/documents/structure/" + id).should().succeed().contain("\"pages\":2");
+    }
+
+    @Test
+    public void test_get_structure_without_complete_marker_returns_404() throws Exception {
+        String id = "6abb96950946b62bb993307c8945c0c096982783bab7fa24901522426840ca3e";
+        when(propertiesProvider.get(ARTIFACT_DIR_OPT)).thenReturn(Optional.of(temp.getRoot().toString()));
+        mockIndexer.indexFile("local-datashare", id, Paths.get("ignored"), "application/pdf", null);
+        File structureDir = temp.newFolder("local-datashare", "6a", "bb", id, "structure");
+        MockIndexer.write(new File(structureDir, "page-0001.md"), "# Page one");
+        // no .complete marker -> extraction not finished
+
+        get("/api/local-datashare/documents/structure/" + id).should().respond(404);
+    }
+
+    @Test
+    public void test_get_structure_counts_only_contiguous_pages() throws Exception {
+        String id = "6abb96950946b62bb993307c8945c0c096982783bab7fa24901522426840ca3e";
+        when(propertiesProvider.get(ARTIFACT_DIR_OPT)).thenReturn(Optional.of(temp.getRoot().toString()));
+        mockIndexer.indexFile("local-datashare", id, Paths.get("ignored"), "application/pdf", null);
+        File structureDir = temp.newFolder("local-datashare", "6a", "bb", id, "structure");
+        MockIndexer.write(new File(structureDir, "page-0001.md"), "# Page one");
+        MockIndexer.write(new File(structureDir, "page-0003.md"), "# Page three"); // gap at page-0002
+        MockIndexer.write(new File(structureDir, ".complete"), "");
+
+        get("/api/local-datashare/documents/structure/" + id).should().succeed().contain("\"pages\":1");
     }
 
     @Test
