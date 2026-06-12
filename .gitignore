@@ -38,6 +38,7 @@ scripts/kc-swarm/
 .worktrees/
 
 # Local swarm runtime state
+.claude/
 .claude-flow/
 .swarm/
 ruvector.db
