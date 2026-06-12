@@ -13,10 +13,15 @@ import org.icij.datashare.extract.DocumentCollectionFactory;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.Project;
 import org.icij.datashare.text.indexing.Indexer;
+import org.icij.datashare.text.indexing.elasticsearch.ArtifactPath;
 import org.icij.datashare.text.indexing.elasticsearch.SourceExtractor;
+import org.icij.datashare.text.structure.StructureMarkdownExtractor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -51,6 +56,8 @@ public class ArtifactTask extends PipelineTask<String> {
         super.call();
         logger.info("creating artifact cache in {} for project {} from queue {} with polling interval {}s", artifactDir, project, inputQueue.getName(), pollingInterval);
         SourceExtractor extractor = new SourceExtractor(propertiesProvider);
+        StructureMarkdownExtractor structureExtractor = new StructureMarkdownExtractor();
+        Path projectArtifactDir = artifactDir.resolve(project.name);
         List<String> sourceExcludes = List.of("content", "content_translated");
         String docId;
         long nbDocs = 0;
@@ -58,6 +65,7 @@ public class ArtifactTask extends PipelineTask<String> {
             try {
                 Document doc = indexer.get(project.name, docId, sourceExcludes);
                 extractor.extractEmbeddedSources(project, doc);
+                writeStructureMarkdown(extractor, structureExtractor, projectArtifactDir, doc);
                 nbDocs++;
             } catch (Throwable e) {
                 logger.error("error in ArtifactTask loop", e);
@@ -65,5 +73,20 @@ public class ArtifactTask extends PipelineTask<String> {
         }
         logger.info("exiting ArtifactTask loop after processing {} document(s).", nbDocs);
         return nbDocs;
+    }
+
+    private void writeStructureMarkdown(SourceExtractor sourceExtractor, StructureMarkdownExtractor structureExtractor,
+                                        Path projectArtifactDir, Document doc) {
+        Path target = ArtifactPath.structureMarkdown(projectArtifactDir, doc.getId());
+        if (target.toFile().exists()) {
+            return; // skip-if-present: deterministic output is already cached
+        }
+        try (InputStream source = sourceExtractor.getSource(project, doc)) {
+            String markdown = structureExtractor.extract(source, doc.getContentType());
+            Files.createDirectories(target.getParent());
+            Files.writeString(target, markdown, StandardCharsets.UTF_8);
+        } catch (Exception e) {
+            logger.error("could not write structure.md for document {}", doc.getId(), e);
+        }
     }
 }
