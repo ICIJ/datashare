@@ -2,6 +2,7 @@ package org.icij.datashare.policies;
 
 import net.codestory.http.Context;
 import net.codestory.http.errors.UnauthorizedException;
+import org.casbin.jcasbin.persist.Watcher;
 import org.icij.datashare.policies.errors.InvalidValueException;
 import org.icij.datashare.policies.errors.UnknownRoleException;
 import org.icij.datashare.session.DatashareUser;
@@ -17,6 +18,8 @@ import static org.fest.assertions.Assertions.assertThat;
 import static org.icij.datashare.text.Project.project;
 import static org.icij.datashare.user.User.localUser;
 import static org.junit.Assert.*;
+import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class AuthorizerTest {
@@ -387,6 +390,31 @@ public class AuthorizerTest {
         } catch (InvalidValueException e) {
             assertEquals("The parameter cannot be null", e.getMessage());
         }
+    }
+
+    @Test
+    public void test_watcher_is_notified_on_policy_mutation() throws Exception {
+        CasbinRuleAdapter adapter = Mockito.mock(CasbinRuleAdapter.class);
+        Watcher mockWatcher = Mockito.mock(Watcher.class);
+        Authorizer watchedAuthorizer = new Authorizer(adapter, mockWatcher);
+
+        watchedAuthorizer.addRoleForUserInProject(user, Role.PROJECT_MEMBER, domain, project);
+
+        verify(mockWatcher, atLeastOnce()).update();
+    }
+
+    @Test
+    public void test_polling_authorizer_close_stops_autoload() throws Exception {
+        CasbinRuleAdapter adapter = Mockito.mock(CasbinRuleAdapter.class);
+        Authorizer pollingAuthorizer = new Authorizer(adapter, 100L);
+        pollingAuthorizer.close();
+    }
+
+    @Test
+    public void test_zero_interval_does_not_start_polling_and_close_is_safe() throws Exception {
+        CasbinRuleAdapter adapter = Mockito.mock(CasbinRuleAdapter.class);
+        Authorizer noPollingAuthorizer = new Authorizer(adapter, 0L);
+        noPollingAuthorizer.close();
     }
 
 }

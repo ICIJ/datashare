@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import net.codestory.http.WebServer;
 import net.codestory.http.misc.Env;
 import net.codestory.http.security.SessionIdStore;
+import net.codestory.http.security.Users;
 import net.codestory.rest.FluentRestTest;
 import net.codestory.rest.Response;
 import net.codestory.rest.RestAssert;
@@ -25,7 +26,7 @@ public class FormAuthFilterTest implements FluentRestTest {
         protected Env createEnv() { return Env.prod(); }
     }.startOnRandomPort();
 
-    private final UsersWritable users = mock(UsersWritable.class);
+    private final Users users = mock(Users.class);
     private PostLoginEnroller enroller = mock(PostLoginEnroller.class);
     private FormAuthFilter filter;
 

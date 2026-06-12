@@ -3,8 +3,10 @@ package org.icij.datashare.project.admin;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import org.apache.commons.io.FileUtils;
+import net.codestory.http.security.Users;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Repository;
+import org.icij.datashare.session.UserStore;
 import org.icij.datashare.cli.DatashareCliOptions;
 import org.icij.datashare.extract.DocumentCollectionFactory;
 import org.icij.datashare.utils.DataDirVerifier;
@@ -15,7 +17,6 @@ import org.icij.datashare.policies.Role;
 import org.icij.datashare.text.Project;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.user.User;
-import org.icij.extract.queue.DocumentQueue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -51,6 +52,8 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
     private final Repository repository;
     private final Indexer indexer;
     private final Authorizer authorizer;
+    private final Users users;
+    private final UserStore userStore;
     private final DocumentCollectionFactory<Path> documentCollectionFactory;
     private final PropertiesProvider propertiesProvider;
 
@@ -59,10 +62,14 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
                                    Indexer indexer,
                                    Authorizer authorizer,
                                    DocumentCollectionFactory<Path> documentCollectionFactory,
-                                   PropertiesProvider propertiesProvider) {
+                                   PropertiesProvider propertiesProvider,
+                                   Users users,
+                                   UserStore userStore) {
         this.repository = repository;
         this.indexer = indexer;
         this.authorizer = authorizer;
+        this.users = users;
+        this.userStore = userStore;
         this.documentCollectionFactory = documentCollectionFactory;
         this.propertiesProvider = propertiesProvider;
     }
@@ -169,8 +176,7 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
 
         // revokeIfExists swallows a missing user (unlike revoke); resolve directly
         // and convert null / no-roles into a noop without going through doRevoke.
-        User user = repository.getUser(userLogin);
-        if (user == null) {
+        if (!(users.find(userLogin) instanceof User user)) {
             return noopRevoke(projectName, userLogin);
         }
         List<Role> existing = readProjectRoles(user, project);
@@ -229,8 +235,7 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
     }
 
     private User requireUser(String login) throws UserNotFoundException {
-        User user = repository.getUser(login);
-        if (user == null) {
+        if (!(users.find(login) instanceof User user)) {
             throw new UserNotFoundException(login);
         }
         return user;
@@ -258,7 +263,7 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
         apps.put(DATASHARE_APP, currentProjects);
         newDetails.put(GROUPS_BY_APPLICATIONS, apps);
         User updated = new User(user.id, user.name, user.email, user.provider, newDetails);
-        repository.save(updated);
+        userStore.save(updated);
         return updated;
     }
 
@@ -270,7 +275,7 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
         apps.put(DATASHARE_APP, currentProjects);
         newDetails.put(GROUPS_BY_APPLICATIONS, apps);
         User updated = new User(user.id, user.name, user.email, user.provider, newDetails);
-        repository.save(updated);
+        userStore.save(updated);
         return updated;
     }
 
@@ -302,7 +307,7 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
             casbinAction.run();
         } catch (RuntimeException casbinFailure) {
             try {
-                repository.save(original);
+                userStore.save(original);
             } catch (RuntimeException rollback) {
                 casbinFailure.addSuppressed(rollback);
             }

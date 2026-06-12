@@ -11,9 +11,10 @@ import org.icij.datashare.asynctasks.TaskSupplier;
 import org.icij.datashare.cli.Mode;
 import org.icij.datashare.cli.QueueType;
 import org.icij.datashare.cli.AuthUsersProvider;
+import org.icij.datashare.policies.Authorizer;
+import net.codestory.http.security.Users;
 import org.icij.datashare.session.UsersInDb;
 import org.icij.datashare.session.UsersInRedis;
-import org.icij.datashare.session.UsersWritable;
 import org.junit.Test;
 
 import java.util.HashMap;
@@ -98,7 +99,7 @@ public class CommonModeTest {
             put("mode", Mode.LOCAL.name());
             put("authUsersProvider", "org.icij.UnknownClass");
         }});
-        assertThat(mode.get(UsersWritable.class)).isInstanceOf(UsersInDb.class);
+        assertThat(mode.get(Users.class)).isInstanceOf(UsersInDb.class);
     }
 
     @Test
@@ -113,7 +114,7 @@ public class CommonModeTest {
             put("mode", Mode.LOCAL.name());
             put("authUsersProvider", "database");
         }});
-        assertThat(mode.get(UsersWritable.class)).isInstanceOf(UsersInDb.class);
+        assertThat(mode.get(Users.class)).isInstanceOf(UsersInDb.class);
     }
 
     @Test
@@ -123,7 +124,7 @@ public class CommonModeTest {
             put("mode", Mode.LOCAL.name());
             put("authUsersProvider", "redis");
         }});
-        assertThat(mode.get(UsersWritable.class)).isInstanceOf(UsersInRedis.class);
+        assertThat(mode.get(Users.class)).isInstanceOf(UsersInRedis.class);
     }
 
     @Test
@@ -131,7 +132,7 @@ public class CommonModeTest {
         CommonMode mode = CommonMode.create(new HashMap<>() {{
             put("mode", Mode.LOCAL.name());
         }});
-        assertThat(mode.get(UsersWritable.class)).isInstanceOf(UsersInDb.class);
+        assertThat(mode.get(Users.class)).isInstanceOf(UsersInDb.class);
     }
 
     @Test
@@ -140,7 +141,7 @@ public class CommonModeTest {
             put("mode", Mode.LOCAL.name());
             put("authUsersProvider", "org.icij.datashare.session.UsersInDb");
         }});
-        assertThat(mode.get(UsersWritable.class)).isInstanceOf(UsersInDb.class);
+        assertThat(mode.get(Users.class)).isInstanceOf(UsersInDb.class);
     }
 
     @Test
@@ -150,5 +151,16 @@ public class CommonModeTest {
             put("queueType", QueueType.MEMORY.name());
         }}));
         assertThat(injector.getInstance(AsyncSearchStore.class)).isInstanceOf(MemoryAsyncSearchStore.class);
+    }
+
+    @Test
+    public void test_authorizer_injectable_in_memory_mode() {
+        Injector injector = Guice.createInjector(CommonMode.create(new HashMap<>() {{
+            put("mode", Mode.LOCAL.name());
+            put("busType", QueueType.MEMORY.name());
+        }}));
+        Authorizer authorizer = injector.getInstance(Authorizer.class);
+        assertThat(authorizer).isNotNull();
+        assertThat(injector.getInstance(Authorizer.class)).isSameAs(authorizer);
     }
 }

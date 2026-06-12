@@ -11,7 +11,6 @@ import org.icij.datashare.extract.MemoryDocumentCollectionFactory;
 import org.icij.datashare.policies.*;
 import org.icij.datashare.session.DatashareUser;
 import org.icij.datashare.session.LocalUserFilter;
-import org.icij.datashare.session.UsersWritable;
 import org.icij.datashare.session.YesBasicAuthFilter;
 import org.icij.datashare.asynctasks.TaskManager;
 import org.icij.datashare.text.Project;
@@ -310,7 +309,7 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
     }
 
     @Mock
-    UsersWritable users;
+    Users users;
 
     public User mockUser(String userId, String projectId, Role role) {
         Domain domain = Domain.DEFAULT;

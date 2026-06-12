@@ -75,10 +75,12 @@ public class OAuth2CookieFilter extends DatashareAuthFilter {
     private final String oauthClaimIdAttribute;
     @Nullable
     private final PostLoginEnroller postLoginEnroller;
+    private final UsersIdProviderCache usersCache;
 
     @Inject
-    public OAuth2CookieFilter(PropertiesProvider propertiesProvider, UsersWritable users, SessionIdStore sessionIdStore, @Nullable PostLoginEnroller postLoginEnroller) {
+    public OAuth2CookieFilter(PropertiesProvider propertiesProvider, UsersIdProviderCache users, SessionIdStore sessionIdStore, @Nullable PostLoginEnroller postLoginEnroller) {
         super(propertiesProvider.get("protectedUriPrefix").orElse("/"), users, sessionIdStore);
+        this.usersCache = users;
         this.oauthAuthorizeUrl = propertiesProvider.get("oauthAuthorizeUrl").orElse("http://localhost");
         this.oauthTokenUrl = propertiesProvider.get("oauthTokenUrl").orElse("http://localhost");
         this.oauthApiUrl = propertiesProvider.get("oauthApiUrl").orElse("http://localhost");
@@ -154,7 +156,7 @@ public class OAuth2CookieFilter extends DatashareAuthFilter {
             userMap.put("uid", id);
         }
         DatashareUser datashareUser = createUser(userMap);
-        ((UsersWritable)users).saveOrUpdate(datashareUser);
+        usersCache.saveOrUpdate(datashareUser);
         if (postLoginEnroller != null) {
             postLoginEnroller.enroll(datashareUser);
         }

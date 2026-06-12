@@ -339,4 +339,31 @@ public class ProjectCommandTest extends AbstractDatashareCommandTest {
         assertThat(props).includes(entry("projectGrant.user", "promera"));
         assertThat(props).includes(entry("projectGrant.role", "admin"));
     }
+
+    @Test
+    public void test_project_grant_global_options_after_leaf_subcommand() {
+        // Global options placed after the leaf subcommand must be picked up.
+        // This is how `./run.sh project grant ... --dataSourceUrl jdbc:postgresql://... --busType REDIS` works.
+        Properties props = parse("project", "grant", "local-datashare", "jane", "admin",
+                "--dataSourceUrl", "jdbc:postgresql://postgres/datashare?user=admin&password=admin",
+                "--redisAddress", "redis://redis:6379",
+                "--busType", "REDIS");
+        assertThat(props).includes(entry("dataSourceUrl", "jdbc:postgresql://postgres/datashare?user=admin&password=admin"));
+        assertThat(props).includes(entry("redisAddress", "redis://redis:6379"));
+        assertThat(props).includes(entry("busType", "REDIS"));
+    }
+
+    @Test
+    public void test_project_grant_user_options_override_script_injected_defaults() {
+        // Simulates the shell script injecting --dataSourceUrl before the subcommand,
+        // while the user also passes --dataSourceUrl after the leaf subcommand.
+        // The user's value (last occurrence) must win when setOverwrittenOptionsAllowed(true).
+        Properties props = parse(
+                "--dataSourceUrl", "jdbc:sqlite:injected-default",
+                "project", "grant", "local-datashare", "jane", "admin",
+                "--dataSourceUrl", "jdbc:postgresql://postgres/datashare?user=admin&password=admin",
+                "--busType", "REDIS");
+        assertThat(props).includes(entry("dataSourceUrl", "jdbc:postgresql://postgres/datashare?user=admin&password=admin"));
+        assertThat(props).includes(entry("busType", "REDIS"));
+    }
 }

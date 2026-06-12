@@ -35,15 +35,20 @@ import org.icij.datashare.nlp.EmailPipeline;
 import org.icij.datashare.nlp.OptimaizeLanguageGuesser;
 import org.icij.datashare.policies.Authorizer;
 import org.icij.datashare.policies.CasbinRuleAdapter;
+import org.icij.datashare.policies.PolicyWatcher;
+import org.icij.datashare.session.UsersInRedis;
+import org.icij.datashare.session.UserStore;
 import org.icij.datashare.user.admin.UserAdminService;
 import org.icij.datashare.user.admin.UserAdminServiceImpl;
 import org.icij.datashare.project.admin.ProjectAdminService;
 import org.icij.datashare.project.admin.ProjectAdminServiceImpl;
 import org.icij.datashare.session.StatusCidrFilter;
+import org.icij.datashare.cli.AuthMode;
 import org.icij.datashare.cli.AuthUsersProvider;
 import org.icij.datashare.session.UsersInDb;
-import org.icij.datashare.session.UsersInRedis;
-import org.icij.datashare.session.UsersWritable;
+import net.codestory.http.security.Users;
+import org.icij.datashare.session.UsersIdProviderCache;
+import org.icij.datashare.session.UsersIdProviderRedisCache;
 import org.icij.datashare.tasks.DatashareTaskFactory;
 import org.icij.datashare.tasks.TaskResultSubtypes;
 import org.icij.datashare.tasks.Utils;
@@ -71,7 +76,8 @@ import java.io.IOException;
 import java.net.URISyntaxException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.LinkedList;
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -97,7 +103,7 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
     protected final PropertiesProvider propertiesProvider;
     protected final Mode mode;
     private final Injector injector;
-    private final List<Closeable> closeables = new LinkedList<>();
+    private final Deque<Closeable> closeables = new ArrayDeque<>();
     private final ExecutorService executorService;
 
     protected CommonMode(Properties properties) {
@@ -305,6 +311,27 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
     }
 
     @Provides @Singleton
+    Authorizer provideAuthorizer(CasbinRuleAdapter adapter, Provider<RedissonClient> redissonProvider) throws IOException {
+        if (QueueType.REDIS.name().equals(propertiesProvider.get(BUS_TYPE_OPT).orElse(null))) {
+            // Event-driven: RTopic notifies all instances immediately on policy change.
+            // startAutoLoadPolicy backstop defaults to 0 (disabled); set policyReloadInterval
+            // explicitly to enable periodic reloads as a hedge against missed publications.
+            long interval = parseInt(propertiesProvider.get(POLICY_RELOAD_INTERVAL_OPT).orElse("0"));
+            PolicyWatcher watcher = new PolicyWatcher(redissonProvider.get());
+            addCloseable(watcher);
+            Authorizer authorizer = new Authorizer(adapter, watcher);
+            authorizer.startAutoLoadPolicy(interval);
+            addCloseable(authorizer);
+            return authorizer;
+        }
+        // Fallback: periodic reload from DB when Redis is not available. Default to 30s.
+        long interval = parseInt(propertiesProvider.get(POLICY_RELOAD_INTERVAL_OPT).orElse(String.valueOf(DEFAULT_POLICY_RELOAD_INTERVAL)));
+        Authorizer authorizer = new Authorizer(adapter, interval);
+        addCloseable(authorizer);
+        return authorizer;
+    }
+
+    @Provides @Singleton
     Indexer provideIndexer() {
         ElasticsearchIndexer indexer = new ElasticsearchIndexer(createESClient(propertiesProvider), propertiesProvider);
         addCloseable(indexer);
@@ -312,13 +339,34 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
     }
 
     @Provides @Singleton
-    UsersWritable provideUsersWritable(final Injector injector) {
-        Class<? extends UsersWritable> providerClass = resolveUsersProviderClass();
+    UserStore provideUserStore(final Injector injector) {
+        Class<? extends UserStore> providerClass = resolveUserStoreClass();
         logger.info("setting auth users provider to {}", providerClass);
         return injector.getInstance(providerClass);
     }
 
-    static Class<? extends UsersWritable> classFor(AuthUsersProvider provider) {
+    @Provides @Singleton
+    Users provideUsers(UserStore userStore, UsersIdProviderCache usersIdProviderCache) {
+        // When busType=REDIS the session cache is live. Return a composite that checks it first
+        // so that OAuth2 session users (not in the local store) are found by grant/revoke without
+        // requiring --authUsersProvider on the CLI command.
+        boolean isRedis = QueueType.REDIS.name().equals(propertiesProvider.get(BUS_TYPE_OPT).orElse(null));
+        if (isRedis) {
+            return new Users() {
+                @Override public net.codestory.http.security.User find(String login) {
+                    net.codestory.http.security.User u = usersIdProviderCache.find(login);
+                    return u != null ? u : userStore.find(login);
+                }
+                @Override public net.codestory.http.security.User find(String login, String password) {
+                    net.codestory.http.security.User u = usersIdProviderCache.find(login, password);
+                    return u != null ? u : userStore.find(login, password);
+                }
+            };
+        }
+        return userStore;
+    }
+
+    static Class<? extends UserStore> classFor(AuthUsersProvider provider) {
         switch (provider) {
             case DATABASE: return UsersInDb.class;
             case REDIS:    return UsersInRedis.class;
@@ -327,20 +375,42 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
     }
 
     @SuppressWarnings("unchecked")
-    Class<? extends UsersWritable> resolveUsersProviderClass() {
+    Class<? extends UserStore> resolveUserStoreClass() {
         String raw = propertiesProvider.get(AUTH_USERS_PROVIDER_OPT).orElse(AuthUsersProvider.DATABASE.cliName);
         Optional<AuthUsersProvider> provider = AuthUsersProvider.tryFromString(raw);
         if (provider.isPresent()) {
             return classFor(provider.get());
         }
         try {
-            return (Class<? extends UsersWritable>) Class.forName(raw, true, ClassLoader.getSystemClassLoader());
+            Class<?> cls = Class.forName(raw, true, ClassLoader.getSystemClassLoader());
+            if (!UserStore.class.isAssignableFrom(cls)) {
+                logger.warn("\"{}\" does not implement UserStore. Setting provider to UsersInDb", raw);
+                return UsersInDb.class;
+            }
+            return (Class<? extends UserStore>) cls;
         } catch (ClassNotFoundException | ClassCastException e) {
             logger.warn("\"{}\" auth users provider class not found or invalid. Setting provider to UsersInDb", raw);
             return UsersInDb.class;
         }
     }
 
+    @Provides @Singleton
+    UsersIdProviderCache provideUsersIdProviderCache(final Injector injector) {
+        boolean isOAuth = propertiesProvider.get(AUTH_MODE_OPT)
+                .filter(m -> !m.isEmpty())
+                .map(m -> { try { return AuthMode.fromString(m) == AuthMode.OAUTH; } catch (IllegalArgumentException e) { return false; } })
+                .orElse(false);
+        boolean isRedis = QueueType.REDIS.name().equals(propertiesProvider.get(BUS_TYPE_OPT).orElse(null));
+        if (isOAuth || isRedis) {
+            return injector.getInstance(UsersIdProviderRedisCache.class);
+        }
+        // No Redis available: saveOrUpdate is a no-op, reads return null.
+        return new UsersIdProviderCache() {
+            @Override public net.codestory.http.security.User find(String login) { return null; }
+            @Override public net.codestory.http.security.User find(String login, String password) { return null; }
+            @Override public boolean saveOrUpdate(net.codestory.http.security.User user) { return true; }
+        };
+    }
 
     @Provides @Singleton
     LanguageGuesser provideLanguageGuesser() throws IOException {
@@ -413,7 +483,6 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
         bind(ApiKeyRepository.class).toInstance(repositoryFactory.createApiKeyRepository());
         bind(BatchSearchRepository.class).toInstance(repositoryFactory.createBatchSearchRepository());
         bind(CasbinRuleAdapter.class).toInstance(repositoryFactory.createCasbinRuleRepository());
-        bind(Authorizer.class);
         bind(UserAdminService.class).to(UserAdminServiceImpl.class).in(Singleton.class);
         bind(ProjectAdminService.class).to(ProjectAdminServiceImpl.class).in(Singleton.class);
 
@@ -506,7 +575,7 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
     }
 
     public void close() throws IOException {
-        closeables.forEach(rethrowConsumer(Closeable::close));
+        closeables.descendingIterator().forEachRemaining(rethrowConsumer(Closeable::close));
     }
 
     public Thread closeThread() {

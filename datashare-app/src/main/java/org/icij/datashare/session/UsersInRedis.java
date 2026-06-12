@@ -8,14 +8,11 @@ import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.text.Hasher;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
-import redis.clients.jedis.Transaction;
-
-import java.util.List;
 
 import static java.util.Optional.ofNullable;
 import static org.icij.datashare.user.User.fromJson;
 
-public class UsersInRedis implements UsersWritable {
+public class UsersInRedis implements UserStore {
     private final JedisPool redis;
     private final Integer ttl;
 
@@ -41,20 +38,18 @@ public class UsersInRedis implements UsersWritable {
         }
     }
 
-    void removeUser(String login) {
+    @Override
+    public boolean save(org.icij.datashare.user.User user) {
         try (Jedis jedis = redis.getResource()) {
-            jedis.del(login);
+            jedis.set(user.id, JsonObjectMapper.serialize(user.details));
+            return true;
         }
     }
 
     @Override
-    public boolean saveOrUpdate(User user) {
+    public boolean delete(String login) {
         try (Jedis jedis = redis.getResource()) {
-            Transaction transaction = jedis.multi();
-            transaction.set(user.login(), JsonObjectMapper.serialize(((DatashareUser)user).details));
-            transaction.expire(user.login(), this.ttl);
-            List<Object> exec = transaction.exec();
-            return exec.size() == 2;
+            return jedis.del(login) > 0;
         }
     }
 }

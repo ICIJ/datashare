@@ -76,6 +76,9 @@ public class GlobalOptions {
     @Option(names = {"--busType"}, description = "Backend data bus type", defaultValue = "MEMORY", scope = ScopeType.INHERIT)
     QueueType busType;
 
+    @Option(names = {"--policyReloadInterval"}, description = "Interval in milliseconds for Casbin policy reload. In non-Redis mode defaults to 30s; in Redis mode defaults to 0 (event-driven only). Set to 0 to disable.", scope = ScopeType.INHERIT)
+    Integer policyReloadInterval;
+
     @Option(names = {"--queueName"}, description = "Extract queue name", defaultValue = "extract:queue", scope = ScopeType.INHERIT)
     String queueName;
 
@@ -112,6 +115,9 @@ public class GlobalOptions {
     @Option(names = {"-l", "--language"}, description = "Indexing language", scope = ScopeType.INHERIT)
     String language;
 
+    @Option(names = {"--authUsersProvider"}, description = "Auth users provider class", scope = ScopeType.INHERIT)
+    String authUsersProvider;
+
     @Option(names = {"--no-color"}, description = "Disable ANSI color output", defaultValue = "false", scope = ScopeType.INHERIT)
     boolean noColor;
 
@@ -144,6 +150,7 @@ public class GlobalOptions {
         DatashareOptions.put(props, REDIS_POOL_SIZE_OPT, redisPoolSize);
         DatashareOptions.putIfNotNull(props, MESSAGE_BUS_OPT, messageBusAddress);
         DatashareOptions.putIfNotNull(props, BUS_TYPE_OPT, busType);
+        DatashareOptions.putIfNotNull(props, POLICY_RELOAD_INTERVAL_OPT, policyReloadInterval);
         DatashareOptions.putIfNotNull(props, QUEUE_NAME_OPT, queueName);
         DatashareOptions.putIfNotNull(props, QUEUE_TYPE_OPT, queueType);
         DatashareOptions.put(props, QUEUE_CAPACITY_OPT, queueCapacity);
@@ -159,6 +166,8 @@ public class GlobalOptions {
         DatashareOptions.putIfNotNull(props, BATCH_QUEUE_TYPE_OPT, batchQueueType);
         DatashareOptions.putIfNotNull(props, DatashareCliOptions.TEMPORAL_ADDRESS_OPT, temporalAddress);
         DatashareOptions.putIfNotNull(props, DatashareCliOptions.TEMPORAL_NAMESPACE_OPT, temporalNamespace);
+        DatashareOptions.putIfNotNull(props, AUTH_USERS_PROVIDER_OPT, authUsersProvider);
+
         return props;
     }
 

@@ -3,11 +3,12 @@ package org.icij.datashare.session;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import net.codestory.http.security.User;
+import net.codestory.http.security.Users;
 import org.icij.datashare.Repository;
 import org.icij.datashare.text.Hasher;
 
 @Singleton
-public class UsersInDb implements UsersWritable {
+public class UsersInDb implements UserStore {
     private final Repository userRepository;
 
     @Inject
@@ -31,7 +32,12 @@ public class UsersInDb implements UsersWritable {
     }
 
     @Override
-    public boolean saveOrUpdate(User user) {
-        return userRepository.save((DatashareUser)user);
+    public boolean save(org.icij.datashare.user.User user) {
+        return userRepository.save(user);
+    }
+
+    @Override
+    public boolean delete(String login) {
+        return userRepository.deleteUser(login);
     }
 }

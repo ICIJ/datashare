@@ -6,7 +6,6 @@ import net.codestory.http.security.Users;
 import org.icij.datashare.Repository;
 import org.icij.datashare.policies.*;
 import org.icij.datashare.session.DatashareUser;
-import org.icij.datashare.session.UsersWritable;
 import org.icij.datashare.user.User;
 import org.icij.datashare.web.testhelpers.AbstractProdWebServerTest;
 import org.junit.After;
@@ -26,7 +25,7 @@ public class WebAcceptanceTest extends AbstractProdWebServerTest {
     @Mock
     CasbinRuleAdapter adapter;
     @Mock
-    UsersWritable users;
+    Users users;
 
     Authorizer authorizer;
     @Before

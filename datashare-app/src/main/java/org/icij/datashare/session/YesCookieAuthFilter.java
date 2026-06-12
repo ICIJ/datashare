@@ -30,7 +30,7 @@ public class YesCookieAuthFilter extends CookieAuthFilter {
     @Inject
     public YesCookieAuthFilter(final PropertiesProvider propertiesProvider, final JooqRepository jooqRepository,
                                @Nullable PostLoginEnroller postLoginEnroller) {
-        super(propertiesProvider.get("protectedUrlPrefix").orElse("/"), new UsersInRedis(propertiesProvider), new RedisSessionIdStore(propertiesProvider));
+        super(propertiesProvider.get("protectedUrlPrefix").orElse("/"), new UsersIdProviderRedisCache(propertiesProvider), new RedisSessionIdStore(propertiesProvider));
         this.ttl = Integer.valueOf(propertiesProvider.get(SESSION_TTL_SECONDS_OPT).orElse(String.valueOf(DatashareCliOptions.DEFAULT_SESSION_TTL_SECONDS)));
         this.jooqRepository = jooqRepository;
         this.defaultProject = propertiesProvider.get(DEFAULT_PROJECT_OPT).orElse(DEFAULT_DEFAULT_PROJECT);
@@ -60,7 +60,7 @@ public class YesCookieAuthFilter extends CookieAuthFilter {
         DatashareUser user = new DatashareUser(localUser(userName, projectNames));
         user.setProjects(projects);
         // Finally, store the user in redis so the session can be retrieved
-        ((UsersInRedis) users).saveOrUpdate(user);
+        ((UsersIdProviderCache) users).saveOrUpdate(user);
         if (postLoginEnroller != null) {
             postLoginEnroller.enroll(user);
         }

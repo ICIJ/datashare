@@ -74,9 +74,6 @@ public class ServerOptions {
     @Option(names = {"--oauthClaimIdAttribute"}, description = "OAuth claim id attribute")
     String oauthClaimIdAttribute;
 
-    @Option(names = {"--authUsersProvider"}, description = "Users provider: database, redis, or a fully-qualified class name (default: database when not set)")
-    String authUsersProvider;
-
     @Option(names = {"--authFilter"}, description = "Auth filter class")
     String authFilter;
 
@@ -93,6 +90,7 @@ public class ServerOptions {
     @Option(names = {"--sessionStoreType"}, description = "Session store type", defaultValue = "MEMORY")
     QueueType sessionStoreType;
 
+    // Batch / Download
     @Option(names = {"--batchSearchMaxTimeSeconds"}, description = "Max batch search time in seconds")
     Integer batchSearchMaxTimeSeconds;
 
@@ -175,11 +173,11 @@ public class ServerOptions {
         DatashareOptions.putIfNotNull(props, OAUTH_DEFAULT_PROJECT_OPT, oauthDefaultProject);
         DatashareOptions.putIfNotNull(props, OAUTH_SCOPE_OPT, oauthScope);
         DatashareOptions.putIfNotNull(props, OAUTH_CLAIM_ID_ATTRIBUTE_OPT, oauthClaimIdAttribute);
-        DatashareOptions.putIfNotNull(props, AUTH_USERS_PROVIDER_OPT, authUsersProvider);
         // Use cliName ("yesCookie"), not the enum name() ("YES_COOKIE") that the generic putIfNotNull overload would write.
         if (auth != null) {
             DatashareOptions.put(props, AUTH_MODE_OPT, auth.cliName);
         }
+        // authUsersProvider is a GlobalOption (ScopeType.INHERIT) — collected from there.
         DatashareOptions.putIfNotNull(props, AUTH_FILTER_OPT, authFilter);
         DatashareOptions.putIfNotNull(props, SESSION_SIGNING_KEY_OPT, sessionSigningKey);
         DatashareOptions.put(props, SESSION_TTL_SECONDS_OPT, sessionTtlSeconds);
@@ -204,6 +202,7 @@ public class ServerOptions {
 
         DatashareOptions.putIfNotNull(props, REPORT_NAME_OPT, reportName);
         DatashareOptions.putIfNotNull(props, SMTP_URL_OPT, smtpUrl);
+
         DatashareOptions.putAll(props, workerOptions.toProperties());
         DatashareOptions.putAll(props, pipelineOptions.toProperties());
 
