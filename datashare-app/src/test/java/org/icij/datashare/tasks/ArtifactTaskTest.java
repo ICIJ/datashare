@@ -57,6 +57,8 @@ public class ArtifactTaskTest {
         String rootSha = "0f95ef97e4619f7bae2a585c6cf24587cd7a3a81a26599c8774d669e5c175e5e";
         assertThat(artifactDir.getRoot().toPath()
                 .resolve("prj/0f/95/" + rootSha + "/structure/page-0001.md").toFile()).isFile();
+        assertThat(artifactDir.getRoot().toPath()
+                .resolve("prj/0f/95/" + rootSha + "/structure/.complete").toFile()).isFile();
     }
 
     @Before

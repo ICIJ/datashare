@@ -77,9 +77,9 @@ public class ArtifactTask extends PipelineTask<String> {
 
     private void writeStructureMarkdown(SourceExtractor sourceExtractor, StructureMarkdownExtractor structureExtractor,
                                         Path projectArtifactDir, Document doc) {
-        Path firstPage = ArtifactPath.structurePage(projectArtifactDir, doc.getId(), 1);
-        if (firstPage.toFile().exists()) {
-            return; // skip-if-present: deterministic output is already cached
+        Path completeMarker = ArtifactPath.structureComplete(projectArtifactDir, doc.getId());
+        if (completeMarker.toFile().exists()) {
+            return; // skip-if-complete: a finished, deterministic page set is already cached
         }
         try (InputStream source = sourceExtractor.getSource(project, doc)) {
             List<String> pages = structureExtractor.extractPages(source, doc.getContentType());
@@ -88,6 +88,9 @@ public class ArtifactTask extends PipelineTask<String> {
                 Files.writeString(ArtifactPath.structurePage(projectArtifactDir, doc.getId(), i + 1),
                         pages.get(i), StandardCharsets.UTF_8);
             }
+            // Write the completion marker last: a crash mid-write leaves no marker, so the next run
+            // regenerates the full page set instead of skipping a truncated one.
+            Files.writeString(completeMarker, "", StandardCharsets.UTF_8);
         } catch (Exception e) {
             logger.error("could not write structure markdown for document {}", doc.getId(), e);
         }
