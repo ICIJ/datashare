@@ -61,6 +61,7 @@ import static org.icij.datashare.text.Project.project;
 @Singleton
 @Prefix("/api")
 public class DocumentResource {
+    private static final String MARKDOWN_CONTENT_TYPE = "text/markdown;charset=UTF-8";
     private final Logger logger = LoggerFactory.getLogger(getClass());
     private final Repository repository;
     private final Indexer indexer;
@@ -193,19 +194,28 @@ public class DocumentResource {
     public Payload getStructure(final String project, final String id, final String routing, final Context context) {
         Path structureDir = resolveStructureDir(project, id, routing, context);
         // Only report a finished extraction: ArtifactTask writes the completion marker last.
-        if (structureDir == null || !structureDir.resolve(ArtifactPath.STRUCTURE_COMPLETE_MARKER).toFile().isFile()) {
+        if (structureDir == null || !hasCompleteMarker(structureDir)) {
             return Payload.notFound();
         }
-        // Count contiguous pages from 1 so the manifest never advertises a page that the page endpoint
-        // would 404 on (a gap stops the count).
-        int pages = 0;
-        while (structureDir.resolve(ArtifactPath.pageFileName(pages + 1)).toFile().isFile()) {
-            pages++;
-        }
-        if (pages == 0) {
+        int pageCount = countContiguousPages(structureDir);
+        if (pageCount == 0) {
             return Payload.notFound();
         }
-        return new Payload(Map.of("pages", pages)).withCode(200);
+        return new Payload(Map.of("pages", pageCount)).withCode(200);
+    }
+
+    private static boolean hasCompleteMarker(Path structureDir) {
+        return structureDir.resolve(ArtifactPath.STRUCTURE_COMPLETE_MARKER).toFile().isFile();
+    }
+
+    // Counts pages from 1 until the first gap, so the manifest never advertises a page number that the
+    // page endpoint would 404 on.
+    private static int countContiguousPages(Path structureDir) {
+        int pageCount = 0;
+        while (structureDir.resolve(ArtifactPath.pageFileName(pageCount + 1)).toFile().isFile()) {
+            pageCount++;
+        }
+        return pageCount;
     }
 
     @Operation(description = "Fetches a single page of structure Markdown for a document.",
@@ -226,12 +236,7 @@ public class DocumentResource {
         if (structureDir == null) {
             return Payload.notFound();
         }
-        int pageNumber;
-        try {
-            pageNumber = Integer.parseInt(page);
-        } catch (NumberFormatException e) {
-            return Payload.notFound();
-        }
+        int pageNumber = parsePageNumber(page);
         if (pageNumber < 1) {
             return Payload.notFound();
         }
@@ -239,7 +244,17 @@ public class DocumentResource {
         if (!pageFile.toFile().isFile()) {
             return Payload.notFound();
         }
-        return new Payload("text/markdown;charset=UTF-8", Files.readString(pageFile, StandardCharsets.UTF_8)).withCode(200);
+        return new Payload(MARKDOWN_CONTENT_TYPE, Files.readString(pageFile, StandardCharsets.UTF_8)).withCode(200);
+    }
+
+    // Parses the 1-based page number from the path segment; returns -1 when it is not a positive integer
+    // so the caller can answer 404 for both non-numeric and out-of-range values.
+    private static int parsePageNumber(String page) {
+        try {
+            return Integer.parseInt(page);
+        } catch (NumberFormatException notANumber) {
+            return -1;
+        }
     }
 
     /**

@@ -19,6 +19,7 @@ import org.icij.datashare.text.structure.StructureMarkdownExtractor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -77,22 +78,36 @@ public class ArtifactTask extends PipelineTask<String> {
 
     private void writeStructureMarkdown(SourceExtractor sourceExtractor, StructureMarkdownExtractor structureExtractor,
                                         Path projectArtifactDir, Document doc) {
+        // Skip when a finished, deterministic page set is already cached. The completion marker is written
+        // last, so its presence guarantees the whole set is on disk.
         Path completeMarker = ArtifactPath.structureComplete(projectArtifactDir, doc.getId());
         if (completeMarker.toFile().exists()) {
-            return; // skip-if-complete: a finished, deterministic page set is already cached
+            return;
         }
+        // A conversion or write failure must not abort the loop or the raw extraction above, so it is
+        // caught and logged here rather than propagated.
         try (InputStream source = sourceExtractor.getSource(project, doc)) {
             List<String> pages = structureExtractor.extractPages(source, doc.getContentType());
-            Files.createDirectories(ArtifactPath.structureDir(projectArtifactDir, doc.getId()));
-            for (int i = 0; i < pages.size(); i++) {
-                Files.writeString(ArtifactPath.structurePage(projectArtifactDir, doc.getId(), i + 1),
-                        pages.get(i), StandardCharsets.UTF_8);
-            }
-            // Write the completion marker last: a crash mid-write leaves no marker, so the next run
-            // regenerates the full page set instead of skipping a truncated one.
-            Files.writeString(completeMarker, "", StandardCharsets.UTF_8);
+            writePages(projectArtifactDir, doc.getId(), pages);
+            markStructureComplete(completeMarker);
         } catch (Exception e) {
             logger.error("could not write structure markdown for document {}", doc.getId(), e);
         }
+    }
+
+    // Writes one Markdown file per page (page-0001.md, page-0002.md, ...) into the document's structure dir.
+    private void writePages(Path projectArtifactDir, String digest, List<String> pages) throws IOException {
+        Files.createDirectories(ArtifactPath.structureDir(projectArtifactDir, digest));
+        for (int pageIndex = 0; pageIndex < pages.size(); pageIndex++) {
+            int pageNumber = pageIndex + 1;
+            Files.writeString(ArtifactPath.structurePage(projectArtifactDir, digest, pageNumber),
+                    pages.get(pageIndex), StandardCharsets.UTF_8);
+        }
+    }
+
+    // Marks the page set complete. Written last so a crash mid-write leaves no marker and the next run
+    // regenerates the full set instead of skipping a truncated one.
+    private void markStructureComplete(Path completeMarker) throws IOException {
+        Files.writeString(completeMarker, "", StandardCharsets.UTF_8);
     }
 }
