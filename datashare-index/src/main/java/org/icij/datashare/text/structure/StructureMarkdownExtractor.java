@@ -12,6 +12,7 @@ import org.apache.tika.parser.pdf.PDFParserConfig;
 import org.apache.tika.sax.ToXMLContentHandler;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Element;
+import org.jsoup.safety.Safelist;
 import org.jsoup.select.Elements;
 import org.xml.sax.SAXException;
 
@@ -22,11 +23,19 @@ import java.util.List;
 
 /**
  * Converts a document's source bytes into a deterministic per-page Markdown rendering of its structure.
- * Pipeline: Tika XHTML (un-flatten) -> split on <div class="page"> -> per-page cleanup -> flexmark html2md.
+ * Pipeline: Tika XHTML (un-flatten) -> split on <div class="page"> -> per-page sanitize -> flexmark html2md.
  * OCR is disabled so the same bytes always yield byte-identical Markdown (the content-addressed cache
  * relies on this).
  */
 public class StructureMarkdownExtractor {
+
+    // Relaxed safelist minus <u>: keeps formatting/headings/links/lists/tables, and jsoup's Cleaner
+    // strips <script>/<style>, event-handler (on*) attributes, and unsafe URL schemes (javascript:,
+    // data:). Because toXhtml uses IdentityHtmlMapper (so inline formatting survives Tika), this is the
+    // producer's guaranteed safety boundary rather than relying on flexmark incidentally dropping
+    // dangerous markup. <u>/<ins> are not safelisted, so they are unwrapped to plain text (avoiding
+    // flexmark's non-standard "++text++").
+    private static final Safelist SAFELIST = Safelist.relaxed().removeTags("u");
 
     /**
      * Converts {@code source} into one Markdown string per page (a single entry for non-paginated
@@ -48,8 +57,7 @@ public class StructureMarkdownExtractor {
         }
         List<String> markdown = new ArrayList<>();
         for (Element page : pages) {
-            cleanup(page);
-            markdown.add(toMarkdown(page.html()).strip());
+            markdown.add(toMarkdown(sanitize(page.html())).strip());
         }
         return markdown;
     }
@@ -66,24 +74,24 @@ public class StructureMarkdownExtractor {
         context.set(PDFParserConfig.class, pdfConfig);
         // Tika's DefaultHtmlMapper drops inline formatting (<strong>, <em>, <u>, ...) when parsing HTML.
         // IdentityHtmlMapper keeps every element so bold survives to flexmark (rendered as "**bold**")
-        // and underline survives to cleanup() (unwrapped to plain text); affects HTML parsing only.
+        // and underline survives to sanitize() (unwrapped to plain text); affects HTML parsing only.
         context.set(HtmlMapper.class, new IdentityHtmlMapper());
         new AutoDetectParser().parse(source, handler, metadata, context);
         return handler.toString();
     }
 
     /**
-     * Removes rendering noise before conversion: Tika emits empty <p/> blocks (which flexmark would
-     * render as literal "<br />"), and underline runs arrive as <u>/<ins> (which flexmark renders with
-     * the non-standard "++text++" syntax). Bold/italic are left intact.
+     * Sanitizes one page's HTML to a safe subset before Markdown conversion (see SAFELIST). Also drops
+     * empty <p> blocks, which Tika emits and which flexmark would otherwise render as literal "<br />".
      */
-    void cleanup(Element page) {
-        page.select("u, ins").forEach(Element::unwrap);
-        for (Element p : page.select("p")) {
+    String sanitize(String html) {
+        org.jsoup.nodes.Document cleaned = Jsoup.parseBodyFragment(Jsoup.clean(html, SAFELIST));
+        for (Element p : cleaned.select("p")) {
             if (p.children().isEmpty() && p.text().isBlank()) {
                 p.remove();
             }
         }
+        return cleaned.body().html();
     }
 
     String toMarkdown(String html) {

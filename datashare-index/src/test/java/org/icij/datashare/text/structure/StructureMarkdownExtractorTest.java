@@ -63,6 +63,32 @@ public class StructureMarkdownExtractorTest {
                 .isEqualTo(extractor.extractPages(stream(html), "text/html"));
     }
 
+    @Test
+    public void test_sanitize_strips_scripts_handlers_and_unsafe_urls() {
+        String safe = extractor.sanitize(
+                "<p onclick=\"steal()\">keep</p>" +
+                "<script>alert('xss')</script>" +
+                "<a href=\"javascript:alert(1)\">link</a>" +
+                "<img src=x onerror=\"alert(1)\">");
+        assertThat(safe).excludes("script");
+        assertThat(safe).excludes("onclick");
+        assertThat(safe).excludes("onerror");
+        assertThat(safe).excludes("javascript:");
+        assertThat(safe).excludes("alert");
+        assertThat(safe).excludes("<script");
+        assertThat(safe).excludes("steal");
+        assertThat(safe).contains("keep");
+    }
+
+    @Test
+    public void test_sanitize_strips_data_url_scheme() {
+        String safe = extractor.sanitize(
+                "<img src=\"data:image/png;base64,AAAA\">keep" +
+                "<a href=\"data:text/html;base64,BBBB\">link</a>");
+        assertThat(safe).excludes("data:");
+        assertThat(safe).contains("keep");
+    }
+
     private byte[] twoPagePdf() throws Exception {
         try (PDDocument doc = new PDDocument(); ByteArrayOutputStream out = new ByteArrayOutputStream()) {
             for (int p = 1; p <= 2; p++) {
