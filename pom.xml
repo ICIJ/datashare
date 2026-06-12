@@ -372,6 +372,18 @@
                 <artifactId>flexmark-html2md-converter</artifactId>
                 <version>${flexmark.version}</version>
             </dependency>
+
+            <!-- flexmark-html2md transitively pulls jsoup 1.15.4, which wins Maven mediation and
+                 downgrades the jsoup that Tika 3.3.0 manages (1.22.1, per tika-parent). The older
+                 jsoup lacks org.jsoup.parser.TagSet, so Tika's JSoupParser fails to instantiate, its
+                 SPI registration is silently dropped, and text/html falls back to TextAndCSVParser,
+                 which HTML-escapes the whole document instead of parsing its structure. Pin 1.22.1
+                 (Tika's expected version) reactor-wide: datashare-app also relies on Tika. -->
+            <dependency>
+                <groupId>org.jsoup</groupId>
+                <artifactId>jsoup</artifactId>
+                <version>1.22.1</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 
