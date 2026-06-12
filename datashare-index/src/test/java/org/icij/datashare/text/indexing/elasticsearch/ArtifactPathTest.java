@@ -28,4 +28,18 @@ public class ArtifactPathTest {
         assertThat(ArtifactPath.structurePage(root, digest, 12).toString())
                 .isEqualTo("/artifact/prj/6a/bb/" + digest + "/structure/page-0012.md");
     }
+
+    @Test
+    public void test_page_file_name_is_zero_padded() {
+        assertThat(ArtifactPath.pageFileName(1)).isEqualTo("page-0001.md");
+        assertThat(ArtifactPath.pageFileName(12)).isEqualTo("page-0012.md");
+    }
+
+    @Test
+    public void test_structure_complete_marker_path() {
+        Path root = Path.of("/artifact/prj");
+        String digest = "6abb96950946b62bb993307c8945c0c096982783bab7fa24901522426840ca3e";
+        assertThat(ArtifactPath.structureComplete(root, digest).toString())
+                .isEqualTo("/artifact/prj/6a/bb/" + digest + "/structure/.complete");
+    }
 }

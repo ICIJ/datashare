@@ -4,6 +4,8 @@ import java.nio.file.Path;
 
 public class ArtifactPath {
 
+    public static final String STRUCTURE_COMPLETE_MARKER = ".complete";
+
     private ArtifactPath() {}
 
     /** Content-addressed directory for a digest, mirroring extract-lib's raw layout. */
@@ -15,7 +17,15 @@ public class ArtifactPath {
         return dir(projectRoot, digest).resolve("structure");
     }
 
+    public static String pageFileName(int pageNumber) {
+        return String.format("page-%04d.md", pageNumber);
+    }
+
     public static Path structurePage(Path projectRoot, String digest, int pageNumber) {
-        return structureDir(projectRoot, digest).resolve(String.format("page-%04d.md", pageNumber));
+        return structureDir(projectRoot, digest).resolve(pageFileName(pageNumber));
+    }
+
+    public static Path structureComplete(Path projectRoot, String digest) {
+        return structureDir(projectRoot, digest).resolve(STRUCTURE_COMPLETE_MARKER);
     }
 }
