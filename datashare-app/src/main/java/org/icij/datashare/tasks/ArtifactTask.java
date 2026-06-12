@@ -77,16 +77,19 @@ public class ArtifactTask extends PipelineTask<String> {
 
     private void writeStructureMarkdown(SourceExtractor sourceExtractor, StructureMarkdownExtractor structureExtractor,
                                         Path projectArtifactDir, Document doc) {
-        Path target = ArtifactPath.structureMarkdown(projectArtifactDir, doc.getId());
-        if (target.toFile().exists()) {
+        Path firstPage = ArtifactPath.structurePage(projectArtifactDir, doc.getId(), 1);
+        if (firstPage.toFile().exists()) {
             return; // skip-if-present: deterministic output is already cached
         }
         try (InputStream source = sourceExtractor.getSource(project, doc)) {
-            String markdown = structureExtractor.extract(source, doc.getContentType());
-            Files.createDirectories(target.getParent());
-            Files.writeString(target, markdown, StandardCharsets.UTF_8);
+            List<String> pages = structureExtractor.extractPages(source, doc.getContentType());
+            Files.createDirectories(ArtifactPath.structureDir(projectArtifactDir, doc.getId()));
+            for (int i = 0; i < pages.size(); i++) {
+                Files.writeString(ArtifactPath.structurePage(projectArtifactDir, doc.getId(), i + 1),
+                        pages.get(i), StandardCharsets.UTF_8);
+            }
         } catch (Exception e) {
-            logger.error("could not write structure.md for document {}", doc.getId(), e);
+            logger.error("could not write structure markdown for document {}", doc.getId(), e);
         }
     }
 }
