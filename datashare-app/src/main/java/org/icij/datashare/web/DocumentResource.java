@@ -28,6 +28,7 @@ import org.icij.datashare.text.*;
 import org.icij.datashare.text.indexing.ExtractedText;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.text.indexing.SearchedText;
+import org.icij.datashare.text.indexing.elasticsearch.ArtifactPath;
 import org.icij.datashare.text.indexing.elasticsearch.SourceExtractor;
 import org.icij.datashare.user.User;
 import org.icij.datashare.utils.DocumentVerifier;
@@ -43,6 +44,8 @@ import org.slf4j.LoggerFactory;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -174,6 +177,36 @@ public class DocumentResource {
                     metadata -> doc.getTitle().equals(metadata.get("resourceName")) ||
                             "INLINE".equals(metadata.get("embeddedResourceType")), doc.getId());
         }
+    }
+
+    @Operation(description = "Fetches the document structure as Markdown from the artifact directory.",
+            parameters = {
+                    @Parameter(name = "project", description = "the project id", in = ParameterIn.PATH),
+                    @Parameter(name = "id", description = "the document id", in = ParameterIn.PATH),
+                    @Parameter(name = "routing", description = "routing key if not a root document", in = ParameterIn.QUERY)
+            }
+    )
+    @ApiResponse(responseCode = "200", description = "the structure.md content as text/markdown")
+    @ApiResponse(responseCode = "404", description = "if the document or its structure.md is not found")
+    @ApiResponse(responseCode = "403", description = "forbidden if the user doesn't have access to the project")
+    @Get("/:project/documents/structure/:id?routing=:routing")
+    public Payload getStructure(final String project, final String id, final String routing, final Context context) throws IOException {
+        if (!((DatashareUser) context.currentUser()).isGranted(project)) {
+            return PayloadFormatter.error("You are not allowed to access this document", HttpStatus.FORBIDDEN);
+        }
+        Document document = indexer.get(project, id, ofNullable(routing).orElse(id), List.of("content", "content_translated"));
+        if (document == null) {
+            return Payload.notFound();
+        }
+        Path artifactProjectDir = getArtifactPath(project(project));
+        if (artifactProjectDir == null) {
+            return Payload.notFound();
+        }
+        Path structureFile = ArtifactPath.structureMarkdown(artifactProjectDir, document.getId());
+        if (!structureFile.toFile().isFile()) {
+            return Payload.notFound();
+        }
+        return new Payload("text/markdown;charset=UTF-8", Files.readString(structureFile, StandardCharsets.UTF_8)).withCode(200);
     }
 
     @Operation(description = "Fetches document extracted text paginated in a json list of texts. It will use the source document and not the indexed extracted content.",

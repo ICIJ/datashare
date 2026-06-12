@@ -526,4 +526,25 @@ public class DocumentResourceTest extends AbstractProdWebServerTest {
         assertThat(json.get(1)).contains("");
     }
 
+    @Test
+    public void test_get_structure_returns_markdown() throws Exception {
+        String id = "6abb96950946b62bb993307c8945c0c096982783bab7fa24901522426840ca3e";
+        when(propertiesProvider.get(ARTIFACT_DIR_OPT)).thenReturn(Optional.of(temp.getRoot().toString()));
+        mockIndexer.indexFile("local-datashare", id, Paths.get("ignored"), "application/pdf", null);
+        File structureDir = temp.newFolder("local-datashare", "6a", "bb", id);
+        MockIndexer.write(new File(structureDir, "structure.md"), "# Title\n\n<!-- page 1 -->\n");
+
+        get("/api/local-datashare/documents/structure/" + id).should()
+                .succeed().contain("# Title").haveType("text/markdown;charset=UTF-8");
+    }
+
+    @Test
+    public void test_get_structure_absent_returns_404() {
+        String id = "absent_structure_id_000000000000000000000000000000000000000000";
+        when(propertiesProvider.get(ARTIFACT_DIR_OPT)).thenReturn(Optional.of(temp.getRoot().toString()));
+        mockIndexer.indexFile("local-datashare", id, Paths.get("ignored"), "application/pdf", null);
+
+        get("/api/local-datashare/documents/structure/" + id).should().respond(404);
+    }
+
 }
