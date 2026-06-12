@@ -527,15 +527,15 @@ public class DocumentResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
-    public void test_get_structure_returns_markdown() throws Exception {
+    public void test_get_structure_returns_page_count() throws Exception {
         String id = "6abb96950946b62bb993307c8945c0c096982783bab7fa24901522426840ca3e";
         when(propertiesProvider.get(ARTIFACT_DIR_OPT)).thenReturn(Optional.of(temp.getRoot().toString()));
         mockIndexer.indexFile("local-datashare", id, Paths.get("ignored"), "application/pdf", null);
-        File structureDir = temp.newFolder("local-datashare", "6a", "bb", id);
-        MockIndexer.write(new File(structureDir, "structure.md"), "# Title\n\n<!-- page 1 -->\n");
+        File structureDir = temp.newFolder("local-datashare", "6a", "bb", id, "structure");
+        MockIndexer.write(new File(structureDir, "page-0001.md"), "# Page one");
+        MockIndexer.write(new File(structureDir, "page-0002.md"), "# Page two");
 
-        get("/api/local-datashare/documents/structure/" + id).should()
-                .succeed().contain("# Title").haveType("text/markdown;charset=UTF-8");
+        get("/api/local-datashare/documents/structure/" + id).should().succeed().contain("\"pages\":2");
     }
 
     @Test
@@ -545,6 +545,37 @@ public class DocumentResourceTest extends AbstractProdWebServerTest {
         mockIndexer.indexFile("local-datashare", id, Paths.get("ignored"), "application/pdf", null);
 
         get("/api/local-datashare/documents/structure/" + id).should().respond(404);
+    }
+
+    @Test
+    public void test_get_structure_page_returns_markdown() throws Exception {
+        String id = "6abb96950946b62bb993307c8945c0c096982783bab7fa24901522426840ca3e";
+        when(propertiesProvider.get(ARTIFACT_DIR_OPT)).thenReturn(Optional.of(temp.getRoot().toString()));
+        mockIndexer.indexFile("local-datashare", id, Paths.get("ignored"), "application/pdf", null);
+        File structureDir = temp.newFolder("local-datashare", "6a", "bb", id, "structure");
+        MockIndexer.write(new File(structureDir, "page-0001.md"), "# Page one body");
+
+        get("/api/local-datashare/documents/structure/" + id + "/1").should()
+                .succeed().contain("# Page one body").haveType("text/markdown;charset=UTF-8");
+    }
+
+    @Test
+    public void test_get_structure_page_out_of_range_returns_404() throws Exception {
+        String id = "6abb96950946b62bb993307c8945c0c096982783bab7fa24901522426840ca3e";
+        when(propertiesProvider.get(ARTIFACT_DIR_OPT)).thenReturn(Optional.of(temp.getRoot().toString()));
+        mockIndexer.indexFile("local-datashare", id, Paths.get("ignored"), "application/pdf", null);
+        temp.newFolder("local-datashare", "6a", "bb", id, "structure");
+
+        get("/api/local-datashare/documents/structure/" + id + "/9").should().respond(404);
+    }
+
+    @Test
+    public void test_get_structure_page_non_numeric_returns_404() throws Exception {
+        String id = "6abb96950946b62bb993307c8945c0c096982783bab7fa24901522426840ca3e";
+        when(propertiesProvider.get(ARTIFACT_DIR_OPT)).thenReturn(Optional.of(temp.getRoot().toString()));
+        mockIndexer.indexFile("local-datashare", id, Paths.get("ignored"), "application/pdf", null);
+
+        get("/api/local-datashare/documents/structure/" + id + "/abc").should().respond(404);
     }
 
 }

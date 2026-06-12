@@ -41,6 +41,7 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
@@ -179,18 +180,18 @@ public class DocumentResource {
         }
     }
 
-    @Operation(description = "Fetches the document structure as Markdown from the artifact directory.",
+    @Operation(description = "Fetches the number of structure-Markdown pages available for a document.",
             parameters = {
                     @Parameter(name = "project", description = "the project id", in = ParameterIn.PATH),
                     @Parameter(name = "id", description = "the document id", in = ParameterIn.PATH),
                     @Parameter(name = "routing", description = "routing key if not a root document", in = ParameterIn.QUERY)
             }
     )
-    @ApiResponse(responseCode = "200", description = "the structure.md content as text/markdown")
-    @ApiResponse(responseCode = "404", description = "if the document or its structure.md is not found")
+    @ApiResponse(responseCode = "200", description = "JSON {\"pages\": N}")
+    @ApiResponse(responseCode = "404", description = "if the document or its structure pages are not found")
     @ApiResponse(responseCode = "403", description = "forbidden if the user doesn't have access to the project")
     @Get("/:project/documents/structure/:id?routing=:routing")
-    public Payload getStructure(final String project, final String id, final String routing, final Context context) throws IOException {
+    public Payload getStructure(final String project, final String id, final String routing, final Context context) {
         if (!((DatashareUser) context.currentUser()).isGranted(project)) {
             return PayloadFormatter.error("You are not allowed to access this document", HttpStatus.FORBIDDEN);
         }
@@ -202,11 +203,55 @@ public class DocumentResource {
         if (artifactProjectDir == null) {
             return Payload.notFound();
         }
-        Path structureFile = ArtifactPath.structureMarkdown(artifactProjectDir, document.getId());
-        if (!structureFile.toFile().isFile()) {
+        File[] pageFiles = ArtifactPath.structureDir(artifactProjectDir, document.getId()).toFile()
+                .listFiles((dir, name) -> name.matches("page-\\d+\\.md"));
+        if (pageFiles == null || pageFiles.length == 0) {
             return Payload.notFound();
         }
-        return new Payload("text/markdown;charset=UTF-8", Files.readString(structureFile, StandardCharsets.UTF_8)).withCode(200);
+        // ArtifactTask writes pages sequentially (page-0001..page-NNNN) with no gaps, so the file
+        // count equals the highest page number; the page endpoint will resolve every page 1..N.
+        return new Payload(Map.of("pages", pageFiles.length)).withCode(200);
+    }
+
+    @Operation(description = "Fetches a single page of structure Markdown for a document.",
+            parameters = {
+                    @Parameter(name = "project", description = "the project id", in = ParameterIn.PATH),
+                    @Parameter(name = "id", description = "the document id", in = ParameterIn.PATH),
+                    @Parameter(name = "page", description = "1-based page number", in = ParameterIn.PATH),
+                    @Parameter(name = "routing", description = "routing key if not a root document", in = ParameterIn.QUERY)
+            }
+    )
+    @ApiResponse(responseCode = "200", description = "the page Markdown as text/markdown")
+    @ApiResponse(responseCode = "404", description = "if the document or the page is not found")
+    @ApiResponse(responseCode = "403", description = "forbidden if the user doesn't have access to the project")
+    @Get("/:project/documents/structure/:id/:page?routing=:routing")
+    public Payload getStructurePage(final String project, final String id, final String page,
+                                    final String routing, final Context context) throws IOException {
+        if (!((DatashareUser) context.currentUser()).isGranted(project)) {
+            return PayloadFormatter.error("You are not allowed to access this document", HttpStatus.FORBIDDEN);
+        }
+        int pageNumber;
+        try {
+            pageNumber = Integer.parseInt(page);
+        } catch (NumberFormatException e) {
+            return Payload.notFound();
+        }
+        if (pageNumber < 1) {
+            return Payload.notFound();
+        }
+        Document document = indexer.get(project, id, ofNullable(routing).orElse(id), List.of("content", "content_translated"));
+        if (document == null) {
+            return Payload.notFound();
+        }
+        Path artifactProjectDir = getArtifactPath(project(project));
+        if (artifactProjectDir == null) {
+            return Payload.notFound();
+        }
+        Path pageFile = ArtifactPath.structurePage(artifactProjectDir, document.getId(), pageNumber);
+        if (!pageFile.toFile().isFile()) {
+            return Payload.notFound();
+        }
+        return new Payload("text/markdown;charset=UTF-8", Files.readString(pageFile, StandardCharsets.UTF_8)).withCode(200);
     }
 
     @Operation(description = "Fetches document extracted text paginated in a json list of texts. It will use the source document and not the indexed extracted content.",
