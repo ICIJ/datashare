@@ -5,12 +5,16 @@ import org.apache.pdfbox.pdmodel.PDPage;
 import org.apache.pdfbox.pdmodel.PDPageContentStream;
 import org.apache.pdfbox.pdmodel.font.PDType1Font;
 import org.apache.pdfbox.pdmodel.font.Standard14Fonts;
+import org.jsoup.Jsoup;
 import org.junit.Test;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.List;
+import java.util.Objects;
 
 import static org.fest.assertions.Assertions.assertThat;
 
@@ -65,11 +69,11 @@ public class StructureMarkdownExtractorTest {
 
     @Test
     public void test_sanitize_strips_scripts_handlers_and_unsafe_urls() {
-        String safe = extractor.sanitize(
+        String safe = extractor.sanitize(Jsoup.parseBodyFragment(
                 "<p onclick=\"steal()\">keep</p>" +
                 "<script>alert('xss')</script>" +
                 "<a href=\"javascript:alert(1)\">link</a>" +
-                "<img src=x onerror=\"alert(1)\">");
+                "<img src=x onerror=\"alert(1)\">").body());
         assertThat(safe).excludes("script");
         assertThat(safe).excludes("onclick");
         assertThat(safe).excludes("onerror");
@@ -82,11 +86,33 @@ public class StructureMarkdownExtractorTest {
 
     @Test
     public void test_sanitize_strips_data_url_scheme() {
-        String safe = extractor.sanitize(
+        String safe = extractor.sanitize(Jsoup.parseBodyFragment(
                 "<img src=\"data:image/png;base64,AAAA\">keep" +
-                "<a href=\"data:text/html;base64,BBBB\">link</a>");
+                "<a href=\"data:text/html;base64,BBBB\">link</a>").body());
         assertThat(safe).excludes("data:");
         assertThat(safe).contains("keep");
+    }
+
+    @Test
+    public void test_paragraph_with_only_br_is_dropped() {
+        String safe = extractor.sanitize(Jsoup.parseBodyFragment("<p><br></p><p>real</p>").body());
+        assertThat(safe).excludes("<br");
+        assertThat(safe).contains("real");
+    }
+
+    @Test
+    public void test_relative_links_are_preserved() {
+        String safe = extractor.sanitize(Jsoup.parseBodyFragment("<a href=\"page2.html\">next</a>").body());
+        assertThat(safe).contains("page2.html");
+    }
+
+    @Test
+    public void test_embedded_documents_are_not_split_into_extra_pages() throws Exception {
+        byte[] eml = Files.readAllBytes(Path.of(Objects.requireNonNull(
+                getClass().getResource("/docs/embedded_doc.eml")).toURI()));
+        List<String> pages = extractor.extractPages(new ByteArrayInputStream(eml), "message/rfc822");
+        assertThat(pages).hasSize(1);
+        assertThat(pages.get(0)).contains("test embedded");
     }
 
     private byte[] twoPagePdf() throws Exception {
