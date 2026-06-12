@@ -42,6 +42,10 @@
             <scope>provided</scope> <!-- netty is pulled by extract and netty4 plugin so there is a conflict -->
         </dependency>
         <dependency>
+            <groupId>com.vladsch.flexmark</groupId>
+            <artifactId>flexmark-html2md-converter</artifactId>
+        </dependency>
+        <dependency>
             <groupId>com.google.inject</groupId>
             <artifactId>guice</artifactId>
         </dependency>
