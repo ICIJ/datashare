@@ -216,7 +216,15 @@ public enum Language implements Serializable {
                 return lang;
             }
         }
-        return valueOf(language.toUpperCase(Locale.ROOT));
+        // Fall back to the enum constant name, but never throw on an unknown code:
+        // the language detector can return ISO codes absent from this enum (e.g. "ast"
+        // for Asturian), and a thrown exception here aborts extraction of the whole
+        // containing file (e.g. every remaining email in a PST).
+        try {
+            return valueOf(language.toUpperCase(Locale.ROOT));
+        } catch (IllegalArgumentException e) {
+            return UNKNOWN;
+        }
     }
 
 }
