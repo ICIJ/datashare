@@ -29,8 +29,8 @@ public class PolicyWatcher implements Watcher, Closeable {
     @Override
     public void setUpdateCallback(Runnable callback) {
         if (listenerId != -1) topic.removeListener(listenerId);
-        listenerId = topic.addListener(String.class, (ch, msg) -> {
-            if (msg.startsWith(instanceId)) {
+        listenerId = topic.addListener(PolicyUpdateMessage.class, (ch, msg) -> {
+            if (instanceId.equals(msg.callerId())) {
                 LOGGER.debug("Ignoring own policy-update notification");
             } else {
                 LOGGER.info("Received policy-update notification from remote instance, reloading");
@@ -42,12 +42,12 @@ public class PolicyWatcher implements Watcher, Closeable {
     @Override
     public void setUpdateCallback(Consumer<String> callback) {
         if (listenerId != -1) topic.removeListener(listenerId);
-        listenerId = topic.addListener(String.class, (ch, msg) -> {
-            if (msg.startsWith(instanceId)) {
+        listenerId = topic.addListener(PolicyUpdateMessage.class, (ch, msg) -> {
+            if (instanceId.equals(msg.callerId())) {
                 LOGGER.debug("Ignoring own policy-update notification");
             } else {
                 LOGGER.info("Received policy-update notification from remote instance, reloading");
-                callback.accept(msg);
+                callback.accept(msg.message());
             }
         });
     }
@@ -55,7 +55,7 @@ public class PolicyWatcher implements Watcher, Closeable {
     @Override
     public void update() {
         try {
-            topic.publish(instanceId + ":reload");
+            topic.publish(new PolicyUpdateMessage(instanceId, "reload"));
         } catch (Exception e) {
             // The Casbin rule was already written to SQL; only the Redis notification failed.
             // Do not rethrow: that would unwind casbinWithRollback and corrupt the
