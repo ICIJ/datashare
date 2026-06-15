@@ -403,7 +403,9 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
         if (isOAuth || isRedis) {
             return injector.getInstance(UsersIdProviderRedisCache.class);
         }
-        // No Redis available: saveOrUpdate is a no-op, reads return null.
+        // No Redis available: Guice still requires a concrete binding for UsersIdProviderCache.
+        // find() returns null ("cache-miss" signal) but is never reached, provideUsers() returns
+        // userStore directly in the non-Redis path. saveOrUpdate is a no-op: no Redis, no session store.
         return new UsersIdProviderCache() {
             @Override public net.codestory.http.security.User find(String login) { return null; }
             @Override public net.codestory.http.security.User find(String login, String password) { return null; }
