@@ -2,7 +2,10 @@ package org.icij.datashare.policies;
 
 import net.codestory.http.Context;
 import net.codestory.http.errors.UnauthorizedException;
+import org.casbin.jcasbin.main.SyncedEnforcer;
 import org.casbin.jcasbin.persist.Watcher;
+import org.casbin.jcasbin.rbac.DomainManager;
+import org.casbin.jcasbin.util.BuiltInFunctions;
 import org.icij.datashare.policies.errors.InvalidValueException;
 import org.icij.datashare.policies.errors.UnknownRoleException;
 import org.icij.datashare.session.DatashareUser;
@@ -10,6 +13,7 @@ import org.icij.datashare.text.Project;
 import org.icij.datashare.user.User;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.MockedConstruction;
 import org.mockito.Mockito;
 
 import java.io.Closeable;
@@ -19,7 +23,9 @@ import static org.fest.assertions.Assertions.assertThat;
 import static org.icij.datashare.text.Project.project;
 import static org.icij.datashare.user.User.localUser;
 import static org.junit.Assert.*;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -407,15 +413,28 @@ public class AuthorizerTest {
     @Test
     public void test_polling_authorizer_close_stops_autoload() throws Exception {
         CasbinRuleAdapter adapter = Mockito.mock(CasbinRuleAdapter.class);
-        Authorizer pollingAuthorizer = new Authorizer(adapter, 100L);
-        pollingAuthorizer.close();
+        try (MockedConstruction<SyncedEnforcer> mockedConstruction = Mockito.mockConstruction(SyncedEnforcer.class, (mock, ctx) -> {
+            when(mock.getRoleManager()).thenReturn(new DomainManager(10, null, BuiltInFunctions::allMatch));
+        })) {
+            Authorizer pollingAuthorizer = new Authorizer(adapter, 100L);
+            SyncedEnforcer mockedEnforcer = mockedConstruction.constructed().getFirst();
+            pollingAuthorizer.close();
+            verify(mockedEnforcer).stopAutoLoadPolicy();
+        }
     }
 
     @Test
     public void test_zero_interval_does_not_start_polling_and_close_is_safe() throws Exception {
         CasbinRuleAdapter adapter = Mockito.mock(CasbinRuleAdapter.class);
-        Authorizer noPollingAuthorizer = new Authorizer(adapter, 0L);
-        noPollingAuthorizer.close();
+        try (MockedConstruction<SyncedEnforcer> mockedConstruction = Mockito.mockConstruction(SyncedEnforcer.class, (mock, ctx) -> {
+            when(mock.getRoleManager()).thenReturn(new DomainManager(10, null, BuiltInFunctions::allMatch));
+        })) {
+            Authorizer noPollingAuthorizer = new Authorizer(adapter, 0L);
+            SyncedEnforcer mockedEnforcer = mockedConstruction.constructed().getFirst();
+            noPollingAuthorizer.close();
+            verify(mockedEnforcer, never()).startAutoLoadPolicy(anyLong());
+            verify(mockedEnforcer).stopAutoLoadPolicy();
+        }
     }
 
     @Test
