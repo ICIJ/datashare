@@ -62,7 +62,7 @@ import static org.icij.datashare.cli.DatashareCliOptions.*;
 @TemporalSingleActivityWorkflow(name = "batch-download", activityOptions = @ActivityOpts(timeout = "P7D"))
 @TaskGroup(TaskGroupType.Java)
 public class BatchDownloadRunner implements Callable<BatchDownloadRunnerResult>, Monitorable, UserTask, CancellableTask {
-    private final static Logger logger = LoggerFactory.getLogger(BatchDownloadRunner.class);
+    private static final Logger logger = LoggerFactory.getLogger(BatchDownloadRunner.class);
     static final int MAX_SCROLL_SIZE = 3500;
     static final int MAX_BATCH_RESULT_SIZE = 10000;
     private final DocumentVerifier documentVerifier;

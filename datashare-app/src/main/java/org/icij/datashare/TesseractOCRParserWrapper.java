@@ -10,7 +10,7 @@ import java.util.HashMap;
 
 @Singleton
 public class TesseractOCRParserWrapper {
-    private final static Logger logger = LoggerFactory.getLogger(TesseractOCRParserWrapper.class);
+    private static final Logger logger = LoggerFactory.getLogger(TesseractOCRParserWrapper.class);
     private final TesseractOCRParser ocrParser;
 
     public TesseractOCRParserWrapper() {

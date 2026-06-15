@@ -32,7 +32,7 @@ import static org.icij.datashare.policies.errors.UnknownRoleException.resolveRol
 @Singleton
 public final class Authorizer implements Closeable {
 
-    private final static String SEPARATOR = "::";
+    private static final String SEPARATOR = "::";
     private static final String DEFAULT_POLICY_FILE = "casbin/model.conf";
     private final SyncedEnforcer enforcer;
 
