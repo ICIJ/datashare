@@ -62,7 +62,7 @@ public class SystemThemeDetector {
             // many desktops ship a dark default. Fall back to the GTK theme name.
             return detectLinuxGtkTheme();
         } catch (Exception e) {
-            LOGGER.warn("Could not detect Linux theme, defaulting to UNKNOWN", e);
+            LOGGER.debug("Could not detect Linux theme ({}); defaulting to UNKNOWN", e.getMessage());
             return Theme.UNKNOWN;
         }
     }
@@ -74,7 +74,7 @@ public class SystemThemeDetector {
                     .toLowerCase(Locale.ROOT);
             return theme.contains("dark") ? Theme.DARK : Theme.LIGHT;
         } catch (Exception e) {
-            LOGGER.warn("Could not read GTK theme, defaulting to UNKNOWN", e);
+            LOGGER.debug("Could not read GTK theme ({}); defaulting to UNKNOWN", e.getMessage());
             return Theme.UNKNOWN;
         }
     }
@@ -94,7 +94,7 @@ public class SystemThemeDetector {
             }
             return Theme.UNKNOWN;
         } catch (Exception e) {
-            LOGGER.warn("Could not detect Windows theme, defaulting to UNKNOWN", e);
+            LOGGER.debug("Could not detect Windows theme ({}); defaulting to UNKNOWN", e.getMessage());
             return Theme.UNKNOWN;
         }
     }
