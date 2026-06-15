@@ -26,30 +26,31 @@ public class PolicyWatcherTest {
     }
 
     @Test
-    public void update_publishes_reload_message_with_instance_prefix() {
-        ArgumentCaptor<String> captor = ArgumentCaptor.forClass(String.class);
+    public void update_publishes_message_with_caller_id() {
+        ArgumentCaptor<PolicyUpdateMessage> captor = ArgumentCaptor.forClass(PolicyUpdateMessage.class);
         watcher.update();
         verify(topic).publish(captor.capture());
-        assertThat(captor.getValue()).endsWith(":reload");
+        assertThat(captor.getValue().callerId()).isNotEmpty();
+        assertThat(captor.getValue().message()).isEqualTo("reload");
     }
 
     @Test
     public void set_update_callback_runnable_registers_listener() {
-        when(topic.addListener(eq(String.class), any())).thenReturn(1);
+        when(topic.addListener(eq(PolicyUpdateMessage.class), any())).thenReturn(1);
         watcher.setUpdateCallback((Runnable) () -> {});
-        verify(topic).addListener(eq(String.class), any());
+        verify(topic).addListener(eq(PolicyUpdateMessage.class), any());
     }
 
     @Test
     public void set_update_callback_consumer_registers_listener() {
-        when(topic.addListener(eq(String.class), any())).thenReturn(1);
+        when(topic.addListener(eq(PolicyUpdateMessage.class), any())).thenReturn(1);
         watcher.setUpdateCallback(msg -> {});
-        verify(topic).addListener(eq(String.class), any());
+        verify(topic).addListener(eq(PolicyUpdateMessage.class), any());
     }
 
     @Test
     public void close_removes_listener_after_registration() {
-        when(topic.addListener(eq(String.class), any())).thenReturn(42);
+        when(topic.addListener(eq(PolicyUpdateMessage.class), any())).thenReturn(42);
         watcher.setUpdateCallback((Runnable) () -> {});
         watcher.close();
         verify(topic).removeListener(42);
@@ -64,9 +65,28 @@ public class PolicyWatcherTest {
     @Test
     public void callback_is_invoked_for_message_from_another_instance() {
         boolean[] called = {false};
-        when(topic.addListener(eq(String.class), any())).thenAnswer(inv -> {
-            org.redisson.api.listener.MessageListener<String> listener = inv.getArgument(1);
-            listener.onMessage(null, "other-instance-id:reload");
+        when(topic.addListener(eq(PolicyUpdateMessage.class), any())).thenAnswer(inv -> {
+            org.redisson.api.listener.MessageListener<PolicyUpdateMessage> listener = inv.getArgument(1);
+            listener.onMessage(null, new PolicyUpdateMessage("other-instance-id", "reload"));
+            return 1;
+        });
+        watcher.setUpdateCallback((Runnable) () -> called[0] = true);
+        assertThat(called[0]).isTrue();
+    }
+
+    @Test
+    public void callback_is_invoked_when_caller_id_is_prefixed_extension_of_own_id() {
+        // Guard against the old startsWith-based check: a callerId that merely starts
+        // with our instanceId is NOT our message and must trigger the callback.
+        boolean[] called = {false};
+        ArgumentCaptor<PolicyUpdateMessage> publishCaptor = ArgumentCaptor.forClass(PolicyUpdateMessage.class);
+        watcher.update();
+        verify(topic).publish(publishCaptor.capture());
+        String extendedCallerId = publishCaptor.getValue().callerId() + "-other";
+
+        when(topic.addListener(eq(PolicyUpdateMessage.class), any())).thenAnswer(inv -> {
+            org.redisson.api.listener.MessageListener<PolicyUpdateMessage> listener = inv.getArgument(1);
+            listener.onMessage(null, new PolicyUpdateMessage(extendedCallerId, "reload"));
             return 1;
         });
         watcher.setUpdateCallback((Runnable) () -> called[0] = true);
@@ -76,13 +96,13 @@ public class PolicyWatcherTest {
     @Test
     public void callback_is_not_invoked_for_own_message() {
         boolean[] called = {false};
-        ArgumentCaptor<String> publishCaptor = ArgumentCaptor.forClass(String.class);
+        ArgumentCaptor<PolicyUpdateMessage> publishCaptor = ArgumentCaptor.forClass(PolicyUpdateMessage.class);
         watcher.update();
         verify(topic).publish(publishCaptor.capture());
-        String ownMessage = publishCaptor.getValue();
+        PolicyUpdateMessage ownMessage = publishCaptor.getValue();
 
-        when(topic.addListener(eq(String.class), any())).thenAnswer(inv -> {
-            org.redisson.api.listener.MessageListener<String> listener = inv.getArgument(1);
+        when(topic.addListener(eq(PolicyUpdateMessage.class), any())).thenAnswer(inv -> {
+            org.redisson.api.listener.MessageListener<PolicyUpdateMessage> listener = inv.getArgument(1);
             listener.onMessage(null, ownMessage);
             return 1;
         });
