@@ -318,7 +318,6 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
             // explicitly to enable periodic reloads as a hedge against missed publications.
             long interval = parseInt(propertiesProvider.get(POLICY_RELOAD_INTERVAL_OPT).orElse("0"));
             PolicyWatcher watcher = new PolicyWatcher(redissonProvider.get());
-            addCloseable(watcher);
             Authorizer authorizer = new Authorizer(adapter, watcher);
             authorizer.startAutoLoadPolicy(interval);
             addCloseable(authorizer);

@@ -12,6 +12,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 
+import java.io.Closeable;
 import java.util.List;
 
 import static org.fest.assertions.Assertions.assertThat;
@@ -415,6 +416,26 @@ public class AuthorizerTest {
         CasbinRuleAdapter adapter = Mockito.mock(CasbinRuleAdapter.class);
         Authorizer noPollingAuthorizer = new Authorizer(adapter, 0L);
         noPollingAuthorizer.close();
+    }
+
+    @Test
+    public void test_close_cascades_to_closeable_watcher() throws Exception {
+        CasbinRuleAdapter adapter = Mockito.mock(CasbinRuleAdapter.class);
+        Watcher mockWatcher = Mockito.mock(Watcher.class, Mockito.withSettings().extraInterfaces(Closeable.class));
+        Authorizer watchedAuthorizer = new Authorizer(adapter, mockWatcher);
+
+        watchedAuthorizer.close();
+
+        verify((Closeable) mockWatcher).close();
+    }
+
+    @Test
+    public void test_close_with_non_closeable_watcher_is_safe() throws Exception {
+        CasbinRuleAdapter adapter = Mockito.mock(CasbinRuleAdapter.class);
+        Watcher mockWatcher = Mockito.mock(Watcher.class);
+        Authorizer watchedAuthorizer = new Authorizer(adapter, mockWatcher);
+
+        watchedAuthorizer.close();
     }
 
 }
