@@ -35,6 +35,7 @@ public final class Authorizer implements Closeable {
     private static final String SEPARATOR = "::";
     private static final String DEFAULT_POLICY_FILE = "casbin/model.conf";
     private final SyncedEnforcer enforcer;
+    @Nullable private Closeable watcherCloseable;
 
     @Inject
     public Authorizer(CasbinRuleAdapter adapter) throws IOException {
@@ -43,7 +44,10 @@ public final class Authorizer implements Closeable {
 
     public Authorizer(CasbinRuleAdapter adapter, Watcher watcher) throws IOException {
         this(adapter, true, false);
-        if (watcher != null) enforcer.setWatcher(watcher);
+        if (watcher != null) {
+            enforcer.setWatcher(watcher);
+            this.watcherCloseable = watcher instanceof Closeable ? (Closeable) watcher : null;
+        }
     }
 
     public Authorizer(CasbinRuleAdapter adapter, long reloadIntervalMs) throws IOException {
@@ -253,8 +257,9 @@ public final class Authorizer implements Closeable {
     }
 
     @Override
-    public void close() {
+    public void close() throws IOException {
         enforcer.stopAutoLoadPolicy();
+        if (watcherCloseable != null) watcherCloseable.close();
     }
 
 
