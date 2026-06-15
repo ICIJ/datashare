@@ -11,6 +11,7 @@ import org.mockito.Mock;
 import java.awt.Image;
 import java.awt.event.ActionListener;
 import java.awt.image.BufferedImage;
+import java.util.concurrent.ScheduledExecutorService;
 
 import static org.icij.datashare.tray.SystemThemeDetector.Theme;
 import static org.mockito.ArgumentMatchers.any;
@@ -74,6 +75,21 @@ public class DatashareSystemTrayTest {
         datashareSystemTray.refreshThemeIcon(); // same theme -> no extra setImage
 
         verify(systemTray, times(2)).setImage(any(Image.class)); // initial + first refresh only
+    }
+
+    @Test
+    public void test_refresh_stops_watcher_when_theme_undetectable() {
+        ScheduledExecutorService watcher = mock(ScheduledExecutorService.class);
+        when(iconProvider.tracksSystemTheme()).thenReturn(true);
+        when(iconProvider.currentTheme()).thenReturn(Theme.UNKNOWN);
+        DatashareSystemTray tray =
+                new DatashareSystemTray(systemTray, trayActions, iconProvider, watcher);
+        reset(systemTray); // discard the initial icon set during construction
+
+        tray.refreshThemeIcon();
+
+        verify(watcher).shutdownNow();
+        verify(systemTray, never()).setImage(any(Image.class)); // icon unchanged: still the fallback
     }
 
     @Test

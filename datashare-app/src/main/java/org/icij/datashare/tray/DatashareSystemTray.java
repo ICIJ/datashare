@@ -28,11 +28,18 @@ public class DatashareSystemTray implements Closeable {
     private final TrayIconProvider iconProvider;
     private ScheduledExecutorService themeWatcher;
     private volatile Theme lastAppliedTheme;
+    private final ScheduledExecutorService injectedWatcher;
 
     DatashareSystemTray(SystemTray systemTray, TrayActions actions, TrayIconProvider iconProvider) {
+        this(systemTray, actions, iconProvider, null);
+    }
+
+    DatashareSystemTray(SystemTray systemTray, TrayActions actions, TrayIconProvider iconProvider,
+                        ScheduledExecutorService injectedWatcher) {
         this.systemTray = systemTray;
         this.actions = actions;
         this.iconProvider = iconProvider;
+        this.injectedWatcher = injectedWatcher;
         configure();
     }
 
@@ -99,19 +106,30 @@ public class DatashareSystemTray implements Closeable {
     }
 
     private void startThemeWatcher() {
-        themeWatcher = Executors.newSingleThreadScheduledExecutor(runnable -> {
-            Thread thread = new Thread(runnable, "tray-theme-watcher");
-            thread.setDaemon(true);
-            return thread;
-        });
+        themeWatcher = injectedWatcher != null ? injectedWatcher : defaultThemeWatcher();
         // First run (delay 0) resolves the real theme off the startup thread; later runs
         // pick up the user toggling light/dark while Datashare is running.
         themeWatcher.scheduleWithFixedDelay(this::refreshThemeIcon, 0, THEME_POLL_SECONDS, TimeUnit.SECONDS);
     }
 
+    private static ScheduledExecutorService defaultThemeWatcher() {
+        return Executors.newSingleThreadScheduledExecutor(runnable -> {
+            Thread thread = new Thread(runnable, "tray-theme-watcher");
+            thread.setDaemon(true);
+            return thread;
+        });
+    }
+
     void refreshThemeIcon() {
         try {
             Theme theme = iconProvider.currentTheme();
+            if (theme == Theme.UNKNOWN) {
+                // Detection is unavailable in this environment (e.g. no GNOME session):
+                // stop polling a doomed subprocess and keep the legible fallback icon.
+                LOGGER.info("System theme could not be detected; keeping the fallback tray icon and stopping the theme watcher");
+                stopThemeWatcher();
+                return;
+            }
             if (theme == lastAppliedTheme) {
                 return; // unchanged: skip a redundant re-encode/setImage
             }
@@ -152,11 +170,15 @@ public class DatashareSystemTray implements Closeable {
         }
     }
 
+    private void stopThemeWatcher() {
+        if (themeWatcher != null) {
+            themeWatcher.shutdownNow(); // idempotent: safe to call again from close()
+        }
+    }
+
     @Override
     public void close() throws IOException {
-        if (themeWatcher != null) {
-            themeWatcher.shutdownNow();
-        }
+        stopThemeWatcher();
         systemTray.shutdown();
     }
 }
