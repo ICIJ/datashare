@@ -42,7 +42,7 @@ class ElasticsearchSearcher implements Indexer.Searcher {
     private SearchRequest scrollSearchRequest;
     private long totalHits;
     private final JsonNode jsonBoolQuery;
-    private final static String TEMPLATE_QUERY = "<query>";
+    private static final String TEMPLATE_QUERY = "<query>";
 
     protected int fuzziness = 0;
     protected boolean phraseMatches = false;
