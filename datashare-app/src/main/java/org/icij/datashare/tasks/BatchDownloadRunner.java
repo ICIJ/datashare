@@ -145,6 +145,7 @@ public class BatchDownloadRunner implements Callable<BatchDownloadRunnerResult>,
                 }
             }
         } catch (ElasticsearchException esEx) {
+            logger.atDebug().log("Unable to query elastic search", esEx);
             throw ElasticSearchAdapterException.createFrom(esEx);
         }
         BatchDownloadRunnerResult.TruncationReason truncationReason = null; //Can stay null if no truncation was made
