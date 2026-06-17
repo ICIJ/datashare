@@ -33,6 +33,7 @@ import static com.google.common.io.ByteStreams.toByteArray;
 import static java.lang.String.format;
 import static org.apache.commons.lang3.SystemUtils.IS_OS_WINDOWS;
 import static org.apache.http.HttpHost.create;
+import static org.icij.datashare.cli.DatashareCliOptions.ELASTICSEARCH_MAX_IDLE_CONNECTION_TIME_OPT;
 
 public class ElasticsearchConfiguration {
     static final String MAPPING_RESOURCE_NAME = "datashare_index_mappings.json";
@@ -49,6 +50,7 @@ public class ElasticsearchConfiguration {
     public static final String INDEX_NAME_PROP = "indexName";
     public static final String INDEX_JOIN_FIELD_NAME_PROP = "indexJoinFieldName";
     public static final String INDEX_TYPE_FIELD_NAME_PROP = "indexTypeFieldName";
+    public static final String ELASTICSEARCH_MAX_IDLE_CONNECTION_TIME_OPT = "elasticsearchMaxIdleConnectionTime";
 
     public static final String DEFAULT_ADDRESS = "http://localhost:9200";
     public static final String ES_CLUSTER_NAME = "datashare";
@@ -87,7 +89,7 @@ public class ElasticsearchConfiguration {
                     // idling for longer.
                     // Else ElasticSearchClient throws an IOException : Connection reset when trying to reuse the
                     // connection after the LB closed it
-                    return 349000;
+                    return propertiesProvider.get(ELASTICSEARCH_MAX_IDLE_CONNECTION_TIME_OPT).map(Long::valueOf).orElse(349000L);
                 });
                 httpAsyncClientBuilder.addInterceptorLast((HttpResponseInterceptor)
                         (response, context) ->
