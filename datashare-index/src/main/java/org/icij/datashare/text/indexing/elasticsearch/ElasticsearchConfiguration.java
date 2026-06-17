@@ -46,7 +46,6 @@ public class ElasticsearchConfiguration {
     public static final String INDEX_NAME_PROP = "indexName";
     public static final String INDEX_JOIN_FIELD_NAME_PROP = "indexJoinFieldName";
     public static final String INDEX_TYPE_FIELD_NAME_PROP = "indexTypeFieldName";
-    public static final String CLUSTER_PROP = "clusterName";
 
     public static final String DEFAULT_ADDRESS = "http://localhost:9200";
     public static final String ES_CLUSTER_NAME = "datashare";
@@ -100,9 +99,7 @@ public class ElasticsearchConfiguration {
                             .setConnectTimeout(5000)
                             .setSocketTimeout(60000))
                     .setHttpClientConfigCallback(clientConfigCallback).build(), new JacksonJsonpMapper(JsonObjectMapper.getMapper()));
-            ElasticsearchClient client = new ElasticsearchClient(transport);
-            String clusterName = propertiesProvider.get(CLUSTER_PROP).orElse(ES_CLUSTER_NAME);
-            return client;
+            return new ElasticsearchClient(transport);
         } catch (MalformedURLException e) {
             throw new RuntimeException(e);
         }
