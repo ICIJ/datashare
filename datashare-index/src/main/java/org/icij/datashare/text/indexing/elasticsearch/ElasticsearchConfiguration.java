@@ -9,11 +9,14 @@ import co.elastic.clients.elasticsearch.indices.IndexSettings;
 import co.elastic.clients.json.jackson.JacksonJsonpMapper;
 import co.elastic.clients.transport.rest_client.RestClientTransport;
 import org.apache.http.HttpHost;
+import org.apache.http.HttpResponse;
 import org.apache.http.HttpResponseInterceptor;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
 import org.apache.http.client.CredentialsProvider;
+import org.apache.http.conn.ConnectionKeepAliveStrategy;
 import org.apache.http.impl.client.BasicCredentialsProvider;
+import org.apache.http.protocol.HttpContext;
 import org.elasticsearch.client.RestClient;
 import org.elasticsearch.client.RestClientBuilder;
 import org.icij.datashare.PropertiesProvider;
@@ -78,6 +81,14 @@ public class ElasticsearchConfiguration {
 
             RestClientBuilder.HttpClientConfigCallback clientConfigCallback = httpAsyncClientBuilder -> {
                 httpAsyncClientBuilder.disableAuthCaching();
+                httpAsyncClientBuilder.setConnectionReuseStrategy((response, context) -> true);
+                httpAsyncClientBuilder.setKeepAliveStrategy((response, context) -> {
+                    // Load Balancer in production and staging closes TCP connections after 350s, so avoid keeping them
+                    // idling for longer.
+                    // Else ElasticSearchClient throws an IOException : Connection reset when trying to reuse the
+                    // connection after the LB closed it
+                    return 349000;
+                });
                 httpAsyncClientBuilder.addInterceptorLast((HttpResponseInterceptor)
                         (response, context) ->
                                 // This header is expected from the client, versions of ES server below 7.14 don't provide it
