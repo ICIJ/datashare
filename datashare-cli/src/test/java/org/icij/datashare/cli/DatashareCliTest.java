@@ -239,6 +239,12 @@ public class DatashareCliTest {
     }
 
     @Test
+    public void test_elasticsearch_max_idle_time_is_valid() {
+        cli.parseArguments(new String[] {"--elasticsearchMaxIdleConnectionTime", "29"});
+        assertThat(cli.properties).includes(entry("elasticsearchMaxIdleConnectionTime", "29"));
+    }
+
+    @Test
     public void test_extensions_dir_is_based_on_current_user_dir() {
         cli.parseArguments(new String[] {});
         assertThat(cli.properties).includes(entry("extensionsDir", "/home/datashare/.local/share/datashare/extensions"));

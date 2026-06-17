@@ -65,6 +65,8 @@ public final class DatashareCliOptions {
     public static final String ELASTICSEARCH_SETTINGS_OPT = "elasticsearchSettings";
     public static final String ELASTICSEARCH_PATH_OPT = "elasticsearchPath";
     public static final String ELASTICSEARCH_DATA_PATH_OPT = "elasticsearchDataPath";
+    // Time in ms after which an idling connection should be considered invalid
+    public static final String ELASTICSEARCH_MAX_IDLE_CONNECTION_TIME_OPT = "elasticsearchMaxIdleConnectionTime";
     public static final String EMBEDDED_DOCUMENT_DOWNLOAD_MAX_SIZE_OPT = "embeddedDocumentDownloadMaxSize";
     public static final String EXTENSION_DELETE_OPT = "extensionDelete";
     public static final String EXTENSION_INSTALL_OPT = "extensionInstall";
@@ -254,6 +256,7 @@ public final class DatashareCliOptions {
     public static final String DEFAULT_TEMPORAL_NAMESPACE = "datashare-default";
     public static final String DEFAULT_TEMPORAL_ADDRESS = EnvUtils.resolveUri("temporal", "temporal:7233");
     public static final int DEFAULT_POLICY_RELOAD_INTERVAL = 30_000;
+    public static final int DEFAULT_ELASTICSEARCH_MAX_IDLE_CONNECTION_TIME = 349000;
 
     // A list of aliases for retro-compatibility when an option changed
     public static final Map<String, String> OPT_ALIASES = Map.ofEntries(
@@ -680,6 +683,14 @@ public final class DatashareCliOptions {
                 .withRequiredArg()
                 .ofType(String.class)
                 .defaultsTo(DEFAULT_ELASTICSEARCH_SETTINGS);
+    }
+
+    public static void elasticsearchMaxIdleConnectionTime(OptionParser parser) {
+        parser.acceptsAll(
+                singletonList(ELASTICSEARCH_MAX_IDLE_CONNECTION_TIME_OPT), "Max idling time for a TCP connection to ES to be reused")
+                .withRequiredArg()
+                .ofType(Integer.class)
+                .defaultsTo(DEFAULT_ELASTICSEARCH_MAX_IDLE_CONNECTION_TIME);
     }
 
     public static void reportName(OptionParser parser) {

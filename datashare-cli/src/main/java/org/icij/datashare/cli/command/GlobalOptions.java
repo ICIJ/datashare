@@ -64,6 +64,9 @@ public class GlobalOptions {
     @Option(names = {"--elasticsearchSettings"}, description = "Path to elasticsearch.yml settings", scope = ScopeType.INHERIT)
     String elasticsearchSettings = Paths.get(userHome(), ".local/share/datashare", "elasticsearch.yml").toString();
 
+    @Option(names = {"--elasticsearchMaxIdleConnectionTime"}, defaultValue = "349000", description = "Max idling time for a TCP connection to ES to be reused", scope = ScopeType.INHERIT)
+    int elasticsearchMaxIdleConnectionTime;
+
     @Option(names = {"--redisAddress"}, description = "Redis address", scope = ScopeType.INHERIT)
     String redisAddress = EnvUtils.resolveUri("redis", "redis://redis:6379");
 
@@ -146,6 +149,7 @@ public class GlobalOptions {
         DatashareOptions.putIfNotNull(props, ELASTICSEARCH_PATH_OPT, elasticsearchPath);
         DatashareOptions.putIfNotNull(props, ELASTICSEARCH_DATA_PATH_OPT, elasticsearchDataPath);
         DatashareOptions.putIfNotNull(props, ELASTICSEARCH_SETTINGS_OPT, elasticsearchSettings);
+        DatashareOptions.putIfNotNull(props, ELASTICSEARCH_MAX_IDLE_CONNECTION_TIME_OPT, elasticsearchMaxIdleConnectionTime);
         DatashareOptions.putIfNotNull(props, REDIS_ADDRESS_OPT, redisAddress);
         DatashareOptions.put(props, REDIS_POOL_SIZE_OPT, redisPoolSize);
         DatashareOptions.putIfNotNull(props, MESSAGE_BUS_OPT, messageBusAddress);
@@ -167,7 +171,6 @@ public class GlobalOptions {
         DatashareOptions.putIfNotNull(props, DatashareCliOptions.TEMPORAL_ADDRESS_OPT, temporalAddress);
         DatashareOptions.putIfNotNull(props, DatashareCliOptions.TEMPORAL_NAMESPACE_OPT, temporalNamespace);
         DatashareOptions.putIfNotNull(props, AUTH_USERS_PROVIDER_OPT, authUsersProvider);
-
         return props;
     }
 
