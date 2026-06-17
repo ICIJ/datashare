@@ -143,7 +143,7 @@ public class ElasticsearchSpewerTest {
         );
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void test_write_with_incorrect_language() throws Exception {
         Path path = get(requireNonNull(getClass().getResource("/docs/a/b/c/doc.txt")).getPath());
 
@@ -152,6 +152,11 @@ public class ElasticsearchSpewerTest {
         }}));
         TikaDocument document = new Extractor(documentFactory).extract(path);
         spewer.write(document);
+
+        GetResponse<ObjectNode> documentFields = es.client.get(doc -> doc.index(es.getIndexName()).id(document.getId()), ObjectNode.class);
+        assertThat(nodeToMap(documentFields.source())).includes(
+                entry("language", "UNKNOWN")
+        );
     }
 
     @Test
