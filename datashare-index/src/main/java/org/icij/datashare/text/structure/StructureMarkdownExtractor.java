@@ -47,18 +47,33 @@ public class StructureMarkdownExtractor {
                     .set(FlexmarkHtmlConverter.SETEXT_HEADINGS, false)
                     .set(FlexmarkHtmlConverter.MAX_BLANK_LINES, 1)).build();
 
+    /** The raw Tika XHTML (exactly as emitted) paired with the per-page Markdown derived from it. */
+    public record StructureResult(String xhtml, List<String> pages) {}
+
+    /** The producer-side sanitization boundary, exposed so serve-time sanitizers reuse the same rules. */
+    public static Safelist safelist() {
+        return SAFELIST;
+    }
+
     /**
-     * Converts {@code source} into one Markdown string per page (a single entry for non-paginated
-     * formats). The caller owns {@code source}: this method reads but does not close it.
+     * Parses {@code source} once, returning both the raw Tika XHTML (the artifact to persist) and one
+     * Markdown string per page. The caller owns {@code source}: this method reads but does not close it.
      */
-    public List<String> extractPages(InputStream source, String contentType)
+    public StructureResult extract(InputStream source, String contentType)
             throws IOException, SAXException, TikaException {
-        org.jsoup.nodes.Document document = Jsoup.parse(toXhtml(source, contentType));
+        String xhtml = toXhtml(source, contentType);
+        org.jsoup.nodes.Document document = Jsoup.parse(xhtml);
         List<String> pagesMarkdown = new ArrayList<>();
         for (Element page : selectRootPages(document)) {
             pagesMarkdown.add(pageToMarkdown(page));
         }
-        return pagesMarkdown;
+        return new StructureResult(xhtml, pagesMarkdown);
+    }
+
+    /** Per-page Markdown only. Retained for callers that do not need the XHTML. */
+    public List<String> extractPages(InputStream source, String contentType)
+            throws IOException, SAXException, TikaException {
+        return extract(source, contentType).pages();
     }
 
     /**

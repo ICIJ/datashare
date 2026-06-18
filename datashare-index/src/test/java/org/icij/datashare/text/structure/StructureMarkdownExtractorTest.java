@@ -115,6 +115,33 @@ public class StructureMarkdownExtractorTest {
         assertThat(pages.get(0)).contains("test embedded");
     }
 
+    @Test
+    public void test_extract_returns_raw_xhtml_with_page_divs() throws Exception {
+        byte[] pdf = twoPagePdf();
+        StructureMarkdownExtractor.StructureResult result =
+                extractor.extract(new ByteArrayInputStream(pdf), "application/pdf");
+        assertThat(result.xhtml()).contains("<html");
+        assertThat(result.xhtml()).contains("class=\"page\"");
+        assertThat(result.pages()).hasSize(2);
+        assertThat(result.pages().get(0)).contains("page 1");
+    }
+
+    @Test
+    public void test_extract_pages_delegates_to_extract() throws Exception {
+        String html = "<html><body><h1>Title</h1><p>body</p></body></html>";
+        assertThat(extractor.extractPages(stream(html), "text/html"))
+                .isEqualTo(extractor.extract(stream(html), "text/html").pages());
+    }
+
+    @Test
+    public void test_safelist_strips_scripts_for_serve_time_sanitization() {
+        String safe = org.jsoup.Jsoup.clean(
+                "<p>keep</p><script>alert('xss')</script>", StructureMarkdownExtractor.safelist());
+        assertThat(safe).contains("keep");
+        assertThat(safe).excludes("script");
+        assertThat(safe).excludes("alert");
+    }
+
     private byte[] twoPagePdf() throws Exception {
         try (PDDocument doc = new PDDocument(); ByteArrayOutputStream out = new ByteArrayOutputStream()) {
             for (int p = 1; p <= 2; p++) {
