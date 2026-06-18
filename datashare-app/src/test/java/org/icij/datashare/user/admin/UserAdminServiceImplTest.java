@@ -8,11 +8,11 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import static org.fest.assertions.Assertions.assertThat;
-import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -248,7 +248,12 @@ public class UserAdminServiceImplTest {
     public void test_get_throws_when_user_not_found() {
         when(userStore.find("ghost")).thenReturn(null);
 
-        assertThrows(UserNotFoundException.class, () -> service.get("ghost"));
+        try {
+            service.get("ghost");
+            fail("expected UserNotFoundException");
+        } catch (UserNotFoundException e) {
+            assertThat(e.getMessage()).contains("ghost");
+        }
     }
 
     // --- list ---
@@ -272,8 +277,30 @@ public class UserAdminServiceImplTest {
     public void test_update_throws_when_user_not_found() {
         when(userStore.find("ghost")).thenReturn(null);
 
-        assertThrows(UserNotFoundException.class,
-                () -> service.update("ghost", new UserUpdateRequest("g@example.org", "Ghost", null, null)));
+        try {
+            service.update("ghost", new UserUpdateRequest("e@e.com", null, null, null));
+            fail("expected UserNotFoundException");
+        } catch (UserNotFoundException e) {
+            assertThat(e.getMessage()).contains("ghost");
+        } catch (ValidationException e) {
+            fail("unexpected ValidationException");
+        }
+    }
+
+    @Test
+    public void test_update_throws_validation_when_empty_password() {
+        Map<String, Object> details = new HashMap<>(Map.of("uid", "alice", "name", "Alice", "email", "a@b.c"));
+        User existing = new User("alice", "Alice", "a@b.c", "local", details);
+        when(userStore.find("alice")).thenReturn(new DatashareUser(existing));
+
+        try {
+            service.update("alice", new UserUpdateRequest(null, null, "", null));
+            fail("expected ValidationException");
+        } catch (ValidationException e) {
+            assertThat(e.field()).isEqualTo("password");
+        } catch (UserNotFoundException e) {
+            fail("unexpected UserNotFoundException");
+        }
     }
 
     @Test
