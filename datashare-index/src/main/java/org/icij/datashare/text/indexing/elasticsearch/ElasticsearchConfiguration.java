@@ -17,6 +17,7 @@ import org.apache.http.client.CredentialsProvider;
 import org.apache.http.conn.ConnectionKeepAliveStrategy;
 import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.apache.http.protocol.HttpContext;
+import org.elasticsearch.client.Node;
 import org.elasticsearch.client.RestClient;
 import org.elasticsearch.client.RestClientBuilder;
 import org.icij.datashare.PropertiesProvider;
@@ -106,8 +107,14 @@ public class ElasticsearchConfiguration {
                 }
                 return httpAsyncClientBuilder;
             };
-
-            RestClientTransport transport = new RestClientTransport(RestClient.builder(httpHost)
+            // hacky hack
+            RestClientTransport transport = new RestClientTransport(RestClient.builder(httpHost, httpHost)
+                    .setFailureListener(new RestClient.FailureListener(){
+                        @Override
+                        public void onFailure(Node node) {
+                            LOGGER.atDebug().log("Failure listener: Unable to query elastic search {}", node.getHost());
+                        }
+                    })
                     .setRequestConfigCallback(requestConfigBuilder -> requestConfigBuilder
                             .setConnectTimeout(5000)
                             .setSocketTimeout(60000))

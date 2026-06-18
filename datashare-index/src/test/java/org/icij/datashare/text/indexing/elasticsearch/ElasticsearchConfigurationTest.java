@@ -63,4 +63,12 @@ public class ElasticsearchConfigurationTest {
 
         assertThat(response.getHeader("X-Elastic-Product")).isNotNull();
     }
+
+    @Test
+    public void test_create_client_with_connection_failure() throws  Exception {
+
+        ElasticsearchConfiguration.createESClient(new PropertiesProvider());
+
+
+    }
 }
