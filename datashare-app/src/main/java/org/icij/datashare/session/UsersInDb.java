@@ -45,6 +45,6 @@ public class UsersInDb implements UserStore {
 
     @Override
     public List<org.icij.datashare.user.User> listUsers() {
-        throw new UnsupportedOperationException("not yet implemented");
+        return userRepository.listUsers();
     }
 }

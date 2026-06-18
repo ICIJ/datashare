@@ -6,6 +6,7 @@ import org.icij.datashare.user.User;
 import org.junit.Test;
 
 import java.util.HashMap;
+import java.util.List;
 
 import static org.fest.assertions.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
@@ -61,5 +62,17 @@ public class UsersInDbTest {
         }});
         when(repository.getUser("foo")).thenReturn(expected);
         assertThat(new UsersInDb(repository).find("foo", "bad")).isNull();
+    }
+
+    @Test
+    public void list_users_delegates_to_repository() {
+        Repository repository = mock(Repository.class);
+        User user1 = new User("alice", "Alice", "alice@example.com", "icij", new HashMap<>());
+        User user2 = new User("bob", "Bob", "bob@example.com", "icij", new HashMap<>());
+        when(repository.listUsers()).thenReturn(List.of(user1, user2));
+        List<User> result = new UsersInDb(repository).listUsers();
+        assertThat(result).hasSize(2);
+        assertThat(result.get(0).id).isEqualTo("alice");
+        assertThat(result.get(1).id).isEqualTo("bob");
     }
 }
