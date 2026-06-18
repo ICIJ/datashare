@@ -30,6 +30,8 @@ import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.text.indexing.SearchedText;
 import org.icij.datashare.text.indexing.elasticsearch.ArtifactPath;
 import org.icij.datashare.text.indexing.elasticsearch.SourceExtractor;
+import org.icij.datashare.text.structure.StructureMarkdownExtractor;
+import org.jsoup.Jsoup;
 import org.icij.datashare.user.User;
 import org.icij.datashare.utils.DocumentVerifier;
 import org.icij.datashare.utils.PayloadFormatter;
@@ -62,6 +64,7 @@ import static org.icij.datashare.text.Project.project;
 @Prefix("/api")
 public class DocumentResource {
     private static final String MARKDOWN_CONTENT_TYPE = "text/markdown;charset=UTF-8";
+    private static final String HTML_CONTENT_TYPE = "text/html;charset=UTF-8";
     private final Logger logger = LoggerFactory.getLogger(getClass());
     private final Repository repository;
     private final Indexer indexer;
@@ -245,6 +248,35 @@ public class DocumentResource {
             return Payload.notFound();
         }
         return new Payload(MARKDOWN_CONTENT_TYPE, Files.readString(pageFile, StandardCharsets.UTF_8)).withCode(200);
+    }
+
+    @Operation(description = "Fetches the sanitized whole-document structure XHTML for a document.",
+            parameters = {
+                    @Parameter(name = "project", description = "the project id", in = ParameterIn.PATH),
+                    @Parameter(name = "id", description = "the document id", in = ParameterIn.PATH),
+                    @Parameter(name = "routing", description = "routing key if not a root document", in = ParameterIn.QUERY)
+            }
+    )
+    @ApiResponse(responseCode = "200", description = "the sanitized structure XHTML as text/html")
+    @ApiResponse(responseCode = "404", description = "if the document or a complete structure is not found")
+    @ApiResponse(responseCode = "403", description = "forbidden if the user doesn't have access to the project")
+    @Get("/:project/documents/structure/:id/xhtml?routing=:routing")
+    public Payload getStructureXhtml(final String project, final String id, final String routing,
+                                     final Context context) throws IOException {
+        Path structureDir = resolveStructureDir(project, id, routing, context);
+        // Only serve a finished extraction: ArtifactTask writes the completion marker last.
+        if (structureDir == null || !hasCompleteMarker(structureDir)) {
+            return Payload.notFound();
+        }
+        Path xhtmlFile = structureDir.resolve(ArtifactPath.STRUCTURE_XHTML_FILE);
+        if (!xhtmlFile.toFile().isFile()) {
+            return Payload.notFound();
+        }
+        // The on-disk XHTML is untrusted (stored raw). Sanitize at serve time with the producer's own
+        // Safelist so viewer rendering is XSS-safe and the two boundaries cannot drift.
+        String sanitized = Jsoup.clean(Files.readString(xhtmlFile, StandardCharsets.UTF_8),
+                StructureMarkdownExtractor.safelist());
+        return new Payload(HTML_CONTENT_TYPE, sanitized).withCode(200);
     }
 
     // Parses the 1-based page number from the path segment; returns -1 when it is not a positive integer

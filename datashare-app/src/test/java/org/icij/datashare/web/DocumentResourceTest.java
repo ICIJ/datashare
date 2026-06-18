@@ -604,4 +604,54 @@ public class DocumentResourceTest extends AbstractProdWebServerTest {
         get("/api/local-datashare/documents/structure/" + id + "/abc").should().respond(404);
     }
 
+    @Test
+    public void test_get_structure_xhtml_returns_sanitized_html() throws Exception {
+        String id = "6abb96950946b62bb993307c8945c0c096982783bab7fa24901522426840ca3e";
+        when(propertiesProvider.get(ARTIFACT_DIR_OPT)).thenReturn(Optional.of(temp.getRoot().toString()));
+        mockIndexer.indexFile("local-datashare", id, Paths.get("ignored"), "application/pdf", null);
+        File structureDir = temp.newFolder("local-datashare", "6a", "bb", id, "structure");
+        MockIndexer.write(new File(structureDir, "structure.xhtml"),
+                "<html><body><p>keep me</p><script>alert('xss')</script></body></html>");
+        MockIndexer.write(new File(structureDir, ".complete"), "");
+
+        get("/api/local-datashare/documents/structure/" + id + "/xhtml").should()
+                .succeed().haveType("text/html;charset=UTF-8")
+                .contain("keep me").contain("<p>").should();
+    }
+
+    @Test
+    public void test_get_structure_xhtml_strips_scripts() throws Exception {
+        String id = "6abb96950946b62bb993307c8945c0c096982783bab7fa24901522426840ca3e";
+        when(propertiesProvider.get(ARTIFACT_DIR_OPT)).thenReturn(Optional.of(temp.getRoot().toString()));
+        mockIndexer.indexFile("local-datashare", id, Paths.get("ignored"), "application/pdf", null);
+        File structureDir = temp.newFolder("local-datashare", "6a", "bb", id, "structure");
+        MockIndexer.write(new File(structureDir, "structure.xhtml"),
+                "<html><body><p>keep me</p><script>alert('xss')</script></body></html>");
+        MockIndexer.write(new File(structureDir, ".complete"), "");
+
+        get("/api/local-datashare/documents/structure/" + id + "/xhtml").should()
+                .succeed().not().contain("script");
+    }
+
+    @Test
+    public void test_get_structure_xhtml_without_complete_marker_returns_404() throws Exception {
+        String id = "6abb96950946b62bb993307c8945c0c096982783bab7fa24901522426840ca3e";
+        when(propertiesProvider.get(ARTIFACT_DIR_OPT)).thenReturn(Optional.of(temp.getRoot().toString()));
+        mockIndexer.indexFile("local-datashare", id, Paths.get("ignored"), "application/pdf", null);
+        File structureDir = temp.newFolder("local-datashare", "6a", "bb", id, "structure");
+        MockIndexer.write(new File(structureDir, "structure.xhtml"), "<html><body><p>x</p></body></html>");
+        // no .complete marker -> extraction not finished
+
+        get("/api/local-datashare/documents/structure/" + id + "/xhtml").should().respond(404);
+    }
+
+    @Test
+    public void test_get_structure_xhtml_absent_returns_404() {
+        String id = "absent_xhtml_id_00000000000000000000000000000000000000000000000";
+        when(propertiesProvider.get(ARTIFACT_DIR_OPT)).thenReturn(Optional.of(temp.getRoot().toString()));
+        mockIndexer.indexFile("local-datashare", id, Paths.get("ignored"), "application/pdf", null);
+
+        get("/api/local-datashare/documents/structure/" + id + "/xhtml").should().respond(404);
+    }
+
 }
