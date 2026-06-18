@@ -59,6 +59,22 @@ public class UserAdminServiceImpl implements UserAdminService {
         return userStore.delete(login);
     }
 
+    @Override
+    public User get(String login) throws UserNotFoundException {
+        throw new UnsupportedOperationException("not yet implemented");
+    }
+
+    @Override
+    public List<User> list() {
+        throw new UnsupportedOperationException("not yet implemented");
+    }
+
+    @Override
+    public UserCreated update(String login, UserUpdateRequest req)
+            throws UserNotFoundException, ValidationException {
+        throw new UnsupportedOperationException("not yet implemented");
+    }
+
     private static boolean isLocal(UserCreateRequest request) {
         return User.LOCAL.equals(request.provider());
     }

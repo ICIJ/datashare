@@ -11,6 +11,11 @@ import org.icij.datashare.policies.Role;
 import org.icij.datashare.session.LocalUserFilter;
 import org.icij.datashare.text.Project;
 import org.icij.datashare.user.User;
+import org.icij.datashare.user.admin.UserAdminService;
+import org.icij.datashare.user.admin.UserCreated;
+import org.icij.datashare.user.admin.UserExistsException;
+import org.icij.datashare.user.admin.UserNotFoundException;
+import org.icij.datashare.user.admin.ValidationException;
 import org.icij.datashare.web.testhelpers.AbstractProdWebServerTest;
 import org.junit.Before;
 import org.junit.Test;
@@ -19,6 +24,8 @@ import org.mockito.Mock;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.HashMap;
+import java.util.List;
 
 import static java.util.Collections.singletonList;
 import static org.icij.datashare.UserEvent.Type.DOCUMENT;
@@ -32,8 +39,8 @@ import static org.mockito.MockitoAnnotations.initMocks;
 
 public class UserResourceTest extends AbstractProdWebServerTest {
     @Mock JooqRepository jooqRepository;
-    @Mock
-    CasbinRuleAdapter casbinRuleAdapter;
+    @Mock CasbinRuleAdapter casbinRuleAdapter;
+    @Mock UserAdminService userAdminService;
     Authorizer authorizer;
     PropertiesProvider propertiesProvider = new PropertiesProvider();
 
@@ -41,12 +48,14 @@ public class UserResourceTest extends AbstractProdWebServerTest {
     public void setUp() throws IOException {
         initMocks(this);
         authorizer = new Authorizer(casbinRuleAdapter);
-        configure(routes -> routes.add(new UserResource(jooqRepository, authorizer)).filter(new LocalUserFilter(new PropertiesProvider(), jooqRepository)));
+        configure(routes -> routes
+                .add(new UserResource(jooqRepository, authorizer, userAdminService))
+                .filter(new LocalUserFilter(new PropertiesProvider(), jooqRepository)));
     }
 
     @Test
     public void test_user_information() {
-        configure(routes -> routes.add(new UserResource(jooqRepository, authorizer)).
+        configure(routes -> routes.add(new UserResource(jooqRepository, authorizer, userAdminService)).
                         filter(new BasicAuthFilter("/", "icij", singleUser("pierre"))));
 
         get("/api/users/me")
@@ -66,7 +75,7 @@ public class UserResourceTest extends AbstractProdWebServerTest {
             LocalUserFilter localUserFilter = new LocalUserFilter(propertiesProvider, jooqRepository);
             routes
                     .filter(localUserFilter)
-                    .add(new UserResource(jooqRepository, authorizer));
+                    .add(new UserResource(jooqRepository, authorizer, userAdminService));
         });
 
         get("/api/users/me")
@@ -216,5 +225,114 @@ public class UserResourceTest extends AbstractProdWebServerTest {
         authorizer.addRoleForUserInProject(localUser("local"), Role.PROJECT_MEMBER, Domain.of("icij"), project("my-project"));
 
         get("/api/users/me/permissions").should().respond(200).contain("PROJECT_MEMBER").contain("icij::my-project");
+    }
+
+    // POST /api/users — create (UserAdminService.create already exists)
+
+    @Test
+    public void test_create_user_returns_201() throws Exception {
+        UserCreated created = new UserCreated("alice", "alice@example.org", "Alice", "local", List.of(), false);
+        when(userAdminService.create(any())).thenReturn(created);
+
+        post("/api/users", "{\"login\":\"alice\",\"email\":\"alice@example.org\",\"name\":\"Alice\",\"password\":\"secret\",\"provider\":\"local\",\"groups\":[]}")
+                .should().respond(201).contain("\"login\":\"alice\"");
+    }
+
+    @Test
+    public void test_create_user_returns_409_when_already_exists() throws Exception {
+        when(userAdminService.create(any())).thenThrow(new UserExistsException("alice"));
+
+        post("/api/users", "{\"login\":\"alice\",\"email\":\"a@b.c\",\"provider\":\"local\",\"password\":\"pw\",\"groups\":[]}")
+                .should().respond(409);
+    }
+
+    @Test
+    public void test_create_user_returns_400_on_validation_error() throws Exception {
+        when(userAdminService.create(any())).thenThrow(new ValidationException("email", "email is required"));
+
+        post("/api/users", "{\"login\":\"alice\",\"provider\":\"local\",\"password\":\"pw\",\"groups\":[]}")
+                .should().respond(400);
+    }
+
+    // GET /api/users — list (UserAdminService.list is NEW — add to interface)
+
+    @Test
+    public void test_list_users_returns_200() {
+        User alice = new User("alice", "Alice", "alice@example.org", "local", new HashMap<>());
+        when(userAdminService.list()).thenReturn(List.of(alice));
+
+        get("/api/users").should().respond(200).contain("alice");
+    }
+
+    @Test
+    public void test_list_users_returns_501_for_unsupported_store() {
+        when(userAdminService.list()).thenThrow(new UnsupportedOperationException("not supported"));
+
+        get("/api/users").should().respond(501);
+    }
+
+    // GET /api/users/:login — get by login (UserAdminService.get is NEW — add to interface)
+
+    @Test
+    public void test_get_user_by_login_returns_200() throws Exception {
+        User alice = new User("alice", "Alice", "alice@example.org", "local", new HashMap<>());
+        when(userAdminService.get("alice")).thenReturn(alice);
+
+        get("/api/users/alice").should().respond(200).contain("alice");
+    }
+
+    @Test
+    public void test_get_user_by_login_returns_404_when_not_found() throws Exception {
+        when(userAdminService.get("ghost")).thenThrow(new UserNotFoundException("ghost"));
+
+        get("/api/users/ghost").should().respond(404);
+    }
+
+    // PUT /api/users/:login — update (UserAdminService.update is NEW — add to interface)
+
+    @Test
+    public void test_update_user_returns_200() throws Exception {
+        UserCreated updated = new UserCreated("alice", "new@example.org", "Alice B", "local", List.of(), false);
+        when(userAdminService.update(eq("alice"), any())).thenReturn(updated);
+
+        put("/api/users/alice", "{\"email\":\"new@example.org\",\"name\":\"Alice B\"}")
+                .should().respond(200).contain("\"login\":\"alice\"");
+    }
+
+    @Test
+    public void test_update_user_returns_404_when_not_found() throws Exception {
+        when(userAdminService.update(eq("ghost"), any())).thenThrow(new UserNotFoundException("ghost"));
+
+        put("/api/users/ghost", "{\"email\":\"e@e.com\"}").should().respond(404);
+    }
+
+    @Test
+    public void test_update_user_returns_400_on_validation_error() throws Exception {
+        when(userAdminService.update(eq("alice"), any())).thenThrow(new ValidationException("password", "cannot be empty"));
+
+        put("/api/users/alice", "{\"password\":\"\"}").should().respond(400);
+    }
+
+    // DELETE /api/users/:login — delete (UserAdminService.delete already exists)
+
+    @Test
+    public void test_delete_user_returns_204() throws Exception {
+        when(userAdminService.delete("alice")).thenReturn(true);
+
+        delete("/api/users/alice").should().respond(204);
+    }
+
+    @Test
+    public void test_delete_user_returns_404_when_not_found() throws Exception {
+        when(userAdminService.delete("ghost")).thenThrow(new UserNotFoundException("ghost"));
+
+        delete("/api/users/ghost").should().respond(404);
+    }
+
+    // Regression: /me route not shadowed by /:login
+
+    @Test
+    public void test_me_route_still_works_after_login_param_added() {
+        get("/api/users/me").should().respond(200).contain("\"uid\":\"local\"");
     }
 }
