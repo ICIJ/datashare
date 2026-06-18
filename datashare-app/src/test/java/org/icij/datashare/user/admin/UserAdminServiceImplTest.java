@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.fest.assertions.Assertions.assertThat;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -227,5 +228,120 @@ public class UserAdminServiceImplTest {
     public void test_delete_if_exists_returns_true_when_user_existed() {
         when(userStore.delete("alice")).thenReturn(true);
         assertThat(service.deleteIfExists("alice")).isTrue();
+    }
+
+    // --- get ---
+
+    @Test
+    public void test_get_returns_user_when_found() throws Exception {
+        User alice = new User("alice", "Alice", "alice@example.org");
+        when(userStore.find("alice")).thenReturn(new DatashareUser(alice));
+
+        User result = service.get("alice");
+
+        assertThat(result.id).isEqualTo("alice");
+        assertThat(result.name).isEqualTo("Alice");
+        assertThat(result.email).isEqualTo("alice@example.org");
+    }
+
+    @Test
+    public void test_get_throws_when_user_not_found() {
+        when(userStore.find("ghost")).thenReturn(null);
+
+        assertThrows(UserNotFoundException.class, () -> service.get("ghost"));
+    }
+
+    // --- list ---
+
+    @Test
+    public void test_list_delegates_to_user_store() {
+        User alice = new User("alice", "Alice", "alice@example.org");
+        User bob = new User("bob", "Bob", "bob@example.org");
+        when(userStore.listUsers()).thenReturn(List.of(alice, bob));
+
+        List<User> result = service.list();
+
+        assertThat(result).hasSize(2);
+        assertThat(result.get(0).id).isEqualTo("alice");
+        assertThat(result.get(1).id).isEqualTo("bob");
+    }
+
+    // --- update ---
+
+    @Test
+    public void test_update_throws_when_user_not_found() {
+        when(userStore.find("ghost")).thenReturn(null);
+
+        assertThrows(UserNotFoundException.class,
+                () -> service.update("ghost", new UserUpdateRequest("g@example.org", "Ghost", null, null)));
+    }
+
+    @Test
+    public void test_update_changes_email_and_name() throws Exception {
+        User alice = new User("alice", "Alice", "alice@example.org", "local",
+                Map.of("uid", "alice", "name", "Alice", "email", "alice@example.org",
+                        "groups_by_applications", Map.of("datashare", List.of("p1"))));
+        when(userStore.find("alice")).thenReturn(new DatashareUser(alice));
+        when(userStore.save(any(User.class))).thenReturn(true);
+
+        UserCreated result = service.update("alice",
+                new UserUpdateRequest("newalice@example.org", "Alice Updated", null, null));
+
+        ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
+        verify(userStore).save(captor.capture());
+        User saved = captor.getValue();
+
+        assertThat(saved.email).isEqualTo("newalice@example.org");
+        assertThat(saved.name).isEqualTo("Alice Updated");
+        assertThat(result.email()).isEqualTo("newalice@example.org");
+        assertThat(result.name()).isEqualTo("Alice Updated");
+        assertThat(result.noop()).isFalse();
+    }
+
+    @Test
+    public void test_update_hashes_password_when_provided() throws Exception {
+        User alice = new User("alice", "Alice", "alice@example.org", "local",
+                Map.of("uid", "alice", "name", "Alice", "email", "alice@example.org"));
+        when(userStore.find("alice")).thenReturn(new DatashareUser(alice));
+        when(userStore.save(any(User.class))).thenReturn(true);
+
+        service.update("alice", new UserUpdateRequest(null, null, "newpassword", null));
+
+        ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
+        verify(userStore).save(captor.capture());
+        assertThat(captor.getValue().details.get("password"))
+                .isEqualTo(Hasher.SHA_256.hash("newpassword"));
+    }
+
+    @Test
+    public void test_update_preserves_fields_not_in_request() throws Exception {
+        User alice = new User("alice", "Alice", "alice@example.org", "local",
+                Map.of("uid", "alice", "name", "Alice", "email", "alice@example.org",
+                        "groups_by_applications", Map.of("datashare", List.of("p1", "p2"))));
+        when(userStore.find("alice")).thenReturn(new DatashareUser(alice));
+        when(userStore.save(any(User.class))).thenReturn(true);
+
+        UserCreated result = service.update("alice",
+                new UserUpdateRequest("alice@example.org", null, null, null));
+
+        ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
+        verify(userStore).save(captor.capture());
+        User saved = captor.getValue();
+        assertThat(saved.name).isEqualTo("Alice");
+        assertThat(result.groups()).containsExactly("p1", "p2");
+    }
+
+    @Test
+    public void test_update_replaces_groups_when_provided() throws Exception {
+        User alice = new User("alice", "Alice", "alice@example.org", "local",
+                Map.of("uid", "alice", "name", "Alice", "email", "alice@example.org",
+                        "groups_by_applications", Map.of("datashare", List.of("p1"))));
+        when(userStore.find("alice")).thenReturn(new DatashareUser(alice));
+        when(userStore.save(any(User.class))).thenReturn(true);
+
+        UserCreated result = service.update("alice",
+                new UserUpdateRequest(null, null, null, List.of("p2", "p3")));
+
+        assertThat(result.groups()).containsExactly("p2", "p3");
     }
 }
