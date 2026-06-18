@@ -61,18 +61,47 @@ public class UserAdminServiceImpl implements UserAdminService {
 
     @Override
     public User get(String login) throws UserNotFoundException {
-        throw new UnsupportedOperationException("not yet implemented");
+        net.codestory.http.security.User found = userStore.find(login);
+        if (found == null) {
+            throw new UserNotFoundException(login);
+        }
+        return (User) found;
     }
 
     @Override
     public List<User> list() {
-        throw new UnsupportedOperationException("not yet implemented");
+        return userStore.listUsers();
     }
 
     @Override
     public UserCreated update(String login, UserUpdateRequest req)
             throws UserNotFoundException, ValidationException {
-        throw new UnsupportedOperationException("not yet implemented");
+        net.codestory.http.security.User found = userStore.find(login);
+        if (found == null) {
+            throw new UserNotFoundException(login);
+        }
+        User existing = (User) found;
+
+        String newEmail = req.email() != null ? req.email() : existing.email;
+        String newName = req.name() != null ? req.name() : existing.name;
+        List<String> newGroups = req.groups() != null ? req.groups() : existing.getApplicationProjectNames();
+
+        Map<String, Object> details = new HashMap<>(existing.details);
+        details.put("uid", login);
+        details.put("name", newName);
+        details.put("email", newEmail);
+
+        if (req.password() != null && !req.password().isEmpty()) {
+            details.put("password", Hasher.SHA_256.hash(req.password()));
+        }
+
+        Map<String, Object> appsByGroup = new LinkedHashMap<>();
+        appsByGroup.put("datashare", List.copyOf(newGroups));
+        details.put("groups_by_applications", appsByGroup);
+
+        User updated = new User(login, newName, newEmail, existing.provider, details);
+        userStore.save(updated);
+        return new UserCreated(login, newEmail, newName, existing.provider, newGroups, false);
     }
 
     private static boolean isLocal(UserCreateRequest request) {

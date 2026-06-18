@@ -7,6 +7,8 @@ import net.codestory.http.security.Users;
 import org.icij.datashare.Repository;
 import org.icij.datashare.text.Hasher;
 
+import java.util.List;
+
 @Singleton
 public class UsersInDb implements UserStore {
     private final Repository userRepository;
@@ -39,5 +41,10 @@ public class UsersInDb implements UserStore {
     @Override
     public boolean delete(String login) {
         return userRepository.deleteUser(login);
+    }
+
+    @Override
+    public List<org.icij.datashare.user.User> listUsers() {
+        throw new UnsupportedOperationException("not yet implemented");
     }
 }

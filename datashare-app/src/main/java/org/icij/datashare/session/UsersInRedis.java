@@ -2,6 +2,8 @@ package org.icij.datashare.session;
 
 import com.google.inject.Inject;
 import net.codestory.http.security.User;
+
+import java.util.List;
 import org.icij.datashare.EnvUtils;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.json.JsonObjectMapper;
@@ -51,5 +53,10 @@ public class UsersInRedis implements UserStore {
         try (Jedis jedis = redis.getResource()) {
             return jedis.del(login) > 0;
         }
+    }
+
+    @Override
+    public List<org.icij.datashare.user.User> listUsers() {
+        throw new UnsupportedOperationException("listUsers is not supported by Redis session store");
     }
 }
