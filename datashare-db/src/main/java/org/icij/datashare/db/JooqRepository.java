@@ -624,7 +624,7 @@ public class JooqRepository implements Repository {
     @Override
     public List<User> listUsers() {
         DSLContext ctx = using(connectionProvider, dialect);
-        return ctx.selectFrom(USER_INVENTORY).fetch().stream().map(this::createUserFrom).collect(java.util.stream.Collectors.toList());
+        return ctx.selectFrom(USER_INVENTORY).fetch().map(this::createUserFrom);
     }
 
     @Override
