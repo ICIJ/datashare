@@ -66,7 +66,7 @@ public class ArtifactTask extends PipelineTask<String> {
             try {
                 Document doc = indexer.get(project.name, docId, sourceExcludes);
                 extractor.extractEmbeddedSources(project, doc);
-                writeStructureMarkdown(extractor, structureExtractor, projectArtifactDir, doc);
+                writeStructure(extractor, structureExtractor, projectArtifactDir, doc);
                 nbDocs++;
             } catch (Throwable e) {
                 logger.error("error in ArtifactTask loop", e);
@@ -76,10 +76,10 @@ public class ArtifactTask extends PipelineTask<String> {
         return nbDocs;
     }
 
-    private void writeStructureMarkdown(SourceExtractor sourceExtractor, StructureMarkdownExtractor structureExtractor,
-                                        Path projectArtifactDir, Document doc) {
-        // Skip when a finished, deterministic page set is already cached. The completion marker is written
-        // last, so its presence guarantees the whole set is on disk.
+    private void writeStructure(SourceExtractor sourceExtractor, StructureMarkdownExtractor structureExtractor,
+                                Path projectArtifactDir, Document doc) {
+        // Skip when a finished, deterministic set is already cached. The completion marker is written
+        // last, so its presence guarantees the XHTML and the whole page set are on disk.
         Path completeMarker = ArtifactPath.structureComplete(projectArtifactDir, doc.getId());
         if (completeMarker.toFile().exists()) {
             return;
@@ -87,11 +87,15 @@ public class ArtifactTask extends PipelineTask<String> {
         // A conversion or write failure must not abort the loop or the raw extraction above, so it is
         // caught and logged here rather than propagated.
         try (InputStream source = sourceExtractor.getSource(project, doc)) {
-            List<String> pages = structureExtractor.extractPages(source, doc.getContentType());
-            writePages(projectArtifactDir, doc.getId(), pages);
+            StructureMarkdownExtractor.StructureResult result =
+                    structureExtractor.extract(source, doc.getContentType());
+            Files.createDirectories(ArtifactPath.structureDir(projectArtifactDir, doc.getId()));
+            Files.writeString(ArtifactPath.structureXhtml(projectArtifactDir, doc.getId()),
+                    result.xhtml(), StandardCharsets.UTF_8);
+            writePages(projectArtifactDir, doc.getId(), result.pages());
             markStructureComplete(completeMarker);
         } catch (Exception e) {
-            logger.error("could not write structure markdown for document {}", doc.getId(), e);
+            logger.error("could not write structure artifacts for document {}", doc.getId(), e);
         }
     }
 

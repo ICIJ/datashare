@@ -59,6 +59,8 @@ public class ArtifactTaskTest {
                 .resolve("prj/0f/95/" + rootSha + "/structure/page-0001.md").toFile()).isFile();
         assertThat(artifactDir.getRoot().toPath()
                 .resolve("prj/0f/95/" + rootSha + "/structure/.complete").toFile()).isFile();
+        assertThat(artifactDir.getRoot().toPath()
+                .resolve("prj/0f/95/" + rootSha + "/structure/structure.xhtml").toFile()).isFile();
     }
 
     @Before
