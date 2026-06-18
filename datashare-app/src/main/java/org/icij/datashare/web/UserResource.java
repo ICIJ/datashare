@@ -17,6 +17,8 @@ import org.icij.datashare.UserEvent;
 import org.icij.datashare.UserEvent.Type;
 import org.icij.datashare.policies.Authorizer;
 import org.icij.datashare.policies.CasbinRule;
+import org.icij.datashare.policies.Policy;
+import org.icij.datashare.policies.Role;
 import org.icij.datashare.session.DatashareUser;
 import org.icij.datashare.text.Project;
 import org.icij.datashare.user.User;
@@ -70,6 +72,7 @@ public class UserResource {
     @Operation(description = "Lists all users.")
     @ApiResponse(responseCode = "200", useReturnTypeSchema = true)
     @ApiResponse(responseCode = "501", description = "if the configured user store does not support listing")
+    @Policy(role = Role.INSTANCE_ADMIN)
     @Get
     public Payload listUsers() {
         try {
@@ -83,6 +86,7 @@ public class UserResource {
     @ApiResponse(responseCode = "201", description = "user created")
     @ApiResponse(responseCode = "400", description = "validation error")
     @ApiResponse(responseCode = "409", description = "user already exists")
+    @Policy(role = Role.INSTANCE_ADMIN)
     @Post
     public Payload createUser(UserCreateRequest request) {
         try {
@@ -98,6 +102,7 @@ public class UserResource {
             parameters = @Parameter(name = "login", in = ParameterIn.PATH))
     @ApiResponse(responseCode = "200", useReturnTypeSchema = true)
     @ApiResponse(responseCode = "404", description = "user not found")
+    @Policy(role = Role.INSTANCE_ADMIN)
     @Get("/:login")
     public Payload getUserByLogin(String login) {
         try {
@@ -112,6 +117,7 @@ public class UserResource {
     @ApiResponse(responseCode = "200", useReturnTypeSchema = true)
     @ApiResponse(responseCode = "400", description = "validation error")
     @ApiResponse(responseCode = "404", description = "user not found")
+    @Policy(role = Role.INSTANCE_ADMIN)
     @Put("/:login")
     public Payload updateUser(String login, UserUpdateRequest request) {
         try {
@@ -127,6 +133,7 @@ public class UserResource {
             parameters = @Parameter(name = "login", in = ParameterIn.PATH))
     @ApiResponse(responseCode = "204", description = "user deleted")
     @ApiResponse(responseCode = "404", description = "user not found")
+    @Policy(role = Role.INSTANCE_ADMIN)
     @Delete("/:login")
     public Payload deleteUser(String login) {
         try {

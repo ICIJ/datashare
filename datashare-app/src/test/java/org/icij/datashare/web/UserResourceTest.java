@@ -7,6 +7,8 @@ import org.icij.datashare.db.JooqRepository;
 import org.icij.datashare.policies.Authorizer;
 import org.icij.datashare.policies.CasbinRuleAdapter;
 import org.icij.datashare.policies.Domain;
+import org.icij.datashare.policies.Policy;
+import org.icij.datashare.policies.PolicyAnnotation;
 import org.icij.datashare.policies.Role;
 import org.icij.datashare.session.LocalUserFilter;
 import org.icij.datashare.text.Project;
@@ -29,6 +31,7 @@ import java.util.List;
 
 import static java.util.Collections.singletonList;
 import static org.icij.datashare.UserEvent.Type.DOCUMENT;
+import org.icij.datashare.session.DatashareUser;
 import static org.icij.datashare.session.DatashareUser.singleUser;
 import static org.icij.datashare.text.Project.project;
 import static org.icij.datashare.user.User.localUser;
@@ -48,7 +51,10 @@ public class UserResourceTest extends AbstractProdWebServerTest {
     public void setUp() throws IOException {
         initMocks(this);
         authorizer = new Authorizer(casbinRuleAdapter);
+        authorizer.addRoleForUserInInstance(User.local(), Role.INSTANCE_ADMIN);
+        PolicyAnnotation policyAnnotation = new PolicyAnnotation(authorizer);
         configure(routes -> routes
+                .registerAroundAnnotation(Policy.class, policyAnnotation)
                 .add(new UserResource(jooqRepository, authorizer, userAdminService))
                 .filter(new LocalUserFilter(new PropertiesProvider(), jooqRepository)));
     }
@@ -334,5 +340,28 @@ public class UserResourceTest extends AbstractProdWebServerTest {
     @Test
     public void test_me_route_still_works_after_login_param_added() {
         get("/api/users/me").should().respond(200).contain("\"uid\":\"local\"");
+    }
+
+    // Authorization: admin endpoints require INSTANCE_ADMIN role
+
+    @Test
+    public void test_list_users_returns_403_for_non_admin() throws IOException {
+        // Fresh authorizer without INSTANCE_ADMIN role for the local user
+        Authorizer restrictedAuthorizer = new Authorizer(casbinRuleAdapter);
+        PolicyAnnotation policyAnnotation = new PolicyAnnotation(restrictedAuthorizer);
+        configure(routes -> routes
+                .registerAroundAnnotation(Policy.class, policyAnnotation)
+                .add(new UserResource(jooqRepository, restrictedAuthorizer, userAdminService))
+                .filter(new LocalUserFilter(new PropertiesProvider(), jooqRepository)));
+
+        get("/api/users").should().respond(403);
+    }
+
+    @Test
+    public void test_list_users_returns_200_for_admin() {
+        // setUp() grants INSTANCE_ADMIN to User.local(), so admin can list users
+        when(userAdminService.list()).thenReturn(List.of());
+
+        get("/api/users").should().respond(200);
     }
 }
