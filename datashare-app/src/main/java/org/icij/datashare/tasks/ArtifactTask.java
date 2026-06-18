@@ -78,10 +78,14 @@ public class ArtifactTask extends PipelineTask<String> {
 
     private void writeStructure(SourceExtractor sourceExtractor, StructureMarkdownExtractor structureExtractor,
                                 Path projectArtifactDir, Document doc) {
-        // Skip when a finished, deterministic set is already cached. The completion marker is written
-        // last, so its presence guarantees the XHTML and the whole page set are on disk.
+        // Skip only when a finished set is cached AND it includes the XHTML artifact. Corpora cached by an
+        // earlier (markdown-only) build carry the completion marker but no structure.xhtml; gating on both
+        // back-fills them on the next run instead of leaving the XHTML endpoint to 404 forever. The marker
+        // is written last, so its presence (with the file) guarantees the XHTML and the whole page set are
+        // on disk.
         Path completeMarker = ArtifactPath.structureComplete(projectArtifactDir, doc.getId());
-        if (completeMarker.toFile().exists()) {
+        Path xhtmlFile = ArtifactPath.structureXhtml(projectArtifactDir, doc.getId());
+        if (completeMarker.toFile().exists() && xhtmlFile.toFile().exists()) {
             return;
         }
         // A conversion or write failure must not abort the loop or the raw extraction above, so it is
@@ -90,8 +94,7 @@ public class ArtifactTask extends PipelineTask<String> {
             StructureMarkdownExtractor.StructureResult result =
                     structureExtractor.extract(source, doc.getContentType());
             Files.createDirectories(ArtifactPath.structureDir(projectArtifactDir, doc.getId()));
-            Files.writeString(ArtifactPath.structureXhtml(projectArtifactDir, doc.getId()),
-                    result.xhtml(), StandardCharsets.UTF_8);
+            Files.writeString(xhtmlFile, result.xhtml(), StandardCharsets.UTF_8);
             writePages(projectArtifactDir, doc.getId(), result.pages());
             markStructureComplete(completeMarker);
         } catch (Exception e) {
@@ -100,8 +103,8 @@ public class ArtifactTask extends PipelineTask<String> {
     }
 
     // Writes one Markdown file per page (page-0001.md, page-0002.md, ...) into the document's structure dir.
+    // The caller (writeStructure) creates the directory before the XHTML write, so it already exists here.
     private void writePages(Path projectArtifactDir, String digest, List<String> pages) throws IOException {
-        Files.createDirectories(ArtifactPath.structureDir(projectArtifactDir, digest));
         for (int pageIndex = 0; pageIndex < pages.size(); pageIndex++) {
             int pageNumber = pageIndex + 1;
             Files.writeString(ArtifactPath.structurePage(projectArtifactDir, digest, pageNumber),

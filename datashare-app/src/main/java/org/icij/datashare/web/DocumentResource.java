@@ -31,7 +31,6 @@ import org.icij.datashare.text.indexing.SearchedText;
 import org.icij.datashare.text.indexing.elasticsearch.ArtifactPath;
 import org.icij.datashare.text.indexing.elasticsearch.SourceExtractor;
 import org.icij.datashare.text.structure.StructureMarkdownExtractor;
-import org.jsoup.Jsoup;
 import org.icij.datashare.user.User;
 import org.icij.datashare.utils.DocumentVerifier;
 import org.icij.datashare.utils.PayloadFormatter;
@@ -272,10 +271,11 @@ public class DocumentResource {
         if (!xhtmlFile.toFile().isFile()) {
             return Payload.notFound();
         }
-        // The on-disk XHTML is untrusted (stored raw). Sanitize at serve time with the producer's own
-        // Safelist so viewer rendering is XSS-safe and the two boundaries cannot drift.
-        String sanitized = Jsoup.clean(Files.readString(xhtmlFile, StandardCharsets.UTF_8),
-                StructureMarkdownExtractor.safelist());
+        // The on-disk XHTML is untrusted (stored raw). Sanitize at serve time through the producer's own
+        // boundary so viewer rendering is XSS-safe, the two boundaries cannot drift, and the response stays
+        // a whole document (html/head/body) rather than a bare body fragment.
+        String sanitized = StructureMarkdownExtractor.sanitizeServedDocument(
+                Files.readString(xhtmlFile, StandardCharsets.UTF_8));
         return new Payload(HTML_CONTENT_TYPE, sanitized).withCode(200);
     }
 

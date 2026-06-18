@@ -134,10 +134,13 @@ public class StructureMarkdownExtractorTest {
     }
 
     @Test
-    public void test_safelist_strips_scripts_for_serve_time_sanitization() {
-        String safe = org.jsoup.Jsoup.clean(
-                "<p>keep</p><script>alert('xss')</script>", StructureMarkdownExtractor.safelist());
+    public void test_sanitize_served_document_keeps_whole_document_and_strips_scripts() {
+        String safe = StructureMarkdownExtractor.sanitizeServedDocument(
+                "<html><head><title>t</title></head><body><p>keep</p>" +
+                "<script>alert('xss')</script></body></html>");
         assertThat(safe).contains("keep");
+        assertThat(safe).contains("<html");
+        assertThat(safe).contains("<body");
         assertThat(safe).excludes("script");
         assertThat(safe).excludes("alert");
     }

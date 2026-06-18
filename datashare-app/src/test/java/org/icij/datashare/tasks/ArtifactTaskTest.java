@@ -13,6 +13,7 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.mockito.Mock;
 
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
@@ -61,6 +62,32 @@ public class ArtifactTaskTest {
                 .resolve("prj/0f/95/" + rootSha + "/structure/.complete").toFile()).isFile();
         assertThat(artifactDir.getRoot().toPath()
                 .resolve("prj/0f/95/" + rootSha + "/structure/structure.xhtml").toFile()).isFile();
+    }
+
+    @Test(timeout = 10000)
+    public void test_backfills_structure_xhtml_when_marker_present_but_xhtml_missing() throws Exception {
+        Path path = Path.of(Objects.requireNonNull(getClass().getResource("/docs/embedded_doc.eml")).getPath());
+        String sha256 = "0f95ef97e4619f7bae2a585c6cf24587cd7a3a81a26599c8774d669e5c175e5e";
+        mockIndexer.indexFile("prj", sha256, path, "message/rfc822");
+
+        // Simulate a corpus cached by an earlier markdown-only build: completion marker and a page exist,
+        // but structure.xhtml does not. The skip guard must not treat this as finished.
+        Path structureDir = artifactDir.getRoot().toPath().resolve("prj/0f/95/" + sha256 + "/structure");
+        Files.createDirectories(structureDir);
+        Files.writeString(structureDir.resolve("page-0001.md"), "# stale page");
+        Files.writeString(structureDir.resolve(".complete"), "");
+
+        DocumentQueue<String> queue = factory.createQueue("extract:queue:artifact", String.class);
+        queue.add(sha256);
+
+        new ArtifactTask(factory, mockEs, new PropertiesProvider(Map.of(
+                "artifactDir", artifactDir.getRoot().toString(),
+                "defaultProject", "prj",
+                "pollingInterval", "1")),
+                new Task<>(ArtifactTask.class.getName(), User.local(), new HashMap<>()), null)
+                .call();
+
+        assertThat(structureDir.resolve("structure.xhtml").toFile()).isFile();
     }
 
     @Before

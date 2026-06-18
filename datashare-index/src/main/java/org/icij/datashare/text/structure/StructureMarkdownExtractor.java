@@ -12,6 +12,7 @@ import org.apache.tika.parser.pdf.PDFParserConfig;
 import org.apache.tika.sax.ToXMLContentHandler;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Element;
+import org.jsoup.safety.Cleaner;
 import org.jsoup.safety.Safelist;
 import org.xml.sax.SAXException;
 
@@ -50,9 +51,15 @@ public class StructureMarkdownExtractor {
     /** The raw Tika XHTML (exactly as emitted) paired with the per-page Markdown derived from it. */
     public record StructureResult(String xhtml, List<String> pages) {}
 
-    /** The producer-side sanitization boundary, exposed so serve-time sanitizers reuse the same rules. */
-    public static Safelist safelist() {
-        return SAFELIST;
+    /**
+     * Sanitizes raw stored XHTML for serving, reusing the producer's Safelist so the two boundaries cannot
+     * drift. Unlike the per-page fragment path, this cleans through a whole {@link org.jsoup.nodes.Document}
+     * (Cleaner preserves the html/head/body shell) so the response is a navigable document rather than a
+     * bare body fragment. The shared SAFELIST is never handed out, so callers cannot mutate the
+     * process-wide sanitizer.
+     */
+    public static String sanitizeServedDocument(String rawHtml) {
+        return new Cleaner(SAFELIST).clean(Jsoup.parse(rawHtml)).html();
     }
 
     /**

@@ -616,7 +616,12 @@ public class DocumentResourceTest extends AbstractProdWebServerTest {
 
         get("/api/local-datashare/documents/structure/" + id + "/xhtml").should()
                 .succeed().haveType("text/html;charset=UTF-8")
-                .contain("keep me").contain("<p>").should();
+                .contain("keep me").contain("<p>").contain("<html").contain("<body").should();
+    }
+
+    @Test
+    public void test_get_structure_xhtml_forbidden_index_returns_403() {
+        get("/api/foo_index/documents/structure/anyid/xhtml").should().respond(403);
     }
 
     @Test
