@@ -10,6 +10,7 @@ import io.swagger.v3.oas.annotations.enums.ParameterIn;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import net.codestory.http.Context;
 import net.codestory.http.annotations.*;
+import net.codestory.http.constants.HttpStatus;
 import net.codestory.http.payload.Payload;
 import org.icij.datashare.Repository;
 import org.icij.datashare.UserEvent;
@@ -19,6 +20,14 @@ import org.icij.datashare.policies.CasbinRule;
 import org.icij.datashare.session.DatashareUser;
 import org.icij.datashare.text.Project;
 import org.icij.datashare.user.User;
+import org.icij.datashare.user.admin.UserAdminService;
+import org.icij.datashare.user.admin.UserCreateRequest;
+import org.icij.datashare.user.admin.UserCreated;
+import org.icij.datashare.user.admin.UserExistsException;
+import org.icij.datashare.user.admin.UserNotFoundException;
+import org.icij.datashare.user.admin.UserUpdateRequest;
+import org.icij.datashare.user.admin.ValidationException;
+import org.icij.datashare.utils.PayloadFormatter;
 import org.jetbrains.annotations.NotNull;
 
 import java.net.URI;
@@ -39,6 +48,7 @@ import static org.icij.datashare.db.tables.UserHistory.USER_HISTORY;
 public class UserResource {
     private final Repository repository;
     private final Authorizer authorizer;
+    private final UserAdminService userAdminService;
 
     private List<Project> getDatashareUserProjects (DatashareUser datashareUser) {
         List<String> projectNames =  datashareUser.getProjectNames();
@@ -51,9 +61,80 @@ public class UserResource {
     }
 
     @Inject
-    public UserResource(Repository repository, Authorizer authorizer) {
+    public UserResource(Repository repository, Authorizer authorizer, UserAdminService userAdminService) {
         this.repository = repository;
         this.authorizer = authorizer;
+        this.userAdminService = userAdminService;
+    }
+
+    @Operation(description = "Lists all users.")
+    @ApiResponse(responseCode = "200", useReturnTypeSchema = true)
+    @ApiResponse(responseCode = "501", description = "if the configured user store does not support listing")
+    @Get
+    public Payload listUsers() {
+        try {
+            return new Payload(userAdminService.list());
+        } catch (UnsupportedOperationException e) {
+            return PayloadFormatter.error(e.getMessage(), HttpStatus.NOT_IMPLEMENTED);
+        }
+    }
+
+    @Operation(description = "Creates a new user.")
+    @ApiResponse(responseCode = "201", description = "user created")
+    @ApiResponse(responseCode = "400", description = "validation error")
+    @ApiResponse(responseCode = "409", description = "user already exists")
+    @Post
+    public Payload createUser(UserCreateRequest request) {
+        try {
+            return new Payload(userAdminService.create(request)).withCode(HttpStatus.CREATED);
+        } catch (UserExistsException e) {
+            return PayloadFormatter.error(e.getMessage(), HttpStatus.CONFLICT);
+        } catch (ValidationException e) {
+            return PayloadFormatter.error(e.getMessage(), HttpStatus.BAD_REQUEST);
+        }
+    }
+
+    @Operation(description = "Gets a user by login.",
+            parameters = @Parameter(name = "login", in = ParameterIn.PATH))
+    @ApiResponse(responseCode = "200", useReturnTypeSchema = true)
+    @ApiResponse(responseCode = "404", description = "user not found")
+    @Get("/:login")
+    public Payload getUserByLogin(String login) {
+        try {
+            return new Payload(userAdminService.get(login));
+        } catch (UserNotFoundException e) {
+            return PayloadFormatter.error(e.getMessage(), HttpStatus.NOT_FOUND);
+        }
+    }
+
+    @Operation(description = "Updates a user. Omit any field to keep its current value.",
+            parameters = @Parameter(name = "login", in = ParameterIn.PATH))
+    @ApiResponse(responseCode = "200", useReturnTypeSchema = true)
+    @ApiResponse(responseCode = "400", description = "validation error")
+    @ApiResponse(responseCode = "404", description = "user not found")
+    @Put("/:login")
+    public Payload updateUser(String login, UserUpdateRequest request) {
+        try {
+            return new Payload(userAdminService.update(login, request));
+        } catch (UserNotFoundException e) {
+            return PayloadFormatter.error(e.getMessage(), HttpStatus.NOT_FOUND);
+        } catch (ValidationException e) {
+            return PayloadFormatter.error(e.getMessage(), HttpStatus.BAD_REQUEST);
+        }
+    }
+
+    @Operation(description = "Deletes a user by login.",
+            parameters = @Parameter(name = "login", in = ParameterIn.PATH))
+    @ApiResponse(responseCode = "204", description = "user deleted")
+    @ApiResponse(responseCode = "404", description = "user not found")
+    @Delete("/:login")
+    public Payload deleteUser(String login) {
+        try {
+            userAdminService.delete(login);
+            return new Payload(204);
+        } catch (UserNotFoundException e) {
+            return PayloadFormatter.error(e.getMessage(), HttpStatus.NOT_FOUND);
+        }
     }
 
     @Operation(description = "Gets the user's session information.")
