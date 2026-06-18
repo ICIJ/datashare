@@ -74,6 +74,7 @@ public interface Repository {
     boolean save(User user);
     boolean deleteUser(String userId);
     User getUser(String userId);
+    List<User> listUsers();
     // TODO: from version 21.0.3
     //  remove this after version 22.0.0 (or in a few stable releases)
     void temporaryFixLiquibaseIds();
