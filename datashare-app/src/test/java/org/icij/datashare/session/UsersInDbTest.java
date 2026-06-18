@@ -3,6 +3,7 @@ package org.icij.datashare.session;
 import org.icij.datashare.Repository;
 import org.icij.datashare.text.Hasher;
 import org.icij.datashare.user.User;
+import org.icij.datashare.session.DatashareUser;
 import org.junit.Test;
 
 import java.util.HashMap;
@@ -67,12 +68,15 @@ public class UsersInDbTest {
     @Test
     public void list_users_delegates_to_repository() {
         Repository repository = mock(Repository.class);
-        User user1 = new User("alice", "Alice", "alice@example.com", "icij", new HashMap<>());
-        User user2 = new User("bob", "Bob", "bob@example.com", "icij", new HashMap<>());
-        when(repository.listUsers()).thenReturn(List.of(user1, user2));
+        User alice = new User("alice", "Alice", "alice@example.org", "local", new HashMap<>());
+        User bob   = new User("bob",   "Bob",   "bob@example.org",   "local", new HashMap<>());
+        when(repository.listUsers()).thenReturn(List.of(alice, bob));
+
         List<User> result = new UsersInDb(repository).listUsers();
+
         assertThat(result).hasSize(2);
         assertThat(result.get(0).id).isEqualTo("alice");
         assertThat(result.get(1).id).isEqualTo("bob");
+        assertThat(result.get(0)).isInstanceOf(DatashareUser.class);
     }
 }

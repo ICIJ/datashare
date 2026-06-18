@@ -45,6 +45,8 @@ public class UsersInDb implements UserStore {
 
     @Override
     public List<org.icij.datashare.user.User> listUsers() {
-        return userRepository.listUsers();
+        return userRepository.listUsers().stream()
+                .map(DatashareUser::new)
+                .collect(java.util.stream.Collectors.toList());
     }
 }
