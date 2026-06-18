@@ -91,7 +91,10 @@ public class UserAdminServiceImpl implements UserAdminService {
         details.put("name", newName);
         details.put("email", newEmail);
 
-        if (req.password() != null && !req.password().isEmpty()) {
+        if (req.password() != null) {
+            if (req.password().isEmpty()) {
+                throw new ValidationException("password", "password cannot be empty");
+            }
             details.put("password", Hasher.SHA_256.hash(req.password()));
         }
 
