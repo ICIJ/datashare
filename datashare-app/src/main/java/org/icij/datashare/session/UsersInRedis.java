@@ -4,6 +4,7 @@ import com.google.inject.Inject;
 import net.codestory.http.security.User;
 
 import java.util.List;
+import java.util.Set;
 import org.icij.datashare.EnvUtils;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.user.admin.UserFilter;
@@ -45,6 +46,7 @@ public class UsersInRedis implements UserStore {
     public boolean save(org.icij.datashare.user.User user) {
         try (Jedis jedis = redis.getResource()) {
             jedis.set(user.id, JsonObjectMapper.serialize(user.details));
+            jedis.sadd("_datashare_users", user.id);
             return true;
         }
     }
@@ -52,12 +54,29 @@ public class UsersInRedis implements UserStore {
     @Override
     public boolean delete(String login) {
         try (Jedis jedis = redis.getResource()) {
-            return jedis.del(login) > 0;
+            long deleted = jedis.del(login);
+            if (deleted > 0) {
+                jedis.srem("_datashare_users", login);
+            }
+            return deleted > 0;
         }
     }
 
     @Override
     public List<org.icij.datashare.user.User> listUsers(UserFilter filter) {
-        throw new UnsupportedOperationException("not yet implemented");
+        try (Jedis jedis = redis.getResource()) {
+            Set<String> logins = jedis.smembers("_datashare_users");
+            if (logins.isEmpty()) {
+                return List.of();
+            }
+            List<String> jsons = jedis.mget(logins.toArray(new String[0]));
+            return jsons.stream()
+                    .filter(java.util.Objects::nonNull)
+                    .map(json -> fromJson(json, "icij"))
+                    .filter(java.util.Objects::nonNull)
+                    .filter(filter::matches)
+                    .map(DatashareUser::new)
+                    .collect(java.util.stream.Collectors.toList());
+        }
     }
 }
