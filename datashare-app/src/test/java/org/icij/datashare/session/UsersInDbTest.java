@@ -4,6 +4,7 @@ import org.icij.datashare.Repository;
 import org.icij.datashare.text.Hasher;
 import org.icij.datashare.user.User;
 import org.icij.datashare.session.DatashareUser;
+import org.icij.datashare.user.admin.UserFilter;
 import org.junit.Test;
 
 import java.util.HashMap;
@@ -65,18 +66,8 @@ public class UsersInDbTest {
         assertThat(new UsersInDb(repository).find("foo", "bad")).isNull();
     }
 
-    @Test
-    public void list_users_delegates_to_repository() {
-        Repository repository = mock(Repository.class);
-        User alice = new User("alice", "Alice", "alice@example.org", "local", new HashMap<>());
-        User bob   = new User("bob",   "Bob",   "bob@example.org",   "local", new HashMap<>());
-        when(repository.listUsers()).thenReturn(List.of(alice, bob));
-
-        List<User> result = new UsersInDb(repository).listUsers();
-
-        assertThat(result).hasSize(2);
-        assertThat(result.get(0).id).isEqualTo("alice");
-        assertThat(result.get(1).id).isEqualTo("bob");
-        assertThat(result.get(0)).isInstanceOf(DatashareUser.class);
+    @Test(expected = UnsupportedOperationException.class)
+    public void list_users_throws_unsupported_until_task4() {
+        new UsersInDb(mock(Repository.class)).listUsers(new UserFilter(null, null, null, null));
     }
 }

@@ -6,6 +6,7 @@ import net.codestory.http.security.User;
 import net.codestory.http.security.Users;
 import org.icij.datashare.Repository;
 import org.icij.datashare.text.Hasher;
+import org.icij.datashare.user.admin.UserFilter;
 
 import java.util.List;
 
@@ -44,9 +45,7 @@ public class UsersInDb implements UserStore {
     }
 
     @Override
-    public List<org.icij.datashare.user.User> listUsers() {
-        return userRepository.listUsers().stream()
-                .map(DatashareUser::new)
-                .collect(java.util.stream.Collectors.toList());
+    public List<org.icij.datashare.user.User> listUsers(UserFilter filter) {
+        throw new UnsupportedOperationException("not yet implemented");
     }
 }

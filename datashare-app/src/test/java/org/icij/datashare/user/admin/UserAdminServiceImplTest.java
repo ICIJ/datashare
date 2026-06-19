@@ -4,6 +4,7 @@ import org.icij.datashare.session.DatashareUser;
 import org.icij.datashare.session.UserStore;
 import org.icij.datashare.text.Hasher;
 import org.icij.datashare.user.User;
+import org.icij.datashare.user.admin.UserFilter;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
@@ -258,9 +259,26 @@ public class UserAdminServiceImplTest {
 
     // --- list ---
 
-    @Test(expected = UnsupportedOperationException.class)
-    public void test_list_with_filter_throws_unsupported_until_task3() {
-        service.list(new UserFilter(null, null, null, null));
+    @Test
+    public void test_list_with_empty_filter_delegates_to_store() {
+        User alice = new User("alice", "Alice", "alice@example.org", "local", new HashMap<>());
+        UserFilter filter = new UserFilter(null, null, null, null);
+        when(userStore.listUsers(filter)).thenReturn(List.of(alice));
+
+        List<User> result = service.list(filter);
+
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).id).isEqualTo("alice");
+    }
+
+    @Test
+    public void test_list_passes_filter_to_store() {
+        UserFilter filter = new UserFilter("ali", null, "local", null);
+        when(userStore.listUsers(filter)).thenReturn(List.of());
+
+        service.list(filter);
+
+        verify(userStore).listUsers(filter);
     }
 
     // --- update ---
