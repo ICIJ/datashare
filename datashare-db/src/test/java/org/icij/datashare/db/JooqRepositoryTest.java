@@ -7,6 +7,7 @@ import org.icij.datashare.UserEvent;
 import org.icij.datashare.test.DatashareTimeRule;
 import org.icij.datashare.text.*;
 import org.icij.datashare.user.User;
+import org.icij.datashare.user.admin.UserFilter;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -725,6 +726,45 @@ public class JooqRepositoryTest {
     @Test
     public void test_db_status(){
         assertThat(repository.getHealth()).isTrue();
+    }
+
+    @Test
+    public void listUsers_with_empty_filter_returns_all() {
+        repository.save(new User("alice", "Alice", "alice@example.org"));
+        repository.save(new User("charlie", "Charlie", "charlie@example.org"));
+
+        List<User> users = repository.listUsers(new UserFilter(null, null, null, null));
+        assertThat(users).hasSize(2);
+    }
+
+    @Test
+    public void listUsers_filter_by_name_substring() {
+        repository.save(new User("alice2", "Alice", "alice2@example.org"));
+        repository.save(new User("bob2", "Bob", "bob2@example.org"));
+
+        List<User> users = repository.listUsers(new UserFilter("ali", null, null, null));
+        assertThat(users).hasSize(1);
+        assertThat(users.get(0).id).isEqualTo("alice2");
+    }
+
+    @Test
+    public void listUsers_filter_by_provider_exact() {
+        repository.save(new User(new HashMap<>() {{
+            put("uid", "local_user");
+            put("provider", "local");
+            put("name", "Local User");
+            put("email", "local@example.org");
+        }}));
+        repository.save(new User(new HashMap<>() {{
+            put("uid", "oauth_user");
+            put("provider", "oauth");
+            put("name", "Oauth User");
+            put("email", "oauth@example.org");
+        }}));
+
+        List<User> users = repository.listUsers(new UserFilter(null, null, "local", null));
+        assertThat(users).hasSize(1);
+        assertThat(users.get(0).id).isEqualTo("local_user");
     }
 
     @Test
