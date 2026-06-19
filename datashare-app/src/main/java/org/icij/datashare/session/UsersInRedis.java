@@ -6,6 +6,7 @@ import net.codestory.http.security.User;
 import java.util.List;
 import org.icij.datashare.EnvUtils;
 import org.icij.datashare.PropertiesProvider;
+import org.icij.datashare.user.admin.UserFilter;
 import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.text.Hasher;
 import redis.clients.jedis.Jedis;
@@ -56,7 +57,7 @@ public class UsersInRedis implements UserStore {
     }
 
     @Override
-    public List<org.icij.datashare.user.User> listUsers() {
-        throw new UnsupportedOperationException("listUsers is not supported by Redis session store");
+    public List<org.icij.datashare.user.User> listUsers(UserFilter filter) {
+        throw new UnsupportedOperationException("not yet implemented");
     }
 }
