@@ -16,6 +16,7 @@ import org.icij.datashare.user.User;
 import org.icij.datashare.user.admin.UserAdminService;
 import org.icij.datashare.user.admin.UserCreated;
 import org.icij.datashare.user.admin.UserExistsException;
+import org.icij.datashare.user.admin.UserFilter;
 import org.icij.datashare.user.admin.UserNotFoundException;
 import org.icij.datashare.user.admin.ValidationException;
 import org.icij.datashare.web.testhelpers.AbstractProdWebServerTest;
@@ -264,16 +265,42 @@ public class UserResourceTest extends AbstractProdWebServerTest {
     @Test
     public void test_list_users_returns_200() {
         User alice = new User("alice", "Alice", "alice@example.org", "local", new HashMap<>());
-        when(userAdminService.list()).thenReturn(List.of(alice));
+        when(userAdminService.list(new UserFilter(null, null, null, null))).thenReturn(List.of(alice));
 
         get("/api/users").should().respond(200).contain("alice");
     }
 
     @Test
     public void test_list_users_returns_501_for_unsupported_store() {
-        when(userAdminService.list()).thenThrow(new UnsupportedOperationException("not supported"));
+        when(userAdminService.list(new UserFilter(null, null, null, null))).thenThrow(new UnsupportedOperationException("not supported"));
 
         get("/api/users").should().respond(501);
+    }
+
+    @Test
+    public void test_list_users_filters_by_provider() {
+        User alice = new User("alice", "Alice", "alice@example.org", "local", new HashMap<>());
+        when(userAdminService.list(new UserFilter(null, null, "local", null)))
+                .thenReturn(List.of(alice));
+
+        get("/api/users?provider=local").should().respond(200).contain("alice");
+    }
+
+    @Test
+    public void test_list_users_filters_by_name() {
+        User alice = new User("alice", "Alice", "alice@example.org", "local", new HashMap<>());
+        when(userAdminService.list(new UserFilter("ali", null, null, null)))
+                .thenReturn(List.of(alice));
+
+        get("/api/users?name=ali").should().respond(200).contain("alice");
+    }
+
+    @Test
+    public void test_list_users_with_no_filter_passes_empty_filter() {
+        when(userAdminService.list(new UserFilter(null, null, null, null)))
+                .thenReturn(List.of());
+
+        get("/api/users").should().respond(200);
     }
 
     // GET /api/users/:login — get by login (UserAdminService.get is NEW — add to interface)
@@ -359,7 +386,7 @@ public class UserResourceTest extends AbstractProdWebServerTest {
     @Test
     public void test_list_users_returns_200_for_admin() {
         // setUp() grants INSTANCE_ADMIN to User.local(), so admin can list users
-        when(userAdminService.list()).thenReturn(List.of());
+        when(userAdminService.list(new UserFilter(null, null, null, null))).thenReturn(List.of());
 
         get("/api/users").should().respond(200);
     }

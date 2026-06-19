@@ -258,17 +258,9 @@ public class UserAdminServiceImplTest {
 
     // --- list ---
 
-    @Test
-    public void test_list_delegates_to_user_store() {
-        User alice = new User("alice", "Alice", "alice@example.org");
-        User bob = new User("bob", "Bob", "bob@example.org");
-        when(userStore.listUsers()).thenReturn(List.of(alice, bob));
-
-        List<User> result = service.list();
-
-        assertThat(result).hasSize(2);
-        assertThat(result.get(0).id).isEqualTo("alice");
-        assertThat(result.get(1).id).isEqualTo("bob");
+    @Test(expected = UnsupportedOperationException.class)
+    public void test_list_with_filter_throws_unsupported_until_task3() {
+        service.list(new UserFilter(null, null, null, null));
     }
 
     // --- update ---
