@@ -46,6 +46,9 @@ public class UsersInDb implements UserStore {
 
     @Override
     public List<org.icij.datashare.user.User> listUsers(UserFilter filter) {
-        throw new UnsupportedOperationException("not yet implemented");
+        return userRepository.listUsers(filter).stream()
+                .filter(filter::matches)
+                .map(DatashareUser::new)
+                .collect(java.util.stream.Collectors.toList());
     }
 }

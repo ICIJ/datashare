@@ -12,6 +12,7 @@ import org.icij.datashare.text.*;
 import org.icij.datashare.text.Tag;
 import org.icij.datashare.text.nlp.Pipeline;
 import org.icij.datashare.user.User;
+import org.icij.datashare.user.admin.UserFilter;
 import org.jooq.*;
 import org.jooq.Record;
 import org.jooq.exception.DataAccessException;
@@ -622,9 +623,19 @@ public class JooqRepository implements Repository {
     }
 
     @Override
-    public List<User> listUsers() {
+    public List<User> listUsers(UserFilter filter) {
         DSLContext ctx = using(connectionProvider, dialect);
-        return ctx.selectFrom(USER_INVENTORY).fetch().map(this::createUserFrom);
+        Condition condition = DSL.trueCondition();
+        if (filter.name() != null) {
+            condition = condition.and(USER_INVENTORY.NAME.containsIgnoreCase(filter.name()));
+        }
+        if (filter.email() != null) {
+            condition = condition.and(USER_INVENTORY.EMAIL.containsIgnoreCase(filter.email()));
+        }
+        if (filter.provider() != null) {
+            condition = condition.and(USER_INVENTORY.PROVIDER.eq(filter.provider()));
+        }
+        return ctx.selectFrom(USER_INVENTORY).where(condition).fetch().map(this::createUserFrom);
     }
 
     @Override

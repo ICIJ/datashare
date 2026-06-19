@@ -6,6 +6,7 @@ import org.icij.datashare.text.Project;
 import org.icij.datashare.text.Tag;
 import org.icij.datashare.text.nlp.Pipeline;
 import org.icij.datashare.user.User;
+import org.icij.datashare.user.admin.UserFilter;
 
 import java.util.List;
 import java.util.Objects;
@@ -74,7 +75,7 @@ public interface Repository {
     boolean save(User user);
     boolean deleteUser(String userId);
     User getUser(String userId);
-    List<User> listUsers();
+    List<User> listUsers(UserFilter filter);
     // TODO: from version 21.0.3
     //  remove this after version 22.0.0 (or in a few stable releases)
     void temporaryFixLiquibaseIds();
