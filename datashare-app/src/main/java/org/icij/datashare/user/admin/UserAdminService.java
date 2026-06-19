@@ -18,7 +18,7 @@ public interface UserAdminService {
 
     User get(String login) throws UserNotFoundException;
 
-    List<User> list();
+    List<User> list(UserFilter filter);
 
     UserCreated update(String login, UserUpdateRequest req)
             throws UserNotFoundException, ValidationException;

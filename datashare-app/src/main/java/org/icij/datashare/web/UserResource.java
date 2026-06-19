@@ -26,6 +26,7 @@ import org.icij.datashare.user.admin.UserAdminService;
 import org.icij.datashare.user.admin.UserCreateRequest;
 import org.icij.datashare.user.admin.UserCreated;
 import org.icij.datashare.user.admin.UserExistsException;
+import org.icij.datashare.user.admin.UserFilter;
 import org.icij.datashare.user.admin.UserNotFoundException;
 import org.icij.datashare.user.admin.UserUpdateRequest;
 import org.icij.datashare.user.admin.ValidationException;
@@ -69,14 +70,18 @@ public class UserResource {
         this.userAdminService = userAdminService;
     }
 
-    @Operation(description = "Lists all users.")
+    @Operation(description = "Lists all users. Supports optional filters: name (substring), email (substring), provider (exact), group (substring).")
     @ApiResponse(responseCode = "200", useReturnTypeSchema = true)
     @ApiResponse(responseCode = "501", description = "if the configured user store does not support listing")
-    @Policy(role = Role.INSTANCE_ADMIN)
     @Get
-    public Payload listUsers() {
+    @Policy(role = Role.INSTANCE_ADMIN)
+    public Payload listUsers(Context context) {
+        String name     = context.get("name");
+        String email    = context.get("email");
+        String provider = context.get("provider");
+        String group    = context.get("group");
         try {
-            return new Payload(userAdminService.list());
+            return new Payload(userAdminService.list(new UserFilter(name, email, provider, group)));
         } catch (UnsupportedOperationException e) {
             return PayloadFormatter.error(e.getMessage(), HttpStatus.NOT_IMPLEMENTED);
         }
