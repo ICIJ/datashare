@@ -69,8 +69,8 @@ public class UserAdminServiceImpl implements UserAdminService {
     }
 
     @Override
-    public List<User> list() {
-        return userStore.listUsers();
+    public List<User> list(UserFilter filter) {
+        throw new UnsupportedOperationException("not yet implemented");
     }
 
     @Override
