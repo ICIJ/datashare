@@ -66,8 +66,37 @@ public class UsersInDbTest {
         assertThat(new UsersInDb(repository).find("foo", "bad")).isNull();
     }
 
-    @Test(expected = UnsupportedOperationException.class)
-    public void list_users_throws_unsupported_until_task4() {
-        new UsersInDb(mock(Repository.class)).listUsers(new UserFilter(null, null, null, null));
+    @Test
+    public void list_users_with_filter_delegates_to_repository() {
+        Repository repository = mock(Repository.class);
+        org.icij.datashare.user.User alice = new org.icij.datashare.user.User("alice", "Alice", "alice@example.org", "local", new HashMap<>());
+        UserFilter filter = new UserFilter("ali", null, null, null);
+        when(repository.listUsers(filter)).thenReturn(List.of(alice));
+
+        List<org.icij.datashare.user.User> result = new UsersInDb(repository).listUsers(filter);
+
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).id).isEqualTo("alice");
+        assertThat(result.get(0)).isInstanceOf(DatashareUser.class);
+    }
+
+    @Test
+    public void list_users_filters_group_in_memory() {
+        Repository repository = mock(Repository.class);
+        java.util.Map<String, Object> details = new HashMap<>();
+        java.util.Map<String, Object> appsByGroup = new HashMap<>();
+        appsByGroup.put("datashare", List.of("my-project"));
+        details.put("groups_by_applications", appsByGroup);
+        org.icij.datashare.user.User alice = new org.icij.datashare.user.User("alice", "Alice", "alice@example.org", "local", details);
+        org.icij.datashare.user.User bob   = new org.icij.datashare.user.User("bob",   "Bob",   "bob@example.org",   "local", new HashMap<>());
+        // Repository returns both (group filter not pushed to SQL)
+        UserFilter filter = new UserFilter(null, null, null, "my-project");
+        when(repository.listUsers(filter)).thenReturn(List.of(alice, bob));
+
+        List<org.icij.datashare.user.User> result = new UsersInDb(repository).listUsers(filter);
+
+        // In-memory group filter removes bob
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).id).isEqualTo("alice");
     }
 }
