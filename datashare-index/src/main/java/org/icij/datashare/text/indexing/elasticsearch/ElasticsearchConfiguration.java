@@ -9,14 +9,11 @@ import co.elastic.clients.elasticsearch.indices.IndexSettings;
 import co.elastic.clients.json.jackson.JacksonJsonpMapper;
 import co.elastic.clients.transport.rest_client.RestClientTransport;
 import org.apache.http.HttpHost;
-import org.apache.http.HttpResponse;
 import org.apache.http.HttpResponseInterceptor;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
 import org.apache.http.client.CredentialsProvider;
-import org.apache.http.conn.ConnectionKeepAliveStrategy;
 import org.apache.http.impl.client.BasicCredentialsProvider;
-import org.apache.http.protocol.HttpContext;
 import org.elasticsearch.client.RestClient;
 import org.elasticsearch.client.RestClientBuilder;
 import org.icij.datashare.PropertiesProvider;
@@ -50,7 +47,6 @@ public class ElasticsearchConfiguration {
     public static final String INDEX_NAME_PROP = "indexName";
     public static final String INDEX_JOIN_FIELD_NAME_PROP = "indexJoinFieldName";
     public static final String INDEX_TYPE_FIELD_NAME_PROP = "indexTypeFieldName";
-    public static final String ELASTICSEARCH_MAX_IDLE_CONNECTION_TIME_OPT = "elasticsearchMaxIdleConnectionTime";
 
     public static final String DEFAULT_ADDRESS = "http://localhost:9200";
     public static final String ES_CLUSTER_NAME = "datashare";
