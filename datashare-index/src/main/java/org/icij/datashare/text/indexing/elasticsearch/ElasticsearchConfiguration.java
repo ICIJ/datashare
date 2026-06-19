@@ -9,14 +9,11 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.http.HttpHost;
-import org.apache.http.HttpResponse;
 import org.apache.http.HttpResponseInterceptor;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
 import org.apache.http.client.CredentialsProvider;
-import org.apache.http.conn.ConnectionKeepAliveStrategy;
 import org.apache.http.impl.client.BasicCredentialsProvider;
-import org.apache.http.protocol.HttpContext;
 import org.elasticsearch.client.Request;
 import org.elasticsearch.client.RestClient;
 import org.elasticsearch.client.RestClientBuilder;
@@ -34,7 +31,6 @@ import static com.google.common.io.ByteStreams.toByteArray;
 import static java.lang.String.format;
 import static org.apache.commons.lang3.SystemUtils.IS_OS_WINDOWS;
 import static org.apache.http.HttpHost.create;
-import static org.icij.datashare.cli.DatashareCliOptions.ELASTICSEARCH_MAX_IDLE_CONNECTION_TIME_OPT;
 
 public class ElasticsearchConfiguration {
     static final String MAPPING_RESOURCE_NAME = "datashare_index_mappings.json";
