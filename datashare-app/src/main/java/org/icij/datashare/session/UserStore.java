@@ -3,11 +3,10 @@ package org.icij.datashare.session;
 import net.codestory.http.security.Users;
 import org.icij.datashare.user.User;
 import org.icij.datashare.user.admin.UserFilter;
-
-import java.util.List;
+import org.icij.datashare.web.WebResponse;
 
 public interface UserStore extends Users {
     boolean save(User user);
     boolean delete(String login);
-    List<User> listUsers(UserFilter filter);
+    WebResponse<User> listUsers(UserFilter filter, int from, int size);
 }

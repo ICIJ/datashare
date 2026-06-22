@@ -10,6 +10,7 @@ import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.user.admin.UserFilter;
 import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.text.Hasher;
+import org.icij.datashare.web.WebResponse;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 
@@ -63,20 +64,20 @@ public class UsersInRedis implements UserStore {
     }
 
     @Override
-    public List<org.icij.datashare.user.User> listUsers(UserFilter filter) {
+    public WebResponse<org.icij.datashare.user.User> listUsers(UserFilter filter, int from, int size) {
         try (Jedis jedis = redis.getResource()) {
             Set<String> logins = jedis.smembers("_datashare_users");
             if (logins.isEmpty()) {
-                return List.of();
+                return new WebResponse<>(java.util.List.of(), from, size, 0);
             }
             List<String> jsons = jedis.mget(logins.toArray(new String[0]));
-            return jsons.stream()
+            java.util.stream.Stream<org.icij.datashare.user.User> stream = jsons.stream()
                     .filter(java.util.Objects::nonNull)
                     .map(json -> fromJson(json, "icij"))
                     .filter(java.util.Objects::nonNull)
                     .filter(filter::matches)
-                    .map(DatashareUser::new)
-                    .collect(java.util.stream.Collectors.toList());
+                    .map(DatashareUser::new);
+            return WebResponse.fromStream(stream, from, size);
         }
     }
 }

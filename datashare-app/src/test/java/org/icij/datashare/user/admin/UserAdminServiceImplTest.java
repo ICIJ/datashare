@@ -5,6 +5,7 @@ import org.icij.datashare.session.UserStore;
 import org.icij.datashare.text.Hasher;
 import org.icij.datashare.user.User;
 import org.icij.datashare.user.admin.UserFilter;
+import org.icij.datashare.web.WebResponse;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
@@ -263,22 +264,22 @@ public class UserAdminServiceImplTest {
     public void test_list_with_empty_filter_delegates_to_store() {
         User alice = new User("alice", "Alice", "alice@example.org", "local", new HashMap<>());
         UserFilter filter = new UserFilter(null, null, null, null);
-        when(userStore.listUsers(filter)).thenReturn(List.of(alice));
+        when(userStore.listUsers(filter, 0, 100)).thenReturn(new WebResponse<>(List.of(alice), 0, 100, 1));
 
-        List<User> result = service.list(filter);
+        WebResponse<User> result = service.list(filter, 0, 100);
 
-        assertThat(result).hasSize(1);
-        assertThat(result.get(0).id).isEqualTo("alice");
+        assertThat(result.items).hasSize(1);
+        assertThat(result.items.get(0).id).isEqualTo("alice");
     }
 
     @Test
     public void test_list_passes_filter_to_store() {
         UserFilter filter = new UserFilter("ali", null, "local", null);
-        when(userStore.listUsers(filter)).thenReturn(List.of());
+        when(userStore.listUsers(filter, 0, 100)).thenReturn(new WebResponse<>(List.of(), 0, 100, 0));
 
-        service.list(filter);
+        service.list(filter, 0, 100);
 
-        verify(userStore).listUsers(filter);
+        verify(userStore).listUsers(filter, 0, 100);
     }
 
     // --- update ---
