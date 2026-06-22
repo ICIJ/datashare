@@ -70,7 +70,7 @@ public class UserResource {
         this.userAdminService = userAdminService;
     }
 
-    @Operation(description = "Lists all users. Supports optional filters: name (substring), email (substring), provider (exact), group (substring).")
+    @Operation(description = "Lists all users. Supports optional filters: name (substring), email (substring), provider (exact), group (substring). Paginated with from/size.")
     @ApiResponse(responseCode = "200", useReturnTypeSchema = true)
     @ApiResponse(responseCode = "501", description = "if the configured user store does not support listing")
     @Get
@@ -80,8 +80,10 @@ public class UserResource {
         String email    = context.get("email");
         String provider = context.get("provider");
         String group    = context.get("group");
+        int from = Integer.parseInt(java.util.Optional.ofNullable(context.get("from")).orElse("0"));
+        int size = Integer.parseInt(java.util.Optional.ofNullable(context.get("size")).orElse("100"));
         try {
-            return new Payload(userAdminService.list(new UserFilter(name, email, provider, group)));
+            return new Payload(userAdminService.list(new UserFilter(name, email, provider, group), from, size));
         } catch (UnsupportedOperationException e) {
             return PayloadFormatter.error(e.getMessage(), HttpStatus.NOT_IMPLEMENTED);
         }

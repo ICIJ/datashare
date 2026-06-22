@@ -7,6 +7,7 @@ import net.codestory.http.security.Users;
 import org.icij.datashare.Repository;
 import org.icij.datashare.text.Hasher;
 import org.icij.datashare.user.admin.UserFilter;
+import org.icij.datashare.web.WebResponse;
 
 import java.util.List;
 
@@ -45,10 +46,11 @@ public class UsersInDb implements UserStore {
     }
 
     @Override
-    public List<org.icij.datashare.user.User> listUsers(UserFilter filter) {
-        return userRepository.listUsers(filter).stream()
-                .filter(filter::matches)
-                .map(DatashareUser::new)
-                .collect(java.util.stream.Collectors.toList());
+    public WebResponse<org.icij.datashare.user.User> listUsers(UserFilter filter, int from, int size) {
+        return WebResponse.fromStream(
+                userRepository.listUsers(filter).stream()
+                        .filter(filter::matches)
+                        .map(DatashareUser::new),
+                from, size);
     }
 }
