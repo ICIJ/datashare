@@ -1,8 +1,7 @@
 package org.icij.datashare.user.admin;
 
 import org.icij.datashare.user.User;
-
-import java.util.List;
+import org.icij.datashare.web.WebResponse;
 
 public interface UserAdminService {
     UserCreated create(UserCreateRequest req)
@@ -18,7 +17,7 @@ public interface UserAdminService {
 
     User get(String login) throws UserNotFoundException;
 
-    List<User> list(UserFilter filter);
+    WebResponse<User> list(UserFilter filter, int from, int size);
 
     UserCreated update(String login, UserUpdateRequest req)
             throws UserNotFoundException, ValidationException;

@@ -6,6 +6,8 @@ import org.icij.datashare.session.UserStore;
 import org.icij.datashare.text.Hasher;
 import org.icij.datashare.user.User;
 
+import org.icij.datashare.web.WebResponse;
+
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -69,8 +71,8 @@ public class UserAdminServiceImpl implements UserAdminService {
     }
 
     @Override
-    public List<User> list(UserFilter filter) {
-        return userStore.listUsers(filter);
+    public WebResponse<User> list(UserFilter filter, int from, int size) {
+        return userStore.listUsers(filter, from, size);
     }
 
     @Override

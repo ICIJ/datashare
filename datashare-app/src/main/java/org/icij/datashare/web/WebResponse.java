@@ -15,7 +15,7 @@ public final class WebResponse<T> {
         this.pagination = new Pagination(items.size(), from, size, total);
     }
 
-    record Pagination(int count, int from, int size, int total) { }
+    public record Pagination(int count, int from, int size, int total) { }
 
     public static <S> WebResponse<S> fromStream(Stream<S> items, final WebResponseRange range) {
         return fromStream(items, range.from(), range.size());

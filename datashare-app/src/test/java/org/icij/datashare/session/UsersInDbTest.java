@@ -5,6 +5,7 @@ import org.icij.datashare.text.Hasher;
 import org.icij.datashare.user.User;
 import org.icij.datashare.session.DatashareUser;
 import org.icij.datashare.user.admin.UserFilter;
+import org.icij.datashare.web.WebResponse;
 import org.junit.Test;
 
 import java.util.HashMap;
@@ -73,7 +74,7 @@ public class UsersInDbTest {
         UserFilter filter = new UserFilter("ali", null, null, null);
         when(repository.listUsers(filter)).thenReturn(List.of(alice));
 
-        List<org.icij.datashare.user.User> result = new UsersInDb(repository).listUsers(filter);
+        List<org.icij.datashare.user.User> result = new UsersInDb(repository).listUsers(filter, 0, 100).items;
 
         assertThat(result).hasSize(1);
         assertThat(result.get(0).id).isEqualTo("alice");
@@ -93,10 +94,26 @@ public class UsersInDbTest {
         UserFilter filter = new UserFilter(null, null, null, "my-project");
         when(repository.listUsers(filter)).thenReturn(List.of(alice, bob));
 
-        List<org.icij.datashare.user.User> result = new UsersInDb(repository).listUsers(filter);
+        List<org.icij.datashare.user.User> result = new UsersInDb(repository).listUsers(filter, 0, 100).items;
 
         // In-memory group filter removes bob
         assertThat(result).hasSize(1);
         assertThat(result.get(0).id).isEqualTo("alice");
+    }
+
+    @Test
+    public void list_users_pagination_slices_results() {
+        Repository repository = mock(Repository.class);
+        org.icij.datashare.user.User alice = new org.icij.datashare.user.User("alice", "Alice", "alice@example.org", "local", new HashMap<>());
+        org.icij.datashare.user.User bob   = new org.icij.datashare.user.User("bob",   "Bob",   "bob@example.org",   "local", new HashMap<>());
+        org.icij.datashare.user.User carol = new org.icij.datashare.user.User("carol", "Carol", "carol@example.org", "local", new HashMap<>());
+        UserFilter filter = new UserFilter(null, null, null, null);
+        when(repository.listUsers(filter)).thenReturn(List.of(alice, bob, carol));
+
+        WebResponse<org.icij.datashare.user.User> result = new UsersInDb(repository).listUsers(filter, 1, 1);
+
+        assertThat(result.pagination.total()).isEqualTo(3);
+        assertThat(result.items).hasSize(1);
+        assertThat(result.items.get(0).id).isEqualTo("bob");
     }
 }
