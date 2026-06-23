@@ -9,7 +9,6 @@ import org.icij.datashare.session.DatashareUser;
 import java.util.function.Function;
 
 import static org.icij.datashare.policies.Authorizer.requireDomain;
-import static org.icij.datashare.policies.Authorizer.requireIdParam;
 
 
 public class PolicyAnnotation implements ApplyAroundAnnotation<Policy> {
@@ -31,7 +30,7 @@ public class PolicyAnnotation implements ApplyAroundAnnotation<Policy> {
             projectId = "*";
         } else {
             domain = requireDomain(annotation.domain(), true);
-            projectId = annotation.role() == Role.DOMAIN_ADMIN ? "*" : requireIdParam(context, annotation.idParam());
+            projectId = annotation.role() == Role.DOMAIN_ADMIN ? "*" : resolveProjectId(context, annotation.idParam());
         }
 
         if (!authorizer.can(user.id, domain, projectId, annotation.role())) {
@@ -39,5 +38,10 @@ public class PolicyAnnotation implements ApplyAroundAnnotation<Policy> {
         }
 
         return payloadSupplier.apply(context);
+    }
+
+    private static String resolveProjectId(Context context, String idParam) {
+        String value = context.pathParam(idParam);
+        return (value == null || value.isBlank()) ? "*" : value;
     }
 }
