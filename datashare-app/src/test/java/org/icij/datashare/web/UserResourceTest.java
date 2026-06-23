@@ -52,7 +52,7 @@ public class UserResourceTest extends AbstractProdWebServerTest {
     public void setUp() throws IOException {
         initMocks(this);
         authorizer = new Authorizer(casbinRuleAdapter);
-        authorizer.addRoleForUserInInstance(User.local(), Role.INSTANCE_ADMIN);
+        authorizer.addRoleForUserInDomain(User.local(), Role.PROJECT_ADMIN, Domain.DEFAULT);
         PolicyAnnotation policyAnnotation = new PolicyAnnotation(authorizer);
         configure(routes -> routes
                 .registerAroundAnnotation(Policy.class, policyAnnotation)
@@ -379,11 +379,11 @@ public class UserResourceTest extends AbstractProdWebServerTest {
         get("/api/users/me").should().respond(200).contain("\"uid\":\"local\"");
     }
 
-    // Authorization: admin endpoints require INSTANCE_ADMIN role
+    // Authorization: admin endpoints require PROJECT_ADMIN role
 
     @Test
     public void test_list_users_returns_403_for_non_admin() throws IOException {
-        // Fresh authorizer without INSTANCE_ADMIN role for the local user
+        // Fresh authorizer without PROJECT_ADMIN role for the local user
         Authorizer restrictedAuthorizer = new Authorizer(casbinRuleAdapter);
         PolicyAnnotation policyAnnotation = new PolicyAnnotation(restrictedAuthorizer);
         configure(routes -> routes
@@ -396,7 +396,7 @@ public class UserResourceTest extends AbstractProdWebServerTest {
 
     @Test
     public void test_list_users_returns_200_for_admin() {
-        // setUp() grants INSTANCE_ADMIN to User.local(), so admin can list users
+        // setUp() grants PROJECT_ADMIN to User.local(), so admin can list users
         when(userAdminService.list(new UserFilter(null, null, null, null), 0, 100))
                 .thenReturn(new WebResponse<>(List.of(), 0, 100, 0));
 
