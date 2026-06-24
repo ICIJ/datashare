@@ -744,6 +744,16 @@ public final class DatashareCliOptions {
             .defaultsTo(DEFAULT_OCR_TYPE);
     }
 
+    static void ocrStrategy(OptionParser parser) {
+        parser.acceptsAll(
+                        List.of(OCR_STRATEGY_OPT),
+                        "PDF OCR strategy: NO_OCR (default), AUTO, OCR_AND_TEXT_EXTRACTION or OCR_ONLY. " +
+                                "A rendering strategy (anything other than NO_OCR) OCRs whole pages, which is " +
+                                "needed to correctly extract scanned/MRC PDFs. Only takes effect when OCR is enabled.")
+                .withRequiredArg()
+                .ofType(String.class);
+    }
+
     static void nlpPipeline(OptionParser parser) {
         parser.acceptsAll(
                 asList(NLP_PIPELINE_ABBR_OPT, NLP_PIPELINE_OPT),

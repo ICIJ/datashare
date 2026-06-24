@@ -302,4 +302,16 @@ public class DatashareCliTest {
         cli.parseArguments(new String[] {"--queueCapacity", "10"});
         assertThat(cli.properties).includes(entry("queueCapacity", "10"));
     }
+
+    @Test
+    public void test_ocr_strategy_opt() {
+        cli.parseArguments(new String[] {"--ocrStrategy=AUTO"});
+        assertThat(cli.properties).includes(entry("ocrStrategy", "AUTO"));
+    }
+
+    @Test
+    public void test_ocr_strategy_opt_absent_by_default() {
+        cli.parseArguments(new String[] {""});
+        assertThat(cli.properties.containsKey("ocrStrategy")).isFalse();
+    }
 }
