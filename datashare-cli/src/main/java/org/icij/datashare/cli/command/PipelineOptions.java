@@ -1,6 +1,7 @@
 package org.icij.datashare.cli.command;
 
 import org.icij.datashare.PipelineHelper;
+import org.icij.datashare.cli.OcrStrategy;
 import org.icij.datashare.cli.OcrType;
 import org.icij.datashare.text.nlp.Pipeline;
 import picocli.CommandLine.Option;
@@ -39,6 +40,9 @@ public class PipelineOptions {
     @Option(names = {"--ocrLanguage"}, description = "OCR languages for tesseract")
     String ocrLanguage;
 
+    @Option(names = {"--ocrStrategy"}, description = "PDF OCR strategy: NO_OCR (default), AUTO, OCR_AND_TEXT_EXTRACTION, OCR_ONLY. Rendering strategies OCR whole pages for scanned/MRC PDFs; only applies when OCR is enabled.")
+    OcrStrategy ocrStrategy;
+
     @Option(names = {"--parallelism"}, description = "Number of task management threads")
     Integer parallelism;
 
@@ -71,6 +75,7 @@ public class PipelineOptions {
         DatashareOptions.put(props, OCR_OPT, ocr);
         DatashareOptions.putIfNotNull(props, OCR_TYPE_OPT, ocrType);
         DatashareOptions.putIfNotNull(props, OCR_LANGUAGE_OPT, ocrLanguage);
+        DatashareOptions.putIfNotNull(props, OCR_STRATEGY_OPT, ocrStrategy);
         DatashareOptions.putIfNotNull(props, PARALLELISM_OPT, parallelism);
         DatashareOptions.put(props, PARSER_PARALLELISM_OPT, parserParallelism);
         DatashareOptions.putIfTrue(props, RESUME_OPT, resume);

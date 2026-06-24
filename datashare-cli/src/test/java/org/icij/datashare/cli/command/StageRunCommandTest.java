@@ -48,4 +48,16 @@ public class StageRunCommandTest extends AbstractDatashareCommandTest {
         Properties props = parse("stage", "run", "--stages", "NLP", "--nlpParallelism", "4");
         assertThat(props).includes(entry("nlpParallelism", "4"));
     }
+
+    @Test
+    public void test_ocr_strategy() {
+        Properties props = parse("stage", "run", "--stages", "SCAN,INDEX", "--ocrStrategy", "OCR_AND_TEXT_EXTRACTION");
+        assertThat(props).includes(entry("ocrStrategy", "OCR_AND_TEXT_EXTRACTION"));
+    }
+
+    @Test
+    public void test_ocr_strategy_absent_by_default() {
+        Properties props = parse("stage", "run", "--stages", "SCAN,INDEX");
+        assertThat(props.containsKey("ocrStrategy")).isFalse();
+    }
 }
