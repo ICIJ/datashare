@@ -40,6 +40,7 @@ import static org.icij.datashare.user.User.localUser;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.when;
 import static org.mockito.MockitoAnnotations.initMocks;
 
@@ -266,7 +267,7 @@ public class UserResourceTest extends AbstractProdWebServerTest {
     @Test
     public void test_list_users_returns_200() {
         User alice = new User("alice", "Alice", "alice@example.org", "local", new HashMap<>());
-        when(userAdminService.list(new UserFilter(null, null, null, null), 0, 100))
+        when(userAdminService.list(new UserFilter(null, null, null, null), null, 0, 100))
                 .thenReturn(new WebResponse<>(List.of(alice), 0, 100, 1));
 
         get("/api/users").should().respond(200).contain("alice");
@@ -274,7 +275,7 @@ public class UserResourceTest extends AbstractProdWebServerTest {
 
     @Test
     public void test_list_users_returns_501_for_unsupported_store() {
-        when(userAdminService.list(new UserFilter(null, null, null, null), 0, 100))
+        when(userAdminService.list(new UserFilter(null, null, null, null), null, 0, 100))
                 .thenThrow(new UnsupportedOperationException("not supported"));
 
         get("/api/users").should().respond(501);
@@ -283,7 +284,7 @@ public class UserResourceTest extends AbstractProdWebServerTest {
     @Test
     public void test_list_users_filters_by_provider() {
         User alice = new User("alice", "Alice", "alice@example.org", "local", new HashMap<>());
-        when(userAdminService.list(new UserFilter(null, null, "local", null), 0, 100))
+        when(userAdminService.list(new UserFilter(null, null, "local", null), null, 0, 100))
                 .thenReturn(new WebResponse<>(List.of(alice), 0, 100, 1));
 
         get("/api/users?provider=local").should().respond(200).contain("alice");
@@ -292,7 +293,7 @@ public class UserResourceTest extends AbstractProdWebServerTest {
     @Test
     public void test_list_users_filters_by_name() {
         User alice = new User("alice", "Alice", "alice@example.org", "local", new HashMap<>());
-        when(userAdminService.list(new UserFilter("ali", null, null, null), 0, 100))
+        when(userAdminService.list(new UserFilter("ali", null, null, null), null, 0, 100))
                 .thenReturn(new WebResponse<>(List.of(alice), 0, 100, 1));
 
         get("/api/users?name=ali").should().respond(200).contain("alice");
@@ -300,7 +301,7 @@ public class UserResourceTest extends AbstractProdWebServerTest {
 
     @Test
     public void test_list_users_with_no_filter_passes_empty_filter() {
-        when(userAdminService.list(new UserFilter(null, null, null, null), 0, 100))
+        when(userAdminService.list(new UserFilter(null, null, null, null), null, 0, 100))
                 .thenReturn(new WebResponse<>(List.of(), 0, 100, 0));
 
         get("/api/users").should().respond(200);
@@ -308,7 +309,7 @@ public class UserResourceTest extends AbstractProdWebServerTest {
 
     @Test
     public void test_list_users_with_pagination_params() {
-        when(userAdminService.list(new UserFilter(null, null, null, null), 10, 5))
+        when(userAdminService.list(new UserFilter(null, null, null, null), null, 10, 5))
                 .thenReturn(new WebResponse<>(List.of(), 10, 5, 100));
 
         get("/api/users?from=10&size=5").should().respond(200).contain("\"total\":100");
@@ -338,7 +339,7 @@ public class UserResourceTest extends AbstractProdWebServerTest {
     @Test
     public void test_list_users_without_role_does_not_call_get_by_ids() {
         User alice = new User("alice", "Alice", "alice@example.org", "local", new HashMap<>());
-        when(userAdminService.list(any(UserFilter.class), eq(0), eq(100)))
+        when(userAdminService.list(any(UserFilter.class), isNull(), eq(0), eq(100)))
                 .thenReturn(new WebResponse<>(List.of(alice), 0, 100, 1));
 
         get("/api/users").should().respond(200).contain("alice");
@@ -397,6 +398,33 @@ public class UserResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
+    public void test_delete_user_returns_204_for_project_admin_with_project_param() throws Exception {
+        Authorizer projectAuthorizer = new Authorizer(casbinRuleAdapter);
+        projectAuthorizer.addRoleForUserInProject(User.local(), Role.PROJECT_ADMIN, Domain.DEFAULT, project("my-project"));
+        PolicyAnnotation policyAnnotation = new PolicyAnnotation(projectAuthorizer);
+        configure(routes -> routes
+                .registerAroundAnnotation(Policy.class, policyAnnotation)
+                .add(new UserResource(jooqRepository, projectAuthorizer, userAdminService))
+                .filter(new LocalUserFilter(new PropertiesProvider(), jooqRepository)));
+
+        when(userAdminService.delete("alice")).thenReturn(true);
+        delete("/api/users/alice?project=my-project").should().respond(204);
+    }
+
+    @Test
+    public void test_delete_user_returns_403_for_project_admin_without_project_param() throws IOException {
+        Authorizer projectAuthorizer = new Authorizer(casbinRuleAdapter);
+        projectAuthorizer.addRoleForUserInProject(User.local(), Role.PROJECT_ADMIN, Domain.DEFAULT, project("my-project"));
+        PolicyAnnotation policyAnnotation = new PolicyAnnotation(projectAuthorizer);
+        configure(routes -> routes
+                .registerAroundAnnotation(Policy.class, policyAnnotation)
+                .add(new UserResource(jooqRepository, projectAuthorizer, userAdminService))
+                .filter(new LocalUserFilter(new PropertiesProvider(), jooqRepository)));
+
+        delete("/api/users/alice").should().respond(403);
+    }
+
+    @Test
     public void test_me_route_still_works_after_login_param_added() {
         get("/api/users/me").should().respond(200).contain("\"uid\":\"local\"");
     }
@@ -417,7 +445,7 @@ public class UserResourceTest extends AbstractProdWebServerTest {
     @Test
     public void test_list_users_returns_200_for_admin() {
         // setUp() grants PROJECT_ADMIN to User.local(), so admin can list users
-        when(userAdminService.list(new UserFilter(null, null, null, null), 0, 100))
+        when(userAdminService.list(new UserFilter(null, null, null, null), null, 0, 100))
                 .thenReturn(new WebResponse<>(List.of(), 0, 100, 0));
 
         get("/api/users").should().respond(200);

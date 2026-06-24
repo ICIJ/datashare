@@ -8,6 +8,7 @@ import org.icij.datashare.user.User;
 
 import org.icij.datashare.web.WebResponse;
 
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -71,8 +72,8 @@ public class UserAdminServiceImpl implements UserAdminService {
     }
 
     @Override
-    public WebResponse<User> list(UserFilter filter, int from, int size) {
-        return userStore.listUsers(filter, from, size);
+    public WebResponse<User> list(UserFilter filter, Comparator<User> sort, int from, int size) {
+        return userStore.listUsers(filter, sort, from, size);
     }
 
     @Override

@@ -74,7 +74,7 @@ public class UsersInDbTest {
         UserFilter filter = new UserFilter("ali", null, null, null);
         when(repository.listUsers(filter)).thenReturn(List.of(alice));
 
-        List<org.icij.datashare.user.User> result = new UsersInDb(repository).listUsers(filter, 0, 100).items;
+        List<org.icij.datashare.user.User> result = new UsersInDb(repository).listUsers(filter, null, 0, 100).items;
 
         assertThat(result).hasSize(1);
         assertThat(result.get(0).id).isEqualTo("alice");
@@ -94,7 +94,7 @@ public class UsersInDbTest {
         UserFilter filter = new UserFilter(null, null, null, "my-project");
         when(repository.listUsers(filter)).thenReturn(List.of(alice, bob));
 
-        List<org.icij.datashare.user.User> result = new UsersInDb(repository).listUsers(filter, 0, 100).items;
+        List<org.icij.datashare.user.User> result = new UsersInDb(repository).listUsers(filter, null, 0, 100).items;
 
         // In-memory group filter removes bob
         assertThat(result).hasSize(1);
@@ -110,7 +110,7 @@ public class UsersInDbTest {
         UserFilter filter = new UserFilter(null, null, null, null);
         when(repository.listUsers(filter)).thenReturn(List.of(alice, bob, carol));
 
-        WebResponse<org.icij.datashare.user.User> result = new UsersInDb(repository).listUsers(filter, 1, 1);
+        WebResponse<org.icij.datashare.user.User> result = new UsersInDb(repository).listUsers(filter, null, 1, 1);
 
         assertThat(result.pagination.total()).isEqualTo(3);
         assertThat(result.items).hasSize(1);
