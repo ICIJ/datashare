@@ -166,8 +166,10 @@ public final class Authorizer implements Closeable {
         // Get all grouping policies for the user that provide instance-wide access
         // This includes: *::* (instance), domain::* (domain), and domain::project (project level)
         List<List<String>> list;
-        if (user != null && user.id != null) {
-            list = enforcer.getFilteredGroupingPolicy(0, user.id);
+        if (user != null && user.id != null) {String userId = user.id;
+            list = enforcer.getGroupingPolicy().stream()
+                    .filter(rule -> !rule.isEmpty() && rule.get(0).toLowerCase().contains(userId.toLowerCase()))
+                    .collect(Collectors.toList());
         } else {
             list = enforcer.getGroupingPolicy();
         }
@@ -199,7 +201,6 @@ public final class Authorizer implements Closeable {
         return getGroupPermissions(null, null, null);
     }
 
-    //TODO maybe be improved to retrieve partial match on user
     public List<CasbinRule> getGroupPermissions(@Nullable User user) {
         return getFilteredPermissions(user, null, null);
     }
