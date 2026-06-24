@@ -314,4 +314,9 @@ public class DatashareCliTest {
         cli.parseArguments(new String[] {""});
         assertThat(cli.properties.containsKey("ocrStrategy")).isFalse();
     }
+
+    @Test(expected = OptionException.class)
+    public void test_ocr_strategy_opt_rejects_invalid_value() {
+        cli.asProperties(cli.createParser().parse("--ocrStrategy", "NOPE"), null);
+    }
 }

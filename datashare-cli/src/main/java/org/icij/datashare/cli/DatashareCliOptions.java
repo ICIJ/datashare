@@ -754,7 +754,10 @@ public final class DatashareCliOptions {
                 // No defaultsTo on purpose: when unset the key must stay out of the properties so
                 // extract applies its own NO_OCR default. Adding a default here would emit the key
                 // for every run and silently change OCR behavior for all users.
-                .ofType(String.class);
+                // Typed as the OcrStrategy enum (not String) so an unknown value fails fast with a
+                // usage error, matching the picocli stage subcommand, instead of silently degrading
+                // to NO_OCR inside extract. asProperties serializes it back to the enum name.
+                .ofType(OcrStrategy.class);
     }
 
     static void nlpPipeline(OptionParser parser) {
