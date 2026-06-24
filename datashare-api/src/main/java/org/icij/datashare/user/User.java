@@ -95,6 +95,11 @@ public class User implements Entity, Comparable<User> {
         return new User(hashMap);
     }
 
+    public static User fromJson(String json) {
+        if (json == null) return null;
+        return new User(deserialize(json));
+    }
+
     @JsonIgnore
     public List<String> getApplicationProjectNames() {
         List<String> jsonKeys = List.of(jsonProjectKey.split("\\."));
