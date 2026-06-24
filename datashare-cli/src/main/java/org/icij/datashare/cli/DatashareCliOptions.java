@@ -751,6 +751,9 @@ public final class DatashareCliOptions {
                                 "A rendering strategy (anything other than NO_OCR) OCRs whole pages, which is " +
                                 "needed to correctly extract scanned/MRC PDFs. Only takes effect when OCR is enabled.")
                 .withRequiredArg()
+                // No defaultsTo on purpose: when unset the key must stay out of the properties so
+                // extract applies its own NO_OCR default. Adding a default here would emit the key
+                // for every run and silently change OCR behavior for all users.
                 .ofType(String.class);
     }
 

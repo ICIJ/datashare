@@ -40,6 +40,9 @@ public class PipelineOptions {
     @Option(names = {"--ocrLanguage"}, description = "OCR languages for tesseract")
     String ocrLanguage;
 
+    // No defaultValue on purpose: when unset the field stays null and putIfNotNull omits the key,
+    // so extract applies its own NO_OCR default. A default here would emit the key for every run
+    // and silently change OCR behavior for all users.
     @Option(names = {"--ocrStrategy"}, description = "PDF OCR strategy: NO_OCR (default), AUTO, OCR_AND_TEXT_EXTRACTION, OCR_ONLY. Rendering strategies OCR whole pages for scanned/MRC PDFs; only applies when OCR is enabled.")
     OcrStrategy ocrStrategy;
 
