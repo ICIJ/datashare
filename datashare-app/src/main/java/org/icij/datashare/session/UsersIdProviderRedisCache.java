@@ -21,7 +21,6 @@ import static org.icij.datashare.user.User.fromJson;
 public class UsersIdProviderRedisCache implements UsersIdProviderCache {
     private final JedisPool redis;
     private final Integer ttl;
-
     @Inject
     public UsersIdProviderRedisCache(PropertiesProvider propertiesProvider) {
         redis = new JedisPool(propertiesProvider.get("redisAddress").orElse(EnvUtils.resolveUri("redis", "redis://redis:6379")));
@@ -31,7 +30,7 @@ public class UsersIdProviderRedisCache implements UsersIdProviderCache {
     @Override
     public User find(String login) {
         try (Jedis jedis = redis.getResource()) {
-            org.icij.datashare.user.User user = fromJson(jedis.get(login), "icij");
+            org.icij.datashare.user.User user = fromJson(jedis.get(login));
             return user != null ? new DatashareUser(user) : null;
         }
     }
@@ -39,7 +38,7 @@ public class UsersIdProviderRedisCache implements UsersIdProviderCache {
     @Override
     public User find(String login, String password) {
         try (Jedis jedis = redis.getResource()) {
-            org.icij.datashare.user.User user = fromJson(jedis.get(login), "icij");
+            org.icij.datashare.user.User user = fromJson(jedis.get(login));
             return user != null && Hasher.SHA_256.hash(password).equals(user.details.get("password")) ? new DatashareUser(user) : null;
         }
     }
