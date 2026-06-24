@@ -35,12 +35,14 @@ import org.jetbrains.annotations.NotNull;
 
 import java.net.URI;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static java.lang.Boolean.parseBoolean;
 import static java.util.Objects.isNull;
@@ -71,7 +73,7 @@ public class UserResource {
         this.userAdminService = userAdminService;
     }
 
-    @Operation(description = "Lists all users. Supports optional filters: name (substring), email (substring), provider (exact), group (substring), role (exact Casbin role, scoped by optional domain and project). Paginated with from/size.")
+    @Operation(description = "Lists all users. Supports optional filters: name (substring), email (substring), provider (exact), group (substring), role (exact Casbin role, scoped by optional domain and project). Paginated with from/size. Sorting: optional sort param (uid | role). Optional desc=true for descending order.")
     @ApiResponse(responseCode = "200", useReturnTypeSchema = true)
     @ApiResponse(responseCode = "501", description = "if the configured user store does not support listing")
     @Get
@@ -84,10 +86,33 @@ public class UserResource {
         String role     = context.get("role");
         String domain   = context.get("domain");
         String project  = context.get("project");
-        int from = Integer.parseInt(java.util.Optional.ofNullable(context.get("from")).orElse("0"));
-        int size = Integer.parseInt(java.util.Optional.ofNullable(context.get("size")).orElse("100"));
+        int from = Integer.parseInt(Optional.ofNullable(context.get("from")).orElse("0"));
+        int size = Integer.parseInt(Optional.ofNullable(context.get("size")).orElse("100"));
+        String sortParam = context.get("sort");
+        boolean desc = Boolean.parseBoolean(context.get("desc"));
 
         UserFilter filter = new UserFilter(name, email, provider, group);
+
+        Comparator<User> comparator = null;
+        if (sortParam != null && !sortParam.isBlank()) {
+            if ("uid".equalsIgnoreCase(sortParam)) {
+                comparator = Comparator.comparing(u -> u.id, String.CASE_INSENSITIVE_ORDER);
+            } else if ("role".equalsIgnoreCase(sortParam)) {
+                Map<String, String> roleMap = new java.util.HashMap<>();
+                for (CasbinRule rule : authorizer.getGroupPermissions()) {
+                    String uid = rule.getV0();
+                    String roleName = rule.getV1();
+                    roleMap.merge(uid, roleName,
+                        (existing, next) -> existing.compareToIgnoreCase(next) <= 0 ? existing : next);
+                }
+                comparator = Comparator.comparing(
+                    u -> roleMap.getOrDefault(u.id, ""),
+                    String.CASE_INSENSITIVE_ORDER);
+            } else {
+                return PayloadFormatter.error("sort must be one of: uid, role", HttpStatus.BAD_REQUEST);
+            }
+            if (desc) comparator = comparator.reversed();
+        }
 
         if (role != null) {
             Domain domainValue = domain != null ? Domain.of(domain) : null;
@@ -96,16 +121,16 @@ public class UserResource {
                     .map(CasbinRule::getV0)
                     .collect(Collectors.toSet());
             try {
-                return new Payload(WebResponse.fromStream(
-                        userAdminService.getByIds(allowedUserIds).stream().filter(filter::matches),
-                        from, size));
+                Stream<User> stream = userAdminService.getByIds(allowedUserIds).stream().filter(filter::matches);
+                if (comparator != null) stream = stream.sorted(comparator);
+                return new Payload(WebResponse.fromStream(stream, from, size));
             } catch (UnsupportedOperationException e) {
                 return PayloadFormatter.error(e.getMessage(), HttpStatus.NOT_IMPLEMENTED);
             }
         }
 
         try {
-            return new Payload(userAdminService.list(filter, null, from, size));
+            return new Payload(userAdminService.list(filter, comparator, from, size));
         } catch (UnsupportedOperationException e) {
             return PayloadFormatter.error(e.getMessage(), HttpStatus.NOT_IMPLEMENTED);
         }

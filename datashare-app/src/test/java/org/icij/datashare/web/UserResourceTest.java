@@ -398,6 +398,39 @@ public class UserResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
+    public void test_list_users_sort_by_uid_ascending() {
+        User alice = new User("alice", "Alice", "a@a.com", "local", new HashMap<>());
+        User bob   = new User("bob",   "Bob",   "b@b.com", "local", new HashMap<>());
+        when(userAdminService.list(any(UserFilter.class), argThat(c -> c != null), eq(0), eq(100)))
+            .thenReturn(new WebResponse<>(List.of(alice, bob), 0, 100, 2));
+
+        get("/api/users?sort=uid").should().respond(200).contain("alice").contain("bob");
+    }
+
+    @Test
+    public void test_list_users_sort_invalid_value_returns_400() {
+        get("/api/users?sort=unknown").should().respond(400);
+    }
+
+    @Test
+    public void test_list_users_no_sort_passes_null_comparator() {
+        when(userAdminService.list(any(UserFilter.class), isNull(), eq(0), eq(100)))
+            .thenReturn(new WebResponse<>(List.of(), 0, 100, 0));
+
+        get("/api/users").should().respond(200);
+    }
+
+    @Test
+    public void test_list_users_sort_by_role_ascending() {
+        User alice = new User("alice", "Alice", "a@a.com", "local", new HashMap<>());
+        authorizer.addRoleForUserInDomain(User.localUser("alice"), Role.PROJECT_ADMIN, Domain.DEFAULT);
+        when(userAdminService.list(any(UserFilter.class), argThat(c -> c != null), eq(0), eq(100)))
+            .thenReturn(new WebResponse<>(List.of(alice), 0, 100, 1));
+
+        get("/api/users?sort=role").should().respond(200).contain("alice");
+    }
+
+    @Test
     public void test_me_route_still_works_after_login_param_added() {
         get("/api/users/me").should().respond(200).contain("\"uid\":\"local\"");
     }
