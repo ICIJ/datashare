@@ -8,10 +8,12 @@ import org.icij.datashare.text.Hasher;
 import org.icij.datashare.user.admin.UserFilter;
 import org.icij.datashare.web.WebResponse;
 
+import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Singleton
 public class UsersInDb implements UserStore {
@@ -48,12 +50,12 @@ public class UsersInDb implements UserStore {
     }
 
     @Override
-    public WebResponse<org.icij.datashare.user.User> listUsers(UserFilter filter, int from, int size) {
-        return WebResponse.fromStream(
-                userRepository.listUsers(filter).stream()
-                        .filter(filter::matches)
-                        .map(DatashareUser::new),
-                from, size);
+    public WebResponse<org.icij.datashare.user.User> listUsers(UserFilter filter, Comparator<org.icij.datashare.user.User> sort, int from, int size) {
+        Stream<org.icij.datashare.user.User> stream = userRepository.listUsers(filter).stream()
+                .filter(filter::matches)
+                .map(DatashareUser::new);
+        if (sort != null) stream = stream.sorted(sort);
+        return WebResponse.fromStream(stream, from, size);
     }
 
     @Override

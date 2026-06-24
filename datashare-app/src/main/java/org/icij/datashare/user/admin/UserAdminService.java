@@ -3,6 +3,7 @@ package org.icij.datashare.user.admin;
 import org.icij.datashare.user.User;
 import org.icij.datashare.web.WebResponse;
 
+import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
 
@@ -20,7 +21,7 @@ public interface UserAdminService {
 
     User get(String login) throws UserNotFoundException;
 
-    WebResponse<User> list(UserFilter filter, int from, int size);
+    WebResponse<User> list(UserFilter filter, Comparator<User> sort, int from, int size);
 
     List<User> getByIds(Set<String> ids);
 
