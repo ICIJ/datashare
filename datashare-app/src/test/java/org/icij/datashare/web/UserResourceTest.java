@@ -30,6 +30,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Set;
 
 import static java.util.Collections.singletonList;
 import static org.icij.datashare.UserEvent.Type.DOCUMENT;
@@ -37,6 +38,7 @@ import static org.icij.datashare.session.DatashareUser.singleUser;
 import static org.icij.datashare.text.Project.project;
 import static org.icij.datashare.user.User.localUser;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 import static org.mockito.MockitoAnnotations.initMocks;
@@ -234,8 +236,6 @@ public class UserResourceTest extends AbstractProdWebServerTest {
         get("/api/users/me/permissions").should().respond(200).contain("PROJECT_MEMBER").contain("icij::my-project");
     }
 
-    // POST /api/users — create (UserAdminService.create already exists)
-
     @Test
     public void test_create_user_returns_201() throws Exception {
         UserCreated created = new UserCreated("alice", "alice@example.org", "Alice", "local", List.of(), false);
@@ -314,7 +314,35 @@ public class UserResourceTest extends AbstractProdWebServerTest {
         get("/api/users?from=10&size=5").should().respond(200).contain("\"total\":100");
     }
 
-    // GET /api/users/:login — get by login (UserAdminService.get is NEW — add to interface)
+    @Test
+    public void test_list_users_filters_by_role() {
+        User alice = new User("alice", "Alice", "alice@example.org", "local", new HashMap<>());
+        authorizer.addRoleForUserInDomain(localUser("alice"), Role.PROJECT_ADMIN, Domain.DEFAULT);
+        when(userAdminService.getByIds(argThat(ids -> ids != null && ids.contains("alice"))))
+                .thenReturn(List.of(alice));
+
+        get("/api/users?role=PROJECT_ADMIN").should().respond(200).contain("alice");
+    }
+
+    @Test
+    public void test_list_users_filters_by_role_scoped_to_project() {
+        User alice = new User("alice", "Alice", "alice@example.org", "local", new HashMap<>());
+        Project myProject = new Project("my-project");
+        authorizer.addRoleForUserInProject(localUser("alice"), Role.PROJECT_ADMIN, Domain.DEFAULT, myProject);
+        when(userAdminService.getByIds(argThat(ids -> ids != null && ids.contains("alice"))))
+                .thenReturn(List.of(alice));
+
+        get("/api/users?role=PROJECT_ADMIN&domain=default&project=my-project").should().respond(200).contain("alice");
+    }
+
+    @Test
+    public void test_list_users_without_role_does_not_call_get_by_ids() {
+        User alice = new User("alice", "Alice", "alice@example.org", "local", new HashMap<>());
+        when(userAdminService.list(any(UserFilter.class), eq(0), eq(100)))
+                .thenReturn(new WebResponse<>(List.of(alice), 0, 100, 1));
+
+        get("/api/users").should().respond(200).contain("alice");
+    }
 
     @Test
     public void test_get_user_by_login_returns_200() throws Exception {
@@ -330,8 +358,6 @@ public class UserResourceTest extends AbstractProdWebServerTest {
 
         get("/api/users/ghost").should().respond(404);
     }
-
-    // PUT /api/users/:login — update (UserAdminService.update is NEW — add to interface)
 
     @Test
     public void test_update_user_returns_200() throws Exception {
@@ -356,8 +382,6 @@ public class UserResourceTest extends AbstractProdWebServerTest {
         put("/api/users/alice", "{\"password\":\"\"}").should().respond(400);
     }
 
-    // DELETE /api/users/:login — delete (UserAdminService.delete already exists)
-
     @Test
     public void test_delete_user_returns_204() throws Exception {
         when(userAdminService.delete("alice")).thenReturn(true);
@@ -372,14 +396,10 @@ public class UserResourceTest extends AbstractProdWebServerTest {
         delete("/api/users/ghost").should().respond(404);
     }
 
-    // Regression: /me route not shadowed by /:login
-
     @Test
     public void test_me_route_still_works_after_login_param_added() {
         get("/api/users/me").should().respond(200).contain("\"uid\":\"local\"");
     }
-
-    // Authorization: admin endpoints require PROJECT_ADMIN role
 
     @Test
     public void test_list_users_returns_403_for_non_admin() throws IOException {

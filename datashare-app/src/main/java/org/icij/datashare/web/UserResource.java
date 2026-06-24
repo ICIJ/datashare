@@ -17,6 +17,7 @@ import org.icij.datashare.UserEvent;
 import org.icij.datashare.UserEvent.Type;
 import org.icij.datashare.policies.Authorizer;
 import org.icij.datashare.policies.CasbinRule;
+import org.icij.datashare.policies.Domain;
 import org.icij.datashare.policies.Policy;
 import org.icij.datashare.policies.Role;
 import org.icij.datashare.session.DatashareUser;
@@ -24,7 +25,6 @@ import org.icij.datashare.text.Project;
 import org.icij.datashare.user.User;
 import org.icij.datashare.user.admin.UserAdminService;
 import org.icij.datashare.user.admin.UserCreateRequest;
-import org.icij.datashare.user.admin.UserCreated;
 import org.icij.datashare.user.admin.UserExistsException;
 import org.icij.datashare.user.admin.UserFilter;
 import org.icij.datashare.user.admin.UserNotFoundException;
@@ -38,6 +38,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -70,7 +71,7 @@ public class UserResource {
         this.userAdminService = userAdminService;
     }
 
-    @Operation(description = "Lists all users. Supports optional filters: name (substring), email (substring), provider (exact), group (substring). Paginated with from/size.")
+    @Operation(description = "Lists all users. Supports optional filters: name (substring), email (substring), provider (exact), group (substring), role (exact Casbin role, scoped by optional domain and project). Paginated with from/size.")
     @ApiResponse(responseCode = "200", useReturnTypeSchema = true)
     @ApiResponse(responseCode = "501", description = "if the configured user store does not support listing")
     @Get
@@ -80,10 +81,31 @@ public class UserResource {
         String email    = context.get("email");
         String provider = context.get("provider");
         String group    = context.get("group");
+        String role     = context.get("role");
+        String domain   = context.get("domain");
+        String project  = context.get("project");
         int from = Integer.parseInt(java.util.Optional.ofNullable(context.get("from")).orElse("0"));
         int size = Integer.parseInt(java.util.Optional.ofNullable(context.get("size")).orElse("100"));
+
+        UserFilter filter = new UserFilter(name, email, provider, group);
+
+        if (role != null) {
+            Domain domainValue = domain != null ? Domain.of(domain) : null;
+            Set<String> allowedUserIds = authorizer.getGroupPermissions(domainValue, project).stream()
+                    .filter(r -> role.equalsIgnoreCase(r.getV1()))
+                    .map(CasbinRule::getV0)
+                    .collect(Collectors.toSet());
+            try {
+                return new Payload(WebResponse.fromStream(
+                        userAdminService.getByIds(allowedUserIds).stream().filter(filter::matches),
+                        from, size));
+            } catch (UnsupportedOperationException e) {
+                return PayloadFormatter.error(e.getMessage(), HttpStatus.NOT_IMPLEMENTED);
+            }
+        }
+
         try {
-            return new Payload(userAdminService.list(new UserFilter(name, email, provider, group), from, size));
+            return new Payload(userAdminService.list(filter, from, size));
         } catch (UnsupportedOperationException e) {
             return PayloadFormatter.error(e.getMessage(), HttpStatus.NOT_IMPLEMENTED);
         }
