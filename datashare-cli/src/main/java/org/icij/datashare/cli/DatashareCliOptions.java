@@ -105,6 +105,7 @@ public final class DatashareCliOptions {
     public static final String OCR_LANGUAGE_OPT = "ocrLanguage";
     public static final String OCR_OPT = "ocr";
     public static final String OCR_TYPE_OPT = "ocrType";
+    public static final String OCR_STRATEGY_OPT = "ocrStrategy";
     public static final String PARALLELISM_OPT = "parallelism";
     public static final String PARSER_PARALLELISM_ABBR_OPT = "pp";
     public static final String PARSER_PARALLELISM_OPT = "parserParallelism";
