@@ -3,13 +3,15 @@ package org.icij.datashare.session;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import net.codestory.http.security.User;
-import net.codestory.http.security.Users;
 import org.icij.datashare.Repository;
 import org.icij.datashare.text.Hasher;
 import org.icij.datashare.user.admin.UserFilter;
 import org.icij.datashare.web.WebResponse;
 
 import java.util.List;
+import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Singleton
 public class UsersInDb implements UserStore {
@@ -52,5 +54,14 @@ public class UsersInDb implements UserStore {
                         .filter(filter::matches)
                         .map(DatashareUser::new),
                 from, size);
+    }
+
+    @Override
+    public List<org.icij.datashare.user.User> getUsersByIds(Set<String> ids) {
+        return ids.stream()
+                .map(userRepository::getUser)
+                .filter(Objects::nonNull)
+                .map(DatashareUser::new)
+                .collect(Collectors.toList());
     }
 }
