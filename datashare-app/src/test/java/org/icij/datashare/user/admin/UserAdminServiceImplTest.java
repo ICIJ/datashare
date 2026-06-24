@@ -264,9 +264,9 @@ public class UserAdminServiceImplTest {
     public void test_list_with_empty_filter_delegates_to_store() {
         User alice = new User("alice", "Alice", "alice@example.org", "local", new HashMap<>());
         UserFilter filter = new UserFilter(null, null, null, null);
-        when(userStore.listUsers(filter, 0, 100)).thenReturn(new WebResponse<>(List.of(alice), 0, 100, 1));
+        when(userStore.listUsers(filter, null, 0, 100)).thenReturn(new WebResponse<>(List.of(alice), 0, 100, 1));
 
-        WebResponse<User> result = service.list(filter, 0, 100);
+        WebResponse<User> result = service.list(filter, null, 0, 100);
 
         assertThat(result.items).hasSize(1);
         assertThat(result.items.get(0).id).isEqualTo("alice");
@@ -275,11 +275,11 @@ public class UserAdminServiceImplTest {
     @Test
     public void test_list_passes_filter_to_store() {
         UserFilter filter = new UserFilter("ali", null, "local", null);
-        when(userStore.listUsers(filter, 0, 100)).thenReturn(new WebResponse<>(List.of(), 0, 100, 0));
+        when(userStore.listUsers(filter, null, 0, 100)).thenReturn(new WebResponse<>(List.of(), 0, 100, 0));
 
-        service.list(filter, 0, 100);
+        service.list(filter, null, 0, 100);
 
-        verify(userStore).listUsers(filter, 0, 100);
+        verify(userStore).listUsers(filter, null, 0, 100);
     }
 
     // --- update ---

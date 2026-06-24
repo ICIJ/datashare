@@ -11,6 +11,7 @@ import org.icij.datashare.web.WebResponse;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 
+import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -65,7 +66,7 @@ public class UsersInRedis implements UserStore {
     }
 
     @Override
-    public WebResponse<org.icij.datashare.user.User> listUsers(UserFilter filter, int from, int size) {
+    public WebResponse<org.icij.datashare.user.User> listUsers(UserFilter filter, Comparator<org.icij.datashare.user.User> sort, int from, int size) {
         try (Jedis jedis = redis.getResource()) {
             Set<String> logins = jedis.smembers("_datashare_users");
             if (logins.isEmpty()) {
@@ -73,6 +74,7 @@ public class UsersInRedis implements UserStore {
             }
             List<String> jsons = jedis.mget(logins.toArray(new String[0]));
             Stream<org.icij.datashare.user.User> stream = parseUsers(jsons).filter(filter::matches);
+            if (sort != null) stream = stream.sorted(sort);
             return WebResponse.fromStream(stream, from, size);
         }
     }
