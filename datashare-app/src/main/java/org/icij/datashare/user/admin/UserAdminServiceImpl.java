@@ -76,6 +76,11 @@ public class UserAdminServiceImpl implements UserAdminService {
     }
 
     @Override
+    public List<User> getByIds(Set<String> ids) {
+        return userStore.getUsersByIds(ids);
+    }
+
+    @Override
     public UserCreated update(String login, UserUpdateRequest req)
             throws UserNotFoundException, ValidationException {
         net.codestory.http.security.User found = userStore.find(login);
