@@ -10,6 +10,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -17,6 +18,7 @@ import java.util.Map;
 import static org.fest.assertions.Assertions.assertThat;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.never;
@@ -280,6 +282,17 @@ public class UserAdminServiceImplTest {
         service.list(filter, null, 0, 100);
 
         verify(userStore).listUsers(filter, null, 0, 100);
+    }
+
+    @Test
+    public void test_list_passes_comparator_to_store() {
+        Comparator<org.icij.datashare.user.User> comp = Comparator.comparing(u -> u.id);
+        when(userStore.listUsers(any(), eq(comp), eq(0), eq(100)))
+            .thenReturn(new WebResponse<>(List.of(), 0, 100, 0));
+
+        service.list(new UserFilter(null, null, null, null), comp, 0, 100);
+
+        verify(userStore).listUsers(any(), eq(comp), eq(0), eq(100));
     }
 
     // --- update ---
