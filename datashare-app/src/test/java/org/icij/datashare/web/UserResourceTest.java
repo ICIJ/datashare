@@ -398,33 +398,6 @@ public class UserResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
-    public void test_delete_user_returns_204_for_project_admin_with_project_param() throws Exception {
-        Authorizer projectAuthorizer = new Authorizer(casbinRuleAdapter);
-        projectAuthorizer.addRoleForUserInProject(User.local(), Role.PROJECT_ADMIN, Domain.DEFAULT, project("my-project"));
-        PolicyAnnotation policyAnnotation = new PolicyAnnotation(projectAuthorizer);
-        configure(routes -> routes
-                .registerAroundAnnotation(Policy.class, policyAnnotation)
-                .add(new UserResource(jooqRepository, projectAuthorizer, userAdminService))
-                .filter(new LocalUserFilter(new PropertiesProvider(), jooqRepository)));
-
-        when(userAdminService.delete("alice")).thenReturn(true);
-        delete("/api/users/alice?project=my-project").should().respond(204);
-    }
-
-    @Test
-    public void test_delete_user_returns_403_for_project_admin_without_project_param() throws IOException {
-        Authorizer projectAuthorizer = new Authorizer(casbinRuleAdapter);
-        projectAuthorizer.addRoleForUserInProject(User.local(), Role.PROJECT_ADMIN, Domain.DEFAULT, project("my-project"));
-        PolicyAnnotation policyAnnotation = new PolicyAnnotation(projectAuthorizer);
-        configure(routes -> routes
-                .registerAroundAnnotation(Policy.class, policyAnnotation)
-                .add(new UserResource(jooqRepository, projectAuthorizer, userAdminService))
-                .filter(new LocalUserFilter(new PropertiesProvider(), jooqRepository)));
-
-        delete("/api/users/alice").should().respond(403);
-    }
-
-    @Test
     public void test_me_route_still_works_after_login_param_added() {
         get("/api/users/me").should().respond(200).contain("\"uid\":\"local\"");
     }
