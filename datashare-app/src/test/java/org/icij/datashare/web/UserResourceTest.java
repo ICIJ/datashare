@@ -25,9 +25,12 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
 
+import org.mockito.ArgumentCaptor;
+
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Set;
@@ -37,6 +40,8 @@ import static org.icij.datashare.UserEvent.Type.DOCUMENT;
 import static org.icij.datashare.session.DatashareUser.singleUser;
 import static org.icij.datashare.text.Project.project;
 import static org.icij.datashare.user.User.localUser;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
@@ -455,5 +460,54 @@ public class UserResourceTest extends AbstractProdWebServerTest {
                 .thenReturn(new WebResponse<>(List.of(), 0, 100, 0));
 
         get("/api/users").should().respond(200);
+    }
+
+    @Test
+    public void test_list_users_sort_uid_comparator_orders_alphabetically() {
+        ArgumentCaptor<Comparator> captor = ArgumentCaptor.forClass(Comparator.class);
+        when(userAdminService.list(any(UserFilter.class), captor.capture(), eq(0), eq(100)))
+                .thenReturn(new WebResponse<>(List.of(), 0, 100, 0));
+
+        get("/api/users?sort=uid").should().respond(200);
+
+        Comparator<User> comp = captor.getValue();
+        User alice = new User("alice", "Alice", "a@a.com", "local", new HashMap<>());
+        User bob   = new User("bob",   "Bob",   "b@b.com", "local", new HashMap<>());
+        assertTrue(comp.compare(alice, bob) < 0);
+        assertTrue(comp.compare(bob, alice) > 0);
+        assertEquals(0, comp.compare(alice, alice));
+    }
+
+    @Test
+    public void test_list_users_sort_uid_desc_reverses_order() {
+        ArgumentCaptor<Comparator> captor = ArgumentCaptor.forClass(Comparator.class);
+        when(userAdminService.list(any(UserFilter.class), captor.capture(), eq(0), eq(100)))
+                .thenReturn(new WebResponse<>(List.of(), 0, 100, 0));
+
+        get("/api/users?sort=uid&desc=true").should().respond(200);
+
+        Comparator<User> comp = captor.getValue();
+        User alice = new User("alice", "Alice", "a@a.com", "local", new HashMap<>());
+        User bob   = new User("bob",   "Bob",   "b@b.com", "local", new HashMap<>());
+        // desc=true reverses: alice > bob → positive
+        assertTrue(comp.compare(alice, bob) > 0);
+        assertTrue(comp.compare(bob, alice) < 0);
+    }
+
+    @Test
+    public void test_list_users_sort_role_comparator_orders_by_primary_role() {
+        ArgumentCaptor<Comparator> captor = ArgumentCaptor.forClass(Comparator.class);
+        authorizer.addRoleForUserInDomain(User.localUser("alice"), Role.PROJECT_ADMIN, Domain.DEFAULT);
+        authorizer.addRoleForUserInDomain(User.localUser("bob"), Role.PROJECT_MEMBER, Domain.DEFAULT);
+        when(userAdminService.list(any(UserFilter.class), captor.capture(), eq(0), eq(100)))
+                .thenReturn(new WebResponse<>(List.of(), 0, 100, 0));
+
+        get("/api/users?sort=role").should().respond(200);
+
+        Comparator<User> comp = captor.getValue();
+        User alice = new User("alice", "Alice", "a@a.com", "local", new HashMap<>());
+        User bob   = new User("bob",   "Bob",   "b@b.com", "local", new HashMap<>());
+        // PROJECT_ADMIN < PROJECT_MEMBER alphabetically → alice < bob → negative
+        assertTrue(comp.compare(alice, bob) < 0);
     }
 }
