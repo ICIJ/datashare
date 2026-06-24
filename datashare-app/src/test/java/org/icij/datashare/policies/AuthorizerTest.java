@@ -310,6 +310,17 @@ public class AuthorizerTest {
     }
 
     @Test
+    public void test_get_permissions_with_partial_user_filter() {
+        User cdesprat = localUser("cdesprat");
+        authorizer.addRoleForUserInProject(cdesprat, Role.PROJECT_MEMBER, domain, project);
+
+        List<CasbinRule> permissions = authorizer.getGroupPermissions(localUser("cdes"));
+
+        assertFalse(permissions.isEmpty());
+        assertTrue(permissions.stream().anyMatch(p -> p.getV0().equals("cdesprat")));
+    }
+
+    @Test
     public void test_require_value() {
         assertEquals("value", Authorizer.requireValue("value", false));
         assertEquals("*", Authorizer.requireValue("*", true));
