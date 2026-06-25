@@ -69,10 +69,13 @@ public class ArtifactRegistry {
             if (isCurrent(type, artifact, context)) {
                 return;
             }
-            // Write the payload first, then stamp the manifest entry complete last, so a
-            // crash mid-produce leaves no "ready" entry and the next run regenerates it.
+            // Write the payload first, then stamp the manifest entry complete last, so a crash
+            // mid-produce leaves no "ready" entry and the next run regenerates it.
             ManifestEntry produced = artifact.produce(context);
-            store.put(context.nodeDir(), type, produced.withStatus(ManifestEntry.STATUS_COMPLETE));
+            // A producer may return null to signal there is nothing to record for this node.
+            if (produced != null) {
+                store.put(context.nodeDir(), type, produced.withStatus(ManifestEntry.STATUS_COMPLETE));
+            }
         } catch (ArtifactException | IOException failure) {
             LOGGER.error("failed to produce artifact '{}' for document {}", type, context.document().getId(), failure);
         }
