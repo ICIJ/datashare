@@ -13,7 +13,12 @@ import org.icij.datashare.extract.DocumentCollectionFactory;
 import org.icij.datashare.text.DocReference;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.Project;
+import org.icij.datashare.text.artifact.ArtifactContext;
+import org.icij.datashare.text.artifact.ArtifactRegistry;
+import org.icij.datashare.text.artifact.ManifestStore;
+import org.icij.datashare.text.artifact.RawArtifact;
 import org.icij.datashare.text.indexing.Indexer;
+import org.icij.datashare.text.indexing.elasticsearch.ArtifactPath;
 import org.icij.datashare.text.indexing.elasticsearch.SourceExtractor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -21,6 +26,7 @@ import org.slf4j.LoggerFactory;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -33,6 +39,7 @@ import java.util.function.Function;
 
 import static org.icij.datashare.PropertiesProvider.DEFAULT_PROJECT_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.ARTIFACT_DIR_OPT;
+import static org.icij.datashare.cli.DatashareCliOptions.ARTIFACTS_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_DEFAULT_PROJECT;
 import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_POLLING_INTERVAL_SEC;
 import static org.icij.datashare.cli.DatashareCliOptions.PARALLELISM_OPT;
@@ -112,6 +119,11 @@ public class ArtifactTask extends PipelineTask<String> {
 
     private void runWorker(AtomicLong nbDocs, AtomicLong nbSkipped) {
         SourceExtractor extractor = createSourceExtractor();
+        // Decide once per worker which artifact types to produce: an absent --artifacts flag
+        // means all registered types (raw is the only one wired in this foundation).
+        ArtifactRegistry registry = new ArtifactRegistry(List.of(new RawArtifact()), new ManifestStore());
+        Set<String> selected = registry.select(propertiesProvider.get(ARTIFACTS_OPT).orElse(null));
+        Path projectRoot = artifactDir.resolve(project.name);
         try {
             String queueEntry;
             while ((queueEntry = inputQueue.poll(pollingInterval, TimeUnit.SECONDS)) != null) {
@@ -121,7 +133,9 @@ public class ArtifactTask extends PipelineTask<String> {
                         nbSkipped.incrementAndGet();
                         continue;
                     }
-                    extractor.extractEmbeddedSources(project, doc);
+                    // Each polled node is produced into its own content-addressed directory.
+                    Path nodeDir = ArtifactPath.dir(projectRoot, doc.getId());
+                    registry.run(selected, new ArtifactContext(project, doc, nodeDir, extractor));
                     nbDocs.incrementAndGet();
                 } catch (Throwable e) {
                     logger.error("error in ArtifactTask loop", e);
