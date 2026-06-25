@@ -24,6 +24,7 @@ public class ManifestEntryTest {
         assertThat(json).doesNotContain("total");
         assertThat(json).doesNotContain("pagination");
         assertThat(json).doesNotContain("confidence");
+        assertThat(json).doesNotContain("label");
     }
 
     @Test
