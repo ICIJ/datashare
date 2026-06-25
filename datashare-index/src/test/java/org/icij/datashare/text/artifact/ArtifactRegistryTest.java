@@ -25,12 +25,14 @@ public class ArtifactRegistryTest {
         final Map<String, Object> taskInput;
         final AtomicInteger produced = new AtomicInteger();
         boolean fail = false;
+        boolean producesNull = false;
         CountingArtifact(String type, int version) { this.type = type; this.taskInput = Map.of("type", type, "version", version); }
         public String type() { return type; }
         public Map<String, Object> taskInput() { return taskInput; }
         public ManifestEntry produce(ArtifactContext ctx) throws ArtifactException {
             if (fail) throw new ArtifactException("boom", null);
             produced.incrementAndGet();
+            if (producesNull) return null;
             return ManifestEntry.singleFile(taskInput, "text/plain", "a.txt");
         }
     }
@@ -109,5 +111,28 @@ public class ArtifactRegistryTest {
         registry.run(Set.of("raw", "structure"), ctx());
         assertThat(store.get(dir.getRoot().toPath(), "raw")).isNull();       // failed -> no entry
         assertThat(store.get(dir.getRoot().toPath(), "structure")).isNotNull(); // sibling still ran
+    }
+
+    @Test
+    public void test_run_returns_true_when_all_succeed() {
+        CountingArtifact raw = new CountingArtifact("raw", 1);
+        ArtifactRegistry registry = new ArtifactRegistry(List.of(raw), store);
+        assertThat(registry.run(Set.of("raw"), ctx())).isTrue();
+    }
+
+    @Test
+    public void test_run_returns_false_when_a_type_fails() {
+        CountingArtifact raw = new CountingArtifact("raw", 1); raw.fail = true;
+        ArtifactRegistry registry = new ArtifactRegistry(List.of(raw), store);
+        assertThat(registry.run(Set.of("raw"), ctx())).isFalse();
+    }
+
+    @Test
+    public void test_null_produce_records_no_entry_and_returns_true() throws Exception {
+        CountingArtifact raw = new CountingArtifact("raw", 1); raw.producesNull = true;
+        ArtifactRegistry registry = new ArtifactRegistry(List.of(raw), store);
+        boolean result = registry.run(Set.of("raw"), ctx());
+        assertThat(store.get(dir.getRoot().toPath(), "raw")).isNull();
+        assertThat(result).isTrue();
     }
 }
