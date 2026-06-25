@@ -26,8 +26,9 @@ public class ArtifactRegistry {
 
     /** bare/empty -> all types; CSV -> subset (case-insensitive, trimmed); unknown token -> error. */
     public Set<String> select(String flagValue) {
-        // A bare or blank --artifacts flag means "every registered type".
-        if (flagValue == null || flagValue.isBlank()) {
+        // A missing, blank, or bare (--artifacts with no value, which the CLI represents as "true")
+        // flag means "every registered type".
+        if (flagValue == null || flagValue.isBlank() || "true".equals(flagValue)) {
             return new LinkedHashSet<>(byType.keySet());
         }
         // Otherwise the value is a comma-separated subset; validate each token so a typo
@@ -42,6 +43,11 @@ public class ArtifactRegistry {
                 throw new IllegalArgumentException("unknown artifact type '" + type + "'; valid types: " + byType.keySet());
             }
             selected.add(type);
+        }
+        // A value made only of separators (e.g. ",") names no type; fail loudly rather than
+        // silently selecting nothing.
+        if (selected.isEmpty()) {
+            throw new IllegalArgumentException("no artifact types in '" + flagValue + "'; valid types: " + byType.keySet());
         }
         return selected;
     }
