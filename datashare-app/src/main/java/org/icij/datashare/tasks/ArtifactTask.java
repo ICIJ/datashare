@@ -12,18 +12,25 @@ import org.icij.datashare.asynctasks.temporal.TemporalSingleActivityWorkflow;
 import org.icij.datashare.extract.DocumentCollectionFactory;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.Project;
+import org.icij.datashare.text.artifact.ArtifactContext;
+import org.icij.datashare.text.artifact.ArtifactRegistry;
+import org.icij.datashare.text.artifact.ManifestStore;
+import org.icij.datashare.text.artifact.RawArtifact;
 import org.icij.datashare.text.indexing.Indexer;
+import org.icij.datashare.text.indexing.elasticsearch.ArtifactPath;
 import org.icij.datashare.text.indexing.elasticsearch.SourceExtractor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
 import static org.icij.datashare.PropertiesProvider.DEFAULT_PROJECT_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.ARTIFACT_DIR_OPT;
+import static org.icij.datashare.cli.DatashareCliOptions.ARTIFACTS_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_DEFAULT_PROJECT;
 import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_POLLING_INTERVAL_SEC;
 import static org.icij.datashare.cli.DatashareCliOptions.POLLING_INTERVAL_SECONDS_OPT;
@@ -51,13 +58,17 @@ public class ArtifactTask extends PipelineTask<String> {
         super.call();
         logger.info("creating artifact cache in {} for project {} from queue {} with polling interval {}s", artifactDir, project, inputQueue.getName(), pollingInterval);
         SourceExtractor extractor = new SourceExtractor(propertiesProvider);
+        ArtifactRegistry registry = new ArtifactRegistry(List.of(new RawArtifact()), new ManifestStore());
+        Set<String> selected = registry.select(propertiesProvider.get(ARTIFACTS_OPT).orElse(null));
+        Path projectRoot = artifactDir.resolve(project.name);
         List<String> sourceExcludes = List.of("content", "content_translated");
         String docId;
         long nbDocs = 0;
         while ((docId = inputQueue.poll(pollingInterval, TimeUnit.SECONDS)) != null) {
             try {
                 Document doc = indexer.get(project.name, docId, sourceExcludes);
-                extractor.extractEmbeddedSources(project, doc);
+                Path nodeDir = ArtifactPath.dir(projectRoot, doc.getId());
+                registry.run(selected, new ArtifactContext(project, doc, nodeDir, extractor));
                 nbDocs++;
             } catch (Throwable e) {
                 logger.error("error in ArtifactTask loop", e);
