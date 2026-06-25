@@ -17,7 +17,7 @@ import net.codestory.http.Context;
 import net.codestory.http.annotations.*;
 import net.codestory.http.constants.HttpStatus;
 import net.codestory.http.errors.ForbiddenException;
-import static org.icij.datashare.web.errors.ForbiddenException.forbiddenIfNotGranted;
+import static org.icij.datashare.web.errors.ForbiddenException.requireGranted;
 import net.codestory.http.payload.Payload;
 import net.codestory.http.types.ContentTypes;
 import org.icij.datashare.PropertiesProvider;
@@ -465,10 +465,6 @@ public class DocumentResource {
     public Result<Integer> groupUnrecommend(final String projectId, final List<String> docIds, Context context) {
         requireGranted(context, projectId);
         return new Result<>(repository.unrecommend(project(projectId), (DatashareUser)context.currentUser(), docIds));
-    }
-
-    private void requireGranted(Context context, String project) {
-        forbiddenIfNotGranted(((DatashareUser) context.currentUser()).isGranted(project));
     }
 
     @NotNull
