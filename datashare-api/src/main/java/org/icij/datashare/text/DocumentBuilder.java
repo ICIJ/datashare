@@ -30,6 +30,10 @@ public class DocumentBuilder {
     private Document.Status documentStatus;
     private Date extractionDate;
     private Long contentLength;
+    private Document.RecoveryStatus recoveryStatus = null;
+    private Integer pstExpected = null;
+    private Integer pstEmitted = null;
+    private Integer pstUnrecovered = null;
 
     private DocumentBuilder() {}
     public static DocumentBuilder createDoc() {
@@ -63,7 +67,9 @@ public class DocumentBuilder {
                 .withRootId(doc.getRootDocument())
                 .withContentLength(doc.getContentLength())
                 .withTags(doc.getTags())
-                .with(doc.getContentTypeCategory());
+                .with(doc.getContentTypeCategory())
+                .with(doc.getRecoveryStatus())
+                .withPstCounts(doc.getPstExpected(), doc.getPstEmitted(), doc.getPstUnrecovered());
     }
 
     public DocumentBuilder withDefaultValues(String id){
@@ -181,6 +187,18 @@ public class DocumentBuilder {
         return this;
     }
 
+    public DocumentBuilder with(Document.RecoveryStatus recoveryStatus) {
+        this.recoveryStatus = recoveryStatus;
+        return this;
+    }
+
+    public DocumentBuilder withPstCounts(Integer expected, Integer emitted, Integer unrecovered) {
+        this.pstExpected = expected;
+        this.pstEmitted = emitted;
+        this.pstUnrecovered = unrecovered;
+        return this;
+    }
+
     public Document build() {
         if(id == null && project == null && path == null && content == null){
             throw new NullPointerException("Id, Project, Path or content are missing.");
@@ -188,7 +206,7 @@ public class DocumentBuilder {
         return new Document(project, id, path, content, content_translated, language,
                 charset, contentType, metadata, documentStatus,
                 pipelines, extractionDate, parentId, rootId, extractionLevel,
-                contentLength, tags, contentTypeCategory);
+                contentLength, tags, contentTypeCategory, recoveryStatus, pstExpected, pstEmitted, pstUnrecovered);
     }
 
 }

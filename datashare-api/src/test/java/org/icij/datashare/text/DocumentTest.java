@@ -205,4 +205,33 @@ public class DocumentTest {
         Document dst = JsonObjectMapper.readValue(json, Document.class);
         assertThat(dst.getOcrParser()).isNull();
     }
+
+    @Test
+    public void builder_sets_recovery_status_and_pst_counts() {
+        Document doc = createDoc("att")
+                .with(project("p"))
+                .with(get("/m/att"))
+                .with("")
+                .with(Document.RecoveryStatus.UNRECOVERED)
+                .build();
+        assertThat(doc.getRecoveryStatus()).isEqualTo(Document.RecoveryStatus.UNRECOVERED);
+
+        Document parent = createDoc("pst")
+                .with(project("p"))
+                .with(get("/m.pst"))
+                .with("body")
+                .with(Document.RecoveryStatus.PARTIAL)
+                .withPstCounts(7, 6, 1)
+                .build();
+        assertThat(parent.getRecoveryStatus()).isEqualTo(Document.RecoveryStatus.PARTIAL);
+        assertThat(parent.getPstExpected()).isEqualTo(7);
+        assertThat(parent.getPstUnrecovered()).isEqualTo(1);
+    }
+
+    @Test
+    public void recovery_status_defaults_to_null() {
+        Document doc = createDoc("xtxt").with(project("p")).with(get("/x.txt")).with("hi").build();
+        assertThat(doc.getRecoveryStatus()).isNull();
+        assertThat(doc.getPstExpected()).isNull();
+    }
 }

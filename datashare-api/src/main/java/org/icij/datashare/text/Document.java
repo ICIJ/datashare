@@ -81,6 +81,13 @@ public class Document implements Entity, DocumentMetadataConstants {
             throw new IllegalArgumentException("invalid status code " + code);
         }
     }
+
+    public enum RecoveryStatus {
+        // child / stub document values
+        RECOVERED, ENCRYPTED, UNRECOVERED,
+        // PST parent rollup values
+        COMPLETE, PARTIAL, LOSSY
+    }
     @JsonIgnore
     private final Project project;
     private final String id;
@@ -99,6 +106,10 @@ public class Document implements Entity, DocumentMetadataConstants {
     private final long contentLength;
     private final String contentType;
     private final ContentTypeCategory contentTypeCategory;
+    private final RecoveryStatus recoveryStatus;
+    private final Integer pstExpected;
+    private final Integer pstEmitted;
+    private final Integer pstUnrecovered;
 
     @JsonDeserialize(using = CharsetDeserializer.class)
     private final Charset contentEncoding;
@@ -115,17 +126,18 @@ public class Document implements Entity, DocumentMetadataConstants {
 
 
     Document(Project project, String id, Path filePath, String content, Language language, Charset charset, String mimetype, Map<String, Object> metadata, Status status, Set<Pipeline.Type> nerTags, Date extractionDate, String parentDocument, String rootDocument, Short extractionLevel, Long contentLength) {
-        this(project, id, filePath, content,null, language, extractionDate, charset, mimetype, extractionLevel, metadata, status, nerTags, parentDocument, rootDocument, contentLength, new HashSet<>(), null);
+        this(project, id, filePath, content, null, language, extractionDate, charset, mimetype, extractionLevel, metadata, status, nerTags, parentDocument, rootDocument, contentLength, new HashSet<>(), null, null, null, null, null);
     }
 
     Document(Project project, String id, Path filePath, String content, List<Map<String,String>> content_translated, Language language, Charset charset,
                     String contentType, Map<String, Object> metadata, Status status, Set<Pipeline.Type> nerTags,
                     Date extractionDate, String parentDocument, String rootDocument, Short extractionLevel,
-                    Long contentLength, Set<Tag> tags, ContentTypeCategory contentTypeCategory) {
+                    Long contentLength, Set<Tag> tags, ContentTypeCategory contentTypeCategory,
+                    RecoveryStatus recoveryStatus, Integer pstExpected, Integer pstEmitted, Integer pstUnrecovered) {
         this(project, id, filePath, content, content_translated, language, extractionDate, charset,
                 contentType, extractionLevel, metadata, status, nerTags,
                 parentDocument, rootDocument, contentLength,
-                tags, contentTypeCategory);
+                tags, contentTypeCategory, recoveryStatus, pstExpected, pstEmitted, pstUnrecovered);
     }
 
     @JsonCreator
@@ -142,7 +154,11 @@ public class Document implements Entity, DocumentMetadataConstants {
                      @JsonProperty("rootDocument") String rootDocument,
                      @JsonProperty("contentLength") Long contentLength,
                      @JsonProperty("tags") Set<Tag> tags,
-                     @JsonProperty("contentTypeCategory") ContentTypeCategory contentTypeCategory
+                     @JsonProperty("contentTypeCategory") ContentTypeCategory contentTypeCategory,
+                     @JsonProperty("recoveryStatus") RecoveryStatus recoveryStatus,
+                     @JsonProperty("pstExpected") Integer pstExpected,
+                     @JsonProperty("pstEmitted") Integer pstEmitted,
+                     @JsonProperty("pstUnrecovered") Integer pstUnrecovered
     ) {
         this.id = id;
         this.project = project;
@@ -163,6 +179,10 @@ public class Document implements Entity, DocumentMetadataConstants {
         this.rootDocument = rootDocument;
         this.tags = tags;
         this.contentTypeCategory = contentTypeCategory;
+        this.recoveryStatus = recoveryStatus;
+        this.pstExpected = pstExpected;
+        this.pstEmitted = pstEmitted;
+        this.pstUnrecovered = pstUnrecovered;
     }
 
     static String getHash(Project project, Path path) {
@@ -185,6 +205,10 @@ public class Document implements Entity, DocumentMetadataConstants {
     public Long getContentLength() { return contentLength; }
     public String getContentType() { return contentType; }
     public ContentTypeCategory getContentTypeCategory() { return contentTypeCategory; }
+    public RecoveryStatus getRecoveryStatus() { return recoveryStatus; }
+    public Integer getPstExpected() { return pstExpected; }
+    public Integer getPstEmitted() { return pstEmitted; }
+    public Integer getPstUnrecovered() { return pstUnrecovered; }
     public String getContentTypeOrDefault() { return ofNullable(getContentType()).orElse(DEFAULT_VALUE_UNKNOWN); }
     public Language getLanguage() { return language; }
     public short getExtractionLevel() { return extractionLevel;}
