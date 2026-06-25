@@ -69,12 +69,14 @@ public class ArtifactTaskTest {
         DocumentQueue<String> queue = factory.createQueue("extract:queue:artifact", String.class);
         queue.add(rootSha);
 
-        new ArtifactTask(factory, mockEs, new PropertiesProvider(Map.of(
+        Long numberOfDocuments = new ArtifactTask(factory, mockEs, new PropertiesProvider(Map.of(
                 "artifactDir", artifactDir.getRoot().toString(),
                 "defaultProject", "prj",
                 "pollingInterval", "1")),
                 new Task<>(ArtifactTask.class.getName(), User.local(), new HashMap<>()), null)
                 .call();
+
+        assertThat(numberOfDocuments).isEqualTo(1);
 
         // raw bytes for the embedded child are still produced (behavior preserved)
         assertThat(artifactDir.getRoot().toPath().resolve("prj/6a/bb/6abb96950946b62bb993307c8945c0c096982783bab7fa24901522426840ca3e/raw").toFile()).isFile();
