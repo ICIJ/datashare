@@ -165,44 +165,44 @@ public class DocumentResourceTest extends AbstractProdWebServerTest {
 
     @Test
     public void test_group_star_document_with_project() {
-        when(jooqRepository.star(project("prj1"), User.local(), asList("id1", "id2"))).thenReturn(2);
-        post("/api/prj1/documents/batchUpdate/star", "[\"id1\", \"id2\"]").should().respond(200);
+        when(jooqRepository.star(project("local-datashare"), User.local(), asList("id1", "id2"))).thenReturn(2);
+        post("/api/local-datashare/documents/batchUpdate/star", "[\"id1\", \"id2\"]").should().respond(200);
     }
 
     @Test
     public void test_group_unstar_document_with_project() {
-        when(jooqRepository.unstar(project("prj1"), User.local(), asList("id1", "id2"))).thenReturn(2);
-        post("/api/prj1/documents/batchUpdate/unstar", "[\"id1\", \"id2\"]").should().respond(200);
+        when(jooqRepository.unstar(project("local-datashare"), User.local(), asList("id1", "id2"))).thenReturn(2);
+        post("/api/local-datashare/documents/batchUpdate/unstar", "[\"id1\", \"id2\"]").should().respond(200);
     }
 
     @Test
     public void test_group_recommend_document_with_project() {
-        when(jooqRepository.recommend(project("prj1"), User.local(), asList("id1", "id2"))).thenReturn(2);
-        post("/api/prj1/documents/batchUpdate/recommend", "[\"id1\", \"id2\"]").should().respond(200);
+        when(jooqRepository.recommend(project("local-datashare"), User.local(), asList("id1", "id2"))).thenReturn(2);
+        post("/api/local-datashare/documents/batchUpdate/recommend", "[\"id1\", \"id2\"]").should().respond(200);
     }
 
     @Test
     public void test_group_unrecommend_document_with_project() {
-        when(jooqRepository.unrecommend(project("prj1"), User.local(), asList("id1", "id2"))).thenReturn(2);
-        post("/api/prj1/documents/batchUpdate/unrecommend", "[\"id1\", \"id2\"]").should().respond(200);
+        when(jooqRepository.unrecommend(project("local-datashare"), User.local(), asList("id1", "id2"))).thenReturn(2);
+        post("/api/local-datashare/documents/batchUpdate/unrecommend", "[\"id1\", \"id2\"]").should().respond(200);
     }
 
     @Test
     public void test_get_recommendation_users_of_documents() {
-        when(jooqRepository.getRecommendations(eq(project("prj")), eq(asList("docId1","docId2")))).thenReturn(new Repository.AggregateList<>(of(new Repository.Aggregate<>(new User("user1"), 2), new Repository.Aggregate<>(new User("user2"), 3)).collect(Collectors.toList()), 10));
-        get("/api/users/recommendationsby?project=prj&docIds=docId1,docId2").should().respond(200).contain("user1").contain("user2").contain("\"totalCount\":10");
+        when(jooqRepository.getRecommendations(eq(project("local-datashare")), eq(asList("docId1","docId2")))).thenReturn(new Repository.AggregateList<>(of(new Repository.Aggregate<>(new User("user1"), 2), new Repository.Aggregate<>(new User("user2"), 3)).collect(Collectors.toList()), 10));
+        get("/api/users/recommendationsby?project=local-datashare&docIds=docId1,docId2").should().respond(200).contain("user1").contain("user2").contain("\"totalCount\":10");
     }
 
     @Test
     public void test_get_recommendations_users() {
-        when(jooqRepository.getRecommendations(eq(project("prj")))).thenReturn(new Repository.AggregateList<>(of(new Repository.Aggregate<>(new User("user3"), 3), new Repository.Aggregate<>(new User("user4"), 4)).collect(Collectors.toList()), 8));
-        get("/api/users/recommendations?project=prj").should().respond(200).contain("user3").contain("user4");
+        when(jooqRepository.getRecommendations(eq(project("local-datashare")))).thenReturn(new Repository.AggregateList<>(of(new Repository.Aggregate<>(new User("user3"), 3), new Repository.Aggregate<>(new User("user4"), 4)).collect(Collectors.toList()), 8));
+        get("/api/users/recommendations?project=local-datashare").should().respond(200).contain("user3").contain("user4");
     }
 
     @Test
     public void test_get_recommended_documents() {
-        when(jooqRepository.getRecommendationsBy(eq(project("prj")), eq(asList(new User("user1"), new User("user2"))))).thenReturn(of("doc1", "doc2").collect(Collectors.toSet()));
-        get("/api/prj/documents/recommendations?userids=user1,user2").should().respond(200).contain("doc1").contain("doc2");
+        when(jooqRepository.getRecommendationsBy(eq(project("local-datashare")), eq(asList(new User("user1"), new User("user2"))))).thenReturn(of("doc1", "doc2").collect(Collectors.toSet()));
+        get("/api/local-datashare/documents/recommendations?userids=user1,user2").should().respond(200).contain("doc1").contain("doc2");
     }
 
     @Test
@@ -569,6 +569,46 @@ public class DocumentResourceTest extends AbstractProdWebServerTest {
     @Test
     public void test_group_untag_forbidden_for_non_member_project() {
         post("/api/foo_index/documents/batchUpdate/untag", "{\"tags\":[\"t\"],\"docIds\":[\"d\"]}").should().respond(403);
+    }
+
+    @Test
+    public void test_get_starred_documents_forbidden_for_non_member_project() {
+        get("/api/foo_index/documents/starred").should().respond(403);
+    }
+
+    @Test
+    public void test_group_star_forbidden_for_non_member_project() {
+        post("/api/foo_index/documents/batchUpdate/star", "[\"id1\"]").should().respond(403);
+    }
+
+    @Test
+    public void test_group_unstar_forbidden_for_non_member_project() {
+        post("/api/foo_index/documents/batchUpdate/unstar", "[\"id1\"]").should().respond(403);
+    }
+
+    @Test
+    public void test_group_recommend_forbidden_for_non_member_project() {
+        post("/api/foo_index/documents/batchUpdate/recommend", "[\"id1\"]").should().respond(403);
+    }
+
+    @Test
+    public void test_group_unrecommend_forbidden_for_non_member_project() {
+        post("/api/foo_index/documents/batchUpdate/unrecommend", "[\"id1\"]").should().respond(403);
+    }
+
+    @Test
+    public void test_get_recommendations_by_forbidden_for_non_member_project() {
+        get("/api/foo_index/documents/recommendations?userids=user1").should().respond(403);
+    }
+
+    @Test
+    public void test_get_recommendations_users_forbidden_for_non_member_project() {
+        get("/api/users/recommendations?project=foo_index").should().respond(403);
+    }
+
+    @Test
+    public void test_get_recommendations_by_docids_forbidden_for_non_member_project() {
+        get("/api/users/recommendationsby?project=foo_index&docIds=d1,d2").should().respond(403);
     }
 
 }
