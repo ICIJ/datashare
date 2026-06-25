@@ -37,6 +37,10 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
     static final String PST_EXPECTED = "tika:pst_expected";
     static final String PST_EMITTED = "tika:pst_emitted";
     static final String PST_UNRECOVERED = "tika:pst_attachments_unrecovered";
+    // Mirrors extract-lib ResilientOutlookPSTParser's UNKNOWN_COUNT reconciliation sentinel,
+    // emitted when descriptor enumeration failed so loss is undetectable. Intentionally a separate
+    // constant from DEFAULT_VALUE_UNKNOWN: it must track the parser's sentinel, not datashare's
+    // display default, even though both currently read "unknown".
     private static final String PST_UNKNOWN = "unknown";
 
     private static Document.RecoveryStatus parseChildRecoveryStatus(TikaDocument document) {
@@ -66,6 +70,9 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
     private static void applyParentRollup(DocumentBuilder builder, TikaDocument document) {
         String expectedRaw = document.getMetadata().get(PST_EXPECTED);
         String emittedRaw = document.getMetadata().get(PST_EMITTED);
+        // The parser always records expected+emitted together (reconciliation runs on every PST),
+        // so both absent means this is not a PST root. A half-present pair (only one set) is treated
+        // as unknown below and rolls up to LOSSY rather than being silently trusted.
         if (expectedRaw == null && emittedRaw == null) {
             return; // not a PST root
         }
@@ -81,6 +88,9 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
         } else if (unrecovered != null && unrecovered > 0) {
             rollup = Document.RecoveryStatus.PARTIAL;
         } else {
+            // No message loss and no unrecovered attachments. A null unrecovered count is the normal
+            // case for a healthy classic (non-OST-2013) PST, where the parser emits no attachment
+            // counters at all: that is genuinely COMPLETE, not partial.
             rollup = Document.RecoveryStatus.COMPLETE;
         }
         builder.with(rollup);
