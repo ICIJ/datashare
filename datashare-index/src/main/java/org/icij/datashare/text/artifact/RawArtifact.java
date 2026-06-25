@@ -1,5 +1,7 @@
 package org.icij.datashare.text.artifact;
 
+import org.icij.datashare.text.Document;
+
 import java.util.Map;
 
 /** The raw/source-bytes artifact. extract-lib still writes the raw/raw.json bytes via
@@ -23,14 +25,19 @@ public class RawArtifact implements Artifact {
 
     @Override
     public ManifestEntry produce(ArtifactContext context) throws ArtifactException {
-        // extract-lib writes the raw/raw.json bytes for the embedded subtree as a side effect;
-        // we only drive it and then describe the entry. Any failure becomes an ArtifactException
-        // so the registry can isolate it without aborting the other types or the ingest loop.
+        Document document = context.document();
         try {
-            context.sources().extractEmbeddedSources(context.project(), context.document());
+            // extract-lib writes the raw/raw.json bytes for the embedded subtree as a side effect.
+            context.sources().extractEmbeddedSources(context.project(), document);
+            // Only embedded nodes have their source bytes cached in their own node dir; a root
+            // document's source is the original on-disk file, served directly and never copied here.
+            // So a root records no raw entry — a raw entry must always mean a payload in this dir.
+            if (document.getExtractionLevel() <= 0) {
+                return null;
+            }
+            return ManifestEntry.singleFile(taskInput(), document.getContentType(), document.getName());
         } catch (Exception extractionFailure) {
-            throw new ArtifactException("raw extraction failed for " + context.document().getId(), extractionFailure);
+            throw new ArtifactException("raw extraction failed for " + document.getId(), extractionFailure);
         }
-        return ManifestEntry.singleFile(taskInput(), context.document().getContentType(), context.document().getName());
     }
 }

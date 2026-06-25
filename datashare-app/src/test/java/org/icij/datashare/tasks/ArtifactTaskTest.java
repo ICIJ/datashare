@@ -1,15 +1,12 @@
 package org.icij.datashare.tasks;
 
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.extract.MemoryDocumentCollectionFactory;
-import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.test.LogbackCapturingRule;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.Project;
-import org.icij.datashare.text.artifact.ManifestEntry;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.text.indexing.elasticsearch.SourceExtractor;
 import org.icij.datashare.user.User;
@@ -23,10 +20,8 @@ import org.mockito.Mock;
 import org.slf4j.event.Level;
 
 import java.net.URISyntaxException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -407,7 +402,7 @@ public class ArtifactTaskTest {
     }
 
     @Test(timeout = 10000)
-    public void test_writes_manifest_with_complete_raw_entry() throws Exception {
+    public void test_root_caches_embedded_raw_and_writes_no_manifest() throws Exception {
         Path path = Path.of(Objects.requireNonNull(getClass().getResource("/docs/embedded_doc.eml")).getPath());
         String rootSha = "0f95ef97e4619f7bae2a585c6cf24587cd7a3a81a26599c8774d669e5c175e5e";
         mockIndexer.indexFile("prj", rootSha, path, "message/rfc822");
@@ -427,13 +422,8 @@ public class ArtifactTaskTest {
         // raw bytes for the embedded child are still produced (behavior preserved)
         assertThat(artifactDir.getRoot().toPath().resolve("prj/6a/bb/6abb96950946b62bb993307c8945c0c096982783bab7fa24901522426840ca3e/raw").toFile()).isFile();
 
-        // root node gets a manifest with a complete raw entry
-        Path manifest = artifactDir.getRoot().toPath().resolve("prj/0f/95/" + rootSha + "/manifest.json");
-        assertThat(manifest.toFile()).isFile();
-        Map<String, ManifestEntry> entries = JsonObjectMapper.getMapper()
-                .readValue(Files.readAllBytes(manifest), new TypeReference<LinkedHashMap<String, ManifestEntry>>() {});
-        assertThat(entries.get("raw").isComplete()).isTrue();
-        assertThat(entries.get("raw").contentType()).isEqualTo("message/rfc822");
+        // root document has no raw entry so no manifest is written at the root dir
+        assertThat(artifactDir.getRoot().toPath().resolve("prj/0f/95/0f95ef97e4619f7bae2a585c6cf24587cd7a3a81a26599c8774d669e5c175e5e/manifest.json").toFile()).doesNotExist();
     }
 
     @Before
