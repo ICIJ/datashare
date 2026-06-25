@@ -58,6 +58,8 @@ public class ArtifactTask extends PipelineTask<String> {
         super.call();
         logger.info("creating artifact cache in {} for project {} from queue {} with polling interval {}s", artifactDir, project, inputQueue.getName(), pollingInterval);
         SourceExtractor extractor = new SourceExtractor(propertiesProvider);
+        // Decide once which artifact types to produce for this run: an absent --artifacts
+        // flag means all registered types (raw is the only one wired in this foundation).
         ArtifactRegistry registry = new ArtifactRegistry(List.of(new RawArtifact()), new ManifestStore());
         Set<String> selected = registry.select(propertiesProvider.get(ARTIFACTS_OPT).orElse(null));
         Path projectRoot = artifactDir.resolve(project.name);
@@ -66,6 +68,7 @@ public class ArtifactTask extends PipelineTask<String> {
         long nbDocs = 0;
         while ((docId = inputQueue.poll(pollingInterval, TimeUnit.SECONDS)) != null) {
             try {
+                // Each polled node is produced into its own content-addressed directory.
                 Document doc = indexer.get(project.name, docId, sourceExcludes);
                 Path nodeDir = ArtifactPath.dir(projectRoot, doc.getId());
                 registry.run(selected, new ArtifactContext(project, doc, nodeDir, extractor));

@@ -17,19 +17,27 @@ public record ManifestEntry(
         Double confidence,
         String label) {
 
+    // The single status value that marks an entry as ready to serve. Anything else
+    // (including a missing status) means the artifact is not yet usable.
+    public static final String STATUS_COMPLETE = "complete";
+
+    // A single-file artifact (e.g. raw bytes): described by its media type and filename.
     public static ManifestEntry singleFile(Map<String, Object> taskInput, String contentType, String filename) {
         return new ManifestEntry(null, taskInput, null, null, contentType, filename, null, null);
     }
 
+    // A paginated artifact (e.g. structure pages): described by a page count and a pagination scheme.
     public static ManifestEntry paginated(Map<String, Object> taskInput, int total, Map<String, Object> pagination) {
         return new ManifestEntry(null, taskInput, total, pagination, null, null, null, null);
     }
 
+    // Producers return an entry without a status; the registry stamps it complete only
+    // once every payload file has been written, so a crash never leaves a "ready" lie.
     public ManifestEntry withStatus(String status) {
         return new ManifestEntry(status, taskInput, total, pagination, contentType, filename, confidence, label);
     }
 
     public boolean isComplete() {
-        return "complete".equals(status);
+        return STATUS_COMPLETE.equals(status);
     }
 }

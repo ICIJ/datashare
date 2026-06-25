@@ -11,6 +11,6 @@ public interface Artifact {
     /** This run's config + an explicit version; compared by value for skip-if-current. */
     Map<String, Object> taskInput();
 
-    /** Produce payload files under ctx.nodeDir() and return the entry to record (without status). */
-    ManifestEntry produce(ArtifactContext ctx) throws ArtifactException;
+    /** Produce payload files under context.nodeDir() and return the entry to record (without status). */
+    ManifestEntry produce(ArtifactContext context) throws ArtifactException;
 }

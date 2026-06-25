@@ -26,9 +26,12 @@ public class ArtifactRegistry {
 
     /** bare/empty -> all types; CSV -> subset (case-insensitive, trimmed); unknown token -> error. */
     public Set<String> select(String flagValue) {
+        // A bare or blank --artifacts flag means "every registered type".
         if (flagValue == null || flagValue.isBlank()) {
             return new LinkedHashSet<>(byType.keySet());
         }
+        // Otherwise the value is a comma-separated subset; validate each token so a typo
+        // fails loudly rather than silently producing nothing.
         Set<String> selected = new LinkedHashSet<>();
         for (String token : flagValue.split(",")) {
             String type = token.trim().toLowerCase();
@@ -43,22 +46,38 @@ public class ArtifactRegistry {
         return selected;
     }
 
-    public void run(Set<String> selected, ArtifactContext ctx) {
+    public void run(Set<String> selected, ArtifactContext context) {
         for (String type : selected) {
-            Artifact artifact = byType.get(type);
-            if (artifact == null) {
-                continue;
-            }
-            try {
-                ManifestEntry existing = store.get(ctx.nodeDir(), type);
-                if (existing != null && existing.isComplete() && existing.taskInput().equals(artifact.taskInput())) {
-                    continue; // skip-if-current
-                }
-                ManifestEntry produced = artifact.produce(ctx);
-                store.put(ctx.nodeDir(), type, produced.withStatus("complete"));
-            } catch (ArtifactException | IOException e) {
-                LOGGER.error("failed to produce artifact '{}' for document {}", type, ctx.document().getId(), e);
-            }
+            produceIfNeeded(type, context);
         }
+    }
+
+    // Produce and record one type, isolating its failures: a single bad type must never
+    // abort the others, the manifest of siblings, or the surrounding ingest loop.
+    private void produceIfNeeded(String type, ArtifactContext context) {
+        Artifact artifact = byType.get(type);
+        if (artifact == null) {
+            return;
+        }
+        try {
+            if (isCurrent(type, artifact, context)) {
+                return;
+            }
+            // Write the payload first, then stamp the manifest entry complete last, so a
+            // crash mid-produce leaves no "ready" entry and the next run regenerates it.
+            ManifestEntry produced = artifact.produce(context);
+            store.put(context.nodeDir(), type, produced.withStatus(ManifestEntry.STATUS_COMPLETE));
+        } catch (ArtifactException | IOException failure) {
+            LOGGER.error("failed to produce artifact '{}' for document {}", type, context.document().getId(), failure);
+        }
+    }
+
+    // An artifact is current when a completed entry already exists and was produced with the
+    // exact same task input (config + version) as this run; only then is regeneration skipped.
+    private boolean isCurrent(String type, Artifact artifact, ArtifactContext context) throws IOException {
+        ManifestEntry existing = store.get(context.nodeDir(), type);
+        return existing != null
+                && existing.isComplete()
+                && existing.taskInput().equals(artifact.taskInput());
     }
 }
