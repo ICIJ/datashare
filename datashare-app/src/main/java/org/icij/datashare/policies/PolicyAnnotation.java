@@ -42,6 +42,9 @@ public class PolicyAnnotation implements ApplyAroundAnnotation<Policy> {
 
     private static String resolveProjectId(Context context, String idParam) {
         String value = context.pathParam(idParam);
+        if (value == null || value.isBlank()) {
+            value = context.get(idParam);
+        }
         return (value == null || value.isBlank()) ? "*" : value;
     }
 }
