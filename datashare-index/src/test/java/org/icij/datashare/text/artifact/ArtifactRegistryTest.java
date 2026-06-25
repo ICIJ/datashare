@@ -45,6 +45,7 @@ public class ArtifactRegistryTest {
         ArtifactRegistry registry = new ArtifactRegistry(List.of(new CountingArtifact("raw", 1), new CountingArtifact("structure", 1)), store);
         assertThat(registry.select(null)).isEqualTo(Set.of("raw", "structure"));
         assertThat(registry.select("")).isEqualTo(Set.of("raw", "structure"));
+        assertThat(registry.select("   ")).isEqualTo(Set.of("raw", "structure"));
     }
 
     @Test
