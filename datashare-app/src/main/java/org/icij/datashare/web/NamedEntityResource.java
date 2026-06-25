@@ -13,11 +13,10 @@ import net.codestory.http.annotations.Prefix;
 import net.codestory.http.annotations.Put;
 import net.codestory.http.payload.Payload;
 import org.icij.datashare.Entity;
-import org.icij.datashare.session.DatashareUser;
 import org.icij.datashare.text.NamedEntity;
 import org.icij.datashare.text.indexing.Indexer;
 
-import static org.icij.datashare.web.errors.ForbiddenException.forbiddenIfNotGranted;
+import static org.icij.datashare.web.errors.ForbiddenException.requireGranted;
 
 import java.io.IOException;
 import java.util.List;
@@ -35,10 +34,6 @@ public class NamedEntityResource {
     @Inject
     public NamedEntityResource(final Indexer indexer) {
         this.indexer = indexer;
-    }
-
-    private void requireGranted(Context context, String project) {
-        forbiddenIfNotGranted(((DatashareUser) context.currentUser()).isGranted(project));
     }
 
     @Operation(description = "Returns the named entity given an id and a document id.")
