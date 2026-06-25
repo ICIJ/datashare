@@ -33,6 +33,59 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
     private static final Logger logger = LoggerFactory.getLogger(ElasticsearchSpewer.class);
     public static final String DEFAULT_VALUE_UNKNOWN = "unknown";
 
+    static final String PST_ATTACHMENT_RECOVERY = "tika:pst_attachment_recovery";
+    static final String PST_EXPECTED = "tika:pst_expected";
+    static final String PST_EMITTED = "tika:pst_emitted";
+    static final String PST_UNRECOVERED = "tika:pst_attachments_unrecovered";
+    private static final String PST_UNKNOWN = "unknown";
+
+    private static Document.RecoveryStatus parseChildRecoveryStatus(TikaDocument document) {
+        String raw = document.getMetadata().get(PST_ATTACHMENT_RECOVERY);
+        if (raw == null) {
+            return null;
+        }
+        try {
+            return Document.RecoveryStatus.valueOf(raw);
+        } catch (IllegalArgumentException e) {
+            logger.warn("unknown pst_attachment_recovery value '{}' on {}", raw, document.getId());
+            return null;
+        }
+    }
+
+    private static Integer parsePstCount(String raw) {
+        if (raw == null || PST_UNKNOWN.equals(raw)) {
+            return null;
+        }
+        try {
+            return Integer.valueOf(raw);
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+
+    private static void applyParentRollup(DocumentBuilder builder, TikaDocument document) {
+        String expectedRaw = document.getMetadata().get(PST_EXPECTED);
+        String emittedRaw = document.getMetadata().get(PST_EMITTED);
+        if (expectedRaw == null && emittedRaw == null) {
+            return; // not a PST root
+        }
+        Integer expected = parsePstCount(expectedRaw);
+        Integer emitted = parsePstCount(emittedRaw);
+        Integer unrecovered = parsePstCount(document.getMetadata().get(PST_UNRECOVERED));
+        builder.withPstCounts(expected, emitted, unrecovered);
+
+        boolean unknown = PST_UNKNOWN.equals(expectedRaw) || expected == null || emitted == null;
+        Document.RecoveryStatus rollup;
+        if (unknown || expected > emitted) {
+            rollup = Document.RecoveryStatus.LOSSY;
+        } else if (unrecovered != null && unrecovered > 0) {
+            rollup = Document.RecoveryStatus.PARTIAL;
+        } else {
+            rollup = Document.RecoveryStatus.COMPLETE;
+        }
+        builder.with(rollup);
+    }
+
     private final Indexer indexer;
     private final LanguageGuesser languageGuesser;
     private final int maxContentLength;
@@ -102,7 +155,8 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
                 .withContentLength(Long.parseLong(ofNullable(document.getMetadata().get(CONTENT_LENGTH)).orElse("-1")))
                 .with(charset)
                 .withExtractionLevel(level)
-                .withOcrParser(document.getMetadata().get(OCRParser.OCR_PARSER));
+                .withOcrParser(document.getMetadata().get(OCRParser.OCR_PARSER))
+                .with(parseChildRecoveryStatus(document));
 
         String content = toString(document.getReader()).trim();
         if (maxContentLength != -1 && content.length() > maxContentLength) {
@@ -120,6 +174,7 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
             builder.withParentId(parent.getId());
             builder.withRootId(root.getId());
         }
+        applyParentRollup(builder, document);
         return builder.build();
     }
 

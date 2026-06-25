@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonGetter;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
@@ -205,9 +206,13 @@ public class Document implements Entity, DocumentMetadataConstants {
     public Long getContentLength() { return contentLength; }
     public String getContentType() { return contentType; }
     public ContentTypeCategory getContentTypeCategory() { return contentTypeCategory; }
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     public RecoveryStatus getRecoveryStatus() { return recoveryStatus; }
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     public Integer getPstExpected() { return pstExpected; }
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     public Integer getPstEmitted() { return pstEmitted; }
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     public Integer getPstUnrecovered() { return pstUnrecovered; }
     public String getContentTypeOrDefault() { return ofNullable(getContentType()).orElse(DEFAULT_VALUE_UNKNOWN); }
     public Language getLanguage() { return language; }

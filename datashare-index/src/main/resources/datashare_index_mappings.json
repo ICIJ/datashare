@@ -81,6 +81,10 @@
     "status": {
       "type": "keyword"
     },
+    "recoveryStatus": { "type": "keyword" },
+    "pstExpected": { "type": "integer" },
+    "pstEmitted": { "type": "integer" },
+    "pstUnrecovered": { "type": "integer" },
     "nerTags": {
       "type": "keyword"
     },

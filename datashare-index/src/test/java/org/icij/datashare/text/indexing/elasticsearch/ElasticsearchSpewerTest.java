@@ -576,6 +576,87 @@ public class ElasticsearchSpewerTest {
         assertThat(src.get("ocrParser")).isNull();
     }
 
+    @Test
+    public void recovered_child_metadata_maps_to_recoveryStatus_field() throws Exception {
+        final TikaDocument document = new DocumentFactory().withIdentifier(new PathIdentifier()).create(get("att-1.jpg"));
+        document.getMetadata().set("tika:pst_attachment_recovery", "RECOVERED");
+        document.setReader(new ParsingReader(new ByteArrayInputStream("jpegbytes".getBytes())));
+        spewer.write(document);
+        GetResponse<ObjectNode> resp = es.client.get(d -> d.index(es.getIndexName()).id(document.getId()), ObjectNode.class);
+        assertThat(resp.source().get("recoveryStatus").asText()).isEqualTo("RECOVERED");
+    }
+
+    @Test
+    public void unrecovered_stub_indexes_as_empty_indexed_document() throws Exception {
+        final TikaDocument document = new DocumentFactory().withIdentifier(new PathIdentifier()).create(get("corrupt.pdf"));
+        document.getMetadata().set("tika:pst_attachment_recovery", "UNRECOVERED");
+        document.setReader(new ParsingReader(new ByteArrayInputStream(new byte[0])));
+        spewer.write(document);
+        GetResponse<ObjectNode> resp = es.client.get(d -> d.index(es.getIndexName()).id(document.getId()), ObjectNode.class);
+        assertThat(resp.source().get("recoveryStatus").asText()).isEqualTo("UNRECOVERED");
+        assertThat(resp.source().get("status").asText()).isEqualTo("INDEXED");
+        assertThat(resp.source().get("content").asText()).isEmpty();
+    }
+
+    @Test
+    public void non_pst_document_has_no_recoveryStatus() throws Exception {
+        final TikaDocument document = new DocumentFactory().withIdentifier(new PathIdentifier()).create(get("plain.txt"));
+        document.setReader(new ParsingReader(new ByteArrayInputStream("hello".getBytes())));
+        spewer.write(document);
+        GetResponse<ObjectNode> resp = es.client.get(d -> d.index(es.getIndexName()).id(document.getId()), ObjectNode.class);
+        assertThat(resp.source().get("recoveryStatus")).isNull();
+    }
+
+    @Test
+    public void pst_root_with_message_loss_rolls_up_to_LOSSY() throws Exception {
+        final TikaDocument doc = pstRoot("mboxLossy.pst", "7", "6", "0");
+        spewer.write(doc);
+        ObjectNode src = es.client.get(d -> d.index(es.getIndexName()).id(doc.getId()), ObjectNode.class).source();
+        assertThat(src.get("recoveryStatus").asText()).isEqualTo("LOSSY");
+        assertThat(src.get("pstExpected").asInt()).isEqualTo(7);
+        assertThat(src.get("pstEmitted").asInt()).isEqualTo(6);
+    }
+
+    @Test
+    public void pst_root_with_unrecovered_attachments_rolls_up_to_PARTIAL() throws Exception {
+        final TikaDocument doc = pstRoot("mboxPartial.pst", "7", "7", "3");
+        spewer.write(doc);
+        ObjectNode src = es.client.get(d -> d.index(es.getIndexName()).id(doc.getId()), ObjectNode.class).source();
+        assertThat(src.get("recoveryStatus").asText()).isEqualTo("PARTIAL");
+        assertThat(src.get("pstUnrecovered").asInt()).isEqualTo(3);
+    }
+
+    @Test
+    public void pst_root_fully_clean_rolls_up_to_COMPLETE() throws Exception {
+        final TikaDocument doc = pstRoot("mboxComplete.pst", "7", "7", "0");
+        spewer.write(doc);
+        ObjectNode src = es.client.get(d -> d.index(es.getIndexName()).id(doc.getId()), ObjectNode.class).source();
+        assertThat(src.get("recoveryStatus").asText()).isEqualTo("COMPLETE");
+    }
+
+    @Test
+    public void recoveryStatus_is_aggregatable_keyword() throws Exception {
+        final TikaDocument doc = new DocumentFactory().withIdentifier(new PathIdentifier()).create(get("agg.jpg"));
+        doc.getMetadata().set("tika:pst_attachment_recovery", "RECOVERED");
+        doc.setReader(new ParsingReader(new ByteArrayInputStream("x".getBytes())));
+        spewer.write(doc);
+        SearchResponse<ObjectNode> resp = es.client.search(s -> s
+                .index(es.getIndexName()).size(0)
+                .aggregations("byStatus", a -> a.terms(t -> t.field("recoveryStatus"))), ObjectNode.class);
+        boolean hasRecovered = resp.aggregations().get("byStatus").sterms().buckets().array().stream()
+                .anyMatch(b -> b.key().stringValue().equals("RECOVERED"));
+        assertThat(hasRecovered).isTrue();
+    }
+
+    private TikaDocument pstRoot(String name, String expected, String emitted, String unrecovered) throws Exception {
+        TikaDocument doc = new DocumentFactory().withIdentifier(new PathIdentifier()).create(get(name));
+        doc.getMetadata().set("tika:pst_expected", expected);
+        doc.getMetadata().set("tika:pst_emitted", emitted);
+        doc.getMetadata().set("tika:pst_attachments_unrecovered", unrecovered);
+        doc.setReader(new ParsingReader(new ByteArrayInputStream("mailbox".getBytes())));
+        return doc;
+    }
+
     public static TikaDocument aTikaDocWithContentType(String contentType) {
         Metadata metadata = new Metadata();
         metadata.add(TikaDocument.CONTENT_TYPE, contentType);
