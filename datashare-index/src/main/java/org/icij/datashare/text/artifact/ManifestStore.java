@@ -31,6 +31,8 @@ public class ManifestStore {
 
     public ManifestEntry get(Path nodeDir, String type) throws IOException {
         Path manifest = nodeDir.resolve(ArtifactPath.MANIFEST_FILE);
+        // No manifest yet means nothing has been produced for this node; a present manifest
+        // without this type's key means the same for that one type. Both read as "not found".
         if (!Files.exists(manifest)) {
             return null;
         }
@@ -39,25 +41,46 @@ public class ManifestStore {
 
     public void put(Path nodeDir, String type, ManifestEntry entry) throws IOException {
         Files.createDirectories(nodeDir);
-        ReentrantLock jvmLock = JVM_LOCKS.computeIfAbsent(nodeDir.toAbsolutePath().toString(), k -> new ReentrantLock());
+        // Serialise writers within this JVM first: a FileLock is owned per-JVM (not per-thread),
+        // so two threads sharing the channel would otherwise collide on the same lock region.
+        ReentrantLock jvmLock = lockFor(nodeDir);
         jvmLock.lock();
         try (FileChannel channel = FileChannel.open(nodeDir.resolve(LOCK_FILE), CREATE, WRITE);
              FileLock fileLock = acquire(channel)) {
-            Path manifest = nodeDir.resolve(ArtifactPath.MANIFEST_FILE);
-            Map<String, ManifestEntry> all = Files.exists(manifest) ? read(manifest) : new LinkedHashMap<>();
-            all.put(type, entry);
-            Path tmp = nodeDir.resolve(ArtifactPath.MANIFEST_FILE + ".tmp");
-            Files.write(tmp, MAPPER.writerWithDefaultPrettyPrinter().writeValueAsBytes(all));
-            Files.move(tmp, manifest, ATOMIC_MOVE, REPLACE_EXISTING);
+            // Cross-process safety: across hosts sharing the artifactDir, only one writer
+            // mutates the manifest at a time while this file lock is held.
+            mergeEntryIntoManifest(nodeDir, type, entry);
         } finally {
             jvmLock.unlock();
         }
+    }
+
+    // Read-modify-write a single type's entry, leaving every other type untouched.
+    private void mergeEntryIntoManifest(Path nodeDir, String type, ManifestEntry entry) throws IOException {
+        Path manifest = nodeDir.resolve(ArtifactPath.MANIFEST_FILE);
+        Map<String, ManifestEntry> currentEntries = Files.exists(manifest) ? read(manifest) : new LinkedHashMap<>();
+        currentEntries.put(type, entry);
+        writeAtomically(manifest, currentEntries);
+    }
+
+    // Swap the manifest in via a temp file + atomic rename, so a concurrent reader never
+    // observes a half-written file.
+    private void writeAtomically(Path manifest, Map<String, ManifestEntry> entries) throws IOException {
+        Path temporaryManifest = manifest.resolveSibling(ArtifactPath.MANIFEST_FILE + ".tmp");
+        Files.write(temporaryManifest, MAPPER.writerWithDefaultPrettyPrinter().writeValueAsBytes(entries));
+        Files.move(temporaryManifest, manifest, ATOMIC_MOVE, REPLACE_EXISTING);
+    }
+
+    private ReentrantLock lockFor(Path nodeDir) {
+        return JVM_LOCKS.computeIfAbsent(nodeDir.toAbsolutePath().toString(), key -> new ReentrantLock());
     }
 
     private Map<String, ManifestEntry> read(Path manifest) throws IOException {
         return MAPPER.readValue(Files.readAllBytes(manifest), MANIFEST_TYPE);
     }
 
+    // Spin-retry rather than block forever: a stale cross-process lock (e.g. a crashed peer)
+    // must not hang the worker indefinitely, so give up after LOCK_TIMEOUT_MS.
     private FileLock acquire(FileChannel channel) throws IOException {
         long deadline = System.currentTimeMillis() + LOCK_TIMEOUT_MS;
         while (true) {
@@ -70,9 +93,9 @@ public class ManifestStore {
             }
             try {
                 Thread.sleep(20);
-            } catch (InterruptedException e) {
+            } catch (InterruptedException interruption) {
                 Thread.currentThread().interrupt();
-                throw new IOException("interrupted acquiring manifest lock", e);
+                throw new IOException("interrupted acquiring manifest lock", interruption);
             }
         }
     }
