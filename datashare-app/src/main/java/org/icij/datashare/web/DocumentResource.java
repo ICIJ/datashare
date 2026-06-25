@@ -17,6 +17,7 @@ import net.codestory.http.Context;
 import net.codestory.http.annotations.*;
 import net.codestory.http.constants.HttpStatus;
 import net.codestory.http.errors.ForbiddenException;
+import static org.icij.datashare.web.errors.ForbiddenException.forbiddenIfNotGranted;
 import net.codestory.http.payload.Payload;
 import net.codestory.http.types.ContentTypes;
 import org.icij.datashare.PropertiesProvider;
@@ -81,7 +82,8 @@ public class DocumentResource {
     )
     @ApiResponse(responseCode = "200", description = "Datashare Document JSON",  useReturnTypeSchema = true)
     @Get("/:project/documents/:id?routing=:routing")
-    public Document getDoc(String project, String id, String routing) {
+    public Document getDoc(String project, String id, String routing, final Context context) {
+        requireGranted(context, project);
         return notFoundIfNull(indexer.get(project, id, ofNullable(routing).orElse(id)));
     }
 
@@ -161,7 +163,8 @@ public class DocumentResource {
     )
     @ApiResponse(responseCode = "200", description = "JSON containing pages indices parameters",  useReturnTypeSchema = true)
     @Get("/:project/documents/pages/:id?routing=:routing")
-    public PageIndices getPages(final String project, final String id, final String routing) throws IOException {
+    public PageIndices getPages(final String project, final String id, final String routing, final Context context) throws IOException {
+        requireGranted(context, project);
         Document doc = indexer.get(project, id, routing, List.of("content","content_translated"));
         final Extractor extractor = getExtractor(doc);
         if(doc.getOcrParser() == null){
@@ -185,7 +188,8 @@ public class DocumentResource {
     )
     @ApiResponse(responseCode = "200", description = "JSON containing text pages array",  useReturnTypeSchema = true)
     @Get("/:project/documents/content/pages/:id?routing=:routing")
-    public List<String> getContentByPage(final String project, final String id, final String routing) throws IOException {
+    public List<String> getContentByPage(final String project, final String id, final String routing, final Context context) throws IOException {
+        requireGranted(context, project);
         Document doc = indexer.get(project, id, routing, List.of("content","content_translated"));
         final Extractor extractor = getExtractor(doc);
         if(doc.getOcrParser() == null){
@@ -447,6 +451,10 @@ public class DocumentResource {
     @Post("/:project/documents/batchUpdate/unrecommend")
     public Result<Integer> groupUnrecommend(final String projectId, final List<String> docIds, Context context) {
         return new Result<>(repository.unrecommend(project(projectId), (DatashareUser)context.currentUser(), docIds));
+    }
+
+    private void requireGranted(Context context, String project) {
+        forbiddenIfNotGranted(((DatashareUser) context.currentUser()).isGranted(project));
     }
 
     @NotNull

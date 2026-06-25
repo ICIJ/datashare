@@ -526,4 +526,19 @@ public class DocumentResourceTest extends AbstractProdWebServerTest {
         assertThat(json.get(1)).contains("");
     }
 
+    @Test
+    public void test_get_document_forbidden_for_non_member_project() {
+        get("/api/foo_index/documents/id_txt").should().respond(403);
+    }
+
+    @Test
+    public void test_get_pages_forbidden_for_non_member_project() {
+        get("/api/foo_index/documents/pages/id_txt").should().respond(403);
+    }
+
+    @Test
+    public void test_get_content_by_page_forbidden_for_non_member_project() {
+        get("/api/foo_index/documents/content/pages/id_txt").should().respond(403);
+    }
+
 }
