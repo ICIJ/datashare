@@ -49,6 +49,22 @@ public class ArtifactRegistryTest {
     }
 
     @Test
+    public void test_select_bare_true_returns_all_types() {
+        ArtifactRegistry registry = new ArtifactRegistry(List.of(new CountingArtifact("raw", 1), new CountingArtifact("structure", 1)), store);
+        assertThat(registry.select("true")).isEqualTo(Set.of("raw", "structure"));
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void test_select_comma_only_throws() {
+        new ArtifactRegistry(List.of(new CountingArtifact("raw", 1)), store).select(",");
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void test_select_double_comma_only_throws() {
+        new ArtifactRegistry(List.of(new CountingArtifact("raw", 1)), store).select(",,");
+    }
+
+    @Test
     public void test_select_csv_returns_subset_case_insensitive() {
         ArtifactRegistry registry = new ArtifactRegistry(List.of(new CountingArtifact("raw", 1), new CountingArtifact("structure", 1)), store);
         assertThat(registry.select(" RAW ")).isEqualTo(Set.of("raw"));
