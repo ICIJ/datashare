@@ -207,46 +207,46 @@ public class DocumentResourceTest extends AbstractProdWebServerTest {
 
     @Test
     public void test_tag_document_with_project() throws Exception {
-        when(jooqRepository.tag(eq(project("prj1")), anyString(), eq(tag("tag1")), eq(tag("tag2")))).thenReturn(true).thenReturn(false);
-        when(indexer.tag(eq(project("prj1")), anyString(), anyString(), eq(tag("tag1")), eq(tag("tag2")))).thenReturn(true).thenReturn(false);
+        when(jooqRepository.tag(eq(project("local-datashare")), anyString(), eq(tag("tag1")), eq(tag("tag2")))).thenReturn(true).thenReturn(false);
+        when(indexer.tag(eq(project("local-datashare")), anyString(), anyString(), eq(tag("tag1")), eq(tag("tag2")))).thenReturn(true).thenReturn(false);
 
-        put("/api/prj1/documents/tags/doc_id", "[\"tag1\", \"tag2\"]").should().respond(201);
-        put("/api/prj1/documents/tags/doc_id", "[\"tag1\", \"tag2\"]").should().respond(200);
+        put("/api/local-datashare/documents/tags/doc_id", "[\"tag1\", \"tag2\"]").should().respond(201);
+        put("/api/local-datashare/documents/tags/doc_id", "[\"tag1\", \"tag2\"]").should().respond(200);
 
-        verify(indexer, times(2)).tag(eq(project("prj1")), eq("doc_id"), eq("doc_id"), eq(tag("tag1")), eq(tag("tag2")));
+        verify(indexer, times(2)).tag(eq(project("local-datashare")), eq("doc_id"), eq("doc_id"), eq(tag("tag1")), eq(tag("tag2")));
     }
 
     @Test
     public void test_untag_document_with_project() throws Exception {
-        when(jooqRepository.untag(eq(project("prj2")), anyString(), eq(tag("tag3")), eq(tag("tag4")))).thenReturn(true).thenReturn(false);
-        when(indexer.untag(eq(project("prj2")), anyString(), any(), eq(tag("tag3")), eq(tag("tag4")))).thenReturn(true).thenReturn(false);
+        when(jooqRepository.untag(eq(project("local-datashare")), anyString(), eq(tag("tag3")), eq(tag("tag4")))).thenReturn(true).thenReturn(false);
+        when(indexer.untag(eq(project("local-datashare")), anyString(), any(), eq(tag("tag3")), eq(tag("tag4")))).thenReturn(true).thenReturn(false);
 
-        put("/api/prj2/documents/untag/doc_id", "[\"tag3\", \"tag4\"]").should().respond(201);
-        put("/api/prj2/documents/untag/doc_id", "[\"tag3\", \"tag4\"]").should().respond(200);
+        put("/api/local-datashare/documents/untag/doc_id", "[\"tag3\", \"tag4\"]").should().respond(201);
+        put("/api/local-datashare/documents/untag/doc_id", "[\"tag3\", \"tag4\"]").should().respond(200);
 
-        verify(indexer, times(2)).untag(eq(project("prj2")), anyString(), any(), any(), any());
+        verify(indexer, times(2)).untag(eq(project("local-datashare")), anyString(), any(), any(), any());
     }
 
     @Test
     public void test_group_tag_document_with_project() throws Exception {
-        when(jooqRepository.tag(eq(project("prj1")), eq(asList("doc1", "doc2")), eq(tag("tag1")), eq(tag("tag2")))).thenReturn(true).thenReturn(false);
-        when(indexer.tag(eq(project("prj1")), eq(asList("doc1", "doc2")), eq(tag("tag1")), eq(tag("tag2")))).thenReturn(true).thenReturn(false);
+        when(jooqRepository.tag(eq(project("local-datashare")), eq(asList("doc1", "doc2")), eq(tag("tag1")), eq(tag("tag2")))).thenReturn(true).thenReturn(false);
+        when(indexer.tag(eq(project("local-datashare")), eq(asList("doc1", "doc2")), eq(tag("tag1")), eq(tag("tag2")))).thenReturn(true).thenReturn(false);
 
-        post("/api/prj1/documents/batchUpdate/tag", "{\"tags\": [\"tag1\", \"tag2\"], \"docIds\": [\"doc1\", \"doc2\"]}").should().respond(200);
+        post("/api/local-datashare/documents/batchUpdate/tag", "{\"tags\": [\"tag1\", \"tag2\"], \"docIds\": [\"doc1\", \"doc2\"]}").should().respond(200);
     }
 
     @Test
     public void test_group_untag_document_with_project() throws Exception {
-        when(jooqRepository.untag(eq(project("prj1")), eq(asList("doc1", "doc2")), eq(tag("tag1")), eq(tag("tag2")))).thenReturn(true).thenReturn(false);
-        when(indexer.untag(eq(project("prj1")), eq(asList("doc1", "doc2")), eq(tag("tag1")), eq(tag("tag2")))).thenReturn(true).thenReturn(false);
+        when(jooqRepository.untag(eq(project("local-datashare")), eq(asList("doc1", "doc2")), eq(tag("tag1")), eq(tag("tag2")))).thenReturn(true).thenReturn(false);
+        when(indexer.untag(eq(project("local-datashare")), eq(asList("doc1", "doc2")), eq(tag("tag1")), eq(tag("tag2")))).thenReturn(true).thenReturn(false);
 
-        post("/api/prj1/documents/batchUpdate/untag", "{\"tags\": [\"tag1\", \"tag2\"], \"docIds\": [\"doc1\", \"doc2\"]}").should().respond(200);
+        post("/api/local-datashare/documents/batchUpdate/untag", "{\"tags\": [\"tag1\", \"tag2\"], \"docIds\": [\"doc1\", \"doc2\"]}").should().respond(200);
     }
 
     @Test
     public void test_get_tagged_documents_with_project() {
-        when(jooqRepository.getDocuments(eq(project("prj3")), eq(tag("foo")), eq(tag("bar")), eq(tag("baz")))).thenReturn(asList("id1", "id2"));
-        get("/api/prj3/documents/tagged/foo,bar,baz").should().respond(200).contain("id1").contain("id2");
+        when(jooqRepository.getDocuments(eq(project("local-datashare")), eq(tag("foo")), eq(tag("bar")), eq(tag("baz")))).thenReturn(asList("id1", "id2"));
+        get("/api/local-datashare/documents/tagged/foo,bar,baz").should().respond(200).contain("id1").contain("id2");
     }
 
     @Test
@@ -257,19 +257,19 @@ public class DocumentResourceTest extends AbstractProdWebServerTest {
 
     @Test
     public void test_tags_for_document() {
-        when(jooqRepository.getTags(eq(project("prj")), eq("docId"))).thenReturn(asList(tag("tag1"), tag("tag2")));
-        get("/api/prj/documents/tags/docId").should().respond(200).contain("tag1").contain("tag2");
+        when(jooqRepository.getTags(eq(project("local-datashare")), eq("docId"))).thenReturn(asList(tag("tag1"), tag("tag2")));
+        get("/api/local-datashare/documents/tags/docId").should().respond(200).contain("tag1").contain("tag2");
     }
 
     @Test
     public void test_tag_document_with_project_with_routing() throws Exception {
-        when(jooqRepository.tag(eq(project("prj1")), anyString(), eq(tag("tag1")), eq(tag("tag2")))).thenReturn(true).thenReturn(false);
-        when(indexer.tag(eq(project("prj1")), any(), eq("routing"), eq(tag("tag1")), eq(tag("tag2")))).thenReturn(true).thenReturn(false);
+        when(jooqRepository.tag(eq(project("local-datashare")), anyString(), eq(tag("tag1")), eq(tag("tag2")))).thenReturn(true).thenReturn(false);
+        when(indexer.tag(eq(project("local-datashare")), any(), eq("routing"), eq(tag("tag1")), eq(tag("tag2")))).thenReturn(true).thenReturn(false);
 
-        put("/api/prj1/documents/tags/doc_id?routing=routing", "[\"tag1\", \"tag2\"]").should().respond(201);
-        put("/api/prj1/documents/tags/doc_id?routing=routing", "[\"tag1\", \"tag2\"]").should().respond(200);
+        put("/api/local-datashare/documents/tags/doc_id?routing=routing", "[\"tag1\", \"tag2\"]").should().respond(201);
+        put("/api/local-datashare/documents/tags/doc_id?routing=routing", "[\"tag1\", \"tag2\"]").should().respond(200);
 
-        verify(indexer, times(2)).tag(eq(project("prj1")), any(), eq("routing"), eq(tag("tag1")), eq(tag("tag2")));
+        verify(indexer, times(2)).tag(eq(project("local-datashare")), any(), eq("routing"), eq(tag("tag1")), eq(tag("tag2")));
     }
 
 
@@ -539,6 +539,36 @@ public class DocumentResourceTest extends AbstractProdWebServerTest {
     @Test
     public void test_get_content_by_page_forbidden_for_non_member_project() {
         get("/api/foo_index/documents/content/pages/id_txt").should().respond(403);
+    }
+
+    @Test
+    public void test_get_tagged_documents_forbidden_for_non_member_project() {
+        get("/api/foo_index/documents/tagged/foo,bar").should().respond(403);
+    }
+
+    @Test
+    public void test_get_document_tags_forbidden_for_non_member_project() {
+        get("/api/foo_index/documents/tags/doc_id").should().respond(403);
+    }
+
+    @Test
+    public void test_tag_document_forbidden_for_non_member_project() {
+        put("/api/foo_index/documents/tags/doc_id", "[\"tag1\"]").should().respond(403);
+    }
+
+    @Test
+    public void test_untag_document_forbidden_for_non_member_project() {
+        put("/api/foo_index/documents/untag/doc_id", "[\"tag1\"]").should().respond(403);
+    }
+
+    @Test
+    public void test_group_tag_forbidden_for_non_member_project() {
+        post("/api/foo_index/documents/batchUpdate/tag", "{\"tags\":[\"t\"],\"docIds\":[\"d\"]}").should().respond(403);
+    }
+
+    @Test
+    public void test_group_untag_forbidden_for_non_member_project() {
+        post("/api/foo_index/documents/batchUpdate/untag", "{\"tags\":[\"t\"],\"docIds\":[\"d\"]}").should().respond(403);
     }
 
 }

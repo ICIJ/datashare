@@ -280,7 +280,8 @@ public class DocumentResource {
     )
     @ApiResponse(responseCode = "200", useReturnTypeSchema = true)
     @Get("/:projects/documents/tagged/:coma_separated_tags")
-    public List<String> getProjectTaggedDocuments(final String projectId, final String comaSeparatedTags) {
+    public List<String> getProjectTaggedDocuments(final String projectId, final String comaSeparatedTags, final Context context) {
+        requireGranted(context, projectId);
         return repository.getDocuments(project(projectId),
                 stream(comaSeparatedTags.split(",")).map(Tag::tag).toArray(Tag[]::new));
     }
@@ -306,7 +307,8 @@ public class DocumentResource {
     @ApiResponse(responseCode = "200", description = "if tag was already in database")
     @ApiResponse(responseCode = "201", description = "if tag was created")
     @Put("/:project/documents/tags/:docId?routing=:routing")
-    public Payload tagDocument(final String projectId, final String docId, String routing, Tag[] tags) throws IOException {
+    public Payload tagDocument(final String projectId, final String docId, String routing, Tag[] tags, final Context context) throws IOException {
+        requireGranted(context, projectId);
         boolean tagSaved = repository.tag(project(projectId), docId, tags);
         indexer.tag(project(projectId), docId, ofNullable(routing).orElse(docId), tags);
         return tagSaved ? Payload.created(): Payload.ok();
@@ -320,7 +322,8 @@ public class DocumentResource {
     )
     @ApiResponse(responseCode = "200", useReturnTypeSchema = true)
     @Get("/:project/documents/tags/:docId")
-    public List<Tag> getDocumentTags(final String projectId, final String docId) {
+    public List<Tag> getDocumentTags(final String projectId, final String docId, final Context context) {
+        requireGranted(context, projectId);
         return repository.getTags(project(projectId), docId);
     }
 
@@ -340,6 +343,7 @@ public class DocumentResource {
     @ApiResponse(responseCode = "200")
     @Post("/:project/documents/batchUpdate/tag")
     public Payload groupTagDocument(final String projectId, BatchTagQuery query, Context context) throws IOException {
+        requireGranted(context, projectId);
         repository.tag(project(projectId), query.docIds, query.tagsAsArray((User)context.currentUser()));
         indexer.tag(project(projectId), query.docIds, query.tagsAsArray((User)context.currentUser()));
         return Payload.ok();
@@ -362,6 +366,7 @@ public class DocumentResource {
     @ApiResponse(responseCode = "200")
     @Post("/:project/documents/batchUpdate/untag")
     public Payload groupUntagDocument(final String projectId, BatchTagQuery query,  Context context) throws IOException {
+        requireGranted(context, projectId);
         repository.untag(project(projectId), query.docIds, query.tagsAsArray((User)context.currentUser()));
         indexer.untag(project(projectId), query.docIds, query.tagsAsArray((User)context.currentUser()));
         return Payload.ok();
@@ -388,7 +393,8 @@ public class DocumentResource {
     @ApiResponse(responseCode = "200", description = "Document untagged")
     @ApiResponse(responseCode = "201", description = "Document had tags; Document tag was deleted")
     @Put("/:project/documents/untag/:docId?routing=:routing")
-    public Payload untagDocument(final String projectId, final String docId, String routing, Tag[] tags) throws IOException {
+    public Payload untagDocument(final String projectId, final String docId, String routing, Tag[] tags, final Context context) throws IOException {
+        requireGranted(context, projectId);
         boolean untagSaved = repository.untag(project(projectId), docId, tags);
         indexer.untag(project(projectId), docId, ofNullable(routing).orElse(docId), tags);
         return untagSaved ? Payload.created(): Payload.ok();
