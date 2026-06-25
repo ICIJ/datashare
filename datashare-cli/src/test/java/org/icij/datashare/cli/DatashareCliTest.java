@@ -343,4 +343,16 @@ public class DatashareCliTest {
         cli.parseArguments(new String[] {""});
         assertThat(cli.properties).includes(entry("parseTimeout", "24h"));
     }
+
+    @Test
+    public void test_artifacts_opt_with_value() {
+        cli.parseArguments(new String[] {"--artifacts", "raw"});
+        assertThat(cli.properties).includes(entry("artifacts", "raw"));
+    }
+
+    @Test
+    public void test_artifacts_opt_bare_flag() {
+        cli.parseArguments(new String[] {"--artifacts"});
+        assertThat(cli.properties).includes(entry("artifacts", "true"));
+    }
 }
