@@ -36,8 +36,8 @@ public class NamedEntityResourceTest extends AbstractProdWebServerTest {
     @Test
     public void test_get_named_entity() {
         NamedEntity toBeReturned = create(PERSON, "mention", singletonList(123L), "docId", "root", CORENLP, FRENCH);
-        doReturn(toBeReturned).when(indexer).get("index", "my_id", "root_parent");
-        get("/api/index/namedEntities/my_id?routing=root_parent").should().respond(200).haveType("application/json");
+        doReturn(toBeReturned).when(indexer).get("local-datashare", "my_id", "root_parent");
+        get("/api/local-datashare/namedEntities/my_id?routing=root_parent").should().respond(200).haveType("application/json");
     }
 
     @Test
@@ -57,18 +57,28 @@ public class NamedEntityResourceTest extends AbstractProdWebServerTest {
         Indexer.QueryBuilderSearcher searcher = mock(Indexer.QueryBuilderSearcher.class);
         doReturn(Stream.of(toBeHidden)).when(searcher).execute();
         doReturn(searcher).when(searcher).thatMatchesFieldValue(any(), any());
-        doReturn(searcher).when(indexer).search(singletonList("index"), NamedEntity.class);
+        doReturn(searcher).when(indexer).search(singletonList("local-datashare"), NamedEntity.class);
 
-        put("/api/index/namedEntities/hide/to_update").should().respond(200);
+        put("/api/local-datashare/namedEntities/hide/to_update").should().respond(200);
 
-        verify(indexer).bulkUpdate("index", singletonList(toBeHidden));
+        verify(indexer).bulkUpdate("local-datashare", singletonList(toBeHidden));
     }
 
     @Test
     public void test_hide_named_entity_when_failure() {
-        doThrow(new RuntimeException()).when(indexer).search(singletonList("index"), NamedEntity.class);
+        doThrow(new RuntimeException()).when(indexer).search(singletonList("local-datashare"), NamedEntity.class);
 
-        put("/api/index/namedEntities/hide/to_update").should().respond(500);
+        put("/api/local-datashare/namedEntities/hide/to_update").should().respond(500);
+    }
+
+    @Test
+    public void test_get_named_entity_forbidden_for_non_member_project() {
+        get("/api/index/namedEntities/my_id?routing=root_parent").should().respond(403);
+    }
+
+    @Test
+    public void test_hide_named_entity_forbidden_for_non_member_project() {
+        put("/api/index/namedEntities/hide/to_update").should().respond(403);
     }
 
     @Before
