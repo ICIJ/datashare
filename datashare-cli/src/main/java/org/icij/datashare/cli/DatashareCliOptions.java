@@ -141,6 +141,7 @@ public final class DatashareCliOptions {
     public static final String VERSION_ABBR_OPT = "v";
     public static final String VERSION_OPT = "version";
     public static final String ARTIFACT_DIR_OPT = "artifactDir";
+    public static final String ARTIFACTS_OPT = "artifacts";
     public static final String SEARCH_QUERY_OPT = "searchQuery";
     public static final String TASK_ROUTING_STRATEGY_OPT = "taskRoutingStrategy";
     public static final String TASK_ROUTING_KEY_OPT = "taskRoutingKey";
@@ -489,6 +490,13 @@ public final class DatashareCliOptions {
                 List.of(ARTIFACT_DIR_OPT),
                 "Artifact directory for embedded caching. If not provided datashare will use memory." )
                 .withRequiredArg();
+    }
+
+    static void artifacts(OptionParser parser) {
+        parser.acceptsAll(
+                List.of(ARTIFACTS_OPT),
+                "Artifact types to produce (comma-separated, e.g. raw,structure). Bare flag = all types." )
+                .withOptionalArg();
     }
 
     static void rootHost(OptionParser parser) {
