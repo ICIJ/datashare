@@ -71,8 +71,9 @@ public class ArtifactTask extends PipelineTask<String> {
                 // Each polled node is produced into its own content-addressed directory.
                 Document doc = indexer.get(project.name, docId, sourceExcludes);
                 Path nodeDir = ArtifactPath.dir(projectRoot, doc.getId());
-                registry.run(selected, new ArtifactContext(project, doc, nodeDir, extractor));
-                nbDocs++;
+                if (registry.run(selected, new ArtifactContext(project, doc, nodeDir, extractor))) {
+                    nbDocs++;
+                }
             } catch (Throwable e) {
                 logger.error("error in ArtifactTask loop", e);
             }
