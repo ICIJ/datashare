@@ -108,9 +108,10 @@ public class ArtifactRegistryTest {
         CountingArtifact bad = new CountingArtifact("raw", 1); bad.fail = true;
         CountingArtifact good = new CountingArtifact("structure", 1);
         ArtifactRegistry registry = new ArtifactRegistry(List.of(bad, good), store);
-        registry.run(Set.of("raw", "structure"), ctx());
+        boolean allSucceeded = registry.run(Set.of("raw", "structure"), ctx());
         assertThat(store.get(dir.getRoot().toPath(), "raw")).isNull();       // failed -> no entry
         assertThat(store.get(dir.getRoot().toPath(), "structure")).isNotNull(); // sibling still ran
+        assertThat(allSucceeded).isFalse();
     }
 
     @Test
