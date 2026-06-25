@@ -248,6 +248,7 @@ public class DocumentResource {
     @ApiResponse(responseCode = "200", description = "returns the number of stared documents")
     @Post("/:project/documents/batchUpdate/star")
     public Result<Integer> groupStarProject(final String projectId, final List<String> docIds, Context context) {
+        requireGranted(context, projectId);
         return new Result<>(repository.star(project(projectId), (DatashareUser)context.currentUser(), docIds));
     }
 
@@ -260,6 +261,7 @@ public class DocumentResource {
     @ApiResponse(responseCode = "200", description = "returns the number of unstared documents")
     @Post("/:project/documents/batchUpdate/unstar")
     public Result<Integer> groupUnstarProject(final String projectId, final List<String> docIds, Context context) {
+        requireGranted(context, projectId);
         return new Result<>(repository.unstar(project(projectId), (DatashareUser)context.currentUser(), docIds));
     }
 
@@ -269,6 +271,7 @@ public class DocumentResource {
     @ApiResponse(responseCode = "200", useReturnTypeSchema = true)
     @Get("/:project/documents/starred")
     public List<String> getProjectStarredDocuments(final String projectId, Context context) {
+        requireGranted(context, projectId);
         return repository.getStarredDocuments(project(projectId), (DatashareUser)context.currentUser());
     }
 
@@ -412,7 +415,8 @@ public class DocumentResource {
     )
     @ApiResponse(responseCode = "200", useReturnTypeSchema = true)
     @Get("/users/recommendations?project=:project")
-    public AggregateList<User> getProjectRecommendations(final String projectId) {
+    public AggregateList<User> getProjectRecommendations(final String projectId, final Context context) {
+        requireGranted(context, projectId);
         return repository.getRecommendations(project(projectId));
     }
 
@@ -424,7 +428,8 @@ public class DocumentResource {
     )
     @ApiResponse(responseCode = "200", useReturnTypeSchema = true)
     @Get("/users/recommendationsby?project=:project&docIds=:coma_separated_docIds")
-    public AggregateList<User> getProjectRecommendations(final String projectId, final String comaSeparatedDocIds) {
+    public AggregateList<User> getProjectRecommendations(final String projectId, final String comaSeparatedDocIds, final Context context) {
+        requireGranted(context, projectId);
         return repository.getRecommendations(project(projectId),stream(comaSeparatedDocIds.split(",")).map(String::new).collect(Collectors.toList()));
     }
 
@@ -435,7 +440,8 @@ public class DocumentResource {
             }
     )
     @Get("/:project/documents/recommendations?userids=:coma_separated_users")
-    public Set<String> getProjectRecommendationsBy(final String projectId, final String comaSeparatedUsers) {
+    public Set<String> getProjectRecommendationsBy(final String projectId, final String comaSeparatedUsers, final Context context) {
+        requireGranted(context, projectId);
         return repository.getRecommendationsBy(project(projectId), stream(comaSeparatedUsers.split(",")).map(User::new).collect(Collectors.toList()));
     }
 
@@ -446,6 +452,7 @@ public class DocumentResource {
     @ApiResponse(responseCode = "200", description = "the number of marked documents", useReturnTypeSchema = true)
     @Post("/:project/documents/batchUpdate/recommend")
     public Result<Integer> groupRecommend(final String projectId, final List<String> docIds, Context context) {
+        requireGranted(context, projectId);
         return new Result<>(repository.recommend(project(projectId), (DatashareUser)context.currentUser(), docIds));
     }
 
@@ -456,6 +463,7 @@ public class DocumentResource {
     @ApiResponse(responseCode = "200", description = "the number of unmarked documents", useReturnTypeSchema = true)
     @Post("/:project/documents/batchUpdate/unrecommend")
     public Result<Integer> groupUnrecommend(final String projectId, final List<String> docIds, Context context) {
+        requireGranted(context, projectId);
         return new Result<>(repository.unrecommend(project(projectId), (DatashareUser)context.currentUser(), docIds));
     }
 
