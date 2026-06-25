@@ -6,11 +6,15 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.enums.ParameterIn;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import net.codestory.http.Context;
 import net.codestory.http.annotations.Get;
 import net.codestory.http.annotations.Prefix;
 import org.icij.datashare.ftm.FtmDocument;
+import org.icij.datashare.session.DatashareUser;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.indexing.Indexer;
+
+import static org.icij.datashare.web.errors.ForbiddenException.forbiddenIfNotGranted;
 
 import static java.util.Optional.ofNullable;
 import static net.codestory.http.errors.NotFoundException.notFoundIfNull;
@@ -30,7 +34,13 @@ public class FtmResource {
     @ApiResponse(responseCode = "404", description = "if no document is found with provided id")
     @Get("/:project/:docId")
     public FtmDocument getDocument(@Parameter(name = "project", description = "project identifier", in = ParameterIn.PATH) String project,
-                                   @Parameter(name = "docId", description = "document identifier", in = ParameterIn.PATH) String docId) throws Exception {
+                                   @Parameter(name = "docId", description = "document identifier", in = ParameterIn.PATH) String docId,
+                                   final Context context) throws Exception {
+        requireGranted(context, project);
         return notFoundIfNull(ofNullable(indexer.get(project, docId)).map(d -> new FtmDocument((Document) d)).orElse(null));
+    }
+
+    private void requireGranted(Context context, String project) {
+        forbiddenIfNotGranted(((DatashareUser) context.currentUser()).isGranted(project));
     }
 }
