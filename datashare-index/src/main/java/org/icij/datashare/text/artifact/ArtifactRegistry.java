@@ -52,22 +52,26 @@ public class ArtifactRegistry {
         return selected;
     }
 
-    public void run(Set<String> selected, ArtifactContext context) {
+    public boolean run(Set<String> selected, ArtifactContext context) {
+        boolean allSucceeded = true;
         for (String type : selected) {
-            produceIfNeeded(type, context);
+            if (!produceIfNeeded(type, context)) {
+                allSucceeded = false;
+            }
         }
+        return allSucceeded;
     }
 
-    // Produce and record one type, isolating its failures: a single bad type must never
-    // abort the others, the manifest of siblings, or the surrounding ingest loop.
-    private void produceIfNeeded(String type, ArtifactContext context) {
+    // Returns true when the type was produced, skipped, or had nothing to record; false when a
+    // failure was caught and isolated, so the caller can avoid counting a partially-failed document.
+    private boolean produceIfNeeded(String type, ArtifactContext context) {
         Artifact artifact = byType.get(type);
         if (artifact == null) {
-            return;
+            return true;
         }
         try {
             if (isCurrent(type, artifact, context)) {
-                return;
+                return true;
             }
             // Write the payload first, then stamp the manifest entry complete last, so a crash
             // mid-produce leaves no "ready" entry and the next run regenerates it.
@@ -76,8 +80,10 @@ public class ArtifactRegistry {
             if (produced != null) {
                 store.put(context.nodeDir(), type, produced.withStatus(ManifestEntry.STATUS_COMPLETE));
             }
+            return true;
         } catch (ArtifactException | IOException failure) {
             LOGGER.error("failed to produce artifact '{}' for document {}", type, context.document().getId(), failure);
+            return false;
         }
     }
 
