@@ -11,6 +11,7 @@ public interface Artifact {
     /** This run's config + an explicit version; compared by value for skip-if-current. */
     Map<String, Object> taskInput();
 
-    /** Produce payload files under context.nodeDir() and return the entry to record (without status). */
+    /** Produce payload files under context.nodeDir() and return the entry to record (without status),
+     *  or null if there is nothing to record for this node (e.g. a root document with no cached payload). */
     ManifestEntry produce(ArtifactContext context) throws ArtifactException;
 }
