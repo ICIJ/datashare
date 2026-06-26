@@ -1,6 +1,8 @@
 package org.icij.datashare.text.indexing.elasticsearch;
 
 import co.elastic.clients.elasticsearch._types.Refresh;
+import co.elastic.clients.elasticsearch.core.SearchResponse;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.icij.datashare.Entity;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.extract.MemoryDocumentCollectionFactory;
@@ -24,6 +26,7 @@ import java.util.HashMap;
 import java.util.Objects;
 
 import static java.nio.file.Paths.get;
+import static org.junit.Assume.assumeTrue;
 import static org.fest.assertions.Assertions.assertThat;
 import static org.icij.datashare.text.Language.ENGLISH;
 import static org.icij.datashare.text.Project.project;
@@ -92,6 +95,32 @@ public class DatashareExtractIntegrationTest {
         assertThat(doc.getOcrParser()).isEqualTo("org.apache.tika.parser.ocr.TesseractOCRParser");
         assertThat(doc.getCreationDate()).isNotNull();
         assertThat(new SimpleDateFormat("HH:mm:ss").format(doc.getCreationDate())).isEqualTo("23:22:36");
+    }
+
+    // End-to-end proof that a real OST-2013, extracted through the real Extractor (extract 9.10.1)
+    // and spewed to Elasticsearch, lands the typed recoveryStatus field on documents. Opt-in: runs
+    // only against a real OST supplied via -Dost.test.file. OCR is disabled because the recovery
+    // markers are set during the PST walk, independent of OCR, and OCR would make the run very slow.
+    @Test
+    public void test_ost_recovery_status_indexed_end_to_end() throws Exception {
+        String ostPath = System.getProperty("ost.test.file");
+        assumeTrue(ostPath != null);
+
+        Extractor extractor = createExtractor();
+        // Use the streaming extract(path, spewer) overload — the exact path DocumentConsumer/IndexTask
+        // use in production, which digests and spews each embed inline.
+        extractor.extract(get(ostPath), spewer);
+
+        // recoveryStatus is an aggregatable keyword (a terms agg would error on a text field). The
+        // bucket set must contain a per-attachment child value (RECOVERED) and a PST-root rollup
+        // value (COMPLETE/PARTIAL/LOSSY), proving both halves reach the index end-to-end.
+        SearchResponse<ObjectNode> resp = es.client.search(s -> s
+                .index(es.getIndexName()).size(0)
+                .aggregations("rs", a -> a.terms(t -> t.field("recoveryStatus"))), ObjectNode.class);
+        java.util.Set<String> statuses = resp.aggregations().get("rs").sterms().buckets().array().stream()
+                .map(b -> b.key().stringValue()).collect(java.util.stream.Collectors.toSet());
+        assertThat(statuses).contains("RECOVERED");
+        assertThat(statuses.stream().anyMatch(s -> s.equals("COMPLETE") || s.equals("PARTIAL") || s.equals("LOSSY"))).isTrue();
     }
 
     Extractor createExtractor() {
