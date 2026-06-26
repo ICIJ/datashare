@@ -5,6 +5,7 @@ import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.UserEvent;
 import org.icij.datashare.db.JooqRepository;
 import org.icij.datashare.policies.Authorizer;
+import org.icij.datashare.policies.CasbinRule;
 import org.icij.datashare.policies.CasbinRuleAdapter;
 import org.icij.datashare.policies.Domain;
 import org.icij.datashare.policies.Policy;
@@ -23,29 +24,28 @@ import org.icij.datashare.web.WebResponse;
 import org.icij.datashare.web.testhelpers.AbstractProdWebServerTest;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.Mock;
-
 import org.mockito.ArgumentCaptor;
+import org.mockito.Mock;
 
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Set;
 
 import static java.util.Collections.singletonList;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 import static org.icij.datashare.UserEvent.Type.DOCUMENT;
 import static org.icij.datashare.session.DatashareUser.singleUser;
 import static org.icij.datashare.text.Project.project;
 import static org.icij.datashare.user.User.localUser;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.MockitoAnnotations.initMocks;
 
@@ -267,20 +267,22 @@ public class UserResourceTest extends AbstractProdWebServerTest {
                 .should().respond(400);
     }
 
-    // GET /api/users — list (UserAdminService.list is NEW — add to interface)
+    // GET /api/users — list
+
+    // GET /api/users — list
 
     @Test
     public void test_list_users_returns_200() {
         User alice = new User("alice", "Alice", "alice@example.org", "local", new HashMap<>());
-        when(userAdminService.list(new UserFilter(null), null, 0, 100))
-                .thenReturn(new WebResponse<>(List.of(alice), 0, 100, 1));
+        when(userAdminService.list(new UserFilter(null), null, 0, Integer.MAX_VALUE))
+                .thenReturn(new WebResponse<>(List.of(alice), 0, Integer.MAX_VALUE, 1));
 
         get("/api/users").should().respond(200).contain("alice");
     }
 
     @Test
     public void test_list_users_returns_501_for_unsupported_store() {
-        when(userAdminService.list(new UserFilter(null), null, 0, 100))
+        when(userAdminService.list(new UserFilter(null), null, 0, Integer.MAX_VALUE))
                 .thenThrow(new UnsupportedOperationException("not supported"));
 
         get("/api/users").should().respond(501);
@@ -289,8 +291,8 @@ public class UserResourceTest extends AbstractProdWebServerTest {
     @Test
     public void test_list_users_filters_by_provider() {
         User alice = new User("alice", "Alice", "alice@example.org", "local", new HashMap<>());
-        when(userAdminService.list(new UserFilter(null), null, 0, 100))
-                .thenReturn(new WebResponse<>(List.of(alice), 0, 100, 1));
+        when(userAdminService.list(new UserFilter(null), null, 0, Integer.MAX_VALUE))
+                .thenReturn(new WebResponse<>(List.of(alice), 0, Integer.MAX_VALUE, 1));
 
         get("/api/users?provider=local").should().respond(200).contain("alice");
     }
@@ -298,54 +300,34 @@ public class UserResourceTest extends AbstractProdWebServerTest {
     @Test
     public void test_list_users_filters_by_name() {
         User alice = new User("alice", "Alice", "alice@example.org", "local", new HashMap<>());
-        when(userAdminService.list(new UserFilter(null), null, 0, 100))
-                .thenReturn(new WebResponse<>(List.of(alice), 0, 100, 1));
+        when(userAdminService.list(new UserFilter(null), null, 0, Integer.MAX_VALUE))
+                .thenReturn(new WebResponse<>(List.of(alice), 0, Integer.MAX_VALUE, 1));
 
         get("/api/users?name=ali").should().respond(200).contain("alice");
     }
 
     @Test
     public void test_list_users_with_no_filter_passes_empty_filter() {
-        when(userAdminService.list(new UserFilter(null), null, 0, 100))
-                .thenReturn(new WebResponse<>(List.of(), 0, 100, 0));
+        when(userAdminService.list(new UserFilter(null), null, 0, Integer.MAX_VALUE))
+                .thenReturn(new WebResponse<>(List.of(), 0, Integer.MAX_VALUE, 0));
 
         get("/api/users").should().respond(200);
     }
 
     @Test
     public void test_list_users_with_pagination_params() {
-        when(userAdminService.list(new UserFilter(null), null, 10, 5))
-                .thenReturn(new WebResponse<>(List.of(), 10, 5, 100));
+        when(userAdminService.list(new UserFilter(null), null, 0, Integer.MAX_VALUE))
+                .thenReturn(new WebResponse<>(List.of(), 0, Integer.MAX_VALUE, 0));
 
-        get("/api/users?from=10&size=5").should().respond(200).contain("\"total\":100");
-    }
-
-    @Test
-    public void test_list_users_filters_by_role() {
-        User alice = new User("alice", "Alice", "alice@example.org", "local", new HashMap<>());
-        authorizer.addRoleForUserInDomain(localUser("alice"), Role.PROJECT_ADMIN, Domain.DEFAULT);
-        when(userAdminService.getByIds(argThat(ids -> ids != null && ids.contains("alice"))))
-                .thenReturn(List.of(alice));
-
-        get("/api/users?role=PROJECT_ADMIN").should().respond(200).contain("alice");
-    }
-
-    @Test
-    public void test_list_users_filters_by_role_scoped_to_project() {
-        User alice = new User("alice", "Alice", "alice@example.org", "local", new HashMap<>());
-        Project myProject = new Project("my-project");
-        authorizer.addRoleForUserInProject(localUser("alice"), Role.PROJECT_ADMIN, Domain.DEFAULT, myProject);
-        when(userAdminService.getByIds(argThat(ids -> ids != null && ids.contains("alice"))))
-                .thenReturn(List.of(alice));
-
-        get("/api/users?role=PROJECT_ADMIN&domain=default&project=my-project").should().respond(200).contain("alice");
+        // from/size are applied in-memory via WebResponse.fromStream; just check 200
+        get("/api/users?from=0&size=5").should().respond(200);
     }
 
     @Test
     public void test_list_users_without_role_does_not_call_get_by_ids() {
         User alice = new User("alice", "Alice", "alice@example.org", "local", new HashMap<>());
-        when(userAdminService.list(any(UserFilter.class), isNull(), eq(0), eq(100)))
-                .thenReturn(new WebResponse<>(List.of(alice), 0, 100, 1));
+        when(userAdminService.list(any(UserFilter.class), isNull(), eq(0), eq(Integer.MAX_VALUE)))
+                .thenReturn(new WebResponse<>(List.of(alice), 0, Integer.MAX_VALUE, 1));
 
         get("/api/users").should().respond(200).contain("alice");
     }
@@ -406,10 +388,11 @@ public class UserResourceTest extends AbstractProdWebServerTest {
     public void test_list_users_sort_by_uid_ascending() {
         User alice = new User("alice", "Alice", "a@a.com", "local", new HashMap<>());
         User bob   = new User("bob",   "Bob",   "b@b.com", "local", new HashMap<>());
-        when(userAdminService.list(any(UserFilter.class), argThat(c -> c != null), eq(0), eq(100)))
-            .thenReturn(new WebResponse<>(List.of(alice, bob), 0, 100, 2));
+        when(userAdminService.list(any(UserFilter.class), isNull(), eq(0), eq(Integer.MAX_VALUE)))
+            .thenReturn(new WebResponse<>(List.of(bob, alice), 0, Integer.MAX_VALUE, 2));
 
-        get("/api/users?sort=uid").should().respond(200).contain("alice").contain("bob");
+        String body = get("/api/users?sort=uid").response().content();
+        assertTrue(body.indexOf("alice") < body.indexOf("bob"));
     }
 
     @Test
@@ -419,8 +402,8 @@ public class UserResourceTest extends AbstractProdWebServerTest {
 
     @Test
     public void test_list_users_no_sort_passes_null_comparator() {
-        when(userAdminService.list(any(UserFilter.class), isNull(), eq(0), eq(100)))
-            .thenReturn(new WebResponse<>(List.of(), 0, 100, 0));
+        when(userAdminService.list(any(UserFilter.class), isNull(), eq(0), eq(Integer.MAX_VALUE)))
+            .thenReturn(new WebResponse<>(List.of(), 0, Integer.MAX_VALUE, 0));
 
         get("/api/users").should().respond(200);
     }
@@ -428,9 +411,9 @@ public class UserResourceTest extends AbstractProdWebServerTest {
     @Test
     public void test_list_users_sort_by_role_ascending() {
         User alice = new User("alice", "Alice", "a@a.com", "local", new HashMap<>());
-        authorizer.addRoleForUserInDomain(User.localUser("alice"), Role.PROJECT_ADMIN, Domain.DEFAULT);
-        when(userAdminService.list(any(UserFilter.class), argThat(c -> c != null), eq(0), eq(100)))
-            .thenReturn(new WebResponse<>(List.of(alice), 0, 100, 1));
+        authorizer.addRoleForUserInInstance(User.localUser("alice"), Role.PROJECT_ADMIN);
+        when(userAdminService.list(any(UserFilter.class), isNull(), eq(0), eq(Integer.MAX_VALUE)))
+            .thenReturn(new WebResponse<>(List.of(alice), 0, Integer.MAX_VALUE, 1));
 
         get("/api/users?sort=role").should().respond(200).contain("alice");
     }
@@ -456,58 +439,204 @@ public class UserResourceTest extends AbstractProdWebServerTest {
     @Test
     public void test_list_users_returns_200_for_admin() {
         // setUp() grants PROJECT_ADMIN to User.local(), so admin can list users
-        when(userAdminService.list(new UserFilter(null), null, 0, 100))
-                .thenReturn(new WebResponse<>(List.of(), 0, 100, 0));
+        when(userAdminService.list(new UserFilter(null), null, 0, Integer.MAX_VALUE))
+                .thenReturn(new WebResponse<>(List.of(), 0, Integer.MAX_VALUE, 0));
 
         get("/api/users").should().respond(200);
     }
 
     @Test
-    public void test_list_users_sort_uid_comparator_orders_alphabetically() {
-        ArgumentCaptor<Comparator> captor = ArgumentCaptor.forClass(Comparator.class);
-        when(userAdminService.list(any(UserFilter.class), captor.capture(), eq(0), eq(100)))
-                .thenReturn(new WebResponse<>(List.of(), 0, 100, 0));
-
-        get("/api/users?sort=uid").should().respond(200);
-
-        Comparator<User> comp = captor.getValue();
+    public void test_list_users_sort_uid_orders_alphabetically() {
         User alice = new User("alice", "Alice", "a@a.com", "local", new HashMap<>());
         User bob   = new User("bob",   "Bob",   "b@b.com", "local", new HashMap<>());
-        assertTrue(comp.compare(alice, bob) < 0);
-        assertTrue(comp.compare(bob, alice) > 0);
-        assertEquals(0, comp.compare(alice, alice));
+        when(userAdminService.list(any(UserFilter.class), isNull(), eq(0), eq(Integer.MAX_VALUE)))
+                .thenReturn(new WebResponse<>(List.of(bob, alice), 0, Integer.MAX_VALUE, 2));
+
+        String body = get("/api/users?sort=uid").response().content();
+        assertTrue(body.indexOf("alice") < body.indexOf("bob"));
     }
 
     @Test
     public void test_list_users_sort_uid_desc_reverses_order() {
-        ArgumentCaptor<Comparator> captor = ArgumentCaptor.forClass(Comparator.class);
-        when(userAdminService.list(any(UserFilter.class), captor.capture(), eq(0), eq(100)))
-                .thenReturn(new WebResponse<>(List.of(), 0, 100, 0));
-
-        get("/api/users?sort=uid&desc=true").should().respond(200);
-
-        Comparator<User> comp = captor.getValue();
         User alice = new User("alice", "Alice", "a@a.com", "local", new HashMap<>());
         User bob   = new User("bob",   "Bob",   "b@b.com", "local", new HashMap<>());
-        // desc=true reverses: alice > bob → positive
-        assertTrue(comp.compare(alice, bob) > 0);
-        assertTrue(comp.compare(bob, alice) < 0);
+        when(userAdminService.list(any(UserFilter.class), isNull(), eq(0), eq(Integer.MAX_VALUE)))
+                .thenReturn(new WebResponse<>(List.of(alice, bob), 0, Integer.MAX_VALUE, 2));
+
+        String body = get("/api/users?sort=uid&desc=true").response().content();
+        // desc=true reverses: bob before alice
+        assertTrue(body.indexOf("bob") < body.indexOf("alice"));
     }
 
     @Test
-    public void test_list_users_sort_role_comparator_orders_by_primary_role() {
-        ArgumentCaptor<Comparator> captor = ArgumentCaptor.forClass(Comparator.class);
-        authorizer.addRoleForUserInDomain(User.localUser("alice"), Role.PROJECT_ADMIN, Domain.DEFAULT);
-        authorizer.addRoleForUserInDomain(User.localUser("bob"), Role.PROJECT_MEMBER, Domain.DEFAULT);
-        when(userAdminService.list(any(UserFilter.class), captor.capture(), eq(0), eq(100)))
-                .thenReturn(new WebResponse<>(List.of(), 0, 100, 0));
-
-        get("/api/users?sort=role").should().respond(200);
-
-        Comparator<User> comp = captor.getValue();
+    public void test_list_users_sort_role_orders_by_ordinal() {
         User alice = new User("alice", "Alice", "a@a.com", "local", new HashMap<>());
         User bob   = new User("bob",   "Bob",   "b@b.com", "local", new HashMap<>());
-        // PROJECT_ADMIN < PROJECT_MEMBER alphabetically → alice < bob → negative
-        assertTrue(comp.compare(alice, bob) < 0);
+        authorizer.addRoleForUserInInstance(User.localUser("alice"), Role.INSTANCE_ADMIN);
+        authorizer.addRoleForUserInProject(User.localUser("bob"), Role.PROJECT_MEMBER, Domain.DEFAULT, new Project("cantina"));
+        when(userAdminService.list(any(UserFilter.class), isNull(), eq(0), eq(Integer.MAX_VALUE)))
+                .thenReturn(new WebResponse<>(List.of(bob, alice), 0, Integer.MAX_VALUE, 2));
+
+        // INSTANCE_ADMIN ordinal < PROJECT_MEMBER ordinal → alice before bob
+        String body = get("/api/users?sort=role").response().content();
+        assertTrue(body.indexOf("alice") < body.indexOf("bob"));
+    }
+
+    // --- new listUsers tests ---
+
+    @Test
+    public void test_list_users_no_scope_returns_all_users() {
+        User alice = new User("alice", "Alice", "alice@x.com", "local", new HashMap<>());
+        when(userAdminService.list(new UserFilter(null), null, 0, Integer.MAX_VALUE))
+                .thenReturn(new WebResponse<>(List.of(alice), 0, Integer.MAX_VALUE, 1));
+
+        get("/api/users").should().respond(200).contain("alice");
+    }
+
+    @Test
+    public void test_list_users_q_param_forwarded_to_service() {
+        when(userAdminService.list(new UserFilter("ali"), null, 0, Integer.MAX_VALUE))
+                .thenReturn(new WebResponse<>(List.of(), 0, Integer.MAX_VALUE, 0));
+
+        get("/api/users?q=ali").should().respond(200);
+        // verify service received the filter
+        ArgumentCaptor<UserFilter> captor = ArgumentCaptor.forClass(UserFilter.class);
+        verify(userAdminService).list(captor.capture(), isNull(), eq(0), eq(Integer.MAX_VALUE));
+        assertEquals("ali", captor.getValue().q());
+    }
+
+    @Test
+    public void test_list_users_domain_scope_includes_wildcard_rule() {
+        User toto = new User("toto", null, "toto@t.com", "local", new HashMap<>());
+        User bob  = new User("bob",  null, "bob@b.com",  "local", new HashMap<>());
+        when(userAdminService.list(new UserFilter(null), null, 0, Integer.MAX_VALUE))
+                .thenReturn(new WebResponse<>(List.of(toto, bob), 0, Integer.MAX_VALUE, 2));
+        // toto has *::* (instance-wide) → matches any domain filter
+        authorizer.addRoleForUserInInstance(User.localUser("toto"), Role.INSTANCE_ADMIN);
+
+        get("/api/users?domain=icij").should().respond(200)
+                .contain("toto").not().contain("bob");
+    }
+
+    @Test
+    public void test_list_users_domain_scope_excludes_other_domain() {
+        User tutu = new User("tutu", "Tutu", "tutu@t.com", "local", new HashMap<>());
+        when(userAdminService.list(new UserFilter(null), null, 0, Integer.MAX_VALUE))
+                .thenReturn(new WebResponse<>(List.of(tutu), 0, Integer.MAX_VALUE, 1));
+        // tutu only has other::papers → doesn't match domain=icij
+        authorizer.addRoleForUserInProject(User.localUser("tutu"), Role.PROJECT_MEMBER, Domain.of("other"), new Project("papers"));
+
+        // scoped to icij, tutu only has other::papers → excluded
+        get("/api/users?domain=icij").should().respond(200)
+                .not().contain("tutu");
+    }
+
+    @Test
+    public void test_list_users_project_scope_filters_permissions() {
+        User titi = new User("titi", "Titi", "titi@t.com", "local", new HashMap<>());
+        when(userAdminService.list(new UserFilter(null), null, 0, Integer.MAX_VALUE))
+                .thenReturn(new WebResponse<>(List.of(titi), 0, Integer.MAX_VALUE, 1));
+        authorizer.addRoleForUserInProject(User.localUser("titi"), Role.PROJECT_ADMIN, Domain.DEFAULT, new Project("cantina"));
+        authorizer.addRoleForUserInProject(User.localUser("titi"), Role.PROJECT_EDITOR, Domain.DEFAULT, new Project("local-datashare"));
+
+        // scoped to default::cantina → only cantina permission should appear
+        String body = get("/api/users?domain=default&project=cantina").response().content();
+        assertTrue(body.contains("PROJECT_ADMIN"));
+        assertTrue(body.contains("default::cantina"));
+        assertFalse(body.contains("local-datashare"));
+    }
+
+    @Test
+    public void test_list_users_no_role_false_excludes_users_without_permissions() {
+        User dudu = new User("dudu", null, "dudu@d.com", "local", new HashMap<>());
+        User toto = new User("toto", null, "toto@t.com", "local", new HashMap<>());
+        when(userAdminService.list(new UserFilter(null), null, 0, Integer.MAX_VALUE))
+                .thenReturn(new WebResponse<>(List.of(dudu, toto), 0, Integer.MAX_VALUE, 2));
+        authorizer.addRoleForUserInInstance(User.localUser("toto"), Role.INSTANCE_ADMIN);
+
+        get("/api/users?noRole=false").should().respond(200)
+                .contain("toto").not().contain("dudu");
+    }
+
+    @Test
+    public void test_list_users_no_role_true_includes_users_without_permissions() {
+        User dudu = new User("dudu", null, "dudu@d.com", "local", new HashMap<>());
+        when(userAdminService.list(new UserFilter(null), null, 0, Integer.MAX_VALUE))
+                .thenReturn(new WebResponse<>(List.of(dudu), 0, Integer.MAX_VALUE, 1));
+        // dudu has no rules → with noRole=true they should still appear
+
+        get("/api/users?noRole=true").should().respond(200).contain("dudu");
+    }
+
+    @Test
+    public void test_list_users_scoped_excludes_no_permission_users_by_default() {
+        User dudu = new User("dudu", null, "dudu@d.com", "local", new HashMap<>());
+        when(userAdminService.list(new UserFilter(null), null, 0, Integer.MAX_VALUE))
+                .thenReturn(new WebResponse<>(List.of(dudu), 0, Integer.MAX_VALUE, 1));
+        // dudu has no rules for icij domain → excluded when scoped
+
+        // scoped but no noRole param → dudu has no matching permissions → excluded
+        get("/api/users?domain=icij").should().respond(200).not().contain("dudu");
+    }
+
+    @Test
+    public void test_list_users_sort_uid_ascending() {
+        User charlie = new User("charlie", null, "c@c.com", "local", new HashMap<>());
+        User alice   = new User("alice",   null, "a@a.com", "local", new HashMap<>());
+        when(userAdminService.list(new UserFilter(null), null, 0, Integer.MAX_VALUE))
+                .thenReturn(new WebResponse<>(List.of(charlie, alice), 0, Integer.MAX_VALUE, 2));
+
+        String body = get("/api/users?sort=uid").response().content();
+        assertTrue(body.indexOf("alice") < body.indexOf("charlie"));
+    }
+
+    @Test
+    public void test_list_users_sort_role_puts_highest_privilege_first() {
+        User toto = new User("toto", null, "toto@t.com", "local", new HashMap<>());
+        User titi = new User("titi", null, "titi@t.com", "local", new HashMap<>());
+        when(userAdminService.list(new UserFilter(null), null, 0, Integer.MAX_VALUE))
+                .thenReturn(new WebResponse<>(List.of(titi, toto), 0, Integer.MAX_VALUE, 2));
+        authorizer.addRoleForUserInInstance(User.localUser("toto"), Role.INSTANCE_ADMIN);
+        authorizer.addRoleForUserInProject(User.localUser("titi"), Role.PROJECT_MEMBER, Domain.DEFAULT, new Project("cantina"));
+
+        String body = get("/api/users?sort=role").response().content();
+        assertTrue(body.indexOf("toto") < body.indexOf("titi"));
+    }
+
+    @Test
+    public void test_list_users_sort_role_no_role_users_sort_last() {
+        User dudu = new User("dudu", null, "dudu@d.com", "local", new HashMap<>());
+        User toto = new User("toto", null, "toto@t.com", "local", new HashMap<>());
+        when(userAdminService.list(new UserFilter(null), null, 0, Integer.MAX_VALUE))
+                .thenReturn(new WebResponse<>(List.of(dudu, toto), 0, Integer.MAX_VALUE, 2));
+        authorizer.addRoleForUserInInstance(User.localUser("toto"), Role.INSTANCE_ADMIN);
+
+        String body = get("/api/users?sort=role&noRole=true").response().content();
+        assertTrue(body.indexOf("toto") < body.indexOf("dudu"));
+    }
+
+    @Test
+    public void test_list_users_invalid_sort_returns_400() {
+        when(userAdminService.list(any(), any(), anyInt(), anyInt()))
+                .thenReturn(new WebResponse<>(List.of(), 0, 100, 0));
+
+        get("/api/users?sort=unknown").should().respond(400);
+    }
+
+    @Test
+    public void test_list_users_unsupported_store_returns_501() {
+        when(userAdminService.list(any(), any(), anyInt(), anyInt()))
+                .thenThrow(new UnsupportedOperationException("not supported"));
+
+        get("/api/users").should().respond(501);
+    }
+
+    @Test
+    public void test_list_users_response_has_pagination() {
+        when(userAdminService.list(new UserFilter(null), null, 0, Integer.MAX_VALUE))
+                .thenReturn(new WebResponse<>(List.of(), 0, Integer.MAX_VALUE, 0));
+
+        get("/api/users?from=5&size=10").should().respond(200)
+                .contain("\"from\":5").contain("\"size\":10");
     }
 }
