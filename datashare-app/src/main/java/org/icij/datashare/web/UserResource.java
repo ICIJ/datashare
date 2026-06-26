@@ -77,7 +77,7 @@ public class UserResource {
             "Paginated with from/size. Sorting: optional sort param (uid | role). Optional desc=true for descending order.")
     @ApiResponse(responseCode = "200", useReturnTypeSchema = true)
     @ApiResponse(responseCode = "501", description = "if the configured user store does not support listing")
-    @Get("/:domain/:index")
+    @Get("")
     @Policy(role = Role.PROJECT_ADMIN)
     public Payload listUsers(Context context) {
         String name     = context.get("name");
