@@ -9,6 +9,12 @@ datashare_jna_tmpdir=${DATASHARE_JNA_TMPDIR:-$datashare_home/index/tmp}
 datashare_sync_nlp_models=${DATASHARE_SYNC_NLP_MODELS:-true}
 datashare_class_path="$datashare_home/dist:$datashare_jars:$datashare_home/extensions/*${CLASSPATH:+:$CLASSPATH}"
 
+# OCR thread limit: cap each Tesseract child to one OpenMP thread so
+# concurrent OCR (one per INDEX worker) does not oversubscribe the CPU and
+# trip Tika's 120s timeout. Override by exporting these yourself.
+export OMP_THREAD_LIMIT=${OMP_THREAD_LIMIT:-1}
+export OMP_WAIT_POLICY=${OMP_WAIT_POLICY:-passive}
+
 if [ "$1" = 'sh' ];
 then
     exec "$@"
