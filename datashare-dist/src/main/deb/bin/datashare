@@ -113,6 +113,16 @@ java_flags="
   -Djna.tmpdir=$datashare_jna_tmpdir
   -DDS_SYNC_NLP_MODELS=$datashare_sync_nlp_models
 "
+
+# OCR thread limit: Tesseract is OpenMP-built, so each tesseract child
+# spawned by Tika would otherwise fan out across every core. With the INDEX
+# consumer already running ~vCPUs workers, that oversubscribes the CPU
+# (~vCPUs x vCPUs threads), blows past Tika's 120s OCR timeout, and silently
+# drops documents. Cap each tesseract to one OpenMP thread (one OCR thread
+# per core given parallelism=vCPUs). Override by exporting these yourself.
+export OMP_THREAD_LIMIT=${OMP_THREAD_LIMIT:-1}
+export OMP_WAIT_POLICY=${OMP_WAIT_POLICY:-passive}
+
 java_cmd="$java_bin $java_opts $java_flags -cp ./dist:$datashare_jar org.icij.datashare.Main"
 
 if [ "$is_subcommand" = true ]; then
