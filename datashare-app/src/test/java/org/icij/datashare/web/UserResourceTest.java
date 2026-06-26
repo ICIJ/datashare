@@ -272,7 +272,7 @@ public class UserResourceTest extends AbstractProdWebServerTest {
     @Test
     public void test_list_users_returns_200() {
         User alice = new User("alice", "Alice", "alice@example.org", "local", new HashMap<>());
-        when(userAdminService.list(new UserFilter(null, null, null, null), null, 0, 100))
+        when(userAdminService.list(new UserFilter(null), null, 0, 100))
                 .thenReturn(new WebResponse<>(List.of(alice), 0, 100, 1));
 
         get("/api/users").should().respond(200).contain("alice");
@@ -280,7 +280,7 @@ public class UserResourceTest extends AbstractProdWebServerTest {
 
     @Test
     public void test_list_users_returns_501_for_unsupported_store() {
-        when(userAdminService.list(new UserFilter(null, null, null, null), null, 0, 100))
+        when(userAdminService.list(new UserFilter(null), null, 0, 100))
                 .thenThrow(new UnsupportedOperationException("not supported"));
 
         get("/api/users").should().respond(501);
@@ -289,7 +289,7 @@ public class UserResourceTest extends AbstractProdWebServerTest {
     @Test
     public void test_list_users_filters_by_provider() {
         User alice = new User("alice", "Alice", "alice@example.org", "local", new HashMap<>());
-        when(userAdminService.list(new UserFilter(null, null, "local", null), null, 0, 100))
+        when(userAdminService.list(new UserFilter(null), null, 0, 100))
                 .thenReturn(new WebResponse<>(List.of(alice), 0, 100, 1));
 
         get("/api/users?provider=local").should().respond(200).contain("alice");
@@ -298,7 +298,7 @@ public class UserResourceTest extends AbstractProdWebServerTest {
     @Test
     public void test_list_users_filters_by_name() {
         User alice = new User("alice", "Alice", "alice@example.org", "local", new HashMap<>());
-        when(userAdminService.list(new UserFilter("ali", null, null, null), null, 0, 100))
+        when(userAdminService.list(new UserFilter("ali"), null, 0, 100))
                 .thenReturn(new WebResponse<>(List.of(alice), 0, 100, 1));
 
         get("/api/users?name=ali").should().respond(200).contain("alice");
@@ -306,7 +306,7 @@ public class UserResourceTest extends AbstractProdWebServerTest {
 
     @Test
     public void test_list_users_with_no_filter_passes_empty_filter() {
-        when(userAdminService.list(new UserFilter(null, null, null, null), null, 0, 100))
+        when(userAdminService.list(new UserFilter(null), null, 0, 100))
                 .thenReturn(new WebResponse<>(List.of(), 0, 100, 0));
 
         get("/api/users").should().respond(200);
@@ -314,7 +314,7 @@ public class UserResourceTest extends AbstractProdWebServerTest {
 
     @Test
     public void test_list_users_with_pagination_params() {
-        when(userAdminService.list(new UserFilter(null, null, null, null), null, 10, 5))
+        when(userAdminService.list(new UserFilter(null), null, 10, 5))
                 .thenReturn(new WebResponse<>(List.of(), 10, 5, 100));
 
         get("/api/users?from=10&size=5").should().respond(200).contain("\"total\":100");
@@ -456,7 +456,7 @@ public class UserResourceTest extends AbstractProdWebServerTest {
     @Test
     public void test_list_users_returns_200_for_admin() {
         // setUp() grants PROJECT_ADMIN to User.local(), so admin can list users
-        when(userAdminService.list(new UserFilter(null, null, null, null), null, 0, 100))
+        when(userAdminService.list(new UserFilter(null), null, 0, 100))
                 .thenReturn(new WebResponse<>(List.of(), 0, 100, 0));
 
         get("/api/users").should().respond(200);
