@@ -17,7 +17,6 @@ import org.icij.datashare.UserEvent;
 import org.icij.datashare.UserEvent.Type;
 import org.icij.datashare.policies.Authorizer;
 import org.icij.datashare.policies.CasbinRule;
-import org.icij.datashare.policies.Domain;
 import org.icij.datashare.policies.Policy;
 import org.icij.datashare.policies.Role;
 import org.icij.datashare.session.DatashareUser;
@@ -27,6 +26,7 @@ import org.icij.datashare.user.admin.UserAdminService;
 import org.icij.datashare.user.admin.UserCreateRequest;
 import org.icij.datashare.user.admin.UserExistsException;
 import org.icij.datashare.user.admin.UserFilter;
+import org.icij.datashare.user.admin.UserListItem;
 import org.icij.datashare.user.admin.UserNotFoundException;
 import org.icij.datashare.user.admin.UserUpdateRequest;
 import org.icij.datashare.user.admin.ValidationException;
@@ -39,7 +39,6 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -73,65 +72,98 @@ public class UserResource {
         this.userAdminService = userAdminService;
     }
 
-    @Operation(description = "Lists all users. Supports optional filters: name (substring), email (substring), project (exact). " +
-            "Paginated with from/size. Sorting: optional sort param (uid | role). Optional desc=true for descending order.")
+    @Operation(description = "Lists users. Optional scope: ?domain=X or ?domain=X&project=Y. " +
+            "Filters: q (free-text on uid/name/email), noRole (true=only no-role, false=exclude no-role). " +
+            "Sort: uid | role. Paginated with from/size.")
     @ApiResponse(responseCode = "200", useReturnTypeSchema = true)
-    @ApiResponse(responseCode = "501", description = "if the configured user store does not support listing")
+    @ApiResponse(responseCode = "400", description = "invalid sort parameter")
+    @ApiResponse(responseCode = "501", description = "store does not support listing")
     @Get("")
     @Policy(role = Role.PROJECT_ADMIN)
     public Payload listUsers(Context context) {
-        String name     = context.get("name");
-        String email    = context.get("email");
-        String domain   = context.get("domain");
+        String q          = context.get("q");
+        String domain     = context.get("domain");
         String project    = context.get("project");
-        String role     = context.get("role");
+        String sortParam  = context.get("sort");
+        boolean desc      = Boolean.parseBoolean(context.get("desc"));
         int from = Integer.parseInt(Optional.ofNullable(context.get("from")).orElse("0"));
         int size = Integer.parseInt(Optional.ofNullable(context.get("size")).orElse("100"));
-        String sortParam = context.get("sort");
-        boolean desc = Boolean.parseBoolean(context.get("desc"));
+        String noRoleParam = context.get("noRole");
+        Boolean noRole    = noRoleParam != null ? Boolean.parseBoolean(noRoleParam) : null;
+        boolean isScoped  = domain != null || project != null;
 
-        UserFilter filter = new UserFilter(null);
+        // 0. Validate sort param early
+        if (sortParam != null && !sortParam.isBlank()
+                && !"uid".equalsIgnoreCase(sortParam)
+                && !"role".equalsIgnoreCase(sortParam)) {
+            return PayloadFormatter.error("sort must be one of: uid, role", HttpStatus.BAD_REQUEST);
+        }
 
-        Comparator<User> comparator = null;
+        // 1. Fetch all users (q pre-filtered via UserFilter.matches in UsersInDb)
+        List<User> users;
+        try {
+            users = userAdminService.list(new UserFilter(q), null, 0, Integer.MAX_VALUE).items;
+        } catch (UnsupportedOperationException e) {
+            return PayloadFormatter.error(e.getMessage(), HttpStatus.NOT_IMPLEMENTED);
+        }
+
+        // 2. Build uid → rules map from Casbin
+        Map<String, List<CasbinRule>> rulesByUid = authorizer.getGroupPermissions().stream()
+                .collect(Collectors.groupingBy(CasbinRule::getV0));
+
+        // 3. Build UserListItem stream: scope-filter permissions per user
+        Stream<UserListItem> stream = users.stream().map(user -> {
+            List<UserListItem.Permission> permissions = rulesByUid
+                    .getOrDefault(user.id, List.of())
+                    .stream()
+                    .filter(r -> matchesScope(r.getV2(), domain, project))
+                    .map(r -> new UserListItem.Permission(r.getV1(), r.getV2()))
+                    .collect(Collectors.toList());
+            return new UserListItem(user.id, user.name, user.email, permissions);
+        });
+
+        // 4. Apply scope + noRole filter
+        stream = stream.filter(item -> {
+            if (!item.permissions().isEmpty()) return true;
+            if (noRole == null) return !isScoped;
+            return noRole;
+        });
+
+        // 5. Sort
         if (sortParam != null && !sortParam.isBlank()) {
+            Comparator<UserListItem> comparator;
             if ("uid".equalsIgnoreCase(sortParam)) {
-                comparator = Comparator.comparing(u -> u.id, String.CASE_INSENSITIVE_ORDER);
+                comparator = Comparator.comparing(UserListItem::uid, String.CASE_INSENSITIVE_ORDER);
             } else if ("role".equalsIgnoreCase(sortParam)) {
-                Map<String, String> roleMap = new java.util.HashMap<>();
-                for (CasbinRule rule : authorizer.getGroupPermissions()) {
-                    String uid = rule.getV0();
-                    String roleName = rule.getV1();
-                    roleMap.merge(uid, roleName,
-                        (existing, next) -> existing.compareToIgnoreCase(next) <= 0 ? existing : next);
-                }
-                comparator = Comparator.comparing(
-                    u -> roleMap.getOrDefault(u.id, ""),
-                    String.CASE_INSENSITIVE_ORDER);
+                comparator = Comparator.comparingInt(item -> item.permissions().stream()
+                        .mapToInt(p -> roleOrdinal(p.v1()))
+                        .min()
+                        .orElse(Integer.MAX_VALUE));
             } else {
                 return PayloadFormatter.error("sort must be one of: uid, role", HttpStatus.BAD_REQUEST);
             }
             if (desc) comparator = comparator.reversed();
+            stream = stream.sorted(comparator);
         }
 
-        if (role != null) {
-            Domain domainValue = domain != null ? Domain.of(domain) : null;
-            Set<String> allowedUserIds = authorizer.getGroupPermissions(domainValue, project).stream()
-                    .filter(r -> role.equalsIgnoreCase(r.getV1()))
-                    .map(CasbinRule::getV0)
-                    .collect(Collectors.toSet());
-            try {
-                Stream<User> stream = userAdminService.getByIds(allowedUserIds).stream().filter(filter::matches);
-                if (comparator != null) stream = stream.sorted(comparator);
-                return new Payload(WebResponse.fromStream(stream, from, size));
-            } catch (UnsupportedOperationException e) {
-                return PayloadFormatter.error(e.getMessage(), HttpStatus.NOT_IMPLEMENTED);
-            }
-        }
+        // 6. Paginate
+        return new Payload(WebResponse.fromStream(stream, from, size));
+    }
 
+    private static boolean matchesScope(String v2, String domain, String project) {
+        if (domain == null) return true;
+        if ("*::*".equals(v2)) return true;
+        if (project != null) {
+            return v2.equals(domain + "::" + project) || v2.equals(domain + "::*");
+        }
+        return v2.startsWith(domain + "::");
+    }
+
+    private static int roleOrdinal(String roleName) {
         try {
-            return new Payload(userAdminService.list(filter, comparator, from, size));
-        } catch (UnsupportedOperationException e) {
-            return PayloadFormatter.error(e.getMessage(), HttpStatus.NOT_IMPLEMENTED);
+            return Role.valueOf(roleName).ordinal();
+        } catch (IllegalArgumentException e) {
+            return Integer.MAX_VALUE;
         }
     }
 
