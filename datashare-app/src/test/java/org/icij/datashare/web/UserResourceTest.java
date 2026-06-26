@@ -298,7 +298,7 @@ public class UserResourceTest extends AbstractProdWebServerTest {
     @Test
     public void test_list_users_filters_by_name() {
         User alice = new User("alice", "Alice", "alice@example.org", "local", new HashMap<>());
-        when(userAdminService.list(new UserFilter("ali"), null, 0, 100))
+        when(userAdminService.list(new UserFilter(null), null, 0, 100))
                 .thenReturn(new WebResponse<>(List.of(alice), 0, 100, 1));
 
         get("/api/users?name=ali").should().respond(200).contain("alice");
