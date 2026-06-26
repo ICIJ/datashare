@@ -269,8 +269,6 @@ public class UserResourceTest extends AbstractProdWebServerTest {
 
     // GET /api/users — list
 
-    // GET /api/users — list
-
     @Test
     public void test_list_users_returns_200() {
         User alice = new User("alice", "Alice", "alice@example.org", "local", new HashMap<>());
@@ -286,24 +284,6 @@ public class UserResourceTest extends AbstractProdWebServerTest {
                 .thenThrow(new UnsupportedOperationException("not supported"));
 
         get("/api/users").should().respond(501);
-    }
-
-    @Test
-    public void test_list_users_filters_by_provider() {
-        User alice = new User("alice", "Alice", "alice@example.org", "local", new HashMap<>());
-        when(userAdminService.list(new UserFilter(null), null, 0, Integer.MAX_VALUE))
-                .thenReturn(new WebResponse<>(List.of(alice), 0, Integer.MAX_VALUE, 1));
-
-        get("/api/users?provider=local").should().respond(200).contain("alice");
-    }
-
-    @Test
-    public void test_list_users_filters_by_name() {
-        User alice = new User("alice", "Alice", "alice@example.org", "local", new HashMap<>());
-        when(userAdminService.list(new UserFilter(null), null, 0, Integer.MAX_VALUE))
-                .thenReturn(new WebResponse<>(List.of(alice), 0, Integer.MAX_VALUE, 1));
-
-        get("/api/users?name=ali").should().respond(200).contain("alice");
     }
 
     @Test

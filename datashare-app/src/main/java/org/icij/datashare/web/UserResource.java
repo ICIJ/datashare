@@ -73,8 +73,8 @@ public class UserResource {
     }
 
     @Operation(description = "Lists users. Optional scope: ?domain=X or ?domain=X&project=Y. " +
-            "Filters: q (free-text on uid/name/email), noRole (true=only no-role, false=exclude no-role). " +
-            "Sort: uid | role. Paginated with from/size.")
+            "Filters: q (free-text on uid/name/email), noRole (true=include no-role users, false=exclude them). " +
+            "Sort: uid | role, desc=true for descending. Paginated with from/size.")
     @ApiResponse(responseCode = "200", useReturnTypeSchema = true)
     @ApiResponse(responseCode = "400", description = "invalid sort parameter")
     @ApiResponse(responseCode = "501", description = "store does not support listing")
@@ -102,6 +102,7 @@ public class UserResource {
         // 1. Fetch all users (q pre-filtered via UserFilter.matches in UsersInDb)
         List<User> users;
         try {
+            // fetches all matching users into memory; acceptable for admin-only endpoints with bounded user counts
             users = userAdminService.list(new UserFilter(q), null, 0, Integer.MAX_VALUE).items;
         } catch (UnsupportedOperationException e) {
             return PayloadFormatter.error(e.getMessage(), HttpStatus.NOT_IMPLEMENTED);
