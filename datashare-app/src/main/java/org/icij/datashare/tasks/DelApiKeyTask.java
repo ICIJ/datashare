@@ -2,6 +2,7 @@ package org.icij.datashare.tasks;
 
 import org.icij.datashare.asynctasks.TaskGroupType;
 
+import org.icij.datashare.asynctasks.TaskTyped;
 import com.google.inject.Inject;
 import com.google.inject.assistedinject.Assisted;
 import org.icij.datashare.asynctasks.TaskGroup;
@@ -15,6 +16,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @TemporalSingleActivityWorkflow(name = "delete-api-key", activityOptions = @ActivityOpts(timeout = "P1D"))
+@TaskTyped(TaskType.DEL_API_KEY)
 @TaskGroup(TaskGroupType.Java)
 public class DelApiKeyTask extends DefaultTask<Boolean> implements UserTask {
     private final Logger logger = LoggerFactory.getLogger(getClass());

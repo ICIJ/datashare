@@ -8,6 +8,7 @@ import org.icij.datashare.Stage;
 import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.asynctasks.TaskGroup;
 import org.icij.datashare.asynctasks.TaskGroupType;
+import org.icij.datashare.asynctasks.TaskTyped;
 import org.icij.datashare.asynctasks.temporal.ActivityOpts;
 import org.icij.datashare.asynctasks.temporal.TemporalSingleActivityWorkflow;
 import org.icij.datashare.extract.DocumentCollectionFactory;
@@ -23,6 +24,7 @@ import java.util.function.Predicate;
  * filters the document queue with extracted docs
  */
 @TemporalSingleActivityWorkflow(name = "deduplicate-documents", activityOptions = @ActivityOpts(timeout = "P1D"))
+@TaskTyped(TaskType.DEDUPLICATE)
 @TaskGroup(TaskGroupType.Java)
 public class DeduplicateTask extends PipelineTask<Path> {
     private final Logger logger = LoggerFactory.getLogger(getClass());

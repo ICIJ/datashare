@@ -39,7 +39,10 @@ import static org.icij.datashare.cli.DatashareCliOptions.POLLING_INTERVAL_SECOND
 import org.icij.datashare.asynctasks.TaskGroupType;
 import static org.icij.extract.document.Identifier.shorten;
 
+import org.icij.datashare.asynctasks.TaskTyped;
+
 @TemporalSingleActivityWorkflow(name = "ner", activityOptions = @ActivityOpts(timeout = "P7D"))
+@TaskTyped(TaskType.EXTRACT_NLP)
 @TaskGroup(TaskGroupType.Java)
 public class ExtractNlpTask extends PipelineTask<String> implements Monitorable {
     private static final int DEFAULT_MAX_CONTENT_LENGTH = 1024 * 1024;

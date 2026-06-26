@@ -3,6 +3,7 @@ package org.icij.datashare.tasks;
 import com.google.inject.assistedinject.Assisted;
 import org.icij.datashare.asynctasks.TaskGroup;
 import org.icij.datashare.asynctasks.TaskGroupType;
+import org.icij.datashare.asynctasks.TaskTyped;
 import org.icij.datashare.asynctasks.temporal.ActivityOpts;
 import org.icij.datashare.asynctasks.temporal.TemporalSingleActivityWorkflow;
 import org.icij.datashare.policies.Authorizer;
@@ -20,6 +21,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @TemporalSingleActivityWorkflow(name = "grant-admin-policy", activityOptions = @ActivityOpts(timeout = "P1D"))
+@TaskTyped(TaskType.GRANT_ADMIN_POLICY)
 @TaskGroup(TaskGroupType.Java)
 public class GrantAdminPolicyTask extends DefaultTask<Boolean> implements UserTask {
     private final Logger logger = LoggerFactory.getLogger(getClass());

@@ -3,6 +3,7 @@ package org.icij.datashare.tasks;
 import static java.util.Optional.ofNullable;
 import org.icij.datashare.asynctasks.TaskGroupType;
 
+import org.icij.datashare.asynctasks.TaskTyped;
 import com.google.inject.Inject;
 import com.google.inject.assistedinject.Assisted;
 import java.io.IOException;
@@ -27,6 +28,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @TemporalSingleActivityWorkflow(name = "batch-ner", activityOptions = @ActivityOpts(timeout = "P7D"))
+@TaskTyped(TaskType.BATCH_NLP)
 @TaskGroup(TaskGroupType.Java)
 public class BatchNlpTask extends DefaultTask<Long> implements UserTask, CancellableTask {
     private static final List<String> EXCLUDED_SOURCES = List.of("contentTranslated");
