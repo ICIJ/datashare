@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import org.junit.Assume;
 import org.junit.Test;
 
 public class OpenMpEnvInheritanceTest {
@@ -25,6 +26,8 @@ public class OpenMpEnvInheritanceTest {
     // OMP_THREAD_LIMIT=1 reaches every OCR subprocess.
     @Test(timeout = 10000)
     public void test_spawned_child_inherits_omp_thread_limit() throws IOException, InterruptedException {
+        // Relies on a POSIX `sh`; skip on platforms without one (e.g. Windows dev boxes).
+        Assume.assumeFalse(System.getProperty("os.name", "").toLowerCase().contains("win"));
         Process child = new ProcessBuilder(List.of("sh", "-c", "echo $OMP_THREAD_LIMIT")).start();
         String output;
         try (BufferedReader reader = new BufferedReader(

@@ -12,8 +12,8 @@ datashare_class_path="$datashare_home/dist:$datashare_jars:$datashare_home/exten
 # OCR thread limit: cap each Tesseract child to one OpenMP thread so
 # concurrent OCR (one per INDEX worker) does not oversubscribe the CPU and
 # trip Tika's 120s timeout. Override by exporting these yourself.
-export OMP_THREAD_LIMIT=${OMP_THREAD_LIMIT:-1}
-export OMP_WAIT_POLICY=${OMP_WAIT_POLICY:-passive}
+export OMP_THREAD_LIMIT=${OMP_THREAD_LIMIT-1}
+export OMP_WAIT_POLICY=${OMP_WAIT_POLICY-passive}
 
 if [ "$1" = 'sh' ];
 then

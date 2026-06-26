@@ -120,8 +120,8 @@ java_flags="
 # (~vCPUs x vCPUs threads), blows past Tika's 120s OCR timeout, and silently
 # drops documents. Cap each tesseract to one OpenMP thread (one OCR thread
 # per core given parallelism=vCPUs). Override by exporting these yourself.
-export OMP_THREAD_LIMIT=${OMP_THREAD_LIMIT:-1}
-export OMP_WAIT_POLICY=${OMP_WAIT_POLICY:-passive}
+export OMP_THREAD_LIMIT=${OMP_THREAD_LIMIT-1}
+export OMP_WAIT_POLICY=${OMP_WAIT_POLICY-passive}
 
 java_cmd="$java_bin $java_opts $java_flags -cp ./dist:$datashare_jar org.icij.datashare.Main"
 
