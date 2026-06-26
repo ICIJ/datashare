@@ -92,6 +92,7 @@ public class DocumentBuilderTest {
         Map<String, Object> metadata = Map.of("some", "metadata", "tika_metadata_dcterms_created", "2024-03-10T10:00:00+01:00");
         String ocrParser = "org.apache.tika.parser.ocr.TesseractOCRParser";
         ContentTypeCategory contentTypeCategory = ContentTypeCategory.AUDIO;
+        Document.RecoveryStatus recoveryStatus = Document.RecoveryStatus.COMPLETE;
         return DocumentBuilder.createDoc()
                 .withDefaultValues(docId)
                 .withRootId(rootId)
@@ -111,6 +112,8 @@ public class DocumentBuilderTest {
                 .with(Path.of("some/path"))
                 .with("somecontent")
                 .with(contentTypeCategory)
+                .with(recoveryStatus)
+                .withPstCounts(5, 5, 0)
                 .withOcrParser(ocrParser).build();
     }
 
