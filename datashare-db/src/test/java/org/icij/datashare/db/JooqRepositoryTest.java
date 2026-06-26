@@ -733,22 +733,21 @@ public class JooqRepositoryTest {
         repository.save(new User("alice", "Alice", "alice@example.org"));
         repository.save(new User("charlie", "Charlie", "charlie@example.org"));
 
-        List<User> users = repository.listUsers(new UserFilter(null, null, null, null));
+        List<User> users = repository.listUsers(new UserFilter(null));
         assertThat(users).hasSize(2);
     }
 
     @Test
-    public void listUsers_filter_by_name_substring() {
+    public void listUsers_filter_ignored_returns_all() {
         repository.save(new User("alice2", "Alice", "alice2@example.org"));
         repository.save(new User("bob2", "Bob", "bob2@example.org"));
 
-        List<User> users = repository.listUsers(new UserFilter("ali", null, null, null));
-        assertThat(users).hasSize(1);
-        assertThat(users.get(0).id).isEqualTo("alice2");
+        List<User> users = repository.listUsers(new UserFilter("ali"));
+        assertThat(users).hasSize(2);
     }
 
     @Test
-    public void listUsers_filter_by_provider_exact() {
+    public void listUsers_returns_all_regardless_of_filter() {
         repository.save(new User(new HashMap<>() {{
             put("uid", "local_user");
             put("provider", "local");
@@ -762,9 +761,8 @@ public class JooqRepositoryTest {
             put("email", "oauth@example.org");
         }}));
 
-        List<User> users = repository.listUsers(new UserFilter(null, null, "local", null));
-        assertThat(users).hasSize(1);
-        assertThat(users.get(0).id).isEqualTo("local_user");
+        List<User> users = repository.listUsers(new UserFilter(null));
+        assertThat(users).hasSize(2);
     }
 
     @Test

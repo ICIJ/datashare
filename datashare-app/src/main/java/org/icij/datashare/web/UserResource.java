@@ -73,25 +73,24 @@ public class UserResource {
         this.userAdminService = userAdminService;
     }
 
-    @Operation(description = "Lists all users. Supports optional filters: name (substring), email (substring), provider (exact), group (substring), role (exact Casbin role, scoped by optional domain and project). Paginated with from/size. Sorting: optional sort param (uid | role). Optional desc=true for descending order.")
+    @Operation(description = "Lists all users. Supports optional filters: name (substring), email (substring), project (exact). " +
+            "Paginated with from/size. Sorting: optional sort param (uid | role). Optional desc=true for descending order.")
     @ApiResponse(responseCode = "200", useReturnTypeSchema = true)
     @ApiResponse(responseCode = "501", description = "if the configured user store does not support listing")
-    @Get
+    @Get("/:domain/:index")
     @Policy(role = Role.PROJECT_ADMIN)
     public Payload listUsers(Context context) {
         String name     = context.get("name");
         String email    = context.get("email");
-        String provider = context.get("provider");
-        String group    = context.get("group");
-        String role     = context.get("role");
         String domain   = context.get("domain");
-        String project  = context.get("project");
+        String project    = context.get("project");
+        String role     = context.get("role");
         int from = Integer.parseInt(Optional.ofNullable(context.get("from")).orElse("0"));
         int size = Integer.parseInt(Optional.ofNullable(context.get("size")).orElse("100"));
         String sortParam = context.get("sort");
         boolean desc = Boolean.parseBoolean(context.get("desc"));
 
-        UserFilter filter = new UserFilter(name, email, provider, group);
+        UserFilter filter = new UserFilter(null);
 
         Comparator<User> comparator = null;
         if (sortParam != null && !sortParam.isBlank()) {

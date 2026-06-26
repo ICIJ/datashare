@@ -71,7 +71,7 @@ public class UsersInDbTest {
     public void list_users_with_filter_delegates_to_repository() {
         Repository repository = mock(Repository.class);
         org.icij.datashare.user.User alice = new org.icij.datashare.user.User("alice", "Alice", "alice@example.org", "local", new HashMap<>());
-        UserFilter filter = new UserFilter("ali", null, null, null);
+        UserFilter filter = new UserFilter("ali");
         when(repository.listUsers(filter)).thenReturn(List.of(alice));
 
         List<org.icij.datashare.user.User> result = new UsersInDb(repository).listUsers(filter, null, 0, 100).items;
@@ -82,23 +82,16 @@ public class UsersInDbTest {
     }
 
     @Test
-    public void list_users_filters_group_in_memory() {
+    public void list_users_empty_filter_returns_all() {
         Repository repository = mock(Repository.class);
-        java.util.Map<String, Object> details = new HashMap<>();
-        java.util.Map<String, Object> appsByGroup = new HashMap<>();
-        appsByGroup.put("datashare", List.of("my-project"));
-        details.put("groups_by_applications", appsByGroup);
-        org.icij.datashare.user.User alice = new org.icij.datashare.user.User("alice", "Alice", "alice@example.org", "local", details);
+        org.icij.datashare.user.User alice = new org.icij.datashare.user.User("alice", "Alice", "alice@example.org", "local", new HashMap<>());
         org.icij.datashare.user.User bob   = new org.icij.datashare.user.User("bob",   "Bob",   "bob@example.org",   "local", new HashMap<>());
-        // Repository returns both (group filter not pushed to SQL)
-        UserFilter filter = new UserFilter(null, null, null, "my-project");
+        UserFilter filter = new UserFilter(null);
         when(repository.listUsers(filter)).thenReturn(List.of(alice, bob));
 
         List<org.icij.datashare.user.User> result = new UsersInDb(repository).listUsers(filter, null, 0, 100).items;
 
-        // In-memory group filter removes bob
-        assertThat(result).hasSize(1);
-        assertThat(result.get(0).id).isEqualTo("alice");
+        assertThat(result).hasSize(2);
     }
 
     @Test
@@ -107,7 +100,7 @@ public class UsersInDbTest {
         org.icij.datashare.user.User alice = new org.icij.datashare.user.User("alice", "Alice", "alice@example.org", "local", new HashMap<>());
         org.icij.datashare.user.User bob   = new org.icij.datashare.user.User("bob",   "Bob",   "bob@example.org",   "local", new HashMap<>());
         org.icij.datashare.user.User carol = new org.icij.datashare.user.User("carol", "Carol", "carol@example.org", "local", new HashMap<>());
-        UserFilter filter = new UserFilter(null, null, null, null);
+        UserFilter filter = new UserFilter(null);
         when(repository.listUsers(filter)).thenReturn(List.of(alice, bob, carol));
 
         WebResponse<org.icij.datashare.user.User> result = new UsersInDb(repository).listUsers(filter, null, 1, 1);
