@@ -404,6 +404,10 @@
                         <systemPropertyVariables>
                             <devenv.file>${devenv.file}</devenv.file>
                         </systemPropertyVariables>
+                        <environmentVariables>
+                            <OMP_THREAD_LIMIT>1</OMP_THREAD_LIMIT>
+                            <OMP_WAIT_POLICY>passive</OMP_WAIT_POLICY>
+                        </environmentVariables>
                     </configuration>
                 </plugin>
 
