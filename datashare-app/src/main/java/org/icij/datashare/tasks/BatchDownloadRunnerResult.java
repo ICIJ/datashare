@@ -22,6 +22,11 @@ public record BatchDownloadRunnerResult(URI uri, long size, @Nullable Truncation
         return uri;
     }
 
+    @Override
+    public long getSize() {
+        return size;
+    }
+
     public enum TruncationReason {
         SIZE_LIMIT,
         FILE_COUNT_LIMIT,

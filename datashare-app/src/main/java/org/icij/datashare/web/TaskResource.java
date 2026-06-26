@@ -180,7 +180,9 @@ public class TaskResource {
             String fileName = filePath.getFileName().toString();
             String contentDisposition = "attachment;filename=\"" + fileName + "\"";
             InputStream fileInputStream = Files.newInputStream(filePath);
-            return new Payload(fileInputStream).withHeader("Content-Disposition", contentDisposition);
+            return new Payload(fileInputStream)
+                    .withHeader("Content-Disposition", contentDisposition)
+                    .withHeader("Content-Length", String.valueOf(downloadableResult.getSize()));
         }
         return result == null ? new Payload(204) : new Payload(result);
     }

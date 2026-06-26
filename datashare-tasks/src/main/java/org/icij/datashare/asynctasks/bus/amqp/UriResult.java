@@ -20,4 +20,9 @@ public record UriResult(URI uri, long size) implements Serializable, Downloadabl
     public URI getUri() {
         return uri;
     }
+
+    @Override
+    public long getSize() {
+        return size;
+    }
 }
