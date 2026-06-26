@@ -123,6 +123,20 @@ public class UserTaskResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
+    public void test_get_task_result_with_file_result_should_have_content_length() throws Exception {
+        File file = new File(ClassLoader.getSystemResource("app/index.html").toURI());
+        long fileSize = Files.size(file.toPath());
+        UriResult indexHtml = new UriResult(file.toURI(), fileSize);
+        setupAppWith(new DummyUserTask<>("foo", () -> indexHtml), "foo");
+
+        String tId = taskManager.startTask(DummyUserTask.class, localUser("foo"), new HashMap<>());
+        taskManager.waitTasksToBeDone(1, SECONDS);
+        get("/api/task/" + tId + "/result").withPreemptiveAuthentication("foo", "qux").
+                should().respond(200).
+                should().haveHeader("Content-Length", String.valueOf(fileSize));
+    }
+
+    @Test
     public void test_get_task_result_with_file_result_and_absolute_path_should_relativize_result_with_app_folder() throws Exception {
         File file = new File(ClassLoader.getSystemResource("app/index.html").toURI());
         UriResult indexHtml = new UriResult(file.toURI(), Files.size(file.toPath()));
