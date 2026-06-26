@@ -114,12 +114,16 @@ java_flags="
   -DDS_SYNC_NLP_MODELS=$datashare_sync_nlp_models
 "
 
-# OCR thread limit: Tesseract is OpenMP-built, so each tesseract child
-# spawned by Tika would otherwise fan out across every core. With the INDEX
-# consumer already running ~vCPUs workers, that oversubscribes the CPU
-# (~vCPUs x vCPUs threads), blows past Tika's 120s OCR timeout, and silently
-# drops documents. Cap each tesseract to one OpenMP thread (one OCR thread
-# per core given parallelism=vCPUs). Override by exporting these yourself.
+# OpenMP thread limit (process-wide). Tesseract is OpenMP-built, so each
+# tesseract child spawned by Tika would otherwise fan out across every core.
+# With the INDEX consumer already running ~vCPUs workers, that oversubscribes
+# the CPU (~vCPUs x vCPUs threads), blows past Tika's 120s OCR timeout, and
+# silently drops documents. Capping to one OpenMP thread gives one OCR thread
+# per core given parallelism=vCPUs. This is exported process-wide, so it also
+# reaches any other OpenMP/BLAS native code in the JVM or its children (e.g.
+# the spaCy NLP worker subprocess); single-thread-per-worker is the intended
+# invariant there too, since those workers also run in parallel. Override by
+# exporting these yourself.
 export OMP_THREAD_LIMIT=${OMP_THREAD_LIMIT-1}
 export OMP_WAIT_POLICY=${OMP_WAIT_POLICY-passive}
 
