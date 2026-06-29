@@ -46,6 +46,17 @@ public class IndexTaskTest {
     }
 
     @Test
+    public void test_options_include_progress_heartbeat_interval() throws Exception {
+        ElasticsearchSpewer spewer = mock(ElasticsearchSpewer.class);
+        Mockito.when(spewer.configure(Mockito.any())).thenReturn(spewer);
+        IndexTask indexTask = new IndexTask(spewer, mock(DocumentCollectionFactory.class), new Task<>(IndexTask.class.getName(), nullUser(), new HashMap<>(){{
+            put("queueName", "test:queue");
+        }}), null);
+        Options<String> options = indexTask.options();
+        assertThat(options.toString()).contains("progressHeartbeatInterval=");
+    }
+
+    @Test
     public void test_options_include_language() throws Exception {
         ElasticsearchSpewer spewer = mock(ElasticsearchSpewer.class);
         Mockito.when(spewer.configure(Mockito.any())).thenReturn(spewer);
