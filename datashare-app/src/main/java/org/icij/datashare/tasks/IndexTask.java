@@ -47,6 +47,7 @@ import static org.icij.datashare.cli.DatashareCliOptions.*;
 @TaskGroup(TaskGroupType.Java)
 public class IndexTask extends PipelineTask<Path> implements Monitorable{
     private final Logger logger = LoggerFactory.getLogger(getClass());
+    private final Extractor extractor;
     private final DocumentQueueDrainer<Path> drainer;
     private final DocumentConsumer consumer;
     private final Consumer<Path> progressTrackConsumer;
@@ -66,9 +67,9 @@ public class IndexTask extends PipelineTask<Path> implements Monitorable{
         ((ElasticsearchSpewer) spewer.configure(allTaskOptions)).createIndexIfNotExists();
 
         DocumentFactory documentFactory = new DocumentFactory().configure(allTaskOptions);
-        Extractor extractor = new Extractor(documentFactory, allTaskOptions);
+        this.extractor = createExtractor(documentFactory, allTaskOptions);
 
-        consumer = new DocumentConsumer(spewer, extractor, this.parallelism);
+        consumer = new DocumentConsumer(spewer, this.extractor, this.parallelism);
         progressTrackConsumer = path -> {
             consumer.accept(path);
             processed.incrementAndGet();
@@ -87,20 +88,28 @@ public class IndexTask extends PipelineTask<Path> implements Monitorable{
     public Long call() throws Exception {
         super.call();
         logger.info("Processing up to {} file(s) in parallel", parallelism);
-        totalToProcess = drainer.drain(PATH_POISON).get();
-        drainer.shutdown();
-        drainer.awaitTermination(10, SECONDS); // drain is finished
-        logger.info("drained {} documents. Waiting for consumer to shutdown", totalToProcess);
+        try {
+            totalToProcess = drainer.drain(PATH_POISON).get();
+            drainer.shutdown();
+            drainer.awaitTermination(10, SECONDS); // drain is finished
+            logger.info("drained {} documents. Waiting for consumer to shutdown", totalToProcess);
 
-        consumer.shutdown();
-        // documents could be currently processed
-        while (!consumer.awaitTermination(indexTimeout, MINUTES)) {
-            logger.info("Consumer has not terminated yet.");
+            consumer.shutdown();
+            // documents could be currently processed
+            while (!consumer.awaitTermination(indexTimeout, MINUTES)) {
+                logger.info("Consumer has not terminated yet.");
+            }
+
+            if (consumer.getReporter() != null) consumer.getReporter().close();
+            logger.info("exiting");
+            return totalToProcess;
+        } finally {
+            extractor.close();
         }
+    }
 
-        if (consumer.getReporter() != null) consumer.getReporter().close();
-        logger.info("exiting");
-        return totalToProcess;
+    protected Extractor createExtractor(DocumentFactory documentFactory, Options<String> options) {
+        return new Extractor(documentFactory, options);
     }
 
     /**

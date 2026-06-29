@@ -5,17 +5,23 @@ import org.icij.datashare.PipelineHelper;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Stage;
 import org.icij.datashare.asynctasks.Task;
+import org.icij.datashare.extract.DocumentCollectionFactory;
 import org.icij.datashare.extract.MemoryDocumentCollectionFactory;
 import org.icij.datashare.test.ElasticsearchRule;
 import org.icij.datashare.text.Language;
 import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchIndexer;
 import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchSpewer;
 import org.icij.datashare.user.User;
+import org.icij.extract.document.DocumentFactory;
+import org.icij.extract.extractor.Extractor;
 import org.icij.extract.queue.DocumentQueue;
 import org.icij.spewer.FieldNames;
+import org.icij.task.Options;
 import org.junit.Rule;
 import org.junit.Test;
+import org.mockito.Mockito;
 
+import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
@@ -23,9 +29,25 @@ import java.util.function.Function;
 
 import static org.fest.assertions.Assertions.assertThat;
 import static org.icij.datashare.tasks.PipelineTask.STRING_POISON;
+import static org.mockito.Mockito.verify;
 
 public class IndexTaskIntTest {
     @Rule public ElasticsearchRule es = new ElasticsearchRule();
+
+    static final List<Extractor> CREATED_EXTRACTORS = new ArrayList<>();
+
+    static class ClosingProbeIndexTask extends IndexTask {
+        ClosingProbeIndexTask(ElasticsearchSpewer spewer, DocumentCollectionFactory<Path> factory,
+                              Task<Long> task, Function<Double, Void> cb) throws IOException {
+            super(spewer, factory, task, cb);
+        }
+        @Override
+        protected Extractor createExtractor(DocumentFactory documentFactory, Options<String> options) {
+            Extractor spy = Mockito.spy(super.createExtractor(documentFactory, options));
+            CREATED_EXTRACTORS.add(spy);
+            return spy;
+        }
+    }
 
     private final MemoryDocumentCollectionFactory<Path> inputQueueFactory = new MemoryDocumentCollectionFactory<>();
     private final MemoryDocumentCollectionFactory<String> outputQueueFactory = new MemoryDocumentCollectionFactory<>();
@@ -69,5 +91,18 @@ public class IndexTaskIntTest {
         assertThat(progressValues.size()).isGreaterThan(1);
         assertThat(progressValues.get(0)).isLessThan(progressValues.get(progressValues.size() - 1));
         assertThat(progressValues).contains(0.5);
+    }
+
+    @Test
+    public void index_task_closes_extractor_after_run() throws Exception {
+        CREATED_EXTRACTORS.clear();
+        DocumentQueue<Path> inputQueue = inputQueueFactory.createQueue(new PipelineHelper(propertiesProvider).getQueueNameFor(Stage.INDEX), Path.class);
+        inputQueue.add(Paths.get(ClassLoader.getSystemResource("docs/doc.txt").getPath()));
+
+        IndexTask indexTask = new ClosingProbeIndexTask(spewer, inputQueueFactory, new Task<>(IndexTask.class.getName(), User.local(), map), null);
+        indexTask.call();
+
+        assertThat(CREATED_EXTRACTORS.size()).isEqualTo(1);
+        verify(CREATED_EXTRACTORS.get(0)).close();
     }
 }
