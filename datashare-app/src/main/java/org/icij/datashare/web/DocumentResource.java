@@ -166,16 +166,17 @@ public class DocumentResource {
     public PageIndices getPages(final String project, final String id, final String routing, final Context context) throws IOException {
         requireGranted(context, project);
         Document doc = indexer.get(project, id, routing, List.of("content","content_translated"));
-        final Extractor extractor = getExtractor(doc);
-        if(doc.getOcrParser() == null){
-            extractor.disableOcr();
-        }
-        if (doc.isRootDocument()) {
-            return extractor.extractPageIndices(doc.getPath(), metadata -> true, doc.getId());
-        } else {
-            return extractor.extractPageIndices(doc.getPath(),
-                    metadata -> doc.getTitle().equals(metadata.get("resourceName")) ||
-                            "INLINE".equals(metadata.get("embeddedResourceType")), doc.getId());
+        try (Extractor extractor = getExtractor(doc)) {
+            if (doc.getOcrParser() == null) {
+                extractor.disableOcr();
+            }
+            if (doc.isRootDocument()) {
+                return extractor.extractPageIndices(doc.getPath(), metadata -> true, doc.getId());
+            } else {
+                return extractor.extractPageIndices(doc.getPath(),
+                        metadata -> doc.getTitle().equals(metadata.get("resourceName")) ||
+                                "INLINE".equals(metadata.get("embeddedResourceType")), doc.getId());
+            }
         }
     }
 
@@ -191,16 +192,17 @@ public class DocumentResource {
     public List<String> getContentByPage(final String project, final String id, final String routing, final Context context) throws IOException {
         requireGranted(context, project);
         Document doc = indexer.get(project, id, routing, List.of("content","content_translated"));
-        final Extractor extractor = getExtractor(doc);
-        if(doc.getOcrParser() == null){
-            extractor.disableOcr();
-        }
-        if (doc.isRootDocument()) {
-            return extractor.extractPages(doc.getPath());
-        } else {
-            return extractor.extractPages(doc.getPath(),
-                    metadata -> doc.getTitle().equals(metadata.get("resourceName")) ||
-                            "INLINE".equals(metadata.get("embeddedResourceType")));
+        try (Extractor extractor = getExtractor(doc)) {
+            if (doc.getOcrParser() == null) {
+                extractor.disableOcr();
+            }
+            if (doc.isRootDocument()) {
+                return extractor.extractPages(doc.getPath());
+            } else {
+                return extractor.extractPages(doc.getPath(),
+                        metadata -> doc.getTitle().equals(metadata.get("resourceName")) ||
+                                "INLINE".equals(metadata.get("embeddedResourceType")));
+            }
         }
     }
 
