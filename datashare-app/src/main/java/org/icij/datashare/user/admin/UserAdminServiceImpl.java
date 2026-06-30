@@ -121,15 +121,15 @@ public class UserAdminServiceImpl implements UserAdminService {
     }
 
     private void validate(UserCreateRequest request) throws ValidationException {
-        Validators.login(request.login());
-        Validators.email(request.email());
-        Validators.provider(request.provider());
-        if (isLocal(request)) {
-            try {
+        try {
+            Validators.login(request.login());
+            Validators.email(request.email());
+            Validators.provider(request.provider());
+            if (isLocal(request)) {
                 Validators.password(request.password());
-            }catch (Validators.InvalidValueException e){
-                throw new ValidationException("password", e.getMessage()+ " when provider=local");
             }
+        } catch (Validators.InvalidValueException e) {
+            throw new ValidationException(e.field(), e.getMessage());
         }
     }
 
