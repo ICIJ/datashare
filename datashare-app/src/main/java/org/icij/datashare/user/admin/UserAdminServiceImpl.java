@@ -2,6 +2,7 @@ package org.icij.datashare.user.admin;
 
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
+import org.icij.datashare.cli.Validators;
 import org.icij.datashare.session.UserStore;
 import org.icij.datashare.text.Hasher;
 import org.icij.datashare.user.User;
@@ -120,19 +121,15 @@ public class UserAdminServiceImpl implements UserAdminService {
     }
 
     private void validate(UserCreateRequest request) throws ValidationException {
-        if (request.login() == null || request.login().isEmpty()) {
-            throw new ValidationException("login", "login is required");
-        }
-        if (request.email() == null || request.email().isEmpty()) {
-            throw new ValidationException("email", "email is required");
-        }
-        if (request.provider() == null || !KNOWN_PROVIDERS.contains(request.provider())) {
-            throw new ValidationException("provider",
-                    "provider must be one of " + KNOWN_PROVIDERS);
-        }
-        if (isLocal(request) && (request.password() == null || request.password().isEmpty())) {
-            throw new ValidationException("password",
-                    "password is required when provider=local");
+        Validators.login(request.login());
+        Validators.email(request.email());
+        Validators.provider(request.provider());
+        if (isLocal(request)) {
+            try {
+                Validators.password(request.password());
+            }catch (Validators.InvalidValueException e){
+                throw new ValidationException("password", e.getMessage()+ " when provider=local");
+            }
         }
     }
 

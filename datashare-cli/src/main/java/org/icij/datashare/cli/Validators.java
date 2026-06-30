@@ -49,7 +49,7 @@ public final class Validators {
     }
 
     public static void provider(String value) {
-        if (!PROVIDERS.contains(value)) {
+        if (value == null || !PROVIDERS.contains(value)) {
             throw new InvalidValueException("provider",
                     "provider must be one of " + PROVIDERS);
         }
@@ -68,6 +68,12 @@ public final class Validators {
             validatedGroups.add(projectName);
         }
         return validatedGroups;
+    }
+    public static boolean password(String value) {
+        if (value == null || value.isBlank()) {
+            throw new InvalidValueException("password", "password is required");
+        }
+        return true;
     }
 
     public static void projectName(String value) {
