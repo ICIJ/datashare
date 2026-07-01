@@ -107,6 +107,10 @@ public final class DatashareCliOptions {
     public static final String OCR_TYPE_OPT = "ocrType";
     public static final String OCR_STRATEGY_OPT = "ocrStrategy";
     public static final String MAX_EMBED_DEPTH_OPT = "maxEmbedDepth";
+    public static final String MAX_EMBED_DEPTH_DESC =
+            "Maximum nesting depth of embedded documents to extract before deeper embeds " +
+                    "are skipped, guarding against decompression-bomb / deeply-nested-archive " +
+                    "inputs. 0 disables the guard. Default: 20.";
     public static final String PARALLELISM_OPT = "parallelism";
     public static final String PARSER_PARALLELISM_ABBR_OPT = "pp";
     public static final String PARSER_PARALLELISM_OPT = "parserParallelism";
@@ -765,9 +769,7 @@ public final class DatashareCliOptions {
     static void maxEmbedDepth(OptionParser parser) {
         parser.acceptsAll(
                         List.of(MAX_EMBED_DEPTH_OPT),
-                        "Maximum nesting depth of embedded documents to extract before deeper embeds " +
-                                "are skipped, guarding against decompression-bomb / deeply-nested-archive " +
-                                "inputs. 0 disables the guard. Default: 20.")
+                        MAX_EMBED_DEPTH_DESC)
                 .withRequiredArg()
                 .ofType(Integer.class)
                 .defaultsTo(DEFAULT_MAX_EMBED_DEPTH);
