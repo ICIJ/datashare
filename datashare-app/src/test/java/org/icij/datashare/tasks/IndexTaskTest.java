@@ -113,4 +113,21 @@ public class IndexTaskTest {
         assertThat(extractor.getOcrStrategy()).isEqualTo(PDFParserConfig.OCR_STRATEGY.AUTO);
         assertThat(extractor.isExtractInlineImages()).isFalse();
     }
+
+    @Test
+    public void test_max_embed_depth_reaches_extractor() throws Exception {
+        ElasticsearchSpewer spewer = mock(ElasticsearchSpewer.class);
+        Mockito.when(spewer.configure(Mockito.any())).thenReturn(spewer);
+        IndexTask indexTask = new IndexTask(spewer, mock(DocumentCollectionFactory.class),
+                new Task<>(IndexTask.class.getName(), nullUser(), new HashMap<>(){{
+                    put("queueName", "test:queue");
+                }}), null);
+
+        Options<String> bound = indexTask.options().createFrom(Options.from(Map.of(
+                "maxEmbedDepth", "3", "queueName", "test:queue")));
+        DocumentFactory documentFactory = new DocumentFactory().configure(bound);
+        Extractor extractor = new Extractor(documentFactory, bound);
+
+        assertThat(extractor.getMaxEmbedDepth()).isEqualTo(3);
+    }
 }
