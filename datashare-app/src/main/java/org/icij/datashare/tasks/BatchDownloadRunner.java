@@ -215,6 +215,14 @@ public class BatchDownloadRunner implements Callable<BatchDownloadRunnerResult>,
         }
     }
 
+    static String formatRetention(int hours) {
+        if (hours > 0 && hours % 24 == 0) {
+            int days = hours / 24;
+            return days + (days == 1 ? " day" : " days");
+        }
+        return hours + (hours == 1 ? " hour" : " hours");
+    }
+
     private static class Zipper implements AutoCloseable {
 
         protected final BatchDownload batchDownload;

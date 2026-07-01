@@ -72,6 +72,19 @@ public class BatchDownloadRunnerTest {
         assertThat(result.truncationReason()).isEqualTo(BatchDownloadRunnerResult.TruncationReason.SIZE_LIMIT);
     }
 
+    @Test
+    public void test_format_retention_whole_days() {
+        assertThat(BatchDownloadRunner.formatRetention(24)).isEqualTo("1 day");
+        assertThat(BatchDownloadRunner.formatRetention(48)).isEqualTo("2 days");
+        assertThat(BatchDownloadRunner.formatRetention(168)).isEqualTo("7 days");
+    }
+
+    @Test
+    public void test_format_retention_hours() {
+        assertThat(BatchDownloadRunner.formatRetention(1)).isEqualTo("1 hour");
+        assertThat(BatchDownloadRunner.formatRetention(36)).isEqualTo("36 hours");
+    }
+
     private Document[] createFiveHelloWorldDocs() {
         return IntStream.range(0, 5).mapToObj(i -> createDoc("doc" + i).with(createFile(i)).with("hello world " + i).build()).toArray(Document[]::new);
     }
