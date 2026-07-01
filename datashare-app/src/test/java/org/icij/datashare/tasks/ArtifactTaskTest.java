@@ -250,7 +250,9 @@ public class ArtifactTaskTest {
         Long numberOfDocuments = task.call();
 
         assertThat(numberOfDocuments).isEqualTo(1);
-        assertThat(logback.logs(Level.ERROR)).contains("error in ArtifactTask loop");
+        // the producer isolates the per-artifact failure and keeps draining the queue,
+        // so the run stays non-fatal and the sibling document is still counted.
+        assertThat(logback.logs(Level.ERROR)).contains("failed to produce artifact 'raw' for document " + failingId);
     }
 
     @Test(timeout = 10000)
