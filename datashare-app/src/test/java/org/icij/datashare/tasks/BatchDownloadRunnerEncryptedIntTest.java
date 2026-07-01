@@ -53,6 +53,7 @@ public class BatchDownloadRunnerEncryptedIntTest {
         assertThat(mailCaptor.getValue().toRecipientList).containsExactly("foo@bar.com");
         assertThat(mailCaptor.getValue().subject).isEqualTo("[Datashare] Your batch download is ready - " + batchDownload.filename.getFileName());
         assertThat(mailCaptor.getValue().messageBody).contains("https://datashare-demo.icij.org/#/tasks/batch-download");
+        assertThat(mailCaptor.getValue().messageBody).contains("This download will be available for 1 day.");
     }
 
     @NotNull
