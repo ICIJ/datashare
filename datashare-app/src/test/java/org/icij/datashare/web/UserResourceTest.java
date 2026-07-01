@@ -358,10 +358,20 @@ public class UserResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
-    public void test_delete_user_returns_404_when_not_found() throws Exception {
+    public void test_delete_user_is_idempotent_when_not_found() throws Exception {
         when(userAdminService.delete("ghost")).thenThrow(new UserNotFoundException("ghost"));
 
-        delete("/api/users/ghost").should().respond(404);
+        delete("/api/users/ghost").should().respond(204);
+    }
+
+    @Test
+    public void test_delete_user_removes_casbin_policies() throws Exception {
+        authorizer.addRoleForUserInInstance(new User("alice"), Role.PROJECT_MEMBER);
+        when(userAdminService.delete("alice")).thenReturn(true);
+
+        delete("/api/users/alice").should().respond(204);
+
+        assertTrue(authorizer.getGroupPermissions(localUser("alice")).isEmpty());
     }
 
     @Test
