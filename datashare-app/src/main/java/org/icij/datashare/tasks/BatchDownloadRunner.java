@@ -216,16 +216,28 @@ public class BatchDownloadRunner implements Callable<BatchDownloadRunnerResult>,
         }
     }
 
-    static String formatRetention(int hours) {
-        if (hours > 0 && hours % 24 == 0) {
-            int days = hours / 24;
-            return days + (days == 1 ? " day" : " days");
+    // Join a count with its unit, adding the plural "s" only when needed, e.g. (1, "day") -> "1 day", (2, "day") -> "2 days".
+    static String pluralize(int count, String unit) {
+        if (count == 1) {
+            return count + " " + unit;
         }
-        return hours + (hours == 1 ? " hour" : " hours");
+        return count + " " + unit + "s";
     }
 
+    // Express the retention delay in the largest natural unit: whole days when it divides evenly, hours otherwise.
+    static String formatRetention(int hours) {
+        boolean isWholeNumberOfDays = hours > 0 && hours % 24 == 0;
+        if (isWholeNumberOfDays) {
+            int days = hours / 24;
+            return pluralize(days, "day");
+        }
+        return pluralize(hours, "hour");
+    }
+
+    // When retention is disabled the download is kept indefinitely, so we make no availability promise rather than stating a misleading duration.
     static String formatRetentionRow(int hours) {
-        if (hours <= 0) {
+        boolean isRetentionUnlimited = hours <= 0;
+        if (isRetentionUnlimited) {
             return "";
         }
         return String.format("This download will be available for %s.\n\n", formatRetention(hours));
