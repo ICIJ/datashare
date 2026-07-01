@@ -319,4 +319,16 @@ public class DatashareCliTest {
     public void test_ocr_strategy_opt_rejects_invalid_value() {
         cli.asProperties(cli.createParser().parse("--ocrStrategy", "NOPE"), null);
     }
+
+    @Test
+    public void test_max_embed_depth_opt() {
+        cli.parseArguments(new String[] {"--maxEmbedDepth=5"});
+        assertThat(cli.properties).includes(entry("maxEmbedDepth", "5"));
+    }
+
+    @Test
+    public void test_max_embed_depth_opt_defaults_to_20() {
+        cli.parseArguments(new String[] {""});
+        assertThat(cli.properties).includes(entry("maxEmbedDepth", "20"));
+    }
 }
