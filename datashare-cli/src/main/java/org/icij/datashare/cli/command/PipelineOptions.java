@@ -52,6 +52,9 @@ public class PipelineOptions {
     @Option(names = {"--parserParallelism"}, description = "Number of file parser threads", defaultValue = "1")
     int parserParallelism;
 
+    @Option(names = {"--maxEmbedDepth"}, description = "Maximum nesting depth of embedded documents to extract before deeper embeds are skipped (guards against decompression bombs). 0 disables the guard. Default: 20.", defaultValue = "20")
+    int maxEmbedDepth;
+
     @Option(names = {"-r", "--resume"}, description = "Resume pending operations")
     boolean resume;
 
@@ -81,6 +84,7 @@ public class PipelineOptions {
         DatashareOptions.putIfNotNull(props, OCR_STRATEGY_OPT, ocrStrategy);
         DatashareOptions.putIfNotNull(props, PARALLELISM_OPT, parallelism);
         DatashareOptions.put(props, PARSER_PARALLELISM_OPT, parserParallelism);
+        DatashareOptions.put(props, MAX_EMBED_DEPTH_OPT, maxEmbedDepth);
         DatashareOptions.putIfTrue(props, RESUME_OPT, resume);
         DatashareOptions.put(props, FOLLOW_SYMLINKS_OPT, followSymlinks);
         DatashareOptions.putIfNotNull(props, CREATE_INDEX_OPT, createIndex);
