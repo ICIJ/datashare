@@ -14,7 +14,7 @@ public class ManifestEntryTest {
     @Test
     public void test_single_file_entry_serializes_without_null_fields() throws Exception {
         ManifestEntry entry = ManifestEntry.singleFile(Map.of("type", "raw", "version", 1),
-                "application/pdf", "report.pdf").withStatus("complete");
+                "application/pdf", "report.pdf").withStatus(ManifestEntryStatus.COMPLETE);
 
         String json = mapper.writeValueAsString(entry);
 
@@ -30,7 +30,7 @@ public class ManifestEntryTest {
     @Test
     public void test_round_trip_preserves_task_input_for_equality() throws Exception {
         ManifestEntry entry = ManifestEntry.singleFile(Map.of("type", "raw", "version", 1),
-                "application/pdf", "report.pdf").withStatus("complete");
+                "application/pdf", "report.pdf").withStatus(ManifestEntryStatus.COMPLETE);
 
         ManifestEntry read = mapper.readValue(mapper.writeValueAsString(entry), ManifestEntry.class);
 
