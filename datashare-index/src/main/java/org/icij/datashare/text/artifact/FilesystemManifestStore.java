@@ -20,17 +20,18 @@ import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
 import static java.nio.file.StandardOpenOption.CREATE;
 import static java.nio.file.StandardOpenOption.WRITE;
 
-/** The only class that reads/writes a document's manifest.json. Writes are concurrency-safe
- *  (in-JVM ReentrantLock + cross-process FileLock) and atomic (temp + ATOMIC_MOVE). */
-public class ManifestStore {
+/** Filesystem-backed manifest persistence. Writes are concurrency-safe (in-JVM ReentrantLock +
+ *  cross-process FileLock) and atomic (temp + ATOMIC_MOVE). */
+public class FilesystemManifestStore implements ManifestStore {
     private static final String LOCK_FILE = ArtifactPath.MANIFEST_FILE + ".lock";
     private static final long LOCK_TIMEOUT_MS = 30_000;
     private static final ObjectMapper MAPPER = JsonObjectMapper.getMapper();
     private static final TypeReference<LinkedHashMap<String, ManifestEntry>> MANIFEST_TYPE = new TypeReference<>() {};
     private static final ConcurrentHashMap<String, ReentrantLock> JVM_LOCKS = new ConcurrentHashMap<>();
 
-    public ManifestEntry get(Path nodeDir, String type) throws IOException {
-        Path manifest = nodeDir.resolve(ArtifactPath.MANIFEST_FILE);
+    @Override
+    public ManifestEntry get(Path docArtifactDir, String type) throws IOException {
+        Path manifest = docArtifactDir.resolve(ArtifactPath.MANIFEST_FILE);
         // No manifest yet means nothing has been produced for this node; a present manifest
         // without this type's key means the same for that one type. Both read as "not found".
         if (!Files.exists(manifest)) {
@@ -39,25 +40,34 @@ public class ManifestStore {
         return read(manifest).get(type);
     }
 
-    public void put(Path nodeDir, String type, ManifestEntry entry) throws IOException {
-        Files.createDirectories(nodeDir);
+    @Override
+    public void put(Path docArtifactDir, String type, ManifestEntry entry) throws IOException {
+        inLock(docArtifactDir, () -> {
+            mergeEntryIntoManifest(docArtifactDir, type, entry);
+            return null;
+        });
+    }
+
+    @Override
+    public <T> T inLock(Path docArtifactDir, ManifestAction<T> action) throws IOException {
+        Files.createDirectories(docArtifactDir);
         // Serialise writers within this JVM first: a FileLock is owned per-JVM (not per-thread),
         // so two threads sharing the channel would otherwise collide on the same lock region.
-        ReentrantLock jvmLock = lockFor(nodeDir);
+        ReentrantLock jvmLock = lockFor(docArtifactDir);
         jvmLock.lock();
-        try (FileChannel channel = FileChannel.open(nodeDir.resolve(LOCK_FILE), CREATE, WRITE);
+        try (FileChannel channel = FileChannel.open(docArtifactDir.resolve(LOCK_FILE), CREATE, WRITE);
              FileLock fileLock = acquire(channel)) {
             // Cross-process safety: across hosts sharing the artifactDir, only one writer
             // mutates the manifest at a time while this file lock is held.
-            mergeEntryIntoManifest(nodeDir, type, entry);
+            return action.run();
         } finally {
             jvmLock.unlock();
         }
     }
 
     // Read-modify-write a single type's entry, leaving every other type untouched.
-    private void mergeEntryIntoManifest(Path nodeDir, String type, ManifestEntry entry) throws IOException {
-        Path manifest = nodeDir.resolve(ArtifactPath.MANIFEST_FILE);
+    private void mergeEntryIntoManifest(Path docArtifactDir, String type, ManifestEntry entry) throws IOException {
+        Path manifest = docArtifactDir.resolve(ArtifactPath.MANIFEST_FILE);
         Map<String, ManifestEntry> currentEntries = Files.exists(manifest) ? read(manifest) : new LinkedHashMap<>();
         currentEntries.put(type, entry);
         writeAtomically(manifest, currentEntries);
@@ -71,8 +81,8 @@ public class ManifestStore {
         Files.move(temporaryManifest, manifest, ATOMIC_MOVE, REPLACE_EXISTING);
     }
 
-    private ReentrantLock lockFor(Path nodeDir) {
-        return JVM_LOCKS.computeIfAbsent(nodeDir.toAbsolutePath().toString(), key -> new ReentrantLock());
+    private ReentrantLock lockFor(Path docArtifactDir) {
+        return JVM_LOCKS.computeIfAbsent(docArtifactDir.toAbsolutePath().toString(), key -> new ReentrantLock());
     }
 
     private Map<String, ManifestEntry> read(Path manifest) throws IOException {
