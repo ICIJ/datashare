@@ -55,11 +55,20 @@ public class FilesystemManifestStore implements ManifestStore {
         // so two threads sharing the channel would otherwise collide on the same lock region.
         ReentrantLock jvmLock = lockFor(docArtifactDir);
         jvmLock.lock();
-        try (FileChannel channel = FileChannel.open(docArtifactDir.resolve(LOCK_FILE), CREATE, WRITE);
-             FileLock fileLock = acquire(channel)) {
-            // Cross-process safety: across hosts sharing the artifactDir, only one writer
-            // mutates the manifest at a time while this file lock is held.
-            return action.run();
+        try {
+            // The ReentrantLock is reentrant but a FileLock is not: a second tryLock() on the same
+            // region within one JVM throws OverlappingFileLockException. When we already hold the
+            // JVM lock (hold count > 1) the cross-process FileLock is already held by this thread's
+            // outer inLock, so the nested call runs the action without re-acquiring it.
+            if (jvmLock.getHoldCount() > 1) {
+                return action.run();
+            }
+            try (FileChannel channel = FileChannel.open(docArtifactDir.resolve(LOCK_FILE), CREATE, WRITE);
+                 FileLock fileLock = acquire(channel)) {
+                // Cross-process safety: across hosts sharing the artifactDir, only one writer
+                // mutates the manifest at a time while this file lock is held.
+                return action.run();
+            }
         } finally {
             jvmLock.unlock();
         }

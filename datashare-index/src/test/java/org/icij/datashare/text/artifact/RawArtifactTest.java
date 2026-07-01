@@ -40,7 +40,7 @@ public class RawArtifactTest {
     }
 
     @Test
-    public void test_produce_returns_null_for_root_document() throws Exception {
+    public void test_produce_returns_empty_entry_for_root_document() throws Exception {
         SourceExtractor sources = mock(SourceExtractor.class);
         Project project = Project.project("prj");
         Document doc = createDoc("doc-id").with(Path.of("/path/to/root.pdf")).ofContentType("application/pdf").withExtractionLevel((short) 0).build();
@@ -49,7 +49,8 @@ public class RawArtifactTest {
         ManifestEntry entry = new RawArtifact().produce(ctx);
 
         verify(sources).extractEmbeddedSources(project, doc);
-        assertThat(entry).isNull();
+        assertThat(entry.status()).isEqualTo(ManifestEntryStatus.EMPTY);
+        assertThat(entry.isComplete()).isFalse();
     }
 
     @Test(expected = ArtifactException.class)

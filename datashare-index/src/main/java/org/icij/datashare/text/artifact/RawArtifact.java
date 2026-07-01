@@ -29,11 +29,10 @@ public class RawArtifact implements Artifact {
         try {
             // extract-lib writes the raw/raw.json bytes for the embedded subtree as a side effect.
             context.sources().extractEmbeddedSources(context.project(), document);
-            // Only embedded nodes have their source bytes cached in their own node dir; a root
-            // document's source is the original on-disk file, served directly and never copied here.
-            // So a root records no raw entry — a raw entry must always mean a payload in this dir.
+            // A root's source is the on-disk original, served directly and never copied here, so there is
+            // no payload in this dir. Record an empty entry so the root is not reprocessed on every run.
             if (document.getExtractionLevel() <= 0) {
-                return null;
+                return ManifestEntry.empty(taskInput());
             }
             return ManifestEntry.singleFile(taskInput(), document.getContentType(), document.getName());
         } catch (Exception extractionFailure) {
