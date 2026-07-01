@@ -8,7 +8,7 @@ import java.util.Map;
  *  contentType/filename; paginated types use total/pagination. */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record ManifestEntry(
-        String status,
+        ManifestEntryStatus status,
         Map<String, Object> taskInput,
         Integer total,
         Map<String, Object> pagination,
@@ -16,10 +16,6 @@ public record ManifestEntry(
         String filename,
         Double confidence,
         String label) {
-
-    // The single status value that marks an entry as ready to serve. Anything else
-    // (including a missing status) means the artifact is not yet usable.
-    public static final String STATUS_COMPLETE = "complete";
 
     // A single-file artifact (e.g. raw bytes): described by its media type and filename.
     public static ManifestEntry singleFile(Map<String, Object> taskInput, String contentType, String filename) {
@@ -33,11 +29,15 @@ public record ManifestEntry(
 
     // Producers return an entry without a status; the registry stamps it complete only
     // once every payload file has been written, so a crash never leaves a "ready" lie.
-    public ManifestEntry withStatus(String status) {
+    public ManifestEntry withStatus(ManifestEntryStatus status) {
         return new ManifestEntry(status, taskInput, total, pagination, contentType, filename, confidence, label);
     }
 
     public boolean isComplete() {
-        return STATUS_COMPLETE.equals(status);
+        return status != null && status.isServable();
+    }
+
+    public boolean isTerminal() {
+        return status != null && status.isTerminal();
     }
 }
