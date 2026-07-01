@@ -84,13 +84,17 @@ public class DocumentResourceTest extends AbstractProdWebServerTest {
 
     @Test
     public void test_get_source_file_with_content_type() throws Exception {
+        // Use a content type that is not going to be gzip compressed. See fluent-http documentation
         File txtFile = new File(temp.getRoot(), "/my/path/to/file.ods");
         MockIndexer.write(txtFile, "content");
-        mockIndexer.indexFile("local-datashare", "id_ods", txtFile.toPath(), "application/vnd.oasis.opendocument.spreadsheet", null);
-
-        get("/api/local-datashare/documents/src/id_ods").should().
-                haveType("application/vnd.oasis.opendocument.spreadsheet").
-                haveHeader("Content-Disposition", "attachment;filename=\"file.ods\"");
+        Document aDocWithContentLength = DocumentBuilder.createDoc("id_ods").with(txtFile.toPath()).with(new Project("local-datashare"))
+                .ofContentType("application/vnd.oasis.opendocument.spreadsheet").withContentLength(7).build();
+        mockIndexer.indexFile("local-datashare", aDocWithContentLength);
+        get("/api/local-datashare/documents/src/id_ods").should()
+            .haveType("application/vnd.oasis.opendocument.spreadsheet")
+            .haveHeader("Content-Disposition", "attachment;filename=\"file.ods\"")
+            .haveHeader("Content-Length", "7")
+        ;
     }
 
     @Test
@@ -106,7 +110,9 @@ public class DocumentResourceTest extends AbstractProdWebServerTest {
     public void test_get_source_file_with_content_type_inline() throws Exception {
         File img = new File(temp.getRoot(), "/my/path/to/image.jpg");
         MockIndexer.write(img, "content");
-        mockIndexer.indexFile("local-datashare", "id_jpg", img.toPath(), "image/jpg", null);
+        Document aDocWithContentLength = DocumentBuilder.createDoc("id_jpg").with(img.toPath()).with(new Project("local-datashare"))
+                .ofContentType("image/jpg").withContentLength(7).build();
+        mockIndexer.indexFile("local-datashare", aDocWithContentLength);
 
         get("/api/local-datashare/documents/src/id_jpg?inline=true").should().
                 haveType("image/jpg").contain("content").
