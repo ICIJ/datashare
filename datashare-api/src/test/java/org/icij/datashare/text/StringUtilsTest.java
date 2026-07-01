@@ -15,6 +15,13 @@ import static org.icij.datashare.text.StringUtils.isEmpty;
 public class StringUtilsTest  {
 
     @Test
+    public void test_pluralize_adds_s_only_beyond_one() {
+        assertThat(StringUtils.pluralize(1, "day")).isEqualTo("1 day");
+        assertThat(StringUtils.pluralize(2, "day")).isEqualTo("2 days");
+        assertThat(StringUtils.pluralize(0, "hour")).isEqualTo("0 hours");
+    }
+
+    @Test
     public void is_empty_test() {
         assertThat(isEmpty(null)).isTrue();
         assertThat(isEmpty("")).isTrue();

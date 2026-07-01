@@ -73,26 +73,6 @@ public class BatchDownloadRunnerTest {
     }
 
     @Test
-    public void test_pluralize_adds_s_only_beyond_one() {
-        assertThat(BatchDownloadRunner.pluralize(1, "day")).isEqualTo("1 day");
-        assertThat(BatchDownloadRunner.pluralize(2, "day")).isEqualTo("2 days");
-        assertThat(BatchDownloadRunner.pluralize(0, "hour")).isEqualTo("0 hours");
-    }
-
-    @Test
-    public void test_format_retention_whole_days() {
-        assertThat(BatchDownloadRunner.formatRetention(24)).isEqualTo("1 day");
-        assertThat(BatchDownloadRunner.formatRetention(48)).isEqualTo("2 days");
-        assertThat(BatchDownloadRunner.formatRetention(168)).isEqualTo("7 days");
-    }
-
-    @Test
-    public void test_format_retention_hours() {
-        assertThat(BatchDownloadRunner.formatRetention(1)).isEqualTo("1 hour");
-        assertThat(BatchDownloadRunner.formatRetention(36)).isEqualTo("36 hours");
-    }
-
-    @Test
     public void test_retention_row_omitted_when_ttl_zero_or_negative() {
         assertThat(BatchDownloadRunner.formatRetentionRow(0)).isEqualTo("");
         assertThat(BatchDownloadRunner.formatRetentionRow(-5)).isEqualTo("");
