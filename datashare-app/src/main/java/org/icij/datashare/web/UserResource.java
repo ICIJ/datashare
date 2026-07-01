@@ -215,19 +215,15 @@ public class UserResource {
         }
     }
 
-    @Operation(description = "Deletes a user by login.",
+    @Operation(description = "Deletes a user by login. Idempotent: returns 204 even when the user does not exist.",
             parameters = @Parameter(name = "login", in = ParameterIn.PATH))
-    @ApiResponse(responseCode = "204", description = "user deleted")
-    @ApiResponse(responseCode = "404", description = "user not found")
+    @ApiResponse(responseCode = "204", description = "user deleted or did not exist")
     @Policy(role = Role.PROJECT_ADMIN)
     @Delete("/:login")
     public Payload deleteUser(String login) {
-        try {
-            userAdminService.delete(login);
-            return new Payload(204);
-        } catch (UserNotFoundException e) {
-            return PayloadFormatter.error(e.getMessage(), HttpStatus.NOT_FOUND);
-        }
+        userAdminService.deleteIfExists(login);
+        authorizer.removeAllPoliciesForUser(login);
+        return new Payload(204);
     }
 
     @Operation(description = "Gets the user's session information.")

@@ -18,7 +18,6 @@ import java.util.Set;
 
 @Singleton
 public class UserAdminServiceImpl implements UserAdminService {
-    private static final Set<String> KNOWN_PROVIDERS = Set.of(User.LOCAL, User.OAUTH, User.EXTERNAL);
 
     private final UserStore userStore;
 
