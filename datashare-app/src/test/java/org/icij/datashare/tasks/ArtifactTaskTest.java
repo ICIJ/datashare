@@ -404,7 +404,7 @@ public class ArtifactTaskTest {
     }
 
     @Test(timeout = 10000)
-    public void test_root_caches_embedded_raw_and_writes_no_manifest() throws Exception {
+    public void test_root_caches_embedded_raw_and_writes_empty_root_manifest() throws Exception {
         Path path = Path.of(Objects.requireNonNull(getClass().getResource("/docs/embedded_doc.eml")).getPath());
         String rootSha = "0f95ef97e4619f7bae2a585c6cf24587cd7a3a81a26599c8774d669e5c175e5e";
         mockIndexer.indexFile("prj", rootSha, path, "message/rfc822");
@@ -424,8 +424,11 @@ public class ArtifactTaskTest {
         // raw bytes for the embedded child are still produced (behavior preserved)
         assertThat(artifactDir.getRoot().toPath().resolve("prj/6a/bb/6abb96950946b62bb993307c8945c0c096982783bab7fa24901522426840ca3e/raw").toFile()).isFile();
 
-        // root document has no raw entry so no manifest is written at the root dir
-        assertThat(artifactDir.getRoot().toPath().resolve("prj/0f/95/0f95ef97e4619f7bae2a585c6cf24587cd7a3a81a26599c8774d669e5c175e5e/manifest.json").toFile()).doesNotExist();
+        // G10: a root document now records an EMPTY raw entry (source is the on-disk original, no
+        // payload copied here) so it is not reprocessed on the next run - the manifest IS written.
+        Path rootManifest = artifactDir.getRoot().toPath().resolve("prj/0f/95/0f95ef97e4619f7bae2a585c6cf24587cd7a3a81a26599c8774d669e5c175e5e/manifest.json");
+        assertThat(rootManifest.toFile()).isFile();
+        assertThat(new String(java.nio.file.Files.readAllBytes(rootManifest))).contains("\"status\" : \"empty\"");
     }
 
     @Before
