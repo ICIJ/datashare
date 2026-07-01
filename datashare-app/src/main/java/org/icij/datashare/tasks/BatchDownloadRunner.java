@@ -9,6 +9,7 @@ import net.lingala.zip4j.model.enums.EncryptionMethod;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.icij.datashare.Entity;
+import org.icij.datashare.HumanReadableDuration;
 import org.icij.datashare.HumanReadableSize;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.asynctasks.CancelException;
@@ -216,31 +217,13 @@ public class BatchDownloadRunner implements Callable<BatchDownloadRunnerResult>,
         }
     }
 
-    // Join a count with its unit, adding the plural "s" only when needed, e.g. (1, "day") -> "1 day", (2, "day") -> "2 days".
-    static String pluralize(int count, String unit) {
-        if (count == 1) {
-            return count + " " + unit;
-        }
-        return count + " " + unit + "s";
-    }
-
-    // Express the retention delay in the largest natural unit: whole days when it divides evenly, hours otherwise.
-    static String formatRetention(int hours) {
-        boolean isWholeNumberOfDays = hours > 0 && hours % 24 == 0;
-        if (isWholeNumberOfDays) {
-            int days = hours / 24;
-            return pluralize(days, "day");
-        }
-        return pluralize(hours, "hour");
-    }
-
     // When retention is disabled the download is kept indefinitely, so we make no availability promise rather than stating a misleading duration.
     static String formatRetentionRow(int hours) {
         boolean isRetentionUnlimited = hours <= 0;
         if (isRetentionUnlimited) {
             return "";
         }
-        return String.format("This download will be available for %s.\n\n", formatRetention(hours));
+        return String.format("This download will be available for %s.\n\n", HumanReadableDuration.fromHours(hours));
     }
 
     private static class Zipper implements AutoCloseable {

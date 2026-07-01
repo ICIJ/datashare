@@ -22,6 +22,14 @@ public class StringUtils {
         return str == null || str.trim().isEmpty();
     }
 
+    // Join a count with its unit, adding the plural "s" only when needed, e.g. (1, "day") -> "1 day", (2, "day") -> "2 days".
+    public static String pluralize(int count, String unit) {
+        if (count == 1) {
+            return count + " " + unit;
+        }
+        return count + " " + unit + "s";
+    }
+
     public static Object getValue(Object root, String dottedKey) {
         if (root == null || isEmpty(dottedKey)) {
             return null;
