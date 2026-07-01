@@ -60,4 +60,16 @@ public class StageRunCommandTest extends AbstractDatashareCommandTest {
         Properties props = parse("stage", "run", "--stages", "SCAN,INDEX");
         assertThat(props.containsKey("ocrStrategy")).isFalse();
     }
+
+    @Test
+    public void test_max_embed_depth() {
+        Properties props = parse("stage", "run", "--stages", "SCAN,INDEX", "--maxEmbedDepth", "5");
+        assertThat(props).includes(entry("maxEmbedDepth", "5"));
+    }
+
+    @Test
+    public void test_max_embed_depth_defaults_to_20() {
+        Properties props = parse("stage", "run", "--stages", "SCAN,INDEX");
+        assertThat(props).includes(entry("maxEmbedDepth", "20"));
+    }
 }
