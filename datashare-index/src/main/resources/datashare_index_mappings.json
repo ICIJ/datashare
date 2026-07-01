@@ -1,4 +1,16 @@
 {
+  "dynamic_templates": [
+    {
+      "metadata_dates": {
+        "path_match": "metadata.*",
+        "match_mapping_type": "date",
+        "mapping": {
+          "type": "date",
+          "ignore_malformed": true
+        }
+      }
+    }
+  ],
   "properties": {
     "content": {
       "type": "text",

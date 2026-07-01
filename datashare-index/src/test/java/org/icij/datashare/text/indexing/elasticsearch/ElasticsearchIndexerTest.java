@@ -871,4 +871,22 @@ public class ElasticsearchIndexerTest {
         assertThat(resultIds).contains("doc1", "doc2");
         assertThat(resultIds).excludes("doc3");
     }
+
+    @Test
+    public void test_malformed_metadata_date_does_not_fail_the_document() throws Exception {
+        // GIVEN a metadata date field first mapped as `date` from a valid value
+        indexer.add(es.getIndexName(), createDoc("sigdate-valid")
+                .with(Map.<String, Object>of("tika_metadata_signature_date", "2023-05-30T12:35:06Z"))
+                .build());
+
+        // WHEN a later document has a malformed (comma-joined) value for that same date field
+        indexer.add(es.getIndexName(), createDoc("sigdate-malformed")
+                .with(Map.<String, Object>of("tika_metadata_signature_date",
+                        "2023-05-30T12:35:06Z,2024-06-20T06:39:27Z"))
+                .build());
+
+        // THEN the document is still indexed (before the fix this threw
+        // mapper_parsing_exception and dropped the whole document)
+        assertThat((Document) indexer.get(es.getIndexName(), "sigdate-malformed")).isNotNull();
+    }
 }
