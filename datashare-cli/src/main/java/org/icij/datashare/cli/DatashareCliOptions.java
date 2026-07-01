@@ -142,6 +142,7 @@ public final class DatashareCliOptions {
     public static final String VERSION_OPT = "version";
     public static final String ARTIFACT_DIR_OPT = "artifactDir";
     public static final String ARTIFACTS_OPT = "artifacts";
+    public static final String ARTIFACTS_FORCE_OPT = "artifactsForce";
     public static final String SEARCH_QUERY_OPT = "searchQuery";
     public static final String TASK_ROUTING_STRATEGY_OPT = "taskRoutingStrategy";
     public static final String TASK_ROUTING_KEY_OPT = "taskRoutingKey";
@@ -497,6 +498,13 @@ public final class DatashareCliOptions {
                 List.of(ARTIFACTS_OPT),
                 "Artifact types to produce (comma-separated, e.g. raw,structure). Bare flag = all types." )
                 .withOptionalArg();
+    }
+
+    static void artifactsForce(OptionParser parser) {
+        parser.acceptsAll(
+                List.of(ARTIFACTS_FORCE_OPT),
+                "Reprocess artifacts even when an up-to-date manifest entry exists (bypasses caching)." )
+                .withOptionalArg().ofType(Boolean.class).defaultsTo(false);
     }
 
     static void rootHost(OptionParser parser) {
