@@ -106,6 +106,7 @@ public final class DatashareCliOptions {
     public static final String OCR_OPT = "ocr";
     public static final String OCR_TYPE_OPT = "ocrType";
     public static final String OCR_STRATEGY_OPT = "ocrStrategy";
+    public static final String MAX_EMBED_DEPTH_OPT = "maxEmbedDepth";
     public static final String PARALLELISM_OPT = "parallelism";
     public static final String PARSER_PARALLELISM_ABBR_OPT = "pp";
     public static final String PARSER_PARALLELISM_OPT = "parserParallelism";
@@ -239,6 +240,7 @@ public final class DatashareCliOptions {
     public static final boolean DEFAULT_BROWSER_OPEN_LINK = false;
     public static final boolean DEFAULT_NO_DIGEST_PROJECT = false;
     public static final boolean DEFAULT_OCR = true;
+    public static final int DEFAULT_MAX_EMBED_DEPTH = 20;
     public static final int DEFAULT_BATCH_DOWNLOAD_MAX_NB_FILES = 10000;
     public static final int DEFAULT_BATCH_DOWNLOAD_ZIP_TTL = 24;
     public static final String DEFAULT_PLUGIN_DIR = DEFAULT_DATASHARE_HOME.resolve("plugins").toString();
@@ -758,6 +760,17 @@ public final class DatashareCliOptions {
                 // usage error, matching the picocli stage subcommand, instead of silently degrading
                 // to NO_OCR inside extract. asProperties serializes it back to the enum name.
                 .ofType(OcrStrategy.class);
+    }
+
+    static void maxEmbedDepth(OptionParser parser) {
+        parser.acceptsAll(
+                        List.of(MAX_EMBED_DEPTH_OPT),
+                        "Maximum nesting depth of embedded documents to extract before deeper embeds " +
+                                "are skipped, guarding against decompression-bomb / deeply-nested-archive " +
+                                "inputs. 0 disables the guard. Default: 20.")
+                .withRequiredArg()
+                .ofType(Integer.class)
+                .defaultsTo(DEFAULT_MAX_EMBED_DEPTH);
     }
 
     static void nlpPipeline(OptionParser parser) {
