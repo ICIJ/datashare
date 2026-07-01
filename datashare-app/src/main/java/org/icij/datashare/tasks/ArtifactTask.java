@@ -12,7 +12,14 @@ import org.icij.datashare.asynctasks.temporal.TemporalSingleActivityWorkflow;
 import org.icij.datashare.extract.DocumentCollectionFactory;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.Project;
+import org.icij.datashare.text.artifact.Artifact;
+import org.icij.datashare.text.artifact.ArtifactContext;
+import org.icij.datashare.text.artifact.ArtifactProducer;
+import org.icij.datashare.text.artifact.ArtifactRegistry;
+import org.icij.datashare.text.artifact.FilesystemManifestStore;
+import org.icij.datashare.text.artifact.RawArtifact;
 import org.icij.datashare.text.indexing.Indexer;
+import org.icij.datashare.text.indexing.elasticsearch.ArtifactPath;
 import org.icij.datashare.text.indexing.elasticsearch.SourceExtractor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,6 +31,8 @@ import java.util.function.Function;
 
 import static org.icij.datashare.PropertiesProvider.DEFAULT_PROJECT_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.ARTIFACT_DIR_OPT;
+import static org.icij.datashare.cli.DatashareCliOptions.ARTIFACTS_FORCE_OPT;
+import static org.icij.datashare.cli.DatashareCliOptions.ARTIFACTS_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_DEFAULT_PROJECT;
 import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_POLLING_INTERVAL_SEC;
 import static org.icij.datashare.cli.DatashareCliOptions.POLLING_INTERVAL_SECONDS_OPT;
@@ -51,14 +60,24 @@ public class ArtifactTask extends PipelineTask<String> {
         super.call();
         logger.info("creating artifact cache in {} for project {} from queue {} with polling interval {}s", artifactDir, project, inputQueue.getName(), pollingInterval);
         SourceExtractor extractor = new SourceExtractor(propertiesProvider);
+        // Decide once which artifact types to produce for this run: an absent --artifacts
+        // flag means all registered types (raw is the only one wired in this foundation).
+        ArtifactRegistry registry = new ArtifactRegistry(List.of(new RawArtifact()));
+        List<Artifact> selected = registry.select(propertiesProvider.get(ARTIFACTS_OPT).orElse(null));
+        boolean force = Boolean.parseBoolean(propertiesProvider.get(ARTIFACTS_FORCE_OPT).orElse("false"));
+        ArtifactProducer producer = new ArtifactProducer(new FilesystemManifestStore());
+        Path projectRoot = artifactDir.resolve(project.name);
         List<String> sourceExcludes = List.of("content", "content_translated");
         String docId;
         long nbDocs = 0;
         while ((docId = inputQueue.poll(pollingInterval, TimeUnit.SECONDS)) != null) {
             try {
+                // Each polled node is produced into its own content-addressed directory.
                 Document doc = indexer.get(project.name, docId, sourceExcludes);
-                extractor.extractEmbeddedSources(project, doc);
-                nbDocs++;
+                Path docArtifactDir = ArtifactPath.dir(projectRoot, doc.getId());
+                if (producer.run(selected, new ArtifactContext(project, doc, docArtifactDir, extractor), force)) {
+                    nbDocs++;
+                }
             } catch (Throwable e) {
                 logger.error("error in ArtifactTask loop", e);
             }

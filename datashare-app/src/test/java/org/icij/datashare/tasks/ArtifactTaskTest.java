@@ -55,6 +55,34 @@ public class ArtifactTaskTest {
         assertThat(artifactDir.getRoot().toPath().resolve("prj/6a/bb/6abb96950946b62bb993307c8945c0c096982783bab7fa24901522426840ca3e/raw.json").toFile()).isFile();
     }
 
+    @Test(timeout = 10000)
+    public void test_root_caches_embedded_raw_and_writes_empty_root_manifest() throws Exception {
+        Path path = Path.of(Objects.requireNonNull(getClass().getResource("/docs/embedded_doc.eml")).getPath());
+        String rootSha = "0f95ef97e4619f7bae2a585c6cf24587cd7a3a81a26599c8774d669e5c175e5e";
+        mockIndexer.indexFile("prj", rootSha, path, "message/rfc822");
+
+        DocumentQueue<String> queue = factory.createQueue("extract:queue:artifact", String.class);
+        queue.add(rootSha);
+
+        Long numberOfDocuments = new ArtifactTask(factory, mockEs, new PropertiesProvider(Map.of(
+                "artifactDir", artifactDir.getRoot().toString(),
+                "defaultProject", "prj",
+                "pollingInterval", "1")),
+                new Task<>(ArtifactTask.class.getName(), User.local(), new HashMap<>()), null)
+                .call();
+
+        assertThat(numberOfDocuments).isEqualTo(1);
+
+        // raw bytes for the embedded child are still produced (behavior preserved)
+        assertThat(artifactDir.getRoot().toPath().resolve("prj/6a/bb/6abb96950946b62bb993307c8945c0c096982783bab7fa24901522426840ca3e/raw").toFile()).isFile();
+
+        // G10: a root document now records an EMPTY raw entry (source is the on-disk original, no
+        // payload copied here) so it is not reprocessed on the next run - the manifest IS written.
+        Path rootManifest = artifactDir.getRoot().toPath().resolve("prj/0f/95/0f95ef97e4619f7bae2a585c6cf24587cd7a3a81a26599c8774d669e5c175e5e/manifest.json");
+        assertThat(rootManifest.toFile()).isFile();
+        assertThat(new String(java.nio.file.Files.readAllBytes(rootManifest))).contains("\"status\" : \"empty\"");
+    }
+
     @Before
     public void setUp() throws Exception {
         initMocks(this);
