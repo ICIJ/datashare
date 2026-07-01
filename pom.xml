@@ -110,6 +110,11 @@
         <guava.version>33.0.0-jre</guava.version>
         <xalan.version>2.7.2</xalan.version>
         <xerces.version>2.12.2</xerces.version>
+        <!-- Force the whole ASM family to the version Tika 3.3.0 requires. nashorn-core:15.3 drags in
+             asm 7.3.1, which wins mediation and makes Tika's ClassParser fail on .class files with
+             "IllegalArgumentException: Unsupported api 589824" (ASM9). ASM 9.x is backward compatible
+             with Nashorn's ASM7-level usage, so pinning up is safe. -->
+        <asm.version>9.9.1</asm.version>
         <commons-beanutils.version>1.7.0</commons-beanutils.version>
         <jna.version>5.13.0</jna.version>
         <bouncycastle.version>1.70</bouncycastle.version>
@@ -212,6 +217,34 @@
                 <groupId>org.icij.extract</groupId>
                 <artifactId>extract-lib</artifactId>
                 <version>${extract.version}</version>
+            </dependency>
+
+            <!-- ASM family pinned to the version Tika's ClassParser expects (see asm.version). This
+                 overrides the older 7.3.1 pulled transitively by nashorn-core regardless of tree depth. -->
+            <dependency>
+                <groupId>org.ow2.asm</groupId>
+                <artifactId>asm</artifactId>
+                <version>${asm.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.ow2.asm</groupId>
+                <artifactId>asm-tree</artifactId>
+                <version>${asm.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.ow2.asm</groupId>
+                <artifactId>asm-commons</artifactId>
+                <version>${asm.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.ow2.asm</groupId>
+                <artifactId>asm-analysis</artifactId>
+                <version>${asm.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.ow2.asm</groupId>
+                <artifactId>asm-util</artifactId>
+                <version>${asm.version}</version>
             </dependency>
 
             <dependency>
