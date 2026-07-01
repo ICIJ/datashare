@@ -19,6 +19,11 @@ public class ManifestEntryStatusTest {
         assertThat(mapper.readValue("\"empty\"", ManifestEntryStatus.class)).isEqualTo(ManifestEntryStatus.EMPTY);
     }
 
+    @Test(expected = IllegalArgumentException.class)
+    public void test_from_rejects_unknown_token() {
+        ManifestEntryStatus.from("bogus");
+    }
+
     @Test
     public void test_terminal_and_servable_semantics() {
         assertThat(ManifestEntryStatus.COMPLETE.isTerminal()).isTrue();
