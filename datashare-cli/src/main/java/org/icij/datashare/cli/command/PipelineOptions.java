@@ -52,7 +52,7 @@ public class PipelineOptions {
     @Option(names = {"--parserParallelism"}, description = "Number of file parser threads", defaultValue = "1")
     int parserParallelism;
 
-    @Option(names = {"--maxEmbedDepth"}, description = "Maximum nesting depth of embedded documents to extract before deeper embeds are skipped (guards against decompression bombs). 0 disables the guard. Default: 20.", defaultValue = "20")
+    @Option(names = {"--maxEmbedDepth"}, description = MAX_EMBED_DEPTH_DESC, defaultValue = "20")
     int maxEmbedDepth;
 
     @Option(names = {"-r", "--resume"}, description = "Resume pending operations")
