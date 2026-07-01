@@ -85,6 +85,18 @@ public class BatchDownloadRunnerTest {
         assertThat(BatchDownloadRunner.formatRetention(36)).isEqualTo("36 hours");
     }
 
+    @Test
+    public void test_retention_row_omitted_when_ttl_zero_or_negative() {
+        assertThat(BatchDownloadRunner.formatRetentionRow(0)).isEqualTo("");
+        assertThat(BatchDownloadRunner.formatRetentionRow(-5)).isEqualTo("");
+    }
+
+    @Test
+    public void test_retention_row_for_positive_ttl() {
+        assertThat(BatchDownloadRunner.formatRetentionRow(24)).isEqualTo("This download will be available for 1 day.\n\n");
+        assertThat(BatchDownloadRunner.formatRetentionRow(168)).isEqualTo("This download will be available for 7 days.\n\n");
+    }
+
     private Document[] createFiveHelloWorldDocs() {
         return IntStream.range(0, 5).mapToObj(i -> createDoc("doc" + i).with(createFile(i)).with("hello world " + i).build()).toArray(Document[]::new);
     }
