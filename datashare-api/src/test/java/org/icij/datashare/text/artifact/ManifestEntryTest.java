@@ -45,11 +45,11 @@ public class ManifestEntryTest {
     }
 
     @Test
-    public void test_paginated_entry_carries_total_and_pagination() {
+    public void test_paginated_entry_carries_pagination() {
         ManifestEntry entry = ManifestEntry.paginated(Map.of("type", "structure", "version", 1),
-                12, Map.of("type", "filesystem"));
+                Pagination.filesystem(12));
         assertThat(entry.total()).isEqualTo(12);
-        assertThat(entry.pagination()).isEqualTo(Map.of("type", "filesystem"));
+        assertThat(entry.pagination().type()).isEqualTo("filesystem");
         assertThat(entry.contentType()).isNull();
     }
 }
