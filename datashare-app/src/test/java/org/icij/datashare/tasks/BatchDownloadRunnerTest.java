@@ -73,6 +73,13 @@ public class BatchDownloadRunnerTest {
     }
 
     @Test
+    public void test_pluralize_adds_s_only_beyond_one() {
+        assertThat(BatchDownloadRunner.pluralize(1, "day")).isEqualTo("1 day");
+        assertThat(BatchDownloadRunner.pluralize(2, "day")).isEqualTo("2 days");
+        assertThat(BatchDownloadRunner.pluralize(0, "hour")).isEqualTo("0 hours");
+    }
+
+    @Test
     public void test_format_retention_whole_days() {
         assertThat(BatchDownloadRunner.formatRetention(24)).isEqualTo("1 day");
         assertThat(BatchDownloadRunner.formatRetention(48)).isEqualTo("2 days");
