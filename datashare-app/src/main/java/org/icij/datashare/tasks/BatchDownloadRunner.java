@@ -174,7 +174,7 @@ public class BatchDownloadRunner implements Callable<BatchDownloadRunnerResult>,
             int ttlHour = parseInt(propertiesProvider.get(BATCH_DOWNLOAD_ZIP_TTL_OPT).orElse(valueOf(DEFAULT_BATCH_DOWNLOAD_ZIP_TTL)));
             URI mailSenderUri = new URI(propertiesProvider.get("smtpUrl").orElse("smtp://localhost:25"));
             MailSender mailSender = mailSenderSupplier.apply(mailSenderUri);
-            return new ZipperWithPassword(batchDownload, propertiesProvider, mailSender, rootHost, formatRetention(ttlHour));
+            return new ZipperWithPassword(batchDownload, propertiesProvider, mailSender, rootHost, formatRetentionRow(ttlHour));
         }
         return new Zipper(batchDownload, propertiesProvider);
     }
@@ -222,6 +222,13 @@ public class BatchDownloadRunner implements Callable<BatchDownloadRunnerResult>,
             return days + (days == 1 ? " day" : " days");
         }
         return hours + (hours == 1 ? " hour" : " hours");
+    }
+
+    static String formatRetentionRow(int hours) {
+        if (hours <= 0) {
+            return "";
+        }
+        return String.format("This download will be available for %s.\n\n", formatRetention(hours));
     }
 
     private static class Zipper implements AutoCloseable {
@@ -279,18 +286,18 @@ public class BatchDownloadRunner implements Callable<BatchDownloadRunnerResult>,
         private final String password;
         private final MailSender passwordSender;
         private final String rootHost;
-        private final String retention;
+        private final String retentionRow;
 
-        public ZipperWithPassword(BatchDownload batchDownload, PropertiesProvider propertiesProvider, MailSender mailSender, String rootHost, String retention) throws IOException {
-            this(batchDownload, propertiesProvider, mailSender, RandomStringUtils.randomAlphanumeric(16), rootHost, retention);
+        public ZipperWithPassword(BatchDownload batchDownload, PropertiesProvider propertiesProvider, MailSender mailSender, String rootHost, String retentionRow) throws IOException {
+            this(batchDownload, propertiesProvider, mailSender, RandomStringUtils.randomAlphanumeric(16), rootHost, retentionRow);
         }
 
-        public ZipperWithPassword(BatchDownload batchDownload, PropertiesProvider propertiesProvider, MailSender mailSender, String password, String rootHost, String retention) throws IOException {
+        public ZipperWithPassword(BatchDownload batchDownload, PropertiesProvider propertiesProvider, MailSender mailSender, String password, String rootHost, String retentionRow) throws IOException {
             super(batchDownload, propertiesProvider, new ZipOutputStream(new FileOutputStream(batchDownload.filename.toFile()), password.toCharArray()));
             this.password = password;
             this.passwordSender = mailSender;
             this.rootHost = rootHost;
-            this.retention = retention;
+            this.retentionRow = retentionRow;
         }
 
         public String batchDownloadsLink() {
@@ -322,7 +329,7 @@ public class BatchDownloadRunner implements Callable<BatchDownloadRunnerResult>,
                 String body = "Hello,\n\n"
                         .concat("Your requested batch download has been successfully processed and is now ready for your retrieval.\n\n")
                         .concat(this.batchDownloadsLinkRow())
-                        .concat(String.format("This download will be available for %s.\n\n", retention))
+                        .concat(this.retentionRow)
                         .concat("In order to ensure the highest level of security, your batch download is password protected.\n\n")
                         .concat(String.format("To open the ZIP file, the password is \"%s\".\n\n", password))
                         .concat("We strongly recommend that you keep this password confidential. Do not share it with anyone and delete this email after you have successfully accessed your batch download.");
