@@ -103,7 +103,9 @@ public class DocumentResourceTest extends AbstractProdWebServerTest {
         MockIndexer.write(txtFile, "content");
         mockIndexer.indexFile("local-datashare", "id_ods", txtFile.toPath(), "application/vnd.oasis.opendocument.spreadsheet", null);
 
-        get("/api/local-datashare/documents/src/id_ods?filter_metadata=true").should().succeed();
+        get("/api/local-datashare/documents/src/id_ods?filter_metadata=true").should()
+                .succeed()
+                .haveHeader("Content-Length", null);
     }
 
     @Test
