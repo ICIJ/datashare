@@ -47,7 +47,7 @@ public class PipelineRegistry {
     }
 
     public synchronized void load(ExtensionLoader loader) throws FileNotFoundException {
-        loader.load((Consumer<Class<? extends Pipeline>>) this::register, Pipeline.class::isAssignableFrom);
+        loader.load(cls -> register(cls.asSubclass(Pipeline.class)), Pipeline.class::isAssignableFrom);
     }
 }
 
