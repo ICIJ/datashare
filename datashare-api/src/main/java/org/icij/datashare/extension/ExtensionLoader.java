@@ -12,6 +12,8 @@ import java.lang.reflect.Modifier;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.jar.JarEntry;
@@ -42,16 +44,23 @@ public class ExtensionLoader {
         }
     }
 
-    public synchronized <T> void load(Consumer<T> registerFunc, Predicate<Class<?>> predicate) throws FileNotFoundException {
+    public synchronized void load(Consumer<Class<?>> registerFunc, Predicate<Class<?>> predicate) throws FileNotFoundException {
         eagerLoadJars();
         if (jars != null) {
             for (File jar : jars) {
-                registerClassesInJar(registerFunc, predicate, jar);
+                try {
+                    for (Class<?> cls : findAllClassesInJar(predicate, jar)) {
+                        registerFunc.accept(cls);
+                    }
+                } catch (IOException e) {
+                    LOGGER.error("Cannot find classes in jar " + jar, e);
+                }
             }
         }
     }
 
-    synchronized <T> Class<?> findClassesInJar(Predicate<Class<?>> predicate, final File jarFile) throws IOException {
+    synchronized List<Class<?>> findAllClassesInJar(Predicate<Class<?>> predicate, final File jarFile) throws IOException {
+        List<Class<?>> matches = new ArrayList<>();
         URLClassLoader ucl = new URLClassLoader(new URL[]{jarFile.toURI().toURL()}, getClass().getClassLoader());
         JarInputStream jarInputStream = new JarInputStream(new FileInputStream(jarFile));
         for (JarEntry jarEntry = jarInputStream.getNextJarEntry(); jarEntry != null; jarEntry = jarInputStream.getNextJarEntry()) {
@@ -63,7 +72,7 @@ public class ExtensionLoader {
                         final Class<?> myLoadedClass = Class.forName(classname, false, ucl);
                         if (predicate.test(myLoadedClass) &&
                                 !myLoadedClass.isInterface() && !Modifier.isAbstract(myLoadedClass.getModifiers())) {
-                            return myLoadedClass;
+                            matches.add(myLoadedClass);
                         }
                     } catch (ClassNotFoundException | LinkageError e) {
                         LOGGER.warn("cannot load class " + classname, e);
@@ -71,15 +80,7 @@ public class ExtensionLoader {
                 }
             }
         }
-        return null;
-    }
-
-    private <T> void registerClassesInJar(Consumer<T> registerFunc, Predicate<Class<?>> predicate, File jar) {
-        try {
-            ofNullable(findClassesInJar(predicate, jar)).ifPresent(expectedClass -> registerFunc.accept((T) expectedClass));
-        } catch (IOException e) {
-            LOGGER.error("Cannot find class in jar " + jar, e);
-        }
+        return matches;
     }
 
     private void loadJars(DynamicClassLoader classLoader, File[] jars) {

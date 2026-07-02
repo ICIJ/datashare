@@ -1,5 +1,6 @@
 package org.icij.datashare.mode;
 
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.jsontype.NamedType;
@@ -467,11 +468,8 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
          ExtensionLoader extensionLoader = new ExtensionLoader(Paths.get(ofNullable(getExtensionsDir()).orElse("./extensions")));
          if (extensionLoader.extensionsDir != null) {
             try {
-                extensionLoader.load((Consumer<Class<?>>) routes::add, this::isEligibleForLoading);
-                extensionLoader.load(
-                        (Consumer<Class<?>>) cls -> JsonObjectMapper.registerSubtypes(new NamedType(cls)),
-                        cls -> cls.isAnnotationPresent(JsonTypeName.class) && Serializable.class.isAssignableFrom(cls)
-                );
+                extensionLoader.load(routes::add, this::isEligibleForLoading);
+                extensionLoader.load(cls -> JsonObjectMapper.registerSubtypes(new NamedType(cls)), this::isJsonType);
                 get(PipelineRegistry.class).load(extensionLoader);
             } catch (FileNotFoundException e) {
                 logger.warn("Extensions directory not found: {}", extensionLoader.extensionsDir);
@@ -561,6 +559,10 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
 
     private boolean isEligibleForLoading(Class<?> c) {
         return c.isAnnotationPresent(Prefix.class) || c.isAnnotationPresent(Get.class);
+    }
+
+    private boolean isJsonType(Class<?> c) {
+        return (c.isAnnotationPresent(JsonTypeName.class) || c.isAnnotationPresent(JsonTypeInfo.class)) && Serializable.class.isAssignableFrom(c);
     }
 
     @NotNull
