@@ -1,6 +1,7 @@
 package org.icij.datashare.text.artifact;
 
 import java.util.Arrays;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /** The closed set of artifact types datashare knows about. datashare owns this vocabulary: a type
@@ -21,6 +22,13 @@ public enum ArtifactType {
     /** The stable lowercase name used as the --artifacts selector token and the manifest.json key. */
     public String token() {
         return token;
+    }
+
+    /** The config-only fingerprint recorded in the manifest for this type at the given producer
+     *  version. Centralised here so every producer builds the same {type, version} shape and the
+     *  keys cannot drift across artifacts. */
+    public Map<String, Object> taskInput(int version) {
+        return Map.of("type", token, "version", version);
     }
 
     /** Resolve a selector/manifest token (case-insensitive, trimmed) to a type, rejecting unknown
