@@ -124,6 +124,44 @@ public class EmailPipelineTest {
     }
 
     @Test
+    public void test_adds_document_headers_parsing_for_pst_mail_item() {
+        Document doc = createDoc("docid")
+            .with("hello@world.com")
+            .withRootId("root")
+            .with(FRENCH)
+            .ofContentType("application/x-tika-pst-mail-item")
+            .with(new HashMap<>() {{
+                put(tikaMsgHeader("To"), "email1@domain.com");
+            }}).build();
+
+        List<NamedEntity> namedEntities = pipeline.process(doc);
+
+        assertThat(namedEntities).containsExactly(
+            NamedEntity.create(EMAIL, "hello@world.com", List.of(0L), "docid", "root", Pipeline.Type.EMAIL, FRENCH),
+            NamedEntity.create(EMAIL, "email1@domain.com", List.of(-1L), "docid", "root", Pipeline.Type.EMAIL, FRENCH,
+                Map.of("emailHeaderField", "tika_metadata_message_to"))
+        );
+    }
+
+    @Test
+    public void test_does_not_parse_headers_for_non_email_content_type() {
+        Document doc = createDoc("docid")
+            .with("hello@world.com")
+            .withRootId("root")
+            .with(FRENCH)
+            .ofContentType("application/pdf")
+            .with(new HashMap<>() {{
+                put(tikaMsgHeader("To"), "email1@domain.com");
+            }}).build();
+
+        List<NamedEntity> namedEntities = pipeline.process(doc);
+
+        assertThat(namedEntities).containsExactly(
+            NamedEntity.create(EMAIL, "hello@world.com", List.of(0L), "docid", "root", Pipeline.Type.EMAIL, FRENCH)
+        );
+    }
+
+    @Test
     public void test_filter_headers_that_contains_mail_addresses() {
         Document doc = createDoc("docid")
             .with("mail content")

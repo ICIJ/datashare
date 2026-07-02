@@ -9,6 +9,7 @@ import java.util.Set;
 import java.util.Collection;
 import java.util.Collections;
 import org.icij.datashare.PropertiesProvider;
+import org.icij.datashare.text.ContentTypeCategory;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.Language;
 import org.icij.datashare.text.NamedEntitiesBuilder;
@@ -34,7 +35,7 @@ import static org.icij.datashare.text.nlp.Pipeline.Type.EMAIL;
  * <p>
  * It implements the same API as the NLP pipelines to integrate seamlessly to datashare.
  *
- * if the document is an rfc822 email
+ * if the document belongs to the EMAIL content type category (see {@link ContentTypeCategory})
  * then we also parse a list of headers coming from https://tools.ietf.org/html/rfc2076
  * and transformed by tika/extract (for the keys).
  *
@@ -101,7 +102,7 @@ public class EmailPipeline extends AbstractPipeline {
             namedEntitiesBuilder.add(NamedEntity.Category.EMAIL, email, start + contentOffset);
         }
         List<NamedEntity> entities = namedEntitiesBuilder.build();
-        if ("message/rfc822".equals(doc.getContentType())) {
+        if (ContentTypeCategory.EMAIL == ContentTypeCategory.fromContentType(doc.getContentType())) {
             entities.addAll(processMetadata(doc));
         }
         return entities;

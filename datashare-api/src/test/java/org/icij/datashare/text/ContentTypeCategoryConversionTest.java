@@ -20,6 +20,7 @@ public class ContentTypeCategoryConversionTest {
                 // This one is from the properties file loaded at startup
                 {"application/vnd.wordperfect", ContentTypeCategory.DOCUMENT},
                 {"application/vnd.ms-outlook", ContentTypeCategory.EMAIL},
+                {"application/x-tika-pst-mail-item", ContentTypeCategory.EMAIL},
                 {"image/jpeg", ContentTypeCategory.IMAGE},
                 {"application/x-msdownload", ContentTypeCategory.OTHER},
                 {"application/vnd.ms-powerpoint", ContentTypeCategory.PRESENTATION},
