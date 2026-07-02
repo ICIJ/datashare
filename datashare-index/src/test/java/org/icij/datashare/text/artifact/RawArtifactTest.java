@@ -18,7 +18,7 @@ public class RawArtifactTest {
     @Test
     public void test_type_and_task_input() {
         RawArtifact raw = new RawArtifact();
-        assertThat(raw.type()).isEqualTo("raw");
+        assertThat(raw.type()).isEqualTo(ArtifactType.RAW);
         assertThat(raw.taskInput()).isEqualTo(Map.of("type", "raw", "version", 1));
     }
 
