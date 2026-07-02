@@ -515,7 +515,9 @@ public class DocumentResource {
             if (contentType != null && contentType.startsWith("image/ocr-")) {
                 contentType = "image/" + contentType.substring("image/ocr-".length());
             }
-            Payload payload = new Payload(contentType, from).withHeader(CONTENT_LENGTH, String.valueOf(doc.getContentLength()));
+            Payload payload = filterMetadata
+                    ? new Payload(contentType, from)
+                    : new Payload(contentType, from).withHeader(CONTENT_LENGTH, String.valueOf(doc.getContentLength()));
             String fileName = doc.isRootDocument() ? doc.getName(): doc.getId().substring(0, 10) + "." + FileExtension.get(contentType);
             return inline ? payload: payload.withHeader("Content-Disposition", "attachment;filename=\"" + fileName + "\"");
         } catch (FileNotFoundException | EmbeddedDocumentExtractor.ContentNotFoundException fnf) {
