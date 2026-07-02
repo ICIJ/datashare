@@ -7,18 +7,18 @@ import static org.fest.assertions.Assertions.assertThat;
 
 public class ArtifactRegistryTest {
     static class FakeArtifact implements Artifact {
-        final String type;
+        final ArtifactType type;
 
-        FakeArtifact(String type) {
+        FakeArtifact(ArtifactType type) {
             this.type = type;
         }
 
-        public String type() {
+        public ArtifactType type() {
             return type;
         }
 
         public java.util.Map<String, Object> taskInput() {
-            return java.util.Map.of("type", type);
+            return java.util.Map.of("type", type.token());
         }
 
         public ManifestEntry produce(ArtifactContext c) {
@@ -27,11 +27,11 @@ public class ArtifactRegistryTest {
     }
 
     private List<String> types(List<Artifact> a) {
-        return a.stream().map(Artifact::type).collect(Collectors.toList());
+        return a.stream().map(artifact -> artifact.type().token()).collect(Collectors.toList());
     }
 
     private ArtifactRegistry registry() {
-        return new ArtifactRegistry(List.of(new FakeArtifact("raw"), new FakeArtifact("structure")));
+        return new ArtifactRegistry(List.of(new FakeArtifact(ArtifactType.RAW), new FakeArtifact(ArtifactType.STRUCTURE)));
     }
 
     @Test
@@ -60,5 +60,11 @@ public class ArtifactRegistryTest {
     @Test(expected = IllegalArgumentException.class)
     public void test_unknown_token_throws() {
         registry().select("raw,bogus");
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void test_known_type_without_registered_producer_throws() {
+        // structure is a known type, but this process only wired a raw producer, so it cannot be asked to produce it.
+        new ArtifactRegistry(List.of(new FakeArtifact(ArtifactType.RAW))).select("structure");
     }
 }

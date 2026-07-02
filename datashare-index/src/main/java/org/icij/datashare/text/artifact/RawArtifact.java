@@ -7,20 +7,20 @@ import java.util.Map;
 /** The raw/source-bytes artifact. extract-lib still writes the raw/raw.json bytes via
  *  SourceExtractor.extractEmbeddedSources; this class orchestrates that and records the entry. */
 public class RawArtifact implements Artifact {
-    private static final String TYPE = "raw";
+    private static final ArtifactType TYPE = ArtifactType.RAW;
 
     // Bump this when the raw extraction logic changes, so already-cached entries are
     // recognised as stale (skip-if-current compares the whole task input by value).
     private static final int VERSION = 1;
 
     @Override
-    public String type() {
+    public ArtifactType type() {
         return TYPE;
     }
 
     @Override
     public Map<String, Object> taskInput() {
-        return Map.of("type", TYPE, "version", VERSION);
+        return Map.of("type", TYPE.token(), "version", VERSION);
     }
 
     @Override

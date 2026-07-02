@@ -26,8 +26,8 @@ public class ArtifactProducer {
                 .reduce(true, Boolean::logicalAnd);
     }
 
-    private Map<String, Artifact> dedupeByType(List<Artifact> artifacts) {
-        Map<String, Artifact> byType = new LinkedHashMap<>();
+    private Map<ArtifactType, Artifact> dedupeByType(List<Artifact> artifacts) {
+        Map<ArtifactType, Artifact> byType = new LinkedHashMap<>();
         for (Artifact artifact : artifacts) {
             byType.putIfAbsent(artifact.type(), artifact);
         }
@@ -36,7 +36,7 @@ public class ArtifactProducer {
 
     // true when produced, skipped, or empty-recorded; false when a failure was caught and isolated.
     private boolean produce(Artifact artifact, ArtifactContext context, boolean force) {
-        String type = artifact.type();
+        ArtifactType type = artifact.type();
         try {
             // The whole critical section (skip check + payload write + manifest stamp) runs under one
             // lock so a peer can never record a manifest entry describing another peer's payload.
@@ -52,14 +52,14 @@ public class ArtifactProducer {
                 } catch (ArtifactException artifactFailure) {
                     throw new WrappedArtifactException(artifactFailure);
                 }
-                store.put(context.docArtifactDir(), type, stampTerminal(produced));
+                store.put(context.docArtifactDir(), type.token(), stampTerminal(produced));
                 return true;
             });
         } catch (WrappedArtifactException wrapped) {
-            LOGGER.error("failed to produce artifact '{}' for document {}", type, context.document().getId(), wrapped.getCause());
+            LOGGER.error("failed to produce artifact '{}' for document {}", type.token(), context.document().getId(), wrapped.getCause());
             return false;
         } catch (IOException failure) {
-            LOGGER.error("failed to produce artifact '{}' for document {}", type, context.document().getId(), failure);
+            LOGGER.error("failed to produce artifact '{}' for document {}", type.token(), context.document().getId(), failure);
             return false;
         }
     }
@@ -73,8 +73,8 @@ public class ArtifactProducer {
     // An artifact is current when a terminal entry (COMPLETE or EMPTY) already exists and was
     // produced with the exact same task input (config + version) as this run; only then is
     // regeneration skipped.
-    private boolean isCurrent(String type, Artifact artifact, ArtifactContext context) throws IOException {
-        ManifestEntry existing = store.get(context.docArtifactDir(), type);
+    private boolean isCurrent(ArtifactType type, Artifact artifact, ArtifactContext context) throws IOException {
+        ManifestEntry existing = store.get(context.docArtifactDir(), type.token());
         return existing != null && existing.isTerminal() && existing.taskInput().equals(artifact.taskInput());
     }
 
