@@ -20,7 +20,7 @@ public class RawArtifact implements Artifact {
 
     @Override
     public Map<String, Object> taskInput() {
-        return Map.of("type", TYPE.token(), "version", VERSION);
+        return TYPE.taskInput(VERSION);
     }
 
     @Override
