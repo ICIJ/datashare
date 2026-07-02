@@ -2,6 +2,8 @@ package org.icij.datashare.text.artifact;
 
 import org.junit.Test;
 
+import java.util.Map;
+
 import static org.fest.assertions.Assertions.assertThat;
 
 public class ArtifactTypeTest {
@@ -9,6 +11,12 @@ public class ArtifactTypeTest {
     public void test_token_is_stable_lowercase_name() {
         assertThat(ArtifactType.RAW.token()).isEqualTo("raw");
         assertThat(ArtifactType.STRUCTURE.token()).isEqualTo("structure");
+    }
+
+    @Test
+    public void test_task_input_is_type_token_and_version() {
+        assertThat(ArtifactType.RAW.taskInput(1)).isEqualTo(Map.of("type", "raw", "version", 1));
+        assertThat(ArtifactType.STRUCTURE.taskInput(2)).isEqualTo(Map.of("type", "structure", "version", 2));
     }
 
     @Test
