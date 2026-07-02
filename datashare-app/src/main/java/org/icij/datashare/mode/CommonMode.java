@@ -1,6 +1,9 @@
 package org.icij.datashare.mode;
 
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.jsontype.NamedType;
 import com.google.inject.*;
 import com.google.inject.Module;
 import com.google.inject.assistedinject.FactoryModuleBuilder;
@@ -83,6 +86,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.concurrent.CountDownLatch;
+import java.io.Serializable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.function.Consumer;
@@ -464,7 +468,8 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
          ExtensionLoader extensionLoader = new ExtensionLoader(Paths.get(ofNullable(getExtensionsDir()).orElse("./extensions")));
          if (extensionLoader.extensionsDir != null) {
             try {
-                extensionLoader.load((Consumer<Class<?>>) routes::add, this::isEligibleForLoading);
+                extensionLoader.load(routes::add, this::isEligibleForLoading);
+                extensionLoader.load(cls -> JsonObjectMapper.registerSubtypes(new NamedType(cls)), this::isJsonType);
                 get(PipelineRegistry.class).load(extensionLoader);
             } catch (FileNotFoundException e) {
                 logger.warn("Extensions directory not found: {}", extensionLoader.extensionsDir);
@@ -554,6 +559,10 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
 
     private boolean isEligibleForLoading(Class<?> c) {
         return c.isAnnotationPresent(Prefix.class) || c.isAnnotationPresent(Get.class);
+    }
+
+    private boolean isJsonType(Class<?> c) {
+        return (c.isAnnotationPresent(JsonTypeName.class) || c.isAnnotationPresent(JsonTypeInfo.class)) && Serializable.class.isAssignableFrom(c);
     }
 
     @NotNull
