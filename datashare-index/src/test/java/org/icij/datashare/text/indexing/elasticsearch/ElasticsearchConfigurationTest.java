@@ -2,12 +2,14 @@ package org.icij.datashare.text.indexing.elasticsearch;
 
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import co.elastic.clients.transport.rest_client.RestClientTransport;
+import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.http.util.EntityUtils;
 import org.elasticsearch.client.Request;
 import org.elasticsearch.client.Response;
 import org.elasticsearch.client.RestClient;
 import org.icij.datashare.EnvUtils;
 import org.icij.datashare.PropertiesProvider;
+import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.test.ElasticsearchRule;
 import org.junit.ClassRule;
 import org.junit.Test;
@@ -62,5 +64,22 @@ public class ElasticsearchConfigurationTest {
         Response response = restClient.performRequest(new Request("GET", es.getIndexName()));
 
         assertThat(response.getHeader("X-Elastic-Product")).isNotNull();
+    }
+
+    @Test
+    public void test_create_index_body_keeps_match_mapping_type_scalar() throws Exception {
+        JsonNode body = JsonObjectMapper.getMapper().readTree(ElasticsearchConfiguration.createIndexBody());
+
+        JsonNode matchMappingType = null;
+        for (JsonNode template : body.at("/mappings/dynamic_templates")) {
+            if (template.has("metadata_dates")) {
+                matchMappingType = template.at("/metadata_dates/match_mapping_type");
+            }
+        }
+        assertThat(matchMappingType).isNotNull();
+        assertThat(matchMappingType.isTextual()).isTrue();
+        assertThat(matchMappingType.asText()).isEqualTo("date");
+        assertThat(body.get("settings").isObject()).isTrue();
+        assertThat(body.get("mappings").isObject()).isTrue();
     }
 }

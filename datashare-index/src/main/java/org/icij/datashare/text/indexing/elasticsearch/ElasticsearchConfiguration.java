@@ -2,12 +2,12 @@ package org.icij.datashare.text.indexing.elasticsearch;
 
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import co.elastic.clients.elasticsearch._types.Refresh;
-import co.elastic.clients.elasticsearch._types.mapping.TypeMapping;
-import co.elastic.clients.elasticsearch.indices.CreateIndexRequest;
 import co.elastic.clients.elasticsearch.indices.ExistsRequest;
-import co.elastic.clients.elasticsearch.indices.IndexSettings;
 import co.elastic.clients.json.jackson.JacksonJsonpMapper;
 import co.elastic.clients.transport.rest_client.RestClientTransport;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.http.HttpHost;
 import org.apache.http.HttpResponse;
 import org.apache.http.HttpResponseInterceptor;
@@ -17,6 +17,7 @@ import org.apache.http.client.CredentialsProvider;
 import org.apache.http.conn.ConnectionKeepAliveStrategy;
 import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.apache.http.protocol.HttpContext;
+import org.elasticsearch.client.Request;
 import org.elasticsearch.client.RestClient;
 import org.elasticsearch.client.RestClientBuilder;
 import org.icij.datashare.PropertiesProvider;
@@ -25,9 +26,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.io.StringReader;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 
 import static com.google.common.io.ByteStreams.toByteArray;
 import static java.lang.String.format;
@@ -123,10 +124,10 @@ public class ElasticsearchConfiguration {
         try {
             if (!client.indices().exists(existsRequest).value()) {
                 LOGGER.info("index {} does not exist, creating one", indexName);
-                CreateIndexRequest.Builder createReq = new CreateIndexRequest.Builder().index(indexName);
-                createReq.settings(IndexSettings.of(is -> is.withJson(ElasticsearchConfiguration.getSettings())));
-                createReq.mappings(TypeMapping.of(tm -> tm.withJson(ElasticsearchConfiguration.getMapping())));
-                client.indices().create(createReq.build());
+                RestClient restClient = ((RestClientTransport) client._transport()).restClient();
+                Request request = new Request("PUT", "/" + indexName);
+                request.setJsonEntity(createIndexBody());
+                restClient.performRequest(request);
                 return true;
             }
         } catch (IOException e) {
@@ -135,15 +136,13 @@ public class ElasticsearchConfiguration {
         return false;
     }
 
-    public static StringReader getSettings() {
-        if (IS_OS_WINDOWS) {
-            return new StringReader(getResourceContent(SETTINGS_RESOURCE_NAME_WINDOWS));
-        }
-        return new StringReader(getResourceContent(SETTINGS_RESOURCE_NAME));
-    }
-
-    public static StringReader getMapping() {
-        return new StringReader(getResourceContent(MAPPING_RESOURCE_NAME));
+    static String createIndexBody() throws JsonProcessingException {
+        String settingsResource = IS_OS_WINDOWS ? SETTINGS_RESOURCE_NAME_WINDOWS : SETTINGS_RESOURCE_NAME;
+        ObjectMapper mapper = JsonObjectMapper.getMapper();
+        ObjectNode body = mapper.createObjectNode();
+        body.set("settings", mapper.readTree(getResourceContent(settingsResource)));
+        body.set("mappings", mapper.readTree(getResourceContent(MAPPING_RESOURCE_NAME)));
+        return mapper.writeValueAsString(body);
     }
 
     ElasticsearchConfiguration withRefresh(Refresh refreshPolicy) {
@@ -168,7 +167,7 @@ public class ElasticsearchConfiguration {
         } catch (IOException e) {
             throw new ConfigurationException(e);
         }
-        return new String(resourceBytes);
+        return new String(resourceBytes, StandardCharsets.UTF_8);
     }
 
     static class ConfigurationException extends RuntimeException {
