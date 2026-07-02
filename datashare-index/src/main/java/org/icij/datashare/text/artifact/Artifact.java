@@ -5,8 +5,9 @@ import java.util.Map;
 /** A derived representation of a document, produced alongside it and stored under its artifact dir.
  *  Implementations write payload files only and MUST NOT touch manifest.json. */
 public interface Artifact {
-    /** Stable type name: the --artifacts selector token AND the manifest key. */
-    String type();
+    /** The declared type of this artifact, from datashare's known-types vocabulary. Its
+     *  {@link ArtifactType#token()} is both the --artifacts selector token AND the manifest key. */
+    ArtifactType type();
 
     /** The config-only fingerprint of this run (e.g. {"type":..,"version":..}) compared by value
      *  for skip-if-current. MUST NOT include data (document ids, batch, queries): the same doc

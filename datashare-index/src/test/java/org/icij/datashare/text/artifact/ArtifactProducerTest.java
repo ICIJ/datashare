@@ -17,10 +17,10 @@ public class ArtifactProducerTest {
     private final ArtifactProducer producer = new ArtifactProducer(store);
 
     static class CountingArtifact implements Artifact {
-        final String type; final Map<String, Object> taskInput; final AtomicInteger produced = new AtomicInteger();
+        final ArtifactType type; final Map<String, Object> taskInput; final AtomicInteger produced = new AtomicInteger();
         boolean fail = false; boolean producesEmpty = false;
-        CountingArtifact(String type, int version) { this.type = type; this.taskInput = Map.of("type", type, "version", version); }
-        public String type() { return type; }
+        CountingArtifact(String type, int version) { this.type = ArtifactType.fromToken(type); this.taskInput = Map.of("type", type, "version", version); }
+        public ArtifactType type() { return type; }
         public Map<String, Object> taskInput() { return taskInput; }
         public ManifestEntry produce(ArtifactContext ctx) throws ArtifactException {
             if (fail) { throw new ArtifactException("boom", null); }
