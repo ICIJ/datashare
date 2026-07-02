@@ -6,6 +6,7 @@ import joptsimple.ValueConverter;
 import org.icij.datashare.EnvUtils;
 import org.icij.datashare.PipelineHelper;
 import org.icij.datashare.Stage;
+import org.icij.datashare.text.artifact.ArtifactType;
 import org.icij.datashare.user.User;
 import org.slf4j.event.Level;
 import org.icij.datashare.tasks.RoutingStrategy;
@@ -496,7 +497,7 @@ public final class DatashareCliOptions {
     static void artifacts(OptionParser parser) {
         parser.acceptsAll(
                 List.of(ARTIFACTS_OPT),
-                "Artifact types to produce (comma-separated, e.g. raw,structure). Bare flag = all types." )
+                "Artifact types to produce (comma-separated, e.g. " + ArtifactType.tokens() + "). Bare flag = all types." )
                 .withOptionalArg();
     }
 
