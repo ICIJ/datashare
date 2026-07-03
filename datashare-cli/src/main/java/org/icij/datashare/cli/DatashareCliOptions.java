@@ -91,6 +91,10 @@ public final class DatashareCliOptions {
     public static final String NLP_PARALLELISM_OPT = "nlpParallelism";
     public static final String NLP_PIPELINE_ABBR_OPT = "nlpp";
     public static final String NLP_PIPELINE_OPT = "nlpPipeline";
+    // Internal correlation key (not a user-facing option): the CLI stamps every task it
+    // starts, and every task those tasks spawn, with a per-run id so it can wait on exactly
+    // its own run's tasks (spawned descendants included) and never touch other runs' work.
+    public static final String PIPELINE_RUN_ID = "pipelineRunId";
     public static final String NO_DIGEST_PROJECT_OPT = "noDigestProject";
     public static final String OAUTH_API_URL_OPT = "oauthApiUrl";
     public static final String OAUTH_AUTHORIZE_URL_OPT = "oauthAuthorizeUrl";

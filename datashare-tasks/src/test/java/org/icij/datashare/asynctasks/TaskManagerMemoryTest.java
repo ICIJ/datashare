@@ -182,62 +182,51 @@ public class TaskManagerMemoryTest {
         assert unfinished == 1L;
     }
 
-    @Test
-    public void test_wait_scoped_to_own_ids_ignores_foreign_non_final_task() throws Exception {
-        // a task left non-final by a prior interrupted run: inserted but never enqueued
-        Task<String> stale = new Task<>("sleep", User.local(), Map.of("intParameter", 12));
-        taskManager.insert(stale, new Group(TaskGroupType.Test));
-        stale.queue();
-        taskManager.update(stale);
+    // Well-known args key a CLI run stamps on its tasks; the wait scopes on it via an
+    // args filter. Duplicated as a literal here because datashare-tasks does not depend on
+    // datashare-cli where DatashareCliOptions.PIPELINE_RUN_ID lives.
+    private static final String RUN_ID = "pipelineRunId";
 
-        // our own quick task
-        Task<String> own = new Task<>(TestFactory.HelloWorld.class.getName(), User.local(), Map.of("greeted", "world"));
+    @Test
+    public void test_wait_scoped_to_run_id_leaves_a_peers_non_final_task_untouched() throws Exception {
+        // A concurrent peer's task on the shared store: non-final, same (null) user, tagged
+        // with a DIFFERENT run id. It is never enqueued to our loop so it stays QUEUED.
+        Task<String> peer = new Task<>("sleep", User.nullUser(), Map.of("intParameter", 12, RUN_ID, "other-run"));
+        taskManager.insert(peer, new Group(TaskGroupType.Test));
+        peer.queue();
+        taskManager.update(peer);
+
+        // our own quick task, tagged with our run id
+        Task<String> own = new Task<>(TestFactory.HelloWorld.class.getName(), User.nullUser(), Map.of("greeted", "world", RUN_ID, "my-run"));
         String ownId = taskManager.startTask(own, new Group(TaskGroupType.Test));
 
-        long unfinished = taskManager.waitTasksToBeDone(java.util.List.of(ownId), 2, TimeUnit.SECONDS);
+        long unfinished = taskManager.waitTasksToBeDone(
+            TaskFilters.empty().withArgs(new TaskFilters.ArgsFilter(RUN_ID, "my-run")), 2, TimeUnit.SECONDS);
 
         assertThat(unfinished).isEqualTo(0L);
         assertThat(taskManager.getTask(ownId).getState()).isEqualTo(Task.State.DONE);
-        // the stale task is still non-final and would have blocked the global wait
-        assertThat(taskManager.getTask(stale.id).getState()).isEqualTo(Task.State.QUEUED);
+        // the peer's task was neither waited on nor cancelled: exactly where it was left
+        assertThat(taskManager.getTask(peer.id).getState()).isEqualTo(Task.State.QUEUED);
     }
 
     @Test
-    public void test_wait_on_empty_ids_returns_immediately() throws Exception {
-        assertThat(taskManager.waitTasksToBeDone(java.util.List.of(), 1, TimeUnit.SECONDS)).isEqualTo(0L);
-    }
+    public void test_wait_scoped_to_run_id_covers_descendant_not_among_started_ids() throws Exception {
+        // A descendant a running stage would spawn mid-flight (e.g. CreateNlpBatchesFromIndex
+        // enqueuing a BatchNlpTask): tagged with our run id but never handed to the caller as
+        // a "started" id. It stays non-final (not enqueued to our loop here).
+        Task<String> descendant = new Task<>("sleep", User.nullUser(), Map.of("intParameter", 12, RUN_ID, "my-run"));
+        taskManager.insert(descendant, new Group(TaskGroupType.Test));
+        descendant.queue();
+        taskManager.update(descendant);
 
-    @Test
-    public void test_reconcile_cancels_scoped_non_final_tasks() throws Exception {
-        Task<String> stale = new Task<>("sleep", User.local(), Map.of("intParameter", 12));
-        taskManager.insert(stale, new Group(TaskGroupType.Test));
-        stale.queue();
-        taskManager.update(stale);
+        // Waiting on the run id (not on a fixed set of ids) keeps the run alive: the
+        // descendant is still non-final, so the scoped wait reports it rather than returning
+        // 0 and letting the caller shut the worker down on still-queued work.
+        long unfinished = taskManager.waitTasksToBeDone(
+            TaskFilters.empty().withArgs(new TaskFilters.ArgsFilter(RUN_ID, "my-run")), 500, TimeUnit.MILLISECONDS);
 
-        java.util.List<String> reconciled = taskManager.reconcileStaleTasks(TaskFilters.empty().withUser(User.local()));
-
-        assertThat(reconciled).containsExactly(stale.id);
-        assertThat(taskManager.getTask(stale.id).getState()).isEqualTo(Task.State.CANCELLED);
-    }
-
-    @Test
-    public void test_reconcile_leaves_final_and_out_of_scope_tasks_untouched() throws Exception {
-        // final task: never reconciled
-        Task<String> done = new Task<>("sleep", User.local(), Map.of("intParameter", 0));
-        taskManager.insert(done, new Group(TaskGroupType.Test));
-        done.setResult(new TaskResult<>("ok"));
-        taskManager.update(done);
-        // non-final but owned by another user: out of the reconcile scope
-        Task<String> otherUser = new Task<>("sleep", new User("bob"), Map.of("intParameter", 5));
-        taskManager.insert(otherUser, new Group(TaskGroupType.Test));
-        otherUser.queue();
-        taskManager.update(otherUser);
-
-        java.util.List<String> reconciled = taskManager.reconcileStaleTasks(TaskFilters.empty().withUser(User.local()));
-
-        assertThat(reconciled).isEmpty();
-        assertThat(taskManager.getTask(done.id).getState()).isEqualTo(Task.State.DONE);
-        assertThat(taskManager.getTask(otherUser.id).getState()).isEqualTo(Task.State.QUEUED);
+        assertThat(unfinished).isEqualTo(1L);
+        assertThat(taskManager.getTask(descendant.id).getState()).isEqualTo(Task.State.QUEUED);
     }
 
     @Test

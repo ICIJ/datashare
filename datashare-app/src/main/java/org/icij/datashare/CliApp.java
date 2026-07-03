@@ -24,7 +24,6 @@ import org.icij.datashare.tasks.DatashareTaskFactory;
 import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.asynctasks.TaskFilters;
 import org.icij.datashare.asynctasks.TaskManager;
-import org.icij.datashare.asynctasks.UnknownTask;
 import org.icij.datashare.tasks.DeduplicateTask;
 import org.icij.datashare.tasks.EnqueueFromIndexTask;
 import org.icij.datashare.tasks.ExtractNlpTask;
@@ -44,13 +43,13 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.function.Supplier;
 
+import static java.util.UUID.randomUUID;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.icij.datashare.PropertiesProvider.propertiesToMap;
 import static org.icij.datashare.cli.DatashareCliOptions.*;
@@ -179,83 +178,87 @@ class CliApp {
         PipelineHelper pipeline = new PipelineHelper(new PropertiesProvider(properties));
         logger.info("executing {}", pipeline);
 
-        // Reconcile tasks left non-final by previously interrupted CLI runs before
-        // enqueuing our own. In CLI mode this process is the only worker and it has
-        // not enqueued anything yet, so any non-final task owned by the CLI user
-        // (nullUser) provably belongs to a dead run and is safe to cancel. Scoping to
-        // nullUser keeps a concurrent web server's real-user tasks untouched.
-        List<String> reconciled = taskManager.reconcileStaleTasks(TaskFilters.empty().withUser(nullUser()));
-        if (!reconciled.isEmpty()) {
-            logger.warn("reconciled {} orphaned task(s) from previous runs: {}", reconciled.size(), reconciled);
-        }
+        // Stamp every task this run starts (and, through CreateNlpBatchesFromIndex, every
+        // task they spawn) with a unique run id. That id is what lets us wait on exactly
+        // this run's work below, including spawned descendants whose ids we never see here,
+        // without being blocked by, or ever cancelling, tasks owned by other CLI runs or a
+        // concurrent server sharing the same (persistent) task store. All task users are the
+        // shared nullUser, so the user alone cannot tell this run's tasks from a peer's.
+        String runId = randomUUID().toString();
+        properties.setProperty(PIPELINE_RUN_ID, runId);
 
-        List<String> startedTaskIds = new ArrayList<>();
         if (pipeline.has(Stage.DEDUPLICATE)) {
-            startedTaskIds.add(taskManager.startTask(DeduplicateTask.class, nullUser(), propertiesToMap(properties)));
+            taskManager.startTask(DeduplicateTask.class, nullUser(), propertiesToMap(properties));
         }
 
         if (pipeline.has(Stage.SCANIDX)) {
-            startedTaskIds.add(taskManager.startTask(ScanIndexTask.class, nullUser(), propertiesToMap(properties)));
+            taskManager.startTask(ScanIndexTask.class, nullUser(), propertiesToMap(properties));
         }
 
         if (pipeline.has(Stage.SCAN)) {
-            startedTaskIds.add(taskManager.startTask(ScanTask.class, nullUser(), propertiesToMap(properties)));
+            taskManager.startTask(ScanTask.class, nullUser(), propertiesToMap(properties));
         }
 
         if (pipeline.has(Stage.INDEX)) {
-            startedTaskIds.add(taskManager.startTask(IndexTask.class, nullUser(), propertiesToMap(properties)));
+            taskManager.startTask(IndexTask.class, nullUser(), propertiesToMap(properties));
         }
 
         if (pipeline.has(Stage.ENQUEUEIDX)) {
-            startedTaskIds.add(taskManager.startTask(EnqueueFromIndexTask.class, nullUser(), propertiesToMap(properties)));
+            taskManager.startTask(EnqueueFromIndexTask.class, nullUser(), propertiesToMap(properties));
         }
 
         if (pipeline.has(Stage.CATEGORIZE)) {
-            startedTaskIds.add(taskManager.startTask(CategorizeTask.class, nullUser(), propertiesToMap(properties)));
+            taskManager.startTask(CategorizeTask.class, nullUser(), propertiesToMap(properties));
         }
 
         if (pipeline.has(Stage.CREATENLPBATCHESFROMIDX)) {
-            startedTaskIds.add(taskManager.startTask(CreateNlpBatchesFromIndex.class.getName(), nullUser(), propertiesToMap(properties)));
+            taskManager.startTask(CreateNlpBatchesFromIndex.class.getName(), nullUser(), propertiesToMap(properties));
         }
 
         if (pipeline.has(Stage.NLP)) {
-            startedTaskIds.add(taskManager.startTask(ExtractNlpTask.class, nullUser(), propertiesToMap(properties)));
+            taskManager.startTask(ExtractNlpTask.class, nullUser(), propertiesToMap(properties));
         }
 
         if (pipeline.has(Stage.ARTIFACT)) {
-            startedTaskIds.add(taskManager.startTask(ArtifactTask.class, nullUser(), propertiesToMap(properties)));
+            taskManager.startTask(ArtifactTask.class, nullUser(), propertiesToMap(properties));
         }
-        // Wait only on the tasks this run started, not the global non-final count:
-        // the repository is shared and persistent, so unrelated non-final rows must
-        // never keep a finished run alive.
-        long unfinished = taskManager.waitTasksToBeDone(startedTaskIds, Integer.MAX_VALUE, SECONDS);
+        // Wait on every non-final task carrying this run id, not just the ids we started:
+        // stages such as CreateNlpBatchesFromIndex enqueue child BatchNlpTask tasks that
+        // must reach a final state before we shut the worker down, otherwise their still
+        // QUEUED work is silently dropped on System.exit. Scoping to the run id (rather
+        // than the global non-final count) also means unrelated rows left by other runs
+        // never keep this finished run alive.
+        TaskFilters runScope = TaskFilters.empty()
+                .withArgs(new TaskFilters.ArgsFilter(PIPELINE_RUN_ID, runId));
+        long unfinished = taskManager.waitTasksToBeDone(runScope, Integer.MAX_VALUE, SECONDS);
         taskManager.shutdown();
 
         // The JVM would otherwise stay alive on non-daemon threads (a second
         // TaskManager worker pool created by the unused CommonMode in Main, Redisson
         // netty threads). Force the exit, non-zero if any of this run's tasks errored.
-        int exitCode = computeExitCode(taskManager, startedTaskIds);
+        int exitCode = computeExitCode(taskManager, runScope);
         logger.info("pipeline finished ({} unfinished task(s)), exiting with code {}", unfinished, exitCode);
         System.exit(exitCode);
     }
 
     /**
-     * Success (0) unless one of this run's tasks ended in ERROR, or its final state
-     * could not be read (treated as a failure so a broken run never reports success).
+     * Success (0) unless one of this run's tasks (a stage we started, or a task one of
+     * them spawned) ended in ERROR, or their states could not be read (treated as a
+     * failure so a broken run never reports success).
      */
-    private static int computeExitCode(TaskManager taskManager, List<String> startedTaskIds) {
-        for (String taskId : startedTaskIds) {
-            try {
-                if (taskManager.getTask(taskId).getState() == Task.State.ERROR) {
-                    logger.error("task {} ended in ERROR", taskId);
+    private static int computeExitCode(TaskManager taskManager, TaskFilters runScope) {
+        try {
+            for (Task<?> task : taskManager.getTasks(runScope).toList()) {
+                if (task.getState() == Task.State.ERROR) {
+                    logger.error("task {} ended in ERROR", task.id);
                     return EXIT_RUNTIME;
                 }
-            } catch (IOException | UnknownTask e) {
-                logger.error("could not read final state of task {}; treating run as failed", taskId, e);
-                return EXIT_RUNTIME;
             }
+            return EXIT_SUCCESS;
+        } catch (IOException e) {
+            logger.error("could not read final task states; treating run as failed", e);
+            return EXIT_RUNTIME;
         }
-        return EXIT_SUCCESS;
     }
 
     static int handleUserCreate(UserAdminService service, Properties properties) {

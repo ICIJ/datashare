@@ -10,7 +10,6 @@ import org.slf4j.LoggerFactory;
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.Serializable;
-import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -116,61 +115,41 @@ public interface TaskManager extends Closeable {
      * @throws IOException if the task list cannot be retrieved because of a network failure.
      */
     default long waitTasksToBeDone(int timeout, TimeUnit timeUnit) throws IOException {
-        return pollUntilDone(timeout, timeUnit, null);
+        return waitTasksToBeDone(TaskFilters.empty(), timeout, timeUnit);
     }
 
     /**
-     * Same as {@link #waitTasksToBeDone(int, TimeUnit)} but only waits on the given
-     * task ids instead of every non-final task in the (possibly shared and persistent)
-     * repository. This lets a caller that owns a known set of tasks (e.g. a CLI run)
-     * return as soon as its own tasks are done, without being blocked forever by
-     * unrelated non-final rows left over from other or interrupted runs.
+     * Same as {@link #waitTasksToBeDone(int, TimeUnit)} but only waits on the non-final
+     * tasks matching {@code scope} instead of every non-final task in the (possibly shared
+     * and persistent) repository.
      *
-     * @param taskIds the ids to wait on. An empty or null collection returns immediately.
+     * <p>This lets a caller that tags a recognizable set of tasks (e.g. a CLI run stamping
+     * every task it starts, and every task those tasks spawn, with a per-run id) wait on
+     * exactly its own run. It returns as soon as that set is done, without being blocked by
+     * unrelated non-final rows left by other or interrupted runs, and without having to
+     * enumerate the ids of descendants that only come into existence while the run executes.
+     * Any states carried by {@code scope} are ignored: only non-final tasks are ever counted.
+     *
+     * @param scope filters selecting the tasks to wait on (user, name, args...).
      * @param timeout amount for the timeout
      * @param timeUnit unit of the timeout
-     * @return the number of the given tasks still unfinished
+     * @return the number of matching tasks still unfinished
      * @throws IOException if the task list cannot be retrieved because of a network failure.
      */
-    default long waitTasksToBeDone(Collection<String> taskIds, int timeout, TimeUnit timeUnit) throws IOException {
-        if (taskIds == null || taskIds.isEmpty()) {
-            return 0L;
-        }
-        return pollUntilDone(timeout, timeUnit, new HashSet<>(taskIds));
-    }
-
-    private long pollUntilDone(int timeout, TimeUnit timeUnit, Set<String> scope) throws IOException {
+    default long waitTasksToBeDone(TaskFilters scope, int timeout, TimeUnit timeUnit) throws IOException {
         long startTime = System.currentTimeMillis();
         long maxDuration = timeUnit.toMillis(timeout);
-        TaskFilters filterNotCompleted = TaskFilters.empty().withStates(NON_FINAL_STATES);
-        long nUnfinished = countUnfinished(filterNotCompleted, scope);
+        TaskFilters filterNotCompleted = scope.withStates(NON_FINAL_STATES);
+        long nUnfinished = getTaskIds(filterNotCompleted).count();
         while (System.currentTimeMillis() - startTime < maxDuration && nUnfinished > 0) {
             try {
                 Thread.sleep(Math.min(getTerminationPollingInterval(), maxDuration));
             } catch (InterruptedException e) {
                 throw new RuntimeException(e);
             }
-            nUnfinished = countUnfinished(filterNotCompleted, scope);
+            nUnfinished = getTaskIds(filterNotCompleted).count();
         }
         return nUnfinished;
-    }
-
-    private long countUnfinished(TaskFilters filterNotCompleted, Set<String> scope) throws IOException {
-        Stream<String> taskIds = getTaskIds(filterNotCompleted);
-        return (scope == null ? taskIds : taskIds.filter(scope::contains)).count();
-    }
-
-    /**
-     * Mark as CANCELLED the non-final tasks matching {@code filters}, persisting the
-     * transition to the backing repository, and return the ids that were reconciled.
-     *
-     * <p>Managers that delegate reconciliation to their backing engine (e.g. Temporal)
-     * leave this a no-op. Callers must only pass filters that cannot match a live
-     * worker's tasks: this is meant for cleaning up rows orphaned by dead runs, not
-     * for stopping running work (see {@link #stopTasks(TaskFilters)} for that).
-     */
-    default List<String> reconcileStaleTasks(TaskFilters filters) throws IOException {
-        return List.of();
     }
 
     // for tests
