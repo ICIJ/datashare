@@ -66,7 +66,7 @@ import static org.icij.datashare.text.nlp.AbstractModels.syncModels;
 @Prefix("/api/task")
 public class TaskResource {
     public static final Set<String> PAGINATION_FIELDS = WebQueryPagination.fields();
-    public static final Set<String> TASK_FILTER_FIELDS = Set.of("args", "name", "state", "user");
+    public static final Set<String> TASK_FILTER_FIELDS = Set.of("args", "name", "state", "type", "user");
     private final DatashareTaskFactory taskFactory;
     private final TaskManager taskManager;
     private final TaskFinder taskFinder;
@@ -645,6 +645,11 @@ public class TaskResource {
             .map(k -> stream(query.get(k).split("\\|")).map(Task.State::valueOf).collect(Collectors.toSet()))
             .orElse(Set.of());
         filters = filters.withStates(states);
+        // Types
+        Set<TaskType> types = query.keys().stream().filter(k -> k.equals("type")).findAny()
+            .map(k -> stream(query.get(k).split("\\|")).map(TaskType::valueOf).collect(Collectors.toSet()))
+            .orElse(Set.of());
+        filters = filters.withTypes(types);
         // Names
         Optional<String> maybeName = query.keys().stream().filter(k -> k.equals("name")).findAny()
             .map(k -> query.get(k) + ".*");

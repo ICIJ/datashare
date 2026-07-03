@@ -11,6 +11,7 @@ import java.net.URI;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import org.icij.datashare.asynctasks.Group;
 import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.asynctasks.TaskAlreadyExists;
@@ -215,6 +216,20 @@ public class JooqTaskRepositoryTest {
 
         assertThat(tasks.size()).isEqualTo(1);
         assertThat(tasks.get(0).id).isEqualTo(bar.id);
+    }
+
+    @Test
+    public void test_get_tasks_with_type_filter() throws Exception {
+        Task<String> foo = new Task<>("org.icij.datashare.tasks.BatchSearchRunner", User.local(), Map.of("user", User.local()));
+        Task<String> bar = new Task<>("org.icij.datashare.tasks.BatchDownloadRunner", User.local(), Map.of("user", User.local()));
+        repository.insert(foo, new Group(TaskGroupType.Test));
+        repository.insert(bar, new Group(TaskGroupType.Test));
+        TaskFilters filter = TaskFilters.empty().withTypes(Set.of(TaskType.BATCH_SEARCH));
+
+        List<Task<? extends Serializable>> tasks = repository.getTasks(filter).toList();
+
+        assertThat(tasks.size()).isEqualTo(1);
+        assertThat(tasks.get(0).id).isEqualTo(foo.id);
     }
 
     @Test

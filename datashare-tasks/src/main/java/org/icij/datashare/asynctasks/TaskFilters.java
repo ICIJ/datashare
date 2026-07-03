@@ -10,39 +10,46 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.regex.Pattern;
+import org.icij.datashare.tasks.TaskType;
 import org.icij.datashare.user.User;
 
 public final class TaskFilters {
     private final List<ArgsFilter> args;
     private final Set<Task.State> states;
+    private final Set<TaskType> types;
     private final String name;
     private final User user;
     private final Integer regexFlags;
     private Map<String, Pattern> argsPatterns = null;
     private Pattern taskNamePattern = null;
 
-    public TaskFilters(List<ArgsFilter> args, Set<Task.State> states, String name, User user, Integer regexFlags) {
+    public TaskFilters(List<ArgsFilter> args, Set<Task.State> states, Set<TaskType> types, String name, User user, Integer regexFlags) {
         this.args = args;
         this.states = states;
+        this.types = types;
         this.name = name;
         this.user = user;
         this.regexFlags = regexFlags;
     }
 
-    public TaskFilters(List<ArgsFilter> args, Set<Task.State> states, String name, User user) {
-        this(args, states, name, user, null);
+    public TaskFilters(List<ArgsFilter> args, Set<Task.State> states, Set<TaskType> types, String name, User user) {
+        this(args, states, types, name, user, null);
     }
 
     public static TaskFilters empty() {
-        return new TaskFilters(null, null, null, null);
+        return new TaskFilters(null, null, null, null, null);
     }
 
     public boolean isEmpty() {
-        return args == null && states == null && name == null && user == null;
+        return args == null && states == null && types == null && name == null && user == null;
     }
 
     public Set<Task.State> getStates() {
         return states;
+    }
+
+    public Set<TaskType> getTypes() {
+        return types;
     }
 
     public List<ArgsFilter> getArgs() {
@@ -58,34 +65,38 @@ public final class TaskFilters {
     }
 
     public TaskFilters withUser(User taskUser) {
-        return new TaskFilters(args, states, name, taskUser, regexFlags);
+        return new TaskFilters(args, states, types, name, taskUser, regexFlags);
     }
 
     public TaskFilters withStates(Set<Task.State> taskStates) {
-        return new TaskFilters(args, taskStates, name, user, regexFlags);
+        return new TaskFilters(args, taskStates, types, name, user, regexFlags);
+    }
+
+    public TaskFilters withTypes(Set<TaskType> taskTypes) {
+        return new TaskFilters(args, states, taskTypes, name, user, regexFlags);
     }
 
     public TaskFilters withNames(String name) {
-        return new TaskFilters(args, states, name, user, regexFlags);
+        return new TaskFilters(args, states, types, name, user, regexFlags);
     }
 
     public TaskFilters withArgs(List<ArgsFilter> taskArgs) {
-        return new TaskFilters(taskArgs, states, name, user, regexFlags);
+        return new TaskFilters(taskArgs, states, types, name, user, regexFlags);
     }
 
     public TaskFilters withArgs(ArgsFilter... taskArgs) {
-        return new TaskFilters(List.of(taskArgs), states, name, user, regexFlags);
+        return new TaskFilters(List.of(taskArgs), states, types, name, user, regexFlags);
     }
 
     public TaskFilters withFlag(Integer flag) {
-        return new TaskFilters(args, states, name, user, flag);
+        return new TaskFilters(args, states, types, name, user, flag);
     }
 
     public record ArgsFilter(String argLocation, String pattern) {
     }
 
     public boolean filter(Task<? extends Serializable> task) {
-        return byName(task.name) && byUser(task.getUser()) && byState(task.getState()) && byArgs(task.args);
+        return byName(task.name) && byUser(task.getUser()) && byState(task.getState()) && byType(task.type) && byArgs(task.args);
     }
 
     public boolean filter(Map<String, Object> args) {
@@ -100,10 +111,23 @@ public final class TaskFilters {
         return states != null && !states.isEmpty();
     }
 
+    public boolean hasTypes() {
+        return types != null && !types.isEmpty();
+    }
+
     public boolean byState(Task.State taskState) {
         return Optional.ofNullable(states).map(expectedStates -> {
             if (!expectedStates.isEmpty()) {
                 return expectedStates.contains(taskState);
+            }
+            return true;
+        }).orElse(true);
+    }
+
+    public boolean byType(TaskType taskType) {
+        return Optional.ofNullable(types).map(expectedTypes -> {
+            if (!expectedTypes.isEmpty()) {
+                return expectedTypes.contains(taskType);
             }
             return true;
         }).orElse(true);
@@ -162,6 +186,7 @@ public final class TaskFilters {
         }
         TaskFilters filters = (TaskFilters) o;
         return Objects.equals(args, filters.args) && Objects.equals(states, filters.states)
+            && Objects.equals(types, filters.types)
             && Objects.equals(name, filters.name) && Objects.equals(user, filters.user)
             && Objects.equals(regexFlags, filters.regexFlags) && Objects.equals(argsPatterns,
             filters.argsPatterns) && Objects.equals(taskNamePattern, filters.taskNamePattern);
@@ -169,7 +194,7 @@ public final class TaskFilters {
 
     @Override
     public int hashCode() {
-        return Objects.hash(args, states, name, user, regexFlags, argsPatterns, taskNamePattern);
+        return Objects.hash(args, states, types, name, user, regexFlags, argsPatterns, taskNamePattern);
     }
 
 }

@@ -207,6 +207,13 @@ public class JooqTaskRepository implements TaskRepository {
 
             conditions.add(hasState);
         }
+        if (filters.getTypes() != null && !filters.getTypes().isEmpty()) {
+            Condition hasType = filters.getTypes().stream()
+                    .map(t -> TASK.TYPE.eq(t.name()))
+                    .reduce(falseCondition(), Condition::or);
+
+            conditions.add(hasType);
+        }
         if (filters.getName() != null) {
             conditions.add(TASK.NAME.likeRegex(filters.getName()));
         }
