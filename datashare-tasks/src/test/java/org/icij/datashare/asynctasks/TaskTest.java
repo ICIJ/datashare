@@ -2,6 +2,7 @@ package org.icij.datashare.asynctasks;
 
 import org.fest.assertions.Assertions;
 import org.icij.datashare.json.JsonObjectMapper;
+import org.icij.datashare.tasks.TaskType;
 import org.icij.datashare.user.User;
 import org.junit.Test;
 
@@ -40,6 +41,18 @@ public class TaskTest {
     public void test_user_parameter() {
         Task<String> taskView = new Task<>("foo", User.local(), Map.of("baz", "qux"));
         assertThat(taskView.args).includes(entry("user", User.local()), entry("baz", "qux"));
+    }
+
+    @Test
+    public void test_type_is_derived_from_task_name() {
+        Task<String> task = new Task<>("org.icij.datashare.tasks.BatchSearchRunner", User.local(), new HashMap<>());
+        assertThat(task.type).isEqualTo(TaskType.BATCH_SEARCH);
+    }
+
+    @Test
+    public void test_type_is_null_for_unknown_task_name() {
+        Task<String> task = new Task<>("org.icij.datashare.tasks.UnknownTask", User.local(), new HashMap<>());
+        assertThat(task.type).isNull();
     }
 
     @Test

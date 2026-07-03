@@ -1,0 +1,37 @@
+databaseChangeLog:
+  - changeSet:
+      id: 79
+      author: lschimchowitsch
+      changes:
+        - addColumn:
+            tableName: task
+            column:
+              name: type
+              type: VARCHAR(48)
+
+  - changeSet:
+      id: 80
+      author: lschimchowitsch
+      changes:
+        - sql: >
+            update task set type= (
+            CASE
+              WHEN name='org.icij.datashare.tasks.BatchSearchRunner' THEN 'BATCH_SEARCH'
+              WHEN name='org.icij.datashare.tasks.BatchSearchRunnerProxy' THEN 'BATCH_SEARCH'
+              WHEN name='org.icij.datashare.tasks.BatchDownloadRunner' THEN 'BATCH_DOWNLOAD'
+              WHEN name='org.icij.datashare.tasks.IndexTask' THEN 'INDEX'
+              WHEN name='org.icij.datashare.tasks.ScanTask' THEN 'SCAN'
+              WHEN name='org.icij.datashare.tasks.ScanIndexTask' THEN 'SCAN_INDEX'
+              WHEN name='org.icij.datashare.tasks.EnqueueFromIndexTask' THEN 'ENQUEUE_FROM_INDEX'
+              WHEN name='org.icij.datashare.tasks.ExtractNlpTask' THEN 'EXTRACT_NLP'
+              WHEN name='org.icij.datashare.tasks.BatchNlpTask' THEN 'BATCH_NLP'
+              WHEN name='org.icij.datashare.tasks.CreateNlpBatchesFromIndex' THEN 'CREATE_NLP_BATCHES'
+              WHEN name='org.icij.datashare.tasks.CategorizeTask' THEN 'CATEGORIZE'
+              WHEN name='org.icij.datashare.tasks.DeduplicateTask' THEN 'DEDUPLICATE'
+              WHEN name='org.icij.datashare.tasks.ArtifactTask' THEN 'ARTIFACT'
+              WHEN name='org.icij.datashare.tasks.GenApiKeyTask' THEN 'GEN_API_KEY'
+              WHEN name='org.icij.datashare.tasks.DelApiKeyTask' THEN 'DEL_API_KEY'
+              WHEN name='org.icij.datashare.tasks.GetApiKeyTask' THEN 'GET_API_KEY'
+              WHEN name='org.icij.datashare.tasks.GrantAdminPolicyTask' THEN 'GRANT_ADMIN_POLICY'
+            END
+            )
