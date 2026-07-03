@@ -197,9 +197,13 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
     // the 2^31-1 char-array cap and threw OutOfMemoryError before the cap could ever apply. Here
     // we never buffer more than the cap: reading stops as soon as the limit is reached.
     String readContent(TikaDocument document) throws IOException {
-        // maxContentLength == -1 disables the configured cap, but we still refuse to buffer past
-        // the largest array a String can hold to avoid the OOM that toString used to hit.
-        final int limit = maxContentLength == -1 ? MAX_CONTENT_LENGTH : maxContentLength;
+        // A configured maxContentLength can be as high as Integer.MAX_VALUE (see getMaxContentLength),
+        // and maxContentLength == -1 disables the configured cap entirely, but in both cases we still
+        // refuse to buffer past the largest array a String can hold, so clamp the effective limit in
+        // every branch rather than only guarding -1. (-1 stays "index everything up to that array
+        // cap": with no configured limit a single multi-GB document is bounded only by the heap, by
+        // design; operators cap memory by setting a finite maxContentLength.)
+        final int limit = Math.min(maxContentLength == -1 ? MAX_CONTENT_LENGTH : maxContentLength, MAX_CONTENT_LENGTH);
         final StringBuilder content = new StringBuilder();
         final char[] chunk = new char[READ_CHUNK_SIZE];
         // The reader is owned and closed by Spewer.write/writeTree (see closeReaderQuietly), so we
@@ -207,11 +211,12 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
         // releases any spilled temp files.
         final Reader reader = document.getReader();
         // The old code did toString(reader).trim() *before* applying the cap, so leading whitespace
-        // never counted against maxContentLength. We reproduce that: leading whitespace (blank
-        // pages, OCR page breaks preceding the body) is skipped without buffering and without
-        // eating into `limit`, so a document that starts with a limit-long run of blank lines still
-        // gets its real text indexed instead of an all-whitespace buffer that trims to empty. The
-        // skip is itself bounded by `limit` so a reader that only ever yields whitespace terminates.
+        // never counted against maxContentLength. We reproduce that: leading whitespace (blank pages,
+        // OCR page breaks preceding the body) is skipped without buffering, however many chunks it
+        // spans, until the body appears -- so a document that opens with a run of blank lines longer
+        // than the cap still gets its real text indexed instead of an all-whitespace buffer that
+        // trims to empty. The skip is bounded by the same array cap as the buffer, so a reader that
+        // only ever yields whitespace still terminates.
         boolean bodyStarted = false;
         long skippedLeadingWhitespace = 0;
         boolean truncated = false;
@@ -222,9 +227,9 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
                 while (offset < read && chunk[offset] <= ' ') {
                     offset++;
                 }
-                skippedLeadingWhitespace += offset;
                 if (offset == read) {
-                    if (skippedLeadingWhitespace >= limit) {
+                    skippedLeadingWhitespace += offset;
+                    if (skippedLeadingWhitespace >= MAX_CONTENT_LENGTH) {
                         break;
                     }
                     continue;
@@ -237,14 +242,38 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
                 content.append(chunk, offset, available);
             } else {
                 content.append(chunk, offset, remaining);
-                truncated = true;
+                // The cap is reached, but only report truncation if real (non-whitespace) content
+                // still follows: trailing whitespace that merely overflows the window is stripped by
+                // trim() and did not count as truncation in the old toString(reader).trim() path.
+                truncated = hasNonWhitespaceRemaining(chunk, offset + remaining, read, reader);
                 break;
             }
         }
         if (truncated) {
-            logger.warn("document id {} extracted text will be truncated to {} bytes", document.getId(), limit);
+            logger.warn("document id {} extracted text will be truncated to {} characters", document.getId(), limit);
         }
         return trim(content);
+    }
+
+    // After the content cap has been reached, reports whether any non-whitespace character remains in
+    // the unread tail of the current chunk or the rest of the reader. It stops at the first
+    // non-whitespace character (so a genuinely oversized document returns immediately) or at end of
+    // input, and buffers nothing, so it never reintroduces the unbounded read this class avoids.
+    private static boolean hasNonWhitespaceRemaining(char[] chunk, int from, int read, Reader reader) throws IOException {
+        for (int i = from; i < read; i++) {
+            if (chunk[i] > ' ') {
+                return true;
+            }
+        }
+        int n;
+        while ((n = reader.read(chunk)) != -1) {
+            for (int i = 0; i < n; i++) {
+                if (chunk[i] > ' ') {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     // Reproduces String.trim() semantics (strips code points <= U+0020 from both ends) directly on
