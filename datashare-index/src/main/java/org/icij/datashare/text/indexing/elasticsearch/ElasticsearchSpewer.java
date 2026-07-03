@@ -244,8 +244,14 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
                 content.append(chunk, offset, remaining);
                 // The cap is reached, but only report truncation if real (non-whitespace) content
                 // still follows: trailing whitespace that merely overflows the window is stripped by
-                // trim() and did not count as truncation in the old toString(reader).trim() path.
-                truncated = hasNonWhitespaceRemaining(chunk, offset + remaining, read, reader);
+                // trim() and did not count as truncation in the old toString(reader).trim() path. We
+                // look only at the chars already read into the current chunk and deliberately do not
+                // pull more from the reader for this cosmetic flag -- otherwise a document capped
+                // right where an unbounded run of trailing whitespace begins would be scanned to EOF,
+                // reintroducing the unbounded read this class exists to avoid. Real content that only
+                // resumes in a later chunk is under-reported as non-truncated, which at worst drops a
+                // warning log line.
+                truncated = hasNonWhitespaceRemaining(chunk, offset + remaining, read);
                 break;
             }
         }
@@ -256,21 +262,13 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
     }
 
     // After the content cap has been reached, reports whether any non-whitespace character remains in
-    // the unread tail of the current chunk or the rest of the reader. It stops at the first
-    // non-whitespace character (so a genuinely oversized document returns immediately) or at end of
-    // input, and buffers nothing, so it never reintroduces the unbounded read this class avoids.
-    private static boolean hasNonWhitespaceRemaining(char[] chunk, int from, int read, Reader reader) throws IOException {
+    // the already-read tail of the current chunk (indices [from, read)). It reads and buffers nothing
+    // further, so it can never reintroduce the unbounded read this class exists to avoid, even when a
+    // document is capped exactly where an unbounded run of trailing whitespace begins.
+    private static boolean hasNonWhitespaceRemaining(char[] chunk, int from, int read) {
         for (int i = from; i < read; i++) {
             if (chunk[i] > ' ') {
                 return true;
-            }
-        }
-        int n;
-        while ((n = reader.read(chunk)) != -1) {
-            for (int i = 0; i < n; i++) {
-                if (chunk[i] > ' ') {
-                    return true;
-                }
             }
         }
         return false;

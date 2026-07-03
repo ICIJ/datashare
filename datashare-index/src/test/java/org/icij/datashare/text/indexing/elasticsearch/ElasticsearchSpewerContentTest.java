@@ -108,6 +108,21 @@ public class ElasticsearchSpewerContentTest {
     }
 
     @Test
+    public void test_trailing_whitespace_tail_beyond_the_cap_does_not_drain_the_reader() throws Exception {
+        ElasticsearchSpewer spewer = spewerWithMaxContentLength("20");
+        // Regression: a document whose real text reaches the cap and is then followed by an
+        // effectively infinite run of trailing whitespace must not be scanned to end of input just to
+        // decide the truncation-warning flag. The bounded read has to stop after the current chunk
+        // instead of draining the reader, otherwise the indexer hangs forever on such a document.
+        ContentThenInfiniteWhitespaceReader reader = new ContentThenInfiniteWhitespaceReader('a', 20);
+
+        String content = spewer.readContent(documentReading(reader));
+
+        assertThat(content).isEqualTo("a".repeat(20));
+        assertThat(reader.charsProduced).isLessThan(1_000_000L);
+    }
+
+    @Test
     public void test_whitespace_only_reader_terminates_with_empty_content() throws Exception {
         ElasticsearchSpewer spewer = spewerWithMaxContentLength("20");
         CountingReader reader = new CountingReader(' ', 5_000_000L);
@@ -118,6 +133,32 @@ public class ElasticsearchSpewerContentTest {
         // empty content without ever buffering the stream.
         assertThat(content).isEmpty();
         assertThat(reader.charsProduced).isEqualTo(5_000_000L);
+    }
+
+    // A reader that yields `contentChars` copies of a non-whitespace char and then an effectively
+    // infinite run of spaces, counting how many chars it produced so a test can prove the bounded
+    // read stops after the cap instead of draining the trailing whitespace to end of input.
+    private static class ContentThenInfiniteWhitespaceReader extends Reader {
+        private final char content;
+        private final long contentChars;
+        private long charsProduced = 0;
+
+        private ContentThenInfiniteWhitespaceReader(char content, long contentChars) {
+            this.content = content;
+            this.contentChars = contentChars;
+        }
+
+        @Override
+        public int read(char[] cbuf, int off, int len) {
+            for (int i = 0; i < len; i++) {
+                cbuf[off + i] = charsProduced + i < contentChars ? content : ' ';
+            }
+            charsProduced += len;
+            return len;
+        }
+
+        @Override
+        public void close() {}
     }
 
     // A reader that hands out a stream of a single char up to `total` chars then reports end of
