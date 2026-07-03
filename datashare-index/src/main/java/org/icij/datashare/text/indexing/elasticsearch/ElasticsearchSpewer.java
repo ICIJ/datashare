@@ -17,6 +17,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.io.Reader;
 import java.io.Serializable;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
@@ -32,6 +33,12 @@ import static org.icij.datashare.text.Hasher.shorten;
 public class ElasticsearchSpewer extends Spewer implements Serializable {
     private static final Logger logger = LoggerFactory.getLogger(ElasticsearchSpewer.class);
     public static final String DEFAULT_VALUE_UNKNOWN = "unknown";
+    // Largest char[] a String can be backed by (Integer.MAX_VALUE - 8). Used as the hard ceiling
+    // when maxContentLength is disabled (-1): it is exactly the length at which the previous
+    // toString(reader) call blew up with "Required array length 2147483639 + 9 is too large", so
+    // stopping here avoids that OOM while never dropping content that could otherwise be indexed.
+    private static final int MAX_CONTENT_LENGTH = Integer.MAX_VALUE - 8;
+    private static final int READ_CHUNK_SIZE = 8192;
 
     static final String PST_ATTACHMENT_RECOVERY = "tika:pst_attachment_recovery";
     static final String PST_EXPECTED = "tika:pst_expected";
@@ -168,11 +175,7 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
                 .withOcrParser(document.getMetadata().get(OCRParser.OCR_PARSER))
                 .with(parseChildRecoveryStatus(document));
 
-        String content = toString(document.getReader()).trim();
-        if (maxContentLength != -1 && content.length() > maxContentLength) {
-            logger.warn("document id {} extracted text will be truncated to {} bytes", document.getId(), maxContentLength);
-            content = content.substring(0, maxContentLength).trim();
-        }
+        String content = readContent(document);
         if (document.getLanguage() == null) {
             builder.with(languageGuesser.guess(content));
         } else  {
@@ -186,6 +189,53 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
         }
         applyParentRollup(builder, document);
         return builder.build();
+    }
+
+    // Reads the extracted text bounded to maxContentLength characters. The previous
+    // toString(document.getReader()) copied the whole reader into an unbounded StringWriter and
+    // only truncated afterwards, so multi-GB extracted text (e.g. a zip bomb's contents) overran
+    // the 2^31-1 char-array cap and threw OutOfMemoryError before the cap could ever apply. Here
+    // we never buffer more than the cap: reading stops as soon as the limit is reached.
+    String readContent(TikaDocument document) throws IOException {
+        // maxContentLength == -1 disables the configured cap, but we still refuse to buffer past
+        // the largest array a String can hold to avoid the OOM that toString used to hit.
+        final int limit = maxContentLength == -1 ? MAX_CONTENT_LENGTH : maxContentLength;
+        final StringBuilder content = new StringBuilder();
+        final char[] chunk = new char[READ_CHUNK_SIZE];
+        // The reader is owned and closed by Spewer.write/writeTree (see closeReaderQuietly), so we
+        // only read from it here; leaving it partially consumed on truncation is fine, close still
+        // releases any spilled temp files.
+        final Reader reader = document.getReader();
+        boolean truncated = false;
+        int read;
+        while ((read = reader.read(chunk)) != -1) {
+            final int remaining = limit - content.length();
+            if (read <= remaining) {
+                content.append(chunk, 0, read);
+            } else {
+                content.append(chunk, 0, remaining);
+                truncated = true;
+                break;
+            }
+        }
+        if (truncated) {
+            logger.warn("document id {} extracted text will be truncated to {} bytes", document.getId(), limit);
+        }
+        return trim(content);
+    }
+
+    // Reproduces String.trim() semantics (strips code points <= U+0020 from both ends) directly on
+    // the bounded buffer, so we don't allocate a second copy of the whole extracted text.
+    private static String trim(StringBuilder content) {
+        int start = 0;
+        int end = content.length();
+        while (start < end && content.charAt(start) <= ' ') {
+            start++;
+        }
+        while (end > start && content.charAt(end - 1) <= ' ') {
+            end--;
+        }
+        return content.substring(start, end);
     }
 
     int getMaxContentLength(PropertiesProvider propertiesProvider) {
