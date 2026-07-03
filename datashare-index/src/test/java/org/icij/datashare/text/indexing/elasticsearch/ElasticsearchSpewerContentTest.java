@@ -63,7 +63,7 @@ public class ElasticsearchSpewerContentTest {
     @Test
     public void test_bounded_read_stops_without_consuming_the_whole_reader() throws Exception {
         ElasticsearchSpewer spewer = spewerWithMaxContentLength("20");
-        CountingInfiniteReader reader = new CountingInfiniteReader();
+        CountingInfiniteReader reader = new CountingInfiniteReader('a');
 
         String content = spewer.readContent(documentReading(reader));
 
@@ -74,15 +74,45 @@ public class ElasticsearchSpewerContentTest {
         assertThat(reader.charsProduced).isLessThan(1_000_000L);
     }
 
-    // A reader that hands out an effectively infinite stream of 'a' and counts how many chars it
-    // produced, so a test can prove the bounded read stops early instead of draining it.
+    @Test
+    public void test_leading_whitespace_does_not_consume_the_content_budget() throws Exception {
+        ElasticsearchSpewer spewer = spewerWithMaxContentLength("20");
+        // A document whose extracted text begins with more than maxContentLength worth of blank
+        // lines (blank pages, OCR page breaks before the body) must still index its real text.
+        // The old toString(reader).trim() stripped that leading whitespace before capping; a
+        // regression that caps the raw stream first would fill the budget with whitespace and trim
+        // to an empty, unsearchable document.
+        String text = " ".repeat(50) + "this content should be truncated";
+        assertThat(spewer.readContent(documentReading(new StringReader(text)))).isEqualTo("this content should");
+    }
+
+    @Test
+    public void test_whitespace_only_reader_terminates_with_empty_content() throws Exception {
+        ElasticsearchSpewer spewer = spewerWithMaxContentLength("20");
+        CountingInfiniteReader reader = new CountingInfiniteReader(' ');
+
+        String content = spewer.readContent(documentReading(reader));
+
+        // An infinite run of pure whitespace never starts a body: it must terminate (the leading
+        // whitespace skip is bounded) and yield empty content without buffering the whole stream.
+        assertThat(content).isEmpty();
+        assertThat(reader.charsProduced).isLessThan(1_000_000L);
+    }
+
+    // A reader that hands out an effectively infinite stream of a single char and counts how many
+    // chars it produced, so a test can prove the bounded read stops early instead of draining it.
     private static class CountingInfiniteReader extends Reader {
+        private final char fill;
         private long charsProduced = 0;
+
+        private CountingInfiniteReader(char fill) {
+            this.fill = fill;
+        }
 
         @Override
         public int read(char[] cbuf, int off, int len) {
             for (int i = 0; i < len; i++) {
-                cbuf[off + i] = 'a';
+                cbuf[off + i] = fill;
             }
             charsProduced += len;
             return len;
