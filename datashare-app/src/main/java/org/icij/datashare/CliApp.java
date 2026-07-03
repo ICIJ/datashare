@@ -21,7 +21,10 @@ import org.icij.datashare.tasks.ArtifactTask;
 import org.icij.datashare.tasks.CreateNlpBatchesFromIndex;
 import org.icij.datashare.tasks.CategorizeTask;
 import org.icij.datashare.tasks.DatashareTaskFactory;
+import org.icij.datashare.asynctasks.Task;
+import org.icij.datashare.asynctasks.TaskFilters;
 import org.icij.datashare.asynctasks.TaskManager;
+import org.icij.datashare.asynctasks.UnknownTask;
 import org.icij.datashare.tasks.DeduplicateTask;
 import org.icij.datashare.tasks.EnqueueFromIndexTask;
 import org.icij.datashare.tasks.ExtractNlpTask;
@@ -41,6 +44,7 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -174,43 +178,84 @@ class CliApp {
 
         PipelineHelper pipeline = new PipelineHelper(new PropertiesProvider(properties));
         logger.info("executing {}", pipeline);
+
+        // Reconcile tasks left non-final by previously interrupted CLI runs before
+        // enqueuing our own. In CLI mode this process is the only worker and it has
+        // not enqueued anything yet, so any non-final task owned by the CLI user
+        // (nullUser) provably belongs to a dead run and is safe to cancel. Scoping to
+        // nullUser keeps a concurrent web server's real-user tasks untouched.
+        List<String> reconciled = taskManager.reconcileStaleTasks(TaskFilters.empty().withUser(nullUser()));
+        if (!reconciled.isEmpty()) {
+            logger.warn("reconciled {} orphaned task(s) from previous runs: {}", reconciled.size(), reconciled);
+        }
+
+        List<String> startedTaskIds = new ArrayList<>();
         if (pipeline.has(Stage.DEDUPLICATE)) {
-            taskManager.startTask(DeduplicateTask.class, nullUser(), propertiesToMap(properties));
+            startedTaskIds.add(taskManager.startTask(DeduplicateTask.class, nullUser(), propertiesToMap(properties)));
         }
 
         if (pipeline.has(Stage.SCANIDX)) {
-            taskManager.startTask(ScanIndexTask.class, nullUser(), propertiesToMap(properties));
+            startedTaskIds.add(taskManager.startTask(ScanIndexTask.class, nullUser(), propertiesToMap(properties)));
         }
 
         if (pipeline.has(Stage.SCAN)) {
-            taskManager.startTask(ScanTask.class, nullUser(), propertiesToMap(properties));
+            startedTaskIds.add(taskManager.startTask(ScanTask.class, nullUser(), propertiesToMap(properties)));
         }
 
         if (pipeline.has(Stage.INDEX)) {
-            taskManager.startTask(IndexTask.class, nullUser(), propertiesToMap(properties));
+            startedTaskIds.add(taskManager.startTask(IndexTask.class, nullUser(), propertiesToMap(properties)));
         }
 
         if (pipeline.has(Stage.ENQUEUEIDX)) {
-            taskManager.startTask(EnqueueFromIndexTask.class, nullUser(), propertiesToMap(properties));
+            startedTaskIds.add(taskManager.startTask(EnqueueFromIndexTask.class, nullUser(), propertiesToMap(properties)));
         }
 
         if (pipeline.has(Stage.CATEGORIZE)) {
-            taskManager.startTask(CategorizeTask.class, nullUser(), propertiesToMap(properties));
+            startedTaskIds.add(taskManager.startTask(CategorizeTask.class, nullUser(), propertiesToMap(properties)));
         }
 
         if (pipeline.has(Stage.CREATENLPBATCHESFROMIDX)) {
-            taskManager.startTask(CreateNlpBatchesFromIndex.class.getName(), nullUser(), propertiesToMap(properties));
+            startedTaskIds.add(taskManager.startTask(CreateNlpBatchesFromIndex.class.getName(), nullUser(), propertiesToMap(properties)));
         }
 
         if (pipeline.has(Stage.NLP)) {
-            taskManager.startTask(ExtractNlpTask.class, nullUser(), propertiesToMap(properties));
+            startedTaskIds.add(taskManager.startTask(ExtractNlpTask.class, nullUser(), propertiesToMap(properties)));
         }
 
         if (pipeline.has(Stage.ARTIFACT)) {
-            taskManager.startTask(ArtifactTask.class, nullUser(), propertiesToMap(properties));
+            startedTaskIds.add(taskManager.startTask(ArtifactTask.class, nullUser(), propertiesToMap(properties)));
         }
-        taskManager.awaitTermination(Integer.MAX_VALUE, SECONDS);
+        // Wait only on the tasks this run started, not the global non-final count:
+        // the repository is shared and persistent, so unrelated non-final rows must
+        // never keep a finished run alive.
+        long unfinished = taskManager.waitTasksToBeDone(startedTaskIds, Integer.MAX_VALUE, SECONDS);
         taskManager.shutdown();
+
+        // The JVM would otherwise stay alive on non-daemon threads (a second
+        // TaskManager worker pool created by the unused CommonMode in Main, Redisson
+        // netty threads). Force the exit, non-zero if any of this run's tasks errored.
+        int exitCode = computeExitCode(taskManager, startedTaskIds);
+        logger.info("pipeline finished ({} unfinished task(s)), exiting with code {}", unfinished, exitCode);
+        System.exit(exitCode);
+    }
+
+    /**
+     * Success (0) unless one of this run's tasks ended in ERROR, or its final state
+     * could not be read (treated as a failure so a broken run never reports success).
+     */
+    private static int computeExitCode(TaskManager taskManager, List<String> startedTaskIds) {
+        for (String taskId : startedTaskIds) {
+            try {
+                if (taskManager.getTask(taskId).getState() == Task.State.ERROR) {
+                    logger.error("task {} ended in ERROR", taskId);
+                    return EXIT_RUNTIME;
+                }
+            } catch (IOException | UnknownTask e) {
+                logger.error("could not read final state of task {}; treating run as failed", taskId, e);
+                return EXIT_RUNTIME;
+            }
+        }
+        return EXIT_SUCCESS;
     }
 
     static int handleUserCreate(UserAdminService service, Properties properties) {

@@ -183,6 +183,64 @@ public class TaskManagerMemoryTest {
     }
 
     @Test
+    public void test_wait_scoped_to_own_ids_ignores_foreign_non_final_task() throws Exception {
+        // a task left non-final by a prior interrupted run: inserted but never enqueued
+        Task<String> stale = new Task<>("sleep", User.local(), Map.of("intParameter", 12));
+        taskManager.insert(stale, new Group(TaskGroupType.Test));
+        stale.queue();
+        taskManager.update(stale);
+
+        // our own quick task
+        Task<String> own = new Task<>(TestFactory.HelloWorld.class.getName(), User.local(), Map.of("greeted", "world"));
+        String ownId = taskManager.startTask(own, new Group(TaskGroupType.Test));
+
+        long unfinished = taskManager.waitTasksToBeDone(java.util.List.of(ownId), 2, TimeUnit.SECONDS);
+
+        assertThat(unfinished).isEqualTo(0L);
+        assertThat(taskManager.getTask(ownId).getState()).isEqualTo(Task.State.DONE);
+        // the stale task is still non-final and would have blocked the global wait
+        assertThat(taskManager.getTask(stale.id).getState()).isEqualTo(Task.State.QUEUED);
+    }
+
+    @Test
+    public void test_wait_on_empty_ids_returns_immediately() throws Exception {
+        assertThat(taskManager.waitTasksToBeDone(java.util.List.of(), 1, TimeUnit.SECONDS)).isEqualTo(0L);
+    }
+
+    @Test
+    public void test_reconcile_cancels_scoped_non_final_tasks() throws Exception {
+        Task<String> stale = new Task<>("sleep", User.local(), Map.of("intParameter", 12));
+        taskManager.insert(stale, new Group(TaskGroupType.Test));
+        stale.queue();
+        taskManager.update(stale);
+
+        java.util.List<String> reconciled = taskManager.reconcileStaleTasks(TaskFilters.empty().withUser(User.local()));
+
+        assertThat(reconciled).containsExactly(stale.id);
+        assertThat(taskManager.getTask(stale.id).getState()).isEqualTo(Task.State.CANCELLED);
+    }
+
+    @Test
+    public void test_reconcile_leaves_final_and_out_of_scope_tasks_untouched() throws Exception {
+        // final task: never reconciled
+        Task<String> done = new Task<>("sleep", User.local(), Map.of("intParameter", 0));
+        taskManager.insert(done, new Group(TaskGroupType.Test));
+        done.setResult(new TaskResult<>("ok"));
+        taskManager.update(done);
+        // non-final but owned by another user: out of the reconcile scope
+        Task<String> otherUser = new Task<>("sleep", new User("bob"), Map.of("intParameter", 5));
+        taskManager.insert(otherUser, new Group(TaskGroupType.Test));
+        otherUser.queue();
+        taskManager.update(otherUser);
+
+        java.util.List<String> reconciled = taskManager.reconcileStaleTasks(TaskFilters.empty().withUser(User.local()));
+
+        assertThat(reconciled).isEmpty();
+        assertThat(taskManager.getTask(done.id).getState()).isEqualTo(Task.State.DONE);
+        assertThat(taskManager.getTask(otherUser.id).getState()).isEqualTo(Task.State.QUEUED);
+    }
+
+    @Test
     public void test_health_ok() {
         assertThat(taskManager.getHealth()).isTrue();
     }

@@ -138,7 +138,20 @@ public class TaskWorkerLoop implements Callable<Integer>, Closeable {
                     taskSupplier.error(currentTask.get().id, new TaskError(ex));
                 }
             } catch (ReflectiveOperationException unknownTask) {
-                throw new NackException(unknownTask, true);
+                // Task construction/instantiation failed: unknown task class or a
+                // constructor that threw. On AMQP we nack+requeue and let the broker
+                // layer decide what to do with the message. On the local (MEMORY/REDIS)
+                // loop there is no broker to requeue to, so the NackException would only
+                // be logged in mainLoop() and the task would stay non-final forever,
+                // blocking any run that waits on it. Record it as an ERROR instead so it
+                // reaches a final state.
+                if (taskSupplier instanceof TaskSupplierAmqp) {
+                    throw new NackException(unknownTask, true);
+                }
+                logger.error("task {} could not be created, marking it as error", currentTask.get(), unknownTask);
+                if (currentTask.get() != null && !currentTask.get().isNull()) {
+                    taskSupplier.error(currentTask.get().id, new TaskError(unknownTask));
+                }
             } catch (Error | Exception ex) {
                 throw new NackException(ex, false);
             } finally {

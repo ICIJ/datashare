@@ -2,11 +2,17 @@ package org.icij.datashare.asynctasks;
 
 import java.io.IOException;
 import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import org.icij.datashare.asynctasks.bus.amqp.CancelledEvent;
 import org.icij.datashare.asynctasks.bus.amqp.ErrorEvent;
 import org.icij.datashare.asynctasks.bus.amqp.ProgressEvent;
 import org.icij.datashare.asynctasks.bus.amqp.ResultEvent;
 import org.icij.datashare.asynctasks.bus.amqp.TaskEvent;
+
+import static org.icij.datashare.asynctasks.Task.State.NON_FINAL_STATES;
 
 /**
  * Task manager back by a queueing system and a persistent storay
@@ -33,6 +39,27 @@ abstract class StoreAndQueueTaskManagerImpl implements StoreAndQueueTaskManager 
         taskView.queue();
         enqueue(taskView);
         return taskView.id;
+    }
+
+    @Override
+    public List<String> reconcileStaleTasks(TaskFilters filters) throws IOException {
+        Set<Task.State> states = new HashSet<>(NON_FINAL_STATES);
+        if (filters.hasStates()) {
+            states.retainAll(filters.getStates());
+        }
+        List<String> reconciled = new ArrayList<>();
+        for (String taskId : getTaskIds(filters.withStates(states)).toList()) {
+            try {
+                Task<?> task = getTask(taskId);
+                task.cancel();
+                update(task);
+                reconciled.add(taskId);
+                logger.info("reconciled stale task {} to CANCELLED", taskId);
+            } catch (UnknownTask e) {
+                logger.warn("stale task {} vanished before reconciliation", taskId, e);
+            }
+        }
+        return reconciled;
     }
 
     private <V extends Serializable> Task<V> setResult(ResultEvent<V> e) throws IOException, UnknownTask {
