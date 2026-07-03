@@ -206,14 +206,37 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
         // only read from it here; leaving it partially consumed on truncation is fine, close still
         // releases any spilled temp files.
         final Reader reader = document.getReader();
+        // The old code did toString(reader).trim() *before* applying the cap, so leading whitespace
+        // never counted against maxContentLength. We reproduce that: leading whitespace (blank
+        // pages, OCR page breaks preceding the body) is skipped without buffering and without
+        // eating into `limit`, so a document that starts with a limit-long run of blank lines still
+        // gets its real text indexed instead of an all-whitespace buffer that trims to empty. The
+        // skip is itself bounded by `limit` so a reader that only ever yields whitespace terminates.
+        boolean bodyStarted = false;
+        long skippedLeadingWhitespace = 0;
         boolean truncated = false;
         int read;
         while ((read = reader.read(chunk)) != -1) {
+            int offset = 0;
+            if (!bodyStarted) {
+                while (offset < read && chunk[offset] <= ' ') {
+                    offset++;
+                }
+                skippedLeadingWhitespace += offset;
+                if (offset == read) {
+                    if (skippedLeadingWhitespace >= limit) {
+                        break;
+                    }
+                    continue;
+                }
+                bodyStarted = true;
+            }
+            final int available = read - offset;
             final int remaining = limit - content.length();
-            if (read <= remaining) {
-                content.append(chunk, 0, read);
+            if (available <= remaining) {
+                content.append(chunk, offset, available);
             } else {
-                content.append(chunk, 0, remaining);
+                content.append(chunk, offset, remaining);
                 truncated = true;
                 break;
             }
