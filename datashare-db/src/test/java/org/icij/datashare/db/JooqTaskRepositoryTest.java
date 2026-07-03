@@ -2,6 +2,7 @@ package org.icij.datashare.db;
 
 import static java.util.Arrays.asList;
 import static org.fest.assertions.Assertions.assertThat;
+import static org.icij.datashare.db.Tables.TASK;
 import static org.junit.Assert.assertThrows;
 
 import java.io.IOException;
@@ -19,8 +20,10 @@ import org.icij.datashare.asynctasks.TaskResult;
 import org.icij.datashare.asynctasks.UnknownTask;
 import org.icij.datashare.asynctasks.bus.amqp.TaskError;
 import org.icij.datashare.asynctasks.bus.amqp.UriResult;
+import org.icij.datashare.tasks.TaskType;
 import org.icij.datashare.user.User;
 import org.jooq.exception.IntegrityConstraintViolationException;
+import org.jooq.impl.DSL;
 import org.junit.After;
 import org.junit.Rule;
 import org.junit.Test;
@@ -60,6 +63,31 @@ public class JooqTaskRepositoryTest {
         assertThat(actual).isEqualTo(foo); // but equals as defined by Task
         assertThat(actual.getUser()).isEqualTo(User.local());
         assertThat(actualGroup.getId()).isEqualTo("Test");
+    }
+
+    @Test
+    public void test_insert_persists_type_derived_from_name() throws IOException {
+        Task<Serializable> task = new Task<>("org.icij.datashare.tasks.BatchSearchRunner", User.local(), Map.of("user", User.local()));
+
+        repository.insert(task, new Group(TaskGroupType.Test));
+
+        assertThat(rawTypeColumn(task.getId())).isEqualTo(TaskType.BATCH_SEARCH.name());
+        assertThat(repository.getTask(task.getId()).type).isEqualTo(TaskType.BATCH_SEARCH);
+    }
+
+    @Test
+    public void test_insert_persists_null_type_for_unknown_name() throws IOException {
+        Task<Serializable> task = new Task<>("org.icij.datashare.tasks.UnknownTask", User.local(), Map.of("user", User.local()));
+
+        repository.insert(task, new Group(TaskGroupType.Test));
+
+        assertThat(rawTypeColumn(task.getId())).isNull();
+        assertThat(repository.getTask(task.getId()).type).isNull();
+    }
+
+    private String rawTypeColumn(String taskId) {
+        return DSL.using(dbRule.dataSource, RepositoryFactoryImpl.guessSqlDialectFrom(dbRule.dataSourceUrl))
+            .select(TASK.TYPE).from(TASK).where(TASK.ID.eq(taskId)).fetchOne(TASK.TYPE);
     }
 
     @Test

@@ -13,6 +13,7 @@ import org.icij.datashare.Entity;
 import org.icij.datashare.asynctasks.bus.amqp.Event;
 import org.icij.datashare.asynctasks.bus.amqp.TaskError;
 import org.icij.datashare.batch.WebQueryPagination;
+import org.icij.datashare.tasks.TaskType;
 import org.icij.datashare.time.DatashareTime;
 import org.icij.datashare.user.User;
 
@@ -53,6 +54,7 @@ public class Task<V extends Serializable> extends Event implements Entity, Compa
     public final Map<String, Object> args;
     public final String id;
     public final String name;
+    public final TaskType type;
     volatile TaskError error;
     private volatile State state;
     private volatile Date completedAt;
@@ -89,6 +91,7 @@ public class Task<V extends Serializable> extends Event implements Entity, Compa
         super(createdAt, retriesLeft);
         this.id = id;
         this.name = name;
+        this.type = TaskType.fromName(name).orElse(null);
         this.state = state;
         this.progress = progress;
         this.completedAt = completedAt;

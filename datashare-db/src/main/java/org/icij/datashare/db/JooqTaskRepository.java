@@ -19,9 +19,10 @@ import org.icij.datashare.asynctasks.bus.amqp.TaskError;
 import org.icij.datashare.db.tables.records.TaskRecord;
 import org.icij.datashare.function.Pair;
 import org.icij.datashare.json.JsonObjectMapper;
+import org.icij.datashare.tasks.TaskType;
 import org.jooq.Condition;
 import org.jooq.DSLContext;
-import org.jooq.InsertValuesStep11;
+import org.jooq.InsertValuesStep12;
 import org.jooq.SQLDialect;
 import org.jooq.exception.IntegrityConstraintViolationException;
 import org.jooq.impl.DSL;
@@ -60,7 +61,7 @@ public class JooqTaskRepository implements TaskRepository {
     public <V extends Serializable> void insert(Task<V> task, Group group) throws IOException, TaskAlreadyExists {
         using(connectionProvider, dialect).transactionResult(configuration -> {
             DSLContext inner = using(configuration);
-            InsertValuesStep11<TaskRecord, String, String, String, String, String, Double, LocalDateTime, LocalDateTime, Integer, Integer, String> insertInto = insert(inner);
+            InsertValuesStep12<TaskRecord, String, String, String, String, String, Double, LocalDateTime, LocalDateTime, Integer, Integer, String, String> insertInto = insert(inner);
             insertValues(task, group, insertInto);
             try {
                 insertInto.execute();
@@ -216,13 +217,13 @@ public class JooqTaskRepository implements TaskRepository {
     }
 
     
-    private InsertValuesStep11<TaskRecord, String, String, String, String, String, Double, LocalDateTime, LocalDateTime, Integer, Integer, String> insert(DSLContext ctx) {
+    private InsertValuesStep12<TaskRecord, String, String, String, String, String, Double, LocalDateTime, LocalDateTime, Integer, Integer, String, String> insert(DSLContext ctx) {
         return ctx.insertInto(TASK).columns(
                         TASK.ID, TASK.NAME, TASK.STATE, TASK.USER_ID, TASK.GROUP_ID, TASK.PROGRESS,
-                        TASK.CREATED_AT, TASK.COMPLETED_AT, TASK.RETRIES_LEFT, TASK.MAX_RETRIES, TASK.ARGS);
+                        TASK.CREATED_AT, TASK.COMPLETED_AT, TASK.RETRIES_LEFT, TASK.MAX_RETRIES, TASK.ARGS, TASK.TYPE);
     }
 
-    private static void insertValues(Task<?> task, Group group, InsertValuesStep11<TaskRecord, String, String, String, String, String, Double, LocalDateTime, LocalDateTime, Integer, Integer, String> insert) throws JsonProcessingException {
+    private static void insertValues(Task<?> task, Group group, InsertValuesStep12<TaskRecord, String, String, String, String, String, Double, LocalDateTime, LocalDateTime, Integer, Integer, String, String> insert) throws JsonProcessingException {
         insert.values(task.id, task.name,
                     task.getState().name(),
                     ofNullable(task.getUser()).map(u -> u.id).orElse(null),
@@ -231,7 +232,8 @@ public class JooqTaskRepository implements TaskRepository {
                     new Timestamp(task.createdAt.getTime()).toLocalDateTime(),
                     ofNullable(task.getCompletedAt()).map(d -> new Timestamp(d.getTime()).toLocalDateTime()).orElse(null),
                     task.getRetriesLeft(),
-                    MAX_RETRIES_LEFT, JsonObjectMapper.writeValueAsStringTyped(task.args)); // to force writing @type fields in the hashmap
+                    MAX_RETRIES_LEFT, JsonObjectMapper.writeValueAsStringTyped(task.args), // to force writing @type fields in the hashmap
+                    ofNullable(task.type).map(TaskType::name).orElse(null));
     }
 
 }

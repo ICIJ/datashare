@@ -137,3 +137,6 @@ databaseChangeLog:
   - include:
       file: changes/045-rename_note_to_path_banner.yml
       relativeToChangelogFile: true
+  - include:
+      file: changes/046-add-tasks-type.yml
+      relativeToChangelogFile: true
