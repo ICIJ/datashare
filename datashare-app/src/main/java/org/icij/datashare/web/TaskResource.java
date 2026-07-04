@@ -102,15 +102,20 @@ public class TaskResource {
                 @Parameter(name = "order", description = "desc or asc (default)", in = ParameterIn.QUERY)
             })
     @ApiResponse(responseCode = "200", description = "returns the list of tasks", useReturnTypeSchema = true)
+    @ApiResponse(responseCode = "400", description = "if task type is not valid")
     @Get()
     public Payload getTasks(Context context) throws IOException {
         WebQueryPagination pagination = getPagination(context);
         User user = (User) context.currentUser();
-        Stream<Task<?>> tasks = taskFinder.findVisibleTasksFor(user, taskFiltersFromContext(context, Pattern.CASE_INSENSITIVE))
-                .sorted(new Task.Comparator(pagination.sort, pagination.order));
-        WebResponse<Task<?>> paginatedTasks = WebResponse.fromStream(tasks, pagination.from, pagination.size);
-        // Then finally, use WebResponse to take display the pagination for us
-        return new Payload(paginatedTasks);
+        try {
+            Stream<Task<?>> tasks = taskFinder.findVisibleTasksFor(user, taskFiltersFromContext(context, Pattern.CASE_INSENSITIVE))
+                    .sorted(new Task.Comparator(pagination.sort, pagination.order));
+            WebResponse<Task<?>> paginatedTasks = WebResponse.fromStream(tasks, pagination.from, pagination.size);
+            // Then finally, use WebResponse to take display the pagination for us
+            return new Payload(paginatedTasks);
+        } catch (IllegalArgumentException e) {
+            return new Payload(400);
+        }
     }
 
     @Operation(description = """
@@ -645,7 +650,9 @@ public class TaskResource {
         filters = filters.withStates(states);
         // Types
         Set<TaskType> types = query.keys().stream().filter(k -> k.equals("type")).findAny()
-            .map(k -> stream(query.get(k).split("\\|")).map(TaskType::valueOf).collect(Collectors.toSet()))
+            .map(k -> stream(query.get(k).split("\\|"))
+            .map(String::toUpperCase)
+            .map(TaskType::valueOf).collect(Collectors.toSet()))
             .orElse(Set.of());
         filters = filters.withTypes(types);
         // Names
