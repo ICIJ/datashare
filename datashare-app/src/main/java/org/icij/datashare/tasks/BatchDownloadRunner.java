@@ -59,10 +59,7 @@ import static java.lang.String.valueOf;
 import static java.util.stream.Collectors.toList;
 import static org.icij.datashare.cli.DatashareCliOptions.*;
 
-import org.icij.datashare.asynctasks.TaskTyped;
-
 @TemporalSingleActivityWorkflow(name = "batch-download", activityOptions = @ActivityOpts(timeout = "P7D"))
-@TaskTyped(TaskType.BATCH_DOWNLOAD)
 @TaskGroup(TaskGroupType.Java)
 public class BatchDownloadRunner implements Callable<BatchDownloadRunnerResult>, Monitorable, UserTask, CancellableTask {
     private static final Logger logger = LoggerFactory.getLogger(BatchDownloadRunner.class);
