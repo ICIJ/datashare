@@ -48,10 +48,7 @@ import org.icij.task.DefaultTask;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.icij.datashare.asynctasks.TaskTyped;
-
 @TemporalSingleActivityWorkflow(name = "create-nlp-batches", activityOptions = @ActivityOpts(timeout = "P1D"))
-@TaskTyped(TaskType.CREATE_NLP_BATCHES)
 @TaskGroup(TaskGroupType.Java)
 public class CreateNlpBatchesFromIndex extends DefaultTask<List<String>> implements UserTask, CancellableTask {
     Logger logger = LoggerFactory.getLogger(getClass());

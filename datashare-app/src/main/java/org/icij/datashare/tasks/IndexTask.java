@@ -38,15 +38,12 @@ import static org.icij.datashare.PropertiesProvider.DEFAULT_PROJECT_OPT;
 import static org.icij.datashare.PropertiesProvider.REPORT_NAME_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.*;
 
-import org.icij.datashare.asynctasks.TaskTyped;
-
 @TemporalSingleActivityWorkflow(name = "index-documents", activityOptions = @ActivityOpts(timeout = "P30D"))
 @OptionsClass(Extractor.class)
 @OptionsClass(DocumentFactory.class)
 @OptionsClass(DocumentQueueDrainer.class)
 @Option(name = DEFAULT_PROJECT_OPT, description = "the default project name")
 @Option(name = "projectName", description = "task project name")
-@TaskTyped(TaskType.INDEX)
 @TaskGroup(TaskGroupType.Java)
 public class IndexTask extends PipelineTask<Path> implements Monitorable{
     private final Logger logger = LoggerFactory.getLogger(getClass());

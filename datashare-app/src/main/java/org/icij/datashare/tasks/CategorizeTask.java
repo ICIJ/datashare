@@ -7,7 +7,6 @@ import org.icij.datashare.Stage;
 import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.asynctasks.TaskGroup;
 import org.icij.datashare.asynctasks.TaskGroupType;
-import org.icij.datashare.asynctasks.TaskTyped;
 import org.icij.datashare.asynctasks.temporal.ActivityOpts;
 import org.icij.datashare.asynctasks.temporal.TemporalSingleActivityWorkflow;
 import org.icij.datashare.extract.DocumentCollectionFactory;
@@ -37,7 +36,6 @@ import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_DEFAULT_PROJECT
  * If contentType field on the document is not found or empty, contentTypeCategory will be set to {@link ContentTypeCategory#OTHER}
  */
 @TemporalSingleActivityWorkflow(name = "categorize", activityOptions = @ActivityOpts(timeout = "PT10M"))
-@TaskTyped(TaskType.CATEGORIZE)
 @TaskGroup(TaskGroupType.Java)
 public class CategorizeTask extends PipelineTask<String> implements Monitorable {
     private final Logger logger = LoggerFactory.getLogger(getClass());
