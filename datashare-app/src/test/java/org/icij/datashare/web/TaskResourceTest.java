@@ -169,13 +169,19 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
-    public void test_get_tasks_filtered_on_multiple_names() {
+    public void test_get_tasks_filtered_on_multiple_names_or_type() {
         String subpath = getClass().getResource("/docs/doc.txt").getPath().substring(1);
         String body = "{\"options\":{\"reportName\": \"foo\"}}";
         post("/api/task/batchUpdate/index/" + subpath, body).should().haveType("application/json");
 
         get("/api/task").should().haveType("application/json").contain("IndexTask").contain("ScanTask");
         get("/api/task?name=scan|index").should().contain("ScanTask").contain("IndexTask");
+        get("/api/task?type=scan|index").should().contain("ScanTask").contain("IndexTask");
+    }
+
+    @Test
+    public void test_get_tasks_with_unknown_type() {
+        get("/api/task?type=foo").should().respond(400);
     }
 
     @Test
@@ -1092,6 +1098,18 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         // When
         TaskFilters filters = taskFiltersFromContext(ctx, null);
         // Then
+        TaskFilters expectedFilters = TaskFilters.empty().withStates(Set.of())
+            .withTypes(Set.of(TaskType.BATCH_SEARCH, TaskType.BATCH_DOWNLOAD)).withArgs(List.of());
+        assertThat(filters).isEqualTo(expectedFilters);
+    }
+
+    @Test
+    public void test_task_filters_from_context_should_filter_task_by_type_case_insensitive() {
+        Request request = new MockRequest(Map.of("type", "Batch_Search|batch_download"));
+        Context ctx = new Context(request, null, null, null, null);
+
+        TaskFilters filters = taskFiltersFromContext(ctx, null);
+
         TaskFilters expectedFilters = TaskFilters.empty().withStates(Set.of())
             .withTypes(Set.of(TaskType.BATCH_SEARCH, TaskType.BATCH_DOWNLOAD)).withArgs(List.of());
         assertThat(filters).isEqualTo(expectedFilters);
