@@ -144,6 +144,7 @@ public final class DatashareCliOptions {
     public static final String VERSION_OPT = "version";
     public static final String ARTIFACT_DIR_OPT = "artifactDir";
     public static final String SEARCH_QUERY_OPT = "searchQuery";
+    public static final String QUEUE_POLL_OPT = "queuePoll";
     public static final String TASK_ROUTING_STRATEGY_OPT = "taskRoutingStrategy";
     public static final String TASK_ROUTING_KEY_OPT = "taskRoutingKey";
     public static final String OAUTH_USER_PROJECTS_KEY_OPT = "oauthUserProjectsAttribute";
@@ -261,6 +262,7 @@ public final class DatashareCliOptions {
     public static final String DEFAULT_MAX_CONTENT_LENGTH = "20000000";
     public static final RoutingStrategy DEFAULT_TASK_ROUTING_STRATEGY = RoutingStrategy.UNIQUE;
     public static final String DEFAULT_POLLING_INTERVAL_SEC = "60";
+    public static final String DEFAULT_QUEUE_POLL = "120s";
     public static final int DEFAULT_TASK_MANAGER_POLLING_INTERVAL = 5000;
     public static final String DEFAULT_TASK_WORKERS = "1";
     public static final double DEFAULT_TASK_PROGRESS_INTERVAL_SECONDS = 10;
@@ -1045,6 +1047,16 @@ public final class DatashareCliOptions {
         parser.acceptsAll(singletonList(POLLING_INTERVAL_SECONDS_OPT), "Queue polling interval.")
                 .withRequiredArg()
                 .ofType(String.class).defaultsTo(DEFAULT_POLLING_INTERVAL_SEC);
+    }
+
+    public static void queuePoll(OptionParser parser) {
+        parser.acceptsAll(singletonList(QUEUE_POLL_OPT),
+                        "Time INDEX/DEDUPLICATE wait for new documents on the shared queue before " +
+                        "concluding it is drained (e.g. \"120s\"). Raise it above your worst-case gap " +
+                        "between SCAN producing and INDEX consuming when running SCAN and INDEX on " +
+                        "separate instances. Defaults to " + DEFAULT_QUEUE_POLL + " for pipeline draining.")
+                .withRequiredArg()
+                .ofType(String.class);
     }
 
     public static void taskRepositoryType(OptionParser parser) {

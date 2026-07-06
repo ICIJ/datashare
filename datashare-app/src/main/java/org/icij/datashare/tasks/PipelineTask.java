@@ -9,11 +9,15 @@ import org.icij.datashare.user.User;
 import org.icij.datashare.user.UserTask;
 import org.icij.extract.queue.DocumentQueue;
 import org.icij.task.DefaultTask;
+import org.icij.time.HumanDuration;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.Duration;
 
 import static java.util.Optional.ofNullable;
+import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_QUEUE_POLL;
+import static org.icij.datashare.cli.DatashareCliOptions.QUEUE_POLL_OPT;
 
 public abstract class PipelineTask<T> extends DefaultTask<Long> implements UserTask, CancellableTask {
     protected final DocumentQueue<T> inputQueue;
@@ -25,6 +29,18 @@ public abstract class PipelineTask<T> extends DefaultTask<Long> implements UserT
     public static Path PATH_POISON = Paths.get("POISON");
     public static String STRING_POISON = "POISON";
     private volatile Thread taskThread;
+
+    public static boolean isPoison(Path path) {
+        return PATH_POISON.equals(path);
+    }
+
+    public static boolean isPoison(String id) {
+        return STRING_POISON.equals(id);
+    }
+
+    public static Duration pipelineQueuePoll(PropertiesProvider propertiesProvider) {
+        return HumanDuration.parse(propertiesProvider.get(QUEUE_POLL_OPT).orElse(DEFAULT_QUEUE_POLL));
+    }
 
     public PipelineTask(Stage stage, User user, DocumentCollectionFactory<T> factory, final PropertiesProvider propertiesProvider, Class<T> clazz) {
         this.propertiesProvider = propertiesProvider;
