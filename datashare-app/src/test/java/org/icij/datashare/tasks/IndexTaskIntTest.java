@@ -28,7 +28,6 @@ import java.util.*;
 import java.util.function.Function;
 
 import static org.fest.assertions.Assertions.assertThat;
-import static org.icij.datashare.tasks.PipelineTask.STRING_POISON;
 import static org.mockito.Mockito.verify;
 
 public class IndexTaskIntTest {
@@ -54,13 +53,14 @@ public class IndexTaskIntTest {
     private Map<String, Object> map = new HashMap<>() {{
         put("defaultProject", es.getIndexName());
         put("queueName", "test:queue");
+        put("queuePoll", "0"); // pre-populated queue: drain then stop immediately
     }};
     private final PropertiesProvider propertiesProvider = new PropertiesProvider(map);
     private final ElasticsearchSpewer spewer = new ElasticsearchSpewer(new ElasticsearchIndexer(es.client, new PropertiesProvider()).withRefresh(Refresh.True),
             outputQueueFactory, text -> Language.ENGLISH, new FieldNames(), propertiesProvider);
 
     @Test
-    public void index_task_should_enqueue_poison_pill() throws Exception {
+    public void index_task_forwards_only_document_ids_without_poison() throws Exception {
         DocumentQueue<Path> queue = inputQueueFactory.createQueue(new PipelineHelper(propertiesProvider).getQueueNameFor(Stage.INDEX), Path.class);
         queue.add(Paths.get(ClassLoader.getSystemResource("docs/doc.txt").getPath()));
 
@@ -68,9 +68,38 @@ public class IndexTaskIntTest {
 
         assertThat(nbDocs).isEqualTo(1);
         DocumentQueue<String> outputQueue = outputQueueFactory.createQueue(new PipelineHelper(propertiesProvider).getOutputQueueNameFor(Stage.INDEX), String.class);
-        assertThat(outputQueue).hasSize(2);
+        assertThat(outputQueue).hasSize(1);
         assertThat(outputQueue.poll()).isEqualTo("bc6852541ef5200206a7a9740f3d2d62178a1f53b1aa5417ab426c6ec1f7cbc7");
-        assertThat(outputQueue.poll()).isEqualTo(STRING_POISON);
+    }
+
+    @Test
+    public void index_task_skips_legacy_poison_in_input_queue() throws Exception {
+        DocumentQueue<Path> queue = inputQueueFactory.createQueue(new PipelineHelper(propertiesProvider).getQueueNameFor(Stage.INDEX), Path.class);
+        queue.add(PipelineTask.PATH_POISON);
+        queue.add(Paths.get(ClassLoader.getSystemResource("docs/doc.txt").getPath()));
+        queue.add(PipelineTask.PATH_POISON);
+
+        new IndexTask(spewer, inputQueueFactory, new Task<>(IndexTask.class.getName(), User.local(), map), null).call();
+
+        DocumentQueue<String> outputQueue = outputQueueFactory.createQueue(new PipelineHelper(propertiesProvider).getOutputQueueNameFor(Stage.INDEX), String.class);
+        assertThat(outputQueue).hasSize(1); // only the real document id, POISON skipped
+        assertThat(outputQueue.poll()).isEqualTo("bc6852541ef5200206a7a9740f3d2d62178a1f53b1aa5417ab426c6ec1f7cbc7");
+    }
+
+    @Test(timeout = 20000)
+    public void index_task_waits_for_quiet_queue_with_positive_queue_poll() throws Exception {
+        Map<String, Object> waitMap = new HashMap<>(map) {{
+            put("queuePoll", "1s"); // block up to 1s on an empty queue before concluding drained
+        }};
+        DocumentQueue<Path> queue = inputQueueFactory.createQueue(new PipelineHelper(propertiesProvider).getQueueNameFor(Stage.INDEX), Path.class);
+        queue.add(Paths.get(ClassLoader.getSystemResource("docs/doc.txt").getPath()));
+
+        long start = System.currentTimeMillis();
+        Long nbDocs = new IndexTask(spewer, inputQueueFactory, new Task<>(IndexTask.class.getName(), User.local(), waitMap), null).call();
+        long elapsed = System.currentTimeMillis() - start;
+
+        assertThat(nbDocs).isEqualTo(1);
+        assertThat(elapsed).isGreaterThanOrEqualTo(900); // proves it blocked on the empty queue instead of exiting instantly
     }
 
     @Test

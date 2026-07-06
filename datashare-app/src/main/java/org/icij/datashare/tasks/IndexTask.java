@@ -29,6 +29,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.time.Duration;
 
 import static java.lang.Math.max;
 import static java.lang.String.valueOf;
@@ -71,6 +72,10 @@ public class IndexTask extends PipelineTask<Path> implements Monitorable{
 
         consumer = new DocumentConsumer(spewer, this.extractor, this.parallelism);
         progressTrackConsumer = path -> {
+            if (isPoison(path)) {
+                logger.debug("skipping legacy POISON entry from queue {}", inputQueue.getName());
+                return;
+            }
             consumer.accept(path);
             processed.incrementAndGet();
             if (progressCallback != null) {
@@ -82,6 +87,7 @@ public class IndexTask extends PipelineTask<Path> implements Monitorable{
             consumer.setReporter(new Reporter(factory.createMap(propertiesProvider.getProperties().get(REPORT_NAME_OPT).toString())));
         }
         drainer = new DocumentQueueDrainer<>(inputQueue, progressTrackConsumer).configure(allTaskOptions);
+        drainer.setPollTimeout(pipelineQueuePoll(propertiesProvider));
     }
 
     @Override
@@ -89,7 +95,7 @@ public class IndexTask extends PipelineTask<Path> implements Monitorable{
         super.call();
         logger.info("Processing up to {} file(s) in parallel", parallelism);
         try {
-            totalToProcess = drainer.drain(PATH_POISON).get();
+            totalToProcess = drainer.drain().get();
             drainer.shutdown();
             drainer.awaitTermination(10, SECONDS); // drain is finished
             logger.info("drained {} documents. Waiting for consumer to shutdown", totalToProcess);
