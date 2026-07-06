@@ -102,6 +102,26 @@ public class IndexTaskIntTest {
         assertThat(elapsed).isGreaterThanOrEqualTo(900); // proves it blocked on the empty queue instead of exiting instantly
     }
 
+    @Test(timeout = 20000)
+    public void index_task_waits_for_quiet_queue_with_sub_second_queue_poll() throws Exception {
+        Map<String, Object> waitMap = new HashMap<>(map) {{
+            put("queuePoll", "500ms"); // sub-second poll must still block (rounded up to 1s) on an empty queue
+        }};
+        DocumentQueue<Path> queue = inputQueueFactory.createQueue(new PipelineHelper(propertiesProvider).getQueueNameFor(Stage.INDEX), Path.class);
+        queue.add(Paths.get(ClassLoader.getSystemResource("docs/doc.txt").getPath()));
+
+        // construct outside of the timed window: cold-start ES/index/extractor setup can itself take
+        // close to a second, which would otherwise mask whether the drain loop actually blocked
+        IndexTask indexTask = new IndexTask(spewer, inputQueueFactory, new Task<>(IndexTask.class.getName(), User.local(), waitMap), null);
+
+        long start = System.currentTimeMillis();
+        Long nbDocs = indexTask.call();
+        long elapsed = System.currentTimeMillis() - start;
+
+        assertThat(nbDocs).isEqualTo(1);
+        assertThat(elapsed).isGreaterThanOrEqualTo(900); // proves the sub-second poll was rounded up and blocked, instead of exiting instantly
+    }
+
     @Test
     public void index_task_update_progress() throws Exception {
         List<Double> progressValues = Collections.synchronizedList(new ArrayList<>());

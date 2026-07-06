@@ -29,6 +29,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.time.Duration;
 
 import static java.lang.Math.max;
 import static java.lang.String.valueOf;
@@ -85,8 +86,13 @@ public class IndexTask extends PipelineTask<Path> implements Monitorable{
             logger.info("report map enabled with name set to {}", propertiesProvider.getProperties().get(REPORT_NAME_OPT));
             consumer.setReporter(new Reporter(factory.createMap(propertiesProvider.getProperties().get(REPORT_NAME_OPT).toString())));
         }
-        drainer = new DocumentQueueDrainer<>(inputQueue, progressTrackConsumer).configure(allTaskOptions);
-        drainer.setPollTimeout(pipelineQueuePoll(propertiesProvider));
+        drainer = new DocumentQueueDrainer<>(inputQueue, progressTrackConsumer);
+        Duration queuePoll = pipelineQueuePoll(propertiesProvider);
+        if (!queuePoll.isZero() && queuePoll.getSeconds() == 0) {
+            // the drainer only honors whole-second poll timeouts; round sub-second up so INDEX still blocks
+            queuePoll = Duration.ofSeconds(1);
+        }
+        drainer.setPollTimeout(queuePoll);
     }
 
     @Override
