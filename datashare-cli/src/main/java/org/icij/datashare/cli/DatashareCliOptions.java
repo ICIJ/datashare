@@ -262,7 +262,7 @@ public final class DatashareCliOptions {
     public static final String DEFAULT_MAX_CONTENT_LENGTH = "20000000";
     public static final RoutingStrategy DEFAULT_TASK_ROUTING_STRATEGY = RoutingStrategy.UNIQUE;
     public static final String DEFAULT_POLLING_INTERVAL_SEC = "60";
-    public static final String DEFAULT_QUEUE_POLL = "120s";
+    public static final String DEFAULT_QUEUE_POLL = "30s";
     public static final int DEFAULT_TASK_MANAGER_POLLING_INTERVAL = 5000;
     public static final String DEFAULT_TASK_WORKERS = "1";
     public static final double DEFAULT_TASK_PROGRESS_INTERVAL_SECONDS = 10;
@@ -1052,7 +1052,7 @@ public final class DatashareCliOptions {
     public static void queuePoll(OptionParser parser) {
         parser.acceptsAll(singletonList(QUEUE_POLL_OPT),
                         "Time INDEX/DEDUPLICATE wait for new documents on the shared queue before " +
-                        "concluding it is drained (e.g. \"120s\"). Raise it above your worst-case gap " +
+                        "concluding it is drained (e.g. \"30s\"). Raise it above your worst-case gap " +
                         "between SCAN producing and INDEX consuming when running SCAN and INDEX on " +
                         "separate instances. Defaults to " + DEFAULT_QUEUE_POLL + " for pipeline draining.")
                 .withRequiredArg()

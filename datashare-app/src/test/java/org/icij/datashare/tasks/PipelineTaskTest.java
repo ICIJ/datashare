@@ -26,9 +26,9 @@ public class PipelineTaskTest {
     }
 
     @Test
-    public void test_pipeline_queue_poll_defaults_to_120s() {
+    public void test_pipeline_queue_poll_defaults_to_30s() {
         assertThat(PipelineTask.pipelineQueuePoll(new PropertiesProvider()))
-                .isEqualTo(Duration.ofSeconds(120));
+                .isEqualTo(Duration.ofSeconds(30));
     }
 
     @Test
