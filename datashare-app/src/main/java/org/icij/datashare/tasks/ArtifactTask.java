@@ -17,7 +17,7 @@ import org.icij.datashare.text.artifact.Artifact;
 import org.icij.datashare.text.artifact.ArtifactContext;
 import org.icij.datashare.text.artifact.ArtifactProducer;
 import org.icij.datashare.text.artifact.ArtifactRegistry;
-import org.icij.datashare.text.artifact.FilesystemManifestStore;
+import org.icij.datashare.text.artifact.FilesystemManifestRepository;
 import org.icij.datashare.text.artifact.RawArtifact;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.text.indexing.elasticsearch.ArtifactPath;
@@ -126,7 +126,7 @@ public class ArtifactTask extends PipelineTask<String> {
         ArtifactRegistry registry = new ArtifactRegistry(List.of(new RawArtifact()));
         List<Artifact> selected = registry.select(propertiesProvider.get(ARTIFACTS_OPT).orElse(null));
         boolean force = Boolean.parseBoolean(propertiesProvider.get(ARTIFACTS_FORCE_OPT).orElse("false"));
-        ArtifactProducer producer = new ArtifactProducer(new FilesystemManifestStore());
+        ArtifactProducer producer = new ArtifactProducer(new FilesystemManifestRepository());
         Path projectRoot = artifactDir.resolve(project.name);
         try {
             String queueEntry;
