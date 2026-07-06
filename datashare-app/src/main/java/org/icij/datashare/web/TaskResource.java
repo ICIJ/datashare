@@ -114,7 +114,7 @@ public class TaskResource {
             // Then finally, use WebResponse to take display the pagination for us
             return new Payload(paginatedTasks);
         } catch (IllegalArgumentException e) {
-            return new Payload(400);
+            return new JsonPayload(400, Map.of("text", "Unknown task type: " + e.getMessage()));
         }
     }
 

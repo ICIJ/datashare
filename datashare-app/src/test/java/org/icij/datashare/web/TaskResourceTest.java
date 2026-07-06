@@ -181,7 +181,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
 
     @Test
     public void test_get_tasks_with_unknown_type() {
-        get("/api/task?type=foo").should().respond(400);
+        get("/api/task?type=foo").should().respond(400).haveType("application/json").contain("TaskType.FOO");
     }
 
     @Test
