@@ -53,7 +53,7 @@ public class CategorizeTaskIntTest {
 
         indexAndEnqueueWithPoison(videoDoc, pdfDoc, unknownTypeDoc);
         CategorizeTask categorizeTask = new CategorizeTask(indexer, documentCollectionFactory, new Task<>(CategorizeTask.class.getName(),
-                "categorizeTask1", User.local(), Map.of(DEFAULT_PROJECT_OPT, es.getIndexName())), NO_OP_PROGRESS);
+                "categorizeTask1", User.local(), Map.of(DEFAULT_PROJECT_OPT, es.getIndexName(), "pollingInterval", "0.1")), NO_OP_PROGRESS);
 
         //WHEN
         long res = categorizeTask.call();
@@ -61,7 +61,7 @@ public class CategorizeTaskIntTest {
         //THEN
         assertThat(res).isEqualTo(3);
         DocumentQueue<String> outPutQueue = documentCollectionFactory.createQueue("extract:queue:nlp", String.class);
-        assertThat(outPutQueue.size()).isEqualTo(4); // with POISON
+        assertThat(outPutQueue.size()).isEqualTo(3); // no POISON
 
         assertThat(((Document) indexer.get(es.getIndexName(), videoDoc.getId())).getContentTypeCategory()).isEqualTo(ContentTypeCategory.VIDEO);
         assertThat(((Document) indexer.get(es.getIndexName(), pdfDoc.getId())).getContentTypeCategory()).isEqualTo(ContentTypeCategory.DOCUMENT);
@@ -74,14 +74,14 @@ public class CategorizeTaskIntTest {
         //GIVEN
         indexAndEnqueueTwoDocuments("foo:categorize");
         CategorizeTask categorizeTask = new CategorizeTask(indexer, documentCollectionFactory, new Task<>(CategorizeTask.class.getName(),
-                "categorizeTask1", User.local(), Map.of(QUEUE_NAME_OPT, "foo", DEFAULT_PROJECT_OPT, es.getIndexName())), NO_OP_PROGRESS);
+                "categorizeTask1", User.local(), Map.of(QUEUE_NAME_OPT, "foo", DEFAULT_PROJECT_OPT, es.getIndexName(), "pollingInterval", "0.1")), NO_OP_PROGRESS);
 
         //WHEN
         categorizeTask.call();
 
         //THEN
         DocumentQueue<String> outputQueue = documentCollectionFactory.createQueue("foo:nlp", String.class);
-        assertThat(outputQueue.size()).isEqualTo(3); // with POISON
+        assertThat(outputQueue.size()).isEqualTo(2); // no POISON
     }
 
     @Test
@@ -94,7 +94,7 @@ public class CategorizeTaskIntTest {
             return null;
         };
         CategorizeTask categorizeTask = new CategorizeTask(indexer, documentCollectionFactory, new Task<>(CategorizeTask.class.getName(),
-                "categorizeTask1", User.local(), Map.of(DEFAULT_PROJECT_OPT, es.getIndexName())), callback);
+                "categorizeTask1", User.local(), Map.of(DEFAULT_PROJECT_OPT, es.getIndexName(), "pollingInterval", "0.1")), callback);
 
         //WHEN
         categorizeTask.call();
@@ -110,7 +110,7 @@ public class CategorizeTaskIntTest {
         // A document that will not be in the index
         enqueueWithPoison(aDoc());
         CategorizeTask categorizeTask = new CategorizeTask(indexer, documentCollectionFactory, new Task<>(CategorizeTask.class.getName(),
-                "categorizeTask1", User.local(), Map.of(DEFAULT_PROJECT_OPT, es.getIndexName())), NO_OP_PROGRESS);
+                "categorizeTask1", User.local(), Map.of(DEFAULT_PROJECT_OPT, es.getIndexName(), "pollingInterval", "0.1")), NO_OP_PROGRESS);
 
         // WHEN
         long res = categorizeTask.call();
@@ -118,7 +118,20 @@ public class CategorizeTaskIntTest {
         // THEN
         assertThat(res).isEqualTo(1);
         DocumentQueue<String> outPutQueue = documentCollectionFactory.createQueue("extract:queue:nlp", String.class);
-        assertThat(outPutQueue.size()).isEqualTo(2); // with POISON
+        assertThat(outPutQueue.size()).isEqualTo(1); // no POISON
+    }
+
+    @Test(timeout = 6000)
+    public void test_terminates_with_zero_polling_interval_on_empty_queue() throws Exception {
+        // GIVEN a quiet input queue and a pollingInterval of 0 (should be clamped, not block forever)
+        CategorizeTask categorizeTask = new CategorizeTask(indexer, documentCollectionFactory, new Task<>(CategorizeTask.class.getName(),
+                "categorizeTask1", User.local(), Map.of(DEFAULT_PROJECT_OPT, es.getIndexName(), "pollingInterval", "0")), NO_OP_PROGRESS);
+
+        // WHEN
+        long res = categorizeTask.call();
+
+        // THEN
+        assertThat(res).isEqualTo(0);
     }
 
     @Test
@@ -132,7 +145,8 @@ public class CategorizeTaskIntTest {
 
         Map<String, Object> args = Map.of(
                 DEFAULT_PROJECT_OPT, es.getIndexName(),
-                "stages", "ENQUEUEIDX,CATEGORIZE");
+                "stages", "ENQUEUEIDX,CATEGORIZE",
+                "pollingInterval", "0.1");
 
         // WHEN
         new EnqueueFromIndexTask(documentCollectionFactory, indexer,
@@ -161,7 +175,8 @@ public class CategorizeTaskIntTest {
 
         Map<String, Object> args = Map.of(
                 DEFAULT_PROJECT_OPT, es.getIndexName(),
-                "stages", "ENQUEUEIDX,CATEGORIZE");
+                "stages", "ENQUEUEIDX,CATEGORIZE",
+                "pollingInterval", "0.1");
 
         // WHEN
         new EnqueueFromIndexTask(documentCollectionFactory, indexer,
