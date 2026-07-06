@@ -36,7 +36,7 @@ public class GrantAdminPolicyTask extends DefaultTask<Boolean> implements UserTa
     public Boolean call() {
         List<CasbinRule> existingAdmins = authorizer.getGroupPermissions().stream()
                 .filter(r -> Role.INSTANCE_ADMIN.name().equals(r.getV1()) && "*::*".equals(r.getV2()))
-                .collect(Collectors.toList());
+                .toList();
 
         if (existingAdmins.stream().anyMatch(r -> user.getId().equals(r.getV0()))) {
             logger.info("User '{}' already has instance admin role.", user.getId());
