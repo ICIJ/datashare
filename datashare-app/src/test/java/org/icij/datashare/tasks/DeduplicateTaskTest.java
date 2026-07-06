@@ -63,6 +63,22 @@ public class DeduplicateTaskTest {
     }
 
     @Test(timeout = 2000)
+    public void test_transfer_terminates_with_zero_queue_poll() throws Exception {
+        // NB: queuePoll="0" clamps the internal poll timeout to 1ms (see Math.max(1L, ...) in
+        // DeduplicateTask#transferToOutputQueue). MemoryDocumentCollectionFactory's ArrayBlockingQueue
+        // returns immediately on poll(0, MS) regardless of the clamp, so this test cannot reproduce the
+        // real Redis BLPOP-with-timeout-0 hang (which blocks forever). It only guards that the clamped
+        // value is still accepted and the loop terminates on a quiet queue.
+        Map<String, Object> zeroPollOpts = Map.of("queueName", "test:queue:zero", "stages", "DEDUPLICATE", "queuePoll", "0");
+        DeduplicateTask zeroPollTask = new DeduplicateTask(docCollectionFactory, new Task<>(DeduplicateTask.class.getName(), User.local(), zeroPollOpts), null);
+
+        zeroPollTask.transferToOutputQueue();
+
+        DocumentQueue<Path> outputQueue = docCollectionFactory.createQueue(zeroPollTask.getOutputQueueName(), Path.class);
+        assertThat(outputQueue.isEmpty()).isTrue();
+    }
+
+    @Test(timeout = 2000)
     public void test_conditional_transfer_to_output_queue() throws Exception {
         task.inputQueue.put(get("/path/to/doc1"));
         task.inputQueue.put(get("/path/to/doc2"));

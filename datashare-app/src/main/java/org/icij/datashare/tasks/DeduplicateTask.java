@@ -50,7 +50,7 @@ public class DeduplicateTask extends PipelineTask<Path> {
 
     long transferToOutputQueue(Predicate<Path> filter) throws Exception {
         long originalSize = inputQueue.size();
-        long pollMillis = pipelineQueuePoll(propertiesProvider).toMillis();
+        long pollMillis = Math.max(1L, pipelineQueuePoll(propertiesProvider).toMillis());
         try (DocumentQueue<Path> outputQueue = factory.createQueue(getOutputQueueName(), Path.class)) {
             Path path;
             while ((path = inputQueue.poll(pollMillis, TimeUnit.MILLISECONDS)) != null) {
