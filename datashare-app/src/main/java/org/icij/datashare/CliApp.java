@@ -26,6 +26,7 @@ import org.icij.datashare.tasks.DatashareTaskFactory;
 import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.asynctasks.TaskFilters;
 import org.icij.datashare.asynctasks.TaskManager;
+import org.icij.datashare.asynctasks.TaskManagerMemory;
 import org.icij.datashare.tasks.DeduplicateTask;
 import org.icij.datashare.tasks.EnqueueFromIndexTask;
 import org.icij.datashare.tasks.ExtractNlpTask;
@@ -240,7 +241,7 @@ class CliApp {
         TaskFilters runScope = TaskFilters.empty()
                 .withArgs(new TaskFilters.ArgsFilter(PIPELINE_RUN_ID, runId));
         long unfinished = taskManager.waitTasksToBeDone(runScope, Integer.MAX_VALUE, SECONDS);
-        taskManager.shutdown();
+        shutdownLocalWorkers(taskManager);
 
         // The JVM would otherwise stay alive on non-daemon threads (a second
         // TaskManager worker pool created by the unused CommonMode in Main, Redisson
@@ -248,6 +249,19 @@ class CliApp {
         int exitCode = computeExitCode(taskManager, runScope);
         logger.info("pipeline finished ({} unfinished task(s)), exiting with code {}", unfinished, exitCode);
         System.exit(exitCode);
+    }
+
+    /**
+     * Only the in-process worker pool is ours to stop. For distributed batch queues,
+     * {@link TaskManager#shutdown()} broadcasts a ShutdownEvent on the shared Redis
+     * event topic or AMQP WORKER_EVENT queue, which would close every worker listening
+     * on the bus, including workers executing a concurrent server's or another run's
+     * still QUEUED/RUNNING tasks. Temporal owns its workers' lifecycle entirely.
+     */
+    static void shutdownLocalWorkers(TaskManager taskManager) throws IOException {
+        if (taskManager instanceof TaskManagerMemory) {
+            taskManager.shutdown();
+        }
     }
 
     /**
