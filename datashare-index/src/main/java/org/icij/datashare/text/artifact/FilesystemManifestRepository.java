@@ -22,7 +22,7 @@ import static java.nio.file.StandardOpenOption.WRITE;
 
 /** Filesystem-backed manifest persistence. Writes are concurrency-safe (in-JVM ReentrantLock +
  *  cross-process FileLock) and atomic (temp + ATOMIC_MOVE). */
-public class FilesystemManifestStore implements ManifestStore {
+public class FilesystemManifestRepository implements ManifestRepository {
     private static final String LOCK_FILE = ArtifactPath.MANIFEST_FILE + ".lock";
     private static final long LOCK_TIMEOUT_MS = 30_000;
     private static final ObjectMapper MAPPER = JsonObjectMapper.getMapper();

@@ -11,9 +11,9 @@ import java.util.concurrent.CountDownLatch;
 
 import static org.fest.assertions.Assertions.assertThat;
 
-public class FilesystemManifestStoreTest {
+public class FilesystemManifestRepositoryTest {
     @Rule public TemporaryFolder dir = new TemporaryFolder();
-    private final ManifestStore store = new FilesystemManifestStore();
+    private final ManifestRepository repository = new FilesystemManifestRepository();
 
     private ManifestEntry rawEntry() {
         return ManifestEntry.singleFile(Map.of("type", "raw", "version", 1), "application/pdf", "a.pdf").withStatus(ManifestEntryStatus.COMPLETE);
@@ -21,14 +21,14 @@ public class FilesystemManifestStoreTest {
 
     @Test
     public void test_get_returns_null_when_no_manifest() throws Exception {
-        assertThat(store.get(dir.getRoot().toPath(), "raw")).isNull();
+        assertThat(repository.get(dir.getRoot().toPath(), "raw")).isNull();
     }
 
     @Test
     public void test_put_then_get_round_trips() throws Exception {
         Path node = dir.getRoot().toPath();
-        store.put(node, "raw", rawEntry());
-        ManifestEntry read = store.get(node, "raw");
+        repository.put(node, "raw", rawEntry());
+        ManifestEntry read = repository.get(node, "raw");
         assertThat(read.isComplete()).isTrue();
         assertThat(read.contentType()).isEqualTo("application/pdf");
         assertThat(read.taskInput()).isEqualTo(Map.of("type", "raw", "version", 1));
@@ -37,10 +37,10 @@ public class FilesystemManifestStoreTest {
     @Test
     public void test_put_two_types_does_not_clobber() throws Exception {
         Path node = dir.getRoot().toPath();
-        store.put(node, "raw", rawEntry());
-        store.put(node, "structure", ManifestEntry.paginated(Map.of("type", "structure", "version", 1), Pagination.filesystem(3)).withStatus(ManifestEntryStatus.COMPLETE));
-        assertThat(store.get(node, "raw")).isNotNull();
-        assertThat(store.get(node, "structure").total()).isEqualTo(3);
+        repository.put(node, "raw", rawEntry());
+        repository.put(node, "structure", ManifestEntry.paginated(Map.of("type", "structure", "version", 1), Pagination.filesystem(3)).withStatus(ManifestEntryStatus.COMPLETE));
+        assertThat(repository.get(node, "raw")).isNotNull();
+        assertThat(repository.get(node, "structure").total()).isEqualTo(3);
     }
 
     @Test
@@ -48,20 +48,20 @@ public class FilesystemManifestStoreTest {
         Path node = dir.getRoot().toPath();
         Files.createDirectories(node);
         CountDownLatch start = new CountDownLatch(1);
-        Runnable a = () -> { try { start.await(); store.put(node, "raw", rawEntry()); } catch (Exception e) { throw new RuntimeException(e); } };
-        Runnable b = () -> { try { start.await(); store.put(node, "structure", ManifestEntry.paginated(Map.of("type", "structure", "version", 1), Pagination.filesystem(9)).withStatus(ManifestEntryStatus.COMPLETE)); } catch (Exception e) { throw new RuntimeException(e); } };
+        Runnable a = () -> { try { start.await(); repository.put(node, "raw", rawEntry()); } catch (Exception e) { throw new RuntimeException(e); } };
+        Runnable b = () -> { try { start.await(); repository.put(node, "structure", ManifestEntry.paginated(Map.of("type", "structure", "version", 1), Pagination.filesystem(9)).withStatus(ManifestEntryStatus.COMPLETE)); } catch (Exception e) { throw new RuntimeException(e); } };
         Thread ta = new Thread(a), tb = new Thread(b);
         ta.start(); tb.start();
         start.countDown();
         ta.join(); tb.join();
-        assertThat(store.get(node, "raw")).isNotNull();
-        assertThat(store.get(node, "structure")).isNotNull();
+        assertThat(repository.get(node, "raw")).isNotNull();
+        assertThat(repository.get(node, "structure")).isNotNull();
     }
 
     @Test
     public void test_manifest_is_valid_json_after_write() throws Exception {
         Path node = dir.getRoot().toPath();
-        store.put(node, "raw", rawEntry());
+        repository.put(node, "raw", rawEntry());
         Path manifest = node.resolve("manifest.json");
         assertThat(manifest.toFile()).isFile();
         assertThat(new String(Files.readAllBytes(manifest))).startsWith("{");
@@ -72,10 +72,10 @@ public class FilesystemManifestStoreTest {
         Path node = dir.getRoot().toPath();
         Files.createDirectories(node);
         // put() itself uses inLock; nesting a put inside inLock must not deadlock (ReentrantLock).
-        store.inLock(node, () -> {
-            store.put(node, "raw", rawEntry());
+        repository.inLock(node, () -> {
+            repository.put(node, "raw", rawEntry());
             return null;
         });
-        assertThat(store.get(node, "raw")).isNotNull();
+        assertThat(repository.get(node, "raw")).isNotNull();
     }
 }

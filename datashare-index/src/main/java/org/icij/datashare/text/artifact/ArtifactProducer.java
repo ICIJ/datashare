@@ -12,10 +12,10 @@ import java.util.Map;
  *  document. Which artifacts to run (selection) is decided by the caller (the app). */
 public class ArtifactProducer {
     private static final Logger LOGGER = LoggerFactory.getLogger(ArtifactProducer.class);
-    private final ManifestStore store;
+    private final ManifestRepository repository;
 
-    public ArtifactProducer(ManifestStore store) {
-        this.store = store;
+    public ArtifactProducer(ManifestRepository repository) {
+        this.repository = repository;
     }
 
     public boolean run(List<Artifact> artifacts, ArtifactContext context, boolean force) {
@@ -40,7 +40,7 @@ public class ArtifactProducer {
         try {
             // The whole critical section (skip check + payload write + manifest stamp) runs under one
             // lock so a peer can never record a manifest entry describing another peer's payload.
-            return store.inLock(context.docArtifactDir(), () -> {
+            return repository.inLock(context.docArtifactDir(), () -> {
                 if (!force && isCurrent(type, artifact, context)) {
                     return true;
                 }
@@ -52,7 +52,7 @@ public class ArtifactProducer {
                 } catch (ArtifactException artifactFailure) {
                     throw new WrappedArtifactException(artifactFailure);
                 }
-                store.put(context.docArtifactDir(), type.token(), stampTerminal(produced));
+                repository.put(context.docArtifactDir(), type.token(), stampTerminal(produced));
                 return true;
             });
         } catch (WrappedArtifactException wrapped) {
@@ -74,7 +74,7 @@ public class ArtifactProducer {
     // produced with the exact same task input (config + version) as this run; only then is
     // regeneration skipped.
     private boolean isCurrent(ArtifactType type, Artifact artifact, ArtifactContext context) throws IOException {
-        ManifestEntry existing = store.get(context.docArtifactDir(), type.token());
+        ManifestEntry existing = repository.get(context.docArtifactDir(), type.token());
         return existing != null && existing.isTerminal() && existing.taskInput().equals(artifact.taskInput());
     }
 

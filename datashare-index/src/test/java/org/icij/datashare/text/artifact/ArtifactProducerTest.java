@@ -13,8 +13,8 @@ import static org.icij.datashare.text.DocumentBuilder.createDoc;
 
 public class ArtifactProducerTest {
     @Rule public TemporaryFolder dir = new TemporaryFolder();
-    private final ManifestStore store = new FilesystemManifestStore();
-    private final ArtifactProducer producer = new ArtifactProducer(store);
+    private final ManifestRepository repository = new FilesystemManifestRepository();
+    private final ArtifactProducer producer = new ArtifactProducer(repository);
 
     static class CountingArtifact implements Artifact {
         final ArtifactType type; final Map<String, Object> taskInput; final AtomicInteger produced = new AtomicInteger();
@@ -38,7 +38,7 @@ public class ArtifactProducerTest {
         CountingArtifact raw = new CountingArtifact("raw", 1);
         producer.run(List.of(raw), ctx(), false);
         assertThat(raw.produced.get()).isEqualTo(1);
-        assertThat(store.get(dir.getRoot().toPath(), "raw").isComplete()).isTrue();
+        assertThat(repository.get(dir.getRoot().toPath(), "raw").isComplete()).isTrue();
     }
 
     @Test public void test_skips_when_task_input_matches() throws Exception {
@@ -66,8 +66,8 @@ public class ArtifactProducerTest {
         CountingArtifact bad = new CountingArtifact("raw", 1); bad.fail = true;
         CountingArtifact good = new CountingArtifact("structure", 1);
         boolean allSucceeded = producer.run(List.of(bad, good), ctx(), false);
-        assertThat(store.get(dir.getRoot().toPath(), "raw")).isNull();
-        assertThat(store.get(dir.getRoot().toPath(), "structure")).isNotNull();
+        assertThat(repository.get(dir.getRoot().toPath(), "raw")).isNull();
+        assertThat(repository.get(dir.getRoot().toPath(), "structure")).isNotNull();
         assertThat(allSucceeded).isFalse();
     }
 
@@ -75,8 +75,8 @@ public class ArtifactProducerTest {
         CountingArtifact raw = new CountingArtifact("raw", 1); raw.producesEmpty = true;
         boolean first = producer.run(List.of(raw), ctx(), false);
         assertThat(first).isTrue();
-        assertThat(store.get(dir.getRoot().toPath(), "raw").isTerminal()).isTrue();
-        assertThat(store.get(dir.getRoot().toPath(), "raw").isComplete()).isFalse();
+        assertThat(repository.get(dir.getRoot().toPath(), "raw").isTerminal()).isTrue();
+        assertThat(repository.get(dir.getRoot().toPath(), "raw").isComplete()).isFalse();
         producer.run(List.of(raw), ctx(), false);
         assertThat(raw.produced.get()).isEqualTo(1); // empty entry counts as done -> not reprocessed
     }
