@@ -38,27 +38,20 @@ public class ArtifactProducer {
     private boolean produce(Artifact artifact, ArtifactContext context, boolean force) {
         ArtifactType type = artifact.type();
         try {
-            // The whole critical section (skip check + payload write + manifest stamp) runs under one
-            // lock so a peer can never record a manifest entry describing another peer's payload.
-            return repository.inLock(context.docArtifactDir(), () -> {
-                if (!force && isCurrent(type, artifact, context)) {
-                    return true;
-                }
-                // produce() throws the checked ArtifactException, but inLock's lambda is only
-                // allowed to throw IOException; wrap it so it surfaces to the outer catch untyped.
-                ManifestEntry produced;
-                try {
-                    produced = artifact.produce(context);
-                } catch (ArtifactException artifactFailure) {
-                    throw new WrappedArtifactException(artifactFailure);
-                }
-                repository.put(context.docArtifactDir(), type.token(), stampTerminal(produced));
+            // Read-only skip-if-current pre-check: a document already produced with the same config is
+            // not reprocessed. This is the common-case optimization and needs no lock.
+            if (!force && isCurrent(type, artifact, context)) {
                 return true;
-            });
-        } catch (WrappedArtifactException wrapped) {
-            LOGGER.error("failed to produce artifact '{}' for document {}", type.token(), context.document().getId(), wrapped.getCause());
-            return false;
-        } catch (IOException failure) {
+            }
+            // Production runs unlocked, mirroring the Python side (compute out of lock, then write under
+            // lock): real concurrency on the same document is rare and, when it happens, at worst
+            // duplicates work (accepted for now). Only the manifest write below is serialised.
+            ManifestEntry produced = artifact.produce(context);
+            // put() holds the per-doc write lock while it merges the entry, so the recorded manifest
+            // stays consistent (and cross-process/host safe) with the payload just written.
+            repository.put(context.docArtifactDir(), type.token(), stampTerminal(produced));
+            return true;
+        } catch (ArtifactException | IOException failure) {
             LOGGER.error("failed to produce artifact '{}' for document {}", type.token(), context.document().getId(), failure);
             return false;
         }
@@ -76,13 +69,5 @@ public class ArtifactProducer {
     private boolean isCurrent(ArtifactType type, Artifact artifact, ArtifactContext context) throws IOException {
         ManifestEntry existing = repository.get(context.docArtifactDir(), type.token());
         return existing != null && existing.isTerminal() && existing.taskInput().equals(artifact.taskInput());
-    }
-
-    // Carries a checked ArtifactException out of the inLock lambda (which may only declare
-    // IOException) so it can be unwrapped and logged by the outer catch.
-    private static final class WrappedArtifactException extends RuntimeException {
-        WrappedArtifactException(ArtifactException cause) {
-            super(cause);
-        }
     }
 }
