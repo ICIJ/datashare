@@ -77,7 +77,8 @@ public class ExtractNlpTask extends PipelineTask<String> implements Monitorable 
         long nbMessages = 0;
         int nbMaxPolls = NB_MAX_POLLS;
         while (nbMaxPolls > 0) {
-            docId = inputQueue.poll((long) (pollingIntervalSeconds * 1000), TimeUnit.MILLISECONDS);
+            long pollTimeoutMs = Math.max(1L, (long) (pollingIntervalSeconds * 1000));
+            docId = inputQueue.poll(pollTimeoutMs, TimeUnit.MILLISECONDS);
             try {
                 if (docId == null) {
                     logger.info("will poll document queue again for pollingInterval={} seconds ({}/{})", pollingIntervalSeconds, nbMaxPolls, NB_MAX_POLLS);

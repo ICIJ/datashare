@@ -123,6 +123,20 @@ public class ExtractNlpTaskIntTest {
         assertThat(progressValues).contains(0.5);
     }
 
+    @Test(timeout = 6000)
+    public void test_zero_polling_interval_terminates_via_nb_max_polls() throws Exception {
+        when(pipeline.getType()).thenReturn(Pipeline.Type.CORENLP);
+
+        ExtractNlpTask zeroIntervalTask = new ExtractNlpTask(indexer, pipeline, factory, new Task<>(ExtractNlpTask.class.getName(), User.local(), new HashMap<>() {{
+            put("maxContentLength", "32");
+            put("pollingInterval", "0");
+        }}), null);
+
+        long nbMessages = zeroIntervalTask.call();
+
+        assertThat(nbMessages).isEqualTo(0);
+    }
+
     @Parameterized.Parameters
     public static Collection<Object[]> factories() {
         return asList(new Object[][]{
