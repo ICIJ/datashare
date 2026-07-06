@@ -74,6 +74,36 @@ public class TaskWorkerLoopTest {
     }
 
     @Test(timeout = 2000)
+    public void test_checked_exception_on_local_loop_is_marked_error() throws Exception {
+        // A task whose call() throws a checked exception (e.g. an IOException from
+        // IndexTask) must reach a final ERROR state on the local (non-AMQP) loop,
+        // otherwise it stays non-final forever and blocks any run waiting on it.
+        TaskWorkerLoop app = new TaskWorkerLoop(registry, supplier);
+        Task<Serializable> taskView = new Task<>(TestFactory.CheckedFailure.class.getName(), User.local(), Map.of());
+
+        app.handle(taskView);
+
+        verify(supplier).error(eq(taskView.id), Mockito.any(TaskError.class));
+    }
+
+    @Test(timeout = 2000)
+    public void test_checked_exception_on_amqp_loop_is_nacked_without_requeue() throws Exception {
+        // On AMQP the broker owns retry semantics, so a checked execution failure is
+        // still surfaced as a nack (no requeue) and not recorded as an error here.
+        TaskSupplierAmqp amqpSupplier = Mockito.mock(TaskSupplierAmqp.class);
+        TaskWorkerLoop app = new TaskWorkerLoop(registry, amqpSupplier);
+        Task<Serializable> taskView = new Task<>(TestFactory.CheckedFailure.class.getName(), User.local(), Map.of());
+
+        try {
+            app.handle(taskView);
+            fail("NackException should be raised");
+        } catch (NackException ne) {
+            assertThat(ne.requeue).isFalse();
+        }
+        verify(amqpSupplier, Mockito.never()).error(Mockito.any(), Mockito.any());
+    }
+
+    @Test(timeout = 2000)
     public void test_cancel_task() throws Exception {
         TaskWorkerLoop app = new TaskWorkerLoop(registry, supplier);
         Task<Serializable> taskView = new Task<>(TestFactory.SleepForever.class.getName(), User.local(), Map.of());

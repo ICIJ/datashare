@@ -153,7 +153,17 @@ public class TaskWorkerLoop implements Callable<Integer>, Closeable {
                     taskSupplier.error(currentTask.get().id, new TaskError(unknownTask));
                 }
             } catch (Error | Exception ex) {
-                throw new NackException(ex, false);
+                // Same constraint as above for checked exceptions thrown by the task
+                // itself (call() is declared 'throws Exception'): on the local loop the
+                // NackException is only logged by mainLoop() and the task would stay
+                // non-final forever, blocking any run that waits on it.
+                if (taskSupplier instanceof TaskSupplierAmqp) {
+                    throw new NackException(ex, false);
+                }
+                logger.error("error running task {}, marking it as error", currentTask.get(), ex);
+                if (currentTask.get() != null && !currentTask.get().isNull()) {
+                    taskSupplier.error(currentTask.get().id, new TaskError(ex));
+                }
             } finally {
                 currentTaskReference.set(null);
                 currentTask.set(null);
