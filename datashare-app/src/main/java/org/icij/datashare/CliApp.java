@@ -3,6 +3,8 @@ package org.icij.datashare;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.icij.datashare.cli.CliExtensionService;
 import org.icij.datashare.cli.Prompter;
+import org.icij.datashare.cli.QueueType;
+import org.icij.datashare.cli.TaskRepositoryType;
 import org.icij.datashare.cli.Validators;
 import org.icij.datashare.cli.spi.CliExtension;
 import org.icij.datashare.mode.CommonMode;
@@ -187,6 +189,13 @@ class CliApp {
         String runId = randomUUID().toString();
         properties.setProperty(PIPELINE_RUN_ID, runId);
 
+        if (!canTrackSpawnedTasks(properties)) {
+            logger.warn("the {} batch queue runs stages in remote workers but the {} task repository is process-local:"
+                    + " tasks spawned by a stage (e.g. NLP batches) cannot be tracked by this run, which may exit"
+                    + " before they complete. Use a shared task repository (DATABASE or REDIS).",
+                    QueueType.TEMPORAL, TaskRepositoryType.MEMORY);
+        }
+
         if (pipeline.has(Stage.DEDUPLICATE)) {
             taskManager.startTask(DeduplicateTask.class, nullUser(), propertiesToMap(properties));
         }
@@ -239,6 +248,20 @@ class CliApp {
         int exitCode = computeExitCode(taskManager, runScope);
         logger.info("pipeline finished ({} unfinished task(s)), exiting with code {}", unfinished, exitCode);
         System.exit(exitCode);
+    }
+
+    /**
+     * Whether the run-scoped wait can observe every task this run's stages spawn. Under a
+     * TEMPORAL batch queue the stages execute in remote Temporal workers, and a MEMORY task
+     * repository is process-local: child tasks inserted by a worker's repository never
+     * become visible to this process, so the run could exit while spawned work is pending.
+     */
+    static boolean canTrackSpawnedTasks(Properties properties) {
+        QueueType batchQueueType = QueueType.valueOf(
+                properties.getProperty(BATCH_QUEUE_TYPE_OPT, DEFAULT_BATCH_QUEUE_TYPE.name()).toUpperCase());
+        TaskRepositoryType taskRepositoryType = TaskRepositoryType.valueOf(
+                properties.getProperty(TASK_REPOSITORY_OPT, TaskRepositoryType.DATABASE.name()));
+        return batchQueueType != QueueType.TEMPORAL || taskRepositoryType != TaskRepositoryType.MEMORY;
     }
 
     /**
