@@ -41,7 +41,6 @@ public class ScanTask extends PipelineTask<Path> {
         super.call();
         ScannerVisitor scannerVisitor = scanner.createScannerVisitor(path);
         Long scanned = scannerVisitor.call();
-        outputQueue.add(PATH_POISON);
         return scanned;
     }
 }

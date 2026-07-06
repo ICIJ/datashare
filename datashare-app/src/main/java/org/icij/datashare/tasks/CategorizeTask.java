@@ -27,6 +27,8 @@ import java.util.function.Function;
 import static java.util.Optional.ofNullable;
 import static org.icij.datashare.PropertiesProvider.DEFAULT_PROJECT_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_DEFAULT_PROJECT;
+import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_POLLING_INTERVAL_SEC;
+import static org.icij.datashare.cli.DatashareCliOptions.POLLING_INTERVAL_SECONDS_OPT;
 
 /**
  * Computes the contentTypeCategory field of documents based on their contentType in Elasticsearch.
@@ -40,7 +42,7 @@ import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_DEFAULT_PROJECT
 public class CategorizeTask extends PipelineTask<String> implements Monitorable {
     private final Logger logger = LoggerFactory.getLogger(getClass());
     private static final int NB_MAX_POLLS = 3;
-    private static final int POLLING_INTERVAL_SECONDS = 60;
+    private final float pollingIntervalSeconds;
     private final AtomicInteger processed = new AtomicInteger(0);
     private final Function<Double, Void> progressCallback;
     private final Indexer indexer;
@@ -51,6 +53,7 @@ public class CategorizeTask extends PipelineTask<String> implements Monitorable 
         this.progressCallback = progressCallback;
         this.indexer = indexer;
         project = Project.project(ofNullable((String)taskView.args.get(DEFAULT_PROJECT_OPT)).orElse(DEFAULT_DEFAULT_PROJECT));
+        pollingIntervalSeconds = Float.parseFloat(ofNullable((String) taskView.args.get(POLLING_INTERVAL_SECONDS_OPT)).orElse(DEFAULT_POLLING_INTERVAL_SEC));
     }
 
     @Override
@@ -60,14 +63,19 @@ public class CategorizeTask extends PipelineTask<String> implements Monitorable 
         String docId;
         long nbMessages = 0;
         int nbMaxPolls = NB_MAX_POLLS;
-        int pollingIntervalSeconds = POLLING_INTERVAL_SECONDS;
 
-        while (!(STRING_POISON.equals(docId = inputQueue.poll( (pollingIntervalSeconds * 1000L), TimeUnit.MILLISECONDS)))
-                && nbMaxPolls > 0) {
+        while (nbMaxPolls > 0) {
+            long pollTimeoutMs = Math.max(1L, (long) (pollingIntervalSeconds * 1000));
+            docId = inputQueue.poll(pollTimeoutMs, TimeUnit.MILLISECONDS);
             try {
-                if (docId != null) {
+                if (docId == null) {
+                    logger.info("will poll document queue again for pollingInterval={} seconds ({}/{})", pollingIntervalSeconds, nbMaxPolls, NB_MAX_POLLS);
+                    nbMaxPolls--;
+                } else if (isPoison(docId)) {
+                    logger.debug("skipping legacy POISON entry in queue {}", inputQueue.getName());
+                } else {
                     Document retrievedFromIndexer = indexer.get(project.getName(), docId);
-                    if(retrievedFromIndexer == null) {
+                    if (retrievedFromIndexer == null) {
                         logger.warn("Unable to retrieve document {} from indexer. Cannot add it's contentTypeCategory", docId);
                     } else {
                         enrichWithType(retrievedFromIndexer);
@@ -75,19 +83,13 @@ public class CategorizeTask extends PipelineTask<String> implements Monitorable 
                     nbMessages++;
                     processed.incrementAndGet();
                     progressCallback.apply(getProgressRate());
-                    if(!outputQueue.offer(docId)){
+                    if (!outputQueue.offer(docId)) {
                         logger.warn("unable to offer {} to queue {}", docId, outputQueue.getName());
                     }
-                } else {
-                    logger.info("will poll document queue again for pollingInterval={} seconds ({}/{})", pollingIntervalSeconds, nbMaxPolls, NB_MAX_POLLS);
-                    nbMaxPolls--;
                 }
             } catch (Exception e) {
                 logger.error("error in CategorizeTask loop", e);
             }
-        }
-        if(!outputQueue.offer(STRING_POISON)){
-            logger.warn("unable to offer POISON to queue {}", outputQueue.getName());
         }
         logger.info("exiting CategorizeTask loop after {} messages.", nbMessages);
         return nbMessages;

@@ -16,6 +16,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.nio.file.Path;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
@@ -49,14 +50,18 @@ public class DeduplicateTask extends PipelineTask<Path> {
 
     long transferToOutputQueue(Predicate<Path> filter) throws Exception {
         long originalSize = inputQueue.size();
+        long pollMillis = Math.max(1L, pipelineQueuePoll(propertiesProvider).toMillis());
         try (DocumentQueue<Path> outputQueue = factory.createQueue(getOutputQueueName(), Path.class)) {
             Path path;
-            while (!(path = inputQueue.take()).equals(PATH_POISON)) {
+            while ((path = inputQueue.poll(pollMillis, TimeUnit.MILLISECONDS)) != null) {
+                if (isPoison(path)) {
+                    logger.debug("skipping legacy POISON entry in queue {}", inputQueue.getName());
+                    continue;
+                }
                 if (filter.test(path)) {
                     outputQueue.add(path);
                 }
             }
-            outputQueue.add(PATH_POISON);
             return originalSize - outputQueue.size();
         }
     }

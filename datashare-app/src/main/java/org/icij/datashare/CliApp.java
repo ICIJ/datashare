@@ -3,6 +3,8 @@ package org.icij.datashare;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.icij.datashare.cli.CliExtensionService;
 import org.icij.datashare.cli.Prompter;
+import org.icij.datashare.cli.QueueType;
+import org.icij.datashare.cli.TaskRepositoryType;
 import org.icij.datashare.cli.Validators;
 import org.icij.datashare.cli.spi.CliExtension;
 import org.icij.datashare.mode.CommonMode;
@@ -21,7 +23,10 @@ import org.icij.datashare.tasks.ArtifactTask;
 import org.icij.datashare.tasks.CreateNlpBatchesFromIndex;
 import org.icij.datashare.tasks.CategorizeTask;
 import org.icij.datashare.tasks.DatashareTaskFactory;
+import org.icij.datashare.asynctasks.Task;
+import org.icij.datashare.asynctasks.TaskFilters;
 import org.icij.datashare.asynctasks.TaskManager;
+import org.icij.datashare.asynctasks.TaskManagerMemory;
 import org.icij.datashare.tasks.DeduplicateTask;
 import org.icij.datashare.tasks.EnqueueFromIndexTask;
 import org.icij.datashare.tasks.ExtractNlpTask;
@@ -47,6 +52,7 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.function.Supplier;
 
+import static java.util.UUID.randomUUID;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.icij.datashare.PropertiesProvider.propertiesToMap;
 import static org.icij.datashare.cli.DatashareCliOptions.*;
@@ -174,6 +180,23 @@ class CliApp {
 
         PipelineHelper pipeline = new PipelineHelper(new PropertiesProvider(properties));
         logger.info("executing {}", pipeline);
+
+        // Stamp every task this run starts (and, through CreateNlpBatchesFromIndex, every
+        // task they spawn) with a unique run id. That id is what lets us wait on exactly
+        // this run's work below, including spawned descendants whose ids we never see here,
+        // without being blocked by, or ever cancelling, tasks owned by other CLI runs or a
+        // concurrent server sharing the same (persistent) task store. All task users are the
+        // shared nullUser, so the user alone cannot tell this run's tasks from a peer's.
+        String runId = randomUUID().toString();
+        properties.setProperty(PIPELINE_RUN_ID, runId);
+
+        if (!canTrackSpawnedTasks(properties)) {
+            logger.warn("the {} batch queue runs stages in remote workers but the {} task repository is process-local:"
+                    + " tasks spawned by a stage (e.g. NLP batches) cannot be tracked by this run, which may exit"
+                    + " before they complete. Use a shared task repository (DATABASE or REDIS).",
+                    QueueType.TEMPORAL, TaskRepositoryType.MEMORY);
+        }
+
         if (pipeline.has(Stage.DEDUPLICATE)) {
             taskManager.startTask(DeduplicateTask.class, nullUser(), propertiesToMap(properties));
         }
@@ -209,8 +232,70 @@ class CliApp {
         if (pipeline.has(Stage.ARTIFACT)) {
             taskManager.startTask(ArtifactTask.class, nullUser(), propertiesToMap(properties));
         }
-        taskManager.awaitTermination(Integer.MAX_VALUE, SECONDS);
-        taskManager.shutdown();
+        // Wait on every non-final task carrying this run id, not just the ids we started:
+        // stages such as CreateNlpBatchesFromIndex enqueue child BatchNlpTask tasks that
+        // must reach a final state before we shut the worker down, otherwise their still
+        // QUEUED work is silently dropped on System.exit. Scoping to the run id (rather
+        // than the global non-final count) also means unrelated rows left by other runs
+        // never keep this finished run alive.
+        TaskFilters runScope = TaskFilters.empty()
+                .withArgs(new TaskFilters.ArgsFilter(PIPELINE_RUN_ID, runId));
+        long unfinished = taskManager.waitTasksToBeDone(runScope, Integer.MAX_VALUE, SECONDS);
+        shutdownLocalWorkers(taskManager);
+
+        // The JVM would otherwise stay alive on non-daemon threads (a second
+        // TaskManager worker pool created by the unused CommonMode in Main, Redisson
+        // netty threads). Force the exit, non-zero if any of this run's tasks errored.
+        int exitCode = computeExitCode(taskManager, runScope);
+        logger.info("pipeline finished ({} unfinished task(s)), exiting with code {}", unfinished, exitCode);
+        System.exit(exitCode);
+    }
+
+    /**
+     * Only the in-process worker pool is ours to stop. For distributed batch queues,
+     * {@link TaskManager#shutdown()} broadcasts a ShutdownEvent on the shared Redis
+     * event topic or AMQP WORKER_EVENT queue, which would close every worker listening
+     * on the bus, including workers executing a concurrent server's or another run's
+     * still QUEUED/RUNNING tasks. Temporal owns its workers' lifecycle entirely.
+     */
+    static void shutdownLocalWorkers(TaskManager taskManager) throws IOException {
+        if (taskManager instanceof TaskManagerMemory) {
+            taskManager.shutdown();
+        }
+    }
+
+    /**
+     * Whether the run-scoped wait can observe every task this run's stages spawn. Under a
+     * TEMPORAL batch queue the stages execute in remote Temporal workers, and a MEMORY task
+     * repository is process-local: child tasks inserted by a worker's repository never
+     * become visible to this process, so the run could exit while spawned work is pending.
+     */
+    static boolean canTrackSpawnedTasks(Properties properties) {
+        QueueType batchQueueType = QueueType.valueOf(
+                properties.getProperty(BATCH_QUEUE_TYPE_OPT, DEFAULT_BATCH_QUEUE_TYPE.name()).toUpperCase());
+        TaskRepositoryType taskRepositoryType = TaskRepositoryType.valueOf(
+                properties.getProperty(TASK_REPOSITORY_OPT, TaskRepositoryType.DATABASE.name()));
+        return batchQueueType != QueueType.TEMPORAL || taskRepositoryType != TaskRepositoryType.MEMORY;
+    }
+
+    /**
+     * Success (0) unless one of this run's tasks (a stage we started, or a task one of
+     * them spawned) ended in ERROR, or their states could not be read (treated as a
+     * failure so a broken run never reports success).
+     */
+    private static int computeExitCode(TaskManager taskManager, TaskFilters runScope) {
+        try {
+            for (Task<?> task : taskManager.getTasks(runScope).toList()) {
+                if (task.getState() == Task.State.ERROR) {
+                    logger.error("task {} ended in ERROR", task.id);
+                    return EXIT_RUNTIME;
+                }
+            }
+            return EXIT_SUCCESS;
+        } catch (IOException e) {
+            logger.error("could not read final task states; treating run as failed", e);
+            return EXIT_RUNTIME;
+        }
     }
 
     static int handleUserCreate(UserAdminService service, Properties properties) {

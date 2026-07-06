@@ -115,9 +115,31 @@ public interface TaskManager extends Closeable {
      * @throws IOException if the task list cannot be retrieved because of a network failure.
      */
     default long waitTasksToBeDone(int timeout, TimeUnit timeUnit) throws IOException {
+        return waitTasksToBeDone(TaskFilters.empty(), timeout, timeUnit);
+    }
+
+    /**
+     * Same as {@link #waitTasksToBeDone(int, TimeUnit)} but only waits on the non-final
+     * tasks matching {@code scope} instead of every non-final task in the (possibly shared
+     * and persistent) repository.
+     *
+     * <p>This lets a caller that tags a recognizable set of tasks (e.g. a CLI run stamping
+     * every task it starts, and every task those tasks spawn, with a per-run id) wait on
+     * exactly its own run. It returns as soon as that set is done, without being blocked by
+     * unrelated non-final rows left by other or interrupted runs, and without having to
+     * enumerate the ids of descendants that only come into existence while the run executes.
+     * Any states carried by {@code scope} are ignored: only non-final tasks are ever counted.
+     *
+     * @param scope filters selecting the tasks to wait on (user, name, args...).
+     * @param timeout amount for the timeout
+     * @param timeUnit unit of the timeout
+     * @return the number of matching tasks still unfinished
+     * @throws IOException if the task list cannot be retrieved because of a network failure.
+     */
+    default long waitTasksToBeDone(TaskFilters scope, int timeout, TimeUnit timeUnit) throws IOException {
         long startTime = System.currentTimeMillis();
         long maxDuration = timeUnit.toMillis(timeout);
-        TaskFilters filterNotCompleted = TaskFilters.empty().withStates(NON_FINAL_STATES);
+        TaskFilters filterNotCompleted = scope.withStates(NON_FINAL_STATES);
         long nUnfinished = getTaskIds(filterNotCompleted).count();
         while (System.currentTimeMillis() - startTime < maxDuration && nUnfinished > 0) {
             try {
@@ -125,8 +147,7 @@ public interface TaskManager extends Closeable {
             } catch (InterruptedException e) {
                 throw new RuntimeException(e);
             }
-            Stream<String> taskIds = getTaskIds(filterNotCompleted);
-            nUnfinished = taskIds.count();
+            nUnfinished = getTaskIds(filterNotCompleted).count();
         }
         return nUnfinished;
     }

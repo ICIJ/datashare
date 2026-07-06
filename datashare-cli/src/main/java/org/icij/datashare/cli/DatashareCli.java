@@ -207,6 +207,7 @@ public class DatashareCli {
         DatashareCliOptions.taskRoutingStrategy(parser);
         DatashareCliOptions.taskRoutingKey(parser);
         DatashareCliOptions.pollingInterval(parser);
+        DatashareCliOptions.queuePoll(parser);
         DatashareCliOptions.taskRepositoryType(parser);
         DatashareCliOptions.taskManagerPollingInterval(parser);
         DatashareCliOptions.taskProgressUpdateInterval(parser);

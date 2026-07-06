@@ -12,6 +12,7 @@ import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_SCROLL_SIZE;
 import static org.icij.datashare.cli.DatashareCliOptions.NLP_BATCH_SIZE_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.NLP_MAX_TEXT_LENGTH_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.NLP_PIPELINE_OPT;
+import static org.icij.datashare.cli.DatashareCliOptions.PIPELINE_RUN_ID;
 import static org.icij.datashare.cli.DatashareCliOptions.SCROLL_DURATION_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.SCROLL_SIZE_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.SEARCH_QUERY_OPT;
@@ -65,6 +66,9 @@ public class CreateNlpBatchesFromIndex extends DefaultTask<List<String>> impleme
     private final Indexer indexer;
     private final String scrollDuration;
     private final int scrollSize;
+    // Correlation id of the CLI run that started us, propagated to the child BatchNlpTask
+    // tasks so that run can wait on them before exiting. Null outside CLI (e.g. web mode).
+    private final String runId;
     private Language currentLanguage = null;
 
     public record BatchDocument(String id, String rootDocument, String project, Language language) {
@@ -89,6 +93,7 @@ public class CreateNlpBatchesFromIndex extends DefaultTask<List<String>> impleme
         this.scrollDuration = (String) taskView.args.getOrDefault(SCROLL_DURATION_OPT, DEFAULT_SCROLL_DURATION);
         this.scrollSize = (int) taskView.args.getOrDefault(SCROLL_SIZE_OPT, DEFAULT_SCROLL_SIZE);
         this.searchQuery = (String) taskView.args.get(SEARCH_QUERY_OPT);
+        this.runId = (String) taskView.args.get(PIPELINE_RUN_ID);
     }
 
     @Override
@@ -169,6 +174,8 @@ public class CreateNlpBatchesFromIndex extends DefaultTask<List<String>> impleme
         String taskId;
         HashMap<String, Object> args = new HashMap<>(this.batchTaskArgs);
         args.put("docs", batch.stream().map(BatchDocument::fromDocument).toList());
+        // Carry the run id onto the child so the CLI run that owns us waits for it too.
+        ofNullable(runId).ifPresent(id -> args.put(PIPELINE_RUN_ID, id));
         // TODO: here we bind the task name to the Java class name which is not ideal since it leaks Java inners
         //  bolts to Python, it could be nice to decouple task names from class names since they can change and
         //  are bound to languages

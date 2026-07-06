@@ -182,6 +182,53 @@ public class TaskManagerMemoryTest {
         assert unfinished == 1L;
     }
 
+    // Well-known args key a CLI run stamps on its tasks; the wait scopes on it via an
+    // args filter. Duplicated as a literal here because datashare-tasks does not depend on
+    // datashare-cli where DatashareCliOptions.PIPELINE_RUN_ID lives.
+    private static final String RUN_ID = "pipelineRunId";
+
+    @Test
+    public void test_wait_scoped_to_run_id_leaves_a_peers_non_final_task_untouched() throws Exception {
+        // A concurrent peer's task on the shared store: non-final, same (null) user, tagged
+        // with a DIFFERENT run id. It is never enqueued to our loop so it stays QUEUED.
+        Task<String> peer = new Task<>("sleep", User.nullUser(), Map.of("intParameter", 12, RUN_ID, "other-run"));
+        taskManager.insert(peer, new Group(TaskGroupType.Test));
+        peer.queue();
+        taskManager.update(peer);
+
+        // our own quick task, tagged with our run id
+        Task<String> own = new Task<>(TestFactory.HelloWorld.class.getName(), User.nullUser(), Map.of("greeted", "world", RUN_ID, "my-run"));
+        String ownId = taskManager.startTask(own, new Group(TaskGroupType.Test));
+
+        long unfinished = taskManager.waitTasksToBeDone(
+            TaskFilters.empty().withArgs(new TaskFilters.ArgsFilter(RUN_ID, "my-run")), 2, TimeUnit.SECONDS);
+
+        assertThat(unfinished).isEqualTo(0L);
+        assertThat(taskManager.getTask(ownId).getState()).isEqualTo(Task.State.DONE);
+        // the peer's task was neither waited on nor cancelled: exactly where it was left
+        assertThat(taskManager.getTask(peer.id).getState()).isEqualTo(Task.State.QUEUED);
+    }
+
+    @Test
+    public void test_wait_scoped_to_run_id_covers_descendant_not_among_started_ids() throws Exception {
+        // A descendant a running stage would spawn mid-flight (e.g. CreateNlpBatchesFromIndex
+        // enqueuing a BatchNlpTask): tagged with our run id but never handed to the caller as
+        // a "started" id. It stays non-final (not enqueued to our loop here).
+        Task<String> descendant = new Task<>("sleep", User.nullUser(), Map.of("intParameter", 12, RUN_ID, "my-run"));
+        taskManager.insert(descendant, new Group(TaskGroupType.Test));
+        descendant.queue();
+        taskManager.update(descendant);
+
+        // Waiting on the run id (not on a fixed set of ids) keeps the run alive: the
+        // descendant is still non-final, so the scoped wait reports it rather than returning
+        // 0 and letting the caller shut the worker down on still-queued work.
+        long unfinished = taskManager.waitTasksToBeDone(
+            TaskFilters.empty().withArgs(new TaskFilters.ArgsFilter(RUN_ID, "my-run")), 500, TimeUnit.MILLISECONDS);
+
+        assertThat(unfinished).isEqualTo(1L);
+        assertThat(taskManager.getTask(descendant.id).getState()).isEqualTo(Task.State.QUEUED);
+    }
+
     @Test
     public void test_health_ok() {
         assertThat(taskManager.getHealth()).isTrue();

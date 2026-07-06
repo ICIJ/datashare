@@ -317,7 +317,7 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
 
     @Override
     public void close() throws Exception {
-        outputQueue.put("POISON");
+        // end-of-stream is signalled by a quiet queue (poll timeout), not a POISON pill
     }
 
     private void setIndex(String indexName) {

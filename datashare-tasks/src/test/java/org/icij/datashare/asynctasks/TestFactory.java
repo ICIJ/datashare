@@ -25,6 +25,10 @@ public class TestFactory implements TaskFactory {
         return new Sleep(taskView, progress);
     }
 
+    public CheckedFailure createCheckedFailure(Task<String> taskView, Function<Double, String> progress) {
+        return new CheckedFailure(taskView, progress);
+    }
+
     public static class HelloWorld implements Callable<String> {
         private final Function<Double, String> progress;
         private String greeted;
@@ -89,6 +93,17 @@ public class TestFactory implements TaskFactory {
                 }
                 Thread.sleep(100);
             }
+        }
+    }
+
+    @TaskGroup(TaskGroupType.Test)
+    public static class CheckedFailure implements Callable<String> {
+        CheckedFailure(Task<String> taskView, Function<Double, String> progress) {
+        }
+
+        @Override
+        public String call() throws Exception {
+            throw new java.io.IOException("checked failure");
         }
     }
 

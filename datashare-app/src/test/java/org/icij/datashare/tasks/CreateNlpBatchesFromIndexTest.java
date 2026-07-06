@@ -3,6 +3,7 @@ package org.icij.datashare.tasks;
 import static org.fest.assertions.Assertions.assertThat;
 import static org.icij.datashare.text.DocumentBuilder.createDoc;
 import static org.icij.datashare.text.Project.project;
+import static org.icij.datashare.cli.DatashareCliOptions.PIPELINE_RUN_ID;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -87,5 +88,27 @@ public class CreateNlpBatchesFromIndexTest {
         // Then
         List<List<String>> expected = List.of(List.of("my_id"));
         assertThat(queued).isEqualTo(expected);
+    }
+
+    @Test
+    public void test_child_batches_inherit_the_run_id() throws Exception {
+        // Given a run id stamped on the parent task (as the CLI does)
+        indexer.add(es.getIndexName(), createDoc("my_id").with("this is my precious doc")
+            .with(Pipeline.Type.CORENLP).with(project(es.getIndexName())).build());
+        Map<String, Object> properties = Map.of(
+            "defaultProject", es.getIndexName(),
+            "nlpPipeline", "OPENNLP",
+            "batchSize", 3,
+            "scrollSize", 5,
+            PIPELINE_RUN_ID, "run-123"
+        );
+        CreateNlpBatchesFromIndex enqueueFromIndex = new CreateNlpBatchesFromIndex(taskManager, indexer,
+            new Task<>(CreateNlpBatchesFromIndex.class.getName(), new User("test"), properties), null);
+        // When
+        enqueueFromIndex.call();
+        // Then every spawned child batch carries the run id, so the CLI run waits on them
+        List<Object> childRunIds = taskManager.getTasks().map(t -> t.args.get(PIPELINE_RUN_ID)).toList();
+        assertThat(childRunIds).isNotEmpty();
+        assertThat(childRunIds).containsOnly("run-123");
     }
 }

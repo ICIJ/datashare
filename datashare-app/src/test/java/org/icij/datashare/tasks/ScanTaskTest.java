@@ -21,7 +21,7 @@ public class ScanTaskTest extends TestCase {
         assertThat(new ScanTask(documentCollectionFactory, new Task<>("org.icij.datashare.tasks.ScanTask", User.local(),
                 Map.of(DATA_DIR_OPT, Paths.get(ClassLoader.getSystemResource("docs").getPath()).toString())), null).call()).isEqualTo(3);
         DocumentQueue<Path> queue = documentCollectionFactory.createQueue("extract:queue:index", Path.class);
-        assertThat(queue.size()).isEqualTo(4); // with POISON
+        assertThat(queue.size()).isEqualTo(3); // no POISON
     }
 
     public void test_scan_with_queue_name() throws Exception {
@@ -29,6 +29,6 @@ public class ScanTaskTest extends TestCase {
                 Map.of(DATA_DIR_OPT, Paths.get(ClassLoader.getSystemResource("docs").getPath()).toString(),
                         QUEUE_NAME_OPT, "foo")), null).call()).isEqualTo(3);
         DocumentQueue<Path> queue = documentCollectionFactory.createQueue("foo:index", Path.class);
-        assertThat(queue.size()).isEqualTo(4); // with POISON
+        assertThat(queue.size()).isEqualTo(3); // no POISON
     }
 }
