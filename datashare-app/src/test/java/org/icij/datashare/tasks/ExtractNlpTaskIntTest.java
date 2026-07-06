@@ -50,7 +50,7 @@ public class ExtractNlpTaskIntTest {
         this.factory = injector.getInstance(new Key<>(){});
     }
 
-    @Test(timeout = 2000)
+    @Test(timeout = 6000)
     public void test_loop_consume_two_documents() throws Exception {
         when(pipeline.getType()).thenReturn(Pipeline.Type.CORENLP);
         when(pipeline.initialize(any())).thenReturn(true);
@@ -66,9 +66,28 @@ public class ExtractNlpTaskIntTest {
 
         verify(pipeline).initialize(ENGLISH);
         verify(pipeline).process(doc);
+        verify(indexer, never()).get(anyString(), eq("POISON"));
     }
 
-    @Test(timeout = 2000)
+    @Test(timeout = 6000)
+    public void test_skips_legacy_poison_and_keeps_consuming() throws Exception {
+        when(pipeline.getType()).thenReturn(Pipeline.Type.CORENLP);
+        when(pipeline.initialize(any())).thenReturn(true);
+        Document doc = createDoc("content").build();
+        when(indexer.get(anyString(), eq("docId"))).thenReturn(doc);
+
+        String queueName = new PipelineHelper(new PropertiesProvider()).getQueueNameFor(Stage.NLP);
+        DocumentQueue<String> queue = factory.createQueue(queueName, String.class);
+        queue.add(PipelineTask.STRING_POISON); // legacy poison BEFORE the real doc
+        queue.add("docId");
+
+        nlpTask.call();
+
+        verify(pipeline).process(doc); // reached the doc that sat behind the poison
+        verify(indexer, never()).get(anyString(), eq("POISON"));
+    }
+
+    @Test(timeout = 6000)
     public void test_progress() throws Exception {
         List<Double> progressValues = Collections.synchronizedList(new ArrayList<>());
         Function<Double, Void> callback = progress -> {
@@ -95,6 +114,7 @@ public class ExtractNlpTaskIntTest {
 
         new ExtractNlpTask(indexer, pipeline, factory, new Task<>(ExtractNlpTask.class.getName(), User.local(), new HashMap<>() {{
             put("maxContentLength", "32");
+            put("pollingInterval", "1");
         }}), callback).call();
 
         verify(pipeline, times(3)).initialize(ENGLISH);
@@ -130,6 +150,7 @@ public class ExtractNlpTaskIntTest {
         initMocks(this);
         nlpTask = new ExtractNlpTask(indexer, pipeline, factory, new Task<>(ExtractNlpTask.class.getName(), User.local(), new HashMap<>(){{
             put("maxContentLength", "32");
+            put("pollingInterval", "1");
         }}), null);
     }
 }

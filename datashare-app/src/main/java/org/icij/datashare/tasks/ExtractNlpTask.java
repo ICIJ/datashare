@@ -76,17 +76,19 @@ public class ExtractNlpTask extends PipelineTask<String> implements Monitorable 
         String docId;
         long nbMessages = 0;
         int nbMaxPolls = NB_MAX_POLLS;
-        while (!(STRING_POISON.equals(docId = inputQueue.poll((long) (pollingIntervalSeconds * 1000), TimeUnit.MILLISECONDS)))
-                && nbMaxPolls > 0) {
+        while (nbMaxPolls > 0) {
+            docId = inputQueue.poll((long) (pollingIntervalSeconds * 1000), TimeUnit.MILLISECONDS);
             try {
-                if (docId != null) {
+                if (docId == null) {
+                    logger.info("will poll document queue again for pollingInterval={} seconds ({}/{})", pollingIntervalSeconds, nbMaxPolls, NB_MAX_POLLS);
+                    nbMaxPolls--;
+                } else if (isPoison(docId)) {
+                    logger.debug("skipping legacy POISON entry in queue {}", inputQueue.getName());
+                } else {
                     findNamedEntities(project, docId);
                     nbMessages++;
                     processed.incrementAndGet();
                     progressCallback.apply(getProgressRate());
-                } else {
-                    logger.info("will poll document queue again for pollingInterval={} seconds ({}/{})", pollingIntervalSeconds, nbMaxPolls, NB_MAX_POLLS);
-                    nbMaxPolls--;
                 }
             } catch (Throwable e) {
                 logger.error("error in ExtractNlpTask loop", e);
