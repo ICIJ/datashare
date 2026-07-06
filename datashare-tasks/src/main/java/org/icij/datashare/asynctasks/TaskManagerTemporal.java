@@ -12,11 +12,13 @@ import java.util.*;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static org.icij.datashare.LambdaExceptionUtils.rethrowConsumer;
 import static org.icij.datashare.asynctasks.Task.State.FINAL_STATES;
+import static org.icij.datashare.asynctasks.Task.State.NON_FINAL_STATES;
 import static org.icij.datashare.asynctasks.temporal.TemporalInterlocutor.*;
 
 public class TaskManagerTemporal implements TaskManager {
@@ -101,6 +103,53 @@ public class TaskManagerTemporal implements TaskManager {
             taskRepository.delete(id);
         }));
         return tasks;
+    }
+
+    /**
+     * Same contract as the default implementation, but each poll first reconciles the
+     * matching RUNNING tasks that have no completion listener in this JVM against
+     * Temporal, the source of truth. Repository rows only reach a final state through
+     * the completion listener of the process that started the workflow: a task started
+     * by another process (e.g. a child spawned by a remote Temporal worker) or orphaned
+     * by a worker restart would otherwise stay RUNNING in the repository forever and
+     * block the caller, even though its workflow is long finished in Temporal.
+     */
+    @Override
+    public long waitTasksToBeDone(TaskFilters scope, int timeout, TimeUnit timeUnit) throws IOException {
+        long startTime = System.currentTimeMillis();
+        long maxDuration = timeUnit.toMillis(timeout);
+        TaskFilters filterNotCompleted = scope.withStates(NON_FINAL_STATES);
+        long nUnfinished = reconcileAndCount(filterNotCompleted);
+        while (System.currentTimeMillis() - startTime < maxDuration && nUnfinished > 0) {
+            try {
+                Thread.sleep(Math.min(getTerminationPollingInterval(), maxDuration));
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+            nUnfinished = reconcileAndCount(filterNotCompleted);
+        }
+        return nUnfinished;
+    }
+
+    private long reconcileAndCount(TaskFilters filterNotCompleted) throws IOException {
+        getTasks(filterNotCompleted)
+            .filter(t -> t.getState() == Task.State.RUNNING)
+            .filter(t -> !pendingListeners.containsKey(t.id))
+            .forEach(this::reconcileListenerlessTask);
+        return getTaskIds(filterNotCompleted).count();
+    }
+
+    private void reconcileListenerlessTask(Task<?> repoTask) {
+        try {
+            Task<Serializable> inTemporal = temporal.getTask(repoTask.id);
+            if (inTemporal != null && inTemporal.isFinished()) {
+                taskRepository.update(inTemporal);
+            }
+        } catch (UnknownTask e) {
+            logger.warn("task {} is RUNNING in repository but not found in Temporal, it will never complete", repoTask.id);
+        } catch (IOException e) {
+            logger.warn("failed to reconcile task {} while waiting for completion", repoTask.id, e);
+        }
     }
 
     /**

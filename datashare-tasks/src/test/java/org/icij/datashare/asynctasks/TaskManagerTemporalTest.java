@@ -22,6 +22,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
 import org.icij.datashare.asynctasks.bus.amqp.TaskError;
@@ -32,6 +33,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 
 
 public class TaskManagerTemporalTest {
@@ -120,6 +122,47 @@ public class TaskManagerTemporalTest {
         taskManager.reconcileTasks();
 
         verify(taskRepository).update(argThat(t -> t.getState() == Task.State.DONE));
+    }
+
+    @Test(timeout = 10000)
+    public void test_scoped_wait_reconciles_orphaned_running_task_with_temporal() throws Exception {
+        // A task RUNNING in the repository with no completion listener in this JVM
+        // (a child spawned by a remote Temporal worker, or orphaned by a worker
+        // restart): the scoped wait must ask Temporal for the truth instead of
+        // polling the stale repository row forever.
+        TaskRepositoryMemory repository = new TaskRepositoryMemory();
+        try (TaskManagerTemporal manager = new TaskManagerTemporal(temporal, repository, RoutingStrategy.UNIQUE)) {
+            Task<String> orphan = new Task<>("taskName", User.local(), Map.of("pipelineRunId", "my-run"));
+            repository.insert(orphan, new Group(TaskGroupType.Test));
+            orphan.setState(Task.State.RUNNING);
+            repository.update(orphan);
+            Task<String> doneInTemporal = new Task<>(orphan.id, orphan.name, Task.State.DONE, 1.0, orphan.createdAt, 0, null, orphan.args, new TaskResult<>("result"), null);
+            doReturn(doneInTemporal).when(temporal).getTask(orphan.id);
+
+            long unfinished = manager.waitTasksToBeDone(
+                TaskFilters.empty().withArgs(new TaskFilters.ArgsFilter("pipelineRunId", "my-run")), 3, TimeUnit.SECONDS);
+
+            assertThat(unfinished).isEqualTo(0L);
+            assertThat(repository.getTask(orphan.id).getState()).isEqualTo(Task.State.DONE);
+        }
+    }
+
+    @Test(timeout = 10000)
+    public void test_scoped_wait_does_not_reconcile_tasks_with_local_completion_listener() throws Exception {
+        // Tasks started by this JVM already have a completion listener updating the
+        // repository on workflow completion: the wait must not query Temporal again
+        // for those on every poll.
+        TaskRepositoryMemory repository = new TaskRepositoryMemory();
+        try (TaskManagerTemporal manager = new TaskManagerTemporal(temporal, repository, RoutingStrategy.UNIQUE)) {
+            Task<String> own = new Task<>("taskName", User.local(), Map.of("pipelineRunId", "my-run"));
+            manager.startTask(own, new Group(TaskGroupType.Test));
+
+            long unfinished = manager.waitTasksToBeDone(
+                TaskFilters.empty().withArgs(new TaskFilters.ArgsFilter("pipelineRunId", "my-run")), 1, TimeUnit.SECONDS);
+
+            assertThat(unfinished).isEqualTo(1L);
+            verify(temporal, Mockito.never()).getTask(own.id);
+        }
     }
 
     @Test
