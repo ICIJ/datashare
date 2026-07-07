@@ -15,10 +15,15 @@ import net.codestory.http.payload.Payload;
 import org.icij.datashare.Repository;
 import org.icij.datashare.UserEvent;
 import org.icij.datashare.UserEvent.Type;
+import org.icij.datashare.cli.Validators;
 import org.icij.datashare.policies.Authorizer;
 import org.icij.datashare.policies.CasbinRule;
 import org.icij.datashare.policies.Policy;
 import org.icij.datashare.policies.Role;
+import org.icij.datashare.project.admin.ProjectAdminService;
+import org.icij.datashare.project.admin.ProjectGranted;
+import org.icij.datashare.project.admin.ProjectNotFoundException;
+import org.icij.datashare.project.admin.ProjectRevoked;
 import org.icij.datashare.session.DatashareUser;
 import org.icij.datashare.text.Project;
 import org.icij.datashare.user.User;
@@ -54,6 +59,7 @@ public class UserResource {
     private final Repository repository;
     private final Authorizer authorizer;
     private final UserAdminService userAdminService;
+    private final ProjectAdminService projectAdminService;
 
     private List<Project> getDatashareUserProjects (DatashareUser datashareUser) {
         List<String> projectNames =  datashareUser.getProjectNames();
@@ -66,15 +72,16 @@ public class UserResource {
     }
 
     @Inject
-    public UserResource(Repository repository, Authorizer authorizer, UserAdminService userAdminService) {
+    public UserResource(Repository repository, Authorizer authorizer, UserAdminService userAdminService, ProjectAdminService projectAdminService) {
         this.repository = repository;
         this.authorizer = authorizer;
         this.userAdminService = userAdminService;
+        this.projectAdminService = projectAdminService;
     }
 
     @Operation(description = "Lists users. Optional scope: ?domain=X or ?domain=X&project=Y. " +
             "Filters: q (free-text on uid/name/email), noRole (true=include no-role users, false=exclude them). " +
-            "Sort: uid | role, desc=true for descending. Paginated with from/size.")
+            "Sort: login | email | name | role, desc=true for descending. Paginated with from/size.")
     @ApiResponse(responseCode = "200", useReturnTypeSchema = true)
     @ApiResponse(responseCode = "400", description = "invalid sort parameter")
     @ApiResponse(responseCode = "501", description = "store does not support listing")
@@ -94,9 +101,11 @@ public class UserResource {
 
         // 0. Validate sort param early
         if (sortParam != null && !sortParam.isBlank()
-                && !"uid".equalsIgnoreCase(sortParam)
+                && !"login".equalsIgnoreCase(sortParam)
+                && !"email".equalsIgnoreCase(sortParam)
+                && !"name".equalsIgnoreCase(sortParam)
                 && !"role".equalsIgnoreCase(sortParam)) {
-            return PayloadFormatter.error("sort must be one of: uid, role", HttpStatus.BAD_REQUEST);
+            return PayloadFormatter.error("sort must be one of: login, email, name, role", HttpStatus.BAD_REQUEST);
         }
 
         // 1. Fetch all users (q pre-filtered via UserFilter.matches in UsersInDb)
@@ -133,15 +142,19 @@ public class UserResource {
         // 5. Sort
         if (sortParam != null && !sortParam.isBlank()) {
             Comparator<UserListItem> comparator;
-            if ("uid".equalsIgnoreCase(sortParam)) {
+            if ("login".equalsIgnoreCase(sortParam)) {
                 comparator = Comparator.comparing(UserListItem::uid, String.CASE_INSENSITIVE_ORDER);
+            } else if ("email".equalsIgnoreCase(sortParam)) {
+                comparator = Comparator.comparing(UserListItem::email, Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER));
+            } else if ("name".equalsIgnoreCase(sortParam)) {
+                comparator = Comparator.comparing(UserListItem::name, Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER));
             } else if ("role".equalsIgnoreCase(sortParam)) {
                 comparator = Comparator.comparingInt(item -> item.permissions().stream()
                         .mapToInt(p -> roleOrdinal(p.v1()))
                         .min()
                         .orElse(Integer.MAX_VALUE));
             } else {
-                return PayloadFormatter.error("sort must be one of: uid, role", HttpStatus.BAD_REQUEST);
+                return PayloadFormatter.error("sort must be one of: login, email, name, role", HttpStatus.BAD_REQUEST);
             }
             if (desc) comparator = comparator.reversed();
             stream = stream.sorted(comparator);
@@ -224,6 +237,53 @@ public class UserResource {
         userAdminService.deleteIfExists(login);
         authorizer.removeAllPoliciesForUser(login);
         return new Payload(204);
+    }
+
+    @Operation(description = "Grants a project role to a user. role query param must be one of admin|editor|member|visitor. " +
+            "Set ifNotExists=true for the idempotent variant (no-op if the user already holds exactly that role).",
+            parameters = {@Parameter(name = "login", in = ParameterIn.PATH),
+                    @Parameter(name = "index", in = ParameterIn.PATH),
+                    @Parameter(name = "role", in = ParameterIn.QUERY),
+                    @Parameter(name = "ifNotExists", in = ParameterIn.QUERY)})
+    @ApiResponse(responseCode = "200", useReturnTypeSchema = true)
+    @ApiResponse(responseCode = "400", description = "invalid role")
+    @ApiResponse(responseCode = "404", description = "user or project not found")
+    @Policy(role = Role.PROJECT_ADMIN)
+    @Put("/:login/index/:index")
+    public Payload grantProjectToUser(String login, String index, Context context) {
+        boolean ifNotExists = Boolean.parseBoolean(context.get("ifNotExists"));
+        try {
+            Role role = Validators.projectRole(context.get("role"));
+            ProjectGranted granted = ifNotExists
+                    ? projectAdminService.grantIfNotExists(index, login, role)
+                    : projectAdminService.grant(index, login, role);
+            return new Payload(granted);
+        } catch (Validators.InvalidValueException | org.icij.datashare.project.admin.ValidationException e) {
+            return PayloadFormatter.error(e.getMessage(), HttpStatus.BAD_REQUEST);
+        } catch (ProjectNotFoundException | org.icij.datashare.project.admin.UserNotFoundException e) {
+            return PayloadFormatter.error(e.getMessage(), HttpStatus.NOT_FOUND);
+        }
+    }
+
+    @Operation(description = "Revokes every role a user holds on a project. " +
+            "Set ifExists=true for the idempotent variant (no-op if the user does not exist or holds no role).",
+            parameters = {@Parameter(name = "login", in = ParameterIn.PATH),
+                    @Parameter(name = "index", in = ParameterIn.PATH),
+                    @Parameter(name = "ifExists", in = ParameterIn.QUERY)})
+    @ApiResponse(responseCode = "200", useReturnTypeSchema = true)
+    @ApiResponse(responseCode = "404", description = "user or project not found")
+    @Policy(role = Role.PROJECT_ADMIN)
+    @Delete("/:login/index/:index")
+    public Payload revokeProjectFromUser(String login, String index, Context context) {
+        boolean ifExists = Boolean.parseBoolean(context.get("ifExists"));
+        try {
+            ProjectRevoked revoked = ifExists
+                    ? projectAdminService.revokeIfExists(index, login)
+                    : projectAdminService.revoke(index, login);
+            return new Payload(revoked);
+        } catch (ProjectNotFoundException | org.icij.datashare.project.admin.UserNotFoundException e) {
+            return PayloadFormatter.error(e.getMessage(), HttpStatus.NOT_FOUND);
+        }
     }
 
     @Operation(description = "Gets the user's session information.")

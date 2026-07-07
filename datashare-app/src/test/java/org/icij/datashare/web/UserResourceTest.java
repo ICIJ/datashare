@@ -11,6 +11,10 @@ import org.icij.datashare.policies.Domain;
 import org.icij.datashare.policies.Policy;
 import org.icij.datashare.policies.PolicyAnnotation;
 import org.icij.datashare.policies.Role;
+import org.icij.datashare.project.admin.ProjectAdminService;
+import org.icij.datashare.project.admin.ProjectGranted;
+import org.icij.datashare.project.admin.ProjectNotFoundException;
+import org.icij.datashare.project.admin.ProjectRevoked;
 import org.icij.datashare.session.LocalUserFilter;
 import org.icij.datashare.text.Project;
 import org.icij.datashare.user.User;
@@ -53,6 +57,7 @@ public class UserResourceTest extends AbstractProdWebServerTest {
     @Mock JooqRepository jooqRepository;
     @Mock CasbinRuleAdapter casbinRuleAdapter;
     @Mock UserAdminService userAdminService;
+    @Mock ProjectAdminService projectAdminService;
     Authorizer authorizer;
     PropertiesProvider propertiesProvider = new PropertiesProvider();
 
@@ -64,13 +69,13 @@ public class UserResourceTest extends AbstractProdWebServerTest {
         PolicyAnnotation policyAnnotation = new PolicyAnnotation(authorizer);
         configure(routes -> routes
                 .registerAroundAnnotation(Policy.class, policyAnnotation)
-                .add(new UserResource(jooqRepository, authorizer, userAdminService))
+                .add(new UserResource(jooqRepository, authorizer, userAdminService, projectAdminService))
                 .filter(new LocalUserFilter(new PropertiesProvider(), jooqRepository)));
     }
 
     @Test
     public void test_user_information() {
-        configure(routes -> routes.add(new UserResource(jooqRepository, authorizer, userAdminService)).
+        configure(routes -> routes.add(new UserResource(jooqRepository, authorizer, userAdminService, projectAdminService)).
                         filter(new BasicAuthFilter("/", "icij", singleUser("pierre"))));
 
         get("/api/users/me")
@@ -90,7 +95,7 @@ public class UserResourceTest extends AbstractProdWebServerTest {
             LocalUserFilter localUserFilter = new LocalUserFilter(propertiesProvider, jooqRepository);
             routes
                     .filter(localUserFilter)
-                    .add(new UserResource(jooqRepository, authorizer, userAdminService));
+                    .add(new UserResource(jooqRepository, authorizer, userAdminService, projectAdminService));
         });
 
         get("/api/users/me")
@@ -374,14 +379,98 @@ public class UserResourceTest extends AbstractProdWebServerTest {
         assertTrue(authorizer.getGroupPermissions(localUser("alice")).isEmpty());
     }
 
+    // PUT /api/users/:login/index/:index — grant
+
     @Test
-    public void test_list_users_sort_by_uid_ascending() {
+    public void test_grant_project_returns_200() throws Exception {
+        ProjectGranted granted = new ProjectGranted("someproject", "alice", Role.PROJECT_ADMIN, null, false);
+        when(projectAdminService.grant("someproject", "alice", Role.PROJECT_ADMIN)).thenReturn(granted);
+
+        put("/api/users/alice/index/someproject?role=admin")
+                .should().respond(200).contain("\"userLogin\":\"alice\"");
+    }
+
+    @Test
+    public void test_grant_project_if_not_exists_returns_noop() throws Exception {
+        ProjectGranted granted = new ProjectGranted("someproject", "alice", Role.PROJECT_ADMIN, null, true);
+        when(projectAdminService.grantIfNotExists("someproject", "alice", Role.PROJECT_ADMIN)).thenReturn(granted);
+
+        put("/api/users/alice/index/someproject?role=admin&ifNotExists=true")
+                .should().respond(200).contain("\"noop\":true");
+    }
+
+    @Test
+    public void test_grant_project_returns_400_on_invalid_role() throws Exception {
+        put("/api/users/alice/index/someproject?role=bogus").should().respond(400);
+    }
+
+    @Test
+    public void test_grant_project_returns_404_when_project_not_found() throws Exception {
+        when(projectAdminService.grant("ghost", "alice", Role.PROJECT_ADMIN))
+                .thenThrow(new ProjectNotFoundException("ghost"));
+
+        put("/api/users/alice/index/ghost?role=admin").should().respond(404);
+    }
+
+    @Test
+    public void test_grant_project_returns_404_when_user_not_found() throws Exception {
+        when(projectAdminService.grant("someproject", "ghost", Role.PROJECT_ADMIN))
+                .thenThrow(new org.icij.datashare.project.admin.UserNotFoundException("ghost"));
+
+        put("/api/users/ghost/index/someproject?role=admin").should().respond(404);
+    }
+
+    @Test
+    public void test_grant_project_does_not_conflict_with_me_route_when_login_is_me() throws Exception {
+        ProjectGranted granted = new ProjectGranted("someproject", "me", Role.PROJECT_ADMIN, null, false);
+        when(projectAdminService.grant("someproject", "me", Role.PROJECT_ADMIN)).thenReturn(granted);
+
+        put("/api/users/me/index/someproject?role=admin")
+                .should().respond(200).contain("\"userLogin\":\"me\"");
+        verify(projectAdminService).grant("someproject", "me", Role.PROJECT_ADMIN);
+    }
+
+    // DELETE /api/users/:login/index/:index — revoke
+
+    @Test
+    public void test_revoke_project_returns_200() throws Exception {
+        ProjectRevoked revoked = new ProjectRevoked("someproject", "alice", List.of(Role.PROJECT_ADMIN), false);
+        when(projectAdminService.revoke("someproject", "alice")).thenReturn(revoked);
+
+        delete("/api/users/alice/index/someproject").should().respond(200).contain("\"userLogin\":\"alice\"");
+    }
+
+    @Test
+    public void test_revoke_project_if_exists_returns_noop() throws Exception {
+        ProjectRevoked revoked = new ProjectRevoked("someproject", "alice", List.of(), true);
+        when(projectAdminService.revokeIfExists("someproject", "alice")).thenReturn(revoked);
+
+        delete("/api/users/alice/index/someproject?ifExists=true").should().respond(200).contain("\"noop\":true");
+    }
+
+    @Test
+    public void test_revoke_project_returns_404_when_project_not_found() throws Exception {
+        when(projectAdminService.revoke("ghost", "alice")).thenThrow(new ProjectNotFoundException("ghost"));
+
+        delete("/api/users/alice/index/ghost").should().respond(404);
+    }
+
+    @Test
+    public void test_revoke_project_returns_404_when_user_not_found() throws Exception {
+        when(projectAdminService.revoke("someproject", "ghost"))
+                .thenThrow(new org.icij.datashare.project.admin.UserNotFoundException("ghost"));
+
+        delete("/api/users/ghost/index/someproject").should().respond(404);
+    }
+
+    @Test
+    public void test_list_users_sort_by_login_ascending() {
         User alice = new User("alice", "Alice", "a@a.com", "local", new HashMap<>());
         User bob   = new User("bob",   "Bob",   "b@b.com", "local", new HashMap<>());
         when(userAdminService.list(any(UserFilter.class), isNull(), eq(0), eq(Integer.MAX_VALUE)))
             .thenReturn(new WebResponse<>(List.of(bob, alice), 0, Integer.MAX_VALUE, 2));
 
-        String body = get("/api/users?sort=uid").response().content();
+        String body = get("/api/users?sort=login").response().content();
         assertTrue(body.indexOf("alice") < body.indexOf("bob"));
     }
 
@@ -420,7 +509,7 @@ public class UserResourceTest extends AbstractProdWebServerTest {
         PolicyAnnotation policyAnnotation = new PolicyAnnotation(restrictedAuthorizer);
         configure(routes -> routes
                 .registerAroundAnnotation(Policy.class, policyAnnotation)
-                .add(new UserResource(jooqRepository, restrictedAuthorizer, userAdminService))
+                .add(new UserResource(jooqRepository, restrictedAuthorizer, userAdminService, projectAdminService))
                 .filter(new LocalUserFilter(new PropertiesProvider(), jooqRepository)));
 
         get("/api/users").should().respond(403);
@@ -436,26 +525,88 @@ public class UserResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
-    public void test_list_users_sort_uid_orders_alphabetically() {
+    public void test_list_users_sort_login_orders_alphabetically() {
         User alice = new User("alice", "Alice", "a@a.com", "local", new HashMap<>());
         User bob   = new User("bob",   "Bob",   "b@b.com", "local", new HashMap<>());
         when(userAdminService.list(any(UserFilter.class), isNull(), eq(0), eq(Integer.MAX_VALUE)))
                 .thenReturn(new WebResponse<>(List.of(bob, alice), 0, Integer.MAX_VALUE, 2));
 
-        String body = get("/api/users?sort=uid").response().content();
+        String body = get("/api/users?sort=login").response().content();
         assertTrue(body.indexOf("alice") < body.indexOf("bob"));
     }
 
     @Test
-    public void test_list_users_sort_uid_desc_reverses_order() {
+    public void test_list_users_sort_login_desc_reverses_order() {
         User alice = new User("alice", "Alice", "a@a.com", "local", new HashMap<>());
         User bob   = new User("bob",   "Bob",   "b@b.com", "local", new HashMap<>());
         when(userAdminService.list(any(UserFilter.class), isNull(), eq(0), eq(Integer.MAX_VALUE)))
                 .thenReturn(new WebResponse<>(List.of(alice, bob), 0, Integer.MAX_VALUE, 2));
 
-        String body = get("/api/users?sort=uid&desc=true").response().content();
+        String body = get("/api/users?sort=login&desc=true").response().content();
         // desc=true reverses: bob before alice
         assertTrue(body.indexOf("bob") < body.indexOf("alice"));
+    }
+
+    @Test
+    public void test_list_users_sort_by_email_ascending() {
+        User alice = new User("alice", "Alice", "z@z.com", "local", new HashMap<>());
+        User bob   = new User("bob",   "Bob",   "a@a.com", "local", new HashMap<>());
+        when(userAdminService.list(any(UserFilter.class), isNull(), eq(0), eq(Integer.MAX_VALUE)))
+                .thenReturn(new WebResponse<>(List.of(alice, bob), 0, Integer.MAX_VALUE, 2));
+
+        String body = get("/api/users?sort=email").response().content();
+        // bob's email a@a.com sorts before alice's z@z.com
+        assertTrue(body.indexOf("bob") < body.indexOf("alice"));
+    }
+
+    @Test
+    public void test_list_users_sort_email_desc_reverses_order() {
+        User alice = new User("alice", "Alice", "a@a.com", "local", new HashMap<>());
+        User bob   = new User("bob",   "Bob",   "b@b.com", "local", new HashMap<>());
+        when(userAdminService.list(any(UserFilter.class), isNull(), eq(0), eq(Integer.MAX_VALUE)))
+                .thenReturn(new WebResponse<>(List.of(alice, bob), 0, Integer.MAX_VALUE, 2));
+
+        String body = get("/api/users?sort=email&desc=true").response().content();
+        assertTrue(body.indexOf("bob") < body.indexOf("alice"));
+    }
+
+    @Test
+    public void test_list_users_sort_by_name_ascending() {
+        User alice = new User("alice", "Zed",   "a@a.com", "local", new HashMap<>());
+        User bob   = new User("bob",   "Adam",  "b@b.com", "local", new HashMap<>());
+        when(userAdminService.list(any(UserFilter.class), isNull(), eq(0), eq(Integer.MAX_VALUE)))
+                .thenReturn(new WebResponse<>(List.of(alice, bob), 0, Integer.MAX_VALUE, 2));
+
+        String body = get("/api/users?sort=name").response().content();
+        // bob's name "Adam" sorts before alice's "Zed"
+        assertTrue(body.indexOf("bob") < body.indexOf("alice"));
+    }
+
+    @Test
+    public void test_list_users_sort_name_desc_reverses_order() {
+        User alice = new User("alice", "Alice", "a@a.com", "local", new HashMap<>());
+        User bob   = new User("bob",   "Bob",   "b@b.com", "local", new HashMap<>());
+        when(userAdminService.list(any(UserFilter.class), isNull(), eq(0), eq(Integer.MAX_VALUE)))
+                .thenReturn(new WebResponse<>(List.of(alice, bob), 0, Integer.MAX_VALUE, 2));
+
+        String body = get("/api/users?sort=name&desc=true").response().content();
+        assertTrue(body.indexOf("bob") < body.indexOf("alice"));
+    }
+
+    @Test
+    public void test_list_users_sort_by_name_null_names_sort_last() {
+        User alice = new User("alice", null,    "a@a.com", "local", new HashMap<>());
+        User bob   = new User("bob",   "Bob",   "b@b.com", "local", new HashMap<>());
+        when(userAdminService.list(any(UserFilter.class), isNull(), eq(0), eq(Integer.MAX_VALUE)))
+                .thenReturn(new WebResponse<>(List.of(alice, bob), 0, Integer.MAX_VALUE, 2));
+
+        String body = get("/api/users?sort=name").response().content();
+        assertTrue(body.indexOf("bob") < body.indexOf("alice"));
+    }
+
+    @Test
+    public void test_list_users_sort_uid_now_returns_400() {
+        get("/api/users?sort=uid").should().respond(400);
     }
 
     @Test
@@ -570,13 +721,13 @@ public class UserResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
-    public void test_list_users_sort_uid_ascending() {
+    public void test_list_users_sort_login_ascending() {
         User charlie = new User("charlie", null, "c@c.com", "local", new HashMap<>());
         User alice   = new User("alice",   null, "a@a.com", "local", new HashMap<>());
         when(userAdminService.list(new UserFilter(null), null, 0, Integer.MAX_VALUE))
                 .thenReturn(new WebResponse<>(List.of(charlie, alice), 0, Integer.MAX_VALUE, 2));
 
-        String body = get("/api/users?sort=uid").response().content();
+        String body = get("/api/users?sort=login").response().content();
         assertTrue(body.indexOf("alice") < body.indexOf("charlie"));
     }
 
