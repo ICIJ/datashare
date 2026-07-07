@@ -33,7 +33,7 @@ public class PipelineHelper {
         return stage.isLastEnum() ? null: getQueueName(propertiesProvider, getNextStage(stage));
     }
 
-    private Stage getNextStage(Stage stage) {
+    public Stage getNextStage(Stage stage) {
         if (stage == stages.get(stages.size() - 1)) return stage.getDefaultNextStage();
         if (!stages.contains(stage)) return stage.getDefaultNextStage();
         return stages.get(stages.indexOf(stage) + 1);

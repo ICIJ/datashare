@@ -84,6 +84,41 @@ public class EnqueueFromIndexTaskTest {
     }
 
     @Test
+    public void test_no_query_targeting_artifact_ignores_nlp_pipeline_filter() throws Exception {
+        for (int i = 0; i < 5; i++) {
+            indexer.add(es.getIndexName(), createDoc("doc" + i)
+                    .with(Pipeline.Type.CORENLP).with(project(es.getIndexName())).build());
+        }
+        Map<String, Object> properties = Map.of(
+                "defaultProject", es.getIndexName(),
+                "stages", "ARTIFACT,ENQUEUEIDX",
+                "queueName", "test:queue");
+        MemoryDocumentCollectionFactory<String> factory = new MemoryDocumentCollectionFactory<>();
+        EnqueueFromIndexTask enqueueFromIndex = new EnqueueFromIndexTask(factory, indexer,
+                new Task<>(EnqueueFromIndexTask.class.getName(), new User("test"), properties), null);
+        enqueueFromIndex.call();
+        assertThat(factory.queues.get("test:queue:artifact")).hasSize(5);
+    }
+
+    @Test
+    public void test_no_query_targeting_nlp_still_excludes_already_processed() throws Exception {
+        for (int i = 0; i < 5; i++) {
+            indexer.add(es.getIndexName(), createDoc("doc" + i)
+                    .with(Pipeline.Type.CORENLP).with(project(es.getIndexName())).build());
+        }
+        Map<String, Object> properties = Map.of(
+                "defaultProject", es.getIndexName(),
+                "stages", "ENQUEUEIDX",
+                "queueName", "test:queue",
+                NLP_PIPELINE_OPT, Pipeline.Type.CORENLP.name());
+        MemoryDocumentCollectionFactory<String> factory = new MemoryDocumentCollectionFactory<>();
+        EnqueueFromIndexTask enqueueFromIndex = new EnqueueFromIndexTask(factory, indexer,
+                new Task<>(EnqueueFromIndexTask.class.getName(), new User("test"), properties), null);
+        enqueueFromIndex.call();
+        assertThat(factory.queues.get("test:queue:nlp")).isNullOrEmpty();
+    }
+
+    @Test
     public void test_log_displays_correct_document_count() throws Exception {
         LogbackAppenderWrapper logWrapper = new LogbackAppenderWrapper();
         for (int i = 0; i < 3; i++) {
