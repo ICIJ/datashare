@@ -93,4 +93,17 @@ public class ExtractNlpTaskTest {
         verify(pipeline).process(doc, 32, 0);
         verify(pipeline).process(doc, 32, 32);
     }
+
+    @Test
+    public void test_on_message_with_routing_fetches_doc_with_root_id() throws Exception {
+        when(pipeline.initialize(any())).thenReturn(true);
+        Document doc = createDoc("embedded").withRootId("rootId").withParentId("rootId").build();
+        when(pipeline.process(doc)).thenReturn(emptyList());
+        when(indexer.get("projectName", doc.getId(), "rootId")).thenReturn(doc);
+
+        nlpTask.findNamedEntities(project("projectName"), doc.getId() + "|rootId");
+
+        verify(pipeline).initialize(ENGLISH);
+        verify(pipeline).process(doc);
+    }
 }

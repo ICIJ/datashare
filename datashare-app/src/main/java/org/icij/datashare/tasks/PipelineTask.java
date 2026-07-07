@@ -5,6 +5,7 @@ import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Stage;
 import org.icij.datashare.asynctasks.CancellableTask;
 import org.icij.datashare.extract.DocumentCollectionFactory;
+import org.icij.datashare.tasks.DocReference;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.user.User;
@@ -74,6 +75,16 @@ public abstract class PipelineTask<T> extends DefaultTask<Long> implements UserT
 
     protected Document getDocument(Indexer indexer, String projectName, String docId, List<String> sourceExcludes) {
         return warnIfNull(indexer.get(projectName, docId, sourceExcludes), projectName, docId);
+    }
+
+    protected Document getDocument(Indexer indexer, String projectName, DocReference ref) {
+        return ref.rootId() == null ? getDocument(indexer, projectName, ref.id()) :
+                warnIfNull(indexer.get(projectName, ref.id(), ref.rootId()), projectName, ref.id());
+    }
+
+    protected Document getDocument(Indexer indexer, String projectName, DocReference ref, List<String> sourceExcludes) {
+        return ref.rootId() == null ? getDocument(indexer, projectName, ref.id(), sourceExcludes) :
+                warnIfNull(indexer.get(projectName, ref.id(), ref.rootId(), sourceExcludes), projectName, ref.id());
     }
 
     private Document warnIfNull(Document document, String projectName, String docId) {
