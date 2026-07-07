@@ -36,6 +36,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
 
@@ -327,6 +328,24 @@ public class ElasticsearchSpewerTest {
         searchReq.query(Query.of(q -> q.multiMatch(MultiMatchQuery.of(mmq -> mmq.query("Heavy Metal").fields("content")))));
         SearchResponse<ObjectNode> response = es.client.search(searchReq.build(), ObjectNode.class);
         assertThat(response.hits().total().value()).isGreaterThan(0);
+    }
+
+    @Test
+    public void test_embedded_document_is_enqueued_with_its_root_id() throws Exception {
+        Options<String> digestAlgorithm = Options.from(new HashMap<>() {{
+            put("digestAlgorithm", Document.DEFAULT_DIGESTER.toString());
+            put("digestProjectName", "project");
+        }});
+        Extractor extractor = new Extractor(new DocumentFactory().configure(digestAlgorithm), digestAlgorithm);
+        Path path = get(requireNonNull(getClass().getResource("/docs/embedded_doc.eml")).getPath());
+        final TikaDocument document = extractor.extract(path);
+
+        spewer.write(document);
+
+        List<String> queueEntries = new ArrayList<>();
+        documentQueueFactory.createQueue("extract:queue:nlp", String.class).drainTo(queueEntries);
+        assertThat(queueEntries).contains(document.getId());
+        assertThat(queueEntries.stream().anyMatch(entry -> entry.endsWith("|" + document.getId()))).isTrue();
     }
 
     @Test
