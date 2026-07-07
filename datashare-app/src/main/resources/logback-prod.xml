@@ -9,6 +9,10 @@
             <pattern>%d [%thread] %-5level %logger{0} - %msg%n</pattern>
         </encoder>
     </appender>
+    <!-- Drop benign, high-volume Apache POI parsing noise on legacy Office files;
+         message-targeted so other POI diagnostics stay visible (see the filter class). -->
+    <turboFilter class="org.icij.datashare.log.PoiNoiseTurboFilter" />
+
     <root level="INFO">
         <appender-ref ref="stdout"/>
     </root>

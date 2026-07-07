@@ -19,6 +19,10 @@
         </encoder>
     </appender>
 
+    <!-- Drop benign, high-volume Apache POI parsing noise on legacy Office files;
+         message-targeted so other POI diagnostics stay visible (see the filter class). -->
+    <turboFilter class="org.icij.datashare.log.PoiNoiseTurboFilter" />
+
     <logger name="com.amazonaws.request" level="warn" />
 
     <root level="info" additivity="false">
