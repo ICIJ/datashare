@@ -1,4 +1,4 @@
-package org.icij.datashare.tasks;
+package org.icij.datashare.text;
 
 import org.junit.Test;
 

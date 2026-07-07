@@ -1,6 +1,5 @@
-package org.icij.datashare.tasks;
+package org.icij.datashare.text;
 
-import org.icij.datashare.text.Document;
 
 /**
  * Reference to an indexed document inside a string {@link org.icij.extract.queue.DocumentQueue}:
