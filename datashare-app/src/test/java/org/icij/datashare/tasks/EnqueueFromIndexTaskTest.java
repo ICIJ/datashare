@@ -92,7 +92,8 @@ public class EnqueueFromIndexTaskTest {
         Map<String, Object> properties = Map.of(
                 "defaultProject", es.getIndexName(),
                 "stages", "ARTIFACT,ENQUEUEIDX",
-                "queueName", "test:queue");
+                "queueName", "test:queue",
+                NLP_PIPELINE_OPT, Pipeline.Type.CORENLP.name());
         MemoryDocumentCollectionFactory<String> factory = new MemoryDocumentCollectionFactory<>();
         EnqueueFromIndexTask enqueueFromIndex = new EnqueueFromIndexTask(factory, indexer,
                 new Task<>(EnqueueFromIndexTask.class.getName(), new User("test"), properties), null);
