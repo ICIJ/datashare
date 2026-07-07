@@ -1,6 +1,5 @@
 package org.icij.datashare.cli.command;
 
-import org.icij.datashare.PipelineHelper;
 import org.icij.datashare.cli.OcrStrategy;
 import org.icij.datashare.cli.OcrType;
 import org.icij.datashare.text.nlp.Pipeline;
@@ -31,7 +30,7 @@ public class PipelineOptions {
     @Option(names = {"--maxTextLength"}, description = "Max text length for NLP", defaultValue = "1024")
     int maxTextLength;
 
-    @Option(names = {"-o", "--ocr"}, description = "Enable OCR at file parsing time", defaultValue = "true")
+    @Option(names = {"-o", "--ocr"}, description = "Enable OCR at file parsing time", defaultValue = "true", arity = "1")
     boolean ocr;
 
     @Option(names = {"--ocrType"}, description = "OCR implementation: TESSERACT or TESS4J", defaultValue = "TESSERACT")
@@ -58,7 +57,7 @@ public class PipelineOptions {
     @Option(names = {"-r", "--resume"}, description = "Resume pending operations")
     boolean resume;
 
-    @Option(names = {"--followSymlinks"}, description = "Follow symlinks while scanning", defaultValue = "true")
+    @Option(names = {"--followSymlinks"}, description = "Follow symlinks while scanning (default: ${DEFAULT-VALUE})", arity = "1", defaultValue = "true")
     boolean followSymlinks;
 
     @Option(names = {"--createIndex"}, description = "Create an index with the given name")
@@ -92,5 +91,4 @@ public class PipelineOptions {
         DatashareOptions.putIfNotNull(props, SEARCH_QUERY_OPT, searchQuery);
         return props;
     }
-
 }
