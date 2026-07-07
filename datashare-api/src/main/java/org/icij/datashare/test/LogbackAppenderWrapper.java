@@ -17,9 +17,11 @@ import java.util.stream.Collectors;
 public class LogbackAppenderWrapper {
     public final Logger logger;
     private final TestAppender appender;
+    private final Level previousRootLevel;
 
     public LogbackAppenderWrapper() {
         appender = new TestAppender();
+        previousRootLevel = rootLogger().getLevel();
         logger = createLogger(appender);
     }
 
@@ -45,7 +47,7 @@ public class LogbackAppenderWrapper {
         appender.setContext((Context) lc);
         appender.start();
 
-        ch.qos.logback.classic.Logger logger = (ch.qos.logback.classic.Logger) LoggerFactory.getLogger(org.slf4j.Logger.ROOT_LOGGER_NAME);
+        ch.qos.logback.classic.Logger logger = rootLogger();
         logger.addAppender(appender);
         logger.setLevel(Level.DEBUG);
         logger.setAdditive(true);
@@ -53,7 +55,15 @@ public class LogbackAppenderWrapper {
         return logger;
     }
 
+    private static ch.qos.logback.classic.Logger rootLogger() {
+        return (ch.qos.logback.classic.Logger) LoggerFactory.getLogger(org.slf4j.Logger.ROOT_LOGGER_NAME);
+    }
+
     public void reset() {
+        ch.qos.logback.classic.Logger root = rootLogger();
+        root.detachAppender(appender);
+        root.setLevel(previousRootLevel);
+        appender.stop();
         appender.reset();
     }
 
