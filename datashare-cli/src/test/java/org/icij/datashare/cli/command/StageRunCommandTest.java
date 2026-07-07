@@ -72,4 +72,45 @@ public class StageRunCommandTest extends AbstractDatashareCommandTest {
         Properties props = parse("stage", "run", "--stages", "SCAN,INDEX");
         assertThat(props).includes(entry("maxEmbedDepth", "20"));
     }
+
+    @Test
+    public void test_scroll_options() {
+        Properties props = parse("stage", "run", "--stages", "ENQUEUEIDX",
+                "--scroll", "30000ms", "--scrollSize", "500", "--scrollSlices", "2");
+        assertThat(props).includes(entry("scroll", "30000ms"));
+        assertThat(props).includes(entry("scrollSize", "500"));
+        assertThat(props).includes(entry("scrollSlices", "2"));
+    }
+
+    @Test
+    public void test_scroll_options_defaults() {
+        Properties props = parse("stage", "run", "--stages", "SCANIDX");
+        assertThat(props).includes(entry("scroll", "60000ms"));
+        assertThat(props).includes(entry("scrollSize", "1000"));
+        assertThat(props).includes(entry("scrollSlices", "1"));
+    }
+
+    @Test
+    public void test_report_name() {
+        Properties props = parse("stage", "run", "--stages", "SCAN,INDEX", "--reportName", "my-report");
+        assertThat(props).includes(entry("reportName", "my-report"));
+    }
+
+    @Test
+    public void test_report_name_absent_by_default() {
+        Properties props = parse("stage", "run", "--stages", "SCAN,INDEX");
+        assertThat(props.containsKey("reportName")).isFalse();
+    }
+
+    @Test
+    public void test_max_content_length() {
+        Properties props = parse("stage", "run", "--stages", "SCAN,INDEX", "--maxContentLength", "10000000");
+        assertThat(props).includes(entry("maxContentLength", "10000000"));
+    }
+
+    @Test
+    public void test_max_content_length_defaults_to_20000000() {
+        Properties props = parse("stage", "run", "--stages", "SCAN,INDEX");
+        assertThat(props).includes(entry("maxContentLength", "20000000"));
+    }
 }

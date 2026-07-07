@@ -7,6 +7,7 @@ import picocli.CommandLine.Option;
 
 import java.util.Properties;
 
+import static org.icij.datashare.PropertiesProvider.REPORT_NAME_OPT;
 import static org.icij.datashare.PropertiesProvider.RESUME_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.*;
 
@@ -72,6 +73,21 @@ public class PipelineOptions {
     @Option(names = {"--searchQuery"}, description = "JSON query for EnqueueFromIndex task")
     String searchQuery;
 
+    @Option(names = {"--scroll"}, description = "Scroll duration used for elasticsearch scrolls", defaultValue = "60000ms")
+    String scroll;
+
+    @Option(names = {"--scrollSize"}, description = "Scroll size used for elasticsearch scrolls", defaultValue = "1000")
+    int scrollSize;
+
+    @Option(names = {"--scrollSlices"}, description = "Scroll slice max number used for elasticsearch scrolls", defaultValue = "1")
+    int scrollSlices;
+
+    @Option(names = {"--reportName"}, description = "Name of the map for the report map (where index results are stored). No report records are saved if not provided")
+    String reportName;
+
+    @Option(names = {"--maxContentLength"}, description = "Maximum length (in bytes) of extracted text that could be indexed", defaultValue = "20000000")
+    String maxContentLength;
+
     /** Converts the parsed pipeline option fields into a Properties map for the rest of the application. */
     public Properties toProperties() {
         Properties props = new Properties();
@@ -93,6 +109,11 @@ public class PipelineOptions {
         DatashareOptions.put(props, INDEX_TIMEOUT_OPT, indexTimeout);
         DatashareOptions.put(props, OCR_TIMEOUT, ocrTimeout);
         DatashareOptions.putIfNotNull(props, SEARCH_QUERY_OPT, searchQuery);
+        DatashareOptions.putIfNotNull(props, SCROLL_DURATION_OPT, scroll);
+        DatashareOptions.put(props, SCROLL_SIZE_OPT, scrollSize);
+        DatashareOptions.put(props, SCROLL_SLICES_OPT, scrollSlices);
+        DatashareOptions.putIfNotNull(props, REPORT_NAME_OPT, reportName);
+        DatashareOptions.putIfNotNull(props, MAX_CONTENT_LENGTH_OPT, maxContentLength);
         return props;
     }
 }

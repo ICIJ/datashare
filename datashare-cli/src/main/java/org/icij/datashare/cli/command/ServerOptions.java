@@ -34,9 +34,6 @@ public class ServerOptions {
     @Option(names = {"--rootHost"}, description = "Datashare host for urls")
     String rootHost;
 
-    @Option(names = {"--maxContentLength"}, description = "Maximum content length", defaultValue = "20000000")
-    String maxContentLength;
-
     @Option(names = {"--browserOpenLink"}, description = "Open link in default browser", defaultValue = "false")
     boolean browserOpenLink;
 
@@ -115,16 +112,7 @@ public class ServerOptions {
     @Option(names = {"--embeddedDocumentDownloadMaxSize"}, description = "Max embedded document download size", defaultValue = "1G")
     String embeddedDocumentDownloadMaxSize;
 
-    // Scroll
-    @Option(names = {"--scroll"}, description = "Scroll duration for ES", defaultValue = "60000ms")
-    String scroll;
-
-    @Option(names = {"--scrollSize"}, description = "Scroll size for ES", defaultValue = "1000")
-    int scrollSize;
-
-    @Option(names = {"--scrollSlices"}, description = "Scroll slices for ES", defaultValue = "1")
-    int scrollSlices;
-
+    // Scroll — --scroll/--scrollSize/--scrollSlices come from the PipelineOptions mixin
     @Option(names = {"--batchSearchScroll"}, description = "Batch search scroll duration", defaultValue = "60000ms")
     String batchSearchScroll;
 
@@ -137,10 +125,7 @@ public class ServerOptions {
     @Option(names = {"--batchDownloadScrollSize"}, description = "Batch download scroll size", defaultValue = "1000")
     int batchDownloadScrollSize;
 
-    // Misc server
-    @Option(names = {"--reportName"}, description = "Report map name")
-    String reportName;
-
+    // Misc server — --reportName comes from the PipelineOptions mixin
     @Option(names = {"--smtpUrl"}, description = "SMTP URL for sending emails")
     String smtpUrl;
 
@@ -159,7 +144,6 @@ public class ServerOptions {
         DatashareOptions.put(props, TCP_LISTEN_PORT_OPT, tcpListenPort);
         DatashareOptions.putIfNotNull(props, CORS_OPT, cors);
         DatashareOptions.putIfNotNull(props, ROOT_HOST_OPT, rootHost);
-        DatashareOptions.putIfNotNull(props, MAX_CONTENT_LENGTH_OPT, maxContentLength);
         DatashareOptions.put(props, BROWSER_OPEN_LINK_OPT, browserOpenLink);
         DatashareOptions.putIfNotNull(props, PROTECTED_URI_PREFIX_OPT, protectedUriPrefix);
         DatashareOptions.putIfNotNull(props, STATUS_ALLOWED_NETS_OPT, statusAllowedNets);
@@ -192,15 +176,11 @@ public class ServerOptions {
         DatashareOptions.put(props, BATCH_DOWNLOAD_ZIP_TTL_OPT, batchDownloadTimeToLive);
         DatashareOptions.putIfNotNull(props, EMBEDDED_DOCUMENT_DOWNLOAD_MAX_SIZE_OPT, embeddedDocumentDownloadMaxSize);
 
-        DatashareOptions.putIfNotNull(props, SCROLL_DURATION_OPT, scroll);
-        DatashareOptions.put(props, SCROLL_SIZE_OPT, scrollSize);
-        DatashareOptions.put(props, SCROLL_SLICES_OPT, scrollSlices);
         DatashareOptions.putIfNotNull(props, BATCH_SEARCH_SCROLL_DURATION_OPT, batchSearchScroll);
         DatashareOptions.put(props, BATCH_SEARCH_SCROLL_SIZE_OPT, batchSearchScrollSize);
         DatashareOptions.putIfNotNull(props, BATCH_DOWNLOAD_SCROLL_DURATION_OPT, batchDownloadScroll);
         DatashareOptions.put(props, BATCH_DOWNLOAD_SCROLL_SIZE_OPT, batchDownloadScrollSize);
 
-        DatashareOptions.putIfNotNull(props, REPORT_NAME_OPT, reportName);
         DatashareOptions.putIfNotNull(props, SMTP_URL_OPT, smtpUrl);
 
         DatashareOptions.putAll(props, workerOptions.toProperties());
