@@ -66,10 +66,8 @@ public class CategorizeTask extends PipelineTask<String> implements Monitorable 
                 && nbMaxPolls > 0) {
             try {
                 if (docId != null) {
-                    Document retrievedFromIndexer = indexer.get(project.getName(), docId);
-                    if(retrievedFromIndexer == null) {
-                        logger.warn("Unable to retrieve document {} from indexer. Cannot add it's contentTypeCategory", docId);
-                    } else {
+                    Document retrievedFromIndexer = getDocument(indexer, project.getName(), docId);
+                    if(retrievedFromIndexer != null) {
                         enrichWithType(retrievedFromIndexer);
                     }
                     nbMessages++;

@@ -98,7 +98,7 @@ public class ExtractNlpTask extends PipelineTask<String> implements Monitorable 
 
     void findNamedEntities(final Project project, final String id) throws InterruptedException {
         try {
-            Document doc = indexer.get(project.getName(), id);
+            Document doc = getDocument(indexer, project.getName(), id);
             if (doc != null) {
                 logger.info("extracting {} entities for document {}", nlpPipeline.getType(), shorten(doc.getId(), 4));
                 if (nlpPipeline.initialize(doc.getLanguage())) {
@@ -123,8 +123,6 @@ public class ExtractNlpTask extends PipelineTask<String> implements Monitorable 
                     logger.info("added {} named entities to document {}", nbEntities, shorten(doc.getId(), 4));
                     nlpPipeline.terminate(doc.getLanguage());
                 }
-            } else {
-                logger.warn("no document found in index with id {}", id);
             }
         } catch (IOException e) {
             logger.error("cannot extract entities of doc {}", id, e);
