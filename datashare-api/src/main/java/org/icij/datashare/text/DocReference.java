@@ -2,7 +2,7 @@ package org.icij.datashare.text;
 
 
 /**
- * Reference to an indexed document inside a string {@link org.icij.extract.queue.DocumentQueue}:
+ * Reference to an indexed document inside a string {@code org.icij.extract.queue.DocumentQueue}:
  * the document id, optionally followed by its Elasticsearch routing id (root document id) for
  * embedded documents, separated by '|'. Bare ids (root documents and legacy queue entries)
  * parse to a null rootId, which keeps old in-flight entries working unchanged.
