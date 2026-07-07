@@ -16,6 +16,7 @@ import org.icij.datashare.asynctasks.temporal.TemporalSingleActivityWorkflow;
 import org.icij.datashare.extension.PipelineRegistry;
 import org.icij.datashare.extract.DocumentCollectionFactory;
 import org.icij.datashare.monitoring.Monitorable;
+import org.icij.datashare.tasks.DocReference;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.NamedEntity;
 import org.icij.datashare.text.Project;
@@ -96,9 +97,9 @@ public class ExtractNlpTask extends PipelineTask<String> implements Monitorable 
         return nbMessages;
     }
 
-    void findNamedEntities(final Project project, final String id) throws InterruptedException {
+    void findNamedEntities(final Project project, final String queueEntry) throws InterruptedException {
         try {
-            Document doc = getDocument(indexer, project.getName(), id);
+            Document doc = getDocument(indexer, project.getName(), DocReference.parse(queueEntry));
             if (doc != null) {
                 logger.info("extracting {} entities for document {}", nlpPipeline.getType(), shorten(doc.getId(), 4));
                 if (nlpPipeline.initialize(doc.getLanguage())) {
@@ -125,7 +126,7 @@ public class ExtractNlpTask extends PipelineTask<String> implements Monitorable 
                 }
             }
         } catch (IOException e) {
-            logger.error("cannot extract entities of doc {}", id, e);
+            logger.error("cannot extract entities of doc {}", queueEntry, e);
         }
     }
 
