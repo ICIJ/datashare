@@ -57,24 +57,24 @@ public class CategorizeTask extends PipelineTask<String> implements Monitorable 
     public Long call() throws Exception {
         super.call();
         logger.info("enriching {} docs from inputQueue {} and adding them in {}", inputQueue.size(), inputQueue.getName(), outputQueue.getName());
-        String docId;
+        String queueEntry;
         long nbMessages = 0;
         int nbMaxPolls = NB_MAX_POLLS;
         int pollingIntervalSeconds = POLLING_INTERVAL_SECONDS;
 
-        while (!(STRING_POISON.equals(docId = inputQueue.poll( (pollingIntervalSeconds * 1000L), TimeUnit.MILLISECONDS)))
+        while (!(STRING_POISON.equals(queueEntry = inputQueue.poll( (pollingIntervalSeconds * 1000L), TimeUnit.MILLISECONDS)))
                 && nbMaxPolls > 0) {
             try {
-                if (docId != null) {
-                    Document retrievedFromIndexer = getDocument(indexer, project.getName(), docId);
+                if (queueEntry != null) {
+                    Document retrievedFromIndexer = getDocument(indexer, project.getName(), DocReference.parse(queueEntry));
                     if(retrievedFromIndexer != null) {
                         enrichWithType(retrievedFromIndexer);
                     }
                     nbMessages++;
                     processed.incrementAndGet();
                     progressCallback.apply(getProgressRate());
-                    if(!outputQueue.offer(docId)){
-                        logger.warn("unable to offer {} to queue {}", docId, outputQueue.getName());
+                    if(!outputQueue.offer(queueEntry)){
+                        logger.warn("unable to offer {} to queue {}", queueEntry, outputQueue.getName());
                     }
                 } else {
                     logger.info("will poll document queue again for pollingInterval={} seconds ({}/{})", pollingIntervalSeconds, nbMaxPolls, NB_MAX_POLLS);

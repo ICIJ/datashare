@@ -176,6 +176,41 @@ public class CategorizeTaskIntTest {
         assertThat(updatedDoc.getContentTypeCategory()).isEqualTo(ContentTypeCategory.VIDEO);
     }
 
+    @Test
+    public void test_integration_with_enqueue_idx_for_embedded_docs() throws Exception {
+        // GIVEN a root document and an embedded document routed under it
+        Document root = aDocWithContentType("message/rfc822");
+        Document embedded = DocumentBuilder.createDoc(UUID.randomUUID().toString())
+                .ofContentType("application/pdf")
+                .withParentId(root.getId())
+                .withRootId(root.getId())
+                .build();
+        index(List.of(root, embedded));
+
+        Map<String, Object> args = Map.of(
+                DEFAULT_PROJECT_OPT, es.getIndexName(),
+                "stages", "ENQUEUEIDX,CATEGORIZE");
+
+        // WHEN
+        new EnqueueFromIndexTask(documentCollectionFactory, indexer,
+                new Task<>(EnqueueFromIndexTask.class.getName(), User.local(), args), null).call();
+
+        assertThat(documentCollectionFactory.queues.get("extract:queue:categorize"))
+                .contains(embedded.getId() + "|" + root.getId());
+
+        documentCollectionFactory.createQueue("extract:queue:categorize", String.class).add(STRING_POISON);
+
+        new CategorizeTask(indexer, documentCollectionFactory,
+                new Task<>(CategorizeTask.class.getName(), "categorizeTask3", User.local(), args), NO_OP_PROGRESS).call();
+
+        // THEN the embedded doc got categorized (fetched and updated with routing)...
+        Document updated = indexer.get(es.getIndexName(), embedded.getId(), root.getId());
+        assertThat(updated.getContentTypeCategory()).isEqualTo(ContentTypeCategory.DOCUMENT);
+        // ...and the encoded entry is forwarded downstream
+        assertThat(documentCollectionFactory.queues.get("extract:queue:nlp"))
+                .contains(embedded.getId() + "|" + root.getId());
+    }
+
     private static Document aDocWithContentType(String contentType){
         return DocumentBuilder.createDoc(UUID.randomUUID().toString()).ofContentType(contentType).build();
     }
