@@ -5,6 +5,7 @@ import com.google.inject.assistedinject.Assisted;
 
 import java.util.function.Function;
 import org.icij.datashare.Entity;
+import org.icij.datashare.PipelineHelper;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Stage;
 import org.icij.datashare.asynctasks.Task;
@@ -46,6 +47,7 @@ public class EnqueueFromIndexTask extends PipelineTask<String> {
     private final Indexer indexer;
     private final String scrollDuration;
     private final int scrollSize;
+    private final Stage nextStage;
 
     @Inject
     public EnqueueFromIndexTask(final DocumentCollectionFactory<String> factory, final Indexer indexer,
@@ -58,6 +60,7 @@ public class EnqueueFromIndexTask extends PipelineTask<String> {
         this.scrollDuration = propertiesProvider.get(SCROLL_DURATION_OPT).orElse(DEFAULT_SCROLL_DURATION);
         this.scrollSize = parseInt(propertiesProvider.get(SCROLL_SIZE_OPT).orElse(String.valueOf(DEFAULT_SCROLL_SIZE)));
         this.searchQuery = propertiesProvider.get(SEARCH_QUERY_OPT).orElse(null);
+        this.nextStage = new PipelineHelper(propertiesProvider).getNextStage(Stage.ENQUEUEIDX);
     }
 
     @Override
@@ -65,8 +68,11 @@ public class EnqueueFromIndexTask extends PipelineTask<String> {
         super.call();
         Indexer.Searcher searcher;
         if (searchQuery == null) {
-            searcher = indexer.search(singletonList(projectName), Document.class)
-                    .without(nlpPipeline).withSource("rootDocument").limit(scrollSize);
+            Indexer.QueryBuilderSearcher builder = indexer.search(singletonList(projectName), Document.class);
+            if (nextStage == Stage.NLP) {
+                builder = builder.without(nlpPipeline);
+            }
+            searcher = builder.withSource("rootDocument").limit(scrollSize);
         } else {
             searcher = indexer.search(singletonList(projectName), Document.class, new SearchQuery(searchQuery))
                     .withoutSource("content", "contentTranslated").limit(scrollSize);
