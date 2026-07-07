@@ -70,8 +70,7 @@ public class ArtifactTaskTest {
 
     @Test(timeout = 10000)
     public void test_entry_with_routing_fetches_document_with_root_id() throws Exception {
-        Path path = Path.of(Objects.requireNonNull(getClass().getResource("/docs/embedded_doc.eml")).toURI());
-        mockIndexer.indexFile("prj", EMBEDDED_DOC_SHA256, path, "message/rfc822", "rootId");
+        indexEmbeddedDoc("rootId");
         DocumentQueue<String> queue = factory.createQueue("extract:queue:artifact", String.class);
         queue.add(EMBEDDED_DOC_SHA256 + "|rootId");
 
@@ -82,8 +81,12 @@ public class ArtifactTaskTest {
     }
 
     private void indexEmbeddedDoc() throws URISyntaxException {
+        indexEmbeddedDoc(EMBEDDED_DOC_SHA256);
+    }
+
+    private void indexEmbeddedDoc(String rootId) throws URISyntaxException {
         Path path = Path.of(Objects.requireNonNull(getClass().getResource("/docs/embedded_doc.eml")).toURI());
-        mockIndexer.indexFile("prj", EMBEDDED_DOC_SHA256, path, "message/rfc822");
+        mockIndexer.indexFile("prj", EMBEDDED_DOC_SHA256, path, "message/rfc822", rootId);
     }
 
     private Long runArtifactTask() throws Exception {
