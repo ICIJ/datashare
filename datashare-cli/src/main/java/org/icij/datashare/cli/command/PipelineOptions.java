@@ -39,6 +39,9 @@ public class PipelineOptions {
     @Option(names = {"--ocrLanguage"}, description = "OCR languages for tesseract")
     String ocrLanguage;
 
+    @Option(names = {"--ocrTimeout"}, description = "OCR timeout", defaultValue = DEFAULT_OCR_TIMEOUT)
+    String ocrTimeout;
+
     // No defaultValue on purpose: when unset the field stays null and putIfNotNull omits the key,
     // so extract applies its own NO_OCR default. A default here would emit the key for every run
     // and silently change OCR behavior for all users.
@@ -88,6 +91,7 @@ public class PipelineOptions {
         DatashareOptions.put(props, FOLLOW_SYMLINKS_OPT, followSymlinks);
         DatashareOptions.putIfNotNull(props, CREATE_INDEX_OPT, createIndex);
         DatashareOptions.put(props, INDEX_TIMEOUT_OPT, indexTimeout);
+        DatashareOptions.put(props, OCR_TIMEOUT, ocrTimeout);
         DatashareOptions.putIfNotNull(props, SEARCH_QUERY_OPT, searchQuery);
         return props;
     }

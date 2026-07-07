@@ -105,6 +105,7 @@ public final class DatashareCliOptions {
     public static final String OCR_LANGUAGE_OPT = "ocrLanguage";
     public static final String OCR_OPT = "ocr";
     public static final String OCR_TYPE_OPT = "ocrType";
+    public static final String OCR_TIMEOUT = "ocrTimeout";
     public static final String OCR_STRATEGY_OPT = "ocrStrategy";
     public static final String MAX_EMBED_DEPTH_OPT = "maxEmbedDepth";
     public static final String MAX_EMBED_DEPTH_DESC =
@@ -244,6 +245,7 @@ public final class DatashareCliOptions {
     public static final boolean DEFAULT_BROWSER_OPEN_LINK = false;
     public static final boolean DEFAULT_NO_DIGEST_PROJECT = false;
     public static final boolean DEFAULT_OCR = true;
+    public static final String DEFAULT_OCR_TIMEOUT = "12h";
     public static final int DEFAULT_MAX_EMBED_DEPTH = 20;
     public static final int DEFAULT_BATCH_DOWNLOAD_MAX_NB_FILES = 10000;
     public static final int DEFAULT_BATCH_DOWNLOAD_ZIP_TTL = 24;
@@ -748,6 +750,13 @@ public final class DatashareCliOptions {
             .withRequiredArg()
             .ofType(String.class)
             .defaultsTo(DEFAULT_OCR_TYPE);
+    }
+
+    static void ocrTimeout(OptionParser parser) {
+        parser.acceptsAll(List.of(OCR_TIMEOUT), "OCR timeout")
+            .withRequiredArg()
+            .ofType(String.class)
+            .defaultsTo(DEFAULT_OCR_TIMEOUT);
     }
 
     static void ocrStrategy(OptionParser parser) {
