@@ -80,8 +80,9 @@ public class EnqueueFromIndexTask extends PipelineTask<String> {
         searcher.sort("language", Indexer.Searcher.SortOrder.ASC);
         List<? extends Entity> docsToProcess = searcher.scroll(scrollDuration).collect(toList());
         long totalHits = searcher.totalHits();
-        logger.info("enqueuing doc ids for index {} and {} with {} scroll and size of {} : {} documents found", projectName, nlpPipeline,
-                scrollDuration, scrollSize, totalHits);
+        String pipelineInfo = (nextStage == Stage.NLP) ? " excluding already processed by " + nlpPipeline : "";
+        logger.info("enqueuing doc ids for index {} targeting {}{} with {} scroll and size of {} : {} documents found",
+                projectName, nextStage, pipelineInfo, scrollDuration, scrollSize, totalHits);
 
         try (DocumentQueue<String> outputQueue = factory.createQueue(getOutputQueueName(), String.class)) {
             do {
