@@ -52,12 +52,12 @@ public class ArtifactTask extends PipelineTask<String> {
         logger.info("creating artifact cache in {} for project {} from queue {} with polling interval {}s", artifactDir, project, inputQueue.getName(), pollingInterval);
         SourceExtractor extractor = new SourceExtractor(propertiesProvider);
         List<String> sourceExcludes = List.of("content", "content_translated");
-        String docId;
+        String queueEntry;
         long nbDocs = 0;
         long nbSkipped = 0;
-        while ((docId = inputQueue.poll(pollingInterval, TimeUnit.SECONDS)) != null) {
+        while ((queueEntry = inputQueue.poll(pollingInterval, TimeUnit.SECONDS)) != null) {
             try {
-                Document doc = getDocument(indexer, project.name, docId, sourceExcludes);
+                Document doc = getDocument(indexer, project.name, DocReference.parse(queueEntry), sourceExcludes);
                 if (doc == null) {
                     nbSkipped++;
                     continue;
