@@ -18,10 +18,12 @@ import org.slf4j.event.Level;
 import java.net.URISyntaxException;
 import java.nio.file.Path;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
 import static org.fest.assertions.Assertions.assertThat;
+import static org.mockito.Mockito.verify;
 import static org.mockito.MockitoAnnotations.initMocks;
 
 public class ArtifactTaskTest {
@@ -64,6 +66,19 @@ public class ArtifactTaskTest {
         assertThat(logback.logs(Level.WARN)).contains("document <unknownId> could not be retrieved from index prj (missing document or index fetch error), skipping");
         assertThat(logback.logs(Level.ERROR)).contains("1 document(s) could not be retrieved from index prj and got no artifact cache, re-run the ARTIFACT stage for them");
         assertThat(logback.logs(Level.ERROR)).excludes("error in ArtifactTask loop");
+    }
+
+    @Test(timeout = 10000)
+    public void test_entry_with_routing_fetches_document_with_root_id() throws Exception {
+        Path path = Path.of(Objects.requireNonNull(getClass().getResource("/docs/embedded_doc.eml")).toURI());
+        mockIndexer.indexFile("prj", EMBEDDED_DOC_SHA256, path, "message/rfc822", "rootId");
+        DocumentQueue<String> queue = factory.createQueue("extract:queue:artifact", String.class);
+        queue.add(EMBEDDED_DOC_SHA256 + "|rootId");
+
+        Long numberOfDocuments = runArtifactTask();
+
+        verify(mockEs).get("prj", EMBEDDED_DOC_SHA256, "rootId", List.of("content", "content_translated"));
+        assertThat(numberOfDocuments).isEqualTo(1);
     }
 
     private void indexEmbeddedDoc() throws URISyntaxException {
