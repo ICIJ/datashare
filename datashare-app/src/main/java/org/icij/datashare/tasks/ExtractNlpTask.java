@@ -16,7 +16,6 @@ import org.icij.datashare.asynctasks.temporal.TemporalSingleActivityWorkflow;
 import org.icij.datashare.extension.PipelineRegistry;
 import org.icij.datashare.extract.DocumentCollectionFactory;
 import org.icij.datashare.monitoring.Monitorable;
-import org.icij.datashare.tasks.DocReference;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.NamedEntity;
 import org.icij.datashare.text.Project;
@@ -74,14 +73,14 @@ public class ExtractNlpTask extends PipelineTask<String> implements Monitorable 
     public Long call() throws Exception {
         super.call();
         logger.info("extracting Named Entities with pipeline {} for {} from queue {}", nlpPipeline.getType(), project, inputQueue.getName());
-        String docId;
+        String queueEntry;
         long nbMessages = 0;
         int nbMaxPolls = NB_MAX_POLLS;
-        while (!(STRING_POISON.equals(docId = inputQueue.poll((long) (pollingIntervalSeconds * 1000), TimeUnit.MILLISECONDS)))
+        while (!(STRING_POISON.equals(queueEntry = inputQueue.poll((long) (pollingIntervalSeconds * 1000), TimeUnit.MILLISECONDS)))
                 && nbMaxPolls > 0) {
             try {
-                if (docId != null) {
-                    findNamedEntities(project, docId);
+                if (queueEntry != null) {
+                    findNamedEntities(project, queueEntry);
                     nbMessages++;
                     processed.incrementAndGet();
                     progressCallback.apply(getProgressRate());
