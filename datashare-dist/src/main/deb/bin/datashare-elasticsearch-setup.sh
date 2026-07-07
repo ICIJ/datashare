@@ -22,6 +22,7 @@ transport-netty4
 x-pack-core
 x-pack-geoip-enterprise-downloader
 x-pack-security
+x-pack-async-search
 "
 
 function detect_platform() {
