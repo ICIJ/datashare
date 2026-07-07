@@ -110,10 +110,9 @@ public class Main {
         ch.qos.logback.classic.Logger root = (ch.qos.logback.classic.Logger) LoggerFactory.getLogger(Logger.ROOT_LOGGER_NAME);
         root.setLevel(logLevel);
 
-        CommonMode commonMode = CommonMode.create(properties);
-        Runtime.getRuntime().addShutdownHook(commonMode.closeThread());
-
         if (mode.isWebServer()) {
+            CommonMode commonMode = CommonMode.create(properties);
+            Runtime.getRuntime().addShutdownHook(commonMode.closeThread());
             String port = commonMode.properties().getProperty(PropertiesProvider.TCP_LISTEN_PORT_OPT);
             Closeable tray = DatashareSystemTray.create(port);
             ofNullable(tray).ifPresent(commonMode::addCloseable);
@@ -123,6 +122,8 @@ public class Main {
                 taskManager.reconcileTasks();
             }
         } else if (mode == Mode.TASK_WORKER) {
+            CommonMode commonMode = CommonMode.create(properties);
+            Runtime.getRuntime().addShutdownHook(commonMode.closeThread());
             TaskWorkerApp.start(commonMode);
         } else {
             CliApp.start(properties);
