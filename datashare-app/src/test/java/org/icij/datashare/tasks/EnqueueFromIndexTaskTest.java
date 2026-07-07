@@ -5,6 +5,7 @@ import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.extract.MemoryDocumentCollectionFactory;
 import org.icij.datashare.test.ElasticsearchRule;
+import org.icij.datashare.text.Document;
 import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchIndexer;
 import org.icij.datashare.text.nlp.Pipeline;
 import org.icij.datashare.user.User;
@@ -133,5 +134,26 @@ public class EnqueueFromIndexTaskTest {
         MemoryDocumentCollectionFactory<String> factory = new MemoryDocumentCollectionFactory<>();
         new EnqueueFromIndexTask(factory, indexer, new Task<>(EnqueueFromIndexTask.class.getName(), new User("test"), properties), null).call();
         assertThat(logWrapper.logs().stream().anyMatch(log -> log.contains("3 documents found"))).isTrue();
+    }
+
+    @Test
+    public void test_embedded_document_is_enqueued_with_its_root_id() throws Exception {
+        Document root = createDoc("root_doc").with(project(es.getIndexName())).build();
+        Document embedded = createDoc("embedded_doc").with(project(es.getIndexName()))
+                .withParentId(root.getId()).withRootId(root.getId()).build();
+        indexer.add(es.getIndexName(), root);
+        indexer.add(es.getIndexName(), embedded);
+        Map<String, Object> properties = Map.of(
+                "defaultProject", es.getIndexName(),
+                "stages", "ENQUEUEIDX",
+                "queueName", "test:queue",
+                NLP_PIPELINE_OPT, Pipeline.Type.OPENNLP.name());
+        MemoryDocumentCollectionFactory<String> factory = new MemoryDocumentCollectionFactory<>();
+
+        new EnqueueFromIndexTask(factory, indexer,
+                new Task<>(EnqueueFromIndexTask.class.getName(), new User("test"), properties), null).call();
+
+        assertThat(factory.queues.get("test:queue:nlp"))
+                .contains(root.getId(), embedded.getId() + "|" + root.getId());
     }
 }
