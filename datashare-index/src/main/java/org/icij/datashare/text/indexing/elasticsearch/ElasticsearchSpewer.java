@@ -139,8 +139,9 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
         } else {
             Document document = getDocument(doc, root, parent, (short) level);
             indexer.add(indexName, document);
-            if (!outputQueue.offer(document.getId())) {
-                logger.warn("cannot offer {} to queue {}", document.getId(), outputQueue.getName());
+            String queueEntry = DocReference.fromDocument(document).toQueueEntry();
+            if (!outputQueue.offer(queueEntry)) {
+                logger.warn("cannot offer {} to queue {}", queueEntry, outputQueue.getName());
             }
         }
         logger.info("{} {} added to elasticsearch in {}ms: {}", docType,
