@@ -5,13 +5,17 @@ import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Stage;
 import org.icij.datashare.asynctasks.CancellableTask;
 import org.icij.datashare.extract.DocumentCollectionFactory;
+import org.icij.datashare.text.Document;
+import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.user.User;
 import org.icij.datashare.user.UserTask;
 import org.icij.extract.queue.DocumentQueue;
 import org.icij.task.DefaultTask;
+import org.slf4j.LoggerFactory;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.List;
 
 import static java.util.Optional.ofNullable;
 
@@ -62,6 +66,22 @@ public abstract class PipelineTask<T> extends DefaultTask<Long> implements UserT
             return factory.createQueue(queueName, clazz);
         }
         return null;
+    }
+
+    protected Document getDocument(Indexer indexer, String projectName, String docId) {
+        return warnIfNull(indexer.get(projectName, docId), projectName, docId);
+    }
+
+    protected Document getDocument(Indexer indexer, String projectName, String docId, List<String> sourceExcludes) {
+        return warnIfNull(indexer.get(projectName, docId, sourceExcludes), projectName, docId);
+    }
+
+    private Document warnIfNull(Document document, String projectName, String docId) {
+        // indexer.get() also returns null on fetch failures (it logs them as ERROR), not only on missing ids
+        if (document == null) {
+            LoggerFactory.getLogger(getClass()).warn("document <{}> could not be retrieved from index {} (missing document or index fetch error), skipping", docId, projectName);
+        }
+        return document;
     }
 
     protected String getInputQueueName() {

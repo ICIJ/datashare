@@ -54,14 +54,22 @@ public class ArtifactTask extends PipelineTask<String> {
         List<String> sourceExcludes = List.of("content", "content_translated");
         String docId;
         long nbDocs = 0;
+        long nbSkipped = 0;
         while ((docId = inputQueue.poll(pollingInterval, TimeUnit.SECONDS)) != null) {
             try {
-                Document doc = indexer.get(project.name, docId, sourceExcludes);
+                Document doc = getDocument(indexer, project.name, docId, sourceExcludes);
+                if (doc == null) {
+                    nbSkipped++;
+                    continue;
+                }
                 extractor.extractEmbeddedSources(project, doc);
                 nbDocs++;
             } catch (Throwable e) {
                 logger.error("error in ArtifactTask loop", e);
             }
+        }
+        if (nbSkipped > 0) {
+            logger.error("{} document(s) could not be retrieved from index {} and got no artifact cache, re-run the ARTIFACT stage for them", nbSkipped, project.name);
         }
         logger.info("exiting ArtifactTask loop after processing {} document(s).", nbDocs);
         return nbDocs;
