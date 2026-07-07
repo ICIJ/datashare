@@ -7,6 +7,16 @@ import static org.icij.datashare.text.DocumentBuilder.createDoc;
 
 public class DocReferenceTest {
     @Test
+    public void test_routing_falls_back_to_id_when_no_root() {
+        assertThat(new DocReference("docId", null).routing()).isEqualTo("docId");
+    }
+
+    @Test
+    public void test_routing_is_root_id_when_present() {
+        assertThat(new DocReference("docId", "rootId").routing()).isEqualTo("rootId");
+    }
+
+    @Test
     public void test_parse_bare_id_has_no_root() {
         DocReference ref = DocReference.parse("docId");
         assertThat(ref.id()).isEqualTo("docId");

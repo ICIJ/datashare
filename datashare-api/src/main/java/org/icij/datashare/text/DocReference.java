@@ -24,4 +24,8 @@ public record DocReference(String id, String rootId) {
     public String toQueueEntry() {
         return rootId == null || rootId.equals(id) ? id : id + SEPARATOR + rootId;
     }
+
+    public String routing() {
+        return rootId == null ? id : rootId;
+    }
 }
