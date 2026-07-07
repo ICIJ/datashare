@@ -72,7 +72,7 @@ public class ExtractNlpTaskTest {
         when(pipeline.initialize(any())).thenReturn(true);
         Document doc = createDoc("content").build();
         when(pipeline.process(doc)).thenReturn(emptyList());
-        when(indexer.get("projectName", doc.getId())).thenReturn(doc);
+        when(indexer.get("projectName", doc.getId(), doc.getId())).thenReturn(doc);
 
         nlpTask.findNamedEntities(project("projectName"), doc.getId());
 
@@ -85,7 +85,7 @@ public class ExtractNlpTaskTest {
         when(pipeline.initialize(any())).thenReturn(true);
         Document doc = createDoc("huge_doc").with("0123456789abcdef0123456789abcdef+").build();
         when(pipeline.process(doc)).thenReturn(emptyList());
-        when(indexer.get("projectName", doc.getId())).thenReturn(doc);
+        when(indexer.get("projectName", doc.getId(), doc.getId())).thenReturn(doc);
 
         nlpTask.findNamedEntities(project("projectName"), doc.getId());
 

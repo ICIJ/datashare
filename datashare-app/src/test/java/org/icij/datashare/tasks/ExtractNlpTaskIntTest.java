@@ -55,7 +55,7 @@ public class ExtractNlpTaskIntTest {
         when(pipeline.getType()).thenReturn(Pipeline.Type.CORENLP);
         when(pipeline.initialize(any())).thenReturn(true);
         Document doc = createDoc("content").build();
-        when(indexer.get(anyString(), eq("docId"))).thenReturn(doc);
+        when(indexer.get(anyString(), eq("docId"), eq("docId"))).thenReturn(doc);
 
         String queueName = new PipelineHelper(new PropertiesProvider()).getQueueNameFor(Stage.NLP);
         DocumentQueue<String> queue = factory.createQueue(queueName, String.class);
@@ -80,9 +80,9 @@ public class ExtractNlpTaskIntTest {
         Document doc1 = createDoc("docId1").build();
         Document doc2 = createDoc("docId2").build();
         Document doc3 = createDoc("docId3").build();
-        when(indexer.get(anyString(), eq("docId1"))).thenReturn(doc1);
-        when(indexer.get(anyString(), eq("docId2"))).thenReturn(doc2);
-        when(indexer.get(anyString(), eq("docId3"))).thenReturn(doc3);
+        when(indexer.get(anyString(), eq("docId1"), eq("docId1"))).thenReturn(doc1);
+        when(indexer.get(anyString(), eq("docId2"), eq("docId2"))).thenReturn(doc2);
+        when(indexer.get(anyString(), eq("docId3"), eq("docId3"))).thenReturn(doc3);
 
         String queueName = new PipelineHelper(new PropertiesProvider()).getQueueNameFor(Stage.NLP);
         DocumentQueue<String> queue = factory.createQueue(queueName, String.class);

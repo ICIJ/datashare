@@ -68,22 +68,12 @@ public abstract class PipelineTask<T> extends DefaultTask<Long> implements UserT
         return null;
     }
 
-    protected Document getDocument(Indexer indexer, String projectName, String docId) {
-        return warnIfNull(indexer.get(projectName, docId), projectName, docId);
-    }
-
-    protected Document getDocument(Indexer indexer, String projectName, String docId, List<String> sourceExcludes) {
-        return warnIfNull(indexer.get(projectName, docId, sourceExcludes), projectName, docId);
-    }
-
     protected Document getDocument(Indexer indexer, String projectName, DocReference ref) {
-        return ref.rootId() == null ? getDocument(indexer, projectName, ref.id()) :
-                warnIfNull(indexer.get(projectName, ref.id(), ref.rootId()), projectName, ref.id());
+        return warnIfNull(indexer.get(projectName, ref.id(), ofNullable(ref.rootId()).orElse(ref.id())), projectName, ref.id());
     }
 
     protected Document getDocument(Indexer indexer, String projectName, DocReference ref, List<String> sourceExcludes) {
-        return ref.rootId() == null ? getDocument(indexer, projectName, ref.id(), sourceExcludes) :
-                warnIfNull(indexer.get(projectName, ref.id(), ref.rootId(), sourceExcludes), projectName, ref.id());
+        return warnIfNull(indexer.get(projectName, ref.id(), ofNullable(ref.rootId()).orElse(ref.id()), sourceExcludes), projectName, ref.id());
     }
 
     private Document warnIfNull(Document document, String projectName, String docId) {
