@@ -41,6 +41,7 @@ import static org.icij.datashare.cli.DatashareCliOptions.POLLING_INTERVAL_SECOND
 @TemporalSingleActivityWorkflow(name = "artifact", activityOptions = @ActivityOpts(timeout = "P1D"))
 @TaskGroup(TaskGroupType.Java)
 public class ArtifactTask extends PipelineTask<String> {
+    private static final List<String> SOURCE_EXCLUDES = List.of("content", "content_translated");
     private final Logger logger = LoggerFactory.getLogger(getClass());
     private final Indexer indexer;
     private final Project project;
@@ -54,7 +55,7 @@ public class ArtifactTask extends PipelineTask<String> {
         this.indexer = indexer;
         project = Project.project(propertiesProvider.get(DEFAULT_PROJECT_OPT).orElse(DEFAULT_DEFAULT_PROJECT));
         pollingInterval = Integer.parseInt(propertiesProvider.get(POLLING_INTERVAL_SECONDS_OPT).orElse(DEFAULT_POLLING_INTERVAL_SEC));
-        parallelism = propertiesProvider.get(PARALLELISM_OPT).map(Integer::parseInt).orElse(1);
+        parallelism = Math.max(1, propertiesProvider.get(PARALLELISM_OPT).map(Integer::parseInt).orElse(1));
         artifactDir = Path.of(propertiesProvider.get(ARTIFACT_DIR_OPT).orElseThrow(() -> new IllegalArgumentException(String.format("cannot create artifact task with empty %s", ARTIFACT_DIR_OPT))));
     }
 
@@ -108,12 +109,11 @@ public class ArtifactTask extends PipelineTask<String> {
 
     private void runWorker(AtomicLong nbDocs, AtomicLong nbSkipped) {
         SourceExtractor extractor = createSourceExtractor();
-        List<String> sourceExcludes = List.of("content", "content_translated");
         try {
             String queueEntry;
             while ((queueEntry = inputQueue.poll(pollingInterval, TimeUnit.SECONDS)) != null) {
                 try {
-                    Document doc = getDocument(indexer, project.name, DocReference.parse(queueEntry), sourceExcludes);
+                    Document doc = getDocument(indexer, project.name, DocReference.parse(queueEntry), SOURCE_EXCLUDES);
                     if (doc == null) {
                         nbSkipped.incrementAndGet();
                         continue;
