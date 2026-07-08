@@ -70,12 +70,21 @@ public class ArtifactTask extends PipelineTask<String> {
             for (int i = 0; i < parallelism; i++) {
                 futures.add(executor.submit(() -> runWorker(nbDocs, nbSkipped)));
             }
+            int nbFailures = 0;
+            Throwable firstCause = null;
             for (Future<?> future : futures) {
                 try {
                     future.get();
                 } catch (ExecutionException e) {
                     logger.error("artifact worker terminated abnormally", e.getCause());
+                    if (nbFailures == 0) {
+                        firstCause = e.getCause();
+                    }
+                    nbFailures++;
                 }
+            }
+            if (!futures.isEmpty() && nbFailures == futures.size()) {
+                throw new IllegalStateException(String.format("all %d artifact worker(s) terminated abnormally", futures.size()), firstCause);
             }
         } catch (InterruptedException e) {
             executor.shutdownNow();
