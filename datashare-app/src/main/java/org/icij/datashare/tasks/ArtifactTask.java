@@ -94,8 +94,8 @@ public class ArtifactTask extends PipelineTask<String> {
                     nbFailures++;
                 }
             }
-            if (!futures.isEmpty() && nbFailures == futures.size()) {
-                throw new IllegalStateException(String.format("all %d artifact worker(s) terminated abnormally", futures.size()), firstCause);
+            if (nbFailures > 0) {
+                throw new IllegalStateException(String.format("%d of %d artifact worker(s) terminated abnormally", nbFailures, futures.size()), firstCause);
             }
         } catch (InterruptedException e) {
             // task was cancelled: force-stop the workers, give them a short grace period to
@@ -158,7 +158,6 @@ public class ArtifactTask extends PipelineTask<String> {
         return runnable -> {
             Thread thread = new Thread(runnable);
             thread.setName(prefix + "-" + counter.incrementAndGet());
-            thread.setDaemon(true);
             return thread;
         };
     }
