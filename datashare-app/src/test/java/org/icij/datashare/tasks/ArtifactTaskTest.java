@@ -27,6 +27,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 
@@ -155,6 +156,45 @@ public class ArtifactTaskTest {
             @Override
             protected SourceExtractor createSourceExtractor() {
                 throw new IllegalStateException("no extractor");
+            }
+        };
+
+        artifactTask.call();
+    }
+
+    @Test(timeout = 10000, expected = IllegalStateException.class)
+    public void test_a_single_worker_death_fails_the_task() throws Exception {
+        indexEmbeddedDoc();
+        String secondId = "1111111111111111111111111111111111111111111111111111111111111111";
+        mockIndexer.indexFile("prj", secondId,
+                Path.of(Objects.requireNonNull(getClass().getResource("/docs/embedded_doc.eml")).toURI()),
+                "message/rfc822");
+        DocumentQueue<String> queue = factory.createQueue("extract:queue:artifact", String.class);
+        queue.add(EMBEDDED_DOC_SHA256);
+        queue.add(secondId);
+
+        PropertiesProvider props = new PropertiesProvider(Map.of(
+                "artifactDir", artifactDir.getRoot().toString(),
+                "defaultProject", "prj",
+                "pollingInterval", "1",
+                "parallelism", "2"));
+        Task<Long> task = new Task<>(ArtifactTask.class.getName(), User.local(), new HashMap<>());
+
+        // exactly one of the two workers fails to build its extractor and dies; the other survives.
+        // the task must still fail, independently of the parallelism.
+        AtomicInteger extractorCalls = new AtomicInteger(0);
+        ArtifactTask artifactTask = new ArtifactTask(factory, mockEs, props, task, null) {
+            @Override
+            protected SourceExtractor createSourceExtractor() {
+                if (extractorCalls.getAndIncrement() == 0) {
+                    throw new IllegalStateException("one worker has no extractor");
+                }
+                return new SourceExtractor(props) {
+                    @Override
+                    public TikaDocument extractEmbeddedSources(Project project, Document document) {
+                        return null;
+                    }
+                };
             }
         };
 
