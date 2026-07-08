@@ -97,18 +97,11 @@ public class ArtifactTask extends PipelineTask<String> {
             if (nbFailures > 0) {
                 throw new IllegalStateException(String.format("%d of %d artifact worker(s) terminated abnormally", nbFailures, futures.size()), firstCause);
             }
-        } catch (InterruptedException e) {
-            // task was cancelled: force-stop the workers, give them a short grace period to
-            // actually stop (so we don't read counters/logs while they're still writing), then
-            // rethrow so TaskWorkerLoop records this as a cancellation instead of a success.
-            executor.shutdownNow();
-            awaitWorkersTermination();
-            Thread.currentThread().interrupt();
-            throw e;
         } finally {
-            // graceful here: on the happy/partial-failure paths all work is already done;
-            // the cancel path above has already force-stopped workers via shutdownNow().
-            executor.shutdown();
+            // single cleanup point for every path: normal completion, worker failure, and
+            // cancellation (where the InterruptedException from future.get() propagates out and
+            // TaskWorkerLoop records the run as cancelled).
+            executor.shutdownNow();
         }
         if (nbSkipped.get() > 0) {
             logger.error("{} document(s) could not be retrieved from index {} and got no artifact cache, re-run the ARTIFACT stage for them", nbSkipped.get(), project.name);
@@ -141,16 +134,6 @@ public class ArtifactTask extends PipelineTask<String> {
 
     protected SourceExtractor createSourceExtractor() {
         return new SourceExtractor(propertiesProvider);
-    }
-
-    private void awaitWorkersTermination() {
-        try {
-            if (!executor.awaitTermination(5, TimeUnit.SECONDS)) {
-                logger.warn("artifact worker(s) did not terminate within the grace period after cancellation");
-            }
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        }
     }
 
     private static ThreadFactory namedThreadFactory(String prefix) {
