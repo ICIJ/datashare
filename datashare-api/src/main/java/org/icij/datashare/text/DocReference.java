@@ -8,7 +8,7 @@ package org.icij.datashare.text;
  * parse to a null rootId, which keeps old in-flight entries working unchanged.
  */
 public record DocReference(String id, String rootId) {
-    public static final String SEPARATOR = "|";
+    private static final String SEPARATOR = "|";
 
     public static DocReference parse(String entry) {
         int separatorIndex = entry.indexOf(SEPARATOR);
