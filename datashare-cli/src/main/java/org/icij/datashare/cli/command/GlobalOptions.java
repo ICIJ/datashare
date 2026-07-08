@@ -70,8 +70,11 @@ public class GlobalOptions {
     @Option(names = {"--redisAddress"}, description = "Redis address", scope = ScopeType.INHERIT)
     String redisAddress = EnvUtils.resolveUri("redis", "redis://redis:6379");
 
-    @Option(names = {"--redisPoolSize"}, description = "Redis pool size", defaultValue = "5", scope = ScopeType.INHERIT)
-    int redisPoolSize;
+    // No defaultValue on purpose: when unset the field stays null and putIfNotNull omits the key, so
+    // CommonMode computes the pool size from parallelism (parallelism + overhead). An explicit value
+    // is honored but raised to that floor if it would leave blocking workers unable to get a connection.
+    @Option(names = {"--redisPoolSize"}, description = "Redis pool size (default: parallelism + overhead)", scope = ScopeType.INHERIT)
+    Integer redisPoolSize;
 
     @Option(names = {"--messageBusAddress"}, description = "Message bus address", scope = ScopeType.INHERIT)
     String messageBusAddress = EnvUtils.resolveUri("redis", "redis://redis:6379");
@@ -151,7 +154,7 @@ public class GlobalOptions {
         DatashareOptions.putIfNotNull(props, ELASTICSEARCH_SETTINGS_OPT, elasticsearchSettings);
         DatashareOptions.putIfNotNull(props, ELASTICSEARCH_MAX_IDLE_CONNECTION_TIME_OPT, elasticsearchMaxIdleConnectionTime);
         DatashareOptions.putIfNotNull(props, REDIS_ADDRESS_OPT, redisAddress);
-        DatashareOptions.put(props, REDIS_POOL_SIZE_OPT, redisPoolSize);
+        DatashareOptions.putIfNotNull(props, REDIS_POOL_SIZE_OPT, redisPoolSize);
         DatashareOptions.putIfNotNull(props, MESSAGE_BUS_OPT, messageBusAddress);
         DatashareOptions.putIfNotNull(props, BUS_TYPE_OPT, busType);
         DatashareOptions.putIfNotNull(props, POLICY_RELOAD_INTERVAL_OPT, policyReloadInterval);

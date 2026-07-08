@@ -22,7 +22,9 @@ import java.util.Properties;
 
 import static org.fest.assertions.Assertions.assertThat;
 import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_BUS_TYPE;
+import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_PARALLELISM;
 import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_QUEUE_TYPE;
+import static org.icij.datashare.cli.DatashareCliOptions.REDIS_POOL_SIZE_OVERHEAD;
 
 public class CommonModeTest {
     @Test
@@ -151,6 +153,36 @@ public class CommonModeTest {
             put("queueType", QueueType.MEMORY.name());
         }}));
         assertThat(injector.getInstance(AsyncSearchStore.class)).isInstanceOf(MemoryAsyncSearchStore.class);
+    }
+
+    @Test
+    public void test_redis_pool_size_defaults_to_parallelism_plus_overhead() {
+        Properties props = new Properties() {{ put("parallelism", "9"); }};
+        assertThat(CommonMode.redisPoolSize(new PropertiesProvider(props))).isEqualTo(9 + REDIS_POOL_SIZE_OVERHEAD);
+    }
+
+    @Test
+    public void test_redis_pool_size_explicit_value_wins_when_above_floor() {
+        Properties props = new Properties() {{ put("parallelism", "9"); put("redisPoolSize", "20"); }};
+        assertThat(CommonMode.redisPoolSize(new PropertiesProvider(props))).isEqualTo(20);
+    }
+
+    @Test
+    public void test_redis_pool_size_is_floored_when_explicit_value_below_worker_count() {
+        Properties props = new Properties() {{ put("parallelism", "9"); put("redisPoolSize", "6"); }};
+        assertThat(CommonMode.redisPoolSize(new PropertiesProvider(props))).isEqualTo(9 + REDIS_POOL_SIZE_OVERHEAD);
+    }
+
+    @Test
+    public void test_redis_pool_size_falls_back_to_default_parallelism_when_unset() {
+        assertThat(CommonMode.redisPoolSize(new PropertiesProvider(new Properties())))
+                .isEqualTo(DEFAULT_PARALLELISM + REDIS_POOL_SIZE_OVERHEAD);
+    }
+
+    @Test
+    public void test_redis_pool_size_backward_compatible_with_single_worker() {
+        Properties props = new Properties() {{ put("parallelism", "1"); }};
+        assertThat(CommonMode.redisPoolSize(new PropertiesProvider(props))).isEqualTo(5);
     }
 
     @Test

@@ -205,7 +205,11 @@ public final class DatashareCliOptions {
 
     private static final Path DEFAULT_DATASHARE_HOME = Paths.get(System.getProperty("user.home"), ".local/share/datashare");
     private static final Integer DEFAULT_NLP_PARALLELISM = 1;
-    private static final Integer DEFAULT_PARALLELISM = Runtime.getRuntime().availableProcessors() == 1 ? 2 : Runtime.getRuntime().availableProcessors();
+    public static final Integer DEFAULT_PARALLELISM = Runtime.getRuntime().availableProcessors() == 1 ? 2 : Runtime.getRuntime().availableProcessors();
+    // Connections the shared Redis client needs on top of the stage worker pool: one for the task
+    // supplier's own blocking poll plus headroom for concurrent short-lived commands. The main pool
+    // is sized to parallelism + this overhead so blocking BLPOP workers never starve the rest of the app.
+    public static final int REDIS_POOL_SIZE_OVERHEAD = 4;
     private static final Integer DEFAULT_PARSER_PARALLELISM = 1;
     public static final DigestAlgorithm DEFAULT_DIGEST_METHOD = DigestAlgorithm.SHA_384;
     public static final String DEFAULT_STATUS_ALLOWED_NETS = "127.0.0.0/8,::1/128";
@@ -250,7 +254,6 @@ public final class DatashareCliOptions {
     public static final int DEFAULT_BATCH_DOWNLOAD_MAX_NB_FILES = 10000;
     public static final int DEFAULT_BATCH_DOWNLOAD_ZIP_TTL = 24;
     public static final String DEFAULT_PLUGIN_DIR = DEFAULT_DATASHARE_HOME.resolve("plugins").toString();
-    public static final int DEFAULT_REDIS_POOL_SIZE = 5;
     public static final String DEFAULT_SCROLL_DURATION = "60000ms";
     public static final int DEFAULT_SCROLL_SIZE = 1000;
     public static final int DEFAULT_SCROLL_SLICES = 1;
@@ -664,10 +667,9 @@ public final class DatashareCliOptions {
 
      public static void redisPoolSize(OptionParser parser) {
         parser.acceptsAll(
-                singletonList(REDIS_POOL_SIZE_OPT), "Pool size for main Redis client")
+                singletonList(REDIS_POOL_SIZE_OPT), "Pool size for the main Redis client. When unset it defaults to parallelism + " + REDIS_POOL_SIZE_OVERHEAD + " so blocking workers never starve the pool; an explicit value below that floor is raised to it.")
                 .withRequiredArg()
-                .ofType(Integer.class)
-                .defaultsTo(DEFAULT_REDIS_POOL_SIZE);
+                .ofType(Integer.class);
     }
 
     public static void elasticsearchDataPath(OptionParser parser) {

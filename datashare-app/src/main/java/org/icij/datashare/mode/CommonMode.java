@@ -216,9 +216,29 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
 
     @Provides @Singleton
     RedissonClient provideRedissonClient() {
-        CloseableRedissonClient redissonClient = new RedissonClientFactory().withOptions(Options.from(propertiesProvider.getProperties())).createCloseable();
+        int poolSize = redisPoolSize(propertiesProvider);
+        propertiesProvider.get(REDIS_POOL_SIZE_OPT).map(Integer::parseInt)
+                .filter(configured -> configured < poolSize)
+                .ifPresent(configured -> logger.warn("redisPoolSize {} is below the {} connections needed for the worker pool; raising it to {}", configured, poolSize, poolSize));
+        logger.info("sizing the main Redis connection pool to {}", poolSize);
+        Properties redisProperties = propertiesProvider.createOverriddenWith(Map.of(REDIS_POOL_SIZE_OPT, Integer.toString(poolSize)));
+        CloseableRedissonClient redissonClient = new RedissonClientFactory().withOptions(Options.from(redisProperties)).createCloseable();
         addCloseable(redissonClient);
         return redissonClient;
+    }
+
+    /**
+     * Effective size of the shared Redis connection pool. Blocking BLPOP workers each hold one
+     * connection for the whole poll timeout, so the pool must have at least one connection per
+     * worker plus headroom for the task supplier and short-lived commands. Returns
+     * {@code parallelism + REDIS_POOL_SIZE_OVERHEAD}, raising any explicit redisPoolSize up to that
+     * floor. Parallelism falls back to DEFAULT_PARALLELISM (the largest worker count a stage may
+     * use) when unset, so the pool is sized correctly regardless of which task runs.
+     */
+    public static int redisPoolSize(PropertiesProvider propertiesProvider) {
+        int parallelism = propertiesProvider.get(PARALLELISM_OPT).map(Integer::parseInt).orElse(DEFAULT_PARALLELISM);
+        int floor = parallelism + REDIS_POOL_SIZE_OVERHEAD;
+        return propertiesProvider.get(REDIS_POOL_SIZE_OPT).map(Integer::parseInt).map(configured -> Math.max(configured, floor)).orElse(floor);
     }
 
     @Provides @Singleton
