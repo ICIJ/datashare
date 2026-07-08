@@ -160,6 +160,76 @@ public class ArtifactTaskTest {
         artifactTask.call();
     }
 
+    @Test(timeout = 10000)
+    public void test_skip_counted_under_parallelism() throws Exception {
+        indexEmbeddedDoc();
+        DocumentQueue<String> queue = factory.createQueue("extract:queue:artifact", String.class);
+        queue.add("unknownId");
+        queue.add(EMBEDDED_DOC_SHA256);
+
+        Long numberOfDocuments = runArtifactTask(2);
+
+        assertThat(numberOfDocuments).isEqualTo(1);
+        assertThat(logback.logs(Level.WARN)).contains("document <unknownId> could not be retrieved from index prj (missing document or index fetch error), skipping");
+        assertThat(logback.logs(Level.ERROR)).contains("1 document(s) could not be retrieved from index prj and got no artifact cache, re-run the ARTIFACT stage for them");
+    }
+
+    @Test(timeout = 10000)
+    public void test_per_document_failure_is_non_fatal() throws Exception {
+        indexEmbeddedDoc();
+        String failingId = "2222222222222222222222222222222222222222222222222222222222222222";
+        mockIndexer.indexFile("prj", failingId,
+                Path.of(Objects.requireNonNull(getClass().getResource("/docs/embedded_doc.eml")).toURI()),
+                "message/rfc822");
+        DocumentQueue<String> queue = factory.createQueue("extract:queue:artifact", String.class);
+        queue.add(failingId);
+        queue.add(EMBEDDED_DOC_SHA256);
+
+        PropertiesProvider props = new PropertiesProvider(Map.of(
+                "artifactDir", artifactDir.getRoot().toString(),
+                "defaultProject", "prj",
+                "pollingInterval", "1",
+                "parallelism", "2"));
+        ArtifactTask task = new ArtifactTask(factory, mockEs, props,
+                new Task<>(ArtifactTask.class.getName(), User.local(), new HashMap<>()), null) {
+            @Override
+            protected SourceExtractor createSourceExtractor() {
+                return new SourceExtractor(props) {
+                    @Override
+                    public TikaDocument extractEmbeddedSources(Project project, Document document) throws org.apache.tika.exception.TikaException {
+                        if (document.getId().equals(failingId)) {
+                            throw new org.apache.tika.exception.TikaException("boom");
+                        }
+                        return null;
+                    }
+                };
+            }
+        };
+
+        Long numberOfDocuments = task.call();
+
+        assertThat(numberOfDocuments).isEqualTo(1);
+        assertThat(logback.logs(Level.ERROR)).contains("error in ArtifactTask loop");
+    }
+
+    @Test(timeout = 10000)
+    public void test_default_is_single_threaded_and_still_drains() throws Exception {
+        indexEmbeddedDoc();
+        DocumentQueue<String> queue = factory.createQueue("extract:queue:artifact", String.class);
+        queue.add(EMBEDDED_DOC_SHA256);
+
+        // no "parallelism" key -> ArtifactTask resolves .orElse(1)
+        Long numberOfDocuments = new ArtifactTask(factory, mockEs, new PropertiesProvider(Map.of(
+                "artifactDir", artifactDir.getRoot().toString(),
+                "defaultProject", "prj",
+                "pollingInterval", "1")),
+                new Task<>(ArtifactTask.class.getName(), User.local(), new HashMap<>()), null)
+                .call();
+
+        assertThat(numberOfDocuments).isEqualTo(1);
+        assertThat(artifactDir.getRoot().toPath().resolve("prj/6a/bb/6abb96950946b62bb993307c8945c0c096982783bab7fa24901522426840ca3e/raw").toFile()).isFile();
+    }
+
     private void indexEmbeddedDoc() throws URISyntaxException {
         indexEmbeddedDoc(EMBEDDED_DOC_SHA256);
     }
@@ -175,6 +245,16 @@ public class ArtifactTaskTest {
                 "defaultProject", "prj",
                 "pollingInterval", "1"
                 )),
+                new Task<>(ArtifactTask.class.getName(), User.local(), new HashMap<>()), null)
+                .call();
+    }
+
+    private Long runArtifactTask(int parallelism) throws Exception {
+        return new ArtifactTask(factory, mockEs, new PropertiesProvider(Map.of(
+                "artifactDir", artifactDir.getRoot().toString(),
+                "defaultProject", "prj",
+                "pollingInterval", "1",
+                "parallelism", String.valueOf(parallelism))),
                 new Task<>(ArtifactTask.class.getName(), User.local(), new HashMap<>()), null)
                 .call();
     }
