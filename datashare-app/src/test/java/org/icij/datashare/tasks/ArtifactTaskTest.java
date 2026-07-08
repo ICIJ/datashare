@@ -264,6 +264,57 @@ public class ArtifactTaskTest {
     }
 
     @Test(timeout = 10000)
+    public void test_cancel_stops_an_in_flight_run() throws Exception {
+        indexEmbeddedDoc();
+        DocumentQueue<String> queue = factory.createQueue("extract:queue:artifact", String.class);
+        queue.add(EMBEDDED_DOC_SHA256);
+
+        CountDownLatch started = new CountDownLatch(1);
+        PropertiesProvider props = new PropertiesProvider(Map.of(
+                "artifactDir", artifactDir.getRoot().toString(),
+                "defaultProject", "prj",
+                "pollingInterval", "1",
+                "parallelism", "1"));
+        Task<Long> task = new Task<>(ArtifactTask.class.getName(), User.local(), new HashMap<>());
+
+        ArtifactTask artifactTask = new ArtifactTask(factory, mockEs, props, task, null) {
+            @Override
+            protected SourceExtractor createSourceExtractor() {
+                return new SourceExtractor(props) {
+                    @Override
+                    public TikaDocument extractEmbeddedSources(Project project, Document document) {
+                        started.countDown();
+                        try {
+                            Thread.sleep(10_000);
+                        } catch (InterruptedException e) {
+                            Thread.currentThread().interrupt();
+                        }
+                        return null;
+                    }
+                };
+            }
+        };
+
+        AtomicReference<Throwable> thrown = new AtomicReference<>();
+        Thread callerThread = new Thread(() -> {
+            try {
+                artifactTask.call();
+            } catch (Throwable t) {
+                thrown.set(t);
+            }
+        });
+        callerThread.start();
+
+        assertThat(started.await(5, TimeUnit.SECONDS)).isTrue();
+        // cancel() must stop the worker pool and end the run, without interrupting this test thread
+        artifactTask.cancel(false);
+        callerThread.join(5000);
+
+        assertThat(callerThread.isAlive()).isFalse();
+        assertThat(thrown.get()).isInstanceOf(InterruptedException.class);
+    }
+
+    @Test(timeout = 10000)
     public void test_default_is_single_threaded_and_still_drains() throws Exception {
         indexEmbeddedDoc();
         DocumentQueue<String> queue = factory.createQueue("extract:queue:artifact", String.class);

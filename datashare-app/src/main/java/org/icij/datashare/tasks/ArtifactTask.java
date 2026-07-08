@@ -48,6 +48,7 @@ public class ArtifactTask extends PipelineTask<String> {
     private final Path artifactDir;
     private final int pollingInterval;
     private final int parallelism;
+    private final ExecutorService executor;
 
     @Inject
     public ArtifactTask(DocumentCollectionFactory<String> factory, Indexer indexer, PropertiesProvider propertiesProvider, @Assisted Task<Long> taskView, @Assisted final Function<Double, Void> updateCallback) {
@@ -57,6 +58,16 @@ public class ArtifactTask extends PipelineTask<String> {
         pollingInterval = Integer.parseInt(propertiesProvider.get(POLLING_INTERVAL_SECONDS_OPT).orElse(DEFAULT_POLLING_INTERVAL_SEC));
         parallelism = Math.max(1, propertiesProvider.get(PARALLELISM_OPT).map(Integer::parseInt).orElse(1));
         artifactDir = Path.of(propertiesProvider.get(ARTIFACT_DIR_OPT).orElseThrow(() -> new IllegalArgumentException(String.format("cannot create artifact task with empty %s", ARTIFACT_DIR_OPT))));
+        executor = Executors.newFixedThreadPool(parallelism, namedThreadFactory("artifact-worker"));
+    }
+
+    @Override
+    public void cancel(boolean requeue) {
+        // interrupt the task thread first (PipelineTask): that is what makes the blocking
+        // future.get() in call() throw InterruptedException and surface the cancellation.
+        // Then stop the worker pool so the workers themselves wind down promptly.
+        super.cancel(requeue);
+        executor.shutdownNow();
     }
 
     @Override
@@ -65,7 +76,6 @@ public class ArtifactTask extends PipelineTask<String> {
         logger.info("creating artifact cache in {} for project {} from queue {} with {} worker(s) and polling interval {}s", artifactDir, project, inputQueue.getName(), parallelism, pollingInterval);
         AtomicLong nbDocs = new AtomicLong(0);
         AtomicLong nbSkipped = new AtomicLong(0);
-        ExecutorService executor = Executors.newFixedThreadPool(parallelism, namedThreadFactory("artifact-worker"));
         try {
             List<Future<?>> futures = new ArrayList<>();
             for (int i = 0; i < parallelism; i++) {
@@ -92,7 +102,7 @@ public class ArtifactTask extends PipelineTask<String> {
             // actually stop (so we don't read counters/logs while they're still writing), then
             // rethrow so TaskWorkerLoop records this as a cancellation instead of a success.
             executor.shutdownNow();
-            awaitWorkersTermination(executor);
+            awaitWorkersTermination();
             Thread.currentThread().interrupt();
             throw e;
         } finally {
@@ -133,7 +143,7 @@ public class ArtifactTask extends PipelineTask<String> {
         return new SourceExtractor(propertiesProvider);
     }
 
-    private void awaitWorkersTermination(ExecutorService executor) {
+    private void awaitWorkersTermination() {
         try {
             if (!executor.awaitTermination(5, TimeUnit.SECONDS)) {
                 logger.warn("artifact worker(s) did not terminate within the grace period after cancellation");
