@@ -27,6 +27,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 
 import static org.fest.assertions.Assertions.assertThat;
@@ -210,6 +211,56 @@ public class ArtifactTaskTest {
 
         assertThat(numberOfDocuments).isEqualTo(1);
         assertThat(logback.logs(Level.ERROR)).contains("error in ArtifactTask loop");
+    }
+
+    @Test(timeout = 10000)
+    public void test_cancellation_throws_instead_of_returning_success() throws Exception {
+        indexEmbeddedDoc();
+        DocumentQueue<String> queue = factory.createQueue("extract:queue:artifact", String.class);
+        queue.add(EMBEDDED_DOC_SHA256);
+
+        CountDownLatch started = new CountDownLatch(1);
+        PropertiesProvider props = new PropertiesProvider(Map.of(
+                "artifactDir", artifactDir.getRoot().toString(),
+                "defaultProject", "prj",
+                "pollingInterval", "1",
+                "parallelism", "1"));
+        Task<Long> task = new Task<>(ArtifactTask.class.getName(), User.local(), new HashMap<>());
+
+        ArtifactTask artifactTask = new ArtifactTask(factory, mockEs, props, task, null) {
+            @Override
+            protected SourceExtractor createSourceExtractor() {
+                return new SourceExtractor(props) {
+                    @Override
+                    public TikaDocument extractEmbeddedSources(Project project, Document document) {
+                        started.countDown();
+                        try {
+                            Thread.sleep(10_000);
+                        } catch (InterruptedException e) {
+                            Thread.currentThread().interrupt();
+                        }
+                        return null;
+                    }
+                };
+            }
+        };
+
+        AtomicReference<Throwable> thrown = new AtomicReference<>();
+        Thread callerThread = new Thread(() -> {
+            try {
+                artifactTask.call();
+            } catch (Throwable t) {
+                thrown.set(t);
+            }
+        });
+        callerThread.start();
+
+        assertThat(started.await(5, TimeUnit.SECONDS)).isTrue();
+        callerThread.interrupt();
+        callerThread.join(5000);
+
+        assertThat(thrown.get()).isNotNull();
+        assertThat(thrown.get()).isInstanceOf(InterruptedException.class);
     }
 
     @Test(timeout = 10000)

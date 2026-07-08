@@ -87,10 +87,17 @@ public class ArtifactTask extends PipelineTask<String> {
                 throw new IllegalStateException(String.format("all %d artifact worker(s) terminated abnormally", futures.size()), firstCause);
             }
         } catch (InterruptedException e) {
+            // task was cancelled: force-stop the workers, give them a short grace period to
+            // actually stop (so we don't read counters/logs while they're still writing), then
+            // rethrow so TaskWorkerLoop records this as a cancellation instead of a success.
             executor.shutdownNow();
+            awaitWorkersTermination(executor);
             Thread.currentThread().interrupt();
+            throw e;
         } finally {
-            executor.shutdownNow();
+            // graceful here: on the happy/partial-failure paths all work is already done;
+            // the cancel path above has already force-stopped workers via shutdownNow().
+            executor.shutdown();
         }
         if (nbSkipped.get() > 0) {
             logger.error("{} document(s) could not be retrieved from index {} and got no artifact cache, re-run the ARTIFACT stage for them", nbSkipped.get(), project.name);
@@ -126,11 +133,22 @@ public class ArtifactTask extends PipelineTask<String> {
         return new SourceExtractor(propertiesProvider);
     }
 
+    private void awaitWorkersTermination(ExecutorService executor) {
+        try {
+            if (!executor.awaitTermination(5, TimeUnit.SECONDS)) {
+                logger.warn("artifact worker(s) did not terminate within the grace period after cancellation");
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+    }
+
     private static ThreadFactory namedThreadFactory(String prefix) {
         AtomicInteger counter = new AtomicInteger(0);
         return runnable -> {
             Thread thread = new Thread(runnable);
             thread.setName(prefix + "-" + counter.incrementAndGet());
+            thread.setDaemon(true);
             return thread;
         };
     }
