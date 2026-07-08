@@ -3,10 +3,15 @@ package org.icij.datashare.tasks;
 
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.asynctasks.Task;
+import org.icij.datashare.extract.DocumentCollectionFactory;
 import org.icij.datashare.extract.MemoryDocumentCollectionFactory;
 import org.icij.datashare.test.LogbackCapturingRule;
+import org.icij.datashare.text.Document;
+import org.icij.datashare.text.Project;
 import org.icij.datashare.text.indexing.Indexer;
+import org.icij.datashare.text.indexing.elasticsearch.SourceExtractor;
 import org.icij.datashare.user.User;
+import org.icij.extract.document.TikaDocument;
 import org.icij.extract.queue.DocumentQueue;
 import org.junit.Before;
 import org.junit.Rule;
@@ -21,6 +26,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 
 import static org.fest.assertions.Assertions.assertThat;
 import static org.mockito.Mockito.verify;
@@ -78,6 +86,51 @@ public class ArtifactTaskTest {
 
         verify(mockEs).get("prj", EMBEDDED_DOC_SHA256, "rootId", List.of("content", "content_translated"));
         assertThat(numberOfDocuments).isEqualTo(1);
+    }
+
+    @Test(timeout = 10000)
+    public void test_workers_run_concurrently() throws Exception {
+        indexEmbeddedDoc();
+        String secondId = "1111111111111111111111111111111111111111111111111111111111111111";
+        mockIndexer.indexFile("prj", secondId,
+                Path.of(Objects.requireNonNull(getClass().getResource("/docs/embedded_doc.eml")).toURI()),
+                "message/rfc822");
+        DocumentQueue<String> queue = factory.createQueue("extract:queue:artifact", String.class);
+        queue.add(EMBEDDED_DOC_SHA256);
+        queue.add(secondId);
+
+        CountDownLatch bothInFlight = new CountDownLatch(2);
+        PropertiesProvider props = new PropertiesProvider(Map.of(
+                "artifactDir", artifactDir.getRoot().toString(),
+                "defaultProject", "prj",
+                "pollingInterval", "1",
+                "parallelism", "2"));
+        Task<Long> task = new Task<>(ArtifactTask.class.getName(), User.local(), new HashMap<>());
+
+        ArtifactTask artifactTask = new ArtifactTask(factory, mockEs, props, task, null) {
+            @Override
+            protected SourceExtractor createSourceExtractor() {
+                return new SourceExtractor(props) {
+                    @Override
+                    public TikaDocument extractEmbeddedSources(Project project, Document document) {
+                        bothInFlight.countDown();
+                        try {
+                            // both workers must arrive before either proceeds;
+                            // with a single worker the second countDown never happens -> timeout
+                            if (!bothInFlight.await(5, TimeUnit.SECONDS)) {
+                                throw new AssertionError("workers did not run concurrently");
+                            }
+                        } catch (InterruptedException e) {
+                            Thread.currentThread().interrupt();
+                        }
+                        return null;
+                    }
+                };
+            }
+        };
+
+        Long processed = artifactTask.call();
+        assertThat(processed).isEqualTo(2);
     }
 
     private void indexEmbeddedDoc() throws URISyntaxException {
