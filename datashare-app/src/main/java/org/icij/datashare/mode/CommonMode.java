@@ -397,7 +397,6 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
         return switch (provider) {
             case DATABASE -> UsersInDb.class;
             case REDIS -> UsersInRedis.class;
-            default -> throw new IllegalStateException("Unhandled users provider: " + provider);
         };
     }
 
