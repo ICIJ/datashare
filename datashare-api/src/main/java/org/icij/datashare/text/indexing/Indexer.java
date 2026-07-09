@@ -43,6 +43,10 @@ public interface Indexer extends Closeable {
     <T extends Entity> boolean bulkUpdate(String indexName, List<T> entities) throws IOException;
     <T extends Entity> void add(String indexName, T obj) throws IOException;
     <T extends Entity> void update(String indexName, T obj) throws IOException;
+    // Partial (doc-merge) update of specific fields on an existing document, leaving all other fields
+    // untouched. Unlike update(indexName, T obj), which serializes the whole entity (and would reset
+    // unset fields to their defaults), this merges only the supplied fields.
+    void update(String indexName, String id, Map<String, Object> fields) throws IOException;
 
     boolean exists(String indexName) throws IOException;
     boolean exists(String indexName, String id) throws IOException;

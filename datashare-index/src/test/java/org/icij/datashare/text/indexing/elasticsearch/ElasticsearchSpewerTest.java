@@ -127,6 +127,41 @@ public class ElasticsearchSpewerTest {
     }
 
     @Test
+    public void test_finalize_root_marks_complete_with_child_count_preserving_content() throws Exception {
+        // A container parsed to completion: its root was indexed with content during the parse.
+        final TikaDocument root = new DocumentFactory().withIdentifier(new PathIdentifier()).create(get("finished-container.zip"));
+        root.setReader(new ParsingReader(new ByteArrayInputStream("container listing body text".getBytes())));
+        spewer.write(root);
+
+        spewer.finalizeRoot(root, 128004L);
+
+        GetResponse<ObjectNode> documentFields = es.client.get(doc -> doc.index(es.getIndexName()).id(root.getId()), ObjectNode.class);
+        Map<String, Object> source = nodeToMap(documentFields.source());
+        assertThat(source.get("recoveryStatus")).isEqualTo("COMPLETE");
+        assertThat(((Number) source.get("nbChildrenEmitted")).intValue()).isEqualTo(128004);
+        // The partial update must preserve the content already indexed by the normal root write.
+        assertThat((String) source.get("content")).contains("container listing body text");
+    }
+
+    @Test
+    public void test_finalize_root_does_not_override_pst_recovery_status() throws Exception {
+        // A PST/OST root already carries its message-loss rollup (LOSSY here) from the initial write;
+        // finalize must record the child count without clobbering that status.
+        final TikaDocument root = new DocumentFactory().withIdentifier(new PathIdentifier()).create(get("mailbox.ost"));
+        root.getMetadata().set("tika:pst_expected", "10");
+        root.getMetadata().set("tika:pst_emitted", "5"); // expected > emitted -> LOSSY rollup on write
+        root.setReader(new ParsingReader(new ByteArrayInputStream("mailbox".getBytes())));
+        spewer.write(root);
+
+        spewer.finalizeRoot(root, 5L);
+
+        GetResponse<ObjectNode> documentFields = es.client.get(doc -> doc.index(es.getIndexName()).id(root.getId()), ObjectNode.class);
+        Map<String, Object> source = nodeToMap(documentFields.source());
+        assertThat(source.get("recoveryStatus")).isEqualTo("LOSSY");
+        assertThat(((Number) source.get("nbChildrenEmitted")).intValue()).isEqualTo(5);
+    }
+
+    @Test
     public void test_write_with_correct_iso1_language() throws Exception {
         Path path = get(requireNonNull(getClass().getResource("/docs/a/b/c/zho.txt")).getPath());
         DocumentFactory documentFactory = new DocumentFactory().configure(Options.from(new HashMap<>() {{
