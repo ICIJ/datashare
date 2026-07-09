@@ -371,10 +371,10 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
 
     @Provides @Singleton
     Users provideUsers(UserStore userStore, UsersIdProviderCache usersIdProviderCache) {
-        boolean isOAuth = isAuthModeRequiringCache();
+        boolean authModeRequiringCache = isAuthModeRequiringCache();
 
 
-        if (isOAuth) {
+        if (authModeRequiringCache) {
             return new Users() {
                 @Override
                 public net.codestory.http.security.User find(String login) {
@@ -394,11 +394,11 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
     }
 
     static Class<? extends UserStore> classFor(AuthUsersProvider provider) {
-        switch (provider) {
-            case DATABASE: return UsersInDb.class;
-            case REDIS:    return UsersInRedis.class;
-            default:       throw new IllegalStateException("Unhandled users provider: " + provider);
-        }
+        return switch (provider) {
+            case DATABASE -> UsersInDb.class;
+            case REDIS -> UsersInRedis.class;
+            default -> throw new IllegalStateException("Unhandled users provider: " + provider);
+        };
     }
 
     @SuppressWarnings("unchecked")
