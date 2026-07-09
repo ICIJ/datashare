@@ -29,6 +29,9 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.time.Duration;
+import java.time.format.DateTimeParseException;
+import org.icij.time.HumanDuration;
 
 import static java.lang.Math.max;
 import static java.lang.String.valueOf;
@@ -62,6 +65,7 @@ public class IndexTask extends PipelineTask<Path> implements Monitorable{
         super(Stage.INDEX, taskView.getUser(), factory, new PropertiesProvider(taskView.args), Path.class);
         parallelism = propertiesProvider.get(PARALLELISM_OPT).map(Integer::parseInt).orElse(Runtime.getRuntime().availableProcessors());
         indexTimeout = getIndexTimeout();
+        warnIfParseTimeoutDisabled();
 
         Options<String> allTaskOptions = options().createFrom(Options.from(taskView.args));
         ((ElasticsearchSpewer) spewer.configure(allTaskOptions)).createIndexIfNotExists();
@@ -119,6 +123,20 @@ public class IndexTask extends PipelineTask<Path> implements Monitorable{
      */
     private int getIndexTimeout() {
         return Integer.parseInt(propertiesProvider.get(INDEX_TIMEOUT_OPT).orElse(valueOf(DEFAULT_INDEX_TIMEOUT)));
+    }
+
+    private void warnIfParseTimeoutDisabled() {
+        propertiesProvider.get(PARSE_TIMEOUT_OPT).ifPresent(value -> {
+            try {
+                Duration parseTimeout = HumanDuration.parse(value);
+                if (parseTimeout.isZero() || parseTimeout.isNegative()) {
+                    logger.warn("parseTimeout is set to {}: the parse timeout is DISABLED. " +
+                            "A pathological document can hang a worker indefinitely.", value);
+                }
+            } catch (DateTimeParseException e) {
+                // Leave duration validation to the extractor; do not fail task construction here.
+            }
+        });
     }
 
 

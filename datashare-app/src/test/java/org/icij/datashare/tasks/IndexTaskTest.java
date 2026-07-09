@@ -3,6 +3,7 @@ package org.icij.datashare.tasks;
 import org.apache.tika.parser.pdf.PDFParserConfig;
 import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.extract.DocumentCollectionFactory;
+import org.icij.datashare.test.LogbackAppenderWrapper;
 import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchSpewer;
 import org.icij.extract.document.DocumentFactory;
 import org.icij.extract.extractor.Extractor;
@@ -12,11 +13,13 @@ import org.icij.task.StringOptionParser;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
+import org.slf4j.event.Level;
 
 import java.util.HashMap;
 import java.util.Map;
 
 import static org.fest.assertions.Assertions.assertThat;
+import static org.icij.datashare.cli.DatashareCliOptions.PARSE_TIMEOUT_OPT;
 import static org.icij.datashare.user.User.nullUser;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -129,5 +132,48 @@ public class IndexTaskTest {
         Extractor extractor = new Extractor(documentFactory, bound);
 
         assertThat(extractor.getMaxEmbedDepth()).isEqualTo(3);
+    }
+
+    @Test
+    public void test_parse_timeout_value_reaches_extractor_options() throws Exception {
+        ElasticsearchSpewer spewer = mock(ElasticsearchSpewer.class);
+        Mockito.when(spewer.configure(Mockito.any())).thenReturn(spewer);
+
+        new IndexTask(spewer, mock(DocumentCollectionFactory.class),
+                new Task<>(IndexTask.class.getName(), nullUser(),
+                        Map.of(PARSE_TIMEOUT_OPT, "48h", "queueName", "test:queue")), null);
+
+        ArgumentCaptor<Options> captor = ArgumentCaptor.forClass(Options.class);
+        verify(spewer).configure(captor.capture());
+        Option<String> option = new Option<>(PARSE_TIMEOUT_OPT, StringOptionParser::new).update("48h");
+        assertThat(captor.getValue()).contains(option);
+    }
+
+    @Test
+    public void test_warns_when_parse_timeout_disabled() throws Exception {
+        LogbackAppenderWrapper logWrapper = new LogbackAppenderWrapper();
+        ElasticsearchSpewer spewer = mock(ElasticsearchSpewer.class);
+        Mockito.when(spewer.configure(Mockito.any())).thenReturn(spewer);
+
+        new IndexTask(spewer, mock(DocumentCollectionFactory.class),
+                new Task<>(IndexTask.class.getName(), nullUser(),
+                        Map.of(PARSE_TIMEOUT_OPT, "0", "queueName", "test:queue")), null);
+
+        assertThat(logWrapper.logs(Level.WARN).stream()
+                .anyMatch(l -> l.contains("parseTimeout") && l.contains("DISABLED"))).isTrue();
+    }
+
+    @Test
+    public void test_does_not_warn_when_parse_timeout_enabled() throws Exception {
+        LogbackAppenderWrapper logWrapper = new LogbackAppenderWrapper();
+        ElasticsearchSpewer spewer = mock(ElasticsearchSpewer.class);
+        Mockito.when(spewer.configure(Mockito.any())).thenReturn(spewer);
+
+        new IndexTask(spewer, mock(DocumentCollectionFactory.class),
+                new Task<>(IndexTask.class.getName(), nullUser(),
+                        Map.of(PARSE_TIMEOUT_OPT, "48h", "queueName", "test:queue")), null);
+
+        assertThat(logWrapper.logs(Level.WARN).stream()
+                .anyMatch(l -> l.contains("parseTimeout"))).isFalse();
     }
 }
