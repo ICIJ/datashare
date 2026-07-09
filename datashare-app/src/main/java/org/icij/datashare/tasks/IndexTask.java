@@ -30,7 +30,6 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.time.Duration;
-import java.time.format.DateTimeParseException;
 import org.icij.time.HumanDuration;
 
 import static java.lang.Math.max;
@@ -133,12 +132,13 @@ public class IndexTask extends PipelineTask<Path> implements Monitorable{
                     logger.warn("parseTimeout is set to {}: the parse timeout is DISABLED. " +
                             "A pathological document can hang a worker indefinitely.", value);
                 }
-            } catch (DateTimeParseException e) {
-                // Leave duration validation to the extractor; do not fail task construction here.
+            } catch (RuntimeException e) {
+                // Any parse failure (DateTimeParseException, NumberFormatException, ...) is intentionally
+                // ignored here: this is a diagnostic-only check and must never fail task construction.
+                // Leave duration validation to the extractor.
             }
         });
     }
-
 
     @Override
     public double getProgressRate() {
