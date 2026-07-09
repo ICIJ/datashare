@@ -91,6 +91,39 @@ public class ElasticsearchSpewerTest {
         assertThat(source.get("recoveryStatus")).isEqualTo("PARTIAL");
         assertThat(((Number) source.get("nbChildrenEmitted")).intValue()).isEqualTo(55363);
         assertThat(((Map<?, ?>) source.get("join")).get("name")).isEqualTo("Document");
+        // Contentless: the stub must not carry the document hash (createDoc's default) as its body text.
+        assertThat(source.get("content")).isEqualTo("");
+    }
+
+    @Test
+    public void test_write_root_stub_does_not_overwrite_an_already_indexed_root() throws Exception {
+        // A prior run indexed this container fully (content + real status).
+        final TikaDocument existing = new DocumentFactory().withIdentifier(new PathIdentifier()).create(get("prior-complete.ost"));
+        existing.setReader(new ParsingReader(new ByteArrayInputStream("real container body text".getBytes())));
+        spewer.write(existing);
+
+        // A later re-run's streaming parse aborts before the root is written, for the same id.
+        final TikaDocument root = new DocumentFactory().withIdentifier(new PathIdentifier()).create(get("prior-complete.ost"));
+        spewer.writeRootStub(root, 99L);
+
+        GetResponse<ObjectNode> documentFields = es.client.get(doc -> doc.index(es.getIndexName()).id(root.getId()), ObjectNode.class);
+        Map<String, Object> source = nodeToMap(documentFields.source());
+        // The complete root is preserved: not clobbered by a contentless PARTIAL stub.
+        assertThat((String) source.get("content")).contains("real container body text");
+        assertThat(source.get("recoveryStatus")).isNull();
+        assertThat(source.get("nbChildrenEmitted")).isNull();
+    }
+
+    @Test
+    public void test_write_root_stub_tolerates_non_numeric_content_length() throws Exception {
+        final TikaDocument root = new DocumentFactory().withIdentifier(new PathIdentifier()).create(get("weird-length.ost"));
+        root.getMetadata().set("Content-Length", "not-a-number");
+
+        spewer.writeRootStub(root, 3L); // must not throw and orphan the children
+
+        GetResponse<ObjectNode> documentFields = es.client.get(doc -> doc.index(es.getIndexName()).id(root.getId()), ObjectNode.class);
+        assertThat(documentFields.found()).isTrue();
+        assertThat(nodeToMap(documentFields.source()).get("recoveryStatus")).isEqualTo("PARTIAL");
     }
 
     @Test
