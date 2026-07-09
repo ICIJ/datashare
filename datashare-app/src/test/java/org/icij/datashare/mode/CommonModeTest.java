@@ -2,20 +2,25 @@ package org.icij.datashare.mode;
 
 import com.google.inject.Guice;
 import com.google.inject.Injector;
+import org.apache.http.auth.AUTH;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.asyncsearch.AsyncSearchStore;
 import org.icij.datashare.asyncsearch.MemoryAsyncSearchStore;
 import org.icij.datashare.asynctasks.TaskManager;
 import org.icij.datashare.asynctasks.TaskModifier;
 import org.icij.datashare.asynctasks.TaskSupplier;
+import org.icij.datashare.cli.AuthMode;
 import org.icij.datashare.cli.Mode;
 import org.icij.datashare.cli.QueueType;
 import org.icij.datashare.cli.AuthUsersProvider;
 import org.icij.datashare.policies.Authorizer;
 import net.codestory.http.security.Users;
+import org.icij.datashare.session.UsersIdProviderCache;
+import org.icij.datashare.session.UsersIdProviderRedisCache;
 import org.icij.datashare.session.UsersInDb;
 import org.icij.datashare.session.UsersInRedis;
 import org.junit.Test;
+import com.google.inject.ProvisionException;
 
 import java.util.HashMap;
 import java.util.Properties;
@@ -121,9 +126,8 @@ public class CommonModeTest {
 
     @Test
     public void test_users_provider_label_redis() {
-        // UsersInRedis builds its JedisPool lazily, so this resolves without a live Redis.
         CommonMode mode = CommonMode.create(new HashMap<>() {{
-            put("mode", Mode.LOCAL.name());
+            put("mode", Mode.SERVER.name());
             put("authUsersProvider", "redis");
         }});
         assertThat(mode.get(Users.class)).isInstanceOf(UsersInRedis.class);
@@ -132,9 +136,33 @@ public class CommonModeTest {
     @Test
     public void test_users_provider_default_is_database() {
         CommonMode mode = CommonMode.create(new HashMap<>() {{
-            put("mode", Mode.LOCAL.name());
+            put("mode", Mode.SERVER.name());
         }});
         assertThat(mode.get(Users.class)).isInstanceOf(UsersInDb.class);
+    }
+    @Test
+    public void test_users_id_provider_cache_depends_on_auth_mode() {
+        assertThat(usersIdProviderCacheFor(AuthMode.OAUTH))
+                .isInstanceOf(UsersIdProviderRedisCache.class);
+        assertThat(usersIdProviderCacheFor(AuthMode.YES_COOKIE))
+                .isInstanceOf(UsersIdProviderRedisCache.class);
+        assertThat(usersIdProviderCacheFor(AuthMode.FORM))
+                .isSameAs(UsersIdProviderCache.NO_CACHE);
+    }
+
+    @Test
+    public void test_no_cache_users_id_provider_default_behavior() {
+        assertThat(UsersIdProviderCache.NO_CACHE.find("login")).isNull();
+        assertThat(UsersIdProviderCache.NO_CACHE.find("login", "password")).isNull();
+        assertThat(UsersIdProviderCache.NO_CACHE.saveOrUpdate(null)).isTrue();
+    }
+
+    private UsersIdProviderCache usersIdProviderCacheFor(AuthMode authMode) {
+        CommonMode mode = CommonMode.create(new HashMap<>() {{
+            put("mode", Mode.SERVER.name());
+            put("auth", authMode.toString());
+        }});
+        return mode.get(UsersIdProviderCache.class);
     }
 
     @Test

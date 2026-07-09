@@ -21,6 +21,7 @@ import static org.icij.datashare.user.User.fromJson;
 public class UsersIdProviderRedisCache implements UsersIdProviderCache {
     private final JedisPool redis;
     private final Integer ttl;
+
     @Inject
     public UsersIdProviderRedisCache(PropertiesProvider propertiesProvider) {
         redis = new JedisPool(propertiesProvider.get("redisAddress").orElse(EnvUtils.resolveUri("redis", "redis://redis:6379")));
