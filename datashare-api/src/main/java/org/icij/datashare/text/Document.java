@@ -9,6 +9,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.fasterxml.jackson.databind.util.StdConverter;
 import org.icij.datashare.Entity;
 import org.icij.datashare.text.indexing.IndexParent;
 import org.icij.datashare.text.indexing.IndexRoot;
@@ -222,6 +223,10 @@ public class Document implements Entity, DocumentMetadataConstants {
     public String getParentDocument() { return parentDocument;}
     public Status getStatus() { return status;}
     public Set<Pipeline.Type> getNerTags() { return nerTags;}
+    // tags are stored in the index as a keyword array (labels only). Serialize accordingly so that
+    // re-indexing a tagged document (e.g. from CategorizeTask) does not push whole Tag objects into a
+    // keyword field. Deserialization rebuilds Tag instances from the labels via Tag.tag(String).
+    @JsonSerialize(contentConverter = TagToLabel.class)
     public Set<Tag> getTags() { return tags;}
     public String getOcrParser() {
         return (String) ofNullable(metadata).orElse(new HashMap<>()).get("ocr_parser");
@@ -347,5 +352,13 @@ public class Document implements Entity, DocumentMetadataConstants {
      */
     private String getMetadataTitle(String key, Supplier<String> defaultValue) {
         return ofNullable(metadata.get(getField(key))).orElse(Objects.requireNonNullElse(defaultValue.get(), "")).toString();
+    }
+
+    /** Serializes a {@link Tag} as its label so it maps to the {@code tags} keyword field in the index. */
+    static class TagToLabel extends StdConverter<Tag, String> {
+        @Override
+        public String convert(Tag tag) {
+            return tag.label;
+        }
     }
 }

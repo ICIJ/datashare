@@ -64,6 +64,15 @@ public class DocumentTest {
     }
 
     @Test
+    public void test_serialize_deserialize_tags_as_labels() throws Exception {
+        Document src = createDoc("content").with(new Tag("bank_statements")).build();
+        String json = JsonObjectMapper.writeValueAsString(src);
+        assertThat(json).contains("\"tags\":[\"bank_statements\"]");
+        Document dst = JsonObjectMapper.readValue(json, Document.class);
+        assertThat(dst.getTags()).containsOnly(new Tag("bank_statements"));
+    }
+
+    @Test
     public void test_ner_mask() {
         assertThat(nerMask(new HashSet<>())).isEqualTo((short) 0);
         assertThat(nerMask(set(CORENLP))).isEqualTo((short) 1);

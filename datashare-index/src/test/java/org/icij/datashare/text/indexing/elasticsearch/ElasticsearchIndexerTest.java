@@ -10,7 +10,9 @@ import org.apache.http.ConnectionClosedException;
 import org.icij.datashare.Entity;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.test.ElasticsearchRule;
+import org.icij.datashare.text.ContentTypeCategory;
 import org.icij.datashare.text.Document;
+import org.icij.datashare.text.DocumentBuilder;
 import org.icij.datashare.text.Duplicate;
 import org.icij.datashare.text.Language;
 import org.icij.datashare.text.NamedEntity;
@@ -320,6 +322,20 @@ public class ElasticsearchIndexerTest {
         List<? extends Entity> searchWithFuzziness1 = indexer.search(singletonList(es.getIndexName()),Document.class, new SearchQuery(queryBody)).
                 with(1, false).execute(queryToSearch).toList();
         assertThat(searchWithFuzziness1.size()).isEqualTo(2);
+    }
+
+    @Test
+    public void test_update_tagged_document_does_not_push_tag_objects_into_keyword_field() throws IOException {
+        Document doc = createDoc("id").build();
+        indexer.add(es.getIndexName(), doc);
+        indexer.tag(project(es.getIndexName()), doc.getId(), doc.getId(), tag("bank_statements"));
+
+        // simulate CategorizeTask: fetch the tagged doc, enrich it, then update the whole document
+        Document tagged = indexer.get(es.getIndexName(), doc.getId());
+        Document enriched = DocumentBuilder.from(tagged).with(ContentTypeCategory.fromContentType(tagged.getContentType())).build();
+        indexer.update(es.getIndexName(), enriched);
+
+        assertThat(((Document) indexer.get(es.getIndexName(), doc.getId())).getTags()).containsOnly(tag("bank_statements"));
     }
 
     @Test
