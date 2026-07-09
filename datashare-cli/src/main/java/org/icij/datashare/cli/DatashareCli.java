@@ -130,6 +130,7 @@ public class DatashareCli {
         DatashareCliOptions.ocrType(parser);
         DatashareCliOptions.ocrStrategy(parser);
         DatashareCliOptions.ocrTimeout(parser);
+        DatashareCliOptions.parseTimeout(parser);
         DatashareCliOptions.maxEmbedDepth(parser);
         DatashareCliOptions.nlpPipeline(parser);
         DatashareCliOptions.nlpMaxTextLength(parser);

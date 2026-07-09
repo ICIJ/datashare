@@ -115,6 +115,7 @@ public final class DatashareCliOptions {
     public static final String PARALLELISM_OPT = "parallelism";
     public static final String PARSER_PARALLELISM_ABBR_OPT = "pp";
     public static final String PARSER_PARALLELISM_OPT = "parserParallelism";
+    public static final String PARSE_TIMEOUT_OPT = "parseTimeout";
     public static final String PLUGIN_DELETE_OPT = "pluginDelete";
     public static final String PLUGIN_INSTALL_OPT = "pluginInstall";
     public static final String PLUGIN_LIST_OPT = "pluginList";
@@ -250,6 +251,7 @@ public final class DatashareCliOptions {
     public static final boolean DEFAULT_NO_DIGEST_PROJECT = false;
     public static final boolean DEFAULT_OCR = true;
     public static final String DEFAULT_OCR_TIMEOUT = "12h";
+    public static final String DEFAULT_PARSE_TIMEOUT = "24h";
     public static final int DEFAULT_MAX_EMBED_DEPTH = 20;
     public static final int DEFAULT_BATCH_DOWNLOAD_MAX_NB_FILES = 10000;
     public static final int DEFAULT_BATCH_DOWNLOAD_ZIP_TTL = 24;
@@ -759,6 +761,15 @@ public final class DatashareCliOptions {
             .withRequiredArg()
             .ofType(String.class)
             .defaultsTo(DEFAULT_OCR_TIMEOUT);
+    }
+
+    static void parseTimeout(OptionParser parser) {
+        parser.acceptsAll(List.of(PARSE_TIMEOUT_OPT),
+                "Wall-clock timeout for a single document's parse and output, e.g. \"30m\" or \"24h\". " +
+                        "Set to 0 to disable. Defaults to 24h.")
+            .withRequiredArg()
+            .ofType(String.class)
+            .defaultsTo(DEFAULT_PARSE_TIMEOUT);
     }
 
     static void ocrStrategy(OptionParser parser) {

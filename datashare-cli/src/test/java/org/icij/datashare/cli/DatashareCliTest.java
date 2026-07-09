@@ -331,4 +331,16 @@ public class DatashareCliTest {
         cli.parseArguments(new String[] {""});
         assertThat(cli.properties).includes(entry("maxEmbedDepth", "20"));
     }
+
+    @Test
+    public void test_parse_timeout_opt() {
+        cli.parseArguments(new String[] {"--parseTimeout", "48h"});
+        assertThat(cli.properties).includes(entry("parseTimeout", "48h"));
+    }
+
+    @Test
+    public void test_parse_timeout_opt_defaults_to_24h() {
+        cli.parseArguments(new String[] {""});
+        assertThat(cli.properties).includes(entry("parseTimeout", "24h"));
+    }
 }
