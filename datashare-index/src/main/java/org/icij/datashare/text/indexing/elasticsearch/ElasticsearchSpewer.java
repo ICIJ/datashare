@@ -159,14 +159,23 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
         if (root.isDuplicate()) {
             return;
         }
+        // Never clobber an already-indexed root: a prior successful run may have indexed this container
+        // fully (content, search text, its real recovery status), and overwriting it with a contentless
+        // PARTIAL stub would be data loss. If the root already exists, its children are not orphaned, so
+        // there is nothing to do. (A stub left by an earlier aborted run is likewise kept as-is.)
+        if (isDuplicate(root.getId())) {
+            logger.debug("aborted parse: root {} already indexed, keeping it; not writing PARTIAL stub", shorten(root.getId(), 4));
+            return;
+        }
         String contentType = ofNullable(root.getMetadata().get(CONTENT_TYPE)).orElse(DEFAULT_VALUE_UNKNOWN).split(";")[0];
         Document document = DocumentBuilder.createDoc(root.getId())
                 .with(root.getPath())
                 .with(Document.Status.INDEXED)
                 .with(getMetadata(root))
+                .with("") // contentless: the parse aborted, no body text was extracted for the root
                 .ofContentType(contentType)
                 .with(ContentTypeCategory.fromContentType(contentType))
-                .withContentLength(Long.parseLong(ofNullable(root.getMetadata().get(CONTENT_LENGTH)).orElse("-1")))
+                .withContentLength(parseContentLength(root))
                 .withExtractionLevel((short) 0)
                 .with(Document.RecoveryStatus.PARTIAL)
                 .withNbChildrenEmitted((int) Math.min(writtenChildren, Integer.MAX_VALUE))
@@ -174,6 +183,16 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
         indexer.add(indexName, document);
         logger.warn("aborted parse: wrote PARTIAL root stub {} with {} indexed child(ren): {}",
                 shorten(root.getId(), 4), writtenChildren, root);
+    }
+
+    // Defensive parse: a non-numeric Content-Length must not abort the stub write (that would leave the
+    // already-indexed children orphaned, which is exactly what the stub prevents). Unknown length -> -1.
+    private static long parseContentLength(TikaDocument document) {
+        try {
+            return Long.parseLong(ofNullable(document.getMetadata().get(CONTENT_LENGTH)).orElse("-1"));
+        } catch (NumberFormatException e) {
+            return -1L;
+        }
     }
 
     private boolean isDuplicate(String docId) throws IOException {
