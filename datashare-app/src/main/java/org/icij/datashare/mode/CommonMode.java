@@ -41,6 +41,7 @@ import org.icij.datashare.policies.CasbinRuleAdapter;
 import org.icij.datashare.policies.PolicyWatcher;
 import org.icij.datashare.session.UsersInRedis;
 import org.icij.datashare.session.UserStore;
+import org.icij.datashare.session.YesCookieAuthFilter;
 import org.icij.datashare.user.admin.UserAdminService;
 import org.icij.datashare.user.admin.UserAdminServiceImpl;
 import org.icij.datashare.project.admin.ProjectAdminService;
@@ -370,22 +371,25 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
 
     @Provides @Singleton
     Users provideUsers(UserStore userStore, UsersIdProviderCache usersIdProviderCache) {
-        // When busType=REDIS the session cache is live. Return a composite that checks it first
-        // so that OAuth2 session users (not in the local store) are found by grant/revoke without
-        // requiring --authUsersProvider on the CLI command.
-        boolean isRedis = QueueType.REDIS.name().equals(propertiesProvider.get(BUS_TYPE_OPT).orElse(null));
-        if (isRedis) {
+        boolean isOAuth = isAuthModeRequiringCache();
+
+
+        if (isOAuth) {
             return new Users() {
-                @Override public net.codestory.http.security.User find(String login) {
-                    net.codestory.http.security.User u = usersIdProviderCache.find(login);
-                    return u != null ? u : userStore.find(login);
+                @Override
+                public net.codestory.http.security.User find(String login) {
+                    net.codestory.http.security.User user = usersIdProviderCache.find(login);
+                    return user != null ? user : userStore.find(login);
                 }
-                @Override public net.codestory.http.security.User find(String login, String password) {
-                    net.codestory.http.security.User u = usersIdProviderCache.find(login, password);
-                    return u != null ? u : userStore.find(login, password);
+
+                @Override
+                public net.codestory.http.security.User find(String login, String password) {
+                    net.codestory.http.security.User user = usersIdProviderCache.find(login, password);
+                    return user != null ? user : userStore.find(login, password);
                 }
             };
         }
+
         return userStore;
     }
 
@@ -419,22 +423,27 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
 
     @Provides @Singleton
     UsersIdProviderCache provideUsersIdProviderCache(final Injector injector) {
-        boolean isOAuth = propertiesProvider.get(AUTH_MODE_OPT)
-                .filter(m -> !m.isEmpty())
-                .map(m -> { try { return AuthMode.fromString(m) == AuthMode.OAUTH; } catch (IllegalArgumentException e) { return false; } })
-                .orElse(false);
-        boolean isRedis = QueueType.REDIS.name().equals(propertiesProvider.get(BUS_TYPE_OPT).orElse(null));
-        if (isOAuth || isRedis) {
+        boolean requiresCache = isAuthModeRequiringCache();
+        if (requiresCache) {
             return injector.getInstance(UsersIdProviderRedisCache.class);
         }
-        // No Redis available: Guice still requires a concrete binding for UsersIdProviderCache.
-        // find() returns null ("cache-miss" signal) but is never reached, provideUsers() returns
-        // userStore directly in the non-Redis path. saveOrUpdate is a no-op: no Redis, no session store.
-        return new UsersIdProviderCache() {
-            @Override public net.codestory.http.security.User find(String login) { return null; }
-            @Override public net.codestory.http.security.User find(String login, String password) { return null; }
-            @Override public boolean saveOrUpdate(net.codestory.http.security.User user) { return true; }
-        };
+        return UsersIdProviderCache.NO_CACHE;
+
+    }
+
+    @NotNull
+    private Boolean isAuthModeRequiringCache() {
+        return propertiesProvider.get(AUTH_MODE_OPT)
+                .filter(m -> !m.isEmpty())
+                .map(m -> {
+                    try {
+                        // only OAuth and YesCookie require redis cache for sessions
+                        return AuthMode.fromString(m) == AuthMode.OAUTH || AuthMode.fromString(m) == AuthMode.YES_COOKIE;
+                    } catch (IllegalArgumentException e) {
+                        return false;
+                    }
+                })
+                .orElse(false);
     }
 
     @Provides @Singleton
