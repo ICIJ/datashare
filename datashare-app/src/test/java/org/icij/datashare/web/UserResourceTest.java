@@ -379,8 +379,6 @@ public class UserResourceTest extends AbstractProdWebServerTest {
         assertTrue(authorizer.getGroupPermissions(localUser("alice")).isEmpty());
     }
 
-    // PUT /api/users/:login/index/:index — grant
-
     @Test
     public void test_grant_project_returns_200() throws Exception {
         ProjectGranted granted = new ProjectGranted("someproject", "alice", Role.PROJECT_ADMIN, null, false);

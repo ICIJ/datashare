@@ -130,7 +130,6 @@ public class ServerMode extends CommonMode {
                 add(TaskResource.class).
                 add(IndexResource.class).
                 add(UserResource.class).
-                add(PolicyResource.class).
                 add(NamedEntityResource.class).
                 add(DocumentResource.class).
                 add(DocumentUserRecommendationResource.class).
