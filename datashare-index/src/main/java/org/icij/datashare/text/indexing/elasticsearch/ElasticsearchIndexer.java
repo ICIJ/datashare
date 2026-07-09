@@ -191,6 +191,16 @@ public class ElasticsearchIndexer implements Indexer {
     }
 
     @Override
+    public void update(String indexName, String id, Map<String, Object> fields) throws IOException {
+        UpdateRequest.Builder<Map<String, Object>, Object> req = new UpdateRequest.Builder<Map<String, Object>, Object>()
+                .index(indexName)
+                .id(id)
+                .refresh(esCfg.refreshPolicy)
+                .doc(fields);
+        client.update(req.build(), Object.class);
+    }
+
+    @Override
     public boolean exists(String indexName) throws IOException {
         co.elastic.clients.elasticsearch.indices.ExistsRequest request =
                 new co.elastic.clients.elasticsearch.indices.ExistsRequest.Builder()

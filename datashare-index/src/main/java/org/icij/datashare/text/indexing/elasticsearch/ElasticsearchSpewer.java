@@ -24,6 +24,9 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 
 import static java.lang.System.currentTimeMillis;
+import java.util.HashMap;
+import java.util.Map;
+
 import static java.util.Optional.ofNullable;
 import static org.apache.tika.metadata.HttpHeaders.*;
 import static org.icij.datashare.PropertiesProvider.DEFAULT_PROJECT_OPT;
@@ -182,6 +185,24 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
                 .build();
         indexer.add(indexName, document);
         logger.warn("aborted parse: wrote PARTIAL root stub {} with {} indexed child(ren): {}",
+                shorten(root.getId(), 4), writtenChildren, root);
+    }
+
+    @Override
+    public void finalizeRoot(TikaDocument root, long writtenChildren) throws IOException {
+        // The container parsed to completion; its root was already indexed with content during the parse.
+        // Now that the child count is final, record it and (for non-PST containers) mark the root
+        // complete. A partial update preserves the already-indexed content/language/status. PST roots
+        // already carry their COMPLETE/PARTIAL/LOSSY rollup from the initial write (applyParentRollup),
+        // so their recoveryStatus is left untouched here.
+        Map<String, Object> fields = new HashMap<>();
+        fields.put("nbChildrenEmitted", (int) Math.min(writtenChildren, Integer.MAX_VALUE));
+        boolean isPstRoot = root.getMetadata().get(PST_EXPECTED) != null || root.getMetadata().get(PST_EMITTED) != null;
+        if (!isPstRoot) {
+            fields.put("recoveryStatus", Document.RecoveryStatus.COMPLETE.toString());
+        }
+        indexer.update(indexName, root.getId(), fields);
+        logger.info("finalized container root {} as complete with {} indexed child(ren): {}",
                 shorten(root.getId(), 4), writtenChildren, root);
     }
 
