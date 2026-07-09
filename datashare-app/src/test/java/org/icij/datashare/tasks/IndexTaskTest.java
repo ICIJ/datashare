@@ -10,6 +10,7 @@ import org.icij.extract.extractor.Extractor;
 import org.icij.task.Option;
 import org.icij.task.Options;
 import org.icij.task.StringOptionParser;
+import org.junit.After;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
@@ -25,6 +26,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
 public class IndexTaskTest {
+    private final LogbackAppenderWrapper logWrapper = new LogbackAppenderWrapper();
 
     @Test
     public void test_options_include_ocr() throws Exception {
@@ -151,7 +153,6 @@ public class IndexTaskTest {
 
     @Test
     public void test_warns_when_parse_timeout_disabled() throws Exception {
-        LogbackAppenderWrapper logWrapper = new LogbackAppenderWrapper();
         ElasticsearchSpewer spewer = mock(ElasticsearchSpewer.class);
         Mockito.when(spewer.configure(Mockito.any())).thenReturn(spewer);
 
@@ -165,7 +166,6 @@ public class IndexTaskTest {
 
     @Test
     public void test_does_not_warn_when_parse_timeout_enabled() throws Exception {
-        LogbackAppenderWrapper logWrapper = new LogbackAppenderWrapper();
         ElasticsearchSpewer spewer = mock(ElasticsearchSpewer.class);
         Mockito.when(spewer.configure(Mockito.any())).thenReturn(spewer);
 
@@ -175,5 +175,10 @@ public class IndexTaskTest {
 
         assertThat(logWrapper.logs(Level.WARN).stream()
                 .anyMatch(l -> l.contains("parseTimeout"))).isFalse();
+    }
+
+    @After
+    public void tearDown() throws Exception {
+        logWrapper.reset();
     }
 }
