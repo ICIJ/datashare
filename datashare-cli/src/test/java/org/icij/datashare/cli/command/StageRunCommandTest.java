@@ -113,4 +113,16 @@ public class StageRunCommandTest extends AbstractDatashareCommandTest {
         Properties props = parse("stage", "run", "--stages", "SCAN,INDEX");
         assertThat(props).includes(entry("maxContentLength", "20000000"));
     }
+
+    @Test
+    public void test_stage_run_parse_timeout() {
+        Properties props = parse("stage", "run", "--stages", "SCAN,INDEX", "--parseTimeout", "48h");
+        assertThat(props).includes(entry("parseTimeout", "48h"));
+    }
+
+    @Test
+    public void test_stage_run_parse_timeout_defaults_to_24h() {
+        Properties props = parse("stage", "run", "--stages", "SCAN,INDEX");
+        assertThat(props).includes(entry("parseTimeout", "24h"));
+    }
 }

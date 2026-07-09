@@ -43,6 +43,9 @@ public class PipelineOptions {
     @Option(names = {"--ocrTimeout"}, description = "OCR timeout", defaultValue = DEFAULT_OCR_TIMEOUT)
     String ocrTimeout;
 
+    @Option(names = {"--parseTimeout"}, description = "Wall-clock timeout for a single document's parse and output, e.g. \"30m\" or \"24h\". Set to 0 to disable. Defaults to 24h.", defaultValue = DEFAULT_PARSE_TIMEOUT)
+    String parseTimeout;
+
     // No defaultValue on purpose: when unset the field stays null and putIfNotNull omits the key,
     // so extract applies its own NO_OCR default. A default here would emit the key for every run
     // and silently change OCR behavior for all users.
@@ -108,6 +111,7 @@ public class PipelineOptions {
         DatashareOptions.putIfNotNull(props, CREATE_INDEX_OPT, createIndex);
         DatashareOptions.put(props, INDEX_TIMEOUT_OPT, indexTimeout);
         DatashareOptions.put(props, OCR_TIMEOUT, ocrTimeout);
+        DatashareOptions.put(props, PARSE_TIMEOUT_OPT, parseTimeout);
         DatashareOptions.putIfNotNull(props, SEARCH_QUERY_OPT, searchQuery);
         DatashareOptions.putIfNotNull(props, SCROLL_DURATION_OPT, scroll);
         DatashareOptions.put(props, SCROLL_SIZE_OPT, scrollSize);
