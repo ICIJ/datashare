@@ -112,6 +112,10 @@ public class Document implements Entity, DocumentMetadataConstants {
     private final Integer pstExpected;
     private final Integer pstEmitted;
     private final Integer pstUnrecovered;
+    // Number of embedded children actually indexed under this container root. Set on a root when the
+    // streaming parse aborted mid-way (with recoveryStatus PARTIAL) so it is visible how much of the
+    // container was recovered; null on non-container documents.
+    private final Integer nbChildrenEmitted;
 
     @JsonDeserialize(using = CharsetDeserializer.class)
     private final Charset contentEncoding;
@@ -128,18 +132,19 @@ public class Document implements Entity, DocumentMetadataConstants {
 
 
     Document(Project project, String id, Path filePath, String content, Language language, Charset charset, String mimetype, Map<String, Object> metadata, Status status, Set<Pipeline.Type> nerTags, Date extractionDate, String parentDocument, String rootDocument, Short extractionLevel, Long contentLength) {
-        this(project, id, filePath, content, null, language, extractionDate, charset, mimetype, extractionLevel, metadata, status, nerTags, parentDocument, rootDocument, contentLength, new HashSet<>(), null, null, null, null, null);
+        this(project, id, filePath, content, null, language, extractionDate, charset, mimetype, extractionLevel, metadata, status, nerTags, parentDocument, rootDocument, contentLength, new HashSet<>(), null, null, null, null, null, null);
     }
 
     Document(Project project, String id, Path filePath, String content, List<Map<String,String>> content_translated, Language language, Charset charset,
                     String contentType, Map<String, Object> metadata, Status status, Set<Pipeline.Type> nerTags,
                     Date extractionDate, String parentDocument, String rootDocument, Short extractionLevel,
                     Long contentLength, Set<Tag> tags, ContentTypeCategory contentTypeCategory,
-                    RecoveryStatus recoveryStatus, Integer pstExpected, Integer pstEmitted, Integer pstUnrecovered) {
+                    RecoveryStatus recoveryStatus, Integer pstExpected, Integer pstEmitted, Integer pstUnrecovered,
+                    Integer nbChildrenEmitted) {
         this(project, id, filePath, content, content_translated, language, extractionDate, charset,
                 contentType, extractionLevel, metadata, status, nerTags,
                 parentDocument, rootDocument, contentLength,
-                tags, contentTypeCategory, recoveryStatus, pstExpected, pstEmitted, pstUnrecovered);
+                tags, contentTypeCategory, recoveryStatus, pstExpected, pstEmitted, pstUnrecovered, nbChildrenEmitted);
     }
 
     @JsonCreator
@@ -160,7 +165,8 @@ public class Document implements Entity, DocumentMetadataConstants {
                      @JsonProperty("recoveryStatus") RecoveryStatus recoveryStatus,
                      @JsonProperty("pstExpected") Integer pstExpected,
                      @JsonProperty("pstEmitted") Integer pstEmitted,
-                     @JsonProperty("pstUnrecovered") Integer pstUnrecovered
+                     @JsonProperty("pstUnrecovered") Integer pstUnrecovered,
+                     @JsonProperty("nbChildrenEmitted") Integer nbChildrenEmitted
     ) {
         this.id = id;
         this.project = project;
@@ -185,6 +191,7 @@ public class Document implements Entity, DocumentMetadataConstants {
         this.pstExpected = pstExpected;
         this.pstEmitted = pstEmitted;
         this.pstUnrecovered = pstUnrecovered;
+        this.nbChildrenEmitted = nbChildrenEmitted;
     }
 
     static String getHash(Project project, Path path) {
@@ -215,6 +222,8 @@ public class Document implements Entity, DocumentMetadataConstants {
     public Integer getPstEmitted() { return pstEmitted; }
     @JsonInclude(JsonInclude.Include.NON_NULL)
     public Integer getPstUnrecovered() { return pstUnrecovered; }
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public Integer getNbChildrenEmitted() { return nbChildrenEmitted; }
     public String getContentTypeOrDefault() { return ofNullable(getContentType()).orElse(DEFAULT_VALUE_UNKNOWN); }
     public Language getLanguage() { return language; }
     public short getExtractionLevel() { return extractionLevel;}

@@ -34,6 +34,7 @@ public class DocumentBuilder {
     private Integer pstExpected = null;
     private Integer pstEmitted = null;
     private Integer pstUnrecovered = null;
+    private Integer nbChildrenEmitted = null;
 
     private DocumentBuilder() {}
     public static DocumentBuilder createDoc() {
@@ -69,7 +70,8 @@ public class DocumentBuilder {
                 .withTags(doc.getTags())
                 .with(doc.getContentTypeCategory())
                 .with(doc.getRecoveryStatus())
-                .withPstCounts(doc.getPstExpected(), doc.getPstEmitted(), doc.getPstUnrecovered());
+                .withPstCounts(doc.getPstExpected(), doc.getPstEmitted(), doc.getPstUnrecovered())
+                .withNbChildrenEmitted(doc.getNbChildrenEmitted());
     }
 
     public DocumentBuilder withDefaultValues(String id){
@@ -199,6 +201,11 @@ public class DocumentBuilder {
         return this;
     }
 
+    public DocumentBuilder withNbChildrenEmitted(Integer nbChildrenEmitted) {
+        this.nbChildrenEmitted = nbChildrenEmitted;
+        return this;
+    }
+
     public Document build() {
         if(id == null && project == null && path == null && content == null){
             throw new NullPointerException("Id, Project, Path or content are missing.");
@@ -206,7 +213,8 @@ public class DocumentBuilder {
         return new Document(project, id, path, content, content_translated, language,
                 charset, contentType, metadata, documentStatus,
                 pipelines, extractionDate, parentId, rootId, extractionLevel,
-                contentLength, tags, contentTypeCategory, recoveryStatus, pstExpected, pstEmitted, pstUnrecovered);
+                contentLength, tags, contentTypeCategory, recoveryStatus, pstExpected, pstEmitted, pstUnrecovered,
+                nbChildrenEmitted);
     }
 
 }

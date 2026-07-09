@@ -14,6 +14,15 @@ import org.junit.Test;
 
 public class DocumentBuilderTest {
     @Test
+    public void test_nb_children_emitted_round_trips() {
+        assertThat(DocumentBuilder.createDoc("id").withNbChildrenEmitted(42).build().getNbChildrenEmitted()).isEqualTo(42);
+        assertThat(DocumentBuilder.createDoc("id").build().getNbChildrenEmitted()).isNull();
+        // from() preserves it (index read-back path)
+        Document src = DocumentBuilder.createDoc("id").withNbChildrenEmitted(7).build();
+        assertThat(DocumentBuilder.from(src).build().getNbChildrenEmitted()).isEqualTo(7);
+    }
+
+    @Test
     public void test_build() {
         // Given
         String docId = "someId";
@@ -114,6 +123,7 @@ public class DocumentBuilderTest {
                 .with(contentTypeCategory)
                 .with(recoveryStatus)
                 .withPstCounts(5, 5, 0)
+                .withNbChildrenEmitted(5)
                 .withOcrParser(ocrParser).build();
     }
 

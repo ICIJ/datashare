@@ -78,6 +78,22 @@ public class ElasticsearchSpewerTest {
     }
 
     @Test
+    public void test_write_root_stub_marks_partial_with_child_count() throws Exception {
+        // A streaming parse aborted after some children were indexed but before the root was written.
+        // The stub must index a contentless root marked PARTIAL, recording how many children got in.
+        final TikaDocument root = new DocumentFactory().withIdentifier(new PathIdentifier()).create(get("aborted-container.ost"));
+
+        spewer.writeRootStub(root, 55363L);
+
+        GetResponse<ObjectNode> documentFields = es.client.get(doc -> doc.index(es.getIndexName()).id(root.getId()), ObjectNode.class);
+        assertThat(documentFields.found()).isTrue();
+        Map<String, Object> source = nodeToMap(documentFields.source());
+        assertThat(source.get("recoveryStatus")).isEqualTo("PARTIAL");
+        assertThat(((Number) source.get("nbChildrenEmitted")).intValue()).isEqualTo(55363);
+        assertThat(((Map<?, ?>) source.get("join")).get("name")).isEqualTo("Document");
+    }
+
+    @Test
     public void test_write_with_correct_iso1_language() throws Exception {
         Path path = get(requireNonNull(getClass().getResource("/docs/a/b/c/zho.txt")).getPath());
         DocumentFactory documentFactory = new DocumentFactory().configure(Options.from(new HashMap<>() {{

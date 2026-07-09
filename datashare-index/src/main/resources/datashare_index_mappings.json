@@ -97,6 +97,7 @@
     "pstExpected": { "type": "integer" },
     "pstEmitted": { "type": "integer" },
     "pstUnrecovered": { "type": "integer" },
+    "nbChildrenEmitted": { "type": "integer" },
     "nerTags": {
       "type": "keyword"
     },
