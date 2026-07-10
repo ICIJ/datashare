@@ -170,7 +170,7 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
             logger.debug("aborted parse: root {} already indexed, keeping it; not writing PARTIAL stub", shorten(root.getId(), 4));
             return false;
         }
-        String contentType = ofNullable(root.getMetadata().get(CONTENT_TYPE)).orElse(DEFAULT_VALUE_UNKNOWN).split(";")[0];
+        String contentType = baseContentType(ofNullable(root.getMetadata().get(CONTENT_TYPE)).orElse(DEFAULT_VALUE_UNKNOWN));
         Document document = DocumentBuilder.createDoc(root.getId())
                 .with(root.getPath())
                 .with(Document.Status.INDEXED)
@@ -196,13 +196,7 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
         // complete. A partial update preserves the already-indexed content/language/status. PST roots
         // already carry their COMPLETE/PARTIAL/LOSSY rollup from the initial write (applyParentRollup),
         // so their recoveryStatus is left untouched here.
-        Map<String, Object> fields = new HashMap<>();
-        fields.put("nbChildrenEmitted", (int) Math.min(writtenChildren, Integer.MAX_VALUE));
-        boolean isPstRoot = root.getMetadata().get(PST_EXPECTED) != null || root.getMetadata().get(PST_EMITTED) != null;
-        if (!isPstRoot) {
-            fields.put("recoveryStatus", Document.RecoveryStatus.COMPLETE.toString());
-        }
-        indexer.update(indexName, root.getId(), fields);
+        updateRootChildCount(root, writtenChildren, true);
         logger.info("finalized container root {} as complete with {} indexed child(ren): {}",
                 shorten(root.getId(), 4), writtenChildren, root);
     }
@@ -213,11 +207,34 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
         // child count on the still-PARTIAL stub via a partial update, WITHOUT touching recoveryStatus, so
         // the root stays PARTIAL (the container was not fully processed). A later re-run replaces the stub
         // with the fully-parsed root.
-        Map<String, Object> fields = new HashMap<>();
-        fields.put("nbChildrenEmitted", (int) Math.min(writtenChildren, Integer.MAX_VALUE));
-        indexer.update(indexName, root.getId(), fields);
+        updateRootChildCount(root, writtenChildren, false);
         logger.warn("aborted parse: refreshed PARTIAL root stub {} child count to {}: {}",
                 shorten(root.getId(), 4), writtenChildren, root);
+    }
+
+    // Partial (doc-merge) update of the container root's child count, int-clamped, preserving the
+    // already-indexed content/language/status. markComplete flips a non-PST root to COMPLETE (PST roots
+    // keep their applyParentRollup rollup either way); the aborted path passes false so the root stays
+    // PARTIAL.
+    private void updateRootChildCount(TikaDocument root, long writtenChildren, boolean markComplete) throws IOException {
+        Map<String, Object> fields = new HashMap<>();
+        fields.put("nbChildrenEmitted", (int) Math.min(writtenChildren, Integer.MAX_VALUE));
+        if (markComplete) {
+            boolean isPstRoot = root.getMetadata().get(PST_EXPECTED) != null || root.getMetadata().get(PST_EMITTED) != null;
+            if (!isPstRoot) {
+                fields.put("recoveryStatus", Document.RecoveryStatus.COMPLETE.toString());
+            }
+        }
+        indexer.update(indexName, root.getId(), fields);
+    }
+
+    // Tika's Content-Type may carry parameters after ';' (e.g. "text/plain;charset=utf-8"); keep the
+    // media-type prefix. Uses substring rather than split(";")[0] because a value of only ";" splits to
+    // an empty array and [0] would throw -- and a crash here would abort the (stub or real) root write
+    // and orphan already-streamed children, exactly what these writes exist to prevent.
+    private static String baseContentType(String rawContentType) {
+        int semicolon = rawContentType.indexOf(';');
+        return semicolon >= 0 ? rawContentType.substring(0, semicolon) : rawContentType;
     }
 
     // Defensive parse: a non-numeric Content-Length must not abort the stub write (that would leave the
@@ -245,7 +262,7 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
     Document getDocument(TikaDocument document, TikaDocument root, TikaDocument parent, short level) throws IOException {
         Charset charset = Charset.isSupported(ofNullable(document.getMetadata().get(CONTENT_ENCODING)).orElse(DEFAULT_VALUE_UNKNOWN)) ?
                 Charset.forName(document.getMetadata().get(CONTENT_ENCODING)) : StandardCharsets.US_ASCII;
-        String contentType = ofNullable(document.getMetadata().get(CONTENT_TYPE)).orElse(DEFAULT_VALUE_UNKNOWN).split(";")[0];
+        String contentType = baseContentType(ofNullable(document.getMetadata().get(CONTENT_TYPE)).orElse(DEFAULT_VALUE_UNKNOWN));
         DocumentBuilder builder = DocumentBuilder.createDoc(document.getId())
                 .with(document.getPath())
                 .with(Document.Status.INDEXED)
