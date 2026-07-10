@@ -671,7 +671,7 @@ public class UserResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
-    public void test_list_users_project_scope_filters_permissions() {
+    public void test_list_users_index_scope_filters_permissions() {
         User titi = new User("titi", "Titi", "titi@t.com", "local", new HashMap<>());
         when(userAdminService.list(new UserFilter(null), null, 0, Integer.MAX_VALUE))
                 .thenReturn(new WebResponse<>(List.of(titi), 0, Integer.MAX_VALUE, 1));
@@ -679,10 +679,37 @@ public class UserResourceTest extends AbstractProdWebServerTest {
         authorizer.addRoleForUserInProject(User.localUser("titi"), Role.PROJECT_EDITOR, Domain.DEFAULT, new Project("local-datashare"));
 
         // scoped to default::cantina → only cantina permission should appear
-        String body = get("/api/users?domain=default&project=cantina").response().content();
+        String body = get("/api/users?domain=default&index=cantina").response().content();
         assertTrue(body.contains("PROJECT_ADMIN"));
         assertTrue(body.contains("default::cantina"));
         assertFalse(body.contains("local-datashare"));
+    }
+
+    @Test
+    public void test_list_users_index_scope_without_domain_filters_permissions() {
+        User titi = new User("titi", "Titi", "titi@t.com", "local", new HashMap<>());
+        when(userAdminService.list(new UserFilter(null), null, 0, Integer.MAX_VALUE))
+                .thenReturn(new WebResponse<>(List.of(titi), 0, Integer.MAX_VALUE, 1));
+        authorizer.addRoleForUserInProject(User.localUser("titi"), Role.PROJECT_ADMIN, Domain.DEFAULT, new Project("cantina"));
+        authorizer.addRoleForUserInProject(User.localUser("titi"), Role.PROJECT_EDITOR, Domain.DEFAULT, new Project("local-datashare"));
+
+        // scoped to index=cantina only (no domain param) → only cantina permission should appear
+        String body = get("/api/users?index=cantina").response().content();
+        assertTrue(body.contains("PROJECT_ADMIN"));
+        assertTrue(body.contains("default::cantina"));
+        assertFalse(body.contains("local-datashare"));
+    }
+
+    @Test
+    public void test_list_users_index_scope_without_domain_excludes_revoked_user() {
+        User titi = new User("titi", "Titi", "titi@t.com", "local", new HashMap<>());
+        when(userAdminService.list(new UserFilter(null), null, 0, Integer.MAX_VALUE))
+                .thenReturn(new WebResponse<>(List.of(titi), 0, Integer.MAX_VALUE, 1));
+        // titi's cantina role was revoked, but they still hold a role on another project
+        authorizer.addRoleForUserInProject(User.localUser("titi"), Role.PROJECT_EDITOR, Domain.DEFAULT, new Project("local-datashare"));
+
+        get("/api/users?index=cantina").should().respond(200)
+                .not().contain("titi");
     }
 
     @Test
