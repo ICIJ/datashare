@@ -62,6 +62,24 @@ public class UserAdminServiceImplTest {
     }
 
     @Test
+    public void test_create_external_user_persists_hashed_password() throws Exception {
+        when(userStore.find("alice")).thenReturn(null);
+        when(userStore.save(any(User.class))).thenReturn(true);
+
+        service.create(new UserCreateRequest(
+                "alice", "alice@example.org", "Alice",
+                "supersecret", "external", List.of()));
+
+        ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
+        verify(userStore).save(captor.capture());
+        User saved = captor.getValue();
+
+        assertThat(saved.provider).isEqualTo("external");
+        assertThat(saved.details.get("password"))
+                .isEqualTo(Hasher.SHA_256.hash("supersecret"));
+    }
+
+    @Test
     public void test_create_oauth_user_does_not_store_password() throws Exception {
         when(userStore.find("bob")).thenReturn(null);
         when(userStore.save(any(User.class))).thenReturn(true);
