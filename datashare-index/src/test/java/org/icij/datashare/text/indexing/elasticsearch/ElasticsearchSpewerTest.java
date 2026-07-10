@@ -96,6 +96,29 @@ public class ElasticsearchSpewerTest {
     }
 
     @Test
+    public void test_write_root_stub_returns_true_on_first_write_and_false_when_root_exists() throws Exception {
+        final TikaDocument root = new DocumentFactory().withIdentifier(new PathIdentifier()).create(get("early-stub.ost"));
+
+        assertThat(spewer.writeRootStub(root, 1L)).isTrue();  // first write: a stub row was indexed
+        assertThat(spewer.writeRootStub(root, 2L)).isFalse(); // root now exists: no-op, no clobber
+    }
+
+    @Test
+    public void test_finalize_aborted_root_refreshes_count_and_keeps_partial() throws Exception {
+        // The early stub was written PARTIAL with an initial count; the parse then aborted.
+        final TikaDocument root = new DocumentFactory().withIdentifier(new PathIdentifier()).create(get("aborted-after-stub.ost"));
+        spewer.writeRootStub(root, 0L);
+
+        spewer.finalizeAbortedRoot(root, 4210L);
+
+        GetResponse<ObjectNode> documentFields = es.client.get(doc -> doc.index(es.getIndexName()).id(root.getId()), ObjectNode.class);
+        Map<String, Object> source = nodeToMap(documentFields.source());
+        assertThat(source.get("recoveryStatus")).isEqualTo("PARTIAL"); // NOT complete: the parse did not finish
+        assertThat(((Number) source.get("nbChildrenEmitted")).intValue()).isEqualTo(4210);
+        assertThat(source.get("content")).isEqualTo(""); // still contentless
+    }
+
+    @Test
     public void test_write_root_stub_does_not_overwrite_an_already_indexed_root() throws Exception {
         // A prior run indexed this container fully (content + real status).
         final TikaDocument existing = new DocumentFactory().withIdentifier(new PathIdentifier()).create(get("prior-complete.ost"));

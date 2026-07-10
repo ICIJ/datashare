@@ -152,7 +152,7 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
     }
 
     @Override
-    public void writeRootStub(TikaDocument root, long writtenChildren) throws IOException {
+    public boolean writeRootStub(TikaDocument root, long writtenChildren) throws IOException {
         // The streaming parse aborted (timeout/cancel/OOM) after some embedded children had already
         // been indexed, but before the real root was written. Index a minimal, contentless root so
         // those children are not orphaned under a missing root; mark it PARTIAL and record how many
@@ -160,7 +160,7 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
         // the fully-parsed root. No content is read here: the parse is gone and its reader/temp files
         // may already be torn down.
         if (root.isDuplicate()) {
-            return;
+            return false;
         }
         // Never clobber an already-indexed root: a prior successful run may have indexed this container
         // fully (content, search text, its real recovery status), and overwriting it with a contentless
@@ -168,7 +168,7 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
         // there is nothing to do. (A stub left by an earlier aborted run is likewise kept as-is.)
         if (isDuplicate(root.getId())) {
             logger.debug("aborted parse: root {} already indexed, keeping it; not writing PARTIAL stub", shorten(root.getId(), 4));
-            return;
+            return false;
         }
         String contentType = ofNullable(root.getMetadata().get(CONTENT_TYPE)).orElse(DEFAULT_VALUE_UNKNOWN).split(";")[0];
         Document document = DocumentBuilder.createDoc(root.getId())
@@ -186,6 +186,7 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
         indexer.add(indexName, document);
         logger.warn("aborted parse: wrote PARTIAL root stub {} with {} indexed child(ren): {}",
                 shorten(root.getId(), 4), writtenChildren, root);
+        return true;
     }
 
     @Override
@@ -203,6 +204,19 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
         }
         indexer.update(indexName, root.getId(), fields);
         logger.info("finalized container root {} as complete with {} indexed child(ren): {}",
+                shorten(root.getId(), 4), writtenChildren, root);
+    }
+
+    @Override
+    public void finalizeAbortedRoot(TikaDocument root, long writtenChildren) throws IOException {
+        // The parse aborted after the early stub was written but before the real root write. Refresh the
+        // child count on the still-PARTIAL stub via a partial update, WITHOUT touching recoveryStatus, so
+        // the root stays PARTIAL (the container was not fully processed). A later re-run replaces the stub
+        // with the fully-parsed root.
+        Map<String, Object> fields = new HashMap<>();
+        fields.put("nbChildrenEmitted", (int) Math.min(writtenChildren, Integer.MAX_VALUE));
+        indexer.update(indexName, root.getId(), fields);
+        logger.warn("aborted parse: refreshed PARTIAL root stub {} child count to {}: {}",
                 shorten(root.getId(), 4), writtenChildren, root);
     }
 
