@@ -150,6 +150,18 @@ public class ElasticsearchSpewerTest {
     }
 
     @Test
+    public void test_write_root_stub_tolerates_semicolon_only_content_type() throws Exception {
+        final TikaDocument root = new DocumentFactory().withIdentifier(new PathIdentifier()).create(get("weird-ctype.ost"));
+        root.getMetadata().set("Content-Type", ";"); // all-semicolon: split(";")[0] would throw and orphan the children
+
+        spewer.writeRootStub(root, 7L); // must not throw
+
+        GetResponse<ObjectNode> documentFields = es.client.get(doc -> doc.index(es.getIndexName()).id(root.getId()), ObjectNode.class);
+        assertThat(documentFields.found()).isTrue();
+        assertThat(nodeToMap(documentFields.source()).get("recoveryStatus")).isEqualTo("PARTIAL");
+    }
+
+    @Test
     public void test_finalize_root_marks_complete_with_child_count_preserving_content() throws Exception {
         // A container parsed to completion: its root was indexed with content during the parse.
         final TikaDocument root = new DocumentFactory().withIdentifier(new PathIdentifier()).create(get("finished-container.zip"));
