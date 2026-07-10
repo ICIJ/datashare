@@ -1,8 +1,14 @@
 package org.icij.datashare.user.admin;
 
+import org.icij.datashare.policies.Authorizer;
+import org.icij.datashare.policies.CasbinRule;
+import org.icij.datashare.policies.Domain;
+import org.icij.datashare.policies.Role;
 import org.icij.datashare.session.DatashareUser;
+import org.icij.datashare.session.PostLoginEnroller;
 import org.icij.datashare.session.UserStore;
 import org.icij.datashare.text.Hasher;
+import org.icij.datashare.text.Project;
 import org.icij.datashare.user.User;
 import org.icij.datashare.user.admin.UserFilter;
 import org.icij.datashare.web.WebResponse;
@@ -26,12 +32,14 @@ import static org.mockito.Mockito.when;
 
 public class UserAdminServiceImplTest {
     private UserStore userStore;
+    private Authorizer authorizer;
     private UserAdminServiceImpl service;
 
     @Before
     public void setUp() {
         userStore = mock(UserStore.class);
-        service = new UserAdminServiceImpl(userStore);
+        authorizer = mock(Authorizer.class);
+        service = new UserAdminServiceImpl(userStore, new PostLoginEnroller(authorizer));
     }
 
     @Test
@@ -412,5 +420,33 @@ public class UserAdminServiceImplTest {
                 new UserUpdateRequest(null, null, null, List.of("p2", "p3")));
 
         assertThat(result.groups()).containsExactly("p2", "p3");
+    }
+
+    @Test
+    public void test_update_revokes_casbin_role_when_group_removed() throws Exception {
+        User alice = new User("alice", "Alice", "alice@example.org", "local",
+                Map.of("uid", "alice", "name", "Alice", "email", "alice@example.org",
+                        "groups_by_applications", Map.of("datashare", List.of("p1"))));
+        when(userStore.find("alice")).thenReturn(new DatashareUser(alice));
+        when(userStore.save(any(User.class))).thenReturn(true);
+        when(authorizer.getGroupPermissions(any(User.class), eq(Domain.DEFAULT))).thenReturn(List.of(
+                new CasbinRule("g", "alice", "PROJECT_MEMBER", "default::p1")));
+
+        service.update("alice", new UserUpdateRequest(null, null, null, List.of()));
+
+        verify(authorizer).deleteRoleForUserInProject(any(User.class), eq(Role.PROJECT_MEMBER), eq(Domain.DEFAULT), eq(new Project("p1")));
+    }
+
+    @Test
+    public void test_update_grants_casbin_role_when_group_added() throws Exception {
+        User alice = new User("alice", "Alice", "alice@example.org", "local",
+                Map.of("uid", "alice", "name", "Alice", "email", "alice@example.org",
+                        "groups_by_applications", Map.of("datashare", List.of())));
+        when(userStore.find("alice")).thenReturn(new DatashareUser(alice));
+        when(userStore.save(any(User.class))).thenReturn(true);
+
+        service.update("alice", new UserUpdateRequest(null, null, null, List.of("p2")));
+
+        verify(authorizer).addRoleForUserInProject(any(User.class), eq(Role.PROJECT_MEMBER), eq(Domain.DEFAULT), eq(new Project("p2")));
     }
 }
