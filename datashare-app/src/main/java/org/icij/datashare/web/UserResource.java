@@ -18,6 +18,7 @@ import org.icij.datashare.UserEvent.Type;
 import org.icij.datashare.cli.Validators;
 import org.icij.datashare.policies.Authorizer;
 import org.icij.datashare.policies.CasbinRule;
+import org.icij.datashare.policies.Domain;
 import org.icij.datashare.policies.Policy;
 import org.icij.datashare.policies.Role;
 import org.icij.datashare.project.admin.ProjectAdminService;
@@ -79,7 +80,7 @@ public class UserResource {
         this.projectAdminService = projectAdminService;
     }
 
-    @Operation(description = "Lists users. Optional scope: ?domain=X or ?domain=X&project=Y. " +
+    @Operation(description = "Lists users. Optional scope: ?domain=X or ?domain=X&index=Y. " +
             "Filters: q (free-text on uid/name/email), noRole (true=include no-role users, false=exclude them). " +
             "Sort: login | email | name | role, desc=true for descending. Paginated with from/size.")
     @ApiResponse(responseCode = "200", useReturnTypeSchema = true)
@@ -90,14 +91,14 @@ public class UserResource {
     public Payload listUsers(Context context) {
         String q          = context.get("q");
         String domain     = context.get("domain");
-        String project    = context.get("project");
+        String index      = context.get("index");
         String sortParam  = context.get("sort");
         boolean desc      = Boolean.parseBoolean(context.get("desc"));
         int from = Integer.parseInt(Optional.ofNullable(context.get("from")).orElse("0"));
         int size = Integer.parseInt(Optional.ofNullable(context.get("size")).orElse("100"));
         String noRoleParam = context.get("noRole");
         Boolean noRole    = noRoleParam != null ? Boolean.parseBoolean(noRoleParam) : null;
-        boolean isScoped  = domain != null || project != null;
+        boolean isScoped  = domain != null || index != null;
 
         // 0. Validate sort param early
         if (sortParam != null && !sortParam.isBlank()
@@ -126,7 +127,7 @@ public class UserResource {
             List<UserListItem.Permission> permissions = rulesByUid
                     .getOrDefault(user.id, List.of())
                     .stream()
-                    .filter(r -> matchesScope(r.getV2(), domain, project))
+                    .filter(r -> matchesScope(r.getV2(), domain, index))
                     .map(r -> new UserListItem.Permission(r.getV1(), r.getV2()))
                     .collect(Collectors.toList());
             return new UserListItem(user.id, user.name, user.email, permissions);
@@ -164,13 +165,14 @@ public class UserResource {
         return new Payload(WebResponse.fromStream(stream, from, size));
     }
 
-    private static boolean matchesScope(String v2, String domain, String project) {
-        if (domain == null) return true;
+    private static boolean matchesScope(String v2, String domain, String index) {
+        if (domain == null && index == null) return true;
+        String effectiveDomain = domain != null ? domain : Domain.DEFAULT.id();
         if ("*::*".equals(v2)) return true;
-        if (project != null) {
-            return v2.equals(domain + "::" + project) || v2.equals(domain + "::*");
+        if (index != null) {
+            return v2.equals(effectiveDomain + "::" + index) || v2.equals(effectiveDomain + "::*");
         }
-        return v2.startsWith(domain + "::");
+        return v2.startsWith(effectiveDomain + "::");
     }
 
     private static int roleOrdinal(String roleName) {
