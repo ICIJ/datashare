@@ -2,15 +2,16 @@ package org.icij.datashare.user.admin;
 
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
-import org.icij.datashare.cli.AuthUsersProvider;
-import org.icij.datashare.cli.Mode;
 import org.icij.datashare.cli.Validators;
+import org.icij.datashare.session.DatashareUser;
+import org.icij.datashare.session.PostLoginEnroller;
 import org.icij.datashare.session.UserStore;
 import org.icij.datashare.text.Hasher;
 import org.icij.datashare.user.User;
 
 import org.icij.datashare.web.WebResponse;
 
+import javax.annotation.Nullable;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -18,16 +19,17 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import static org.icij.datashare.cli.DatashareCliOptions.AUTH_USERS_PROVIDER_OPT;
-
 @Singleton
 public class UserAdminServiceImpl implements UserAdminService {
 
     private final UserStore userStore;
+    @Nullable
+    private final PostLoginEnroller postLoginEnroller;
 
     @Inject
-    public UserAdminServiceImpl(UserStore userStore) {
+    public UserAdminServiceImpl(UserStore userStore, @Nullable PostLoginEnroller postLoginEnroller) {
         this.userStore = userStore;
+        this.postLoginEnroller = postLoginEnroller;
     }
 
     @Override
@@ -116,6 +118,9 @@ public class UserAdminServiceImpl implements UserAdminService {
 
         User updated = new User(login, newName, newEmail, existing.provider, details);
         userStore.save(updated);
+        if (postLoginEnroller != null) {
+            postLoginEnroller.enroll(new DatashareUser(updated));
+        }
         return new UserCreated(login, newEmail, newName, existing.provider, newGroups, false);
     }
 
