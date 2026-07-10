@@ -2,6 +2,8 @@ package org.icij.datashare.user.admin;
 
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
+import org.icij.datashare.cli.AuthUsersProvider;
+import org.icij.datashare.cli.Mode;
 import org.icij.datashare.cli.Validators;
 import org.icij.datashare.session.UserStore;
 import org.icij.datashare.text.Hasher;
@@ -15,6 +17,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
+import static org.icij.datashare.cli.DatashareCliOptions.AUTH_USERS_PROVIDER_OPT;
 
 @Singleton
 public class UserAdminServiceImpl implements UserAdminService {
@@ -118,6 +122,9 @@ public class UserAdminServiceImpl implements UserAdminService {
     private static boolean isLocal(UserCreateRequest request) {
         return User.LOCAL.equals(request.provider());
     }
+    private boolean isExternal(UserCreateRequest request) {
+        return User.EXTERNAL.equals(request.provider());
+    }
 
     private void validate(UserCreateRequest request) throws ValidationException {
         try {
@@ -139,7 +146,7 @@ public class UserAdminServiceImpl implements UserAdminService {
         details.put("name", name);
         details.put("email", request.email());
 
-        if (isLocal(request) && request.password() != null) {
+        if ((isLocal(request) || isExternal(request)) && request.password() != null) {
             details.put("password", Hasher.SHA_256.hash(request.password()));
         }
 
