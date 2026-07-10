@@ -45,6 +45,11 @@ import static java.util.Optional.ofNullable;
  * but a session user cache that should be discarded after the session
  * ends (for example with a Redis key ttl).
  *
+ * On each successful login the user is also upserted into the durable
+ * {@link UserStore} (user inventory) so that users authenticated by the
+ * OAuth provider can be listed and managed. The OAuth provider is the
+ * source of truth for the user's name, email and details.
+ *
  * If you need to add custom processing for saved user session
  * feel free to override createUser or even processOAuthApiResponse.
  * see {@link #processOAuthApiResponse(Response) processOAuthApiResponse}
@@ -76,11 +81,13 @@ public class OAuth2CookieFilter extends DatashareAuthFilter {
     @Nullable
     private final PostLoginEnroller postLoginEnroller;
     private final UsersIdProviderCache usersCache;
+    private final UserStore userStore;
 
     @Inject
-    public OAuth2CookieFilter(PropertiesProvider propertiesProvider, UsersIdProviderCache users, SessionIdStore sessionIdStore, @Nullable PostLoginEnroller postLoginEnroller) {
+    public OAuth2CookieFilter(PropertiesProvider propertiesProvider, UsersIdProviderCache users, UserStore userStore, SessionIdStore sessionIdStore, @Nullable PostLoginEnroller postLoginEnroller) {
         super(propertiesProvider.get("protectedUriPrefix").orElse("/"), users, sessionIdStore);
         this.usersCache = users;
+        this.userStore = userStore;
         this.oauthAuthorizeUrl = propertiesProvider.get("oauthAuthorizeUrl").orElse("http://localhost");
         this.oauthTokenUrl = propertiesProvider.get("oauthTokenUrl").orElse("http://localhost");
         this.oauthApiUrl = propertiesProvider.get("oauthApiUrl").orElse("http://localhost");
@@ -157,6 +164,7 @@ public class OAuth2CookieFilter extends DatashareAuthFilter {
         }
         DatashareUser datashareUser = createUser(userMap);
         usersCache.saveOrUpdate(datashareUser);
+        userStore.save(datashareUser);
         if (postLoginEnroller != null) {
             postLoginEnroller.enroll(datashareUser);
         }
