@@ -166,9 +166,9 @@ public final class Authorizer implements Closeable {
         // Get all grouping policies for the user that provide instance-wide access
         // This includes: *::* (instance), domain::* (domain), and domain::project (project level)
         List<List<String>> list;
-        if (user != null && user.id != null) {String userId = user.id;
+        if (user != null && user.id != null) {
             list = enforcer.getGroupingPolicy().stream()
-                    .filter(rule -> !rule.isEmpty() && rule.get(0).toLowerCase().contains(userId.toLowerCase()))
+                    .filter(rule -> !rule.isEmpty() && rule.get(0).equals(user.id))
                     .collect(Collectors.toList());
         } else {
             list = enforcer.getGroupingPolicy();
