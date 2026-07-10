@@ -17,6 +17,11 @@ import java.util.regex.Pattern;
 
 import static java.lang.String.format;
 import static org.fest.assertions.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.reset;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
 public class OAuth2CookieFilterTest implements FluentRestTest {
     private static final WebServer identityProvider = new WebServer() {
@@ -33,15 +38,16 @@ public class OAuth2CookieFilterTest implements FluentRestTest {
         put("oauthClientSecret", "abcdef");
         put("oauthCallbackPath", "/auth/callback");
     }});
+    static UserStore userStore = mock(UserStore.class);
     static OAuth2CookieFilter oAuth2Filter = new OAuth2CookieFilter(propertiesProvider,
-            new UsersIdProviderRedisCache(propertiesProvider), new RedisSessionIdStore(propertiesProvider), null);
+            new UsersIdProviderRedisCache(propertiesProvider), userStore, new RedisSessionIdStore(propertiesProvider), null);
 
     @Test(expected = IllegalStateException.class)
     public void test_callback_url_should_not_start_with_login_url() {
         oAuth2Filter = new OAuth2CookieFilter(new PropertiesProvider(new HashMap<>() {{
             put("oauthSigninPath", "/auth/login/");
             put("oauthCallbackPath", "/auth/login/callback");
-        }}), new UsersIdProviderRedisCache(propertiesProvider), new RedisSessionIdStore(propertiesProvider), null);
+        }}), new UsersIdProviderRedisCache(propertiesProvider), userStore, new RedisSessionIdStore(propertiesProvider), null);
     }
 
     @Test
@@ -141,6 +147,17 @@ public class OAuth2CookieFilterTest implements FluentRestTest {
         this.get(response.header("location").get(0)).withHeader("cookie",cookieAll[0]+"="+cookieValue)
                 .should().contain("hello Nobody")
                 .should().contain("uid=123");
+    }
+
+    @Test
+    public void test_callback_should_persist_user_in_user_store_at_each_login() throws Exception {
+        reset(userStore);
+        Response response = this.get("/auth/signin").response();
+        this.get("/auth/callback?code=a0b1c2d3e4f5&state=" + getState(response.content())).withFollowRedirect(false).response();
+        response = this.get("/auth/signin").response();
+        this.get("/auth/callback?code=a0b1c2d3e4f5&state=" + getState(response.content())).withFollowRedirect(false).response();
+
+        verify(userStore, times(2)).save(argThat(user -> "123".equals(user.id)));
     }
 
     @BeforeClass
