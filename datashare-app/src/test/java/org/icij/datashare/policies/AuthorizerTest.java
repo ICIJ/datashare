@@ -310,12 +310,13 @@ public class AuthorizerTest {
     }
 
     @Test
-    public void test_get_permissions_with_partial_user_filter() {
+    public void test_get_permissions_with_user_filter_requires_exact_match() {
         User cdesprat = localUser("cdesprat");
         authorizer.addRoleForUserInProject(cdesprat, Role.PROJECT_MEMBER, domain, project);
 
-        List<CasbinRule> permissions = authorizer.getGroupPermissions(localUser("cdes"));
+        assertTrue(authorizer.getGroupPermissions(localUser("cdes")).isEmpty());
 
+        List<CasbinRule> permissions = authorizer.getGroupPermissions(localUser("cdesprat"));
         assertFalse(permissions.isEmpty());
         assertTrue(permissions.stream().anyMatch(p -> p.getV0().equals("cdesprat")));
     }
