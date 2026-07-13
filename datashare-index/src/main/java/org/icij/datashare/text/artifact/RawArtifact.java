@@ -31,18 +31,15 @@ public class RawArtifact implements Artifact {
         try {
             // extract-lib writes the raw/raw.json bytes for the embedded subtree as a side effect.
             context.sources().extractEmbeddedSources(context.project(), document);
-            // A root's source is the on-disk original, served directly and never copied here, so there is
-            // no payload in this dir. Record an empty entry so the root is not reprocessed on every run.
-            if (document.getExtractionLevel() <= 0) {
-                return ManifestEntry.empty(taskInput());
-            }
-            ManifestEntry entry = ManifestEntry.singleFile(taskInput(), document.getContentType(), document.getName());
+            ManifestEntry entry = entryFor(document);
+            // A root has no payload in this dir, so there is nothing to verify. For an embedded node,
             // extractAll can return normally without ever writing THIS polled document's bytes: a
             // per-message parse failure the resilient parser swallows, a mid-walk abort, a corrupt
             // entry, an OCR-off image... Verify the raw payload actually landed before handing back
             // a terminal-able entry, so a silent miss fails loudly (nbFailed, re-runnable) instead of
             // being recorded as produced.
-            if (Files.notExists(context.docArtifactDir().resolve(ArtifactPath.RAW_FILE))) {
+            if (document.getExtractionLevel() > 0
+                    && Files.notExists(context.docArtifactDir().resolve(ArtifactPath.RAW_FILE))) {
                 throw new ArtifactException("raw extraction produced no bytes for " + document.getId(), null);
             }
             return entry;
@@ -51,5 +48,16 @@ public class RawArtifact implements Artifact {
         } catch (Exception extractionFailure) {
             throw new ArtifactException("raw extraction failed for " + document.getId(), extractionFailure);
         }
+    }
+
+    /** Build the raw manifest entry for an already-extracted document, without touching the
+     *  filesystem. Shared by produce() and the INDEX-time ManifestRecorder so both stages emit
+     *  the same entry. A root's source is the on-disk original (no payload here), so it records
+     *  an empty entry; an embedded node records its single-file payload. */
+    public ManifestEntry entryFor(Document document) {
+        if (document.getExtractionLevel() <= 0) {
+            return ManifestEntry.empty(taskInput());
+        }
+        return ManifestEntry.singleFile(taskInput(), document.getContentType(), document.getName());
     }
 }
