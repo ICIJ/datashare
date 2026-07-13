@@ -4,6 +4,7 @@ import com.google.inject.Inject;
 import org.icij.datashare.*;
 import org.icij.datashare.extract.DocumentCollectionFactory;
 import org.icij.datashare.text.*;
+import org.icij.datashare.text.artifact.ManifestRecorder;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.text.indexing.LanguageGuesser;
 import org.icij.extract.document.TikaDocument;
@@ -112,6 +113,7 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
     private final Hasher digestAlgorithm;
     private final DocumentQueue<String> outputQueue;
     public String indexName;
+    private ManifestRecorder manifestRecorder;
 
     @Inject
     public ElasticsearchSpewer(final Indexer indexer, DocumentCollectionFactory<String> outputQueueFactory, LanguageGuesser languageGuesser, final FieldNames fields,
@@ -142,6 +144,9 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
         } else {
             Document document = getDocument(doc, root, parent, (short) level);
             indexer.add(indexName, document);
+            if (manifestRecorder != null) {
+                manifestRecorder.record(document);
+            }
             String queueEntry = DocReference.fromDocument(document).toQueueEntry();
             if (!outputQueue.offer(queueEntry)) {
                 logger.warn("cannot offer {} to queue {}", queueEntry, outputQueue.getName());
@@ -401,6 +406,13 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
     public Spewer configure(Options<String> options) {
         super.configure(options);
         setIndex(options.valueIfPresent("projectName").orElse(options.get(DEFAULT_PROJECT_OPT).value().get()));
+        return this;
+    }
+
+    /** Opt-in: when set, records the raw manifest entry for each indexed document (INDEX-time
+     *  artifact generation). Null by default, so indexing is unchanged unless --artifacts is set. */
+    public ElasticsearchSpewer setManifestRecorder(ManifestRecorder manifestRecorder) {
+        this.manifestRecorder = manifestRecorder;
         return this;
     }
 
