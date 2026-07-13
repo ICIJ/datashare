@@ -145,7 +145,14 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
             Document document = getDocument(doc, root, parent, (short) level);
             indexer.add(indexName, document);
             if (manifestRecorder != null) {
-                manifestRecorder.record(document);
+                try {
+                    manifestRecorder.record(document);
+                } catch (Exception e) {
+                    // Mirror the ARTIFACT stage (ArtifactProducer.produce): a manifest-write failure
+                    // must not abort indexing of an already-indexed document, which would orphan a
+                    // container's children. Log and continue.
+                    logger.error("failed to record artifact manifest for {}", document.getId(), e);
+                }
             }
             String queueEntry = DocReference.fromDocument(document).toQueueEntry();
             if (!outputQueue.offer(queueEntry)) {
