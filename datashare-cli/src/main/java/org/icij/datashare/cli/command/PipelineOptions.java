@@ -26,7 +26,11 @@ public class PipelineOptions {
             description = "Artifact types to produce, comma-separated (bare flag = all types); unknown types are rejected.")
     String artifacts;
 
-    @Option(names = {"--artifactsForce"}, arity = "0..1", fallbackValue = "true", defaultValue = "false",
+    // Requires an explicit true/false (like --ocr / --followSymlinks) rather than a bare flag, so the
+    // JOpt (withRequiredArg) and picocli surfaces agree: absent -> false, --artifactsForce=false -> false,
+    // --artifactsForce=true -> reprocess. A bare flag is intentionally not allowed to avoid the two
+    // surfaces disagreeing on what "bare" means.
+    @Option(names = {"--artifactsForce"}, arity = "1", defaultValue = "false",
             description = "Reprocess artifacts even when an up-to-date manifest entry exists (bypasses caching).")
     boolean artifactsForce;
 
