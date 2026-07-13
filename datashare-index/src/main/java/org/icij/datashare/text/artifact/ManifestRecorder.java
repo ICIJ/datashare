@@ -4,6 +4,7 @@ import org.icij.datashare.text.Document;
 import org.icij.datashare.text.indexing.elasticsearch.ArtifactPath;
 
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 
@@ -32,11 +33,15 @@ public class ManifestRecorder {
             return;
         }
         Path docArtifactDir = ArtifactPath.dir(projectRoot, document.getId());
-        if (!force) {
-            ManifestEntry existing = repository.get(docArtifactDir, ArtifactType.RAW.token());
-            if (existing != null && existing.isTerminal() && existing.taskInput().equals(raw.taskInput())) {
-                return;
-            }
+        if (!force && ArtifactProducer.entryIsCurrent(repository.get(docArtifactDir, ArtifactType.RAW.token()), raw.taskInput())) {
+            return;
+        }
+        // Fix C (#2): for an embedded node, only record a COMPLETE entry once its raw payload is
+        // actually on disk (written by extract-lib during the parse). Otherwise skip, so a later
+        // ARTIFACT-stage run produces it rather than leaving a permanent false-COMPLETE. A root has
+        // no payload in its own dir, so it always records its EMPTY entry.
+        if (document.getExtractionLevel() > 0 && !Files.exists(docArtifactDir.resolve("raw"))) {
+            return;
         }
         repository.put(docArtifactDir, ArtifactType.RAW.token(), ArtifactProducer.stampTerminal(raw.entryFor(document)));
     }
