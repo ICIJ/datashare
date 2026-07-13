@@ -19,6 +19,17 @@ public class PipelineOptions {
     @Option(names = {"--artifactDir"}, description = "Artifact directory for embedded caching")
     String artifactDir;
 
+    // arity = "0..1" + fallbackValue = "true" mirrors the JOpt withOptionalArg semantics: a bare
+    // --artifacts means "all types", --artifacts=raw,structure selects a subset. Left null when
+    // absent so toProperties omits the key and INDEX produces no artifacts.
+    @Option(names = {"--artifacts"}, arity = "0..1", fallbackValue = "true",
+            description = "Artifact types to produce, comma-separated (bare flag = all types); unknown types are rejected.")
+    String artifacts;
+
+    @Option(names = {"--artifactsForce"}, arity = "0..1", fallbackValue = "true", defaultValue = "false",
+            description = "Reprocess artifacts even when an up-to-date manifest entry exists (bypasses caching).")
+    boolean artifactsForce;
+
     @Option(names = {"--nlpPipeline"}, description = "NLP pipeline to be run", defaultValue = "CORENLP")
     Pipeline.Type nlpPipeline;
 
@@ -95,6 +106,8 @@ public class PipelineOptions {
     public Properties toProperties() {
         Properties props = new Properties();
         DatashareOptions.putIfNotNull(props, ARTIFACT_DIR_OPT, artifactDir);
+        DatashareOptions.putIfNotNull(props, ARTIFACTS_OPT, artifacts);
+        DatashareOptions.put(props, ARTIFACTS_FORCE_OPT, artifactsForce);
         DatashareOptions.putIfNotNull(props, NLP_PIPELINE_OPT, nlpPipeline);
         DatashareOptions.put(props, NLP_PARALLELISM_OPT, nlpParallelism);
         DatashareOptions.put(props, NLP_BATCH_SIZE_OPT, batchSize);
