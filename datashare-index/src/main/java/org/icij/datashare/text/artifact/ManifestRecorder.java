@@ -2,6 +2,8 @@ package org.icij.datashare.text.artifact;
 
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.indexing.elasticsearch.ArtifactPath;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -17,7 +19,7 @@ import java.util.List;
  *  during the streaming parse, which today is {@link ArtifactType#RAW}. Any other selected type is
  *  produced by the ARTIFACT stage, not here. */
 public class ManifestRecorder {
-    private static final org.slf4j.Logger LOGGER = org.slf4j.LoggerFactory.getLogger(ManifestRecorder.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(ManifestRecorder.class);
     private final ManifestRepository repository;
     private final Path projectRoot;
     private final boolean force;
@@ -29,7 +31,7 @@ public class ManifestRecorder {
         this.projectRoot = projectRoot;
         this.force = force;
         this.rawSelected = selected.stream().anyMatch(artifact -> artifact.type() == ArtifactType.RAW);
-        java.util.List<String> deferredToArtifactStage = selected.stream()
+        List<String> deferredToArtifactStage = selected.stream()
                 .map(Artifact::type)
                 .filter(type -> type != ArtifactType.RAW)
                 .map(ArtifactType::token)
