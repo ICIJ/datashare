@@ -54,6 +54,7 @@ import static org.icij.datashare.cli.DatashareCliOptions.*;
 @TaskGroup(TaskGroupType.Java)
 public class IndexTask extends PipelineTask<Path> implements Monitorable{
     private final Logger logger = LoggerFactory.getLogger(getClass());
+    private final ElasticsearchSpewer spewer;
     private final Extractor extractor;
     private final DocumentQueueDrainer<Path> drainer;
     private final DocumentConsumer consumer;
@@ -67,36 +68,16 @@ public class IndexTask extends PipelineTask<Path> implements Monitorable{
     @Inject
     public IndexTask(final ElasticsearchSpewer spewer, final DocumentCollectionFactory<Path> factory, @Assisted Task<Long> taskView, @Assisted final Function<Double, Void> progressCallback) throws IOException {
         super(Stage.INDEX, taskView.getUser(), factory, new PropertiesProvider(taskView.args), Path.class);
+        this.spewer = spewer;
         parallelism = propertiesProvider.get(PARALLELISM_OPT).map(Integer::parseInt).orElse(Runtime.getRuntime().availableProcessors());
         indexTimeout = getIndexTimeout();
         warnIfParseTimeoutDisabled();
-
-        // --artifacts is opt-in and requires a place to write. Resolve the project the same way
-        // ElasticsearchSpewer.configure resolves the ES index name (prefer projectName, then
-        // defaultProject) so the manifest dir, the embedded raw bytes, and the ES index all agree.
-        Path artifactProjectRoot = null;
-        if (propertiesProvider.get(ARTIFACTS_OPT).isPresent()) {
-            String dir = propertiesProvider.get(ARTIFACT_DIR_OPT)
-                    .orElseThrow(() -> new IllegalArgumentException("--artifacts requires --artifactDir"));
-            String projectName = propertiesProvider.get("projectName")
-                    .orElse(propertiesProvider.get(DEFAULT_PROJECT_OPT).orElse(DEFAULT_DEFAULT_PROJECT));
-            artifactProjectRoot = Path.of(dir).resolve(projectName);
-            List<Artifact> selected = ArtifactRegistry.withDefaults().select(propertiesProvider.get(ARTIFACTS_OPT).get());
-            boolean force = Boolean.parseBoolean(propertiesProvider.get(ARTIFACTS_FORCE_OPT).orElse("false"));
-            spewer.setManifestRecorder(new ManifestRecorder(new FilesystemManifestRepository(), artifactProjectRoot, selected, force));
-        }
 
         Options<String> allTaskOptions = options().createFrom(Options.from(taskView.args));
         ((ElasticsearchSpewer) spewer.configure(allTaskOptions)).createIndexIfNotExists();
 
         DocumentFactory documentFactory = new DocumentFactory().configure(allTaskOptions);
         this.extractor = createExtractor(documentFactory, allTaskOptions);
-        if (artifactProjectRoot != null) {
-            // extract-lib writes embedded raw bytes only when embedOutput is set; the INDEX path
-            // never sets it otherwise. Point it at the same project root as the manifest recorder so
-            // --artifacts actually produces the payloads the manifest entries reference.
-            this.extractor.setEmbedOutputPath(artifactProjectRoot);
-        }
 
         consumer = new DocumentConsumer(spewer, this.extractor, this.parallelism);
         progressTrackConsumer = path -> {
@@ -116,6 +97,15 @@ public class IndexTask extends PipelineTask<Path> implements Monitorable{
     @Override
     public Long call() throws Exception {
         super.call();
+        // Opt-in artifact generation is wired here (not in the constructor) so a bad --artifacts
+        // config surfaces as a clean task error rather than a reflective-construction NackException
+        // that requeues forever. When set, extract-lib writes embed bytes to the same project root the
+        // ManifestRecorder writes manifests to.
+        ArtifactStages.artifactProjectRoot(propertiesProvider).ifPresent(projectRoot -> {
+            List<Artifact> selected = ArtifactRegistry.withDefaults().select(propertiesProvider.get(ARTIFACTS_OPT).get());
+            extractor.setEmbedOutputPath(projectRoot);
+            spewer.setManifestRecorder(new ManifestRecorder(new FilesystemManifestRepository(), projectRoot, selected, ArtifactStages.force(propertiesProvider)));
+        });
         logger.info("Processing up to {} file(s) in parallel", parallelism);
         try {
             totalToProcess = drainer.drain(PATH_POISON).get();

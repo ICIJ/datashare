@@ -16,7 +16,6 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.slf4j.event.Level;
 
-import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -178,56 +177,17 @@ public class IndexTaskTest {
                 .anyMatch(l -> l.contains("parseTimeout"))).isFalse();
     }
 
-    @Test(expected = IllegalArgumentException.class)
-    public void test_artifacts_without_artifact_dir_fails() throws Exception {
+    @Test
+    public void test_artifacts_without_artifact_dir_does_not_throw_at_construction() throws Exception {
         ElasticsearchSpewer spewer = mock(ElasticsearchSpewer.class);
         Mockito.when(spewer.configure(Mockito.any())).thenReturn(spewer);
+        // Must not throw: --artifacts validation is deferred to call() so a bad config is a clean
+        // task error, not a reflective-construction NackException that requeues forever.
         new IndexTask(spewer, mock(DocumentCollectionFactory.class),
                 new Task<>(IndexTask.class.getName(), nullUser(), new HashMap<>() {{
                     put("queueName", "test:queue");
                     put("artifacts", "true");
                 }}), null);
-    }
-
-    // Captures the Extractor built during construction so tests can assert embedOutput wiring.
-    static class CapturingIndexTask extends IndexTask {
-        Extractor captured;
-        CapturingIndexTask(ElasticsearchSpewer spewer, DocumentCollectionFactory<Path> factory, Task<Long> taskView) throws Exception {
-            super(spewer, factory, taskView, null);
-        }
-        @Override
-        protected Extractor createExtractor(DocumentFactory documentFactory, Options<String> options) {
-            captured = super.createExtractor(documentFactory, options);
-            return captured;
-        }
-    }
-
-    @Test
-    public void test_artifacts_sets_embed_output_to_artifact_project_root_preferring_project_name() throws Exception {
-        ElasticsearchSpewer spewer = mock(ElasticsearchSpewer.class);
-        Mockito.when(spewer.configure(Mockito.any())).thenReturn(spewer);
-        CapturingIndexTask task = new CapturingIndexTask(spewer, mock(DocumentCollectionFactory.class),
-                new Task<>(IndexTask.class.getName(), nullUser(), new HashMap<>() {{
-                    put("queueName", "test:queue");
-                    put("artifacts", "true");
-                    put("artifactDir", "/tmp/art");
-                    put("defaultProject", "foo");
-                    put("projectName", "bar");
-                }}));
-
-        assertThat((Object) task.captured.getEmbedOutputPath()).isEqualTo(Path.of("/tmp/art").resolve("bar"));
-    }
-
-    @Test
-    public void test_no_artifacts_leaves_embed_output_null() throws Exception {
-        ElasticsearchSpewer spewer = mock(ElasticsearchSpewer.class);
-        Mockito.when(spewer.configure(Mockito.any())).thenReturn(spewer);
-        CapturingIndexTask task = new CapturingIndexTask(spewer, mock(DocumentCollectionFactory.class),
-                new Task<>(IndexTask.class.getName(), nullUser(), new HashMap<>() {{
-                    put("queueName", "test:queue");
-                }}));
-
-        assertThat(task.captured.getEmbedOutputPath()).isNull();
     }
 
     @After
