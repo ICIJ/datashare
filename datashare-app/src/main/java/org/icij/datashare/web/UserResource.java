@@ -82,7 +82,7 @@ public class UserResource {
 
     @Operation(description = "Lists users. Optional scope: ?domain=X or ?domain=X&index=Y. " +
             "Filters: q (free-text on uid/name/email), noRole (true=include no-role users, false=exclude them). " +
-            "Sort: login | email | name | role, desc=true for descending. Paginated with from/size.")
+            "Sort: uid | email | name | role, desc=true for descending. Paginated with from/size.")
     @ApiResponse(responseCode = "200", useReturnTypeSchema = true)
     @ApiResponse(responseCode = "400", description = "invalid sort parameter")
     @ApiResponse(responseCode = "501", description = "store does not support listing")
@@ -102,11 +102,11 @@ public class UserResource {
 
         // 0. Validate sort param early
         if (sortParam != null && !sortParam.isBlank()
-                && !"login".equalsIgnoreCase(sortParam)
+                && !"uid".equalsIgnoreCase(sortParam)
                 && !"email".equalsIgnoreCase(sortParam)
                 && !"name".equalsIgnoreCase(sortParam)
                 && !"role".equalsIgnoreCase(sortParam)) {
-            return PayloadFormatter.error("sort must be one of: login, email, name, role", HttpStatus.BAD_REQUEST);
+            return PayloadFormatter.error("sort must be one of: uid, email, name, role", HttpStatus.BAD_REQUEST);
         }
 
         // 1. Fetch all users (q pre-filtered via UserFilter.matches in UsersInDb)
@@ -118,13 +118,13 @@ public class UserResource {
             return PayloadFormatter.error(e.getMessage(), HttpStatus.NOT_IMPLEMENTED);
         }
 
-        // 2. Build uid → rules map from Casbin
-        Map<String, List<CasbinRule>> rulesByUid = authorizer.getGroupPermissions().stream()
+        // 2. Build userId -> rules map from Casbin
+        Map<String, List<CasbinRule>> rulesByUserId = authorizer.getGroupPermissions().stream()
                 .collect(Collectors.groupingBy(CasbinRule::getV0));
 
         // 3. Build UserListItem stream: scope-filter permissions per user
         Stream<UserListItem> stream = users.stream().map(user -> {
-            List<UserListItem.Permission> permissions = rulesByUid
+            List<UserListItem.Permission> permissions = rulesByUserId
                     .getOrDefault(user.id, List.of())
                     .stream()
                     .filter(r -> matchesScope(r.getV2(), domain, index))
@@ -143,7 +143,7 @@ public class UserResource {
         // 5. Sort
         if (sortParam != null && !sortParam.isBlank()) {
             Comparator<UserListItem> comparator;
-            if ("login".equalsIgnoreCase(sortParam)) {
+            if ("uid".equalsIgnoreCase(sortParam)) {
                 comparator = Comparator.comparing(UserListItem::uid, String.CASE_INSENSITIVE_ORDER);
             } else if ("email".equalsIgnoreCase(sortParam)) {
                 comparator = Comparator.comparing(UserListItem::email, Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER));
@@ -155,7 +155,7 @@ public class UserResource {
                         .min()
                         .orElse(Integer.MAX_VALUE));
             } else {
-                return PayloadFormatter.error("sort must be one of: login, email, name, role", HttpStatus.BAD_REQUEST);
+                return PayloadFormatter.error("sort must be one of: uid, email, name, role", HttpStatus.BAD_REQUEST);
             }
             if (desc) comparator = comparator.reversed();
             stream = stream.sorted(comparator);
@@ -199,30 +199,30 @@ public class UserResource {
         }
     }
 
-    @Operation(description = "Gets a user by login.",
-            parameters = @Parameter(name = "login", in = ParameterIn.PATH))
+    @Operation(description = "Gets a user by userId (uid).",
+            parameters = @Parameter(name = "userId", in = ParameterIn.PATH))
     @ApiResponse(responseCode = "200", useReturnTypeSchema = true)
     @ApiResponse(responseCode = "404", description = "user not found")
     @Policy(role = Role.PROJECT_ADMIN)
-    @Get("/:login")
-    public Payload getUserByLogin(String login) {
+    @Get("/:userId")
+    public Payload getUserByUid(String userId) {
         try {
-            return new Payload(userAdminService.get(login));
+            return new Payload(userAdminService.get(userId));
         } catch (UserNotFoundException e) {
             return PayloadFormatter.error(e.getMessage(), HttpStatus.NOT_FOUND);
         }
     }
 
     @Operation(description = "Updates a user. Omit any field to keep its current value.",
-            parameters = @Parameter(name = "login", in = ParameterIn.PATH))
+            parameters = @Parameter(name = "userId", in = ParameterIn.PATH))
     @ApiResponse(responseCode = "200", useReturnTypeSchema = true)
     @ApiResponse(responseCode = "400", description = "validation error")
     @ApiResponse(responseCode = "404", description = "user not found")
     @Policy(role = Role.PROJECT_ADMIN)
-    @Put("/:login")
-    public Payload updateUser(String login, UserUpdateRequest request) {
+    @Put("/:userId")
+    public Payload updateUser(String userId, UserUpdateRequest request) {
         try {
-            return new Payload(userAdminService.update(login, request));
+            return new Payload(userAdminService.update(userId, request));
         } catch (UserNotFoundException e) {
             return PayloadFormatter.error(e.getMessage(), HttpStatus.NOT_FOUND);
         } catch (ValidationException e) {
@@ -230,20 +230,20 @@ public class UserResource {
         }
     }
 
-    @Operation(description = "Deletes a user by login. Idempotent: returns 204 even when the user does not exist.",
-            parameters = @Parameter(name = "login", in = ParameterIn.PATH))
+    @Operation(description = "Deletes a user by userId. Idempotent: returns 204 even when the user does not exist.",
+            parameters = @Parameter(name = "uid", in = ParameterIn.PATH))
     @ApiResponse(responseCode = "204", description = "user deleted or did not exist")
     @Policy(role = Role.PROJECT_ADMIN)
-    @Delete("/:login")
-    public Payload deleteUser(String login) {
-        userAdminService.deleteIfExists(login);
-        authorizer.removeAllPoliciesForUser(login);
+    @Delete("/:userId")
+    public Payload deleteUser(String userId) {
+        userAdminService.deleteIfExists(userId);
+        authorizer.removeAllPoliciesForUser(userId);
         return new Payload(204);
     }
 
     @Operation(description = "Grants a project role to a user. role query param must be one of admin|editor|member|visitor. " +
             "Set ifNotExists=true for the idempotent variant (no-op if the user already holds exactly that role).",
-            parameters = {@Parameter(name = "login", in = ParameterIn.PATH),
+            parameters = {@Parameter(name = "userId", in = ParameterIn.PATH),
                     @Parameter(name = "index", in = ParameterIn.PATH),
                     @Parameter(name = "role", in = ParameterIn.QUERY),
                     @Parameter(name = "ifNotExists", in = ParameterIn.QUERY)})
@@ -251,14 +251,14 @@ public class UserResource {
     @ApiResponse(responseCode = "400", description = "invalid role")
     @ApiResponse(responseCode = "404", description = "user or project not found")
     @Policy(role = Role.PROJECT_ADMIN)
-    @Put("/:login/index/:index")
-    public Payload grantProjectToUser(String login, String index, Context context) {
+    @Put("/:userId/index/:index")
+    public Payload grantProjectToUser(String userId, String index, Context context) {
         boolean ifNotExists = Boolean.parseBoolean(context.get("ifNotExists"));
         try {
             Role role = Validators.projectRole(context.get("role"));
             ProjectGranted granted = ifNotExists
-                    ? projectAdminService.grantIfNotExists(index, login, role)
-                    : projectAdminService.grant(index, login, role);
+                    ? projectAdminService.grantIfNotExists(index, userId, role)
+                    : projectAdminService.grant(index, userId, role);
             return new Payload(granted);
         } catch (Validators.InvalidValueException | org.icij.datashare.project.admin.ValidationException e) {
             return PayloadFormatter.error(e.getMessage(), HttpStatus.BAD_REQUEST);
@@ -269,19 +269,19 @@ public class UserResource {
 
     @Operation(description = "Revokes every role a user holds on a project. " +
             "Set ifExists=true for the idempotent variant (no-op if the user does not exist or holds no role).",
-            parameters = {@Parameter(name = "login", in = ParameterIn.PATH),
+            parameters = {@Parameter(name = "userId", in = ParameterIn.PATH),
                     @Parameter(name = "index", in = ParameterIn.PATH),
                     @Parameter(name = "ifExists", in = ParameterIn.QUERY)})
     @ApiResponse(responseCode = "200", useReturnTypeSchema = true)
     @ApiResponse(responseCode = "404", description = "user or project not found")
     @Policy(role = Role.PROJECT_ADMIN)
-    @Delete("/:login/index/:index")
-    public Payload revokeProjectFromUser(String login, String index, Context context) {
+    @Delete("/:userId/index/:index")
+    public Payload revokeProjectFromUser(String userId, String index, Context context) {
         boolean ifExists = Boolean.parseBoolean(context.get("ifExists"));
         try {
             ProjectRevoked revoked = ifExists
-                    ? projectAdminService.revokeIfExists(index, login)
-                    : projectAdminService.revoke(index, login);
+                    ? projectAdminService.revokeIfExists(index, userId)
+                    : projectAdminService.revoke(index, userId);
             return new Payload(revoked);
         } catch (ProjectNotFoundException | org.icij.datashare.project.admin.UserNotFoundException e) {
             return PayloadFormatter.error(e.getMessage(), HttpStatus.NOT_FOUND);

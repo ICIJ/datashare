@@ -260,7 +260,7 @@ public class UserResourceTest extends AbstractProdWebServerTest {
     public void test_create_user_returns_409_when_already_exists() throws Exception {
         when(userAdminService.create(any())).thenThrow(new UserExistsException("alice"));
 
-        post("/api/users", "{\"login\":\"alice\",\"email\":\"a@b.c\",\"provider\":\"local\",\"password\":\"pw\",\"groups\":[]}")
+        post("/api/users", "{\"uid\":\"alice\",\"email\":\"a@b.c\",\"provider\":\"local\",\"password\":\"pw\",\"groups\":[]}")
                 .should().respond(409);
     }
 
@@ -268,7 +268,7 @@ public class UserResourceTest extends AbstractProdWebServerTest {
     public void test_create_user_returns_400_on_validation_error() throws Exception {
         when(userAdminService.create(any())).thenThrow(new ValidationException("email", "email is required"));
 
-        post("/api/users", "{\"login\":\"alice\",\"provider\":\"local\",\"password\":\"pw\",\"groups\":[]}")
+        post("/api/users", "{\"uid\":\"alice\",\"provider\":\"local\",\"password\":\"pw\",\"groups\":[]}")
                 .should().respond(400);
     }
 
@@ -318,7 +318,7 @@ public class UserResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
-    public void test_get_user_by_login_returns_200() throws Exception {
+    public void test_get_user_by_userId_returns_200() throws Exception {
         User alice = new User("alice", "Alice", "alice@example.org", "local", new HashMap<>());
         when(userAdminService.get("alice")).thenReturn(alice);
 
@@ -326,7 +326,7 @@ public class UserResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
-    public void test_get_user_by_login_returns_404_when_not_found() throws Exception {
+    public void test_get_user_by_userId_returns_404_when_not_found() throws Exception {
         when(userAdminService.get("ghost")).thenThrow(new UserNotFoundException("ghost"));
 
         get("/api/users/ghost").should().respond(404);
@@ -419,7 +419,7 @@ public class UserResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
-    public void test_grant_project_does_not_conflict_with_me_route_when_login_is_me() throws Exception {
+    public void test_grant_project_does_not_conflict_with_me_route_when_userId_is_me() throws Exception {
         ProjectGranted granted = new ProjectGranted("someproject", "me", Role.PROJECT_ADMIN, null, false);
         when(projectAdminService.grant("someproject", "me", Role.PROJECT_ADMIN)).thenReturn(granted);
 
@@ -428,7 +428,7 @@ public class UserResourceTest extends AbstractProdWebServerTest {
         verify(projectAdminService).grant("someproject", "me", Role.PROJECT_ADMIN);
     }
 
-    // DELETE /api/users/:login/index/:index — revoke
+    // DELETE /api/users/:uid/index/:index — revoke
 
     @Test
     public void test_revoke_project_returns_200() throws Exception {
@@ -462,13 +462,13 @@ public class UserResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
-    public void test_list_users_sort_by_login_ascending() {
+    public void test_list_users_sort_by_uid_ascending() {
         User alice = new User("alice", "Alice", "a@a.com", "local", new HashMap<>());
         User bob   = new User("bob",   "Bob",   "b@b.com", "local", new HashMap<>());
         when(userAdminService.list(any(UserFilter.class), isNull(), eq(0), eq(Integer.MAX_VALUE)))
             .thenReturn(new WebResponse<>(List.of(bob, alice), 0, Integer.MAX_VALUE, 2));
 
-        String body = get("/api/users?sort=login").response().content();
+        String body = get("/api/users?sort=uid").response().content();
         assertTrue(body.indexOf("alice") < body.indexOf("bob"));
     }
 
@@ -496,7 +496,7 @@ public class UserResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
-    public void test_me_route_still_works_after_login_param_added() {
+    public void test_me_route_still_works_after_uid_param_added() {
         get("/api/users/me").should().respond(200).contain("\"uid\":\"local\"");
     }
 
@@ -523,24 +523,24 @@ public class UserResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
-    public void test_list_users_sort_login_orders_alphabetically() {
+    public void test_list_users_sort_uid_orders_alphabetically() {
         User alice = new User("alice", "Alice", "a@a.com", "local", new HashMap<>());
         User bob   = new User("bob",   "Bob",   "b@b.com", "local", new HashMap<>());
         when(userAdminService.list(any(UserFilter.class), isNull(), eq(0), eq(Integer.MAX_VALUE)))
                 .thenReturn(new WebResponse<>(List.of(bob, alice), 0, Integer.MAX_VALUE, 2));
 
-        String body = get("/api/users?sort=login").response().content();
+        String body = get("/api/users?sort=uid").response().content();
         assertTrue(body.indexOf("alice") < body.indexOf("bob"));
     }
 
     @Test
-    public void test_list_users_sort_login_desc_reverses_order() {
+    public void test_list_users_sort_uid_desc_reverses_order() {
         User alice = new User("alice", "Alice", "a@a.com", "local", new HashMap<>());
         User bob   = new User("bob",   "Bob",   "b@b.com", "local", new HashMap<>());
         when(userAdminService.list(any(UserFilter.class), isNull(), eq(0), eq(Integer.MAX_VALUE)))
                 .thenReturn(new WebResponse<>(List.of(alice, bob), 0, Integer.MAX_VALUE, 2));
 
-        String body = get("/api/users?sort=login&desc=true").response().content();
+        String body = get("/api/users?sort=uid&desc=true").response().content();
         // desc=true reverses: bob before alice
         assertTrue(body.indexOf("bob") < body.indexOf("alice"));
     }
@@ -603,8 +603,11 @@ public class UserResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
-    public void test_list_users_sort_uid_now_returns_400() {
-        get("/api/users?sort=uid").should().respond(400);
+    public void test_list_users_sort_uid_returns_200() {
+        when(userAdminService.list(any(UserFilter.class), isNull(), eq(0), eq(Integer.MAX_VALUE)))
+                .thenReturn(new WebResponse<>(List.of(), 0, Integer.MAX_VALUE, 0));
+
+        get("/api/users?sort=uid").should().respond(200);
     }
 
     @Test
@@ -746,13 +749,13 @@ public class UserResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
-    public void test_list_users_sort_login_ascending() {
+    public void test_list_users_sort_uid_ascending() {
         User charlie = new User("charlie", null, "c@c.com", "local", new HashMap<>());
         User alice   = new User("alice",   null, "a@a.com", "local", new HashMap<>());
         when(userAdminService.list(new UserFilter(null), null, 0, Integer.MAX_VALUE))
                 .thenReturn(new WebResponse<>(List.of(charlie, alice), 0, Integer.MAX_VALUE, 2));
 
-        String body = get("/api/users?sort=login").response().content();
+        String body = get("/api/users?sort=uid").response().content();
         assertTrue(body.indexOf("alice") < body.indexOf("charlie"));
     }
 
