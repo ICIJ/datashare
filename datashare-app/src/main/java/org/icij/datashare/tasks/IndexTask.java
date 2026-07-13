@@ -15,6 +15,12 @@ import org.icij.datashare.asynctasks.temporal.ActivityOpts;
 import org.icij.datashare.asynctasks.temporal.TemporalSingleActivityWorkflow;
 import org.icij.datashare.extract.DocumentCollectionFactory;
 import org.icij.datashare.monitoring.Monitorable;
+import org.icij.datashare.text.Project;
+import org.icij.datashare.text.artifact.Artifact;
+import org.icij.datashare.text.artifact.ArtifactRegistry;
+import org.icij.datashare.text.artifact.FilesystemManifestRepository;
+import org.icij.datashare.text.artifact.ManifestRecorder;
+import org.icij.datashare.text.artifact.RawArtifact;
 import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchSpewer;
 import org.icij.extract.document.DocumentFactory;
 import org.icij.extract.extractor.DocumentConsumer;
@@ -30,6 +36,7 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.time.Duration;
+import java.util.List;
 import org.icij.time.HumanDuration;
 
 import static java.lang.Math.max;
@@ -65,6 +72,16 @@ public class IndexTask extends PipelineTask<Path> implements Monitorable{
         parallelism = propertiesProvider.get(PARALLELISM_OPT).map(Integer::parseInt).orElse(Runtime.getRuntime().availableProcessors());
         indexTimeout = getIndexTimeout();
         warnIfParseTimeoutDisabled();
+
+        propertiesProvider.get(ARTIFACTS_OPT).ifPresent(artifactsValue -> {
+            String dir = propertiesProvider.get(ARTIFACT_DIR_OPT)
+                    .orElseThrow(() -> new IllegalArgumentException("--artifacts requires --artifactDir"));
+            Project project = Project.project(propertiesProvider.get(DEFAULT_PROJECT_OPT).orElse(DEFAULT_DEFAULT_PROJECT));
+            Path projectRoot = Path.of(dir).resolve(project.name);
+            List<Artifact> selected = new ArtifactRegistry(List.of(new RawArtifact())).select(artifactsValue);
+            boolean force = Boolean.parseBoolean(propertiesProvider.get(ARTIFACTS_FORCE_OPT).orElse("false"));
+            spewer.setManifestRecorder(new ManifestRecorder(new FilesystemManifestRepository(), projectRoot, selected, force));
+        });
 
         Options<String> allTaskOptions = options().createFrom(Options.from(taskView.args));
         ((ElasticsearchSpewer) spewer.configure(allTaskOptions)).createIndexIfNotExists();

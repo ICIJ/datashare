@@ -177,6 +177,17 @@ public class IndexTaskTest {
                 .anyMatch(l -> l.contains("parseTimeout"))).isFalse();
     }
 
+    @Test(expected = IllegalArgumentException.class)
+    public void test_artifacts_without_artifact_dir_fails() throws Exception {
+        ElasticsearchSpewer spewer = mock(ElasticsearchSpewer.class);
+        Mockito.when(spewer.configure(Mockito.any())).thenReturn(spewer);
+        new IndexTask(spewer, mock(DocumentCollectionFactory.class),
+                new Task<>(IndexTask.class.getName(), nullUser(), new HashMap<>() {{
+                    put("queueName", "test:queue");
+                    put("artifacts", "true");
+                }}), null);
+    }
+
     @After
     public void tearDown() throws Exception {
         logWrapper.reset();

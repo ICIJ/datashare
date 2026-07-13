@@ -48,6 +48,12 @@ public class ArtifactTaskTest {
         new ArtifactTask(factory, mockEs, new PropertiesProvider(Map.of()), new Task<>(ArtifactTask.class.getName(), User.local(), Map.of()), null);
     }
 
+    @Test(expected = IllegalArgumentException.class)
+    public void test_artifacts_without_artifact_dir_fails() {
+        new ArtifactTask(factory, mockEs, new PropertiesProvider(Map.of("artifacts", "true")),
+                new Task<>(ArtifactTask.class.getName(), User.local(), Map.of()), null);
+    }
+
     @Test(timeout = 10000)
     public void test_create_artifact_cache_one_file() throws Exception {
         indexEmbeddedDoc();
