@@ -6,6 +6,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 
@@ -31,9 +32,15 @@ public class ManifestRecorderTest {
                 .ofContentType("image/jpeg").withExtractionLevel((short) 1).build();
     }
 
+    private void writePayload(String docId) throws Exception {
+        Files.createDirectories(ArtifactPath.dir(projectRoot(), docId));
+        Files.write(ArtifactPath.dir(projectRoot(), docId).resolve("raw"), new byte[]{1, 2, 3});
+    }
+
     @Test
     public void test_records_single_file_entry_for_embedded() throws Exception {
         Document doc = embedded(EMBEDDED_ID);
+        writePayload(doc.getId());
 
         recorder(false).record(doc);
 
@@ -41,6 +48,29 @@ public class ManifestRecorderTest {
         assertThat(entry).isNotNull();
         assertThat(entry.isComplete()).isTrue();
         assertThat(entry.contentType()).isEqualTo("image/jpeg");
+        assertThat(entry.filename()).isEqualTo("image2.jpg");
+    }
+
+    @Test
+    public void test_skips_embedded_when_payload_missing() throws Exception {
+        Document doc = embedded(EMBEDDED_ID);
+
+        recorder(false).record(doc);
+
+        assertThat(repository.get(ArtifactPath.dir(projectRoot(), doc.getId()), "raw")).isNull();
+    }
+
+    @Test
+    public void test_null_task_input_entry_is_not_current() throws Exception {
+        Document doc = embedded(EMBEDDED_ID);
+        Path dir = ArtifactPath.dir(projectRoot(), doc.getId());
+        repository.put(dir, "raw", new ManifestEntry(ManifestEntryStatus.COMPLETE, null, null, null, null, null, null));
+        writePayload(doc.getId());
+
+        recorder(false).record(doc);
+
+        ManifestEntry entry = repository.get(dir, "raw");
+        assertThat(entry).isNotNull();
         assertThat(entry.filename()).isEqualTo("image2.jpg");
     }
 
@@ -61,6 +91,7 @@ public class ManifestRecorderTest {
         Path dir = ArtifactPath.dir(projectRoot(), doc.getId());
         // A terminal entry with the same taskInput already exists -> record(force=false) must skip.
         repository.put(dir, "raw", ManifestEntry.empty(raw.taskInput()));
+        writePayload(doc.getId());
 
         recorder(false).record(doc);
 
@@ -72,6 +103,7 @@ public class ManifestRecorderTest {
         Document doc = embedded(EMBEDDED_ID);
         Path dir = ArtifactPath.dir(projectRoot(), doc.getId());
         repository.put(dir, "raw", ManifestEntry.empty(raw.taskInput()));
+        writePayload(doc.getId());
 
         recorder(true).record(doc);
 
