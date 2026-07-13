@@ -505,7 +505,7 @@ public final class DatashareCliOptions {
         parser.acceptsAll(
                 List.of(ARTIFACTS_FORCE_OPT),
                 "Reprocess artifacts even when an up-to-date manifest entry exists (bypasses caching)." )
-                .withOptionalArg().ofType(Boolean.class).defaultsTo(false);
+                .withRequiredArg().ofType(Boolean.class).defaultsTo(false);
     }
 
     static void rootHost(OptionParser parser) {

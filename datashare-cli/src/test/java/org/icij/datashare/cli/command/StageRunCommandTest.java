@@ -151,8 +151,14 @@ public class StageRunCommandTest extends AbstractDatashareCommandTest {
     }
 
     @Test
-    public void test_artifacts_force_bare_flag_is_true() {
-        Properties props = parse("stage", "run", "--stages", "INDEX", "--artifactsForce");
+    public void test_artifacts_force_explicit_true() {
+        Properties props = parse("stage", "run", "--stages", "INDEX", "--artifactsForce", "true");
         assertThat(props).includes(entry("artifactsForce", "true"));
+    }
+
+    @Test
+    public void test_artifacts_force_explicit_false() {
+        Properties props = parse("stage", "run", "--stages", "INDEX", "--artifactsForce", "false");
+        assertThat(props).includes(entry("artifactsForce", "false"));
     }
 }
