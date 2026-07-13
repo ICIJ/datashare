@@ -18,7 +18,6 @@ import org.icij.datashare.text.artifact.ArtifactContext;
 import org.icij.datashare.text.artifact.ArtifactProducer;
 import org.icij.datashare.text.artifact.ArtifactRegistry;
 import org.icij.datashare.text.artifact.FilesystemManifestRepository;
-import org.icij.datashare.text.artifact.RawArtifact;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.text.indexing.elasticsearch.ArtifactPath;
 import org.icij.datashare.text.indexing.elasticsearch.SourceExtractor;
@@ -123,7 +122,7 @@ public class ArtifactTask extends PipelineTask<String> {
         SourceExtractor extractor = createSourceExtractor();
         // Decide once per worker which artifact types to produce: an absent --artifacts flag
         // means all registered types (raw is the only one wired in this foundation).
-        ArtifactRegistry registry = new ArtifactRegistry(List.of(new RawArtifact()));
+        ArtifactRegistry registry = ArtifactRegistry.withDefaults();
         List<Artifact> selected = registry.select(propertiesProvider.get(ARTIFACTS_OPT).orElse(null));
         boolean force = Boolean.parseBoolean(propertiesProvider.get(ARTIFACTS_FORCE_OPT).orElse("false"));
         ArtifactProducer producer = new ArtifactProducer(new FilesystemManifestRepository());

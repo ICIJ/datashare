@@ -19,7 +19,6 @@ import org.icij.datashare.text.artifact.Artifact;
 import org.icij.datashare.text.artifact.ArtifactRegistry;
 import org.icij.datashare.text.artifact.FilesystemManifestRepository;
 import org.icij.datashare.text.artifact.ManifestRecorder;
-import org.icij.datashare.text.artifact.RawArtifact;
 import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchSpewer;
 import org.icij.extract.document.DocumentFactory;
 import org.icij.extract.extractor.DocumentConsumer;
@@ -82,7 +81,7 @@ public class IndexTask extends PipelineTask<Path> implements Monitorable{
             String projectName = propertiesProvider.get("projectName")
                     .orElse(propertiesProvider.get(DEFAULT_PROJECT_OPT).orElse(DEFAULT_DEFAULT_PROJECT));
             artifactProjectRoot = Path.of(dir).resolve(projectName);
-            List<Artifact> selected = new ArtifactRegistry(List.of(new RawArtifact())).select(propertiesProvider.get(ARTIFACTS_OPT).get());
+            List<Artifact> selected = ArtifactRegistry.withDefaults().select(propertiesProvider.get(ARTIFACTS_OPT).get());
             boolean force = Boolean.parseBoolean(propertiesProvider.get(ARTIFACTS_FORCE_OPT).orElse("false"));
             spewer.setManifestRecorder(new ManifestRecorder(new FilesystemManifestRepository(), artifactProjectRoot, selected, force));
         }
