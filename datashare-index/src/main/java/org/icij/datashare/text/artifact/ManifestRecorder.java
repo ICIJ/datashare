@@ -11,8 +11,13 @@ import java.util.List;
 /** Records the raw manifest entry for a document indexed during the INDEX stage, without
  *  re-extracting: extract-lib already wrote the raw bytes during the parse, so this only writes
  *  or updates manifest.json. It produces the same entry the ARTIFACT stage would, because both go
- *  through {@link RawArtifact#entryFor} and {@link ArtifactProducer#stampTerminal}. */
+ *  through {@link RawArtifact#entryFor} and {@link ArtifactProducer#stampTerminal}.
+ *
+ *  <p>INDEX-time recording only records artifact types whose payload extract-lib materializes
+ *  during the streaming parse, which today is {@link ArtifactType#RAW}. Any other selected type is
+ *  produced by the ARTIFACT stage, not here. */
 public class ManifestRecorder {
+    private static final org.slf4j.Logger LOGGER = org.slf4j.LoggerFactory.getLogger(ManifestRecorder.class);
     private final ManifestRepository repository;
     private final Path projectRoot;
     private final boolean force;
@@ -24,6 +29,15 @@ public class ManifestRecorder {
         this.projectRoot = projectRoot;
         this.force = force;
         this.rawSelected = selected.stream().anyMatch(artifact -> artifact.type() == ArtifactType.RAW);
+        java.util.List<String> deferredToArtifactStage = selected.stream()
+                .map(Artifact::type)
+                .filter(type -> type != ArtifactType.RAW)
+                .map(ArtifactType::token)
+                .distinct()
+                .toList();
+        if (!deferredToArtifactStage.isEmpty()) {
+            LOGGER.info("INDEX-time recording handles only 'raw'; {} will be produced by the ARTIFACT stage", deferredToArtifactStage);
+        }
     }
 
     /** Record the raw entry for a document written during indexing. No-op when raw was not among the
