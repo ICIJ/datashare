@@ -59,7 +59,7 @@ public class ArtifactProducer {
 
     // Producers return EMPTY as-is; any other (status-less) entry is stamped COMPLETE only after
     // its payload has been written, so a crash mid-produce never leaves a "ready" lie.
-    private ManifestEntry stampTerminal(ManifestEntry produced) {
+    static ManifestEntry stampTerminal(ManifestEntry produced) {
         return produced.isTerminal() ? produced : produced.withStatus(ManifestEntryStatus.COMPLETE);
     }
 
