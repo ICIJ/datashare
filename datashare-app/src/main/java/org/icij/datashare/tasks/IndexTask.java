@@ -15,7 +15,6 @@ import org.icij.datashare.asynctasks.temporal.ActivityOpts;
 import org.icij.datashare.asynctasks.temporal.TemporalSingleActivityWorkflow;
 import org.icij.datashare.extract.DocumentCollectionFactory;
 import org.icij.datashare.monitoring.Monitorable;
-import org.icij.datashare.text.Project;
 import org.icij.datashare.text.artifact.Artifact;
 import org.icij.datashare.text.artifact.ArtifactRegistry;
 import org.icij.datashare.text.artifact.FilesystemManifestRepository;
@@ -73,21 +72,32 @@ public class IndexTask extends PipelineTask<Path> implements Monitorable{
         indexTimeout = getIndexTimeout();
         warnIfParseTimeoutDisabled();
 
-        propertiesProvider.get(ARTIFACTS_OPT).ifPresent(artifactsValue -> {
+        // --artifacts is opt-in and requires a place to write. Resolve the project the same way
+        // ElasticsearchSpewer.configure resolves the ES index name (prefer projectName, then
+        // defaultProject) so the manifest dir, the embedded raw bytes, and the ES index all agree.
+        Path artifactProjectRoot = null;
+        if (propertiesProvider.get(ARTIFACTS_OPT).isPresent()) {
             String dir = propertiesProvider.get(ARTIFACT_DIR_OPT)
                     .orElseThrow(() -> new IllegalArgumentException("--artifacts requires --artifactDir"));
-            Project project = Project.project(propertiesProvider.get(DEFAULT_PROJECT_OPT).orElse(DEFAULT_DEFAULT_PROJECT));
-            Path projectRoot = Path.of(dir).resolve(project.name);
-            List<Artifact> selected = new ArtifactRegistry(List.of(new RawArtifact())).select(artifactsValue);
+            String projectName = propertiesProvider.get("projectName")
+                    .orElse(propertiesProvider.get(DEFAULT_PROJECT_OPT).orElse(DEFAULT_DEFAULT_PROJECT));
+            artifactProjectRoot = Path.of(dir).resolve(projectName);
+            List<Artifact> selected = new ArtifactRegistry(List.of(new RawArtifact())).select(propertiesProvider.get(ARTIFACTS_OPT).get());
             boolean force = Boolean.parseBoolean(propertiesProvider.get(ARTIFACTS_FORCE_OPT).orElse("false"));
-            spewer.setManifestRecorder(new ManifestRecorder(new FilesystemManifestRepository(), projectRoot, selected, force));
-        });
+            spewer.setManifestRecorder(new ManifestRecorder(new FilesystemManifestRepository(), artifactProjectRoot, selected, force));
+        }
 
         Options<String> allTaskOptions = options().createFrom(Options.from(taskView.args));
         ((ElasticsearchSpewer) spewer.configure(allTaskOptions)).createIndexIfNotExists();
 
         DocumentFactory documentFactory = new DocumentFactory().configure(allTaskOptions);
         this.extractor = createExtractor(documentFactory, allTaskOptions);
+        if (artifactProjectRoot != null) {
+            // extract-lib writes embedded raw bytes only when embedOutput is set; the INDEX path
+            // never sets it otherwise. Point it at the same project root as the manifest recorder so
+            // --artifacts actually produces the payloads the manifest entries reference.
+            this.extractor.setEmbedOutputPath(artifactProjectRoot);
+        }
 
         consumer = new DocumentConsumer(spewer, this.extractor, this.parallelism);
         progressTrackConsumer = path -> {
