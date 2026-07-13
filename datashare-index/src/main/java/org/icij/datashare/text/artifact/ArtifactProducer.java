@@ -68,6 +68,13 @@ public class ArtifactProducer {
     // regeneration skipped.
     private boolean isCurrent(ArtifactType type, Artifact artifact, ArtifactContext context) throws IOException {
         ManifestEntry existing = repository.get(context.docArtifactDir(), type.token());
-        return existing != null && existing.isTerminal() && existing.taskInput().equals(artifact.taskInput());
+        return entryIsCurrent(existing, artifact.taskInput());
+    }
+
+    // Skip-if-current predicate, shared with the INDEX-time ManifestRecorder so both stages agree on
+    // when a cached entry is reused. Compares from the always-non-null taskInput side so a manifest
+    // entry with an absent (null) taskInput does not NPE.
+    static boolean entryIsCurrent(ManifestEntry existing, Map<String, Object> taskInput) {
+        return existing != null && existing.isTerminal() && taskInput.equals(existing.taskInput());
     }
 }
