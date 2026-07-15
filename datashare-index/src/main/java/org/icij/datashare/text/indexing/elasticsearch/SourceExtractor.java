@@ -141,7 +141,7 @@ public class SourceExtractor {
     }
 
     private Path getArtifactPath(Project project) {
-        return propertiesProvider.get(DatashareCliOptions.ARTIFACT_DIR_OPT).map(dir -> Path.of(dir).resolve(project.name)).orElse(null);
+        return propertiesProvider.get(DatashareCliOptions.ARTIFACT_DIR_OPT).map(dir -> ArtifactPath.projectRoot(Path.of(dir), project.name)).orElse(null);
     }
 
     private boolean noDigestProject() {

@@ -15,6 +15,10 @@ import org.icij.datashare.asynctasks.temporal.ActivityOpts;
 import org.icij.datashare.asynctasks.temporal.TemporalSingleActivityWorkflow;
 import org.icij.datashare.extract.DocumentCollectionFactory;
 import org.icij.datashare.monitoring.Monitorable;
+import org.icij.datashare.text.artifact.Artifact;
+import org.icij.datashare.text.artifact.ArtifactRegistry;
+import org.icij.datashare.text.artifact.FilesystemManifestRepository;
+import org.icij.datashare.text.artifact.ManifestRecorder;
 import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchSpewer;
 import org.icij.extract.document.DocumentFactory;
 import org.icij.extract.extractor.DocumentConsumer;
@@ -30,6 +34,7 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.time.Duration;
+import java.util.List;
 import org.icij.time.HumanDuration;
 
 import static java.lang.Math.max;
@@ -49,6 +54,7 @@ import static org.icij.datashare.cli.DatashareCliOptions.*;
 @TaskGroup(TaskGroupType.Java)
 public class IndexTask extends PipelineTask<Path> implements Monitorable{
     private final Logger logger = LoggerFactory.getLogger(getClass());
+    private final ElasticsearchSpewer spewer;
     private final Extractor extractor;
     private final DocumentQueueDrainer<Path> drainer;
     private final DocumentConsumer consumer;
@@ -62,6 +68,7 @@ public class IndexTask extends PipelineTask<Path> implements Monitorable{
     @Inject
     public IndexTask(final ElasticsearchSpewer spewer, final DocumentCollectionFactory<Path> factory, @Assisted Task<Long> taskView, @Assisted final Function<Double, Void> progressCallback) throws IOException {
         super(Stage.INDEX, taskView.getUser(), factory, new PropertiesProvider(taskView.args), Path.class);
+        this.spewer = spewer;
         parallelism = propertiesProvider.get(PARALLELISM_OPT).map(Integer::parseInt).orElse(Runtime.getRuntime().availableProcessors());
         indexTimeout = getIndexTimeout();
         warnIfParseTimeoutDisabled();
@@ -90,6 +97,15 @@ public class IndexTask extends PipelineTask<Path> implements Monitorable{
     @Override
     public Long call() throws Exception {
         super.call();
+        // Opt-in artifact generation is wired here (not in the constructor) so a bad --artifacts
+        // config surfaces as a clean task error rather than a reflective-construction NackException
+        // that requeues forever. When set, extract-lib writes embed bytes to the same project root the
+        // ManifestRecorder writes manifests to.
+        ArtifactStages.artifactProjectRoot(propertiesProvider).ifPresent(projectRoot -> {
+            List<Artifact> selected = ArtifactRegistry.withDefaults().select(propertiesProvider.get(ARTIFACTS_OPT).get());
+            extractor.setEmbedOutputPath(projectRoot);
+            spewer.setManifestRecorder(new ManifestRecorder(new FilesystemManifestRepository(), projectRoot, selected, ArtifactStages.force(propertiesProvider)));
+        });
         logger.info("Processing up to {} file(s) in parallel", parallelism);
         try {
             totalToProcess = drainer.drain(PATH_POISON).get();

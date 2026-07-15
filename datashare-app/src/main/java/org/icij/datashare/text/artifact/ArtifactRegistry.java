@@ -18,6 +18,12 @@ public class ArtifactRegistry {
         }
     }
 
+    /** The app's default catalog of Java-produced artifact types. Shared by the INDEX and ARTIFACT
+     *  stages so a newly registered producer cannot be honored by one stage and missed by the other. */
+    public static ArtifactRegistry withDefaults() {
+        return new ArtifactRegistry(List.of(new RawArtifact()));
+    }
+
     public List<Artifact> select(String flagValue) {
         if (flagValue == null || flagValue.isBlank() || "true".equals(flagValue)) {
             return new ArrayList<>(byType.values());

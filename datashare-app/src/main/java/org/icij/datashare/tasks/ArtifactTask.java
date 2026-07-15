@@ -18,7 +18,6 @@ import org.icij.datashare.text.artifact.ArtifactContext;
 import org.icij.datashare.text.artifact.ArtifactProducer;
 import org.icij.datashare.text.artifact.ArtifactRegistry;
 import org.icij.datashare.text.artifact.FilesystemManifestRepository;
-import org.icij.datashare.text.artifact.RawArtifact;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.text.indexing.elasticsearch.ArtifactPath;
 import org.icij.datashare.text.indexing.elasticsearch.SourceExtractor;
@@ -38,11 +37,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
 
-import static org.icij.datashare.PropertiesProvider.DEFAULT_PROJECT_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.ARTIFACT_DIR_OPT;
-import static org.icij.datashare.cli.DatashareCliOptions.ARTIFACTS_FORCE_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.ARTIFACTS_OPT;
-import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_DEFAULT_PROJECT;
 import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_POLLING_INTERVAL_SEC;
 import static org.icij.datashare.cli.DatashareCliOptions.PARALLELISM_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.POLLING_INTERVAL_SECONDS_OPT;
@@ -63,7 +59,7 @@ public class ArtifactTask extends PipelineTask<String> {
     public ArtifactTask(DocumentCollectionFactory<String> factory, Indexer indexer, PropertiesProvider propertiesProvider, @Assisted Task<Long> taskView, @Assisted final Function<Double, Void> updateCallback) {
         super(Stage.ARTIFACT, taskView.getUser(), factory, propertiesProvider, String.class);
         this.indexer = indexer;
-        project = Project.project(propertiesProvider.get(DEFAULT_PROJECT_OPT).orElse(DEFAULT_DEFAULT_PROJECT));
+        project = Project.project(ArtifactStages.resolveProjectName(propertiesProvider));
         pollingInterval = Integer.parseInt(propertiesProvider.get(POLLING_INTERVAL_SECONDS_OPT).orElse(DEFAULT_POLLING_INTERVAL_SEC));
         parallelism = Math.max(1, propertiesProvider.get(PARALLELISM_OPT).map(Integer::parseInt).orElse(1));
         artifactDir = Path.of(propertiesProvider.get(ARTIFACT_DIR_OPT).orElseThrow(() -> new IllegalArgumentException(String.format("cannot create artifact task with empty %s", ARTIFACT_DIR_OPT))));
@@ -123,11 +119,11 @@ public class ArtifactTask extends PipelineTask<String> {
         SourceExtractor extractor = createSourceExtractor();
         // Decide once per worker which artifact types to produce: an absent --artifacts flag
         // means all registered types (raw is the only one wired in this foundation).
-        ArtifactRegistry registry = new ArtifactRegistry(List.of(new RawArtifact()));
+        ArtifactRegistry registry = ArtifactRegistry.withDefaults();
         List<Artifact> selected = registry.select(propertiesProvider.get(ARTIFACTS_OPT).orElse(null));
-        boolean force = Boolean.parseBoolean(propertiesProvider.get(ARTIFACTS_FORCE_OPT).orElse("false"));
+        boolean force = ArtifactStages.force(propertiesProvider);
         ArtifactProducer producer = new ArtifactProducer(new FilesystemManifestRepository());
-        Path projectRoot = artifactDir.resolve(project.name);
+        Path projectRoot = ArtifactPath.projectRoot(artifactDir, project.name);
         try {
             String queueEntry;
             while ((queueEntry = inputQueue.poll(pollingInterval, TimeUnit.SECONDS)) != null) {

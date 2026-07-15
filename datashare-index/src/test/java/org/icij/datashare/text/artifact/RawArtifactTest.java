@@ -15,6 +15,32 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class RawArtifactTest {
+    private final RawArtifact raw = new RawArtifact();
+
+    @Test
+    public void test_entry_for_root_is_empty() {
+        Document root = createDoc("rootrootrootroot").with(Path.of("/tmp/root.pdf"))
+                .ofContentType("application/pdf").withExtractionLevel((short) 0).build();
+
+        ManifestEntry entry = raw.entryFor(root);
+
+        assertThat(entry.status()).isEqualTo(ManifestEntryStatus.EMPTY);
+        assertThat(entry.filename()).isNull();
+    }
+
+    @Test
+    public void test_entry_for_embedded_is_single_file() {
+        Document embedded = createDoc("embeddedembedded").with(Path.of("/tmp/image2.jpg"))
+                .ofContentType("image/jpeg").withExtractionLevel((short) 1).build();
+
+        ManifestEntry entry = raw.entryFor(embedded);
+
+        assertThat(entry.status()).isNull();
+        assertThat(entry.contentType()).isEqualTo("image/jpeg");
+        assertThat(entry.filename()).isEqualTo("image2.jpg");
+        assertThat(entry.taskInput()).isEqualTo(raw.taskInput());
+    }
+
     @Test
     public void test_type_and_task_input() {
         RawArtifact raw = new RawArtifact();

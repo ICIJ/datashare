@@ -177,6 +177,19 @@ public class IndexTaskTest {
                 .anyMatch(l -> l.contains("parseTimeout"))).isFalse();
     }
 
+    @Test
+    public void test_artifacts_without_artifact_dir_does_not_throw_at_construction() throws Exception {
+        ElasticsearchSpewer spewer = mock(ElasticsearchSpewer.class);
+        Mockito.when(spewer.configure(Mockito.any())).thenReturn(spewer);
+        // Must not throw: --artifacts validation is deferred to call() so a bad config is a clean
+        // task error, not a reflective-construction NackException that requeues forever.
+        new IndexTask(spewer, mock(DocumentCollectionFactory.class),
+                new Task<>(IndexTask.class.getName(), nullUser(), new HashMap<>() {{
+                    put("queueName", "test:queue");
+                    put("artifacts", "true");
+                }}), null);
+    }
+
     @After
     public void tearDown() throws Exception {
         logWrapper.reset();

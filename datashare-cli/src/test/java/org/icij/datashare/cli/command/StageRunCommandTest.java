@@ -125,4 +125,40 @@ public class StageRunCommandTest extends AbstractDatashareCommandTest {
         Properties props = parse("stage", "run", "--stages", "SCAN,INDEX");
         assertThat(props).includes(entry("parseTimeout", "24h"));
     }
+
+    @Test
+    public void test_artifacts_bare_flag_selects_all() {
+        Properties props = parse("stage", "run", "--stages", "INDEX", "--artifacts");
+        assertThat(props).includes(entry("artifacts", "true"));
+    }
+
+    @Test
+    public void test_artifacts_csv_subset() {
+        Properties props = parse("stage", "run", "--stages", "INDEX", "--artifacts", "raw,structure");
+        assertThat(props).includes(entry("artifacts", "raw,structure"));
+    }
+
+    @Test
+    public void test_artifacts_absent_by_default() {
+        Properties props = parse("stage", "run", "--stages", "INDEX");
+        assertThat(props.containsKey("artifacts")).isFalse();
+    }
+
+    @Test
+    public void test_artifacts_force_defaults_to_false() {
+        Properties props = parse("stage", "run", "--stages", "INDEX");
+        assertThat(props).includes(entry("artifactsForce", "false"));
+    }
+
+    @Test
+    public void test_artifacts_force_explicit_true() {
+        Properties props = parse("stage", "run", "--stages", "INDEX", "--artifactsForce", "true");
+        assertThat(props).includes(entry("artifactsForce", "true"));
+    }
+
+    @Test
+    public void test_artifacts_force_explicit_false() {
+        Properties props = parse("stage", "run", "--stages", "INDEX", "--artifactsForce", "false");
+        assertThat(props).includes(entry("artifactsForce", "false"));
+    }
 }

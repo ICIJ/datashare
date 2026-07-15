@@ -19,6 +19,7 @@ import org.icij.datashare.extract.DocumentCollectionFactory;
 import org.icij.datashare.extract.MemoryDocumentCollectionFactory;
 import org.icij.datashare.test.ElasticsearchRule;
 import org.icij.datashare.text.*;
+import org.icij.datashare.text.artifact.*;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.text.indexing.LanguageGuesser;
 import org.icij.extract.document.DocumentFactory;
@@ -29,6 +30,8 @@ import org.icij.spewer.FieldNames;
 import org.icij.task.Options;
 import org.junit.After;
 import org.junit.ClassRule;
+import org.junit.Rule;
+import org.junit.rules.TemporaryFolder;
 import org.junit.Test;
 import org.mockito.Mockito;
 
@@ -59,6 +62,24 @@ public class ElasticsearchSpewerTest {
             documentQueueFactory, text -> Language.ENGLISH, new FieldNames(), new PropertiesProvider(new HashMap<>() {{
                 put("defaultProject", es.getIndexName());
     }}));
+
+    @Rule public TemporaryFolder artifactDir = new TemporaryFolder();
+
+    @Test
+    public void test_write_records_raw_manifest_when_recorder_set() throws Exception {
+        Path projectRoot = artifactDir.getRoot().toPath().resolve("prj");
+        ManifestRepository repository = new FilesystemManifestRepository();
+        spewer.setManifestRecorder(new ManifestRecorder(repository, projectRoot, List.of(new RawArtifact()), false));
+        final TikaDocument document = new DocumentFactory().withIdentifier(new PathIdentifier()).create(get("recorded-file.txt"));
+        document.setReader(new ParsingReader(new ByteArrayInputStream("test".getBytes())));
+
+        spewer.write(document);
+
+        // A root document (level 0) has no payload in its own dir, so an EMPTY entry is recorded.
+        ManifestEntry entry = repository.get(ArtifactPath.dir(projectRoot, document.getId()), "raw");
+        assertThat(entry).isNotNull();
+        assertThat(entry.status()).isEqualTo(ManifestEntryStatus.EMPTY);
+    }
 
     @Test
     public void test_simple_write() throws Exception {
