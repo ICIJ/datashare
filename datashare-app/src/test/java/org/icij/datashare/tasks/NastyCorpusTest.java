@@ -29,6 +29,13 @@ public class NastyCorpusTest {
                 .isEqualTo(Files.readAllBytes(dir.resolve("big.bin")));
         assertThat(Files.readAllBytes(dir2.resolve("deep.eml")))
                 .isEqualTo(Files.readAllBytes(dir.resolve("deep.eml")));
+        assertThat(Files.readAllBytes(dir2.resolve("wide.zip")))
+                .isEqualTo(Files.readAllBytes(dir.resolve("wide.zip")));
+        assertThat(Files.readAllBytes(dir2.resolve("corrupt.zip")))
+                .isEqualTo(Files.readAllBytes(dir.resolve("corrupt.zip")));
+        assertThat(Files.readAllBytes(dir2.resolve("archive.tar.gz")))
+                .isEqualTo(Files.readAllBytes(dir.resolve("archive.tar.gz")));
+        // ocr_image.pdf is intentionally excluded: PDFBox embeds a document-ID that varies per build.
     }
 
     @Test

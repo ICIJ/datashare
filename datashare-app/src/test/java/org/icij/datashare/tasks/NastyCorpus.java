@@ -3,13 +3,23 @@ package org.icij.datashare.tasks;
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
 import org.apache.commons.compress.archivers.tar.TarArchiveOutputStream;
 import org.apache.commons.compress.compressors.gzip.GzipCompressorOutputStream;
+import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.pdmodel.PDPage;
+import org.apache.pdfbox.pdmodel.PDPageContentStream;
+import org.apache.pdfbox.pdmodel.graphics.image.LosslessFactory;
+import org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject;
 
+import java.awt.Color;
+import java.awt.Font;
+import java.awt.Graphics2D;
+import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.attribute.FileTime;
 import java.util.Base64;
 import java.util.List;
 import java.util.Random;
@@ -28,7 +38,7 @@ public class NastyCorpus {
         Path wide = dir.resolve("wide.zip");
         try (ZipOutputStream zos = new ZipOutputStream(Files.newOutputStream(wide))) {
             for (int i = 0; i < 200; i++) {
-                zos.putNextEntry(new ZipEntry("wide-" + i + ".txt"));
+                zos.putNextEntry(pinTime(new ZipEntry("wide-" + i + ".txt")));
                 zos.write(("wide entry number " + i).getBytes(StandardCharsets.UTF_8));
                 zos.closeEntry();
             }
@@ -38,10 +48,10 @@ public class NastyCorpus {
         byte[] garbage = new byte[1024];
         new Random(42).nextBytes(garbage);
         try (ZipOutputStream zos = new ZipOutputStream(Files.newOutputStream(corrupt))) {
-            zos.putNextEntry(new ZipEntry("sibling-ok.txt"));
+            zos.putNextEntry(pinTime(new ZipEntry("sibling-ok.txt")));
             zos.write("the valid sibling must still be extracted".getBytes(StandardCharsets.UTF_8));
             zos.closeEntry();
-            zos.putNextEntry(new ZipEntry("broken.docx"));
+            zos.putNextEntry(pinTime(new ZipEntry("broken.docx")));
             zos.write(garbage);
             zos.closeEntry();
         }
@@ -54,6 +64,7 @@ public class NastyCorpus {
                 byte[] content = ("tar member " + i).getBytes(StandardCharsets.UTF_8);
                 TarArchiveEntry entry = new TarArchiveEntry("member-" + i + ".txt");
                 entry.setSize(content.length);
+                entry.setModTime(0L);
                 taos.putArchiveEntry(entry);
                 taos.write(content);
                 taos.closeArchiveEntry();
@@ -74,20 +85,19 @@ public class NastyCorpus {
     // PDFBox 3.0.7 is on the test classpath via tika-parser-pdf-module. The pdmodel API used here
     // (PDDocument, PDPage, PDPageContentStream, PDImageXObject, LosslessFactory) is unchanged from 2.x.
     private static void writeOcrOnlyPdf(Path target) throws IOException {
-        try (org.apache.pdfbox.pdmodel.PDDocument pdf = new org.apache.pdfbox.pdmodel.PDDocument()) {
-            org.apache.pdfbox.pdmodel.PDPage page = new org.apache.pdfbox.pdmodel.PDPage();
+        try (PDDocument pdf = new PDDocument()) {
+            PDPage page = new PDPage();
             pdf.addPage(page);
-            java.awt.image.BufferedImage img = new java.awt.image.BufferedImage(400, 120, java.awt.image.BufferedImage.TYPE_INT_RGB);
-            java.awt.Graphics2D g = img.createGraphics();
-            g.setColor(java.awt.Color.WHITE);
+            BufferedImage img = new BufferedImage(400, 120, BufferedImage.TYPE_INT_RGB);
+            Graphics2D g = img.createGraphics();
+            g.setColor(Color.WHITE);
             g.fillRect(0, 0, 400, 120);
-            g.setColor(java.awt.Color.BLACK);
-            g.setFont(new java.awt.Font("SansSerif", java.awt.Font.PLAIN, 32));
+            g.setColor(Color.BLACK);
+            g.setFont(new Font("SansSerif", Font.PLAIN, 32));
             g.drawString("OCR ONLY TEXT", 20, 70);
             g.dispose();
-            org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject pdImage =
-                    org.apache.pdfbox.pdmodel.graphics.image.LosslessFactory.createFromImage(pdf, img);
-            try (org.apache.pdfbox.pdmodel.PDPageContentStream cs = new org.apache.pdfbox.pdmodel.PDPageContentStream(pdf, page)) {
+            PDImageXObject pdImage = LosslessFactory.createFromImage(pdf, img);
+            try (PDPageContentStream cs = new PDPageContentStream(pdf, page)) {
                 cs.drawImage(pdImage, 100, 500);
             }
             pdf.save(target.toFile());
@@ -97,11 +107,23 @@ public class NastyCorpus {
     private static byte[] zip(String entryName, byte[] content) throws IOException {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         try (ZipOutputStream zos = new ZipOutputStream(baos)) {
-            zos.putNextEntry(new ZipEntry(entryName));
+            zos.putNextEntry(pinTime(new ZipEntry(entryName)));
             zos.write(content);
             zos.closeEntry();
         }
         return baos.toByteArray();
+    }
+
+    // ZipEntry defaults last-modified/creation/access time to wall-clock "now" when unset, which
+    // makes every zip fixture hash differently on each build. Pin all three to a fixed epoch so
+    // the corpus stays byte-identical across runs (setTime(0) alone can still emit an extended
+    // timestamp extra field on some JDKs, so all three FileTime setters are pinned).
+    private static ZipEntry pinTime(ZipEntry entry) {
+        FileTime epoch = FileTime.fromMillis(0L);
+        entry.setLastModifiedTime(epoch);
+        entry.setCreationTime(epoch);
+        entry.setLastAccessTime(epoch);
+        return entry;
     }
 
     private static byte[] emlWithAttachment(String filename, byte[] attachment) {
