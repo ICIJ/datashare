@@ -212,11 +212,15 @@ public class ArtifactChaosIntTest {
     // SourceExtractor.extractEmbeddedSources. So RawArtifact.produce() never throws for this
     // container, ArtifactProducer never counts a failure, and no "document(s) failed artifact
     // production" summary line is ever logged - there is nothing for that assertion to check
-    // truthfully. The premise does not hold for this corpus shape; the honest assertion is what
-    // actually happens: root + valid sibling + the garbage member itself are all indexed (3
-    // documents) and all three get a covered, terminal manifest.
+    // truthfully, and no datashare-level visibility signal exists for a corrupt embed (a real
+    // gap, tracked separately - not asserted here since the only evidence of it is a
+    // version-dependent Tika WARN message we won't pin a test to). The premise does not hold for
+    // this corpus shape; the honest assertion is what actually happens: root + valid sibling +
+    // the garbage member itself are all indexed (3 documents, corrupt.zip's fixed-seed content
+    // makes this an exact, deterministic count) and all three get a covered, terminal manifest -
+    // the corrupt member is served as possibly-garbage bytes rather than surfaced as a failure.
     @Test(timeout = 300_000)
-    public void corrupt_member_is_reported_visibly_and_siblings_are_covered() throws Exception {
+    public void corrupt_member_does_not_break_sibling_coverage() throws Exception {
         Map<String, Object> map = new HashMap<>(Map.of(
                 "defaultProject", es.getIndexName(),
                 "stages", "ARTIFACT,ENQUEUEIDX",
@@ -251,8 +255,8 @@ public class ArtifactChaosIntTest {
                 .check(Project.project(es.getIndexName()), artifactDir.getRoot().toPath(), 100);
 
         // the valid sibling (and the root) must be covered regardless of what happens to the
-        // garbage member.
-        assertThat(report.checked()).isGreaterThanOrEqualTo(2); // root + at least sibling-ok.txt
+        // garbage member: root + sibling-ok.txt + broken.docx, exactly (fixed-seed corpus).
+        assertThat(report.checked()).isEqualTo(3);
         assertThat(report.holes()).isEmpty();
     }
 }
