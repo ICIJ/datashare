@@ -5,11 +5,18 @@ import java.nio.file.Path;
 /** Content-addressed on-disk layout for per-document artifacts under artifactDir. */
 public class ArtifactPath {
     public static final String MANIFEST_FILE = "manifest.json";
-    // extract-lib's EmbeddedArtifactWriter owns these names: the raw payload and its sidecar.
+    // extract-lib's EmbeddedArtifactWriter owns these names: the raw payload and its sidecar. RAW_FILE
+    // is not to be confused with ArtifactType.RAW.token() (the manifest key, coincidentally also "raw").
     public static final String RAW_FILE = "raw";
     public static final String RAW_SIDECAR_FILE = "raw.json";
 
     private ArtifactPath() {}
+
+    /** The per-project artifact root under artifactDir. Single home for the dir+project join so the
+     *  INDEX stage, the ARTIFACT stage, and the source-extraction read path cannot drift. */
+    public static Path projectRoot(Path artifactDir, String projectName) {
+        return artifactDir.resolve(projectName);
+    }
 
     /** Content-addressed directory for a digest, mirroring extract-lib's raw layout. */
     public static Path dir(Path projectRoot, String digest) {

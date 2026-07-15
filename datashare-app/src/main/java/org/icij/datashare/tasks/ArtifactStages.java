@@ -1,6 +1,7 @@
 package org.icij.datashare.tasks;
 
 import org.icij.datashare.PropertiesProvider;
+import org.icij.datashare.text.indexing.elasticsearch.ArtifactPath;
 
 import java.nio.file.Path;
 import java.util.Optional;
@@ -39,6 +40,6 @@ public final class ArtifactStages {
         }
         String dir = properties.get(ARTIFACT_DIR_OPT)
                 .orElseThrow(() -> new IllegalArgumentException("--artifacts requires --artifactDir"));
-        return Optional.of(Path.of(dir).resolve(resolveProjectName(properties)));
+        return Optional.of(ArtifactPath.projectRoot(Path.of(dir), resolveProjectName(properties)));
     }
 }
