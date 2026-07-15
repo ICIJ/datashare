@@ -65,7 +65,9 @@ public class UserResourceTest extends AbstractProdWebServerTest {
     public void setUp() throws IOException {
         initMocks(this);
         authorizer = new Authorizer(casbinRuleAdapter);
-        authorizer.addRoleForUserInDomain(User.local(), Role.PROJECT_ADMIN, Domain.DEFAULT);
+        // INSTANCE_ADMIN inherits PROJECT_ADMIN, so the local user can both manage the global
+        // user inventory (create/get/update/delete require INSTANCE_ADMIN) and list users.
+        authorizer.addRoleForUserInInstance(User.local(), Role.INSTANCE_ADMIN);
         PolicyAnnotation policyAnnotation = new PolicyAnnotation(authorizer);
         configure(routes -> routes
                 .registerAroundAnnotation(Policy.class, policyAnnotation)
@@ -515,11 +517,64 @@ public class UserResourceTest extends AbstractProdWebServerTest {
 
     @Test
     public void test_list_users_returns_200_for_admin() {
-        // setUp() grants PROJECT_ADMIN to User.local(), so admin can list users
+        // setUp() grants INSTANCE_ADMIN (which inherits PROJECT_ADMIN) to User.local(), so admin can list users
         when(userAdminService.list(new UserFilter(null), null, 0, Integer.MAX_VALUE))
                 .thenReturn(new WebResponse<>(List.of(), 0, Integer.MAX_VALUE, 0));
 
         get("/api/users").should().respond(200);
+    }
+
+    // Security regression: the global user-inventory endpoints (create/get/update/delete) require
+    // INSTANCE_ADMIN. A user who is only PROJECT_ADMIN of a single project must NOT be able to reach
+    // them, even by supplying an ?index= (or JSON body "index") they control — otherwise a project
+    // admin could take over, read, or delete arbitrary users globally.
+
+    private void configureWithSingleProjectAdmin() throws IOException {
+        Authorizer projectAdmin = new Authorizer(casbinRuleAdapter);
+        // local is PROJECT_ADMIN of a single project only — no instance/domain-wide role
+        projectAdmin.addRoleForUserInProject(User.local(), Role.PROJECT_ADMIN, Domain.DEFAULT, new Project("cantina"));
+        PolicyAnnotation policyAnnotation = new PolicyAnnotation(projectAdmin);
+        configure(routes -> routes
+                .registerAroundAnnotation(Policy.class, policyAnnotation)
+                .add(new UserResource(jooqRepository, projectAdmin, userAdminService, projectAdminService))
+                .filter(new LocalUserFilter(new PropertiesProvider(), jooqRepository)));
+    }
+
+    @Test
+    public void test_create_user_returns_403_for_single_project_admin_even_with_index() throws IOException {
+        configureWithSingleProjectAdmin();
+
+        post("/api/users?index=cantina", "{\"uid\":\"victim\",\"provider\":\"local\",\"password\":\"pw\",\"groups\":[]}")
+                .should().respond(403);
+    }
+
+    @Test
+    public void test_create_user_returns_403_for_single_project_admin_even_with_index_in_body() throws IOException {
+        configureWithSingleProjectAdmin();
+
+        post("/api/users", "{\"uid\":\"victim\",\"provider\":\"local\",\"password\":\"pw\",\"groups\":[],\"index\":\"cantina\"}")
+                .should().respond(403);
+    }
+
+    @Test
+    public void test_get_user_returns_403_for_single_project_admin_even_with_index() throws IOException {
+        configureWithSingleProjectAdmin();
+
+        get("/api/users/victim?index=cantina").should().respond(403);
+    }
+
+    @Test
+    public void test_update_user_returns_403_for_single_project_admin_even_with_index() throws IOException {
+        configureWithSingleProjectAdmin();
+
+        put("/api/users/victim?index=cantina", "{\"password\":\"newpass\"}").should().respond(403);
+    }
+
+    @Test
+    public void test_delete_user_returns_403_for_single_project_admin_even_with_index() throws IOException {
+        configureWithSingleProjectAdmin();
+
+        delete("/api/users/victim?index=cantina").should().respond(403);
     }
 
     @Test
