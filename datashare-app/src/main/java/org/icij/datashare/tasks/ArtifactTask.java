@@ -123,7 +123,7 @@ public class ArtifactTask extends PipelineTask<String> {
         List<Artifact> selected = registry.select(propertiesProvider.get(ARTIFACTS_OPT).orElse(null));
         boolean force = ArtifactStages.force(propertiesProvider);
         ArtifactProducer producer = new ArtifactProducer(new FilesystemManifestRepository());
-        Path projectRoot = artifactDir.resolve(project.name);
+        Path projectRoot = ArtifactPath.projectRoot(artifactDir, project.name);
         try {
             String queueEntry;
             while ((queueEntry = inputQueue.poll(pollingInterval, TimeUnit.SECONDS)) != null) {

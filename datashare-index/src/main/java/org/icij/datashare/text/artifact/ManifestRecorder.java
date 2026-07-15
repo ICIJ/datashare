@@ -56,7 +56,7 @@ public class ManifestRecorder {
         // actually on disk (written by extract-lib during the parse). Otherwise skip, so a later
         // ARTIFACT-stage run produces it rather than leaving a permanent false-COMPLETE. A root has
         // no payload in its own dir, so it always records its EMPTY entry.
-        if (document.getExtractionLevel() > 0 && !Files.exists(docArtifactDir.resolve("raw"))) {
+        if (document.getExtractionLevel() > 0 && !Files.exists(docArtifactDir.resolve(ArtifactPath.RAW_FILE))) {
             return;
         }
         repository.put(docArtifactDir, ArtifactType.RAW.token(), ArtifactProducer.stampTerminal(raw.entryFor(document)));
