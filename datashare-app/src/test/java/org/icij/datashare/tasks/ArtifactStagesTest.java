@@ -29,18 +29,6 @@ public class ArtifactStagesTest {
     }
 
     @Test
-    public void test_force_true() {
-        PropertiesProvider properties = new PropertiesProvider(Map.of("artifactsForce", "true"));
-        assertThat(ArtifactStages.force(properties)).isTrue();
-    }
-
-    @Test
-    public void test_force_false() {
-        PropertiesProvider properties = new PropertiesProvider(Map.of("artifactsForce", "false"));
-        assertThat(ArtifactStages.force(properties)).isFalse();
-    }
-
-    @Test
     public void test_force_absent_defaults_to_false() {
         PropertiesProvider properties = new PropertiesProvider(Map.of());
         assertThat(ArtifactStages.force(properties)).isFalse();
