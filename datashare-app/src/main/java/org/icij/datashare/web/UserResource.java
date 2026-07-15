@@ -187,7 +187,7 @@ public class UserResource {
     @ApiResponse(responseCode = "201", description = "user created")
     @ApiResponse(responseCode = "400", description = "validation error")
     @ApiResponse(responseCode = "409", description = "user already exists")
-    @Policy(role = Role.PROJECT_ADMIN)
+    @Policy(role = Role.INSTANCE_ADMIN)
     @Post
     public Payload createUser(UserCreateRequest request) {
         try {
@@ -203,7 +203,7 @@ public class UserResource {
             parameters = @Parameter(name = "userId", in = ParameterIn.PATH))
     @ApiResponse(responseCode = "200", useReturnTypeSchema = true)
     @ApiResponse(responseCode = "404", description = "user not found")
-    @Policy(role = Role.PROJECT_ADMIN)
+    @Policy(role = Role.INSTANCE_ADMIN)
     @Get("/:userId")
     public Payload getUserByUid(String userId) {
         try {
@@ -218,7 +218,7 @@ public class UserResource {
     @ApiResponse(responseCode = "200", useReturnTypeSchema = true)
     @ApiResponse(responseCode = "400", description = "validation error")
     @ApiResponse(responseCode = "404", description = "user not found")
-    @Policy(role = Role.PROJECT_ADMIN)
+    @Policy(role = Role.INSTANCE_ADMIN)
     @Put("/:userId")
     public Payload updateUser(String userId, UserUpdateRequest request) {
         try {
@@ -233,7 +233,7 @@ public class UserResource {
     @Operation(description = "Deletes a user by userId. Idempotent: returns 204 even when the user does not exist.",
             parameters = @Parameter(name = "uid", in = ParameterIn.PATH))
     @ApiResponse(responseCode = "204", description = "user deleted or did not exist")
-    @Policy(role = Role.PROJECT_ADMIN)
+    @Policy(role = Role.INSTANCE_ADMIN)
     @Delete("/:userId")
     public Payload deleteUser(String userId) {
         userAdminService.deleteIfExists(userId);
