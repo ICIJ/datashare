@@ -85,10 +85,11 @@ public class ArtifactTask extends PipelineTask<String> {
         logger.info("creating artifact cache in {} for project {} from queue {} with {} worker(s) and polling interval {}s", artifactDir, project, inputQueue.getName(), parallelism, pollingInterval);
         AtomicLong nbDocs = new AtomicLong(0);
         AtomicLong nbSkipped = new AtomicLong(0);
+        AtomicLong nbFailed = new AtomicLong(0);
         try {
             List<Future<?>> futures = new ArrayList<>();
             for (int i = 0; i < parallelism; i++) {
-                futures.add(executor.submit(() -> runWorker(nbDocs, nbSkipped)));
+                futures.add(executor.submit(() -> runWorker(nbDocs, nbSkipped, nbFailed)));
             }
             int nbFailures = 0;
             Throwable firstCause = null;
@@ -115,11 +116,14 @@ public class ArtifactTask extends PipelineTask<String> {
         if (nbSkipped.get() > 0) {
             logger.error("{} document(s) could not be retrieved from index {} and got no artifact cache, re-run the ARTIFACT stage for them", nbSkipped.get(), project.name);
         }
+        if (nbFailed.get() > 0) {
+            logger.error("{} document(s) failed artifact production in project {}, re-run the ARTIFACT stage with --artifactsForce for them", nbFailed.get(), project.name);
+        }
         logger.info("exiting ArtifactTask loop after processing {} document(s).", nbDocs.get());
         return nbDocs.get();
     }
 
-    private void runWorker(AtomicLong nbDocs, AtomicLong nbSkipped) {
+    private void runWorker(AtomicLong nbDocs, AtomicLong nbSkipped, AtomicLong nbFailed) {
         SourceExtractor extractor = createSourceExtractor();
         // Decide once per worker which artifact types to produce: an absent --artifacts flag
         // means all registered types (raw is the only one wired in this foundation).
@@ -141,9 +145,12 @@ public class ArtifactTask extends PipelineTask<String> {
                     Path docArtifactDir = ArtifactPath.dir(projectRoot, doc.getId());
                     if (producer.run(selected, new ArtifactContext(project, doc, docArtifactDir, extractor), force)) {
                         nbDocs.incrementAndGet();
+                    } else {
+                        nbFailed.incrementAndGet();
                     }
                 } catch (Throwable e) {
                     logger.error("error in ArtifactTask loop", e);
+                    nbFailed.incrementAndGet();
                 }
             }
         } catch (InterruptedException e) {
