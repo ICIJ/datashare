@@ -112,6 +112,7 @@ public class ArtifactTask extends PipelineTask<String> {
             // cancellation (where the InterruptedException from future.get() propagates out and
             // TaskWorkerLoop records the run as cancelled).
             executor.shutdownNow();
+            drainResidualPoison();
         }
         if (nbSkipped.get() > 0) {
             logger.error("{} document(s) could not be retrieved from index {} and got no artifact cache, re-run the ARTIFACT stage for them", nbSkipped.get(), project.name);
@@ -164,6 +165,27 @@ public class ArtifactTask extends PipelineTask<String> {
             }
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
+        }
+    }
+
+    // The input queue name is static (<queueName>:artifact) and is never deleted between runs
+    // (MemoryDocumentQueue.close() is a no-op, RedisDocumentQueue.close() only closes the
+    // client). The poison-propagation relay above always leaves exactly one re-offered
+    // STRING_POISON behind once the last worker reads it and breaks. Left uncleaned, that
+    // sentinel sits at the head of the next ARTIFACT run (a documented, supported re-run
+    // workflow via --artifactsForce) and terminates every worker before it processes a single
+    // doc ref, silently reporting 0 processed. Drain it here, once every worker has joined.
+    // Only entries equal to STRING_POISON are discarded: a genuine doc ref (left behind by a
+    // failed/cancelled run) is put straight back so it is not lost for the next run. This is
+    // intentionally NOT inputQueue.delete(): delete() would also wipe any such real, unprocessed
+    // entries, reintroducing silent data loss on the failure/cancellation paths.
+    private void drainResidualPoison() {
+        String entry;
+        while ((entry = inputQueue.poll()) != null) {
+            if (!STRING_POISON.equals(entry)) {
+                inputQueue.offer(entry);
+                break;
+            }
         }
     }
 

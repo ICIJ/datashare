@@ -97,7 +97,7 @@ public class EnqueueFromIndexTask extends PipelineTask<String> {
                 // all doc refs are enqueued. Scoped to ARTIFACT only: NLP consumers
                 // (ExtractNlpTask) have their own termination (bounded null-poll retries) and
                 // are left untouched.
-                outputQueue.offer(STRING_POISON);
+                outputQueue.add(STRING_POISON);
             }
             logger.info("enqueued into {} {} files", outputQueue.getName(), totalHits);
         }

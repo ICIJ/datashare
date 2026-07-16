@@ -429,6 +429,33 @@ public class ArtifactTaskTest {
         assertThat(numberOfDocuments).isEqualTo(1);
     }
 
+    @Test(timeout = 10000)
+    public void test_two_sequential_runs_on_same_queue_both_process_docs() throws Exception {
+        // the ARTIFACT input queue name is static (extract:queue:artifact) and is never deleted
+        // between runs: re-running the stage on the same project (a documented, supported
+        // workflow, see --artifactsForce) reuses it. A poison sentinel re-offered by run 1 and
+        // never drained would sit at the head of run 2's queue, ahead of its real doc refs
+        // (FIFO), and terminate every run-2 worker before it processes a single document.
+        indexEmbeddedDoc();
+        String secondId = "1111111111111111111111111111111111111111111111111111111111111111";
+        mockIndexer.indexFile("prj", secondId,
+                Path.of(Objects.requireNonNull(getClass().getResource("/docs/embedded_doc.eml")).toURI()),
+                "message/rfc822");
+
+        DocumentQueue<String> queue = factory.createQueue("extract:queue:artifact", String.class);
+        queue.add(EMBEDDED_DOC_SHA256);
+        queue.add(PipelineTask.STRING_POISON);
+
+        Long firstRun = runArtifactTask();
+        assertThat(firstRun).isEqualTo(1);
+
+        queue.add(secondId);
+        queue.add(PipelineTask.STRING_POISON);
+
+        Long secondRun = runArtifactTask();
+        assertThat(secondRun).isEqualTo(1);
+    }
+
     private void indexEmbeddedDoc() throws URISyntaxException {
         indexEmbeddedDoc(EMBEDDED_DOC_SHA256);
     }
