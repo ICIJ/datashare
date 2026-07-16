@@ -375,6 +375,60 @@ public class ArtifactTaskTest {
         assertThat(artifactDir.getRoot().toPath().resolve("prj/6a/bb/6abb96950946b62bb993307c8945c0c096982783bab7fa24901522426840ca3e/raw").toFile()).isFile();
     }
 
+    @Test(timeout = 10000)
+    public void test_terminates_on_poison_instead_of_polling_timeout() throws Exception {
+        indexEmbeddedDoc();
+        DocumentQueue<String> queue = factory.createQueue("extract:queue:artifact", String.class);
+        queue.add(EMBEDDED_DOC_SHA256);
+        queue.add(PipelineTask.STRING_POISON);
+
+        // pollingInterval is set far beyond the test timeout: if termination still depended on an
+        // empty poll timing out, this call would block until JUnit kills the test. Only the
+        // poison pill can make it return within the 10s budget.
+        Long numberOfDocuments = new ArtifactTask(factory, mockEs, new PropertiesProvider(Map.of(
+                "artifactDir", artifactDir.getRoot().toString(),
+                "defaultProject", "prj",
+                "pollingInterval", "3600")),
+                new Task<>(ArtifactTask.class.getName(), User.local(), new HashMap<>()), null)
+                .call();
+
+        assertThat(numberOfDocuments).isEqualTo(1);
+    }
+
+    @Test(timeout = 10000)
+    public void test_poison_is_not_processed_as_a_document() throws Exception {
+        DocumentQueue<String> queue = factory.createQueue("extract:queue:artifact", String.class);
+        queue.add(PipelineTask.STRING_POISON);
+
+        Long numberOfDocuments = runArtifactTask();
+
+        assertThat(numberOfDocuments).isEqualTo(0);
+        assertThat(logback.logs(Level.WARN)).excludes("document <POISON> could not be retrieved from index prj (missing document or index fetch error), skipping");
+        assertThat(logback.logs(Level.ERROR)).excludes("1 document(s) could not be retrieved from index prj and got no artifact cache, re-run the ARTIFACT stage for them");
+    }
+
+    @Test(timeout = 10000)
+    public void test_poison_propagates_to_every_worker() throws Exception {
+        indexEmbeddedDoc();
+        DocumentQueue<String> queue = factory.createQueue("extract:queue:artifact", String.class);
+        queue.add(EMBEDDED_DOC_SHA256);
+        // a single poison entry for two workers: whichever worker reads it must re-offer it so
+        // the other worker (blocked on a 3600s poll, well past the test timeout) also sees it and
+        // terminates, instead of being the only one released.
+        queue.add(PipelineTask.STRING_POISON);
+
+        PropertiesProvider props = new PropertiesProvider(Map.of(
+                "artifactDir", artifactDir.getRoot().toString(),
+                "defaultProject", "prj",
+                "pollingInterval", "3600",
+                "parallelism", "2"));
+        Task<Long> task = new Task<>(ArtifactTask.class.getName(), User.local(), new HashMap<>());
+
+        Long numberOfDocuments = new ArtifactTask(factory, mockEs, props, task, null).call();
+
+        assertThat(numberOfDocuments).isEqualTo(1);
+    }
+
     private void indexEmbeddedDoc() throws URISyntaxException {
         indexEmbeddedDoc(EMBEDDED_DOC_SHA256);
     }
