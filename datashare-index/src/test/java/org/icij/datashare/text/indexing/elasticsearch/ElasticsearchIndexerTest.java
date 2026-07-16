@@ -5,7 +5,6 @@ import co.elastic.clients.elasticsearch._types.Refresh;
 import co.elastic.clients.elasticsearch._types.Script;
 import co.elastic.clients.elasticsearch.core.GetRequest;
 import co.elastic.clients.elasticsearch.core.UpdateRequest;
-import jakarta.json.JsonException;
 import org.apache.http.ConnectionClosedException;
 import org.icij.datashare.Entity;
 import org.icij.datashare.PropertiesProvider;
@@ -325,6 +324,33 @@ public class ElasticsearchIndexerTest {
     }
 
     @Test
+    public void test_search_with_a_template_json_query_containing_double_quotes() throws IOException {
+        Document doc = createDoc("id").with("content with john doe").build();
+        indexer.add(es.getIndexName(), doc);
+        String queryBody = "{\"bool\":{\"must\":[{\"match_all\":{}},{\"bool\":{\"should\":[{\"query_string\":{\"query\":\"<query>\"}}]}},{\"match\":{\"type\":\"Document\"}}]}}";
+
+        // a query containing double quotes must not break JSON substitution into the template
+        List<? extends Entity> results = indexer.search(singletonList(es.getIndexName()), Document.class, new SearchQuery(queryBody))
+                .execute("content:\"john doe\"").toList();
+
+        assertThat(results.size()).isEqualTo(1);
+    }
+
+    @Test
+    public void test_scroll_with_a_template_json_query_containing_double_quotes() throws IOException {
+        Document doc = createDoc("id").with("content with john doe").build();
+        indexer.add(es.getIndexName(), doc);
+        String queryBody = "{\"bool\":{\"must\":[{\"match_all\":{}},{\"bool\":{\"should\":[{\"query_string\":{\"query\":\"<query>\"}}]}},{\"match\":{\"type\":\"Document\"}}]}}";
+
+        // batch search goes through the scroll path with a raw query string (here containing double quotes)
+        Indexer.Searcher searcher = indexer.search(singletonList(es.getIndexName()), Document.class, new SearchQuery(queryBody));
+        List<? extends Entity> results = searcher.scroll("1m", "content:\"john doe\"").toList();
+        searcher.clearScroll();
+
+        assertThat(results.size()).isEqualTo(1);
+    }
+
+    @Test
     public void test_update_tagged_document_does_not_push_tag_objects_into_keyword_field() throws IOException {
         Document doc = createDoc("id").build();
         indexer.add(es.getIndexName(), doc);
@@ -517,7 +543,7 @@ public class ElasticsearchIndexerTest {
         searcher.clearScroll();
     }
 
-    @Test(expected = JsonException.class)
+    @Test(expected = ElasticsearchException.class)
     public void test_scroll_with_json_query_template_and_wrong_query() throws IOException {
         Document doc = createDoc("id").build();
         indexer.add(es.getIndexName(), doc);
@@ -525,6 +551,8 @@ public class ElasticsearchIndexerTest {
         Indexer.Searcher searcher = indexer.search(singletonList(es.getIndexName()), Document.class,
                         new SearchQuery("{\"bool\":{\"must\":[{\"query_string\":{\"query\":\"<query>\"}}, {\"match\":{\"type\":\"Document\"}}]}}"));
 
+        // the query is now JSON-escaped into the template, so a malformed Lucene query (unbalanced
+        // quote) no longer breaks JSON parsing but is rejected by Elasticsearch's query parser
         searcher.scroll(KEEP_ALIVE, "\"id*");
 
         searcher.clearScroll();

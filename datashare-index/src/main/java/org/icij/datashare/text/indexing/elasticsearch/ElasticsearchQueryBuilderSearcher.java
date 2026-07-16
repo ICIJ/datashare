@@ -58,7 +58,7 @@ class ElasticsearchQueryBuilderSearcher extends ElasticsearchSearcher implements
     @Override
     protected BoolQuery.Builder getBoolQueryBuilder(String query) {
         return query != null ? boolQueryBuilder.must(m -> m.matchAll(ma -> ma))
-                .must(m -> m.queryString(qs -> qs.query(buildQueryString(query, fuzziness, phraseMatches, "\"")))):
+                .must(m -> m.queryString(qs -> qs.query(buildQueryString(query, fuzziness, phraseMatches)))):
                 boolQueryBuilder;
     }
 
