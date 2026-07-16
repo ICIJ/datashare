@@ -63,7 +63,7 @@ public class ArtifactCoverageCheckerTest {
     }
 
     @Test
-    public void reports_hole_when_getSource_throws_or_streams_zero_bytes() throws Exception {
+    public void reports_hole_when_getSource_throws() throws Exception {
         seedTerminalManifest(DOC_ID);
         Document doc = createDoc(DOC_ID).with(prj).build();
         SourceExtractor throwing = new SourceExtractor(props) {
@@ -74,10 +74,21 @@ public class ArtifactCoverageCheckerTest {
 
         ArtifactCoverageChecker.Report failed = new ArtifactCoverageChecker(null, throwing)
                 .check(prj, artifactDir.getRoot().toPath(), Stream.of(doc));
-        ArtifactCoverageChecker.Report empty = new ArtifactCoverageChecker(null, extractorReturning(new byte[0]))
-                .check(prj, artifactDir.getRoot().toPath(), Stream.of(doc));
 
         assertThat(failed.holes().get(0).reason()).contains("digest never matched");
-        assertThat(empty.holes().get(0).reason()).contains("empty");
+    }
+
+    @Test
+    public void reports_empty_but_not_hole_when_terminal_manifest_and_zero_byte_source() throws Exception {
+        seedTerminalManifest(DOC_ID);
+        Document doc = createDoc(DOC_ID).with(prj).build();
+
+        ArtifactCoverageChecker.Report report = new ArtifactCoverageChecker(null, extractorReturning(new byte[0]))
+                .check(prj, artifactDir.getRoot().toPath(), Stream.of(doc));
+
+        assertThat(report.holes()).isEmpty();
+        assertThat(report.complete()).isTrue();
+        assertThat(report.empties()).isEqualTo(1);
+        assertThat(report.summary()).contains("1 empty embed");
     }
 }

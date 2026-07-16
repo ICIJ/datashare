@@ -16,12 +16,15 @@ import java.util.stream.Stream;
  *  manifest entry and a servable source. Reusable standalone against real projects. */
 public class ArtifactCoverageChecker {
     public record Hole(String docId, String rootId, String reason) {}
-    public record Report(long checked, List<Hole> holes) {
+    /** empties: docs with a terminal manifest and a readable but zero-byte source. Legitimately
+     *  empty (e.g. empty mail-item nodes), so they are retrievable and NOT counted as holes. */
+    public record Report(long checked, List<Hole> holes, long empties) {
         public boolean complete() { return holes.isEmpty(); }
         public String summary() {
             StringBuilder sb = new StringBuilder(String.format("checked %d document(s), %d hole(s)%n", checked, holes.size()));
             holes.stream().limit(50).forEach(h -> sb.append(String.format("  %s (root %s): %s%n", h.docId(), h.rootId(), h.reason())));
             if (holes.size() > 50) sb.append(String.format("  ... and %d more%n", holes.size() - 50));
+            if (empties > 0) sb.append(String.format("%d empty embed(s) (present, zero-byte, not counted as holes)%n", empties));
             return sb.toString();
         }
     }
@@ -39,6 +42,7 @@ public class ArtifactCoverageChecker {
         Path projectRoot = artifactDir.resolve(project.name);
         List<Hole> holes = new ArrayList<>();
         long[] checked = {0};
+        long[] empties = {0};
         documents.forEach(doc -> {
             checked[0]++;
             try {
@@ -47,16 +51,19 @@ public class ArtifactCoverageChecker {
                     holes.add(new Hole(doc.getId(), doc.getRootDocument(), "no terminal raw manifest entry"));
                     return; // manifest hole already recorded; checking the source too would only mask it
                 }
+                // A terminal manifest entry + a readable source (even 0-byte) is covered: some
+                // embeds are legitimately empty (empty mail-item nodes, empty message bodies).
+                // Track those separately instead of flagging them as holes (false positives).
                 try (InputStream source = extractor.getSource(project, doc)) {
                     if (source.read() == -1) {
-                        holes.add(new Hole(doc.getId(), doc.getRootDocument(), "source stream is empty"));
+                        empties[0]++;
                     }
                 }
             } catch (Exception e) {
                 holes.add(new Hole(doc.getId(), doc.getRootDocument(), e.getClass().getSimpleName() + ": " + e.getMessage()));
             }
         });
-        return new Report(checked[0], List.copyOf(holes));
+        return new Report(checked[0], List.copyOf(holes), empties[0]);
     }
 
     /** Scroll the whole index (mirrors EnqueueFromIndexTask's scroll loop) and check it. */
@@ -64,6 +71,7 @@ public class ArtifactCoverageChecker {
         Indexer.Searcher searcher = indexer.search(List.of(project.name), Document.class)
                 .withoutSource("content", "content_translated").limit(scrollSize);
         long checked = 0;
+        long empties = 0;
         List<Hole> holes = new ArrayList<>();
         List<? extends org.icij.datashare.Entity> batch = searcher.scroll("60s").toList();
         while (!batch.isEmpty()) {
@@ -71,9 +79,10 @@ public class ArtifactCoverageChecker {
             Report partial = check(project, artifactDir, docs);
             checked += partial.checked();
             holes.addAll(partial.holes());
+            empties += partial.empties();
             batch = searcher.scroll("60s").toList();
         }
         searcher.clearScroll();
-        return new Report(checked, List.copyOf(holes));
+        return new Report(checked, List.copyOf(holes), empties);
     }
 }
