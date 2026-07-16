@@ -134,7 +134,16 @@ public class ArtifactTask extends PipelineTask<String> {
         Path projectRoot = artifactDir.resolve(project.name);
         try {
             String queueEntry;
+            // POISON is the primary, timing-independent termination signal offered by
+            // EnqueueFromIndexTask once it is done enqueuing; re-offer it so every other
+            // worker in this pool also sees it and terminates (poison propagation, as
+            // DeduplicateTask does across stages). The null-poll exit below remains as a
+            // fallback so the worker still terminates even if no poison ever arrives.
             while ((queueEntry = inputQueue.poll(pollingInterval, TimeUnit.SECONDS)) != null) {
+                if (STRING_POISON.equals(queueEntry)) {
+                    inputQueue.offer(STRING_POISON);
+                    break;
+                }
                 try {
                     Document doc = getDocument(indexer, project.name, DocReference.parse(queueEntry), SOURCE_EXCLUDES);
                     if (doc == null) {
