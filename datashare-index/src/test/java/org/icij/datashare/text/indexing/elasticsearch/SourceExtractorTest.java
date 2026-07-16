@@ -10,6 +10,7 @@ import org.icij.datashare.text.Document;
 import org.icij.datashare.text.DocumentBuilder;
 import org.icij.datashare.text.Hasher;
 import org.icij.datashare.text.Language;
+import org.icij.datashare.text.Project;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.extract.document.DocumentFactory;
 import org.icij.extract.document.EmbeddedTikaDocument;
@@ -34,6 +35,7 @@ import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import static java.nio.file.Paths.get;
@@ -66,6 +68,29 @@ public class SourceExtractorTest {
                 .with(Document.Status.INDEXED)
                 .withContentLength(45L).build();
         new SourceExtractor(getPropertiesProvider()).getEmbeddedSource(project("project"), document);
+    }
+
+    // A RuntimeException from a digest attempt (e.g. an IndexOutOfBoundsException from a parse
+    // defect) must degrade to "try next digester", same as the checked extraction exceptions,
+    // instead of escaping getEmbeddedSource() and surfacing as a 500 at the HTTP layer.
+    @Test(expected = EmbeddedDocumentExtractor.ContentNotFoundException.class)
+    public void test_content_not_found_after_digest_runtime_exception() {
+        Document document = DocumentBuilder.createDoc(project("project"), get(getClass().getResource("/docs/embedded_doc.eml").getPath()))
+                .with("it has been parsed")
+                .with(Language.FRENCH)
+                .with(Charset.defaultCharset())
+                .ofContentType("message/rfc822")
+                .with(new HashMap<>())
+                .with(Document.Status.INDEXED)
+                .withContentLength(45L).build();
+        SourceExtractor extractor = new SourceExtractor(getPropertiesProvider()) {
+            @Override
+            List<DigestingParser.Digester> buildDigesters(Project project, Document document) {
+                return List.of((is, metadata, context) -> { throw new IndexOutOfBoundsException("boom"); });
+            }
+        };
+
+        extractor.getEmbeddedSource(project("project"), document);
     }
 
     @Test
