@@ -127,7 +127,10 @@ public class ArtifactTask extends PipelineTask<String> {
             logger.error("{} document(s) could not be retrieved from index {} and got no artifact cache, re-run the ARTIFACT stage for them", nbSkipped.get(), project.name);
         }
         if (nbFailed.get() > 0) {
-            logger.error("{} document(s) failed artifact production in project {}, re-run the ARTIFACT stage with --artifactsForce for them", nbFailed.get(), project.name);
+            // Failed docs never got a terminal manifest entry, so isCurrent() is false for them
+            // and a plain re-run already reprocesses exactly those (not --artifactsForce, which
+            // would force-reprocess the entire corpus). Matches the nbSkipped guidance above.
+            logger.error("{} document(s) failed artifact production in project {}, re-run the ARTIFACT stage for them", nbFailed.get(), project.name);
         }
         logger.info("exiting ArtifactTask loop after processing {} document(s).", nbDocs.get());
         return nbDocs.get();

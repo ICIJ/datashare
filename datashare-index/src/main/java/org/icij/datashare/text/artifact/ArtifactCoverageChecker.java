@@ -73,16 +73,21 @@ public class ArtifactCoverageChecker {
         long checked = 0;
         long empties = 0;
         List<Hole> holes = new ArrayList<>();
-        List<? extends org.icij.datashare.Entity> batch = searcher.scroll("60s").toList();
-        while (!batch.isEmpty()) {
-            Stream<Document> docs = batch.stream().map(e -> (Document) e);
-            Report partial = check(project, artifactDir, docs);
-            checked += partial.checked();
-            holes.addAll(partial.holes());
-            empties += partial.empties();
-            batch = searcher.scroll("60s").toList();
+        try {
+            List<? extends org.icij.datashare.Entity> batch = searcher.scroll("60s").toList();
+            while (!batch.isEmpty()) {
+                Stream<Document> docs = batch.stream().map(e -> (Document) e);
+                Report partial = check(project, artifactDir, docs);
+                checked += partial.checked();
+                holes.addAll(partial.holes());
+                empties += partial.empties();
+                batch = searcher.scroll("60s").toList();
+            }
+        } finally {
+            // Always release the ES scroll context, even if a scroll batch throws mid-audit,
+            // so repeated failed audit runs don't leak open scrolls on the cluster.
+            searcher.clearScroll();
         }
-        searcher.clearScroll();
         return new Report(checked, List.copyOf(holes), empties);
     }
 }
