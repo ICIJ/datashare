@@ -9,6 +9,7 @@ import co.elastic.clients.elasticsearch.core.SearchRequest;
 import co.elastic.clients.elasticsearch.core.SearchResponse;
 import co.elastic.clients.elasticsearch.core.search.Hit;
 import co.elastic.clients.elasticsearch.core.search.ResponseBody;
+import com.fasterxml.jackson.core.io.JsonStringEncoder;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import jakarta.json.JsonException;
@@ -74,9 +75,7 @@ class ElasticsearchSearcher implements Indexer.Searcher {
 
     @Override
     public Stream<? extends Entity> execute(String stringQuery) throws IOException {
-        String queryString = buildQueryString(stringQuery, fuzziness, phraseMatches, "\\\\\"");
-        final String queryBody = jsonBoolQuery.toString().replaceAll(TEMPLATE_QUERY,queryString);
-        return getStream(queryBody);
+        return getStream(substituteQuery(stringQuery));
     }
 
     protected Stream<? extends Entity> getStream(String queryBody) throws IOException {
@@ -101,11 +100,20 @@ class ElasticsearchSearcher implements Indexer.Searcher {
 
     protected String queryAsString(String queryString) {
         if (isTemplate() && queryString != null) {
-            String replacement = buildQueryString(queryString, fuzziness, phraseMatches, "\\\\\"");
-            return jsonBoolQuery.toString().replaceAll(TEMPLATE_QUERY, replacement);
+            return substituteQuery(queryString);
         } else {
             return jsonBoolQuery.toString();
         }
+    }
+
+    // Substitutes the user query into the JSON template. The <query> placeholder sits inside a JSON
+    // string literal ("query":"<query>"), so the query must be JSON-escaped or any double quote it
+    // contains (e.g. title:"source.zip") would break the surrounding JSON. Uses literal replace()
+    // rather than replaceAll() so backslashes and $ in the query aren't treated as regex replacements.
+    private String substituteQuery(String queryString) {
+        String replacement = buildQueryString(queryString, fuzziness, phraseMatches);
+        String jsonEscaped = new String(JsonStringEncoder.getInstance().quoteAsString(replacement));
+        return jsonBoolQuery.toString().replace(TEMPLATE_QUERY, jsonEscaped);
     }
 
     private boolean isTemplate() {
@@ -159,10 +167,10 @@ class ElasticsearchSearcher implements Indexer.Searcher {
         return this;
     }
 
-    protected static String buildQueryString(String query, int fuzziness, boolean phraseMatches, String phraseMatchDoubleQuotes) {
+    protected static String buildQueryString(String query, int fuzziness, boolean phraseMatches) {
         String queryString;
         if (phraseMatches) {
-            queryString = phraseMatchDoubleQuotes + query + phraseMatchDoubleQuotes + (fuzziness == 0 ? "" : "~" + fuzziness);
+            queryString = "\"" + query + "\"" + (fuzziness == 0 ? "" : "~" + fuzziness);
         } else if (fuzziness > 0) {
             queryString = Stream.of(query.split(" ")).map(s -> s + "~" + fuzziness).collect(Collectors.joining(" "));
         } else {

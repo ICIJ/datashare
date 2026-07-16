@@ -202,6 +202,21 @@ public class BatchSearchRunnerIntTest {
     }
 
     @Test
+    public void test_search_with_query_template_and_double_quotes_in_query() throws Exception {
+        String queryBody = "{\"bool\":{\"must\":[{\"match_all\":{}},{\"bool\":{\"should\":[{\"query_string\":{\"query\":\"<query>\"}}]}},{\"match\":{\"type\":\"Document\"}}]}}";
+        Document mydoc = createDoc("docId").with("mydoc to find").build();
+        indexer.add(es.getIndexName(), mydoc);
+        // query with double quotes used to break JSON substitution into the template (see #query_string bug)
+        BatchSearch searchOk = new BatchSearch(singletonList(project(es.getIndexName())), "name", "desc", asSet("content:\"mydoc to find\""), null, User.local(), false, null, queryBody,
+                null, 0);
+        when(repository.get(local(), searchOk.uuid)).thenReturn(searchOk);
+
+        new BatchSearchRunner(indexer, new PropertiesProvider(), repository, taskView(searchOk), progressCb).call();
+
+        verify(repository).saveResults(searchOk.uuid, "content:\"mydoc to find\"", singletonList(mydoc), true);
+    }
+
+    @Test
     public void test_search_without_query_template() throws Exception {
         Document mydoc = createDoc("docId").with("mydoc to find").build();
         indexer.add(es.getIndexName(), mydoc);
@@ -236,7 +251,7 @@ public class BatchSearchRunnerIntTest {
         when(repository.get(local(), search.uuid)).thenReturn(search);
 
         Exception exception = assertThrows(SearchException.class, () -> new BatchSearchRunner(indexer, new PropertiesProvider(), repository, taskView(search), progressCb).call());
-        assertThat(exception.getMessage()).contains("Unexpected char");
+        assertThat(exception.getMessage()).contains("Failed to parse query [\"mydoc]");
         verify(repository).setState(eq(search.uuid), any(SearchException.class));
     }
 
