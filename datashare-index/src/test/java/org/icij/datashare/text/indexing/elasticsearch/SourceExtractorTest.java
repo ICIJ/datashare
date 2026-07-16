@@ -201,13 +201,15 @@ public class SourceExtractorTest {
         assertThat(getBytes(source)).hasSize(49779);
     }
 
-    @Test(expected = EmbeddedDocumentExtractor.ContentNotFoundException.class)
-    public void test_not_get_source_for_embedded_doc_with_digest_project_name_using_legacy_value_in_server() throws Exception {
+    // Legacy-keyed embeds must stay retrievable in SERVER mode too: the legacy digester is only
+    // an extra fallback attempt, it must not be skipped just because we're in SERVER mode
+    // (see SourceExtractor#mightUseLegacyDigester).
+    @Test
+    public void test_get_source_for_embedded_doc_with_digest_project_name_using_legacy_value_in_server() throws Exception {
         Path path = get(getClass().getResource("/docs/embedded_doc.eml").getPath());
         Map<String, Object> stringProperties  =  Map.of(
             "digestAlgorithm", Document.DEFAULT_DIGESTER.toString(),
             "digestProjectName", "local-datashare",
-            "defaultProject", es.getIndexName(),
             "artifactDir", tmpDir.newFolder("server_mode").toString(),
             "mode", "SERVER");
         ElasticsearchIndexer elasticsearchIndexer = createIndexer(es.getIndexName());
@@ -215,7 +217,9 @@ public class SourceExtractorTest {
 
         Document attachedPdf = elasticsearchIndexer.get(es.getIndexName(), doc.getEmbeds().get(0).getId(), doc.getId());
 
-        new SourceExtractor(new PropertiesProvider(stringProperties)).getSource(project(es.getIndexName()), attachedPdf);
+        InputStream source = new SourceExtractor(new PropertiesProvider(stringProperties)).getSource(project(es.getIndexName()), attachedPdf);
+        assertThat(source).isNotNull();
+        assertThat(getBytes(source)).hasSize(49779);
     }
 
     private static TikaDocument indexDocument(Indexer indexer, Map<String, Object> properties, Path path, Map<String, Object> spewerProperties) throws IOException {
@@ -266,6 +270,50 @@ public class SourceExtractorTest {
         new SourceExtractor(getPropertiesProvider(true)).extractEmbeddedSources(project(es.getIndexName()), document);
         assertThat(tmpDir.getRoot().toPath().resolve(es.getIndexName()).toFile().listFiles()).containsOnly(
                 tmpDir.getRoot().toPath().resolve(es.getIndexName()).resolve("75").toFile());
+    }
+
+    @Test
+    public void test_build_digesters_includes_legacy_digester_in_server_mode() {
+        Document document = DocumentBuilder.createDoc(project("other-project"), get(getClass().getResource("/docs/embedded_doc.eml").getPath()))
+                .withExtractionLevel((short) 1).build();
+        SourceExtractor extractor = new SourceExtractor(new PropertiesProvider(Map.of(
+                "mode", "SERVER",
+                "defaultProject", "local-datashare")));
+
+        assertThat(extractor.buildDigesters(project("other-project"), document)).hasSize(3);
+    }
+
+    @Test
+    public void test_build_digesters_excludes_legacy_digester_when_project_is_default_project() {
+        Document document = DocumentBuilder.createDoc(project("local-datashare"), get(getClass().getResource("/docs/embedded_doc.eml").getPath()))
+                .withExtractionLevel((short) 1).build();
+        SourceExtractor extractor = new SourceExtractor(new PropertiesProvider(Map.of(
+                "mode", "SERVER",
+                "defaultProject", "local-datashare")));
+
+        assertThat(extractor.buildDigesters(project("local-datashare"), document)).hasSize(2);
+    }
+
+    @Test
+    public void test_build_digesters_excludes_legacy_digester_when_extraction_level_is_zero() {
+        Document document = DocumentBuilder.createDoc(project("other-project"), get(getClass().getResource("/docs/embedded_doc.eml").getPath()))
+                .withExtractionLevel((short) 0).build();
+        SourceExtractor extractor = new SourceExtractor(new PropertiesProvider(Map.of(
+                "mode", "SERVER",
+                "defaultProject", "local-datashare")));
+
+        assertThat(extractor.buildDigesters(project("other-project"), document)).hasSize(2);
+    }
+
+    @Test
+    public void test_build_digesters_includes_legacy_digester_in_non_server_mode() {
+        Document document = DocumentBuilder.createDoc(project("other-project"), get(getClass().getResource("/docs/embedded_doc.eml").getPath()))
+                .withExtractionLevel((short) 1).build();
+        SourceExtractor extractor = new SourceExtractor(new PropertiesProvider(Map.of(
+                "mode", "LOCAL",
+                "defaultProject", "local-datashare")));
+
+        assertThat(extractor.buildDigesters(project("other-project"), document)).hasSize(3);
     }
 
     private byte[] getBytes(InputStream source) throws IOException {
