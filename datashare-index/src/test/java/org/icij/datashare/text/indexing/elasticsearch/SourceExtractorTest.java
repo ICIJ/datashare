@@ -25,6 +25,7 @@ import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+import org.slf4j.Logger;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -37,12 +38,15 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import static java.nio.file.Paths.get;
 import static org.fest.assertions.Assertions.assertThat;
 import static org.icij.datashare.cli.DatashareCliOptions.ARTIFACT_DIR_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.NO_DIGEST_PROJECT_OPT;
 import static org.icij.datashare.text.Project.project;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockingDetails;
 
 public class SourceExtractorTest {
     @Rule public TemporaryFolder tmpDir = new TemporaryFolder();
@@ -91,6 +95,45 @@ public class SourceExtractorTest {
         };
 
         extractor.getEmbeddedSource(project("project"), document);
+    }
+
+    // The runtime-exception path above degrades to ContentNotFoundException on purpose, but that
+    // must not make a genuine bug invisible: a loud WARN carrying the doc id and the real cause
+    // has to be logged before the 404-mapped exception is thrown, otherwise the failure is
+    // undiagnosable in production logs (only visible at DEBUG per attempt). LOGGER is
+    // package-private on SourceExtractor precisely so this test (same package) can swap in a
+    // mock and assert on what actually got logged, with no extra logging test dependency needed.
+    @Test(expected = EmbeddedDocumentExtractor.ContentNotFoundException.class)
+    public void test_content_not_found_logs_last_failure_loudly() {
+        Document document = DocumentBuilder.createDoc(project("project"), get(getClass().getResource("/docs/embedded_doc.eml").getPath()))
+                .with("it has been parsed")
+                .with(Language.FRENCH)
+                .with(Charset.defaultCharset())
+                .ofContentType("message/rfc822")
+                .with(new HashMap<>())
+                .with(Document.Status.INDEXED)
+                .withContentLength(45L).build();
+        SourceExtractor extractor = new SourceExtractor(getPropertiesProvider()) {
+            @Override
+            List<DigestingParser.Digester> buildDigesters(Project project, Document document) {
+                return List.of((is, metadata, context) -> { throw new IllegalStateException("boom"); });
+            }
+        };
+        Logger mockLogger = mock(Logger.class);
+        extractor.LOGGER = mockLogger;
+
+        try {
+            extractor.getEmbeddedSource(project("project"), document);
+        } finally {
+            boolean loggedLoudly = mockingDetails(mockLogger).getInvocations().stream()
+                    .filter(invocation -> invocation.getMethod().getName().equals("warn"))
+                    .anyMatch(invocation -> {
+                        String rendered = Arrays.stream(invocation.getArguments())
+                                .map(String::valueOf).collect(Collectors.joining(" | "));
+                        return rendered.contains(document.getId()) && rendered.contains("boom");
+                    });
+            assertThat(loggedLoudly).isTrue();
+        }
     }
 
     @Test

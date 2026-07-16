@@ -31,6 +31,7 @@ import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import static org.icij.datashare.PropertiesProvider.DEFAULT_PROJECT_OPT;
 
@@ -76,6 +77,7 @@ public class SourceExtractor {
         boolean useOcr = useOcr(document);
         int i = 0;
         List<DigestingParser.Digester> digesters = buildDigesters(project, document);
+        Throwable lastFailure = null;
 
         // Try each digester to find embedded doc and ensure we
         // used every available digesters to find it.
@@ -97,6 +99,7 @@ public class SourceExtractor {
                 }
                 return inputStream;
             } catch (RuntimeException | SAXException | TikaException | IOException ex) {
+                lastFailure = ex;
                 LOGGER.debug("Extract attempt {}/{} for embedded document {}/{} failed (algorithm={}, digester={}, project={})",
                         ++i, digesters.size(),
                         document.getId(), document.getRootDocument(),
@@ -105,6 +108,15 @@ public class SourceExtractor {
             }
         }
 
+        // Every digester failed: this is expected to degrade to a 404 (ContentNotFoundException)
+        // even when the last failure was a genuine runtime defect (not just "not found"), so log
+        // it loudly here (once, with the real cause) instead of leaving it invisible at DEBUG.
+        if (lastFailure != null) {
+            String digesterNames = digesters.stream().map(d -> d.getClass().getSimpleName()).collect(Collectors.joining(","));
+            LOGGER.warn("could not extract embedded document {} from root {} in project {} after trying {} digester scheme(s) ({}); last failure: {}",
+                    document.getId(), document.getRootDocument(), document.getProject(), digesters.size(), digesterNames,
+                    lastFailure.toString(), lastFailure);
+        }
         throw new ContentNotFoundException(document.getRootDocument(), document.getId());
     }
 
