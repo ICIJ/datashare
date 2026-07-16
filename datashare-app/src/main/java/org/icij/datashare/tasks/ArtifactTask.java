@@ -189,17 +189,35 @@ public class ArtifactTask extends PipelineTask<String> {
     // sentinel sits at the head of the next ARTIFACT run (a documented, supported re-run
     // workflow via --artifactsForce) and terminates every worker before it processes a single
     // doc ref, silently reporting 0 processed. Drain it here, once every worker has joined.
-    // Only entries equal to STRING_POISON are discarded: a genuine doc ref (left behind by a
-    // failed/cancelled run) is put straight back so it is not lost for the next run. This is
-    // intentionally NOT inputQueue.delete(): delete() would also wipe any such real, unprocessed
+    //
+    // On the kill/cancellation path the queue can hold real doc refs BEHIND the poison too:
+    // workers were interrupted before draining that far, e.g. [realDocX, realDocY, POISON].
+    // Stopping at the first non-poison entry (as this used to do) offers realDocX back and
+    // quits, leaving POISON in the queue behind it; the next run's EnqueueFromIndexTask then
+    // appends its own docs and poison, so the rerun's workers hit the stale POISON after only
+    // a couple of docs and terminate early, stranding the rest. So instead drain the ENTIRE
+    // queue (bounded by whatever is present right now: poll() is non-blocking and returns null
+    // once empty), discard every STRING_POISON regardless of position, and re-offer only the
+    // real doc refs, in their original FIFO order. This is safe here specifically because
+    // drainResidualPoison() only runs after executor.awaitTermination() has returned (every
+    // worker has joined, so nothing is concurrently polling/offering) and after
+    // EnqueueFromIndexTask has finished producing (its poison was the end-of-input signal), so
+    // there is no concurrent producer/consumer racing this full drain. Net effect: on the
+    // success path the queue held only the trailing poison and comes back empty; on the
+    // kill/failure path real docs are preserved in order so the rerun (which also re-enqueues
+    // from the index) processes them and no stale poison survives to end it early. This is
+    // intentionally NOT inputQueue.delete(): delete() would also wipe those real, unprocessed
     // entries, reintroducing silent data loss on the failure/cancellation paths.
     private void drainResidualPoison() {
+        List<String> realEntries = new ArrayList<>();
         String entry;
         while ((entry = inputQueue.poll()) != null) {
             if (!STRING_POISON.equals(entry)) {
-                inputQueue.offer(entry);
-                break;
+                realEntries.add(entry);
             }
+        }
+        for (String realEntry : realEntries) {
+            inputQueue.offer(realEntry);
         }
     }
 

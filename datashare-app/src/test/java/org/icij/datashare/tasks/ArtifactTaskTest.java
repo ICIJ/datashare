@@ -456,6 +456,39 @@ public class ArtifactTaskTest {
         assertThat(secondRun).isEqualTo(1);
     }
 
+    @Test(timeout = 10000)
+    public void test_doc_stranded_behind_stale_poison_is_recovered_by_next_run() throws Exception {
+        // regression: on the kill/cancellation path the queue can end up with a real doc ref
+        // BEHIND the trailing poison (workers interrupted before draining that far), e.g.
+        // [doc, POISON, strandedDoc]. drainResidualPoison() must not stop at the first
+        // non-poison entry it polls: doing so re-offers "doc" but leaves POISON in place ahead
+        // of strandedDoc, so the next run's workers hit that stale POISON immediately and
+        // terminate before processing strandedDoc or anything the next run itself enqueued.
+        indexEmbeddedDoc();
+        String strandedId = "1111111111111111111111111111111111111111111111111111111111111111";
+        String secondRunId = "2".repeat(strandedId.length());
+        mockIndexer.indexFile("prj", strandedId,
+                Path.of(Objects.requireNonNull(getClass().getResource("/docs/embedded_doc.eml")).toURI()),
+                "message/rfc822");
+        mockIndexer.indexFile("prj", secondRunId,
+                Path.of(Objects.requireNonNull(getClass().getResource("/docs/embedded_doc.eml")).toURI()),
+                "message/rfc822");
+
+        DocumentQueue<String> queue = factory.createQueue("extract:queue:artifact", String.class);
+        queue.add(EMBEDDED_DOC_SHA256);
+        queue.add(PipelineTask.STRING_POISON);
+        queue.add(strandedId);
+
+        Long firstRun = runArtifactTask();
+        assertThat(firstRun).isEqualTo(1);
+
+        queue.add(secondRunId);
+        queue.add(PipelineTask.STRING_POISON);
+
+        Long secondRun = runArtifactTask();
+        assertThat(secondRun).isEqualTo(2);
+    }
+
     private void indexEmbeddedDoc() throws URISyntaxException {
         indexEmbeddedDoc(EMBEDDED_DOC_SHA256);
     }
