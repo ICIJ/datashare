@@ -96,7 +96,7 @@ public class SourceExtractor {
                     return new ByteArrayInputStream(metadataCleaner.clean(inputStream).getContent());
                 }
                 return inputStream;
-            } catch (ContentNotFoundException | SAXException | TikaException | IOException ex) {
+            } catch (RuntimeException | SAXException | TikaException | IOException ex) {
                 LOGGER.debug("Extract attempt {}/{} for embedded document {}/{} failed (algorithm={}, digester={}, project={})",
                         ++i, digesters.size(),
                         document.getId(), document.getRootDocument(),
