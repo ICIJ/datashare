@@ -112,6 +112,20 @@ public class ArtifactTask extends PipelineTask<String> {
             // cancellation (where the InterruptedException from future.get() propagates out and
             // TaskWorkerLoop records the run as cancelled).
             executor.shutdownNow();
+            // On the cancellation path, future.get() is interrupted (and control reaches here)
+            // before the worker threads have actually unwound: shutdownNow() does not wait for
+            // termination. Without waiting, drainResidualPoison() below can race a worker that is
+            // mid-relay of STRING_POISON (dequeued it, about to offer() it back), leaving a stale
+            // poison behind for the next run. Wait here first, bounded so cancellation stays
+            // reasonably prompt; a worker stuck in a non-interruptible parse is a separate hang
+            // concern, so still drain best-effort on timeout. Swallow only the InterruptedException
+            // from this wait (re-interrupting) so the original InterruptedException from
+            // future.get() above keeps propagating out of call() unmasked.
+            try {
+                executor.awaitTermination(30, TimeUnit.SECONDS);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
             drainResidualPoison();
         }
         if (nbSkipped.get() > 0) {
