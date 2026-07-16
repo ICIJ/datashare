@@ -254,7 +254,7 @@ public class ArtifactTaskTest {
         // the producer isolates the per-artifact failure and keeps draining the queue,
         // so the run stays non-fatal and the sibling document is still counted.
         assertThat(logback.logs(Level.ERROR)).contains("failed to produce artifact 'raw' for document " + failingId);
-        assertThat(logback.logs(Level.ERROR)).contains("1 document(s) failed artifact production in project prj, re-run the ARTIFACT stage with --artifactsForce for them");
+        assertThat(logback.logs(Level.ERROR)).contains("1 document(s) failed artifact production in project prj, re-run the ARTIFACT stage for them");
     }
 
     @Test(timeout = 10000)
