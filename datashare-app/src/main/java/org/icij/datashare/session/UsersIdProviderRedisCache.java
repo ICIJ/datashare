@@ -3,17 +3,20 @@ package org.icij.datashare.session;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import net.codestory.http.security.User;
-import org.icij.datashare.EnvUtils;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.text.Hasher;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
+import redis.clients.jedis.JedisPoolConfig;
 import redis.clients.jedis.Transaction;
 
+import java.net.URI;
 import java.util.List;
 
+import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_REDIS_ADDRESS;
 import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_SESSION_TTL_SECONDS;
+import static org.icij.datashare.cli.DatashareCliOptions.REDIS_ADDRESS_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.SESSION_TTL_SECONDS_OPT;
 import static org.icij.datashare.user.User.fromJson;
 
@@ -24,7 +27,10 @@ public class UsersIdProviderRedisCache implements UsersIdProviderCache {
 
     @Inject
     public UsersIdProviderRedisCache(PropertiesProvider propertiesProvider) {
-        redis = new JedisPool(propertiesProvider.get("redisAddress").orElse(EnvUtils.resolveUri("redis", "redis://redis:6379")));
+        JedisPoolConfig poolConfig = new JedisPoolConfig();
+        poolConfig.setTestOnBorrow(true);
+        String redisAddress = propertiesProvider.get(REDIS_ADDRESS_OPT).orElse(DEFAULT_REDIS_ADDRESS);
+        redis = new JedisPool(poolConfig, URI.create(redisAddress));
         this.ttl = Integer.valueOf(propertiesProvider.get(SESSION_TTL_SECONDS_OPT).orElse(String.valueOf(DEFAULT_SESSION_TTL_SECONDS)));
     }
 
