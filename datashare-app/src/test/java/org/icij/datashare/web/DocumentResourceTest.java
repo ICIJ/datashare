@@ -98,6 +98,20 @@ public class DocumentResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
+    public void test_get_source_file_without_indexed_content_length() throws Exception {
+        // embedded documents don't have their contentLength indexed (it defaults to -1):
+        // Content-Length must not be sent with a bogus "-1" value while real content is written
+        File txtFile = new File(temp.getRoot(), "/my/path/to/file.ods");
+        MockIndexer.write(txtFile, "content");
+        Document docWithoutContentLength = DocumentBuilder.createDoc().withId("id_ods_no_length").with(txtFile.toPath()).with(new Project("local-datashare"))
+                .ofContentType("application/vnd.oasis.opendocument.spreadsheet").build();
+        mockIndexer.indexFile("local-datashare", docWithoutContentLength);
+
+        get("/api/local-datashare/documents/src/id_ods_no_length").should()
+                .haveHeader("Content-Length", null);
+    }
+
+    @Test
     public void test_get_source_file_without_metadata() throws Exception {
         File txtFile = new File(temp.getRoot(), "/my/path/to/file.ods");
         MockIndexer.write(txtFile, "content");
