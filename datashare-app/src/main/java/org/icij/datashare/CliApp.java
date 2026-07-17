@@ -41,13 +41,13 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.function.Supplier;
 
-import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.icij.datashare.PropertiesProvider.propertiesToMap;
 import static org.icij.datashare.cli.DatashareCliOptions.*;
 import static org.icij.datashare.user.User.localUser;
@@ -174,43 +174,63 @@ class CliApp {
 
         PipelineHelper pipeline = new PipelineHelper(new PropertiesProvider(properties));
         logger.info("executing {}", pipeline);
+        List<String> taskIds = new ArrayList<>();
         if (pipeline.has(Stage.DEDUPLICATE)) {
-            taskManager.startTask(DeduplicateTask.class, nullUser(), propertiesToMap(properties));
+            taskIds.add(taskManager.startTask(DeduplicateTask.class, nullUser(), propertiesToMap(properties)));
         }
 
         if (pipeline.has(Stage.SCANIDX)) {
-            taskManager.startTask(ScanIndexTask.class, nullUser(), propertiesToMap(properties));
+            taskIds.add(taskManager.startTask(ScanIndexTask.class, nullUser(), propertiesToMap(properties)));
         }
 
         if (pipeline.has(Stage.SCAN)) {
-            taskManager.startTask(ScanTask.class, nullUser(), propertiesToMap(properties));
+            taskIds.add(taskManager.startTask(ScanTask.class, nullUser(), propertiesToMap(properties)));
         }
 
         if (pipeline.has(Stage.INDEX)) {
-            taskManager.startTask(IndexTask.class, nullUser(), propertiesToMap(properties));
+            taskIds.add(taskManager.startTask(IndexTask.class, nullUser(), propertiesToMap(properties)));
         }
 
         if (pipeline.has(Stage.ENQUEUEIDX)) {
-            taskManager.startTask(EnqueueFromIndexTask.class, nullUser(), propertiesToMap(properties));
+            taskIds.add(taskManager.startTask(EnqueueFromIndexTask.class, nullUser(), propertiesToMap(properties)));
         }
 
         if (pipeline.has(Stage.CATEGORIZE)) {
-            taskManager.startTask(CategorizeTask.class, nullUser(), propertiesToMap(properties));
+            taskIds.add(taskManager.startTask(CategorizeTask.class, nullUser(), propertiesToMap(properties)));
         }
 
         if (pipeline.has(Stage.CREATENLPBATCHESFROMIDX)) {
-            taskManager.startTask(CreateNlpBatchesFromIndex.class.getName(), nullUser(), propertiesToMap(properties));
+            taskIds.add(taskManager.startTask(CreateNlpBatchesFromIndex.class.getName(), nullUser(), propertiesToMap(properties)));
         }
 
         if (pipeline.has(Stage.NLP)) {
-            taskManager.startTask(ExtractNlpTask.class, nullUser(), propertiesToMap(properties));
+            taskIds.add(taskManager.startTask(ExtractNlpTask.class, nullUser(), propertiesToMap(properties)));
         }
 
         if (pipeline.has(Stage.ARTIFACT)) {
-            taskManager.startTask(ArtifactTask.class, nullUser(), propertiesToMap(properties));
+            taskIds.add(taskManager.startTask(ArtifactTask.class, nullUser(), propertiesToMap(properties)));
         }
-        taskManager.awaitTermination(Integer.MAX_VALUE, SECONDS);
+        awaitTasks(taskManager, taskIds);
         taskManager.shutdown();
+    }
+
+    static void awaitTasks(TaskManager taskManager, List<String> taskIds) throws IOException {
+        int pollingInterval = taskManager.getTerminationPollingInterval();
+        while (true) {
+            boolean allDone = taskIds.stream().allMatch(taskId -> {
+                try {
+                    return taskManager.getTask(taskId).getState().isFinal();
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+            });
+            if (allDone) break;
+            try {
+                Thread.sleep(pollingInterval);
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+        }
     }
 
     static int handleUserCreate(UserAdminService service, Properties properties) {
