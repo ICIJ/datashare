@@ -56,6 +56,10 @@ public interface TaskManager extends Closeable {
         return waitTasksToBeDone(timeout, timeUnit) == 0L;
     }
 
+    default boolean awaitTermination(int timeout, TimeUnit timeUnit, Set<String> scopeTaskIds) throws InterruptedException, IOException {
+        return waitTasksToBeDone(timeout, timeUnit, scopeTaskIds) == 0L;
+    }
+
     default Map<String, Boolean> stopTasks(User user) throws IOException {
         return stopTasks(TaskFilters.empty().withUser(user));
     }
@@ -115,20 +119,31 @@ public interface TaskManager extends Closeable {
      * @throws IOException if the task list cannot be retrieved because of a network failure.
      */
     default long waitTasksToBeDone(int timeout, TimeUnit timeUnit) throws IOException {
+        return waitTasksToBeDone(timeout, timeUnit, null);
+    }
+
+    default long waitTasksToBeDone(int timeout, TimeUnit timeUnit, Set<String> scopeTaskIds) throws IOException {
         long startTime = System.currentTimeMillis();
         long maxDuration = timeUnit.toMillis(timeout);
         TaskFilters filterNotCompleted = TaskFilters.empty().withStates(NON_FINAL_STATES);
-        long nUnfinished = getTaskIds(filterNotCompleted).count();
+        long nUnfinished = countUnfinished(filterNotCompleted, scopeTaskIds);
         while (System.currentTimeMillis() - startTime < maxDuration && nUnfinished > 0) {
             try {
                 Thread.sleep(Math.min(getTerminationPollingInterval(), maxDuration));
             } catch (InterruptedException e) {
                 throw new RuntimeException(e);
             }
-            Stream<String> taskIds = getTaskIds(filterNotCompleted);
-            nUnfinished = taskIds.count();
+            nUnfinished = countUnfinished(filterNotCompleted, scopeTaskIds);
         }
         return nUnfinished;
+    }
+
+    private long countUnfinished(TaskFilters filterNotCompleted, Set<String> scopeTaskIds) throws IOException {
+        Stream<String> unfinished = getTaskIds(filterNotCompleted);
+        if (scopeTaskIds != null) {
+            unfinished = unfinished.filter(scopeTaskIds::contains);
+        }
+        return unfinished.count();
     }
 
     // for tests
