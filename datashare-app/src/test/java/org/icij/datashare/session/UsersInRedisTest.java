@@ -11,55 +11,31 @@ import java.util.HashMap;
 
 import static org.fest.assertions.Assertions.assertThat;
 
-public class RedisSessionIdStoreTest {
-    RedisSessionIdStore sessionIdStore = new RedisSessionIdStore(new PropertiesProvider(new HashMap<>() {{
+public class UsersInRedisTest {
+    UsersInRedis users = new UsersInRedis(new PropertiesProvider(new HashMap<>() {{
         put("messageBusAddress", EnvUtils.resolveUri("redis", "redis://redis:6379"));
-        put("sessionTtlSeconds", "1");
     }}));
 
     @Test
-    public void test_put_get_session() {
-        sessionIdStore.put("sid", "login");
-
-        assertThat(sessionIdStore.getLogin("sid")).isEqualTo("login");
-    }
-
-    @Test
-    public void test_session_ttl() throws Exception {
-        sessionIdStore.put("sid", "login");
-        Thread.sleep(2000); // BT: beurk this test is not deterministic. I don't see how to test it differently
-
-        assertThat(sessionIdStore.getLogin("sid")).isNull();
-    }
-
-    @Test
-    public void test_remove_session() throws Exception {
-        sessionIdStore.put("sid", "login");
-        sessionIdStore.remove("sid");
-
-        assertThat(sessionIdStore.getLogin("id")).isNull();
-    }
-
-    @Test
-    public void get_login_recovers_from_a_connection_killed_server_side_while_idle_in_the_pool() throws Exception {
+    public void find_recovers_from_a_connection_killed_server_side_while_idle_in_the_pool() throws Exception {
         // Simulates the real-world failure: the Redis server (or an intermediary like a LB/NAT)
         // closes a connection that's sitting idle in the pool. Locally, the socket's isConnected()/
         // isClosed() flags are untouched by a remote close (they only reflect local connect()/close()
         // calls), so Jedis believes the connection is fine and hands it out again; the next command
         // fails reading the reply with "Unexpected end of stream", exactly like the reported crash.
-        sessionIdStore.put("sid", "login");
+        users.save(new org.icij.datashare.user.User("test"));
 
-        Field poolField = RedisSessionIdStore.class.getDeclaredField("redis");
+        Field poolField = UsersInRedis.class.getDeclaredField("redis");
         poolField.setAccessible(true);
-        JedisPool pool = (JedisPool) poolField.get(sessionIdStore);
+        JedisPool pool = (JedisPool) poolField.get(users);
         String redisAddress = EnvUtils.resolveUri("redis", "redis://redis:6379");
         try (Jedis jedis = pool.getResource(); JedisPool adminPool = new JedisPool(redisAddress); Jedis admin = adminPool.getResource()) {
-            String connectionName = "kill-target-test-session-id-store";
+            String connectionName = "kill-target-test-users-in-redis";
             jedis.clientSetname(connectionName.getBytes());
             String clientAddr = RedisTestUtils.addrForConnectionName(admin.clientList(), connectionName);
             admin.clientKill(clientAddr.getBytes());
         }
 
-        assertThat(sessionIdStore.getLogin("sid")).isEqualTo("login");
+        assertThat(users.find("test")).isNotNull();
     }
 }

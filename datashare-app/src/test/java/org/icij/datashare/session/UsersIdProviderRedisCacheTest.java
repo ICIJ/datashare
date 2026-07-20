@@ -87,24 +87,11 @@ public class UsersIdProviderRedisCacheTest {
             // guarantees we kill by the address the server itself sees.
             String connectionName = "kill-target-test";
             jedis.clientSetname(connectionName.getBytes());
-            String clientAddr = addrForConnectionName(admin.clientList(), connectionName);
+            String clientAddr = RedisTestUtils.addrForConnectionName(admin.clientList(), connectionName);
             admin.clientKill(clientAddr.getBytes());
         }
 
         assertThat(users.find("test")).isNotNull();
-    }
-
-    private static String addrForConnectionName(String clientList, String connectionName) {
-        for (String line : clientList.split("\n")) {
-            if (line.contains("name=" + connectionName + " ")) {
-                for (String field : line.split(" ")) {
-                    if (field.startsWith("addr=")) {
-                        return field.substring("addr=".length());
-                    }
-                }
-            }
-        }
-        throw new IllegalStateException("no client found with name " + connectionName + " in:\n" + clientList);
     }
 
     @Test

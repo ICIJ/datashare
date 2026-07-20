@@ -9,9 +9,7 @@ import org.icij.datashare.user.admin.UserFilter;
 import org.icij.datashare.web.WebResponse;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
-import redis.clients.jedis.JedisPoolConfig;
 
-import java.net.URI;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
@@ -19,8 +17,6 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_REDIS_ADDRESS;
-import static org.icij.datashare.cli.DatashareCliOptions.REDIS_ADDRESS_OPT;
 import static org.icij.datashare.user.User.fromJson;
 
 
@@ -29,10 +25,7 @@ public class UsersInRedis implements UserStore {
 
     @Inject
     public UsersInRedis(PropertiesProvider propertiesProvider) {
-        JedisPoolConfig poolConfig = new JedisPoolConfig();
-        poolConfig.setTestOnBorrow(true);
-        String redisAddress = propertiesProvider.get(REDIS_ADDRESS_OPT).orElse(DEFAULT_REDIS_ADDRESS);
-        redis = new JedisPool(poolConfig, URI.create(redisAddress));
+        redis = RedisPoolFactory.createPool(propertiesProvider);
     }
 
     @Override
