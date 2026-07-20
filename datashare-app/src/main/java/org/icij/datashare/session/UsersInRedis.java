@@ -10,6 +10,7 @@ import org.icij.datashare.web.WebResponse;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 
+import java.io.Closeable;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
@@ -20,7 +21,7 @@ import java.util.stream.Stream;
 import static org.icij.datashare.user.User.fromJson;
 
 
-public class UsersInRedis implements UserStore {
+public class UsersInRedis implements UserStore, Closeable {
     private final JedisPool redis;
 
     @Inject
@@ -93,5 +94,10 @@ public class UsersInRedis implements UserStore {
                 .map(json -> fromJson(json))
                 .filter(Objects::nonNull)
                 .map(DatashareUser::new);
+    }
+
+    @Override
+    public void close() {
+        redis.close();
     }
 }

@@ -7,10 +7,12 @@ import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.Transaction;
 
+import java.io.Closeable;
+
 import static java.util.Optional.ofNullable;
 import static org.icij.datashare.cli.DatashareCliOptions.SESSION_TTL_SECONDS_OPT;
 
-public class RedisSessionIdStore implements SessionIdStore {
+public class RedisSessionIdStore implements SessionIdStore, Closeable {
     private final JedisPool redis;
     private final Integer ttl;
 
@@ -42,5 +44,10 @@ public class RedisSessionIdStore implements SessionIdStore {
         try (Jedis jedis = redis.getResource()) {
             return jedis.get(sessionId);
         }
+    }
+
+    @Override
+    public void close() {
+        redis.close();
     }
 }

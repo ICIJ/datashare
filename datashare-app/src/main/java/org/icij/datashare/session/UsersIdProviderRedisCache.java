@@ -10,6 +10,7 @@ import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.Transaction;
 
+import java.io.Closeable;
 import java.util.List;
 
 import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_SESSION_TTL_SECONDS;
@@ -17,7 +18,7 @@ import static org.icij.datashare.cli.DatashareCliOptions.SESSION_TTL_SECONDS_OPT
 import static org.icij.datashare.user.User.fromJson;
 
 @Singleton
-public class UsersIdProviderRedisCache implements UsersIdProviderCache {
+public class UsersIdProviderRedisCache implements UsersIdProviderCache, Closeable {
     private final JedisPool redis;
     private final Integer ttl;
 
@@ -63,5 +64,10 @@ public class UsersIdProviderRedisCache implements UsersIdProviderCache {
             List<Object> exec = transaction.exec();
             return !exec.isEmpty();
         }
+    }
+
+    @Override
+    public void close() {
+        redis.close();
     }
 }
