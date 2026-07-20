@@ -3,6 +3,8 @@ package org.icij.datashare.session;
 import org.icij.datashare.EnvUtils;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.text.Hasher;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
@@ -15,9 +17,19 @@ import static org.fest.assertions.Assertions.assertThat;
 
 
 public class UsersIdProviderRedisCacheTest {
-    UsersIdProviderRedisCache users = new UsersIdProviderRedisCache(new PropertiesProvider(new HashMap<>() {{
-        put("messageBusAddress", EnvUtils.resolveUri("redis", "redis://redis:6379"));
-    }}));
+    static UsersIdProviderRedisCache users;
+
+    @BeforeClass
+    public static void createUsers() {
+        users = new UsersIdProviderRedisCache(new PropertiesProvider(new HashMap<>() {{
+            put("messageBusAddress", EnvUtils.resolveUri("redis", "redis://redis:6379"));
+        }}));
+    }
+
+    @AfterClass
+    public static void closePool() throws Exception {
+        RedisTestUtils.closeRedisPool(users);
+    }
 
     @Test
     public void test_get_user_with_password() {

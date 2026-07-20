@@ -2,6 +2,8 @@ package org.icij.datashare.session;
 
 import org.icij.datashare.EnvUtils;
 import org.icij.datashare.PropertiesProvider;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
@@ -11,9 +13,19 @@ import java.util.HashMap;
 import static org.fest.assertions.Assertions.assertThat;
 
 public class RedisPoolFactoryTest {
-    JedisPool pool = RedisPoolFactory.createPool(new PropertiesProvider(new HashMap<>() {{
-        put("messageBusAddress", EnvUtils.resolveUri("redis", "redis://redis:6379"));
-    }}));
+    static JedisPool pool;
+
+    @BeforeClass
+    public static void createPool() {
+        pool = RedisPoolFactory.createPool(new PropertiesProvider(new HashMap<>() {{
+            put("messageBusAddress", EnvUtils.resolveUri("redis", "redis://redis:6379"));
+        }}));
+    }
+
+    @AfterClass
+    public static void closePool() {
+        pool.close();
+    }
 
     @Test
     public void pool_recovers_from_a_connection_killed_server_side_while_idle_in_the_pool() throws Exception {
