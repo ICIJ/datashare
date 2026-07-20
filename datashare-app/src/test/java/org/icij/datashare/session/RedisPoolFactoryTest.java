@@ -18,7 +18,7 @@ public class RedisPoolFactoryTest {
     @BeforeClass
     public static void createPool() {
         pool = RedisPoolFactory.createPool(new PropertiesProvider(new HashMap<>() {{
-            put("messageBusAddress", EnvUtils.resolveUri("redis", "redis://redis:6379"));
+            put("redisAddress", EnvUtils.resolveUri("redis", "redis://redis:6379"));
         }}));
     }
 
