@@ -41,13 +41,15 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.Properties;
 import java.util.function.Supplier;
 
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.icij.datashare.PropertiesProvider.propertiesToMap;
 import static org.icij.datashare.cli.DatashareCliOptions.*;
 import static org.icij.datashare.user.User.localUser;
@@ -174,7 +176,7 @@ class CliApp {
 
         PipelineHelper pipeline = new PipelineHelper(new PropertiesProvider(properties));
         logger.info("executing {}", pipeline);
-        List<String> taskIds = new ArrayList<>();
+        Set<String> taskIds = new HashSet<>();
         if (pipeline.has(Stage.DEDUPLICATE)) {
             taskIds.add(taskManager.startTask(DeduplicateTask.class, nullUser(), propertiesToMap(properties)));
         }
@@ -210,27 +212,8 @@ class CliApp {
         if (pipeline.has(Stage.ARTIFACT)) {
             taskIds.add(taskManager.startTask(ArtifactTask.class, nullUser(), propertiesToMap(properties)));
         }
-        awaitTasks(taskManager, taskIds);
+        taskManager.awaitTermination(Integer.MAX_VALUE, SECONDS, taskIds);
         taskManager.shutdown();
-    }
-
-    static void awaitTasks(TaskManager taskManager, List<String> taskIds) throws IOException {
-        int pollingInterval = taskManager.getTerminationPollingInterval();
-        while (true) {
-            boolean allDone = taskIds.stream().allMatch(taskId -> {
-                try {
-                    return taskManager.getTask(taskId).getState().isFinal();
-                } catch (Exception e) {
-                    throw new RuntimeException(e);
-                }
-            });
-            if (allDone) break;
-            try {
-                Thread.sleep(pollingInterval);
-            } catch (InterruptedException e) {
-                throw new RuntimeException(e);
-            }
-        }
     }
 
     static int handleUserCreate(UserAdminService service, Properties properties) {
