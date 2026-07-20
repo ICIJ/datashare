@@ -96,7 +96,6 @@ import java.util.stream.IntStream;
 import static com.fasterxml.jackson.databind.DeserializationFeature.ACCEPT_EMPTY_STRING_AS_NULL_OBJECT;
 import static java.lang.Integer.parseInt;
 import static java.util.Optional.ofNullable;
-import static org.icij.datashare.LambdaExceptionUtils.rethrowConsumer;
 import static org.icij.datashare.PluginService.PLUGINS_BASE_URL;
 import static org.icij.datashare.cli.DatashareCliOptions.*;
 import static org.icij.datashare.cli.QueueType.TEMPORAL;
@@ -619,7 +618,13 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
     }
 
     public void close() throws IOException {
-        closeables.descendingIterator().forEachRemaining(rethrowConsumer(Closeable::close));
+        closeables.descendingIterator().forEachRemaining(closeable -> {
+            try {
+                closeable.close();
+            } catch (Exception e) {
+                logger.error("error closing {}", closeable, e);
+            }
+        });
     }
 
     public Thread closeThread() {
