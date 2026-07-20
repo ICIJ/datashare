@@ -83,12 +83,28 @@ public class UsersIdProviderRedisCacheTest {
         JedisPool pool = (JedisPool) poolField.get(users);
         String redisAddress = EnvUtils.resolveUri("redis", "redis://redis:6379");
         try (Jedis jedis = pool.getResource(); JedisPool adminPool = new JedisPool(redisAddress); Jedis admin = adminPool.getResource()) {
-            java.net.Socket socket = jedis.getClient().getSocket();
-            String clientAddr = socket.getLocalAddress().getHostAddress() + ":" + socket.getLocalPort();
+            // Tagging the connection and reading its address back from CLIENT LIST
+            // guarantees we kill by the address the server itself sees.
+            String connectionName = "kill-target-test";
+            jedis.clientSetname(connectionName.getBytes());
+            String clientAddr = addrForConnectionName(admin.clientList(), connectionName);
             admin.clientKill(clientAddr.getBytes());
         }
 
         assertThat(users.find("test")).isNotNull();
+    }
+
+    private static String addrForConnectionName(String clientList, String connectionName) {
+        for (String line : clientList.split("\n")) {
+            if (line.contains("name=" + connectionName + " ")) {
+                for (String field : line.split(" ")) {
+                    if (field.startsWith("addr=")) {
+                        return field.substring("addr=".length());
+                    }
+                }
+            }
+        }
+        throw new IllegalStateException("no client found with name " + connectionName + " in:\n" + clientList);
     }
 
     @Test
