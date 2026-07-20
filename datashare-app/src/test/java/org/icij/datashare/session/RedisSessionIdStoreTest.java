@@ -2,6 +2,8 @@ package org.icij.datashare.session;
 
 import org.icij.datashare.EnvUtils;
 import org.icij.datashare.PropertiesProvider;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 import java.util.HashMap;
@@ -9,10 +11,20 @@ import java.util.HashMap;
 import static org.fest.assertions.Assertions.assertThat;
 
 public class RedisSessionIdStoreTest {
-    RedisSessionIdStore sessionIdStore = new RedisSessionIdStore(new PropertiesProvider(new HashMap<>() {{
-        put("messageBusAddress", EnvUtils.resolveUri("redis", "redis://redis:6379"));
-        put("sessionTtlSeconds", "1");
-    }}));
+    static RedisSessionIdStore sessionIdStore;
+
+    @BeforeClass
+    public static void createSessionIdStore() {
+        sessionIdStore = new RedisSessionIdStore(new PropertiesProvider(new HashMap<>() {{
+            put("messageBusAddress", EnvUtils.resolveUri("redis", "redis://redis:6379"));
+            put("sessionTtlSeconds", "1");
+        }}));
+    }
+
+    @AfterClass
+    public static void closePool() throws Exception {
+        RedisTestUtils.closeRedisPool(sessionIdStore);
+    }
 
     @Test
     public void test_put_get_session() {
