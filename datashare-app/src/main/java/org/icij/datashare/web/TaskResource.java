@@ -113,7 +113,7 @@ public class TaskResource {
             WebResponse<Task<?>> paginatedTasks = WebResponse.fromStream(tasks, pagination.from, pagination.size);
             // Then finally, use WebResponse to take display the pagination for us
             return new Payload(paginatedTasks);
-        } catch (IllegalArgumentException e) {
+        } catch (UnknownTaskType e) {
             return new JsonPayload(400, Map.of("text", "Unknown task type: " + e.getMessage()));
         }
     }
@@ -654,7 +654,7 @@ public class TaskResource {
         Set<TaskType> types = query.keys().stream().filter(k -> k.equals("type")).findAny()
             .map(k -> stream(query.get(k).split("\\|"))
             .map(String::toUpperCase)
-            .map(TaskType::valueOf).collect(Collectors.toSet()))
+            .map(TaskType::fromString).collect(Collectors.toSet()))
             .orElse(Set.of());
         filters = filters.withTypes(types);
         // Names

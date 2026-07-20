@@ -39,4 +39,19 @@ public enum TaskType {
             .filter(t -> t.names.contains(fqdn))
             .findFirst();
     }
+
+    /**
+     * Convert a String to a TaskType.
+     * You can use this one instead of {@link TaskType#valueOf(String)} to have a more specific exception.
+     * @param type String type
+     * @return TaskType
+     * @throws UnknownTaskType if the type is not known
+     */
+    public static TaskType fromString(String type) {
+        try {
+            return TaskType.valueOf(type);
+        } catch (IllegalArgumentException e) {
+            throw new UnknownTaskType(e);
+        }
+    }
 }
