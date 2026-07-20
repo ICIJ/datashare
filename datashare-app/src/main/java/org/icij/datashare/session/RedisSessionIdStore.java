@@ -1,6 +1,7 @@
 package org.icij.datashare.session;
 
 import com.google.inject.Inject;
+import com.google.inject.Singleton;
 import net.codestory.http.security.SessionIdStore;
 import org.icij.datashare.PropertiesProvider;
 import redis.clients.jedis.Jedis;
@@ -12,6 +13,7 @@ import java.io.Closeable;
 import static java.util.Optional.ofNullable;
 import static org.icij.datashare.cli.DatashareCliOptions.SESSION_TTL_SECONDS_OPT;
 
+@Singleton
 public class RedisSessionIdStore implements SessionIdStore, Closeable {
     private final JedisPool redis;
     private final Integer ttl;

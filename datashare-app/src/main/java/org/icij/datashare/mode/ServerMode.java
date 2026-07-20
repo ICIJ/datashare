@@ -1,6 +1,7 @@
 package org.icij.datashare.mode;
 
 import com.google.inject.Provides;
+import com.google.inject.Singleton;
 import net.codestory.http.Context;
 import net.codestory.http.filters.Filter;
 import net.codestory.http.filters.PayloadSupplier;
@@ -45,7 +46,7 @@ public class ServerMode extends CommonMode {
         configurePersistence();
     }
 
-    @Provides
+    @Provides @Singleton
     SessionIdStore provideSessionIdStore() {
         QueueType sessionStoreType = getQueueType(propertiesProvider, SESSION_STORE_TYPE_OPT, QueueType.MEMORY);
         if (QueueType.MEMORY == sessionStoreType) {

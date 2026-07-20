@@ -1,6 +1,7 @@
 package org.icij.datashare.session;
 
 import com.google.inject.Inject;
+import com.google.inject.Singleton;
 import net.codestory.http.security.User;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.json.JsonObjectMapper;
@@ -21,6 +22,7 @@ import java.util.stream.Stream;
 import static org.icij.datashare.user.User.fromJson;
 
 
+@Singleton
 public class UsersInRedis implements UserStore, Closeable {
     private final JedisPool redis;
 
