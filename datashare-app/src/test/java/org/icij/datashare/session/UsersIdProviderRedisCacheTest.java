@@ -22,7 +22,7 @@ public class UsersIdProviderRedisCacheTest {
     @BeforeClass
     public static void createUsers() {
         users = new UsersIdProviderRedisCache(new PropertiesProvider(new HashMap<>() {{
-            put("messageBusAddress", EnvUtils.resolveUri("redis", "redis://redis:6379"));
+            put("redisAddress", EnvUtils.resolveUri("redis", "redis://redis:6379"));
         }}));
     }
 

@@ -16,7 +16,7 @@ public class RedisSessionIdStoreTest {
     @BeforeClass
     public static void createSessionIdStore() {
         sessionIdStore = new RedisSessionIdStore(new PropertiesProvider(new HashMap<>() {{
-            put("messageBusAddress", EnvUtils.resolveUri("redis", "redis://redis:6379"));
+            put("redisAddress", EnvUtils.resolveUri("redis", "redis://redis:6379"));
             put("sessionTtlSeconds", "1");
         }}));
     }
