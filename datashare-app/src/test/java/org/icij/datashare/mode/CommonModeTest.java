@@ -22,8 +22,11 @@ import org.icij.datashare.session.UsersInRedis;
 import org.junit.Test;
 import com.google.inject.ProvisionException;
 
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Properties;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.fest.assertions.Assertions.assertThat;
 import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_BUS_TYPE;
@@ -46,6 +49,36 @@ public class CommonModeTest {
 
         assertThat(CommonMode.getQueueType(modeWithRedis.propertiesProvider,"busType", DEFAULT_BUS_TYPE)).isEqualTo(QueueType.REDIS);
         assertThat(CommonMode.getQueueType(modeWithoutRedis.propertiesProvider,"queueType", DEFAULT_QUEUE_TYPE)).isEqualTo(QueueType.MEMORY);
+    }
+
+    @Test
+    public void test_close_invokes_registered_closeables() throws Exception {
+        CommonMode mode = CommonMode.create(new HashMap<>() {{
+            put("mode", Mode.LOCAL.name());
+            put("queueType", QueueType.MEMORY.name());
+        }});
+        AtomicInteger closedCount = new AtomicInteger(0);
+
+        mode.addCloseable(closedCount::incrementAndGet);
+        mode.addCloseable(closedCount::incrementAndGet);
+        mode.close();
+
+        assertThat(closedCount.get()).isEqualTo(2);
+    }
+
+    @Test
+    public void test_close_continues_closing_remaining_closeables_when_one_throws() throws Exception {
+        CommonMode mode = CommonMode.create(new HashMap<>() {{
+            put("mode", Mode.LOCAL.name());
+            put("queueType", QueueType.MEMORY.name());
+        }});
+        AtomicBoolean closedAfterFailure = new AtomicBoolean(false);
+
+        mode.addCloseable(() -> closedAfterFailure.set(true));
+        mode.addCloseable(() -> { throw new IOException("boom"); });
+        mode.close();
+
+        assertThat(closedAfterFailure.get()).isTrue();
     }
 
     @Test

@@ -18,6 +18,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.fest.assertions.Assertions.assertThat;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentCaptor.forClass;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
@@ -100,6 +101,21 @@ public class YesCookieAuthFilterTest {
         filter.apply("url", context, nextFilter);
 
         verify(enroller).enroll(any(DatashareUser.class));
+    }
+
+    @Test
+    public void test_close_closes_the_underlying_redis_pools() throws Exception {
+        when(jooqRepository.getProjects()).thenReturn(new ArrayList<>());
+        PropertiesProvider propertiesProvider = new PropertiesProvider();
+        String redisAddress = EnvUtils.resolveUri("redis", "redis://redis:6379");
+        propertiesProvider.getProperties().put("redisAddress", redisAddress);
+        YesCookieAuthFilter filter = new YesCookieAuthFilter(propertiesProvider, jooqRepository);
+
+        filter.close();
+
+        // both the internal UsersIdProviderRedisCache and RedisSessionIdStore pools are closed,
+        // so any further use of the filter (which reaches Redis via createUser/saveOrUpdate) fails
+        assertThrows(Exception.class, () -> filter.apply("url", context, nextFilter));
     }
 
     @Test
