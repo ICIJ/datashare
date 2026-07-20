@@ -5,13 +5,10 @@ import net.codestory.http.security.SessionIdStore;
 import org.icij.datashare.PropertiesProvider;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
-import redis.clients.jedis.JedisPoolConfig;
 import redis.clients.jedis.Transaction;
 
-import java.net.URI;
-
 import static java.util.Optional.ofNullable;
-import static org.icij.datashare.cli.DatashareCliOptions.*;
+import static org.icij.datashare.cli.DatashareCliOptions.SESSION_TTL_SECONDS_OPT;
 
 public class RedisSessionIdStore implements SessionIdStore {
     private final JedisPool redis;
@@ -19,10 +16,7 @@ public class RedisSessionIdStore implements SessionIdStore {
 
     @Inject
     public RedisSessionIdStore(PropertiesProvider propertiesProvider) {
-        JedisPoolConfig poolConfig = new JedisPoolConfig();
-        poolConfig.setTestOnBorrow(true);
-        String redisAddress = propertiesProvider.get(REDIS_ADDRESS_OPT).orElse(DEFAULT_REDIS_ADDRESS);
-        this.redis = new JedisPool(poolConfig, URI.create(redisAddress));
+        this.redis = RedisPoolFactory.createPool(propertiesProvider);
         this.ttl = Integer.valueOf(ofNullable(propertiesProvider.getProperties().getProperty(SESSION_TTL_SECONDS_OPT)).orElse("1"));
     }
 
