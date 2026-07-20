@@ -2,7 +2,6 @@ package org.icij.datashare.mode;
 
 import com.google.inject.Guice;
 import com.google.inject.Injector;
-import org.apache.http.auth.AUTH;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.asyncsearch.AsyncSearchStore;
 import org.icij.datashare.asyncsearch.MemoryAsyncSearchStore;
@@ -20,7 +19,6 @@ import org.icij.datashare.session.UsersIdProviderRedisCache;
 import org.icij.datashare.session.UsersInDb;
 import org.icij.datashare.session.UsersInRedis;
 import org.junit.Test;
-import com.google.inject.ProvisionException;
 
 import java.io.IOException;
 import java.util.HashMap;
