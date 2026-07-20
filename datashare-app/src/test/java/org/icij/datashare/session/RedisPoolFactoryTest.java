@@ -40,7 +40,7 @@ public class RedisPoolFactoryTest {
         try (Jedis jedis = pool.getResource(); JedisPool adminPool = new JedisPool(redisAddress); Jedis admin = adminPool.getResource()) {
             String connectionName = "kill-target-test-redis-pool-factory";
             jedis.clientSetname(connectionName.getBytes());
-            String clientAddr = RedisTestUtils.addrForConnectionName(admin.clientList(), connectionName);
+            String clientAddr = addrForConnectionName(admin.clientList(), connectionName);
             admin.clientKill(clientAddr.getBytes());
         }
 
@@ -48,5 +48,18 @@ public class RedisPoolFactoryTest {
             assertThat(jedis.set("recovery-probe", "ok")).isEqualTo("OK");
             jedis.del("recovery-probe");
         }
+    }
+
+    private static String addrForConnectionName(String clientList, String connectionName) {
+        for (String line : clientList.split("\n")) {
+            if (line.contains("name=" + connectionName + " ")) {
+                for (String field : line.split(" ")) {
+                    if (field.startsWith("addr=")) {
+                        return field.substring("addr=".length());
+                    }
+                }
+            }
+        }
+        throw new IllegalStateException("no client found with name " + connectionName + " in:\n" + clientList);
     }
 }
