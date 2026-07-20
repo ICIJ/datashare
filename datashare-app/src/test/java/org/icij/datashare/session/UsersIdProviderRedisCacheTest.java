@@ -27,8 +27,8 @@ public class UsersIdProviderRedisCacheTest {
     }
 
     @AfterClass
-    public static void closePool() throws Exception {
-        RedisTestUtils.closeRedisPool(users);
+    public static void closePool() {
+        users.close();
     }
 
     @Test

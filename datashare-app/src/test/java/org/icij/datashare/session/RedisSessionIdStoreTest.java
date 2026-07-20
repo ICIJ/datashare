@@ -22,8 +22,8 @@ public class RedisSessionIdStoreTest {
     }
 
     @AfterClass
-    public static void closePool() throws Exception {
-        RedisTestUtils.closeRedisPool(sessionIdStore);
+    public static void closePool() {
+        sessionIdStore.close();
     }
 
     @Test

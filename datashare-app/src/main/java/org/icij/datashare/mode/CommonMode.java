@@ -366,7 +366,11 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
     UserStore provideUserStore(final Injector injector) {
         Class<? extends UserStore> providerClass = resolveUserStoreClass();
         logger.info("setting auth users provider to {}", providerClass);
-        return injector.getInstance(providerClass);
+        UserStore userStore = injector.getInstance(providerClass);
+        if (userStore instanceof Closeable closeable) {
+            addCloseable(closeable);
+        }
+        return userStore;
     }
 
     @Provides @Singleton
@@ -424,7 +428,9 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
     UsersIdProviderCache provideUsersIdProviderCache(final Injector injector) {
         boolean requiresCache = isAuthModeRequiringCache();
         if (requiresCache) {
-            return injector.getInstance(UsersIdProviderRedisCache.class);
+            UsersIdProviderRedisCache cache = injector.getInstance(UsersIdProviderRedisCache.class);
+            addCloseable(cache);
+            return cache;
         }
         return UsersIdProviderCache.NO_CACHE;
 

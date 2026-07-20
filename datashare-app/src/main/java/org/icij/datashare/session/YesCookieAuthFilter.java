@@ -12,6 +12,8 @@ import org.icij.datashare.db.JooqRepository;
 import org.icij.datashare.text.Project;
 
 import javax.annotation.Nullable;
+import java.io.Closeable;
+import java.io.IOException;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -20,7 +22,7 @@ import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_DEFAULT_PROJECT
 import static org.icij.datashare.cli.DatashareCliOptions.SESSION_TTL_SECONDS_OPT;
 import static org.icij.datashare.user.User.localUser;
 
-public class YesCookieAuthFilter extends CookieAuthFilter {
+public class YesCookieAuthFilter extends CookieAuthFilter implements Closeable {
     private final Integer ttl;
     private final String defaultProject;
     private final JooqRepository jooqRepository;
@@ -93,4 +95,14 @@ public class YesCookieAuthFilter extends CookieAuthFilter {
     @Override protected String cookieName() { return "_ds_session_id";}
     @Override protected int expiry() { return ttl;}
     @Override protected boolean redirectToLogin(String uri) { return false;}
+
+    @Override
+    public void close() throws IOException {
+        if (users instanceof Closeable closeable) {
+            closeable.close();
+        }
+        if (sessionIdStore instanceof Closeable closeable) {
+            closeable.close();
+        }
+    }
 }

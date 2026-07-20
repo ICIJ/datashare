@@ -1,5 +1,6 @@
 package org.icij.datashare.mode;
 
+import com.google.inject.Provides;
 import net.codestory.http.Context;
 import net.codestory.http.filters.Filter;
 import net.codestory.http.filters.PayloadSupplier;
@@ -33,12 +34,6 @@ public class ServerMode extends CommonMode {
     @Override
     protected void configure() {
         super.configure();
-        QueueType sessionStoreType = getQueueType(propertiesProvider, SESSION_STORE_TYPE_OPT, QueueType.MEMORY);
-        if (QueueType.MEMORY == sessionStoreType) {
-            bind(SessionIdStore.class).toInstance(SessionIdStore.inMemory());
-        } else {
-            bind(SessionIdStore.class).to(RedisSessionIdStore.class);
-        }
         bind(ApiKeyStore.class).to(ApiKeyStoreAdapter.class);
         Class<? extends Filter> authFilterClass = resolveAuthFilterClass();
         // Materialize the effective auth mode back into the properties so the public /settings
@@ -48,6 +43,17 @@ public class ServerMode extends CommonMode {
         bindAuthFilter(authFilterClass);
         bind(StatusResource.class).asEagerSingleton();
         configurePersistence();
+    }
+
+    @Provides
+    SessionIdStore provideSessionIdStore() {
+        QueueType sessionStoreType = getQueueType(propertiesProvider, SESSION_STORE_TYPE_OPT, QueueType.MEMORY);
+        if (QueueType.MEMORY == sessionStoreType) {
+            return SessionIdStore.inMemory();
+        }
+        RedisSessionIdStore sessionIdStore = new RedisSessionIdStore(propertiesProvider);
+        addCloseable(sessionIdStore);
+        return sessionIdStore;
     }
 
     static Class<? extends Filter> filterClassFor(AuthMode mode) {
@@ -97,7 +103,9 @@ public class ServerMode extends CommonMode {
         if (BasicAuthFilter.class.isAssignableFrom(authFilterClass)) {
             bind(ApiKeyFilter.class).toInstance(getDummyApiKeyFilter());
         } else if (authFilterClass.equals(YesCookieAuthFilter.class)) {
-            bind(YesCookieAuthFilter.class).toInstance(getYesCookieAuthFilter());
+            YesCookieAuthFilter yesCookieAuthFilter = getYesCookieAuthFilter();
+            addCloseable(yesCookieAuthFilter);
+            bind(YesCookieAuthFilter.class).toInstance(yesCookieAuthFilter);
         }
     }
 
