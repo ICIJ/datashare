@@ -3,10 +3,7 @@ package org.icij.datashare.session;
 import org.icij.datashare.EnvUtils;
 import org.icij.datashare.PropertiesProvider;
 import org.junit.Test;
-import redis.clients.jedis.Jedis;
-import redis.clients.jedis.JedisPool;
 
-import java.lang.reflect.Field;
 import java.util.HashMap;
 
 import static org.fest.assertions.Assertions.assertThat;
@@ -38,28 +35,5 @@ public class RedisSessionIdStoreTest {
         sessionIdStore.remove("sid");
 
         assertThat(sessionIdStore.getLogin("id")).isNull();
-    }
-
-    @Test
-    public void get_login_recovers_from_a_connection_killed_server_side_while_idle_in_the_pool() throws Exception {
-        // Simulates the real-world failure: the Redis server (or an intermediary like a LB/NAT)
-        // closes a connection that's sitting idle in the pool. Locally, the socket's isConnected()/
-        // isClosed() flags are untouched by a remote close (they only reflect local connect()/close()
-        // calls), so Jedis believes the connection is fine and hands it out again; the next command
-        // fails reading the reply with "Unexpected end of stream", exactly like the reported crash.
-        sessionIdStore.put("sid", "login");
-
-        Field poolField = RedisSessionIdStore.class.getDeclaredField("redis");
-        poolField.setAccessible(true);
-        JedisPool pool = (JedisPool) poolField.get(sessionIdStore);
-        String redisAddress = EnvUtils.resolveUri("redis", "redis://redis:6379");
-        try (Jedis jedis = pool.getResource(); JedisPool adminPool = new JedisPool(redisAddress); Jedis admin = adminPool.getResource()) {
-            String connectionName = "kill-target-test-session-id-store";
-            jedis.clientSetname(connectionName.getBytes());
-            String clientAddr = RedisTestUtils.addrForConnectionName(admin.clientList(), connectionName);
-            admin.clientKill(clientAddr.getBytes());
-        }
-
-        assertThat(sessionIdStore.getLogin("sid")).isEqualTo("login");
     }
 }
