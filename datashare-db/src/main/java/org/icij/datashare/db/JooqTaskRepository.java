@@ -3,10 +3,6 @@ package org.icij.datashare.db;
 import com.fasterxml.jackson.core.JacksonException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
-import java.io.IOException;
-import java.io.Serializable;
-import java.util.*;
-import java.util.stream.Stream;
 import org.icij.datashare.asynctasks.Group;
 import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.asynctasks.TaskAlreadyExists;
@@ -28,16 +24,25 @@ import org.jooq.impl.DSL;
 import org.slf4j.Logger;
 
 import javax.sql.DataSource;
+import java.io.IOException;
+import java.io.Serializable;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.stream.Stream;
 
 import static java.util.Optional.ofNullable;
 import static org.icij.datashare.LambdaExceptionUtils.rethrowFunction;
 import static org.icij.datashare.asynctasks.bus.amqp.Event.MAX_RETRIES_LEFT;
 import static org.icij.datashare.db.Tables.TASK;
-import static org.jooq.impl.DSL.selectFrom;
 import static org.jooq.impl.DSL.falseCondition;
+import static org.jooq.impl.DSL.selectFrom;
 import static org.jooq.impl.DSL.using;
 import static org.slf4j.LoggerFactory.getLogger;
 

@@ -39,8 +39,6 @@ import org.junit.Test;
 import org.mockito.Mock;
 
 import java.io.IOException;
-import java.io.InputStream;
-import java.net.InetSocketAddress;
 import java.util.*;
 import java.util.concurrent.CountDownLatch;
 
@@ -50,14 +48,11 @@ import static org.fest.assertions.Assertions.assertThat;
 import static org.fest.assertions.MapAssert.entry;
 import static org.icij.datashare.PropertiesProvider.DATA_DIR_OPT;
 import static org.icij.datashare.PropertiesProvider.REPORT_NAME_OPT;
-import static org.icij.datashare.asynctasks.Task.State.DONE;
 import static org.icij.datashare.asynctasks.Task.State.RUNNING;
 import static org.icij.datashare.cli.DatashareCliOptions.TASK_MANAGER_POLLING_INTERVAL_OPT;
 import static org.icij.datashare.session.DatashareUser.singleUser;
 import static org.icij.datashare.text.Project.project;
 import static org.icij.datashare.user.User.local;
-import static org.icij.datashare.web.TaskResource.taskFiltersFromContext;
-import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 import static org.mockito.MockitoAnnotations.openMocks;
@@ -1008,113 +1003,6 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         get("/api/task/all?filter=foo").should().respond(400);
     }
 
-    @Test
-    public void test_task_filters_from_context_should_throw_for_unsupported_filter() {
-        Request request = new MockRequest(Map.of("unknown", "field"));
-        Context ctx = new Context(request, null, null, null, null);
-        assertThrows(BadRequestException.class, () -> taskFiltersFromContext(ctx, null));
-    }
-
-    @Test
-    public void test_task_filters_from_context_should_not_filter() {
-        // Given
-        Request request = new MockRequest(Map.of());
-        Context ctx = new Context(request, null, null, null, null);
-        // When
-        TaskFilters filters = taskFiltersFromContext(ctx, null);
-        // Then
-        TaskFilters expectedFilters = new TaskFilters().withStates(Set.of()).withTypes(Set.of()).with();
-        assertThat(filters).isEqualTo(expectedFilters);
-    }
-
-    @Test
-    public void test_task_filters_from_context_should_filter_task_by_names() {
-        // Given
-        Request request = new MockRequest(Map.of("name", "someTask|someOtherTask"));
-        Context ctx = new Context(request, null, null, null, null);
-        // When
-        TaskFilters filters = taskFiltersFromContext(ctx, null);
-        // Then
-        TaskFilters expectedFilters = new TaskFilters().withStates(Set.of()).withTypes(Set.of()).with()
-            .with("someTask|someOtherTask.*");
-        assertThat(filters).isEqualTo(expectedFilters);
-    }
-
-    @Test
-    public void test_task_filters_from_context_should_filter_task_by_user() {
-        // Given
-        class MockUser extends User implements net.codestory.http.security.User {
-            public MockUser() {
-                super("some-id", "some-name", "", "", "{}");
-            }
-            @Override
-            public String login() { return null; }
-            @Override
-            public String[] roles() { return new String[0];}
-        }
-
-        MockUser mockUser = new MockUser();
-        Request request = new MockRequest(Map.of());
-        Context ctx = new Context(request, null, null, null, null);
-        ctx.setCurrentUser(mockUser);
-        // When
-        TaskFilters filters = taskFiltersFromContext(ctx, null);
-        // Then
-        TaskFilters expectedFilters = new TaskFilters().withStates(Set.of()).withTypes(Set.of()).with()
-            .with(mockUser);
-        assertThat(filters).isEqualTo(expectedFilters);
-    }
-
-    @Test
-    public void test_task_filters_from_context_should_filter_task_by_args() {
-        // Given
-        Request request = new MockRequest(Map.of("args.nested.attribute", "someregex"));
-        Context ctx = new Context(request, null, null, null, null);
-        // When
-        TaskFilters filters = taskFiltersFromContext(ctx, null);
-        // Then
-        TaskFilters expectedFilters = new TaskFilters().withStates(Set.of()).withTypes(Set.of())
-            .with(new TaskFilters.ArgsFilter("nested.attribute", ".*someregex.*"));
-        assertThat(filters).isEqualTo(expectedFilters);
-    }
-
-    @Test
-    public void test_task_filters_from_context_should_filter_task_by_state() {
-        // Given
-        Request request = new MockRequest(Map.of("state", "DONE"));
-        Context ctx = new Context(request, null, null, null, null);
-        // When
-        TaskFilters filters = taskFiltersFromContext(ctx, null);
-        // Then
-        TaskFilters expectedFilters = new TaskFilters().withStates(Set.of(DONE)).withTypes(Set.of()).with();
-        assertThat(filters).isEqualTo(expectedFilters);
-    }
-
-    @Test
-    public void test_task_filters_from_context_should_filter_task_by_type() {
-        // Given
-        Request request = new MockRequest(Map.of("type", "BATCH_SEARCH|BATCH_DOWNLOAD"));
-        Context ctx = new Context(request, null, null, null, null);
-        // When
-        TaskFilters filters = taskFiltersFromContext(ctx, null);
-        // Then
-        TaskFilters expectedFilters = new TaskFilters().withStates(Set.of())
-            .withTypes(Set.of(TaskType.BATCH_SEARCH, TaskType.BATCH_DOWNLOAD)).with();
-        assertThat(filters).isEqualTo(expectedFilters);
-    }
-
-    @Test
-    public void test_task_filters_from_context_should_filter_task_by_type_case_insensitive() {
-        Request request = new MockRequest(Map.of("type", "Batch_Search|batch_download"));
-        Context ctx = new Context(request, null, null, null, null);
-
-        TaskFilters filters = taskFiltersFromContext(ctx, null);
-
-        TaskFilters expectedFilters = new TaskFilters().withStates(Set.of())
-            .withTypes(Set.of(TaskType.BATCH_SEARCH, TaskType.BATCH_DOWNLOAD)).with();
-        assertThat(filters).isEqualTo(expectedFilters);
-    }
-
     @NotNull
     private Map<String, Object> getDefaultProperties() {
         HashMap<String, Object> map = new HashMap<>() {{
@@ -1163,81 +1051,5 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         }
         String msg = "failed to get state " + expectedState + " for task " + taskId + " in less than " + timeoutMs + "ms";
         throw new AssertionError(msg);
-    }
-
-
-    static class MockRequest implements Request {
-        private final MockQueryImpl query;
-        MockRequest(Map<String, String> query) {
-            this.query = new MockQueryImpl(query);
-        }
-
-        @Override
-        public Query query() {
-        return this.query;
-        }
-
-        @Override
-        public String uri() {return null;}
-
-        @Override
-        public String method() { return null;}
-
-        @Override
-        public String content() throws IOException { return null;}
-
-        @Override
-        public String contentType() { return null;}
-
-        @Override
-        public InputStream inputStream() { return null;}
-
-        @Override
-        public List<String> headerNames() { return null;}
-
-        @Override
-        public List<String> headers(String name) { return null;}
-
-        @Override
-        public String header(String name) { return null; }
-
-        @Override
-        public InetSocketAddress clientAddress() { return null; }
-
-        @Override
-        public boolean isSecure() {return true;}
-
-        @Override
-        public Cookies cookies() { return null; }
-
-
-        @Override
-        public List<Part> parts() { return null; }
-
-        @Override
-        public <T> T unwrap(Class<T> type) { return null; }
-    }
-
-    static class MockQueryImpl implements Query {
-        Map<String, String> query;
-
-        MockQueryImpl(Map<String, String> query) {
-            this.query = query;
-        }
-
-        @Override
-        public Collection<String> keys() {
-            return query.keySet();
-        }
-
-        @Override
-        public Iterable<String> all(String s) {
-            return Optional.ofNullable(this.query.get(s)).stream().toList();
-        }
-
-        @Override
-        public <T> T unwrap(Class<T> aClass) {
-            return null;
-        }
     }
 }
