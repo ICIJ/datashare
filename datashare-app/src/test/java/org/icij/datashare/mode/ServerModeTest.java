@@ -247,6 +247,8 @@ public class ServerModeTest {
         UsersIdProviderCache usersIdProviderCache = mode.get(UsersIdProviderCache.class);
         SessionIdStore sessionIdStore = mode.get(SessionIdStore.class);
 
+        // CookieAuthFilter (codestory-http) stores these as protected fields with no getter,
+        // and it's in a different package, so reflection is the only way to reach them from here.
         Field usersField = CookieAuthFilter.class.getDeclaredField("users");
         usersField.setAccessible(true);
         Field sessionIdStoreField = CookieAuthFilter.class.getDeclaredField("sessionIdStore");
