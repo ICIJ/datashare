@@ -316,7 +316,7 @@ public class TemporalInterlocutor {
         );
         // Temporal doesn't allow to search by args we have to post filter task retrieved with other filters
         if (filters.hasArgs()) {
-            TaskFilters byArgs = TaskFilters.empty().withArgs(filters.getArgs());
+            TaskFilters byArgs = new TaskFilters().with(filters.getArgs().toArray(TaskFilters.ArgsFilter[]::new));
             execs = execs.map(e -> new Pair<>(e, getArgs(e)))
                     .filter(p -> byArgs.filter(p._2()))
                     .map(Pair::_1);

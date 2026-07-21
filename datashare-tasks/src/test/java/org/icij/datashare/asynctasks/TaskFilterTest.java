@@ -19,7 +19,7 @@ public class TaskFilterTest {
     @Test
     public void test_task_empty_filters() {
         // Given
-        TaskFilters filters = TaskFilters.empty();
+        TaskFilters filters = new TaskFilters();
         // When
         List<Task<?>> filtered = tasks.stream().filter(filters::filter).toList();
         // Then
@@ -29,7 +29,7 @@ public class TaskFilterTest {
     @Test
     public void test_task_empty_args() {
         // Given
-        TaskFilters filters = TaskFilters.empty().withArgs(List.of());
+        TaskFilters filters = new TaskFilters().with();
         // When
         List<Task<?>> filtered = tasks.stream().filter(filters::filter).toList();
         // Then
@@ -39,7 +39,7 @@ public class TaskFilterTest {
     @Test
     public void test_task_empty_states() {
         // Given
-        TaskFilters filters = TaskFilters.empty().withStates(Set.of());
+        TaskFilters filters = new TaskFilters().withStates(Set.of());
         // When
         List<Task<?>> filtered = tasks.stream().filter(filters::filter).toList();
         // Then
@@ -49,7 +49,7 @@ public class TaskFilterTest {
     @Test
     public void test_task_filters_by_names() {
         // Given
-        TaskFilters filters = TaskFilters.empty().withNames("someT.*");
+        TaskFilters filters = new TaskFilters().with("someT.*");
         // When
         List<Task<?>> filtered = tasks.stream().filter(filters::filter).toList();
         // Then
@@ -59,7 +59,7 @@ public class TaskFilterTest {
     @Test
     public void test_task_filters_by_names_with_regex_pattern() {
         // Given
-        TaskFilters filters = TaskFilters.empty().withNames(".*some|someOther.*");
+        TaskFilters filters = new TaskFilters().with(".*some|someOther.*");
         // When
         List<Task<?>> filtered = tasks.stream().filter(filters::filter).toList();
         // Then
@@ -69,9 +69,9 @@ public class TaskFilterTest {
     @Test
     public void test_task_filters_for_user_by_names_with_regex_pattern_and_final_states() {
         // Given
-        TaskFilters filters = TaskFilters.empty()
-                .withUser( User.localUser("jdoe"))
-                .withNames(".*some|someOther.*")
+        TaskFilters filters = new TaskFilters()
+                .with( User.localUser("jdoe"))
+                .with(".*some|someOther.*")
                 .withStates(Task.State.FINAL_STATES);
         // When
         List<Task<?>> filtered = tasks.stream().filter(filters::filter).toList();
@@ -83,7 +83,7 @@ public class TaskFilterTest {
     @Test
     public void test_task_filters_by_user() {
         // Given
-        TaskFilters filters = TaskFilters.empty().withUser(User.local());
+        TaskFilters filters = new TaskFilters().with(User.local());
         // When
         List<Task<?>> filtered = tasks.stream().filter(filters::filter).toList();
         // Then
@@ -94,7 +94,7 @@ public class TaskFilterTest {
     public void test_task_filters_by_args_and_starting_pattern() {
         // Given
         TaskFilters.ArgsFilter argsFilter = new TaskFilters.ArgsFilter("nested.attribute", "nestedv.*");
-        TaskFilters filters = TaskFilters.empty().withArgs(List.of(argsFilter));
+        TaskFilters filters = new TaskFilters().with(argsFilter);
         // When
         List<Task<?>> filtered = tasks.stream().filter(filters::filter).toList();
         // Then
@@ -105,7 +105,7 @@ public class TaskFilterTest {
     public void test_task_filters_by_args_and_starting_pattern_without_matches() {
         // Given
         TaskFilters.ArgsFilter argsFilter = new TaskFilters.ArgsFilter("nested.attribute", "foo.*");
-        TaskFilters filters = TaskFilters.empty().withArgs(List.of(argsFilter));
+        TaskFilters filters = new TaskFilters().with(argsFilter);
         // When
         List<Task<?>> filtered = tasks.stream().filter(filters::filter).toList();
         // Then
@@ -116,7 +116,7 @@ public class TaskFilterTest {
     public void test_task_filters_by_args_and_containing_pattern() {
         // Given
         TaskFilters.ArgsFilter argsFilter = new TaskFilters.ArgsFilter("nested.attribute", ".*ed.*");
-        TaskFilters filters = TaskFilters.empty().withArgs(List.of(argsFilter));
+        TaskFilters filters = new TaskFilters().with(argsFilter);
         // When
         List<Task<?>> filtered = tasks.stream().filter(filters::filter).toList();
         // Then
@@ -128,7 +128,7 @@ public class TaskFilterTest {
     public void test_task_filters_by_args_and_containing_pattern_without_matches() {
         // Given
         TaskFilters.ArgsFilter argsFilter = new TaskFilters.ArgsFilter("nested.attribute", ".*foo.*");
-        TaskFilters filters = TaskFilters.empty().withArgs(List.of(argsFilter));
+        TaskFilters filters = new TaskFilters().with(argsFilter);
         // When
         List<Task<?>> filtered = tasks.stream().filter(filters::filter).toList();
         // Then
@@ -138,7 +138,7 @@ public class TaskFilterTest {
     @Test
     public void test_task_filters_by_state() {
         // Given
-        TaskFilters filters = TaskFilters.empty().withStates(Set.of(Task.State.DONE));
+        TaskFilters filters = new TaskFilters().withStates(Set.of(Task.State.DONE));
         // When
         List<Task<?>> filtered = tasks.stream().filter(filters::filter).toList();
         // Then

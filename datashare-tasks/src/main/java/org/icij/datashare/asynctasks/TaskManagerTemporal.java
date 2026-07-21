@@ -109,7 +109,7 @@ public class TaskManagerTemporal implements TaskManager {
      */
     public void reconcileTasks() throws IOException {
         logger.info("Scanning repository for tasks to reconcile");
-        taskRepository.getTasks(TaskFilters.empty().withStates(Set.of(Task.State.RUNNING)))
+        taskRepository.getTasks(new TaskFilters().withStates(Set.of(Task.State.RUNNING)))
             .forEach(repoTask -> {
                 logger.info("Reconciling task {} with Temporal", repoTask.getId());
                 try {

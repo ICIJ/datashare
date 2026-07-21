@@ -35,13 +35,13 @@ public interface TaskManager extends Closeable {
     // Task search for the frontend
     Stream<Task<?>> getTasks(TaskFilters filters) throws IOException;
     default Stream<Task<?>> getTasks() throws IOException {
-        return getTasks(TaskFilters.empty());
+        return getTasks(new TaskFilters());
     }
 
     // Fast and internal task state search for internal operations
     Stream<String> getTaskIds(TaskFilters filters) throws IOException;
     default Stream<String> getTaskIds() throws IOException {
-        return getTaskIds(TaskFilters.empty());
+        return getTaskIds(new TaskFilters());
     }
 
     // clearDoneTasks keeps a List return type otherwise tasks are cleared unless the stream is consumed
@@ -61,7 +61,7 @@ public interface TaskManager extends Closeable {
     }
 
     default Map<String, Boolean> stopTasks(User user) throws IOException {
-        return stopTasks(TaskFilters.empty().withUser(user));
+        return stopTasks(new TaskFilters().with(user));
     }
 
     default Map<String, Boolean> stopTasks(TaskFilters filters) throws IOException {
@@ -82,7 +82,7 @@ public interface TaskManager extends Closeable {
 
     // TODO: make this one async
     default List<Task<?>> clearDoneTasks() throws IOException {
-        return clearDoneTasks(TaskFilters.empty());
+        return clearDoneTasks(new TaskFilters());
     }
 
     // TaskResource and pipeline tasks
@@ -125,7 +125,7 @@ public interface TaskManager extends Closeable {
     default long waitTasksToBeDone(int timeout, TimeUnit timeUnit, Set<String> scopeTaskIds) throws IOException {
         long startTime = System.currentTimeMillis();
         long maxDuration = timeUnit.toMillis(timeout);
-        TaskFilters filterNotCompleted = TaskFilters.empty().withStates(NON_FINAL_STATES);
+        TaskFilters filterNotCompleted = new TaskFilters().withStates(NON_FINAL_STATES);
         long nUnfinished = countUnfinished(filterNotCompleted, scopeTaskIds);
         while (System.currentTimeMillis() - startTime < maxDuration && nUnfinished > 0) {
             try {

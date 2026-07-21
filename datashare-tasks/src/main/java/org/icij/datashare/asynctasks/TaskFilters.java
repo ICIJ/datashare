@@ -36,8 +36,8 @@ public final class TaskFilters {
         this(args, states, types, name, user, null);
     }
 
-    public static TaskFilters empty() {
-        return new TaskFilters(null, null, null, null, null);
+    public TaskFilters() {
+        this(null, null, null, null, null);
     }
 
     public boolean isEmpty() {
@@ -64,7 +64,7 @@ public final class TaskFilters {
         return user;
     }
 
-    public TaskFilters withUser(User taskUser) {
+    public TaskFilters with(User taskUser) {
         return new TaskFilters(args, states, types, name, taskUser, regexFlags);
     }
 
@@ -76,19 +76,15 @@ public final class TaskFilters {
         return new TaskFilters(args, states, taskTypes, name, user, regexFlags);
     }
 
-    public TaskFilters withNames(String name) {
+    public TaskFilters with(String name) {
         return new TaskFilters(args, states, types, name, user, regexFlags);
     }
 
-    public TaskFilters withArgs(List<ArgsFilter> taskArgs) {
-        return new TaskFilters(taskArgs, states, types, name, user, regexFlags);
-    }
-
-    public TaskFilters withArgs(ArgsFilter... taskArgs) {
+    public TaskFilters with(ArgsFilter... taskArgs) {
         return new TaskFilters(List.of(taskArgs), states, types, name, user, regexFlags);
     }
 
-    public TaskFilters withFlag(Integer flag) {
+    public TaskFilters with(Integer flag) {
         return new TaskFilters(args, states, types, name, user, flag);
     }
 
