@@ -1,6 +1,7 @@
 package org.icij.datashare.mode;
 
 import net.codestory.http.filters.Filter;
+import net.codestory.http.filters.auth.CookieAuthFilter;
 import net.codestory.http.filters.basic.BasicAuthFilter;
 import net.codestory.http.security.SessionIdStore;
 import org.icij.datashare.cli.AuthMode;
@@ -11,6 +12,7 @@ import org.junit.Test;
 
 import org.icij.datashare.PropertiesProvider;
 
+import java.lang.reflect.Field;
 import java.util.HashMap;
 
 import static org.fest.assertions.Assertions.assertThat;
@@ -230,5 +232,27 @@ public class ServerModeTest {
             put("auth", "yesBasic");
         }});
         assertThat(mode.get(PropertiesProvider.class).get("auth").orElse(null)).isEqualTo("yesBasic");
+    }
+
+    @Test
+    public void test_yes_cookie_auth_filter_reuses_singleton_redis_dependencies() throws Exception {
+        CommonMode mode = CommonMode.create(new HashMap<>() {{
+            put("mode", "SERVER");
+            put("auth", "yesCookie");
+        }});
+
+        Filter filter = mode.get(Filter.class);
+        assertThat(filter).isInstanceOf(YesCookieAuthFilter.class);
+
+        UsersIdProviderCache usersIdProviderCache = mode.get(UsersIdProviderCache.class);
+        SessionIdStore sessionIdStore = mode.get(SessionIdStore.class);
+
+        Field usersField = CookieAuthFilter.class.getDeclaredField("users");
+        usersField.setAccessible(true);
+        Field sessionIdStoreField = CookieAuthFilter.class.getDeclaredField("sessionIdStore");
+        sessionIdStoreField.setAccessible(true);
+
+        assertThat(usersField.get(filter)).isSameAs(usersIdProviderCache);
+        assertThat(sessionIdStoreField.get(filter)).isSameAs(sessionIdStore);
     }
 }

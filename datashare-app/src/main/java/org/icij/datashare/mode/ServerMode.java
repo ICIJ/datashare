@@ -11,8 +11,6 @@ import net.codestory.http.routes.Routes;
 import net.codestory.http.security.SessionIdStore;
 import org.icij.datashare.cli.AuthMode;
 import org.icij.datashare.cli.QueueType;
-import org.icij.datashare.db.JooqRepository;
-import org.icij.datashare.db.RepositoryFactoryImpl;
 import org.icij.datashare.policies.Policy;
 import org.icij.datashare.policies.PolicyAnnotation;
 import org.icij.datashare.policies.TaskPolicy;
@@ -103,10 +101,6 @@ public class ServerMode extends CommonMode {
         bind(Filter.class).to(authFilterClass);
         if (BasicAuthFilter.class.isAssignableFrom(authFilterClass)) {
             bind(ApiKeyFilter.class).toInstance(getDummyApiKeyFilter());
-        } else if (authFilterClass.equals(YesCookieAuthFilter.class)) {
-            YesCookieAuthFilter yesCookieAuthFilter = getYesCookieAuthFilter();
-            addCloseable(yesCookieAuthFilter);
-            bind(YesCookieAuthFilter.class).toInstance(yesCookieAuthFilter);
         }
     }
 
@@ -117,12 +111,6 @@ public class ServerMode extends CommonMode {
                 return nextFilter.get();
             }
         };
-    }
-
-    protected YesCookieAuthFilter getYesCookieAuthFilter() {
-        RepositoryFactoryImpl repositoryFactory = new RepositoryFactoryImpl(propertiesProvider);
-        JooqRepository jooqRepository = (JooqRepository) repositoryFactory.createRepository();
-        return new YesCookieAuthFilter(propertiesProvider, jooqRepository);
     }
 
     protected void addPermissionConfiguration(final Routes routes) {

@@ -5,15 +5,14 @@ import net.codestory.http.Context;
 import net.codestory.http.filters.PayloadSupplier;
 import net.codestory.http.filters.auth.CookieAuthFilter;
 import net.codestory.http.payload.Payload;
+import net.codestory.http.security.SessionIdStore;
 import net.codestory.http.security.User;
 import org.icij.datashare.PropertiesProvider;
+import org.icij.datashare.Repository;
 import org.icij.datashare.cli.DatashareCliOptions;
-import org.icij.datashare.db.JooqRepository;
 import org.icij.datashare.text.Project;
 
 import javax.annotation.Nullable;
-import java.io.Closeable;
-import java.io.IOException;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -22,25 +21,27 @@ import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_DEFAULT_PROJECT
 import static org.icij.datashare.cli.DatashareCliOptions.SESSION_TTL_SECONDS_OPT;
 import static org.icij.datashare.user.User.localUser;
 
-public class YesCookieAuthFilter extends CookieAuthFilter implements Closeable {
+public class YesCookieAuthFilter extends CookieAuthFilter {
     private final Integer ttl;
     private final String defaultProject;
-    private final JooqRepository jooqRepository;
+    private final Repository repository;
     @Nullable
     private final PostLoginEnroller postLoginEnroller;
 
     @Inject
-    public YesCookieAuthFilter(final PropertiesProvider propertiesProvider, final JooqRepository jooqRepository,
+    public YesCookieAuthFilter(final PropertiesProvider propertiesProvider, final UsersIdProviderCache usersIdProviderCache,
+                               final SessionIdStore sessionIdStore, final Repository repository,
                                @Nullable PostLoginEnroller postLoginEnroller) {
-        super(propertiesProvider.get("protectedUrlPrefix").orElse("/"), new UsersIdProviderRedisCache(propertiesProvider), new RedisSessionIdStore(propertiesProvider));
+        super(propertiesProvider.get("protectedUrlPrefix").orElse("/"), usersIdProviderCache, sessionIdStore);
         this.ttl = Integer.valueOf(propertiesProvider.get(SESSION_TTL_SECONDS_OPT).orElse(String.valueOf(DatashareCliOptions.DEFAULT_SESSION_TTL_SECONDS)));
-        this.jooqRepository = jooqRepository;
+        this.repository = repository;
         this.defaultProject = propertiesProvider.get(DEFAULT_PROJECT_OPT).orElse(DEFAULT_DEFAULT_PROJECT);
         this.postLoginEnroller = postLoginEnroller;
     }
 
-    public YesCookieAuthFilter(final PropertiesProvider propertiesProvider, final JooqRepository jooqRepository) {
-        this(propertiesProvider, jooqRepository, null);
+    public YesCookieAuthFilter(final PropertiesProvider propertiesProvider, final UsersIdProviderCache usersIdProviderCache,
+                               final SessionIdStore sessionIdStore, final Repository repository) {
+        this(propertiesProvider, usersIdProviderCache, sessionIdStore, repository, null);
     }
 
     @Override
@@ -71,7 +72,7 @@ public class YesCookieAuthFilter extends CookieAuthFilter implements Closeable {
 
     private List<Project> getProjects() {
         // Get the project and create a new list
-        List<Project> projects = jooqRepository.getProjects();
+        List<Project> projects = repository.getProjects();
         // Check if the default project exists in db
         if (projects.stream().noneMatch(project -> project.getName().equals(defaultProject))) {
             // Then add the default project as a Project instance
@@ -95,14 +96,4 @@ public class YesCookieAuthFilter extends CookieAuthFilter implements Closeable {
     @Override protected String cookieName() { return "_ds_session_id";}
     @Override protected int expiry() { return ttl;}
     @Override protected boolean redirectToLogin(String uri) { return false;}
-
-    @Override
-    public void close() throws IOException {
-        if (users instanceof Closeable closeable) {
-            closeable.close();
-        }
-        if (sessionIdStore instanceof Closeable closeable) {
-            closeable.close();
-        }
-    }
 }
