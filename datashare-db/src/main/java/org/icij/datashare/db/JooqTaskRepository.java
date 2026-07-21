@@ -1,12 +1,11 @@
 package org.icij.datashare.db;
 
+import com.fasterxml.jackson.core.JacksonException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import java.io.IOException;
 import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Stream;
 import org.icij.datashare.asynctasks.Group;
 import org.icij.datashare.asynctasks.Task;
@@ -26,13 +25,12 @@ import org.jooq.InsertValuesStep12;
 import org.jooq.SQLDialect;
 import org.jooq.exception.IntegrityConstraintViolationException;
 import org.jooq.impl.DSL;
+import org.slf4j.Logger;
 
 import javax.sql.DataSource;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.util.Date;
-import java.util.Map;
 
 import static java.util.Optional.ofNullable;
 import static org.icij.datashare.LambdaExceptionUtils.rethrowFunction;
@@ -41,10 +39,12 @@ import static org.icij.datashare.db.Tables.TASK;
 import static org.jooq.impl.DSL.selectFrom;
 import static org.jooq.impl.DSL.falseCondition;
 import static org.jooq.impl.DSL.using;
+import static org.slf4j.LoggerFactory.getLogger;
 
 public class JooqTaskRepository implements TaskRepository {
     private final DataSource connectionProvider;
     private final SQLDialect dialect;
+    private final Logger logger = getLogger(getClass());
 
     public JooqTaskRepository(final DataSource connectionProvider, final SQLDialect dialect) {
         this.connectionProvider = connectionProvider;
@@ -99,7 +99,7 @@ public class JooqTaskRepository implements TaskRepository {
 
     @Override
     public <V extends Serializable> Task<V> delete(String taskId) throws IOException, UnknownTask {
-        Task<V> task = (Task<V>) createTaskFrom(DSL.using(connectionProvider, dialect)
+        Task<V> task = createTaskFrom(DSL.using(connectionProvider, dialect)
             .deleteFrom(TASK).where(TASK.ID.eq(taskId)).returning().fetchOne()
         );
         if (task == null) {
@@ -132,7 +132,7 @@ public class JooqTaskRepository implements TaskRepository {
         if (filters == null) {
             return selectFrom(TASK).stream().map(rethrowFunction(this::createTaskFrom));
         }
-        Stream<Task<? extends Serializable>> tasks = selectTasks(DSL.using(connectionProvider, dialect), filters);
+        Stream<Task<? extends Serializable>> tasks = selectTasks(DSL.using(connectionProvider, dialect), filters).filter(Objects::nonNull);
         if (filters.getArgs() != null && !filters.getArgs().isEmpty()) {
             tasks = tasks.filter(TaskFilters.empty().withArgs(filters.getArgs())::filter);
         }
@@ -154,17 +154,21 @@ public class JooqTaskRepository implements TaskRepository {
         return selectTaskStates(DSL.using(connectionProvider, dialect), filters);
     }
 
-    private Task<?> createTaskFrom(TaskRecord taskRecord) throws IOException {
+    private <V extends Serializable> Task<V> createTaskFrom(TaskRecord taskRecord) throws IOException {
         return ofNullable(taskRecord).map(rethrowFunction(r ->
         {
             Date createdAt = r.getCreatedAt() == null ? null : Date.from(r.getCreatedAt().atZone(ZoneId.systemDefault()).toInstant());
             Date completedAt = r.getCompletedAt() == null ? null :Date.from(r.getCompletedAt().atZone(ZoneId.systemDefault()).toInstant());
-            Map<String, Object> args = JsonObjectMapper.readValueTyped(r.getArgs(), new TypeReference<>() {});
-                TaskResult<?> result = r.getResult() == null ? null: JsonObjectMapper.readValueTyped(r.getResult(), new TypeReference<>() {});
-                TaskError error  = r.getError() == null ? null: JsonObjectMapper.readValueTyped(r.getError(), TaskError.class);
-                Task<?> task = new Task<>(r.getId(), r.getName(), Task.State.valueOf(r.getState()),
+            try {
+                Map<String, Object> args = JsonObjectMapper.readValueTyped(r.getArgs(), new TypeReference<>() {});
+                TaskResult<V> result = r.getResult() == null ? null : JsonObjectMapper.readValueTyped(r.getResult(), new TypeReference<>() {});
+                TaskError error = r.getError() == null ? null : JsonObjectMapper.readValueTyped(r.getError(), TaskError.class);
+                return new Task<>(r.getId(), r.getName(), Task.State.valueOf(r.getState()),
                         r.getProgress(), createdAt, r.getRetriesLeft(), completedAt, args, result, error);
-                return task;
+            } catch (JacksonException e) {
+                logger.error("Could not deserialize task with id {}", r.getId(), e);
+                return null;
+            }
         })).orElse(null);
     }
 
