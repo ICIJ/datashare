@@ -219,7 +219,7 @@ public class JooqTaskRepositoryTest {
         List<Task<? extends Serializable>> tasks = repository.getTasks(filter).toList();
 
         assertThat(tasks.size()).isEqualTo(1);
-        assertThat(tasks.get(0).id).isEqualTo(foo.id);
+        assertThat(tasks.getFirst().id).isEqualTo(foo.id);
     }
 
     @Test
@@ -235,7 +235,7 @@ public class JooqTaskRepositoryTest {
         List<Task<? extends Serializable>> tasks = repository.getTasks(filter).toList();
 
         assertThat(tasks.size()).isEqualTo(1);
-        assertThat(tasks.get(0).id).isEqualTo(bar.id);
+        assertThat(tasks.getFirst().id).isEqualTo(bar.id);
     }
 
     @Test
@@ -249,7 +249,7 @@ public class JooqTaskRepositoryTest {
         List<Task<? extends Serializable>> tasks = repository.getTasks(filter).toList();
 
         assertThat(tasks.size()).isEqualTo(1);
-        assertThat(tasks.get(0).id).isEqualTo(foo.id);
+        assertThat(tasks.getFirst().id).isEqualTo(foo.id);
     }
 
     @Test
