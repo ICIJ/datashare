@@ -8,10 +8,12 @@ import static org.junit.Assert.assertThrows;
 import java.io.IOException;
 import java.io.Serializable;
 import java.net.URI;
+import java.sql.Connection;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
 import org.icij.datashare.asynctasks.Group;
 import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.asynctasks.TaskAlreadyExists;
@@ -39,9 +41,9 @@ public class JooqTaskRepositoryTest {
 
     @Parameterized.Parameters
     public static Collection<Object[]> dataSources() {
-        return asList(new Object[][] {
-            {DbTestRuleProvider.getSqliteRule()},
-            {DbTestRuleProvider.getPostgresRule()}
+        return asList(new Object[][]{
+                {DbTestRuleProvider.getSqliteRule()},
+                {DbTestRuleProvider.getPostgresRule()}
         });
     }
 
@@ -49,7 +51,7 @@ public class JooqTaskRepositoryTest {
     public void test_insert_with_null_id_should_throw() {
         Task<Serializable> task = new Task<>(null, "foo", User.local(), Map.of());
         assertThrows(IntegrityConstraintViolationException.class,
-            () -> repository.insert(task, new Group(TaskGroupType.Test)));
+                () -> repository.insert(task, new Group(TaskGroupType.Test)));
     }
 
     @Test
@@ -88,7 +90,7 @@ public class JooqTaskRepositoryTest {
 
     private String rawTypeColumn(String taskId) {
         return DSL.using(dbRule.dataSource, RepositoryFactoryImpl.guessSqlDialectFrom(dbRule.dataSourceUrl))
-            .select(TASK.TYPE).from(TASK).where(TASK.ID.eq(taskId)).fetchOne(TASK.TYPE);
+                .select(TASK.TYPE).from(TASK).where(TASK.ID.eq(taskId)).fetchOne(TASK.TYPE);
     }
 
     @Test
@@ -187,6 +189,24 @@ public class JooqTaskRepositoryTest {
         assertThat(tasks.stream().map(Task::getId).toList()).isEqualTo(List.of(foo.id, bar.id));
     }
 
+    @Test
+    public void test_get_tasks_should_ignore_badly_formated_tasks() throws Exception {
+        Task<String> foo = new Task<>("foo", User.local(), Map.of("user", User.local()));
+        Task<String> bar = new Task<>("bar", User.local(), Map.of("user", User.local()));
+        repository.insert(foo, new Group(TaskGroupType.Test));
+        repository.insert(bar, new Group(TaskGroupType.Test));
+        try (Connection con = dbRule.dataSource.getConnection()) {
+            con.createStatement().execute(("UPDATE %s SET result = '{\"value\":" +
+                    "{\"@type\":\"LinkedHashMap\",\"nbResults\":1,\"nbQueriesWithoutResults\":1}}' WHERE id = '%s'")
+                    .formatted(Tables.TASK.getName(), bar.id));
+        }
+        TaskFilters filter = TaskFilters.empty();
+
+        List<Task<? extends Serializable>> tasks = repository.getTasks(filter).toList();
+
+        assertThat(tasks.size()).isEqualTo(1);
+        assertThat(tasks.stream().map(Task::getId).toList()).isEqualTo(List.of(foo.id));
+    }
 
     @Test
     public void test_get_tasks_with_names_filter() throws Exception {
@@ -283,7 +303,7 @@ public class JooqTaskRepositoryTest {
         repository.insert(bar, new Group(TaskGroupType.Test));
 
         TaskFilters filter = TaskFilters.empty()
-            .withArgs(new TaskFilters.ArgsFilter("someArg", "bar.*"));
+                .withArgs(new TaskFilters.ArgsFilter("someArg", "bar.*"));
 
         List<String> taskIds = repository.getTaskIds(filter).toList();
 
