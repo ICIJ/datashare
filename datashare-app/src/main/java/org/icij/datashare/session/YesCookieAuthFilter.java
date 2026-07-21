@@ -1,6 +1,7 @@
 package org.icij.datashare.session;
 
 import com.google.inject.Inject;
+import com.google.inject.Singleton;
 import net.codestory.http.Context;
 import net.codestory.http.filters.PayloadSupplier;
 import net.codestory.http.filters.auth.CookieAuthFilter;
@@ -21,6 +22,7 @@ import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_DEFAULT_PROJECT
 import static org.icij.datashare.cli.DatashareCliOptions.SESSION_TTL_SECONDS_OPT;
 import static org.icij.datashare.user.User.localUser;
 
+@Singleton
 public class YesCookieAuthFilter extends CookieAuthFilter {
     private final Integer ttl;
     private final String defaultProject;
