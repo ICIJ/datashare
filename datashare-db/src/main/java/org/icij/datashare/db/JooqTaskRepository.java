@@ -134,7 +134,7 @@ public class JooqTaskRepository implements TaskRepository {
         }
         Stream<Task<? extends Serializable>> tasks = selectTasks(DSL.using(connectionProvider, dialect), filters).filter(Objects::nonNull);
         if (filters.getArgs() != null && !filters.getArgs().isEmpty()) {
-            tasks = tasks.filter(TaskFilters.empty().withArgs(filters.getArgs())::filter);
+            tasks = tasks.filter(new TaskFilters().with(filters.getArgs().toArray(TaskFilters.ArgsFilter[]::new))::filter);
         }
         return tasks;
     }
@@ -148,7 +148,7 @@ public class JooqTaskRepository implements TaskRepository {
         if (filters.getArgs() != null) {
             // TODO: test me
             return selectTaskIdsAndArgs(DSL.using(connectionProvider, dialect), filters)
-                .filter( p -> TaskFilters.empty().withArgs(filters.getArgs()).filter(p._2()))
+                .filter( p -> new TaskFilters().with(filters.getArgs().toArray(TaskFilters.ArgsFilter[]::new)).filter(p._2()))
                 .map(Pair::_1);
         }
         return selectTaskStates(DSL.using(connectionProvider, dialect), filters);

@@ -62,7 +62,7 @@ public class TaskFinderTest {
         BatchSearchRecord batchSearchRecord = new BatchSearchRecord(projects, "name", "description", 123, new Date(), uri);
         when(batchSearchRepository.getRecords(any(User.class), anyList())).thenReturn(List.of(batchSearchRecord));
 
-        List<Task<?>> tasks = taskFinder.findVisibleTasksFor(user, TaskFilters.empty()).toList();
+        List<Task<?>> tasks = taskFinder.findVisibleTasksFor(user, new TaskFilters()).toList();
         assertThat(tasks).hasSize(1);
         assertThat(tasks.get(0).id).isEqualTo(batchSearchRecord.uuid);
         assertThat(tasks.get(0).getUser()).isEqualTo(user);
@@ -78,7 +78,7 @@ public class TaskFinderTest {
         taskManager.startTask(task, null);
         when(batchSearchRepository.getRecords(any(User.class), anyList())).thenReturn(List.of(batchSearchRecord));
 
-        List<Task<?>> tasks = taskFinder.findVisibleTasksFor(user, TaskFilters.empty()).toList();
+        List<Task<?>> tasks = taskFinder.findVisibleTasksFor(user, new TaskFilters()).toList();
         assertThat(tasks).hasSize(2);
         assertThat(tasks.get(1).id).isEqualTo(batchSearchRecord.uuid);
         assertThat(tasks.get(1).getUser()).isEqualTo(user);
@@ -97,7 +97,7 @@ public class TaskFinderTest {
         when(batchSearchRepository.getRecords(eq(userOtherLocal), anyList())).thenReturn(List.of(batchSearchRecord));
 
         //Ensure jdoe sees the fritz's batch search, but not it's task
-        List<Task<?>> tasks = taskFinder.findVisibleTasksFor(userOtherLocal, TaskFilters.empty()).toList();
+        List<Task<?>> tasks = taskFinder.findVisibleTasksFor(userOtherLocal, new TaskFilters()).toList();
         assertThat(tasks).hasSize(1);
         assertThat(tasks.get(0).id).isEqualTo(batchSearchRecord.uuid);
         assertThat(tasks.get(0).getUser()).isEqualTo(userLocal);
@@ -112,7 +112,7 @@ public class TaskFinderTest {
         // Same batch search record appears twice in the repository result (deduplication must occur)
         when(batchSearchRepository.getRecords(any(User.class), anyList())).thenReturn(asList(batchSearchRecord, batchSearchRecord));
 
-        List<Task<?>> tasks = taskFinder.findVisibleTasksFor(user, TaskFilters.empty()).toList();
+        List<Task<?>> tasks = taskFinder.findVisibleTasksFor(user, new TaskFilters()).toList();
         assertThat(tasks).hasSize(1);
         assertThat(tasks.get(0).name).isEqualTo("org.icij.datashare.tasks.BatchSearchRunnerProxy");
     }
@@ -126,7 +126,7 @@ public class TaskFinderTest {
         when(batchSearchRepository.getRecords(any(User.class), anyList())).thenReturn(asList(batchSearchRecord, batchSearchRecord));
 
         List<Task<?>> tasks = taskFinder.findVisibleTasksFor(user,
-            TaskFilters.empty().withNames("org.icij.datashare.tasks.IndexTask")).toList();
+            new TaskFilters().with("org.icij.datashare.tasks.IndexTask")).toList();
         assertThat(tasks).hasSize(0);
     }
 
@@ -139,7 +139,7 @@ public class TaskFinderTest {
         when(batchSearchRepository.getRecords(any(User.class), anyList())).thenReturn(asList(batchSearchRecord, batchSearchRecord));
 
         List<Task<?>> tasks = taskFinder.findVisibleTasksFor(user,
-            TaskFilters.empty().withNames("org.icij.datashare.tasks.BatchSearchRunnerProxy")).toList();
+            new TaskFilters().with("org.icij.datashare.tasks.BatchSearchRunnerProxy")).toList();
         assertThat(tasks).hasSize(1);
     }
 
@@ -154,7 +154,7 @@ public class TaskFinderTest {
         taskManager.startTask(task, null);
         when(batchSearchRepository.getRecords(any(User.class), anyList())).thenReturn(List.of(batchSearchRecord));
 
-        List<Task<?>> tasks = taskFinder.findVisibleTasksFor(user, TaskFilters.empty()).toList();
+        List<Task<?>> tasks = taskFinder.findVisibleTasksFor(user, new TaskFilters()).toList();
         assertThat(tasks).hasSize(1);
         assertThat(tasks.get(0).name).isEqualTo("name");
     }

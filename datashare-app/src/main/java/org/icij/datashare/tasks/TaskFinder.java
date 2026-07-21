@@ -47,10 +47,10 @@ public class TaskFinder {
         if(user == null) {
             throw new IllegalArgumentException("Cannot retrieve Tasks of a null user");
         }
-        filters = filters.withUser(user); //Ensure only the tasks of the user are returned
+        filters = filters.with(user); //Ensure only the tasks of the user are returned
         Stream<Task<?>> userTasks = taskManager.getTasks(filters);
         // Use this filter to retrieve the BatchSearches of the project
-        TaskFilters filtersWithoutUser = filters.withUser(null);
+        TaskFilters filtersWithoutUser = filters.with((User) null);
         List<BatchSearchRecord> batchSearchRecords = batchSearchRepository.getRecords(user, user.getProjectNames());
 
         Stream<Task<Integer>> batchSearchTasks =

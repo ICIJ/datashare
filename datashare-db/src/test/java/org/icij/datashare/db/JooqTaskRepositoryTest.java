@@ -181,7 +181,7 @@ public class JooqTaskRepositoryTest {
         Task<String> bar = new Task<>("bar", User.local(), Map.of("user", User.local()));
         repository.insert(foo, new Group(TaskGroupType.Test));
         repository.insert(bar, new Group(TaskGroupType.Test));
-        TaskFilters filter = TaskFilters.empty();
+        TaskFilters filter = new TaskFilters();
 
         List<Task<? extends Serializable>> tasks = repository.getTasks(filter).toList();
 
@@ -200,7 +200,7 @@ public class JooqTaskRepositoryTest {
                     "{\"@type\":\"LinkedHashMap\",\"nbResults\":1,\"nbQueriesWithoutResults\":1}}' WHERE id = '%s'")
                     .formatted(Tables.TASK.getName(), bar.id));
         }
-        TaskFilters filter = TaskFilters.empty();
+        TaskFilters filter = new TaskFilters();
 
         List<Task<? extends Serializable>> tasks = repository.getTasks(filter).toList();
 
@@ -214,7 +214,7 @@ public class JooqTaskRepositoryTest {
         Task<String> bar = new Task<>("bar", User.local(), Map.of("user", User.local()));
         repository.insert(foo, new Group(TaskGroupType.Test));
         repository.insert(bar, new Group(TaskGroupType.Test));
-        TaskFilters filter = TaskFilters.empty().withNames("foo");
+        TaskFilters filter = new TaskFilters().with("foo");
 
         List<Task<? extends Serializable>> tasks = repository.getTasks(filter).toList();
 
@@ -230,7 +230,7 @@ public class JooqTaskRepositoryTest {
         bar.setResult(new TaskResult<>("1"));
         repository.insert(foo, new Group(TaskGroupType.Test));
         repository.insert(bar, new Group(TaskGroupType.Test));
-        TaskFilters filter = TaskFilters.empty().withStates(Task.State.FINAL_STATES);
+        TaskFilters filter = new TaskFilters().withStates(Task.State.FINAL_STATES);
 
         List<Task<? extends Serializable>> tasks = repository.getTasks(filter).toList();
 
@@ -244,7 +244,7 @@ public class JooqTaskRepositoryTest {
         Task<String> bar = new Task<>("org.icij.datashare.tasks.BatchDownloadRunner", User.local(), Map.of("user", User.local()));
         repository.insert(foo, new Group(TaskGroupType.Test));
         repository.insert(bar, new Group(TaskGroupType.Test));
-        TaskFilters filter = TaskFilters.empty().withTypes(Set.of(TaskType.BATCH_SEARCH));
+        TaskFilters filter = new TaskFilters().withTypes(Set.of(TaskType.BATCH_SEARCH));
 
         List<Task<? extends Serializable>> tasks = repository.getTasks(filter).toList();
 
@@ -258,7 +258,7 @@ public class JooqTaskRepositoryTest {
         Task<String> bar = new Task<>("bar", User.local(), Map.of("user", User.local()));
         repository.insert(foo, new Group(TaskGroupType.Test));
         repository.insert(bar, new Group(TaskGroupType.Test));
-        TaskFilters filter = TaskFilters.empty();
+        TaskFilters filter = new TaskFilters();
 
         List<String> taskIds = repository.getTaskIds(filter).toList();
 
@@ -272,7 +272,7 @@ public class JooqTaskRepositoryTest {
         Task<String> bar = new Task<>("bar", User.local(), Map.of("user", User.local()));
         repository.insert(foo, new Group(TaskGroupType.Test));
         repository.insert(bar, new Group(TaskGroupType.Test));
-        TaskFilters filter = TaskFilters.empty().withNames("foo");
+        TaskFilters filter = new TaskFilters().with("foo");
 
         List<String> taskIds = repository.getTaskIds(filter).toList();
 
@@ -287,7 +287,7 @@ public class JooqTaskRepositoryTest {
         bar.setResult(new TaskResult<>("1"));
         repository.insert(foo, new Group(TaskGroupType.Test));
         repository.insert(bar, new Group(TaskGroupType.Test));
-        TaskFilters filter = TaskFilters.empty().withStates(Task.State.FINAL_STATES);
+        TaskFilters filter = new TaskFilters().withStates(Task.State.FINAL_STATES);
 
         List<String> taskIds = repository.getTaskIds(filter).toList();
 
@@ -302,8 +302,8 @@ public class JooqTaskRepositoryTest {
         repository.insert(foo, new Group(TaskGroupType.Test));
         repository.insert(bar, new Group(TaskGroupType.Test));
 
-        TaskFilters filter = TaskFilters.empty()
-                .withArgs(new TaskFilters.ArgsFilter("someArg", "bar.*"));
+        TaskFilters filter = new TaskFilters()
+                .with(new TaskFilters.ArgsFilter("someArg", "bar.*"));
 
         List<String> taskIds = repository.getTaskIds(filter).toList();
 

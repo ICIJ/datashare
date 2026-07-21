@@ -113,7 +113,7 @@ public class TaskManagerMemoryTest {
     public void test_clear_cancelled_tasks_with_filter() throws Exception {
         Task<Integer> queuedTask = new Task<>("sleep", User.local(), Map.of("intParameter", 12));
         Task<Integer> cancelledTask = new Task<>("sleep", User.local(), Map.of("intParameter", 0));
-        TaskFilters filters = TaskFilters.empty().withNames("sleep");
+        TaskFilters filters = new TaskFilters().with("sleep");
 
         taskManager.startTask(queuedTask, new Group(TaskGroupType.Test));
         taskManager.startTask(cancelledTask, new Group(TaskGroupType.Test));

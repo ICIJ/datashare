@@ -1023,7 +1023,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         // When
         TaskFilters filters = taskFiltersFromContext(ctx, null);
         // Then
-        TaskFilters expectedFilters = TaskFilters.empty().withStates(Set.of()).withTypes(Set.of()).withArgs(List.of());
+        TaskFilters expectedFilters = new TaskFilters().withStates(Set.of()).withTypes(Set.of()).with();
         assertThat(filters).isEqualTo(expectedFilters);
     }
 
@@ -1035,8 +1035,8 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         // When
         TaskFilters filters = taskFiltersFromContext(ctx, null);
         // Then
-        TaskFilters expectedFilters = TaskFilters.empty().withStates(Set.of()).withTypes(Set.of()).withArgs(List.of())
-            .withNames("someTask|someOtherTask.*");
+        TaskFilters expectedFilters = new TaskFilters().withStates(Set.of()).withTypes(Set.of()).with()
+            .with("someTask|someOtherTask.*");
         assertThat(filters).isEqualTo(expectedFilters);
     }
 
@@ -1060,8 +1060,8 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         // When
         TaskFilters filters = taskFiltersFromContext(ctx, null);
         // Then
-        TaskFilters expectedFilters = TaskFilters.empty().withStates(Set.of()).withTypes(Set.of()).withArgs(List.of())
-            .withUser(mockUser);
+        TaskFilters expectedFilters = new TaskFilters().withStates(Set.of()).withTypes(Set.of()).with()
+            .with(mockUser);
         assertThat(filters).isEqualTo(expectedFilters);
     }
 
@@ -1073,8 +1073,8 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         // When
         TaskFilters filters = taskFiltersFromContext(ctx, null);
         // Then
-        TaskFilters expectedFilters = TaskFilters.empty().withStates(Set.of()).withTypes(Set.of())
-            .withArgs(List.of(new TaskFilters.ArgsFilter("nested.attribute", ".*someregex.*")));
+        TaskFilters expectedFilters = new TaskFilters().withStates(Set.of()).withTypes(Set.of())
+            .with(new TaskFilters.ArgsFilter("nested.attribute", ".*someregex.*"));
         assertThat(filters).isEqualTo(expectedFilters);
     }
 
@@ -1086,7 +1086,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         // When
         TaskFilters filters = taskFiltersFromContext(ctx, null);
         // Then
-        TaskFilters expectedFilters = TaskFilters.empty().withStates(Set.of(DONE)).withTypes(Set.of()).withArgs(List.of());
+        TaskFilters expectedFilters = new TaskFilters().withStates(Set.of(DONE)).withTypes(Set.of()).with();
         assertThat(filters).isEqualTo(expectedFilters);
     }
 
@@ -1098,8 +1098,8 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         // When
         TaskFilters filters = taskFiltersFromContext(ctx, null);
         // Then
-        TaskFilters expectedFilters = TaskFilters.empty().withStates(Set.of())
-            .withTypes(Set.of(TaskType.BATCH_SEARCH, TaskType.BATCH_DOWNLOAD)).withArgs(List.of());
+        TaskFilters expectedFilters = new TaskFilters().withStates(Set.of())
+            .withTypes(Set.of(TaskType.BATCH_SEARCH, TaskType.BATCH_DOWNLOAD)).with();
         assertThat(filters).isEqualTo(expectedFilters);
     }
 
@@ -1110,8 +1110,8 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
 
         TaskFilters filters = taskFiltersFromContext(ctx, null);
 
-        TaskFilters expectedFilters = TaskFilters.empty().withStates(Set.of())
-            .withTypes(Set.of(TaskType.BATCH_SEARCH, TaskType.BATCH_DOWNLOAD)).withArgs(List.of());
+        TaskFilters expectedFilters = new TaskFilters().withStates(Set.of())
+            .withTypes(Set.of(TaskType.BATCH_SEARCH, TaskType.BATCH_DOWNLOAD)).with();
         assertThat(filters).isEqualTo(expectedFilters);
     }
 

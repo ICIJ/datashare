@@ -83,7 +83,7 @@ public class TaskManagerTemporalTest {
         Task<String> task = new Task<>("someTask", User.local(), Map.of());
         when(taskRepository.getTasks(any())).thenReturn(Stream.of(task));
 
-        taskManager.clearDoneTasks(TaskFilters.empty().withStates(Set.of(ERROR)));
+        taskManager.clearDoneTasks(new TaskFilters().withStates(Set.of(ERROR)));
 
         verify(taskRepository).getTasks(argThat(f -> f.getStates().equals(Set.of(ERROR))));
         verify(taskRepository).delete(task.id);

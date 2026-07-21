@@ -66,7 +66,8 @@ import static org.icij.datashare.text.nlp.AbstractModels.syncModels;
 @Prefix("/api/task")
 public class TaskResource {
     public static final Set<String> PAGINATION_FIELDS = WebQueryPagination.fields();
-    public static final Set<String> TASK_FILTER_FIELDS = Set.of("args", "name", "state", "type", "user");
+    public static final Set<String> TASK_FILTER_FIELDS = Stream.concat(
+        Arrays.stream(TaskQuerySelector.Fields.values()).map(Enum::name), Stream.of("user")).collect(Collectors.toSet());
     private final DatashareTaskFactory taskFactory;
     private final TaskManager taskManager;
     private final TaskFinder taskFinder;
@@ -638,40 +639,16 @@ public class TaskResource {
 
     // TODO: this is for backwards compatibility, we should updated APIs to use TaskFilters instead
     protected static TaskFilters taskFiltersFromContext(Context context, Integer regexFlags) throws BadRequestException {
-        TaskFilters filters = TaskFilters.empty();
         Query query = context.query();
         validatedFilterKeys(query);
-        // User
-        filters = Optional.ofNullable((User) context.currentUser()).map(filters::withUser).orElse(filters);
-        // States
-        // We had regexes for state matching, probably not used as such. In case they were used we expect the user to
-        // provide a single state or multiple state joined with "|". This is a hacks.
-        Set<Task.State> states = query.keys().stream().filter(k -> k.equals("state")).findAny()
-            .map(k -> stream(query.get(k).split("\\|")).map(Task.State::valueOf).collect(Collectors.toSet()))
-            .orElse(Set.of());
-        filters = filters.withStates(states);
-        // Types
-        Set<TaskType> types = query.keys().stream().filter(k -> k.equals("type")).findAny()
-            .map(k -> stream(query.get(k).split("\\|"))
-            .map(String::toUpperCase)
-            .map(TaskType::fromString).collect(Collectors.toSet()))
-            .orElse(Set.of());
-        filters = filters.withTypes(types);
-        // Names
-        Optional<String> maybeName = query.keys().stream().filter(k -> k.equals("name")).findAny()
-            .map(k -> query.get(k) + ".*");
-        if (maybeName.isPresent()) {
-            filters = filters.withNames(maybeName.get());
-        }
-        // Args
-        List<TaskFilters.ArgsFilter> args = query.keys().stream().filter(k -> k.startsWith("args."))
-            .map(k -> new TaskFilters.ArgsFilter(k.substring(5), ".*" + query.get(k) + ".*"))
-            .toList();
-        filters = filters.withArgs(args);
-        if (regexFlags != null) {
-            filters = filters.withFlag(regexFlags);
-        }
-        return filters;
+        TaskQuerySelector querySelector = new TaskQuerySelector(query);
+        return new TaskFilters()
+            .with((User) context.currentUser())
+            .with(querySelector.name())
+            .withTypes(querySelector.types())
+            .withStates(querySelector.states())
+            .with(querySelector.args())
+            .with(regexFlags);
     }
 
     private static void validatedFilterKeys(Query query) throws BadRequestException {
@@ -686,6 +663,35 @@ public class TaskResource {
             msg += " Allowed keys" + TASK_FILTER_FIELDS.stream().sorted().toList();
             logger.error(msg);
             throw new BadRequestException();
+        }
+    }
+
+    private record TaskQuerySelector(Query query) {
+        private enum Fields {name, type, state, args}
+
+        String name() {
+            return extract(Fields.name, v -> v + ".*", null);
+        }
+
+        Set<Task.State> states() {
+            // We had regexes for state matching, probably not used as such. In case they were used we expect the
+            // user to provide a single state or multiple state joined with "|". This is a hack.
+            return extract(Fields.state, v -> stream(v.split("\\|")).map(Task.State::valueOf).collect(Collectors.toSet()), Set.of());
+        }
+
+        Set<TaskType> types() {
+            return extract(Fields.type, v -> stream(v.split("\\|")).map(String::toUpperCase).map(TaskType::fromString).collect(Collectors.toSet()), Set.of());
+        }
+
+        TaskFilters.ArgsFilter[] args() {
+            String prefix = Fields.args.name() + ".";
+            return query.keys().stream().filter(k -> k.startsWith(prefix))
+                    .map(k -> new TaskFilters.ArgsFilter(k.substring(prefix.length()), ".*" + query.get(k) + ".*"))
+                    .toArray(TaskFilters.ArgsFilter[]::new);
+        }
+
+        private <T> T extract(Fields field, Function<String, T> transform, T defaultValue) {
+            return ofNullable(query.get(field.name())).map(transform).orElse(defaultValue);
         }
     }
 }

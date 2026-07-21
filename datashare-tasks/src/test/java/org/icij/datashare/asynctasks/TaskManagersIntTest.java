@@ -134,7 +134,7 @@ public class TaskManagersIntTest {
         String tv2Id = taskManager.startTask(TestFactory.SleepForever.class, User.local(), new HashMap<>());
 
         taskInspector.awaitStatus(tv1Id, Task.State.RUNNING, 1, SECONDS);
-        taskManager.stopTasks(TaskFilters.empty().withUser(User.local()).withNames(".*Another.*"));
+        taskManager.stopTasks(new TaskFilters().with(User.local()).with(".*Another.*"));
         taskInspector.awaitStatus(tv1Id, Task.State.CANCELLED, 1, SECONDS);
 
         assertThat(taskManager.getTasks().toList()).hasSize(2);

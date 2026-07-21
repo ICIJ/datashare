@@ -128,7 +128,7 @@ public class TaskManagerTemporalIntTest {
         Thread.sleep(1000); // Sleep 1sec to test the sort on timestamp in ms
         taskManager.startTask(bar);
 
-        TaskFilters filter = TaskFilters.empty();
+        TaskFilters filter = new TaskFilters();
         List<Task<?>> tasks;
         while (true) {
             tasks = taskManager.getTasks(filter).toList();
@@ -150,7 +150,7 @@ public class TaskManagerTemporalIntTest {
         taskManager.startTask(foo);
         taskManager.startTask(bar);
 
-        TaskFilters filter = TaskFilters.empty().withArgs(new TaskFilters.ArgsFilter("someKey", "fooValue"));
+        TaskFilters filter = new TaskFilters().with(new TaskFilters.ArgsFilter("someKey", "fooValue"));
         List<Task<?>> tasks = taskManager.getTasks(filter).toList();
 
         assertThat(tasks.size()).isEqualTo(1);
@@ -166,7 +166,7 @@ public class TaskManagerTemporalIntTest {
         taskManager.startTask(foo);
         taskManager.startTask(bar);
 
-        TaskFilters filter = TaskFilters.empty();
+        TaskFilters filter = new TaskFilters();
         // Strongly consistent, should return all task IDs right away
         List<String> taskIds = taskManager.getTaskIds(filter).toList();
 
@@ -181,7 +181,7 @@ public class TaskManagerTemporalIntTest {
         taskManager.startTask(foo);
         taskManager.startTask(bar);
 
-        TaskFilters filter = TaskFilters.empty().withArgs(new TaskFilters.ArgsFilter("someKey", "fooValue"));
+        TaskFilters filter = new TaskFilters().with(new TaskFilters.ArgsFilter("someKey", "fooValue"));
         List<String> taskIds = taskManager.getTaskIds(filter).toList();
 
         assertThat(taskIds.size()).isEqualTo(1);
@@ -266,7 +266,7 @@ public class TaskManagerTemporalIntTest {
             taskManager.startTask(second);
             assertThat(taskManager.awaitTermination(2, TimeUnit.SECONDS));
             assertThat(taskManager.getTaskIds().toList()).hasSize(2);
-            TaskFilters filter = TaskFilters.empty().withArgs(new TaskFilters.ArgsFilter("otherKey", "otherValue"));
+            TaskFilters filter = new TaskFilters().with(new TaskFilters.ArgsFilter("otherKey", "otherValue"));
 
             taskManager.clearDoneTasks(filter);
 
