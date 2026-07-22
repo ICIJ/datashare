@@ -4,8 +4,8 @@ import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import net.codestory.http.security.SessionIdStore;
 import org.icij.datashare.PropertiesProvider;
-import redis.clients.jedis.AbstractTransaction;
 import redis.clients.jedis.JedisPooled;
+import redis.clients.jedis.params.SetParams;
 
 import java.io.Closeable;
 
@@ -25,10 +25,7 @@ public class RedisSessionIdStore implements SessionIdStore, Closeable {
 
     @Override
     public void put(final String sessionId, final String login) {
-        AbstractTransaction transaction = redis.multi();
-        transaction.set(sessionId, login);
-        transaction.expire(sessionId, this.ttl);
-        transaction.exec();
+        redis.set(sessionId, login, SetParams.setParams().ex(this.ttl));
     }
 
     @Override

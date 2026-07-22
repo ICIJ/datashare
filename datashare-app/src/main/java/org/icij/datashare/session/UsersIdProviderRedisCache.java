@@ -6,11 +6,10 @@ import net.codestory.http.security.User;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.text.Hasher;
-import redis.clients.jedis.AbstractTransaction;
 import redis.clients.jedis.JedisPooled;
+import redis.clients.jedis.params.SetParams;
 
 import java.io.Closeable;
-import java.util.List;
 
 import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_SESSION_TTL_SECONDS;
 import static org.icij.datashare.cli.DatashareCliOptions.SESSION_TTL_SECONDS_OPT;
@@ -45,16 +44,13 @@ public class UsersIdProviderRedisCache implements UsersIdProviderCache, Closeabl
 
     public boolean saveOrUpdate(User user) {
         long existingTtl = redis.ttl(user.login());
-        AbstractTransaction transaction = redis.multi();
-        transaction.set(user.login(), JsonObjectMapper.serialize(((DatashareUser)user).details));
+        String json = JsonObjectMapper.serialize(((DatashareUser)user).details);
         // -1 = persistent key: never add an expiry
         // -2 = new key: apply configured TTL
         // existing TTL >= configured TTL: don't shorten an active session
-        if (existingTtl != -1 && (existingTtl == -2 || existingTtl < this.ttl)) {
-            transaction.expire(user.login(), this.ttl);
-        }
-        List<Object> exec = transaction.exec();
-        return !exec.isEmpty();
+        SetParams params = existingTtl != -1 && (existingTtl == -2 || existingTtl < this.ttl) ?
+                SetParams.setParams().ex(this.ttl) : SetParams.setParams().keepTtl();
+        return "OK".equals(redis.set(user.login(), json, params));
     }
 
     @Override
