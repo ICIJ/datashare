@@ -1,8 +1,8 @@
 package org.icij.datashare.session;
 
 import org.icij.datashare.PropertiesProvider;
-import redis.clients.jedis.JedisPool;
-import redis.clients.jedis.JedisPoolConfig;
+import redis.clients.jedis.ConnectionPoolConfig;
+import redis.clients.jedis.JedisPooled;
 
 import java.net.URI;
 
@@ -14,8 +14,8 @@ final class RedisPoolFactory {
 
     private RedisPoolFactory() {}
 
-    static JedisPool createPool(PropertiesProvider propertiesProvider) {
-        JedisPoolConfig poolConfig = new JedisPoolConfig();
+    static JedisPooled createPool(PropertiesProvider propertiesProvider) {
+        ConnectionPoolConfig poolConfig = new ConnectionPoolConfig();
         // Validate connections before handing them out: a connection killed server-side while idle
         // in the pool still looks alive locally (socket flags don't reflect a remote close), so
         // without this the next command on it fails with "Unexpected end of stream".
@@ -25,6 +25,6 @@ final class RedisPoolFactory {
         poolConfig.setTestWhileIdle(true);
         poolConfig.setTimeBetweenEvictionRunsMillis(EVICTION_RUN_INTERVAL_MILLIS);
         String redisAddress = propertiesProvider.get(REDIS_ADDRESS_OPT).orElse(DEFAULT_REDIS_ADDRESS);
-        return new JedisPool(poolConfig, URI.create(redisAddress));
+        return new JedisPooled(poolConfig, URI.create(redisAddress));
     }
 }

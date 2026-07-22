@@ -6,14 +6,14 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import redis.clients.jedis.Jedis;
-import redis.clients.jedis.JedisPool;
+import redis.clients.jedis.JedisPooled;
 
 import java.util.HashMap;
 
 import static org.fest.assertions.Assertions.assertThat;
 
 public class RedisPoolFactoryTest {
-    static JedisPool pool;
+    static JedisPooled pool;
 
     @BeforeClass
     public static void createPool() {
@@ -37,17 +37,18 @@ public class RedisPoolFactoryTest {
         // testOnBorrow (set by RedisPoolFactory) is what prevents that: the pool validates a
         // connection before handing it out and transparently replaces it if it's dead.
         String redisAddress = EnvUtils.resolveUri("redis", "redis://redis:6379");
-        try (Jedis jedis = pool.getResource(); JedisPool adminPool = new JedisPool(redisAddress); Jedis admin = adminPool.getResource()) {
+        // CLIENT SETNAME/LIST/KILL are per-connection commands with no equivalent on the pooled
+        // JedisPooled command surface, so we borrow the exact connection the pool would hand out
+        // (via its underlying Pool<Connection>) and wrap it in a plain Jedis just to name/kill it.
+        try (Jedis jedis = new Jedis(pool.getPool().getResource()); Jedis admin = new Jedis(redisAddress)) {
             String connectionName = "kill-target-test-redis-pool-factory";
             jedis.clientSetname(connectionName.getBytes());
             String clientAddr = addrForConnectionName(admin.clientList(), connectionName);
             admin.clientKill(clientAddr.getBytes());
         }
 
-        try (Jedis jedis = pool.getResource()) {
-            assertThat(jedis.set("recovery-probe", "ok")).isEqualTo("OK");
-            jedis.del("recovery-probe");
-        }
+        assertThat(pool.set("recovery-probe", "ok")).isEqualTo("OK");
+        pool.del("recovery-probe");
     }
 
     private static String addrForConnectionName(String clientList, String connectionName) {

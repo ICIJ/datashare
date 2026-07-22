@@ -6,9 +6,8 @@ import net.codestory.http.security.User;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.text.Hasher;
-import redis.clients.jedis.Jedis;
-import redis.clients.jedis.JedisPool;
-import redis.clients.jedis.Transaction;
+import redis.clients.jedis.AbstractTransaction;
+import redis.clients.jedis.JedisPooled;
 
 import java.io.Closeable;
 import java.util.List;
@@ -19,7 +18,7 @@ import static org.icij.datashare.user.User.fromJson;
 
 @Singleton
 public class UsersIdProviderRedisCache implements UsersIdProviderCache, Closeable {
-    private final JedisPool redis;
+    private final JedisPooled redis;
     private final Integer ttl;
 
     @Inject
@@ -30,40 +29,32 @@ public class UsersIdProviderRedisCache implements UsersIdProviderCache, Closeabl
 
     @Override
     public User find(String login) {
-        try (Jedis jedis = redis.getResource()) {
-            org.icij.datashare.user.User user = fromJson(jedis.get(login));
-            return user != null ? new DatashareUser(user) : null;
-        }
+        org.icij.datashare.user.User user = fromJson(redis.get(login));
+        return user != null ? new DatashareUser(user) : null;
     }
 
     @Override
     public User find(String login, String password) {
-        try (Jedis jedis = redis.getResource()) {
-            org.icij.datashare.user.User user = fromJson(jedis.get(login));
-            return user != null && Hasher.SHA_256.hash(password).equals(user.details.get("password")) ? new DatashareUser(user) : null;
-        }
+        org.icij.datashare.user.User user = fromJson(redis.get(login));
+        return user != null && Hasher.SHA_256.hash(password).equals(user.details.get("password")) ? new DatashareUser(user) : null;
     }
 
     void removeUser(String login) {
-        try (Jedis jedis = redis.getResource()) {
-            jedis.del(login);
-        }
+        redis.del(login);
     }
 
     public boolean saveOrUpdate(User user) {
-        try (Jedis jedis = redis.getResource()) {
-            long existingTtl = jedis.ttl(user.login());
-            Transaction transaction = jedis.multi();
-            transaction.set(user.login(), JsonObjectMapper.serialize(((DatashareUser)user).details));
-            // -1 = persistent key: never add an expiry
-            // -2 = new key: apply configured TTL
-            // existing TTL >= configured TTL: don't shorten an active session
-            if (existingTtl != -1 && (existingTtl == -2 || existingTtl < this.ttl)) {
-                transaction.expire(user.login(), this.ttl);
-            }
-            List<Object> exec = transaction.exec();
-            return !exec.isEmpty();
+        long existingTtl = redis.ttl(user.login());
+        AbstractTransaction transaction = redis.multi();
+        transaction.set(user.login(), JsonObjectMapper.serialize(((DatashareUser)user).details));
+        // -1 = persistent key: never add an expiry
+        // -2 = new key: apply configured TTL
+        // existing TTL >= configured TTL: don't shorten an active session
+        if (existingTtl != -1 && (existingTtl == -2 || existingTtl < this.ttl)) {
+            transaction.expire(user.login(), this.ttl);
         }
+        List<Object> exec = transaction.exec();
+        return !exec.isEmpty();
     }
 
     @Override
