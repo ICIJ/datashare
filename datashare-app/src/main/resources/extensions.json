@@ -4,27 +4,27 @@
       "id": "datashare-nlp-opennlp",
       "name": "OPENNLP Pipeline",
       "description": "Extension to extract NER entities with OPENNLP",
-      "url": "https://github.com/ICIJ/datashare-extension-nlp-opennlp/releases/download/9.0.6/datashare-nlp-opennlp-9.0.6-jar-with-dependencies.jar",
+      "url": "https://github.com/ICIJ/datashare-extension-nlp-opennlp/releases/download/9.0.7/datashare-nlp-opennlp-9.0.7-jar-with-dependencies.jar",
       "homepage": "https://github.com/ICIJ/datashare-extension-nlp-opennlp",
-      "version": "9.0.6",
+      "version": "9.0.7",
       "type": "NLP"
     },
     {
       "id": "datashare-extension-dataconnect",
       "name": "Dataconnect",
       "description": "A Datashare extension to create Dataconnect, a bridge between Datashare and I-Hub.",
-      "url": "https://github.com/ICIJ/datashare-extension-dataconnect/releases/download/1.1.0/datashare-extension-dataconnect-1.1.0-jar-with-dependencies.jar",
+      "url": "https://github.com/ICIJ/datashare-extension-dataconnect/releases/download/1.1.1/datashare-extension-dataconnect-1.1.1-jar-with-dependencies.jar",
       "homepage": "https://github.com/ICIJ/datashare-extension-dataconnect",
-      "version": "1.1.0",
+      "version": "1.1.1",
       "type": "WEB"
     },
     {
       "id": "datashare-extension-neo4j",
       "name": "Neo4j",
       "description": "A Datashare extension to perform graph analysis using neo4j",
-      "url": "https://github.com/ICIJ/datashare-extension-neo4j/releases/download/1.1.1/datashare-extension-neo4j-1.1.1-jar-with-dependencies.jar",
+      "url": "https://github.com/ICIJ/datashare-extension-neo4j/releases/download/1.1.2/datashare-extension-neo4j-1.1.2-jar-with-dependencies.jar",
       "homepage": "https://github.com/ICIJ/datashare-extension-neo4j",
-      "version": "1.1.1",
+      "version": "1.1.2",
       "type": "WEB"
     }
   ]
