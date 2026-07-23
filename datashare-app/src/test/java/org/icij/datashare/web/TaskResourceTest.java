@@ -95,7 +95,8 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
 
     @After
     public void tearDown() throws Exception {
-        taskManager.stopTasks(User.local());
+        taskManager.stopTasks(new TaskFilters());
+        taskManager.awaitTermination(2, SECONDS);
         taskManager.clear();
         taskRepository.clear();
         mocks.close();
