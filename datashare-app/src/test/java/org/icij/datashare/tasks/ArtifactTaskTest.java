@@ -12,6 +12,7 @@ import org.icij.datashare.text.indexing.elasticsearch.SourceExtractor;
 import org.icij.datashare.user.User;
 import org.icij.extract.document.TikaDocument;
 import org.icij.extract.queue.DocumentQueue;
+import org.icij.extract.queue.MemoryDocumentQueue;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -253,6 +254,7 @@ public class ArtifactTaskTest {
         // the producer isolates the per-artifact failure and keeps draining the queue,
         // so the run stays non-fatal and the sibling document is still counted.
         assertThat(logback.logs(Level.ERROR)).contains("failed to produce artifact 'raw' for document " + failingId);
+        assertThat(logback.logs(Level.ERROR)).contains("1 document(s) failed artifact production in project prj, re-run the ARTIFACT stage for them");
     }
 
     @Test(timeout = 10000)
@@ -372,6 +374,178 @@ public class ArtifactTaskTest {
 
         assertThat(numberOfDocuments).isEqualTo(1);
         assertThat(artifactDir.getRoot().toPath().resolve("prj/6a/bb/6abb96950946b62bb993307c8945c0c096982783bab7fa24901522426840ca3e/raw").toFile()).isFile();
+    }
+
+    @Test(timeout = 10000)
+    public void test_terminates_on_poison_instead_of_polling_timeout() throws Exception {
+        indexEmbeddedDoc();
+        DocumentQueue<String> queue = factory.createQueue("extract:queue:artifact", String.class);
+        queue.add(EMBEDDED_DOC_SHA256);
+
+        // pollingInterval is set far beyond the test timeout: if termination still depended on an
+        // empty poll timing out, this call would block until JUnit kills the test. Only the
+        // poison pill can make it return within the 10s budget.
+        //
+        // The poison is now emitted AFTER the run starts (while the first doc is being processed),
+        // not pre-loaded: the startup drain (drainStaleResidualPoison) would strip a pre-loaded
+        // poison as stale before any worker runs. This mirrors production, where EnqueueFromIndexTask
+        // emits the trailing poison concurrently, after the task has started and drained.
+        PropertiesProvider props = new PropertiesProvider(Map.of(
+                "artifactDir", artifactDir.getRoot().toString(),
+                "defaultProject", "prj",
+                "pollingInterval", "3600"));
+        Long numberOfDocuments = new ArtifactTask(factory, mockEs, props,
+                new Task<>(ArtifactTask.class.getName(), User.local(), new HashMap<>()), null) {
+            @Override
+            protected SourceExtractor createSourceExtractor() {
+                return new SourceExtractor(props) {
+                    @Override
+                    public TikaDocument extractEmbeddedSources(Project project, Document document) {
+                        queue.add(PipelineTask.STRING_POISON);
+                        return null;
+                    }
+                };
+            }
+        }.call();
+
+        assertThat(numberOfDocuments).isEqualTo(1);
+    }
+
+    @Test(timeout = 10000)
+    public void test_poison_is_not_processed_as_a_document() throws Exception {
+        DocumentQueue<String> queue = factory.createQueue("extract:queue:artifact", String.class);
+        queue.add(PipelineTask.STRING_POISON);
+
+        Long numberOfDocuments = runArtifactTask();
+
+        assertThat(numberOfDocuments).isEqualTo(0);
+        assertThat(logback.logs(Level.WARN)).excludes("document <POISON> could not be retrieved from index prj (missing document or index fetch error), skipping");
+        assertThat(logback.logs(Level.ERROR)).excludes("1 document(s) could not be retrieved from index prj and got no artifact cache, re-run the ARTIFACT stage for them");
+    }
+
+    @Test(timeout = 10000)
+    public void test_poison_propagates_to_every_worker() throws Exception {
+        indexEmbeddedDoc();
+        DocumentQueue<String> queue = factory.createQueue("extract:queue:artifact", String.class);
+        queue.add(EMBEDDED_DOC_SHA256);
+        // a single poison entry for two workers: whichever worker reads it must re-offer it so
+        // the other worker (blocked on a 3600s poll, well past the test timeout) also sees it and
+        // terminates, instead of being the only one released. The poison is emitted after the run
+        // has started (during doc processing) so the startup drain does not strip it as stale.
+        PropertiesProvider props = new PropertiesProvider(Map.of(
+                "artifactDir", artifactDir.getRoot().toString(),
+                "defaultProject", "prj",
+                "pollingInterval", "3600",
+                "parallelism", "2"));
+        Task<Long> task = new Task<>(ArtifactTask.class.getName(), User.local(), new HashMap<>());
+
+        Long numberOfDocuments = new ArtifactTask(factory, mockEs, props, task, null) {
+            @Override
+            protected SourceExtractor createSourceExtractor() {
+                return new SourceExtractor(props) {
+                    @Override
+                    public TikaDocument extractEmbeddedSources(Project project, Document document) {
+                        queue.add(PipelineTask.STRING_POISON);
+                        return null;
+                    }
+                };
+            }
+        }.call();
+
+        assertThat(numberOfDocuments).isEqualTo(1);
+    }
+
+    @Test(timeout = 10000)
+    public void test_two_sequential_runs_on_same_queue_both_process_docs() throws Exception {
+        // the ARTIFACT input queue name is static (extract:queue:artifact) and is never deleted
+        // between runs: re-running the stage on the same project (a documented, supported
+        // workflow, see --artifactsForce) reuses it. A poison sentinel left in the queue by run 1
+        // and never drained would sit at the head of run 2's queue, ahead of its real doc refs
+        // (FIFO), and terminate every run-2 worker before it processes a single document. Run 2's
+        // startup drain (drainStaleResidualPoison) now cleans that straggler before its workers
+        // start, so both runs process their doc.
+        indexEmbeddedDoc();
+        String secondId = "1111111111111111111111111111111111111111111111111111111111111111";
+        mockIndexer.indexFile("prj", secondId,
+                Path.of(Objects.requireNonNull(getClass().getResource("/docs/embedded_doc.eml")).toURI()),
+                "message/rfc822");
+
+        DocumentQueue<String> queue = factory.createQueue("extract:queue:artifact", String.class);
+        queue.add(EMBEDDED_DOC_SHA256);
+        queue.add(PipelineTask.STRING_POISON);
+
+        Long firstRun = runArtifactTask();
+        assertThat(firstRun).isEqualTo(1);
+
+        queue.add(secondId);
+        queue.add(PipelineTask.STRING_POISON);
+
+        Long secondRun = runArtifactTask();
+        assertThat(secondRun).isEqualTo(1);
+    }
+
+    @Test(timeout = 10000)
+    public void test_doc_stranded_behind_stale_poison_is_recovered_by_next_run() throws Exception {
+        // regression: on the kill/cancellation path the queue can end up with a real doc ref
+        // BEHIND the trailing poison (workers interrupted before draining that far), e.g.
+        // [doc, POISON, strandedDoc]. The residual-poison drain must not stop at the first
+        // non-poison entry it polls: doing so would re-offer "doc" but leave POISON in place
+        // ahead of strandedDoc, stranding it. Instead it drains the whole queue and re-offers
+        // every real doc ref in FIFO order, discarding all poison.
+        //
+        // The drain now runs at STARTUP of each run. So the pre-loaded [doc, POISON, strandedDoc]
+        // is cleaned by run 1's own startup drain into [doc, strandedDoc]: run 1 processes both
+        // (firstRun == 2). Run 2 then processes its own doc (secondRun == 1). No doc is ever lost
+        // to a stale sentinel.
+        indexEmbeddedDoc();
+        String strandedId = "1111111111111111111111111111111111111111111111111111111111111111";
+        String secondRunId = "2".repeat(strandedId.length());
+        mockIndexer.indexFile("prj", strandedId,
+                Path.of(Objects.requireNonNull(getClass().getResource("/docs/embedded_doc.eml")).toURI()),
+                "message/rfc822");
+        mockIndexer.indexFile("prj", secondRunId,
+                Path.of(Objects.requireNonNull(getClass().getResource("/docs/embedded_doc.eml")).toURI()),
+                "message/rfc822");
+
+        DocumentQueue<String> queue = factory.createQueue("extract:queue:artifact", String.class);
+        queue.add(EMBEDDED_DOC_SHA256);
+        queue.add(PipelineTask.STRING_POISON);
+        queue.add(strandedId);
+
+        Long firstRun = runArtifactTask();
+        assertThat(firstRun).isEqualTo(2);
+
+        queue.add(secondRunId);
+        queue.add(PipelineTask.STRING_POISON);
+
+        Long secondRun = runArtifactTask();
+        assertThat(secondRun).isEqualTo(1);
+    }
+
+    @Test(timeout = 10000)
+    public void test_transient_null_poll_does_not_drop_a_later_doc() throws Exception {
+        // finding 4: EnqueueFromIndexTask produces concurrently, so a worker that drains
+        // everything enqueued-so-far can get a null poll before the next doc arrives. Exiting on
+        // that first null (the old `while (poll() != null)`) would silently drop every doc
+        // enqueued afterwards. Simulate a queue whose first timed poll returns null (transient
+        // empty) and then yields the doc: the worker must retry the null and still process the doc.
+        indexEmbeddedDoc();
+        MemoryDocumentQueue<String> transientNullQueue = new MemoryDocumentQueue<>("extract:queue:artifact", 1024) {
+            private final AtomicInteger timedPolls = new AtomicInteger(0);
+            @Override
+            public String poll(long timeout, TimeUnit unit) throws InterruptedException {
+                if (timedPolls.getAndIncrement() == 0) {
+                    return null; // transient empty on the very first poll, producer not caught up yet
+                }
+                return super.poll(timeout, unit);
+            }
+        };
+        factory.queues.put("extract:queue:artifact", transientNullQueue);
+        transientNullQueue.add(EMBEDDED_DOC_SHA256);
+
+        Long numberOfDocuments = runArtifactTask();
+
+        assertThat(numberOfDocuments).isEqualTo(1);
     }
 
     private void indexEmbeddedDoc() throws URISyntaxException {

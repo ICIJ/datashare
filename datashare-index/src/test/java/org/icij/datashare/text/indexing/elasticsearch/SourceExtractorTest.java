@@ -10,6 +10,7 @@ import org.icij.datashare.text.Document;
 import org.icij.datashare.text.DocumentBuilder;
 import org.icij.datashare.text.Hasher;
 import org.icij.datashare.text.Language;
+import org.icij.datashare.text.Project;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.extract.document.DocumentFactory;
 import org.icij.extract.document.EmbeddedTikaDocument;
@@ -24,6 +25,7 @@ import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+import org.slf4j.Logger;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -34,13 +36,17 @@ import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import static java.nio.file.Paths.get;
 import static org.fest.assertions.Assertions.assertThat;
 import static org.icij.datashare.cli.DatashareCliOptions.ARTIFACT_DIR_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.NO_DIGEST_PROJECT_OPT;
 import static org.icij.datashare.text.Project.project;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockingDetails;
 
 public class SourceExtractorTest {
     @Rule public TemporaryFolder tmpDir = new TemporaryFolder();
@@ -66,6 +72,68 @@ public class SourceExtractorTest {
                 .with(Document.Status.INDEXED)
                 .withContentLength(45L).build();
         new SourceExtractor(getPropertiesProvider()).getEmbeddedSource(project("project"), document);
+    }
+
+    // A RuntimeException from a digest attempt (e.g. an IndexOutOfBoundsException from a parse
+    // defect) must degrade to "try next digester", same as the checked extraction exceptions,
+    // instead of escaping getEmbeddedSource() and surfacing as a 500 at the HTTP layer.
+    @Test(expected = EmbeddedDocumentExtractor.ContentNotFoundException.class)
+    public void test_content_not_found_after_digest_runtime_exception() {
+        Document document = DocumentBuilder.createDoc(project("project"), get(getClass().getResource("/docs/embedded_doc.eml").getPath()))
+                .with("it has been parsed")
+                .with(Language.FRENCH)
+                .with(Charset.defaultCharset())
+                .ofContentType("message/rfc822")
+                .with(new HashMap<>())
+                .with(Document.Status.INDEXED)
+                .withContentLength(45L).build();
+        SourceExtractor extractor = new SourceExtractor(getPropertiesProvider()) {
+            @Override
+            List<DigestingParser.Digester> buildDigesters(Project project, Document document) {
+                return List.of((is, metadata, context) -> { throw new IndexOutOfBoundsException("boom"); });
+            }
+        };
+
+        extractor.getEmbeddedSource(project("project"), document);
+    }
+
+    // The runtime-exception path above degrades to ContentNotFoundException on purpose, but that
+    // must not make a genuine bug invisible: a loud WARN carrying the doc id and the real cause
+    // has to be logged before the 404-mapped exception is thrown, otherwise the failure is
+    // undiagnosable in production logs (only visible at DEBUG per attempt). LOGGER is
+    // package-private on SourceExtractor precisely so this test (same package) can swap in a
+    // mock and assert on what actually got logged, with no extra logging test dependency needed.
+    @Test(expected = EmbeddedDocumentExtractor.ContentNotFoundException.class)
+    public void test_content_not_found_logs_last_failure_loudly() {
+        Document document = DocumentBuilder.createDoc(project("project"), get(getClass().getResource("/docs/embedded_doc.eml").getPath()))
+                .with("it has been parsed")
+                .with(Language.FRENCH)
+                .with(Charset.defaultCharset())
+                .ofContentType("message/rfc822")
+                .with(new HashMap<>())
+                .with(Document.Status.INDEXED)
+                .withContentLength(45L).build();
+        SourceExtractor extractor = new SourceExtractor(getPropertiesProvider()) {
+            @Override
+            List<DigestingParser.Digester> buildDigesters(Project project, Document document) {
+                return List.of((is, metadata, context) -> { throw new IllegalStateException("boom"); });
+            }
+        };
+        Logger mockLogger = mock(Logger.class);
+        extractor.LOGGER = mockLogger;
+
+        try {
+            extractor.getEmbeddedSource(project("project"), document);
+        } finally {
+            boolean loggedLoudly = mockingDetails(mockLogger).getInvocations().stream()
+                    .filter(invocation -> invocation.getMethod().getName().equals("warn"))
+                    .anyMatch(invocation -> {
+                        String rendered = Arrays.stream(invocation.getArguments())
+                                .map(String::valueOf).collect(Collectors.joining(" | "));
+                        return rendered.contains(document.getId()) && rendered.contains("boom");
+                    });
+            assertThat(loggedLoudly).isTrue();
+        }
     }
 
     @Test
@@ -201,13 +269,15 @@ public class SourceExtractorTest {
         assertThat(getBytes(source)).hasSize(49779);
     }
 
-    @Test(expected = EmbeddedDocumentExtractor.ContentNotFoundException.class)
-    public void test_not_get_source_for_embedded_doc_with_digest_project_name_using_legacy_value_in_server() throws Exception {
+    // Legacy-keyed embeds must stay retrievable in SERVER mode too: the legacy digester is only
+    // an extra fallback attempt, it must not be skipped just because we're in SERVER mode
+    // (see SourceExtractor#mightUseLegacyDigester).
+    @Test
+    public void test_get_source_for_embedded_doc_with_digest_project_name_using_legacy_value_in_server() throws Exception {
         Path path = get(getClass().getResource("/docs/embedded_doc.eml").getPath());
         Map<String, Object> stringProperties  =  Map.of(
             "digestAlgorithm", Document.DEFAULT_DIGESTER.toString(),
             "digestProjectName", "local-datashare",
-            "defaultProject", es.getIndexName(),
             "artifactDir", tmpDir.newFolder("server_mode").toString(),
             "mode", "SERVER");
         ElasticsearchIndexer elasticsearchIndexer = createIndexer(es.getIndexName());
@@ -215,7 +285,9 @@ public class SourceExtractorTest {
 
         Document attachedPdf = elasticsearchIndexer.get(es.getIndexName(), doc.getEmbeds().get(0).getId(), doc.getId());
 
-        new SourceExtractor(new PropertiesProvider(stringProperties)).getSource(project(es.getIndexName()), attachedPdf);
+        InputStream source = new SourceExtractor(new PropertiesProvider(stringProperties)).getSource(project(es.getIndexName()), attachedPdf);
+        assertThat(source).isNotNull();
+        assertThat(getBytes(source)).hasSize(49779);
     }
 
     private static TikaDocument indexDocument(Indexer indexer, Map<String, Object> properties, Path path, Map<String, Object> spewerProperties) throws IOException {
@@ -266,6 +338,50 @@ public class SourceExtractorTest {
         new SourceExtractor(getPropertiesProvider(true)).extractEmbeddedSources(project(es.getIndexName()), document);
         assertThat(tmpDir.getRoot().toPath().resolve(es.getIndexName()).toFile().listFiles()).containsOnly(
                 tmpDir.getRoot().toPath().resolve(es.getIndexName()).resolve("75").toFile());
+    }
+
+    @Test
+    public void test_build_digesters_includes_legacy_digester_in_server_mode() {
+        Document document = DocumentBuilder.createDoc(project("other-project"), get(getClass().getResource("/docs/embedded_doc.eml").getPath()))
+                .withExtractionLevel((short) 1).build();
+        SourceExtractor extractor = new SourceExtractor(new PropertiesProvider(Map.of(
+                "mode", "SERVER",
+                "defaultProject", "local-datashare")));
+
+        assertThat(extractor.buildDigesters(project("other-project"), document)).hasSize(3);
+    }
+
+    @Test
+    public void test_build_digesters_excludes_legacy_digester_when_project_is_default_project() {
+        Document document = DocumentBuilder.createDoc(project("local-datashare"), get(getClass().getResource("/docs/embedded_doc.eml").getPath()))
+                .withExtractionLevel((short) 1).build();
+        SourceExtractor extractor = new SourceExtractor(new PropertiesProvider(Map.of(
+                "mode", "SERVER",
+                "defaultProject", "local-datashare")));
+
+        assertThat(extractor.buildDigesters(project("local-datashare"), document)).hasSize(2);
+    }
+
+    @Test
+    public void test_build_digesters_excludes_legacy_digester_when_extraction_level_is_zero() {
+        Document document = DocumentBuilder.createDoc(project("other-project"), get(getClass().getResource("/docs/embedded_doc.eml").getPath()))
+                .withExtractionLevel((short) 0).build();
+        SourceExtractor extractor = new SourceExtractor(new PropertiesProvider(Map.of(
+                "mode", "SERVER",
+                "defaultProject", "local-datashare")));
+
+        assertThat(extractor.buildDigesters(project("other-project"), document)).hasSize(2);
+    }
+
+    @Test
+    public void test_build_digesters_includes_legacy_digester_in_non_server_mode() {
+        Document document = DocumentBuilder.createDoc(project("other-project"), get(getClass().getResource("/docs/embedded_doc.eml").getPath()))
+                .withExtractionLevel((short) 1).build();
+        SourceExtractor extractor = new SourceExtractor(new PropertiesProvider(Map.of(
+                "mode", "LOCAL",
+                "defaultProject", "local-datashare")));
+
+        assertThat(extractor.buildDigesters(project("other-project"), document)).hasSize(3);
     }
 
     private byte[] getBytes(InputStream source) throws IOException {

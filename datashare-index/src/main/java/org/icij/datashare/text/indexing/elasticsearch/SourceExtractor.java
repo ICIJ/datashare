@@ -5,7 +5,6 @@ import org.apache.tika.parser.DigestingParser;
 import org.apache.tika.parser.digestutils.CommonsDigester;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.cli.DatashareCliOptions;
-import org.icij.datashare.cli.Mode;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.Hasher;
 import org.icij.datashare.text.Project;
@@ -32,6 +31,7 @@ import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import static org.icij.datashare.PropertiesProvider.DEFAULT_PROJECT_OPT;
 
@@ -76,17 +76,10 @@ public class SourceExtractor {
         Hasher hasher = Hasher.valueOf(document.getId().length());
         boolean useOcr = useOcr(document);
         int i = 0;
-        List<DigestingParser.Digester> digesters = new ArrayList<>(List.of());
-        // Digester without the project name
-        digesters.add(new CommonsDigester(20 * 1024 * 1024,  hasher.toStringWithoutDash()));
-        // Digester with the project name
-        digesters.add(new UpdatableDigester(project.getId(), hasher.toString()));
-        // Digester with the project name set on "defaultProject" for retro-compatibility
-        if (mightUseLegacyDigester(document)) {
-            digesters.add(new UpdatableDigester(getDefaultProject(), hasher.toString()));
-        }
+        List<DigestingParser.Digester> digesters = buildDigesters(project, document);
+        Throwable lastFailure = null;
 
-        // Try each digester to find embedded doc and ensure we 
+        // Try each digester to find embedded doc and ensure we
         // used every available digesters to find it.
         for (DigestingParser.Digester digester : digesters) {
             Identifier identifier = new DigestIdentifier(hasher.toString(), Charset.defaultCharset());
@@ -105,7 +98,8 @@ public class SourceExtractor {
                     return new ByteArrayInputStream(metadataCleaner.clean(inputStream).getContent());
                 }
                 return inputStream;
-            } catch (ContentNotFoundException | SAXException | TikaException | IOException ex) {
+            } catch (RuntimeException | SAXException | TikaException | IOException ex) {
+                lastFailure = ex;
                 LOGGER.debug("Extract attempt {}/{} for embedded document {}/{} failed (algorithm={}, digester={}, project={})",
                         ++i, digesters.size(),
                         document.getId(), document.getRootDocument(),
@@ -114,11 +108,46 @@ public class SourceExtractor {
             }
         }
 
+        // Every digester failed: this is expected to degrade to a 404 (ContentNotFoundException)
+        // even when the last failure was a genuine runtime defect (not just "not found"), so log
+        // it loudly here (once, with the real cause) instead of leaving it invisible at DEBUG.
+        if (lastFailure != null) {
+            String digesterNames = digesters.stream().map(digester -> digester.getClass().getSimpleName()).collect(Collectors.joining(","));
+            LOGGER.warn("could not extract embedded document {} from root {} in project {} after trying {} digester scheme(s) ({}); last failure: {}",
+                    document.getId(), document.getRootDocument(), document.getProject(), digesters.size(), digesterNames,
+                    lastFailure.toString(), lastFailure);
+        }
         throw new ContentNotFoundException(document.getRootDocument(), document.getId());
+    }
+
+    // Builds the ordered list of digesters getEmbeddedSource() tries to locate an embedded
+    // document: no-project digester, project-scoped digester and, only when the extra
+    // "legacy" conditions hold, the defaultProject-keyed digester kept for retro-compatibility.
+    // Package-private so it can be unit tested without driving a real Tika extraction.
+    List<DigestingParser.Digester> buildDigesters(final Project project, final Document document) {
+        Hasher hasher = Hasher.valueOf(document.getId().length());
+        List<DigestingParser.Digester> digesters = new ArrayList<>();
+        // Digester without the project name
+        digesters.add(new CommonsDigester(20 * 1024 * 1024,  hasher.toStringWithoutDash()));
+        // Digester with the project name
+        digesters.add(new UpdatableDigester(project.getId(), hasher.toString()));
+        // Digester with the project name set on "defaultProject" for retro-compatibility
+        if (mightUseLegacyDigester(document)) {
+            digesters.add(new UpdatableDigester(getDefaultProject(), hasher.toString()));
+        }
+        return digesters;
     }
 
     public TikaDocument extractEmbeddedSources(final Project project, Document document) throws TikaException, IOException, SAXException {
         Hasher hasher = Hasher.valueOf(document.getId().length());
+        // Must stay consistent with the read path's primary digesters (see buildDigesters/
+        // getEmbeddedSource): under a stable config this digester is always one of the two
+        // non-legacy digesters tried on read, so ids written here are always resolvable.
+        // If noDigestProject/project config drifts between artifact-write time and download
+        // time, the written cache key won't match the indexed id anymore, but downloads still
+        // succeed via getEmbeddedSource's multi-digester fallback (incl. the legacy digester)
+        // and EmbeddedDocumentExtractor's live-parse fallback on a cache miss - drift only
+        // costs a wasted cache entry + re-parse, it doesn't lose the content.
         DigestingParser.Digester digester = noDigestProject() ?
                 new CommonsDigester(20 * 1024 * 1024,  hasher.toStringWithoutDash()):
                 new UpdatableDigester(project.getId(), hasher.toString());
@@ -149,14 +178,10 @@ public class SourceExtractor {
     }
 
     private boolean mightUseLegacyDigester(Document document) {
-        return !isServerMode() && document.getExtractionLevel() > 0 && !document.getProject().name.equals(getDefaultProject());
+        return document.getExtractionLevel() > 0 && !document.getProject().name.equals(getDefaultProject());
     }
 
     private String getDefaultProject() {
         return this.propertiesProvider.get(DEFAULT_PROJECT_OPT).orElse("local-datashare");
-    }
-
-    private boolean isServerMode() {
-        return propertiesProvider.get("mode").orElse(Mode.SERVER.name()).equals((Mode.SERVER.name()));
     }
 }
