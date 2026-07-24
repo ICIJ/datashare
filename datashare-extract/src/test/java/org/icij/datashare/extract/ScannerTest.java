@@ -117,8 +117,8 @@ public class ScannerTest {
         assertThat(visited).contains(real, link);
     }
 
-    @Test(expected = IOException.class)
-    public void test_callback_exception_stops_scan_and_propagates() throws Exception {
+    @Test
+    public void test_callback_exception_doesnt_stop_scan() throws Exception {
         ScanOptions options = ScanOptions.defaultValues();
 
         Files.createFile(folder.getRoot().toPath().resolve("a.txt"));
@@ -133,7 +133,7 @@ public class ScannerTest {
         try {
             scanner.scan(folder.getRoot().toPath());
         } finally {
-            assertThat(calls.get()).isEqualTo(1);
+            assertThat(calls.get()).isEqualTo(2);
         }
     }
 }
