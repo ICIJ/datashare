@@ -39,6 +39,7 @@
         <module>commons-test</module>
         <module>datashare-api</module>
         <module>datashare-db</module>
+        <module>datashare-extract</module>
         <module>datashare-tasks</module>
         <module>datashare-cli</module>
         <module>datashare-index</module>
