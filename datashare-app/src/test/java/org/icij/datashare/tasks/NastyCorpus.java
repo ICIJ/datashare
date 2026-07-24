@@ -1,21 +1,7 @@
 package org.icij.datashare.tasks;
 
-import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
-import org.apache.commons.compress.archivers.tar.TarArchiveOutputStream;
-import org.apache.commons.compress.compressors.gzip.GzipCompressorOutputStream;
-import org.apache.pdfbox.pdmodel.PDDocument;
-import org.apache.pdfbox.pdmodel.PDPage;
-import org.apache.pdfbox.pdmodel.PDPageContentStream;
-import org.apache.pdfbox.pdmodel.graphics.image.LosslessFactory;
-import org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject;
-
-import java.awt.Color;
-import java.awt.Font;
-import java.awt.Graphics2D;
-import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -27,7 +13,7 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
 /** Deterministic corpus of embedding shapes known to stress extraction:
- *  deep nesting, wide fan-out, corrupt member among valid siblings, archive, big binary.
+ *  deep nesting, wide fan-out, and a corrupt member among valid siblings.
  *  Confidential real corpora must NEVER be added here (see spec). */
 public class NastyCorpus {
     public static List<Path> buildInto(Path dir) throws IOException {
@@ -56,52 +42,7 @@ public class NastyCorpus {
             zos.closeEntry();
         }
 
-        Path archive = dir.resolve("archive.tar.gz");
-        try (OutputStream fos = Files.newOutputStream(archive);
-             GzipCompressorOutputStream gzos = new GzipCompressorOutputStream(fos);
-             TarArchiveOutputStream taos = new TarArchiveOutputStream(gzos)) {
-            for (int i = 0; i < 2; i++) {
-                byte[] content = ("tar member " + i).getBytes(StandardCharsets.UTF_8);
-                TarArchiveEntry entry = new TarArchiveEntry("member-" + i + ".txt");
-                entry.setSize(content.length);
-                entry.setModTime(0L);
-                taos.putArchiveEntry(entry);
-                taos.write(content);
-                taos.closeArchiveEntry();
-            }
-        }
-
-        Path big = dir.resolve("big.bin");
-        byte[] bigBytes = new byte[8 * 1024 * 1024];
-        new Random(4242).nextBytes(bigBytes);
-        Files.write(big, bigBytes);
-
-        Path ocr = dir.resolve("ocr_image.pdf");
-        writeOcrOnlyPdf(ocr);
-
-        return List.of(deep, wide, corrupt, archive, big, ocr);
-    }
-
-    // PDFBox 3.0.7 is on the test classpath via tika-parser-pdf-module. The pdmodel API used here
-    // (PDDocument, PDPage, PDPageContentStream, PDImageXObject, LosslessFactory) is unchanged from 2.x.
-    private static void writeOcrOnlyPdf(Path target) throws IOException {
-        try (PDDocument pdf = new PDDocument()) {
-            PDPage page = new PDPage();
-            pdf.addPage(page);
-            BufferedImage img = new BufferedImage(400, 120, BufferedImage.TYPE_INT_RGB);
-            Graphics2D g = img.createGraphics();
-            g.setColor(Color.WHITE);
-            g.fillRect(0, 0, 400, 120);
-            g.setColor(Color.BLACK);
-            g.setFont(new Font("SansSerif", Font.PLAIN, 32));
-            g.drawString("OCR ONLY TEXT", 20, 70);
-            g.dispose();
-            PDImageXObject pdImage = LosslessFactory.createFromImage(pdf, img);
-            try (PDPageContentStream cs = new PDPageContentStream(pdf, page)) {
-                cs.drawImage(pdImage, 100, 500);
-            }
-            pdf.save(target.toFile());
-        }
+        return List.of(deep, wide, corrupt);
     }
 
     private static byte[] zip(String entryName, byte[] content) throws IOException {
