@@ -112,7 +112,7 @@ public class SourceExtractor {
         // even when the last failure was a genuine runtime defect (not just "not found"), so log
         // it loudly here (once, with the real cause) instead of leaving it invisible at DEBUG.
         if (lastFailure != null) {
-            String digesterNames = digesters.stream().map(d -> d.getClass().getSimpleName()).collect(Collectors.joining(","));
+            String digesterNames = digesters.stream().map(digester -> digester.getClass().getSimpleName()).collect(Collectors.joining(","));
             LOGGER.warn("could not extract embedded document {} from root {} in project {} after trying {} digester scheme(s) ({}); last failure: {}",
                     document.getId(), document.getRootDocument(), document.getProject(), digesters.size(), digesterNames,
                     lastFailure.toString(), lastFailure);
