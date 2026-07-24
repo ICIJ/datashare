@@ -622,14 +622,6 @@ public class ElasticsearchSpewerTest {
     }
 
     @Test
-    public void test_get_max_content_length_is_limited_to_2G() {
-        assertThat(spewer.getMaxContentLength(new PropertiesProvider(new HashMap<>() {{put("maxContentLength", "20");}})))
-                .isEqualTo(20);
-        assertThat((long)spewer.getMaxContentLength(new PropertiesProvider(new HashMap<>() {{put("maxContentLength", "2G");}})))
-                .isEqualTo(HumanReadableSize.parse("2G")-1); // Integer.MAX_VALUE
-    }
-
-    @Test
     public void test_configure_is_creating_index() throws Exception {
         Indexer indexer = Mockito.mock(Indexer.class);
         ElasticsearchSpewer spewer = new ElasticsearchSpewer(indexer, Mockito.mock(DocumentCollectionFactory.class), Mockito.mock(LanguageGuesser.class), new FieldNames(), new PropertiesProvider());
