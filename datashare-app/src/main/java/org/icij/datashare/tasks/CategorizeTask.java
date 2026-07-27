@@ -21,7 +21,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 
@@ -40,8 +39,6 @@ import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_DEFAULT_PROJECT
 @TaskGroup(TaskGroupType.Java)
 public class CategorizeTask extends PipelineTask<String> implements Monitorable {
     private final Logger logger = LoggerFactory.getLogger(getClass());
-    private static final int NB_MAX_POLLS = 3;
-    private static final int POLLING_INTERVAL_SECONDS = 60;
     private final AtomicInteger processed = new AtomicInteger(0);
     private final Function<Double, Void> progressCallback;
     private final Indexer indexer;
@@ -60,33 +57,22 @@ public class CategorizeTask extends PipelineTask<String> implements Monitorable 
         logger.info("enriching {} docs from inputQueue {} and adding them in {}", inputQueue.size(), inputQueue.getName(), outputQueue.getName());
         String queueEntry;
         long nbMessages = 0;
-        int nbMaxPolls = NB_MAX_POLLS;
-        int pollingIntervalSeconds = POLLING_INTERVAL_SECONDS;
 
-        while (!(STRING_POISON.equals(queueEntry = inputQueue.poll( (pollingIntervalSeconds * 1000L), TimeUnit.MILLISECONDS)))
-                && nbMaxPolls > 0) {
+        while ((queueEntry = inputQueue.poll()) != null) {
             try {
-                if (queueEntry != null) {
-                    Document retrievedFromIndexer = getDocument(indexer, project.getName(), DocReference.parse(queueEntry));
-                    if(retrievedFromIndexer != null) {
-                        enrichWithType(retrievedFromIndexer);
-                    }
-                    nbMessages++;
-                    processed.incrementAndGet();
-                    progressCallback.apply(getProgressRate());
-                    if(!outputQueue.offer(queueEntry)){
-                        logger.warn("unable to offer {} to queue {}", queueEntry, outputQueue.getName());
-                    }
-                } else {
-                    logger.info("will poll document queue again for pollingInterval={} seconds ({}/{})", pollingIntervalSeconds, nbMaxPolls, NB_MAX_POLLS);
-                    nbMaxPolls--;
+                Document retrievedFromIndexer = getDocument(indexer, project.getName(), DocReference.parse(queueEntry));
+                if (retrievedFromIndexer != null) {
+                    enrichWithType(retrievedFromIndexer);
+                }
+                nbMessages++;
+                processed.incrementAndGet();
+                progressCallback.apply(getProgressRate());
+                if (!outputQueue.offer(queueEntry)) {
+                    logger.warn("unable to offer {} to queue {}", queueEntry, outputQueue.getName());
                 }
             } catch (Exception e) {
                 logger.error("error in CategorizeTask loop", e);
             }
-        }
-        if(!outputQueue.offer(STRING_POISON)){
-            logger.warn("unable to offer POISON to queue {}", outputQueue.getName());
         }
         logger.info("exiting CategorizeTask loop after {} messages.", nbMessages);
         return nbMessages;

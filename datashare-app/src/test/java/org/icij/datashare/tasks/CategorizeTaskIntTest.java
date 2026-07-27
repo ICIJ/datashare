@@ -23,7 +23,6 @@ import java.util.function.Function;
 import static org.fest.assertions.Assertions.assertThat;
 import static org.icij.datashare.PropertiesProvider.DEFAULT_PROJECT_OPT;
 import static org.icij.datashare.PropertiesProvider.QUEUE_NAME_OPT;
-import static org.icij.datashare.tasks.PipelineTask.STRING_POISON;
 
 public class CategorizeTaskIntTest {
 
@@ -51,7 +50,7 @@ public class CategorizeTaskIntTest {
         Document pdfDoc = aDocWithContentType("application/pdf");
         Document unknownTypeDoc = aDocWithContentType("other-that-is-not_Kn%wn");
 
-        indexAndEnqueueWithPoison(videoDoc, pdfDoc, unknownTypeDoc);
+        indexAndEnqueue(videoDoc, pdfDoc, unknownTypeDoc);
         CategorizeTask categorizeTask = new CategorizeTask(indexer, documentCollectionFactory, new Task<>(CategorizeTask.class.getName(),
                 "categorizeTask1", User.local(), Map.of(DEFAULT_PROJECT_OPT, es.getIndexName())), NO_OP_PROGRESS);
 
@@ -61,7 +60,7 @@ public class CategorizeTaskIntTest {
         //THEN
         assertThat(res).isEqualTo(3);
         DocumentQueue<String> outPutQueue = documentCollectionFactory.createQueue("extract:queue:nlp", String.class);
-        assertThat(outPutQueue.size()).isEqualTo(4); // with POISON
+        assertThat(outPutQueue.size()).isEqualTo(3);
 
         assertThat(((Document) indexer.get(es.getIndexName(), videoDoc.getId())).getContentTypeCategory()).isEqualTo(ContentTypeCategory.VIDEO);
         assertThat(((Document) indexer.get(es.getIndexName(), pdfDoc.getId())).getContentTypeCategory()).isEqualTo(ContentTypeCategory.DOCUMENT);
@@ -81,7 +80,7 @@ public class CategorizeTaskIntTest {
 
         //THEN
         DocumentQueue<String> outputQueue = documentCollectionFactory.createQueue("foo:nlp", String.class);
-        assertThat(outputQueue.size()).isEqualTo(3); // with POISON
+        assertThat(outputQueue.size()).isEqualTo(2);
     }
 
     @Test
@@ -101,14 +100,15 @@ public class CategorizeTaskIntTest {
 
         //THEN
         assertThat(progressValues.size()).isGreaterThan(1);
-        assertThat(progressValues.get(0)).isLessThan(0.5); //There are 3 values
+        assertThat(progressValues.get(0)).isLessThan(progressValues.get(progressValues.size() - 1));
+        assertThat(progressValues).contains(1.0);
     }
 
     @Test
     public void test_receiving_null_from_indexer() throws Exception {
         // GIVEN
         // A document that will not be in the index
-        enqueueWithPoison(aDoc());
+        enqueue(aDoc());
         CategorizeTask categorizeTask = new CategorizeTask(indexer, documentCollectionFactory, new Task<>(CategorizeTask.class.getName(),
                 "categorizeTask1", User.local(), Map.of(DEFAULT_PROJECT_OPT, es.getIndexName())), NO_OP_PROGRESS);
 
@@ -118,7 +118,7 @@ public class CategorizeTaskIntTest {
         // THEN
         assertThat(res).isEqualTo(1);
         DocumentQueue<String> outPutQueue = documentCollectionFactory.createQueue("extract:queue:nlp", String.class);
-        assertThat(outPutQueue.size()).isEqualTo(2); // with POISON
+        assertThat(outPutQueue.size()).isEqualTo(1);
     }
 
     @Test
@@ -137,8 +137,6 @@ public class CategorizeTaskIntTest {
         // WHEN
         new EnqueueFromIndexTask(documentCollectionFactory, indexer,
                 new Task<>(EnqueueFromIndexTask.class.getName(), User.local(), args), null).call();
-
-        documentCollectionFactory.createQueue("extract:queue:categorize", String.class).add(STRING_POISON);
 
         new CategorizeTask(indexer, documentCollectionFactory,
                 new Task<>(CategorizeTask.class.getName(), "categorizeTask2", User.local(), args), NO_OP_PROGRESS).call();
@@ -166,8 +164,6 @@ public class CategorizeTaskIntTest {
         // WHEN
         new EnqueueFromIndexTask(documentCollectionFactory, indexer,
                 new Task<>(EnqueueFromIndexTask.class.getName(), User.local(), args), null).call();
-
-        documentCollectionFactory.createQueue("extract:queue:categorize", String.class).add(STRING_POISON);
 
         new CategorizeTask(indexer, documentCollectionFactory,
                 new Task<>(CategorizeTask.class.getName(), "categorizeTask2", User.local(), args), NO_OP_PROGRESS).call();
@@ -198,8 +194,6 @@ public class CategorizeTaskIntTest {
         assertThat(documentCollectionFactory.queues.get("extract:queue:categorize"))
                 .contains(embedded.getId() + "|" + root.getId());
 
-        documentCollectionFactory.createQueue("extract:queue:categorize", String.class).add(STRING_POISON);
-
         new CategorizeTask(indexer, documentCollectionFactory,
                 new Task<>(CategorizeTask.class.getName(), "categorizeTask3", User.local(), args), NO_OP_PROGRESS).call();
 
@@ -219,14 +213,13 @@ public class CategorizeTaskIntTest {
         return DocumentBuilder.createDoc(UUID.randomUUID().toString()).build();
     }
 
-    private void indexAndEnqueueWithPoison(String queueName, Document... documents) {
+    private void indexAndEnqueue(String queueName, Document... documents) {
         Arrays.stream(documents).forEach(this::index);
-        enqueueWithPoison(queueName, documents);
-        enqueuePoison(queueName);
+        enqueue(queueName, documents);
     }
 
-    private void indexAndEnqueueWithPoison(Document... documents) {
-        indexAndEnqueueWithPoison(DEFAULT_INPUT_QUEUE_NAME, documents);
+    private void indexAndEnqueue(Document... documents) {
+        indexAndEnqueue(DEFAULT_INPUT_QUEUE_NAME, documents);
     }
 
     private void indexAndEnqueueTwoDocuments() {
@@ -234,27 +227,18 @@ public class CategorizeTaskIntTest {
     }
 
     private void indexAndEnqueueTwoDocuments(String queueName) {
-        indexAndEnqueueWithPoison(queueName,
+        indexAndEnqueue(queueName,
                 aDocWithContentType("application/pdf"),
                 aDocWithContentType("notOkContentType"));
     }
 
-    private void enqueueWithPoison(String queueName, Document... documents){
+    private void enqueue(String queueName, Document... documents){
         DocumentQueue<String> queue = documentCollectionFactory.createQueue(queueName, String.class);
-
-        Arrays.stream(documents).forEach(d -> {
-            queue.add(d.getId());
-        });
-        queue.add(STRING_POISON);
+        Arrays.stream(documents).forEach(d -> queue.add(d.getId()));
     }
 
-    private void enqueueWithPoison(Document... documents){
-        enqueueWithPoison(DEFAULT_INPUT_QUEUE_NAME, documents);
-    }
-
-    private void enqueuePoison(String queueName) {
-        DocumentQueue<String> queue = documentCollectionFactory.createQueue(queueName, String.class);
-        queue.add(STRING_POISON);
+    private void enqueue(Document... documents){
+        enqueue(DEFAULT_INPUT_QUEUE_NAME, documents);
     }
 
     private void index(Document doc) throws RuntimeException {

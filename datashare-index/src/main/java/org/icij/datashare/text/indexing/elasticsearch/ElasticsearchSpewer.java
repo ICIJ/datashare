@@ -415,11 +415,6 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
         return this;
     }
 
-    @Override
-    public void close() throws Exception {
-        outputQueue.put("POISON");
-    }
-
     private void setIndex(String indexName) {
         this.indexName = indexName;
     }

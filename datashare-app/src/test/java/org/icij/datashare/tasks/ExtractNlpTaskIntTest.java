@@ -60,7 +60,6 @@ public class ExtractNlpTaskIntTest {
         String queueName = new PipelineHelper(new PropertiesProvider()).getQueueNameFor(Stage.NLP);
         DocumentQueue<String> queue = factory.createQueue(queueName, String.class);
         queue.add("docId");
-        queue.add(PipelineTask.STRING_POISON);
 
         nlpTask.call();
 
@@ -89,9 +88,6 @@ public class ExtractNlpTaskIntTest {
         queue.add("docId1");
         queue.add("docId2");
         queue.add("docId3");
-        queue.add(PipelineTask.STRING_POISON);
-
-
 
         new ExtractNlpTask(indexer, pipeline, factory, new Task<>(ExtractNlpTask.class.getName(), User.local(), new HashMap<>() {{
             put("maxContentLength", "32");
@@ -100,7 +96,7 @@ public class ExtractNlpTaskIntTest {
         verify(pipeline, times(3)).initialize(ENGLISH);
         assertThat(progressValues.size()).isGreaterThan(1);
         assertThat(progressValues.get(0)).isLessThan(progressValues.get(progressValues.size() - 1));
-        assertThat(progressValues).contains(0.5);
+        assertThat(progressValues).contains(1.0);
     }
 
     @Parameterized.Parameters
