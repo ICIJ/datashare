@@ -51,12 +51,11 @@ public class DeduplicateTask extends PipelineTask<Path> {
         long originalSize = inputQueue.size();
         try (DocumentQueue<Path> outputQueue = factory.createQueue(getOutputQueueName(), Path.class)) {
             Path path;
-            while (!(path = inputQueue.take()).equals(PATH_POISON)) {
+            while ((path = inputQueue.poll()) != null) {
                 if (filter.test(path)) {
                     outputQueue.add(path);
                 }
             }
-            outputQueue.add(PATH_POISON);
             return originalSize - outputQueue.size();
         }
     }

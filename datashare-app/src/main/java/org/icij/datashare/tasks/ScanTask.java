@@ -40,8 +40,6 @@ public class ScanTask extends PipelineTask<Path> {
     public Long call() throws Exception {
         super.call();
         ScannerVisitor scannerVisitor = scanner.createScannerVisitor(path);
-        Long scanned = scannerVisitor.call();
-        outputQueue.add(PATH_POISON);
-        return scanned;
+        return scannerVisitor.call();
     }
 }

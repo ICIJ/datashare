@@ -8,6 +8,7 @@ import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.extract.DocumentCollectionFactory;
 import org.icij.datashare.extract.MemoryDocumentCollectionFactory;
 import org.icij.datashare.test.ElasticsearchRule;
+import org.icij.datashare.test.LogbackCapturingRule;
 import org.icij.datashare.text.Language;
 import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchIndexer;
 import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchSpewer;
@@ -20,6 +21,7 @@ import org.icij.task.Options;
 import org.junit.Rule;
 import org.junit.Test;
 import org.mockito.Mockito;
+import org.slf4j.event.Level;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -33,6 +35,7 @@ import static org.mockito.Mockito.verify;
 
 public class IndexTaskIntTest {
     @Rule public ElasticsearchRule es = new ElasticsearchRule();
+    @Rule public LogbackCapturingRule logback = new LogbackCapturingRule();
 
     static final List<Extractor> CREATED_EXTRACTORS = new ArrayList<>();
 
@@ -71,6 +74,21 @@ public class IndexTaskIntTest {
         assertThat(outputQueue).hasSize(2);
         assertThat(outputQueue.poll()).isEqualTo("bc6852541ef5200206a7a9740f3d2d62178a1f53b1aa5417ab426c6ec1f7cbc7");
         assertThat(outputQueue.poll()).isEqualTo(STRING_POISON);
+    }
+
+    @Test
+    public void index_task_skips_a_legacy_poison_entry_at_the_head_of_the_queue() throws Exception {
+        DocumentQueue<Path> queue = inputQueueFactory.createQueue(new PipelineHelper(propertiesProvider).getQueueNameFor(Stage.INDEX), Path.class);
+        // a sentinel written by a pre-21.16 run sits FIRST: the drain must skip it and keep going,
+        // where the old drain(PATH_POISON) would have stopped here and indexed nothing
+        queue.add(PipelineTask.PATH_POISON);
+        queue.add(Paths.get(ClassLoader.getSystemResource("docs/doc.txt").getPath()));
+
+        new IndexTask(spewer, inputQueueFactory, new Task<>(IndexTask.class.getName(), User.local(), map), null).call();
+
+        DocumentQueue<String> outputQueue = outputQueueFactory.createQueue(new PipelineHelper(propertiesProvider).getOutputQueueNameFor(Stage.INDEX), String.class);
+        assertThat(outputQueue).contains("bc6852541ef5200206a7a9740f3d2d62178a1f53b1aa5417ab426c6ec1f7cbc7");
+        assertThat(logback.logs(Level.WARN)).contains("skipping legacy POISON entry in queue test:queue:index");
     }
 
     @Test
