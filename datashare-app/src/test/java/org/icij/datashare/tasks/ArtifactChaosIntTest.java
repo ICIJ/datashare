@@ -55,7 +55,6 @@ public class ArtifactChaosIntTest {
                 "stages", "ARTIFACT,ENQUEUEIDX",
                 "queueName", "test:queue",
                 "artifactDir", artifactDir.getRoot().toString(),
-                "pollingInterval", "1",
                 "parallelism", "1"));
         PropertiesProvider props = new PropertiesProvider(map);
 
@@ -174,7 +173,6 @@ public class ArtifactChaosIntTest {
                 "stages", "ARTIFACT,ENQUEUEIDX",
                 "queueName", "test:queue",
                 "artifactDir", artifactDir.getRoot().toString(),
-                "pollingInterval", "1",
                 "parallelism", "4"));
         PropertiesProvider props = new PropertiesProvider(map);
 
@@ -226,7 +224,6 @@ public class ArtifactChaosIntTest {
                 "stages", "ARTIFACT,ENQUEUEIDX",
                 "queueName", "test:queue",
                 "artifactDir", artifactDir.getRoot().toString(),
-                "pollingInterval", "1",
                 "parallelism", "1"));
         PropertiesProvider props = new PropertiesProvider(map);
 

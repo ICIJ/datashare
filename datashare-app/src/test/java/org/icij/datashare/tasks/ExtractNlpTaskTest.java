@@ -7,6 +7,7 @@ import org.icij.datashare.text.Language;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.text.nlp.AbstractPipeline;
 import org.icij.datashare.user.User;
+import org.icij.extract.queue.DocumentQueue;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
@@ -55,6 +56,21 @@ public class ExtractNlpTaskTest {
                 new Task<>(ExtractNlpTask.class.getName(), User.local(), Map.of()), null);
 
         assertThat(nlpTask.call()).isEqualTo(0L);
+    }
+
+    @Test(expected = InterruptedException.class)
+    public void test_call_reports_cancellation_instead_of_completing_when_interrupted() throws Exception {
+        DocumentQueue<String> queue = factory.createQueue("extract:queue:nlp", String.class);
+        queue.add("id1");
+        queue.add("id2");
+        Thread.currentThread().interrupt();
+
+        try {
+            nlpTask.call();
+        } finally {
+            verify(pipeline, never()).initialize(any(Language.class));
+            Thread.interrupted(); // clear the flag so it does not leak into later tests
+        }
     }
 
     @Test

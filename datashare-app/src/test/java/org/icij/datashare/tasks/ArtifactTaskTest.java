@@ -29,7 +29,6 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Function;
 
 import static org.fest.assertions.Assertions.assertThat;
 import static org.mockito.Mockito.verify;
@@ -104,7 +103,6 @@ public class ArtifactTaskTest {
         PropertiesProvider props = new PropertiesProvider(Map.of(
                 "artifactDir", artifactDir.getRoot().toString(),
                 "defaultProject", "prj",
-                "pollingInterval", "1",
                 "parallelism", "2"));
         Task<Long> task = new Task<>(ArtifactTask.class.getName(), User.local(), new HashMap<>());
 
@@ -148,7 +146,6 @@ public class ArtifactTaskTest {
         PropertiesProvider props = new PropertiesProvider(Map.of(
                 "artifactDir", artifactDir.getRoot().toString(),
                 "defaultProject", "prj",
-                "pollingInterval", "1",
                 "parallelism", "2"));
         Task<Long> task = new Task<>(ArtifactTask.class.getName(), User.local(), new HashMap<>());
 
@@ -176,7 +173,6 @@ public class ArtifactTaskTest {
         PropertiesProvider props = new PropertiesProvider(Map.of(
                 "artifactDir", artifactDir.getRoot().toString(),
                 "defaultProject", "prj",
-                "pollingInterval", "1",
                 "parallelism", "2"));
         Task<Long> task = new Task<>(ArtifactTask.class.getName(), User.local(), new HashMap<>());
 
@@ -229,7 +225,6 @@ public class ArtifactTaskTest {
         PropertiesProvider props = new PropertiesProvider(Map.of(
                 "artifactDir", artifactDir.getRoot().toString(),
                 "defaultProject", "prj",
-                "pollingInterval", "1",
                 "parallelism", "2"));
         ArtifactTask task = new ArtifactTask(factory, mockEs, props,
                 new Task<>(ArtifactTask.class.getName(), User.local(), new HashMap<>()), null) {
@@ -266,7 +261,6 @@ public class ArtifactTaskTest {
         PropertiesProvider props = new PropertiesProvider(Map.of(
                 "artifactDir", artifactDir.getRoot().toString(),
                 "defaultProject", "prj",
-                "pollingInterval", "1",
                 "parallelism", "1"));
         Task<Long> task = new Task<>(ArtifactTask.class.getName(), User.local(), new HashMap<>());
 
@@ -309,23 +303,34 @@ public class ArtifactTaskTest {
     @Test(timeout = 10000)
     public void test_cancel_stops_an_in_flight_run() throws Exception {
         indexEmbeddedDoc();
+        String secondId = "1111111111111111111111111111111111111111111111111111111111111111";
+        mockIndexer.indexFile("prj", secondId,
+                Path.of(Objects.requireNonNull(getClass().getResource("/docs/embedded_doc.eml")).toURI()),
+                "message/rfc822");
         DocumentQueue<String> queue = factory.createQueue("extract:queue:artifact", String.class);
         queue.add(EMBEDDED_DOC_SHA256);
+        queue.add(secondId);
 
         CountDownLatch started = new CountDownLatch(1);
+        CountDownLatch secondStarted = new CountDownLatch(1);
         PropertiesProvider props = new PropertiesProvider(Map.of(
                 "artifactDir", artifactDir.getRoot().toString(),
                 "defaultProject", "prj",
-                "pollingInterval", "1",
                 "parallelism", "1"));
         Task<Long> task = new Task<>(ArtifactTask.class.getName(), User.local(), new HashMap<>());
 
+        // a single worker, so cancelling while the first document is in flight must stop the worker
+        // before it ever polls the second entry off the queue
         ArtifactTask artifactTask = new ArtifactTask(factory, mockEs, props, task, null) {
             @Override
             protected SourceExtractor createSourceExtractor() {
                 return new SourceExtractor(props) {
                     @Override
                     public TikaDocument extractEmbeddedSources(Project project, Document document) {
+                        if (document.getId().equals(secondId)) {
+                            secondStarted.countDown();
+                            return null;
+                        }
                         started.countDown();
                         try {
                             Thread.sleep(10_000);
@@ -355,6 +360,7 @@ public class ArtifactTaskTest {
 
         assertThat(callerThread.isAlive()).isFalse();
         assertThat(thrown.get()).isInstanceOf(InterruptedException.class);
+        assertThat(secondStarted.await(500, TimeUnit.MILLISECONDS)).isFalse();
     }
 
     @Test(timeout = 10000)
@@ -366,8 +372,7 @@ public class ArtifactTaskTest {
         // no "parallelism" key -> ArtifactTask resolves .orElse(1)
         Long numberOfDocuments = new ArtifactTask(factory, mockEs, new PropertiesProvider(Map.of(
                 "artifactDir", artifactDir.getRoot().toString(),
-                "defaultProject", "prj",
-                "pollingInterval", "1")),
+                "defaultProject", "prj")),
                 new Task<>(ArtifactTask.class.getName(), User.local(), new HashMap<>()), null)
                 .call();
 
@@ -426,8 +431,7 @@ public class ArtifactTaskTest {
     private Long runArtifactTask() throws Exception {
         return new ArtifactTask(factory, mockEs, new PropertiesProvider(Map.of(
                 "artifactDir", artifactDir.getRoot().toString(),
-                "defaultProject", "prj",
-                "pollingInterval", "1"
+                "defaultProject", "prj"
                 )),
                 new Task<>(ArtifactTask.class.getName(), User.local(), new HashMap<>()), null)
                 .call();
@@ -437,7 +441,6 @@ public class ArtifactTaskTest {
         return new ArtifactTask(factory, mockEs, new PropertiesProvider(Map.of(
                 "artifactDir", artifactDir.getRoot().toString(),
                 "defaultProject", "prj",
-                "pollingInterval", "1",
                 "parallelism", String.valueOf(parallelism))),
                 new Task<>(ArtifactTask.class.getName(), User.local(), new HashMap<>()), null)
                 .call();
@@ -454,8 +457,7 @@ public class ArtifactTaskTest {
 
         Long numberOfDocuments = new ArtifactTask(factory, mockEs, new PropertiesProvider(Map.of(
                 "artifactDir", artifactDir.getRoot().toString(),
-                "defaultProject", "prj",
-                "pollingInterval", "1")),
+                "defaultProject", "prj")),
                 new Task<>(ArtifactTask.class.getName(), User.local(), new HashMap<>()), null)
                 .call();
 

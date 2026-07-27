@@ -79,7 +79,7 @@ public class IndexTaskIntTest {
         DocumentQueue<Path> queue = inputQueueFactory.createQueue(new PipelineHelper(propertiesProvider).getQueueNameFor(Stage.INDEX), Path.class);
         // a sentinel written by a pre-21.16 run sits FIRST: the drain must skip it and keep going,
         // where the old drain(PATH_POISON) would have stopped here and indexed nothing
-        queue.add(PipelineTask.PATH_POISON);
+        queue.add(Paths.get("POISON"));
         queue.add(Paths.get(ClassLoader.getSystemResource("docs/doc.txt").getPath()));
 
         new IndexTask(spewer, inputQueueFactory, new Task<>(IndexTask.class.getName(), User.local(), map), null).call();
