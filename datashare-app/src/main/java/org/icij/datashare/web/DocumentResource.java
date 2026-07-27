@@ -122,6 +122,9 @@ public class DocumentResource {
     @ApiResponse(responseCode = "403", description = "forbidden if the user doesn't have access to the project or downloads are restricted")
     @ApiResponse(responseCode = "404", description = "if no document is found")
     @ApiResponse(responseCode = "413", description = "if the root document is too large and no raw artifact is cached for this embedded document")
+    // HEAD requests also match the @Get route above, and fluent-http picks the route with the
+    // fewest query params on a tie: keep this route's param count below the GET route's
+    // (currently 3 vs 4, "filter_metadata" is GET-only) or GET starts silently handling HEAD again.
     @Head("/:project/documents/src/:id?routing=:routing")
     public Payload headSourceFile(final String project, final String id, final String routing, final Context context) {
         return sourceFile(project, id, routing, context, document -> ok());
