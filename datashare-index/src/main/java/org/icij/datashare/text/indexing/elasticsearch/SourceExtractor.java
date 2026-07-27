@@ -28,6 +28,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.Charset;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
@@ -167,6 +168,15 @@ public class SourceExtractor {
     // produced by an OCR parser.
     private static boolean useOcr(Document document) {
         return document.getOcrParser() != null;
+    }
+
+    // Whether the embedded document's bytes are already sitting in the artifact cache. When they
+    // are, serving it never opens (nor re-parses) the root document, which is what lets the
+    // download gate ignore the root's size. extract-lib writes this payload temp-then-atomic-move,
+    // so its mere existence means complete, readable bytes.
+    public boolean hasCachedEmbeddedSource(final Project project, final Document document) {
+        Path artifactPath = getArtifactPath(project);
+        return artifactPath != null && Files.exists(ArtifactPath.dir(artifactPath, document.getId()).resolve("raw"));
     }
 
     private Path getArtifactPath(Project project) {
