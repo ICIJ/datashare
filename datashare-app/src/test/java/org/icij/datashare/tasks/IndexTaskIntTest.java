@@ -7,6 +7,7 @@ import org.icij.datashare.Stage;
 import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.asynctasks.TaskRepository;
 import org.icij.datashare.asynctasks.TaskRepositoryMemory;
+import org.icij.datashare.asynctasks.TaskResult;
 import org.icij.datashare.extract.DocumentCollectionFactory;
 import org.icij.datashare.extract.MemoryDocumentCollectionFactory;
 import org.icij.datashare.test.ElasticsearchRule;
@@ -18,6 +19,7 @@ import org.icij.datashare.user.User;
 import org.icij.extract.document.DocumentFactory;
 import org.icij.extract.extractor.Extractor;
 import org.icij.extract.queue.DocumentQueue;
+import org.icij.extract.queue.MemoryDocumentQueue;
 import org.icij.spewer.FieldNames;
 import org.icij.task.Options;
 import org.junit.Rule;
@@ -29,9 +31,17 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
+import java.util.concurrent.Callable;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
 import static org.fest.assertions.Assertions.assertThat;
+import static org.icij.datashare.PropertiesProvider.DEFAULT_QUEUE_CAPACITY;
+import static org.icij.datashare.cli.DatashareCliOptions.POLLING_INTERVAL_SECONDS_OPT;
 import static org.mockito.Mockito.verify;
 
 public class IndexTaskIntTest {
@@ -112,6 +122,46 @@ public class IndexTaskIntTest {
         assertThat(progressValues.size()).isGreaterThan(1);
         assertThat(progressValues.get(0)).isLessThan(progressValues.get(progressValues.size() - 1));
         assertThat(progressValues).contains(0.5);
+    }
+
+    @Test(timeout = 30000)
+    public void index_task_drains_a_queue_filled_while_the_upstream_task_is_running() throws Exception {
+        Task<Long> upstream = new Task<>(ScanTask.class.getName(), User.local(), Map.of());
+        upstream.setState(Task.State.RUNNING);
+        taskRepository.insert(upstream, null);
+        // counted down by the queue itself, so the test knows the drainer has already polled an
+        // empty queue, which is the exact moment the latch has to keep it polling
+        CountDownLatch firstEmptyPoll = new CountDownLatch(1);
+        String queueName = new PipelineHelper(propertiesProvider).getQueueNameFor(Stage.INDEX);
+        DocumentQueue<Path> queue = new MemoryDocumentQueue<>(queueName, DEFAULT_QUEUE_CAPACITY) {
+            @Override
+            public Path poll() {
+                Path polled = super.poll();
+                if (polled == null) {
+                    firstEmptyPoll.countDown();
+                }
+                return polled;
+            }
+        };
+        inputQueueFactory.queues.put(queueName, queue);
+        Map<String, Object> args = new HashMap<>(map);
+        args.put(PipelineTask.UPSTREAM_TASK_ID, upstream.id);
+        args.put(POLLING_INTERVAL_SECONDS_OPT, "0.05");
+        IndexTask indexTask = new IndexTask(spewer, inputQueueFactory, taskRepository,
+                new Task<>(IndexTask.class.getName(), User.local(), args), null);
+
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        try {
+            Future<Long> indexed = executor.submit((Callable<Long>) indexTask::call);
+            // without the latch the drainer has already stopped by the time this await comes back
+            assertThat(firstEmptyPoll.await(20, TimeUnit.SECONDS)).isTrue();
+            queue.add(Paths.get(ClassLoader.getSystemResource("docs/doc.txt").getPath()));
+            upstream.setResult(new TaskResult<>(0L));
+
+            assertThat(indexed.get(20, TimeUnit.SECONDS)).isEqualTo(1);
+        } finally {
+            executor.shutdownNow();
+        }
     }
 
     @Test

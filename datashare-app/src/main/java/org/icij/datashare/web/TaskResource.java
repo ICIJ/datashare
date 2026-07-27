@@ -418,7 +418,10 @@ public class TaskResource {
         } else {
             properties.remove(REPORT_NAME_OPT); // avoid use of reportMap to override ES docs
         }
-        ofNullable(taskManager.startTask(IndexTask.class, user, propertiesToMap(properties))).ifPresent(taskIds::add);
+        Map<String, Object> indexArgs = propertiesToMap(properties);
+        // the scan is still walking the data dir: this is what keeps the index task draining
+        indexArgs.put(PipelineTask.UPSTREAM_TASK_ID, scanResponse.taskId);
+        ofNullable(taskManager.startTask(IndexTask.class, user, indexArgs)).ifPresent(taskIds::add);
         return new JsonPayload(new TasksResponse(taskIds));
     }
 
@@ -535,10 +538,15 @@ public class TaskResource {
         properties.put(NLP_PIPELINE_OPT, pipelineName);
         syncModels(parseBoolean(properties.getProperty(SYNC_MODELS_OPTION, "true")));
         List<String> tasks = new LinkedList<>();
+        Map<String, Object> nlpArgs = propertiesToMap(properties);
         if (parseBoolean(properties.getProperty(RESUME_OPT, "true"))) {
-            tasks.add(taskManager.startTask(EnqueueFromIndexTask.class, ((User) context.currentUser()), propertiesToMap(properties)));
+            String enqueueTaskId = taskManager.startTask(EnqueueFromIndexTask.class, ((User) context.currentUser()), propertiesToMap(properties));
+            tasks.add(enqueueTaskId);
+            // without it the NLP task would exit on its first empty poll, while the enqueuing task
+            // is still scrolling the index, and report DONE having processed nothing
+            nlpArgs.put(PipelineTask.UPSTREAM_TASK_ID, enqueueTaskId);
         }
-        tasks.add(taskManager.startTask(ExtractNlpTask.class, (User) context.currentUser(), propertiesToMap(properties)));
+        tasks.add(taskManager.startTask(ExtractNlpTask.class, (User) context.currentUser(), nlpArgs));
         return new JsonPayload(new TasksResponse(tasks));
     }
 

@@ -58,6 +58,8 @@ import static org.mockito.Mockito.*;
 import static org.mockito.MockitoAnnotations.openMocks;
 
 public class TaskResourceTest extends AbstractProdWebServerTest {
+    // matches the name field only: a ScanTask id also appears inside the IndexTask args
+    private static final String SCAN_TASK_NAME_FIELD = "\"name\":\"org.icij.datashare.tasks.ScanTask\"";
     @Rule
     public DatashareTimeRule time = new DatashareTimeRule("2021-07-07T12:23:34Z");
     @Mock
@@ -161,7 +163,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
 
         get("/api/task?args.dataDir=docs").should().contain("ScanTask").not().contain("IndexTask");
         get("/api/task").should().haveType("application/json").contain("IndexTask").contain("ScanTask");
-        get("/api/task?name=Index").should().contain("IndexTask").not().contain("ScanTask");
+        get("/api/task?name=Index").should().contain("IndexTask").not().contain(SCAN_TASK_NAME_FIELD);
     }
 
     @Test
@@ -288,7 +290,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
                 "{\"options\":{\"reportName\": \"foo\"}}").should().haveType("application/json");
 
         get("/api/task/all").should().haveType("application/json").contain("IndexTask").contain("ScanTask");
-        get("/api/task/all?name=Index").should().contain("IndexTask").not().contain("ScanTask");
+        get("/api/task/all?name=Index").should().contain("IndexTask").not().contain(SCAN_TASK_NAME_FIELD);
         get("/api/task/all?args.dataDir=docs").should().contain("ScanTask").not().contain("IndexTask");
     }
 
@@ -470,6 +472,8 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         defaultProperties.put("key", "val");
         defaultProperties.put("user", User.local());
         defaultProperties.remove(REPORT_NAME_OPT);
+        // the index stage is gated on the scan task it follows
+        defaultProperties.put(PipelineTask.UPSTREAM_TASK_ID, findTask(taskManager, "org.icij.datashare.tasks.ScanTask").get().id);
 
         assertThat(taskManager.getTasks().toList()).hasSize(2);
         assertThat(findTask(taskManager, "org.icij.datashare.tasks.ScanTask")).isNotNull();
@@ -491,6 +495,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         defaultProperties.put("path", path);
         defaultProperties.put("user", User.local());
         defaultProperties.remove(REPORT_NAME_OPT);
+        defaultProperties.put(PipelineTask.UPSTREAM_TASK_ID, findTask(taskManager, "org.icij.datashare.tasks.ScanTask").get().id);
 
         assertThat(taskManager.getTasks().toList()).hasSize(2);
         assertThat(findTask(taskManager, "org.icij.datashare.tasks.ScanTask")).isNotNull();
@@ -600,7 +605,10 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
 
         assertThat(findTask(taskManager, "org.icij.datashare.tasks.EnqueueFromIndexTask")).isNotNull();
         assertThat(findTask(taskManager, "org.icij.datashare.tasks.ExtractNlpTask")).isNotNull();
-        assertThat(findTask(taskManager, "org.icij.datashare.tasks.ExtractNlpTask").get().args).includes(entry("nlpPipeline", "EMAIL"));
+        assertThat(findTask(taskManager, "org.icij.datashare.tasks.ExtractNlpTask").get().args).includes(entry("nlpPipeline", "EMAIL"),
+                // gated on the enqueuing task, otherwise a "find names" click can report DONE
+                // having processed nothing while doc refs are still being enqueued
+                entry(PipelineTask.UPSTREAM_TASK_ID, findTask(taskManager, "org.icij.datashare.tasks.EnqueueFromIndexTask").get().id));
     }
 
     @Test
@@ -632,11 +640,13 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
-    public void test_findNames_with_resume_false_should_not_launch_resume_task() {
+    public void test_findNames_with_resume_false_should_not_launch_resume_task() throws IOException {
         RestAssert response = post("/api/task/findNames/EMAIL", "{\"options\":{\"resume\":\"false\", \"waitForNlpApp\": false}}");
         response.should().haveType("application/json");
 
         verify(taskFactory, never()).createEnqueueFromIndexTask(eq(null), any());
+        // no producer to wait for: a standalone NLP run keeps exiting on its first empty poll
+        assertThat(findTask(taskManager, "org.icij.datashare.tasks.ExtractNlpTask").get().args.containsKey(PipelineTask.UPSTREAM_TASK_ID)).isFalse();
     }
 
     @Test

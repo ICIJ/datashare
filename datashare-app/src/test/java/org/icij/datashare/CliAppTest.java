@@ -8,9 +8,11 @@ import org.icij.datashare.asynctasks.TaskResult;
 import org.icij.datashare.asynctasks.bus.amqp.TaskError;
 import org.icij.datashare.tasks.DatashareTaskFactory;
 import org.icij.datashare.tasks.IndexTask;
+import org.icij.datashare.tasks.PipelineTask;
 import org.icij.datashare.tasks.ScanTask;
 import org.icij.datashare.user.User;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InOrder;
 
 import java.util.EnumSet;
@@ -29,7 +31,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -56,7 +58,7 @@ public class CliAppTest {
     }
 
     @Test
-    public void test_run_pipeline_starts_a_stage_only_after_the_previous_one_is_done() throws Exception {
+    public void test_run_pipeline_starts_every_stage_then_awaits_them_all_at_once() throws Exception {
         TaskManager mockedManager = mock(TaskManager.class);
         when(mockedManager.startTask(eq(ScanTask.class), any(), any())).thenReturn("id-scan");
         when(mockedManager.startTask(eq(IndexTask.class), any(), any())).thenReturn("id-index");
@@ -67,27 +69,51 @@ public class CliAppTest {
 
         assertThat(CliApp.runPipeline(mockedManager, new PipelineHelper(new PropertiesProvider(properties)), properties)).isTrue();
 
+        // stages overlap now: awaiting each one before starting the next would let a bounded queue
+        // deadlock a large corpus, the upstream-task gate is what makes termination correct
         InOrder inOrder = inOrder(mockedManager);
         inOrder.verify(mockedManager).startTask(eq(ScanTask.class), any(), any());
-        inOrder.verify(mockedManager).awaitTermination(anyInt(), any(), eq(Set.of("id-scan")));
         inOrder.verify(mockedManager).startTask(eq(IndexTask.class), any(), any());
-        inOrder.verify(mockedManager).awaitTermination(anyInt(), any(), eq(Set.of("id-index")));
+        inOrder.verify(mockedManager).awaitTermination(anyInt(), any(), eq(Set.of("id-scan", "id-index")));
+        verify(mockedManager, times(1)).awaitTermination(anyInt(), any(), any());
     }
 
     @Test
-    public void test_run_pipeline_stops_when_a_stage_does_not_complete() throws Exception {
+    public void test_run_pipeline_passes_the_previous_stage_task_id_to_the_next_stage() throws Exception {
         TaskManager mockedManager = mock(TaskManager.class);
         when(mockedManager.startTask(eq(ScanTask.class), any(), any())).thenReturn("id-scan");
+        when(mockedManager.startTask(eq(IndexTask.class), any(), any())).thenReturn("id-index");
+        doReturn(doneTask()).when(mockedManager).getTask("id-scan");
+        doReturn(doneTask()).when(mockedManager).getTask("id-index");
+        Properties properties = new Properties();
+        properties.setProperty("stages", "SCAN,INDEX");
+
+        CliApp.runPipeline(mockedManager, new PipelineHelper(new PropertiesProvider(properties)), properties);
+
+        // this id is how IndexTask knows to keep polling while the scan is still enqueuing
+        ArgumentCaptor<Map<String, Object>> args = ArgumentCaptor.forClass(Map.class);
+        verify(mockedManager).startTask(eq(IndexTask.class), any(), args.capture());
+        assertThat(args.getValue().get(PipelineTask.UPSTREAM_TASK_ID)).isEqualTo("id-scan");
+        // the first stage has no producer to wait for
+        ArgumentCaptor<Map<String, Object>> scanArgs = ArgumentCaptor.forClass(Map.class);
+        verify(mockedManager).startTask(eq(ScanTask.class), any(), scanArgs.capture());
+        assertThat(scanArgs.getValue().containsKey(PipelineTask.UPSTREAM_TASK_ID)).isFalse();
+    }
+
+    @Test
+    public void test_run_pipeline_reports_a_stage_that_does_not_complete() throws Exception {
+        TaskManager mockedManager = mock(TaskManager.class);
+        when(mockedManager.startTask(eq(ScanTask.class), any(), any())).thenReturn("id-scan");
+        when(mockedManager.startTask(eq(IndexTask.class), any(), any())).thenReturn("id-index");
         Task<Long> failed = new Task<>(ScanTask.class.getName(), User.local(), new HashMap<>());
         failed.setError(new TaskError(new RuntimeException("boom")));
         doReturn(failed).when(mockedManager).getTask("id-scan");
+        doReturn(doneTask()).when(mockedManager).getTask("id-index");
         Properties properties = new Properties();
         properties.setProperty("stages", "SCAN,INDEX");
 
         // false is what makes the launcher exit non-zero instead of looking like a success
         assertThat(CliApp.runPipeline(mockedManager, new PipelineHelper(new PropertiesProvider(properties)), properties)).isFalse();
-
-        verify(mockedManager, never()).startTask(eq(IndexTask.class), any(), any());
     }
 
     @Test

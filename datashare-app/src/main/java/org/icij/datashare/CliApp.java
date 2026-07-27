@@ -27,6 +27,7 @@ import org.icij.datashare.tasks.DeduplicateTask;
 import org.icij.datashare.tasks.EnqueueFromIndexTask;
 import org.icij.datashare.tasks.ExtractNlpTask;
 import org.icij.datashare.tasks.IndexTask;
+import org.icij.datashare.tasks.PipelineTask;
 import org.icij.datashare.tasks.ScanIndexTask;
 import org.icij.datashare.tasks.ScanTask;
 import org.icij.datashare.text.indexing.Indexer;
@@ -43,10 +44,10 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.time.Instant;
 import java.util.Date;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.Properties;
 import java.util.function.Supplier;
 
@@ -198,33 +199,42 @@ class CliApp {
             Stage.ARTIFACT, ArtifactTask.class);
 
     /**
-     * Runs the configured stages one at a time, awaiting each stage's task before starting the next.
-     * Consumers stop as soon as their input queue is empty (there is no end-of-stream sentinel), so
-     * this barrier is what makes "empty" mean "the producer is done" for any number of workers.
+     * Starts every configured stage, then awaits them all at once. Each stage carries the previous
+     * stage's task id in its args under {@link PipelineTask#UPSTREAM_TASK_ID}, so a consumer knows
+     * which producer feeds its input queue and keeps polling while that producer runs. Stages
+     * therefore overlap, which a bounded in-memory queue needs to make progress on a large corpus:
+     * what makes termination correct is that gate, not the launch sequencing.
      * PipelineHelper.stages is already sorted by Stage.comparator, which is pipeline order, and is
      * de-duplicated here so a repeated --stages entry runs its stage once.
-     * ponytail: launcher-side barrier, so a producer and its consumer stage no longer overlap. If
-     * that overlap ever measures, gate the consumer on the upstream task state (pass the producer's
-     * task id in the consumer's args) rather than reintroducing a sentinel.
      *
-     * @return true when every configured stage completed, false when the pipeline aborted
+     * @return true when every configured stage completed, false when any of them did not
      */
     static boolean runPipeline(TaskManager taskManager, PipelineHelper pipeline, Properties properties) throws Exception {
+        Map<String, Stage> stagesByTaskId = new LinkedHashMap<>();
+        String upstreamTaskId = null;
         for (Stage stage : new LinkedHashSet<>(pipeline.stages)) {
             Class<?> taskClass = TASK_CLASSES.get(stage);
             if (taskClass == null) {
                 logger.warn("no task class for stage {}, skipping it", stage);
                 continue;
             }
-            String taskId = taskManager.startTask(taskClass, nullUser(), propertiesToMap(properties));
-            taskManager.awaitTermination(Integer.MAX_VALUE, SECONDS, Set.of(taskId));
-            Task.State state = taskManager.getTask(taskId).getState();
+            Map<String, Object> args = propertiesToMap(properties);
+            if (upstreamTaskId != null) {
+                args.put(PipelineTask.UPSTREAM_TASK_ID, upstreamTaskId);
+            }
+            upstreamTaskId = taskManager.startTask(taskClass, nullUser(), args);
+            stagesByTaskId.put(upstreamTaskId, stage);
+        }
+        taskManager.awaitTermination(Integer.MAX_VALUE, SECONDS, stagesByTaskId.keySet());
+        boolean completed = true;
+        for (Map.Entry<String, Stage> startedStage : stagesByTaskId.entrySet()) {
+            Task.State state = taskManager.getTask(startedStage.getKey()).getState();
             if (state != Task.State.DONE) {
-                logger.error("stage {} ended in state {}, stopping the pipeline: a downstream stage would read its partial queue as complete", stage, state);
-                return false;
+                logger.error("stage {} ended in state {}: its output is partial", startedStage.getValue(), state);
+                completed = false;
             }
         }
-        return true;
+        return completed;
     }
 
     static int handleUserCreate(UserAdminService service, Properties properties) {
