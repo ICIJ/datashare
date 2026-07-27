@@ -2,6 +2,7 @@ package org.icij.datashare.tasks;
 
 import org.apache.tika.parser.pdf.PDFParserConfig;
 import org.icij.datashare.asynctasks.Task;
+import org.icij.datashare.asynctasks.TaskRepositoryMemory;
 import org.icij.datashare.extract.DocumentCollectionFactory;
 import org.icij.datashare.test.LogbackAppenderWrapper;
 import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchSpewer;
@@ -27,12 +28,13 @@ import static org.mockito.Mockito.verify;
 
 public class IndexTaskTest {
     private final LogbackAppenderWrapper logWrapper = new LogbackAppenderWrapper();
+    private final TaskRepositoryMemory taskRepository = new TaskRepositoryMemory();
 
     @Test
     public void test_options_include_ocr() throws Exception {
         ElasticsearchSpewer spewer = mock(ElasticsearchSpewer.class);
         Mockito.when(spewer.configure(Mockito.any())).thenReturn(spewer);
-        IndexTask indexTask = new IndexTask(spewer, mock(DocumentCollectionFactory.class), new Task<>(IndexTask.class.getName(), nullUser(), new HashMap<>(){{
+        IndexTask indexTask = new IndexTask(spewer, mock(DocumentCollectionFactory.class), taskRepository, new Task<>(IndexTask.class.getName(), nullUser(), new HashMap<>(){{
             put("queueName", "test:queue");
         }}), null);
         Options<String> options = indexTask.options();
@@ -43,7 +45,7 @@ public class IndexTaskTest {
     public void test_options_include_ocr_language() throws Exception {
         ElasticsearchSpewer spewer = mock(ElasticsearchSpewer.class);
         Mockito.when(spewer.configure(Mockito.any())).thenReturn(spewer);
-        IndexTask indexTask = new IndexTask(spewer, mock(DocumentCollectionFactory.class), new Task<>(IndexTask.class.getName(), nullUser(), new HashMap<>(){{
+        IndexTask indexTask = new IndexTask(spewer, mock(DocumentCollectionFactory.class), taskRepository, new Task<>(IndexTask.class.getName(), nullUser(), new HashMap<>(){{
             put("queueName", "test:queue");
         }}), null);
         Options<String> options = indexTask.options();
@@ -54,7 +56,7 @@ public class IndexTaskTest {
     public void test_options_include_progress_heartbeat_interval() throws Exception {
         ElasticsearchSpewer spewer = mock(ElasticsearchSpewer.class);
         Mockito.when(spewer.configure(Mockito.any())).thenReturn(spewer);
-        IndexTask indexTask = new IndexTask(spewer, mock(DocumentCollectionFactory.class), new Task<>(IndexTask.class.getName(), nullUser(), new HashMap<>(){{
+        IndexTask indexTask = new IndexTask(spewer, mock(DocumentCollectionFactory.class), taskRepository, new Task<>(IndexTask.class.getName(), nullUser(), new HashMap<>(){{
             put("queueName", "test:queue");
         }}), null);
         Options<String> options = indexTask.options();
@@ -65,7 +67,7 @@ public class IndexTaskTest {
     public void test_options_include_language() throws Exception {
         ElasticsearchSpewer spewer = mock(ElasticsearchSpewer.class);
         Mockito.when(spewer.configure(Mockito.any())).thenReturn(spewer);
-        IndexTask indexTask = new IndexTask(spewer, mock(DocumentCollectionFactory.class), new Task<>(IndexTask.class.getName(), nullUser(), new HashMap<>(){{
+        IndexTask indexTask = new IndexTask(spewer, mock(DocumentCollectionFactory.class), taskRepository, new Task<>(IndexTask.class.getName(), nullUser(), new HashMap<>(){{
             put("language", "FRENCH");
             put("queueName", "test:queue");
         }}), null);
@@ -79,7 +81,7 @@ public class IndexTaskTest {
         ElasticsearchSpewer spewer = mock(ElasticsearchSpewer.class);
         Mockito.when(spewer.configure(Mockito.any())).thenReturn(spewer);
 
-        new IndexTask(spewer, mock(DocumentCollectionFactory.class), new Task<>(IndexTask.class.getName(), nullUser(), Map.of("charset", "UTF-16")), null);
+        new IndexTask(spewer, mock(DocumentCollectionFactory.class), taskRepository, new Task<>(IndexTask.class.getName(), nullUser(), Map.of("charset", "UTF-16")), null);
 
         ArgumentCaptor<Options> captor = ArgumentCaptor.forClass(Options.class);
         verify(spewer).configure(captor.capture());
@@ -92,7 +94,7 @@ public class IndexTaskTest {
         ElasticsearchSpewer spewer = mock(ElasticsearchSpewer.class);
         Mockito.when(spewer.configure(Mockito.any())).thenReturn(spewer);
 
-        new IndexTask(spewer, mock(DocumentCollectionFactory.class), new Task<>(IndexTask.class.getName(), nullUser(), Map.of("defaultProject", "foo", "projectName", "bar")), null);
+        new IndexTask(spewer, mock(DocumentCollectionFactory.class), taskRepository, new Task<>(IndexTask.class.getName(), nullUser(), Map.of("defaultProject", "foo", "projectName", "bar")), null);
 
         ArgumentCaptor<Options> captor = ArgumentCaptor.forClass(Options.class);
         verify(spewer).configure(captor.capture());
@@ -105,7 +107,7 @@ public class IndexTaskTest {
     public void test_ocr_strategy_reaches_extractor() throws Exception {
         ElasticsearchSpewer spewer = mock(ElasticsearchSpewer.class);
         Mockito.when(spewer.configure(Mockito.any())).thenReturn(spewer);
-        IndexTask indexTask = new IndexTask(spewer, mock(DocumentCollectionFactory.class),
+        IndexTask indexTask = new IndexTask(spewer, mock(DocumentCollectionFactory.class), taskRepository,
                 new Task<>(IndexTask.class.getName(), nullUser(), new HashMap<>(){{
                     put("queueName", "test:queue");
                 }}), null);
@@ -123,7 +125,7 @@ public class IndexTaskTest {
     public void test_max_embed_depth_reaches_extractor() throws Exception {
         ElasticsearchSpewer spewer = mock(ElasticsearchSpewer.class);
         Mockito.when(spewer.configure(Mockito.any())).thenReturn(spewer);
-        IndexTask indexTask = new IndexTask(spewer, mock(DocumentCollectionFactory.class),
+        IndexTask indexTask = new IndexTask(spewer, mock(DocumentCollectionFactory.class), taskRepository,
                 new Task<>(IndexTask.class.getName(), nullUser(), new HashMap<>(){{
                     put("queueName", "test:queue");
                 }}), null);
@@ -141,7 +143,7 @@ public class IndexTaskTest {
         ElasticsearchSpewer spewer = mock(ElasticsearchSpewer.class);
         Mockito.when(spewer.configure(Mockito.any())).thenReturn(spewer);
 
-        new IndexTask(spewer, mock(DocumentCollectionFactory.class),
+        new IndexTask(spewer, mock(DocumentCollectionFactory.class), taskRepository,
                 new Task<>(IndexTask.class.getName(), nullUser(),
                         Map.of(PARSE_TIMEOUT_OPT, "48h", "queueName", "test:queue")), null);
 
@@ -156,7 +158,7 @@ public class IndexTaskTest {
         ElasticsearchSpewer spewer = mock(ElasticsearchSpewer.class);
         Mockito.when(spewer.configure(Mockito.any())).thenReturn(spewer);
 
-        new IndexTask(spewer, mock(DocumentCollectionFactory.class),
+        new IndexTask(spewer, mock(DocumentCollectionFactory.class), taskRepository,
                 new Task<>(IndexTask.class.getName(), nullUser(),
                         Map.of(PARSE_TIMEOUT_OPT, "0", "queueName", "test:queue")), null);
 
@@ -169,7 +171,7 @@ public class IndexTaskTest {
         ElasticsearchSpewer spewer = mock(ElasticsearchSpewer.class);
         Mockito.when(spewer.configure(Mockito.any())).thenReturn(spewer);
 
-        new IndexTask(spewer, mock(DocumentCollectionFactory.class),
+        new IndexTask(spewer, mock(DocumentCollectionFactory.class), taskRepository,
                 new Task<>(IndexTask.class.getName(), nullUser(),
                         Map.of(PARSE_TIMEOUT_OPT, "48h", "queueName", "test:queue")), null);
 

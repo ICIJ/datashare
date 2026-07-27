@@ -4,6 +4,8 @@ import org.icij.datashare.PipelineHelper;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Stage;
 import org.icij.datashare.asynctasks.CancellableTask;
+import org.icij.datashare.asynctasks.TaskRepository;
+import org.icij.datashare.asynctasks.UnknownTask;
 import org.icij.datashare.extract.DocumentCollectionFactory;
 import org.icij.datashare.text.DocReference;
 import org.icij.datashare.text.Document;
@@ -14,11 +16,21 @@ import org.icij.extract.queue.DocumentQueue;
 import org.icij.task.DefaultTask;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.util.List;
+import java.util.Optional;
 
 import static java.util.Optional.ofNullable;
+import static org.icij.datashare.cli.DatashareCliOptions.POLLING_INTERVAL_SECONDS_OPT;
 
 public abstract class PipelineTask<T> extends DefaultTask<Long> implements UserTask, CancellableTask {
+    /**
+     * Task-arg key carrying the id of the task whose output feeds this stage's input queue. Set by
+     * the launcher (CliApp.runPipeline, TaskResource), never by an operator: it is not a CLI option.
+     */
+    public static final String UPSTREAM_TASK_ID = "upstreamTaskId";
+    private static final long DEFAULT_UPSTREAM_POLL_INTERVAL_MS = 1000;
+
     protected final DocumentQueue<T> inputQueue;
     protected final DocumentQueue<T> outputQueue;
     protected final Stage stage;
@@ -88,6 +100,46 @@ public abstract class PipelineTask<T> extends DefaultTask<Long> implements UserT
             }
         }
         return false;
+    }
+
+    /**
+     * The id of the task feeding this stage's input queue, or empty when this stage runs standalone
+     * against an already filled queue. Read from the task args, which is where the launcher puts it.
+     */
+    protected Optional<String> upstreamTaskId() {
+        return propertiesProvider.get(UPSTREAM_TASK_ID);
+    }
+
+    /**
+     * True while the producer feeding this stage may still enqueue. An absent upstream id, an
+     * unknown task, or a repository failure all mean "no upstream to wait for", so the consumer
+     * falls back to exiting on an empty queue, which is the pre-gate behaviour.
+     */
+    protected boolean upstreamRunning(TaskRepository taskRepository) {
+        return upstreamTaskId().map(upstreamTaskId -> {
+            try {
+                return !taskRepository.getTask(upstreamTaskId).getState().isFinal();
+            } catch (UnknownTask | IOException e) {
+                LoggerFactory.getLogger(getClass()).warn("cannot read upstream task {} state, treating it as finished", upstreamTaskId, e);
+                return false;
+            }
+        }).orElse(false);
+    }
+
+    /**
+     * True when a drain that just polled an empty queue may stop: the producer feeding it is
+     * terminal and the queue is still empty. The state read comes first on purpose, so an entry
+     * enqueued between the caller's poll and that read is caught by the emptiness check instead of
+     * being stranded. With no upstream id this is just "the queue is empty", which is the pre-gate
+     * behaviour: stop on the first empty poll.
+     */
+    protected boolean drained(TaskRepository taskRepository) {
+        return !upstreamRunning(taskRepository) && inputQueue.isEmpty();
+    }
+
+    /** How long to wait before re-polling a queue whose producer is still running. */
+    protected long upstreamPollIntervalMs() {
+        return propertiesProvider.get(POLLING_INTERVAL_SECONDS_OPT).map(Float::parseFloat).map(s -> (long)(s * 1000)).orElse(DEFAULT_UPSTREAM_POLL_INTERVAL_MS);
     }
 
     // ponytail: transitional. Redis queue keys survive upgrades, so a pre-21.16 run can leave a

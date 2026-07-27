@@ -47,7 +47,7 @@ public class TaskWorkerLoopForPipelineTasksTest {
     @Test
     public void test_index_task() throws Exception {
         Task<Long> task = new Task<>(IndexTask.class.getName(), User.local(), new HashMap<>());
-        IndexTask taskRunner = new IndexTask(spewer, mock(DocumentCollectionFactory.class), task, updateCallback);
+        IndexTask taskRunner = new IndexTask(spewer, mock(DocumentCollectionFactory.class), new TaskRepositoryMemory(), task, updateCallback);
         when(taskFactory.createIndexTask(any(), any())).thenReturn(taskRunner);
 
         testTaskWithTaskRunner(task);
@@ -56,7 +56,7 @@ public class TaskWorkerLoopForPipelineTasksTest {
     @Test
     public void test_extract_nlp_task() throws Exception {
         Task<Long> task = new Task<>(ExtractNlpTask.class.getName(), User.local(), Map.of("nlpPipeline", "EMAIL"));
-        ExtractNlpTask taskRunner = new ExtractNlpTask(mock(Indexer.class), new PipelineRegistry(new PropertiesProvider()), mock(DocumentCollectionFactory.class), task, updateCallback);
+        ExtractNlpTask taskRunner = new ExtractNlpTask(mock(Indexer.class), new PipelineRegistry(new PropertiesProvider()), mock(DocumentCollectionFactory.class), new TaskRepositoryMemory(), task, updateCallback);
         when(taskFactory.createExtractNlpTask(any(), any())).thenReturn(taskRunner);
 
         testTaskWithTaskRunner(task);
@@ -83,7 +83,7 @@ public class TaskWorkerLoopForPipelineTasksTest {
     @Test
     public void test_deduplicate_task() throws Exception {
         Task<Long> task = new Task<>(DeduplicateTask.class.getName(), User.local(), new HashMap<>());
-        DeduplicateTask taskRunner = new DeduplicateTask(mock(DocumentCollectionFactory.class), task, updateCallback);
+        DeduplicateTask taskRunner = new DeduplicateTask(mock(DocumentCollectionFactory.class), new TaskRepositoryMemory(), task, updateCallback);
         when(taskFactory.createDeduplicateTask(any(), any())).thenReturn(taskRunner);
 
         testTaskWithTaskRunner(task);

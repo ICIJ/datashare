@@ -1,6 +1,7 @@
 package org.icij.datashare.tasks;
 
 import org.icij.datashare.asynctasks.Task;
+import org.icij.datashare.asynctasks.TaskRepositoryMemory;
 import org.icij.datashare.extract.MemoryDocumentCollectionFactory;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.Language;
@@ -30,12 +31,13 @@ public class ExtractNlpTaskTest {
     @Mock private Indexer indexer;
     @Mock private AbstractPipeline pipeline;
     private final MemoryDocumentCollectionFactory<String> factory = new MemoryDocumentCollectionFactory<>();
+    private final TaskRepositoryMemory taskRepository = new TaskRepositoryMemory();
     private ExtractNlpTask nlpTask;
 
     @Before
     public void setUp() {
         initMocks(this);
-        nlpTask = new ExtractNlpTask(indexer, pipeline, factory, new Task<>(ExtractNlpTask.class.getName(), User.local(),
+        nlpTask = new ExtractNlpTask(indexer, pipeline, factory, taskRepository, new Task<>(ExtractNlpTask.class.getName(), User.local(),
                 Map.of("maxContentLength", "32")), null);
     }
 
@@ -52,7 +54,7 @@ public class ExtractNlpTaskTest {
         // The launcher awaits the producer stage before NLP starts, so an empty queue means done.
         // Deliberately no polling-interval option: the old bounded null-poll budget would have
         // waited out several default polling intervals here and blown this timeout.
-        ExtractNlpTask nlpTask = new ExtractNlpTask(indexer, pipeline, factory,
+        ExtractNlpTask nlpTask = new ExtractNlpTask(indexer, pipeline, factory, taskRepository,
                 new Task<>(ExtractNlpTask.class.getName(), User.local(), Map.of()), null);
 
         assertThat(nlpTask.call()).isEqualTo(0L);
