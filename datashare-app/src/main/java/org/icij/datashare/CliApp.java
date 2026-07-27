@@ -43,6 +43,7 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.time.Instant;
 import java.util.Date;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -176,8 +177,13 @@ class CliApp {
 
         PipelineHelper pipeline = new PipelineHelper(new PropertiesProvider(properties));
         logger.info("executing {}", pipeline);
-        runPipeline(taskManager, pipeline, properties);
+        boolean completed = runPipeline(taskManager, pipeline, properties);
         taskManager.shutdown();
+        if (!completed) {
+            // a partial run must not look like a success: `datashare ... && post-process.sh` would
+            // otherwise post-process a corpus that was never fully indexed
+            System.exit(EXIT_RUNTIME);
+        }
     }
 
     static final Map<Stage, Class<?>> TASK_CLASSES = Map.of(
@@ -195,16 +201,16 @@ class CliApp {
      * Runs the configured stages one at a time, awaiting each stage's task before starting the next.
      * Consumers stop as soon as their input queue is empty (there is no end-of-stream sentinel), so
      * this barrier is what makes "empty" mean "the producer is done" for any number of workers.
-     * PipelineHelper.stages is already sorted by Stage.comparator, which is pipeline order.
-     * That enum order runs CREATENLPBATCHESFROMIDX after NLP, so configuring both stages together
-     * is not a supported pairing: CreateNlpBatchesFromIndex searches .without(nlpPipeline), and by
-     * the time it runs, NLP has already marked every document it would otherwise have selected.
+     * PipelineHelper.stages is already sorted by Stage.comparator, which is pipeline order, and is
+     * de-duplicated here so a repeated --stages entry runs its stage once.
      * ponytail: launcher-side barrier, so a producer and its consumer stage no longer overlap. If
      * that overlap ever measures, gate the consumer on the upstream task state (pass the producer's
      * task id in the consumer's args) rather than reintroducing a sentinel.
+     *
+     * @return true when every configured stage completed, false when the pipeline aborted
      */
-    static void runPipeline(TaskManager taskManager, PipelineHelper pipeline, Properties properties) throws Exception {
-        for (Stage stage : pipeline.stages) {
+    static boolean runPipeline(TaskManager taskManager, PipelineHelper pipeline, Properties properties) throws Exception {
+        for (Stage stage : new LinkedHashSet<>(pipeline.stages)) {
             Class<?> taskClass = TASK_CLASSES.get(stage);
             if (taskClass == null) {
                 logger.warn("no task class for stage {}, skipping it", stage);
@@ -215,9 +221,10 @@ class CliApp {
             Task.State state = taskManager.getTask(taskId).getState();
             if (state != Task.State.DONE) {
                 logger.error("stage {} ended in state {}, stopping the pipeline: a downstream stage would read its partial queue as complete", stage, state);
-                return;
+                return false;
             }
         }
+        return true;
     }
 
     static int handleUserCreate(UserAdminService service, Properties properties) {

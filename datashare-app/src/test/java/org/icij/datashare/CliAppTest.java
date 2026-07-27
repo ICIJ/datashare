@@ -6,22 +6,15 @@ import org.icij.datashare.asynctasks.TaskManagerMemory;
 import org.icij.datashare.asynctasks.TaskRepositoryMemory;
 import org.icij.datashare.asynctasks.TaskResult;
 import org.icij.datashare.asynctasks.bus.amqp.TaskError;
-import org.icij.datashare.tasks.ArtifactTask;
-import org.icij.datashare.tasks.CategorizeTask;
-import org.icij.datashare.tasks.CreateNlpBatchesFromIndex;
 import org.icij.datashare.tasks.DatashareTaskFactory;
-import org.icij.datashare.tasks.DeduplicateTask;
-import org.icij.datashare.tasks.EnqueueFromIndexTask;
-import org.icij.datashare.tasks.ExtractNlpTask;
 import org.icij.datashare.tasks.IndexTask;
-import org.icij.datashare.tasks.ScanIndexTask;
 import org.icij.datashare.tasks.ScanTask;
 import org.icij.datashare.user.User;
 import org.junit.Test;
 import org.mockito.InOrder;
 
+import java.util.EnumSet;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
@@ -72,7 +65,7 @@ public class CliAppTest {
         Properties properties = new Properties();
         properties.setProperty("stages", "INDEX,SCAN");
 
-        CliApp.runPipeline(mockedManager, new PipelineHelper(new PropertiesProvider(properties)), properties);
+        assertThat(CliApp.runPipeline(mockedManager, new PipelineHelper(new PropertiesProvider(properties)), properties)).isTrue();
 
         InOrder inOrder = inOrder(mockedManager);
         inOrder.verify(mockedManager).startTask(eq(ScanTask.class), any(), any());
@@ -91,23 +84,32 @@ public class CliAppTest {
         Properties properties = new Properties();
         properties.setProperty("stages", "SCAN,INDEX");
 
-        CliApp.runPipeline(mockedManager, new PipelineHelper(new PropertiesProvider(properties)), properties);
+        // false is what makes the launcher exit non-zero instead of looking like a success
+        assertThat(CliApp.runPipeline(mockedManager, new PipelineHelper(new PropertiesProvider(properties)), properties)).isFalse();
 
         verify(mockedManager, never()).startTask(eq(IndexTask.class), any(), any());
     }
 
     @Test
+    public void test_run_pipeline_runs_a_repeated_stage_only_once() throws Exception {
+        TaskManager mockedManager = mock(TaskManager.class);
+        when(mockedManager.startTask(eq(ScanTask.class), any(), any())).thenReturn("id-scan");
+        when(mockedManager.startTask(eq(IndexTask.class), any(), any())).thenReturn("id-index");
+        doReturn(doneTask()).when(mockedManager).getTask("id-scan");
+        doReturn(doneTask()).when(mockedManager).getTask("id-index");
+        Properties properties = new Properties();
+        properties.setProperty("stages", "SCAN,SCAN,INDEX");
+
+        assertThat(CliApp.runPipeline(mockedManager, new PipelineHelper(new PropertiesProvider(properties)), properties)).isTrue();
+
+        // twice would walk and enqueue the whole data dir a second time
+        verify(mockedManager).startTask(eq(ScanTask.class), any(), any());
+    }
+
+    @Test
     public void test_task_classes_maps_every_stage_to_its_task_class() {
-        assertThat(CliApp.TASK_CLASSES.get(Stage.SCAN)).isEqualTo(ScanTask.class);
-        assertThat(CliApp.TASK_CLASSES.get(Stage.SCANIDX)).isEqualTo(ScanIndexTask.class);
-        assertThat(CliApp.TASK_CLASSES.get(Stage.DEDUPLICATE)).isEqualTo(DeduplicateTask.class);
-        assertThat(CliApp.TASK_CLASSES.get(Stage.INDEX)).isEqualTo(IndexTask.class);
-        assertThat(CliApp.TASK_CLASSES.get(Stage.ENQUEUEIDX)).isEqualTo(EnqueueFromIndexTask.class);
-        assertThat(CliApp.TASK_CLASSES.get(Stage.CATEGORIZE)).isEqualTo(CategorizeTask.class);
-        assertThat(CliApp.TASK_CLASSES.get(Stage.CREATENLPBATCHESFROMIDX)).isEqualTo(CreateNlpBatchesFromIndex.class);
-        assertThat(CliApp.TASK_CLASSES.get(Stage.NLP)).isEqualTo(ExtractNlpTask.class);
-        assertThat(CliApp.TASK_CLASSES.get(Stage.ARTIFACT)).isEqualTo(ArtifactTask.class);
-        assertThat(CliApp.TASK_CLASSES.get(Stage.BATCHNLP)).isNull();
+        // asserted against the enum, so a stage added without a task class fails here
+        assertThat(EnumSet.copyOf(CliApp.TASK_CLASSES.keySet())).isEqualTo(EnumSet.complementOf(EnumSet.of(Stage.BATCHNLP)));
     }
 
     private static Task<Long> doneTask() {
