@@ -74,6 +74,13 @@ public class IndexTask extends PipelineTask<Path> implements Monitorable{
 
         consumer = new DocumentConsumer(spewer, this.extractor, this.parallelism);
         progressTrackConsumer = path -> {
+            // ponytail: transitional. Redis queue keys survive upgrades, so a pre-21.16 run can
+            // leave a "POISON" path in this queue. Skip it instead of trying to extract a file
+            // named POISON. Remove once no live queue predates 21.16.
+            if (PATH_POISON.equals(path)) {
+                logger.warn("skipping legacy POISON entry in queue {}", inputQueue.getName());
+                return;
+            }
             consumer.accept(path);
             processed.incrementAndGet();
             if (progressCallback != null) {
@@ -92,7 +99,7 @@ public class IndexTask extends PipelineTask<Path> implements Monitorable{
         super.call();
         logger.info("Processing up to {} file(s) in parallel", parallelism);
         try {
-            totalToProcess = drainer.drain(PATH_POISON).get();
+            totalToProcess = drainer.drain().get();
             drainer.shutdown();
             drainer.awaitTermination(10, SECONDS); // drain is finished
             logger.info("drained {} documents. Waiting for consumer to shutdown", totalToProcess);
