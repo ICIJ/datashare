@@ -132,10 +132,8 @@ public class ArtifactTask extends PipelineTask<String> {
         ArtifactProducer producer = new ArtifactProducer(new FilesystemManifestRepository());
         Path projectRoot = artifactDir.resolve(project.name);
         String queueEntry;
-        // The launcher awaits ENQUEUEIDX before starting this stage, so an empty queue means the
-        // producer is done: a non-blocking poll returning null is the terminal condition, for one
-        // worker or for N. The interrupt check keeps cancellation prompt, since cancel() calls
-        // executor.shutdownNow() while a worker may be between two polls.
+        // The interrupt check keeps cancellation prompt, since cancel() calls executor.shutdownNow()
+        // while a worker may sit between two non-blocking polls.
         while (!Thread.currentThread().isInterrupted() && (queueEntry = inputQueue.poll()) != null) {
             try {
                 Document doc = getDocument(indexer, project.name, DocReference.parse(queueEntry), SOURCE_EXCLUDES);
@@ -151,6 +149,10 @@ public class ArtifactTask extends PipelineTask<String> {
                     nbFailed.incrementAndGet();
                 }
             } catch (Throwable e) {
+                if (e instanceof InterruptedException) {
+                    Thread.currentThread().interrupt();
+                    break;
+                }
                 logger.error("error in ArtifactTask loop", e);
                 nbFailed.incrementAndGet();
             }

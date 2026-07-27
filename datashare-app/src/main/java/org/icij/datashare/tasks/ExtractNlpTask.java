@@ -70,15 +70,22 @@ public class ExtractNlpTask extends PipelineTask<String> implements Monitorable 
         logger.info("extracting Named Entities with pipeline {} for {} from queue {}", nlpPipeline.getType(), project, inputQueue.getName());
         String queueEntry;
         long nbMessages = 0;
-        while ((queueEntry = inputQueue.poll()) != null) {
+        while (!Thread.currentThread().isInterrupted() && (queueEntry = inputQueue.poll()) != null) {
             try {
                 findNamedEntities(project, queueEntry);
                 nbMessages++;
                 processed.incrementAndGet();
                 progressCallback.apply(getProgressRate());
             } catch (Throwable e) {
+                if (e instanceof InterruptedException) {
+                    Thread.currentThread().interrupt();
+                    break;
+                }
                 logger.error("error in ExtractNlpTask loop on doc {}", queueEntry, e);
             }
+        }
+        if (Thread.currentThread().isInterrupted()) {
+            throw new InterruptedException("cancelled while draining " + inputQueue.getName());
         }
         logger.info("exiting ExtractNlpTask loop after {} messages.", nbMessages);
         return nbMessages;
