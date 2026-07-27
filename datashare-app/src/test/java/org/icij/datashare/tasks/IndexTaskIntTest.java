@@ -30,7 +30,6 @@ import java.util.*;
 import java.util.function.Function;
 
 import static org.fest.assertions.Assertions.assertThat;
-import static org.icij.datashare.tasks.PipelineTask.STRING_POISON;
 import static org.mockito.Mockito.verify;
 
 public class IndexTaskIntTest {
@@ -63,7 +62,7 @@ public class IndexTaskIntTest {
             outputQueueFactory, text -> Language.ENGLISH, new FieldNames(), propertiesProvider);
 
     @Test
-    public void index_task_should_enqueue_poison_pill() throws Exception {
+    public void index_task_should_enqueue_indexed_doc_ids() throws Exception {
         DocumentQueue<Path> queue = inputQueueFactory.createQueue(new PipelineHelper(propertiesProvider).getQueueNameFor(Stage.INDEX), Path.class);
         queue.add(Paths.get(ClassLoader.getSystemResource("docs/doc.txt").getPath()));
 
@@ -71,9 +70,8 @@ public class IndexTaskIntTest {
 
         assertThat(nbDocs).isEqualTo(1);
         DocumentQueue<String> outputQueue = outputQueueFactory.createQueue(new PipelineHelper(propertiesProvider).getOutputQueueNameFor(Stage.INDEX), String.class);
-        assertThat(outputQueue).hasSize(2);
+        assertThat(outputQueue).hasSize(1);
         assertThat(outputQueue.poll()).isEqualTo("bc6852541ef5200206a7a9740f3d2d62178a1f53b1aa5417ab426c6ec1f7cbc7");
-        assertThat(outputQueue.poll()).isEqualTo(STRING_POISON);
     }
 
     @Test

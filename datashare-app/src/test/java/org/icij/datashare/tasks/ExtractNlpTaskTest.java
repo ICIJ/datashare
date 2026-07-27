@@ -15,8 +15,6 @@ import java.util.Map;
 
 import static java.util.Collections.emptyList;
 import static org.fest.assertions.Assertions.assertThat;
-import static org.icij.datashare.cli.DatashareCliOptions.POLLING_INTERVAL_SECONDS_OPT;
-import static org.icij.datashare.tasks.ExtractNlpTask.NB_MAX_POLLS;
 import static org.icij.datashare.text.DocumentBuilder.createDoc;
 import static org.icij.datashare.text.Language.ENGLISH;
 import static org.icij.datashare.text.Project.project;
@@ -48,14 +46,15 @@ public class ExtractNlpTaskTest {
         verify(pipeline, never()).process(any());
     }
 
-    @Test(timeout = 3000)
-    public void test_exit_after_nb_max_attempts()  throws Exception  {
-        ExtractNlpTask nlpTask = new ExtractNlpTask(indexer, pipeline, factory, new Task<>(ExtractNlpTask.class.getName(), User.local(),
-                Map.of(POLLING_INTERVAL_SECONDS_OPT, "0.1")), null);
-        long start = System.currentTimeMillis();
-        nlpTask.call();
-        long end = System.currentTimeMillis();
-        assertThat(end - start).isGreaterThan(NB_MAX_POLLS * 100);
+    @Test(timeout = 2000)
+    public void test_returns_immediately_when_queue_is_empty() throws Exception {
+        // The launcher awaits the producer stage before NLP starts, so an empty queue means done.
+        // Deliberately no polling-interval option: the old bounded null-poll budget would have
+        // waited out several default polling intervals here and blown this timeout.
+        ExtractNlpTask nlpTask = new ExtractNlpTask(indexer, pipeline, factory,
+                new Task<>(ExtractNlpTask.class.getName(), User.local(), Map.of()), null);
+
+        assertThat(nlpTask.call()).isEqualTo(0L);
     }
 
     @Test
