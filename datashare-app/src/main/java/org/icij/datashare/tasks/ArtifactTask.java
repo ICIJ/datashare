@@ -164,7 +164,7 @@ public class ArtifactTask extends PipelineTask<String> {
                     break;
                 }
                 try {
-                    Thread.sleep(upstreamPollIntervalMs());
+                    Thread.sleep(UPSTREAM_POLL_INTERVAL_MS);
                 } catch (InterruptedException e) {
                     // a Runnable cannot throw it: re-interrupt so call()'s check reports CANCELLED
                     Thread.currentThread().interrupt();

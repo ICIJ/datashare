@@ -21,7 +21,6 @@ import java.util.List;
 import java.util.Optional;
 
 import static java.util.Optional.ofNullable;
-import static org.icij.datashare.cli.DatashareCliOptions.POLLING_INTERVAL_SECONDS_OPT;
 
 public abstract class PipelineTask<T> extends DefaultTask<Long> implements UserTask, CancellableTask {
     /**
@@ -29,7 +28,12 @@ public abstract class PipelineTask<T> extends DefaultTask<Long> implements UserT
      * the launcher (CliApp.runPipeline, TaskResource), never by an operator: it is not a CLI option.
      */
     public static final String UPSTREAM_TASK_ID = "upstreamTaskId";
-    private static final long DEFAULT_UPSTREAM_POLL_INTERVAL_MS = 1000;
+    /**
+     * How long a drain waits before re-polling a queue whose producer is still running. Fixed, not
+     * an option: it paces an internal wait, and reading pollingInterval made stage handoff up to a
+     * minute slow (that option's CLI default) while muddying what that option means.
+     */
+    protected static final long UPSTREAM_POLL_INTERVAL_MS = 1000;
 
     protected final DocumentQueue<T> inputQueue;
     protected final DocumentQueue<T> outputQueue;
@@ -135,11 +139,6 @@ public abstract class PipelineTask<T> extends DefaultTask<Long> implements UserT
      */
     protected boolean drained(TaskRepository taskRepository) {
         return !upstreamRunning(taskRepository) && inputQueue.isEmpty();
-    }
-
-    /** How long to wait before re-polling a queue whose producer is still running. */
-    protected long upstreamPollIntervalMs() {
-        return propertiesProvider.get(POLLING_INTERVAL_SECONDS_OPT).map(Float::parseFloat).map(s -> (long)(s * 1000)).orElse(DEFAULT_UPSTREAM_POLL_INTERVAL_MS);
     }
 
     // ponytail: transitional. Redis queue keys survive upgrades, so a pre-21.16 run can leave a

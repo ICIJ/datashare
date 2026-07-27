@@ -75,7 +75,7 @@ public class CategorizeTask extends PipelineTask<String> implements Monitorable 
                 if (drained(taskRepository)) {
                     break;
                 }
-                Thread.sleep(upstreamPollIntervalMs());
+                Thread.sleep(UPSTREAM_POLL_INTERVAL_MS);
                 continue;
             }
             // before the offer below, so the sentinel is not forwarded downstream

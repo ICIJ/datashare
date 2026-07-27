@@ -39,7 +39,6 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import static org.fest.assertions.Assertions.assertThat;
 import static org.icij.datashare.PropertiesProvider.DEFAULT_QUEUE_CAPACITY;
-import static org.icij.datashare.cli.DatashareCliOptions.POLLING_INTERVAL_SECONDS_OPT;
 import static org.mockito.Mockito.verify;
 import static org.mockito.MockitoAnnotations.initMocks;
 
@@ -453,8 +452,8 @@ public class ArtifactTaskTest {
         ArtifactTask artifactTask = new ArtifactTask(factory, mockEs, new PropertiesProvider(Map.of(
                 "artifactDir", artifactDir.getRoot().toString(),
                 "defaultProject", "prj")),
-                taskRepository, new Task<>(ArtifactTask.class.getName(), User.local(), Map.of(
-                PipelineTask.UPSTREAM_TASK_ID, upstream.id, POLLING_INTERVAL_SECONDS_OPT, "0.05")), null);
+                taskRepository, new Task<>(ArtifactTask.class.getName(), User.local(),
+                Map.of(PipelineTask.UPSTREAM_TASK_ID, upstream.id)), null);
 
         ExecutorService executor = Executors.newSingleThreadExecutor();
         try {

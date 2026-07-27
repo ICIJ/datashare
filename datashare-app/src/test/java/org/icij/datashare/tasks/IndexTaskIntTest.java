@@ -41,7 +41,6 @@ import java.util.function.Function;
 
 import static org.fest.assertions.Assertions.assertThat;
 import static org.icij.datashare.PropertiesProvider.DEFAULT_QUEUE_CAPACITY;
-import static org.icij.datashare.cli.DatashareCliOptions.POLLING_INTERVAL_SECONDS_OPT;
 import static org.mockito.Mockito.verify;
 
 public class IndexTaskIntTest {
@@ -146,7 +145,6 @@ public class IndexTaskIntTest {
         inputQueueFactory.queues.put(queueName, queue);
         Map<String, Object> args = new HashMap<>(map);
         args.put(PipelineTask.UPSTREAM_TASK_ID, upstream.id);
-        args.put(POLLING_INTERVAL_SECONDS_OPT, "0.05");
         IndexTask indexTask = new IndexTask(spewer, inputQueueFactory, taskRepository,
                 new Task<>(IndexTask.class.getName(), User.local(), args), null);
 
