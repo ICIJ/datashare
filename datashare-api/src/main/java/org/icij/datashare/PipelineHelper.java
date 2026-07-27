@@ -21,10 +21,6 @@ public class PipelineHelper {
         stages.sort(Stage.comparator);
     }
 
-    public boolean has(Stage stage) {
-        return stages.contains(stage);
-    }
-
     public String getQueueNameFor(Stage stage) {
         return stage.isFirstEnum() ? null: getQueueName(propertiesProvider, stage);
     }

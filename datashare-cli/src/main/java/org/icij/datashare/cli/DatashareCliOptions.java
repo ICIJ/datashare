@@ -1077,7 +1077,7 @@ public final class DatashareCliOptions {
     }
 
     public static void pollingInterval(OptionParser parser) {
-        parser.acceptsAll(singletonList(POLLING_INTERVAL_SECONDS_OPT), "Queue polling interval.")
+        parser.acceptsAll(singletonList(POLLING_INTERVAL_SECONDS_OPT), "task worker termination interval (seconds)")
                 .withRequiredArg()
                 .ofType(String.class).defaultsTo(DEFAULT_POLLING_INTERVAL_SEC);
     }

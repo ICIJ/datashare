@@ -29,6 +29,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.Duration;
 import org.icij.time.HumanDuration;
 
@@ -48,6 +49,7 @@ import static org.icij.datashare.cli.DatashareCliOptions.*;
 @Option(name = "projectName", description = "task project name")
 @TaskGroup(TaskGroupType.Java)
 public class IndexTask extends PipelineTask<Path> implements Monitorable{
+    private static final Path PATH_POISON = Paths.get("POISON");
     private final Logger logger = LoggerFactory.getLogger(getClass());
     private final Extractor extractor;
     private final DocumentQueueDrainer<Path> drainer;
@@ -76,7 +78,7 @@ public class IndexTask extends PipelineTask<Path> implements Monitorable{
         progressTrackConsumer = path -> {
             // ponytail: transitional. Redis queue keys survive upgrades, so a pre-21.16 run can
             // leave a "POISON" path in this queue. Skip it instead of trying to extract a file
-            // named POISON. Remove once no live queue predates 21.16.
+            // named POISON. delete in 21.18.
             if (PATH_POISON.equals(path)) {
                 logger.warn("skipping legacy POISON entry in queue {}", inputQueue.getName());
                 return;
