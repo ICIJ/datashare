@@ -33,6 +33,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.Charset;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -402,5 +403,43 @@ public class SourceExtractorTest {
                 ARTIFACT_DIR_OPT, tmpDir.getRoot().toString(),
                 NO_DIGEST_PROJECT_OPT, String.valueOf(noDigestProject))
         );
+    }
+
+    @Test
+    public void test_has_cached_embedded_source_true_when_raw_file_exists() throws Exception {
+        String embeddedId = "a1b2c3d4e5f6a7b8c9d0a1b2c3d4e5f6a7b8c9d0a1b2c3d4e5f6a7b8c9d0a1b2";
+        File artifactDir = tmpDir.newFolder("artifacts");
+        // extract-lib's layout: <artifactDir>/<project>/<id[0:2]>/<id[2:4]>/<id>/raw
+        Path rawFile = artifactDir.toPath().resolve("prj").resolve("a1").resolve("b2").resolve(embeddedId).resolve("raw");
+        Files.createDirectories(rawFile.getParent());
+        Files.write(rawFile, "embedded bytes".getBytes());
+        Document embedded = DocumentBuilder.createDoc(embeddedId).with(project("prj")).build();
+
+        SourceExtractor extractor = new SourceExtractor(new PropertiesProvider(Map.of(ARTIFACT_DIR_OPT, artifactDir.toString())));
+
+        assertThat(extractor.hasCachedEmbeddedSource(project("prj"), embedded)).isTrue();
+    }
+
+    @Test
+    public void test_has_cached_embedded_source_false_when_dir_exists_without_raw_file() throws Exception {
+        String embeddedId = "a1b2c3d4e5f6a7b8c9d0a1b2c3d4e5f6a7b8c9d0a1b2c3d4e5f6a7b8c9d0a1b2";
+        File artifactDir = tmpDir.newFolder("artifacts_no_raw");
+        // The document dir can exist with only a manifest in it (nothing produced yet).
+        Files.createDirectories(artifactDir.toPath().resolve("prj").resolve("a1").resolve("b2").resolve(embeddedId));
+        Document embedded = DocumentBuilder.createDoc(embeddedId).with(project("prj")).build();
+
+        SourceExtractor extractor = new SourceExtractor(new PropertiesProvider(Map.of(ARTIFACT_DIR_OPT, artifactDir.toString())));
+
+        assertThat(extractor.hasCachedEmbeddedSource(project("prj"), embedded)).isFalse();
+    }
+
+    @Test
+    public void test_has_cached_embedded_source_false_when_no_artifact_dir_configured() {
+        String embeddedId = "a1b2c3d4e5f6a7b8c9d0a1b2c3d4e5f6a7b8c9d0a1b2c3d4e5f6a7b8c9d0a1b2";
+        Document embedded = DocumentBuilder.createDoc(embeddedId).with(project("prj")).build();
+
+        SourceExtractor extractor = new SourceExtractor(new PropertiesProvider(Map.of()));
+
+        assertThat(extractor.hasCachedEmbeddedSource(project("prj"), embedded)).isFalse();
     }
 }
