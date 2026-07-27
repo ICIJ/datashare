@@ -4,6 +4,7 @@ package org.icij.datashare.tasks;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.asynctasks.TaskRepositoryMemory;
+import org.icij.datashare.asynctasks.TaskResult;
 import org.icij.datashare.extract.MemoryDocumentCollectionFactory;
 import org.icij.datashare.test.LogbackCapturingRule;
 import org.icij.datashare.text.Document;
@@ -13,6 +14,7 @@ import org.icij.datashare.text.indexing.elasticsearch.SourceExtractor;
 import org.icij.datashare.user.User;
 import org.icij.extract.document.TikaDocument;
 import org.icij.extract.queue.DocumentQueue;
+import org.icij.extract.queue.MemoryDocumentQueue;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -26,12 +28,18 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.fest.assertions.Assertions.assertThat;
+import static org.icij.datashare.PropertiesProvider.DEFAULT_QUEUE_CAPACITY;
+import static org.icij.datashare.cli.DatashareCliOptions.POLLING_INTERVAL_SECONDS_OPT;
 import static org.mockito.Mockito.verify;
 import static org.mockito.MockitoAnnotations.initMocks;
 
@@ -420,6 +428,45 @@ public class ArtifactTaskTest {
         assertThat(logback.logs(Level.WARN)).contains("skipping legacy POISON sentinel in queue extract:queue:artifact");
         // the sentinel must not be reported as a document the operator should re-run the stage for
         assertThat(logback.logs(Level.ERROR)).excludes("1 document(s) could not be retrieved from index prj and got no artifact cache, re-run the ARTIFACT stage for them");
+    }
+
+    @Test(timeout = 30000)
+    public void test_waits_for_the_upstream_task_before_leaving_an_empty_queue() throws Exception {
+        indexEmbeddedDoc();
+        Task<Long> upstream = new Task<>(EnqueueFromIndexTask.class.getName(), User.local(), Map.of());
+        upstream.setState(Task.State.RUNNING);
+        taskRepository.insert(upstream, null);
+        CountDownLatch firstEmptyPoll = new CountDownLatch(1);
+        DocumentQueue<String> queue = new MemoryDocumentQueue<>("extract:queue:artifact", DEFAULT_QUEUE_CAPACITY) {
+            @Override
+            public String poll() {
+                String polled = super.poll();
+                if (polled == null) {
+                    firstEmptyPoll.countDown();
+                }
+                return polled;
+            }
+        };
+        factory.queues.put("extract:queue:artifact", queue);
+        // this task reads its options from the injected properties, so the upstream id set by the
+        // launcher only exists in the task args: the queue must still be drained
+        ArtifactTask artifactTask = new ArtifactTask(factory, mockEs, new PropertiesProvider(Map.of(
+                "artifactDir", artifactDir.getRoot().toString(),
+                "defaultProject", "prj")),
+                taskRepository, new Task<>(ArtifactTask.class.getName(), User.local(), Map.of(
+                PipelineTask.UPSTREAM_TASK_ID, upstream.id, POLLING_INTERVAL_SECONDS_OPT, "0.05")), null);
+
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        try {
+            Future<Long> produced = executor.submit((Callable<Long>) artifactTask::call);
+            assertThat(firstEmptyPoll.await(20, TimeUnit.SECONDS)).isTrue();
+            queue.add(EMBEDDED_DOC_SHA256);
+            upstream.setResult(new TaskResult<>(0L));
+
+            assertThat(produced.get(20, TimeUnit.SECONDS)).isEqualTo(1);
+        } finally {
+            executor.shutdownNow();
+        }
     }
 
     private void indexEmbeddedDoc() throws URISyntaxException {
