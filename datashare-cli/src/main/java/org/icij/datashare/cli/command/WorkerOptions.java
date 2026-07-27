@@ -22,7 +22,7 @@ public class WorkerOptions {
     @Option(names = {"--taskRoutingKey"}, description = "Task routing key")
     String taskRoutingKey;
 
-    @Option(names = {"--pollingInterval"}, description = "task worker termination interval (seconds)", defaultValue = "60")
+    @Option(names = {"--pollingInterval"}, description = "in-memory task manager only (ignored with a Redis or AMQP task manager): base interval in seconds for waiting on task worker termination, the window is twice this value", defaultValue = "60")
     String pollingInterval;
 
     @Option(names = {"--taskRepositoryType"}, description = "Task repository type", defaultValue = "DATABASE")

@@ -1077,7 +1077,7 @@ public final class DatashareCliOptions {
     }
 
     public static void pollingInterval(OptionParser parser) {
-        parser.acceptsAll(singletonList(POLLING_INTERVAL_SECONDS_OPT), "task worker termination interval (seconds)")
+        parser.acceptsAll(singletonList(POLLING_INTERVAL_SECONDS_OPT), "in-memory task manager only (ignored with a Redis or AMQP task manager): base interval in seconds for waiting on task worker termination, the window is twice this value")
                 .withRequiredArg()
                 .ofType(String.class).defaultsTo(DEFAULT_POLLING_INTERVAL_SEC);
     }
