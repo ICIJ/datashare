@@ -90,15 +90,6 @@ public class EnqueueFromIndexTask extends PipelineTask<String> {
                 docsToProcess.forEach(doc -> outputQueue.add(DocReference.fromDocument((Document) doc).toQueueEntry()));
                 docsToProcess = searcher.scroll(scrollDuration).toList();
             } while (!docsToProcess.isEmpty());
-            searcher.clearScroll();
-            if (nextStage == Stage.ARTIFACT) {
-                // ArtifactTask workers terminate on this sentinel instead of an empty-poll
-                // timeout, so a slow/large scroll can never race a worker into exiting before
-                // all doc refs are enqueued. Scoped to ARTIFACT only: NLP consumers
-                // (ExtractNlpTask) have their own termination (bounded null-poll retries) and
-                // are left untouched.
-                outputQueue.add(STRING_POISON);
-            }
             logger.info("enqueued into {} {} files", outputQueue.getName(), totalHits);
         }
         return totalHits;

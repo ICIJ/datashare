@@ -99,10 +99,7 @@ public class EnqueueFromIndexTaskTest {
         EnqueueFromIndexTask enqueueFromIndex = new EnqueueFromIndexTask(factory, indexer,
                 new Task<>(EnqueueFromIndexTask.class.getName(), new User("test"), properties), null);
         enqueueFromIndex.call();
-        // 5 doc refs + the POISON sentinel that lets ArtifactTask workers terminate without
-        // waiting on a poll timeout.
-        assertThat(factory.queues.get("test:queue:artifact")).hasSize(6);
-        assertThat(factory.queues.get("test:queue:artifact")).contains(PipelineTask.STRING_POISON);
+        assertThat(factory.queues.get("test:queue:artifact")).hasSize(5);
     }
 
     @Test
