@@ -103,7 +103,7 @@ public class IndexTask extends PipelineTask<Path> implements Monitorable{
         // The drainer has no notion of an upstream stage: without a latch it stops on its first
         // empty poll, which is only right when the producer has already finished.
         if (upstreamTaskId().isPresent()) {
-            drainer.setLatch(new UpstreamSealableLatch(() -> drained(taskRepository), upstreamPollIntervalMs()));
+            drainer.setLatch(new UpstreamSealableLatch(() -> drained(taskRepository), UPSTREAM_POLL_INTERVAL_MS));
         }
     }
 

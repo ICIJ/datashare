@@ -29,7 +29,6 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.fest.assertions.Assertions.assertThat;
 import static org.fest.assertions.Fail.fail;
 import static org.icij.datashare.PropertiesProvider.DEFAULT_QUEUE_CAPACITY;
-import static org.icij.datashare.cli.DatashareCliOptions.POLLING_INTERVAL_SECONDS_OPT;
 import static org.icij.datashare.tasks.PipelineTask.UPSTREAM_TASK_ID;
 import static org.mockito.Mockito.verify;
 import static org.mockito.MockitoAnnotations.initMocks;
@@ -111,8 +110,7 @@ public class UpstreamGateTest {
     }
 
     private ExtractNlpTask nlpTaskGatedOn(Task<Long> upstream) {
-        // 0.05s keeps the wait loop short: the assertions wait on a latch or on the task's return
-        Map<String, Object> args = Map.of(UPSTREAM_TASK_ID, upstream.id, POLLING_INTERVAL_SECONDS_OPT, "0.05");
+        Map<String, Object> args = Map.of(UPSTREAM_TASK_ID, upstream.id);
         return new ExtractNlpTask(indexer, pipeline, factory, taskRepository,
                 new Task<>(ExtractNlpTask.class.getName(), User.local(), args), progress -> null);
     }

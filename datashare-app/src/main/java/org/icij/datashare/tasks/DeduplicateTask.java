@@ -68,7 +68,7 @@ public class DeduplicateTask extends PipelineTask<Path> {
                     if (drained(taskRepository)) {
                         break;
                     }
-                    Thread.sleep(upstreamPollIntervalMs());
+                    Thread.sleep(UPSTREAM_POLL_INTERVAL_MS);
                     continue;
                 }
                 if (filter.test(path)) {
