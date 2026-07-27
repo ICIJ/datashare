@@ -20,12 +20,14 @@ import org.mockito.Mock;
 import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.fest.assertions.Assertions.assertThat;
+import static org.fest.assertions.Fail.fail;
 import static org.icij.datashare.PropertiesProvider.DEFAULT_QUEUE_CAPACITY;
 import static org.icij.datashare.cli.DatashareCliOptions.POLLING_INTERVAL_SECONDS_OPT;
 import static org.icij.datashare.tasks.PipelineTask.UPSTREAM_TASK_ID;
@@ -72,6 +74,25 @@ public class UpstreamGateTest {
         assertThat(consumed.get(20, SECONDS)).isEqualTo(2L);
         verify(indexer).get("local-datashare", "docId1", "docId1");
         verify(indexer).get("local-datashare", "docId2", "docId2");
+    }
+
+    @Test(timeout = 30000)
+    public void test_cancelling_a_consumer_waiting_for_its_upstream_reports_an_interruption() throws Exception {
+        Task<Long> upstream = runningUpstreamTask();
+        nlpQueueSignallingEmptyPolls();
+        ExtractNlpTask nlpTask = nlpTaskGatedOn(upstream);
+
+        Future<Long> consumed = consumerExecutor.submit((Callable<Long>) nlpTask::call);
+        assertThat(firstEmptyPoll.await(20, SECONDS)).isTrue();
+        nlpTask.cancel(false);
+
+        try {
+            consumed.get(20, SECONDS);
+            fail("cancelling a waiting consumer must not look like a completed run");
+        } catch (ExecutionException e) {
+            // TaskWorkerLoop turns this into CANCELLED: a waiting drain must not report DONE
+            assertThat(e.getCause()).isInstanceOf(InterruptedException.class);
+        }
     }
 
     @Test(timeout = 10000)
