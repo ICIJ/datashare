@@ -48,6 +48,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Path;
 import java.util.*;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static java.lang.Boolean.parseBoolean;
@@ -106,17 +107,42 @@ public class DocumentResource {
     public Payload getSourceFile(final String project, final String id,
                                  final String routing, final String filterMetadata, final Context context) throws IOException {
         boolean inline = context.request().query().getBoolean("inline");
+        return sourceFile(project, id, routing, context,
+                document -> getPayload(document, project, inline, parseBoolean(filterMetadata)));
+    }
+
+    @Operation(description = "Tells whether the source of a document can be downloaded, without transferring it. Same decision as GET on the same route (permissions, existence, and the embedded-document size limit), so clients don't have to reimplement the rule.",
+                parameters = {
+                    @Parameter(name = "project", description = "project id", in = ParameterIn.PATH),
+                    @Parameter(name = "id", description = "hash of the document", in = ParameterIn.PATH),
+                    @Parameter(name = "routing", description = "routing key if not a root document", in = ParameterIn.QUERY),
+                }
+    )
+    @ApiResponse(responseCode = "200", description = "the source can be downloaded")
+    @ApiResponse(responseCode = "403", description = "forbidden if the user doesn't have access to the project or downloads are restricted")
+    @ApiResponse(responseCode = "404", description = "if no document is found")
+    @ApiResponse(responseCode = "413", description = "if the root document is too large and no raw artifact is cached for this embedded document")
+    @Head("/:project/documents/src/:id?routing=:routing")
+    public Payload headSourceFile(final String project, final String id, final String routing, final Context context) {
+        return sourceFile(project, id, routing, context, document -> ok());
+    }
+
+    // Single decision for both verbs of the source route: GET serves the bytes, HEAD serves the
+    // verdict alone. Keeping them on one path is what stops the two from drifting apart, which is
+    // exactly how the frontend ended up reimplementing the size rule in the first place.
+    private Payload sourceFile(final String project, final String id, final String routing,
+                               final Context context, final Function<Document, Payload> whenAllowed) {
         boolean isProjectGranted = ((DatashareUser) context.currentUser()).isGranted(project);
         boolean isDownloadAllowed = isAllowed(repository.getProject(project), context.request().clientAddress());
-        if (isProjectGranted && isDownloadAllowed) {
-            List<String> sourceExcludes = List.of("content", "content_translated");
-            Document document = indexer.get(project, id, routing == null ? id : routing, sourceExcludes);
-            if(documentVerifier.isRootDocumentSizeAllowed(document)) {
-                return getPayload(document, project, inline, parseBoolean(filterMetadata));
-            }
+        if (!isProjectGranted || !isDownloadAllowed) {
+            return PayloadFormatter.error("You are not allowed to download this document", HttpStatus.FORBIDDEN);
+        }
+        List<String> sourceExcludes = List.of("content", "content_translated");
+        Document document = notFoundIfNull(indexer.get(project, id, routing == null ? id : routing, sourceExcludes));
+        if (!documentVerifier.isRootDocumentSizeAllowed(document)) {
             return PayloadFormatter.error("The file or its parent is too large", HttpStatus.REQUEST_ENTITY_TOO_LARGE);
         }
-        return PayloadFormatter.error("You are not allowed to download this document", HttpStatus.FORBIDDEN);
+        return whenAllowed.apply(document);
     }
 
     @Operation(description = "Fetches extracted text by slice (pagination)",

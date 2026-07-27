@@ -26,6 +26,7 @@ import org.slf4j.event.Level;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -631,6 +632,69 @@ public class DocumentResourceTest extends AbstractProdWebServerTest {
     @Test
     public void test_get_recommendations_by_docids_forbidden_for_non_member_project() {
         get("/api/users/recommendationsby?project=foo_index&docIds=d1,d2").should().respond(403);
+    }
+
+    @Test
+    public void test_head_source_file_root_document_should_respond_200() throws Exception {
+        File txtFile = new File(temp.getRoot(), "head.txt");
+        MockIndexer.write(txtFile, "text content");
+        mockIndexer.indexFile("local-datashare", "id_head_txt", txtFile.toPath(), null, null);
+
+        head("/api/local-datashare/documents/src/id_head_txt").should().respond(200);
+    }
+
+    @Test
+    public void test_head_source_file_should_have_no_body() throws Exception {
+        File txtFile = new File(temp.getRoot(), "head_no_body.txt");
+        MockIndexer.write(txtFile, "text content");
+        mockIndexer.indexFile("local-datashare", "id_head_no_body", txtFile.toPath(), null, null);
+
+        Response response = head("/api/local-datashare/documents/src/id_head_no_body").response();
+
+        assertThat(response.code()).isEqualTo(200);
+        assertThat(response.content()).isEmpty();
+        // The same GET does send the bytes, so the empty body above is HEAD's doing, not an empty file.
+        get("/api/local-datashare/documents/src/id_head_no_body").should().respond(200).contain("text content");
+    }
+
+    @Test
+    public void test_head_source_root_too_big_should_respond_413() {
+        String path = getClass().getResource("/docs/embedded_doc.eml").getPath();
+        Project index = new Project("local-datashare");
+        Document documentBar = createDoc("bar").with(index).withContentLength(2L * 1024 * 1024 * 1024).build();
+        Document documentFoo = createDoc("foo").with(index).with(path).withParentId("bar").withRootId("bar").build();
+        mockIndexer.indexFile("local-datashare", documentBar, documentFoo);
+
+        head("/api/local-datashare/documents/src/foo?routing=bar").should().respond(413);
+        // GET and HEAD must agree on the refusal.
+        get("/api/local-datashare/documents/src/foo?routing=bar").should().respond(413);
+    }
+
+    @Test
+    public void test_head_source_root_too_big_with_cached_raw_artifact_should_respond_200() throws Exception {
+        String embeddedId = "a1b2c3d4e5f6a7b8c9d0a1b2c3d4e5f6a7b8c9d0a1b2c3d4e5f6a7b8c9d0a1b2";
+        String path = getClass().getResource("/docs/embedded_doc.eml").getPath();
+        Project index = new Project("local-datashare");
+        Document documentBar = createDoc("bar").with(index).withContentLength(2L * 1024 * 1024 * 1024).build();
+        Document embedded = createDoc(embeddedId).with(index).with(path).withParentId("bar").withRootId("bar").build();
+        mockIndexer.indexFile("local-datashare", documentBar, embedded);
+        File artifactDir = temp.newFolder("artifacts");
+        java.nio.file.Path rawFile = artifactDir.toPath().resolve("local-datashare").resolve("a1").resolve("b2").resolve(embeddedId).resolve("raw");
+        Files.createDirectories(rawFile.getParent());
+        Files.write(rawFile, "embedded bytes".getBytes());
+        when(propertiesProvider.get(ARTIFACT_DIR_OPT)).thenReturn(Optional.of(artifactDir.toString()));
+
+        head("/api/local-datashare/documents/src/" + embeddedId + "?routing=bar").should().respond(200);
+    }
+
+    @Test
+    public void test_head_source_file_unknown_id_should_respond_404() {
+        head("/api/local-datashare/documents/src/unknown_id").should().respond(404);
+    }
+
+    @Test
+    public void test_head_source_file_forbidden_index_should_respond_403() {
+        head("/api/foo_index/documents/src/id").should().respond(403);
     }
 
 }
