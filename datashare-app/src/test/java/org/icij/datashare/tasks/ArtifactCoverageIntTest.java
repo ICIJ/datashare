@@ -41,7 +41,6 @@ public class ArtifactCoverageIntTest {
                 "stages", "ARTIFACT,ENQUEUEIDX",
                 "queueName", "test:queue",
                 "artifactDir", artifactDir.getRoot().toString(),
-                "pollingInterval", "1",
                 "parallelism", "2"));
         PropertiesProvider props = new PropertiesProvider(map);
 
