@@ -73,6 +73,34 @@ public abstract class PipelineTask<T> extends DefaultTask<Long> implements UserT
         return warnIfNull(indexer.get(projectName, ref.id(), ref.routing(), sourceExcludes), projectName, ref.id());
     }
 
+    /**
+     * True when this throwable is, or wraps, an InterruptedException. Redisson and the
+     * Elasticsearch rest-client both re-interrupt the thread and rethrow a RuntimeException
+     * wrapping the InterruptedException, so a plain instanceof test misses a real cancellation.
+     */
+    protected static boolean causedByInterrupt(Throwable throwable) {
+        for (Throwable cause = throwable; cause != null; cause = cause.getCause()) {
+            if (cause instanceof InterruptedException) {
+                return true;
+            }
+            if (cause == cause.getCause()) {
+                break;
+            }
+        }
+        return false;
+    }
+
+    // ponytail: transitional. Redis queue keys survive upgrades, so a pre-21.16 run can leave a
+    // "POISON" entry in a String queue. Skip it instead of resolving it as a doc reference.
+    // Delete in 21.18, together with IndexTask's PATH_POISON guard.
+    protected boolean isLegacySentinel(String queueEntry) {
+        if (!"POISON".equals(queueEntry)) {
+            return false;
+        }
+        LoggerFactory.getLogger(getClass()).warn("skipping legacy POISON sentinel in queue {}", inputQueue.getName());
+        return true;
+    }
+
     private Document warnIfNull(Document document, String projectName, String docId) {
         // indexer.get() also returns null on fetch failures (it logs them as ERROR), not only on missing ids
         if (document == null) {
