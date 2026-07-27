@@ -14,8 +14,6 @@ import org.icij.extract.queue.DocumentQueue;
 import org.icij.task.DefaultTask;
 import org.slf4j.LoggerFactory;
 
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.List;
 
 import static java.util.Optional.ofNullable;
@@ -27,7 +25,6 @@ public abstract class PipelineTask<T> extends DefaultTask<Long> implements UserT
     protected final User user;
     protected final PropertiesProvider propertiesProvider;
     private final DocumentCollectionFactory<T> factory;
-    public static Path PATH_POISON = Paths.get("POISON");
     private volatile Thread taskThread;
 
     public PipelineTask(Stage stage, User user, DocumentCollectionFactory<T> factory, final PropertiesProvider propertiesProvider, Class<T> clazz) {

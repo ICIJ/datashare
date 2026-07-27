@@ -196,6 +196,9 @@ class CliApp {
      * Consumers stop as soon as their input queue is empty (there is no end-of-stream sentinel), so
      * this barrier is what makes "empty" mean "the producer is done" for any number of workers.
      * PipelineHelper.stages is already sorted by Stage.comparator, which is pipeline order.
+     * That enum order runs CREATENLPBATCHESFROMIDX after NLP, so configuring both stages together
+     * is not a supported pairing: CreateNlpBatchesFromIndex searches .without(nlpPipeline), and by
+     * the time it runs, NLP has already marked every document it would otherwise have selected.
      * ponytail: launcher-side barrier, so a producer and its consumer stage no longer overlap. If
      * that overlap ever measures, gate the consumer on the upstream task state (pass the producer's
      * task id in the consumer's args) rather than reintroducing a sentinel.
@@ -208,10 +211,6 @@ class CliApp {
                 continue;
             }
             String taskId = taskManager.startTask(taskClass, nullUser(), propertiesToMap(properties));
-            if (taskId == null) {
-                logger.error("stage {} could not be started, stopping the pipeline", stage);
-                return;
-            }
             taskManager.awaitTermination(Integer.MAX_VALUE, SECONDS, Set.of(taskId));
             Task.State state = taskManager.getTask(taskId).getState();
             if (state != Task.State.DONE) {

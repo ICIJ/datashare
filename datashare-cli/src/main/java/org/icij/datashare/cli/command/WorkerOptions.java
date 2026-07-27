@@ -22,7 +22,7 @@ public class WorkerOptions {
     @Option(names = {"--taskRoutingKey"}, description = "Task routing key")
     String taskRoutingKey;
 
-    @Option(names = {"--pollingInterval"}, description = "Queue polling interval", defaultValue = "60")
+    @Option(names = {"--pollingInterval"}, description = "task worker termination interval (seconds)", defaultValue = "60")
     String pollingInterval;
 
     @Option(names = {"--taskRepositoryType"}, description = "Task repository type", defaultValue = "DATABASE")
