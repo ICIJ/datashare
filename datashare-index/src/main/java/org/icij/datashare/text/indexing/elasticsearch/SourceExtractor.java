@@ -170,21 +170,20 @@ public class SourceExtractor {
         return document.getOcrParser() != null;
     }
 
-    // Whether the embedded document's bytes are already sitting in the artifact cache. When they
-    // are, serving it never opens (nor re-parses) the root document, which is what lets the
-    // download gate ignore the root's size. extract-lib writes this payload temp-then-atomic-move,
-    // so its mere existence means complete, readable bytes.
-    // The raw.json sidecar is part of the condition, not a nicety: extract-lib serves from cache
-    // only when it can also load the sidecar, and falls back to a live parse of the root when it
-    // cannot. The sidecar is moved into place after the payload, so a worker killed between the two
-    // leaves a raw file that would NOT spare us the root parse.
     public boolean hasCachedEmbeddedSource(final Project project, final Document document) {
         Path artifactPath = getArtifactPath(project);
         if (artifactPath == null) {
             return false;
         }
         Path documentArtifactDir = ArtifactPath.dir(artifactPath, document.getId());
-        return Files.exists(documentArtifactDir.resolve("raw")) && Files.exists(documentArtifactDir.resolve("raw.json"));
+        Path rawPayload = documentArtifactDir.resolve(ArtifactPath.RAW_FILE);
+        Path rawSidecar = documentArtifactDir.resolve(ArtifactPath.RAW_SIDECAR_FILE);
+        // Readable, not merely present: the files are written 0600 by whichever process produced
+        // them, and an unreadable artifact sends extract-lib back to a live parse of the root.
+        // Non-empty too: extract-lib records a zero-byte payload for embeds whose bytes it could
+        // not read, and serving those as a cache hit would return an empty 200 where the size
+        // limit used to return 413.
+        return Files.isReadable(rawPayload) && Files.isReadable(rawSidecar) && rawPayload.toFile().length() > 0;
     }
 
     private Path getArtifactPath(Project project) {

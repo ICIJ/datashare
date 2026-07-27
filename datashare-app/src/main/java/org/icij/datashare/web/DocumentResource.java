@@ -103,6 +103,7 @@ public class DocumentResource {
                  description = "returns the source of the document.")
     @ApiResponse(responseCode = "404", description = "if no document is found")
     @ApiResponse(responseCode = "403", description = "forbidden if the user doesn't have access to the project")
+    @ApiResponse(responseCode = "413", description = "if the root document is too large and no raw artifact is cached for this embedded document")
     @Get("/:project/documents/src/:id?routing=:routing&filter_metadata=:filter_metadata")
     public Payload getSourceFile(final String project, final String id,
                                  final String routing, final String filterMetadata, final Context context) throws IOException {
@@ -127,7 +128,8 @@ public class DocumentResource {
     // (currently 3 vs 4, "filter_metadata" is GET-only) or GET starts silently handling HEAD again.
     @Head("/:project/documents/src/:id?routing=:routing")
     public Payload headSourceFile(final String project, final String id, final String routing, final Context context) {
-        return sourceFile(project, id, routing, context, document -> ok());
+        return sourceFile(project, id, routing, context,
+                document -> documentVerifier.isSourceAvailable(document, project(project)) ? ok() : Payload.notFound());
     }
 
     // Single decision for both verbs of the source route: GET serves the bytes, HEAD serves the
@@ -142,7 +144,7 @@ public class DocumentResource {
         }
         List<String> sourceExcludes = List.of("content", "content_translated");
         Document document = notFoundIfNull(indexer.get(project, id, routing == null ? id : routing, sourceExcludes));
-        if (!documentVerifier.isRootDocumentSizeAllowed(document)) {
+        if (!documentVerifier.isRootDocumentSizeAllowed(document, project(project))) {
             return PayloadFormatter.error("The file or its parent is too large", HttpStatus.REQUEST_ENTITY_TOO_LARGE);
         }
         return whenAllowed.apply(document);

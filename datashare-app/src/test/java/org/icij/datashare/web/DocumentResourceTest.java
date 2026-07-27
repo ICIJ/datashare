@@ -693,6 +693,15 @@ public class DocumentResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
+    public void test_head_source_file_missing_on_disk_should_respond_404() {
+        // Same fixture as test_source_file_not_found_should_return_404 (a distinct doc id so the
+        // two don't interfere): the document is indexed but its file is gone from disk, so HEAD
+        // must not answer 200 where GET would answer 404.
+        mockIndexer.indexFile("local-datashare", "missing_file_head", Paths.get("missing/file"), null, null);
+        head("/api/local-datashare/documents/src/missing_file_head").should().respond(404);
+    }
+
+    @Test
     public void test_head_source_file_unknown_id_should_respond_404() {
         head("/api/local-datashare/documents/src/unknown_id").should().respond(404);
         // GET and HEAD must agree: this id used to NPE into a 500 on the GET side.

@@ -121,6 +121,19 @@ public class DocumentVerifierTest {
     }
 
     @Test
+    public void test_is_root_document_size_allowed_false_for_embedded_doc_with_missing_root() {
+        Project project = new Project("local-datashare");
+        Document doc = DocumentBuilder.createDoc("foo").with(project).withParentId("bar").withRootId("bar").build();
+
+        // A mid-parse OOM writes the root last, so children can be indexed with no root: refuse
+        // rather than NPE on the missing root's content length.
+        when(indexer.get(project.getId(), "bar")).thenReturn(null);
+        when(propertiesProvider.get(EMBEDDED_DOCUMENT_DOWNLOAD_MAX_SIZE_OPT)).thenReturn(Optional.of("1G"));
+
+        assertFalse(documentVerifier.isRootDocumentSizeAllowed(doc));
+    }
+
+    @Test
     public void test_is_root_document_size_allowed_false_for_big_root_when_no_artifact_dir_configured() {
         Project project = new Project("local-datashare");
         Document rootDoc = DocumentBuilder.createDoc("bar").with(project).withContentLength(2L * 1024 * 1024 * 1024).build();

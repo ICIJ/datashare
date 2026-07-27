@@ -1,6 +1,7 @@
 package org.icij.datashare.text.artifact;
 
 import org.icij.datashare.text.Document;
+import org.icij.datashare.text.indexing.elasticsearch.ArtifactPath;
 
 import java.nio.file.Files;
 import java.util.Map;
@@ -41,7 +42,7 @@ public class RawArtifact implements Artifact {
             // entry, an OCR-off image... Verify the raw payload actually landed before handing back
             // a terminal-able entry, so a silent miss fails loudly (nbFailed, re-runnable) instead of
             // being recorded as produced.
-            if (Files.notExists(context.docArtifactDir().resolve("raw"))) {
+            if (Files.notExists(context.docArtifactDir().resolve(ArtifactPath.RAW_FILE))) {
                 throw new ArtifactException("raw extraction produced no bytes for " + document.getId(), null);
             }
             return entry;
