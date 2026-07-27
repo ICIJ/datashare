@@ -671,6 +671,10 @@ public class DocumentResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
+    // "bar" deliberately has no readable path: if HEAD ever fell back to running GET's
+    // extraction (see the route-precedence comment on headSourceFile), that extraction would
+    // throw FileNotFoundException and this test would fail with 404 instead of 200. Don't
+    // "fix" the fixture by giving "bar" a real path, that would remove this regression trip-wire.
     public void test_head_source_root_too_big_with_cached_raw_artifact_should_respond_200() throws Exception {
         String embeddedId = "a1b2c3d4e5f6a7b8c9d0a1b2c3d4e5f6a7b8c9d0a1b2c3d4e5f6a7b8c9d0a1b2";
         String path = getClass().getResource("/docs/embedded_doc.eml").getPath();
