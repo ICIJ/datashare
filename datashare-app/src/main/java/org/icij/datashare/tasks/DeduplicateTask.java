@@ -8,6 +8,7 @@ import org.icij.datashare.Stage;
 import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.asynctasks.TaskGroup;
 import org.icij.datashare.asynctasks.TaskGroupType;
+import org.icij.datashare.asynctasks.TaskRepository;
 import org.icij.datashare.asynctasks.temporal.ActivityOpts;
 import org.icij.datashare.asynctasks.temporal.TemporalSingleActivityWorkflow;
 import org.icij.datashare.extract.DocumentCollectionFactory;
@@ -27,11 +28,13 @@ import java.util.function.Predicate;
 public class DeduplicateTask extends PipelineTask<Path> {
     private final Logger logger = LoggerFactory.getLogger(getClass());
     private final DocumentCollectionFactory<Path> factory;
+    private final TaskRepository taskRepository;
 
     @Inject
-    public DeduplicateTask(final DocumentCollectionFactory<Path> factory, @Assisted Task<Long> taskView, @Assisted final Function<Double, Void> updateCallback) {
+    public DeduplicateTask(final DocumentCollectionFactory<Path> factory, final TaskRepository taskRepository, @Assisted Task<Long> taskView, @Assisted final Function<Double, Void> updateCallback) {
         super(Stage.DEDUPLICATE, taskView.getUser(), factory, new PropertiesProvider(taskView.args), Path.class);
         this.factory = factory;
+        this.taskRepository = taskRepository;
     }
 
     @Override
@@ -62,7 +65,11 @@ public class DeduplicateTask extends PipelineTask<Path> {
                     throw e;
                 }
                 if (path == null) {
-                    break;
+                    if (drained(taskRepository)) {
+                        break;
+                    }
+                    Thread.sleep(upstreamPollIntervalMs());
+                    continue;
                 }
                 if (filter.test(path)) {
                     outputQueue.add(path);

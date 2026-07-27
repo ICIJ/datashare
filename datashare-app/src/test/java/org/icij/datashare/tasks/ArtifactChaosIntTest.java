@@ -6,6 +6,7 @@ import org.icij.datashare.PipelineHelper;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Stage;
 import org.icij.datashare.asynctasks.Task;
+import org.icij.datashare.asynctasks.TaskRepositoryMemory;
 import org.icij.datashare.extract.MemoryDocumentCollectionFactory;
 import org.icij.datashare.test.ElasticsearchRule;
 import org.icij.datashare.test.LogbackCapturingRule;
@@ -47,6 +48,7 @@ public class ArtifactChaosIntTest {
     @Rule public TemporaryFolder corpusDir = new TemporaryFolder();
     @Rule public TemporaryFolder artifactDir = new TemporaryFolder();
     @Rule public LogbackCapturingRule logback = new LogbackCapturingRule();
+    private final TaskRepositoryMemory taskRepository = new TaskRepositoryMemory();
 
     @Test(timeout = 300_000)
     public void killed_run_then_rerun_converges_to_full_coverage() throws Exception {
@@ -67,7 +69,7 @@ public class ArtifactChaosIntTest {
         ElasticsearchIndexer indexer = new ElasticsearchIndexer(es.client, new PropertiesProvider()).withRefresh(Refresh.True);
         ElasticsearchSpewer spewer = new ElasticsearchSpewer(indexer, stringQueueFactory,
                 text -> Language.ENGLISH, new FieldNames(), props);
-        new IndexTask(spewer, indexQueueFactory, new Task<>(IndexTask.class.getName(), User.local(), map), null).call();
+        new IndexTask(spewer, indexQueueFactory, taskRepository, new Task<>(IndexTask.class.getName(), User.local(), map), null).call();
 
         new EnqueueFromIndexTask(stringQueueFactory, indexer,
                 new Task<>(EnqueueFromIndexTask.class.getName(), User.local(), map), null).call();
@@ -78,7 +80,7 @@ public class ArtifactChaosIntTest {
         int realBeforeBlock = 5;
         AtomicInteger callCount = new AtomicInteger(0);
         CountDownLatch blocked = new CountDownLatch(1);
-        ArtifactTask killedTask = new ArtifactTask(stringQueueFactory, indexer, props,
+        ArtifactTask killedTask = new ArtifactTask(stringQueueFactory, indexer, props, taskRepository,
                 new Task<>(ArtifactTask.class.getName(), User.local(), map), null) {
             @Override
             protected SourceExtractor createSourceExtractor() {
@@ -135,7 +137,7 @@ public class ArtifactChaosIntTest {
                 new Task<>(EnqueueFromIndexTask.class.getName(), User.local(), map), null).call();
 
         AtomicInteger reproductions = new AtomicInteger(0);
-        ArtifactTask resumeTask = new ArtifactTask(stringQueueFactory, indexer, props,
+        ArtifactTask resumeTask = new ArtifactTask(stringQueueFactory, indexer, props, taskRepository,
                 new Task<>(ArtifactTask.class.getName(), User.local(), map), null) {
             @Override
             protected SourceExtractor createSourceExtractor() {
@@ -185,11 +187,11 @@ public class ArtifactChaosIntTest {
         ElasticsearchIndexer indexer = new ElasticsearchIndexer(es.client, new PropertiesProvider()).withRefresh(Refresh.True);
         ElasticsearchSpewer spewer = new ElasticsearchSpewer(indexer, stringQueueFactory,
                 text -> Language.ENGLISH, new FieldNames(), props);
-        new IndexTask(spewer, indexQueueFactory, new Task<>(IndexTask.class.getName(), User.local(), map), null).call();
+        new IndexTask(spewer, indexQueueFactory, taskRepository, new Task<>(IndexTask.class.getName(), User.local(), map), null).call();
 
         new EnqueueFromIndexTask(stringQueueFactory, indexer,
                 new Task<>(EnqueueFromIndexTask.class.getName(), User.local(), map), null).call();
-        new ArtifactTask(stringQueueFactory, indexer, props,
+        new ArtifactTask(stringQueueFactory, indexer, props, taskRepository,
                 new Task<>(ArtifactTask.class.getName(), User.local(), map), null).call();
 
         ArtifactCoverageChecker.Report report = new ArtifactCoverageChecker(indexer, new SourceExtractor(props))
@@ -241,11 +243,11 @@ public class ArtifactChaosIntTest {
         ElasticsearchIndexer indexer = new ElasticsearchIndexer(es.client, new PropertiesProvider()).withRefresh(Refresh.True);
         ElasticsearchSpewer spewer = new ElasticsearchSpewer(indexer, stringQueueFactory,
                 text -> Language.ENGLISH, new FieldNames(), props);
-        new IndexTask(spewer, indexQueueFactory, new Task<>(IndexTask.class.getName(), User.local(), map), null).call();
+        new IndexTask(spewer, indexQueueFactory, taskRepository, new Task<>(IndexTask.class.getName(), User.local(), map), null).call();
 
         new EnqueueFromIndexTask(stringQueueFactory, indexer,
                 new Task<>(EnqueueFromIndexTask.class.getName(), User.local(), map), null).call();
-        new ArtifactTask(stringQueueFactory, indexer, props,
+        new ArtifactTask(stringQueueFactory, indexer, props, taskRepository,
                 new Task<>(ArtifactTask.class.getName(), User.local(), map), null).call();
 
         ArtifactCoverageChecker.Report report = new ArtifactCoverageChecker(indexer, new SourceExtractor(props))

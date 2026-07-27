@@ -5,6 +5,7 @@ import org.icij.datashare.PipelineHelper;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Stage;
 import org.icij.datashare.asynctasks.Task;
+import org.icij.datashare.asynctasks.TaskRepositoryMemory;
 import org.icij.datashare.extract.MemoryDocumentCollectionFactory;
 import org.icij.datashare.test.ElasticsearchRule;
 import org.icij.datashare.text.Language;
@@ -33,6 +34,7 @@ public class ArtifactCoverageIntTest {
     @Rule public ElasticsearchRule es = new ElasticsearchRule();
     @Rule public TemporaryFolder corpusDir = new TemporaryFolder();
     @Rule public TemporaryFolder artifactDir = new TemporaryFolder();
+    private final TaskRepositoryMemory taskRepository = new TaskRepositoryMemory();
 
     @Test(timeout = 300_000)
     public void every_indexed_document_has_a_terminal_manifest_and_servable_source() throws Exception {
@@ -55,12 +57,12 @@ public class ArtifactCoverageIntTest {
         ElasticsearchIndexer indexer = new ElasticsearchIndexer(es.client, new PropertiesProvider()).withRefresh(Refresh.True);
         ElasticsearchSpewer spewer = new ElasticsearchSpewer(indexer, stringQueueFactory,
                 text -> Language.ENGLISH, new FieldNames(), props);
-        new IndexTask(spewer, indexQueueFactory, new Task<>(IndexTask.class.getName(), User.local(), map), null).call();
+        new IndexTask(spewer, indexQueueFactory, taskRepository, new Task<>(IndexTask.class.getName(), User.local(), map), null).call();
 
         // 3. ENQUEUEIDX -> ARTIFACT (queue test:queue:artifact), then the task itself
         new EnqueueFromIndexTask(stringQueueFactory, indexer,
                 new Task<>(EnqueueFromIndexTask.class.getName(), User.local(), map), null).call();
-        new ArtifactTask(stringQueueFactory, indexer, props,
+        new ArtifactTask(stringQueueFactory, indexer, props, taskRepository,
                 new Task<>(ArtifactTask.class.getName(), User.local(), map), null).call();
 
         // 4. coverage
