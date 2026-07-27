@@ -51,10 +51,13 @@ public class DeduplicateTask extends PipelineTask<Path> {
         long originalSize = inputQueue.size();
         try (DocumentQueue<Path> outputQueue = factory.createQueue(getOutputQueueName(), Path.class)) {
             Path path;
-            while ((path = inputQueue.poll()) != null) {
+            while (!Thread.currentThread().isInterrupted() && (path = inputQueue.poll()) != null) {
                 if (filter.test(path)) {
                     outputQueue.add(path);
                 }
+            }
+            if (Thread.currentThread().isInterrupted()) {
+                throw new InterruptedException("cancelled while draining " + inputQueue.getName());
             }
             return originalSize - outputQueue.size();
         }

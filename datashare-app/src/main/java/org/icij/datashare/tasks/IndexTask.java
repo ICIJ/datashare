@@ -150,6 +150,6 @@ public class IndexTask extends PipelineTask<Path> implements Monitorable{
     @Override
     public double getProgressRate() {
         totalToProcess = max(inputQueue.size(), totalToProcess);
-        return (double)(totalToProcess - inputQueue.size()) / totalToProcess;
+        return totalToProcess == 0 ? 0 : (double)(totalToProcess - inputQueue.size()) / totalToProcess;
     }
 }

@@ -58,7 +58,7 @@ public class CategorizeTask extends PipelineTask<String> implements Monitorable 
         String queueEntry;
         long nbMessages = 0;
 
-        while ((queueEntry = inputQueue.poll()) != null) {
+        while (!Thread.currentThread().isInterrupted() && (queueEntry = inputQueue.poll()) != null) {
             try {
                 Document retrievedFromIndexer = getDocument(indexer, project.getName(), DocReference.parse(queueEntry));
                 if (retrievedFromIndexer != null) {
@@ -71,8 +71,15 @@ public class CategorizeTask extends PipelineTask<String> implements Monitorable 
                     logger.warn("unable to offer {} to queue {}", queueEntry, outputQueue.getName());
                 }
             } catch (Exception e) {
+                if (e instanceof InterruptedException) {
+                    Thread.currentThread().interrupt();
+                    break;
+                }
                 logger.error("error in CategorizeTask loop", e);
             }
+        }
+        if (Thread.currentThread().isInterrupted()) {
+            throw new InterruptedException("cancelled while draining " + inputQueue.getName());
         }
         logger.info("exiting CategorizeTask loop after {} messages.", nbMessages);
         return nbMessages;
