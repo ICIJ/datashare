@@ -50,13 +50,28 @@ public class DeduplicateTask extends PipelineTask<Path> {
     long transferToOutputQueue(Predicate<Path> filter) throws Exception {
         long originalSize = inputQueue.size();
         try (DocumentQueue<Path> outputQueue = factory.createQueue(getOutputQueueName(), Path.class)) {
-            Path path;
-            while (!Thread.currentThread().isInterrupted() && (path = inputQueue.poll()) != null) {
+            while (!Thread.currentThread().isInterrupted()) {
+                Path path;
+                try {
+                    path = inputQueue.poll();
+                } catch (RuntimeException e) {
+                    if (causedByInterrupt(e)) {
+                        Thread.currentThread().interrupt();
+                        break;
+                    }
+                    throw e;
+                }
+                if (path == null) {
+                    break;
+                }
                 if (filter.test(path)) {
                     outputQueue.add(path);
                 }
             }
-            if (Thread.currentThread().isInterrupted()) {
+            // Thread.interrupted() tests AND clears: TaskWorkerLoop never clears the flag itself, so
+            // leaving it set would leak the interrupt onto the runner thread and make the next task
+            // start already cancelled.
+            if (Thread.interrupted()) {
                 throw new InterruptedException("cancelled while draining " + inputQueue.getName());
             }
             return originalSize - outputQueue.size();

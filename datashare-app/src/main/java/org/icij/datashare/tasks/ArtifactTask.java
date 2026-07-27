@@ -99,6 +99,13 @@ public class ArtifactTask extends PipelineTask<String> {
                     nbFailures++;
                 }
             }
+            // The other drains end on their own interrupt check. Here future.get() only throws when
+            // the task thread is interrupted while still waiting, which does not hold for a future
+            // that had already completed when cancel() landed. Thread.interrupted() tests AND clears,
+            // so the flag does not leak onto the runner thread with the InterruptedException.
+            if (Thread.interrupted()) {
+                throw new InterruptedException("cancelled while draining " + inputQueue.getName());
+            }
             if (nbFailures > 0) {
                 throw new IllegalStateException(String.format("%d of %d artifact worker(s) terminated abnormally", nbFailures, futures.size()), firstCause);
             }
@@ -131,10 +138,25 @@ public class ArtifactTask extends PipelineTask<String> {
         boolean force = Boolean.parseBoolean(propertiesProvider.get(ARTIFACTS_FORCE_OPT).orElse("false"));
         ArtifactProducer producer = new ArtifactProducer(new FilesystemManifestRepository());
         Path projectRoot = artifactDir.resolve(project.name);
-        String queueEntry;
         // The interrupt check keeps cancellation prompt, since cancel() calls executor.shutdownNow()
         // while a worker may sit between two non-blocking polls.
-        while (!Thread.currentThread().isInterrupted() && (queueEntry = inputQueue.poll()) != null) {
+        while (!Thread.currentThread().isInterrupted()) {
+            String queueEntry;
+            try {
+                queueEntry = inputQueue.poll();
+            } catch (RuntimeException e) {
+                if (causedByInterrupt(e)) {
+                    Thread.currentThread().interrupt();
+                    break;
+                }
+                throw e;
+            }
+            if (queueEntry == null) {
+                break;
+            }
+            if (isLegacySentinel(queueEntry)) {
+                continue;
+            }
             try {
                 Document doc = getDocument(indexer, project.name, DocReference.parse(queueEntry), SOURCE_EXCLUDES);
                 if (doc == null) {
@@ -149,7 +171,7 @@ public class ArtifactTask extends PipelineTask<String> {
                     nbFailed.incrementAndGet();
                 }
             } catch (Throwable e) {
-                if (e instanceof InterruptedException) {
+                if (causedByInterrupt(e)) {
                     Thread.currentThread().interrupt();
                     break;
                 }

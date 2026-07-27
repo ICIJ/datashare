@@ -58,6 +58,8 @@ public class IndexTask extends PipelineTask<Path> implements Monitorable{
     private long totalToProcess;
 
     private final AtomicInteger processed = new AtomicInteger(0);
+    // entries the drainer counted as consumed but that were not documents (legacy sentinel)
+    private final AtomicInteger skipped = new AtomicInteger(0);
     private final Integer parallelism;
     private final Integer indexTimeout;
 
@@ -81,6 +83,9 @@ public class IndexTask extends PipelineTask<Path> implements Monitorable{
             // named POISON. delete in 21.18.
             if (PATH_POISON.equals(path)) {
                 logger.warn("skipping legacy POISON entry in queue {}", inputQueue.getName());
+                // DocumentQueueDrainer counts every entry it hands us, so discount this one
+                // to keep the returned total and the progress rate about real documents only
+                skipped.incrementAndGet();
                 return;
             }
             consumer.accept(path);
@@ -101,7 +106,7 @@ public class IndexTask extends PipelineTask<Path> implements Monitorable{
         super.call();
         logger.info("Processing up to {} file(s) in parallel", parallelism);
         try {
-            totalToProcess = drainer.drain().get();
+            totalToProcess = drainer.drain().get() - skipped.get();
             drainer.shutdown();
             drainer.awaitTermination(10, SECONDS); // drain is finished
             logger.info("drained {} documents. Waiting for consumer to shutdown", totalToProcess);

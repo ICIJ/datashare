@@ -82,8 +82,10 @@ public class IndexTaskIntTest {
         queue.add(Paths.get("POISON"));
         queue.add(Paths.get(ClassLoader.getSystemResource("docs/doc.txt").getPath()));
 
-        new IndexTask(spewer, inputQueueFactory, new Task<>(IndexTask.class.getName(), User.local(), map), null).call();
+        Long nbDocs = new IndexTask(spewer, inputQueueFactory, new Task<>(IndexTask.class.getName(), User.local(), map), null).call();
 
+        // the sentinel is not a document: the returned count must be 1, not 2
+        assertThat(nbDocs).isEqualTo(1);
         DocumentQueue<String> outputQueue = outputQueueFactory.createQueue(new PipelineHelper(propertiesProvider).getOutputQueueNameFor(Stage.INDEX), String.class);
         assertThat(outputQueue).contains("bc6852541ef5200206a7a9740f3d2d62178a1f53b1aa5417ab426c6ec1f7cbc7");
         assertThat(logback.logs(Level.WARN)).contains("skipping legacy POISON entry in queue test:queue:index");

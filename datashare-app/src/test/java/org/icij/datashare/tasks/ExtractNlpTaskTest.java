@@ -69,6 +69,9 @@ public class ExtractNlpTaskTest {
             nlpTask.call();
         } finally {
             verify(pipeline, never()).initialize(any(Language.class));
+            // both references must still be in the queue: consuming one and dropping it would lose
+            // a document per cancelled run, which asserting on the throw alone cannot detect
+            assertThat(queue).hasSize(2);
             Thread.interrupted(); // clear the flag so it does not leak into later tests
         }
     }

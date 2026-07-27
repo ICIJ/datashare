@@ -55,10 +55,26 @@ public class CategorizeTask extends PipelineTask<String> implements Monitorable 
     public Long call() throws Exception {
         super.call();
         logger.info("enriching {} docs from inputQueue {} and adding them in {}", inputQueue.size(), inputQueue.getName(), outputQueue.getName());
-        String queueEntry;
         long nbMessages = 0;
 
-        while (!Thread.currentThread().isInterrupted() && (queueEntry = inputQueue.poll()) != null) {
+        while (!Thread.currentThread().isInterrupted()) {
+            String queueEntry;
+            try {
+                queueEntry = inputQueue.poll();
+            } catch (RuntimeException e) {
+                if (causedByInterrupt(e)) {
+                    Thread.currentThread().interrupt();
+                    break;
+                }
+                throw e;
+            }
+            if (queueEntry == null) {
+                break;
+            }
+            // before the offer below, so the sentinel is not forwarded downstream
+            if (isLegacySentinel(queueEntry)) {
+                continue;
+            }
             try {
                 Document retrievedFromIndexer = getDocument(indexer, project.getName(), DocReference.parse(queueEntry));
                 if (retrievedFromIndexer != null) {
@@ -71,14 +87,17 @@ public class CategorizeTask extends PipelineTask<String> implements Monitorable 
                     logger.warn("unable to offer {} to queue {}", queueEntry, outputQueue.getName());
                 }
             } catch (Exception e) {
-                if (e instanceof InterruptedException) {
+                if (causedByInterrupt(e)) {
                     Thread.currentThread().interrupt();
                     break;
                 }
                 logger.error("error in CategorizeTask loop", e);
             }
         }
-        if (Thread.currentThread().isInterrupted()) {
+        // Thread.interrupted() tests AND clears: TaskWorkerLoop never clears the flag itself, so
+        // leaving it set would leak the interrupt onto the runner thread and make the next task
+        // start already cancelled.
+        if (Thread.interrupted()) {
             throw new InterruptedException("cancelled while draining " + inputQueue.getName());
         }
         logger.info("exiting CategorizeTask loop after {} messages.", nbMessages);
