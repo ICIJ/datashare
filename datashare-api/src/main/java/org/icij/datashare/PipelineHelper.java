@@ -19,6 +19,14 @@ public class PipelineHelper {
         stages = stream(propertiesProvider.get(STAGES_OPT).orElse("SCAN,INDEX,NLP"). // defaults existing stages for web mode
                 split(String.valueOf(STAGES_SEPARATOR))).map(Stage::valueOf).collect(toList());
         stages.sort(Stage.comparator);
+        // Pipeline order runs NLP before CREATENLPBATCHESFROMIDX, and CreateNlpBatchesFromIndex
+        // searches for documents .without(nlpPipeline): by the time it runs, NLP has already marked
+        // every document it would have selected, so it would create no batch at all.
+        if (stages.contains(Stage.NLP) && stages.contains(Stage.CREATENLPBATCHESFROMIDX)) {
+            throw new IllegalArgumentException(String.format(
+                    "%s and %s are alternatives, not a sequence: configure one or the other, not both",
+                    Stage.NLP, Stage.CREATENLPBATCHESFROMIDX));
+        }
     }
 
     public String getQueueNameFor(Stage stage) {

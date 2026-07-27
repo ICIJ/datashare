@@ -105,6 +105,13 @@ public class PipelineHelperTest {
         assertThat(pipelineHelper.getQueueNameFor(Stage.INDEX)).isEqualTo("extract:queue:index");
     }
 
+    @Test(expected = IllegalArgumentException.class)
+    public void test_rejects_nlp_together_with_createnlpbatchesfromidx() {
+        new PipelineHelper(new PropertiesProvider(new HashMap<>() {{
+            put("stages", "SCAN,INDEX,CREATENLPBATCHESFROMIDX,NLP");
+        }}));
+    }
+
     @Test
     public void test_get_queue_name_when_no_stage_is_provided_like_in_web_mode() {
         assertThat(new PipelineHelper(new PropertiesProvider(new HashMap<>() )).getQueueNameFor(Stage.NLP)).isEqualTo("extract:queue:nlp");
