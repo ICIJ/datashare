@@ -21,6 +21,7 @@ import org.icij.datashare.tasks.ArtifactTask;
 import org.icij.datashare.tasks.CreateNlpBatchesFromIndex;
 import org.icij.datashare.tasks.CategorizeTask;
 import org.icij.datashare.tasks.DatashareTaskFactory;
+import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.asynctasks.TaskManager;
 import org.icij.datashare.tasks.DeduplicateTask;
 import org.icij.datashare.tasks.EnqueueFromIndexTask;
@@ -42,7 +43,6 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.time.Instant;
 import java.util.Date;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -176,44 +176,49 @@ class CliApp {
 
         PipelineHelper pipeline = new PipelineHelper(new PropertiesProvider(properties));
         logger.info("executing {}", pipeline);
-        Set<String> taskIds = new HashSet<>();
-        if (pipeline.has(Stage.DEDUPLICATE)) {
-            taskIds.add(taskManager.startTask(DeduplicateTask.class, nullUser(), propertiesToMap(properties)));
-        }
-
-        if (pipeline.has(Stage.SCANIDX)) {
-            taskIds.add(taskManager.startTask(ScanIndexTask.class, nullUser(), propertiesToMap(properties)));
-        }
-
-        if (pipeline.has(Stage.SCAN)) {
-            taskIds.add(taskManager.startTask(ScanTask.class, nullUser(), propertiesToMap(properties)));
-        }
-
-        if (pipeline.has(Stage.INDEX)) {
-            taskIds.add(taskManager.startTask(IndexTask.class, nullUser(), propertiesToMap(properties)));
-        }
-
-        if (pipeline.has(Stage.ENQUEUEIDX)) {
-            taskIds.add(taskManager.startTask(EnqueueFromIndexTask.class, nullUser(), propertiesToMap(properties)));
-        }
-
-        if (pipeline.has(Stage.CATEGORIZE)) {
-            taskIds.add(taskManager.startTask(CategorizeTask.class, nullUser(), propertiesToMap(properties)));
-        }
-
-        if (pipeline.has(Stage.CREATENLPBATCHESFROMIDX)) {
-            taskIds.add(taskManager.startTask(CreateNlpBatchesFromIndex.class.getName(), nullUser(), propertiesToMap(properties)));
-        }
-
-        if (pipeline.has(Stage.NLP)) {
-            taskIds.add(taskManager.startTask(ExtractNlpTask.class, nullUser(), propertiesToMap(properties)));
-        }
-
-        if (pipeline.has(Stage.ARTIFACT)) {
-            taskIds.add(taskManager.startTask(ArtifactTask.class, nullUser(), propertiesToMap(properties)));
-        }
-        taskManager.awaitTermination(Integer.MAX_VALUE, SECONDS, taskIds);
+        runPipeline(taskManager, pipeline, properties);
         taskManager.shutdown();
+    }
+
+    static final Map<Stage, Class<?>> TASK_CLASSES = Map.of(
+            Stage.SCAN, ScanTask.class,
+            Stage.SCANIDX, ScanIndexTask.class,
+            Stage.DEDUPLICATE, DeduplicateTask.class,
+            Stage.INDEX, IndexTask.class,
+            Stage.ENQUEUEIDX, EnqueueFromIndexTask.class,
+            Stage.CATEGORIZE, CategorizeTask.class,
+            Stage.CREATENLPBATCHESFROMIDX, CreateNlpBatchesFromIndex.class,
+            Stage.NLP, ExtractNlpTask.class,
+            Stage.ARTIFACT, ArtifactTask.class);
+
+    /**
+     * Runs the configured stages one at a time, awaiting each stage's task before starting the next.
+     * Consumers stop as soon as their input queue is empty (there is no end-of-stream sentinel), so
+     * this barrier is what makes "empty" mean "the producer is done" for any number of workers.
+     * PipelineHelper.stages is already sorted by Stage.comparator, which is pipeline order.
+     * ponytail: launcher-side barrier, so a producer and its consumer stage no longer overlap. If
+     * that overlap ever measures, gate the consumer on the upstream task state (pass the producer's
+     * task id in the consumer's args) rather than reintroducing a sentinel.
+     */
+    static void runPipeline(TaskManager taskManager, PipelineHelper pipeline, Properties properties) throws Exception {
+        for (Stage stage : pipeline.stages) {
+            Class<?> taskClass = TASK_CLASSES.get(stage);
+            if (taskClass == null) {
+                logger.warn("no task class for stage {}, skipping it", stage);
+                continue;
+            }
+            String taskId = taskManager.startTask(taskClass, nullUser(), propertiesToMap(properties));
+            if (taskId == null) {
+                logger.error("stage {} could not be started, stopping the pipeline", stage);
+                return;
+            }
+            taskManager.awaitTermination(Integer.MAX_VALUE, SECONDS, Set.of(taskId));
+            Task.State state = taskManager.getTask(taskId).getState();
+            if (state != Task.State.DONE) {
+                logger.error("stage {} ended in state {}, stopping the pipeline: a downstream stage would read its partial queue as complete", stage, state);
+                return;
+            }
+        }
     }
 
     static int handleUserCreate(UserAdminService service, Properties properties) {
