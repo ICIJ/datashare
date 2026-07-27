@@ -6,6 +6,7 @@ import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.Duplicate;
 import org.icij.datashare.text.indexing.Indexer;
+import org.icij.datashare.text.indexing.elasticsearch.SourceExtractor;
 
 import static org.icij.datashare.cli.DatashareCliOptions.EMBEDDED_DOCUMENT_DOWNLOAD_MAX_SIZE_OPT;
 
@@ -18,6 +19,7 @@ public class DocumentVerifier {
 
     private final Indexer indexer;
     private final PropertiesProvider propertiesProvider;
+    private final SourceExtractor sources;
 
     /**
      * Constructs a new DocumentVerifier with the provided indexer and propertiesProvider.
@@ -28,6 +30,7 @@ public class DocumentVerifier {
     public DocumentVerifier(Indexer indexer, PropertiesProvider propertiesProvider) {
         this.indexer = indexer;
         this.propertiesProvider = propertiesProvider;
+        this.sources = new SourceExtractor(propertiesProvider);
     }
 
     /**
@@ -38,6 +41,11 @@ public class DocumentVerifier {
      */
     public boolean isRootDocumentSizeAllowed(Document document) {
         if (document.isRootDocument()) {
+            return true;
+        }
+        // A cached raw artifact is read straight off disk: the root is never opened, so its size is
+        // irrelevant. Checked before the root lookup, so a cache hit costs one stat and no ES call.
+        if (sources.hasCachedEmbeddedSource(document.getProject(), document)) {
             return true;
         }
         long maxSizeBytes = getEmbeddedDocumentDownloadMaxSizeBytes();
