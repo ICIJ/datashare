@@ -94,6 +94,7 @@ public class DocumentVerifierTest {
         Path rawFile = artifactDir.getRoot().toPath().resolve("local-datashare").resolve("a1").resolve("b2").resolve(embeddedId).resolve("raw");
         Files.createDirectories(rawFile.getParent());
         Files.write(rawFile, "embedded bytes".getBytes());
+        Files.write(rawFile.resolveSibling("raw.json"), "{}".getBytes());
 
         when(indexer.get(project.getId(), "bar")).thenReturn(rootDoc);
         when(propertiesProvider.get(EMBEDDED_DOCUMENT_DOWNLOAD_MAX_SIZE_OPT)).thenReturn(Optional.of("1G"));

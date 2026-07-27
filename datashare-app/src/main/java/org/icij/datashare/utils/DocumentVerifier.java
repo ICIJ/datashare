@@ -35,6 +35,8 @@ public class DocumentVerifier {
 
     /**
      * Checks if the root document size is allowed based on the provided document's properties.
+     * Also returns true when the embedded document's raw artifact is already cached, since serving
+     * it from the cache never opens the root document.
      *
      * @param document The document to verify.
      * @return true if the root document size is allowed, false otherwise.

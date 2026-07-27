@@ -413,11 +413,28 @@ public class SourceExtractorTest {
         Path rawFile = artifactDir.toPath().resolve("prj").resolve("a1").resolve("b2").resolve(embeddedId).resolve("raw");
         Files.createDirectories(rawFile.getParent());
         Files.write(rawFile, "embedded bytes".getBytes());
+        Files.write(rawFile.resolveSibling("raw.json"), "{}".getBytes());
         Document embedded = DocumentBuilder.createDoc(embeddedId).with(project("prj")).build();
 
         SourceExtractor extractor = new SourceExtractor(new PropertiesProvider(Map.of(ARTIFACT_DIR_OPT, artifactDir.toString())));
 
         assertThat(extractor.hasCachedEmbeddedSource(project("prj"), embedded)).isTrue();
+    }
+
+    @Test
+    public void test_has_cached_embedded_source_false_when_raw_file_has_no_sidecar() throws Exception {
+        String embeddedId = "a1b2c3d4e5f6a7b8c9d0a1b2c3d4e5f6a7b8c9d0a1b2c3d4e5f6a7b8c9d0a1b2";
+        File artifactDir = tmpDir.newFolder("artifacts_no_sidecar");
+        // A worker killed between the payload move and the sidecar move leaves exactly this state,
+        // and extract-lib would fall back to a live parse of the root, so it is not a cache hit.
+        Path rawFile = artifactDir.toPath().resolve("prj").resolve("a1").resolve("b2").resolve(embeddedId).resolve("raw");
+        Files.createDirectories(rawFile.getParent());
+        Files.write(rawFile, "embedded bytes".getBytes());
+        Document embedded = DocumentBuilder.createDoc(embeddedId).with(project("prj")).build();
+
+        SourceExtractor extractor = new SourceExtractor(new PropertiesProvider(Map.of(ARTIFACT_DIR_OPT, artifactDir.toString())));
+
+        assertThat(extractor.hasCachedEmbeddedSource(project("prj"), embedded)).isFalse();
     }
 
     @Test

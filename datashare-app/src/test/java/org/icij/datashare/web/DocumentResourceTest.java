@@ -686,6 +686,7 @@ public class DocumentResourceTest extends AbstractProdWebServerTest {
         java.nio.file.Path rawFile = artifactDir.toPath().resolve("local-datashare").resolve("a1").resolve("b2").resolve(embeddedId).resolve("raw");
         Files.createDirectories(rawFile.getParent());
         Files.write(rawFile, "embedded bytes".getBytes());
+        Files.write(rawFile.resolveSibling("raw.json"), "{}".getBytes());
         when(propertiesProvider.get(ARTIFACT_DIR_OPT)).thenReturn(Optional.of(artifactDir.toString()));
 
         head("/api/local-datashare/documents/src/" + embeddedId + "?routing=bar").should().respond(200);
@@ -694,6 +695,8 @@ public class DocumentResourceTest extends AbstractProdWebServerTest {
     @Test
     public void test_head_source_file_unknown_id_should_respond_404() {
         head("/api/local-datashare/documents/src/unknown_id").should().respond(404);
+        // GET and HEAD must agree: this id used to NPE into a 500 on the GET side.
+        get("/api/local-datashare/documents/src/unknown_id").should().respond(404);
     }
 
     @Test
