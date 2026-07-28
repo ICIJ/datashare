@@ -48,13 +48,18 @@ public class EmailPipeline extends AbstractPipeline {
     private static final String RAW_HEADER_FIELD_PREFIX = "Message-Raw-Header-";
     private static final String MESSAGE_FIELD_PREFIX = "Message-";
     private static final String MESSAGE_HEADER_FIELD = "emailHeaderField";
-    final Pattern pattern = Pattern.compile("(?:[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*|\"(?:[\\x01-\\x08\\x0b" +
-            "\\x0c\\x0e-\\x1f\\x21\\x23-\\x5b\\x5d-\\x7f]|\\\\[\\x01-\\x09\\x0b\\x0c\\x0e-\\x7f])*\")@" +
-            "(?:(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|" +
+    // every repetition below is bounded and the local part is anchored: java.util.regex recurses
+    // once per group iteration, so unbounded repetitions overflowed the stack on a long dotted run,
+    // and an unanchored local part rescanned every run (github.com/ICIJ/datashare/issues/2290).
+    // 63 labels and 255 characters are the RFC 5321 limits, so nothing deliverable is lost. '@' is
+    // out of the lookbehind on purpose: user@bad@host.com must still yield bad@host.com.
+    final Pattern pattern = Pattern.compile("(?:(?<![a-z0-9!#$%&'*+/=?^_`{|}~.-])[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+){0,63}|\"(?:[\\x01-\\x08\\x0b" +
+            "\\x0c\\x0e-\\x1f\\x21\\x23-\\x5b\\x5d-\\x7f]|\\\\[\\x01-\\x09\\x0b\\x0c\\x0e-\\x7f]){0,255}\")@" +
+            "(?:(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\\.){1,63}[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|" +
             "\\[(?:(?:(2(5[0-5]|[0-4][0-9])|1[0-9][0-9]|[1-9]?[0-9]))\\.){3}" +
             "(?:(2(5[0-5]|[0-4][0-9])|1[0-9][0-9]|[1-9]?[0-9])|[a-z0-9-]*[a-z0-9]:" +
             "(?:[\\x01-\\x08\\x0b\\x0c\\x0e-\\x1f\\x21-\\x5a\\x53-\\x7f]|" +
-            "\\\\[\\x01-\\x09\\x0b\\x0c\\x0e-\\x7f])+)\\])");
+            "\\\\[\\x01-\\x09\\x0b\\x0c\\x0e-\\x7f]){1,255})\\])");
 
     private final Set<String> parsedEmailHeaders = unmodifiableSet(new HashSet<>(asList(
             tika("Dc-Title"),
