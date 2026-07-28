@@ -89,6 +89,43 @@ public class EmailPipelineTest {
         assertThat(annotations.get(0).getOffsets()).containsExactly(14L, 48L, 168L, 332L, 1283L, 1482L, 1544L, 1582L);
     }
 
+    @Test(timeout = 10_000)
+    public void test_long_dotted_local_part_does_not_overflow_the_stack() {
+        String content = "hello " + "a.".repeat(100_000) + "b end";
+
+        List<NamedEntity> annotations = pipeline.process(createDocument(content, "docId", Language.ENGLISH));
+
+        assertThat(annotations).isEmpty();
+    }
+
+    @Test(timeout = 10_000)
+    public void test_long_dotted_domain_does_not_overflow_the_stack() {
+        String content = "user@" + "a.".repeat(100_000) + "b end";
+
+        List<NamedEntity> annotations = pipeline.process(createDocument(content, "docId", Language.ENGLISH));
+
+        assertThat(annotations).hasSize(1);
+    }
+
+    @Test(timeout = 10_000)
+    public void test_unterminated_quoted_local_part_does_not_overflow_the_stack() {
+        String content = "hello \"" + "a".repeat(200_000) + " end";
+
+        List<NamedEntity> annotations = pipeline.process(createDocument(content, "docId", Language.ENGLISH));
+
+        assertThat(annotations).isEmpty();
+    }
+
+    @Test(timeout = 10_000)
+    public void test_finds_email_after_a_very_long_character_run() {
+        String content = "a".repeat(1_000_000) + " email@domain.com";
+
+        List<NamedEntity> annotations = pipeline.process(createDocument(content, "docId", Language.ENGLISH));
+
+        assertThat(annotations).hasSize(1);
+        assertThat(annotations.get(0).getMention()).isEqualTo("email@domain.com");
+    }
+
     @Test
     public void test_adds_document_headers_parsing_for_email() {
         Document doc = createDoc("docid")
