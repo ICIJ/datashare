@@ -90,7 +90,7 @@ public class ExtractNlpTask extends PipelineTask<String> implements Monitorable 
                     nbMaxPolls--;
                 }
             } catch (Throwable e) {
-                logger.error("error in ExtractNlpTask loop", e);
+                logger.error("error in ExtractNlpTask loop on doc {}", queueEntry, e);
             }
         }
         logger.info("exiting ExtractNlpTask loop after {} messages.", nbMessages);
