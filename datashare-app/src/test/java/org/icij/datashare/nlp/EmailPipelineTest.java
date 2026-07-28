@@ -105,6 +105,28 @@ public class EmailPipelineTest {
         List<NamedEntity> annotations = pipeline.process(createDocument(content, "docId", Language.ENGLISH));
 
         assertThat(annotations).hasSize(1);
+        // past the label bound the domain is truncated, which is what a 100 000 label host deserves
+        assertThat(annotations.get(0).getMention()).isEqualTo("user@" + "a.".repeat(63) + "a");
+    }
+
+    @Test
+    public void test_finds_email_whose_local_part_starts_after_a_dot() {
+        // the local part class is lower case only, so the match can only start after the dot
+        List<NamedEntity> annotations = pipeline.process(createDocument("write to P.romera@icij.org", "docId", Language.ENGLISH));
+
+        assertThat(annotations).hasSize(1);
+        assertThat(annotations.get(0).getMention()).isEqualTo("romera@icij.org");
+        assertThat(annotations.get(0).getOffsets()).containsExactly(11L);
+    }
+
+    @Test(timeout = 10_000)
+    public void test_finds_email_trailing_a_long_dotted_run() {
+        String content = "w.".repeat(70) + "user@example.com";
+
+        List<NamedEntity> annotations = pipeline.process(createDocument(content, "docId", Language.ENGLISH));
+
+        assertThat(annotations).hasSize(1);
+        assertThat(annotations.get(0).getMention()).endsWith("user@example.com");
     }
 
     @Test(timeout = 10_000)

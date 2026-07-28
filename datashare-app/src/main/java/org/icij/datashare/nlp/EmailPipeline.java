@@ -48,12 +48,14 @@ public class EmailPipeline extends AbstractPipeline {
     private static final String RAW_HEADER_FIELD_PREFIX = "Message-Raw-Header-";
     private static final String MESSAGE_FIELD_PREFIX = "Message-";
     private static final String MESSAGE_HEADER_FIELD = "emailHeaderField";
-    // every repetition below is bounded and the local part is anchored: java.util.regex recurses
-    // once per group iteration, so unbounded repetitions overflowed the stack on a long dotted run,
-    // and an unanchored local part rescanned every run (github.com/ICIJ/datashare/issues/2290).
-    // 63 labels and 255 characters are the RFC 5321 limits, so nothing deliverable is lost. '@' is
-    // out of the lookbehind on purpose: user@bad@host.com must still yield bad@host.com.
-    final Pattern pattern = Pattern.compile("(?:(?<![a-z0-9!#$%&'*+/=?^_`{|}~.-])[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+){0,63}|\"(?:[\\x01-\\x08\\x0b" +
+    // bounded repetitions, and a local part that cannot start mid token: java.util.regex recurses
+    // once per group iteration, so the unbounded versions of these repetitions overflowed the stack
+    // on a long dotted run, and an unanchored local part rescanned every run quadratically
+    // (github.com/ICIJ/datashare/issues/2290). The bounds sit above what RFC 5321 allows anyway
+    // (64 octet local part, 255 octet domain); past 63 labels a domain is truncated, not dropped.
+    // '.' and '@' stay out of the lookbehind class: P.romera@icij.org must still yield
+    // romera@icij.org (the class is lower case only) and user@bad@host.com must yield bad@host.com.
+    final Pattern pattern = Pattern.compile("(?:(?<![a-z0-9!#$%&'*+/=?^_`{|}~-])[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+){0,63}|\"(?:[\\x01-\\x08\\x0b" +
             "\\x0c\\x0e-\\x1f\\x21\\x23-\\x5b\\x5d-\\x7f]|\\\\[\\x01-\\x09\\x0b\\x0c\\x0e-\\x7f]){0,255}\")@" +
             "(?:(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\\.){1,63}[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|" +
             "\\[(?:(?:(2(5[0-5]|[0-4][0-9])|1[0-9][0-9]|[1-9]?[0-9]))\\.){3}" +
