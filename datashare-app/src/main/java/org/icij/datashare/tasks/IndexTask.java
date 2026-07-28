@@ -79,9 +79,8 @@ public class IndexTask extends PipelineTask<Path> implements Monitorable{
 
         consumer = new DocumentConsumer(spewer, this.extractor, this.parallelism);
         progressTrackConsumer = path -> {
-            // ponytail: transitional. Redis queue keys survive upgrades, so a pre-21.16 run can
-            // leave a "POISON" path in this queue. Skip it instead of trying to extract a file
-            // named POISON. delete in 21.18.
+            // Transitional. Redis queue keys survive upgrades, so a pre-21.16 run can leave a
+            // "POISON" path in this queue. Skip it instead of trying to extract a file named POISON.
             if (PATH_POISON.equals(path)) {
                 logger.warn("skipping legacy POISON entry in queue {}", inputQueue.getName());
                 // DocumentQueueDrainer counts every entry it hands us, so discount this one
