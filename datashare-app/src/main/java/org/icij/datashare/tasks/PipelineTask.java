@@ -141,9 +141,8 @@ public abstract class PipelineTask<T> extends DefaultTask<Long> implements UserT
         return !upstreamRunning(taskRepository) && inputQueue.isEmpty();
     }
 
-    // ponytail: transitional. Redis queue keys survive upgrades, so a pre-21.16 run can leave a
-    // "POISON" entry in a String queue. Skip it instead of resolving it as a doc reference.
-    // Delete in 21.18, together with IndexTask's PATH_POISON guard.
+    // Transitional. Redis queue keys survive upgrades, so a pre-21.16 run can leave a "POISON"
+    // entry in a String queue. Skip it instead of resolving it as a doc reference.
     protected boolean isLegacySentinel(String queueEntry) {
         if (!"POISON".equals(queueEntry)) {
             return false;
