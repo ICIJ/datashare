@@ -650,6 +650,24 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
+    public void test_findNames_ignores_a_client_supplied_upstream_task_id() throws IOException {
+        // honouring it would let a caller gate the NLP task on any task they keep alive, pinning a
+        // worker for as long as they want: the launcher is the only thing allowed to set this key
+        RestAssert response = post("/api/task/findNames/EMAIL", "{\"options\":{\"resume\":\"false\", \"waitForNlpApp\": false, \"upstreamTaskId\":\"forged\"}}");
+        response.should().haveType("application/json");
+
+        assertThat(findTask(taskManager, "org.icij.datashare.tasks.ExtractNlpTask").get().args.containsKey(PipelineTask.UPSTREAM_TASK_ID)).isFalse();
+    }
+
+    @Test
+    public void test_index_queue_ignores_a_client_supplied_upstream_task_id() throws IOException {
+        RestAssert response = post("/api/task/batchUpdate/index", "{\"options\":{\"upstreamTaskId\":\"forged\"}}");
+        response.should().haveType("application/json");
+
+        assertThat(findTask(taskManager, "org.icij.datashare.tasks.IndexTask").get().args.containsKey(PipelineTask.UPSTREAM_TASK_ID)).isFalse();
+    }
+
+    @Test
     public void test_findNames_with_sync_models_false() {
         AbstractModels.syncModels(true);
         RestAssert response = post("/api/task/findNames/EMAIL", "{\"options\":{\"syncModels\":\"false\", \"waitForNlpApp\": false}}");
