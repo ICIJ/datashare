@@ -165,6 +165,7 @@ public class ArtifactTask extends PipelineTask<String> {
                 continue;
             }
             if (isLegacySentinel(queueEntry)) {
+                logger.warn("skipping legacy POISON sentinel in queue {}", inputQueue.getName());
                 continue;
             }
             try {

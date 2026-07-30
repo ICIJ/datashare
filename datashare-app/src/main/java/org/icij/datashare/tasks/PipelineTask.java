@@ -12,6 +12,7 @@ import org.icij.datashare.user.User;
 import org.icij.datashare.user.UserTask;
 import org.icij.extract.queue.DocumentQueue;
 import org.icij.task.DefaultTask;
+import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
@@ -26,6 +27,7 @@ public abstract class PipelineTask<T> extends DefaultTask<Long> implements UserT
      */
     protected static final long UPSTREAM_POLL_INTERVAL_MS = 1000;
 
+    private final Logger logger = LoggerFactory.getLogger(getClass());
     protected final DocumentQueue<T> inputQueue;
     protected final DocumentQueue<T> outputQueue;
     protected final Stage stage;
@@ -116,19 +118,15 @@ public abstract class PipelineTask<T> extends DefaultTask<Long> implements UserT
     }
 
     // Transitional. Redis queue keys survive upgrades, so a pre-21.16 run can leave a "POISON"
-    // entry in a String queue. Skip it instead of resolving it as a doc reference.
-    protected boolean isLegacySentinel(String queueEntry) {
-        if (!"POISON".equals(queueEntry)) {
-            return false;
-        }
-        LoggerFactory.getLogger(getClass()).warn("skipping legacy POISON sentinel in queue {}", inputQueue.getName());
-        return true;
+    // entry in a String queue. Callers skip it instead of resolving it as a doc reference.
+    protected static boolean isLegacySentinel(String queueEntry) {
+        return "POISON".equals(queueEntry);
     }
 
     private Document warnIfNull(Document document, String projectName, String docId) {
         // indexer.get() also returns null on fetch failures (it logs them as ERROR), not only on missing ids
         if (document == null) {
-            LoggerFactory.getLogger(getClass()).warn("document <{}> could not be retrieved from index {} (missing document or index fetch error), skipping", docId, projectName);
+            logger.warn("document <{}> could not be retrieved from index {} (missing document or index fetch error), skipping", docId, projectName);
         }
         return document;
     }

@@ -88,6 +88,7 @@ public class ExtractNlpTask extends PipelineTask<String> implements Monitorable 
                 continue;
             }
             if (isLegacySentinel(queueEntry)) {
+                logger.warn("skipping legacy POISON sentinel in queue {}", inputQueue.getName());
                 continue;
             }
             try {
