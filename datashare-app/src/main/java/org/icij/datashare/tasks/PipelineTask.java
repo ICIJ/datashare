@@ -115,17 +115,23 @@ public abstract class PipelineTask<T> extends DefaultTask<Long> implements UserT
     }
 
     /**
-     * True while the producer feeding this stage may still enqueue. An absent upstream id, an
-     * unknown task, or a repository failure all mean "no upstream to wait for", so the consumer
-     * falls back to exiting on an empty queue, which is the pre-gate behaviour.
+     * True while the producer feeding this stage may still enqueue. An absent upstream id or an
+     * unknown task means "no upstream to wait for", so the consumer falls back to exiting on an
+     * empty queue, which is the pre-gate behaviour. A repository read failure says nothing about
+     * the producer, so it counts as still running: retrying costs a poll interval, whereas calling
+     * it finished can end the drain on a transient error and strand whatever is enqueued next.
+     * JooqTaskRepository throws jOOQ's unchecked DataAccessException, hence the RuntimeException.
      */
     protected boolean upstreamRunning(TaskRepository taskRepository) {
         return upstreamTaskId().map(upstreamTaskId -> {
             try {
                 return !taskRepository.getTask(upstreamTaskId).getState().isFinal();
-            } catch (UnknownTask | IOException e) {
-                LoggerFactory.getLogger(getClass()).warn("cannot read upstream task {} state, treating it as finished", upstreamTaskId, e);
+            } catch (UnknownTask e) {
+                LoggerFactory.getLogger(getClass()).warn("upstream task {} is unknown, treating it as finished", upstreamTaskId, e);
                 return false;
+            } catch (IOException | RuntimeException e) {
+                LoggerFactory.getLogger(getClass()).warn("cannot read upstream task {} state, treating it as still running", upstreamTaskId, e);
+                return true;
             }
         }).orElse(false);
     }

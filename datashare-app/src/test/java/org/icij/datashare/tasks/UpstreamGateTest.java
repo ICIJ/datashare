@@ -4,8 +4,10 @@ import org.icij.datashare.PipelineHelper;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Stage;
 import org.icij.datashare.asynctasks.Task;
+import org.icij.datashare.asynctasks.TaskRepository;
 import org.icij.datashare.asynctasks.TaskRepositoryMemory;
 import org.icij.datashare.asynctasks.TaskResult;
+import org.icij.datashare.asynctasks.UnknownTask;
 import org.icij.datashare.extract.MemoryDocumentCollectionFactory;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.text.nlp.AbstractPipeline;
@@ -17,6 +19,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
 
+import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
@@ -102,6 +105,37 @@ public class UpstreamGateTest {
         assertThat(nlpTaskGatedOn(upstream).call()).isEqualTo(0L);
     }
 
+    @Test(timeout = 30000)
+    public void test_an_unchecked_repository_failure_keeps_the_consumer_draining() throws Exception {
+        // JooqTaskRepository throws jOOQ's unchecked DataAccessException on a transient DB error:
+        // that must not fail the consumer, nor end its drain and strand what the producer enqueues
+        Task<Long> upstream = runningUpstreamTask();
+        DocumentQueue<String> queue = nlpQueueSignallingEmptyPolls();
+        ExtractNlpTask nlpTask = nlpTaskGatedOn(upstream, failingOnceTaskRepository());
+
+        Future<Long> consumed = consumerExecutor.submit((Callable<Long>) nlpTask::call);
+        assertThat(firstEmptyPoll.await(20, SECONDS)).isTrue();
+        queue.add("docId1");
+        upstream.setResult(new TaskResult<>(0L));
+
+        assertThat(consumed.get(20, SECONDS)).isEqualTo(1L);
+    }
+
+    private TaskRepositoryMemory failingOnceTaskRepository() {
+        return new TaskRepositoryMemory() {
+            private boolean failed = false;
+
+            @Override
+            public <V extends java.io.Serializable> Task<V> getTask(String taskId) throws IOException, UnknownTask {
+                if (!failed) {
+                    failed = true;
+                    throw new IllegalStateException("transient repository failure");
+                }
+                return taskRepository.getTask(taskId);
+            }
+        };
+    }
+
     private Task<Long> runningUpstreamTask() throws Exception {
         Task<Long> upstream = new Task<>(EnqueueFromIndexTask.class.getName(), User.local(), Map.of());
         upstream.setState(Task.State.RUNNING);
@@ -110,8 +144,12 @@ public class UpstreamGateTest {
     }
 
     private ExtractNlpTask nlpTaskGatedOn(Task<Long> upstream) {
+        return nlpTaskGatedOn(upstream, taskRepository);
+    }
+
+    private ExtractNlpTask nlpTaskGatedOn(Task<Long> upstream, TaskRepository repository) {
         Map<String, Object> args = Map.of(UPSTREAM_TASK_ID, upstream.id);
-        return new ExtractNlpTask(indexer, pipeline, factory, taskRepository,
+        return new ExtractNlpTask(indexer, pipeline, factory, repository,
                 new Task<>(ExtractNlpTask.class.getName(), User.local(), args), progress -> null);
     }
 
