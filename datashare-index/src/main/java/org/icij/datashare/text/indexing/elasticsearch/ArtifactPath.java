@@ -5,8 +5,7 @@ import java.nio.file.Path;
 /** Content-addressed on-disk layout for per-document artifacts under artifactDir. */
 public class ArtifactPath {
     public static final String MANIFEST_FILE = "manifest.json";
-    // extract-lib's EmbeddedArtifactWriter owns these names: the raw payload and its sidecar. RAW_FILE
-    // is not to be confused with ArtifactType.RAW.token() (the manifest key, coincidentally also "raw").
+    // extract-lib's EmbeddedArtifactWriter owns these names: the raw payload and its sidecar.
     public static final String RAW_FILE = "raw";
     public static final String RAW_SIDECAR_FILE = "raw.json";
 

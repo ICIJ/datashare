@@ -40,7 +40,7 @@ public class ManifestRecorder {
         if (!force && ArtifactProducer.entryIsCurrent(repository.get(docArtifactDir, ArtifactType.RAW.token()), raw.taskInput())) {
             return;
         }
-        // Fix C (#2): for an embedded node, only record a COMPLETE entry once its raw payload is
+        // For an embedded node, only record a COMPLETE entry once its raw payload is
         // actually on disk (written by extract-lib during the parse). Otherwise skip, so a later
         // ARTIFACT-stage run produces it rather than leaving a permanent false-COMPLETE. A root has
         // no payload in its own dir, so it always records its EMPTY entry.
