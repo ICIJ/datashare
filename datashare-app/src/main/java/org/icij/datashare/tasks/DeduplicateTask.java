@@ -40,20 +40,15 @@ public class DeduplicateTask extends PipelineTask<Path> {
     public Long call() throws Exception {
         super.call();
         Set<Path> seen = new HashSet<>();
-        long[] dropped = {0};
         // dedup per entry, not in one upfront pass: SCAN keeps enqueueing while this drain runs
-        transferToOutputQueue(path -> {
-            if (seen.add(path)) {
-                return true;
-            }
-            dropped[0]++;
-            return false;
-        });
-        logger.info("removed {} duplicate paths in inputQueue {}", dropped[0], inputQueue.getName());
-        return dropped[0];
+        long duplicates = transferToOutputQueue(seen::add);
+        logger.info("removed {} duplicate paths in inputQueue {}", duplicates, inputQueue.getName());
+        return duplicates;
     }
 
-    void transferToOutputQueue(Predicate<Path> filter) throws Exception {
+    /** Drains the input queue into the output queue, returning how many entries the filter rejected. */
+    long transferToOutputQueue(Predicate<Path> filter) throws Exception {
+        long rejected = 0;
         try (DocumentQueue<Path> outputQueue = factory.createQueue(getOutputQueueName(), Path.class)) {
             while (!Thread.currentThread().isInterrupted()) {
                 Path path;
@@ -75,6 +70,8 @@ public class DeduplicateTask extends PipelineTask<Path> {
                 }
                 if (filter.test(path)) {
                     outputQueue.add(path);
+                } else {
+                    rejected++;
                 }
             }
             // Thread.interrupted() tests AND clears: TaskWorkerLoop never clears the flag itself, so
@@ -83,6 +80,7 @@ public class DeduplicateTask extends PipelineTask<Path> {
             if (Thread.interrupted()) {
                 throw new InterruptedException("cancelled while draining " + inputQueue.getName());
             }
+            return rejected;
         }
     }
 }
