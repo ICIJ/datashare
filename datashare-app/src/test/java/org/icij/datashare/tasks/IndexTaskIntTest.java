@@ -5,7 +5,6 @@ import org.icij.datashare.PipelineHelper;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Stage;
 import org.icij.datashare.asynctasks.Task;
-import org.icij.datashare.asynctasks.TaskRepository;
 import org.icij.datashare.asynctasks.TaskRepositoryMemory;
 import org.icij.datashare.asynctasks.TaskResult;
 import org.icij.datashare.extract.DocumentCollectionFactory;
@@ -51,8 +50,8 @@ public class IndexTaskIntTest {
 
     static class ClosingProbeIndexTask extends IndexTask {
         ClosingProbeIndexTask(ElasticsearchSpewer spewer, DocumentCollectionFactory<Path> factory,
-                              TaskRepository taskRepository, Task<Long> task, Function<Double, Void> cb) throws IOException {
-            super(spewer, factory, taskRepository, task, cb);
+                              UpstreamGate.Factory gateFactory, Task<Long> task, Function<Double, Void> cb) throws IOException {
+            super(spewer, factory, gateFactory, task, cb);
         }
         @Override
         protected Extractor createExtractor(DocumentFactory documentFactory, Options<String> options) {
@@ -78,7 +77,7 @@ public class IndexTaskIntTest {
         DocumentQueue<Path> queue = inputQueueFactory.createQueue(new PipelineHelper(propertiesProvider).getQueueNameFor(Stage.INDEX), Path.class);
         queue.add(Paths.get(ClassLoader.getSystemResource("docs/doc.txt").getPath()));
 
-        Long nbDocs = new IndexTask(spewer, inputQueueFactory, taskRepository, new Task<>(IndexTask.class.getName(), User.local(), map), null).call();
+        Long nbDocs = new IndexTask(spewer, inputQueueFactory, new UpstreamGate.Factory(taskRepository), new Task<>(IndexTask.class.getName(), User.local(), map), null).call();
 
         assertThat(nbDocs).isEqualTo(1);
         DocumentQueue<String> outputQueue = outputQueueFactory.createQueue(new PipelineHelper(propertiesProvider).getOutputQueueNameFor(Stage.INDEX), String.class);
@@ -94,7 +93,7 @@ public class IndexTaskIntTest {
         queue.add(Paths.get("POISON"));
         queue.add(Paths.get(ClassLoader.getSystemResource("docs/doc.txt").getPath()));
 
-        Long nbDocs = new IndexTask(spewer, inputQueueFactory, taskRepository, new Task<>(IndexTask.class.getName(), User.local(), map), null).call();
+        Long nbDocs = new IndexTask(spewer, inputQueueFactory, new UpstreamGate.Factory(taskRepository), new Task<>(IndexTask.class.getName(), User.local(), map), null).call();
 
         // the sentinel is not a document: the returned count must be 1, not 2
         assertThat(nbDocs).isEqualTo(1);
@@ -116,7 +115,7 @@ public class IndexTaskIntTest {
         inputQueue.add(Paths.get(ClassLoader.getSystemResource("docs/embedded_doc.eml").getPath()));
         inputQueue.add(Paths.get(ClassLoader.getSystemResource("docs/foo/bar.txt").getPath()));
 
-        IndexTask indexTask = new IndexTask(spewer, inputQueueFactory, taskRepository, new Task<>(IndexTask.class.getName(), User.local(), map), callback);
+        IndexTask indexTask = new IndexTask(spewer, inputQueueFactory, new UpstreamGate.Factory(taskRepository), new Task<>(IndexTask.class.getName(), User.local(), map), callback);
         indexTask.call();
         assertThat(progressValues.size()).isGreaterThan(1);
         assertThat(progressValues.get(0)).isLessThan(progressValues.get(progressValues.size() - 1));
@@ -144,8 +143,8 @@ public class IndexTaskIntTest {
         };
         inputQueueFactory.queues.put(queueName, queue);
         Map<String, Object> args = new HashMap<>(map);
-        args.put(PipelineTask.UPSTREAM_TASK_ID, upstream.id);
-        IndexTask indexTask = new IndexTask(spewer, inputQueueFactory, taskRepository,
+        args.put(UpstreamGate.UPSTREAM_TASK_ID, upstream.id);
+        IndexTask indexTask = new IndexTask(spewer, inputQueueFactory, new UpstreamGate.Factory(taskRepository),
                 new Task<>(IndexTask.class.getName(), User.local(), args), null);
 
         ExecutorService executor = Executors.newSingleThreadExecutor();
@@ -168,7 +167,7 @@ public class IndexTaskIntTest {
         DocumentQueue<Path> inputQueue = inputQueueFactory.createQueue(new PipelineHelper(propertiesProvider).getQueueNameFor(Stage.INDEX), Path.class);
         inputQueue.add(Paths.get(ClassLoader.getSystemResource("docs/doc.txt").getPath()));
 
-        IndexTask indexTask = new ClosingProbeIndexTask(spewer, inputQueueFactory, taskRepository, new Task<>(IndexTask.class.getName(), User.local(), map), null);
+        IndexTask indexTask = new ClosingProbeIndexTask(spewer, inputQueueFactory, new UpstreamGate.Factory(taskRepository), new Task<>(IndexTask.class.getName(), User.local(), map), null);
         indexTask.call();
 
         assertThat(CREATED_EXTRACTORS.size()).isEqualTo(1);

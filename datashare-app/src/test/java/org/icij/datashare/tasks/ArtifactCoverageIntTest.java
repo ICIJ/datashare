@@ -57,12 +57,12 @@ public class ArtifactCoverageIntTest {
         ElasticsearchIndexer indexer = new ElasticsearchIndexer(es.client, new PropertiesProvider()).withRefresh(Refresh.True);
         ElasticsearchSpewer spewer = new ElasticsearchSpewer(indexer, stringQueueFactory,
                 text -> Language.ENGLISH, new FieldNames(), props);
-        new IndexTask(spewer, indexQueueFactory, taskRepository, new Task<>(IndexTask.class.getName(), User.local(), map), null).call();
+        new IndexTask(spewer, indexQueueFactory, new UpstreamGate.Factory(taskRepository), new Task<>(IndexTask.class.getName(), User.local(), map), null).call();
 
         // 3. ENQUEUEIDX -> ARTIFACT (queue test:queue:artifact), then the task itself
         new EnqueueFromIndexTask(stringQueueFactory, indexer,
                 new Task<>(EnqueueFromIndexTask.class.getName(), User.local(), map), null).call();
-        new ArtifactTask(stringQueueFactory, indexer, props, taskRepository,
+        new ArtifactTask(stringQueueFactory, indexer, props, new UpstreamGate.Factory(taskRepository),
                 new Task<>(ArtifactTask.class.getName(), User.local(), map), null).call();
 
         // 4. coverage

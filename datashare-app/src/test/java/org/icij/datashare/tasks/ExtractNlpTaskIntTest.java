@@ -10,7 +10,6 @@ import org.icij.datashare.PipelineHelper;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Stage;
 import org.icij.datashare.asynctasks.Task;
-import org.icij.datashare.asynctasks.TaskRepositoryMemory;
 import org.icij.datashare.extract.*;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.indexing.Indexer;
@@ -45,7 +44,6 @@ public class ExtractNlpTaskIntTest {
     @Mock private Indexer indexer;
     @Mock private AbstractPipeline pipeline;
     private final DocumentCollectionFactory<String> factory;
-    private final TaskRepositoryMemory taskRepository = new TaskRepositoryMemory();
     private ExtractNlpTask nlpTask;
 
     public ExtractNlpTaskIntTest(Injector injector) {
@@ -91,7 +89,7 @@ public class ExtractNlpTaskIntTest {
         queue.add("docId2");
         queue.add("docId3");
 
-        new ExtractNlpTask(indexer, pipeline, factory, taskRepository, new Task<>(ExtractNlpTask.class.getName(), User.local(), new HashMap<>() {{
+        new ExtractNlpTask(indexer, pipeline, factory, UpstreamGate.NONE, new Task<>(ExtractNlpTask.class.getName(), User.local(), new HashMap<>() {{
             put("maxContentLength", "32");
         }}), callback).call();
 
@@ -126,7 +124,7 @@ public class ExtractNlpTaskIntTest {
     @Before
     public void setUp() {
         initMocks(this);
-        nlpTask = new ExtractNlpTask(indexer, pipeline, factory, taskRepository, new Task<>(ExtractNlpTask.class.getName(), User.local(), new HashMap<>(){{
+        nlpTask = new ExtractNlpTask(indexer, pipeline, factory, UpstreamGate.NONE, new Task<>(ExtractNlpTask.class.getName(), User.local(), new HashMap<>(){{
             put("maxContentLength", "32");
         }}), null);
     }

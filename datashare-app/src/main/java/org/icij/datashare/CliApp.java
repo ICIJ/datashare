@@ -27,7 +27,7 @@ import org.icij.datashare.tasks.DeduplicateTask;
 import org.icij.datashare.tasks.EnqueueFromIndexTask;
 import org.icij.datashare.tasks.ExtractNlpTask;
 import org.icij.datashare.tasks.IndexTask;
-import org.icij.datashare.tasks.PipelineTask;
+import org.icij.datashare.tasks.UpstreamGate;
 import org.icij.datashare.tasks.ScanIndexTask;
 import org.icij.datashare.tasks.ScanTask;
 import org.icij.datashare.text.indexing.Indexer;
@@ -200,7 +200,7 @@ class CliApp {
 
     /**
      * Starts every configured stage, then awaits them all at once. Each stage carries the previous
-     * stage's task id in its args under {@link PipelineTask#UPSTREAM_TASK_ID}, so a consumer knows
+     * stage's task id in its args under {@link UpstreamGate#UPSTREAM_TASK_ID}, so a consumer knows
      * which producer feeds its input queue and keeps polling while that producer runs. Stages
      * therefore overlap, which a bounded in-memory queue needs to make progress on a large corpus:
      * what makes termination correct is that gate, not the launch sequencing.
@@ -220,7 +220,7 @@ class CliApp {
             }
             Map<String, Object> args = propertiesToMap(properties);
             if (upstreamTaskId != null) {
-                args.put(PipelineTask.UPSTREAM_TASK_ID, upstreamTaskId);
+                args.put(UpstreamGate.UPSTREAM_TASK_ID, upstreamTaskId);
             }
             upstreamTaskId = taskManager.startTask(taskClass, nullUser(), args);
             stagesByTaskId.put(upstreamTaskId, stage);

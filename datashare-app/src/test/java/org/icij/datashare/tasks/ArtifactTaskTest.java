@@ -53,7 +53,7 @@ public class ArtifactTaskTest {
 
     @Test(expected = IllegalArgumentException.class)
     public void test_missing_artifact_dir() {
-        new ArtifactTask(factory, mockEs, new PropertiesProvider(Map.of()), taskRepository, new Task<>(ArtifactTask.class.getName(), User.local(), Map.of()), null);
+        new ArtifactTask(factory, mockEs, new PropertiesProvider(Map.of()), new UpstreamGate.Factory(taskRepository), new Task<>(ArtifactTask.class.getName(), User.local(), Map.of()), null);
     }
 
     @Test(timeout = 10000)
@@ -115,7 +115,7 @@ public class ArtifactTaskTest {
                 "parallelism", "2"));
         Task<Long> task = new Task<>(ArtifactTask.class.getName(), User.local(), new HashMap<>());
 
-        ArtifactTask artifactTask = new ArtifactTask(factory, mockEs, props, taskRepository, task, null) {
+        ArtifactTask artifactTask = new ArtifactTask(factory, mockEs, props, new UpstreamGate.Factory(taskRepository), task, null) {
             @Override
             protected SourceExtractor createSourceExtractor() {
                 return new SourceExtractor(props) {
@@ -158,7 +158,7 @@ public class ArtifactTaskTest {
                 "parallelism", "2"));
         Task<Long> task = new Task<>(ArtifactTask.class.getName(), User.local(), new HashMap<>());
 
-        ArtifactTask artifactTask = new ArtifactTask(factory, mockEs, props, taskRepository, task, null) {
+        ArtifactTask artifactTask = new ArtifactTask(factory, mockEs, props, new UpstreamGate.Factory(taskRepository), task, null) {
             @Override
             protected SourceExtractor createSourceExtractor() {
                 throw new IllegalStateException("no extractor");
@@ -188,7 +188,7 @@ public class ArtifactTaskTest {
         // exactly one of the two workers fails to build its extractor and dies; the other survives.
         // the task must still fail, independently of the parallelism.
         AtomicInteger extractorCalls = new AtomicInteger(0);
-        ArtifactTask artifactTask = new ArtifactTask(factory, mockEs, props, taskRepository, task, null) {
+        ArtifactTask artifactTask = new ArtifactTask(factory, mockEs, props, new UpstreamGate.Factory(taskRepository), task, null) {
             @Override
             protected SourceExtractor createSourceExtractor() {
                 if (extractorCalls.getAndIncrement() == 0) {
@@ -235,7 +235,7 @@ public class ArtifactTaskTest {
                 "artifactDir", artifactDir.getRoot().toString(),
                 "defaultProject", "prj",
                 "parallelism", "2"));
-        ArtifactTask task = new ArtifactTask(factory, mockEs, props, taskRepository,
+        ArtifactTask task = new ArtifactTask(factory, mockEs, props, new UpstreamGate.Factory(taskRepository),
                 new Task<>(ArtifactTask.class.getName(), User.local(), new HashMap<>()), null) {
             @Override
             protected SourceExtractor createSourceExtractor() {
@@ -273,7 +273,7 @@ public class ArtifactTaskTest {
                 "parallelism", "1"));
         Task<Long> task = new Task<>(ArtifactTask.class.getName(), User.local(), new HashMap<>());
 
-        ArtifactTask artifactTask = new ArtifactTask(factory, mockEs, props, taskRepository, task, null) {
+        ArtifactTask artifactTask = new ArtifactTask(factory, mockEs, props, new UpstreamGate.Factory(taskRepository), task, null) {
             @Override
             protected SourceExtractor createSourceExtractor() {
                 return new SourceExtractor(props) {
@@ -330,7 +330,7 @@ public class ArtifactTaskTest {
 
         // a single worker, so cancelling while the first document is in flight must stop the worker
         // before it ever polls the second entry off the queue
-        ArtifactTask artifactTask = new ArtifactTask(factory, mockEs, props, taskRepository, task, null) {
+        ArtifactTask artifactTask = new ArtifactTask(factory, mockEs, props, new UpstreamGate.Factory(taskRepository), task, null) {
             @Override
             protected SourceExtractor createSourceExtractor() {
                 return new SourceExtractor(props) {
@@ -382,7 +382,7 @@ public class ArtifactTaskTest {
         Long numberOfDocuments = new ArtifactTask(factory, mockEs, new PropertiesProvider(Map.of(
                 "artifactDir", artifactDir.getRoot().toString(),
                 "defaultProject", "prj")),
-                taskRepository, new Task<>(ArtifactTask.class.getName(), User.local(), new HashMap<>()), null)
+                new UpstreamGate.Factory(taskRepository), new Task<>(ArtifactTask.class.getName(), User.local(), new HashMap<>()), null)
                 .call();
 
         assertThat(numberOfDocuments).isEqualTo(1);
@@ -452,8 +452,8 @@ public class ArtifactTaskTest {
         ArtifactTask artifactTask = new ArtifactTask(factory, mockEs, new PropertiesProvider(Map.of(
                 "artifactDir", artifactDir.getRoot().toString(),
                 "defaultProject", "prj")),
-                taskRepository, new Task<>(ArtifactTask.class.getName(), User.local(),
-                Map.of(PipelineTask.UPSTREAM_TASK_ID, upstream.id)), null);
+                new UpstreamGate.Factory(taskRepository), new Task<>(ArtifactTask.class.getName(), User.local(),
+                Map.of(UpstreamGate.UPSTREAM_TASK_ID, upstream.id)), null);
 
         ExecutorService executor = Executors.newSingleThreadExecutor();
         try {
@@ -482,7 +482,7 @@ public class ArtifactTaskTest {
                 "artifactDir", artifactDir.getRoot().toString(),
                 "defaultProject", "prj"
                 )),
-                taskRepository, new Task<>(ArtifactTask.class.getName(), User.local(), new HashMap<>()), null)
+                new UpstreamGate.Factory(taskRepository), new Task<>(ArtifactTask.class.getName(), User.local(), new HashMap<>()), null)
                 .call();
     }
 
@@ -491,7 +491,7 @@ public class ArtifactTaskTest {
                 "artifactDir", artifactDir.getRoot().toString(),
                 "defaultProject", "prj",
                 "parallelism", String.valueOf(parallelism))),
-                taskRepository, new Task<>(ArtifactTask.class.getName(), User.local(), new HashMap<>()), null)
+                new UpstreamGate.Factory(taskRepository), new Task<>(ArtifactTask.class.getName(), User.local(), new HashMap<>()), null)
                 .call();
     }
 
@@ -507,7 +507,7 @@ public class ArtifactTaskTest {
         Long numberOfDocuments = new ArtifactTask(factory, mockEs, new PropertiesProvider(Map.of(
                 "artifactDir", artifactDir.getRoot().toString(),
                 "defaultProject", "prj")),
-                taskRepository, new Task<>(ArtifactTask.class.getName(), User.local(), new HashMap<>()), null)
+                new UpstreamGate.Factory(taskRepository), new Task<>(ArtifactTask.class.getName(), User.local(), new HashMap<>()), null)
                 .call();
 
         assertThat(numberOfDocuments).isEqualTo(1);
