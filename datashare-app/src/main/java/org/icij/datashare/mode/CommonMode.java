@@ -128,7 +128,7 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
         }
         executorService = Executors.newFixedThreadPool(Math.max(getTaskWorkersNb(), 1));
         if (getTaskWorkersNb() > 1) {
-            logger.warn("taskWorkers is set to {}: pipeline stages can then run concurrently, so a consumer stage may exit as soon as its input queue looks empty and strand documents. CLI runs are sequenced by CliApp.runPipeline and are unaffected.", getTaskWorkersNb());
+            logger.info("taskWorkers is set to {}: pipeline stages can run concurrently. Consumer stages launched with an upstream task id keep draining until their producer is done; a stage started against a queue with no upstream stops on its first empty poll.", getTaskWorkersNb());
         }
         try {
             this.injector = Guice.createInjector(this);
