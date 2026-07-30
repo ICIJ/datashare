@@ -48,7 +48,7 @@ public class DeduplicateTaskTest {
         task.inputQueue.put(get("/path/to/doc1"));
         task.inputQueue.put(get("/path/to/doc2"));
 
-        task.transferToOutputQueue();
+        task.transferToOutputQueue(p -> true);
 
         assertThat(task.inputQueue.isEmpty()).isTrue();
         DocumentQueue<Path> outputQueue = docCollectionFactory.createQueue(task.getOutputQueueName(), Path.class);

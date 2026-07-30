@@ -53,12 +53,7 @@ public class DeduplicateTask extends PipelineTask<Path> {
         return dropped[0];
     }
 
-    long transferToOutputQueue() throws Exception {
-        return transferToOutputQueue(p -> true);
-    }
-
-    long transferToOutputQueue(Predicate<Path> filter) throws Exception {
-        long originalSize = inputQueue.size();
+    void transferToOutputQueue(Predicate<Path> filter) throws Exception {
         try (DocumentQueue<Path> outputQueue = factory.createQueue(getOutputQueueName(), Path.class)) {
             while (!Thread.currentThread().isInterrupted()) {
                 Path path;
@@ -88,7 +83,6 @@ public class DeduplicateTask extends PipelineTask<Path> {
             if (Thread.interrupted()) {
                 throw new InterruptedException("cancelled while draining " + inputQueue.getName());
             }
-            return originalSize - outputQueue.size();
         }
     }
 }
