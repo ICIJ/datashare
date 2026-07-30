@@ -38,8 +38,12 @@ public interface UpstreamGate {
 
         /**
          * The gate for this task view: repository-backed when the launcher set an upstream id in
-         * the args, {@link #NONE} otherwise. An unknown task or a repository failure means "won't
-         * grow", so the consumer falls back to stopping on an empty queue, the pre-gate behaviour.
+         * the args, {@link #NONE} otherwise. An unknown task means "no upstream to wait for", so
+         * the consumer falls back to stopping on an empty queue, the pre-gate behaviour. A
+         * repository read failure says nothing about the producer, so it counts as still running:
+         * retrying costs a poll interval, whereas calling it finished can end the drain on a
+         * transient error and strand whatever is enqueued next. JooqTaskRepository throws jOOQ's
+         * unchecked DataAccessException, hence the RuntimeException.
          */
         public UpstreamGate forTask(Task<?> taskView) {
             String upstreamTaskId = (String) taskView.args.get(UPSTREAM_TASK_ID);
@@ -49,9 +53,12 @@ public interface UpstreamGate {
             return () -> {
                 try {
                     return !taskRepository.getTask(upstreamTaskId).getState().isFinal();
-                } catch (UnknownTask | IOException e) {
-                    LoggerFactory.getLogger(Factory.class).warn("cannot read upstream task {} state, treating it as finished", upstreamTaskId, e);
+                } catch (UnknownTask e) {
+                    LoggerFactory.getLogger(Factory.class).warn("upstream task {} is unknown, treating it as finished", upstreamTaskId, e);
                     return false;
+                } catch (IOException | RuntimeException e) {
+                    LoggerFactory.getLogger(Factory.class).warn("cannot read upstream task {} state, treating it as still running", upstreamTaskId, e);
+                    return true;
                 }
             };
         }

@@ -7,7 +7,6 @@ import org.icij.datashare.Stage;
 import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.asynctasks.TaskGroup;
 import org.icij.datashare.asynctasks.TaskGroupType;
-import org.icij.datashare.asynctasks.TaskRepository;
 import org.icij.datashare.asynctasks.temporal.ActivityOpts;
 import org.icij.datashare.asynctasks.temporal.TemporalSingleActivityWorkflow;
 import org.icij.datashare.extract.DocumentCollectionFactory;
@@ -44,11 +43,9 @@ public class CategorizeTask extends PipelineTask<String> implements Monitorable 
     private final Function<Double, Void> progressCallback;
     private final Indexer indexer;
     private final Project project;
-    private final TaskRepository taskRepository;
     @Inject
-    public CategorizeTask(final Indexer indexer, final DocumentCollectionFactory<String> factory, final TaskRepository taskRepository, @Assisted Task<Long> taskView, @Assisted final Function<Double, Void> progressCallback) {
-        super(Stage.CATEGORIZE, taskView.getUser(), factory, new PropertiesProvider(taskView.args), String.class);
-        this.taskRepository = taskRepository;
+    public CategorizeTask(final Indexer indexer, final DocumentCollectionFactory<String> factory, final UpstreamGate.Factory gateFactory, @Assisted Task<Long> taskView, @Assisted final Function<Double, Void> progressCallback) {
+        super(Stage.CATEGORIZE, taskView.getUser(), factory, new PropertiesProvider(taskView.args), String.class, gateFactory.forTask(taskView));
         this.progressCallback = progressCallback;
         this.indexer = indexer;
         project = Project.project(ofNullable((String)taskView.args.get(DEFAULT_PROJECT_OPT)).orElse(DEFAULT_DEFAULT_PROJECT));
@@ -72,7 +69,7 @@ public class CategorizeTask extends PipelineTask<String> implements Monitorable 
                 throw e;
             }
             if (queueEntry == null) {
-                if (drained(taskRepository)) {
+                if (drained()) {
                     break;
                 }
                 Thread.sleep(UPSTREAM_POLL_INTERVAL_MS);

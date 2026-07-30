@@ -7,7 +7,6 @@ import org.icij.datashare.Stage;
 import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.asynctasks.TaskGroup;
 import org.icij.datashare.asynctasks.TaskGroupType;
-import org.icij.datashare.asynctasks.TaskRepository;
 import org.icij.datashare.asynctasks.temporal.ActivityOpts;
 import org.icij.datashare.asynctasks.temporal.TemporalSingleActivityWorkflow;
 import org.icij.datashare.extract.DocumentCollectionFactory;
@@ -29,8 +28,6 @@ import org.slf4j.LoggerFactory;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
-import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -40,7 +37,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
 
-import static java.util.Optional.ofNullable;
 import static org.icij.datashare.PropertiesProvider.DEFAULT_PROJECT_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.ARTIFACT_DIR_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.ARTIFACTS_FORCE_OPT;
@@ -58,15 +54,11 @@ public class ArtifactTask extends PipelineTask<String> {
     private final Path artifactDir;
     private final int parallelism;
     private final ExecutorService executor;
-    private final TaskRepository taskRepository;
-    private final Map<String, Object> taskArgs;
 
     @Inject
-    public ArtifactTask(DocumentCollectionFactory<String> factory, Indexer indexer, PropertiesProvider propertiesProvider, final TaskRepository taskRepository, @Assisted Task<Long> taskView, @Assisted final Function<Double, Void> updateCallback) {
-        super(Stage.ARTIFACT, taskView.getUser(), factory, propertiesProvider, String.class);
+    public ArtifactTask(DocumentCollectionFactory<String> factory, Indexer indexer, PropertiesProvider propertiesProvider, final UpstreamGate.Factory gateFactory, @Assisted Task<Long> taskView, @Assisted final Function<Double, Void> updateCallback) {
+        super(Stage.ARTIFACT, taskView.getUser(), factory, propertiesProvider, String.class, gateFactory.forTask(taskView));
         this.indexer = indexer;
-        this.taskRepository = taskRepository;
-        this.taskArgs = taskView.args;
         project = Project.project(propertiesProvider.get(DEFAULT_PROJECT_OPT).orElse(DEFAULT_DEFAULT_PROJECT));
         parallelism = Math.max(1, propertiesProvider.get(PARALLELISM_OPT).map(Integer::parseInt).orElse(1));
         artifactDir = Path.of(propertiesProvider.get(ARTIFACT_DIR_OPT).orElseThrow(() -> new IllegalArgumentException(String.format("cannot create artifact task with empty %s", ARTIFACT_DIR_OPT))));
@@ -160,7 +152,7 @@ public class ArtifactTask extends PipelineTask<String> {
                 throw e;
             }
             if (queueEntry == null) {
-                if (drained(taskRepository)) {
+                if (drained()) {
                     break;
                 }
                 try {
@@ -197,15 +189,6 @@ public class ArtifactTask extends PipelineTask<String> {
                 nbFailed.incrementAndGet();
             }
         }
-    }
-
-    /**
-     * Unlike the other pipeline tasks, this one is configured from the injected app properties and
-     * not from the task args, so the launcher-set upstream id is only found in the args map.
-     */
-    @Override
-    protected Optional<String> upstreamTaskId() {
-        return ofNullable((String) taskArgs.get(UPSTREAM_TASK_ID));
     }
 
     protected SourceExtractor createSourceExtractor() {

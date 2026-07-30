@@ -32,7 +32,7 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.fest.assertions.Assertions.assertThat;
 import static org.fest.assertions.Fail.fail;
 import static org.icij.datashare.PropertiesProvider.DEFAULT_QUEUE_CAPACITY;
-import static org.icij.datashare.tasks.PipelineTask.UPSTREAM_TASK_ID;
+import static org.icij.datashare.tasks.UpstreamGate.UPSTREAM_TASK_ID;
 import static org.mockito.Mockito.verify;
 import static org.mockito.MockitoAnnotations.initMocks;
 
@@ -149,7 +149,8 @@ public class UpstreamGateTest {
 
     private ExtractNlpTask nlpTaskGatedOn(Task<Long> upstream, TaskRepository repository) {
         Map<String, Object> args = Map.of(UPSTREAM_TASK_ID, upstream.id);
-        return new ExtractNlpTask(indexer, pipeline, factory, repository,
+        return new ExtractNlpTask(indexer, pipeline, factory,
+                new UpstreamGate.Factory(repository).forTask(new Task<>(ExtractNlpTask.class.getName(), User.local(), args)),
                 new Task<>(ExtractNlpTask.class.getName(), User.local(), args), progress -> null);
     }
 

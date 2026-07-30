@@ -8,7 +8,7 @@ import org.icij.datashare.asynctasks.TaskResult;
 import org.icij.datashare.asynctasks.bus.amqp.TaskError;
 import org.icij.datashare.tasks.DatashareTaskFactory;
 import org.icij.datashare.tasks.IndexTask;
-import org.icij.datashare.tasks.PipelineTask;
+import org.icij.datashare.tasks.UpstreamGate;
 import org.icij.datashare.tasks.ScanTask;
 import org.icij.datashare.user.User;
 import org.junit.Test;
@@ -93,11 +93,11 @@ public class CliAppTest {
         // this id is how IndexTask knows to keep polling while the scan is still enqueuing
         ArgumentCaptor<Map<String, Object>> args = ArgumentCaptor.forClass(Map.class);
         verify(mockedManager).startTask(eq(IndexTask.class), any(), args.capture());
-        assertThat(args.getValue().get(PipelineTask.UPSTREAM_TASK_ID)).isEqualTo("id-scan");
+        assertThat(args.getValue().get(UpstreamGate.UPSTREAM_TASK_ID)).isEqualTo("id-scan");
         // the first stage has no producer to wait for
         ArgumentCaptor<Map<String, Object>> scanArgs = ArgumentCaptor.forClass(Map.class);
         verify(mockedManager).startTask(eq(ScanTask.class), any(), scanArgs.capture());
-        assertThat(scanArgs.getValue().containsKey(PipelineTask.UPSTREAM_TASK_ID)).isFalse();
+        assertThat(scanArgs.getValue().containsKey(UpstreamGate.UPSTREAM_TASK_ID)).isFalse();
     }
 
     @Test

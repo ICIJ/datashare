@@ -420,7 +420,7 @@ public class TaskResource {
         }
         Map<String, Object> indexArgs = propertiesToMap(properties);
         // the scan is still walking the data dir: this is what keeps the index task draining
-        indexArgs.put(PipelineTask.UPSTREAM_TASK_ID, scanResponse.taskId);
+        indexArgs.put(UpstreamGate.UPSTREAM_TASK_ID, scanResponse.taskId);
         ofNullable(taskManager.startTask(IndexTask.class, user, indexArgs)).ifPresent(taskIds::add);
         return new JsonPayload(new TasksResponse(taskIds));
     }
@@ -544,7 +544,7 @@ public class TaskResource {
             tasks.add(enqueueTaskId);
             // without it the NLP task would exit on its first empty poll, while the enqueuing task
             // is still scrolling the index, and report DONE having processed nothing
-            nlpArgs.put(PipelineTask.UPSTREAM_TASK_ID, enqueueTaskId);
+            nlpArgs.put(UpstreamGate.UPSTREAM_TASK_ID, enqueueTaskId);
         }
         tasks.add(taskManager.startTask(ExtractNlpTask.class, (User) context.currentUser(), nlpArgs));
         return new JsonPayload(new TasksResponse(tasks));
@@ -559,7 +559,7 @@ public class TaskResource {
         Properties clone = (Properties) properties.clone();
         // Set by the launcher below, never by a client: a forged id makes the started consumer poll
         // for as long as the referenced task lives, pinning a worker for as long as the caller wants.
-        clone.remove(PipelineTask.UPSTREAM_TASK_ID);
+        clone.remove(UpstreamGate.UPSTREAM_TASK_ID);
         clone.setProperty(QUEUE_NAME_OPT, "extract:queue"); // Override any given queue name value
         clone.setProperty(REPORT_NAME_OPT, getReportMapNameFor(properties));
         clone.setProperty(DIGEST_PROJECT_NAME_OPT, clone.getProperty(DEFAULT_PROJECT_OPT, "local-datashare"));

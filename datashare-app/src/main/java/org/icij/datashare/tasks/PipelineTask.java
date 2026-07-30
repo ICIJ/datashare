@@ -4,8 +4,6 @@ import org.icij.datashare.PipelineHelper;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Stage;
 import org.icij.datashare.asynctasks.CancellableTask;
-import org.icij.datashare.asynctasks.TaskRepository;
-import org.icij.datashare.asynctasks.UnknownTask;
 import org.icij.datashare.extract.DocumentCollectionFactory;
 import org.icij.datashare.text.DocReference;
 import org.icij.datashare.text.Document;
@@ -16,18 +14,11 @@ import org.icij.extract.queue.DocumentQueue;
 import org.icij.task.DefaultTask;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
 import java.util.List;
-import java.util.Optional;
 
 import static java.util.Optional.ofNullable;
 
 public abstract class PipelineTask<T> extends DefaultTask<Long> implements UserTask, CancellableTask {
-    /**
-     * Task-arg key carrying the id of the task whose output feeds this stage's input queue. Set by
-     * the launcher (CliApp.runPipeline, TaskResource), never by an operator: it is not a CLI option.
-     */
-    public static final String UPSTREAM_TASK_ID = "upstreamTaskId";
     /**
      * How long a drain waits before re-polling a queue whose producer is still running. Fixed, not
      * an option: it paces an internal wait, and reading pollingInterval made stage handoff up to a
@@ -40,14 +31,21 @@ public abstract class PipelineTask<T> extends DefaultTask<Long> implements UserT
     protected final Stage stage;
     protected final User user;
     protected final PropertiesProvider propertiesProvider;
+    protected final UpstreamGate gate;
     private final DocumentCollectionFactory<T> factory;
     private volatile Thread taskThread;
 
+    /** For producer stages: nothing feeds their input queue, the gate is {@link UpstreamGate#NONE}. */
     public PipelineTask(Stage stage, User user, DocumentCollectionFactory<T> factory, final PropertiesProvider propertiesProvider, Class<T> clazz) {
+        this(stage, user, factory, propertiesProvider, clazz, UpstreamGate.NONE);
+    }
+
+    public PipelineTask(Stage stage, User user, DocumentCollectionFactory<T> factory, final PropertiesProvider propertiesProvider, Class<T> clazz, UpstreamGate gate) {
         this.propertiesProvider = propertiesProvider;
         this.stage = stage;
         this.user = user;
         this.factory = factory;
+        this.gate = gate;
         this.inputQueue = getInputQueue(clazz);
         this.outputQueue = getOutputQueue(clazz);
     }
@@ -107,44 +105,14 @@ public abstract class PipelineTask<T> extends DefaultTask<Long> implements UserT
     }
 
     /**
-     * The id of the task feeding this stage's input queue, or empty when this stage runs standalone
-     * against an already filled queue. Read from the task args, which is where the launcher puts it.
+     * True when a drain that just polled an empty queue may stop: the producer feeding it is done
+     * and the queue is still empty. The gate read comes first on purpose, so an entry enqueued
+     * between the caller's poll and that read is caught by the emptiness check instead of being
+     * stranded. With no upstream this is just "the queue is empty", the pre-gate behaviour: stop
+     * on the first empty poll.
      */
-    protected Optional<String> upstreamTaskId() {
-        return propertiesProvider.get(UPSTREAM_TASK_ID);
-    }
-
-    /**
-     * True while the producer feeding this stage may still enqueue. An absent upstream id or an
-     * unknown task means "no upstream to wait for", so the consumer falls back to exiting on an
-     * empty queue, which is the pre-gate behaviour. A repository read failure says nothing about
-     * the producer, so it counts as still running: retrying costs a poll interval, whereas calling
-     * it finished can end the drain on a transient error and strand whatever is enqueued next.
-     * JooqTaskRepository throws jOOQ's unchecked DataAccessException, hence the RuntimeException.
-     */
-    protected boolean upstreamRunning(TaskRepository taskRepository) {
-        return upstreamTaskId().map(upstreamTaskId -> {
-            try {
-                return !taskRepository.getTask(upstreamTaskId).getState().isFinal();
-            } catch (UnknownTask e) {
-                LoggerFactory.getLogger(getClass()).warn("upstream task {} is unknown, treating it as finished", upstreamTaskId, e);
-                return false;
-            } catch (IOException | RuntimeException e) {
-                LoggerFactory.getLogger(getClass()).warn("cannot read upstream task {} state, treating it as still running", upstreamTaskId, e);
-                return true;
-            }
-        }).orElse(false);
-    }
-
-    /**
-     * True when a drain that just polled an empty queue may stop: the producer feeding it is
-     * terminal and the queue is still empty. The state read comes first on purpose, so an entry
-     * enqueued between the caller's poll and that read is caught by the emptiness check instead of
-     * being stranded. With no upstream id this is just "the queue is empty", which is the pre-gate
-     * behaviour: stop on the first empty poll.
-     */
-    protected boolean drained(TaskRepository taskRepository) {
-        return !upstreamRunning(taskRepository) && inputQueue.isEmpty();
+    protected boolean drained() {
+        return !gate.mayGrow() && inputQueue.isEmpty();
     }
 
     // Transitional. Redis queue keys survive upgrades, so a pre-21.16 run can leave a "POISON"

@@ -473,7 +473,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         defaultProperties.put("user", User.local());
         defaultProperties.remove(REPORT_NAME_OPT);
         // the index stage is gated on the scan task it follows
-        defaultProperties.put(PipelineTask.UPSTREAM_TASK_ID, findTask(taskManager, "org.icij.datashare.tasks.ScanTask").get().id);
+        defaultProperties.put(UpstreamGate.UPSTREAM_TASK_ID, findTask(taskManager, "org.icij.datashare.tasks.ScanTask").get().id);
 
         assertThat(taskManager.getTasks().toList()).hasSize(2);
         assertThat(findTask(taskManager, "org.icij.datashare.tasks.ScanTask")).isNotNull();
@@ -495,7 +495,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         defaultProperties.put("path", path);
         defaultProperties.put("user", User.local());
         defaultProperties.remove(REPORT_NAME_OPT);
-        defaultProperties.put(PipelineTask.UPSTREAM_TASK_ID, findTask(taskManager, "org.icij.datashare.tasks.ScanTask").get().id);
+        defaultProperties.put(UpstreamGate.UPSTREAM_TASK_ID, findTask(taskManager, "org.icij.datashare.tasks.ScanTask").get().id);
 
         assertThat(taskManager.getTasks().toList()).hasSize(2);
         assertThat(findTask(taskManager, "org.icij.datashare.tasks.ScanTask")).isNotNull();
@@ -608,7 +608,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         assertThat(findTask(taskManager, "org.icij.datashare.tasks.ExtractNlpTask").get().args).includes(entry("nlpPipeline", "EMAIL"),
                 // gated on the enqueuing task, otherwise a "find names" click can report DONE
                 // having processed nothing while doc refs are still being enqueued
-                entry(PipelineTask.UPSTREAM_TASK_ID, findTask(taskManager, "org.icij.datashare.tasks.EnqueueFromIndexTask").get().id));
+                entry(UpstreamGate.UPSTREAM_TASK_ID, findTask(taskManager, "org.icij.datashare.tasks.EnqueueFromIndexTask").get().id));
     }
 
     @Test
@@ -646,7 +646,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
 
         verify(taskFactory, never()).createEnqueueFromIndexTask(eq(null), any());
         // no producer to wait for: a standalone NLP run keeps exiting on its first empty poll
-        assertThat(findTask(taskManager, "org.icij.datashare.tasks.ExtractNlpTask").get().args.containsKey(PipelineTask.UPSTREAM_TASK_ID)).isFalse();
+        assertThat(findTask(taskManager, "org.icij.datashare.tasks.ExtractNlpTask").get().args.containsKey(UpstreamGate.UPSTREAM_TASK_ID)).isFalse();
     }
 
     @Test
@@ -656,7 +656,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         RestAssert response = post("/api/task/findNames/EMAIL", "{\"options\":{\"resume\":\"false\", \"waitForNlpApp\": false, \"upstreamTaskId\":\"forged\"}}");
         response.should().haveType("application/json");
 
-        assertThat(findTask(taskManager, "org.icij.datashare.tasks.ExtractNlpTask").get().args.containsKey(PipelineTask.UPSTREAM_TASK_ID)).isFalse();
+        assertThat(findTask(taskManager, "org.icij.datashare.tasks.ExtractNlpTask").get().args.containsKey(UpstreamGate.UPSTREAM_TASK_ID)).isFalse();
     }
 
     @Test
@@ -664,7 +664,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         RestAssert response = post("/api/task/batchUpdate/index", "{\"options\":{\"upstreamTaskId\":\"forged\"}}");
         response.should().haveType("application/json");
 
-        assertThat(findTask(taskManager, "org.icij.datashare.tasks.IndexTask").get().args.containsKey(PipelineTask.UPSTREAM_TASK_ID)).isFalse();
+        assertThat(findTask(taskManager, "org.icij.datashare.tasks.IndexTask").get().args.containsKey(UpstreamGate.UPSTREAM_TASK_ID)).isFalse();
     }
 
     @Test

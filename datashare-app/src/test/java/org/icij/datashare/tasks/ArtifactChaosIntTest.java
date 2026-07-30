@@ -69,7 +69,7 @@ public class ArtifactChaosIntTest {
         ElasticsearchIndexer indexer = new ElasticsearchIndexer(es.client, new PropertiesProvider()).withRefresh(Refresh.True);
         ElasticsearchSpewer spewer = new ElasticsearchSpewer(indexer, stringQueueFactory,
                 text -> Language.ENGLISH, new FieldNames(), props);
-        new IndexTask(spewer, indexQueueFactory, taskRepository, new Task<>(IndexTask.class.getName(), User.local(), map), null).call();
+        new IndexTask(spewer, indexQueueFactory, new UpstreamGate.Factory(taskRepository), new Task<>(IndexTask.class.getName(), User.local(), map), null).call();
 
         new EnqueueFromIndexTask(stringQueueFactory, indexer,
                 new Task<>(EnqueueFromIndexTask.class.getName(), User.local(), map), null).call();
@@ -80,7 +80,7 @@ public class ArtifactChaosIntTest {
         int realBeforeBlock = 5;
         AtomicInteger callCount = new AtomicInteger(0);
         CountDownLatch blocked = new CountDownLatch(1);
-        ArtifactTask killedTask = new ArtifactTask(stringQueueFactory, indexer, props, taskRepository,
+        ArtifactTask killedTask = new ArtifactTask(stringQueueFactory, indexer, props, new UpstreamGate.Factory(taskRepository),
                 new Task<>(ArtifactTask.class.getName(), User.local(), map), null) {
             @Override
             protected SourceExtractor createSourceExtractor() {
@@ -137,7 +137,7 @@ public class ArtifactChaosIntTest {
                 new Task<>(EnqueueFromIndexTask.class.getName(), User.local(), map), null).call();
 
         AtomicInteger reproductions = new AtomicInteger(0);
-        ArtifactTask resumeTask = new ArtifactTask(stringQueueFactory, indexer, props, taskRepository,
+        ArtifactTask resumeTask = new ArtifactTask(stringQueueFactory, indexer, props, new UpstreamGate.Factory(taskRepository),
                 new Task<>(ArtifactTask.class.getName(), User.local(), map), null) {
             @Override
             protected SourceExtractor createSourceExtractor() {
@@ -187,11 +187,11 @@ public class ArtifactChaosIntTest {
         ElasticsearchIndexer indexer = new ElasticsearchIndexer(es.client, new PropertiesProvider()).withRefresh(Refresh.True);
         ElasticsearchSpewer spewer = new ElasticsearchSpewer(indexer, stringQueueFactory,
                 text -> Language.ENGLISH, new FieldNames(), props);
-        new IndexTask(spewer, indexQueueFactory, taskRepository, new Task<>(IndexTask.class.getName(), User.local(), map), null).call();
+        new IndexTask(spewer, indexQueueFactory, new UpstreamGate.Factory(taskRepository), new Task<>(IndexTask.class.getName(), User.local(), map), null).call();
 
         new EnqueueFromIndexTask(stringQueueFactory, indexer,
                 new Task<>(EnqueueFromIndexTask.class.getName(), User.local(), map), null).call();
-        new ArtifactTask(stringQueueFactory, indexer, props, taskRepository,
+        new ArtifactTask(stringQueueFactory, indexer, props, new UpstreamGate.Factory(taskRepository),
                 new Task<>(ArtifactTask.class.getName(), User.local(), map), null).call();
 
         ArtifactCoverageChecker.Report report = new ArtifactCoverageChecker(indexer, new SourceExtractor(props))
@@ -243,11 +243,11 @@ public class ArtifactChaosIntTest {
         ElasticsearchIndexer indexer = new ElasticsearchIndexer(es.client, new PropertiesProvider()).withRefresh(Refresh.True);
         ElasticsearchSpewer spewer = new ElasticsearchSpewer(indexer, stringQueueFactory,
                 text -> Language.ENGLISH, new FieldNames(), props);
-        new IndexTask(spewer, indexQueueFactory, taskRepository, new Task<>(IndexTask.class.getName(), User.local(), map), null).call();
+        new IndexTask(spewer, indexQueueFactory, new UpstreamGate.Factory(taskRepository), new Task<>(IndexTask.class.getName(), User.local(), map), null).call();
 
         new EnqueueFromIndexTask(stringQueueFactory, indexer,
                 new Task<>(EnqueueFromIndexTask.class.getName(), User.local(), map), null).call();
-        new ArtifactTask(stringQueueFactory, indexer, props, taskRepository,
+        new ArtifactTask(stringQueueFactory, indexer, props, new UpstreamGate.Factory(taskRepository),
                 new Task<>(ArtifactTask.class.getName(), User.local(), map), null).call();
 
         ArtifactCoverageChecker.Report report = new ArtifactCoverageChecker(indexer, new SourceExtractor(props))

@@ -11,7 +11,6 @@ import org.icij.datashare.Stage;
 import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.asynctasks.TaskGroup;
 import org.icij.datashare.asynctasks.TaskGroupType;
-import org.icij.datashare.asynctasks.TaskRepository;
 import org.icij.datashare.asynctasks.temporal.ActivityOpts;
 import org.icij.datashare.asynctasks.temporal.TemporalSingleActivityWorkflow;
 import org.icij.datashare.extract.DocumentCollectionFactory;
@@ -65,8 +64,8 @@ public class IndexTask extends PipelineTask<Path> implements Monitorable{
     private final Integer indexTimeout;
 
     @Inject
-    public IndexTask(final ElasticsearchSpewer spewer, final DocumentCollectionFactory<Path> factory, final TaskRepository taskRepository, @Assisted Task<Long> taskView, @Assisted final Function<Double, Void> progressCallback) throws IOException {
-        super(Stage.INDEX, taskView.getUser(), factory, new PropertiesProvider(taskView.args), Path.class);
+    public IndexTask(final ElasticsearchSpewer spewer, final DocumentCollectionFactory<Path> factory, final UpstreamGate.Factory gateFactory, @Assisted Task<Long> taskView, @Assisted final Function<Double, Void> progressCallback) throws IOException {
+        super(Stage.INDEX, taskView.getUser(), factory, new PropertiesProvider(taskView.args), Path.class, gateFactory.forTask(taskView));
         parallelism = propertiesProvider.get(PARALLELISM_OPT).map(Integer::parseInt).orElse(Runtime.getRuntime().availableProcessors());
         indexTimeout = getIndexTimeout();
         warnIfParseTimeoutDisabled();
@@ -101,8 +100,8 @@ public class IndexTask extends PipelineTask<Path> implements Monitorable{
         drainer = new DocumentQueueDrainer<>(inputQueue, progressTrackConsumer).configure(allTaskOptions);
         // The drainer has no notion of an upstream stage: without a latch it stops on its first
         // empty poll, which is only right when the producer has already finished.
-        if (upstreamTaskId().isPresent()) {
-            drainer.setLatch(new UpstreamSealableLatch(() -> drained(taskRepository), UPSTREAM_POLL_INTERVAL_MS));
+        if (gate != UpstreamGate.NONE) {
+            drainer.setLatch(new UpstreamSealableLatch(this::drained, UPSTREAM_POLL_INTERVAL_MS));
         }
     }
 
