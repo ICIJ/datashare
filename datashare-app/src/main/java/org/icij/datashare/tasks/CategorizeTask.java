@@ -77,6 +77,7 @@ public class CategorizeTask extends PipelineTask<String> implements Monitorable 
             }
             // before the offer below, so the sentinel is not forwarded downstream
             if (isLegacySentinel(queueEntry)) {
+                logger.warn("skipping legacy POISON sentinel in queue {}", inputQueue.getName());
                 continue;
             }
             try {
