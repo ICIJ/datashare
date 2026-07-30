@@ -16,6 +16,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.nio.file.Path;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
@@ -37,10 +39,18 @@ public class DeduplicateTask extends PipelineTask<Path> {
     @Override
     public Long call() throws Exception {
         super.call();
-        int duplicates = inputQueue.removeDuplicates();
-        transferToOutputQueue();
-        logger.info("removed {} duplicate paths in inputQueue {}", duplicates, inputQueue.getName());
-        return (long)duplicates;
+        Set<Path> seen = new HashSet<>();
+        long[] dropped = {0};
+        // dedup per entry, not in one upfront pass: SCAN keeps enqueueing while this drain runs
+        transferToOutputQueue(path -> {
+            if (seen.add(path)) {
+                return true;
+            }
+            dropped[0]++;
+            return false;
+        });
+        logger.info("removed {} duplicate paths in inputQueue {}", dropped[0], inputQueue.getName());
+        return dropped[0];
     }
 
     long transferToOutputQueue() throws Exception {
