@@ -19,17 +19,14 @@ public class PipelineOptions {
     @Option(names = {"--artifactDir"}, description = "Artifact directory for embedded caching")
     String artifactDir;
 
-    // arity = "0..1" + fallbackValue = "true" mirrors the JOpt withOptionalArg semantics: a bare
-    // --artifacts means "all types", --artifacts=raw,structure selects a subset. Left null when
-    // absent so toProperties omits the key and INDEX produces no artifacts.
+    // Mirrors the JOpt withOptionalArg semantics. Left null when absent so toProperties omits the
+    // key and INDEX produces no artifacts.
     @Option(names = {"--artifacts"}, arity = "0..1", fallbackValue = "true",
             description = "Artifact types to produce, comma-separated (bare flag = all types); unknown types are rejected.")
     String artifacts;
 
-    // Requires an explicit true/false (like --ocr / --followSymlinks) rather than a bare flag, so the
-    // JOpt (withRequiredArg) and picocli surfaces agree: absent -> false, --artifactsForce=false -> false,
-    // --artifactsForce=true -> reprocess. A bare flag is intentionally not allowed to avoid the two
-    // surfaces disagreeing on what "bare" means.
+    // Explicit true/false like --ocr, no bare flag: the JOpt surface uses withRequiredArg, and a bare
+    // flag here would make the two surfaces disagree on what "bare" means.
     @Option(names = {"--artifactsForce"}, arity = "1", defaultValue = "false",
             description = "Reprocess artifacts even when an up-to-date manifest entry exists (bypasses caching).")
     boolean artifactsForce;
