@@ -1,5 +1,6 @@
 package org.icij.datashare.web;
 
+import net.codestory.rest.Response;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.db.JooqRepository;
 import org.icij.datashare.session.LocalUserFilter;
@@ -19,9 +20,11 @@ import org.mockito.Mock;
 import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Optional;
 import java.util.Properties;
 
+import static org.fest.assertions.Assertions.assertThat;
 import static org.icij.datashare.cli.DatashareCliOptions.ARTIFACT_DIR_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.EMBEDDED_DOCUMENT_DOWNLOAD_MAX_SIZE_OPT;
 import static org.mockito.ArgumentMatchers.any;
@@ -264,8 +267,9 @@ public class ArtifactResourceTest extends AbstractProdWebServerTest {
         File file = new File(temp.getRoot(), "raw-inline.txt");
         MockIndexer.write(file, "source bytes");
         mockIndexer.indexFile("local-datashare", DIGEST, file.toPath(), "text/plain", null);
-        get("/api/local-datashare/artifacts/raw/" + DIGEST + "?inline=true").should()
-                .respond(200).should().not().haveHeader("Content-Disposition", "attachment;filename=\"raw-inline.txt\"");
+        Response response = get("/api/local-datashare/artifacts/raw/" + DIGEST + "?inline=true").response();
+        assertThat(response.code()).isEqualTo(200);
+        assertThat(response.header("Content-Disposition")).isNull();
     }
 
     @Test
@@ -274,8 +278,24 @@ public class ArtifactResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
-    public void test_raw_not_found_for_unknown_document() {
+    public void test_raw_not_found_for_unknown_document() throws Exception {
         get("/api/local-datashare/artifacts/raw/" + DIGEST).should().respond(404);
+        // Same route, same id, now indexed: a 200 here proves the 404 above came from the
+        // document being unknown, not from the route itself being absent.
+        File file = new File(temp.getRoot(), "known.txt");
+        MockIndexer.write(file, "known bytes");
+        mockIndexer.indexFile("local-datashare", DIGEST, file.toPath(), "text/plain", null);
+        get("/api/local-datashare/artifacts/raw/" + DIGEST).should().respond(200);
+    }
+
+    @Test
+    public void test_raw_serves_an_embedded_documents_bytes() throws Exception {
+        // Same digest and fixture as DocumentResourceTest's embedded source-file tests: DIGEST is
+        // the sha256 of the PDF embedded in embedded_doc.eml.
+        String path = getClass().getResource("/docs/embedded_doc.eml").getPath();
+        mockIndexer.indexFile("local-datashare", DIGEST, Paths.get(path), "application/pdf", "bar");
+        get("/api/local-datashare/artifacts/raw/" + DIGEST + "?routing=bar").should()
+                .respond(200).haveType("application/pdf").contain("PDF-1.3");
     }
 
     @Test
