@@ -8,6 +8,7 @@ import org.icij.datashare.text.indexing.elasticsearch.ArtifactPath;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.Map;
 
 import static org.fest.assertions.Assertions.assertThat;
@@ -25,6 +26,16 @@ public class ArtifactReaderTest {
         }
         manifests.put(node, ArtifactType.PAGE.token(),
                 ManifestEntry.paginated(Map.of(), Pagination.filesystem(total)).withStatus(ManifestEntryStatus.COMPLETE));
+        return node;
+    }
+
+    private Path withByteRanges(String content, String extension, long[]... ranges) throws Exception {
+        Path node = dir.getRoot().toPath();
+        Files.createDirectories(ArtifactPath.payloadDir(node, ArtifactType.PAGE));
+        Files.writeString(ArtifactPath.payloadContent(node, ArtifactType.PAGE, extension), content);
+        manifests.put(node, ArtifactType.PAGE.token(),
+                ManifestEntry.paginated(Map.of(), Pagination.byteRanges(ranges.length, List.of(ranges)))
+                        .withStatus(ManifestEntryStatus.COMPLETE));
         return node;
     }
 
@@ -89,5 +100,42 @@ public class ArtifactReaderTest {
         Path node = withFilesystemPages(1, "one");
         ManifestEntry entry = reader.servableEntry(node, ArtifactType.PAGE);
         assertThat(reader.page(node, ArtifactType.PAGE, entry, 1, "md")).isNull();
+    }
+
+    @Test
+    public void test_page_reads_a_byte_range_slice() throws Exception {
+        Path node = withByteRanges("page onepage two", "txt", new long[]{0, 8}, new long[]{8, 16});
+        ManifestEntry entry = reader.servableEntry(node, ArtifactType.PAGE);
+        assertThat(new String(reader.page(node, ArtifactType.PAGE, entry, 1, "txt"), StandardCharsets.UTF_8)).isEqualTo("page one");
+        assertThat(new String(reader.page(node, ArtifactType.PAGE, entry, 2, "txt"), StandardCharsets.UTF_8)).isEqualTo("page two");
+    }
+
+    @Test
+    public void test_page_is_null_when_a_range_runs_past_end_of_file() throws Exception {
+        Path node = withByteRanges("short", "txt", new long[]{0, 5}, new long[]{5, 99});
+        ManifestEntry entry = reader.servableEntry(node, ArtifactType.PAGE);
+        assertThat(reader.page(node, ArtifactType.PAGE, entry, 2, "txt")).isNull();
+    }
+
+    @Test
+    public void test_page_is_null_when_the_content_file_is_missing() throws Exception {
+        Path node = withByteRanges("content", "txt", new long[]{0, 7});
+        Files.delete(ArtifactPath.payloadContent(node, ArtifactType.PAGE, "txt"));
+        ManifestEntry entry = reader.servableEntry(node, ArtifactType.PAGE);
+        assertThat(reader.page(node, ArtifactType.PAGE, entry, 1, "txt")).isNull();
+    }
+
+    @Test
+    public void test_formats_probes_page_one_under_filesystem_pagination() throws Exception {
+        Path node = withFilesystemPages(1, "one");
+        ManifestEntry entry = reader.servableEntry(node, ArtifactType.PAGE);
+        assertThat(reader.formats(node, ArtifactType.PAGE, entry, List.of("txt", "md"))).containsExactly("txt");
+    }
+
+    @Test
+    public void test_formats_probes_the_content_file_under_byte_ranges() throws Exception {
+        Path node = withByteRanges("content", "txt", new long[]{0, 7});
+        ManifestEntry entry = reader.servableEntry(node, ArtifactType.PAGE);
+        assertThat(reader.formats(node, ArtifactType.PAGE, entry, List.of("md", "txt"))).containsExactly("txt");
     }
 }
