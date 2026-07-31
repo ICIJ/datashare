@@ -129,6 +129,7 @@ public class ServerMode extends CommonMode {
                 add(UserResource.class).
                 add(NamedEntityResource.class).
                 add(DocumentResource.class).
+                add(ArtifactResource.class).
                 add(DocumentUserRecommendationResource.class).
                 add(BatchSearchResource.class).
                 add(PathBannerResource.class).
