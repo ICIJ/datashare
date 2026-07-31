@@ -1,5 +1,7 @@
 package org.icij.datashare.text.artifact;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import org.icij.datashare.json.JsonObjectMapper;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -65,6 +67,26 @@ public class FilesystemManifestRepositoryTest {
         Path manifest = node.resolve("manifest.json");
         assertThat(manifest.toFile()).isFile();
         assertThat(new String(Files.readAllBytes(manifest))).startsWith("{");
+    }
+
+    @Test
+    public void test_put_preserves_an_entry_another_producer_wrote_in_another_type() throws Exception {
+        // datashare-python writes entries this repository does not model, and every put() re-serialises
+        // the whole manifest: the byte offsets of a docling payload are the only copy there is.
+        Path node = dir.getRoot().toPath();
+        Files.createDirectories(node);
+        Files.writeString(node.resolve("manifest.json"), "{\"structure\":{\"status\":\"complete\","
+                + "\"taskInput\":{\"pipeline\":\"docling\"},"
+                + "\"pages\":{\"type\":\"byteRanges\",\"total\":3,\"byteRanges\":[[0,1],[1,2],[2,3]]}}}");
+
+        repository.put(node, "raw", rawEntry());
+
+        JsonNode structure = JsonObjectMapper.getMapper()
+                .readTree(Files.readString(node.resolve("manifest.json"))).get("structure");
+        assertThat(structure.get("pages").get("type").asText()).isEqualTo("byteRanges");
+        assertThat(structure.get("pages").get("byteRanges").size()).isEqualTo(3);
+        assertThat(structure.get("taskInput").get("pipeline").asText()).isEqualTo("docling");
+        assertThat(repository.get(node, "raw")).isNotNull();
     }
 
     @Test
