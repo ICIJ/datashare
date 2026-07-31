@@ -2,6 +2,7 @@ package org.icij.datashare.text.indexing.elasticsearch;
 
 import org.apache.tika.exception.TikaException;
 import org.apache.tika.parser.DigestingParser;
+import org.apache.tika.io.TikaInputStream;
 import org.apache.tika.parser.digestutils.CommonsDigester;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.cli.DatashareCliOptions;
@@ -56,8 +57,13 @@ public class SourceExtractor {
         return getSource(document.getProject(), document);
     }
 
+    // Both labels have to agree before the file on disk is handed back. They can disagree (a rootId lost
+    // or self-assigned during indexing), and every other artifact path branches on the extraction level,
+    // so believing isRootDocument alone would serve a whole container's bytes as an embedded document's
+    // own, stored under the embed's digest and stamped complete. On a disagreement the embedded lookup
+    // below fails loudly instead, which a re-run can act on.
     public InputStream getSource(final Project project, final Document document) throws FileNotFoundException {
-        if (document.isRootDocument()) {
+        if (document.isRootDocument() && document.getExtractionLevel() <= 0) {
             if (filterMetadata) {
                 try {
                     return new ByteArrayInputStream(metadataCleaner.clean(new FileInputStream(document.getPath().toFile())).getContent());
@@ -65,11 +71,26 @@ public class SourceExtractor {
                     throw new ExtractException("content cleaner error ", e);
                 }
             } else {
-                return new FileInputStream(document.getPath().toFile());
+                // TikaInputStream, not a plain FileInputStream: a stream Tika cannot map back to a path is
+                // spooled to java.io.tmpdir in full by every parser that needs random access (PDF, OOXML,
+                // PST/OST), so a multi-GB root means a multi-GB temp write per document per worker.
+                return openForTika(document.getPath());
             }
         } else {
             LOGGER.info("Extracting embedded document " + Identifier.shorten(document.getId(), 4) + " from root document " + document.getPath());
             return getEmbeddedSource(project, document);
+        }
+    }
+
+    // FileNotFoundException for any open failure, as the FileInputStream this replaced threw, so the
+    // callers mapping it to a 404 keep behaving as they did.
+    private static InputStream openForTika(Path path) throws FileNotFoundException {
+        try {
+            return TikaInputStream.get(path);
+        } catch (IOException openFailure) {
+            FileNotFoundException notFound = new FileNotFoundException(path.toString());
+            notFound.initCause(openFailure);
+            throw notFound;
         }
     }
 

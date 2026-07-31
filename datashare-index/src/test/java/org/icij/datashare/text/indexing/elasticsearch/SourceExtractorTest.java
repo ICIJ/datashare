@@ -1,6 +1,7 @@
 package org.icij.datashare.text.indexing.elasticsearch;
 
 import co.elastic.clients.elasticsearch._types.Refresh;
+import org.apache.tika.io.TikaInputStream;
 import org.apache.tika.parser.DigestingParser;
 import org.apache.tika.parser.digestutils.CommonsDigester;
 import org.icij.datashare.PropertiesProvider;
@@ -151,6 +152,38 @@ public class SourceExtractorTest {
         InputStream source = new SourceExtractor(getPropertiesProvider()).getSource(document);
         assertThat(source).isNotNull();
         assertThat(getBytes(source)).hasSize(70574);
+    }
+
+    @Test
+    public void test_get_source_for_root_doc_keeps_the_path_so_tika_does_not_spool_it() throws IOException {
+        // A stream Tika cannot map back to a path is copied to java.io.tmpdir in full by every parser that
+        // needs random access, so a multi-GB root means a multi-GB temp write per document per worker.
+        Path path = get(getClass().getResource("/docs/embedded_doc.eml").getPath());
+        Document document = DocumentBuilder.createDoc(project("project"), path)
+                .ofContentType("message/rfc822").build();
+
+        try (InputStream source = new SourceExtractor(getPropertiesProvider()).getSource(document)) {
+            assertThat(source).isInstanceOf(TikaInputStream.class);
+            assertThat(((TikaInputStream) source).getPath().toString()).isEqualTo(path.toString());
+        }
+    }
+
+    @Test
+    public void test_get_source_treats_a_document_as_embedded_when_the_two_root_labels_disagree() throws Exception {
+        // rootId == id says root, extractionLevel says embedded. Trusting rootId alone would hand back the
+        // whole container's bytes as this document's own source, stored under its digest and stamped
+        // complete; the embedded lookup fails loudly instead, which a re-run can act on.
+        Path path = get(getClass().getResource("/docs/embedded_doc.eml").getPath());
+        Document document = DocumentBuilder.createDoc(project("project"), path)
+                .ofContentType("message/rfc822").withExtractionLevel((short) 1).build();
+        assertThat(document.isRootDocument()).isTrue();
+
+        try {
+            new SourceExtractor(getPropertiesProvider()).getSource(document);
+            org.junit.Assert.fail("expected the embedded lookup to fail rather than serve the root bytes");
+        } catch (EmbeddedDocumentExtractor.ContentNotFoundException expected) {
+            // the root's content is never served under an embedded document's id
+        }
     }
 
     @Test

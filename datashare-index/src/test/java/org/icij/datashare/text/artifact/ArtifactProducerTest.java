@@ -128,9 +128,9 @@ public class ArtifactProducerTest {
     }
 
     @Test public void test_cancellation_stops_the_remaining_types_without_logging_an_error() throws Exception {
-        // The flag is still set when we catch here (nothing cleared it), so the top-of-produce guard
-        // catches the next type before it even tries. An interrupted thread is a signal in its own
-        // right, so this holds without the task reporting a cancel (the producer here says false).
+        // The flag is still set when we catch, so the top-of-produce guard catches the next type before it
+        // even tries. It counts as a cancellation because the task reports one, not because of the flag.
+        ArtifactProducer cancelledProducer = new ArtifactProducer(repository, () -> true);
         CountingArtifact cancelled = new CountingArtifact("raw", 1) {
             public ManifestEntry produce(ArtifactContext ctx) throws ArtifactException {
                 Thread.currentThread().interrupt();
@@ -139,13 +139,66 @@ public class ArtifactProducerTest {
         };
         CountingArtifact structure = new CountingArtifact("structure", 1);
         try {
-            boolean allSucceeded = producer.run(List.of(cancelled, structure), ctx(), false);
+            boolean allSucceeded = cancelledProducer.run(List.of(cancelled, structure), ctx(), false);
             assertThat(allSucceeded).isTrue(); // a cancelled type is skipped, not failed
             assertThat(structure.produced.get()).isEqualTo(0);
             assertThat(Thread.currentThread().isInterrupted()).isTrue();
         } finally {
             Thread.interrupted(); // clear so it does not leak into the next test
         }
+    }
+
+    @Test public void test_an_interrupt_nobody_asked_for_is_a_failure_not_a_green_end_to_the_run() throws Exception {
+        // A library that interrupts and re-sets the flag, or an HTTP client's timeout handling, sets it
+        // with no cancel in sight. Believing it would end the whole remaining queue with nbFailed at 0.
+        CountingArtifact interrupting = new CountingArtifact("raw", 1) {
+            public ManifestEntry produce(ArtifactContext ctx) throws ArtifactException {
+                Thread.currentThread().interrupt();
+                throw new ArtifactException("boom", null);
+            }
+        };
+        CountingArtifact structure = new CountingArtifact("structure", 1);
+        try {
+            boolean allSucceeded = producer.run(List.of(interrupting, structure), ctx(), false);
+            assertThat(allSucceeded).isFalse();
+            assertThat(structure.produced.get()).isEqualTo(1);
+        } finally {
+            Thread.interrupted(); // clear so it does not leak into the next test
+        }
+    }
+
+    @Test public void test_a_cancellation_surfacing_as_an_interrupted_io_exception_is_recognised() throws Exception {
+        // extract-lib's cancellation path surfaces this one, and being an IOException rather than an
+        // InterruptedException it would otherwise be counted as a failed document.
+        ArtifactProducer cancelledProducer = new ArtifactProducer(repository, () -> true);
+        CountingArtifact cancelled = new CountingArtifact("raw", 1) {
+            public ManifestEntry produce(ArtifactContext ctx) throws ArtifactException {
+                Thread.interrupted(); // cleared, as the inner call that threw already did
+                throw new ArtifactException("boom", new java.io.InterruptedIOException());
+            }
+        };
+        CountingArtifact structure = new CountingArtifact("structure", 1);
+        try {
+            assertThat(cancelledProducer.run(List.of(cancelled, structure), ctx(), false)).isTrue();
+            assertThat(structure.produced.get()).isEqualTo(0);
+        } finally {
+            Thread.interrupted();
+        }
+    }
+
+    @Test(timeout = 5000) public void test_a_self_referential_cause_chain_does_not_spin_forever() throws Exception {
+        // A custom or deserialised exception can return itself from getCause(), which hangs the worker
+        // inside its own catch block until the task's one-day timeout, with nothing logged to say so.
+        ArtifactProducer cancelledProducer = new ArtifactProducer(repository, () -> true);
+        CountingArtifact selfCaused = new CountingArtifact("raw", 1) {
+            public ManifestEntry produce(ArtifactContext ctx) throws ArtifactException {
+                throw new ArtifactException("boom", null) {
+                    @Override public synchronized Throwable getCause() { return this; }
+                };
+            }
+        };
+
+        assertThat(cancelledProducer.run(List.of(selfCaused), ctx(), false)).isFalse();
     }
 
     @Test public void test_cancellation_detected_via_cause_chain_stops_the_remaining_types() throws Exception {

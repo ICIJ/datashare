@@ -38,7 +38,9 @@ import java.util.function.Function;
 
 import static org.icij.datashare.cli.DatashareCliOptions.ARTIFACT_DIR_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.ARTIFACTS_OPT;
+import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_PARSE_TIMEOUT;
 import static org.icij.datashare.cli.DatashareCliOptions.PARALLELISM_OPT;
+import static org.icij.datashare.cli.DatashareCliOptions.PARSE_TIMEOUT_OPT;
 
 @TemporalSingleActivityWorkflow(name = "artifact", activityOptions = @ActivityOpts(timeout = "P1D"))
 @TaskGroup(TaskGroupType.Java)
@@ -74,6 +76,7 @@ public class ArtifactTask extends PipelineTask<String> {
     public Long call() throws Exception {
         super.call();
         logger.info("creating artifact cache in {} for project {} from queue {} with {} worker(s)", artifactDir, project, inputQueue.getName(), parallelism);
+        warnIfParseTimeoutIsIgnored();
         AtomicLong nbDocs = new AtomicLong(0);
         AtomicLong nbSkipped = new AtomicLong(0);
         AtomicLong nbFailed = new AtomicLong(0);
@@ -186,10 +189,27 @@ public class ArtifactTask extends PipelineTask<String> {
                     Thread.currentThread().interrupt();
                     break;
                 }
+                // An Error is not one document going wrong: an OutOfMemoryError leaves this worker on a
+                // heap it has already exhausted, where every later document fails for reasons that have
+                // nothing to do with it.
+                if (e instanceof Error) {
+                    throw (Error) e;
+                }
                 logger.error("error in ArtifactTask loop", e);
                 nbFailed.incrementAndGet();
             }
         }
+    }
+
+    // --parseTimeout is an Extractor option and this stage does not go through the Extractor, so a
+    // pathological parse here is bounded by nothing but the activity's one-day timeout.
+    private void warnIfParseTimeoutIsIgnored() {
+        // Filtered on the default, not just on presence: the option is set on every run.
+        propertiesProvider.get(PARSE_TIMEOUT_OPT)
+                .filter(value -> !DEFAULT_PARSE_TIMEOUT.equals(value))
+                .ifPresent(value -> logger.warn("parseTimeout is set to {} but does not apply to the "
+                        + "ARTIFACT stage: a document whose parse never returns holds its worker until "
+                        + "the task times out.", value));
     }
 
     protected SourceExtractor createSourceExtractor() {

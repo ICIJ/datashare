@@ -4,6 +4,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.io.InterruptedIOException;
 import java.nio.channels.ClosedByInterruptException;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -44,7 +45,7 @@ public class ArtifactProducer {
         ArtifactType type = artifact.type();
         // A cancel caught on an earlier type must not let a fresh Tika parse start for this one on the
         // same document. Skipped, not failed, so true.
-        if (Thread.currentThread().isInterrupted()) {
+        if (cancelRequested.getAsBoolean() && Thread.currentThread().isInterrupted()) {
             return true;
         }
         try {
@@ -101,14 +102,22 @@ public class ArtifactProducer {
      * Believing either one alone ends the whole remaining queue green, with nbFailed at 0.
      */
     public boolean isCancellation(Throwable failure) {
-        return Thread.currentThread().isInterrupted()
-                || (cancelRequested.getAsBoolean() && causedByInterrupt(failure));
+        return cancelRequested.getAsBoolean()
+                && (Thread.currentThread().isInterrupted() || causedByInterrupt(failure));
     }
 
+    // InterruptedIOException as well as the two obvious ones: extract-lib's cancellation path surfaces it,
+    // and being an IOException it would otherwise be counted as a failed document.
     private static boolean causedByInterrupt(Throwable throwable) {
         for (Throwable cause = throwable; cause != null; cause = cause.getCause()) {
-            if (cause instanceof InterruptedException || cause instanceof ClosedByInterruptException) {
+            if (cause instanceof InterruptedException || cause instanceof ClosedByInterruptException
+                    || cause instanceof InterruptedIOException) {
                 return true;
+            }
+            // A custom or deserialised exception can return itself from getCause(), which would make this
+            // walk spin forever inside the worker's catch block.
+            if (cause == cause.getCause()) {
+                break;
             }
         }
         return false;
