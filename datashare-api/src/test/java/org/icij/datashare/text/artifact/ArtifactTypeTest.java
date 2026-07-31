@@ -40,4 +40,12 @@ public class ArtifactTypeTest {
     public void test_tokens_lists_all_known_types() {
         assertThat(ArtifactType.tokens()).contains("raw").contains("structure");
     }
+
+    @Test
+    public void test_page_token_is_singular_matching_the_serving_route() {
+        assertThat(ArtifactType.PAGE.token()).isEqualTo("page");
+        assertThat(ArtifactType.fromToken("page")).isEqualTo(ArtifactType.PAGE);
+        assertThat(ArtifactType.fromToken(" PAGE ")).isEqualTo(ArtifactType.PAGE);
+        assertThat(ArtifactType.tokens()).contains("page");
+    }
 }
