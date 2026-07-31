@@ -11,7 +11,10 @@ import java.util.stream.Collectors;
  *  Adding a type is a datashare change, by design (unknown = unsupported). */
 public enum ArtifactType {
     RAW("raw"),
-    STRUCTURE("structure");
+    STRUCTURE("structure"),
+    // The convention's type table spells this `pages`; the serving routes, the manifest key and this
+    // token are `page`. The doc is what gets fixed (see the spec's follow-ups), not this spelling.
+    PAGE("page");
 
     private final String token;
 
