@@ -6,17 +6,22 @@ import org.junit.Before;
 import org.junit.After;
 import org.junit.Test;
 import org.junit.contrib.java.lang.system.ExpectedSystemExit;
+import org.junit.rules.TemporaryFolder;
 
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 
 import static org.fest.assertions.Assertions.assertThat;
 import static org.fest.assertions.MapAssert.entry;
+import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_PARALLELISM;
 
 public class DatashareCliTest {
     private DatashareCli cli = new DatashareCli();
     @Rule
     public final ExpectedSystemExit exit = ExpectedSystemExit.none();
+    @Rule
+    public final TemporaryFolder tmp = new TemporaryFolder();
 
     @Before
     public void setUp() {
@@ -361,5 +366,50 @@ public class DatashareCliTest {
     public void test_artifacts_opt_bare_flag() {
         cli.parseArguments(new String[] {"--artifacts"});
         assertThat(cli.properties).includes(entry("artifacts", "true"));
+    }
+
+    @Test
+    public void test_settings_file_value_is_not_overridden_by_an_option_default() throws IOException {
+        Path settings = settingsFile("parallelism=42\n");
+
+        cli.parseArguments(new String[] {"-s", settings.toString()});
+
+        // parallelism declares a default (DEFAULT_PARALLELISM). The operator never typed the option,
+        // so it must not shadow the settings file: leaving the key out lets the settings value stand
+        // once CommonMode folds the file in.
+        assertThat(cli.properties.getProperty("parallelism")).isNull();
+    }
+
+    @Test
+    public void test_an_explicit_option_still_beats_the_settings_file() throws IOException {
+        Path settings = settingsFile("artifactsForce=true\n");
+
+        cli.parseArguments(new String[] {"-s", settings.toString(), "--artifactsForce=false"});
+
+        assertThat(cli.properties).includes(entry("artifactsForce", "false"));
+    }
+
+    @Test
+    public void test_option_defaults_are_still_emitted_without_a_settings_file() {
+        cli.parseArguments(new String[] {"--stages", "INDEX"});
+
+        // guards against the settings lookup dropping defaults app-wide
+        assertThat(cli.properties).includes(entry("parallelism", String.valueOf(DEFAULT_PARALLELISM)));
+    }
+
+    @Test
+    public void test_a_settings_file_only_suppresses_the_defaults_it_defines() throws IOException {
+        Path settings = settingsFile("artifactsForce=true\n");
+
+        cli.parseArguments(new String[] {"-s", settings.toString()});
+
+        // a key the file does not mention keeps its default
+        assertThat(cli.properties.getProperty("parallelism")).isNotNull();
+    }
+
+    private Path settingsFile(String content) throws IOException {
+        Path file = tmp.newFile("datashare-test.properties").toPath();
+        Files.writeString(file, content);
+        return file;
     }
 }

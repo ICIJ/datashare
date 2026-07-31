@@ -5,6 +5,7 @@ import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
 import org.icij.datashare.PipelineHelper;
+import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.cli.spi.CliExtension;
 import org.icij.datashare.user.User;
 import org.slf4j.Logger;
@@ -19,6 +20,7 @@ import java.util.Properties;
 import static java.util.Optional.ofNullable;
 import static org.icij.datashare.PropertiesProvider.DEFAULT_PROJECT_OPT;
 import static org.icij.datashare.PropertiesProvider.DIGEST_PROJECT_NAME_OPT;
+import static org.icij.datashare.PropertiesProvider.SETTINGS_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_DEFAULT_PROJECT;
 import static org.icij.datashare.cli.DatashareCliOptions.NO_DIGEST_PROJECT_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.OAUTH_USER_PROJECTS_KEY_OPT;
@@ -223,13 +225,22 @@ public class DatashareCli {
 
     Properties asProperties(OptionSet options, String prefix) {
         Properties properties = new Properties();
+        // resolved the same way CommonMode does, so both paths agree on which file is in play
+        Properties settings = new PropertiesProvider(
+                options.has(SETTINGS_OPT) ? String.valueOf(options.valueOf(SETTINGS_OPT)) : null).getProperties();
         for (Map.Entry<OptionSpec<?>, List<?>> entry : options.asMap().entrySet()) {
             OptionSpec<?> spec = entry.getKey();
-            if (options.has(spec) || !entry.getValue().isEmpty()) {
-                properties.setProperty(
-                        asPropertyKey(prefix, spec),
-                        asPropertyValue(entry.getValue()));
+            if (entry.getValue().isEmpty() && !options.has(spec)) {
+                continue;
             }
+            String key = asPropertyKey(prefix, spec);
+            // An option the operator did not type carries only its declared default. Emitting it would
+            // shadow the settings file, which sits below the CLI properties in CommonMode. Leaving the
+            // key out is what lets the file value stand.
+            if (!options.has(spec) && settings.containsKey(key)) {
+                continue;
+            }
+            properties.setProperty(key, asPropertyValue(entry.getValue()));
         }
         return properties;
     }
