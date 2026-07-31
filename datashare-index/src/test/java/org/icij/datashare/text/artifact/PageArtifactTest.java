@@ -219,4 +219,26 @@ public class PageArtifactTest {
         assertThat(entry.taskInput().get("pipeline")).isEqualTo("tika");
         assertThat(Files.exists(ArtifactPath.pagesDir(context.docArtifactDir()))).isFalse();
     }
+
+    @Test
+    public void test_a_failed_regeneration_leaves_the_previous_payload_untouched() throws Exception {
+        ArtifactContext good = rootContext(twoPagePdf());
+        new PageArtifact(new PropertiesProvider()).produce(good);
+        byte[] previous = Files.readAllBytes(contentTxt(good));
+
+        Path unreadable = dir.getRoot().toPath().resolve("gone.pdf");
+        ArtifactContext broken = new ArtifactContext(project,
+                createDoc(good.document().getId()).with(unreadable).ofContentType("application/pdf").build(),
+                good.docArtifactDir(), mock(SourceExtractor.class));
+        try {
+            new PageArtifact(new PropertiesProvider()).produce(broken);
+            fail("expected an ArtifactException");
+        } catch (ArtifactException expected) {
+            assertThat(expected.getMessage()).contains(good.document().getId());
+        }
+
+        assertThat(Files.readAllBytes(contentTxt(good))).isEqualTo(previous);
+        assertThat(ArtifactPath.pagesDir(good.docArtifactDir()).toFile().list())
+                .isEqualTo(new String[]{"content.txt"}); // no .tmp left behind
+    }
 }

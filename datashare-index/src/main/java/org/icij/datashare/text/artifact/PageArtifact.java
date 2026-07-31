@@ -14,6 +14,7 @@ import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -98,19 +99,30 @@ public class PageArtifact implements Artifact {
         }
     }
 
-    // Offsets are the byte counts actually written, so the recorded ranges cannot disagree with the
-    // file: half-open [start, end), contiguous, first start 0, last end == file length.
+    // Writes the whole payload to a temp file in the same directory (so the move is same-filesystem
+    // and therefore atomic), then swaps it in. A run that fails partway leaves the previous
+    // content.txt, which is what the still-complete manifest entry advertises, instead of a
+    // truncated one. Offsets are the byte counts actually written, so the recorded ranges cannot
+    // disagree with the file: half-open [start, end), contiguous, first start 0, last end == length.
     private static List<long[]> writePages(ArtifactContext context, List<String> pages) throws IOException {
-        Files.createDirectories(ArtifactPath.pagesDir(context.docArtifactDir()));
+        Path content = ArtifactPath.pagesContent(context.docArtifactDir());
+        Path temp = content.resolveSibling(content.getFileName() + ".tmp");
+        Files.createDirectories(content.getParent());
         List<long[]> ranges = new ArrayList<>();
         long offset = 0;
-        try (OutputStream out = Files.newOutputStream(ArtifactPath.pagesContent(context.docArtifactDir()))) {
-            for (String page : pages) {
-                byte[] bytes = page.getBytes(StandardCharsets.UTF_8);
-                out.write(bytes);
-                ranges.add(new long[]{offset, offset + bytes.length});
-                offset += bytes.length;
+        try {
+            try (OutputStream out = Files.newOutputStream(temp)) {
+                for (String page : pages) {
+                    byte[] bytes = page.getBytes(StandardCharsets.UTF_8);
+                    out.write(bytes);
+                    ranges.add(new long[]{offset, offset + bytes.length});
+                    offset += bytes.length;
+                }
             }
+            Files.move(temp, content, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
+        } finally {
+            // A half-written temp file must never survive this call, whether the write or the move failed.
+            Files.deleteIfExists(temp);
         }
         return ranges;
     }
