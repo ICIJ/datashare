@@ -489,7 +489,9 @@ public final class DatashareCliOptions {
 
     static void artifactDir(OptionParser parser) {
         parser.acceptsAll(
-                List.of(ARTIFACT_DIR_OPT),
+                // ARTIFACT_DIR_OPT stays first: asPropertyKey uses the first long flag, so the plural
+                // alias (consistent with --artifacts) still writes the historical artifactDir key.
+                List.of(ARTIFACT_DIR_OPT, "artifactsDir"),
                 "Artifact directory for embedded caching. If not provided datashare will use memory." )
                 .withRequiredArg();
     }

@@ -151,6 +151,13 @@ public class StageRunCommandTest extends AbstractDatashareCommandTest {
     }
 
     @Test
+    public void test_artifacts_dir_alias_writes_the_artifact_dir_key() {
+        Properties props = parse("stage", "run", "--stages", "INDEX", "--artifactsDir", "/tmp/art");
+        assertThat(props).includes(entry("artifactDir", "/tmp/art"));
+        assertThat(props.containsKey("artifactsDir")).isFalse();
+    }
+
+    @Test
     public void test_artifacts_force_explicit_true() {
         Properties props = parse("stage", "run", "--stages", "INDEX", "--artifactsForce", "true");
         assertThat(props).includes(entry("artifactsForce", "true"));
