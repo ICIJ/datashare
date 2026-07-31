@@ -56,8 +56,23 @@ public class PageArtifact implements Artifact {
         }
     }
 
+    // A root's bytes are the original file; an embed's are its own cached raw payload, so an embed
+    // costs one parse of itself instead of one parse of the whole root (289 root parses for a
+    // 289-embed OST). getSource() writes that payload when it is missing, as a side effect of
+    // extracting the embed from its root.
     private Path sourcePath(ArtifactContext context) throws IOException {
-        return context.document().getPath();
+        Document document = context.document();
+        if (document.getExtractionLevel() <= 0) {
+            return document.getPath();
+        }
+        Path raw = context.docArtifactDir().resolve(ArtifactPath.RAW_FILE);
+        if (Files.notExists(raw)) {
+            context.sources().getSource(context.project(), document).close();
+        }
+        if (Files.notExists(raw)) {
+            throw new IOException("no raw payload to paginate for embedded document " + document.getId());
+        }
+        return raw;
     }
 
     // One Extractor per document, as the live endpoint does per request: disableOcr() is one-way, so
