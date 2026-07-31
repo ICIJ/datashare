@@ -37,7 +37,7 @@ public class ArtifactReader {
         }
         if (isByteRanges(entry)) {
             return slice(ArtifactPath.payloadContent(docArtifactDir, type, extension),
-                    entry.pagination().byteRanges().get(page - 1), type, total);
+                    entry.pagination().byteRanges(), page, type, total);
         }
         Path file = ArtifactPath.payloadPage(docArtifactDir, type, page, extension);
         if (!Files.isRegularFile(file)) {
@@ -66,14 +66,19 @@ public class ArtifactReader {
 
     // Half-open [start, end). A range outside the file means manifest and payload disagree, which
     // is a 404 for that page rather than a truncated body.
-    private byte[] slice(Path content, long[] range, ArtifactType type, int total) throws IOException {
+    private byte[] slice(Path content, List<long[]> ranges, int page, ArtifactType type, int total) throws IOException {
         if (!Files.isRegularFile(content)) {
             LOGGER.warn("manifest advertises {} byte-range page(s) for '{}' but {} is missing", total, type.token(), content);
             return null;
         }
+        if (ranges == null || ranges.size() < page || ranges.get(page - 1).length != 2) {
+            LOGGER.warn("manifest advertises {} byte-range page(s) for '{}' but range {} is malformed", total, type.token(), page);
+            return null;
+        }
+        long[] range = ranges.get(page - 1);
         long start = range[0];
         long end = range[1];
-        if (start < 0 || end < start || end > Files.size(content)) {
+        if (start < 0 || end < start || end > Files.size(content) || end - start > Integer.MAX_VALUE) {
             LOGGER.warn("byte range [{}, {}) for '{}' is outside {}", start, end, type.token(), content);
             return null;
         }
