@@ -61,7 +61,26 @@ public class ArtifactTaskTest {
 
     @Test(expected = IllegalArgumentException.class)
     public void test_missing_artifact_dir() {
-        new ArtifactTask(factory, mockEs, new PropertiesProvider(Map.of()), new UpstreamGate.Factory(taskRepository), new Task<>(ArtifactTask.class.getName(), User.local(), Map.of()), null);
+        new ArtifactTask(factory, mockEs, new UpstreamGate.Factory(taskRepository),
+                ArtifactTaskFixture.taskWith(Map.of()), null);
+    }
+
+    @Test(timeout = 10000)
+    public void test_configuration_comes_from_the_task_args() throws Exception {
+        indexEmbeddedDoc();
+        DocumentQueue<String> queue = factory.createQueue("extract:queue:artifact", String.class);
+        queue.add(EMBEDDED_DOC_SHA256);
+
+        // args carry the whole configuration, exactly as IndexTask and every other stage expects.
+        Long numberOfDocuments = new ArtifactTask(factory, mockEs,
+                new UpstreamGate.Factory(taskRepository),
+                ArtifactTaskFixture.taskWith(Map.of(
+                        "artifactDir", artifactDir.getRoot().toString(),
+                        "defaultProject", "prj")), null)
+                .call();
+
+        assertThat(numberOfDocuments).isEqualTo(1);
+        assertThat(artifactDir.getRoot().toPath().resolve("prj/6a/bb").toFile()).isDirectory();
     }
 
     @Test(timeout = 10000)
@@ -145,13 +164,14 @@ public class ArtifactTaskTest {
         queue.add(secondId);
 
         CountDownLatch bothInFlight = new CountDownLatch(2);
-        PropertiesProvider props = new PropertiesProvider(Map.of(
+        Map<String, Object> config = Map.of(
                 "artifactDir", artifactDir.getRoot().toString(),
                 "defaultProject", "prj",
-                "parallelism", "2"));
-        Task<Long> task = new Task<>(ArtifactTask.class.getName(), User.local(), new HashMap<>());
+                "parallelism", "2");
+        PropertiesProvider props = new PropertiesProvider(config);
+        Task<Long> task = ArtifactTaskFixture.taskWith(config);
 
-        ArtifactTask artifactTask = new ArtifactTask(factory, mockEs, props, new UpstreamGate.Factory(taskRepository), task, null) {
+        ArtifactTask artifactTask = new ArtifactTask(factory, mockEs, new UpstreamGate.Factory(taskRepository), task, null) {
             @Override
             protected SourceExtractor createSourceExtractor() {
                 return new SourceExtractor(props) {
@@ -188,13 +208,13 @@ public class ArtifactTaskTest {
         queue.add(EMBEDDED_DOC_SHA256);
         queue.add(secondId);
 
-        PropertiesProvider props = new PropertiesProvider(Map.of(
+        Map<String, Object> config = Map.of(
                 "artifactDir", artifactDir.getRoot().toString(),
                 "defaultProject", "prj",
-                "parallelism", "2"));
-        Task<Long> task = new Task<>(ArtifactTask.class.getName(), User.local(), new HashMap<>());
+                "parallelism", "2");
+        Task<Long> task = ArtifactTaskFixture.taskWith(config);
 
-        ArtifactTask artifactTask = new ArtifactTask(factory, mockEs, props, new UpstreamGate.Factory(taskRepository), task, null) {
+        ArtifactTask artifactTask = new ArtifactTask(factory, mockEs, new UpstreamGate.Factory(taskRepository), task, null) {
             @Override
             protected SourceExtractor createSourceExtractor() {
                 throw new IllegalStateException("no extractor");
@@ -215,16 +235,17 @@ public class ArtifactTaskTest {
         queue.add(EMBEDDED_DOC_SHA256);
         queue.add(secondId);
 
-        PropertiesProvider props = new PropertiesProvider(Map.of(
+        Map<String, Object> config = Map.of(
                 "artifactDir", artifactDir.getRoot().toString(),
                 "defaultProject", "prj",
-                "parallelism", "2"));
-        Task<Long> task = new Task<>(ArtifactTask.class.getName(), User.local(), new HashMap<>());
+                "parallelism", "2");
+        PropertiesProvider props = new PropertiesProvider(config);
+        Task<Long> task = ArtifactTaskFixture.taskWith(config);
 
         // exactly one of the two workers fails to build its extractor and dies; the other survives.
         // the task must still fail, independently of the parallelism.
         AtomicInteger extractorCalls = new AtomicInteger(0);
-        ArtifactTask artifactTask = new ArtifactTask(factory, mockEs, props, new UpstreamGate.Factory(taskRepository), task, null) {
+        ArtifactTask artifactTask = new ArtifactTask(factory, mockEs, new UpstreamGate.Factory(taskRepository), task, null) {
             @Override
             protected SourceExtractor createSourceExtractor() {
                 if (extractorCalls.getAndIncrement() == 0) {
@@ -267,12 +288,13 @@ public class ArtifactTaskTest {
         queue.add(failingId);
         queue.add(EMBEDDED_DOC_SHA256);
 
-        PropertiesProvider props = new PropertiesProvider(Map.of(
+        Map<String, Object> config = Map.of(
                 "artifactDir", artifactDir.getRoot().toString(),
                 "defaultProject", "prj",
-                "parallelism", "2"));
-        ArtifactTask task = new ArtifactTask(factory, mockEs, props, new UpstreamGate.Factory(taskRepository),
-                new Task<>(ArtifactTask.class.getName(), User.local(), new HashMap<>()), null) {
+                "parallelism", "2");
+        PropertiesProvider props = new PropertiesProvider(config);
+        ArtifactTask task = new ArtifactTask(factory, mockEs, new UpstreamGate.Factory(taskRepository),
+                ArtifactTaskFixture.taskWith(config), null) {
             @Override
             protected SourceExtractor createSourceExtractor() {
                 return new SourceExtractor(props) {
@@ -309,12 +331,13 @@ public class ArtifactTaskTest {
         queue.add(EMBEDDED_DOC_SHA256);
         queue.add(secondId);
 
-        PropertiesProvider props = new PropertiesProvider(Map.of(
+        Map<String, Object> config = Map.of(
                 "artifactDir", artifactDir.getRoot().toString(),
                 "defaultProject", "prj",
-                "parallelism", "1"));
-        ArtifactTask task = new ArtifactTask(factory, mockEs, props, new UpstreamGate.Factory(taskRepository),
-                new Task<>(ArtifactTask.class.getName(), User.local(), new HashMap<>()), null) {
+                "parallelism", "1");
+        PropertiesProvider props = new PropertiesProvider(config);
+        ArtifactTask task = new ArtifactTask(factory, mockEs, new UpstreamGate.Factory(taskRepository),
+                ArtifactTaskFixture.taskWith(config), null) {
             @Override
             protected SourceExtractor createSourceExtractor() {
                 return new SourceExtractor(props) {
@@ -340,13 +363,14 @@ public class ArtifactTaskTest {
         queue.add(EMBEDDED_DOC_SHA256);
 
         CountDownLatch started = new CountDownLatch(1);
-        PropertiesProvider props = new PropertiesProvider(Map.of(
+        Map<String, Object> config = Map.of(
                 "artifactDir", artifactDir.getRoot().toString(),
                 "defaultProject", "prj",
-                "parallelism", "1"));
-        Task<Long> task = new Task<>(ArtifactTask.class.getName(), User.local(), new HashMap<>());
+                "parallelism", "1");
+        PropertiesProvider props = new PropertiesProvider(config);
+        Task<Long> task = ArtifactTaskFixture.taskWith(config);
 
-        ArtifactTask artifactTask = new ArtifactTask(factory, mockEs, props, new UpstreamGate.Factory(taskRepository), task, null) {
+        ArtifactTask artifactTask = new ArtifactTask(factory, mockEs, new UpstreamGate.Factory(taskRepository), task, null) {
             @Override
             protected SourceExtractor createSourceExtractor() {
                 return new SourceExtractor(props) {
@@ -395,15 +419,16 @@ public class ArtifactTaskTest {
 
         CountDownLatch started = new CountDownLatch(1);
         CountDownLatch secondStarted = new CountDownLatch(1);
-        PropertiesProvider props = new PropertiesProvider(Map.of(
+        Map<String, Object> config = Map.of(
                 "artifactDir", artifactDir.getRoot().toString(),
                 "defaultProject", "prj",
-                "parallelism", "1"));
-        Task<Long> task = new Task<>(ArtifactTask.class.getName(), User.local(), new HashMap<>());
+                "parallelism", "1");
+        PropertiesProvider props = new PropertiesProvider(config);
+        Task<Long> task = ArtifactTaskFixture.taskWith(config);
 
         // a single worker, so cancelling while the first document is in flight must stop the worker
         // before it ever polls the second entry off the queue
-        ArtifactTask artifactTask = new ArtifactTask(factory, mockEs, props, new UpstreamGate.Factory(taskRepository), task, null) {
+        ArtifactTask artifactTask = new ArtifactTask(factory, mockEs, new UpstreamGate.Factory(taskRepository), task, null) {
             @Override
             protected SourceExtractor createSourceExtractor() {
                 return new SourceExtractor(props) {
@@ -489,10 +514,10 @@ public class ArtifactTaskTest {
         queue.add(EMBEDDED_DOC_SHA256);
 
         // no "parallelism" key -> ArtifactTask resolves .orElse(1)
-        Long numberOfDocuments = new ArtifactTask(factory, mockEs, new PropertiesProvider(Map.of(
-                "artifactDir", artifactDir.getRoot().toString(),
-                "defaultProject", "prj")),
-                new UpstreamGate.Factory(taskRepository), new Task<>(ArtifactTask.class.getName(), User.local(), new HashMap<>()), null)
+        Long numberOfDocuments = new ArtifactTask(factory, mockEs,
+                new UpstreamGate.Factory(taskRepository), ArtifactTaskFixture.taskWith(Map.of(
+                        "artifactDir", artifactDir.getRoot().toString(),
+                        "defaultProject", "prj")), null)
                 .call();
 
         assertThat(numberOfDocuments).isEqualTo(1);
@@ -557,13 +582,14 @@ public class ArtifactTaskTest {
             }
         };
         factory.queues.put("extract:queue:artifact", queue);
-        // this task reads its options from the injected properties, so the upstream id set by the
-        // launcher only exists in the task args: the queue must still be drained
-        ArtifactTask artifactTask = new ArtifactTask(factory, mockEs, new PropertiesProvider(Map.of(
+        // this task reads its options from the task args, so the upstream id set by the
+        // launcher must live alongside the rest of the configuration in that same map
+        Map<String, Object> config = new HashMap<>(Map.of(
                 "artifactDir", artifactDir.getRoot().toString(),
-                "defaultProject", "prj")),
-                new UpstreamGate.Factory(taskRepository), new Task<>(ArtifactTask.class.getName(), User.local(),
-                Map.of(UpstreamGate.UPSTREAM_TASK_ID, upstream.id)), null);
+                "defaultProject", "prj"));
+        config.put(UpstreamGate.UPSTREAM_TASK_ID, upstream.id);
+        ArtifactTask artifactTask = new ArtifactTask(factory, mockEs,
+                new UpstreamGate.Factory(taskRepository), ArtifactTaskFixture.taskWith(config), null);
 
         ExecutorService executor = Executors.newSingleThreadExecutor();
         try {
@@ -604,13 +630,13 @@ public class ArtifactTaskTest {
         return runArtifactTask(Map.of());
     }
 
-    private Long runArtifactTask(Map<String, Object> extraProperties) throws Exception {
-        Map<String, Object> properties = new HashMap<>(Map.of(
+    private Long runArtifactTask(Map<String, Object> extraArgs) throws Exception {
+        Map<String, Object> args = new HashMap<>(Map.of(
                 "artifactDir", artifactDir.getRoot().toString(),
                 "defaultProject", "prj"));
-        properties.putAll(extraProperties);
-        return new ArtifactTask(factory, mockEs, new PropertiesProvider(properties),
-                new UpstreamGate.Factory(taskRepository), new Task<>(ArtifactTask.class.getName(), User.local(), new HashMap<>()), null)
+        args.putAll(extraArgs);
+        return new ArtifactTask(factory, mockEs, new UpstreamGate.Factory(taskRepository),
+                ArtifactTaskFixture.taskWith(args), null)
                 .call();
     }
 
@@ -627,10 +653,10 @@ public class ArtifactTaskTest {
         DocumentQueue<String> queue = factory.createQueue("extract:queue:artifact", String.class);
         queue.add(rootSha);
 
-        Long numberOfDocuments = new ArtifactTask(factory, mockEs, new PropertiesProvider(Map.of(
-                "artifactDir", artifactDir.getRoot().toString(),
-                "defaultProject", "prj")),
-                new UpstreamGate.Factory(taskRepository), new Task<>(ArtifactTask.class.getName(), User.local(), new HashMap<>()), null)
+        Long numberOfDocuments = new ArtifactTask(factory, mockEs,
+                new UpstreamGate.Factory(taskRepository), ArtifactTaskFixture.taskWith(Map.of(
+                        "artifactDir", artifactDir.getRoot().toString(),
+                        "defaultProject", "prj")), null)
                 .call();
 
         assertThat(numberOfDocuments).isEqualTo(1);

@@ -80,8 +80,8 @@ public class ArtifactChaosIntTest {
         int realBeforeBlock = 5;
         AtomicInteger callCount = new AtomicInteger(0);
         CountDownLatch blocked = new CountDownLatch(1);
-        ArtifactTask killedTask = new ArtifactTask(stringQueueFactory, indexer, props, new UpstreamGate.Factory(taskRepository),
-                new Task<>(ArtifactTask.class.getName(), User.local(), map), null) {
+        ArtifactTask killedTask = new ArtifactTask(stringQueueFactory, indexer, new UpstreamGate.Factory(taskRepository),
+                ArtifactTaskFixture.taskWith(map), null) {
             @Override
             protected SourceExtractor createSourceExtractor() {
                 SourceExtractor real = new SourceExtractor(props);
@@ -137,8 +137,8 @@ public class ArtifactChaosIntTest {
                 new Task<>(EnqueueFromIndexTask.class.getName(), User.local(), map), null).call();
 
         AtomicInteger reproductions = new AtomicInteger(0);
-        ArtifactTask resumeTask = new ArtifactTask(stringQueueFactory, indexer, props, new UpstreamGate.Factory(taskRepository),
-                new Task<>(ArtifactTask.class.getName(), User.local(), map), null) {
+        ArtifactTask resumeTask = new ArtifactTask(stringQueueFactory, indexer, new UpstreamGate.Factory(taskRepository),
+                ArtifactTaskFixture.taskWith(map), null) {
             @Override
             protected SourceExtractor createSourceExtractor() {
                 SourceExtractor real = new SourceExtractor(props);
@@ -191,8 +191,8 @@ public class ArtifactChaosIntTest {
 
         new EnqueueFromIndexTask(stringQueueFactory, indexer,
                 new Task<>(EnqueueFromIndexTask.class.getName(), User.local(), map), null).call();
-        new ArtifactTask(stringQueueFactory, indexer, props, new UpstreamGate.Factory(taskRepository),
-                new Task<>(ArtifactTask.class.getName(), User.local(), map), null).call();
+        new ArtifactTask(stringQueueFactory, indexer, new UpstreamGate.Factory(taskRepository),
+                ArtifactTaskFixture.taskWith(map), null).call();
 
         ArtifactCoverageChecker.Report report = new ArtifactCoverageChecker(indexer, new SourceExtractor(props))
                 .check(Project.project(es.getIndexName()), artifactDir.getRoot().toPath(), 100);
@@ -247,8 +247,8 @@ public class ArtifactChaosIntTest {
 
         new EnqueueFromIndexTask(stringQueueFactory, indexer,
                 new Task<>(EnqueueFromIndexTask.class.getName(), User.local(), map), null).call();
-        new ArtifactTask(stringQueueFactory, indexer, props, new UpstreamGate.Factory(taskRepository),
-                new Task<>(ArtifactTask.class.getName(), User.local(), map), null).call();
+        new ArtifactTask(stringQueueFactory, indexer, new UpstreamGate.Factory(taskRepository),
+                ArtifactTaskFixture.taskWith(map), null).call();
 
         ArtifactCoverageChecker.Report report = new ArtifactCoverageChecker(indexer, new SourceExtractor(props))
                 .check(Project.project(es.getIndexName()), artifactDir.getRoot().toPath(), 100);
