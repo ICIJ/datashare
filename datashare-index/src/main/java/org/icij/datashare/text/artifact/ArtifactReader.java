@@ -1,5 +1,6 @@
 package org.icij.datashare.text.artifact;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import org.icij.datashare.text.indexing.elasticsearch.ArtifactPath;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,9 +24,18 @@ public class ArtifactReader {
     }
 
     /** The type's entry when it exists and is servable, else null. Callers map null to 404 and
-     *  never inspect status themselves, so "servable" has one definition. */
+     *  never inspect status themselves, so "servable" has one definition. A corrupt manifest.json
+     *  (bad syntax, or an unrecognised status) is not servable either: manifest.json is written by
+     *  other producers, including datashare-python, so this is the boundary where a malformed one
+     *  reads as "not found" rather than propagating as a 500 to whoever asks for a serving read. */
     public ManifestEntry servableEntry(Path docArtifactDir, ArtifactType type) throws IOException {
-        ManifestEntry entry = manifests.get(docArtifactDir, type.token());
+        ManifestEntry entry;
+        try {
+            entry = manifests.get(docArtifactDir, type.token());
+        } catch (JsonProcessingException malformed) {
+            LOGGER.warn("ignoring unreadable manifest for '{}' in {}", type.token(), docArtifactDir, malformed);
+            return null;
+        }
         return entry != null && entry.isComplete() ? entry : null;
     }
 
