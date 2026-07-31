@@ -8,6 +8,7 @@ import org.icij.datashare.asynctasks.TaskResult;
 import org.icij.datashare.extract.MemoryDocumentCollectionFactory;
 import org.icij.datashare.test.LogbackCapturingRule;
 import org.icij.datashare.text.Document;
+import org.icij.datashare.text.DocumentBuilder;
 import org.icij.datashare.text.Project;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.text.indexing.elasticsearch.SourceExtractor;
@@ -23,6 +24,7 @@ import org.mockito.Mock;
 import org.slf4j.event.Level;
 
 import java.net.URISyntaxException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.List;
@@ -40,10 +42,12 @@ import java.util.concurrent.atomic.AtomicReference;
 import static org.fest.assertions.Assertions.assertThat;
 import static org.icij.datashare.PropertiesProvider.DEFAULT_QUEUE_CAPACITY;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 import static org.mockito.MockitoAnnotations.initMocks;
 
 public class ArtifactTaskTest {
     private static final String EMBEDDED_DOC_SHA256 = "0f95ef97e4619f7bae2a585c6cf24587cd7a3a81a26599c8774d669e5c175e5e";
+    private static final String EMBEDDED_PDF_SHA256 = "6abb96950946b62bb993307c8945c0c096982783bab7fa24901522426840ca3e";
     @Rule public TemporaryFolder artifactDir = new TemporaryFolder();
     @Rule public LogbackCapturingRule logback = new LogbackCapturingRule();
     @Mock Indexer mockEs;
@@ -91,10 +95,32 @@ public class ArtifactTaskTest {
         DocumentQueue<String> queue = factory.createQueue("extract:queue:artifact", String.class);
         queue.add(EMBEDDED_DOC_SHA256 + "|rootId");
 
-        Long numberOfDocuments = runArtifactTask();
+        // Pinned to raw: this fixture's root labelling is deliberately inconsistent (extractionLevel says
+        // root, rootId says embed), so structure would attempt an embedded lookup it cannot support.
+        Long numberOfDocuments = runArtifactTask(Map.of("artifacts", "raw"));
 
         verify(mockEs).get("prj", EMBEDDED_DOC_SHA256, "rootId", List.of("content", "content_translated"));
         assertThat(numberOfDocuments).isEqualTo(1);
+    }
+
+    @Test(timeout = 10000)
+    public void test_embedded_document_gets_its_own_page_set_and_manifest_entry() throws Exception {
+        // Embedded nodes are the dominant shape of the mail and archive corpora this stage serves, and
+        // they are the only ones whose source has to be re-extracted from the root before Tika sees it.
+        indexEmbeddedPdfUnderItsRoot();
+        DocumentQueue<String> queue = factory.createQueue("extract:queue:artifact", String.class);
+        queue.add(EMBEDDED_PDF_SHA256 + "|" + EMBEDDED_DOC_SHA256);
+
+        Long numberOfDocuments = runArtifactTask();
+
+        assertThat(numberOfDocuments).isEqualTo(1);
+        Path docArtifactDir = artifactDir.getRoot().toPath().resolve("prj/6a/bb/" + EMBEDDED_PDF_SHA256);
+        // one file per page and per format: the attachment is a two-page PDF
+        assertThat(docArtifactDir.resolve("structure/page-0001.xhtml").toFile()).isFile();
+        assertThat(docArtifactDir.resolve("structure/page-0001.md").toFile()).isFile();
+        assertThat(docArtifactDir.resolve("structure/page-0002.xhtml").toFile()).isFile();
+        assertThat(Files.readString(docArtifactDir.resolve("manifest.json")))
+                .contains("\"structure\"").contains("\"total\" : 2");
     }
 
     @Test(timeout = 10000)
@@ -372,6 +398,46 @@ public class ArtifactTaskTest {
         assertThat(secondStarted.await(500, TimeUnit.MILLISECONDS)).isFalse();
     }
 
+    // The two cases below merely look like a cancellation: Redisson and the Elasticsearch rest-client both
+    // wrap an InterruptedException in a RuntimeException, and believing the cause chain ends the run green.
+
+    @Test(timeout = 10000)
+    public void test_a_queue_failure_wrapping_an_interrupt_fails_the_task_instead_of_ending_it_green() throws Exception {
+        indexEmbeddedDoc();
+        DocumentQueue<String> queue = new MemoryDocumentQueue<>("extract:queue:artifact", DEFAULT_QUEUE_CAPACITY) {
+            @Override
+            public String poll() {
+                throw new RuntimeException(new InterruptedException("wrapped by the redis client"));
+            }
+        };
+        factory.queues.put("extract:queue:artifact", queue);
+
+        try {
+            runArtifactTask();
+            org.junit.Assert.fail("expected the task to report the worker death");
+        } catch (IllegalStateException expected) {
+            // a broken queue is an infrastructure failure: the run must not be recorded as successful
+        }
+        assertThat(logback.logs(Level.ERROR)).contains("artifact worker terminated abnormally");
+    }
+
+    @Test(timeout = 10000)
+    public void test_a_document_failure_wrapping_an_interrupt_is_counted_and_the_drain_continues() throws Exception {
+        indexEmbeddedDoc();
+        String failingId = "3333333333333333333333333333333333333333333333333333333333333333";
+        when(mockEs.get("prj", failingId, failingId, List.of("content", "content_translated")))
+                .thenThrow(new RuntimeException(new InterruptedException("wrapped by the es client")));
+        DocumentQueue<String> queue = factory.createQueue("extract:queue:artifact", String.class);
+        queue.add(failingId);
+        queue.add(EMBEDDED_DOC_SHA256);
+
+        Long numberOfDocuments = runArtifactTask();
+
+        assertThat(numberOfDocuments).isEqualTo(1);
+        assertThat(logback.logs(Level.ERROR)).contains("error in ArtifactTask loop");
+        assertThat(logback.logs(Level.ERROR)).contains("1 document(s) failed artifact production in project prj, re-run the ARTIFACT stage for them");
+    }
+
     @Test(timeout = 10000)
     public void test_default_is_single_threaded_and_still_drains() throws Exception {
         indexEmbeddedDoc();
@@ -477,22 +543,35 @@ public class ArtifactTaskTest {
         mockIndexer.indexFile("prj", EMBEDDED_DOC_SHA256, path, "message/rfc822", rootId);
     }
 
+    // The real embed of the .eml fixture, labelled consistently (unlike indexEmbeddedDoc): extraction
+    // level 1 under the root the digest comes from, so raw and structure both resolve it.
+    private void indexEmbeddedPdfUnderItsRoot() throws URISyntaxException {
+        Path path = Path.of(Objects.requireNonNull(getClass().getResource("/docs/embedded_doc.eml")).toURI());
+        Document root = DocumentBuilder.createDoc(EMBEDDED_DOC_SHA256).with(path)
+                .with(Project.project("prj")).ofContentType("message/rfc822").build();
+        Document embedded = DocumentBuilder.createDoc(EMBEDDED_PDF_SHA256).with(path)
+                .with(Project.project("prj")).ofContentType("application/pdf")
+                .withParentId(EMBEDDED_DOC_SHA256).withRootId(EMBEDDED_DOC_SHA256)
+                .withExtractionLevel((short) 1).withContentLength(10).build();
+        mockIndexer.indexFile("prj", root, embedded);
+    }
+
     private Long runArtifactTask() throws Exception {
-        return new ArtifactTask(factory, mockEs, new PropertiesProvider(Map.of(
+        return runArtifactTask(Map.of());
+    }
+
+    private Long runArtifactTask(Map<String, Object> extraProperties) throws Exception {
+        Map<String, Object> properties = new HashMap<>(Map.of(
                 "artifactDir", artifactDir.getRoot().toString(),
-                "defaultProject", "prj"
-                )),
+                "defaultProject", "prj"));
+        properties.putAll(extraProperties);
+        return new ArtifactTask(factory, mockEs, new PropertiesProvider(properties),
                 new UpstreamGate.Factory(taskRepository), new Task<>(ArtifactTask.class.getName(), User.local(), new HashMap<>()), null)
                 .call();
     }
 
     private Long runArtifactTask(int parallelism) throws Exception {
-        return new ArtifactTask(factory, mockEs, new PropertiesProvider(Map.of(
-                "artifactDir", artifactDir.getRoot().toString(),
-                "defaultProject", "prj",
-                "parallelism", String.valueOf(parallelism))),
-                new UpstreamGate.Factory(taskRepository), new Task<>(ArtifactTask.class.getName(), User.local(), new HashMap<>()), null)
-                .call();
+        return runArtifactTask(Map.of("parallelism", String.valueOf(parallelism)));
     }
 
     @Test(timeout = 10000)

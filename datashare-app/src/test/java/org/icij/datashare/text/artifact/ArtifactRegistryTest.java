@@ -67,4 +67,14 @@ public class ArtifactRegistryTest {
         // structure is a known type, but this process only wired a raw producer, so it cannot be asked to produce it.
         new ArtifactRegistry(List.of(new FakeArtifact(ArtifactType.RAW))).select("structure");
     }
+
+    @Test
+    public void test_default_catalog_is_raw_then_structure() {
+        assertThat(types(ArtifactRegistry.withDefaults().select(null))).isEqualTo(List.of("raw", "structure"));
+    }
+
+    @Test
+    public void test_default_catalog_can_be_narrowed_to_one_type() {
+        assertThat(types(ArtifactRegistry.withDefaults().select("structure"))).isEqualTo(List.of("structure"));
+    }
 }

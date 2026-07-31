@@ -132,7 +132,9 @@ public class ArtifactTask extends PipelineTask<String> {
         ArtifactRegistry registry = ArtifactRegistry.withDefaults();
         List<Artifact> selected = registry.select(propertiesProvider.get(ARTIFACTS_OPT).orElse(null));
         boolean force = ArtifactStages.force(propertiesProvider);
-        ArtifactProducer producer = new ArtifactProducer(new FilesystemManifestRepository());
+        // The producer owns what counts as a cancellation (see ArtifactProducer#isCancellation), so this
+        // loop and the produce loop it drives cannot disagree about it.
+        ArtifactProducer producer = new ArtifactProducer(new FilesystemManifestRepository(), executor::isShutdown);
         Path projectRoot = ArtifactPath.projectRoot(artifactDir, project.name);
         // The interrupt check keeps cancellation prompt, since cancel() calls executor.shutdownNow()
         // while a worker may sit between two non-blocking polls.
@@ -141,10 +143,12 @@ public class ArtifactTask extends PipelineTask<String> {
             try {
                 queueEntry = inputQueue.poll();
             } catch (RuntimeException e) {
-                if (causedByInterrupt(e)) {
+                if (producer.isCancellation(e)) {
                     Thread.currentThread().interrupt();
                     break;
                 }
+                // A broken queue client is an infrastructure failure: letting it out is what makes call()
+                // report the run as failed instead of green.
                 throw e;
             }
             if (queueEntry == null) {
@@ -178,7 +182,7 @@ public class ArtifactTask extends PipelineTask<String> {
                     nbFailed.incrementAndGet();
                 }
             } catch (Throwable e) {
-                if (causedByInterrupt(e)) {
+                if (producer.isCancellation(e)) {
                     Thread.currentThread().interrupt();
                     break;
                 }

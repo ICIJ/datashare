@@ -126,6 +126,26 @@
     </dependencies>
 
     <build>
+        <resources>
+            <!-- Filtering is scoped to this one file, which exists to turn ${project.version} into the
+                 version the artifact cache records. It stays off the ES mappings, settings and painless
+                 scripts next to it: maven has no business rewriting a ${...} someone puts in those.
+                 Declaring <resources> replaces the default src/main/resources, hence the second,
+                 unfiltered block. -->
+            <resource>
+                <directory>src/main/resources</directory>
+                <includes>
+                    <include>datashare-version.properties</include>
+                </includes>
+                <filtering>true</filtering>
+            </resource>
+            <resource>
+                <directory>src/main/resources</directory>
+                <excludes>
+                    <exclude>datashare-version.properties</exclude>
+                </excludes>
+            </resource>
+        </resources>
         <plugins>
             <plugin>
                 <artifactId>maven-shade-plugin</artifactId>
