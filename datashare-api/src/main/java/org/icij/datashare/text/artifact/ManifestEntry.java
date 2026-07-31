@@ -4,12 +4,12 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import java.util.Map;
 
 /** One artifact type's entry in a document's manifest.json. Single-file types use
- *  contentType/filename; paginated types use a Pagination. */
+ *  contentType/filename; paginated types use a Pages. */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record ManifestEntry(
         ManifestEntryStatus status,
         Map<String, Object> taskInput,
-        Pagination pagination,
+        Pages pages,
         String contentType,
         String filename,
         Double confidence,
@@ -19,8 +19,8 @@ public record ManifestEntry(
         return new ManifestEntry(null, taskInput, null, contentType, filename, null, null);
     }
 
-    public static ManifestEntry paginated(Map<String, Object> taskInput, Pagination pagination) {
-        return new ManifestEntry(null, taskInput, pagination, null, null, null, null);
+    public static ManifestEntry paginated(Map<String, Object> taskInput, Pages pages) {
+        return new ManifestEntry(null, taskInput, pages, null, null, null, null);
     }
 
     /** A node that was processed but has no payload to serve from its own dir (e.g. a root
@@ -30,7 +30,7 @@ public record ManifestEntry(
     }
 
     public ManifestEntry withStatus(ManifestEntryStatus status) {
-        return new ManifestEntry(status, taskInput, pagination, contentType, filename, confidence, label);
+        return new ManifestEntry(status, taskInput, pages, contentType, filename, confidence, label);
     }
 
     /** Producers return EMPTY as-is; any other (status-less) entry becomes COMPLETE. Callers stamp
@@ -54,6 +54,6 @@ public record ManifestEntry(
     }
 
     public Integer total() {
-        return pagination == null ? null : pagination.total();
+        return pages == null ? null : pages.total();
     }
 }

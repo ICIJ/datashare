@@ -21,7 +21,7 @@ public class ManifestEntryTest {
         assertThat(json).contains("\"status\":\"complete\"");
         assertThat(json).contains("\"contentType\":\"application/pdf\"");
         assertThat(json).contains("\"filename\":\"report.pdf\"");
-        assertThat(json).doesNotContain("total");
+        assertThat(json).doesNotContain("pages");
         assertThat(json).doesNotContain("pagination");
         assertThat(json).doesNotContain("confidence");
         assertThat(json).doesNotContain("label");
@@ -81,11 +81,11 @@ public class ManifestEntryTest {
     }
 
     @Test
-    public void test_paginated_entry_carries_pagination() {
-        ManifestEntry entry = ManifestEntry.paginated(Map.of("type", "structure", "version", 1),
-                Pagination.filesystem(12));
+    public void test_paginated_entry_carries_pages() {
+        ManifestEntry entry = ManifestEntry.paginated(Map.of("pipeline", "tika", "version", "3.3.0"),
+                Pages.filesystem(12));
         assertThat(entry.total()).isEqualTo(12);
-        assertThat(entry.pagination().type()).isEqualTo("filesystem");
+        assertThat(entry.pages().pagination().type()).isEqualTo("filesystem");
         assertThat(entry.contentType()).isNull();
     }
 }

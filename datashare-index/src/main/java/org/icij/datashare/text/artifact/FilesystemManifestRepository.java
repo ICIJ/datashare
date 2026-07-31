@@ -79,7 +79,10 @@ public class FilesystemManifestRepository implements ManifestRepository {
         }
     }
 
-    // Read-modify-write a single type's entry, leaving every other type untouched.
+    // Read-modify-write a single type's entry, leaving every other type untouched. At tree level rather
+    // than through Map<String, ManifestEntry>: datashare-python owns other types in this file and writes
+    // fields this record does not model, which a round-trip through ManifestEntry would destroy (the byte
+    // offsets of a docling payload are the only copy there is).
     private void mergeEntryIntoManifest(Path docArtifactDir, String type, ManifestEntry entry) throws IOException {
         Path manifest = docArtifactDir.resolve(ArtifactPath.MANIFEST_FILE);
         Map<String, ManifestEntry> currentEntries = Files.exists(manifest) ? read(manifest) : new LinkedHashMap<>();

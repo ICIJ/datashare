@@ -127,8 +127,8 @@ public class ArtifactTask extends PipelineTask<String> {
 
     private void runWorker(AtomicLong nbDocs, AtomicLong nbSkipped, AtomicLong nbFailed) {
         SourceExtractor extractor = createSourceExtractor();
-        // Decide once per worker which artifact types to produce: an absent --artifacts flag
-        // means all registered types (raw is the only one wired in this foundation).
+        // Decide once per worker which artifact types to produce: an absent --artifacts flag means the
+        // whole catalog, raw and structure (see ArtifactRegistry#withDefaults).
         ArtifactRegistry registry = ArtifactRegistry.withDefaults();
         List<Artifact> selected = registry.select(propertiesProvider.get(ARTIFACTS_OPT).orElse(null));
         boolean force = ArtifactStages.force(propertiesProvider);

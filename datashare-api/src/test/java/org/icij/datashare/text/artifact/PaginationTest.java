@@ -10,18 +10,27 @@ public class PaginationTest {
     private final ObjectMapper mapper = JsonObjectMapper.getMapper();
 
     @Test
-    public void test_filesystem_pagination_omits_byte_ranges() throws Exception {
-        String json = mapper.writeValueAsString(Pagination.filesystem(12));
-        assertThat(json).contains("\"type\":\"filesystem\"");
-        assertThat(json).contains("\"total\":12");
-        assertThat(json).doesNotContain("byteRanges");
+    public void test_filesystem_pages_serialize_as_the_convention_shape() throws Exception {
+        String json = mapper.writeValueAsString(Pages.filesystem(12));
+        assertThat(json).isEqualTo("{\"total\":12,\"pagination\":{\"type\":\"filesystem\"}}");
     }
 
     @Test
-    public void test_byte_ranges_pagination_carries_ranges() {
-        Pagination p = Pagination.byteRanges(2, List.of(new long[]{0, 10}, new long[]{10, 20}));
-        assertThat(p.type()).isEqualTo("byteRanges");
-        assertThat(p.total()).isEqualTo(2);
-        assertThat(p.byteRanges()).hasSize(2);
+    public void test_byte_ranges_pages_written_by_another_producer_are_readable() throws Exception {
+        // The only reason `ranges` exists in the record: reading a docling-written entry. Nothing in
+        // Java writes this scheme, so there is no factory for it.
+        Pages read = mapper.readValue(
+                "{\"total\":2,\"pagination\":{\"type\":\"byteRanges\",\"ranges\":[[0,10],[10,20]]}}", Pages.class);
+        assertThat(read.total()).isEqualTo(2);
+        assertThat(read.pagination().type()).isEqualTo("byteRanges");
+        assertThat(read.pagination().ranges()).hasSize(2);
+    }
+
+    @Test
+    public void test_pages_round_trip() throws Exception {
+        Pages read = mapper.readValue(mapper.writeValueAsString(Pages.filesystem(3)), Pages.class);
+        assertThat(read.total()).isEqualTo(3);
+        assertThat(read.pagination().type()).isEqualTo("filesystem");
+        assertThat(read.pagination().ranges()).isNull();
     }
 }

@@ -38,7 +38,7 @@ public class FilesystemManifestRepositoryTest {
     public void test_put_two_types_does_not_clobber() throws Exception {
         Path node = dir.getRoot().toPath();
         repository.put(node, "raw", rawEntry());
-        repository.put(node, "structure", ManifestEntry.paginated(Map.of("type", "structure", "version", 1), Pagination.filesystem(3)).withStatus(ManifestEntryStatus.COMPLETE));
+        repository.put(node, "structure", ManifestEntry.paginated(Map.of("type", "structure", "version", 1), Pages.filesystem(3)).withStatus(ManifestEntryStatus.COMPLETE));
         assertThat(repository.get(node, "raw")).isNotNull();
         assertThat(repository.get(node, "structure").total()).isEqualTo(3);
     }
@@ -49,7 +49,7 @@ public class FilesystemManifestRepositoryTest {
         Files.createDirectories(node);
         CountDownLatch start = new CountDownLatch(1);
         Runnable a = () -> { try { start.await(); repository.put(node, "raw", rawEntry()); } catch (Exception e) { throw new RuntimeException(e); } };
-        Runnable b = () -> { try { start.await(); repository.put(node, "structure", ManifestEntry.paginated(Map.of("type", "structure", "version", 1), Pagination.filesystem(9)).withStatus(ManifestEntryStatus.COMPLETE)); } catch (Exception e) { throw new RuntimeException(e); } };
+        Runnable b = () -> { try { start.await(); repository.put(node, "structure", ManifestEntry.paginated(Map.of("type", "structure", "version", 1), Pages.filesystem(9)).withStatus(ManifestEntryStatus.COMPLETE)); } catch (Exception e) { throw new RuntimeException(e); } };
         Thread ta = new Thread(a), tb = new Thread(b);
         ta.start(); tb.start();
         start.countDown();
