@@ -37,6 +37,11 @@ public class PageArtifactTest {
 
     private final Project project = Project.project("prj");
 
+    // Multi-byte UTF-8, rendered fine by Helvetica: 19 chars, 23 bytes (é and û each cost one extra
+    // byte). Referenced by its known char count below, not by decoding the written bytes back,
+    // since a decode of a wrongly-sliced multi-byte range is corrupted rather than merely shorter.
+    private static final String ACCENTED_PAGE = "Pagé un: coût élevé";
+
     @Test
     public void test_type_is_page() {
         assertThat(new PageArtifact(new PropertiesProvider()).type()).isEqualTo(ArtifactType.PAGE);
@@ -63,11 +68,13 @@ public class PageArtifactTest {
     }
 
     // A two-page PDF with real text: no tesseract needed, and each page has a distinct body so the
-    // byte ranges can be checked against the page they claim to delimit.
+    // byte ranges can be checked against the page they claim to delimit. The first page is
+    // multi-byte UTF-8 (Helvetica renders accents fine), so a range recorded in chars instead of
+    // bytes would be caught rather than passing by ASCII coincidence.
     private Path twoPagePdf() throws IOException {
         Path pdf = dir.getRoot().toPath().resolve("report.pdf");
         try (PDDocument document = new PDDocument()) {
-            for (String text : List.of("Page one text", "Page two text")) {
+            for (String text : List.of(ACCENTED_PAGE, "Page two text")) {
                 PDPage page = new PDPage();
                 document.addPage(page);
                 try (PDPageContentStream content = new PDPageContentStream(document, page)) {
@@ -103,14 +110,15 @@ public class PageArtifactTest {
 
         new PageArtifact(new PropertiesProvider()).produce(context);
 
-        assertThat(Files.readString(contentTxt(context))).contains("Page one text").contains("Page two text");
+        assertThat(Files.readString(contentTxt(context))).contains(ACCENTED_PAGE).contains("Page two text");
         assertThat(ArtifactPath.pagesDir(context.docArtifactDir()).toFile().list())
                 .isEqualTo(new String[]{"content.txt"});
     }
 
     @Test
     public void test_produce_returns_contiguous_byte_ranges_covering_the_content_file() throws Exception {
-        ArtifactContext context = rootContext(twoPagePdf());
+        Path pdf = twoPagePdf();
+        ArtifactContext context = rootContext(pdf);
 
         ManifestEntry entry = new PageArtifact(new PropertiesProvider()).produce(context);
 
@@ -122,6 +130,17 @@ public class PageArtifactTest {
         assertThat(ranges.get(1)[1]).isEqualTo(Files.size(contentTxt(context)));
         assertThat(entry.isComplete()).isFalse(); // the producer loop stamps status, not produce()
         assertThat(entry.contentType()).isNull();
+        // Mutation-killing: the first page is multi-byte UTF-8, so a range recorded in chars
+        // (page.length()) instead of bytes (bytes.length) would make this equal, not exceed, the
+        // extracted page's own char count. Proven by mutation: reverting bytes.length to
+        // page.length() in writePages makes this fail with "22 should be greater than 22".
+        String firstPage;
+        try (Extractor extractor = new Extractor()) {
+            extractor.disableOcr();
+            firstPage = extractor.extractPages(pdf).get(0);
+        }
+        long firstRangeByteLength = ranges.get(0)[1] - ranges.get(0)[0];
+        assertThat(firstRangeByteLength).isGreaterThan((long) firstPage.length());
     }
 
     private static String slice(byte[] content, long[] range) {
@@ -167,7 +186,7 @@ public class PageArtifactTest {
         ManifestEntry entry = new PageArtifact(new PropertiesProvider()).produce(context);
 
         assertThat(entry.pages().total()).isEqualTo(2);
-        assertThat(Files.readString(contentTxt(context))).contains("Page one text");
+        assertThat(Files.readString(contentTxt(context))).contains(ACCENTED_PAGE);
         verifyNoInteractions(sources); // the payload was already there: no re-extraction
     }
 
@@ -205,6 +224,26 @@ public class PageArtifactTest {
         }
         assertThat(Files.exists(ArtifactPath.pagesDir(context.docArtifactDir()))).isFalse();
         verify(sources).getSource(project, context.document());
+    }
+
+    @Test
+    public void test_produce_fails_when_an_embedded_document_has_a_zero_byte_raw_payload() throws Exception {
+        SourceExtractor sources = mock(SourceExtractor.class);
+        ArtifactContext context = embeddedContext(sources);
+        Files.createDirectories(context.docArtifactDir());
+        Files.createFile(context.docArtifactDir().resolve(ArtifactPath.RAW_FILE));
+        // getSource() is called since the cached payload is empty, but does not repair it: the raw
+        // file stays zero bytes.
+        when(sources.getSource(project, context.document()))
+                .thenReturn(new java.io.ByteArrayInputStream(new byte[0]));
+
+        try {
+            new PageArtifact(new PropertiesProvider()).produce(context);
+            fail("expected an ArtifactException");
+        } catch (ArtifactException expected) {
+            assertThat(expected.getMessage()).contains(context.document().getId());
+        }
+        assertThat(Files.exists(ArtifactPath.pagesDir(context.docArtifactDir()))).isFalse();
     }
 
     @Test

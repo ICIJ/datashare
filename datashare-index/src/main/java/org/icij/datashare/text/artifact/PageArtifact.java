@@ -73,10 +73,14 @@ public class PageArtifact implements Artifact {
             return document.getPath();
         }
         Path raw = context.docArtifactDir().resolve(ArtifactPath.RAW_FILE);
-        if (Files.notExists(raw)) {
+        // Zero-byte, not just absent: extract-lib records an empty raw payload for embeds whose
+        // bytes it could not read (the same rule SourceExtractor.hasCachedEmbeddedSource applies), and
+        // pagination would otherwise accept it as a source, find no page divs, and record a terminal
+        // EMPTY that skip-if-current never retries.
+        if (Files.notExists(raw) || Files.size(raw) == 0) {
             context.sources().getSource(context.project(), document).close();
         }
-        if (Files.notExists(raw)) {
+        if (Files.notExists(raw) || Files.size(raw) == 0) {
             throw new IOException("no raw payload to paginate for embedded document " + document.getId());
         }
         return raw;
@@ -99,15 +103,21 @@ public class PageArtifact implements Artifact {
         }
     }
 
-    // Writes the whole payload to a temp file in the same directory (so the move is same-filesystem
-    // and therefore atomic), then swaps it in. A run that fails partway leaves the previous
-    // content.txt, which is what the still-complete manifest entry advertises, instead of a
-    // truncated one. Offsets are the byte counts actually written, so the recorded ranges cannot
-    // disagree with the file: half-open [start, end), contiguous, first start 0, last end == length.
+    // Writes the whole payload to a unique temp file in the same directory (so the move is
+    // same-filesystem and therefore atomic), then swaps it in. A failure before the move leaves the
+    // previous content.txt in place, still matching its complete manifest entry. A failure after the
+    // move (the caller's repository.put, e.g. a manifest lock timeout) can instead leave the new
+    // content.txt live while the manifest still describes the previous one; guarding against that is
+    // a consumer-side concern (#2228), not this method's. Offsets are the byte counts actually
+    // written, so the recorded ranges cannot disagree with the file: half-open [start, end),
+    // contiguous, first start 0, last end == length.
     private static List<long[]> writePages(ArtifactContext context, List<String> pages) throws IOException {
         Path content = ArtifactPath.pagesContent(context.docArtifactDir());
-        Path temp = content.resolveSibling(content.getFileName() + ".tmp");
         Files.createDirectories(content.getParent());
+        // A unique name per attempt: two producers racing on the same document (shared artifactDir
+        // across hosts, or the same doc queued twice) must never open the same temp path, or the
+        // loser's write truncates the winner's file to a hole of NUL bytes mid-write.
+        Path temp = Files.createTempFile(content.getParent(), "content", ".txt.tmp");
         List<long[]> ranges = new ArrayList<>();
         long offset = 0;
         try {
