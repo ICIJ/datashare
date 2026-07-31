@@ -35,8 +35,6 @@ import org.icij.extract.document.DocumentFactory;
 import org.icij.extract.extractor.Extractor;
 import org.icij.extract.extractor.PageIndices;
 import org.jetbrains.annotations.NotNull;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -53,7 +51,6 @@ import static org.icij.datashare.text.Project.project;
 @Singleton
 @Prefix("/api")
 public class DocumentResource {
-    private final Logger logger = LoggerFactory.getLogger(getClass());
     private final Repository repository;
     private final Indexer indexer;
     private final PropertiesProvider propertiesProvider;
