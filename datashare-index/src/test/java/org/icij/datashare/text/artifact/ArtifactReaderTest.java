@@ -138,4 +138,62 @@ public class ArtifactReaderTest {
         ManifestEntry entry = reader.servableEntry(node, ArtifactType.PAGE);
         assertThat(reader.formats(node, ArtifactType.PAGE, entry, List.of("md", "txt"))).containsExactly("txt");
     }
+
+    @Test
+    public void test_page_is_null_when_range_has_negative_start() throws Exception {
+        Path node = withByteRanges("content", "txt", new long[]{-1, 5});
+        ManifestEntry entry = reader.servableEntry(node, ArtifactType.PAGE);
+        assertThat(reader.page(node, ArtifactType.PAGE, entry, 1, "txt")).isNull();
+    }
+
+    @Test
+    public void test_page_is_null_when_range_is_inverted() throws Exception {
+        Path node = withByteRanges("content", "txt", new long[]{9, 4});
+        ManifestEntry entry = reader.servableEntry(node, ArtifactType.PAGE);
+        assertThat(reader.page(node, ArtifactType.PAGE, entry, 1, "txt")).isNull();
+    }
+
+    @Test
+    public void test_page_is_null_when_range_exceeds_max_int_size() throws Exception {
+        Path node = withByteRanges("content", "txt", new long[]{0, (long) Integer.MAX_VALUE + 1});
+        ManifestEntry entry = reader.servableEntry(node, ArtifactType.PAGE);
+        assertThat(reader.page(node, ArtifactType.PAGE, entry, 1, "txt")).isNull();
+    }
+
+    @Test
+    public void test_page_returns_empty_slice_for_zero_length_range() throws Exception {
+        Path node = withByteRanges("content", "txt", new long[]{4, 4});
+        ManifestEntry entry = reader.servableEntry(node, ArtifactType.PAGE);
+        byte[] result = reader.page(node, ArtifactType.PAGE, entry, 1, "txt");
+        assertThat(result).isNotNull().isEmpty();
+    }
+
+    @Test
+    public void test_page_is_null_when_manifest_advertises_more_ranges_than_exist() throws Exception {
+        Path node = withByteRanges("content", "txt", new long[]{0, 7});
+        ManifestEntry entry = reader.servableEntry(node, ArtifactType.PAGE);
+        // Manifest says 3 pages but only 1 range exists; request page 2
+        assertThat(reader.page(node, ArtifactType.PAGE, entry, 2, "txt")).isNull();
+    }
+
+    @Test
+    public void test_formats_preserves_candidate_order() throws Exception {
+        Path node = dir.getRoot().toPath();
+        Files.createDirectories(ArtifactPath.payloadDir(node, ArtifactType.PAGE));
+        Files.writeString(ArtifactPath.payloadContent(node, ArtifactType.PAGE, "txt"), "content");
+        Files.writeString(ArtifactPath.payloadContent(node, ArtifactType.PAGE, "md"), "content");
+        manifests.put(node, ArtifactType.PAGE.token(),
+                ManifestEntry.paginated(Map.of(), Pagination.byteRanges(1, List.of(new long[]{0, 7})))
+                        .withStatus(ManifestEntryStatus.COMPLETE));
+        ManifestEntry entry = reader.servableEntry(node, ArtifactType.PAGE);
+        assertThat(reader.formats(node, ArtifactType.PAGE, entry, List.of("md", "txt"))).containsExactly("md", "txt");
+        assertThat(reader.formats(node, ArtifactType.PAGE, entry, List.of("txt", "md"))).containsExactly("txt", "md");
+    }
+
+    @Test
+    public void test_formats_returns_empty_list_when_no_candidates_are_present() throws Exception {
+        Path node = withByteRanges("content", "txt", new long[]{0, 7});
+        ManifestEntry entry = reader.servableEntry(node, ArtifactType.PAGE);
+        assertThat(reader.formats(node, ArtifactType.PAGE, entry, List.of("md", "html"))).isEmpty();
+    }
 }
