@@ -145,9 +145,9 @@ public class StageRunCommandTest extends AbstractDatashareCommandTest {
     }
 
     @Test
-    public void test_artifacts_force_defaults_to_false() {
+    public void test_artifacts_force_absent_by_default() {
         Properties props = parse("stage", "run", "--stages", "INDEX");
-        assertThat(props).includes(entry("artifactsForce", "false"));
+        assertThat(props.containsKey("artifactsForce")).isFalse();
     }
 
     @Test
