@@ -29,6 +29,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import static java.lang.Boolean.parseBoolean;
 import static java.util.Optional.ofNullable;
 import static org.icij.datashare.web.errors.ForbiddenException.requireGranted;
 
@@ -139,6 +140,26 @@ public class ArtifactResource {
                 ? payload.withHeader("Content-Security-Policy", "default-src 'none'; sandbox")
                         .withHeader("X-Content-Type-Options", "nosniff")
                 : payload;
+    }
+
+    @Operation(description = "Fetches a document's raw (embedded or source) bytes. Same access rules as /documents/src: project membership, the project's download restriction, and the root-document size limit.",
+            parameters = {
+                    @Parameter(name = "project", description = "the project id", in = ParameterIn.PATH),
+                    @Parameter(name = "id", description = "the document id", in = ParameterIn.PATH),
+                    @Parameter(name = "routing", description = "routing key if not a root document", in = ParameterIn.QUERY),
+                    @Parameter(name = "inline", description = "if true, serve without the attachment disposition", in = ParameterIn.QUERY)
+            }
+    )
+    @ApiResponse(responseCode = "200", description = "the raw bytes, with the document's content type")
+    @ApiResponse(responseCode = "403", description = "forbidden if the user doesn't have access to the project or downloads are restricted")
+    @ApiResponse(responseCode = "404", description = "if no document is found or its bytes cannot be read")
+    @ApiResponse(responseCode = "413", description = "if the root document is too large and no raw artifact is cached for this embedded document")
+    @Get("/:project/artifacts/raw/:id?routing=:routing&inline=:inline")
+    public Payload raw(final String project, final String id, final String routing,
+                       final String inline, final Context context) {
+        boolean serveInline = parseBoolean(inline);
+        return sources.gated(project, id, routing, context,
+                document -> sources.source(document, project, serveInline, false));
     }
 
     // Resolves the content-addressed dir of a granted, existing document. Returns null when the
