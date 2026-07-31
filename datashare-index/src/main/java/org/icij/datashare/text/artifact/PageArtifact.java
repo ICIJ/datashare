@@ -50,6 +50,12 @@ public class PageArtifact implements Artifact {
         Document document = context.document();
         try {
             List<String> pages = extractPages(document, sourcePath(context));
+            // Nothing to serve and nothing to write: no page divs means no pages, which is what the
+            // live endpoint returns for such a document too. EMPTY is terminal, so the document is
+            // recorded once and not reprocessed on every run.
+            if (pages.isEmpty()) {
+                return ManifestEntry.empty(taskInput());
+            }
             return ManifestEntry.paginated(taskInput(), writePages(context, pages));
         } catch (Exception failure) {
             throw new ArtifactException("page extraction failed for " + document.getId(), failure);
