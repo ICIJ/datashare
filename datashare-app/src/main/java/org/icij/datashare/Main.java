@@ -58,6 +58,7 @@ public class Main {
         commandLine.setAbbreviatedSubcommandsAllowed(false);
         commandLine.setCaseInsensitiveEnumValuesAllowed(true);
         applyColorScheme(commandLine, args);
+        DatashareCommand.applySettingsDefaults(commandLine, args);
         // The execution strategy walks the parse-result hierarchy to the deepest subcommand,
         // short-circuiting to RunLast if --help or --version is requested at any level so the
         // right help page is shown. Otherwise it registers the executed subcommand on

@@ -25,18 +25,18 @@ abstract class AbstractDatashareCommandTest {
 
     protected Properties parse(String... args) {
         DatashareCommand cmd = new DatashareCommand();
-        CommandLine commandLine = configure(cmd);
+        CommandLine commandLine = configure(cmd, args);
         commandLine.execute(args);
         return cmd.collectProperties();
     }
 
     protected int parseExitCode(String... args) {
         DatashareCommand cmd = new DatashareCommand();
-        CommandLine commandLine = configure(cmd);
+        CommandLine commandLine = configure(cmd, args);
         return commandLine.execute(args);
     }
 
-    private static CommandLine configure(DatashareCommand cmd) {
+    private static CommandLine configure(DatashareCommand cmd, String[] args) {
         CommandLine commandLine = new CommandLine(cmd);
         commandLine.setOverwrittenOptionsAllowed(true);
         commandLine.setCaseInsensitiveEnumValuesAllowed(true);
@@ -62,6 +62,7 @@ abstract class AbstractDatashareCommandTest {
             cmd2.getErr().println("error: " + ex.getMessage());
             return 1;
         });
+        DatashareCommand.applySettingsDefaults(commandLine, args);
         return commandLine;
     }
 }
