@@ -24,7 +24,11 @@ import java.util.Map;
 
 import static org.fest.assertions.Assertions.assertThat;
 import static org.icij.datashare.text.DocumentBuilder.createDoc;
+import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.when;
 
 public class PageArtifactTest {
     @Rule public TemporaryFolder dir = new TemporaryFolder();
@@ -137,5 +141,63 @@ public class PageArtifactTest {
         for (int index = 0; index < live.size(); index++) {
             assertThat(slice(content, ranges.get(index))).isEqualTo(live.get(index));
         }
+    }
+
+    // Extraction level 2 = embedded, and the root path deliberately does not exist: a test that
+    // passes proves the root was never parsed.
+    private ArtifactContext embeddedContext(SourceExtractor sources) {
+        Document doc = createDoc("1a2b96950946b62bb993307c8945c0c096982783bab7fa24901522426840ca3e")
+                .with(Path.of("/absent/root.eml")).ofContentType("application/pdf")
+                .withExtractionLevel((short) 2).build();
+        return new ArtifactContext(project, doc, dir.getRoot().toPath().resolve("docdir"), sources);
+    }
+
+    @Test
+    public void test_produce_reads_an_embedded_document_from_its_cached_raw_payload() throws Exception {
+        SourceExtractor sources = mock(SourceExtractor.class);
+        ArtifactContext context = embeddedContext(sources);
+        Files.createDirectories(context.docArtifactDir());
+        Files.copy(twoPagePdf(), context.docArtifactDir().resolve(ArtifactPath.RAW_FILE));
+
+        ManifestEntry entry = new PageArtifact(new PropertiesProvider()).produce(context);
+
+        assertThat(entry.pages().total()).isEqualTo(2);
+        assertThat(Files.readString(contentTxt(context))).contains("Page one text");
+        verifyNoInteractions(sources); // the payload was already there: no re-extraction
+    }
+
+    @Test
+    public void test_produce_extracts_the_raw_payload_when_it_is_missing() throws Exception {
+        SourceExtractor sources = mock(SourceExtractor.class);
+        ArtifactContext context = embeddedContext(sources);
+        Path pdf = twoPagePdf();
+        // getSource() writes the payload into the document's artifact dir as a side effect, which is
+        // what this stub reproduces.
+        when(sources.getSource(project, context.document())).thenAnswer(invocation -> {
+            Files.createDirectories(context.docArtifactDir());
+            Files.copy(pdf, context.docArtifactDir().resolve(ArtifactPath.RAW_FILE));
+            return Files.newInputStream(pdf);
+        });
+
+        ManifestEntry entry = new PageArtifact(new PropertiesProvider()).produce(context);
+
+        assertThat(entry.pages().total()).isEqualTo(2);
+        verify(sources).getSource(project, context.document());
+    }
+
+    @Test
+    public void test_produce_fails_when_an_embedded_document_has_no_raw_payload() throws Exception {
+        SourceExtractor sources = mock(SourceExtractor.class);
+        ArtifactContext context = embeddedContext(sources);
+        when(sources.getSource(project, context.document()))
+                .thenThrow(new java.io.FileNotFoundException("/absent/root.eml"));
+
+        try {
+            new PageArtifact(new PropertiesProvider()).produce(context);
+            fail("expected an ArtifactException");
+        } catch (ArtifactException expected) {
+            assertThat(expected.getMessage()).contains(context.document().getId());
+        }
+        assertThat(Files.exists(ArtifactPath.pagesDir(context.docArtifactDir()))).isFalse();
     }
 }
