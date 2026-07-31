@@ -1,11 +1,14 @@
 package org.icij.datashare.text.artifact;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.collect.MapMaker;
 import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.text.indexing.elasticsearch.ArtifactPath;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.nio.channels.FileChannel;
@@ -23,6 +26,7 @@ import static java.nio.file.StandardOpenOption.WRITE;
 /** Filesystem-backed manifest persistence. Writes are concurrency-safe (in-JVM ReentrantLock +
  *  cross-process FileLock) and atomic (temp + ATOMIC_MOVE). */
 public class FilesystemManifestRepository implements ManifestRepository {
+    private static final Logger LOGGER = LoggerFactory.getLogger(FilesystemManifestRepository.class);
     private static final String LOCK_FILE = ArtifactPath.MANIFEST_FILE + ".lock";
     private static final long LOCK_TIMEOUT_MS = 30_000;
     private static final ObjectMapper MAPPER = JsonObjectMapper.getMapper();
@@ -40,11 +44,18 @@ public class FilesystemManifestRepository implements ManifestRepository {
         if (!Files.exists(manifest)) {
             return null;
         }
-        // Read as a tree, then convert the one type asked for: datashare-python owns other types in the
-        // same file and writes fields ManifestEntry does not model, and a round-trip through the record
-        // destroyed them (a docling payload's byte offsets are the only copy there is).
-        JsonNode entry = read(manifest).get(type);
-        return entry == null ? null : MAPPER.treeToValue(entry, ManifestEntry.class);
+        try {
+            // Read as a tree, then convert the one type asked for: datashare-python owns other types in the
+            // same file and writes fields ManifestEntry does not model, and a round-trip through the record
+            // destroyed them (a docling payload's byte offsets are the only copy there is).
+            JsonNode entry = read(manifest).get(type);
+            return entry == null ? null : MAPPER.treeToValue(entry, ManifestEntry.class);
+        } catch (JsonProcessingException malformed) {
+            // manifest.json is written by other producers, including datashare-python: a corrupt
+            // one (bad syntax or an unrecognised status) is not servable, whoever asks for it.
+            LOGGER.warn("ignoring unreadable manifest at {}", manifest, malformed);
+            return null;
+        }
     }
 
     @Override
