@@ -1,11 +1,13 @@
 package org.icij.datashare.text.artifact;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPage;
 import org.apache.pdfbox.pdmodel.PDPageContentStream;
 import org.apache.pdfbox.pdmodel.font.PDType1Font;
 import org.apache.pdfbox.pdmodel.font.Standard14Fonts;
 import org.icij.datashare.PropertiesProvider;
+import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.Project;
 import org.icij.datashare.text.indexing.elasticsearch.ArtifactPath;
@@ -261,5 +263,37 @@ public class PageArtifactTest {
 
         assertThat(ArtifactPath.pagesDir(context.docArtifactDir()).toFile().list())
                 .excludes("content.txt.tmp");
+    }
+
+    @Test
+    public void test_the_written_manifest_matches_the_convention_shape() throws Exception {
+        ArtifactContext context = rootContext(twoPagePdf());
+        ArtifactProducer producer = new ArtifactProducer(new FilesystemManifestRepository(), () -> false);
+
+        assertThat(producer.run(List.of(new PageArtifact(new PropertiesProvider())), context, false)).isTrue();
+
+        JsonNode manifest = JsonObjectMapper.getMapper()
+                .readTree(context.docArtifactDir().resolve(ArtifactPath.MANIFEST_FILE).toFile());
+        JsonNode entry = manifest.get("page");
+        assertThat(entry.get("status").asText()).isEqualTo("complete");
+        assertThat(entry.get("pages").get("total").asInt()).isEqualTo(2);
+        assertThat(entry.get("pages").get("pagination").get("type").asText()).isEqualTo("byteRanges");
+        assertThat(entry.get("pages").get("pagination").get("ranges").size()).isEqualTo(2);
+        assertThat(entry.get("taskInput").get("pipeline").asText()).isEqualTo("tika");
+        assertThat(entry.get("taskInput").get("ocr").asBoolean()).isTrue();
+        assertThat(entry.has("contentType")).isFalse();
+        assertThat(entry.has("filename")).isFalse();
+    }
+
+    @Test
+    public void test_a_second_run_skips_a_document_already_produced_with_the_same_task_input() throws Exception {
+        ArtifactContext context = rootContext(twoPagePdf());
+        ArtifactProducer producer = new ArtifactProducer(new FilesystemManifestRepository(), () -> false);
+        producer.run(List.of(new PageArtifact(new PropertiesProvider())), context, false);
+        Files.delete(contentTxt(context)); // if the second run produced again, it would be back
+
+        assertThat(producer.run(List.of(new PageArtifact(new PropertiesProvider())), context, false)).isTrue();
+
+        assertThat(Files.exists(contentTxt(context))).isFalse();
     }
 }
