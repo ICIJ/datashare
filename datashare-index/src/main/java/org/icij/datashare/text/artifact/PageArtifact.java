@@ -18,6 +18,7 @@ import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import static org.icij.datashare.cli.DatashareCliOptions.OCR_OPT;
 
@@ -116,8 +117,11 @@ public class PageArtifact implements Artifact {
         Files.createDirectories(content.getParent());
         // A unique name per attempt: two producers racing on the same document (shared artifactDir
         // across hosts, or the same doc queued twice) must never open the same temp path, or the
-        // loser's write truncates the winner's file to a hole of NUL bytes mid-write.
-        Path temp = Files.createTempFile(content.getParent(), "content", ".txt.tmp");
+        // loser's write truncates the winner's file to a hole of NUL bytes mid-write. Built by hand
+        // rather than with Files.createTempFile, which creates the file mode rw------- and would
+        // carry that restrictive mode onto content.txt through the ATOMIC_MOVE below, instead of the
+        // umask default every other artifact file gets.
+        Path temp = content.resolveSibling(content.getFileName() + "." + UUID.randomUUID() + ".tmp");
         List<long[]> ranges = new ArrayList<>();
         long offset = 0;
         try {

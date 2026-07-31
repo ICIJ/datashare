@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -113,6 +114,22 @@ public class PageArtifactTest {
         assertThat(Files.readString(contentTxt(context))).contains(ACCENTED_PAGE).contains("Page two text");
         assertThat(ArtifactPath.pagesDir(context.docArtifactDir()).toFile().list())
                 .isEqualTo(new String[]{"content.txt"});
+    }
+
+    // The temp file is built by hand rather than with Files.createTempFile, whose restrictive
+    // rw------- mode would otherwise survive the ATOMIC_MOVE onto content.txt. Compared against a
+    // control file written with Files.write in the same directory, so this pins the umask default
+    // rather than a hardcoded mode that a restrictive CI umask would falsify.
+    @Test
+    public void test_produce_writes_the_payload_with_the_directorys_default_permissions() throws Exception {
+        ArtifactContext context = rootContext(twoPagePdf());
+
+        new PageArtifact(new PropertiesProvider()).produce(context);
+
+        Path control = ArtifactPath.pagesDir(context.docArtifactDir()).resolve("control");
+        Files.write(control, new byte[0]);
+        assertThat(Files.getPosixFilePermissions(contentTxt(context)))
+                .isEqualTo(Files.getPosixFilePermissions(control));
     }
 
     @Test
@@ -244,6 +261,7 @@ public class PageArtifactTest {
             assertThat(expected.getMessage()).contains(context.document().getId());
         }
         assertThat(Files.exists(ArtifactPath.pagesDir(context.docArtifactDir()))).isFalse();
+        verify(sources).getSource(project, context.document());
     }
 
     @Test
@@ -300,8 +318,11 @@ public class PageArtifactTest {
             assertThat(expected.getMessage()).contains(context.document().getId());
         }
 
-        assertThat(ArtifactPath.pagesDir(context.docArtifactDir()).toFile().list())
-                .excludes("content.txt.tmp");
+        // Asserts on the shape, not the old literal name: createTempFile-era ".tmp" names are gone,
+        // but per-attempt UUID names still end in ".tmp", so this still fails if the temp file
+        // survives.
+        assertThat(Arrays.stream(ArtifactPath.pagesDir(context.docArtifactDir()).toFile().list())
+                .anyMatch(name -> name.endsWith(".tmp"))).isFalse();
     }
 
     @Test
