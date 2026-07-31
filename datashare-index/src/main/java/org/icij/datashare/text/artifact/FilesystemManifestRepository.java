@@ -2,6 +2,7 @@ package org.icij.datashare.text.artifact;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.collect.MapMaker;
 import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.text.indexing.elasticsearch.ArtifactPath;
 
@@ -12,7 +13,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.locks.ReentrantLock;
 
 import static java.nio.file.StandardCopyOption.ATOMIC_MOVE;
@@ -27,7 +28,11 @@ public class FilesystemManifestRepository implements ManifestRepository {
     private static final long LOCK_TIMEOUT_MS = 30_000;
     private static final ObjectMapper MAPPER = JsonObjectMapper.getMapper();
     private static final TypeReference<LinkedHashMap<String, ManifestEntry>> MANIFEST_TYPE = new TypeReference<>() {};
-    private static final ConcurrentHashMap<String, ReentrantLock> JVM_LOCKS = new ConcurrentHashMap<>();
+    // Weak values, because this is keyed per document and hit once per indexed document: a strong map
+    // would keep one entry per document ever processed for the life of the JVM. A lock a thread holds
+    // is kept alive by that thread's own reference to it, so one dir still maps to one lock for as long
+    // as it is in use, which is what the FileLock non-overlap guarantee below relies on.
+    private static final ConcurrentMap<String, ReentrantLock> JVM_LOCKS = new MapMaker().weakValues().makeMap();
 
     @Override
     public ManifestEntry get(Path docArtifactDir, String type) throws IOException {
