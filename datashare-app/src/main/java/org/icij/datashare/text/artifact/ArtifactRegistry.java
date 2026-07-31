@@ -18,8 +18,14 @@ public class ArtifactRegistry {
         }
     }
 
-    /** The app's default catalog of Java-produced artifact types. Shared by the INDEX and ARTIFACT
-     *  stages so a newly registered producer cannot be honored by one stage and missed by the other. */
+    /** The app's catalog of Java-produced artifact types, shared by the INDEX and ARTIFACT stages so a
+     *  newly registered producer cannot be honored by one and missed by the other. Order matters: raw
+     *  first, so structure on an embedded document reads bytes raw's production has already cached.
+     *  <p>
+     *  Every catalog type runs when no selector is given, structure included. A deployment that also
+     *  runs datashare-python's structure producer shares the manifest key and the structure/ directory
+     *  with it, and the two task inputs can never match, so each run destroys the other's payload:
+     *  such a deployment has to pin ownership with an explicit {@code --artifacts raw}. */
     public static ArtifactRegistry withDefaults() {
         return new ArtifactRegistry(List.of(new RawArtifact()));
     }

@@ -34,7 +34,8 @@ public class ArtifactProducer {
         return byType;
     }
 
-    // true when produced, skipped, or empty-recorded; false when a failure was caught and isolated.
+    // true when produced, skipped (skip-if-current, or a cancellation caught mid-type), or
+    // empty-recorded; false only when a genuine failure was caught and isolated.
     private boolean produce(Artifact artifact, ArtifactContext context, boolean force) {
         ArtifactType type = artifact.type();
         try {
