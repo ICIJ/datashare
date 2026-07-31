@@ -1,5 +1,7 @@
 package org.icij.datashare.text.artifact;
 
+import org.icij.datashare.PropertiesProvider;
+
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -20,14 +22,18 @@ public class ArtifactRegistry {
 
     /** The app's catalog of Java-produced artifact types, shared by the INDEX and ARTIFACT stages so a
      *  newly registered producer cannot be honored by one and missed by the other. Order matters: raw
-     *  first, so structure on an embedded document reads bytes raw's production has already cached.
+     *  first, so structure and page on an embedded document read bytes raw's production has already
+     *  cached. Takes the properties because page builds an extractor from the run's options (OCR in
+     *  particular); raw and structure need none.
      *  <p>
      *  Every catalog type runs when no selector is given, structure included. A deployment that also
      *  runs datashare-python's structure producer shares the manifest key and the structure/ directory
      *  with it, and the two task inputs can never match, so each run destroys the other's payload:
-     *  such a deployment has to pin ownership with an explicit {@code --artifacts raw}. */
-    public static ArtifactRegistry withDefaults() {
-        return new ArtifactRegistry(List.of(new RawArtifact(), new StructureArtifact()));
+     *  such a deployment has to pin ownership with an explicit {@code --artifacts raw}. page has no
+     *  such rival producer: the pages/ payload is Java's alone. */
+    public static ArtifactRegistry withDefaults(PropertiesProvider propertiesProvider) {
+        return new ArtifactRegistry(
+                List.of(new RawArtifact(), new StructureArtifact(), new PageArtifact(propertiesProvider)));
     }
 
     public List<Artifact> select(String flagValue) {

@@ -132,8 +132,8 @@ public class ArtifactTask extends PipelineTask<String> {
     private void runWorker(AtomicLong nbDocs, AtomicLong nbSkipped, AtomicLong nbFailed) {
         SourceExtractor extractor = createSourceExtractor();
         // Decide once per worker which artifact types to produce: an absent --artifacts flag means the
-        // whole catalog, raw and structure (see ArtifactRegistry#withDefaults).
-        ArtifactRegistry registry = ArtifactRegistry.withDefaults();
+        // whole catalog, raw, structure and page (see ArtifactRegistry#withDefaults).
+        ArtifactRegistry registry = ArtifactRegistry.withDefaults(propertiesProvider);
         List<Artifact> selected = registry.select(propertiesProvider.get(ARTIFACTS_OPT).orElse(null));
         boolean force = ArtifactStages.force(propertiesProvider);
         // The producer owns what counts as a cancellation (see ArtifactProducer#isCancellation), so this

@@ -120,7 +120,7 @@ public class IndexTask extends PipelineTask<Path> implements Monitorable{
         // that requeues forever. When set, extract-lib writes embed bytes to the same project root the
         // ManifestRecorder writes manifests to.
         ArtifactStages.artifactProjectRoot(propertiesProvider).ifPresent(projectRoot -> {
-            List<Artifact> selected = ArtifactRegistry.withDefaults().select(propertiesProvider.get(ARTIFACTS_OPT).orElse(null));
+            List<Artifact> selected = ArtifactRegistry.withDefaults(propertiesProvider).select(propertiesProvider.get(ARTIFACTS_OPT).orElse(null));
             extractor.setEmbedOutputPath(projectRoot);
             spewer.setManifestRecorder(new ManifestRecorder(new FilesystemManifestRepository(), projectRoot, selected, ArtifactStages.force(propertiesProvider)));
         });
