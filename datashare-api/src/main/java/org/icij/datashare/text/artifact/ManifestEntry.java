@@ -33,6 +33,18 @@ public record ManifestEntry(
         return new ManifestEntry(status, taskInput, pagination, contentType, filename, confidence, label);
     }
 
+    /** Producers return EMPTY as-is; any other (status-less) entry becomes COMPLETE. Callers stamp
+     *  only once the payload is written, so a crash mid-produce never leaves a "ready" lie. */
+    public ManifestEntry withTerminalStatus() {
+        return isTerminal() ? this : withStatus(ManifestEntryStatus.COMPLETE);
+    }
+
+    /** Whether this entry makes regeneration unnecessary: terminal, and produced with the exact same
+     *  task input (config + version). Compares from the argument side so an absent taskInput does not NPE. */
+    public boolean isCurrentFor(Map<String, Object> taskInput) {
+        return isTerminal() && taskInput.equals(this.taskInput);
+    }
+
     public boolean isComplete() {
         return status != null && status.isServable();
     }
