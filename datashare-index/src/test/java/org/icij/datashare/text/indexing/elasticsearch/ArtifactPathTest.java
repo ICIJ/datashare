@@ -51,4 +51,18 @@ public class ArtifactPathTest {
             Locale.setDefault(previous);
         }
     }
+
+    @Test
+    public void test_pages_dir_is_under_the_node_dir() {
+        Path docDir = ArtifactPath.dir(Path.of("/artifact/prj"), DIGEST);
+        assertThat(ArtifactPath.pagesDir(docDir).toString())
+                .isEqualTo("/artifact/prj/6a/bb/" + DIGEST + "/pages");
+    }
+
+    @Test
+    public void test_pages_content_is_the_single_file_of_the_byte_ranges_scheme() {
+        Path docDir = ArtifactPath.dir(Path.of("/artifact/prj"), DIGEST);
+        assertThat(ArtifactPath.pagesContent(docDir).toString())
+                .isEqualTo("/artifact/prj/6a/bb/" + DIGEST + "/pages/content.txt");
+    }
 }
