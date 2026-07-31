@@ -505,9 +505,9 @@ public final class DatashareCliOptions {
         parser.acceptsAll(
                 List.of(ARTIFACTS_FORCE_OPT),
                 "Reprocess artifacts even when an up-to-date manifest entry exists (bypasses caching)." )
-                // No defaultsTo: JOpt would always emit the default into the CLI properties, and
-                // mergeWith(putIfAbsent) would then silently clobber an artifactsForce=true set in a
-                // settings file. Absent key -> false via ArtifactStages.force.
+                // No defaultsTo: JOpt would always emit the default into the CLI properties, which
+                // CommonMode then applies over the settings file (overrideWith is a putAll), silently
+                // clobbering an artifactsForce=true set there. Absent key -> false via ArtifactStages.force.
                 .withRequiredArg().ofType(Boolean.class);
     }
 
