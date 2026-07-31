@@ -1,5 +1,6 @@
 package org.icij.datashare.text.artifact;
 
+import org.icij.datashare.PropertiesProvider;
 import org.junit.Test;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -69,16 +70,19 @@ public class ArtifactRegistryTest {
     }
 
     @Test
-    public void test_structure_runs_by_default() {
-        // raw first, so structure on an embedded document reads bytes raw's production cached.
-        assertThat(types(ArtifactRegistry.withDefaults().select(null))).isEqualTo(List.of("raw", "structure"));
-        assertThat(types(ArtifactRegistry.withDefaults().select("true"))).isEqualTo(List.of("raw", "structure"));
-        assertThat(types(ArtifactRegistry.withDefaults().select("raw,structure")))
+    public void test_the_whole_catalog_runs_by_default() {
+        // raw first, so structure and page on an embedded document read bytes raw's production cached.
+        assertThat(types(ArtifactRegistry.withDefaults(new PropertiesProvider()).select(null)))
+                .isEqualTo(List.of("raw", "structure", "page"));
+        assertThat(types(ArtifactRegistry.withDefaults(new PropertiesProvider()).select("true")))
+                .isEqualTo(List.of("raw", "structure", "page"));
+        assertThat(types(ArtifactRegistry.withDefaults(new PropertiesProvider()).select("raw,structure")))
                 .isEqualTo(List.of("raw", "structure"));
     }
 
     @Test
     public void test_default_catalog_can_be_narrowed_to_one_type() {
-        assertThat(types(ArtifactRegistry.withDefaults().select("structure"))).isEqualTo(List.of("structure"));
+        assertThat(types(ArtifactRegistry.withDefaults(new PropertiesProvider()).select("page")))
+                .isEqualTo(List.of("page"));
     }
 }
