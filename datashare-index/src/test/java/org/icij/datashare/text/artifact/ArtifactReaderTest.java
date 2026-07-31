@@ -58,6 +58,22 @@ public class ArtifactReaderTest {
     }
 
     @Test
+    public void test_servable_entry_is_null_when_manifest_json_is_malformed() throws Exception {
+        Path node = dir.getRoot().toPath();
+        Files.createDirectories(node);
+        Files.writeString(node.resolve(ArtifactPath.MANIFEST_FILE), "{not valid json");
+        assertThat(reader.servableEntry(node, ArtifactType.PAGE)).isNull();
+    }
+
+    @Test
+    public void test_servable_entry_is_null_when_status_is_unknown() throws Exception {
+        Path node = dir.getRoot().toPath();
+        Files.createDirectories(node);
+        Files.writeString(node.resolve(ArtifactPath.MANIFEST_FILE), "{\"page\": {\"status\": \"bogus\", \"taskInput\": {}}}");
+        assertThat(reader.servableEntry(node, ArtifactType.PAGE)).isNull();
+    }
+
+    @Test
     public void test_servable_entry_is_null_when_status_absent() throws Exception {
         Path node = dir.getRoot().toPath();
         manifests.put(node, ArtifactType.PAGE.token(), ManifestEntry.paginated(Map.of(), Pagination.filesystem(2)));

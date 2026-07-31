@@ -229,6 +229,9 @@ public class ArtifactResourceTest extends AbstractProdWebServerTest {
         Path docDir = indexedDocDir(DIGEST);
         writeStructurePages(docDir, "md", "# one");
         writeManifest(docDir, filesystemManifest("structure", 1));
+        // Same page, same manifest: only the requested format differs, so a 404 on xhtml can only
+        // be caused by the missing format, not by a missing page or entry.
+        get("/api/local-datashare/artifacts/structure/" + DIGEST + "/1?format=md").should().respond(200);
         get("/api/local-datashare/artifacts/structure/" + DIGEST + "/1?format=xhtml").should().respond(404);
     }
 
@@ -236,5 +239,8 @@ public class ArtifactResourceTest extends AbstractProdWebServerTest {
     public void test_structure_forbidden_for_non_member_project() {
         get("/api/foo_index/artifacts/structure/" + DIGEST).should().respond(403);
         get("/api/foo_index/artifacts/structure/" + DIGEST + "/1").should().respond(403);
+        // Membership must gate before format validation: a non-member must not learn that "pdf"
+        // is not one of the supported formats before they even learn they are not a member.
+        get("/api/foo_index/artifacts/structure/" + DIGEST + "/1?format=pdf").should().respond(403);
     }
 }

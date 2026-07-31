@@ -122,6 +122,9 @@ public class ArtifactResource {
     @Get("/:project/artifacts/structure/:id/:page?routing=:routing&format=:format")
     public Payload structurePage(final String project, final String id, final String page, final String routing,
                                  final String format, final Context context) throws IOException {
+        // Membership gates before format validation, same as every other route here: a non-member
+        // must see 403 regardless of what else is wrong with the request.
+        requireGranted(context, project);
         String extension = ofNullable(format).filter(value -> !value.isBlank()).orElse("md");
         String contentType = STRUCTURE_CONTENT_TYPES.get(extension);
         if (contentType == null) {
