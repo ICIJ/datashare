@@ -129,7 +129,7 @@ public class StructureArtifactTest {
         ManifestEntry entry = new StructureArtifact().produce(contextFor(HTML));
 
         assertThat(entry.total()).isEqualTo(1);
-        assertThat(entry.pages().pagination().type()).isEqualTo("filesystem");
+        assertThat(entry.pagination().type()).isEqualTo("filesystem");
         assertThat(entry.taskInput().get("pipeline")).isEqualTo("tika");
         assertThat(entry.contentType()).isNull();
         assertThat(entry.isComplete()).isFalse(); // the producer loop stamps status, not produce()
@@ -356,8 +356,8 @@ public class StructureArtifactTest {
                 .readTree(Files.readString(dir.getRoot().toPath().resolve(ArtifactPath.MANIFEST_FILE)))
                 .get("structure");
         assertThat(structure.get("status").asText()).isEqualTo("complete");
-        assertThat(structure.get("pages").get("total").asInt()).isEqualTo(1);
-        assertThat(structure.get("pages").get("pagination").get("type").asText()).isEqualTo("filesystem");
+        assertThat(structure.get("total").asInt()).isEqualTo(1);
+        assertThat(structure.get("pagination").get("type").asText()).isEqualTo("filesystem");
         assertThat(structure.get("taskInput").get("pipeline").asText()).isEqualTo("tika");
     }
 
