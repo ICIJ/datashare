@@ -55,8 +55,8 @@ public class ArtifactTask extends PipelineTask<String> {
     private final ExecutorService executor;
 
     @Inject
-    public ArtifactTask(DocumentCollectionFactory<String> factory, Indexer indexer, PropertiesProvider propertiesProvider, final UpstreamGate.Factory gateFactory, @Assisted Task<Long> taskView, @Assisted final Function<Double, Void> updateCallback) {
-        super(Stage.ARTIFACT, taskView.getUser(), factory, propertiesProvider, String.class, gateFactory.forTask(taskView));
+    public ArtifactTask(DocumentCollectionFactory<String> factory, Indexer indexer, final UpstreamGate.Factory gateFactory, @Assisted Task<Long> taskView, @Assisted final Function<Double, Void> updateCallback) {
+        super(Stage.ARTIFACT, taskView.getUser(), factory, new PropertiesProvider(taskView.args), String.class, gateFactory.forTask(taskView));
         this.indexer = indexer;
         project = Project.project(ArtifactStages.resolveProjectName(propertiesProvider));
         parallelism = Math.max(1, propertiesProvider.get(PARALLELISM_OPT).map(Integer::parseInt).orElse(1));
