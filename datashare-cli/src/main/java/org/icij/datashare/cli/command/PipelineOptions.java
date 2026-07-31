@@ -26,10 +26,13 @@ public class PipelineOptions {
     String artifacts;
 
     // Explicit true/false like --ocr, no bare flag: the JOpt surface uses withRequiredArg, and a bare
-    // flag here would make the two surfaces disagree on what "bare" means.
-    @Option(names = {"--artifactsForce"}, arity = "1", defaultValue = "false",
+    // flag here would make the two surfaces disagree on what "bare" means. No defaultValue and a
+    // nullable Boolean, so an absent flag emits no key: CommonMode applies these properties over the
+    // settings file (overrideWith is a putAll), and a default would clobber an artifactsForce=true
+    // set there. Absent key -> false via ArtifactStages.force.
+    @Option(names = {"--artifactsForce"}, arity = "1",
             description = "Reprocess artifacts even when an up-to-date manifest entry exists (bypasses caching).")
-    boolean artifactsForce;
+    Boolean artifactsForce;
 
     @Option(names = {"--nlpPipeline"}, description = "NLP pipeline to be run", defaultValue = "CORENLP")
     Pipeline.Type nlpPipeline;
@@ -108,7 +111,7 @@ public class PipelineOptions {
         Properties props = new Properties();
         DatashareOptions.putIfNotNull(props, ARTIFACT_DIR_OPT, artifactDir);
         DatashareOptions.putIfNotNull(props, ARTIFACTS_OPT, artifacts);
-        DatashareOptions.put(props, ARTIFACTS_FORCE_OPT, artifactsForce);
+        DatashareOptions.putIfNotNull(props, ARTIFACTS_FORCE_OPT, artifactsForce);
         DatashareOptions.putIfNotNull(props, NLP_PIPELINE_OPT, nlpPipeline);
         DatashareOptions.put(props, NLP_PARALLELISM_OPT, nlpParallelism);
         DatashareOptions.put(props, NLP_BATCH_SIZE_OPT, batchSize);
