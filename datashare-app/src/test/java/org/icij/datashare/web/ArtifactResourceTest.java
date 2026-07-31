@@ -4,6 +4,9 @@ import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.db.JooqRepository;
 import org.icij.datashare.session.LocalUserFilter;
 import org.icij.datashare.tasks.MockIndexer;
+import org.icij.datashare.text.Document;
+import org.icij.datashare.text.DocumentBuilder;
+import org.icij.datashare.text.Project;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.utils.DocumentSourceAccess;
 import org.icij.datashare.web.testhelpers.AbstractProdWebServerTest;
@@ -20,6 +23,7 @@ import java.util.Optional;
 import java.util.Properties;
 
 import static org.icij.datashare.cli.DatashareCliOptions.ARTIFACT_DIR_OPT;
+import static org.icij.datashare.cli.DatashareCliOptions.EMBEDDED_DOCUMENT_DOWNLOAD_MAX_SIZE_OPT;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.mockito.MockitoAnnotations.initMocks;
@@ -40,6 +44,7 @@ public class ArtifactResourceTest extends AbstractProdWebServerTest {
         mockIndexer = new MockIndexer(indexer);
         artifactDir = temp.newFolder("artifacts");
         when(propertiesProvider.get(ARTIFACT_DIR_OPT)).thenReturn(Optional.of(artifactDir.toString()));
+        when(propertiesProvider.get(EMBEDDED_DOCUMENT_DOWNLOAD_MAX_SIZE_OPT)).thenReturn(Optional.of("1G"));
         when(propertiesProvider.getProperties()).thenReturn(new Properties());
         when(propertiesProvider.createMerged(any())).thenCallRealMethod();
         configure(routes -> routes
@@ -242,5 +247,45 @@ public class ArtifactResourceTest extends AbstractProdWebServerTest {
         // Membership must gate before format validation: a non-member must not learn that "pdf"
         // is not one of the supported formats before they even learn they are not a member.
         get("/api/foo_index/artifacts/structure/" + DIGEST + "/1?format=pdf").should().respond(403);
+    }
+
+    @Test
+    public void test_raw_serves_the_source_bytes_as_an_attachment() throws Exception {
+        File file = new File(temp.getRoot(), "raw-source.txt");
+        MockIndexer.write(file, "source bytes");
+        mockIndexer.indexFile("local-datashare", DIGEST, file.toPath(), "text/plain", null);
+        get("/api/local-datashare/artifacts/raw/" + DIGEST).should()
+                .respond(200).contain("source bytes")
+                .haveHeader("Content-Disposition", "attachment;filename=\"raw-source.txt\"");
+    }
+
+    @Test
+    public void test_raw_serves_inline_when_asked() throws Exception {
+        File file = new File(temp.getRoot(), "raw-inline.txt");
+        MockIndexer.write(file, "source bytes");
+        mockIndexer.indexFile("local-datashare", DIGEST, file.toPath(), "text/plain", null);
+        get("/api/local-datashare/artifacts/raw/" + DIGEST + "?inline=true").should()
+                .respond(200).should().not().haveHeader("Content-Disposition", "attachment;filename=\"raw-inline.txt\"");
+    }
+
+    @Test
+    public void test_raw_forbidden_for_non_member_project() {
+        get("/api/foo_index/artifacts/raw/" + DIGEST).should().respond(403);
+    }
+
+    @Test
+    public void test_raw_not_found_for_unknown_document() {
+        get("/api/local-datashare/artifacts/raw/" + DIGEST).should().respond(404);
+    }
+
+    @Test
+    public void test_raw_too_large_root_document_is_rejected() {
+        // Same rule as /documents/src: the gate is shared, so this must answer 413 here too.
+        Project index = new Project("local-datashare");
+        Document root = DocumentBuilder.createDoc("bar").with(index).withContentLength(2L * 1024 * 1024 * 1024).build();
+        Document embedded = DocumentBuilder.createDoc(DIGEST).with(index).with(temp.getRoot().toPath().resolve("any.txt"))
+                .withParentId("bar").withRootId("bar").build();
+        mockIndexer.indexFile("local-datashare", root, embedded);
+        get("/api/local-datashare/artifacts/raw/" + DIGEST + "?routing=bar").should().respond(413);
     }
 }
