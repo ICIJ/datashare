@@ -1,6 +1,7 @@
 package org.icij.datashare.text.artifact;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import java.util.List;
 import java.util.Map;
 
 /** One artifact type's entry in a document's manifest.json. Single-file types use
@@ -19,9 +20,16 @@ public record ManifestEntry(
         return new ManifestEntry(null, taskInput, null, contentType, filename, null, null);
     }
 
-    /** A payload split into one file per page, the only scheme Java writes (see {@link Pagination}). */
+    /** A payload split into one file per page (see {@link FilesystemPagination}). */
     public static ManifestEntry paginated(Map<String, Object> taskInput, int total) {
         return new ManifestEntry(null, taskInput, new Pages(total, new FilesystemPagination()), null, null, null, null);
+    }
+
+    /** A single content file split by half-open byte ranges, one per page. `total` is derived from the
+     *  offsets themselves, so a producer cannot record a count that disagrees with the ranges it wrote. */
+    public static ManifestEntry paginated(Map<String, Object> taskInput, List<long[]> ranges) {
+        return new ManifestEntry(null, taskInput, new Pages(ranges.size(), new ByteRangePagination(ranges)),
+                null, null, null, null);
     }
 
     /** A node that was processed but has no payload to serve from its own dir (e.g. a root
