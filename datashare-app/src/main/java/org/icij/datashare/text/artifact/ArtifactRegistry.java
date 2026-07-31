@@ -27,7 +27,7 @@ public class ArtifactRegistry {
      *  with it, and the two task inputs can never match, so each run destroys the other's payload:
      *  such a deployment has to pin ownership with an explicit {@code --artifacts raw}. */
     public static ArtifactRegistry withDefaults() {
-        return new ArtifactRegistry(List.of(new RawArtifact()));
+        return new ArtifactRegistry(List.of(new RawArtifact(), new StructureArtifact()));
     }
 
     public List<Artifact> select(String flagValue) {

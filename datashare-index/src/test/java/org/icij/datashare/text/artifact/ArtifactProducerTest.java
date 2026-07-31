@@ -5,6 +5,7 @@ import org.icij.datashare.text.Project;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -14,7 +15,8 @@ import static org.icij.datashare.text.DocumentBuilder.createDoc;
 public class ArtifactProducerTest {
     @Rule public TemporaryFolder dir = new TemporaryFolder();
     private final ManifestRepository repository = new FilesystemManifestRepository();
-    private final ArtifactProducer producer = new ArtifactProducer(repository);
+    // No cancellation asked for: the cases below that do simulate one say so explicitly.
+    private final ArtifactProducer producer = new ArtifactProducer(repository, () -> false);
 
     static class CountingArtifact implements Artifact {
         final ArtifactType type; final Map<String, Object> taskInput; final AtomicInteger produced = new AtomicInteger();
@@ -81,10 +83,112 @@ public class ArtifactProducerTest {
         assertThat(raw.produced.get()).isEqualTo(1); // empty entry counts as done -> not reprocessed
     }
 
+    @Test public void test_unparseable_content_records_an_empty_entry_and_is_not_reprocessed() throws Exception {
+        // A corpus always holds a few files no parser can read (a truncated docx, a zip member that is not
+        // the OOXML it claims to be), and nothing will ever make them parse.
+        CountingArtifact structure = unparseable();
+
+        boolean allSucceeded = producer.run(List.of(structure), ctx(), false);
+
+        assertThat(allSucceeded).isTrue();
+        ManifestEntry recorded = repository.get(dir.getRoot().toPath(), "structure");
+        assertThat(recorded.isTerminal()).isTrue();
+        assertThat(recorded.isComplete()).isFalse();
+        assertThat(recorded.isCurrentFor(structure.taskInput())).isTrue();
+        producer.run(List.of(structure), ctx(), false);
+        assertThat(structure.produced.get()).isEqualTo(0);
+    }
+
+    @Test public void test_unparseable_content_during_a_cancellation_records_nothing() throws Exception {
+        // Tika reports a cancelled parse as a parse failure too, and recording "this document has no
+        // structure" because the operator pressed cancel is a lie only --artifactsForce could undo.
+        ArtifactProducer cancelledProducer = new ArtifactProducer(repository, () -> true);
+        CountingArtifact structure = new CountingArtifact("structure", 1) {
+            public ManifestEntry produce(ArtifactContext ctx) throws ArtifactException {
+                Thread.interrupted(); // cleared already, as Tika leaves it
+                throw new UnparseableContentException("doc-id", new InterruptedException());
+            }
+        };
+        try {
+            boolean allSucceeded = cancelledProducer.run(List.of(structure), ctx(), false);
+
+            assertThat(allSucceeded).isTrue();
+            assertThat(repository.get(dir.getRoot().toPath(), "structure")).isNull();
+            assertThat(Thread.currentThread().isInterrupted()).isTrue();
+        } finally {
+            Thread.interrupted(); // clear so it does not leak into the next test
+        }
+    }
+
     @Test public void test_deduplicates_by_type() throws Exception {
         CountingArtifact a = new CountingArtifact("raw", 1);
         CountingArtifact b = new CountingArtifact("raw", 1);
         producer.run(List.of(a, b), ctx(), false);
         assertThat(a.produced.get() + b.produced.get()).isEqualTo(1);
+    }
+
+    @Test public void test_cancellation_stops_the_remaining_types_without_logging_an_error() throws Exception {
+        // The flag is still set when we catch here (nothing cleared it), so the top-of-produce guard
+        // catches the next type before it even tries. An interrupted thread is a signal in its own
+        // right, so this holds without the task reporting a cancel (the producer here says false).
+        CountingArtifact cancelled = new CountingArtifact("raw", 1) {
+            public ManifestEntry produce(ArtifactContext ctx) throws ArtifactException {
+                Thread.currentThread().interrupt();
+                throw new ArtifactException("boom", null);
+            }
+        };
+        CountingArtifact structure = new CountingArtifact("structure", 1);
+        try {
+            boolean allSucceeded = producer.run(List.of(cancelled, structure), ctx(), false);
+            assertThat(allSucceeded).isTrue(); // a cancelled type is skipped, not failed
+            assertThat(structure.produced.get()).isEqualTo(0);
+            assertThat(Thread.currentThread().isInterrupted()).isTrue();
+        } finally {
+            Thread.interrupted(); // clear so it does not leak into the next test
+        }
+    }
+
+    @Test public void test_cancellation_detected_via_cause_chain_stops_the_remaining_types() throws Exception {
+        // Tika's real shape: the flag is already cleared by the time we catch (the inner blocking call
+        // consumed it throwing), so the cause chain is the only thing left to recognise the cancel by.
+        ArtifactProducer cancelledProducer = new ArtifactProducer(repository, () -> true);
+        CountingArtifact structure = new CountingArtifact("structure", 1);
+        try {
+            boolean allSucceeded = cancelledProducer.run(List.of(interruptInCauseChain(), structure), ctx(), false);
+            assertThat(allSucceeded).isTrue();
+            assertThat(structure.produced.get()).isEqualTo(0);
+            assertThat(Thread.currentThread().isInterrupted()).isTrue();
+        } finally {
+            Thread.interrupted(); // clear so it does not leak into the next test
+        }
+    }
+
+    @Test public void test_interrupt_in_the_cause_chain_without_a_cancel_is_a_failure_and_lets_later_types_run() throws Exception {
+        // Tika's fork and external parsers wrap failures that have nothing to do with cancellation in an
+        // InterruptedException.
+        CountingArtifact structure = new CountingArtifact("structure", 1);
+
+        boolean allSucceeded = producer.run(List.of(interruptInCauseChain(), structure), ctx(), false);
+
+        assertThat(allSucceeded).isFalse();
+        assertThat(structure.produced.get()).isEqualTo(1);
+        assertThat(Thread.currentThread().isInterrupted()).isFalse();
+    }
+
+    private CountingArtifact unparseable() {
+        return new CountingArtifact("structure", 1) {
+            public ManifestEntry produce(ArtifactContext ctx) throws ArtifactException {
+                throw new UnparseableContentException("doc-id", new IOException("not a valid OOXML file"));
+            }
+        };
+    }
+
+    private CountingArtifact interruptInCauseChain() {
+        return new CountingArtifact("raw", 1) {
+            public ManifestEntry produce(ArtifactContext ctx) throws ArtifactException {
+                Thread.interrupted(); // clear, simulating what the inner blocking call already did
+                throw new ArtifactException("boom", new InterruptedException());
+            }
+        };
     }
 }
