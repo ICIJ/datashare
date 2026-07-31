@@ -1,6 +1,9 @@
 package org.icij.datashare.text.artifact;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import org.apache.tika.exception.TikaConfigException;
+import org.apache.tika.exception.TikaException;
+import org.apache.tika.exception.TikaMemoryLimitException;
 import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.Project;
@@ -10,8 +13,12 @@ import org.icij.datashare.text.structure.StructureMarkdownExtractor.Page;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+import org.xml.sax.SAXException;
 
+import javax.imageio.ImageIO;
+import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -57,6 +64,12 @@ public class StructureArtifactTest {
         when(sources.getSource(project, doc)).thenAnswer(invocation ->
                 new ByteArrayInputStream(html.getBytes(StandardCharsets.UTF_8)));
         return new ArtifactContext(project, doc, docArtifactDir, sources);
+    }
+
+    private ArtifactContext contextFor(byte[] bytes, Document document) throws Exception {
+        SourceExtractor sources = mock(SourceExtractor.class);
+        when(sources.getSource(project, document)).thenAnswer(invocation -> new ByteArrayInputStream(bytes));
+        return new ArtifactContext(project, document, dir.getRoot().toPath(), sources);
     }
 
     private Path page(int number, String extension) {
@@ -214,6 +227,69 @@ public class StructureArtifactTest {
     }
 
     @Test
+    public void test_a_limit_or_configuration_failure_is_not_recorded_as_unreadable_content() {
+        // Recording no payload is terminal, so only content that is what it is forever earns it. Tika
+        // raises its own limits, its configuration and its zip-bomb guard as the same TikaException, and
+        // that guard is a known false positive on these corpora, so a re-run must get past all three.
+        assertThat(StructureArtifact.canNeverParse(new TikaException("no zip signature"))).isTrue();
+        assertThat(StructureArtifact.canNeverParse(new SAXException("not well-formed"))).isTrue();
+        assertThat(StructureArtifact.canNeverParse(new TikaConfigException("no parser for it"))).isFalse();
+        assertThat(StructureArtifact.canNeverParse(new TikaMemoryLimitException(2_000_000, 1_000_000))).isFalse();
+        // What AutoDetectParser turns a SecureContentHandler refusal into: the handler's own exception
+        // class is private to Tika, so the message is all there is to recognise it by.
+        assertThat(StructureArtifact.canNeverParse(
+                new TikaException("Zip bomb detected!", new SAXException("too deep")))).isFalse();
+    }
+
+    @Test
+    public void test_a_document_that_renders_no_text_records_no_payload_instead_of_blank_pages() throws Exception {
+        // With OCR off every scanned page and standalone image renders empty, and a complete entry over
+        // blank pages leaves a consumer unable to tell "no structure" from "page one is blank".
+        Document scan = createDoc("scan-id").with(Path.of("/path/to/scan.png"))
+                .ofContentType("image/png").build();
+
+        ManifestEntry entry = new StructureArtifact().produce(contextFor(blankPng(), scan));
+
+        assertThat(entry.status()).isEqualTo(ManifestEntryStatus.EMPTY);
+        assertThat(entry.total()).isNull();
+        assertThat(Files.exists(ArtifactPath.structureDir(dir.getRoot().toPath()))).isFalse();
+    }
+
+    @Test
+    public void test_recording_no_payload_removes_the_pages_a_previous_run_left() throws Exception {
+        // Otherwise the manifest says there is nothing to serve while a reader listing the directory still
+        // finds the stale pages.
+        Files.createDirectories(ArtifactPath.structureDir(dir.getRoot().toPath()));
+        Files.writeString(page(1, "md"), "pages from a previous release");
+        Document scan = createDoc("scan-id").with(Path.of("/path/to/scan.png"))
+                .ofContentType("image/png").build();
+
+        new StructureArtifact().produce(contextFor(blankPng(), scan));
+
+        assertThat(Files.exists(ArtifactPath.structureDir(dir.getRoot().toPath()))).isFalse();
+    }
+
+    @Test
+    public void test_produce_reclaims_a_replaced_payload_a_previous_run_could_not_delete() throws Exception {
+        // The holding pen is named uniquely per invocation, so nothing else would reclaim one a failed
+        // delete left behind: the document would grow by a full page set on every re-produce.
+        Path leftover = dir.getRoot().toPath().resolve(".structure-0dd0dd.replaced");
+        Files.createDirectories(leftover);
+        Files.writeString(leftover.resolve("page-0001.md"), "a page set nothing reads");
+
+        new StructureArtifact().produce(contextFor(HTML));
+
+        assertThat(temporaryEntries()).isEmpty();
+        assertThat(Files.readString(page(1, "md"))).contains("# Title");
+    }
+
+    private static byte[] blankPng() throws Exception {
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        ImageIO.write(new BufferedImage(4, 4, BufferedImage.TYPE_INT_RGB), "png", out);
+        return out.toByteArray();
+    }
+
+    @Test
     public void test_produce_creates_the_document_artifact_directory_when_it_is_missing() throws Exception {
         // With raw out of the selection nothing else creates the content-addressed document dir, so
         // an ARTIFACT run over a fresh artifactDir has to create it here or fail on every document.
@@ -247,7 +323,15 @@ public class StructureArtifactTest {
             assertThat(Files.readString(page(1, "md"))).contains("# Title");
             assertThat(Files.exists(ArtifactPath.structureDir(dir.getRoot().toPath()).resolve("locked"))).isFalse();
         } finally {
-            lockedSubdir.toFile().setWritable(true);
+            // Not lockedSubdir: produce() renamed the payload holding it aside, so a chmod of the original
+            // path silently does nothing and leaves a tree TemporaryFolder cannot delete.
+            restoreWritePermissions(dir.getRoot().toPath());
+        }
+    }
+
+    private static void restoreWritePermissions(Path root) throws Exception {
+        try (Stream<Path> entries = Files.walk(root)) {
+            entries.filter(Files::isDirectory).forEach(entry -> entry.toFile().setWritable(true));
         }
     }
 

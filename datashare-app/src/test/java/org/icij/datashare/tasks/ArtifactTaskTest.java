@@ -104,9 +104,9 @@ public class ArtifactTaskTest {
     }
 
     @Test(timeout = 10000)
-    public void test_embedded_document_gets_its_own_page_set_and_manifest_entry() throws Exception {
-        // Embedded nodes are the dominant shape of the mail and archive corpora this stage serves, and
-        // they are the only ones whose source has to be re-extracted from the root before Tika sees it.
+    public void test_embedded_document_is_parsed_from_its_root_and_gets_its_own_manifest_entry() throws Exception {
+        // The attachment is a two-page PDF with no text layer, so with OCR off it renders empty: an entry
+        // with no payload, rather than two blank page files a consumer cannot tell from real ones.
         indexEmbeddedPdfUnderItsRoot();
         DocumentQueue<String> queue = factory.createQueue("extract:queue:artifact", String.class);
         queue.add(EMBEDDED_PDF_SHA256 + "|" + EMBEDDED_DOC_SHA256);
@@ -116,12 +116,10 @@ public class ArtifactTaskTest {
 
         assertThat(numberOfDocuments).isEqualTo(1);
         Path docArtifactDir = artifactDir.getRoot().toPath().resolve("prj/6a/bb/" + EMBEDDED_PDF_SHA256);
-        // one file per page and per format: the attachment is a two-page PDF
-        assertThat(docArtifactDir.resolve("structure/page-0001.xhtml").toFile()).isFile();
-        assertThat(docArtifactDir.resolve("structure/page-0001.md").toFile()).isFile();
-        assertThat(docArtifactDir.resolve("structure/page-0002.xhtml").toFile()).isFile();
+        assertThat(docArtifactDir.resolve("raw").toFile()).isFile();
         assertThat(Files.readString(docArtifactDir.resolve("manifest.json")))
-                .contains("\"structure\"").contains("\"total\" : 2");
+                .contains("\"structure\"").contains("\"empty\"");
+        assertThat(docArtifactDir.resolve("structure").toFile()).doesNotExist();
     }
 
     @Test(timeout = 10000)
