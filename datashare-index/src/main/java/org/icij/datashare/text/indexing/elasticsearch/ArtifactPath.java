@@ -1,6 +1,7 @@
 package org.icij.datashare.text.indexing.elasticsearch;
 
 import java.nio.file.Path;
+import java.util.Locale;
 
 /** Content-addressed on-disk layout for per-document artifacts under artifactDir. */
 public class ArtifactPath {
@@ -8,6 +9,7 @@ public class ArtifactPath {
     // extract-lib's EmbeddedArtifactWriter owns these names: the raw payload and its sidecar.
     public static final String RAW_FILE = "raw";
     public static final String RAW_SIDECAR_FILE = "raw.json";
+    public static final String STRUCTURE_DIR = "structure";
 
     private ArtifactPath() {}
 
@@ -25,5 +27,23 @@ public class ArtifactPath {
     /** The per-document manifest.json path. */
     public static Path manifest(Path projectRoot, String digest) {
         return dir(projectRoot, digest).resolve(MANIFEST_FILE);
+    }
+
+    /** The structure artifact's own directory: one file per page and per format. */
+    public static Path structureDir(Path docArtifactDir) {
+        return docArtifactDir.resolve(STRUCTURE_DIR);
+    }
+
+    /** page-%04d.<extension>, 1-based, as the convention's filesystem pagination requires. */
+    public static Path structurePage(Path docArtifactDir, int page, String extension) {
+        return structureDir(docArtifactDir).resolve(pageFilename(page, extension));
+    }
+
+    /** Just the filename, for a caller writing pages under a directory other than the final structure/
+     *  one (the producer's atomic-swap temp directory). Formatted in {@link Locale#ROOT}: the default
+     *  locale would decide the digits, so a box started with LANG=ar_EG.UTF-8 writes page-٠٠١٢.md and two
+     *  hosts sharing an artifactDir disagree on the filenames for the same digest. */
+    public static String pageFilename(int page, String extension) {
+        return String.format(Locale.ROOT, "page-%04d.%s", page, extension);
     }
 }
