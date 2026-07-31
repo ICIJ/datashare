@@ -90,16 +90,18 @@ public class StructureArtifactTest {
 
         assertThat(storedPageNames()).isEqualTo(
                 List.of("page-0001.md", "page-0001.xhtml", "page-0002.md", "page-0002.xhtml"));
+        // The whitespace between blocks is Tika's own rendering, kept verbatim (see COMPACT_OUTPUT), so
+        // these bytes track the Tika version rather than jsoup's pretty-printing defaults.
         assertThat(readPage(1, "xhtml")).isEqualTo("<html xmlns=\"http://www.w3.org/1999/xhtml\">"
                 + "<head></head><body><h1>Title</h1>\n"
                 + "<p>plain <strong>bold</strong> and <em>it</em> and under</p>\n"
-                + "<ul>\n <li>one</li>\n <li>two</li>\n</ul>\n"
-                + "<p><a href=\"page2.html\">next</a></p>\n<p>clean</p></body></html>");
+                + "<ul>\t<li>one</li>\n\t<li>two</li>\n</ul>\n"
+                + "<p><a href=\"page2.html\">next</a></p>\n\n<p>clean</p>\n</body></html>");
         assertThat(readPage(1, "md")).isEqualTo("# Title\n\nplain **bold** and *it* and under\n\n"
                 + "* one\n* two\n\n[next](page2.html)\n\nclean");
         assertThat(readPage(2, "xhtml")).isEqualTo("<html xmlns=\"http://www.w3.org/1999/xhtml\">"
-                + "<head></head><body><table>\n <tbody>\n  <tr>\n   <th>head</th>\n  </tr>\n"
-                + "  <tr>\n   <td>cell</td>\n  </tr>\n </tbody>\n</table></body></html>");
+                + "<head></head><body><table><tbody><tr>\t<th>head</th></tr>\n"
+                + "<tr>\t<td>cell</td></tr>\n</tbody></table>\n\n\n</body></html>");
         assertThat(readPage(2, "md")).isEqualTo("| head |\n|------|\n| cell |");
     }
 

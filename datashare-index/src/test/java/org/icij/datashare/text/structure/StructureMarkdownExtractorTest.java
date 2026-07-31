@@ -13,6 +13,7 @@ import org.apache.pdfbox.pdmodel.interactive.documentnavigation.outline.PDDocume
 import org.apache.pdfbox.pdmodel.interactive.documentnavigation.outline.PDOutlineItem;
 import org.apache.pdfbox.pdmodel.interactive.form.PDAcroForm;
 import org.apache.pdfbox.pdmodel.interactive.form.PDTextField;
+import org.apache.tika.exception.TikaException;
 import org.apache.tika.extractor.DocumentSelector;
 import org.apache.tika.metadata.Metadata;
 import org.apache.tika.metadata.TikaCoreProperties;
@@ -23,6 +24,7 @@ import org.icij.datashare.text.structure.StructureMarkdownExtractor.Page;
 import org.jsoup.Jsoup;
 import org.jsoup.parser.Parser;
 import org.junit.Test;
+import org.xml.sax.SAXException;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -100,11 +102,13 @@ public class StructureMarkdownExtractorTest {
         List<Page> pages = extractor.extract(new ByteArrayInputStream(twoPagePdf()), "application/pdf");
 
         assertThat(pages).hasSize(2);
+        // The whitespace between blocks is Tika's own rendering, kept verbatim, so the bytes track the Tika
+        // version rather than jsoup's pretty-printing defaults.
         assertThat(pages.get(0).xhtml()).isEqualTo("<html xmlns=\"http://www.w3.org/1999/xhtml\">"
-                + "<head></head><body><p>Body on page 1.</p></body></html>");
+                + "<head></head><body><p>Body on page 1.</p>\n</body></html>");
         assertThat(pages.get(0).markdown()).isEqualTo("Body on page 1.");
         assertThat(pages.get(1).xhtml()).isEqualTo("<html xmlns=\"http://www.w3.org/1999/xhtml\">"
-                + "<head></head><body><p>Body on page 2.</p></body></html>");
+                + "<head></head><body><p>Body on page 2.</p>\n\n\n</body></html>");
         assertThat(pages.get(1).markdown()).isEqualTo("Body on page 2.");
     }
 
@@ -140,6 +144,42 @@ public class StructureMarkdownExtractorTest {
                 "<a href=\"data:text/html;base64,BBBB\">link</a>").body());
         assertThat(safe).excludes("data:");
         assertThat(safe).contains("keep");
+    }
+
+    @Test
+    public void test_sanitize_drops_remote_image_sources() {
+        // A stored page is rendered, so a remote reference the document's author controls is a beacon
+        // reporting the reader's IP and which document they opened. A tracking pixel in an HTML mail is
+        // exactly that, and it can be absolute, protocol-relative or scheme-less.
+        String safe = extractor.sanitize(Jsoup.parseBodyFragment(
+                "<p>keep</p>"
+                + "<img src=\"https://evil.example/pixel.png\">"
+                + "<img src=\"//evil.example/pixel.png\">"
+                + "<img src=\"http://evil.example/pixel.png\" alt=\"logo\">").body());
+
+        assertThat(safe).excludes("evil.example");
+        assertThat(safe).contains("keep");
+        // the image itself is kept (its alt is content), only the fetch is gone
+        assertThat(safe).contains("alt=\"logo\"");
+    }
+
+    @Test
+    public void test_sanitize_keeps_a_link_target_readable() {
+        // A link is not fetched by rendering the page, and a journalist needs to see where it points.
+        String safe = extractor.sanitize(Jsoup.parseBodyFragment(
+                "<a href=\"https://example.com/report\">report</a>").body());
+
+        assertThat(safe).contains("https://example.com/report");
+    }
+
+    @Test
+    public void test_sanitize_injects_no_indentation_of_its_own() {
+        // Pretty-printed indentation would be baked into the stored XHTML and, since the Markdown is
+        // derived from the same content, become Markdown hard breaks the source never had. It would also
+        // pin the content-addressed cache to jsoup's pretty-printer.
+        String safe = extractor.sanitize(Jsoup.parseBodyFragment("<ul><li>one</li><li>two</li></ul>").body());
+
+        assertThat(safe).isEqualTo("<ul><li>one</li><li>two</li></ul>");
     }
 
     @Test
@@ -229,9 +269,40 @@ public class StructureMarkdownExtractorTest {
 
         assertThat(pages).hasSize(2);
         assertThat(pages.get(0).markdown()).contains("root one");
-        assertThat(pages.get(1).markdown()).contains("root two");
         assertThat(pages.get(0).markdown()).excludes("attachment");
-        assertThat(pages.get(1).markdown()).excludes("attachment");
+        assertThat(pages.get(1).markdown()).contains("root two");
+    }
+
+    @Test
+    public void test_text_inside_an_embedded_container_is_kept_wherever_the_container_sits() throws Exception {
+        // What reaches this DOM inside an embedded container is the container's own inlined body or a
+        // source document's literal class="embedded" markup, both the root's own text: another document's
+        // content never gets here, since the DocumentSelector refuses every named part first.
+        String insidePage = "<html><body><div class=\"page\"><p>root one</p>"
+                + "<div class=\"embedded\"><p>inlined body</p></div></div></body></html>";
+        String besidePages = "<html><body><div class=\"page\"><p>root one</p></div>"
+                + "<div class=\"embedded\"><p>inlined body</p></div></body></html>";
+        String withoutPages = "<html><body><div class=\"embedded\"><p>inlined body</p></div></body></html>";
+
+        for (String markup : List.of(insidePage, besidePages, withoutPages)) {
+            List<Page> pages = extractor.extract(stream(markup), "text/html");
+            assertThat(pages).hasSize(1);
+            assertThat(pages.get(0).markdown()).contains("inlined body");
+        }
+    }
+
+    @Test
+    public void test_output_over_the_limit_stops_the_parse_instead_of_filling_the_heap() throws Exception {
+        // The rendering is buffered whole and held several times over (buffer, string, DOM, every page's
+        // XHTML and Markdown), times --parallelism, and no catch on the produce path handles an OOM.
+        StructureMarkdownExtractor bounded = new StructureMarkdownExtractor(100);
+
+        try {
+            bounded.extract(stream("<html><body><p>" + "x".repeat(10_000) + "</p></body></html>"), "text/html");
+            org.junit.Assert.fail("expected the parse to stop at the output limit");
+        } catch (SAXException | TikaException expected) {
+            // told apart from a readable document one level up, not silently truncated
+        }
     }
 
     @Test
@@ -243,7 +314,7 @@ public class StructureMarkdownExtractorTest {
 
         assertThat(markdown(pages)).isEqualTo(List.of("A", "B"));
         assertThat(pages.get(0).xhtml()).isEqualTo(
-                "<html xmlns=\"http://www.w3.org/1999/xhtml\"><head></head><body><p>A</p></body></html>");
+                "<html xmlns=\"http://www.w3.org/1999/xhtml\"><head></head><body><p>A</p>\n</body></html>");
     }
 
     @Test

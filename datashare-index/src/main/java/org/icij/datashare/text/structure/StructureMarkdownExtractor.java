@@ -13,7 +13,9 @@ import org.apache.tika.parser.html.IdentityHtmlMapper;
 import org.apache.tika.parser.ocr.TesseractOCRConfig;
 import org.apache.tika.parser.pdf.PDFParserConfig;
 import org.apache.tika.sax.ToXMLContentHandler;
+import org.apache.tika.sax.WriteOutContentHandler;
 import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.safety.Safelist;
 import org.xml.sax.SAXException;
@@ -43,11 +45,37 @@ public class StructureMarkdownExtractor {
 
     private static final String XHTML_NAMESPACE = "http://www.w3.org/1999/xhtml";
 
-    // Relaxed safelist minus <u>: keeps formatting/headings/links/lists/tables; jsoup's Cleaner strips
-    // <script>/<style>, on* handlers, and unsafe URL schemes (javascript:/data:). preserveRelativeLinks
-    // keeps scheme-less relative URLs (absolute javascript:/data: are still rejected by the protocol
-    // allowlist). <u>/<ins> are unwrapped to plain text (avoiding flexmark's non-standard "++text++").
-    private static final Safelist SAFELIST = Safelist.relaxed().removeTags("u").preserveRelativeLinks(true);
+    // Relaxed minus <u>, which is unwrapped to avoid flexmark's non-standard "++text++". An <img> keeps
+    // everything but its src: a stored page is rendered, so a remote image is a beacon reporting the
+    // reader's IP and which document they opened, and no protocol allowlist can tell one from a benign
+    // image ("//host/pixel.png" passes). A link target stays, since rendering a page does not follow it.
+    private static final Safelist SAFELIST = Safelist.relaxed().removeTags("u")
+            .removeAttributes("img", "src").preserveRelativeLinks(true);
+
+    // Pretty-printing would bake jsoup's indentation into the stored XHTML, so the page bytes would
+    // depend on formatting defaults nothing tracks. Cloned per use so no page can mutate it.
+    private static final Document.OutputSettings COMPACT_OUTPUT = new Document.OutputSettings().prettyPrint(false);
+
+    // jsoup's protocol allowlist runs on the resolved URL, so a relative href with no base to resolve
+    // against is dropped as an unknown scheme. jsoup's 3-argument clean() substitutes its own dummy
+    // host for that reason; the overload taking output settings does not. Never reaches the stored
+    // bytes, since preserveRelativeLinks keeps the attribute's original value.
+    private static final String RELATIVE_LINK_BASE = "https://dummy.example/";
+
+    // ToXMLContentHandler buffers the whole rendering, and the pipeline then holds it several times over
+    // (buffer, string, jsoup DOM, every page's XHTML and Markdown), times --parallelism. Nothing on the
+    // produce path catches an OutOfMemoryError, so the parse is stopped instead.
+    private static final int DEFAULT_MAX_OUTPUT_CHARS = 16_000_000;
+
+    private final int maxOutputChars;
+
+    public StructureMarkdownExtractor() {
+        this(DEFAULT_MAX_OUTPUT_CHARS);
+    }
+
+    StructureMarkdownExtractor(int maxOutputChars) {
+        this.maxOutputChars = maxOutputChars;
+    }
 
     // Stateless once built; build once rather than per page.
     private static final FlexmarkHtmlConverter MARKDOWN_CONVERTER = FlexmarkHtmlConverter.builder(
@@ -113,8 +141,6 @@ public class StructureMarkdownExtractor {
     // whether text survives.
     private static void appendStraysToLastPage(List<Element> rootPages, Element body) {
         rootPages.forEach(Element::remove);
-        // Their content is the artifact of the node extracted for that part, not the root's.
-        body.select(EMBEDDED_CONTAINERS).forEach(Element::remove);
         Element lastPage = rootPages.get(rootPages.size() - 1);
         // Copy first: appending reparents a node, which would derail an iteration over the live list.
         new ArrayList<>(body.childNodes()).forEach(lastPage::appendChild);
@@ -138,7 +164,8 @@ public class StructureMarkdownExtractor {
 
     String toXhtml(InputStream source, String contentType) throws IOException, SAXException, TikaException {
         ToXMLContentHandler xhtmlHandler = new ToXMLContentHandler();
-        new AutoDetectParser().parse(source, xhtmlHandler, buildMetadata(contentType), buildParseContext());
+        new AutoDetectParser().parse(source, new WriteOutContentHandler(xhtmlHandler, maxOutputChars),
+                buildMetadata(contentType), buildParseContext());
         return xhtmlHandler.toString();
     }
 
@@ -200,7 +227,13 @@ public class StructureMarkdownExtractor {
      */
     String sanitize(Element page) {
         removeEmptyParagraphs(page);
-        return Jsoup.clean(page.html(), SAFELIST);
+        // A detached page has no output settings of its own and would serialize with jsoup's
+        // pretty-printing defaults. Moving rather than copying: the nodes are not held twice, at the
+        // cost of emptying the argument, which each page is only handed to once.
+        Document holder = Document.createShell(RELATIVE_LINK_BASE);
+        holder.outputSettings(COMPACT_OUTPUT.clone());
+        holder.body().insertChildren(0, new ArrayList<>(page.childNodes()));
+        return Jsoup.clean(holder.body().html(), RELATIVE_LINK_BASE, SAFELIST, COMPACT_OUTPUT.clone());
     }
 
     // Tika emits empty paragraphs (<p/>, <p><br/></p>) between blocks. A paragraph holding only an image
