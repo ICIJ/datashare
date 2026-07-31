@@ -111,7 +111,8 @@ public class ArtifactTaskTest {
         DocumentQueue<String> queue = factory.createQueue("extract:queue:artifact", String.class);
         queue.add(EMBEDDED_PDF_SHA256 + "|" + EMBEDDED_DOC_SHA256);
 
-        Long numberOfDocuments = runArtifactTask();
+        // structure takes an explicit selector (see ArtifactRegistry#withDefaults).
+        Long numberOfDocuments = runArtifactTask(Map.of("artifacts", "raw,structure"));
 
         assertThat(numberOfDocuments).isEqualTo(1);
         Path docArtifactDir = artifactDir.getRoot().toPath().resolve("prj/6a/bb/" + EMBEDDED_PDF_SHA256);
@@ -284,6 +285,45 @@ public class ArtifactTaskTest {
         // so the run stays non-fatal and the sibling document is still counted.
         assertThat(logback.logs(Level.ERROR)).contains("failed to produce artifact 'raw' for document " + failingId);
         assertThat(logback.logs(Level.ERROR)).contains("1 document(s) failed artifact production in project prj, re-run the ARTIFACT stage for them");
+    }
+
+    @Test(timeout = 10000)
+    public void test_an_error_fails_the_run_instead_of_draining_the_rest_of_the_queue() throws Exception {
+        // An OutOfMemoryError leaves the worker on a heap it has already exhausted, so counting it as one
+        // failed document and carrying on reports a finished run over documents that never had a chance.
+        indexEmbeddedDoc();
+        String secondId = "3333333333333333333333333333333333333333333333333333333333333333";
+        mockIndexer.indexFile("prj", secondId,
+                Path.of(Objects.requireNonNull(getClass().getResource("/docs/embedded_doc.eml")).toURI()),
+                "message/rfc822");
+        DocumentQueue<String> queue = factory.createQueue("extract:queue:artifact", String.class);
+        queue.add(EMBEDDED_DOC_SHA256);
+        queue.add(secondId);
+
+        PropertiesProvider props = new PropertiesProvider(Map.of(
+                "artifactDir", artifactDir.getRoot().toString(),
+                "defaultProject", "prj",
+                "parallelism", "1"));
+        ArtifactTask task = new ArtifactTask(factory, mockEs, props, new UpstreamGate.Factory(taskRepository),
+                new Task<>(ArtifactTask.class.getName(), User.local(), new HashMap<>()), null) {
+            @Override
+            protected SourceExtractor createSourceExtractor() {
+                return new SourceExtractor(props) {
+                    @Override
+                    public TikaDocument extractEmbeddedSources(Project project, Document document) {
+                        throw new OutOfMemoryError("Java heap space");
+                    }
+                };
+            }
+        };
+
+        try {
+            task.call();
+            org.junit.Assert.fail("expected the run to fail");
+        } catch (IllegalStateException expected) {
+            assertThat(expected.getMessage()).contains("terminated abnormally");
+        }
+        assertThat(logback.logs(Level.ERROR)).contains("artifact worker terminated abnormally");
     }
 
     @Test(timeout = 10000)
