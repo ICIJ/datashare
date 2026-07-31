@@ -2,6 +2,7 @@ package org.icij.datashare.text.indexing.elasticsearch;
 
 import org.junit.Test;
 import java.nio.file.Path;
+import java.util.Locale;
 import static org.fest.assertions.Assertions.assertThat;
 
 public class ArtifactPathTest {
@@ -19,5 +20,35 @@ public class ArtifactPathTest {
         Path root = Path.of("/artifact/prj");
         assertThat(ArtifactPath.manifest(root, DIGEST).toString())
                 .isEqualTo("/artifact/prj/6a/bb/" + DIGEST + "/manifest.json");
+    }
+
+    @Test
+    public void test_structure_dir_is_under_the_node_dir() {
+        Path docDir = ArtifactPath.dir(Path.of("/artifact/prj"), DIGEST);
+        assertThat(ArtifactPath.structureDir(docDir).toString())
+                .isEqualTo("/artifact/prj/6a/bb/" + DIGEST + "/structure");
+    }
+
+    @Test
+    public void test_structure_page_is_one_based_and_zero_padded_to_four() {
+        Path docDir = ArtifactPath.dir(Path.of("/artifact/prj"), DIGEST);
+        assertThat(ArtifactPath.structurePage(docDir, 1, "md").getFileName().toString())
+                .isEqualTo("page-0001.md");
+        assertThat(ArtifactPath.structurePage(docDir, 12, "xhtml").getFileName().toString())
+                .isEqualTo("page-0012.xhtml");
+        assertThat(ArtifactPath.structurePage(docDir, 12345, "md").getFileName().toString())
+                .isEqualTo("page-12345.md");
+    }
+
+    @Test
+    public void test_page_filename_digits_do_not_follow_the_default_locale() {
+        Locale previous = Locale.getDefault();
+        try {
+            // this locale formats %d with Arabic-Indic digits, so an unpinned format writes page-٠٠١٢.md
+            Locale.setDefault(Locale.forLanguageTag("ar-EG"));
+            assertThat(ArtifactPath.pageFilename(12, "md")).isEqualTo("page-0012.md");
+        } finally {
+            Locale.setDefault(previous);
+        }
     }
 }
