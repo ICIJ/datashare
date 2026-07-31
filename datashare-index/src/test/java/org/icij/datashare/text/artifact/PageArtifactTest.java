@@ -202,6 +202,7 @@ public class PageArtifactTest {
             assertThat(expected.getMessage()).contains(context.document().getId());
         }
         assertThat(Files.exists(ArtifactPath.pagesDir(context.docArtifactDir()))).isFalse();
+        verify(sources).getSource(project, context.document());
     }
 
     @Test
