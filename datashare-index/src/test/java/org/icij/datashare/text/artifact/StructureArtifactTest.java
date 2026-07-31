@@ -72,7 +72,7 @@ public class StructureArtifactTest {
     }
 
     private Path page(int number, String extension) {
-        return ArtifactPath.structurePage(dir.getRoot().toPath(), number, extension);
+        return ArtifactPath.payloadPage(dir.getRoot().toPath(), ArtifactType.STRUCTURE, number, extension);
     }
 
     @Test
@@ -120,7 +120,7 @@ public class StructureArtifactTest {
     }
 
     private List<String> storedPageNames() throws Exception {
-        try (Stream<Path> entries = Files.list(ArtifactPath.structureDir(dir.getRoot().toPath()))) {
+        try (Stream<Path> entries = Files.list(ArtifactPath.payloadDir(dir.getRoot().toPath(), ArtifactType.STRUCTURE))) {
             return entries.map(entry -> entry.getFileName().toString()).sorted().toList();
         }
     }
@@ -174,7 +174,7 @@ public class StructureArtifactTest {
         } catch (ArtifactException expected) {
             // the directory must not be created before the source is known to be readable
         }
-        assertThat(Files.exists(ArtifactPath.structureDir(dir.getRoot().toPath()))).isFalse();
+        assertThat(Files.exists(ArtifactPath.payloadDir(dir.getRoot().toPath(), ArtifactType.STRUCTURE))).isFalse();
     }
 
     @Test
@@ -192,7 +192,7 @@ public class StructureArtifactTest {
             new StructureArtifact().produce(new ArtifactContext(project, broken, dir.getRoot().toPath(), sources));
             org.junit.Assert.fail("expected an UnreadableContentException");
         } catch (UnreadableContentException expected) {
-            assertThat(Files.exists(ArtifactPath.structureDir(dir.getRoot().toPath()))).isFalse();
+            assertThat(Files.exists(ArtifactPath.payloadDir(dir.getRoot().toPath(), ArtifactType.STRUCTURE))).isFalse();
         }
     }
 
@@ -260,7 +260,7 @@ public class StructureArtifactTest {
         ManifestEntry entry = new StructureArtifact().produce(contextFor(HTML, docArtifactDir));
 
         assertThat(entry.pages().total()).isEqualTo(1);
-        assertThat(Files.readString(ArtifactPath.structurePage(docArtifactDir, 1, "md"))).contains("# Title");
+        assertThat(Files.readString(ArtifactPath.payloadPage(docArtifactDir, ArtifactType.STRUCTURE, 1, "md"))).contains("# Title");
     }
 
     // The two cases below go through the real producer loop, which owns the manifest write and
@@ -301,7 +301,7 @@ public class StructureArtifactTest {
         // What a failed AtomicDirectorySwap.restore leaves behind: the only copy of the pages in a holding
         // pen while the target is gone, until now recoverable only by hand (#2300).
         Path pen = dir.getRoot().toPath().resolve(".structure-" + UUID.randomUUID() + ".replaced");
-        Files.move(ArtifactPath.structureDir(dir.getRoot().toPath()), pen);
+        Files.move(ArtifactPath.payloadDir(dir.getRoot().toPath(), ArtifactType.STRUCTURE), pen);
 
         producer.run(List.of(new StructureArtifact()), contextFor(HTML), false);
 

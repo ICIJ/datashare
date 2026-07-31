@@ -1,6 +1,7 @@
 package org.icij.datashare.text.indexing.elasticsearch;
 
 import org.junit.Test;
+import org.icij.datashare.text.artifact.ArtifactType;
 import java.nio.file.Path;
 import java.util.Locale;
 import static org.fest.assertions.Assertions.assertThat;
@@ -23,21 +24,18 @@ public class ArtifactPathTest {
     }
 
     @Test
-    public void test_structure_dir_is_under_the_node_dir() {
-        Path docDir = ArtifactPath.dir(Path.of("/artifact/prj"), DIGEST);
-        assertThat(ArtifactPath.structureDir(docDir).toString())
-                .isEqualTo("/artifact/prj/6a/bb/" + DIGEST + "/structure");
+    public void test_payload_dir_is_named_per_type() {
+        Path node = Path.of("/artifact/prj/6a/bb/" + DIGEST);
+        assertThat(ArtifactPath.payloadDir(node, ArtifactType.PAGE).toString()).isEqualTo(node + "/pages");
+        assertThat(ArtifactPath.payloadDir(node, ArtifactType.STRUCTURE).toString()).isEqualTo(node + "/structure");
     }
 
     @Test
-    public void test_structure_page_is_one_based_and_unpadded() {
-        Path docDir = ArtifactPath.dir(Path.of("/artifact/prj"), DIGEST);
-        assertThat(ArtifactPath.structurePage(docDir, 1, "md").getFileName().toString())
-                .isEqualTo("page-1.md");
-        assertThat(ArtifactPath.structurePage(docDir, 12, "xhtml").getFileName().toString())
-                .isEqualTo("page-12.xhtml");
-        assertThat(ArtifactPath.structurePage(docDir, 12345, "md").getFileName().toString())
-                .isEqualTo("page-12345.md");
+    public void test_payload_page_is_one_based_and_unpadded() {
+        Path node = Path.of("/artifact/prj/6a/bb/" + DIGEST);
+        assertThat(ArtifactPath.payloadPage(node, ArtifactType.PAGE, 1, "txt").toString()).isEqualTo(node + "/pages/page-1.txt");
+        assertThat(ArtifactPath.payloadPage(node, ArtifactType.STRUCTURE, 12, "xhtml").toString()).isEqualTo(node + "/structure/page-12.xhtml");
+        assertThat(ArtifactPath.payloadPage(node, ArtifactType.STRUCTURE, 12345, "md").toString()).isEqualTo(node + "/structure/page-12345.md");
     }
 
     @Test
@@ -53,16 +51,13 @@ public class ArtifactPathTest {
     }
 
     @Test
-    public void test_pages_dir_is_under_the_node_dir() {
-        Path docDir = ArtifactPath.dir(Path.of("/artifact/prj"), DIGEST);
-        assertThat(ArtifactPath.pagesDir(docDir).toString())
-                .isEqualTo("/artifact/prj/6a/bb/" + DIGEST + "/pages");
+    public void test_payload_content_is_the_byte_ranges_file() {
+        Path node = Path.of("/artifact/prj/6a/bb/" + DIGEST);
+        assertThat(ArtifactPath.payloadContent(node, ArtifactType.PAGE, "txt").toString()).isEqualTo(node + "/pages/content.txt");
     }
 
-    @Test
-    public void test_pages_content_is_the_single_file_of_the_byte_ranges_scheme() {
-        Path docDir = ArtifactPath.dir(Path.of("/artifact/prj"), DIGEST);
-        assertThat(ArtifactPath.pagesContent(docDir).toString())
-                .isEqualTo("/artifact/prj/6a/bb/" + DIGEST + "/pages/content.txt");
+    @Test(expected = IllegalArgumentException.class)
+    public void test_raw_has_no_payload_dir() {
+        ArtifactPath.payloadDir(Path.of("/artifact/prj/6a/bb/" + DIGEST), ArtifactType.RAW);
     }
 }

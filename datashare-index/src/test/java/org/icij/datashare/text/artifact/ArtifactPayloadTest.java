@@ -70,8 +70,8 @@ public class ArtifactPayloadTest {
     @Test
     public void test_structure_payload_missing_the_last_page_it_advertises_is_missing() throws Exception {
         // AtomicDirectorySwap.discard deletes page by page, so the directory can survive holding a subset.
-        Files.createDirectories(ArtifactPath.structureDir(docDir()));
-        Files.writeString(ArtifactPath.structurePage(docDir(), 1, "md"), "# Title");
+        Files.createDirectories(ArtifactPath.payloadDir(docDir(), ArtifactType.STRUCTURE));
+        Files.writeString(ArtifactPath.payloadPage(docDir(), ArtifactType.STRUCTURE, 1, "md"), "# Title");
 
         assertThat(ArtifactPayload.isMissing(docDir(), ArtifactType.STRUCTURE,
                 ManifestEntry.paginated(TASK_INPUT, 2).withTerminalStatus())).isTrue();
@@ -80,7 +80,7 @@ public class ArtifactPayloadTest {
     @Test
     public void test_a_structure_entry_advertising_no_page_count_falls_back_to_its_directory() throws Exception {
         // A Python producer writes manifest.json too, so the count can be absent or nonsensical.
-        Files.createDirectories(ArtifactPath.structureDir(docDir()));
+        Files.createDirectories(ArtifactPath.payloadDir(docDir(), ArtifactType.STRUCTURE));
 
         assertThat(ArtifactPayload.isMissing(docDir(), ArtifactType.STRUCTURE,
                 ManifestEntry.singleFile(TASK_INPUT, "text/markdown", "page-1.md").withTerminalStatus())).isFalse();
@@ -88,9 +88,9 @@ public class ArtifactPayloadTest {
 
     @Test
     public void test_structure_payload_dir_holding_the_pages_it_advertises_is_not_missing() throws Exception {
-        Files.createDirectories(ArtifactPath.structureDir(docDir()));
-        Files.writeString(ArtifactPath.structurePage(docDir(), 1, "md"), "# Title");
-        Files.writeString(ArtifactPath.structurePage(docDir(), 2, "md"), "# Second");
+        Files.createDirectories(ArtifactPath.payloadDir(docDir(), ArtifactType.STRUCTURE));
+        Files.writeString(ArtifactPath.payloadPage(docDir(), ArtifactType.STRUCTURE, 1, "md"), "# Title");
+        Files.writeString(ArtifactPath.payloadPage(docDir(), ArtifactType.STRUCTURE, 2, "md"), "# Second");
 
         assertThat(ArtifactPayload.isMissing(docDir(), ArtifactType.STRUCTURE,
                 ManifestEntry.paginated(TASK_INPUT, 2).withTerminalStatus())).isFalse();

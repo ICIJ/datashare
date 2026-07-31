@@ -1,5 +1,6 @@
 package org.icij.datashare.text.indexing.elasticsearch;
 
+import org.icij.datashare.text.artifact.ArtifactType;
 import java.nio.file.Path;
 import java.util.Locale;
 
@@ -31,17 +32,22 @@ public class ArtifactPath {
         return dir(projectRoot, digest).resolve(MANIFEST_FILE);
     }
 
-    /** The structure artifact's own directory: one file per page and per format. */
-    public static Path structureDir(Path docArtifactDir) {
-        return docArtifactDir.resolve(STRUCTURE_DIR);
+    /** Payload subdirectory for a paginated type: one file per page and per format. */
+    public static Path payloadDir(Path docArtifactDir, ArtifactType type) {
+        return docArtifactDir.resolve(payloadDirName(type));
     }
 
-    /** {@code page-%d.<extension>}, 1-based, as the convention's filesystem pagination requires. */
-    public static Path structurePage(Path docArtifactDir, int page, String extension) {
-        return structureDir(docArtifactDir).resolve(pageFilename(page, extension));
+    /** One page file of a filesystem-paginated payload, 1-based. */
+    public static Path payloadPage(Path docArtifactDir, ArtifactType type, int page, String extension) {
+        return payloadDir(docArtifactDir, type).resolve(pageFilename(page, extension));
     }
 
-    /** Just the filename, for a caller writing pages under a directory other than the final structure/
+    /** The single file a byte-ranges-paginated payload slices pages out of. */
+    public static Path payloadContent(Path docArtifactDir, ArtifactType type, String extension) {
+        return payloadDir(docArtifactDir, type).resolve("content." + extension);
+    }
+
+    /** Just the filename, for a caller writing pages under a directory other than the final payload
      *  one (the producer's atomic-swap temp directory). Unpadded, so a reader formats the name from a
      *  page number without knowing a width. {@link Locale#ROOT} so the default locale cannot decide the
      *  digits: with LANG=ar_EG.UTF-8 it would write page-١٢.md. */
@@ -49,14 +55,12 @@ public class ArtifactPath {
         return String.format(Locale.ROOT, "page-%d.%s", page, extension);
     }
 
-    /** The page artifact's own directory. */
-    public static Path pagesDir(Path docArtifactDir) {
-        return docArtifactDir.resolve(PAGES_DIR);
-    }
-
-    /** The single payload file of the byte-ranges scheme, whose per-page offsets live in the
-     *  manifest entry instead of in file names. The extension is fixed by the type: page is text. */
-    public static Path pagesContent(Path docArtifactDir) {
-        return pagesDir(docArtifactDir).resolve(PAGES_CONTENT_FILE);
+    private static String payloadDirName(ArtifactType type) {
+        return switch (type) {
+            case PAGE -> PAGES_DIR;
+            case STRUCTURE -> STRUCTURE_DIR;
+            // raw is a single file next to manifest.json (extract-lib owns that name), not a directory.
+            case RAW -> throw new IllegalArgumentException("artifact type 'raw' has no payload directory");
+        };
     }
 }
