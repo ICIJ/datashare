@@ -241,4 +241,25 @@ public class PageArtifactTest {
         assertThat(ArtifactPath.pagesDir(good.docArtifactDir()).toFile().list())
                 .isEqualTo(new String[]{"content.txt"}); // no .tmp left behind
     }
+
+    // content.txt as a non-empty directory forces the temp write to finish (there is nothing wrong
+    // with the payload itself) and the move onto content.txt to fail: REPLACE_EXISTING cannot swap a
+    // file in over a non-empty directory. That is the one failure point no other test reaches.
+    @Test
+    public void test_a_move_failure_after_a_complete_write_leaves_no_tmp_file() throws Exception {
+        ArtifactContext context = rootContext(twoPagePdf());
+        Path content = contentTxt(context);
+        Files.createDirectories(content);
+        Files.createFile(content.resolve("blocking-file"));
+
+        try {
+            new PageArtifact(new PropertiesProvider()).produce(context);
+            fail("expected an ArtifactException");
+        } catch (ArtifactException expected) {
+            assertThat(expected.getMessage()).contains(context.document().getId());
+        }
+
+        assertThat(ArtifactPath.pagesDir(context.docArtifactDir()).toFile().list())
+                .excludes("content.txt.tmp");
+    }
 }
