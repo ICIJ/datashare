@@ -27,8 +27,9 @@ public class PaginationTest {
 
     @Test
     public void test_byte_ranges_pagination_written_by_another_producer_is_readable() throws Exception {
-        // datashare-python writes this scheme too, from its own producers: an entry it wrote must read
-        // back here with the same page count and offsets.
+        // `ranges` is the `byteRanges` pagination shape from the storage convention (docs repo
+        // document-artifacts-convention.md), which datashare-python writes from its own producers: an
+        // entry it wrote must read back here with the same page count and offsets.
         ManifestEntry read = mapper.readValue("{\"status\":\"complete\",\"pages\":{\"total\":2,"
                 + "\"pagination\":{\"type\":\"byteRanges\",\"ranges\":[[0,10],[10,20]]}}}", ManifestEntry.class);
 
