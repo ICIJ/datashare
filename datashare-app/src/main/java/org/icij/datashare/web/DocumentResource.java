@@ -186,14 +186,16 @@ public class DocumentResource {
         }
     }
 
-    @Operation(description = "Fetches document extracted text paginated in a json list of texts. It will use the source document and not the indexed extracted content.",
+    @Operation(deprecated = true,
+            description = "Deprecated: use GET /:project/artifacts/page/:id/:page, which serves the persisted page artifact instead of reparsing the source on every request. This route still reparses live and is kept until clients migrate.",
             parameters = {
                     @Parameter(name = "project", description = "the project id", in = ParameterIn.PATH),
                     @Parameter(name = "id", description = "the document id", in = ParameterIn.PATH),
                     @Parameter(name = "routing", description = "routing key if not a root document", in = ParameterIn.QUERY)
             }
     )
-    @ApiResponse(responseCode = "200", description = "JSON containing text pages array",  useReturnTypeSchema = true)
+    @ApiResponse(responseCode = "200", description = "JSON containing text pages array", useReturnTypeSchema = true)
+    @Deprecated
     @Get("/:project/documents/content/pages/:id?routing=:routing")
     public List<String> getContentByPage(final String project, final String id, final String routing, final Context context) throws IOException {
         requireGranted(context, project);
