@@ -1,0 +1,376 @@
+package org.icij.datashare.text.structure;
+
+import org.apache.pdfbox.cos.COSName;
+import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.pdmodel.PDPage;
+import org.apache.pdfbox.pdmodel.PDPageContentStream;
+import org.apache.pdfbox.pdmodel.PDResources;
+import org.apache.pdfbox.pdmodel.font.PDType1Font;
+import org.apache.pdfbox.pdmodel.font.Standard14Fonts;
+import org.apache.pdfbox.pdmodel.interactive.action.PDActionGoTo;
+import org.apache.pdfbox.pdmodel.interactive.documentnavigation.destination.PDPageFitDestination;
+import org.apache.pdfbox.pdmodel.interactive.documentnavigation.outline.PDDocumentOutline;
+import org.apache.pdfbox.pdmodel.interactive.documentnavigation.outline.PDOutlineItem;
+import org.apache.pdfbox.pdmodel.interactive.form.PDAcroForm;
+import org.apache.pdfbox.pdmodel.interactive.form.PDTextField;
+import org.apache.tika.extractor.DocumentSelector;
+import org.apache.tika.metadata.Metadata;
+import org.apache.tika.metadata.TikaCoreProperties;
+import org.apache.tika.parser.ParseContext;
+import org.apache.tika.parser.ocr.TesseractOCRConfig;
+import org.apache.tika.parser.pdf.PDFParserConfig;
+import org.icij.datashare.text.structure.StructureMarkdownExtractor.Page;
+import org.jsoup.Jsoup;
+import org.jsoup.parser.Parser;
+import org.junit.Test;
+
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.List;
+import java.util.Objects;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
+
+import static org.fest.assertions.Assertions.assertThat;
+
+public class StructureMarkdownExtractorTest {
+    private final StructureMarkdownExtractor extractor = new StructureMarkdownExtractor();
+
+    private ByteArrayInputStream stream(String s) {
+        return new ByteArrayInputStream(s.getBytes(StandardCharsets.UTF_8));
+    }
+
+    private List<String> markdown(List<Page> pages) {
+        return pages.stream().map(Page::markdown).toList();
+    }
+
+    @Test
+    public void test_pdf_returns_one_page_per_pdf_page_without_br_noise() throws Exception {
+        List<Page> pages = extractor.extract(new ByteArrayInputStream(twoPagePdf()), "application/pdf");
+        assertThat(pages).hasSize(2);
+        assertThat(pages.get(0).markdown()).contains("page 1");
+        assertThat(pages.get(1).markdown()).contains("page 2");
+        assertThat(pages.get(0).markdown()).excludes("<br />");
+    }
+
+    @Test
+    public void test_page_xhtml_is_a_parseable_xhtml_document() throws Exception {
+        Page page = extractor.extract(new ByteArrayInputStream(twoPagePdf()), "application/pdf").get(0);
+        assertThat(page.xhtml()).startsWith("<html xmlns=\"http://www.w3.org/1999/xhtml\">");
+        assertThat(page.xhtml()).contains("<body>");
+        assertThat(page.xhtml()).contains("page 1");
+        // parses under the XML parser, which a bare body fragment would not
+        assertThat(Jsoup.parse(page.xhtml(), "", Parser.xmlParser()).select("body").size()).isEqualTo(1);
+    }
+
+    @Test
+    public void test_page_markdown_derives_from_the_same_sanitized_html() throws Exception {
+        Page page = extractor.extract(
+                stream("<html><body><p>plain <strong>bold</strong><script>alert(1)</script></p></body></html>"),
+                "text/html").get(0);
+        assertThat(page.xhtml()).excludes("script");
+        assertThat(page.xhtml()).contains("<strong>bold</strong>");
+        assertThat(page.markdown()).contains("**bold**");
+        assertThat(page.markdown()).excludes("alert");
+    }
+
+    @Test
+    public void test_underline_is_normalized_to_plain_text() throws Exception {
+        Page page = extractor.extract(
+                stream("<html><body><p>see <u>under</u> line</p></body></html>"), "text/html").get(0);
+        assertThat(page.markdown()).contains("under");
+        assertThat(page.markdown()).excludes("++under++");
+    }
+
+    @Test
+    public void test_non_paginated_html_is_single_page() throws Exception {
+        List<Page> pages = extractor.extract(
+                stream("<html><body><h1>Title</h1><p>body</p></body></html>"), "text/html");
+        assertThat(pages).hasSize(1);
+        assertThat(pages.get(0).markdown()).contains("# Title");
+    }
+
+    // Pins the bytes Tika's paginated output renders to, to catch an UNINTENDED change. When it fails,
+    // confirm the change was intended, then update the expectation.
+    @Test
+    public void test_pdf_page_bytes_are_pinned() throws Exception {
+        List<Page> pages = extractor.extract(new ByteArrayInputStream(twoPagePdf()), "application/pdf");
+
+        assertThat(pages).hasSize(2);
+        assertThat(pages.get(0).xhtml()).isEqualTo("<html xmlns=\"http://www.w3.org/1999/xhtml\">"
+                + "<head></head><body><p>Body on page 1.</p></body></html>");
+        assertThat(pages.get(0).markdown()).isEqualTo("Body on page 1.");
+        assertThat(pages.get(1).xhtml()).isEqualTo("<html xmlns=\"http://www.w3.org/1999/xhtml\">"
+                + "<head></head><body><p>Body on page 2.</p></body></html>");
+        assertThat(pages.get(1).markdown()).isEqualTo("Body on page 2.");
+    }
+
+    @Test
+    public void test_extract_is_deterministic() throws Exception {
+        String html = "<html><body><h1>Repeat</h1><p>same</p></body></html>";
+        List<Page> first = extractor.extract(stream(html), "text/html");
+        List<Page> second = extractor.extract(stream(html), "text/html");
+        assertThat(markdown(first)).isEqualTo(markdown(second));
+        assertThat(first.get(0).xhtml()).isEqualTo(second.get(0).xhtml());
+    }
+
+    @Test
+    public void test_sanitize_strips_scripts_handlers_and_unsafe_urls() {
+        String safe = extractor.sanitize(Jsoup.parseBodyFragment(
+                "<p onclick=\"steal()\">keep</p>" +
+                "<script>alert('xss')</script>" +
+                "<a href=\"javascript:alert(1)\">link</a>" +
+                "<img src=x onerror=\"alert(1)\">").body());
+        assertThat(safe).excludes("script");
+        assertThat(safe).excludes("onclick");
+        assertThat(safe).excludes("onerror");
+        assertThat(safe).excludes("javascript:");
+        assertThat(safe).excludes("alert");
+        assertThat(safe).excludes("steal");
+        assertThat(safe).contains("keep");
+    }
+
+    @Test
+    public void test_sanitize_strips_data_url_scheme() {
+        String safe = extractor.sanitize(Jsoup.parseBodyFragment(
+                "<img src=\"data:image/png;base64,AAAA\">keep" +
+                "<a href=\"data:text/html;base64,BBBB\">link</a>").body());
+        assertThat(safe).excludes("data:");
+        assertThat(safe).contains("keep");
+    }
+
+    @Test
+    public void test_paragraph_with_only_br_is_dropped() {
+        String safe = extractor.sanitize(Jsoup.parseBodyFragment("<p><br></p><p>real</p>").body());
+        assertThat(safe).excludes("<br");
+        assertThat(safe).contains("real");
+    }
+
+    @Test
+    public void test_relative_links_are_preserved() {
+        String safe = extractor.sanitize(Jsoup.parseBodyFragment("<a href=\"page2.html\">next</a>").body());
+        assertThat(safe).contains("page2.html");
+    }
+
+    @Test
+    public void test_only_a_containers_own_body_is_inlined() {
+        // The exact metadata shapes Tika hands shouldParseEmbedded: a mail's own text part carries no
+        // resourceName, while an attachment, a zip entry and a PST mail item are documents in their own
+        // right.
+        DocumentSelector selector = StructureMarkdownExtractor.buildParseContext().get(DocumentSelector.class);
+
+        assertThat(selector.select(partMetadata(null, "text/plain"))).isTrue();
+        assertThat(selector.select(partMetadata(null, "text/html; charset=UTF-8"))).isTrue();
+        assertThat(selector.select(partMetadata("embedded.pdf", "application/pdf"))).isFalse();
+        assertThat(selector.select(partMetadata("inner.txt", null))).isFalse();
+        assertThat(selector.select(partMetadata(null, "application/x-tika-pst-mail-item"))).isFalse();
+    }
+
+    @Test
+    public void test_a_mail_body_nested_in_a_multipart_related_is_inlined() throws Exception {
+        // The standard Outlook shape (multipart/mixed > multipart/related > text/html). Tika's
+        // MailContentHandler defaults EMBEDDED_RESOURCE_TYPE to ATTACHMENT for any part with no
+        // Content-Disposition, so a disposition test here refuses the mail's own body.
+        List<Page> pages = extractor.extract(stream(nestedBodyMail()), "message/rfc822");
+
+        assertThat(pages).hasSize(1);
+        assertThat(pages.get(0).markdown()).contains("the mail body text");
+    }
+
+    private String nestedBodyMail() {
+        return "Subject: nested body\r\n"
+                + "MIME-Version: 1.0\r\n"
+                + "Content-Type: multipart/mixed; boundary=\"OUTER\"\r\n"
+                + "\r\n"
+                + "--OUTER\r\n"
+                + "Content-Type: multipart/related; boundary=\"INNER\"\r\n"
+                + "\r\n"
+                + "--INNER\r\n"
+                + "Content-Type: text/html; charset=UTF-8\r\n"
+                + "\r\n"
+                + "<html><body><p>the mail body text</p></body></html>\r\n"
+                + "--INNER--\r\n"
+                + "--OUTER--\r\n";
+    }
+
+    private Metadata partMetadata(String resourceName, String contentType) {
+        Metadata metadata = new Metadata();
+        if (resourceName != null) {
+            metadata.set(TikaCoreProperties.RESOURCE_NAME_KEY, resourceName);
+        }
+        if (contentType != null) {
+            metadata.set(Metadata.CONTENT_TYPE, contentType);
+        }
+        return metadata;
+    }
+
+    @Test
+    public void test_embedded_documents_are_not_split_into_extra_pages() throws Exception {
+        byte[] eml = Files.readAllBytes(Path.of(Objects.requireNonNull(
+                getClass().getResource("/docs/embedded_doc.eml")).toURI()));
+        List<Page> pages = extractor.extract(new ByteArrayInputStream(eml), "message/rfc822");
+        assertThat(pages).hasSize(1);
+        assertThat(pages.get(0).markdown()).contains("test embedded");
+    }
+
+    @Test
+    public void test_root_pages_survive_when_an_embedded_part_also_paginates() throws Exception {
+        // The embedded part's page div is not a page of the root's. Its text is not dropped either (see
+        // below), so it rides on the last page like any content outside the root's page divs.
+        List<Page> pages = extractor.extract(stream(
+                "<html><body>" +
+                "<div class=\"page\"><p>root one</p></div>" +
+                "<div class=\"page\"><p>root two</p></div>" +
+                "<div class=\"embedded\"><div class=\"page\"><p>attachment</p></div></div>" +
+                "</body></html>"), "text/html");
+
+        assertThat(pages).hasSize(2);
+        assertThat(pages.get(0).markdown()).contains("root one");
+        assertThat(pages.get(1).markdown()).contains("root two");
+        assertThat(pages.get(0).markdown()).excludes("attachment");
+        assertThat(pages.get(1).markdown()).excludes("attachment");
+    }
+
+    @Test
+    public void test_body_content_entirely_inside_page_divs_is_unchanged() throws Exception {
+        // Pinned byte-for-byte: a change here invalidates every already-produced page set.
+        List<Page> pages = extractor.extract(stream(
+                "<html><body><div class=\"page\"><p>A</p></div><div class=\"page\"><p>B</p></div></body></html>"),
+                "text/html");
+
+        assertThat(markdown(pages)).isEqualTo(List.of("A", "B"));
+        assertThat(pages.get(0).xhtml()).isEqualTo(
+                "<html xmlns=\"http://www.w3.org/1999/xhtml\"><head></head><body><p>A</p></body></html>");
+    }
+
+    @Test
+    public void test_content_around_the_page_divs_joins_the_last_page_exactly_once() throws Exception {
+        // Before, between and after the page divs, at any nesting depth: all kept in document order on the
+        // last page, since losing document text is worse than a page boundary one node off.
+        List<Page> pages = extractor.extract(stream(
+                "<html><body><p>header</p><div class=\"wrapper\">" +
+                "<div class=\"page\"><p>A</p></div><p>between</p><div class=\"page\"><p>B</p></div>" +
+                "</div><p>footer</p></body></html>"), "text/html");
+
+        // "header  \nbetween" is one hard break, not a lost blank line: the relaxed safelist keeps the
+        // wrapper <div>, and flexmark renders a div as a paragraph by default (DIV_AS_PARAGRAPH).
+        assertThat(markdown(pages)).isEqualTo(List.of("A", "B\n\nheader  \nbetween\n\nfooter"));
+    }
+
+    @Test
+    public void test_a_page_div_nested_in_another_page_div_is_rendered_once() throws Exception {
+        // A nested page div belongs to its parent page's rendering, not to a page of its own.
+        List<Page> pages = extractor.extract(stream(
+                "<html><body><div class=\"page\"><p>outer</p>" +
+                "<div class=\"page\"><p>inner</p></div></div>" +
+                "<div class=\"page\"><p>second</p></div></body></html>"), "text/html");
+
+        assertThat(markdown(pages)).isEqualTo(List.of("outer  \ninner", "second"));
+    }
+
+    @Test
+    public void test_a_container_root_does_not_inline_its_embedded_parts_text() throws Exception {
+        // The root's XHTML must stop at its own content: inlining a mail archive's or a zip's whole
+        // recursive tree buffers it in heap only for the page selection to throw it away.
+        List<Page> pages = extractor.extract(new ByteArrayInputStream(zipContaining("inner.txt",
+                "secret inner text")), "application/zip");
+
+        assertThat(markdown(pages).toString()).excludes("secret inner text");
+    }
+
+    @Test
+    public void test_a_pdfs_bookmarks_and_form_fields_land_on_its_last_page() throws Exception {
+        // Tika appends both after the last page div. They belong to no page in particular, and the
+        // page count stays the PDF's, so they ride on the last page rather than being dropped.
+        List<Page> pages = extractor.extract(new ByteArrayInputStream(pdfWithOutlineAndForm()), "application/pdf");
+
+        assertThat(pages).hasSize(2);
+        assertThat(pages.get(0).markdown()).isEqualTo("Body on page 1.");
+        assertThat(pages.get(1).markdown()).contains("Body on page 2.");
+        assertThat(pages.get(1).markdown()).contains("OutlineEntry1");
+        assertThat(pages.get(1).markdown()).contains("FormFieldValue");
+    }
+
+    @Test
+    public void test_parse_context_disables_ocr_for_both_pdf_and_standalone_images() {
+        ParseContext context = StructureMarkdownExtractor.buildParseContext();
+
+        assertThat(context.get(PDFParserConfig.class).getOcrStrategy())
+                .isEqualTo(PDFParserConfig.OCR_STRATEGY.NO_OCR);
+        assertThat(context.get(TesseractOCRConfig.class).isSkipOcr()).isTrue();
+    }
+
+    @Test
+    public void test_generic_content_type_hint_is_ignored() throws Exception {
+        // application/octet-stream is what embedded nodes often carry; passing it as a hint would
+        // mislead Tika's detection, so it must be dropped and the bytes detected instead.
+        List<Page> pages = extractor.extract(
+                stream("<html><body><h1>Detected</h1></body></html>"), "application/octet-stream");
+        assertThat(pages.get(0).markdown()).contains("# Detected");
+    }
+
+    private byte[] zipContaining(String entryName, String content) throws Exception {
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        try (ZipOutputStream zip = new ZipOutputStream(out)) {
+            zip.putNextEntry(new ZipEntry(entryName));
+            zip.write(content.getBytes(StandardCharsets.UTF_8));
+            zip.closeEntry();
+        }
+        return out.toByteArray();
+    }
+
+    private byte[] twoPagePdf() throws Exception {
+        try (PDDocument doc = new PDDocument(); ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            addTwoPages(doc);
+            doc.save(out);
+            return out.toByteArray();
+        }
+    }
+
+    // The same two pages plus the two document-level sections Tika renders outside every page div: a
+    // bookmark outline and an AcroForm text field.
+    private byte[] pdfWithOutlineAndForm() throws Exception {
+        try (PDDocument doc = new PDDocument(); ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            addTwoPages(doc);
+            PDDocumentOutline outline = new PDDocumentOutline();
+            doc.getDocumentCatalog().setDocumentOutline(outline);
+            for (int p = 0; p < doc.getNumberOfPages(); p++) {
+                PDPageFitDestination destination = new PDPageFitDestination();
+                destination.setPage(doc.getPage(p));
+                PDActionGoTo action = new PDActionGoTo();
+                action.setDestination(destination);
+                PDOutlineItem item = new PDOutlineItem();
+                item.setTitle("OutlineEntry" + (p + 1));
+                item.setAction(action);
+                outline.addLast(item);
+            }
+            PDAcroForm acroForm = new PDAcroForm(doc);
+            acroForm.setDefaultResources(new PDResources());
+            doc.getDocumentCatalog().setAcroForm(acroForm);
+            PDTextField field = new PDTextField(acroForm);
+            field.setPartialName("FormFieldName");
+            // the value straight into the COS dictionary: setValue() would need an appearance stream
+            field.getCOSObject().setString(COSName.V, "FormFieldValue");
+            acroForm.getFields().add(field);
+            doc.save(out);
+            return out.toByteArray();
+        }
+    }
+
+    private void addTwoPages(PDDocument doc) throws Exception {
+        for (int p = 1; p <= 2; p++) {
+            PDPage page = new PDPage();
+            doc.addPage(page);
+            try (PDPageContentStream cs = new PDPageContentStream(doc, page)) {
+                cs.beginText();
+                cs.setFont(new PDType1Font(Standard14Fonts.FontName.HELVETICA), 12);
+                cs.newLineAtOffset(72, 700);
+                cs.showText("Body on page " + p + ".");
+                cs.endText();
+            }
+        }
+    }
+}
