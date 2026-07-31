@@ -1,7 +1,8 @@
 package org.icij.datashare.text.artifact;
 
-import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.collect.MapMaker;
 import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.text.indexing.elasticsearch.ArtifactPath;
@@ -11,8 +12,6 @@ import java.nio.channels.FileChannel;
 import java.nio.channels.FileLock;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.LinkedHashMap;
-import java.util.Map;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -27,7 +26,6 @@ public class FilesystemManifestRepository implements ManifestRepository {
     private static final String LOCK_FILE = ArtifactPath.MANIFEST_FILE + ".lock";
     private static final long LOCK_TIMEOUT_MS = 30_000;
     private static final ObjectMapper MAPPER = JsonObjectMapper.getMapper();
-    private static final TypeReference<LinkedHashMap<String, ManifestEntry>> MANIFEST_TYPE = new TypeReference<>() {};
     // Weak values, because this is keyed per document and hit once per indexed document: a strong map
     // would keep one entry per document ever processed for the life of the JVM. A lock a thread holds
     // is kept alive by that thread's own reference to it, so one dir still maps to one lock for as long
@@ -42,7 +40,8 @@ public class FilesystemManifestRepository implements ManifestRepository {
         if (!Files.exists(manifest)) {
             return null;
         }
-        return read(manifest).get(type);
+        JsonNode entry = read(manifest).get(type);
+        return entry == null ? null : MAPPER.treeToValue(entry, ManifestEntry.class);
     }
 
     @Override
@@ -85,14 +84,14 @@ public class FilesystemManifestRepository implements ManifestRepository {
     // offsets of a docling payload are the only copy there is).
     private void mergeEntryIntoManifest(Path docArtifactDir, String type, ManifestEntry entry) throws IOException {
         Path manifest = docArtifactDir.resolve(ArtifactPath.MANIFEST_FILE);
-        Map<String, ManifestEntry> currentEntries = Files.exists(manifest) ? read(manifest) : new LinkedHashMap<>();
-        currentEntries.put(type, entry);
+        ObjectNode currentEntries = Files.exists(manifest) ? read(manifest) : MAPPER.createObjectNode();
+        currentEntries.set(type, MAPPER.valueToTree(entry));
         writeAtomically(manifest, currentEntries);
     }
 
     // Swap the manifest in via a temp file + atomic rename, so a concurrent reader never
     // observes a half-written file.
-    private void writeAtomically(Path manifest, Map<String, ManifestEntry> entries) throws IOException {
+    private void writeAtomically(Path manifest, ObjectNode entries) throws IOException {
         Path temporaryManifest = manifest.resolveSibling(ArtifactPath.MANIFEST_FILE + ".tmp");
         Files.write(temporaryManifest, MAPPER.writerWithDefaultPrettyPrinter().writeValueAsBytes(entries));
         Files.move(temporaryManifest, manifest, ATOMIC_MOVE, REPLACE_EXISTING);
@@ -102,8 +101,12 @@ public class FilesystemManifestRepository implements ManifestRepository {
         return JVM_LOCKS.computeIfAbsent(docArtifactDir.toAbsolutePath().toString(), key -> new ReentrantLock());
     }
 
-    private Map<String, ManifestEntry> read(Path manifest) throws IOException {
-        return MAPPER.readValue(Files.readAllBytes(manifest), MANIFEST_TYPE);
+    private ObjectNode read(Path manifest) throws IOException {
+        JsonNode root = MAPPER.readTree(Files.readAllBytes(manifest));
+        if (!root.isObject()) {
+            throw new IOException(manifest + " is not a JSON object");
+        }
+        return (ObjectNode) root;
     }
 
     // Spin-retry rather than block forever: a stale cross-process lock (e.g. a crashed peer)
