@@ -11,7 +11,7 @@ import java.util.List;
 /** Records the raw manifest entry for a document indexed during the INDEX stage, without
  *  re-extracting: extract-lib already wrote the raw bytes during the parse, so this only writes
  *  or updates manifest.json. It produces the same entry the ARTIFACT stage would, because both go
- *  through {@link RawArtifact#entryFor} and {@link ArtifactProducer#stampTerminal}.
+ *  through {@link RawArtifact#entryFor} and {@link ManifestEntry#withTerminalStatus}.
  *
  *  <p>INDEX-time recording only records artifact types whose payload extract-lib materializes
  *  during the streaming parse, which today is {@link ArtifactType#RAW}. Any other selected type is
@@ -37,8 +37,11 @@ public class ManifestRecorder {
             return;
         }
         Path docArtifactDir = ArtifactPath.dir(projectRoot, document.getId());
-        if (!force && ArtifactProducer.entryIsCurrent(repository.get(docArtifactDir, ArtifactType.RAW.token()), raw.taskInput())) {
-            return;
+        if (!force) {
+            ManifestEntry existing = repository.get(docArtifactDir, ArtifactType.RAW.token());
+            if (existing != null && existing.isCurrentFor(raw.taskInput())) {
+                return;
+            }
         }
         // For an embedded node, only record a COMPLETE entry once its raw payload is
         // actually on disk (written by extract-lib during the parse). Otherwise skip, so a later
@@ -47,6 +50,6 @@ public class ManifestRecorder {
         if (document.getExtractionLevel() > 0 && !Files.exists(docArtifactDir.resolve(ArtifactPath.RAW_FILE))) {
             return;
         }
-        repository.put(docArtifactDir, ArtifactType.RAW.token(), ArtifactProducer.stampTerminal(raw.entryFor(document)));
+        repository.put(docArtifactDir, ArtifactType.RAW.token(), raw.entryFor(document).withTerminalStatus());
     }
 }

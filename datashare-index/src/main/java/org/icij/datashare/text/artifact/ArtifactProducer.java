@@ -49,7 +49,7 @@ public class ArtifactProducer {
             ManifestEntry produced = artifact.produce(context);
             // put() holds the per-doc write lock while it merges the entry, so the recorded manifest
             // stays consistent (and cross-process/host safe) with the payload just written.
-            repository.put(context.docArtifactDir(), type.token(), stampTerminal(produced));
+            repository.put(context.docArtifactDir(), type.token(), produced.withTerminalStatus());
             return true;
         } catch (ArtifactException | IOException failure) {
             LOGGER.error("failed to produce artifact '{}' for document {}", type.token(), context.document().getId(), failure);
@@ -57,23 +57,8 @@ public class ArtifactProducer {
         }
     }
 
-    // Producers return EMPTY as-is; any other (status-less) entry is stamped COMPLETE only after
-    // its payload has been written, so a crash mid-produce never leaves a "ready" lie.
-    static ManifestEntry stampTerminal(ManifestEntry produced) {
-        return produced.isTerminal() ? produced : produced.withStatus(ManifestEntryStatus.COMPLETE);
-    }
-
-    // An artifact is current when a terminal entry (COMPLETE or EMPTY) already exists and was
-    // produced with the exact same task input (config + version) as this run; only then is
-    // regeneration skipped.
     private boolean isCurrent(ArtifactType type, Artifact artifact, ArtifactContext context) throws IOException {
         ManifestEntry existing = repository.get(context.docArtifactDir(), type.token());
-        return entryIsCurrent(existing, artifact.taskInput());
-    }
-
-    // Shared with the INDEX-time ManifestRecorder. Compares from the always-non-null taskInput side so
-    // an entry with an absent taskInput does not NPE.
-    static boolean entryIsCurrent(ManifestEntry existing, Map<String, Object> taskInput) {
-        return existing != null && existing.isTerminal() && taskInput.equals(existing.taskInput());
+        return existing != null && existing.isCurrentFor(artifact.taskInput());
     }
 }
