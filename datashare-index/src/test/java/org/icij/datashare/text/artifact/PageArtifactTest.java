@@ -82,10 +82,13 @@ public class PageArtifactTest {
     }
 
     private ArtifactContext rootContext(Path source) {
+        return rootContext(source, "application/pdf");
+    }
+
+    private ArtifactContext rootContext(Path source, String contentType) {
         Document doc = createDoc("6abb96950946b62bb993307c8945c0c096982783bab7fa24901522426840ca3e")
-                .with(source).ofContentType("application/pdf").build();
-        Path docArtifactDir = dir.getRoot().toPath().resolve("docdir");
-        return new ArtifactContext(project, doc, docArtifactDir, mock(SourceExtractor.class));
+                .with(source).ofContentType(contentType).build();
+        return new ArtifactContext(project, doc, dir.getRoot().toPath().resolve("docdir"), mock(SourceExtractor.class));
     }
 
     private Path contentTxt(ArtifactContext context) {
@@ -198,6 +201,21 @@ public class PageArtifactTest {
         } catch (ArtifactException expected) {
             assertThat(expected.getMessage()).contains(context.document().getId());
         }
+        assertThat(Files.exists(ArtifactPath.pagesDir(context.docArtifactDir()))).isFalse();
+    }
+
+    @Test
+    public void test_a_document_with_no_pages_is_recorded_as_empty_with_no_payload() throws Exception {
+        Path txt = dir.getRoot().toPath().resolve("note.txt");
+        Files.writeString(txt, "one line, no page divs");
+        ArtifactContext context = rootContext(txt, "text/plain");
+
+        ManifestEntry entry = new PageArtifact(new PropertiesProvider()).produce(context);
+
+        assertThat(entry.status()).isEqualTo(ManifestEntryStatus.EMPTY);
+        assertThat(entry.isTerminal()).isTrue();
+        assertThat(entry.pages()).isNull();
+        assertThat(entry.taskInput().get("pipeline")).isEqualTo("tika");
         assertThat(Files.exists(ArtifactPath.pagesDir(context.docArtifactDir()))).isFalse();
     }
 }
