@@ -91,4 +91,18 @@ public class ManifestEntryTest {
     public void test_an_entry_with_no_pages_object_has_no_page_attributes() throws Exception {
         assertThat(mapper.readValue("{\"status\":\"complete\"}", ManifestEntry.class).pages()).isNull();
     }
+
+    @Test
+    public void test_convenience_predicates_are_not_serialized() throws Exception {
+        ManifestEntry entry = ManifestEntry.paginated(Map.of("pipeline", "tika"), 2)
+                .withStatus(ManifestEntryStatus.COMPLETE);
+
+        String json = mapper.writeValueAsString(entry);
+
+        // The colon matters: the serialized entry legitimately contains the VALUE "complete" as its
+        // status, so excluding the bare quoted word could never pass. What must be absent is a
+        // FIELD named complete or terminal.
+        assertThat(json).excludes("\"complete\":").excludes("\"terminal\":");
+        assertThat(json).contains("\"status\":\"complete\"");
+    }
 }

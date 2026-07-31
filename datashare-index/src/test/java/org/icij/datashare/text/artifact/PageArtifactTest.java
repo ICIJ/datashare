@@ -283,6 +283,8 @@ public class PageArtifactTest {
         assertThat(entry.get("taskInput").get("ocr").asBoolean()).isTrue();
         assertThat(entry.has("contentType")).isFalse();
         assertThat(entry.has("filename")).isFalse();
+        assertThat(entry.has("complete")).isFalse();
+        assertThat(entry.has("terminal")).isFalse();
     }
 
     @Test
