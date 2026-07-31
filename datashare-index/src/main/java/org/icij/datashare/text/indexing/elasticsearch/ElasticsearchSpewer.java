@@ -113,7 +113,8 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
     private final Hasher digestAlgorithm;
     private final DocumentQueue<String> outputQueue;
     public String indexName;
-    private ManifestRecorder manifestRecorder;
+    // volatile: set by the task thread before the pipeline starts, read by every consumer thread
+    private volatile ManifestRecorder manifestRecorder;
 
     @Inject
     public ElasticsearchSpewer(final Indexer indexer, DocumentCollectionFactory<String> outputQueueFactory, LanguageGuesser languageGuesser, final FieldNames fields,
