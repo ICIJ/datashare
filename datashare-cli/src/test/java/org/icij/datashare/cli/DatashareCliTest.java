@@ -375,9 +375,23 @@ public class DatashareCliTest {
         cli.parseArguments(new String[] {"-s", settings.toString()});
 
         // parallelism declares a default (DEFAULT_PARALLELISM). The operator never typed the option,
-        // so it must not shadow the settings file: leaving the key out lets the settings value stand
-        // once CommonMode folds the file in.
-        assertThat(cli.properties.getProperty("parallelism")).isNull();
+        // so the settings value must be the one that lands in the properties, not that default.
+        assertThat(cli.properties).includes(entry("parallelism", "42"));
+    }
+
+    @Test
+    public void test_a_settings_value_is_substituted_not_dropped() throws IOException {
+        // Regression guard for the stranding this replaced: several consumers read these raw
+        // properties without CommonMode's settings fold-in, so an absent key silently falls through
+        // to an unrelated fallback. logLevel is the sharp case: Main.startApplication does
+        // Level.toLevel(getProperty("logLevel")), and Level.toLevel(null) is DEBUG, not the INFO
+        // default. pluginsDir/extensionsDir would drop to cwd-relative ./plugins and ./extensions.
+        Path settings = settingsFile("logLevel=WARN\npluginsDir=/opt/ds/plugins\n");
+
+        cli.parseArguments(new String[] {"-s", settings.toString()});
+
+        assertThat(cli.properties).includes(entry("logLevel", "WARN"));
+        assertThat(cli.properties).includes(entry("pluginsDir", "/opt/ds/plugins"));
     }
 
     @Test
@@ -398,13 +412,13 @@ public class DatashareCliTest {
     }
 
     @Test
-    public void test_a_settings_file_only_suppresses_the_defaults_it_defines() throws IOException {
+    public void test_a_settings_file_only_overrides_the_defaults_it_defines() throws IOException {
         Path settings = settingsFile("artifactsForce=true\n");
 
         cli.parseArguments(new String[] {"-s", settings.toString()});
 
-        // a key the file does not mention keeps its default
-        assertThat(cli.properties.getProperty("parallelism")).isNotNull();
+        // a key the file does not mention keeps its declared default
+        assertThat(cli.properties).includes(entry("parallelism", String.valueOf(DEFAULT_PARALLELISM)));
     }
 
     private Path settingsFile(String content) throws IOException {

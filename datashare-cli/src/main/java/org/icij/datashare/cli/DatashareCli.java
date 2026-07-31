@@ -234,10 +234,13 @@ public class DatashareCli {
                 continue;
             }
             String key = asPropertyKey(prefix, spec);
-            // An option the operator did not type carries only its declared default. Emitting it would
-            // shadow the settings file, which sits below the CLI properties in CommonMode. Leaving the
-            // key out is what lets the file value stand.
             if (!options.has(spec) && settings.containsKey(key)) {
+                // The operator did not type this option and their settings file defines it: the file
+                // wins over the declared default. Substitute rather than omit. Several consumers read
+                // these raw properties without CommonMode's settings fold-in (Main.startApplication for
+                // logLevel, CliApp.start for pluginsDir/extensionsDir) and would otherwise silently drop
+                // to their own unrelated fallback.
+                properties.setProperty(key, settings.getProperty(key));
                 continue;
             }
             properties.setProperty(key, asPropertyValue(entry.getValue()));
