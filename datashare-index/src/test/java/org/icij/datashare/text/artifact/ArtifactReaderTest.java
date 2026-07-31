@@ -169,11 +169,42 @@ public class ArtifactReaderTest {
     }
 
     @Test
-    public void test_page_is_null_when_manifest_advertises_more_ranges_than_exist() throws Exception {
-        Path node = withByteRanges("content", "txt", new long[]{0, 7});
+    public void test_page_is_null_when_total_exceeds_range_list_size() throws Exception {
+        Path node = dir.getRoot().toPath();
+        Files.createDirectories(ArtifactPath.payloadDir(node, ArtifactType.PAGE));
+        Files.writeString(ArtifactPath.payloadContent(node, ArtifactType.PAGE, "txt"), "01234567");
+        // total=3 with only 2 ranges: page 3 passes page > total guard but fails ranges.size() < page
+        manifests.put(node, ArtifactType.PAGE.token(),
+                ManifestEntry.paginated(Map.of(), Pagination.byteRanges(3, List.of(new long[]{0, 4}, new long[]{4, 8})))
+                        .withStatus(ManifestEntryStatus.COMPLETE));
         ManifestEntry entry = reader.servableEntry(node, ArtifactType.PAGE);
-        // Manifest says 3 pages but only 1 range exists; request page 2
-        assertThat(reader.page(node, ArtifactType.PAGE, entry, 2, "txt")).isNull();
+        assertThat(reader.page(node, ArtifactType.PAGE, entry, 3, "txt")).isNull();
+    }
+
+    @Test
+    public void test_page_is_null_when_byte_ranges_list_is_null() throws Exception {
+        Path node = dir.getRoot().toPath();
+        Files.createDirectories(ArtifactPath.payloadDir(node, ArtifactType.PAGE));
+        Files.writeString(ArtifactPath.payloadContent(node, ArtifactType.PAGE, "txt"), "content");
+        // Entry with type="byteRanges" but null byteRanges list (legitimately deserialized when field absent)
+        manifests.put(node, ArtifactType.PAGE.token(),
+                ManifestEntry.paginated(Map.of(), new Pagination("byteRanges", 1, null))
+                        .withStatus(ManifestEntryStatus.COMPLETE));
+        ManifestEntry entry = reader.servableEntry(node, ArtifactType.PAGE);
+        assertThat(reader.page(node, ArtifactType.PAGE, entry, 1, "txt")).isNull();
+    }
+
+    @Test
+    public void test_page_is_null_when_range_is_malformed_wrong_length() throws Exception {
+        Path node = dir.getRoot().toPath();
+        Files.createDirectories(ArtifactPath.payloadDir(node, ArtifactType.PAGE));
+        Files.writeString(ArtifactPath.payloadContent(node, ArtifactType.PAGE, "txt"), "content");
+        // Range with length 1 instead of 2
+        manifests.put(node, ArtifactType.PAGE.token(),
+                ManifestEntry.paginated(Map.of(), Pagination.byteRanges(1, List.of(new long[]{0})))
+                        .withStatus(ManifestEntryStatus.COMPLETE));
+        ManifestEntry entry = reader.servableEntry(node, ArtifactType.PAGE);
+        assertThat(reader.page(node, ArtifactType.PAGE, entry, 1, "txt")).isNull();
     }
 
     @Test
