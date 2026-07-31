@@ -1,5 +1,6 @@
 package org.icij.datashare.text.artifact;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import java.util.List;
 import java.util.Map;
@@ -54,10 +55,14 @@ public record ManifestEntry(
         return isTerminal() && taskInput.equals(this.taskInput);
     }
 
+    /** Convenience predicate for callers, not part of the stored shape: the convention's entry
+     *  carries `status`, and Jackson would otherwise write this getter as a `complete` field. */
+    @JsonIgnore
     public boolean isComplete() {
         return status != null && status.isServable();
     }
 
+    @JsonIgnore
     public boolean isTerminal() {
         return status != null && status.isTerminal();
     }
