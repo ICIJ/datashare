@@ -15,13 +15,10 @@ import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import net.codestory.http.Context;
 import net.codestory.http.annotations.*;
-import net.codestory.http.constants.HttpStatus;
 import net.codestory.http.errors.ForbiddenException;
 
-import static net.codestory.http.constants.Headers.CONTENT_LENGTH;
 import static org.icij.datashare.web.errors.ForbiddenException.requireGranted;
 import net.codestory.http.payload.Payload;
-import net.codestory.http.types.ContentTypes;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Repository;
 import org.icij.datashare.Repository.AggregateList;
@@ -32,24 +29,18 @@ import org.icij.datashare.text.artifact.PageArtifact;
 import org.icij.datashare.text.indexing.ExtractedText;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.text.indexing.SearchedText;
-import org.icij.datashare.text.indexing.elasticsearch.SourceExtractor;
 import org.icij.datashare.user.User;
-import org.icij.datashare.utils.DocumentVerifier;
-import org.icij.datashare.utils.PayloadFormatter;
+import org.icij.datashare.utils.DocumentSourceAccess;
 import org.icij.extract.document.DocumentFactory;
-import org.icij.extract.extractor.EmbeddedDocumentExtractor;
 import org.icij.extract.extractor.Extractor;
 import org.icij.extract.extractor.PageIndices;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.InputStream;
 import java.nio.file.Path;
 import java.util.*;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static java.lang.Boolean.parseBoolean;
@@ -57,7 +48,6 @@ import static java.util.Arrays.stream;
 import static java.util.Optional.ofNullable;
 import static net.codestory.http.errors.NotFoundException.notFoundIfNull;
 import static net.codestory.http.payload.Payload.ok;
-import static org.icij.datashare.text.Project.isAllowed;
 import static org.icij.datashare.text.Project.project;
 
 @Singleton
@@ -67,14 +57,14 @@ public class DocumentResource {
     private final Repository repository;
     private final Indexer indexer;
     private final PropertiesProvider propertiesProvider;
-    private final DocumentVerifier documentVerifier;
+    private final DocumentSourceAccess sources;
 
     @Inject
     public DocumentResource(Repository repository, Indexer indexer, PropertiesProvider propertiesProvider) {
         this.repository = repository;
         this.indexer = indexer;
         this.propertiesProvider = propertiesProvider;
-        this.documentVerifier = new DocumentVerifier(indexer, propertiesProvider);
+        this.sources = new DocumentSourceAccess(repository, indexer, propertiesProvider);
     }
 
     @Operation(description = "Fetches original datashare document json.",
@@ -109,8 +99,8 @@ public class DocumentResource {
     public Payload getSourceFile(final String project, final String id,
                                  final String routing, final String filterMetadata, final Context context) throws IOException {
         boolean inline = context.request().query().getBoolean("inline");
-        return sourceFile(project, id, routing, context,
-                document -> getPayload(document, project, inline, parseBoolean(filterMetadata)));
+        return sources.gated(project, id, routing, context,
+                document -> sources.source(document, project, inline, parseBoolean(filterMetadata)));
     }
 
     @Operation(description = "Tells whether the source of a document can be downloaded, without transferring it. Same decision as GET on the same route (permissions, existence, and the embedded-document size limit), so clients don't have to reimplement the rule.",
@@ -129,26 +119,8 @@ public class DocumentResource {
     // (currently 3 vs 4, "filter_metadata" is GET-only) or GET starts silently handling HEAD again.
     @Head("/:project/documents/src/:id?routing=:routing")
     public Payload headSourceFile(final String project, final String id, final String routing, final Context context) {
-        return sourceFile(project, id, routing, context,
-                document -> documentVerifier.isSourceAvailable(document, project(project)) ? ok() : Payload.notFound());
-    }
-
-    // Single decision for both verbs of the source route: GET serves the bytes, HEAD serves the
-    // verdict alone. Keeping them on one path is what stops the two from drifting apart, which is
-    // exactly how the frontend ended up reimplementing the size rule in the first place.
-    private Payload sourceFile(final String project, final String id, final String routing,
-                               final Context context, final Function<Document, Payload> whenAllowed) {
-        boolean isProjectGranted = ((DatashareUser) context.currentUser()).isGranted(project);
-        boolean isDownloadAllowed = isAllowed(repository.getProject(project), context.request().clientAddress());
-        if (!isProjectGranted || !isDownloadAllowed) {
-            return PayloadFormatter.error("You are not allowed to download this document", HttpStatus.FORBIDDEN);
-        }
-        List<String> sourceExcludes = List.of("content", "content_translated");
-        Document document = notFoundIfNull(indexer.get(project, id, routing == null ? id : routing, sourceExcludes));
-        if (!documentVerifier.isRootDocumentSizeAllowed(document, project(project))) {
-            return PayloadFormatter.error("The file or its parent is too large", HttpStatus.REQUEST_ENTITY_TOO_LARGE);
-        }
-        return whenAllowed.apply(document);
+        return sources.gated(project, id, routing, context,
+                document -> sources.isSourceAvailable(document, project(project)) ? ok() : Payload.notFound());
     }
 
     @Operation(description = "Fetches extracted text by slice (pagination)",
@@ -540,28 +512,6 @@ public class DocumentResource {
         }
         // targetLanguage not found
         throw new IllegalArgumentException("Target language not found");
-    }
-
-    private Payload getPayload(Document doc, String index, boolean inline, boolean filterMetadata) {
-        try {
-            InputStream from = new SourceExtractor(propertiesProvider, filterMetadata).getSource(project(index), doc);
-            String contentType = ofNullable(doc.getContentType()).orElse(ContentTypes.get(doc.getPath().toFile().getName()));
-            // OCR-routed embedded images are stored with a synthetic "image/ocr-<fmt>" content type
-            // (the "ocr-" prefix routes them through the OCR parser). Serve the real media type so the
-            // Content-Type header and the download filename extension are correct (otherwise ".bin").
-            if (contentType != null && contentType.startsWith("image/ocr-")) {
-                contentType = "image/" + contentType.substring("image/ocr-".length());
-            }
-            Payload payload =  new Payload(contentType, from);
-            if(!filterMetadata && doc.getContentLength() > 0) {
-                payload.withHeader(CONTENT_LENGTH, String.valueOf(doc.getContentLength()));
-            }
-            String fileName = doc.isRootDocument() ? doc.getName(): doc.getId().substring(0, 10) + "." + FileExtension.get(contentType);
-            return inline ? payload: payload.withHeader("Content-Disposition", "attachment;filename=\"" + fileName + "\"");
-        } catch (FileNotFoundException | EmbeddedDocumentExtractor.ContentNotFoundException fnf) {
-            logger.error("unable to read document source file", fnf);
-            return Payload.notFound();
-        }
     }
 
     private static class BatchTagQuery {
