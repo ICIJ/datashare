@@ -9,6 +9,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import net.codestory.http.Context;
 import net.codestory.http.annotations.Get;
 import net.codestory.http.annotations.Prefix;
+import net.codestory.http.constants.HttpStatus;
 import net.codestory.http.payload.Payload;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.cli.DatashareCliOptions;
@@ -38,6 +39,14 @@ import static org.icij.datashare.web.errors.ForbiddenException.requireGranted;
 @Singleton
 @Prefix("/api")
 public class ArtifactResource {
+    // Extensions are fixed by type (convention §71). The map is the ?format= whitelist and content-type
+    // lookup; the list is the order of record for disk probing and for the error message, because
+    // Map.of has no defined iteration order.
+    private static final Map<String, String> STRUCTURE_CONTENT_TYPES = Map.of(
+            "md", "text/markdown;charset=UTF-8",
+            "xhtml", "application/xhtml+xml;charset=UTF-8");
+    private static final List<String> STRUCTURE_FORMATS = List.of("md", "xhtml");
+
     private final Indexer indexer;
     private final PropertiesProvider propertiesProvider;
     private final DocumentSourceAccess sources;
@@ -80,6 +89,53 @@ public class ArtifactResource {
     public Payload pageContent(final String project, final String id, final String page,
                                final String routing, final Context context) throws IOException {
         return payload(project, id, page, routing, context, ArtifactType.PAGE, "txt", "text/plain;charset=UTF-8");
+    }
+
+    @Operation(description = "Fetches the number of structure pages for a document and the formats available on disk.",
+            parameters = {
+                    @Parameter(name = "project", description = "the project id", in = ParameterIn.PATH),
+                    @Parameter(name = "id", description = "the document id", in = ParameterIn.PATH),
+                    @Parameter(name = "routing", description = "routing key if not a root document", in = ParameterIn.QUERY)
+            }
+    )
+    @ApiResponse(responseCode = "200", description = "JSON {\"pages\": N, \"formats\": [\"md\", \"xhtml\"]}")
+    @ApiResponse(responseCode = "403", description = "forbidden if the user doesn't have access to the project")
+    @ApiResponse(responseCode = "404", description = "if the document, artifactDir, or a complete structure artifact is not found")
+    @Get("/:project/artifacts/structure/:id?routing=:routing")
+    public Payload structureManifest(final String project, final String id, final String routing, final Context context) throws IOException {
+        return manifest(project, id, routing, context, ArtifactType.STRUCTURE, STRUCTURE_FORMATS);
+    }
+
+    @Operation(description = "Fetches one structure page of a document, as Markdown (default) or XHTML.",
+            parameters = {
+                    @Parameter(name = "project", description = "the project id", in = ParameterIn.PATH),
+                    @Parameter(name = "id", description = "the document id", in = ParameterIn.PATH),
+                    @Parameter(name = "page", description = "1-based page number", in = ParameterIn.PATH),
+                    @Parameter(name = "routing", description = "routing key if not a root document", in = ParameterIn.QUERY),
+                    @Parameter(name = "format", description = "md (default) or xhtml", in = ParameterIn.QUERY)
+            }
+    )
+    @ApiResponse(responseCode = "200", description = "the page as text/markdown or application/xhtml+xml")
+    @ApiResponse(responseCode = "400", description = "if format is not one of md, xhtml")
+    @ApiResponse(responseCode = "403", description = "forbidden if the user doesn't have access to the project")
+    @ApiResponse(responseCode = "404", description = "if the document, the artifact, the page, or that format is not found")
+    @Get("/:project/artifacts/structure/:id/:page?routing=:routing&format=:format")
+    public Payload structurePage(final String project, final String id, final String page, final String routing,
+                                 final String format, final Context context) throws IOException {
+        String extension = ofNullable(format).filter(value -> !value.isBlank()).orElse("md");
+        String contentType = STRUCTURE_CONTENT_TYPES.get(extension);
+        if (contentType == null) {
+            // A bad format is a request error: 404 on this route means "no such page".
+            return PayloadFormatter.error("unsupported format '" + extension + "'; supported formats: "
+                    + String.join(", ", STRUCTURE_FORMATS), HttpStatus.BAD_REQUEST);
+        }
+        Payload payload = payload(project, id, page, routing, context, ArtifactType.STRUCTURE, extension, contentType);
+        // The on-disk XHTML is written pre-sanitized by the structure producer; these headers are
+        // the serving side's defense in depth for a payload written by another producer.
+        return "xhtml".equals(extension)
+                ? payload.withHeader("Content-Security-Policy", "default-src 'none'; sandbox")
+                        .withHeader("X-Content-Type-Options", "nosniff")
+                : payload;
     }
 
     // Resolves the content-addressed dir of a granted, existing document. Returns null when the

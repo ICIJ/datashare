@@ -88,7 +88,9 @@ public class ArtifactResourceTest extends AbstractProdWebServerTest {
 
     @Test
     public void test_page_manifest_not_found_when_artifact_dir_unset() throws Exception {
-        indexedDocDir(DIGEST);
+        Path docDir = indexedDocDir(DIGEST);
+        writePages(docDir, "txt", "page one");
+        writeManifest(docDir, filesystemManifest("page", 1));
         when(propertiesProvider.get(ARTIFACT_DIR_OPT)).thenReturn(Optional.empty());
         get("/api/local-datashare/artifacts/page/" + DIGEST).should().respond(404);
     }
@@ -109,7 +111,22 @@ public class ArtifactResourceTest extends AbstractProdWebServerTest {
     @Test
     public void test_page_manifest_not_found_when_entry_is_empty() throws Exception {
         Path docDir = indexedDocDir(DIGEST);
-        writeManifest(docDir, "{\"page\": {\"status\": \"empty\", \"taskInput\": {}}}");
+        writeManifest(docDir, "{\"page\": {\"status\": \"empty\", \"taskInput\": {},"
+                + " \"pagination\": {\"type\": \"filesystem\", \"total\": 2}}}");
+        get("/api/local-datashare/artifacts/page/" + DIGEST).should().respond(404);
+    }
+
+    @Test
+    public void test_page_manifest_not_found_when_manifest_json_is_malformed() throws Exception {
+        Path docDir = indexedDocDir(DIGEST);
+        writeManifest(docDir, "{not valid json");
+        get("/api/local-datashare/artifacts/page/" + DIGEST).should().respond(404);
+    }
+
+    @Test
+    public void test_page_manifest_not_found_when_status_is_unknown() throws Exception {
+        Path docDir = indexedDocDir(DIGEST);
+        writeManifest(docDir, "{\"page\": {\"status\": \"bogus\", \"taskInput\": {}}}");
         get("/api/local-datashare/artifacts/page/" + DIGEST).should().respond(404);
     }
 
@@ -148,5 +165,76 @@ public class ArtifactResourceTest extends AbstractProdWebServerTest {
         writeManifest(docDir, filesystemManifest("page", 3));
         get("/api/local-datashare/artifacts/page/" + DIGEST).should().contain("\"pages\":3");
         get("/api/local-datashare/artifacts/page/" + DIGEST + "/3").should().respond(404);
+    }
+
+    private void writeStructurePages(Path docDir, String extension, String... pages) throws Exception {
+        Path structureDir = docDir.resolve("structure");
+        Files.createDirectories(structureDir);
+        for (int page = 1; page <= pages.length; page++) {
+            Files.writeString(structureDir.resolve(String.format("page-%04d.%s", page, extension)), pages[page - 1]);
+        }
+    }
+
+    @Test
+    public void test_structure_manifest_lists_the_formats_on_disk() throws Exception {
+        Path docDir = indexedDocDir(DIGEST);
+        writeStructurePages(docDir, "md", "# one", "# two");
+        writeStructurePages(docDir, "xhtml", "<html><body>one</body></html>", "<html><body>two</body></html>");
+        writeManifest(docDir, filesystemManifest("structure", 2));
+        get("/api/local-datashare/artifacts/structure/" + DIGEST).should()
+                .respond(200).contain("\"pages\":2").contain("\"md\"").contain("\"xhtml\"");
+    }
+
+    @Test
+    public void test_structure_manifest_omits_a_format_absent_from_disk() throws Exception {
+        Path docDir = indexedDocDir(DIGEST);
+        writeStructurePages(docDir, "md", "# one");
+        writeManifest(docDir, filesystemManifest("structure", 1));
+        get("/api/local-datashare/artifacts/structure/" + DIGEST).should()
+                .respond(200).contain("\"formats\":[\"md\"]");
+    }
+
+    @Test
+    public void test_structure_page_defaults_to_markdown() throws Exception {
+        Path docDir = indexedDocDir(DIGEST);
+        writeStructurePages(docDir, "md", "# one", "# two");
+        writeManifest(docDir, filesystemManifest("structure", 2));
+        get("/api/local-datashare/artifacts/structure/" + DIGEST + "/2").should()
+                .respond(200).haveType("text/markdown;charset=UTF-8").contain("# two");
+    }
+
+    @Test
+    public void test_structure_page_serves_xhtml_with_hardening_headers() throws Exception {
+        Path docDir = indexedDocDir(DIGEST);
+        writeStructurePages(docDir, "xhtml", "<html><body>one</body></html>");
+        writeManifest(docDir, filesystemManifest("structure", 1));
+        get("/api/local-datashare/artifacts/structure/" + DIGEST + "/1?format=xhtml").should()
+                .respond(200)
+                .haveType("application/xhtml+xml;charset=UTF-8")
+                .haveHeader("Content-Security-Policy", "default-src 'none'; sandbox")
+                .haveHeader("X-Content-Type-Options", "nosniff");
+    }
+
+    @Test
+    public void test_structure_page_rejects_an_unsupported_format() throws Exception {
+        Path docDir = indexedDocDir(DIGEST);
+        writeStructurePages(docDir, "md", "# one");
+        writeManifest(docDir, filesystemManifest("structure", 1));
+        get("/api/local-datashare/artifacts/structure/" + DIGEST + "/1?format=pdf").should()
+                .respond(400).contain("md").contain("xhtml");
+    }
+
+    @Test
+    public void test_structure_page_not_found_for_a_format_absent_on_disk() throws Exception {
+        Path docDir = indexedDocDir(DIGEST);
+        writeStructurePages(docDir, "md", "# one");
+        writeManifest(docDir, filesystemManifest("structure", 1));
+        get("/api/local-datashare/artifacts/structure/" + DIGEST + "/1?format=xhtml").should().respond(404);
+    }
+
+    @Test
+    public void test_structure_forbidden_for_non_member_project() {
+        get("/api/foo_index/artifacts/structure/" + DIGEST).should().respond(403);
+        get("/api/foo_index/artifacts/structure/" + DIGEST + "/1").should().respond(403);
     }
 }
