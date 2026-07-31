@@ -28,7 +28,7 @@ public class ArtifactPayload {
             case STRUCTURE -> !Files.exists(lastPageOrDir(docArtifactDir, entry));
             // One file for every page, swapped in whole, so its existence answers for the payload: the
             // per-page offsets live in the entry, and a run that wrote no pages recorded EMPTY above.
-            case PAGE -> !Files.exists(ArtifactPath.pagesContent(docArtifactDir));
+            case PAGE -> !Files.exists(ArtifactPath.payloadContent(docArtifactDir, type, "txt"));
         };
     }
 
@@ -38,8 +38,8 @@ public class ArtifactPayload {
      *  manifest.json is read from disk and a Python producer writes it too. */
     private static Path lastPageOrDir(Path docArtifactDir, ManifestEntry entry) {
         if (entry.pages() == null || entry.pages().total() < 1) {
-            return ArtifactPath.structureDir(docArtifactDir);
+            return ArtifactPath.payloadDir(docArtifactDir, ArtifactType.STRUCTURE);
         }
-        return ArtifactPath.structurePage(docArtifactDir, entry.pages().total(), "md");
+        return ArtifactPath.payloadPage(docArtifactDir, ArtifactType.STRUCTURE, entry.pages().total(), "md");
     }
 }

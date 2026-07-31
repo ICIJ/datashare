@@ -51,8 +51,8 @@ public class ArtifactProducerTest {
                     Files.write(docArtifactDir.resolve(ArtifactPath.RAW_FILE), new byte[]{1});
                     Files.write(docArtifactDir.resolve(ArtifactPath.RAW_SIDECAR_FILE), "{}".getBytes());
                 } else {
-                    Files.createDirectories(ArtifactPath.structureDir(docArtifactDir));
-                    Files.writeString(ArtifactPath.structurePage(docArtifactDir, 1, "md"), "page");
+                    Files.createDirectories(ArtifactPath.payloadDir(docArtifactDir, ArtifactType.STRUCTURE));
+                    Files.writeString(ArtifactPath.payloadPage(docArtifactDir, ArtifactType.STRUCTURE, 1, "md"), "page");
                 }
             } catch (IOException cannotWrite) {
                 throw new ArtifactException("cannot write the fake payload", cannotWrite);
@@ -97,7 +97,7 @@ public class ArtifactProducerTest {
         // A payload gone from under a complete entry must be repaired by a plain re-run, not skipped (#2300).
         CountingArtifact structure = new CountingArtifact("structure", 1);
         producer.run(List.of(structure), ctx(), false);
-        AtomicDirectorySwap.discard(ArtifactPath.structureDir(dir.getRoot().toPath()));
+        AtomicDirectorySwap.discard(ArtifactPath.payloadDir(dir.getRoot().toPath(), ArtifactType.STRUCTURE));
 
         producer.run(List.of(structure), ctx(), false);
 

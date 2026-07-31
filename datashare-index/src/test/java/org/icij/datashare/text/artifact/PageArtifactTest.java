@@ -175,7 +175,7 @@ public class PageArtifactTest {
     }
 
     private Path contentTxt(ArtifactContext context) {
-        return ArtifactPath.pagesContent(context.docArtifactDir());
+        return ArtifactPath.payloadContent(context.docArtifactDir(), ArtifactType.PAGE, "txt");
     }
 
     @Test
@@ -185,7 +185,7 @@ public class PageArtifactTest {
         new PageArtifact(new PropertiesProvider()).produce(context);
 
         assertThat(Files.readString(contentTxt(context))).contains(ACCENTED_PAGE).contains("Page two text");
-        assertThat(ArtifactPath.pagesDir(context.docArtifactDir()).toFile().list())
+        assertThat(ArtifactPath.payloadDir(context.docArtifactDir(), ArtifactType.PAGE).toFile().list())
                 .isEqualTo(new String[]{"content.txt"});
     }
 
@@ -199,7 +199,7 @@ public class PageArtifactTest {
 
         new PageArtifact(new PropertiesProvider()).produce(context);
 
-        Path control = ArtifactPath.pagesDir(context.docArtifactDir()).resolve("control");
+        Path control = ArtifactPath.payloadDir(context.docArtifactDir(), ArtifactType.PAGE).resolve("control");
         Files.write(control, new byte[0]);
         assertThat(Files.getPosixFilePermissions(contentTxt(context)))
                 .isEqualTo(Files.getPosixFilePermissions(control));
@@ -286,7 +286,7 @@ public class PageArtifactTest {
         } catch (ArtifactException expected) {
             assertThat(expected.getMessage()).contains(doc.getId());
         }
-        assertThat(Files.exists(ArtifactPath.pagesDir(context.docArtifactDir()))).isFalse();
+        assertThat(Files.exists(ArtifactPath.payloadDir(context.docArtifactDir(), ArtifactType.PAGE))).isFalse();
         verify(sources).getSource(project, doc);
     }
 
@@ -309,7 +309,7 @@ public class PageArtifactTest {
         } catch (UnreadableContentException expected) {
             assertThat(expected.getMessage()).contains(context.document().getId());
         }
-        assertThat(Files.exists(ArtifactPath.pagesDir(context.docArtifactDir()))).isFalse();
+        assertThat(Files.exists(ArtifactPath.payloadDir(context.docArtifactDir(), ArtifactType.PAGE))).isFalse();
     }
 
     @Test
@@ -358,7 +358,7 @@ public class PageArtifactTest {
         } catch (ArtifactException expected) {
             assertThat(expected.getMessage()).contains(context.document().getId());
         }
-        assertThat(Files.exists(ArtifactPath.pagesDir(context.docArtifactDir()))).isFalse();
+        assertThat(Files.exists(ArtifactPath.payloadDir(context.docArtifactDir(), ArtifactType.PAGE))).isFalse();
         verify(sources).getSource(project, context.document());
     }
 
@@ -379,7 +379,7 @@ public class PageArtifactTest {
         } catch (ArtifactException expected) {
             assertThat(expected.getMessage()).contains(context.document().getId());
         }
-        assertThat(Files.exists(ArtifactPath.pagesDir(context.docArtifactDir()))).isFalse();
+        assertThat(Files.exists(ArtifactPath.payloadDir(context.docArtifactDir(), ArtifactType.PAGE))).isFalse();
         verify(sources).getSource(project, context.document());
     }
 
@@ -395,7 +395,7 @@ public class PageArtifactTest {
         assertThat(entry.isTerminal()).isTrue();
         assertThat(entry.pages()).isNull();
         assertThat(entry.taskInput().get("pipeline")).isEqualTo("tika");
-        assertThat(Files.exists(ArtifactPath.pagesDir(context.docArtifactDir()))).isFalse();
+        assertThat(Files.exists(ArtifactPath.payloadDir(context.docArtifactDir(), ArtifactType.PAGE))).isFalse();
     }
 
     @Test
@@ -411,7 +411,7 @@ public class PageArtifactTest {
         ManifestEntry entry = new PageArtifact(new PropertiesProvider()).produce(context);
 
         assertThat(entry.status()).isEqualTo(ManifestEntryStatus.EMPTY);
-        assertThat(Files.exists(ArtifactPath.pagesDir(context.docArtifactDir()))).isFalse();
+        assertThat(Files.exists(ArtifactPath.payloadDir(context.docArtifactDir(), ArtifactType.PAGE))).isFalse();
     }
 
     @Test
@@ -429,7 +429,7 @@ public class PageArtifactTest {
             new PageArtifact(new PropertiesProvider()).produce(context);
             fail("expected an UnreadableContentException");
         } catch (UnreadableContentException expected) {
-            assertThat(Files.exists(ArtifactPath.pagesDir(context.docArtifactDir()))).isFalse();
+            assertThat(Files.exists(ArtifactPath.payloadDir(context.docArtifactDir(), ArtifactType.PAGE))).isFalse();
         }
     }
 
@@ -585,7 +585,7 @@ public class PageArtifactTest {
         }
 
         assertThat(Files.readAllBytes(contentTxt(good))).isEqualTo(previous);
-        assertThat(ArtifactPath.pagesDir(good.docArtifactDir()).toFile().list())
+        assertThat(ArtifactPath.payloadDir(good.docArtifactDir(), ArtifactType.PAGE).toFile().list())
                 .isEqualTo(new String[]{"content.txt"}); // no .tmp left behind
     }
 
@@ -600,7 +600,7 @@ public class PageArtifactTest {
         new PageArtifact(new PropertiesProvider()).produce(context);
 
         assertThat(Files.readString(contentTxt(context))).contains("Page two text");
-        assertThat(ArtifactPath.pagesDir(context.docArtifactDir()).toFile().list())
+        assertThat(ArtifactPath.payloadDir(context.docArtifactDir(), ArtifactType.PAGE).toFile().list())
                 .isEqualTo(new String[]{"content.txt"});
     }
 

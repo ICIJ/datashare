@@ -235,7 +235,7 @@ public class PageArtifact implements Artifact {
     // [start, end), contiguous, first start 0, last end == length.
     private static List<long[]> writePages(ArtifactContext context, List<String> pages) throws IOException {
         List<long[]> ranges = new ArrayList<>();
-        AtomicDirectorySwap.replace(ArtifactPath.pagesDir(context.docArtifactDir()), staging -> {
+        AtomicDirectorySwap.replace(ArtifactPath.payloadDir(context.docArtifactDir(), TYPE), staging -> {
             long offset = 0;
             try (OutputStream out = Files.newOutputStream(staging.resolve(ArtifactPath.PAGES_CONTENT_FILE))) {
                 for (String page : pages) {
@@ -253,7 +253,7 @@ public class PageArtifact implements Artifact {
     // still served by any reader that lists the directory. The whole pages/ dir, since content.txt is
     // all it holds.
     private static void discardPayload(Path docArtifactDir) {
-        AtomicDirectorySwap.discard(ArtifactPath.pagesDir(docArtifactDir));
+        AtomicDirectorySwap.discard(ArtifactPath.payloadDir(docArtifactDir, TYPE));
     }
 
     private boolean ocrEnabled() {

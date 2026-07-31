@@ -134,7 +134,7 @@ public class StructureArtifact implements Artifact {
     // document's artifact dir on the way: with raw out of the selection nothing else creates it, so an
     // ARTIFACT run over a fresh artifactDir would otherwise fail on every document.
     static void writePages(Path docArtifactDir, List<Page> pages) throws IOException {
-        AtomicDirectorySwap.replace(ArtifactPath.structureDir(docArtifactDir), staging -> {
+        AtomicDirectorySwap.replace(ArtifactPath.payloadDir(docArtifactDir, TYPE), staging -> {
             for (int index = 0; index < pages.size(); index++) {
                 write(staging, index + 1, pages.get(index));
             }
@@ -144,7 +144,7 @@ public class StructureArtifact implements Artifact {
     // Losing the payload is the point: it is regenerable, and one the manifest does not account for is
     // still served by any reader that lists the directory.
     private static void discardPayload(Path docArtifactDir) {
-        AtomicDirectorySwap.discard(ArtifactPath.structureDir(docArtifactDir));
+        AtomicDirectorySwap.discard(ArtifactPath.payloadDir(docArtifactDir, TYPE));
     }
 
     private static void write(Path pagesDir, int pageNumber, Page page) throws IOException {
