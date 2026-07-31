@@ -54,7 +54,7 @@ public class StructureArtifact implements Artifact {
         try (InputStream source = context.sources().getSource(context.project(), context.document())) {
             List<Page> pages = parse(source, context.document());
             writePages(context.docArtifactDir(), pages);
-            return ManifestEntry.paginated(taskInput(), Pages.filesystem(pages.size()));
+            return ManifestEntry.paginated(taskInput(), pages.size());
         } catch (UnparseableContentException unparseable) {
             throw unparseable;
         } catch (Exception failure) {
