@@ -10,6 +10,7 @@ public class ArtifactPath {
     public static final String RAW_FILE = "raw";
     public static final String RAW_SIDECAR_FILE = "raw.json";
     public static final String STRUCTURE_DIR = "structure";
+    public static final String PAGES_DIR = "pages";
 
     private ArtifactPath() {}
 
@@ -45,5 +46,16 @@ public class ArtifactPath {
      *  digits: with LANG=ar_EG.UTF-8 it would write page-١٢.md. */
     public static String pageFilename(int page, String extension) {
         return String.format(Locale.ROOT, "page-%d.%s", page, extension);
+    }
+
+    /** The page artifact's own directory. */
+    public static Path pagesDir(Path docArtifactDir) {
+        return docArtifactDir.resolve(PAGES_DIR);
+    }
+
+    /** The single payload file of the byte-ranges scheme, whose per-page offsets live in the
+     *  manifest entry instead of in file names. The extension is fixed by the type: page is text. */
+    public static Path pagesContent(Path docArtifactDir) {
+        return pagesDir(docArtifactDir).resolve("content.txt");
     }
 }
