@@ -16,7 +16,9 @@ import static org.icij.datashare.cli.DatashareCliOptions.*;
  */
 public class PipelineOptions {
 
-    @Option(names = {"--artifactDir"}, description = "Artifact directory for embedded caching")
+    // --artifactsDir is an alias: the singular name is public since 21814dfa6 and set in prod
+    // settings files, so it stays the property key while the plural matches --artifacts.
+    @Option(names = {"--artifactDir", "--artifactsDir"}, description = "Artifact directory for embedded caching")
     String artifactDir;
 
     // Mirrors the JOpt withOptionalArg semantics. Left null when absent so toProperties omits the

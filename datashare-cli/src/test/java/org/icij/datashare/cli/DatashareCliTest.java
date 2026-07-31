@@ -149,6 +149,13 @@ public class DatashareCliTest {
     }
 
     @Test
+    public void test_artifacts_dir_alias_writes_the_artifact_dir_key() {
+        cli.parseArguments(new String[] {"--artifactsDir", "/tmp/art"});
+        assertThat(cli.properties).includes(entry("artifactDir", "/tmp/art"));
+        assertThat(cli.properties.containsKey("artifactsDir")).isFalse();
+    }
+
+    @Test
     public void test_has_english_indexing_language_value() {
         cli.parseArguments(new String[] {"--language", "ENGLISH"});
         assertThat(cli.properties).includes(entry("language", "ENGLISH"));
