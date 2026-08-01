@@ -69,9 +69,16 @@ public class DatashareCommand implements Runnable {
             return;
         }
         Properties settings = new PropertiesProvider(settingsPath).getProperties();
-        if (!settings.isEmpty()) {
-            commandLine.setDefaultValueProvider(new CommandLine.PropertiesDefaultProvider(settings));
+        if (settings.isEmpty()) {
+            return;
         }
+        CommandLine.IDefaultValueProvider fromSettings = new CommandLine.PropertiesDefaultProvider(settings);
+        // Arity-0 booleans are excluded: picocli sets a matched flag to !defaultValue, so taking that
+        // default from the file inverts the flag, and "resume=true" in the file would make -r mean
+        // "do not resume". They keep their declared default here and CommonMode's overrideWith fold-in
+        // is what applies the file's value, as it did before this provider existed.
+        commandLine.setDefaultValueProvider(
+                arg -> arg.arity().max() == 0 ? null : fromSettings.defaultValue(arg));
     }
 
     /** Reads -s/--settings out of the raw args, in both the "-s value" and "-s=value" forms. */

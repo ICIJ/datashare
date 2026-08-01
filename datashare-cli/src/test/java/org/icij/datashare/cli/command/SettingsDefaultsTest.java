@@ -57,6 +57,28 @@ public class SettingsDefaultsTest extends AbstractDatashareCommandTest {
     }
 
     @Test
+    public void test_a_settings_file_does_not_invert_an_arity_zero_flag() throws IOException {
+        // picocli sets an arity-0 boolean to !defaultValue when the flag is present, and it takes that
+        // default from the value provider. A file saying resume=true must not turn -r into "do not resume".
+        Path settings = settingsFile("resume=true\n");
+
+        Properties props = parse("-s", settings.toString(), "stage", "run", "--stages", "ARTIFACT", "-r");
+
+        assertThat(props).includes(entry("resume", "true"));
+    }
+
+    @Test
+    public void test_an_arity_zero_flag_is_left_out_of_the_settings_defaults() throws IOException {
+        // The flag keeps its own meaning instead: an untyped -r stays false here, and CommonMode's
+        // overrideWith fold-in is what applies the file's resume=true, as it did before this provider.
+        Path settings = settingsFile("resume=true\n");
+
+        Properties props = parse("-s", settings.toString(), "stage", "run", "--stages", "ARTIFACT");
+
+        assertThat(props.containsKey("resume")).isFalse();
+    }
+
+    @Test
     public void test_a_classpath_properties_file_is_not_consulted_without_a_settings_option() throws Exception {
         // PropertiesProvider(null) resolves datashare.properties off the context classloader and always
         // folds in DS_DOCKER_* env vars. Neither is the operator's settings file, so neither may outrank
