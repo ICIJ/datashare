@@ -23,13 +23,19 @@ import org.icij.datashare.text.indexing.elasticsearch.ArtifactPath;
 import org.icij.datashare.utils.DocumentSourceAccess;
 import org.icij.datashare.utils.PayloadFormatter;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import static java.lang.Boolean.parseBoolean;
+import static java.util.Collections.unmodifiableMap;
 import static java.util.Optional.ofNullable;
 import static org.icij.datashare.web.errors.ForbiddenException.requireGranted;
 
@@ -40,13 +46,10 @@ import static org.icij.datashare.web.errors.ForbiddenException.requireGranted;
 @Singleton
 @Prefix("/api")
 public class ArtifactResource {
-    // Extensions are fixed by type (convention §71). The map is the ?format= whitelist and content-type
-    // lookup; the list is the order of record for disk probing and for the error message, because
-    // Map.of has no defined iteration order.
-    private static final Map<String, String> STRUCTURE_CONTENT_TYPES = Map.of(
-            "md", "text/markdown;charset=UTF-8",
-            "xhtml", "application/xhtml+xml;charset=UTF-8");
-    private static final List<String> STRUCTURE_FORMATS = List.of("md", "xhtml");
+    private static final Logger LOGGER = LoggerFactory.getLogger(ArtifactResource.class);
+    // Extensions are fixed by type (convention §71). One ordered map, so adding a format is one
+    // edit: its key set is the ?format= whitelist, the disk-probe order and the error-message order.
+    private static final Map<String, String> STRUCTURE_CONTENT_TYPES = structureContentTypes();
 
     private final Indexer indexer;
     private final PropertiesProvider propertiesProvider;
@@ -72,7 +75,8 @@ public class ArtifactResource {
     @ApiResponse(responseCode = "404", description = "if the document, artifactDir, or a complete page artifact is not found")
     @Get("/:project/artifacts/page/:id?routing=:routing")
     public Payload pageManifest(final String project, final String id, final String routing, final Context context) throws IOException {
-        return manifest(project, id, routing, context, ArtifactType.PAGE, List.of());
+        requireGranted(context, project);
+        return manifest(project, id, routing, ArtifactType.PAGE, List.of());
     }
 
     @Operation(description = "Fetches one persisted plain-text page of a document.",
@@ -89,7 +93,8 @@ public class ArtifactResource {
     @Get("/:project/artifacts/page/:id/:page?routing=:routing")
     public Payload pageContent(final String project, final String id, final String page,
                                final String routing, final Context context) throws IOException {
-        return payload(project, id, page, routing, context, ArtifactType.PAGE, "txt", "text/plain;charset=UTF-8");
+        requireGranted(context, project);
+        return payload(project, id, page, routing, ArtifactType.PAGE, "txt", "text/plain;charset=UTF-8");
     }
 
     @Operation(description = "Fetches the number of structure pages for a document and the formats available on disk.",
@@ -104,7 +109,8 @@ public class ArtifactResource {
     @ApiResponse(responseCode = "404", description = "if the document, artifactDir, or a complete structure artifact is not found")
     @Get("/:project/artifacts/structure/:id?routing=:routing")
     public Payload structureManifest(final String project, final String id, final String routing, final Context context) throws IOException {
-        return manifest(project, id, routing, context, ArtifactType.STRUCTURE, STRUCTURE_FORMATS);
+        requireGranted(context, project);
+        return manifest(project, id, routing, ArtifactType.STRUCTURE, STRUCTURE_CONTENT_TYPES.keySet());
     }
 
     @Operation(description = "Fetches one structure page of a document, as Markdown (default) or XHTML.",
@@ -131,14 +137,13 @@ public class ArtifactResource {
         if (contentType == null) {
             // A bad format is a request error: 404 on this route means "no such page".
             return PayloadFormatter.error("unsupported format '" + extension + "'; supported formats: "
-                    + String.join(", ", STRUCTURE_FORMATS), HttpStatus.BAD_REQUEST);
+                    + String.join(", ", STRUCTURE_CONTENT_TYPES.keySet()), HttpStatus.BAD_REQUEST);
         }
-        Payload payload = payload(project, id, page, routing, context, ArtifactType.STRUCTURE, extension, contentType);
-        // The on-disk XHTML is written pre-sanitized by the structure producer; these headers are
-        // the serving side's defense in depth for a payload written by another producer.
+        Payload payload = payload(project, id, page, routing, ArtifactType.STRUCTURE, extension, contentType);
+        // The on-disk XHTML is written pre-sanitized by the structure producer; this is the serving
+        // side's defense in depth for a payload written by another producer.
         return "xhtml".equals(extension)
                 ? payload.withHeader("Content-Security-Policy", "default-src 'none'; sandbox")
-                        .withHeader("X-Content-Type-Options", "nosniff")
                 : payload;
     }
 
@@ -162,43 +167,56 @@ public class ArtifactResource {
                 document -> sources.source(document, project, serveInline, false));
     }
 
-    // Resolves the content-addressed dir of a granted, existing document. Returns null when the
-    // document is unknown or artifactDir is unset (both 404); throws ForbiddenException (403) when
-    // the project is not granted. The document is always resolved through the indexer first, so a
-    // URL cannot probe arbitrary digests or another project's data.
-    private Path docArtifactDir(final String project, final String id, final String routing, final Context context) {
-        requireGranted(context, project);
+    // Resolves the content-addressed dir of an existing document, for a route that has already
+    // checked project membership. Returns null when the document is unknown or artifactDir is unset
+    // (both 404). The document is always resolved through the indexer first, so a URL cannot probe
+    // arbitrary digests or another project's data.
+    private Path docArtifactDir(final String project, final String id, final String routing) {
         Document document = indexer.get(project, id, ofNullable(routing).orElse(id), List.of("content", "content_translated"));
         if (document == null) {
             return null;
         }
-        return propertiesProvider.get(DatashareCliOptions.ARTIFACT_DIR_OPT)
-                .map(dir -> ArtifactPath.dir(Path.of(dir).resolve(project), document.getId()))
-                .orElse(null);
+        Optional<String> artifactDir = propertiesProvider.get(DatashareCliOptions.ARTIFACT_DIR_OPT);
+        if (artifactDir.isEmpty()) {
+            // Without artifactDir every artifact route answers 404 for every document, which reads
+            // exactly like "this document has no artifacts": say so once per request instead.
+            LOGGER.warn("{} is unset, so no artifact can be served for document {} of project {}",
+                    DatashareCliOptions.ARTIFACT_DIR_OPT, id, project);
+            return null;
+        }
+        return ArtifactPath.dir(Path.of(artifactDir.get()).resolve(project), document.getId());
     }
 
-    private Payload manifest(final String project, final String id, final String routing, final Context context,
-                             final ArtifactType type, final List<String> formats) throws IOException {
-        Path docArtifactDir = docArtifactDir(project, id, routing, context);
+    private static Map<String, String> structureContentTypes() {
+        Map<String, String> contentTypes = new LinkedHashMap<>();
+        contentTypes.put("md", "text/markdown;charset=UTF-8");
+        contentTypes.put("xhtml", "application/xhtml+xml;charset=UTF-8");
+        return unmodifiableMap(contentTypes);
+    }
+
+    private Payload manifest(final String project, final String id, final String routing,
+                             final ArtifactType type, final Collection<String> formats) throws IOException {
+        Path docArtifactDir = docArtifactDir(project, id, routing);
         if (docArtifactDir == null) {
             return Payload.notFound();
         }
         ManifestEntry entry = reader.servableEntry(docArtifactDir, type);
-        if (entry == null || entry.total() == null) {
+        Integer pages = entry == null ? null : reader.servableTotal(docArtifactDir, type, entry);
+        if (pages == null) {
             return Payload.notFound();
         }
         Map<String, Object> body = new LinkedHashMap<>();
-        body.put("pages", entry.total());
+        body.put("pages", pages);
         if (!formats.isEmpty()) {
             body.put("formats", reader.formats(docArtifactDir, type, entry, formats));
         }
-        return PayloadFormatter.json(body).withCode(200);
+        return PayloadFormatter.json(body);
     }
 
     private Payload payload(final String project, final String id, final String page, final String routing,
-                            final Context context, final ArtifactType type, final String extension,
+                            final ArtifactType type, final String extension,
                             final String contentType) throws IOException {
-        Path docArtifactDir = docArtifactDir(project, id, routing, context);
+        Path docArtifactDir = docArtifactDir(project, id, routing);
         if (docArtifactDir == null) {
             return Payload.notFound();
         }
@@ -206,18 +224,21 @@ public class ArtifactResource {
         if (entry == null) {
             return Payload.notFound();
         }
-        int pageNumber = parsePageNumber(page);
-        byte[] bytes = pageNumber < 1 ? null : reader.page(docArtifactDir, type, entry, pageNumber, extension);
-        return bytes == null ? Payload.notFound() : new Payload(contentType, bytes).withCode(200);
+        byte[] bytes = reader.page(docArtifactDir, type, entry, parsePageNumber(page), extension);
+        if (bytes == null) {
+            return Payload.notFound();
+        }
+        // Every artifact payload is text derived from an ingested document, served from this origin:
+        // a browser that sniffs its way to another type could execute a malicious document.
+        return new Payload(contentType, bytes).withHeader("X-Content-Type-Options", "nosniff");
     }
 
-    // -1 for anything that is not a positive integer, so non-numeric and out-of-range share the
-    // same 404 answer.
     private static int parsePageNumber(String page) {
         try {
             return Integer.parseInt(page);
         } catch (NumberFormatException notANumber) {
-            return -1;
+            // 0 is out of range for the reader, so a non-numeric page shares the out-of-range 404.
+            return 0;
         }
     }
 }
