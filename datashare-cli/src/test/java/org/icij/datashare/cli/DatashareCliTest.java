@@ -421,6 +421,18 @@ public class DatashareCliTest {
         assertThat(cli.properties).includes(entry("parallelism", String.valueOf(DEFAULT_PARALLELISM)));
     }
 
+    @Test
+    public void test_settings_file_supplies_an_option_that_declares_no_default() throws IOException {
+        // artifactDir is withRequiredArg() with no defaultsTo, so jopt reports an empty value list for
+        // it when it is not typed. ArtifactTask reads only the task args built from these properties,
+        // so dropping the key here fails the ARTIFACT stage outright.
+        Path settings = settingsFile("artifactDir=/mnt/artifacts\n");
+
+        cli.parseArguments(new String[] {"-s", settings.toString(), "--stages", "ARTIFACT"});
+
+        assertThat(cli.properties).includes(entry("artifactDir", "/mnt/artifacts"));
+    }
+
     private Path settingsFile(String content) throws IOException {
         Path file = tmp.newFile("datashare-test.properties").toPath();
         Files.writeString(file, content);

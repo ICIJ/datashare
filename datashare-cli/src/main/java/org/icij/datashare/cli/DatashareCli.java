@@ -230,17 +230,19 @@ public class DatashareCli {
                 options.has(SETTINGS_OPT) ? String.valueOf(options.valueOf(SETTINGS_OPT)) : null).getProperties();
         for (Map.Entry<OptionSpec<?>, List<?>> entry : options.asMap().entrySet()) {
             OptionSpec<?> spec = entry.getKey();
-            if (entry.getValue().isEmpty() && !options.has(spec)) {
-                continue;
-            }
             String key = asPropertyKey(prefix, spec);
             if (!options.has(spec) && settings.containsKey(key)) {
                 // The operator did not type this option and their settings file defines it: the file
-                // wins over the declared default. Substitute rather than omit. Several consumers read
-                // these raw properties without CommonMode's settings fold-in (Main.startApplication for
-                // logLevel, CliApp.start for pluginsDir/extensionsDir) and would otherwise silently drop
-                // to their own unrelated fallback.
+                // wins over the declared default. Substitute rather than omit, and do so before the
+                // empty-value skip below, otherwise an option that declares no default at all never
+                // gets the file's value. Several consumers read these raw properties without
+                // CommonMode's settings fold-in (Main.startApplication for logLevel, CliApp.start for
+                // pluginsDir/extensionsDir, ArtifactTask for artifactDir) and would otherwise silently
+                // drop to their own unrelated fallback.
                 properties.setProperty(key, settings.getProperty(key));
+                continue;
+            }
+            if (entry.getValue().isEmpty() && !options.has(spec)) {
                 continue;
             }
             properties.setProperty(key, asPropertyValue(entry.getValue()));
