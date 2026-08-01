@@ -8,7 +8,9 @@ import org.icij.datashare.tasks.MockIndexer;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.DocumentBuilder;
 import org.icij.datashare.text.Project;
+import org.icij.datashare.text.artifact.ArtifactType;
 import org.icij.datashare.text.indexing.Indexer;
+import org.icij.datashare.text.indexing.elasticsearch.ArtifactPath;
 import org.icij.datashare.utils.DocumentSourceAccess;
 import org.icij.datashare.web.testhelpers.AbstractProdWebServerTest;
 import org.junit.Before;
@@ -71,11 +73,12 @@ public class ArtifactResourceTest extends AbstractProdWebServerTest {
         Files.writeString(docDir.resolve("manifest.json"), json);
     }
 
-    private void writePages(Path docDir, String extension, String... pages) throws Exception {
-        Path pagesDir = docDir.resolve("pages");
-        Files.createDirectories(pagesDir);
+    // Written through ArtifactPath, never through an inline page-%04d format: a duplicated format
+    // string would let writer and reader drift together and hide a naming bug from these tests.
+    private void writePages(Path docDir, ArtifactType type, String extension, String... pages) throws Exception {
+        Files.createDirectories(ArtifactPath.payloadDir(docDir, type));
         for (int page = 1; page <= pages.length; page++) {
-            Files.writeString(pagesDir.resolve(String.format("page-%04d.%s", page, extension)), pages[page - 1]);
+            Files.writeString(ArtifactPath.payloadPage(docDir, type, page, extension), pages[page - 1]);
         }
     }
 
@@ -97,7 +100,7 @@ public class ArtifactResourceTest extends AbstractProdWebServerTest {
     @Test
     public void test_page_manifest_not_found_when_artifact_dir_unset() throws Exception {
         Path docDir = indexedDocDir(DIGEST);
-        writePages(docDir, "txt", "page one");
+        writePages(docDir, ArtifactType.PAGE, "txt", "page one");
         writeManifest(docDir, filesystemManifest("page", 1));
         when(propertiesProvider.get(ARTIFACT_DIR_OPT)).thenReturn(Optional.empty());
         get("/api/local-datashare/artifacts/page/" + DIGEST).should().respond(404);
@@ -141,7 +144,7 @@ public class ArtifactResourceTest extends AbstractProdWebServerTest {
     @Test
     public void test_page_manifest_returns_the_page_count() throws Exception {
         Path docDir = indexedDocDir(DIGEST);
-        writePages(docDir, "txt", "page one", "page two");
+        writePages(docDir, ArtifactType.PAGE, "txt", "page one", "page two");
         writeManifest(docDir, filesystemManifest("page", 2));
         get("/api/local-datashare/artifacts/page/" + DIGEST).should()
                 .respond(200).haveType("application/json").contain("\"pages\":2");
@@ -150,7 +153,7 @@ public class ArtifactResourceTest extends AbstractProdWebServerTest {
     @Test
     public void test_page_serves_one_page_as_plain_text() throws Exception {
         Path docDir = indexedDocDir(DIGEST);
-        writePages(docDir, "txt", "page one", "page two");
+        writePages(docDir, ArtifactType.PAGE, "txt", "page one", "page two");
         writeManifest(docDir, filesystemManifest("page", 2));
         get("/api/local-datashare/artifacts/page/" + DIGEST + "/2").should()
                 .respond(200).haveType("text/plain;charset=UTF-8").contain("page two");
@@ -159,7 +162,7 @@ public class ArtifactResourceTest extends AbstractProdWebServerTest {
     @Test
     public void test_page_out_of_range_and_non_numeric_are_not_found() throws Exception {
         Path docDir = indexedDocDir(DIGEST);
-        writePages(docDir, "txt", "page one");
+        writePages(docDir, ArtifactType.PAGE, "txt", "page one");
         writeManifest(docDir, filesystemManifest("page", 1));
         get("/api/local-datashare/artifacts/page/" + DIGEST + "/0").should().respond(404);
         get("/api/local-datashare/artifacts/page/" + DIGEST + "/2").should().respond(404);
@@ -169,25 +172,17 @@ public class ArtifactResourceTest extends AbstractProdWebServerTest {
     @Test
     public void test_page_missing_on_disk_is_not_found_but_the_count_still_reports_it() throws Exception {
         Path docDir = indexedDocDir(DIGEST);
-        writePages(docDir, "txt", "page one", "page two");
+        writePages(docDir, ArtifactType.PAGE, "txt", "page one", "page two");
         writeManifest(docDir, filesystemManifest("page", 3));
         get("/api/local-datashare/artifacts/page/" + DIGEST).should().contain("\"pages\":3");
         get("/api/local-datashare/artifacts/page/" + DIGEST + "/3").should().respond(404);
     }
 
-    private void writeStructurePages(Path docDir, String extension, String... pages) throws Exception {
-        Path structureDir = docDir.resolve("structure");
-        Files.createDirectories(structureDir);
-        for (int page = 1; page <= pages.length; page++) {
-            Files.writeString(structureDir.resolve(String.format("page-%04d.%s", page, extension)), pages[page - 1]);
-        }
-    }
-
     @Test
     public void test_structure_manifest_lists_the_formats_on_disk() throws Exception {
         Path docDir = indexedDocDir(DIGEST);
-        writeStructurePages(docDir, "md", "# one", "# two");
-        writeStructurePages(docDir, "xhtml", "<html><body>one</body></html>", "<html><body>two</body></html>");
+        writePages(docDir, ArtifactType.STRUCTURE, "md", "# one", "# two");
+        writePages(docDir, ArtifactType.STRUCTURE, "xhtml", "<html><body>one</body></html>", "<html><body>two</body></html>");
         writeManifest(docDir, filesystemManifest("structure", 2));
         get("/api/local-datashare/artifacts/structure/" + DIGEST).should()
                 .respond(200).contain("\"pages\":2").contain("\"md\"").contain("\"xhtml\"");
@@ -196,7 +191,7 @@ public class ArtifactResourceTest extends AbstractProdWebServerTest {
     @Test
     public void test_structure_manifest_omits_a_format_absent_from_disk() throws Exception {
         Path docDir = indexedDocDir(DIGEST);
-        writeStructurePages(docDir, "md", "# one");
+        writePages(docDir, ArtifactType.STRUCTURE, "md", "# one");
         writeManifest(docDir, filesystemManifest("structure", 1));
         get("/api/local-datashare/artifacts/structure/" + DIGEST).should()
                 .respond(200).contain("\"formats\":[\"md\"]");
@@ -205,7 +200,7 @@ public class ArtifactResourceTest extends AbstractProdWebServerTest {
     @Test
     public void test_structure_page_defaults_to_markdown() throws Exception {
         Path docDir = indexedDocDir(DIGEST);
-        writeStructurePages(docDir, "md", "# one", "# two");
+        writePages(docDir, ArtifactType.STRUCTURE, "md", "# one", "# two");
         writeManifest(docDir, filesystemManifest("structure", 2));
         get("/api/local-datashare/artifacts/structure/" + DIGEST + "/2").should()
                 .respond(200).haveType("text/markdown;charset=UTF-8").contain("# two");
@@ -214,7 +209,7 @@ public class ArtifactResourceTest extends AbstractProdWebServerTest {
     @Test
     public void test_structure_page_serves_xhtml_with_hardening_headers() throws Exception {
         Path docDir = indexedDocDir(DIGEST);
-        writeStructurePages(docDir, "xhtml", "<html><body>one</body></html>");
+        writePages(docDir, ArtifactType.STRUCTURE, "xhtml", "<html><body>one</body></html>");
         writeManifest(docDir, filesystemManifest("structure", 1));
         get("/api/local-datashare/artifacts/structure/" + DIGEST + "/1?format=xhtml").should()
                 .respond(200)
@@ -226,7 +221,7 @@ public class ArtifactResourceTest extends AbstractProdWebServerTest {
     @Test
     public void test_structure_page_rejects_an_unsupported_format() throws Exception {
         Path docDir = indexedDocDir(DIGEST);
-        writeStructurePages(docDir, "md", "# one");
+        writePages(docDir, ArtifactType.STRUCTURE, "md", "# one");
         writeManifest(docDir, filesystemManifest("structure", 1));
         get("/api/local-datashare/artifacts/structure/" + DIGEST + "/1?format=pdf").should()
                 .respond(400).contain("md").contain("xhtml");
@@ -235,7 +230,7 @@ public class ArtifactResourceTest extends AbstractProdWebServerTest {
     @Test
     public void test_structure_page_not_found_for_a_format_absent_on_disk() throws Exception {
         Path docDir = indexedDocDir(DIGEST);
-        writeStructurePages(docDir, "md", "# one");
+        writePages(docDir, ArtifactType.STRUCTURE, "md", "# one");
         writeManifest(docDir, filesystemManifest("structure", 1));
         // Same page, same manifest: only the requested format differs, so a 404 on xhtml can only
         // be caused by the missing format, not by a missing page or entry.
