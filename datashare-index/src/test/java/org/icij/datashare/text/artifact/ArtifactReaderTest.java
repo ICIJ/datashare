@@ -89,6 +89,19 @@ public class ArtifactReaderTest {
     }
 
     @Test
+    public void test_nothing_is_servable_when_the_pagination_block_has_no_total() throws Exception {
+        Path node = dir.getRoot().toPath();
+        // Pagination.total is a primitive, so an absent total deserializes to 0, not to null: the
+        // entry is complete but the manifest is malformed, which the strict store reads as absent.
+        Files.writeString(node.resolve(ArtifactPath.MANIFEST_FILE),
+                "{\"page\": {\"status\": \"complete\", \"taskInput\": {}, \"pagination\": {\"type\": \"filesystem\"}}}");
+        ManifestEntry entry = reader.servableEntry(node, ArtifactType.PAGE);
+        assertThat(entry).isNotNull();
+        assertThat(reader.servableTotal(node, ArtifactType.PAGE, entry)).isNull();
+        assertThat(reader.page(node, ArtifactType.PAGE, entry, 1, "txt")).isNull();
+    }
+
+    @Test
     public void test_page_reads_the_filesystem_page() throws Exception {
         Path node = withFilesystemPages(2, "page one", "page two");
         ManifestEntry entry = reader.servableEntry(node, ArtifactType.PAGE);

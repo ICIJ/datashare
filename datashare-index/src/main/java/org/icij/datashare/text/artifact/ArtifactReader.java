@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Collection;
 import java.util.List;
 
 /** Read side of the artifact store, mirroring {@link ArtifactProducer}. Owns every rule that
@@ -39,9 +40,26 @@ public class ArtifactReader {
         return entry != null && entry.isComplete() ? entry : null;
     }
 
+    /**
+     * The page count a servable entry advertises, or null when its pagination cannot be trusted:
+     * absent, renamed by a producer whose manifest shape differs (unknown properties are ignored on
+     * read), or non-positive because Pagination.total is a primitive that an absent field fills with
+     * 0. Warned rather than silent: such a manifest is otherwise indistinguishable from a document
+     * that has no artifact of this type at all, and the strict-store contract says it is not found.
+     */
+    public Integer servableTotal(Path docArtifactDir, ArtifactType type, ManifestEntry entry) {
+        Integer total = entry.total();
+        if (total != null && total > 0) {
+            return total;
+        }
+        LOGGER.warn("complete '{}' entry in {} advertises no usable page count ({}): its pagination block is "
+                + "absent, renamed, or carries a non-positive total", type.token(), docArtifactDir, total);
+        return null;
+    }
+
     /** One page's bytes, or null when the page is out of range or its payload is missing. */
     public byte[] page(Path docArtifactDir, ArtifactType type, ManifestEntry entry, int page, String extension) throws IOException {
-        Integer total = entry.total();
+        Integer total = servableTotal(docArtifactDir, type, entry);
         if (total == null || page < 1 || page > total) {
             return null;
         }
@@ -64,7 +82,7 @@ public class ArtifactReader {
 
     /** Which extensions are actually on disk, in the candidate order given. Probes per scheme,
      *  because the two schemes keep an extension in different files. */
-    public List<String> formats(Path docArtifactDir, ArtifactType type, ManifestEntry entry, List<String> candidates) {
+    public List<String> formats(Path docArtifactDir, ArtifactType type, ManifestEntry entry, Collection<String> candidates) {
         boolean byteRanges = isByteRanges(entry);
         return candidates.stream()
                 .filter(extension -> Files.isReadable(byteRanges
