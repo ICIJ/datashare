@@ -14,6 +14,7 @@ import org.icij.datashare.text.DocumentBuilder;
 import org.icij.datashare.text.Project;
 import org.icij.datashare.text.indexing.ExtractedText;
 import org.icij.datashare.text.indexing.Indexer;
+import org.icij.datashare.utils.DocumentSourceAccess;
 import org.icij.datashare.text.indexing.SearchedText;
 import org.icij.datashare.user.User;
 import org.icij.datashare.web.testhelpers.AbstractProdWebServerTest;
@@ -69,7 +70,8 @@ public class DocumentResourceTest extends AbstractProdWebServerTest {
         when(propertiesProvider.getProperties()).thenReturn(new Properties());
         when(propertiesProvider.createMerged(any())).thenCallRealMethod();
         configure(routes -> {
-            routes.add(new DocumentResource(jooqRepository, indexer, propertiesProvider))
+            routes.add(new DocumentResource(jooqRepository, indexer, propertiesProvider,
+                            new DocumentSourceAccess(jooqRepository, indexer, propertiesProvider)))
                     .filter(new LocalUserFilter(new PropertiesProvider(), jooqRepository));
         });
     }
