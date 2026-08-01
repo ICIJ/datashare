@@ -10,8 +10,10 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static org.fest.assertions.Assertions.assertThat;
+import static org.junit.Assume.assumeTrue;
 
 public class ArtifactReaderTest {
     @Rule public TemporaryFolder dir = new TemporaryFolder();
@@ -139,6 +141,39 @@ public class ArtifactReaderTest {
         Files.delete(ArtifactPath.payloadContent(node, ArtifactType.PAGE, "txt"));
         ManifestEntry entry = reader.servableEntry(node, ArtifactType.PAGE);
         assertThat(reader.page(node, ArtifactType.PAGE, entry, 1, "txt")).isNull();
+    }
+
+    // Payloads are written by whichever process produced them, sometimes 0600 under another uid,
+    // so an unreadable payload must read as "not found" instead of throwing an IOException the
+    // serving side would turn into a 500.
+    private void assumeUnreadable(Path file) throws Exception {
+        Files.setPosixFilePermissions(file, Set.of());
+        // Skipped rather than asserted when the test uid reads a mode-000 file anyway (root).
+        assumeTrue(!Files.isReadable(file));
+    }
+
+    @Test
+    public void test_page_is_null_when_the_filesystem_page_is_unreadable() throws Exception {
+        Path node = withFilesystemPages(1, "page one");
+        assumeUnreadable(ArtifactPath.payloadPage(node, ArtifactType.PAGE, 1, "txt"));
+        ManifestEntry entry = reader.servableEntry(node, ArtifactType.PAGE);
+        assertThat(reader.page(node, ArtifactType.PAGE, entry, 1, "txt")).isNull();
+    }
+
+    @Test
+    public void test_page_is_null_when_the_byte_ranges_content_is_unreadable() throws Exception {
+        Path node = withByteRanges("page one", "txt", new long[]{0, 8});
+        assumeUnreadable(ArtifactPath.payloadContent(node, ArtifactType.PAGE, "txt"));
+        ManifestEntry entry = reader.servableEntry(node, ArtifactType.PAGE);
+        assertThat(reader.page(node, ArtifactType.PAGE, entry, 1, "txt")).isNull();
+    }
+
+    @Test
+    public void test_formats_omits_an_unreadable_payload() throws Exception {
+        Path node = withFilesystemPages(1, "one");
+        assumeUnreadable(ArtifactPath.payloadPage(node, ArtifactType.PAGE, 1, "txt"));
+        ManifestEntry entry = reader.servableEntry(node, ArtifactType.PAGE);
+        assertThat(reader.formats(node, ArtifactType.PAGE, entry, List.of("txt"))).isEmpty();
     }
 
     @Test

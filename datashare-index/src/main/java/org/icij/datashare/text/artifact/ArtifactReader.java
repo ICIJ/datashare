@@ -50,10 +50,13 @@ public class ArtifactReader {
                     entry.pagination().byteRanges(), page, type, total);
         }
         Path file = ArtifactPath.payloadPage(docArtifactDir, type, page, extension);
-        if (!Files.isRegularFile(file)) {
+        // Readable, not merely present: payloads are written 0600 by whichever process produced
+        // them (same hazard as SourceExtractor#hasCachedEmbeddedSource), and reading one this
+        // process cannot open would throw an IOException the serving side turns into a 500.
+        if (!Files.isReadable(file)) {
             // In range per the manifest but absent on disk: the two disagree, which is worth
             // seeing in the logs rather than reshaping the advertised page count silently.
-            LOGGER.warn("manifest advertises {} page(s) for '{}' but {} is missing", total, type.token(), file);
+            LOGGER.warn("manifest advertises {} page(s) for '{}' but {} is missing or unreadable", total, type.token(), file);
             return null;
         }
         return Files.readAllBytes(file);
@@ -64,7 +67,7 @@ public class ArtifactReader {
     public List<String> formats(Path docArtifactDir, ArtifactType type, ManifestEntry entry, List<String> candidates) {
         boolean byteRanges = isByteRanges(entry);
         return candidates.stream()
-                .filter(extension -> Files.isRegularFile(byteRanges
+                .filter(extension -> Files.isReadable(byteRanges
                         ? ArtifactPath.payloadContent(docArtifactDir, type, extension)
                         : ArtifactPath.payloadPage(docArtifactDir, type, 1, extension)))
                 .toList();
@@ -77,8 +80,8 @@ public class ArtifactReader {
     // Half-open [start, end). A range outside the file means manifest and payload disagree, which
     // is a 404 for that page rather than a truncated body.
     private byte[] slice(Path content, List<long[]> ranges, int page, ArtifactType type, int total) throws IOException {
-        if (!Files.isRegularFile(content)) {
-            LOGGER.warn("manifest advertises {} byte-range page(s) for '{}' but {} is missing", total, type.token(), content);
+        if (!Files.isReadable(content)) {
+            LOGGER.warn("manifest advertises {} byte-range page(s) for '{}' but {} is missing or unreadable", total, type.token(), content);
             return null;
         }
         if (ranges == null || ranges.size() < page || ranges.get(page - 1).length != 2) {
