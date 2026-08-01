@@ -5,6 +5,7 @@ import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.db.JooqRepository;
 import org.icij.datashare.session.LocalUserFilter;
 import org.icij.datashare.tasks.MockIndexer;
+import org.icij.datashare.test.LogbackCapturingRule;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.DocumentBuilder;
 import org.icij.datashare.text.Project;
@@ -18,6 +19,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.mockito.Mock;
+import org.slf4j.event.Level;
 
 import java.io.File;
 import java.nio.file.Files;
@@ -38,6 +40,7 @@ public class ArtifactResourceTest extends AbstractProdWebServerTest {
     // 64-char digests: ArtifactPath.dir shards on the first two hex pairs.
     private static final String DIGEST = "6abb96950946b62bb993307c8945c0c096982783bab7fa24901522426840ca3e";
     @Rule public TemporaryFolder temp = new TemporaryFolder();
+    @Rule public LogbackCapturingRule logback = new LogbackCapturingRule();
     @Mock JooqRepository jooqRepository;
     @Mock Indexer indexer;
     @Mock PropertiesProvider propertiesProvider;
@@ -106,6 +109,9 @@ public class ArtifactResourceTest extends AbstractProdWebServerTest {
         writeManifest(docDir, filesystemManifest("page", 1));
         when(propertiesProvider.get(ARTIFACT_DIR_OPT)).thenReturn(Optional.empty());
         get("/api/local-datashare/artifacts/page/" + DIGEST).should().respond(404);
+        // A misconfiguration that 404s every artifact of every document must not be silent: without
+        // this line in the log it is indistinguishable from a document that has no artifacts.
+        assertThat(logback.logs(Level.WARN).toString()).contains("artifactDir is unset").contains(DIGEST);
     }
 
     @Test
@@ -153,6 +159,9 @@ public class ArtifactResourceTest extends AbstractProdWebServerTest {
         writeManifest(docDir, "{\"page\": {\"status\": \"complete\", \"taskInput\": {},"
                 + " \"pagination\": {\"type\": \"filesystem\"}}}");
         get("/api/local-datashare/artifacts/page/" + DIGEST).should().respond(404);
+        // The most likely real-world shape disagreement with datashare-python: 404 with an empty log
+        // would be indistinguishable from "no page artifact for this document".
+        assertThat(logback.logs(Level.WARN).toString()).contains("no usable page count").contains(docDir.toString());
     }
 
     @Test
