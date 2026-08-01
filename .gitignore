@@ -37,6 +37,9 @@ datashare-devenv.properties
 scripts/kc-swarm/
 .worktrees/
 
+# Knowledge graph output
+graphify-out/
+
 # Local swarm runtime state
 .claude/
 .claude-flow/
