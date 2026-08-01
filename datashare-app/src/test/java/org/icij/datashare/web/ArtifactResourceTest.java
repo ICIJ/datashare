@@ -23,6 +23,7 @@ import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.List;
 import java.util.Optional;
 import java.util.Properties;
 
@@ -88,8 +89,9 @@ public class ArtifactResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
-    public void test_page_manifest_forbidden_for_non_member_project() {
+    public void test_page_forbidden_for_non_member_project() {
         get("/api/foo_index/artifacts/page/" + DIGEST).should().respond(403);
+        get("/api/foo_index/artifacts/page/" + DIGEST + "/1").should().respond(403);
     }
 
     @Test
@@ -142,6 +144,18 @@ public class ArtifactResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
+    public void test_page_manifest_not_found_when_pagination_has_no_total() throws Exception {
+        Path docDir = indexedDocDir(DIGEST);
+        writePages(docDir, ArtifactType.PAGE, "txt", "page one");
+        // Complete and paginated, but the pagination block carries no total: Pagination.total is a
+        // primitive, so it deserializes to 0, which is a malformed manifest rather than a document
+        // that was processed into zero pages.
+        writeManifest(docDir, "{\"page\": {\"status\": \"complete\", \"taskInput\": {},"
+                + " \"pagination\": {\"type\": \"filesystem\"}}}");
+        get("/api/local-datashare/artifacts/page/" + DIGEST).should().respond(404);
+    }
+
+    @Test
     public void test_page_manifest_returns_the_page_count() throws Exception {
         Path docDir = indexedDocDir(DIGEST);
         writePages(docDir, ArtifactType.PAGE, "txt", "page one", "page two");
@@ -156,7 +170,25 @@ public class ArtifactResourceTest extends AbstractProdWebServerTest {
         writePages(docDir, ArtifactType.PAGE, "txt", "page one", "page two");
         writeManifest(docDir, filesystemManifest("page", 2));
         get("/api/local-datashare/artifacts/page/" + DIGEST + "/2").should()
+                .respond(200).haveType("text/plain;charset=UTF-8").contain("page two")
+                // text/plain derived from an ingested document: a sniffing browser must not be
+                // allowed to reinterpret it as something executable.
+                .haveHeader("X-Content-Type-Options", "nosniff");
+    }
+
+    @Test
+    public void test_page_serves_a_byte_range_page_like_the_filesystem_scheme() throws Exception {
+        Path docDir = indexedDocDir(DIGEST);
+        Files.createDirectories(ArtifactPath.payloadDir(docDir, ArtifactType.PAGE));
+        Files.writeString(ArtifactPath.payloadContent(docDir, ArtifactType.PAGE, "txt"), "page onepage two");
+        writeManifest(docDir, "{\"page\": {\"status\": \"complete\", \"taskInput\": {}, \"pagination\":"
+                + " {\"type\": \"byteRanges\", \"total\": 2, \"byteRanges\": [[0, 8], [8, 16]]}}}");
+        get("/api/local-datashare/artifacts/page/" + DIGEST).should().respond(200).contain("\"pages\":2");
+        // Same body, type and out-of-range answer as the filesystem-scheme page 2 above: the scheme
+        // is a storage detail the route must not expose.
+        get("/api/local-datashare/artifacts/page/" + DIGEST + "/2").should()
                 .respond(200).haveType("text/plain;charset=UTF-8").contain("page two");
+        get("/api/local-datashare/artifacts/page/" + DIGEST + "/3").should().respond(404);
     }
 
     @Test
@@ -203,7 +235,8 @@ public class ArtifactResourceTest extends AbstractProdWebServerTest {
         writePages(docDir, ArtifactType.STRUCTURE, "md", "# one", "# two");
         writeManifest(docDir, filesystemManifest("structure", 2));
         get("/api/local-datashare/artifacts/structure/" + DIGEST + "/2").should()
-                .respond(200).haveType("text/markdown;charset=UTF-8").contain("# two");
+                .respond(200).haveType("text/markdown;charset=UTF-8").contain("# two")
+                .haveHeader("X-Content-Type-Options", "nosniff");
     }
 
     @Test
@@ -270,6 +303,32 @@ public class ArtifactResourceTest extends AbstractProdWebServerTest {
     @Test
     public void test_raw_forbidden_for_non_member_project() {
         get("/api/foo_index/artifacts/raw/" + DIGEST).should().respond(403);
+    }
+
+    @Test
+    public void test_raw_forbidden_when_the_client_address_is_download_restricted() throws Exception {
+        File file = new File(temp.getRoot(), "restricted.txt");
+        MockIndexer.write(file, "source bytes");
+        mockIndexer.indexFile("local-datashare", DIGEST, file.toPath(), "text/plain", null);
+        get("/api/local-datashare/artifacts/raw/" + DIGEST).should().respond(200);
+        // Granted project, but its download mask excludes the test client: the second rule of the
+        // shared gate, which the membership check short-circuits in the non-member test above.
+        when(jooqRepository.getProject("local-datashare")).thenReturn(new Project("local-datashare", "1.2.3.4"));
+        get("/api/local-datashare/artifacts/raw/" + DIGEST).should().respond(403);
+    }
+
+    @Test
+    public void test_artifacts_are_not_served_through_another_granted_projects_url() throws Exception {
+        Path docDir = indexedDocDir(DIGEST);
+        writePages(docDir, ArtifactType.PAGE, "txt", "page one");
+        writeManifest(docDir, filesystemManifest("page", 1));
+        get("/api/local-datashare/artifacts/page/" + DIGEST + "/1").should().respond(200);
+        // Member of other-project too: the payload sits on disk under its digest, so only the
+        // per-project indexer lookup keeps the same URL from reaching another project's data.
+        when(jooqRepository.getProjects()).thenReturn(List.of(new Project("other-project")));
+        get("/api/other-project/artifacts/page/" + DIGEST).should().respond(404);
+        get("/api/other-project/artifacts/page/" + DIGEST + "/1").should().respond(404);
+        get("/api/other-project/artifacts/raw/" + DIGEST).should().respond(404);
     }
 
     @Test
