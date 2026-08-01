@@ -57,11 +57,18 @@ public class DatashareCommand implements Runnable {
     /**
      * Puts the settings file above the annotation defaults: picocli consults an IDefaultValueProvider
      * before an option's declared defaultValue, and an explicitly typed argument still wins over both.
-     * Read from args because the provider has to be installed before parsing, and a no-op on empty
-     * settings so a run with no file behaves exactly as before.
+     * Read from args because the provider has to be installed before parsing, and a no-op unless the
+     * operator passed -s, so a run with no file behaves exactly as before.
      */
     public static void applySettingsDefaults(CommandLine commandLine, String[] args) {
-        Properties settings = new PropertiesProvider(settingsPathFrom(args)).getProperties();
+        String settingsPath = settingsPathFrom(args);
+        if (settingsPath == null) {
+            // Not "no file": PropertiesProvider(null) resolves a classpath datashare.properties and
+            // always folds in DS_DOCKER_* env vars. Letting those in would put them above every
+            // option default, which is not what -s asked for and inverts precedence in Docker.
+            return;
+        }
+        Properties settings = new PropertiesProvider(settingsPath).getProperties();
         if (!settings.isEmpty()) {
             commandLine.setDefaultValueProvider(new CommandLine.PropertiesDefaultProvider(settings));
         }

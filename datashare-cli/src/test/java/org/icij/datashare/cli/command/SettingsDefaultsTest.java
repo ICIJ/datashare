@@ -5,6 +5,8 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import java.io.IOException;
+import java.net.URL;
+import java.net.URLClassLoader;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Properties;
@@ -52,6 +54,24 @@ public class SettingsDefaultsTest extends AbstractDatashareCommandTest {
 
         assertThat(props).includes(entry("ocr", "true"));
         assertThat(props).includes(entry("scrollSize", "1000"));
+    }
+
+    @Test
+    public void test_a_classpath_properties_file_is_not_consulted_without_a_settings_option() throws Exception {
+        // PropertiesProvider(null) resolves datashare.properties off the context classloader and always
+        // folds in DS_DOCKER_* env vars. Neither is the operator's settings file, so neither may outrank
+        // a declared option default.
+        Files.writeString(tmp.getRoot().toPath().resolve("datashare.properties"), "ocr=false\n");
+        ClassLoader previous = Thread.currentThread().getContextClassLoader();
+        Thread.currentThread().setContextClassLoader(
+                new URLClassLoader(new URL[] {tmp.getRoot().toURI().toURL()}, previous));
+        try {
+            Properties props = parse("stage", "run", "--stages", "INDEX");
+
+            assertThat(props).includes(entry("ocr", "true"));
+        } finally {
+            Thread.currentThread().setContextClassLoader(previous);
+        }
     }
 
     private Path settingsFile(String content) throws IOException {

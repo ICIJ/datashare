@@ -225,9 +225,12 @@ public class DatashareCli {
 
     Properties asProperties(OptionSet options, String prefix) {
         Properties properties = new Properties();
-        // resolved the same way CommonMode does, so both paths agree on which file is in play
-        Properties settings = new PropertiesProvider(
-                options.has(SETTINGS_OPT) ? String.valueOf(options.valueOf(SETTINGS_OPT)) : null).getProperties();
+        // Only a file the operator actually asked for may outrank a declared default: passing null here
+        // would resolve a classpath datashare.properties and fold in DS_DOCKER_* env vars, and neither
+        // is their settings file.
+        Properties settings = options.has(SETTINGS_OPT)
+                ? new PropertiesProvider(String.valueOf(options.valueOf(SETTINGS_OPT))).getProperties()
+                : new Properties();
         for (Map.Entry<OptionSpec<?>, List<?>> entry : options.asMap().entrySet()) {
             OptionSpec<?> spec = entry.getKey();
             String key = asPropertyKey(prefix, spec);

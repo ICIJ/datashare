@@ -9,6 +9,8 @@ import org.junit.contrib.java.lang.system.ExpectedSystemExit;
 import org.junit.rules.TemporaryFolder;
 
 import java.io.IOException;
+import java.net.URL;
+import java.net.URLClassLoader;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
@@ -431,6 +433,24 @@ public class DatashareCliTest {
         cli.parseArguments(new String[] {"-s", settings.toString(), "--stages", "ARTIFACT"});
 
         assertThat(cli.properties).includes(entry("artifactDir", "/mnt/artifacts"));
+    }
+
+    @Test
+    public void test_a_classpath_properties_file_is_not_consulted_without_a_settings_option() throws Exception {
+        // PropertiesProvider(null) resolves datashare.properties off the context classloader and always
+        // folds in DS_DOCKER_* env vars. Neither is the operator's settings file, so neither may outrank
+        // a declared option default.
+        Files.writeString(tmp.getRoot().toPath().resolve("datashare.properties"), "parallelism=99\n");
+        ClassLoader previous = Thread.currentThread().getContextClassLoader();
+        Thread.currentThread().setContextClassLoader(
+                new URLClassLoader(new URL[] {tmp.getRoot().toURI().toURL()}, previous));
+        try {
+            cli.parseArguments(new String[] {"--stages", "INDEX"});
+        } finally {
+            Thread.currentThread().setContextClassLoader(previous);
+        }
+
+        assertThat(cli.properties).includes(entry("parallelism", String.valueOf(DEFAULT_PARALLELISM)));
     }
 
     private Path settingsFile(String content) throws IOException {
