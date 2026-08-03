@@ -21,8 +21,7 @@ public class ManifestEntryTest {
         assertThat(json).contains("\"status\":\"complete\"");
         assertThat(json).contains("\"contentType\":\"application/pdf\"");
         assertThat(json).contains("\"filename\":\"report.pdf\"");
-        assertThat(json).doesNotContain("total");
-        assertThat(json).doesNotContain("pagination");
+        assertThat(json).doesNotContain("pages");
         assertThat(json).doesNotContain("confidence");
         assertThat(json).doesNotContain("label");
     }
@@ -81,10 +80,10 @@ public class ManifestEntryTest {
     }
 
     @Test
-    public void test_paginated_entry_carries_total_and_pagination() {
+    public void test_paginated_entry_carries_its_page_count_and_pagination() {
         ManifestEntry entry = ManifestEntry.paginated(Map.of("pipeline", "tika", "version", "3.3.0"), 12);
-        assertThat(entry.total()).isEqualTo(12);
-        assertThat(entry.pagination().type()).isEqualTo("filesystem");
+        assertThat(entry.pages().total()).isEqualTo(12);
+        assertThat(entry.pages().pagination().type()).isEqualTo("filesystem");
         assertThat(entry.contentType()).isNull();
     }
 
@@ -92,7 +91,7 @@ public class ManifestEntryTest {
     public void test_a_missing_total_reads_as_unknown_rather_than_zero() throws Exception {
         // An entry another producer wrote without a page count says nothing about how many pages there
         // are, which a primitive int would silently turn into "no pages".
-        ManifestEntry read = mapper.readValue("{\"status\":\"complete\"}", ManifestEntry.class);
-        assertThat(read.total()).isNull();
+        assertThat(mapper.readValue("{\"status\":\"complete\"}", ManifestEntry.class).total()).isNull();
+        assertThat(mapper.readValue("{\"status\":\"complete\",\"pages\":{}}", ManifestEntry.class).total()).isNull();
     }
 }

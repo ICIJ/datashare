@@ -64,7 +64,7 @@ public class ManifestRecorderTest {
     public void test_null_task_input_entry_is_not_current() throws Exception {
         Document doc = embedded(EMBEDDED_ID);
         Path dir = ArtifactPath.dir(projectRoot(), doc.getId());
-        repository.put(dir, "raw", new ManifestEntry(ManifestEntryStatus.COMPLETE, null, null, null, null, null, null, null));
+        repository.put(dir, "raw", new ManifestEntry(ManifestEntryStatus.COMPLETE, null, null, null, null, null, null));
         writePayload(doc.getId());
 
         recorder(false).record(doc);
