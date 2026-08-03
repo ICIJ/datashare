@@ -1,7 +1,6 @@
 package org.icij.datashare.text.artifact;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -12,17 +11,11 @@ import java.util.stream.Collectors;
  *  app rather than inside the produce loop. */
 public class ArtifactRegistry {
     private final Map<ArtifactType, Artifact> byType = new LinkedHashMap<>();
-    private final Collection<ArtifactType> selectedByDefault;
 
     public ArtifactRegistry(List<Artifact> catalog) {
-        this(catalog, catalog.stream().map(Artifact::type).toList());
-    }
-
-    public ArtifactRegistry(List<Artifact> catalog, Collection<ArtifactType> selectedByDefault) {
         for (Artifact artifact : catalog) {
             byType.put(artifact.type(), artifact);
         }
-        this.selectedByDefault = selectedByDefault;
     }
 
     /** The app's catalog of Java-produced artifact types, shared by the INDEX and ARTIFACT stages so a
@@ -34,13 +27,12 @@ public class ArtifactRegistry {
      *  with it, and the two task inputs can never match, so each run destroys the other's payload:
      *  such a deployment has to pin ownership with an explicit {@code --artifacts raw}. */
     public static ArtifactRegistry withDefaults() {
-        return new ArtifactRegistry(List.of(new RawArtifact(), new StructureArtifact()),
-                List.of(ArtifactType.RAW));
+        return new ArtifactRegistry(List.of(new RawArtifact(), new StructureArtifact()));
     }
 
     public List<Artifact> select(String flagValue) {
         if (flagValue == null || flagValue.isBlank() || "true".equals(flagValue)) {
-            return byType.values().stream().filter(artifact -> selectedByDefault.contains(artifact.type())).toList();
+            return List.copyOf(byType.values());
         }
         List<Artifact> selected = new ArrayList<>();
         for (String token : flagValue.split(",")) {

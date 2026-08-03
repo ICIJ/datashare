@@ -69,12 +69,10 @@ public class ArtifactRegistryTest {
     }
 
     @Test
-    public void test_structure_takes_an_explicit_selector_rather_than_running_by_default() {
-        // The manifest key and the structure/ directory are shared with datashare-python's producer, and
-        // their task inputs can never match, so on a deployment running both, a default-on Tika producer
-        // means each run destroys the other producer's payload and re-produces its own, indefinitely.
-        assertThat(types(ArtifactRegistry.withDefaults().select(null))).isEqualTo(List.of("raw"));
-        assertThat(types(ArtifactRegistry.withDefaults().select("true"))).isEqualTo(List.of("raw"));
+    public void test_structure_runs_by_default() {
+        // raw first, so structure on an embedded document reads bytes raw's production cached.
+        assertThat(types(ArtifactRegistry.withDefaults().select(null))).isEqualTo(List.of("raw", "structure"));
+        assertThat(types(ArtifactRegistry.withDefaults().select("true"))).isEqualTo(List.of("raw", "structure"));
         assertThat(types(ArtifactRegistry.withDefaults().select("raw,structure")))
                 .isEqualTo(List.of("raw", "structure"));
     }
