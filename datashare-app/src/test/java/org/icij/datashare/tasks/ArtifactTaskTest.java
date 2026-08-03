@@ -111,8 +111,8 @@ public class ArtifactTaskTest {
         DocumentQueue<String> queue = factory.createQueue("extract:queue:artifact", String.class);
         queue.add(EMBEDDED_PDF_SHA256 + "|" + EMBEDDED_DOC_SHA256);
 
-        // structure takes an explicit selector (see ArtifactRegistry#withDefaults).
-        Long numberOfDocuments = runArtifactTask(Map.of("artifacts", "raw,structure"));
+        // the bare flag already selects raw and structure (see ArtifactRegistry#withDefaults).
+        Long numberOfDocuments = runArtifactTask(Map.of("artifacts", "true"));
 
         assertThat(numberOfDocuments).isEqualTo(1);
         Path docArtifactDir = artifactDir.getRoot().toPath().resolve("prj/6a/bb/" + EMBEDDED_PDF_SHA256);
