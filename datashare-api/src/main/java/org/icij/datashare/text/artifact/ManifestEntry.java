@@ -9,30 +9,29 @@ import java.util.Map;
 public record ManifestEntry(
         ManifestEntryStatus status,
         Map<String, Object> taskInput,
-        Integer total,
-        Pagination pagination,
+        Pages pages,
         String contentType,
         String filename,
         Double confidence,
         String label) {
 
     public static ManifestEntry singleFile(Map<String, Object> taskInput, String contentType, String filename) {
-        return new ManifestEntry(null, taskInput, null, null, contentType, filename, null, null);
+        return new ManifestEntry(null, taskInput, null, contentType, filename, null, null);
     }
 
     /** A payload split into one file per page, the only scheme Java writes (see {@link Pagination}). */
     public static ManifestEntry paginated(Map<String, Object> taskInput, int total) {
-        return new ManifestEntry(null, taskInput, total, Pagination.filesystem(), null, null, null, null);
+        return new ManifestEntry(null, taskInput, new Pages(total, Pagination.filesystem()), null, null, null, null);
     }
 
     /** A node that was processed but has no payload to serve from its own dir (e.g. a root
      *  document whose source is the on-disk original). Recorded so it is not reprocessed. */
     public static ManifestEntry empty(Map<String, Object> taskInput) {
-        return new ManifestEntry(ManifestEntryStatus.EMPTY, taskInput, null, null, null, null, null, null);
+        return new ManifestEntry(ManifestEntryStatus.EMPTY, taskInput, null, null, null, null, null);
     }
 
     public ManifestEntry withStatus(ManifestEntryStatus status) {
-        return new ManifestEntry(status, taskInput, total, pagination, contentType, filename, confidence, label);
+        return new ManifestEntry(status, taskInput, pages, contentType, filename, confidence, label);
     }
 
     /** Producers return EMPTY as-is; any other (status-less) entry becomes COMPLETE. Callers stamp
@@ -53,5 +52,11 @@ public record ManifestEntry(
 
     public boolean isTerminal() {
         return status != null && status.isTerminal();
+    }
+
+    /** The page count, or null for an entry with no pages: a single-file or EMPTY one, or one another
+     *  producer wrote without a count. */
+    public Integer total() {
+        return pages == null ? null : pages.total();
     }
 }

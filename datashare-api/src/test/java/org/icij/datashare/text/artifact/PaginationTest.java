@@ -1,5 +1,6 @@
 package org.icij.datashare.text.artifact;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.icij.datashare.json.JsonObjectMapper;
 import org.junit.Test;
@@ -13,24 +14,25 @@ public class PaginationTest {
 
     @Test
     public void test_a_paginated_entry_serializes_as_the_convention_shape() throws Exception {
-        String json = mapper.writeValueAsString(
+        JsonNode entry = mapper.valueToTree(
                 ManifestEntry.paginated(Map.of("pipeline", "tika"), 12).withStatus(ManifestEntryStatus.COMPLETE));
 
-        // total and pagination live in the entry itself, beside status and taskInput.
-        assertThat(json).contains("\"total\":12");
-        assertThat(json).contains("\"pagination\":{\"type\":\"filesystem\"}");
-        assertThat(json).doesNotContain("ranges");
+        // Page attributes belong under `pages`, never beside status and taskInput.
+        assertThat(entry.get("total")).isNull();
+        assertThat(entry.get("pages").get("total").asInt()).isEqualTo(12);
+        assertThat(entry.get("pages").get("pagination").get("type").asText()).isEqualTo("filesystem");
+        assertThat(entry.get("pages").get("pagination").has("ranges")).isFalse();
     }
 
     @Test
     public void test_byte_ranges_pagination_written_by_another_producer_is_readable() throws Exception {
         // The only reason `ranges` exists in the record: nothing in Java writes that scheme.
-        ManifestEntry read = mapper.readValue("{\"status\":\"complete\",\"total\":2,"
-                + "\"pagination\":{\"type\":\"byteRanges\",\"ranges\":[[0,10],[10,20]]}}", ManifestEntry.class);
+        ManifestEntry read = mapper.readValue("{\"status\":\"complete\",\"pages\":{\"total\":2,"
+                + "\"pagination\":{\"type\":\"byteRanges\",\"ranges\":[[0,10],[10,20]]}}}", ManifestEntry.class);
 
         assertThat(read.total()).isEqualTo(2);
-        assertThat(read.pagination().type()).isEqualTo("byteRanges");
-        assertThat(read.pagination().ranges()).hasSize(2);
+        assertThat(read.pages().pagination().type()).isEqualTo("byteRanges");
+        assertThat(read.pages().pagination().ranges()).hasSize(2);
     }
 
     @Test
