@@ -457,6 +457,21 @@ public class IndexResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
+    public void test_async_search_on_entities_index_is_polled_by_its_owner() throws IOException {
+        configure(routes -> routes.add(new IndexResource(indexer, asyncSearchStore, propertiesProvider))
+                .filter(new BasicAuthFilter("/", "icij", DatashareUser.singleUser("cecile"))));
+        indexer.createIndex("cecile-datashare.entities");
+        indexer.add("cecile-datashare.entities", DocumentBuilder.createDoc("doc-entities-1").build());
+
+        String id = submitAsyncSearchAs("cecile", "cecile-datashare.entities");
+
+        // ownership is recorded against the base project, so a later poll still matches the user's grants
+        assertThat(asyncSearchStore.get(id).get().projects).containsExactly("cecile-datashare");
+        get("/api/index/search/_async_search/" + urlEncode(id))
+                .withPreemptiveAuthentication("cecile", "").should().respond(200).contain("\"is_running\"");
+    }
+
+    @Test
     public void test_async_search_submit_injects_default_keep_alive_when_absent() throws IOException {
         configure(routes -> routes.add(new IndexResource(indexer, asyncSearchStore, propertiesProvider))
                 .filter(new BasicAuthFilter("/", "icij", DatashareUser.singleUser("cecile"))));
@@ -483,7 +498,7 @@ public class IndexResourceTest extends AbstractProdWebServerTest {
 
     @After
     public void tearDown() throws Exception {
-        es.delete("cecile-datashare", "index_name");
+        es.delete("cecile-datashare", "cecile-datashare.entities", "index_name");
     }
 }
 

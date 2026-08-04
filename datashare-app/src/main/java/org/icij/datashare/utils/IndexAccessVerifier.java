@@ -12,13 +12,17 @@ import java.util.stream.Collectors;
 import static java.util.Arrays.stream;
 
 public class IndexAccessVerifier {
+    /** An index name: dots allowed inside, never leading, so the elasticsearch system indices (.kibana, .security) stay out of reach. */
+    private static final String INDEX_NAME = "[-a-zA-Z0-9_]+(\\.[-a-zA-Z0-9_]+)*";
+    private static final Pattern INDICES = Pattern.compile("^" + INDEX_NAME + "(," + INDEX_NAME + ")*$");
+    /** Suffix of an index derived from a project: "myproject.entities" is granted to whoever is granted "myproject". */
+    private static final String ENTITIES_SUFFIX = ".entities";
 
     static public String checkIndices(String indices) {
         if( indices == null) {
             throw new IllegalArgumentException("indices is null");
         }
-        Pattern pattern = Pattern.compile("^[-a-zA-Z0-9_]+(,[-a-zA-Z0-9_]+)*$");
-        Matcher matcher = pattern.matcher(indices);
+        Matcher matcher = INDICES.matcher(indices);
         if( !matcher.find()) {
             throw new IllegalArgumentException("Bad format for indices : '" + indices+"'");
         }
@@ -71,8 +75,16 @@ public class IndexAccessVerifier {
         boolean isSearchPath = "_search".equals(pathParts[1]);
         boolean isCountPath = "_count".equals(pathParts[1]);
         boolean isAsyncSearchPath = "_async_search".equals(pathParts[1]);
-        boolean areAllIndexesGranted = stream(indexes).allMatch(currentUser::isGranted);
+        boolean areAllIndexesGranted = stream(indexes).map(IndexAccessVerifier::baseProject).allMatch(currentUser::isGranted);
         return areAllIndexesGranted && (isMethodGet || isSearchPath || isCountPath || isAsyncSearchPath);
+    }
+
+    /**
+     * The project an index name authorizes against: itself, or the base project of a known suffix.
+     * Exact match on the remainder, never a prefix match, so "myproject-other" doesn't inherit "myproject".
+     */
+    public static String baseProject(String index) {
+        return index.endsWith(ENTITIES_SUFFIX) ? index.substring(0, index.length() - ENTITIES_SUFFIX.length()) : index;
     }
 
     public static String getUrlString(Context context, String s) {

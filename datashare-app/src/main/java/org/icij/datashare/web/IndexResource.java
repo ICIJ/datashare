@@ -33,6 +33,7 @@ import java.util.Optional;
 import org.apache.http.util.EntityUtils;
 import org.elasticsearch.client.ResponseException;
 
+import static java.util.Arrays.stream;
 import static net.codestory.http.payload.Payload.created;
 import static net.codestory.http.payload.Payload.ok;
 
@@ -167,9 +168,10 @@ public class IndexResource {
             return;
         }
         DatashareUser submitter = (DatashareUser) context.currentUser();
-        // the first path segment holds the comma-separated indices, already validated as granted by checkPath() above
+        // the first path segment holds the comma-separated indices, already validated as granted by checkPath() above.
+        // They are stored as projects, because that is what a later poll re-checks the user's grants against.
         String indexSegment = path.split("/")[0];
-        List<String> grantedProjects = List.of(indexSegment.split(","));
+        List<String> grantedProjects = stream(indexSegment.split(",")).map(IndexAccessVerifier::baseProject).toList();
         Duration keepAlive = EsDuration.parse(context.get("keep_alive"), defaultKeepAlive);
         String asyncSearchId = idNode.asText();
         asyncSearchStore.put(asyncSearchId, new AsyncSearchOwner(submitter.id, grantedProjects), keepAlive);
