@@ -289,7 +289,9 @@ public class IndexResource {
             Context context) throws IOException {
         modeVerifier.checkAllowedMode(Mode.LOCAL, Mode.EMBEDDED);
         try {
-            String path = IndexAccessVerifier.checkIndices(index) + "/_close";
+            String checkedIndex = IndexAccessVerifier.checkIndices(index);
+            ForbiddenException.requireGranted(context, IndexAccessVerifier.baseProject(checkedIndex));
+            String path = checkedIndex + "/_close";
             return PayloadFormatter.json(indexer.executeRaw("POST", IndexAccessVerifier.getUrlString(context, path), null));
         } catch (IllegalArgumentException e) {
             return PayloadFormatter.error(e, HttpStatus.BAD_REQUEST);
@@ -307,7 +309,9 @@ public class IndexResource {
             Context context) throws IOException {
         modeVerifier.checkAllowedMode(Mode.LOCAL, Mode.EMBEDDED);
         try {
-            String path = IndexAccessVerifier.checkIndices(index) + "/_open";
+            String checkedIndex = IndexAccessVerifier.checkIndices(index);
+            ForbiddenException.requireGranted(context, IndexAccessVerifier.baseProject(checkedIndex));
+            String path = checkedIndex + "/_open";
             return PayloadFormatter.json(indexer.executeRaw("POST", IndexAccessVerifier.getUrlString(context, path), null));
         } catch (IllegalArgumentException e) {
             return PayloadFormatter.error(e, HttpStatus.BAD_REQUEST);
