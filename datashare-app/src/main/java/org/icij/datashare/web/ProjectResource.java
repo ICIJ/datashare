@@ -94,7 +94,7 @@
                 requestBody = @RequestBody(content = @Content(mediaType = "application/json", schema = @Schema(implementation = Project.class)))
         )
         @ApiResponse(responseCode = "201", description = "if project and index have been created")
-        @ApiResponse(responseCode = "400", description = "if project name is empty")
+        @ApiResponse(responseCode = "400", description = "if project name is empty or contains a dot")
         @ApiResponse(responseCode = "400", description = "if project path is not allowed for the project")
         @ApiResponse(responseCode = "409", description = "if project exists")
         @ApiResponse(responseCode = "500", description = "project creation in DB or index creation failed")
@@ -105,8 +105,8 @@
                 return PayloadFormatter.error("Project already exists.", HttpStatus.CONFLICT);
             } else if (isProjectNameEmpty(project)) {
                 return PayloadFormatter.error("`name` field is required.", HttpStatus.BAD_REQUEST);
-            } else if (!Project.NAME_PATTERN.matcher(project.getName()).matches()) {
-                return PayloadFormatter.error("project name must match " + Project.NAME_REGEX, HttpStatus.BAD_REQUEST);
+            } else if (project.getName().contains(".")) {
+                return PayloadFormatter.error("`name` must not contain a dot.", HttpStatus.BAD_REQUEST);
             }
             Project effectiveProject = isProjectSourcePathNull(project) ? withDefaultSourcePath(project) : project;
             if (!dataDirVerifier.allowed(effectiveProject.getSourcePath())) {
@@ -139,7 +139,7 @@
         )
         @ApiResponse(responseCode = "200", description = "if project has been updated")
         @ApiResponse(responseCode = "201", description = "if project did not exist and has been created")
-        @ApiResponse(responseCode = "400", description = "if `name` is empty or `sourcePath` is outside data dir")
+        @ApiResponse(responseCode = "400", description = "if `name` is empty, contains a dot on creation, or `sourcePath` is outside data dir")
         @ApiResponse(responseCode = "403", description = "if the user lacks PROJECT_ADMIN+ on the project id")
         @ApiResponse(responseCode = "404", description = "if path id does not match body id, or if existing project is not accessible to the user")
         @ApiResponse(responseCode = "500", description = "if save failed")
@@ -152,15 +152,19 @@
             if (!Objects.equals(projectPayload.getId(), id)) {
                 return PayloadFormatter.error("Project id mismatch.", HttpStatus.NOT_FOUND);
             }
+            boolean isCreate = !projectExists(projectPayload);
+            // only a new project's name is validated: a legacy project whose name predates this
+            // check must still be updatable, so the guard applies to creation only, same as POST.
+            // Checked here, before dataDirVerifier, to match projectCreate's order.
+            if (isCreate && projectPayload.getName().contains(".")) {
+                return PayloadFormatter.error("`name` must not contain a dot.", HttpStatus.BAD_REQUEST);
+            }
             Project effectiveProject = isProjectSourcePathNull(projectPayload) ? withDefaultSourcePath(projectPayload) : projectPayload;
             if (!dataDirVerifier.allowed(effectiveProject.getSourcePath())) {
                 return PayloadFormatter.error(String.format("`sourcePath` must not be outside %s.", dataDirVerifier.value()), HttpStatus.BAD_REQUEST);
             }
 
-            if (!projectExists(effectiveProject)) {
-                if (!Project.NAME_PATTERN.matcher(effectiveProject.getName()).matches()) {
-                    return PayloadFormatter.error("project name must match " + Project.NAME_REGEX, HttpStatus.BAD_REQUEST);
-                }
+            if (isCreate) {
                 if (!repository.save(effectiveProject) || !createIndexOnce(effectiveProject.getId())) {
                     return PayloadFormatter.error("Unable to create the project", HttpStatus.INTERNAL_SERVER_ERROR);
                 }
