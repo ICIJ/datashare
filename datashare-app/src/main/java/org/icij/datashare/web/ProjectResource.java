@@ -94,7 +94,7 @@
                 requestBody = @RequestBody(content = @Content(mediaType = "application/json", schema = @Schema(implementation = Project.class)))
         )
         @ApiResponse(responseCode = "201", description = "if project and index have been created")
-        @ApiResponse(responseCode = "400", description = "if project name is empty or contains a dot")
+        @ApiResponse(responseCode = "400", description = "if project name is empty, contains a dot, or starts with an underscore")
         @ApiResponse(responseCode = "400", description = "if project path is not allowed for the project")
         @ApiResponse(responseCode = "409", description = "if project exists")
         @ApiResponse(responseCode = "500", description = "project creation in DB or index creation failed")
@@ -107,6 +107,8 @@
                 return PayloadFormatter.error("`name` field is required.", HttpStatus.BAD_REQUEST);
             } else if (project.getName().contains(".")) {
                 return PayloadFormatter.error("`name` must not contain a dot.", HttpStatus.BAD_REQUEST);
+            } else if (project.getName().startsWith("_")) {
+                return PayloadFormatter.error("`name` must not start with an underscore.", HttpStatus.BAD_REQUEST);
             }
             Project effectiveProject = isProjectSourcePathNull(project) ? withDefaultSourcePath(project) : project;
             if (!dataDirVerifier.allowed(effectiveProject.getSourcePath())) {
@@ -139,7 +141,7 @@
         )
         @ApiResponse(responseCode = "200", description = "if project has been updated")
         @ApiResponse(responseCode = "201", description = "if project did not exist and has been created")
-        @ApiResponse(responseCode = "400", description = "if `name` is empty, contains a dot on creation, or `sourcePath` is outside data dir")
+        @ApiResponse(responseCode = "400", description = "if `name` is empty, contains a dot or starts with an underscore on creation, or `sourcePath` is outside data dir")
         @ApiResponse(responseCode = "403", description = "if the user lacks PROJECT_ADMIN+ on the project id")
         @ApiResponse(responseCode = "404", description = "if path id does not match body id, or if existing project is not accessible to the user")
         @ApiResponse(responseCode = "500", description = "if save failed")
@@ -158,6 +160,9 @@
             // Checked here, before dataDirVerifier, to match projectCreate's order.
             if (isCreate && projectPayload.getName().contains(".")) {
                 return PayloadFormatter.error("`name` must not contain a dot.", HttpStatus.BAD_REQUEST);
+            }
+            if (isCreate && projectPayload.getName().startsWith("_")) {
+                return PayloadFormatter.error("`name` must not start with an underscore.", HttpStatus.BAD_REQUEST);
             }
             Project effectiveProject = isProjectSourcePathNull(projectPayload) ? withDefaultSourcePath(projectPayload) : projectPayload;
             if (!dataDirVerifier.allowed(effectiveProject.getSourcePath())) {

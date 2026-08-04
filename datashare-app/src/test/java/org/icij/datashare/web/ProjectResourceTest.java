@@ -218,6 +218,14 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
+    public void test_cannot_create_project_named_with_a_leading_underscore() {
+        // "_all" granted to a user would let them read/close/open every index in the cluster
+        String body = "{ \"name\": \"_all\", \"label\": \"Foo Bar\", \"sourcePath\": \"/vault/foo\" }";
+        when(repository.getProject("_all")).thenReturn(null);
+        post("/api/project/", body).should().respond(400);
+    }
+
+    @Test
     public void test_can_create_project_with_underscore_in_name() throws IOException {
         // a dot is the only hazard the suffix rule depends on; the fuller Project.NAME_PATTERN
         // (no underscore, 2-64 chars) is not this endpoint's contract and must not be enforced here
@@ -316,6 +324,15 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
 
         String body = "{ \"name\": \"my_project\", \"label\": \"Foo\", \"sourcePath\": \"/vault/foo\"}";
         put("/api/project/my_project", body).should().respond(201);
+    }
+
+    @Test
+    public void test_put_create_returns_400_for_a_leading_underscore() {
+        when(repository.getProjects(any())).thenReturn(new ArrayList<>());
+        when(repository.getProject("_all")).thenReturn(null);
+
+        String body = "{ \"name\": \"_all\", \"label\": \"Foo\", \"sourcePath\": \"/vault/foo\"}";
+        put("/api/project/_all", body).should().respond(400);
     }
 
     @Test
