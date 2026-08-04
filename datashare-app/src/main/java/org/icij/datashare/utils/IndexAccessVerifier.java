@@ -6,7 +6,6 @@ import net.codestory.http.errors.UnauthorizedException;
 import org.icij.datashare.session.DatashareUser;
 
 import java.util.List;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -25,8 +24,7 @@ public class IndexAccessVerifier {
         if( indices == null) {
             throw new IllegalArgumentException("indices is null");
         }
-        Matcher matcher = INDICES.matcher(indices);
-        if( !matcher.matches()) {
+        if( !INDICES.matcher(indices).matches()) {
             throw new IllegalArgumentException("Bad format for indices : '" + indices+"'");
         }
         return indices;
@@ -82,18 +80,11 @@ public class IndexAccessVerifier {
         return areAllIndexesGranted && (isMethodGet || isSearchPath || isCountPath || isAsyncSearchPath);
     }
 
-    /**
-     * The project an index name authorizes against: itself, or the base project of a known suffix.
-     * Exact match on the remainder, never a prefix match, so "myproject-other" doesn't inherit "myproject".
-     */
-    public static String baseProject(String index) {
-        return index.endsWith(ENTITIES_SUFFIX) ? index.substring(0, index.length() - ENTITIES_SUFFIX.length()) : index;
-    }
-
-    /** Maps a comma-separated index list to its base projects, in the same order; the single source of
-     *  truth for both an async-search submit and the poll that must re-check the same project set. */
-    public static List<String> baseProjects(String commaSeparated) {
-        return stream(commaSeparated.split(",")).map(IndexAccessVerifier::baseProject).toList();
+    /** The projects a comma-separated index list authorizes against, in the same order: each index itself,
+     *  or the base project it derives from. Suffix match on the whole remainder, never a prefix match,
+     *  so "myproject-other" doesn't inherit "myproject". */
+    public static List<String> baseProjects(String indices) {
+        return stream(indices.split(",")).map(i -> i.endsWith(ENTITIES_SUFFIX) ? i.substring(0, i.length() - ENTITIES_SUFFIX.length()) : i).toList();
     }
 
     public static String getUrlString(Context context, String s) {

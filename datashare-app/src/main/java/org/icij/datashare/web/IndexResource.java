@@ -81,9 +81,7 @@ public class IndexResource {
     public Payload createIndex(@Parameter(name = "index", description = "index to create", in = ParameterIn.PATH) final String index, Context context) throws IOException {
         modeVerifier.checkAllowedMode(Mode.LOCAL, Mode.EMBEDDED);
         try{
-            String checkedIndex = IndexAccessVerifier.checkIndices(index);
-            IndexAccessVerifier.baseProjects(checkedIndex).forEach(p -> ForbiddenException.requireGranted(context, p));
-            return indexer.createIndex(checkedIndex) ? created() : ok();
+            return indexer.createIndex(checkGrantedIndices(index, context)) ? created() : ok();
         } catch (IllegalArgumentException e){
             return PayloadFormatter.error(e, HttpStatus.BAD_REQUEST);
         }
@@ -149,6 +147,14 @@ public class IndexResource {
         } catch ( IllegalArgumentException e){
             return PayloadFormatter.error(e, HttpStatus.BAD_REQUEST);
         }
+    }
+
+    // Both gates for an index taken from the path, in one place so a new index-scoped endpoint
+    // cannot pass the format check and forget the grant one.
+    private String checkGrantedIndices(String indices, Context context) {
+        String checkedIndices = IndexAccessVerifier.checkIndices(indices);
+        IndexAccessVerifier.baseProjects(checkedIndices).forEach(project -> ForbiddenException.requireGranted(context, project));
+        return checkedIndices;
     }
 
     // Keep ES's result lifetime in lockstep with our ownership record: when an async-search submit
@@ -291,9 +297,7 @@ public class IndexResource {
             Context context) throws IOException {
         modeVerifier.checkAllowedMode(Mode.LOCAL, Mode.EMBEDDED);
         try {
-            String checkedIndex = IndexAccessVerifier.checkIndices(index);
-            IndexAccessVerifier.baseProjects(checkedIndex).forEach(p -> ForbiddenException.requireGranted(context, p));
-            String path = checkedIndex + "/_close";
+            String path = checkGrantedIndices(index, context) + "/_close";
             return PayloadFormatter.json(indexer.executeRaw("POST", IndexAccessVerifier.getUrlString(context, path), null));
         } catch (IllegalArgumentException e) {
             return PayloadFormatter.error(e, HttpStatus.BAD_REQUEST);
@@ -311,9 +315,7 @@ public class IndexResource {
             Context context) throws IOException {
         modeVerifier.checkAllowedMode(Mode.LOCAL, Mode.EMBEDDED);
         try {
-            String checkedIndex = IndexAccessVerifier.checkIndices(index);
-            IndexAccessVerifier.baseProjects(checkedIndex).forEach(p -> ForbiddenException.requireGranted(context, p));
-            String path = checkedIndex + "/_open";
+            String path = checkGrantedIndices(index, context) + "/_open";
             return PayloadFormatter.json(indexer.executeRaw("POST", IndexAccessVerifier.getUrlString(context, path), null));
         } catch (IllegalArgumentException e) {
             return PayloadFormatter.error(e, HttpStatus.BAD_REQUEST);
