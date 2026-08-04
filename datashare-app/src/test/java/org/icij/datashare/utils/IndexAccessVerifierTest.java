@@ -55,6 +55,8 @@ public class IndexAccessVerifierTest {
         assertThrows(IllegalArgumentException.class, () -> IndexAccessVerifier.checkIndices(".kibana"));
         assertThrows(IllegalArgumentException.class, () -> IndexAccessVerifier.checkIndices("foo."));
         assertThrows(IllegalArgumentException.class, () -> IndexAccessVerifier.checkIndices("foo..entities"));
+        // find() against a ^...$ pattern lets a trailing line terminator slip through; matches() does not
+        assertThrows(IllegalArgumentException.class, () -> IndexAccessVerifier.checkIndices("foo\n"));
     }
 
     @Test
@@ -72,8 +74,10 @@ public class IndexAccessVerifierTest {
         Context context = contextFor("foo");
         assertThrows(UnauthorizedException.class, () -> IndexAccessVerifier.checkPath("foo.unknown/_search", context));
         assertThrows(UnauthorizedException.class, () -> IndexAccessVerifier.checkPath("foobar/_search", context));
-        // "myproject-other" doesn't end in ".entities" once stripped down to "myproject", it stays its own project
+        // "myproject-other.entities" strips to "myproject-other", a different project; a prefix match would wrongly grant this
         assertThrows(UnauthorizedException.class, () -> IndexAccessVerifier.checkPath("myproject-other.entities/_search", contextFor("myproject")));
+        // a mixed list is refused as soon as one index isn't granted, even alongside one that is
+        assertThrows(UnauthorizedException.class, () -> IndexAccessVerifier.checkPath("foo,bar.entities/_search", contextFor("foo")));
     }
 
     private static Context contextFor(String... grantedProjects) {
