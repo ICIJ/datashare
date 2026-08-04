@@ -23,6 +23,7 @@ import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.utils.IndexAccessVerifier;
 import org.icij.datashare.utils.ModeVerifier;
 import org.icij.datashare.utils.PayloadFormatter;
+import org.icij.datashare.web.errors.ForbiddenException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -76,9 +77,11 @@ public class IndexResource {
     @ApiResponse(responseCode = "200", description = "returns 200 if the index already exists")
     @ApiResponse(responseCode = "201", description = "returns 201 if the index has been created")
     @Put("/:index")
-    public Payload createIndex(@Parameter(name = "index", description = "index to create", in = ParameterIn.PATH) final String index) throws IOException {
+    public Payload createIndex(@Parameter(name = "index", description = "index to create", in = ParameterIn.PATH) final String index, Context context) throws IOException {
         try{
-            return indexer.createIndex(IndexAccessVerifier.checkIndices(index)) ? created() : ok();
+            String checkedIndex = IndexAccessVerifier.checkIndices(index);
+            ForbiddenException.requireGranted(context, IndexAccessVerifier.baseProject(checkedIndex));
+            return indexer.createIndex(checkedIndex) ? created() : ok();
         } catch (IllegalArgumentException e){
             return PayloadFormatter.error(e, HttpStatus.BAD_REQUEST);
         }
