@@ -61,30 +61,37 @@ public class IndexAccessVerifierTest {
 
     @Test
     public void test_check_path_grants_entities_index_of_granted_project() {
-        assertThat(IndexAccessVerifier.checkPath("foo.entities/_search", contextFor("foo"))).isEqualTo("foo.entities/_search");
+        // POST, not GET: proves isSearchPath is what authorizes this, not the isMethodGet short-circuit
+        assertThat(IndexAccessVerifier.checkPath("foo.entities/_search", contextFor("POST", "foo"))).isEqualTo("foo.entities/_search");
     }
 
     @Test
     public void test_check_path_refuses_entities_index_of_other_project() {
-        assertThrows(UnauthorizedException.class, () -> IndexAccessVerifier.checkPath("bar.entities/_search", contextFor("foo")));
+        assertThrows(UnauthorizedException.class, () -> IndexAccessVerifier.checkPath("bar.entities/_search", contextFor("GET", "foo")));
     }
 
     @Test
     public void test_check_path_refuses_unknown_suffix_and_prefix_match() {
-        Context context = contextFor("foo");
+        Context context = contextFor("GET", "foo");
         assertThrows(UnauthorizedException.class, () -> IndexAccessVerifier.checkPath("foo.unknown/_search", context));
         assertThrows(UnauthorizedException.class, () -> IndexAccessVerifier.checkPath("foobar/_search", context));
         // "myproject-other.entities" strips to "myproject-other", a different project; a prefix match would wrongly grant this
-        assertThrows(UnauthorizedException.class, () -> IndexAccessVerifier.checkPath("myproject-other.entities/_search", contextFor("myproject")));
+        assertThrows(UnauthorizedException.class, () -> IndexAccessVerifier.checkPath("myproject-other.entities/_search", contextFor("GET", "myproject")));
         // a mixed list is refused as soon as one index isn't granted, even alongside one that is
-        assertThrows(UnauthorizedException.class, () -> IndexAccessVerifier.checkPath("foo,bar.entities/_search", contextFor("foo")));
+        assertThrows(UnauthorizedException.class, () -> IndexAccessVerifier.checkPath("foo,bar.entities/_search", contextFor("GET", "foo")));
     }
 
-    private static Context contextFor(String... grantedProjects) {
+    @Test
+    public void test_check_path_refuses_write_on_granted_index() {
+        // a grant only ever authorizes GET, _search, _count or _async_search; a write path is refused regardless
+        assertThrows(UnauthorizedException.class, () -> IndexAccessVerifier.checkPath("foo.entities/_bulk", contextFor("POST", "foo")));
+    }
+
+    private static Context contextFor(String method, String... grantedProjects) {
         Context context = mock(Context.class);
         Query query = mock(Query.class);
         when(context.currentUser()).thenReturn(new DatashareUser(User.localUser("cecile", grantedProjects)));
-        when(context.method()).thenReturn("GET");
+        when(context.method()).thenReturn(method);
         when(context.query()).thenReturn(query);
         when(query.keyValues()).thenReturn(new HashMap<>());
         return context;
