@@ -5,6 +5,7 @@ import net.codestory.http.Query;
 import net.codestory.http.errors.UnauthorizedException;
 import org.icij.datashare.session.DatashareUser;
 
+import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -12,7 +13,9 @@ import java.util.stream.Collectors;
 import static java.util.Arrays.stream;
 
 public class IndexAccessVerifier {
-    /** An index name: dots allowed inside, never leading, so the elasticsearch system indices (.kibana, .security) stay out of reach. */
+    /** An index name: dots allowed inside, never leading. That alone does not keep the elasticsearch
+     *  system indices (.kibana, .security) out of reach; "_all" and other "_"-leading names still match.
+     *  The grant check downstream of this pattern is what stops those, since none of them is a granted project. */
     private static final String INDEX_NAME = "[-a-zA-Z0-9_]+(\\.[-a-zA-Z0-9_]+)*";
     private static final Pattern INDICES = Pattern.compile("^" + INDEX_NAME + "(," + INDEX_NAME + ")*$");
     /** Suffix of an index derived from a project: "myproject.entities" is granted to whoever is granted "myproject". */
@@ -37,8 +40,8 @@ public class IndexAccessVerifier {
         if (isSearchScrollPath(path)) {
             return getUrlString(context, path);
         }
-        String[] indexes = checkIndices(pathParts[0]).split(",");
-        if (isAuthorizedRequest(context, pathParts, indexes)) {
+        String indexSegment = checkIndices(pathParts[0]);
+        if (isAuthorizedRequest(context, pathParts, indexSegment)) {
             return getUrlString(context, path);
         }
         throw new UnauthorizedException();
@@ -69,13 +72,13 @@ public class IndexAccessVerifier {
         return "_search".equals(pathParts[0]) && "scroll".equals(pathParts[1]);
     }
 
-    static private boolean isAuthorizedRequest(Context context, String[] pathParts, String[] indexes) {
+    static private boolean isAuthorizedRequest(Context context, String[] pathParts, String indexSegment) {
         DatashareUser currentUser = (DatashareUser) context.currentUser();
         boolean isMethodGet = "GET".equalsIgnoreCase(context.method());
         boolean isSearchPath = "_search".equals(pathParts[1]);
         boolean isCountPath = "_count".equals(pathParts[1]);
         boolean isAsyncSearchPath = "_async_search".equals(pathParts[1]);
-        boolean areAllIndexesGranted = stream(indexes).map(IndexAccessVerifier::baseProject).allMatch(currentUser::isGranted);
+        boolean areAllIndexesGranted = baseProjects(indexSegment).stream().allMatch(currentUser::isGranted);
         return areAllIndexesGranted && (isMethodGet || isSearchPath || isCountPath || isAsyncSearchPath);
     }
 
@@ -85,6 +88,12 @@ public class IndexAccessVerifier {
      */
     public static String baseProject(String index) {
         return index.endsWith(ENTITIES_SUFFIX) ? index.substring(0, index.length() - ENTITIES_SUFFIX.length()) : index;
+    }
+
+    /** Maps a comma-separated index list to its base projects, in the same order; the single source of
+     *  truth for both an async-search submit and the poll that must re-check the same project set. */
+    public static List<String> baseProjects(String commaSeparated) {
+        return stream(commaSeparated.split(",")).map(IndexAccessVerifier::baseProject).toList();
     }
 
     public static String getUrlString(Context context, String s) {
