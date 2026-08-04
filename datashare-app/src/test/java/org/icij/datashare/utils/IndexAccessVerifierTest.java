@@ -1,9 +1,18 @@
 package org.icij.datashare.utils;
 
+import net.codestory.http.Context;
+import net.codestory.http.Query;
+import net.codestory.http.errors.UnauthorizedException;
+import org.icij.datashare.session.DatashareUser;
+import org.icij.datashare.user.User;
 import org.junit.Test;
+
+import java.util.HashMap;
 
 import static org.fest.assertions.Assertions.assertThat;
 import static org.junit.Assert.assertThrows;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class IndexAccessVerifierTest {
 
@@ -32,6 +41,47 @@ public class IndexAccessVerifierTest {
         assertThrows(IllegalArgumentException.class, () -> {
             IndexAccessVerifier.checkIndices("bar,foo!");
         });
+    }
+
+    @Test
+    public void test_check_namespaced_index() {
+        assertThat(IndexAccessVerifier.checkIndices("foo.entities")).isEqualTo("foo.entities");
+        assertThat(IndexAccessVerifier.checkIndices("bar,foo.entities")).isEqualTo("bar,foo.entities");
+    }
+
+    @Test
+    public void test_check_invalid_dotted_index() {
+        // a leading dot would reach the elasticsearch system indices (.kibana, .security)
+        assertThrows(IllegalArgumentException.class, () -> IndexAccessVerifier.checkIndices(".kibana"));
+        assertThrows(IllegalArgumentException.class, () -> IndexAccessVerifier.checkIndices("foo."));
+        assertThrows(IllegalArgumentException.class, () -> IndexAccessVerifier.checkIndices("foo..entities"));
+    }
+
+    @Test
+    public void test_check_path_grants_entities_index_of_granted_project() {
+        assertThat(IndexAccessVerifier.checkPath("foo.entities/_search", contextFor("foo"))).isEqualTo("foo.entities/_search");
+    }
+
+    @Test
+    public void test_check_path_refuses_entities_index_of_other_project() {
+        assertThrows(UnauthorizedException.class, () -> IndexAccessVerifier.checkPath("bar.entities/_search", contextFor("foo")));
+    }
+
+    @Test
+    public void test_check_path_refuses_unknown_suffix_and_prefix_match() {
+        Context context = contextFor("foo");
+        assertThrows(UnauthorizedException.class, () -> IndexAccessVerifier.checkPath("foo.unknown/_search", context));
+        assertThrows(UnauthorizedException.class, () -> IndexAccessVerifier.checkPath("foobar/_search", context));
+    }
+
+    private static Context contextFor(String... grantedProjects) {
+        Context context = mock(Context.class);
+        Query query = mock(Query.class);
+        when(context.currentUser()).thenReturn(new DatashareUser(User.localUser("cecile", grantedProjects)));
+        when(context.method()).thenReturn("GET");
+        when(context.query()).thenReturn(query);
+        when(query.keyValues()).thenReturn(new HashMap<>());
+        return context;
     }
 
     @Test
