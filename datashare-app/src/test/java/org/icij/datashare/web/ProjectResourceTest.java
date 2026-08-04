@@ -211,6 +211,13 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
+    public void test_cannot_create_project_with_invalid_name() {
+        String body = "{ \"name\": \"foo.entities\", \"label\": \"Foo Bar\", \"sourcePath\": \"/vault/foo\" }";
+        when(repository.getProject("foo.entities")).thenReturn(null);
+        post("/api/project/", body).should().respond(400);
+    }
+
+    @Test
     public void test_update_project() {
         Project oldFoo = new Project("foo", "Foo", Path.of("/vault/foo"), "", "", "", "", "*.*.*.*", null, null);
         when(repository.getProjects(any())).thenReturn(List.of(oldFoo));
@@ -278,6 +285,15 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
 
         String body = "{ \"name\": \"\", \"label\": \"Foo\", \"sourcePath\": \"/vault/foo\"}";
         put("/api/project/foo", body).should().respond(400).contain("name");
+    }
+
+    @Test
+    public void test_put_create_returns_400_when_name_invalid() {
+        when(repository.getProjects(any())).thenReturn(new ArrayList<>());
+        when(repository.getProject("foo.entities")).thenReturn(null);
+
+        String body = "{ \"name\": \"foo.entities\", \"label\": \"Foo\", \"sourcePath\": \"/vault/foo\"}";
+        put("/api/project/foo.entities", body).should().respond(400);
     }
 
     @Test
