@@ -218,6 +218,17 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
+    public void test_can_create_project_with_underscore_in_name() throws IOException {
+        // a dot is the only hazard the suffix rule depends on; the fuller Project.NAME_PATTERN
+        // (no underscore, 2-64 chars) is not this endpoint's contract and must not be enforced here
+        String body = "{ \"name\": \"my_project\", \"label\": \"Foo Bar\", \"sourcePath\": \"/vault/foo\" }";
+        when(indexer.createIndex("my_project")).thenReturn(true);
+        when(repository.getProject("my_project")).thenReturn(null);
+        when(repository.save((Project) any())).thenReturn(true);
+        post("/api/project/", body).should().respond(201);
+    }
+
+    @Test
     public void test_update_project() {
         Project oldFoo = new Project("foo", "Foo", Path.of("/vault/foo"), "", "", "", "", "*.*.*.*", null, null);
         when(repository.getProjects(any())).thenReturn(List.of(oldFoo));
@@ -294,6 +305,17 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
 
         String body = "{ \"name\": \"foo.entities\", \"label\": \"Foo\", \"sourcePath\": \"/vault/foo\"}";
         put("/api/project/foo.entities", body).should().respond(400);
+    }
+
+    @Test
+    public void test_put_create_allows_underscore_in_name() throws IOException {
+        when(repository.getProjects(any())).thenReturn(new ArrayList<>());
+        when(repository.getProject("my_project")).thenReturn(null);
+        when(repository.save((Project) any())).thenReturn(true);
+        when(indexer.createIndex("my_project")).thenReturn(true);
+
+        String body = "{ \"name\": \"my_project\", \"label\": \"Foo\", \"sourcePath\": \"/vault/foo\"}";
+        put("/api/project/my_project", body).should().respond(201);
     }
 
     @Test
