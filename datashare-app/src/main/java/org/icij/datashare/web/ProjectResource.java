@@ -105,6 +105,8 @@
                 return PayloadFormatter.error("Project already exists.", HttpStatus.CONFLICT);
             } else if (isProjectNameEmpty(project)) {
                 return PayloadFormatter.error("`name` field is required.", HttpStatus.BAD_REQUEST);
+            } else if (!Project.NAME_PATTERN.matcher(project.getName()).matches()) {
+                return PayloadFormatter.error("project name must match " + Project.NAME_REGEX, HttpStatus.BAD_REQUEST);
             }
             Project effectiveProject = isProjectSourcePathNull(project) ? withDefaultSourcePath(project) : project;
             if (!dataDirVerifier.allowed(effectiveProject.getSourcePath())) {
@@ -156,6 +158,9 @@
             }
 
             if (!projectExists(effectiveProject)) {
+                if (!Project.NAME_PATTERN.matcher(effectiveProject.getName()).matches()) {
+                    return PayloadFormatter.error("project name must match " + Project.NAME_REGEX, HttpStatus.BAD_REQUEST);
+                }
                 if (!repository.save(effectiveProject) || !createIndexOnce(effectiveProject.getId())) {
                     return PayloadFormatter.error("Unable to create the project", HttpStatus.INTERNAL_SERVER_ERROR);
                 }
