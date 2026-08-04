@@ -220,6 +220,14 @@ public class IndexResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
+    public void test_put_createIndex_forbidden_in_server_mode() {
+        // granted, so a pass here would prove the mode gate is what refuses it, not the grant check
+        configure(routes -> routes.add(new IndexResource(indexer, serverModeProvider))
+                .filter(new BasicAuthFilter("/", "icij", DatashareUser.singleUser("cecile"))));
+        put("/api/index/cecile-datashare").withPreemptiveAuthentication("cecile", "").should().respond(403);
+    }
+
+    @Test
     public void test_close_index_in_local_mode() throws IOException {
         configure(routes -> routes.add(new IndexResource(indexer, propertiesProvider))
                 .filter(new LocalUserFilter(propertiesProvider, jooqRepository, es.getIndexNames())));
