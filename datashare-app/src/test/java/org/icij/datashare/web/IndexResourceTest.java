@@ -274,6 +274,34 @@ public class IndexResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
+    public void test_close_index_allows_comma_separated_list_of_granted_projects() throws IOException {
+        String idx1 = es.getIndexNames()[1];
+        String idx2 = es.getIndexNames()[2];
+        DatashareUser user = new DatashareUser(new HashMap<>() {{
+            put("uid", "cecile");
+            put("groups_by_applications", Map.of("datashare", List.of(idx1, idx2)));
+        }});
+        configure(routes -> routes.add(new IndexResource(indexer, propertiesProvider))
+                .filter(new BasicAuthFilter("/", "icij", DatashareUser.singleUser(user))));
+        post("/api/index/%s,%s/_close".formatted(idx1, idx2)).withPreemptiveAuthentication("cecile", "").should().respond(200);
+        // reopen: these indices are shared across the whole test class via @ClassRule
+        post("/api/index/%s,%s/_open".formatted(idx1, idx2)).withPreemptiveAuthentication("cecile", "").should().respond(200);
+    }
+
+    @Test
+    public void test_close_and_open_refuse_comma_separated_list_with_one_ungranted_project() throws IOException {
+        String granted = es.getIndexNames()[1];
+        DatashareUser user = new DatashareUser(new HashMap<>() {{
+            put("uid", "cecile");
+            put("groups_by_applications", Map.of("datashare", List.of(granted)));
+        }});
+        configure(routes -> routes.add(new IndexResource(indexer, propertiesProvider))
+                .filter(new BasicAuthFilter("/", "icij", DatashareUser.singleUser(user))));
+        post("/api/index/%s,victim/_close".formatted(granted)).withPreemptiveAuthentication("cecile", "").should().respond(403);
+        post("/api/index/%s,victim/_open".formatted(granted)).withPreemptiveAuthentication("cecile", "").should().respond(403);
+    }
+
+    @Test
     public void test_close_index_with_invalid_name() {
         configure(routes -> routes.add(new IndexResource(indexer, propertiesProvider))
                 .filter(new LocalUserFilter(propertiesProvider, jooqRepository, es.getIndexNames())));

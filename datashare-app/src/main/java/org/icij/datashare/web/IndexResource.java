@@ -80,7 +80,7 @@ public class IndexResource {
     public Payload createIndex(@Parameter(name = "index", description = "index to create", in = ParameterIn.PATH) final String index, Context context) throws IOException {
         try{
             String checkedIndex = IndexAccessVerifier.checkIndices(index);
-            ForbiddenException.requireGranted(context, IndexAccessVerifier.baseProject(checkedIndex));
+            IndexAccessVerifier.baseProjects(checkedIndex).forEach(p -> ForbiddenException.requireGranted(context, p));
             return indexer.createIndex(checkedIndex) ? created() : ok();
         } catch (IllegalArgumentException e){
             return PayloadFormatter.error(e, HttpStatus.BAD_REQUEST);
@@ -290,7 +290,7 @@ public class IndexResource {
         modeVerifier.checkAllowedMode(Mode.LOCAL, Mode.EMBEDDED);
         try {
             String checkedIndex = IndexAccessVerifier.checkIndices(index);
-            ForbiddenException.requireGranted(context, IndexAccessVerifier.baseProject(checkedIndex));
+            IndexAccessVerifier.baseProjects(checkedIndex).forEach(p -> ForbiddenException.requireGranted(context, p));
             String path = checkedIndex + "/_close";
             return PayloadFormatter.json(indexer.executeRaw("POST", IndexAccessVerifier.getUrlString(context, path), null));
         } catch (IllegalArgumentException e) {
@@ -310,7 +310,7 @@ public class IndexResource {
         modeVerifier.checkAllowedMode(Mode.LOCAL, Mode.EMBEDDED);
         try {
             String checkedIndex = IndexAccessVerifier.checkIndices(index);
-            ForbiddenException.requireGranted(context, IndexAccessVerifier.baseProject(checkedIndex));
+            IndexAccessVerifier.baseProjects(checkedIndex).forEach(p -> ForbiddenException.requireGranted(context, p));
             String path = checkedIndex + "/_open";
             return PayloadFormatter.json(indexer.executeRaw("POST", IndexAccessVerifier.getUrlString(context, path), null));
         } catch (IllegalArgumentException e) {
