@@ -73,11 +73,13 @@ public class IndexResource {
         return PayloadFormatter.json(indexer.executeRaw("GET", "/", null));
     }
 
-    @Operation(description = "Create the index for the current user if it doesn't exist.")
+    @Operation(description = "Create the index for the current user if it doesn't exist. Only available in LOCAL and EMBEDDED modes.")
     @ApiResponse(responseCode = "200", description = "returns 200 if the index already exists")
     @ApiResponse(responseCode = "201", description = "returns 201 if the index has been created")
+    @ApiResponse(responseCode = "403", description = "operation not allowed in current mode")
     @Put("/:index")
     public Payload createIndex(@Parameter(name = "index", description = "index to create", in = ParameterIn.PATH) final String index, Context context) throws IOException {
+        modeVerifier.checkAllowedMode(Mode.LOCAL, Mode.EMBEDDED);
         try{
             String checkedIndex = IndexAccessVerifier.checkIndices(index);
             IndexAccessVerifier.baseProjects(checkedIndex).forEach(p -> ForbiddenException.requireGranted(context, p));
