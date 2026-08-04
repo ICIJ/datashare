@@ -72,6 +72,8 @@ public class IndexAccessVerifierTest {
         Context context = contextFor("foo");
         assertThrows(UnauthorizedException.class, () -> IndexAccessVerifier.checkPath("foo.unknown/_search", context));
         assertThrows(UnauthorizedException.class, () -> IndexAccessVerifier.checkPath("foobar/_search", context));
+        // "myproject-other" doesn't end in ".entities" once stripped down to "myproject", it stays its own project
+        assertThrows(UnauthorizedException.class, () -> IndexAccessVerifier.checkPath("myproject-other.entities/_search", contextFor("myproject")));
     }
 
     private static Context contextFor(String... grantedProjects) {
