@@ -11,6 +11,7 @@ import org.icij.datashare.session.DatashareUser;
 import org.icij.datashare.session.LocalUserFilter;
 import org.icij.datashare.test.ElasticsearchRule;
 import org.icij.datashare.text.DocumentBuilder;
+import org.icij.datashare.text.Project;
 import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchIndexer;
 import org.icij.datashare.web.testhelpers.AbstractProdWebServerTest;
 import org.junit.After;
@@ -82,6 +83,8 @@ public class IndexResourceTest extends AbstractProdWebServerTest {
     }
     @Test
     public void test_put_create_local_index_in_local_mode() {
+        // createIndex now requires a grant on the index's base project; "index_name" must be one
+        when(jooqRepository.getProjects()).thenReturn(List.of(new Project("index_name")));
         configure(routes -> routes.add(new IndexResource(indexer, propertiesProvider)).filter(new LocalUserFilter(propertiesProvider, jooqRepository, es.getIndexNames())));
         put("/api/index/index_name").should().respond(201);
         put("/api/index/ !!").should().respond(400);
@@ -196,6 +199,22 @@ public class IndexResourceTest extends AbstractProdWebServerTest {
         put("/api/index/cecile-datashare").withPreemptiveAuthentication("cecile", "pass").should().respond(201);
         put("/api/index/!!").withPreemptiveAuthentication("cecile", "pass").should().respond(400);
         put("/api/index/ cecile-datashare").withPreemptiveAuthentication("cecile", "pass").should().respond(400);
+    }
+
+    @Test
+    public void test_put_createIndex_allows_own_project_and_its_entities_index() {
+        configure(routes -> routes.add(new IndexResource(indexer, propertiesProvider))
+                .filter(new BasicAuthFilter("/", "icij", DatashareUser.singleUser("cecile"))));
+        put("/api/index/cecile-datashare").withPreemptiveAuthentication("cecile", "").should().respond(201);
+        put("/api/index/cecile-datashare.entities").withPreemptiveAuthentication("cecile", "").should().respond(201);
+    }
+
+    @Test
+    public void test_put_createIndex_refuses_ungranted_project() {
+        configure(routes -> routes.add(new IndexResource(indexer, propertiesProvider))
+                .filter(new BasicAuthFilter("/", "icij", DatashareUser.singleUser("cecile"))));
+        put("/api/index/victim.entities").withPreemptiveAuthentication("cecile", "").should().respond(403);
+        put("/api/index/victim").withPreemptiveAuthentication("cecile", "").should().respond(403);
     }
 
     @Test
