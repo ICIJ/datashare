@@ -196,6 +196,8 @@ public class IndexResourceTest extends AbstractProdWebServerTest {
 
     @Test
     public void test_put_createIndex() {
+        configure(routes -> routes.add(new IndexResource(indexer, propertiesProvider))
+                .filter(new BasicAuthFilter("/", "icij", DatashareUser.singleUser("cecile"))));
         put("/api/index/cecile-datashare").withPreemptiveAuthentication("cecile", "pass").should().respond(201);
         put("/api/index/!!").withPreemptiveAuthentication("cecile", "pass").should().respond(400);
         put("/api/index/ cecile-datashare").withPreemptiveAuthentication("cecile", "pass").should().respond(400);
