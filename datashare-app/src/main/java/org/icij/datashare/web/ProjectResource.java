@@ -154,7 +154,7 @@
             if (!Objects.equals(projectPayload.getId(), id)) {
                 return PayloadFormatter.error("Project id mismatch.", HttpStatus.NOT_FOUND);
             }
-            boolean isCreate = !projectExists(projectPayload);
+            boolean isCreate = !projectExists(id);
             // only a new project's name is validated: a legacy project whose name predates this
             // check must still be updatable, so the guard applies to creation only, same as POST.
             // Checked here, before dataDirVerifier, to match projectCreate's order.
