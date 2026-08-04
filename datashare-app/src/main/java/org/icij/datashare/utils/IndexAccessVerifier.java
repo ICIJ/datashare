@@ -23,7 +23,7 @@ public class IndexAccessVerifier {
             throw new IllegalArgumentException("indices is null");
         }
         Matcher matcher = INDICES.matcher(indices);
-        if( !matcher.find()) {
+        if( !matcher.matches()) {
             throw new IllegalArgumentException("Bad format for indices : '" + indices+"'");
         }
         return indices;
