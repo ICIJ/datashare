@@ -293,9 +293,13 @@ public class IndexResourceTest extends AbstractProdWebServerTest {
         }});
         configure(routes -> routes.add(new IndexResource(indexer, propertiesProvider))
                 .filter(new BasicAuthFilter("/", "icij", DatashareUser.singleUser(user))));
-        post("/api/index/%s,%s/_close".formatted(idx1, idx2)).withPreemptiveAuthentication("cecile", "").should().respond(200);
-        // reopen: these indices are shared across the whole test class via @ClassRule
-        post("/api/index/%s,%s/_open".formatted(idx1, idx2)).withPreemptiveAuthentication("cecile", "").should().respond(200);
+        try {
+            post("/api/index/%s,%s/_close".formatted(idx1, idx2)).withPreemptiveAuthentication("cecile", "").should().respond(200);
+        } finally {
+            // reopen unconditionally, even if the close assertion above failed: these indices are
+            // shared across the whole test class via @ClassRule, and nothing else restores them
+            post("/api/index/%s,%s/_open".formatted(idx1, idx2)).withPreemptiveAuthentication("cecile", "").should().respond(200);
+        }
     }
 
     @Test
@@ -309,6 +313,9 @@ public class IndexResourceTest extends AbstractProdWebServerTest {
                 .filter(new BasicAuthFilter("/", "icij", DatashareUser.singleUser(user))));
         post("/api/index/%s,victim/_close".formatted(granted)).withPreemptiveAuthentication("cecile", "").should().respond(403);
         post("/api/index/%s,victim/_open".formatted(granted)).withPreemptiveAuthentication("cecile", "").should().respond(403);
+        // reversed: the ungranted index first, so a mutation checking only the list's last entry would still be caught
+        post("/api/index/victim,%s/_close".formatted(granted)).withPreemptiveAuthentication("cecile", "").should().respond(403);
+        post("/api/index/victim,%s/_open".formatted(granted)).withPreemptiveAuthentication("cecile", "").should().respond(403);
     }
 
     @Test
