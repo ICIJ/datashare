@@ -248,6 +248,32 @@ public class IndexResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
+    public void test_close_and_open_index_allowed_for_granted_project() throws IOException {
+        configure(routes -> routes.add(new IndexResource(indexer, propertiesProvider))
+                .filter(new BasicAuthFilter("/", "icij", DatashareUser.singleUser("cecile"))));
+        indexer.createIndex("cecile-datashare");
+        post("/api/index/cecile-datashare/_close").withPreemptiveAuthentication("cecile", "").should().respond(200);
+        post("/api/index/cecile-datashare/_open").withPreemptiveAuthentication("cecile", "").should().respond(200);
+    }
+
+    @Test
+    public void test_close_and_open_index_refuses_ungranted_project() throws IOException {
+        configure(routes -> routes.add(new IndexResource(indexer, propertiesProvider))
+                .filter(new BasicAuthFilter("/", "icij", DatashareUser.singleUser("cecile"))));
+        post("/api/index/victim/_close").withPreemptiveAuthentication("cecile", "").should().respond(403);
+        post("/api/index/victim/_open").withPreemptiveAuthentication("cecile", "").should().respond(403);
+    }
+
+    @Test
+    public void test_close_all_indices_is_refused() throws IOException {
+        // "_all" passes the name grammar but is not a granted project, so it can no longer close
+        // (or reach) every index in the cluster including .kibana and .security
+        configure(routes -> routes.add(new IndexResource(indexer, propertiesProvider))
+                .filter(new BasicAuthFilter("/", "icij", DatashareUser.singleUser("cecile"))));
+        post("/api/index/_all/_close").withPreemptiveAuthentication("cecile", "").should().respond(403);
+    }
+
+    @Test
     public void test_close_index_with_invalid_name() {
         configure(routes -> routes.add(new IndexResource(indexer, propertiesProvider))
                 .filter(new LocalUserFilter(propertiesProvider, jooqRepository, es.getIndexNames())));
