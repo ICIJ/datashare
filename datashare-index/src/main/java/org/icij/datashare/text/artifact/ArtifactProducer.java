@@ -62,26 +62,37 @@ public class ArtifactProducer {
             // stays consistent (and cross-process/host safe) with the payload just written.
             repository.put(context.docArtifactDir(), type.token(), produced.withTerminalStatus());
             return true;
-        } catch (ArtifactException | IOException failure) {
-            // Restoring the flag is what ends ArtifactTask's while(!isInterrupted()) loop instead of
-            // polling the next document; skipped, not failed, so a clean cancellation is not counted.
-            if (isCancellation(failure)) {
-                Thread.currentThread().interrupt();
-                LOGGER.debug("cancelled while producing '{}' for document {}", type.token(), context.document().getId(), failure);
+        } catch (UnparseableContentException unparseable) {
+            // The cancel question comes first: a cancelled Tika parse arrives as a parse failure too, and
+            // recording "no parser can read this" because the operator pressed cancel is a lie.
+            if (handledAsCancellation(type, context, unparseable)) {
                 return true;
             }
-            if (failure instanceof UnparseableContentException) {
-                return recordNoPayload(artifact, context, failure);
+            return storeEmptyEntry(artifact, context, unparseable);
+        } catch (ArtifactException | IOException failure) {
+            if (handledAsCancellation(type, context, failure)) {
+                return true;
             }
             LOGGER.error("failed to produce artifact '{}' for document {}", type.token(), context.document().getId(), failure);
             return false;
         }
     }
 
+    // Restoring the flag is what ends ArtifactTask's while(!isInterrupted()) loop instead of polling the
+    // next document. The caller then reports skipped, not failed, so a clean cancellation is not counted.
+    private boolean handledAsCancellation(ArtifactType type, ArtifactContext context, Exception failure) {
+        if (!isCancellation(failure)) {
+            return false;
+        }
+        Thread.currentThread().interrupt();
+        LOGGER.debug("cancelled while producing '{}' for document {}", type.token(), context.document().getId(), failure);
+        return true;
+    }
+
     // Content no parser can read will not parse on the next run either, so skip-if-current leaves it
     // alone instead of re-parsing every corrupt file in the corpus on every run, and an operator chasing
     // real failures is not shown an ERROR for a document a re-run cannot fix.
-    private boolean recordNoPayload(Artifact artifact, ArtifactContext context, Exception failure) {
+    private boolean storeEmptyEntry(Artifact artifact, ArtifactContext context, Exception failure) {
         ArtifactType type = artifact.type();
         // No stack trace: these are benign, and a corpus holds enough of them to bury the real failures.
         LOGGER.warn("{}: recording an empty '{}' entry so it is not parsed again", failure.getMessage(), type.token());

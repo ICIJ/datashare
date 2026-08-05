@@ -2,10 +2,12 @@ package org.icij.datashare.text.artifact;
 
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.Project;
+import org.junit.After;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import java.io.IOException;
+import java.io.InterruptedIOException;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -17,6 +19,12 @@ public class ArtifactProducerTest {
     private final ManifestRepository repository = new FilesystemManifestRepository();
     // No cancellation asked for: the cases below that do simulate one say so explicitly.
     private final ArtifactProducer producer = new ArtifactProducer(repository, () -> false);
+
+    // The interrupt flag is the JDK's cancellation mechanism and the producer restores it on purpose, so
+    // it survives the test that set it: cleared once here rather than in every case's finally.
+    @After public void clearTheInterruptFlag() {
+        Thread.interrupted();
+    }
 
     static class CountingArtifact implements Artifact {
         final ArtifactType type; final Map<String, Object> taskInput; final AtomicInteger produced = new AtomicInteger();
@@ -109,14 +117,30 @@ public class ArtifactProducerTest {
                 throw new UnparseableContentException("doc-id", new InterruptedException());
             }
         };
-        try {
-            boolean allSucceeded = cancelledProducer.run(List.of(structure), ctx(), false);
 
-            assertThat(allSucceeded).isTrue();
+        boolean allSucceeded = cancelledProducer.run(List.of(structure), ctx(), false);
+
+        assertThat(allSucceeded).isTrue();
+        assertThat(repository.get(dir.getRoot().toPath(), "structure")).isNull();
+        assertThat(Thread.currentThread().isInterrupted()).isTrue();
+    }
+
+    @Test public void test_a_configuration_failure_ends_the_run_instead_of_failing_one_type() throws Exception {
+        // It fails every document the same way, so counting it once per document works through the whole
+        // queue writing the same ERROR. Unchecked, so this per-type catch cannot swallow it.
+        CountingArtifact broken = new CountingArtifact("structure", 1) {
+            public ManifestEntry produce(ArtifactContext ctx) {
+                throw new ArtifactConfigurationException(new IllegalStateException("no parser for it"));
+            }
+        };
+        CountingArtifact raw = new CountingArtifact("raw", 1);
+
+        // assertThrows is unavailable here: junit-dep 4.9 on this module's classpath shadows org.junit.Assert.
+        try {
+            producer.run(List.of(broken, raw), ctx(), false);
+            org.junit.Assert.fail("expected the configuration failure to end the run");
+        } catch (ArtifactConfigurationException expected) {
             assertThat(repository.get(dir.getRoot().toPath(), "structure")).isNull();
-            assertThat(Thread.currentThread().isInterrupted()).isTrue();
-        } finally {
-            Thread.interrupted(); // clear so it does not leak into the next test
         }
     }
 
@@ -127,63 +151,69 @@ public class ArtifactProducerTest {
         assertThat(a.produced.get() + b.produced.get()).isEqualTo(1);
     }
 
-    @Test public void test_cancellation_stops_the_remaining_types_without_logging_an_error() throws Exception {
-        // The flag is still set when we catch, so the top-of-produce guard catches the next type before it
-        // even tries. It counts as a cancellation because the task reports one, not because of the flag.
+    // The four cases below are a 2x2: a cancel was requested or was not, and the signal reaches the
+    // producer as the interrupt flag or only in the exception's cause chain.
+
+    @Test public void test_a_cancel_stops_the_remaining_types() throws Exception {
+        // Flag still set when we catch, so the top-of-produce guard stops the next type before it tries.
+        // It counts as a cancellation because the task reports one, not because of the flag.
         ArtifactProducer cancelledProducer = new ArtifactProducer(repository, () -> true);
-        CountingArtifact cancelled = new CountingArtifact("raw", 1) {
-            public ManifestEntry produce(ArtifactContext ctx) throws ArtifactException {
-                Thread.currentThread().interrupt();
-                throw new ArtifactException("boom", null);
-            }
-        };
         CountingArtifact structure = new CountingArtifact("structure", 1);
-        try {
-            boolean allSucceeded = cancelledProducer.run(List.of(cancelled, structure), ctx(), false);
-            assertThat(allSucceeded).isTrue(); // a cancelled type is skipped, not failed
-            assertThat(structure.produced.get()).isEqualTo(0);
-            assertThat(Thread.currentThread().isInterrupted()).isTrue();
-        } finally {
-            Thread.interrupted(); // clear so it does not leak into the next test
-        }
+
+        boolean allSucceeded = cancelledProducer.run(List.of(interruptingArtifact(), structure), ctx(), false);
+
+        assertThat(allSucceeded).isTrue(); // a cancelled type is skipped, not failed
+        assertThat(structure.produced.get()).isEqualTo(0);
+        assertThat(Thread.currentThread().isInterrupted()).isTrue();
     }
 
-    @Test public void test_an_interrupt_nobody_asked_for_is_a_failure_not_a_green_end_to_the_run() throws Exception {
+    @Test public void test_an_interrupt_without_a_cancel_fails_the_document_and_lets_later_types_run() throws Exception {
         // A library that interrupts and re-sets the flag, or an HTTP client's timeout handling, sets it
         // with no cancel in sight. Believing it would end the whole remaining queue with nbFailed at 0.
-        CountingArtifact interrupting = new CountingArtifact("raw", 1) {
-            public ManifestEntry produce(ArtifactContext ctx) throws ArtifactException {
-                Thread.currentThread().interrupt();
-                throw new ArtifactException("boom", null);
-            }
-        };
         CountingArtifact structure = new CountingArtifact("structure", 1);
-        try {
-            boolean allSucceeded = producer.run(List.of(interrupting, structure), ctx(), false);
-            assertThat(allSucceeded).isFalse();
-            assertThat(structure.produced.get()).isEqualTo(1);
-        } finally {
-            Thread.interrupted(); // clear so it does not leak into the next test
-        }
+
+        boolean allSucceeded = producer.run(List.of(interruptingArtifact(), structure), ctx(), false);
+
+        assertThat(allSucceeded).isFalse();
+        assertThat(structure.produced.get()).isEqualTo(1);
     }
 
-    @Test public void test_a_cancellation_surfacing_as_an_interrupted_io_exception_is_recognised() throws Exception {
+    @Test public void test_a_cancel_recognised_from_the_cause_chain_stops_the_remaining_types() throws Exception {
+        ArtifactProducer cancelledProducer = new ArtifactProducer(repository, () -> true);
+        CountingArtifact structure = new CountingArtifact("structure", 1);
+
+        boolean allSucceeded = cancelledProducer.run(
+                List.of(artifactThrowingAWrappedInterrupt(new InterruptedException()), structure), ctx(), false);
+
+        assertThat(allSucceeded).isTrue();
+        assertThat(structure.produced.get()).isEqualTo(0);
+        assertThat(Thread.currentThread().isInterrupted()).isTrue();
+    }
+
+    @Test public void test_a_wrapped_interrupt_without_a_cancel_fails_the_document_and_lets_later_types_run() throws Exception {
+        // Tika's fork and external parsers wrap failures that have nothing to do with cancellation in an
+        // InterruptedException.
+        CountingArtifact structure = new CountingArtifact("structure", 1);
+
+        boolean allSucceeded = producer.run(
+                List.of(artifactThrowingAWrappedInterrupt(new InterruptedException()), structure), ctx(), false);
+
+        assertThat(allSucceeded).isFalse();
+        assertThat(structure.produced.get()).isEqualTo(1);
+        assertThat(Thread.currentThread().isInterrupted()).isFalse();
+    }
+
+    @Test public void test_a_cancel_recognised_from_an_interrupted_io_exception_stops_the_remaining_types() throws Exception {
         // extract-lib's cancellation path surfaces this one, and being an IOException rather than an
         // InterruptedException it would otherwise be counted as a failed document.
         ArtifactProducer cancelledProducer = new ArtifactProducer(repository, () -> true);
-        CountingArtifact cancelled = new CountingArtifact("raw", 1) {
-            public ManifestEntry produce(ArtifactContext ctx) throws ArtifactException {
-                Thread.interrupted(); // cleared, as the inner call that threw already did
-                throw new ArtifactException("boom", new java.io.InterruptedIOException());
-            }
-        };
         CountingArtifact structure = new CountingArtifact("structure", 1);
-        try {
-            assertThat(cancelledProducer.run(List.of(cancelled, structure), ctx(), false)).isTrue();
-            assertThat(structure.produced.get()).isEqualTo(0);
-        } finally {
-            Thread.interrupted();
-        }
+
+        boolean allSucceeded = cancelledProducer.run(
+                List.of(artifactThrowingAWrappedInterrupt(new InterruptedIOException()), structure), ctx(), false);
+
+        assertThat(allSucceeded).isTrue();
+        assertThat(structure.produced.get()).isEqualTo(0);
     }
 
     @Test(timeout = 5000) public void test_a_self_referential_cause_chain_does_not_spin_forever() throws Exception {
@@ -201,33 +231,6 @@ public class ArtifactProducerTest {
         assertThat(cancelledProducer.run(List.of(selfCaused), ctx(), false)).isFalse();
     }
 
-    @Test public void test_cancellation_detected_via_cause_chain_stops_the_remaining_types() throws Exception {
-        // Tika's real shape: the flag is already cleared by the time we catch (the inner blocking call
-        // consumed it throwing), so the cause chain is the only thing left to recognise the cancel by.
-        ArtifactProducer cancelledProducer = new ArtifactProducer(repository, () -> true);
-        CountingArtifact structure = new CountingArtifact("structure", 1);
-        try {
-            boolean allSucceeded = cancelledProducer.run(List.of(interruptInCauseChain(), structure), ctx(), false);
-            assertThat(allSucceeded).isTrue();
-            assertThat(structure.produced.get()).isEqualTo(0);
-            assertThat(Thread.currentThread().isInterrupted()).isTrue();
-        } finally {
-            Thread.interrupted(); // clear so it does not leak into the next test
-        }
-    }
-
-    @Test public void test_interrupt_in_the_cause_chain_without_a_cancel_is_a_failure_and_lets_later_types_run() throws Exception {
-        // Tika's fork and external parsers wrap failures that have nothing to do with cancellation in an
-        // InterruptedException.
-        CountingArtifact structure = new CountingArtifact("structure", 1);
-
-        boolean allSucceeded = producer.run(List.of(interruptInCauseChain(), structure), ctx(), false);
-
-        assertThat(allSucceeded).isFalse();
-        assertThat(structure.produced.get()).isEqualTo(1);
-        assertThat(Thread.currentThread().isInterrupted()).isFalse();
-    }
-
     private CountingArtifact unparseable() {
         return new CountingArtifact("structure", 1) {
             public ManifestEntry produce(ArtifactContext ctx) throws ArtifactException {
@@ -236,11 +239,23 @@ public class ArtifactProducerTest {
         };
     }
 
-    private CountingArtifact interruptInCauseChain() {
+    // Fails with the interrupt flag left set, as a library that interrupts and re-sets it does.
+    private CountingArtifact interruptingArtifact() {
         return new CountingArtifact("raw", 1) {
             public ManifestEntry produce(ArtifactContext ctx) throws ArtifactException {
-                Thread.interrupted(); // clear, simulating what the inner blocking call already did
-                throw new ArtifactException("boom", new InterruptedException());
+                Thread.currentThread().interrupt();
+                throw new ArtifactException("boom", null);
+            }
+        };
+    }
+
+    // A wrapped interrupt, as Tika delivers it: the flag is already cleared by the time the producer
+    // catches (the inner blocking call consumed it throwing), so the cause chain is all that is left.
+    private CountingArtifact artifactThrowingAWrappedInterrupt(Exception interrupt) {
+        return new CountingArtifact("raw", 1) {
+            public ManifestEntry produce(ArtifactContext ctx) throws ArtifactException {
+                Thread.interrupted();
+                throw new ArtifactException("boom", interrupt);
             }
         };
     }

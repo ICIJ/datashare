@@ -1,7 +1,6 @@
 package org.icij.datashare.text.artifact;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import org.apache.tika.exception.TikaConfigException;
 import org.apache.tika.exception.TikaException;
 import org.apache.tika.exception.TikaMemoryLimitException;
 import org.icij.datashare.json.JsonObjectMapper;
@@ -227,18 +226,17 @@ public class StructureArtifactTest {
     }
 
     @Test
-    public void test_a_limit_or_configuration_failure_is_not_recorded_as_unreadable_content() {
+    public void test_a_limit_failure_is_retried_and_unreadable_content_is_not() {
         // Recording no payload is terminal, so only content that is what it is forever earns it. Tika
-        // raises its own limits, its configuration and its zip-bomb guard as the same TikaException, and
-        // that guard is a known false positive on these corpora, so a re-run must get past all three.
-        assertThat(StructureArtifact.canNeverParse(new TikaException("no zip signature"))).isTrue();
-        assertThat(StructureArtifact.canNeverParse(new SAXException("not well-formed"))).isTrue();
-        assertThat(StructureArtifact.canNeverParse(new TikaConfigException("no parser for it"))).isFalse();
-        assertThat(StructureArtifact.canNeverParse(new TikaMemoryLimitException(2_000_000, 1_000_000))).isFalse();
+        // raises its own limits and its zip-bomb guard as the same TikaException the content raises, and
+        // that guard is a known false positive on these corpora, so a re-run must get past both.
+        assertThat(StructureArtifact.isRetryable(new TikaMemoryLimitException(2_000_000, 1_000_000))).isTrue();
         // What AutoDetectParser turns a SecureContentHandler refusal into: the handler's own exception
         // class is private to Tika, so the message is all there is to recognise it by.
-        assertThat(StructureArtifact.canNeverParse(
-                new TikaException("Zip bomb detected!", new SAXException("too deep")))).isFalse();
+        assertThat(StructureArtifact.isRetryable(
+                new TikaException("Zip bomb detected!", new SAXException("too deep")))).isTrue();
+        assertThat(StructureArtifact.isRetryable(new TikaException("no zip signature"))).isFalse();
+        assertThat(StructureArtifact.isRetryable(new SAXException("not well-formed"))).isFalse();
     }
 
     @Test

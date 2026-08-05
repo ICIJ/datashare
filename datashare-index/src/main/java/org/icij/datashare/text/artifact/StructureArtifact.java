@@ -90,32 +90,40 @@ public class StructureArtifact implements Artifact {
         return pages.stream().allMatch(page -> page.markdown().isBlank());
     }
 
-    // An IOException is left unclassified on purpose: it is the source going wrong (a stalled mount, a
-    // truncated read), which a re-run can get past, while a mislabelled file is what it is forever. A
-    // cancelled parse also arrives as a TikaException, so this is not the last word: the producer asks
-    // whether the run was cancelled before it records anything.
+    /**
+     * Parses into pages, sorting a failure into one of three buckets, because what a parse failure means
+     * decides whether the document is ever looked at again:
+     * <ul>
+     *   <li>fatal: a broken Tika configuration fails every document, so it ends the run instead of being
+     *       counted once per document (ArtifactTask rethrows it where it rethrows an Error);</li>
+     *   <li>document-level retryable: this side going wrong, so the document fails and a later run tries
+     *       again. Tika's own memory limit belongs here (the next run can have more heap) and so does its
+     *       zip-bomb guard, a known false positive on these corpora (extract-lib had to relax its nesting
+     *       depth for them). An IOException is not caught at all, which puts a stalled mount and a
+     *       truncated read in this bucket too;</li>
+     *   <li>document-level terminal: content no parser will read, recorded as an empty entry rather than
+     *       re-parsed on every run.</li>
+     * </ul>
+     * A cancelled parse also arrives as a TikaException, so this is not the last word: the producer asks
+     * whether the run was cancelled before it records anything.
+     */
     private List<Page> parse(InputStream source, Document document) throws IOException, ArtifactException {
         try {
             return extractor.extract(source, document.getContentType());
+        } catch (TikaConfigException fatal) {
+            throw new ArtifactConfigurationException(fatal);
         } catch (TikaException | SAXException failure) {
-            if (!canNeverParse(failure)) {
+            if (isRetryable(failure)) {
                 throw new ArtifactException("structure extraction failed for " + document.getId(), failure);
             }
             throw new UnparseableContentException(document.getId(), failure);
         }
     }
 
-    /**
-     * Whether {@code failure} says the content itself can never be parsed, as opposed to something on
-     * this side going wrong. Terminal: skip-if-current will not revisit the document for the rest of the
-     * release. Tika raises its own configuration, its own limits and its zip-bomb guard as the same
-     * TikaException, and that guard is a known false positive on these corpora (extract-lib had to relax
-     * its nesting depth for them), so those three stay retryable.
-     */
-    static boolean canNeverParse(Throwable failure) {
-        return !(failure instanceof TikaConfigException
-                || failure instanceof TikaMemoryLimitException
-                || isZipBombGuard(failure));
+    // Tika raises its own limits and its zip-bomb guard as the same TikaException the content itself
+    // raises, so the two document-level buckets are told apart here rather than by catch order.
+    static boolean isRetryable(Throwable failure) {
+        return failure instanceof TikaMemoryLimitException || isZipBombGuard(failure);
     }
 
     // SecureContentHandler.SecureSAXException is private to Tika and AutoDetectParser converts it into a

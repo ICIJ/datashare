@@ -14,6 +14,7 @@ import org.icij.datashare.text.DocReference;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.Project;
 import org.icij.datashare.text.artifact.Artifact;
+import org.icij.datashare.text.artifact.ArtifactConfigurationException;
 import org.icij.datashare.text.artifact.ArtifactContext;
 import org.icij.datashare.text.artifact.ArtifactProducer;
 import org.icij.datashare.text.artifact.ArtifactRegistry;
@@ -184,16 +185,15 @@ public class ArtifactTask extends PipelineTask<String> {
                 } else {
                     nbFailed.incrementAndGet();
                 }
+            } catch (Error | ArtifactConfigurationException e) {
+                // Neither is one document going wrong: an OutOfMemoryError leaves this worker on a heap it
+                // has already exhausted, and a broken producer configuration fails every document the same
+                // way, so both end the run rather than being counted once per document left in the queue.
+                throw e;
             } catch (Throwable e) {
                 if (producer.isCancellation(e)) {
                     Thread.currentThread().interrupt();
                     break;
-                }
-                // An Error is not one document going wrong: an OutOfMemoryError leaves this worker on a
-                // heap it has already exhausted, where every later document fails for reasons that have
-                // nothing to do with it.
-                if (e instanceof Error) {
-                    throw (Error) e;
                 }
                 logger.error("error in ArtifactTask loop", e);
                 nbFailed.incrementAndGet();
