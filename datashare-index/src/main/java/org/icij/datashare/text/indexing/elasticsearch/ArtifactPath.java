@@ -34,7 +34,7 @@ public class ArtifactPath {
         return docArtifactDir.resolve(STRUCTURE_DIR);
     }
 
-    /** page-%04d.<extension>, 1-based, as the convention's filesystem pagination requires. */
+    /** {@code page-%04d.<extension>}, 1-based, as the convention's filesystem pagination requires. */
     public static Path structurePage(Path docArtifactDir, int page, String extension) {
         return structureDir(docArtifactDir).resolve(pageFilename(page, extension));
     }
