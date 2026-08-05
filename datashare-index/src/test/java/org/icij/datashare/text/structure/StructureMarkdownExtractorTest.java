@@ -28,6 +28,7 @@ import org.xml.sax.SAXException;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -37,9 +38,20 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
 import static org.fest.assertions.Assertions.assertThat;
+import static org.icij.datashare.text.structure.StructureMarkdownExtractor.buildMetadata;
 
 public class StructureMarkdownExtractorTest {
     private final StructureMarkdownExtractor extractor = new StructureMarkdownExtractor();
+
+    // No filename hint: these cases pin what detection makes of the bytes and the content type alone.
+    private List<Page> extract(InputStream source, String contentType) throws Exception {
+        return extract(extractor, source, contentType);
+    }
+
+    private List<Page> extract(StructureMarkdownExtractor extractor, InputStream source, String contentType)
+            throws Exception {
+        return extractor.extract(source, contentType, null);
+    }
 
     private ByteArrayInputStream stream(String s) {
         return new ByteArrayInputStream(s.getBytes(StandardCharsets.UTF_8));
@@ -50,8 +62,18 @@ public class StructureMarkdownExtractorTest {
     }
 
     @Test
+    public void test_the_filename_is_passed_to_tika_as_a_detection_hint() {
+        // The other hint Tika's detector takes, as deterministic as the content type next to it, and the
+        // one that tells a .csv from the plain text its bytes also are.
+        assertThat(buildMetadata("text/plain", "notes.csv").get(TikaCoreProperties.RESOURCE_NAME_KEY))
+                .isEqualTo("notes.csv");
+        assertThat(buildMetadata("text/plain", null).get(TikaCoreProperties.RESOURCE_NAME_KEY)).isNull();
+        assertThat(buildMetadata("text/plain", " ").get(TikaCoreProperties.RESOURCE_NAME_KEY)).isNull();
+    }
+
+    @Test
     public void test_pdf_returns_one_page_per_pdf_page_without_br_noise() throws Exception {
-        List<Page> pages = extractor.extract(new ByteArrayInputStream(twoPagePdf()), "application/pdf");
+        List<Page> pages = extract(new ByteArrayInputStream(twoPagePdf()), "application/pdf");
         assertThat(pages).hasSize(2);
         assertThat(pages.get(0).markdown()).contains("page 1");
         assertThat(pages.get(1).markdown()).contains("page 2");
@@ -60,7 +82,7 @@ public class StructureMarkdownExtractorTest {
 
     @Test
     public void test_page_xhtml_is_a_parseable_xhtml_document() throws Exception {
-        Page page = extractor.extract(new ByteArrayInputStream(twoPagePdf()), "application/pdf").get(0);
+        Page page = extract(new ByteArrayInputStream(twoPagePdf()), "application/pdf").get(0);
         assertThat(page.xhtml()).startsWith("<html xmlns=\"http://www.w3.org/1999/xhtml\">");
         assertThat(page.xhtml()).contains("<body>");
         assertThat(page.xhtml()).contains("page 1");
@@ -70,7 +92,7 @@ public class StructureMarkdownExtractorTest {
 
     @Test
     public void test_page_markdown_derives_from_the_same_sanitized_html() throws Exception {
-        Page page = extractor.extract(
+        Page page = extract(
                 stream("<html><body><p>plain <strong>bold</strong><script>alert(1)</script></p></body></html>"),
                 "text/html").get(0);
         assertThat(page.xhtml()).excludes("script");
@@ -81,7 +103,7 @@ public class StructureMarkdownExtractorTest {
 
     @Test
     public void test_underline_is_normalized_to_plain_text() throws Exception {
-        Page page = extractor.extract(
+        Page page = extract(
                 stream("<html><body><p>see <u>under</u> line</p></body></html>"), "text/html").get(0);
         assertThat(page.markdown()).contains("under");
         assertThat(page.markdown()).excludes("++under++");
@@ -89,7 +111,7 @@ public class StructureMarkdownExtractorTest {
 
     @Test
     public void test_non_paginated_html_is_single_page() throws Exception {
-        List<Page> pages = extractor.extract(
+        List<Page> pages = extract(
                 stream("<html><body><h1>Title</h1><p>body</p></body></html>"), "text/html");
         assertThat(pages).hasSize(1);
         assertThat(pages.get(0).markdown()).contains("# Title");
@@ -99,7 +121,7 @@ public class StructureMarkdownExtractorTest {
     // confirm the change was intended, then update the expectation.
     @Test
     public void test_pdf_page_bytes_are_pinned() throws Exception {
-        List<Page> pages = extractor.extract(new ByteArrayInputStream(twoPagePdf()), "application/pdf");
+        List<Page> pages = extract(new ByteArrayInputStream(twoPagePdf()), "application/pdf");
 
         assertThat(pages).hasSize(2);
         // The whitespace between blocks is Tika's own rendering, kept verbatim, so the bytes track the Tika
@@ -115,8 +137,8 @@ public class StructureMarkdownExtractorTest {
     @Test
     public void test_extract_is_deterministic() throws Exception {
         String html = "<html><body><h1>Repeat</h1><p>same</p></body></html>";
-        List<Page> first = extractor.extract(stream(html), "text/html");
-        List<Page> second = extractor.extract(stream(html), "text/html");
+        List<Page> first = extract(stream(html), "text/html");
+        List<Page> second = extract(stream(html), "text/html");
         assertThat(markdown(first)).isEqualTo(markdown(second));
         assertThat(first.get(0).xhtml()).isEqualTo(second.get(0).xhtml());
     }
@@ -214,7 +236,7 @@ public class StructureMarkdownExtractorTest {
         // The standard Outlook shape (multipart/mixed > multipart/related > text/html). Tika's
         // MailContentHandler defaults EMBEDDED_RESOURCE_TYPE to ATTACHMENT for any part with no
         // Content-Disposition, so a disposition test here refuses the mail's own body.
-        List<Page> pages = extractor.extract(stream(nestedBodyMail()), "message/rfc822");
+        List<Page> pages = extract(stream(nestedBodyMail()), "message/rfc822");
 
         assertThat(pages).hasSize(1);
         assertThat(pages.get(0).markdown()).contains("the mail body text");
@@ -251,7 +273,7 @@ public class StructureMarkdownExtractorTest {
     public void test_embedded_documents_are_not_split_into_extra_pages() throws Exception {
         byte[] eml = Files.readAllBytes(Path.of(Objects.requireNonNull(
                 getClass().getResource("/docs/embedded_doc.eml")).toURI()));
-        List<Page> pages = extractor.extract(new ByteArrayInputStream(eml), "message/rfc822");
+        List<Page> pages = extract(new ByteArrayInputStream(eml), "message/rfc822");
         assertThat(pages).hasSize(1);
         assertThat(pages.get(0).markdown()).contains("test embedded");
     }
@@ -260,7 +282,7 @@ public class StructureMarkdownExtractorTest {
     public void test_root_pages_survive_when_an_embedded_part_also_paginates() throws Exception {
         // The embedded part's page div is not a page of the root's. Its text is not dropped either (see
         // below), so it rides on the last page like any content outside the root's page divs.
-        List<Page> pages = extractor.extract(stream(
+        List<Page> pages = extract(stream(
                 "<html><body>" +
                 "<div class=\"page\"><p>root one</p></div>" +
                 "<div class=\"page\"><p>root two</p></div>" +
@@ -285,7 +307,7 @@ public class StructureMarkdownExtractorTest {
         String withoutPages = "<html><body><div class=\"embedded\"><p>inlined body</p></div></body></html>";
 
         for (String markup : List.of(insidePage, besidePages, withoutPages)) {
-            List<Page> pages = extractor.extract(stream(markup), "text/html");
+            List<Page> pages = extract(stream(markup), "text/html");
             assertThat(pages).hasSize(1);
             assertThat(pages.get(0).markdown()).contains("inlined body");
         }
@@ -298,7 +320,7 @@ public class StructureMarkdownExtractorTest {
         StructureMarkdownExtractor bounded = new StructureMarkdownExtractor(100);
 
         try {
-            bounded.extract(stream("<html><body><p>" + "x".repeat(10_000) + "</p></body></html>"), "text/html");
+            extract(bounded, stream("<html><body><p>" + "x".repeat(10_000) + "</p></body></html>"), "text/html");
             org.junit.Assert.fail("expected the parse to stop at the output limit");
         } catch (SAXException | TikaException expected) {
             // told apart from a readable document one level up, not silently truncated
@@ -308,7 +330,7 @@ public class StructureMarkdownExtractorTest {
     @Test
     public void test_body_content_entirely_inside_page_divs_is_unchanged() throws Exception {
         // Pinned byte-for-byte: a change here invalidates every already-produced page set.
-        List<Page> pages = extractor.extract(stream(
+        List<Page> pages = extract(stream(
                 "<html><body><div class=\"page\"><p>A</p></div><div class=\"page\"><p>B</p></div></body></html>"),
                 "text/html");
 
@@ -321,7 +343,7 @@ public class StructureMarkdownExtractorTest {
     public void test_content_around_the_page_divs_joins_the_last_page_exactly_once() throws Exception {
         // Before, between and after the page divs, at any nesting depth: all kept in document order on the
         // last page, since losing document text is worse than a page boundary one node off.
-        List<Page> pages = extractor.extract(stream(
+        List<Page> pages = extract(stream(
                 "<html><body><p>header</p><div class=\"wrapper\">" +
                 "<div class=\"page\"><p>A</p></div><p>between</p><div class=\"page\"><p>B</p></div>" +
                 "</div><p>footer</p></body></html>"), "text/html");
@@ -334,7 +356,7 @@ public class StructureMarkdownExtractorTest {
     @Test
     public void test_a_page_div_nested_in_another_page_div_is_rendered_once() throws Exception {
         // A nested page div belongs to its parent page's rendering, not to a page of its own.
-        List<Page> pages = extractor.extract(stream(
+        List<Page> pages = extract(stream(
                 "<html><body><div class=\"page\"><p>outer</p>" +
                 "<div class=\"page\"><p>inner</p></div></div>" +
                 "<div class=\"page\"><p>second</p></div></body></html>"), "text/html");
@@ -346,7 +368,7 @@ public class StructureMarkdownExtractorTest {
     public void test_a_container_root_does_not_inline_its_embedded_parts_text() throws Exception {
         // The root's XHTML must stop at its own content: inlining a mail archive's or a zip's whole
         // recursive tree buffers it in heap only for the page selection to throw it away.
-        List<Page> pages = extractor.extract(new ByteArrayInputStream(zipContaining("inner.txt",
+        List<Page> pages = extract(new ByteArrayInputStream(zipContaining("inner.txt",
                 "secret inner text")), "application/zip");
 
         assertThat(markdown(pages).toString()).excludes("secret inner text");
@@ -356,7 +378,7 @@ public class StructureMarkdownExtractorTest {
     public void test_a_pdfs_bookmarks_and_form_fields_land_on_its_last_page() throws Exception {
         // Tika appends both after the last page div. They belong to no page in particular, and the
         // page count stays the PDF's, so they ride on the last page rather than being dropped.
-        List<Page> pages = extractor.extract(new ByteArrayInputStream(pdfWithOutlineAndForm()), "application/pdf");
+        List<Page> pages = extract(new ByteArrayInputStream(pdfWithOutlineAndForm()), "application/pdf");
 
         assertThat(pages).hasSize(2);
         assertThat(pages.get(0).markdown()).isEqualTo("Body on page 1.");
@@ -378,7 +400,7 @@ public class StructureMarkdownExtractorTest {
     public void test_generic_content_type_hint_is_ignored() throws Exception {
         // application/octet-stream is what embedded nodes often carry; passing it as a hint would
         // mislead Tika's detection, so it must be dropped and the bytes detected instead.
-        List<Page> pages = extractor.extract(
+        List<Page> pages = extract(
                 stream("<html><body><h1>Detected</h1></body></html>"), "application/octet-stream");
         assertThat(pages.get(0).markdown()).contains("# Detected");
     }

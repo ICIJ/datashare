@@ -2,18 +2,23 @@ package org.icij.datashare.text.structure;
 
 import com.vladsch.flexmark.html2md.converter.FlexmarkHtmlConverter;
 import com.vladsch.flexmark.util.data.MutableDataSet;
+import org.apache.tika.config.TikaConfig;
 import org.apache.tika.exception.TikaException;
 import org.apache.tika.extractor.DocumentSelector;
 import org.apache.tika.metadata.Metadata;
 import org.apache.tika.metadata.TikaCoreProperties;
 import org.apache.tika.parser.AutoDetectParser;
 import org.apache.tika.parser.ParseContext;
+import org.apache.tika.parser.Parser;
 import org.apache.tika.parser.html.HtmlMapper;
 import org.apache.tika.parser.html.IdentityHtmlMapper;
+import org.apache.tika.parser.microsoft.pst.OutlookPSTParser;
 import org.apache.tika.parser.ocr.TesseractOCRConfig;
 import org.apache.tika.parser.pdf.PDFParserConfig;
 import org.apache.tika.sax.ToXMLContentHandler;
 import org.apache.tika.sax.WriteOutContentHandler;
+import org.icij.extract.extractor.Extractor;
+import org.icij.extract.parser.ResilientOutlookPSTParser;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -25,6 +30,7 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
 import java.util.Set;
 
 /**
@@ -67,6 +73,15 @@ public class StructureMarkdownExtractor {
     // produce path catches an OutOfMemoryError, so the parse is stopped instead.
     private static final int DEFAULT_MAX_OUTPUT_CHARS = 16_000_000;
 
+    // The same parser set the INDEX stage uses: extract-lib swaps Tika's stock OutlookPSTParser, which
+    // abandons the rest of a PST or OST once one message fails, for the resilient one (Extractor.java:259).
+    // Off Tika's stock set, a mail container's structure would stop at its first bad message. Null-checked
+    // because replaceParser returns null for a non-composite parser, which would then NPE per document.
+    private static final Parser RESILIENT_PARSER = Objects.requireNonNull(
+            Extractor.replaceParser(TikaConfig.getDefaultConfig().getParser(), OutlookPSTParser.class,
+                    parser -> new ResilientOutlookPSTParser()),
+            "Tika's default parser is not a CompositeParser, so the resilient PST parser cannot be swapped in");
+
     private final int maxOutputChars;
 
     public StructureMarkdownExtractor() {
@@ -89,11 +104,12 @@ public class StructureMarkdownExtractor {
 
     /**
      * Parses {@code source} once and returns one {@link Page} per page of the root document. The
-     * caller owns {@code source}: this method reads but does not close it.
+     * caller owns {@code source}: this method reads but does not close it. {@code contentType} and
+     * {@code filename} are detection hints, either of which may be null.
      */
-    public List<Page> extract(InputStream source, String contentType)
+    public List<Page> extract(InputStream source, String contentType, String filename)
             throws IOException, SAXException, TikaException {
-        org.jsoup.nodes.Document document = Jsoup.parse(toXhtml(source, contentType));
+        org.jsoup.nodes.Document document = Jsoup.parse(toXhtml(source, contentType, filename));
         List<Page> pages = new ArrayList<>();
         for (Element page : selectRootPages(document)) {
             // Both formats come from the same DOM, so they can never disagree about a page's content.
@@ -162,19 +178,25 @@ public class StructureMarkdownExtractor {
         return page.html();
     }
 
-    String toXhtml(InputStream source, String contentType) throws IOException, SAXException, TikaException {
+    String toXhtml(InputStream source, String contentType, String filename)
+            throws IOException, SAXException, TikaException {
         ToXMLContentHandler xhtmlHandler = new ToXMLContentHandler();
-        new AutoDetectParser().parse(source, new WriteOutContentHandler(xhtmlHandler, maxOutputChars),
-                buildMetadata(contentType), buildParseContext());
+        new AutoDetectParser(RESILIENT_PARSER).parse(source,
+                new WriteOutContentHandler(xhtmlHandler, maxOutputChars),
+                buildMetadata(contentType, filename), buildParseContext());
         return xhtmlHandler.toString();
     }
 
-    // A generic application/octet-stream hint (common for embedded nodes) would mislead Tika's own
-    // detection, so only a specific type is passed on.
-    private static Metadata buildMetadata(String contentType) {
+    // The two hints Tika's detector takes, both as deterministic as the bytes themselves. A generic
+    // application/octet-stream type (common for embedded nodes) would mislead detection rather than help
+    // it, so only a specific one is passed on; the filename is passed as it is.
+    static Metadata buildMetadata(String contentType, String filename) {
         Metadata metadata = new Metadata();
         if (isSpecificContentType(contentType)) {
             metadata.set(Metadata.CONTENT_TYPE, contentType);
+        }
+        if (filename != null && !filename.isBlank()) {
+            metadata.set(TikaCoreProperties.RESOURCE_NAME_KEY, filename);
         }
         return metadata;
     }

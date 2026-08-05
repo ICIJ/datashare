@@ -86,11 +86,13 @@ public class StructureArtifactTest {
         // The Tika version says nothing about the datashare-side rendering, and the hand-bumped
         // producerVersion it replaces was a constant someone had to remember.
         assertThat(structure.taskInput().get("producerVersion")).isNull();
-        String datashare = (String) structure.taskInput().get("datashare");
         // A packaging or filtering regression must fail here rather than record a placeholder that
         // freezes skip-if-current on every document forever.
-        assertThat(datashare).matches("\\d+\\.\\d+.*");
-        assertThat(datashare).excludes("${");
+        for (String key : List.of("datashare", "extract")) {
+            String recorded = (String) structure.taskInput().get(key);
+            assertThat(recorded).matches("\\d+\\.\\d+.*");
+            assertThat(recorded).excludes("${");
+        }
     }
 
     // Golden pin of the filenames and the exact stored bytes, to catch an UNINTENDED change to a rendering
@@ -238,6 +240,7 @@ public class StructureArtifactTest {
         assertThat(StructureArtifact.isRetryable(new TikaException("no zip signature"))).isFalse();
         assertThat(StructureArtifact.isRetryable(new SAXException("not well-formed"))).isFalse();
     }
+
 
     @Test
     public void test_a_document_that_renders_no_text_records_no_payload_instead_of_blank_pages() throws Exception {
