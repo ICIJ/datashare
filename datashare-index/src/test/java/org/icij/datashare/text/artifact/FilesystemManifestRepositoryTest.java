@@ -42,7 +42,7 @@ public class FilesystemManifestRepositoryTest {
         repository.put(node, "raw", rawEntry());
         repository.put(node, "structure", ManifestEntry.paginated(Map.of("type", "structure", "version", 1), 3).withStatus(ManifestEntryStatus.COMPLETE));
         assertThat(repository.get(node, "raw")).isNotNull();
-        assertThat(repository.get(node, "structure").total()).isEqualTo(3);
+        assertThat(repository.get(node, "structure").pages().total()).isEqualTo(3);
     }
 
     @Test

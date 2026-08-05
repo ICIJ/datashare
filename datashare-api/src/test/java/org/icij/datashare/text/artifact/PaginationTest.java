@@ -26,19 +26,19 @@ public class PaginationTest {
 
     @Test
     public void test_byte_ranges_pagination_written_by_another_producer_is_readable() throws Exception {
-        // The only reason `ranges` exists in the record: nothing in Java writes that scheme.
+        // The only reason ByteRangePagination exists: nothing in Java writes that scheme.
         ManifestEntry read = mapper.readValue("{\"status\":\"complete\",\"pages\":{\"total\":2,"
                 + "\"pagination\":{\"type\":\"byteRanges\",\"ranges\":[[0,10],[10,20]]}}}", ManifestEntry.class);
 
-        assertThat(read.total()).isEqualTo(2);
-        assertThat(read.pages().pagination().type()).isEqualTo("byteRanges");
-        assertThat(read.pages().pagination().ranges()).hasSize(2);
+        assertThat(read.pages().total()).isEqualTo(2);
+        assertThat(read.pages().pagination()).isInstanceOf(ByteRangePagination.class);
+        assertThat(((ByteRangePagination) read.pages().pagination()).ranges()).hasSize(2);
     }
 
     @Test
     public void test_pagination_round_trip() throws Exception {
-        Pagination read = mapper.readValue(mapper.writeValueAsString(Pagination.filesystem()), Pagination.class);
+        Pagination read = mapper.readValue(mapper.writeValueAsString(new FilesystemPagination()), Pagination.class);
+        assertThat(read).isInstanceOf(FilesystemPagination.class);
         assertThat(read.type()).isEqualTo("filesystem");
-        assertThat(read.ranges()).isNull();
     }
 }
