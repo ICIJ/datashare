@@ -40,6 +40,9 @@ public class FilesystemManifestRepository implements ManifestRepository {
         if (!Files.exists(manifest)) {
             return null;
         }
+        // Read as a tree, then convert the one type asked for: datashare-python owns other types in the
+        // same file and writes fields ManifestEntry does not model, and a round-trip through the record
+        // destroyed them (a docling payload's byte offsets are the only copy there is).
         JsonNode entry = read(manifest).get(type);
         return entry == null ? null : MAPPER.treeToValue(entry, ManifestEntry.class);
     }

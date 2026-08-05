@@ -40,9 +40,8 @@ public class ArtifactPath {
     }
 
     /** Just the filename, for a caller writing pages under a directory other than the final structure/
-     *  one (the producer's atomic-swap temp directory). Formatted in {@link Locale#ROOT}: the default
-     *  locale would decide the digits, so a box started with LANG=ar_EG.UTF-8 writes page-٠٠١٢.md and two
-     *  hosts sharing an artifactDir disagree on the filenames for the same digest. */
+     *  one (the producer's atomic-swap temp directory). {@link Locale#ROOT} so the default locale cannot
+     *  decide the digits: with LANG=ar_EG.UTF-8 it would write page-٠٠١٢.md. */
     public static String pageFilename(int page, String extension) {
         return String.format(Locale.ROOT, "page-%04d.%s", page, extension);
     }
