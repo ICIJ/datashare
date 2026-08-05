@@ -143,7 +143,7 @@ public class StructureArtifactTest {
     public void test_produce_returns_a_filesystem_paginated_entry() throws Exception {
         ManifestEntry entry = new StructureArtifact().produce(contextFor(HTML));
 
-        assertThat(entry.total()).isEqualTo(1);
+        assertThat(entry.pages().total()).isEqualTo(1);
         assertThat(entry.pages().pagination().type()).isEqualTo("filesystem");
         assertThat(entry.taskInput().get("pipeline")).isEqualTo("tika");
         assertThat(entry.contentType()).isNull();
@@ -170,7 +170,7 @@ public class StructureArtifactTest {
 
         assertThat(Files.isDirectory(ArtifactPath.structureDir(dir.getRoot().toPath()))).isTrue();
         assertThat(Files.readString(page(1, "md"))).contains("# Title");
-        assertThat(entry.total()).isEqualTo(1);
+        assertThat(entry.pages().total()).isEqualTo(1);
     }
 
     @Test
@@ -251,7 +251,7 @@ public class StructureArtifactTest {
         ManifestEntry entry = new StructureArtifact().produce(contextFor(blankPng(), scan));
 
         assertThat(entry.status()).isEqualTo(ManifestEntryStatus.EMPTY);
-        assertThat(entry.total()).isNull();
+        assertThat(entry.pages()).isNull();
         assertThat(Files.exists(ArtifactPath.structureDir(dir.getRoot().toPath()))).isFalse();
     }
 
@@ -297,7 +297,7 @@ public class StructureArtifactTest {
 
         ManifestEntry entry = new StructureArtifact().produce(contextFor(HTML, docArtifactDir));
 
-        assertThat(entry.total()).isEqualTo(1);
+        assertThat(entry.pages().total()).isEqualTo(1);
         assertThat(Files.readString(ArtifactPath.structurePage(docArtifactDir, 1, "md"))).contains("# Title");
     }
 
@@ -319,7 +319,7 @@ public class StructureArtifactTest {
 
             // The previous payload is renamed aside, not deleted, so an undeletable leftover cannot fail
             // the document.
-            assertThat(entry.total()).isEqualTo(1);
+            assertThat(entry.pages().total()).isEqualTo(1);
             assertThat(Files.readString(page(1, "md"))).contains("# Title");
             assertThat(Files.exists(ArtifactPath.structureDir(dir.getRoot().toPath()).resolve("locked"))).isFalse();
         } finally {
@@ -350,7 +350,7 @@ public class StructureArtifactTest {
 
         ManifestEntry entry = new StructureArtifact().produce(contextFor(HTML));
 
-        assertThat(entry.total()).isEqualTo(1);
+        assertThat(entry.pages().total()).isEqualTo(1);
         assertThat(Files.readString(dir.getRoot().toPath().resolve("structure.tmp")))
                 .isEqualTo("leftover of a fixed name");
     }

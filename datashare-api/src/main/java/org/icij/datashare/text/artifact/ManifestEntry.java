@@ -21,7 +21,7 @@ public record ManifestEntry(
 
     /** A payload split into one file per page, the only scheme Java writes (see {@link Pagination}). */
     public static ManifestEntry paginated(Map<String, Object> taskInput, int total) {
-        return new ManifestEntry(null, taskInput, new Pages(total, Pagination.filesystem()), null, null, null, null);
+        return new ManifestEntry(null, taskInput, new Pages(total, new FilesystemPagination()), null, null, null, null);
     }
 
     /** A node that was processed but has no payload to serve from its own dir (e.g. a root
@@ -52,11 +52,5 @@ public record ManifestEntry(
 
     public boolean isTerminal() {
         return status != null && status.isTerminal();
-    }
-
-    /** The page count, or null for an entry with no pages: a single-file or EMPTY one, or one another
-     *  producer wrote without a count. */
-    public Integer total() {
-        return pages == null ? null : pages.total();
     }
 }

@@ -88,10 +88,7 @@ public class ManifestEntryTest {
     }
 
     @Test
-    public void test_a_missing_total_reads_as_unknown_rather_than_zero() throws Exception {
-        // An entry another producer wrote without a page count says nothing about how many pages there
-        // are, which a primitive int would silently turn into "no pages".
-        assertThat(mapper.readValue("{\"status\":\"complete\"}", ManifestEntry.class).total()).isNull();
-        assertThat(mapper.readValue("{\"status\":\"complete\",\"pages\":{}}", ManifestEntry.class).total()).isNull();
+    public void test_an_entry_with_no_pages_object_has_no_page_attributes() throws Exception {
+        assertThat(mapper.readValue("{\"status\":\"complete\"}", ManifestEntry.class).pages()).isNull();
     }
 }
