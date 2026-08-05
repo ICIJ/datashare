@@ -9,6 +9,7 @@ import org.icij.datashare.text.Document;
 import org.icij.datashare.text.indexing.elasticsearch.ArtifactPath;
 import org.icij.datashare.text.structure.StructureMarkdownExtractor;
 import org.icij.datashare.text.structure.StructureMarkdownExtractor.Page;
+import org.icij.datashare.utils.BuildVersions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xml.sax.SAXException;
@@ -23,6 +24,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Stream;
+
+import static org.icij.datashare.text.nlp.DocumentMetadataConstants.RESOURCE_NAME_KEY;
 
 /** The structure artifact: a per-page Tika rendering written as page-NNNN.xhtml (sanitized, the
  *  source of truth) and page-NNNN.md (derived from it) under the document's structure/ dir. */
@@ -49,11 +52,13 @@ public class StructureArtifact implements Artifact {
 
     @Override
     public Map<String, Object> taskInput() {
-        // A Tika upgrade changes the XHTML, so skip-if-current must see already-cached pages as stale.
-        // The datashare version covers the rendering this class owns (page grouping, safelist, flexmark
-        // options), which no dependency version tracks. Deliberately conservative: any datashare release
-        // makes every structure artifact stale, so the next ARTIFACT run re-extracts a whole corpus.
-        return Map.of("pipeline", "tika", "version", TIKA_VERSION, "datashare", DatashareVersion.VALUE);
+        // A fingerprint of the code that made the bytes, so skip-if-current sees pages an earlier release
+        // rendered as stale: Tika renders the XHTML, extract-lib owns the parser set (the resilient PST
+        // one), and the datashare version covers what this class decides (page grouping, safelist,
+        // flexmark options), which no dependency version tracks. Deliberately conservative: any datashare
+        // release makes every structure artifact stale, so the next ARTIFACT run re-extracts a corpus.
+        return Map.of("pipeline", "tika", "version", TIKA_VERSION,
+                "extract", BuildVersions.EXTRACT, "datashare", BuildVersions.DATASHARE);
     }
 
     @Override
@@ -109,7 +114,7 @@ public class StructureArtifact implements Artifact {
      */
     private List<Page> parse(InputStream source, Document document) throws IOException, ArtifactException {
         try {
-            return extractor.extract(source, document.getContentType());
+            return extractor.extract(source, document.getContentType(), resourceName(document));
         } catch (TikaConfigException fatal) {
             throw new ArtifactConfigurationException(fatal);
         } catch (TikaException | SAXException failure) {
@@ -124,6 +129,15 @@ public class StructureArtifact implements Artifact {
     // raises, so the two document-level buckets are told apart here rather than by catch order.
     static boolean isRetryable(Throwable failure) {
         return failure instanceof TikaMemoryLimitException || isZipBombGuard(failure);
+    }
+
+    // The document's own name, from the Tika metadata rather than from the path: an embedded document
+    // carries its container's path, so the path would hand a mail attachment's bytes the name of the
+    // archive they came out of.
+    private static String resourceName(Document document) {
+        Map<String, Object> metadata = document.getMetadata();
+        Object resourceName = metadata == null ? null : metadata.get(RESOURCE_NAME_KEY);
+        return resourceName == null ? null : resourceName.toString();
     }
 
     // SecureContentHandler.SecureSAXException is private to Tika and AutoDetectParser converts it into a
