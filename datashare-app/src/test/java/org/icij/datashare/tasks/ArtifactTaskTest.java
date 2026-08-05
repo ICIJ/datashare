@@ -10,6 +10,8 @@ import org.icij.datashare.test.LogbackCapturingRule;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.DocumentBuilder;
 import org.icij.datashare.text.Project;
+import org.icij.datashare.text.artifact.FilesystemManifestRepository;
+import org.icij.datashare.text.artifact.ManifestEntryStatus;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.text.indexing.elasticsearch.SourceExtractor;
 import org.icij.datashare.user.User;
@@ -41,6 +43,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import static org.fest.assertions.Assertions.assertThat;
 import static org.icij.datashare.PropertiesProvider.DEFAULT_QUEUE_CAPACITY;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.MockitoAnnotations.initMocks;
@@ -117,8 +120,8 @@ public class ArtifactTaskTest {
         assertThat(numberOfDocuments).isEqualTo(1);
         Path docArtifactDir = artifactDir.getRoot().toPath().resolve("prj/6a/bb/" + EMBEDDED_PDF_SHA256);
         assertThat(docArtifactDir.resolve("raw").toFile()).isFile();
-        assertThat(Files.readString(docArtifactDir.resolve("manifest.json")))
-                .contains("\"structure\"").contains("\"empty\"");
+        assertThat(new FilesystemManifestRepository().get(docArtifactDir, "structure").status())
+                .isEqualTo(ManifestEntryStatus.EMPTY);
         assertThat(docArtifactDir.resolve("structure").toFile()).doesNotExist();
     }
 
@@ -315,12 +318,10 @@ public class ArtifactTaskTest {
             }
         };
 
-        try {
-            task.call();
-            org.junit.Assert.fail("expected the run to fail");
-        } catch (IllegalStateException expected) {
-            assertThat(expected.getMessage()).contains("terminated abnormally");
-        }
+        IllegalStateException failure = assertThrows(IllegalStateException.class, task::call);
+
+        assertThat(failure.getMessage()).contains("terminated abnormally");
+        // The worker's death is reported, not just signalled by the throw.
         assertThat(logback.logs(Level.ERROR)).contains("artifact worker terminated abnormally");
     }
 
@@ -450,12 +451,9 @@ public class ArtifactTaskTest {
         };
         factory.queues.put("extract:queue:artifact", queue);
 
-        try {
-            runArtifactTask();
-            org.junit.Assert.fail("expected the task to report the worker death");
-        } catch (IllegalStateException expected) {
-            // a broken queue is an infrastructure failure: the run must not be recorded as successful
-        }
+        // a broken queue is an infrastructure failure: the run must not be recorded as successful
+        assertThrows(IllegalStateException.class, this::runArtifactTask);
+
         assertThat(logback.logs(Level.ERROR)).contains("artifact worker terminated abnormally");
     }
 
