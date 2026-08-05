@@ -35,7 +35,7 @@ import java.util.Set;
 
 /**
  * Converts a document's source bytes into a per-page rendering of its structure. Pipeline: Tika XHTML
- * -> split on <div class="page"> -> per-page sanitize -> flexmark html2md. OCR is disabled and
+ * -> split on {@code <div class="page">} -> per-page sanitize -> flexmark html2md. OCR is disabled and
  * embedded documents contribute no pages, so the same bytes always yield byte-identical output, which
  * the content-addressed cache relies on.
  */
