@@ -54,10 +54,10 @@ public class StructureArtifact implements Artifact {
     @Override
     public ManifestEntry produce(ArtifactContext context) throws ArtifactException {
         try (InputStream source = context.sources().getSource(context.project(), context.document())) {
+            // The parser's output is served as it comes, blank pages included: with OCR off a scanned page
+            // renders empty, and "the parser found no text here" is a different thing from the EMPTY of a
+            // raw entry, which means there is nothing at this path to serve at all.
             List<Page> pages = parse(source, context.document());
-            if (rendersNoText(pages)) {
-                return noPayloadFor(context.docArtifactDir());
-            }
             writePages(context.docArtifactDir(), pages);
             return ManifestEntry.paginated(taskInput(), pages.size());
         } catch (UnreadableContentException unreadable) {
@@ -70,19 +70,6 @@ public class StructureArtifact implements Artifact {
         } catch (Exception failure) {
             throw new ArtifactException("structure extraction failed for " + context.document().getId(), failure);
         }
-    }
-
-    // With OCR off a scanned page or a standalone image renders empty. Recording that as a complete page
-    // set would leave a consumer unable to tell "no structure" from "page one is blank", so nothing is
-    // recorded, and any payload an earlier release wrote goes with it: the manifest would otherwise say
-    // there is nothing to serve while a reader listing the directory still finds those pages.
-    private ManifestEntry noPayloadFor(Path docArtifactDir) {
-        discardPayload(docArtifactDir);
-        return ManifestEntry.empty(taskInput());
-    }
-
-    private static boolean rendersNoText(List<Page> pages) {
-        return pages.stream().allMatch(page -> page.markdown().isBlank());
     }
 
     /**

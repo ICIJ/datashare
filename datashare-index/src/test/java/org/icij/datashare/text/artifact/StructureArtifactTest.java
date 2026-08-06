@@ -209,31 +209,18 @@ public class StructureArtifactTest {
 
 
     @Test
-    public void test_a_document_that_renders_no_text_records_no_payload_instead_of_blank_pages() throws Exception {
-        // With OCR off every scanned page and standalone image renders empty, and a complete entry over
-        // blank pages leaves a consumer unable to tell "no structure" from "page one is blank".
+    public void test_a_document_that_renders_no_text_is_still_served_as_a_page_set() throws Exception {
+        // With OCR off a scanned page and a standalone image render empty. The parser's output is served as
+        // it comes: "no text on this page" is the answer, not a reason to record nothing. EMPTY means
+        // something else here, that there is nothing at this path to serve at all.
         Document scan = createDoc("scan-id").with(Path.of("/path/to/scan.png"))
                 .ofContentType("image/png").build();
 
         ManifestEntry entry = new StructureArtifact().produce(contextFor(blankPng(), scan));
 
-        assertThat(entry.status()).isEqualTo(ManifestEntryStatus.EMPTY);
-        assertThat(entry.pages()).isNull();
-        assertThat(Files.exists(ArtifactPath.structureDir(dir.getRoot().toPath()))).isFalse();
-    }
-
-    @Test
-    public void test_recording_no_payload_removes_the_pages_a_previous_run_left() throws Exception {
-        // Otherwise the manifest says there is nothing to serve while a reader listing the directory still
-        // finds the stale pages.
-        Files.createDirectories(ArtifactPath.structureDir(dir.getRoot().toPath()));
-        Files.writeString(page(1, "md"), "pages from a previous release");
-        Document scan = createDoc("scan-id").with(Path.of("/path/to/scan.png"))
-                .ofContentType("image/png").build();
-
-        new StructureArtifact().produce(contextFor(blankPng(), scan));
-
-        assertThat(Files.exists(ArtifactPath.structureDir(dir.getRoot().toPath()))).isFalse();
+        assertThat(entry.status()).isNull(); // the producer loop stamps complete
+        assertThat(entry.pages().total()).isEqualTo(1);
+        assertThat(Files.readString(page(1, "md"))).isEmpty();
     }
 
     private static byte[] blankPng() throws Exception {
