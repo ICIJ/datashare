@@ -50,6 +50,7 @@ public class ArtifactProducerTest {
                 if (type == ArtifactType.RAW) {
                     Files.createDirectories(docArtifactDir);
                     Files.write(docArtifactDir.resolve(ArtifactPath.RAW_FILE), new byte[]{1});
+                    Files.write(docArtifactDir.resolve(ArtifactPath.RAW_SIDECAR_FILE), "{}".getBytes());
                 } else {
                     Files.createDirectories(ArtifactPath.structureDir(docArtifactDir));
                     Files.writeString(ArtifactPath.structurePage(docArtifactDir, 1, "md"), "page");

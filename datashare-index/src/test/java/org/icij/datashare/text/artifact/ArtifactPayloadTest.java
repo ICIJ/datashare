@@ -25,9 +25,15 @@ public class ArtifactPayloadTest {
         return ManifestEntry.singleFile(TASK_INPUT, "image/jpeg", "image2.jpg").withTerminalStatus();
     }
 
+    // What extract-lib leaves behind for an embedded node: the payload and its sidecar, in that order.
+    private void writeRawPair() throws Exception {
+        Files.createFile(docDir().resolve(ArtifactPath.RAW_FILE));
+        Files.createFile(docDir().resolve(ArtifactPath.RAW_SIDECAR_FILE));
+    }
+
     @Test
     public void test_raw_payload_on_disk_is_not_missing() throws Exception {
-        Files.createFile(docDir().resolve(ArtifactPath.RAW_FILE));
+        writeRawPair();
 
         assertThat(ArtifactPayload.isMissing(docDir(), ArtifactType.RAW, completeSingleFile())).isFalse();
     }
