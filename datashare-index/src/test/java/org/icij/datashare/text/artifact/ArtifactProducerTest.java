@@ -3,6 +3,7 @@ package org.icij.datashare.text.artifact;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.Project;
 import org.icij.datashare.text.indexing.elasticsearch.ArtifactPath;
+import org.icij.datashare.utils.AtomicDirectorySwap;
 import org.junit.After;
 import org.junit.Rule;
 import org.junit.Test;
@@ -90,6 +91,18 @@ public class ArtifactProducerTest {
         CountingArtifact v2 = new CountingArtifact("raw", 2);
         producer.run(List.of(v2), ctx(), false);
         assertThat(v2.produced.get()).isEqualTo(1);
+    }
+
+    @Test public void test_regenerates_when_the_recorded_structure_payload_is_gone() throws Exception {
+        // A JVM death between AtomicDirectorySwap's two renames, or a failed restore, leaves the payload
+        // missing under a complete entry. A plain re-run must repair it, not skip it forever (#2300).
+        CountingArtifact structure = new CountingArtifact("structure", 1);
+        producer.run(List.of(structure), ctx(), false);
+        AtomicDirectorySwap.discard(ArtifactPath.structureDir(dir.getRoot().toPath()));
+
+        producer.run(List.of(structure), ctx(), false);
+
+        assertThat(structure.produced.get()).isEqualTo(2);
     }
 
     @Test public void test_isolates_failing_type() throws Exception {

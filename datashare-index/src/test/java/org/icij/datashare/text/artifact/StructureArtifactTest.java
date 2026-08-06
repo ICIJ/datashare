@@ -22,6 +22,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Random;
+import java.util.UUID;
 import java.util.stream.Stream;
 
 import static org.fest.assertions.Assertions.assertThat;
@@ -261,14 +262,31 @@ public class StructureArtifactTest {
     }
 
     @Test
-    public void test_second_producer_run_skips_a_document_that_is_already_current() throws Exception {
+    public void test_second_producer_run_skips_a_document_whose_payload_is_still_there() throws Exception {
         ArtifactProducer producer = new ArtifactProducer(new FilesystemManifestRepository(), () -> false);
         producer.run(List.of(new StructureArtifact()), contextFor(HTML), false);
-        // Delete the payload: if the second run regenerated, the page would come back.
-        Files.delete(page(1, "md"));
+        // Overwrite the payload rather than delete it: a re-render would replace this sentinel, and a
+        // deleted page is now a repair trigger rather than proof of a skip.
+        Files.writeString(page(1, "md"), "sentinel");
 
         producer.run(List.of(new StructureArtifact()), contextFor(HTML), false);
 
-        assertThat(Files.exists(page(1, "md"))).isFalse();
+        assertThat(Files.readString(page(1, "md"))).isEqualTo("sentinel");
+    }
+
+    @Test
+    public void test_a_re_run_repairs_pages_stranded_in_a_holding_pen() throws Exception {
+        ArtifactProducer producer = new ArtifactProducer(new FilesystemManifestRepository(), () -> false);
+        producer.run(List.of(new StructureArtifact()), contextFor(HTML), false);
+        // What a failed AtomicDirectorySwap.restore leaves behind: the only copy of the pages sitting in a
+        // holding pen while the target is gone, until now recoverable only by hand (#2300).
+        Path pen = dir.getRoot().toPath().resolve(".structure-" + UUID.randomUUID() + ".replaced");
+        Files.move(ArtifactPath.structureDir(dir.getRoot().toPath()), pen);
+
+        producer.run(List.of(new StructureArtifact()), contextFor(HTML), false);
+
+        assertThat(Files.readString(page(1, "md"))).contains("# Title");
+        // reclaimHoldingPens swept the stale pen on the way through, so the repair costs no extra copy.
+        assertThat(Files.exists(pen)).isFalse();
     }
 }
