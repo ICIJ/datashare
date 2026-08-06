@@ -17,7 +17,6 @@ import java.util.List;
  *  servable, where a page lives, and what a missing payload means. */
 public class ArtifactReader {
     private static final Logger LOGGER = LoggerFactory.getLogger(ArtifactReader.class);
-    private static final String BYTE_RANGES = "byteRanges";
     private final ManifestRepository manifests;
 
     public ArtifactReader(ManifestRepository manifests) {
@@ -41,19 +40,19 @@ public class ArtifactReader {
     }
 
     /**
-     * The page count a servable entry advertises, or null when its pagination cannot be trusted:
+     * The page count a servable entry advertises, or null when its pages block cannot be trusted:
      * absent, renamed by a producer whose manifest shape differs (unknown properties are ignored on
-     * read), or non-positive because Pagination.total is a primitive that an absent field fills with
-     * 0. Warned rather than silent: such a manifest is otherwise indistinguishable from a document
+     * read), or non-positive because Pages.total is a primitive that an absent field fills with 0.
+     * Warned rather than silent: such a manifest is otherwise indistinguishable from a document
      * that has no artifact of this type at all, and the strict-store contract says it is not found.
      */
     public Integer servableTotal(Path docArtifactDir, ArtifactType type, ManifestEntry entry) {
-        Integer total = entry.total();
-        if (total != null && total > 0) {
-            return total;
+        Pages pages = entry.pages();
+        if (pages != null && pages.total() > 0) {
+            return pages.total();
         }
-        LOGGER.warn("complete '{}' entry in {} advertises no usable page count ({}): its pagination block is "
-                + "absent, renamed, or carries a non-positive total", type.token(), docArtifactDir, total);
+        LOGGER.warn("complete '{}' entry in {} advertises no usable page count: its pages block is "
+                + "absent, renamed, or carries a non-positive total", type.token(), docArtifactDir);
         return null;
     }
 
@@ -63,9 +62,10 @@ public class ArtifactReader {
         if (total == null || page < 1 || page > total) {
             return null;
         }
-        if (isByteRanges(entry)) {
+        ByteRangePagination byteRanges = byteRanges(entry);
+        if (byteRanges != null) {
             return slice(ArtifactPath.payloadContent(docArtifactDir, type, extension),
-                    entry.pagination().byteRanges(), page, type, total);
+                    byteRanges.ranges(), page, type, total);
         }
         Path file = ArtifactPath.payloadPage(docArtifactDir, type, page, extension);
         // Readable, not merely present: payloads are written 0600 by whichever process produced
@@ -83,7 +83,7 @@ public class ArtifactReader {
     /** Which extensions are actually on disk, in the candidate order given. Probes per scheme,
      *  because the two schemes keep an extension in different files. */
     public List<String> formats(Path docArtifactDir, ArtifactType type, ManifestEntry entry, Collection<String> candidates) {
-        boolean byteRanges = isByteRanges(entry);
+        boolean byteRanges = byteRanges(entry) != null;
         return candidates.stream()
                 .filter(extension -> Files.isReadable(byteRanges
                         ? ArtifactPath.payloadContent(docArtifactDir, type, extension)
@@ -91,8 +91,11 @@ public class ArtifactReader {
                 .toList();
     }
 
-    private boolean isByteRanges(ManifestEntry entry) {
-        return entry.pagination() != null && BYTE_RANGES.equals(entry.pagination().type());
+    // The scheme when it is the byte-range one, else null: every other case (filesystem, or a pages
+    // block with no pagination at all) is served as one file per page.
+    private ByteRangePagination byteRanges(ManifestEntry entry) {
+        return entry.pages() != null && entry.pages().pagination() instanceof ByteRangePagination ranges
+                ? ranges : null;
     }
 
     // Half-open [start, end). A range outside the file means manifest and payload disagree, which

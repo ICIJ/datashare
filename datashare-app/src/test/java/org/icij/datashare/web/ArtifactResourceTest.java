@@ -88,7 +88,7 @@ public class ArtifactResourceTest extends AbstractProdWebServerTest {
 
     private static String filesystemManifest(String type, int total) {
         return "{\"" + type + "\": {\"status\": \"complete\", \"taskInput\": {\"type\": \"" + type + "\", \"version\": 1},"
-                + " \"pagination\": {\"type\": \"filesystem\", \"total\": " + total + "}}}";
+                + " \"pages\": {\"total\": " + total + ", \"pagination\": {\"type\": \"filesystem\"}}}}";
     }
 
     @Test
@@ -131,7 +131,7 @@ public class ArtifactResourceTest extends AbstractProdWebServerTest {
     public void test_page_manifest_not_found_when_entry_is_empty() throws Exception {
         Path docDir = indexedDocDir(DIGEST);
         writeManifest(docDir, "{\"page\": {\"status\": \"empty\", \"taskInput\": {},"
-                + " \"pagination\": {\"type\": \"filesystem\", \"total\": 2}}}");
+                + " \"pages\": {\"total\": 2, \"pagination\": {\"type\": \"filesystem\"}}}}");
         get("/api/local-datashare/artifacts/page/" + DIGEST).should().respond(404);
     }
 
@@ -150,14 +150,14 @@ public class ArtifactResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
-    public void test_page_manifest_not_found_when_pagination_has_no_total() throws Exception {
+    public void test_page_manifest_not_found_when_pages_have_no_total() throws Exception {
         Path docDir = indexedDocDir(DIGEST);
         writePages(docDir, ArtifactType.PAGE, "txt", "page one");
-        // Complete and paginated, but the pagination block carries no total: Pagination.total is a
+        // Complete and paginated, but the pages block carries no total: Pages.total is a
         // primitive, so it deserializes to 0, which is a malformed manifest rather than a document
         // that was processed into zero pages.
         writeManifest(docDir, "{\"page\": {\"status\": \"complete\", \"taskInput\": {},"
-                + " \"pagination\": {\"type\": \"filesystem\"}}}");
+                + " \"pages\": {\"pagination\": {\"type\": \"filesystem\"}}}}");
         get("/api/local-datashare/artifacts/page/" + DIGEST).should().respond(404);
         // The most likely real-world shape disagreement with datashare-python: 404 with an empty log
         // would be indistinguishable from "no page artifact for this document".
@@ -190,8 +190,8 @@ public class ArtifactResourceTest extends AbstractProdWebServerTest {
         Path docDir = indexedDocDir(DIGEST);
         Files.createDirectories(ArtifactPath.payloadDir(docDir, ArtifactType.PAGE));
         Files.writeString(ArtifactPath.payloadContent(docDir, ArtifactType.PAGE, "txt"), "page onepage two");
-        writeManifest(docDir, "{\"page\": {\"status\": \"complete\", \"taskInput\": {}, \"pagination\":"
-                + " {\"type\": \"byteRanges\", \"total\": 2, \"byteRanges\": [[0, 8], [8, 16]]}}}");
+        writeManifest(docDir, "{\"page\": {\"status\": \"complete\", \"taskInput\": {}, \"pages\": {\"total\": 2,"
+                + " \"pagination\": {\"type\": \"byteRanges\", \"ranges\": [[0, 8], [8, 16]]}}}}");
         get("/api/local-datashare/artifacts/page/" + DIGEST).should().respond(200).contain("\"pages\":2");
         // Same body, type and out-of-range answer as the filesystem-scheme page 2 above: the scheme
         // is a storage detail the route must not expose.
