@@ -122,14 +122,13 @@ public class BatchSearchRunner implements CancellableTask, UserTask, Callable<Ba
                 }
 
                 long beforeScrollLoop = DatashareTime.getInstance().currentTimeMillis();
-                boolean isFirstScroll = true;
                 while (!docsToProcess.isEmpty() && numberOfResults < MAX_BATCH_RESULT_SIZE - MAX_SCROLL_SIZE) {
                     if (cancelAsked) {
                         logger.info("cancelling batch search {} requeue={}", batchSearch.uuid, requeueCancel);
                         repository.reset(batchSearch.uuid);
                         throw new CancelException(requeueCancel);
                     }
-                    repository.saveResults(batchSearch.uuid, query, (List<Document>) docsToProcess, isFirstScroll);
+                    repository.saveResults(batchSearch.uuid, query, (List<Document>) docsToProcess);
                     if (DatashareTime.getInstance().currentTimeMillis() - beforeScrollLoop < maxTimeSeconds * 1000L) {
                         DatashareTime.getInstance().sleep(throttleMs);
                     } else {
@@ -137,7 +136,6 @@ public class BatchSearchRunner implements CancellableTask, UserTask, Callable<Ba
                     }
                     numberOfResults += docsToProcess.size();
                     docsToProcess = searcher.scroll(scrollDuration).collect(toList());
-                    isFirstScroll = false;
                 }
                 searcher.clearScroll();
                 totalProcessed += 1;

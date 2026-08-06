@@ -21,6 +21,7 @@ import java.util.stream.IntStream;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
+import static java.util.stream.Collectors.toList;
 import static org.fest.assertions.Assertions.assertThat;
 import static org.fest.assertions.MapAssert.entry;
 import static org.icij.datashare.CollectionUtils.asSet;
@@ -370,11 +371,11 @@ public class JooqBatchSearchRepositoryTest {
         repository.save(batchSearch);
 
         assertThat(repository.get(User.local(), batchSearch.uuid).nbQueriesWithoutResults).isEqualTo(2);
-        assertThat(repository.saveResults(batchSearch.uuid, "my query", asList(createDoc("doc1").build()), true)).isTrue();
+        assertThat(repository.saveResults(batchSearch.uuid, "my query", asList(createDoc("doc1").build()))).isTrue();
         assertThat(repository.get(User.local(), batchSearch.uuid).nbQueriesWithoutResults).isEqualTo(1);
-        assertThat(repository.saveResults(batchSearch.uuid, "my query", asList(createDoc("doc2").build()), false)).isTrue();
+        assertThat(repository.saveResults(batchSearch.uuid, "my query", asList(createDoc("doc2").build()))).isTrue();
         assertThat(repository.get(User.local(), batchSearch.uuid).nbQueriesWithoutResults).isEqualTo(1);
-        assertThat(repository.saveResults(batchSearch.uuid, "my other query", asList(createDoc("doc1").build()), true)).isTrue();
+        assertThat(repository.saveResults(batchSearch.uuid, "my other query", asList(createDoc("doc1").build()))).isTrue();
         assertThat(repository.get(User.local(), batchSearch.uuid).nbQueriesWithoutResults).isEqualTo(0);
         assertThat(repository.getRecords(User.local(), singletonList("prj")).get(0).nbQueriesWithoutResults).isEqualTo(0);
     }
@@ -403,6 +404,19 @@ public class JooqBatchSearchRepositoryTest {
 
         assertThat(repository.get(User.local(), batchSearch.uuid).nbResults).isEqualTo(4);
         assertThat(repository.get(User.local(), batchSearch.uuid).queries).includes(entry("my query", 4), entry("my other query", 0));
+    }
+
+    @Test
+    public void test_save_results_multiple_times_numbers_documents_across_pages() {
+        BatchSearch batchSearch = new BatchSearch(singletonList(proxy("prj")), "name", "description", asSet("my query"), null, User.local());
+        repository.save(batchSearch);
+
+        repository.saveResults(batchSearch.uuid, "my query", asList(createDoc("doc1").build(), createDoc("doc2").build()));
+        repository.saveResults(batchSearch.uuid, "my query", asList(createDoc("doc3").build(), createDoc("doc4").build()));
+
+        List<Integer> documentNumbers = repository.getResults(User.local(), batchSearch.uuid).stream().
+                map(result -> result.documentNumber).collect(toList());
+        assertThat(documentNumbers).containsExactly(0, 1, 2, 3);
     }
 
     @Test

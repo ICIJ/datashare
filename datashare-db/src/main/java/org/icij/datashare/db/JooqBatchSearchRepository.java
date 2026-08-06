@@ -78,14 +78,18 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
 
     @Override
     public boolean saveResults(String batchSearchId, String query, List<Document> documents) {
-        return saveResults(batchSearchId, query, documents, true);
-    }
-
-    @Override
-    public boolean saveResults(String batchSearchId, String query, List<Document> documents, boolean isFirstScroll) {
         DSLContext context = DSL.using(dataSource, dialect);
         return context.transactionResult(configuration -> {
             DSLContext inner = DSL.using(configuration);
+            // results are saved one scroll page at a time: QUERY_RESULTS holds how many documents were
+            // already saved for this query, which is both the doc_nb to start numbering this page at and
+            // the way to tell that this page is the first one bringing results to that query
+            int alreadySaved = ofNullable(inner.select(BATCH_SEARCH_QUERY.QUERY_RESULTS).from(BATCH_SEARCH_QUERY).
+                    where(BATCH_SEARCH_QUERY.SEARCH_UUID.eq(batchSearchId).
+                            and(BATCH_SEARCH_QUERY.QUERY.eq(query))).
+                    fetchOne(BATCH_SEARCH_QUERY.QUERY_RESULTS)).orElse(0);
+            boolean firstResultsForQuery = alreadySaved == 0 && !documents.isEmpty();
+
             UpdateSetMoreStep<BatchSearchQueryRecord> updateBatchSearchQuery = inner.update(BATCH_SEARCH_QUERY).set(BATCH_SEARCH_QUERY.QUERY_RESULTS,
                     BATCH_SEARCH_QUERY.QUERY_RESULTS.plus(documents.size()));
             updateBatchSearchQuery.
@@ -95,7 +99,7 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
 
             UpdateSetMoreStep<org.icij.datashare.db.tables.records.BatchSearchRecord> updateBatchSearch = inner.update(BATCH_SEARCH)
                     .set(BATCH_SEARCH.BATCH_RESULTS, BATCH_SEARCH.BATCH_RESULTS.plus(documents.size()))
-                    .set(BATCH_SEARCH.NB_QUERIES_WITHOUT_RESULTS, BATCH_SEARCH.NB_QUERIES_WITHOUT_RESULTS.minus(isFirstScroll ? 1 : 0));
+                    .set(BATCH_SEARCH.NB_QUERIES_WITHOUT_RESULTS, BATCH_SEARCH.NB_QUERIES_WITHOUT_RESULTS.minus(firstResultsForQuery ? 1 : 0));
             updateBatchSearch.
                     where(BATCH_SEARCH.UUID.eq(batchSearchId)).execute();
 
@@ -105,7 +109,7 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
                     inner.insertInto(BATCH_SEARCH_RESULT, BATCH_SEARCH_RESULT.SEARCH_UUID, BATCH_SEARCH_RESULT.QUERY, BATCH_SEARCH_RESULT.DOC_NB,
                             BATCH_SEARCH_RESULT.DOC_ID, BATCH_SEARCH_RESULT.ROOT_ID, BATCH_SEARCH_RESULT.DOC_PATH, BATCH_SEARCH_RESULT.CREATION_DATE,
                             BATCH_SEARCH_RESULT.CONTENT_TYPE, BATCH_SEARCH_RESULT.CONTENT_LENGTH, BATCH_SEARCH_RESULT.PRJ_ID);
-            IntStream.range(0, documents.size()).forEach(i -> insertQuery.values(batchSearchId, query, i,
+            IntStream.range(0, documents.size()).forEach(i -> insertQuery.values(batchSearchId, query, alreadySaved + i,
                     documents.get(i).getId(), documents.get(i).getRootDocument(), documents.get(i).getPath().toString(),
                     documents.get(i).getCreationDate() == null ? null :
                             new Timestamp(documents.get(i).getCreationDate().getTime()).toLocalDateTime(),

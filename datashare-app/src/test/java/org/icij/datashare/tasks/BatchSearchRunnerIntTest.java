@@ -52,7 +52,7 @@ public class BatchSearchRunnerIntTest {
         when(repository.get(local(), search.uuid)).thenReturn(search);
 
         new BatchSearchRunner(indexer, new PropertiesProvider(), repository, taskView(search), progressCb).call();
-        verify(repository).saveResults(search.uuid, "mydoc", singletonList(mydoc), true);
+        verify(repository).saveResults(search.uuid, "mydoc", singletonList(mydoc));
     }
 
     private Task<?> taskView(BatchSearch search) {
@@ -69,7 +69,7 @@ public class BatchSearchRunnerIntTest {
 
         new BatchSearchRunner(indexer, new PropertiesProvider(), repository, taskView(searchKo), progressCb).call();
 
-        verify(repository, never()).saveResults(eq(searchKo.uuid), eq("mydoc"), anyList(), anyBoolean());
+        verify(repository, never()).saveResults(eq(searchKo.uuid), eq("mydoc"), anyList());
     }
 
     @Test
@@ -82,7 +82,7 @@ public class BatchSearchRunnerIntTest {
 
         new BatchSearchRunner(indexer, new PropertiesProvider(), repository, taskView(searchOk), progressCb).call();
 
-        verify(repository).saveResults(searchOk.uuid, "mydoc", singletonList(mydoc), true);
+        verify(repository).saveResults(searchOk.uuid, "mydoc", singletonList(mydoc));
     }
 
     @Test
@@ -95,7 +95,7 @@ public class BatchSearchRunnerIntTest {
 
         new BatchSearchRunner(indexer, new PropertiesProvider(), repository, taskView(searchKo), progressCb).call();
 
-        verify(repository, never()).saveResults(eq(searchKo.uuid), eq("mydoc"), anyList(), anyBoolean());
+        verify(repository, never()).saveResults(eq(searchKo.uuid), eq("mydoc"), anyList());
     }
 
     @Test
@@ -118,7 +118,7 @@ public class BatchSearchRunnerIntTest {
 
         verify(repository, never()).saveResults(eq(searchKo1.uuid), eq("doc"), anyList());
         verify(repository, never()).saveResults(eq(searchKo2.uuid), eq("nodoc"), anyList());
-        verify(repository).saveResults(searchOk.uuid, "hedoc", singletonList(mydoc), true);
+        verify(repository).saveResults(searchOk.uuid, "hedoc", singletonList(mydoc));
     }
 
     @Test
@@ -136,7 +136,7 @@ public class BatchSearchRunnerIntTest {
         new BatchSearchRunner(indexer, new PropertiesProvider(), repository, taskView(searchOk), progressCb).call();
 
         verify(repository, never()).saveResults(eq(searchKo.uuid), eq("to find mydoc"), anyList());
-        verify(repository).saveResults(searchOk.uuid, "mydoc to find", singletonList(mydoc), true);
+        verify(repository).saveResults(searchOk.uuid, "mydoc to find", singletonList(mydoc));
     }
 
     @Test
@@ -155,7 +155,7 @@ public class BatchSearchRunnerIntTest {
         new BatchSearchRunner(indexer, new PropertiesProvider(), repository, taskView(searchOk), progressCb).call();
 
         verify(repository, never()).saveResults(eq(searchKo.uuid), eq("anne doc"), anyList());
-        verify(repository).saveResults(searchOk.uuid, "anne's doc", singletonList(mydoc), true);
+        verify(repository).saveResults(searchOk.uuid, "anne's doc", singletonList(mydoc));
     }
 
     @Test
@@ -170,7 +170,7 @@ public class BatchSearchRunnerIntTest {
 
         new BatchSearchRunner(indexer, new PropertiesProvider(), repository, taskView(search), progressCb).call();
 
-        verify(repository).saveResults(search.uuid, "find mydoc", singletonList(mydoc), true);
+        verify(repository).saveResults(search.uuid, "find mydoc", singletonList(mydoc));
     }
 
     @Test
@@ -184,7 +184,7 @@ public class BatchSearchRunnerIntTest {
 
         new BatchSearchRunner(indexer, new PropertiesProvider(), repository, taskView(search), progressCb).call();
 
-        verify(repository).saveResults(search.uuid, "mydoc AND one", singletonList(mydoc1), true);
+        verify(repository).saveResults(search.uuid, "mydoc AND one", singletonList(mydoc1));
     }
 
     @Test
@@ -198,7 +198,7 @@ public class BatchSearchRunnerIntTest {
 
         new BatchSearchRunner(indexer, new PropertiesProvider(), repository, taskView(searchOk), progressCb).call();
 
-        verify(repository).saveResults(searchOk.uuid, "mydoc", singletonList(mydoc), true);
+        verify(repository).saveResults(searchOk.uuid, "mydoc", singletonList(mydoc));
     }
 
     @Test
@@ -213,7 +213,7 @@ public class BatchSearchRunnerIntTest {
 
         new BatchSearchRunner(indexer, new PropertiesProvider(), repository, taskView(searchOk), progressCb).call();
 
-        verify(repository).saveResults(searchOk.uuid, "content:\"mydoc to find\"", singletonList(mydoc), true);
+        verify(repository).saveResults(searchOk.uuid, "content:\"mydoc to find\"", singletonList(mydoc));
     }
 
     @Test
@@ -226,7 +226,7 @@ public class BatchSearchRunnerIntTest {
 
         new BatchSearchRunner(indexer, new PropertiesProvider(), repository, taskView(searchOk), progressCb).call();
 
-        verify(repository).saveResults(searchOk.uuid, "mydoc", singletonList(mydoc), true);
+        verify(repository).saveResults(searchOk.uuid, "mydoc", singletonList(mydoc));
     }
 
     @Test
