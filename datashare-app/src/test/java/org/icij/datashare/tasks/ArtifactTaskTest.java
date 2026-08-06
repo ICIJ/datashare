@@ -11,6 +11,7 @@ import org.icij.datashare.text.Document;
 import org.icij.datashare.text.DocumentBuilder;
 import org.icij.datashare.text.Project;
 import org.icij.datashare.text.artifact.FilesystemManifestRepository;
+import org.icij.datashare.text.artifact.ManifestEntry;
 import org.icij.datashare.text.artifact.ManifestEntryStatus;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.text.indexing.elasticsearch.SourceExtractor;
@@ -108,8 +109,8 @@ public class ArtifactTaskTest {
 
     @Test(timeout = 10000)
     public void test_embedded_document_is_parsed_from_its_root_and_gets_its_own_manifest_entry() throws Exception {
-        // The attachment is a two-page PDF with no text layer, so with OCR off it renders empty: an entry
-        // with no payload, rather than two blank page files a consumer cannot tell from real ones.
+        // The attachment is a two-page PDF with no text layer, so with OCR off both pages render blank. The
+        // parser's output is served as it comes, so that is a complete two-page entry, not an absent one.
         indexEmbeddedPdfUnderItsRoot();
         DocumentQueue<String> queue = factory.createQueue("extract:queue:artifact", String.class);
         queue.add(EMBEDDED_PDF_SHA256 + "|" + EMBEDDED_DOC_SHA256);
@@ -120,9 +121,10 @@ public class ArtifactTaskTest {
         assertThat(numberOfDocuments).isEqualTo(1);
         Path docArtifactDir = artifactDir.getRoot().toPath().resolve("prj/6a/bb/" + EMBEDDED_PDF_SHA256);
         assertThat(docArtifactDir.resolve("raw").toFile()).isFile();
-        assertThat(new FilesystemManifestRepository().get(docArtifactDir, "structure").status())
-                .isEqualTo(ManifestEntryStatus.EMPTY);
-        assertThat(docArtifactDir.resolve("structure").toFile()).doesNotExist();
+        ManifestEntry structure = new FilesystemManifestRepository().get(docArtifactDir, "structure");
+        assertThat(structure.status()).isEqualTo(ManifestEntryStatus.COMPLETE);
+        assertThat(structure.pages().total()).isEqualTo(2);
+        assertThat(docArtifactDir.resolve("structure").resolve("page-0002.md").toFile()).isFile();
     }
 
     @Test(timeout = 10000)
