@@ -39,6 +39,16 @@ public class ArtifactPayloadTest {
     }
 
     @Test
+    public void test_raw_payload_without_its_sidecar_is_missing() throws Exception {
+        // extract-lib moves the payload into place, then the sidecar, so a JVM death between the two
+        // leaves this pair half written. SourceExtractor.hasCachedEmbeddedSource serves a cache hit only
+        // when both are readable, so half a pair is unservable and the document needs re-producing.
+        Files.createFile(docDir().resolve(ArtifactPath.RAW_FILE));
+
+        assertThat(ArtifactPayload.isMissing(docDir(), ArtifactType.RAW, completeSingleFile())).isTrue();
+    }
+
+    @Test
     public void test_raw_payload_gone_is_missing() {
         assertThat(ArtifactPayload.isMissing(docDir(), ArtifactType.RAW, completeSingleFile())).isTrue();
     }
