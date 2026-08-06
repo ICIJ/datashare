@@ -24,6 +24,7 @@ import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 
 import static org.fest.assertions.Assertions.assertThat;
 import static org.icij.datashare.text.DocumentBuilder.createDoc;
@@ -215,6 +216,28 @@ public class PageArtifactTest {
         }
         assertThat(Files.exists(ArtifactPath.pagesDir(context.docArtifactDir()))).isFalse();
         verify(sources).getSource(project, doc);
+    }
+
+    @Test
+    public void test_content_no_parser_can_read_is_reported_as_unreadable() throws Exception {
+        // The same shape StructureArtifactTest pins: bytes indexed as a .docx that hold no zip signature
+        // at all, so POI rejects the package outright and always will. extract-lib hands that back as the
+        // cause of an IOException, so recognising it is what keeps the document from failing, logging at
+        // ERROR and re-parsing on every run.
+        Path broken = dir.getRoot().toPath().resolve("broken.docx");
+        byte[] garbage = new byte[1024];
+        new Random(42).nextBytes(garbage);
+        Files.write(broken, garbage);
+        ArtifactContext context = rootContext(broken,
+                "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
+
+        try {
+            new PageArtifact(new PropertiesProvider()).produce(context);
+            fail("expected an UnreadableContentException");
+        } catch (UnreadableContentException expected) {
+            assertThat(expected.getMessage()).contains(context.document().getId());
+        }
+        assertThat(Files.exists(ArtifactPath.pagesDir(context.docArtifactDir()))).isFalse();
     }
 
     @Test
