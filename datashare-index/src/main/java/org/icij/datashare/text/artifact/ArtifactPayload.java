@@ -21,8 +21,12 @@ public class ArtifactPayload {
             return false;
         }
         return switch (type) {
-            // extract-lib writes raw as a single file next to manifest.json, not as a directory.
-            case RAW -> Files.notExists(docArtifactDir.resolve(ArtifactPath.RAW_FILE));
+            // extract-lib writes raw as a single file next to manifest.json, not as a directory, and its
+            // sidecar as a second atomic move after it. Both or neither: SourceExtractor only serves the
+            // cache when both are readable, so a pair half written by a JVM death is unservable and must
+            // be re-produced rather than recorded as present.
+            case RAW -> Files.notExists(docArtifactDir.resolve(ArtifactPath.RAW_FILE))
+                    || Files.notExists(docArtifactDir.resolve(ArtifactPath.RAW_SIDECAR_FILE));
             // The directory, not its contents: the atomic swap renames a fully written one into place, so
             // it is either there with its pages or not there at all. Exhaustive over the enum on purpose:
             // a new type must decide its own shape here rather than default to "present".
