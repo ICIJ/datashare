@@ -70,7 +70,10 @@ public class PageArtifact implements Artifact {
     // extracting the embed from its root.
     private Path sourcePath(ArtifactContext context) throws IOException {
         Document document = context.document();
-        if (document.getExtractionLevel() <= 0) {
+        // isRootDocument(), not the extraction level alone: it is where the rootId and the level are
+        // required to agree, so a document whose labels disagree takes the embedded path below, as it
+        // does in SourceExtractor and RawArtifact, instead of being paginated from its container's file.
+        if (document.isRootDocument()) {
             return document.getPath();
         }
         Path raw = context.docArtifactDir().resolve(ArtifactPath.RAW_FILE);

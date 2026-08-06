@@ -194,6 +194,30 @@ public class PageArtifactTest {
     }
 
     @Test
+    public void test_a_document_whose_root_labels_disagree_is_read_down_the_embedded_path() throws Exception {
+        // Extraction level says root, rootId says embed. isRootDocument() requires both, as
+        // SourceExtractor and RawArtifact do, so this document must not be paginated from getPath():
+        // that file is its container's, and pagination would cache the whole container under this
+        // document's digest and stamp it complete.
+        SourceExtractor sources = mock(SourceExtractor.class);
+        Document doc = createDoc("1a2b96950946b62bb993307c8945c0c096982783bab7fa24901522426840ca3e")
+                .with(twoPagePdf()).ofContentType("application/pdf")
+                .withExtractionLevel((short) 0).withRootId("another-id").build();
+        ArtifactContext context = new ArtifactContext(project, doc,
+                dir.getRoot().toPath().resolve("docdir"), sources);
+        when(sources.getSource(project, doc)).thenThrow(new java.io.FileNotFoundException("no raw payload"));
+
+        try {
+            new PageArtifact(new PropertiesProvider()).produce(context);
+            fail("expected an ArtifactException");
+        } catch (ArtifactException expected) {
+            assertThat(expected.getMessage()).contains(doc.getId());
+        }
+        assertThat(Files.exists(ArtifactPath.pagesDir(context.docArtifactDir()))).isFalse();
+        verify(sources).getSource(project, doc);
+    }
+
+    @Test
     public void test_produce_reads_an_embedded_document_from_its_cached_raw_payload() throws Exception {
         SourceExtractor sources = mock(SourceExtractor.class);
         ArtifactContext context = embeddedContext(sources);
