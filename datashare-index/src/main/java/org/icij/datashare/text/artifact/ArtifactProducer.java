@@ -62,13 +62,13 @@ public class ArtifactProducer {
             // stays consistent (and cross-process/host safe) with the payload just written.
             repository.put(context.docArtifactDir(), type.token(), produced.withTerminalStatus());
             return true;
-        } catch (UnparseableContentException unparseable) {
+        } catch (UnreadableContentException unreadable) {
             // The cancel question comes first: a cancelled Tika parse arrives as a parse failure too, and
             // recording "no parser can read this" because the operator pressed cancel is a lie.
-            if (handledAsCancellation(type, context, unparseable)) {
+            if (handledAsCancellation(type, context, unreadable)) {
                 return true;
             }
-            return storeEmptyEntry(artifact, context, unparseable);
+            return storeEmptyEntry(artifact, context, unreadable);
         } catch (ArtifactException | IOException failure) {
             if (handledAsCancellation(type, context, failure)) {
                 return true;

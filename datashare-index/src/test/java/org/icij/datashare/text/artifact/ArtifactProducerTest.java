@@ -91,10 +91,10 @@ public class ArtifactProducerTest {
         assertThat(raw.produced.get()).isEqualTo(1); // empty entry counts as done -> not reprocessed
     }
 
-    @Test public void test_unparseable_content_records_an_empty_entry_and_is_not_reprocessed() throws Exception {
+    @Test public void test_unreadable_content_records_an_empty_entry_and_is_not_reprocessed() throws Exception {
         // A corpus always holds a few files no parser can read (a truncated docx, a zip member that is not
         // the OOXML it claims to be), and nothing will ever make them parse.
-        CountingArtifact structure = unparseable();
+        CountingArtifact structure = unreadable();
 
         boolean allSucceeded = producer.run(List.of(structure), ctx(), false);
 
@@ -107,14 +107,14 @@ public class ArtifactProducerTest {
         assertThat(structure.produced.get()).isEqualTo(0);
     }
 
-    @Test public void test_unparseable_content_during_a_cancellation_records_nothing() throws Exception {
+    @Test public void test_unreadable_content_during_a_cancellation_records_nothing() throws Exception {
         // Tika reports a cancelled parse as a parse failure too, and recording "this document has no
         // structure" because the operator pressed cancel is a lie only --artifactsForce could undo.
         ArtifactProducer cancelledProducer = new ArtifactProducer(repository, () -> true);
         CountingArtifact structure = new CountingArtifact("structure", 1) {
             public ManifestEntry produce(ArtifactContext ctx) throws ArtifactException {
                 Thread.interrupted(); // cleared already, as Tika leaves it
-                throw new UnparseableContentException("doc-id", new InterruptedException());
+                throw new UnreadableContentException("doc-id", new InterruptedException());
             }
         };
 
@@ -231,10 +231,10 @@ public class ArtifactProducerTest {
         assertThat(cancelledProducer.run(List.of(selfCaused), ctx(), false)).isFalse();
     }
 
-    private CountingArtifact unparseable() {
+    private CountingArtifact unreadable() {
         return new CountingArtifact("structure", 1) {
             public ManifestEntry produce(ArtifactContext ctx) throws ArtifactException {
-                throw new UnparseableContentException("doc-id", new IOException("not a valid OOXML file"));
+                throw new UnreadableContentException("doc-id", new IOException("not a valid OOXML file"));
             }
         };
     }

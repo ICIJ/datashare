@@ -70,10 +70,10 @@ public class StructureArtifact implements Artifact {
             }
             writePages(context.docArtifactDir(), pages);
             return ManifestEntry.paginated(taskInput(), pages.size());
-        } catch (UnparseableContentException unparseable) {
+        } catch (UnreadableContentException unreadable) {
             // The producer records this one as processed with no payload too, so the payload goes now.
             discardPayload(context.docArtifactDir());
-            throw unparseable;
+            throw unreadable;
         } catch (ArtifactException alreadyClassified) {
             // Raised by parse(), so wrapping it again would only double its message.
             throw alreadyClassified;
@@ -121,7 +121,7 @@ public class StructureArtifact implements Artifact {
             if (isRetryable(failure)) {
                 throw new ArtifactException("structure extraction failed for " + document.getId(), failure);
             }
-            throw new UnparseableContentException(document.getId(), failure);
+            throw new UnreadableContentException(document.getId(), failure);
         }
     }
 
