@@ -228,7 +228,14 @@ public class Document implements Entity, DocumentMetadataConstants {
     public Language getLanguage() { return language; }
     public short getExtractionLevel() { return extractionLevel;}
     public String getRootDocument() {return ofNullable(rootDocument).orElse(getId());}
-    public boolean isRootDocument() {return getRootDocument().equals(getId());}
+    /**
+     * Whether this document is its own root, which is what decides that its own path holds its bytes.
+     * Both labels have to agree, because getRootDocument() falls back to this document's id, so a
+     * document whose rootId was lost or self-assigned during indexing would otherwise claim to be a root
+     * and hand a whole container's bytes back as an embedded document's own. On a disagreement this
+     * returns false and the caller takes its embedded path, which fails loudly instead.
+     */
+    public boolean isRootDocument() {return getRootDocument().equals(getId()) && extractionLevel <= 0;}
     public String getParentDocument() { return parentDocument;}
     public Status getStatus() { return status;}
     public Set<Pipeline.Type> getNerTags() { return nerTags;}

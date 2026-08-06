@@ -57,13 +57,11 @@ public class SourceExtractor {
         return getSource(document.getProject(), document);
     }
 
-    // Both labels have to agree before the file on disk is handed back. They can disagree (a rootId lost
-    // or self-assigned during indexing), and every other artifact path branches on the extraction level,
-    // so believing isRootDocument alone would serve a whole container's bytes as an embedded document's
-    // own, stored under the embed's digest and stamped complete. On a disagreement the embedded lookup
-    // below fails loudly instead, which a re-run can act on.
+    // isRootDocument() is where the rootId and the extraction level are required to agree, so a document
+    // whose labels disagree takes the embedded path below and fails loudly rather than having a whole
+    // container's bytes cached under its digest and stamped complete (see Document#isRootDocument).
     public InputStream getSource(final Project project, final Document document) throws FileNotFoundException {
-        if (document.isRootDocument() && document.getExtractionLevel() <= 0) {
+        if (document.isRootDocument()) {
             if (filterMetadata) {
                 try {
                     return new ByteArrayInputStream(metadataCleaner.clean(new FileInputStream(document.getPath().toFile())).getContent());
