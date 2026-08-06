@@ -12,6 +12,7 @@ import org.icij.datashare.text.Document;
 import org.icij.datashare.text.Project;
 import org.icij.datashare.text.indexing.elasticsearch.ArtifactPath;
 import org.icij.datashare.text.indexing.elasticsearch.SourceExtractor;
+import org.icij.datashare.utils.BuildVersions;
 import org.icij.extract.extractor.Extractor;
 import org.junit.Rule;
 import org.junit.Test;
@@ -58,6 +59,17 @@ public class PageArtifactTest {
         String version = (String) taskInput.get("version");
         assertThat(version).excludes("Apache");
         assertThat(version.split("\\.").length).isEqualTo(3);
+    }
+
+    @Test
+    public void test_task_input_fingerprints_extract_and_datashare_too() {
+        // Tika's version does not cover the page splitting: extract-lib owns the parser set and the
+        // handler that cuts the pages, and this class decides how they are stored. Without both, a
+        // release that changes either leaves every existing page artifact looking current.
+        Map<String, Object> taskInput = new PageArtifact(new PropertiesProvider()).taskInput();
+
+        assertThat(taskInput.get("extract")).isEqualTo(BuildVersions.EXTRACT);
+        assertThat(taskInput.get("datashare")).isEqualTo(BuildVersions.DATASHARE);
     }
 
     @Test

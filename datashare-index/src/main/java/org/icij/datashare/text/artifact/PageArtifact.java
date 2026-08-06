@@ -7,6 +7,7 @@ import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.Hasher;
 import org.icij.datashare.text.indexing.elasticsearch.ArtifactPath;
+import org.icij.datashare.utils.BuildVersions;
 import org.icij.extract.document.DocumentFactory;
 import org.icij.extract.extractor.Extractor;
 import org.icij.task.Options;
@@ -31,6 +32,8 @@ public class PageArtifact implements Artifact {
     private static final ArtifactType TYPE = ArtifactType.PAGE;
     // Tika.getString() returns "Apache Tika <version>"; extract-lib strips the same prefix.
     private static final String TIKA_PREFIX = "Apache Tika";
+    // Read once: Tika.getString() re-reads a jar resource, and taskInput() is called per document.
+    private static final String TIKA_VERSION = Tika.getString().replace(TIKA_PREFIX, "").strip();
 
     private final PropertiesProvider propertiesProvider;
 
@@ -45,9 +48,13 @@ public class PageArtifact implements Artifact {
 
     @Override
     public Map<String, Object> taskInput() {
-        // The run's OCR setting, not the per-document one: taskInput() gets no document, and its
-        // contract keeps per-document state out so the same doc compares equal across batches.
-        return Map.of("pipeline", "tika", "version", tikaVersion(), "ocr", ocrEnabled());
+        // A fingerprint of the code that made the bytes, as StructureArtifact records: Tika renders the
+        // text, extract-lib owns the parser set and the page splitting, and the datashare version covers
+        // what this class decides. The run's OCR setting, not the per-document one: taskInput() gets no
+        // document, and its contract keeps per-document state out so the same doc compares equal across
+        // batches.
+        return Map.of("pipeline", "tika", "version", TIKA_VERSION, "ocr", ocrEnabled(),
+                "extract", BuildVersions.EXTRACT, "datashare", BuildVersions.DATASHARE);
     }
 
     @Override
@@ -186,9 +193,5 @@ public class PageArtifact implements Artifact {
 
     private boolean ocrEnabled() {
         return propertiesProvider.get(OCR_OPT).map(Boolean::parseBoolean).orElse(true);
-    }
-
-    private static String tikaVersion() {
-        return Tika.getString().replace(TIKA_PREFIX, "").strip();
     }
 }
