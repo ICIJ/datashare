@@ -20,6 +20,13 @@ public class ArtifactReaderTest {
     private final ManifestRepository manifests = new FilesystemManifestRepository();
     private final ArtifactReader reader = new ArtifactReader(manifests);
 
+    // Nothing in Java writes the byte-range scheme (see ByteRangePagination), so there is no
+    // production factory for it: the read side is exercised from a hand-built entry.
+    private static ManifestEntry byteRangeEntry(int total, List<long[]> ranges) {
+        Pages pages = new Pages(total, new ByteRangePagination(ByteRangePagination.TYPE, ranges));
+        return new ManifestEntry(null, Map.of(), pages, null, null, null, null);
+    }
+
     private Path withFilesystemPages(int total, String... pages) throws Exception {
         Path node = dir.getRoot().toPath();
         Files.createDirectories(ArtifactPath.payloadDir(node, ArtifactType.PAGE));
@@ -27,7 +34,7 @@ public class ArtifactReaderTest {
             Files.writeString(ArtifactPath.payloadPage(node, ArtifactType.PAGE, page, "txt"), pages[page - 1]);
         }
         manifests.put(node, ArtifactType.PAGE.token(),
-                ManifestEntry.paginated(Map.of(), Pagination.filesystem(total)).withStatus(ManifestEntryStatus.COMPLETE));
+                ManifestEntry.paginated(Map.of(), total).withStatus(ManifestEntryStatus.COMPLETE));
         return node;
     }
 
@@ -36,7 +43,7 @@ public class ArtifactReaderTest {
         Files.createDirectories(ArtifactPath.payloadDir(node, ArtifactType.PAGE));
         Files.writeString(ArtifactPath.payloadContent(node, ArtifactType.PAGE, extension), content);
         manifests.put(node, ArtifactType.PAGE.token(),
-                ManifestEntry.paginated(Map.of(), Pagination.byteRanges(ranges.length, List.of(ranges)))
+                byteRangeEntry(ranges.length, List.of(ranges))
                         .withStatus(ManifestEntryStatus.COMPLETE));
         return node;
     }
@@ -76,25 +83,37 @@ public class ArtifactReaderTest {
     }
 
     @Test
+    public void test_servable_entry_is_null_when_the_pagination_scheme_is_unknown() throws Exception {
+        Path node = dir.getRoot().toPath();
+        Files.createDirectories(node);
+        // Pagination is sealed over the two schemes datashare knows, so a producer advertising a
+        // third one fails to deserialize: that reads as "not found", not as a 500 for the caller.
+        Files.writeString(node.resolve(ArtifactPath.MANIFEST_FILE), "{\"page\": {\"status\": \"complete\", "
+                + "\"taskInput\": {}, \"pages\": {\"total\": 1, \"pagination\": {\"type\": \"sqlite\"}}}}");
+        assertThat(reader.servableEntry(node, ArtifactType.PAGE)).isNull();
+    }
+
+    @Test
     public void test_servable_entry_is_null_when_status_absent() throws Exception {
         Path node = dir.getRoot().toPath();
-        manifests.put(node, ArtifactType.PAGE.token(), ManifestEntry.paginated(Map.of(), Pagination.filesystem(2)));
+        manifests.put(node, ArtifactType.PAGE.token(), ManifestEntry.paginated(Map.of(), 2));
         assertThat(reader.servableEntry(node, ArtifactType.PAGE)).isNull();
     }
 
     @Test
     public void test_servable_entry_carries_the_total() throws Exception {
         Path node = withFilesystemPages(2, "one", "two");
-        assertThat(reader.servableEntry(node, ArtifactType.PAGE).total()).isEqualTo(2);
+        assertThat(reader.servableEntry(node, ArtifactType.PAGE).pages().total()).isEqualTo(2);
     }
 
     @Test
-    public void test_nothing_is_servable_when_the_pagination_block_has_no_total() throws Exception {
+    public void test_nothing_is_servable_when_the_pages_block_has_no_total() throws Exception {
         Path node = dir.getRoot().toPath();
-        // Pagination.total is a primitive, so an absent total deserializes to 0, not to null: the
+        // Pages.total is a primitive, so an absent total deserializes to 0, not to null: the
         // entry is complete but the manifest is malformed, which the strict store reads as absent.
         Files.writeString(node.resolve(ArtifactPath.MANIFEST_FILE),
-                "{\"page\": {\"status\": \"complete\", \"taskInput\": {}, \"pagination\": {\"type\": \"filesystem\"}}}");
+                "{\"page\": {\"status\": \"complete\", \"taskInput\": {}, "
+                        + "\"pages\": {\"pagination\": {\"type\": \"filesystem\"}}}}");
         ManifestEntry entry = reader.servableEntry(node, ArtifactType.PAGE);
         assertThat(entry).isNotNull();
         assertThat(reader.servableTotal(node, ArtifactType.PAGE, entry)).isNull();
@@ -122,7 +141,7 @@ public class ArtifactReaderTest {
         // must 404 rather than the count shrinking on every request.
         Path node = withFilesystemPages(3, "one", "two");
         ManifestEntry entry = reader.servableEntry(node, ArtifactType.PAGE);
-        assertThat(entry.total()).isEqualTo(3);
+        assertThat(entry.pages().total()).isEqualTo(3);
         assertThat(reader.page(node, ArtifactType.PAGE, entry, 3, "txt")).isNull();
     }
 
@@ -239,7 +258,7 @@ public class ArtifactReaderTest {
         Files.writeString(ArtifactPath.payloadContent(node, ArtifactType.PAGE, "txt"), "01234567");
         // total=3 with only 2 ranges: page 3 passes page > total guard but fails ranges.size() < page
         manifests.put(node, ArtifactType.PAGE.token(),
-                ManifestEntry.paginated(Map.of(), Pagination.byteRanges(3, List.of(new long[]{0, 4}, new long[]{4, 8})))
+                byteRangeEntry(3, List.of(new long[]{0, 4}, new long[]{4, 8}))
                         .withStatus(ManifestEntryStatus.COMPLETE));
         ManifestEntry entry = reader.servableEntry(node, ArtifactType.PAGE);
         assertThat(reader.page(node, ArtifactType.PAGE, entry, 3, "txt")).isNull();
@@ -252,7 +271,7 @@ public class ArtifactReaderTest {
         Files.writeString(ArtifactPath.payloadContent(node, ArtifactType.PAGE, "txt"), "content");
         // Entry with type="byteRanges" but null byteRanges list (legitimately deserialized when field absent)
         manifests.put(node, ArtifactType.PAGE.token(),
-                ManifestEntry.paginated(Map.of(), new Pagination("byteRanges", 1, null))
+                byteRangeEntry(1, null)
                         .withStatus(ManifestEntryStatus.COMPLETE));
         ManifestEntry entry = reader.servableEntry(node, ArtifactType.PAGE);
         assertThat(reader.page(node, ArtifactType.PAGE, entry, 1, "txt")).isNull();
@@ -265,7 +284,7 @@ public class ArtifactReaderTest {
         Files.writeString(ArtifactPath.payloadContent(node, ArtifactType.PAGE, "txt"), "content");
         // Range with length 1 instead of 2
         manifests.put(node, ArtifactType.PAGE.token(),
-                ManifestEntry.paginated(Map.of(), Pagination.byteRanges(1, List.of(new long[]{0})))
+                byteRangeEntry(1, List.of(new long[]{0}))
                         .withStatus(ManifestEntryStatus.COMPLETE));
         ManifestEntry entry = reader.servableEntry(node, ArtifactType.PAGE);
         assertThat(reader.page(node, ArtifactType.PAGE, entry, 1, "txt")).isNull();
@@ -278,7 +297,7 @@ public class ArtifactReaderTest {
         Files.writeString(ArtifactPath.payloadContent(node, ArtifactType.PAGE, "txt"), "content");
         Files.writeString(ArtifactPath.payloadContent(node, ArtifactType.PAGE, "md"), "content");
         manifests.put(node, ArtifactType.PAGE.token(),
-                ManifestEntry.paginated(Map.of(), Pagination.byteRanges(1, List.of(new long[]{0, 7})))
+                byteRangeEntry(1, List.of(new long[]{0, 7}))
                         .withStatus(ManifestEntryStatus.COMPLETE));
         ManifestEntry entry = reader.servableEntry(node, ArtifactType.PAGE);
         assertThat(reader.formats(node, ArtifactType.PAGE, entry, List.of("md", "txt"))).containsExactly("md", "txt");
