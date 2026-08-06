@@ -20,6 +20,7 @@ import java.util.Map.Entry;
 import java.util.stream.IntStream;
 
 import static java.util.Arrays.asList;
+import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
 import static java.util.stream.Collectors.toList;
 import static org.fest.assertions.Assertions.assertThat;
@@ -416,7 +417,19 @@ public class JooqBatchSearchRepositoryTest {
 
         List<Integer> documentNumbers = repository.getResults(User.local(), batchSearch.uuid).stream().
                 map(result -> result.documentNumber).collect(toList());
+        // each scroll page used to be numbered from 0, so a query spanning several pages had as many doc_nb 0 as pages
         assertThat(documentNumbers).containsExactly(0, 1, 2, 3);
+    }
+
+    @Test
+    public void test_save_empty_results_does_not_count_as_the_query_first_results() {
+        BatchSearch batchSearch = new BatchSearch(singletonList(proxy("prj")), "name", "description", asSet("my query"), null, User.local());
+        repository.save(batchSearch);
+
+        repository.saveResults(batchSearch.uuid, "my query", emptyList());
+
+        // saving nothing leaves the query unanswered: only a page carrying documents may decrement the counter
+        assertThat(repository.get(User.local(), batchSearch.uuid).nbQueriesWithoutResults).isEqualTo(1);
     }
 
     @Test
