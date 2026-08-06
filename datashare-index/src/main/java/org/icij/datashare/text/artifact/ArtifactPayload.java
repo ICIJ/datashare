@@ -27,10 +27,24 @@ public class ArtifactPayload {
             // be re-produced rather than recorded as present.
             case RAW -> Files.notExists(docArtifactDir.resolve(ArtifactPath.RAW_FILE))
                     || Files.notExists(docArtifactDir.resolve(ArtifactPath.RAW_SIDECAR_FILE));
-            // The directory, not its contents: the atomic swap renames a fully written one into place, so
-            // it is either there with its pages or not there at all. Exhaustive over the enum on purpose:
+            // The directory and the last page it advertises. The swap renames a fully written directory
+            // into place, so a partial write is impossible, but a partial delete is not: discard() removes
+            // pages one by one and only warns when it stops half way. Exhaustive over the enum on purpose:
             // a new type must decide its own shape here rather than default to "present".
-            case STRUCTURE -> Files.notExists(ArtifactPath.structureDir(docArtifactDir));
+            case STRUCTURE -> Files.notExists(ArtifactPath.structureDir(docArtifactDir))
+                    || lastPageMissing(docArtifactDir, entry);
         };
+    }
+
+    /** Whether the highest-numbered page the entry advertises is gone. Only the last one: pages are
+     *  written in order into a staging directory the swap renames in one move, so a set truncated by a
+     *  failed delete always loses its last page. An entry that advertises no usable page count says
+     *  nothing to check, and manifest.json is read from disk (a Python producer writes it too), so that
+     *  is a state to fall back from rather than re-produce on every run forever. */
+    private static boolean lastPageMissing(Path docArtifactDir, ManifestEntry entry) {
+        if (entry.pages() == null || entry.pages().total() < 1) {
+            return false;
+        }
+        return Files.notExists(ArtifactPath.structurePage(docArtifactDir, entry.pages().total(), "md"));
     }
 }

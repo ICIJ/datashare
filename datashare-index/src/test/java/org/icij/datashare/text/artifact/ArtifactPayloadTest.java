@@ -78,6 +78,27 @@ public class ArtifactPayloadTest {
     }
 
     @Test
+    public void test_structure_payload_missing_the_last_page_it_advertises_is_missing() throws Exception {
+        // AtomicDirectorySwap.discard deletes page by page and only warns when it fails part way, so the
+        // directory can survive holding a subset while the entry still advertises every page.
+        Files.createDirectories(ArtifactPath.structureDir(docDir()));
+        Files.writeString(ArtifactPath.structurePage(docDir(), 1, "md"), "# Title");
+
+        assertThat(ArtifactPayload.isMissing(docDir(), ArtifactType.STRUCTURE,
+                ManifestEntry.paginated(TASK_INPUT, 2).withTerminalStatus())).isTrue();
+    }
+
+    @Test
+    public void test_a_structure_entry_advertising_no_page_count_falls_back_to_its_directory() throws Exception {
+        // manifest.json is read from disk and a Python producer writes it too, so pages can be absent or
+        // nonsensical. Nothing to compare against then, and re-producing forever is the wrong answer.
+        Files.createDirectories(ArtifactPath.structureDir(docDir()));
+
+        assertThat(ArtifactPayload.isMissing(docDir(), ArtifactType.STRUCTURE,
+                ManifestEntry.singleFile(TASK_INPUT, "text/markdown", "page-1.md").withTerminalStatus())).isFalse();
+    }
+
+    @Test
     public void test_structure_payload_dir_holding_the_pages_it_advertises_is_not_missing() throws Exception {
         Files.createDirectories(ArtifactPath.structureDir(docDir()));
         Files.writeString(ArtifactPath.structurePage(docDir(), 1, "md"), "# Title");
