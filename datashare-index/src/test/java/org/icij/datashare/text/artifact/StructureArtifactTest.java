@@ -209,7 +209,7 @@ public class StructureArtifactTest {
     }
 
     @Test
-    public void test_produce_reports_content_no_parser_can_read_as_unparseable() throws Exception {
+    public void test_produce_reports_content_no_parser_can_read_as_unreadable() throws Exception {
         // The shape a real corpus produces (NastyCorpus pins the same one): bytes indexed as a .docx that
         // hold no zip signature at all, so POI rejects the package outright and always will.
         byte[] garbage = new byte[1024];
@@ -221,8 +221,8 @@ public class StructureArtifactTest {
 
         try {
             new StructureArtifact().produce(new ArtifactContext(project, broken, dir.getRoot().toPath(), sources));
-            org.junit.Assert.fail("expected an UnparseableContentException");
-        } catch (UnparseableContentException expected) {
+            org.junit.Assert.fail("expected an UnreadableContentException");
+        } catch (UnreadableContentException expected) {
             assertThat(Files.exists(ArtifactPath.structureDir(dir.getRoot().toPath()))).isFalse();
         }
     }
