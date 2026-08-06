@@ -2,12 +2,15 @@ package org.icij.datashare.text.artifact;
 
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.Project;
+import org.icij.datashare.text.indexing.elasticsearch.ArtifactPath;
 import org.junit.After;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import java.io.IOException;
 import java.io.InterruptedIOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -35,7 +38,24 @@ public class ArtifactProducerTest {
         public ManifestEntry produce(ArtifactContext ctx) throws ArtifactException {
             if (fail) { throw new ArtifactException("boom", null); }
             produced.incrementAndGet();
-            return producesEmpty ? ManifestEntry.empty(taskInput) : ManifestEntry.singleFile(taskInput, "text/plain", "a.txt");
+            if (producesEmpty) { return ManifestEntry.empty(taskInput); }
+            writePayload(ctx.docArtifactDir());
+            return ManifestEntry.singleFile(taskInput, "text/plain", "a.txt");
+        }
+        // A real producer writes its payload before the entry is recorded, and skip-if-current now checks
+        // the payload is still there: a fake that records without writing would be re-produced every run.
+        private void writePayload(Path docArtifactDir) throws ArtifactException {
+            try {
+                if (type == ArtifactType.RAW) {
+                    Files.createDirectories(docArtifactDir);
+                    Files.write(docArtifactDir.resolve(ArtifactPath.RAW_FILE), new byte[]{1});
+                } else {
+                    Files.createDirectories(ArtifactPath.structureDir(docArtifactDir));
+                    Files.writeString(ArtifactPath.structurePage(docArtifactDir, 1, "md"), "page");
+                }
+            } catch (IOException cannotWrite) {
+                throw new ArtifactException("cannot write the fake payload", cannotWrite);
+            }
         }
     }
 
