@@ -1,9 +1,7 @@
 package org.icij.datashare.text.artifact;
 
 import org.icij.datashare.text.Document;
-import org.icij.datashare.text.indexing.elasticsearch.ArtifactPath;
 
-import java.nio.file.Files;
 import java.util.Map;
 
 /** The raw/source-bytes artifact. extract-lib still writes the raw/raw.json bytes via
@@ -32,14 +30,12 @@ public class RawArtifact implements Artifact {
             // extract-lib writes the raw/raw.json bytes for the embedded subtree as a side effect.
             context.sources().extractEmbeddedSources(context.project(), document);
             ManifestEntry entry = entryFor(document);
-            // A root has no payload in this dir, so there is nothing to verify. For an embedded node,
             // extractAll can return normally without ever writing THIS polled document's bytes: a
-            // per-message parse failure the resilient parser swallows, a mid-walk abort, a corrupt
-            // entry, an OCR-off image... Verify the raw payload actually landed before handing back
-            // a terminal-able entry, so a silent miss fails loudly (nbFailed, re-runnable) instead of
-            // being recorded as produced.
-            if (!document.isRootDocument()
-                    && Files.notExists(context.docArtifactDir().resolve(ArtifactPath.RAW_FILE))) {
+            // per-message parse failure the resilient parser swallows, a mid-walk abort, a corrupt entry,
+            // an OCR-off image... Verify the payload landed before handing back a terminal-able entry, so
+            // a silent miss fails loudly (nbFailed, re-runnable) instead of being recorded as produced. A
+            // root advertises no payload in this dir, so the predicate finds nothing to check for one.
+            if (ArtifactPayload.isMissing(context.docArtifactDir(), TYPE, entry)) {
                 throw new ArtifactException("raw extraction produced no bytes for " + document.getId(), null);
             }
             return entry;

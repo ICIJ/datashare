@@ -4,7 +4,6 @@ import org.icij.datashare.text.Document;
 import org.icij.datashare.text.indexing.elasticsearch.ArtifactPath;
 
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 
@@ -43,13 +42,14 @@ public class ManifestRecorder {
                 return;
             }
         }
-        // For an embedded node, only record a COMPLETE entry once its raw payload is
-        // actually on disk (written by extract-lib during the parse). Otherwise skip, so a later
-        // ARTIFACT-stage run produces it rather than leaving a permanent false-COMPLETE. A root has
-        // no payload in its own dir, so it always records its EMPTY entry.
-        if (!document.isRootDocument() && !Files.exists(docArtifactDir.resolve(ArtifactPath.RAW_FILE))) {
+        ManifestEntry entry = raw.entryFor(document);
+        // Only record a COMPLETE entry once the raw payload extract-lib wrote during the parse is really
+        // on disk. Otherwise skip, so a later ARTIFACT-stage run produces it rather than leaving a
+        // permanent false-COMPLETE. A root advertises no payload in its own dir, so it always records its
+        // EMPTY entry.
+        if (ArtifactPayload.isMissing(docArtifactDir, ArtifactType.RAW, entry)) {
             return;
         }
-        repository.put(docArtifactDir, ArtifactType.RAW.token(), raw.entryFor(document).withTerminalStatus());
+        repository.put(docArtifactDir, ArtifactType.RAW.token(), entry.withTerminalStatus());
     }
 }
