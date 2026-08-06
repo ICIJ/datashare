@@ -84,41 +84,52 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
             // results are saved one scroll page at a time: QUERY_RESULTS holds how many documents were
             // already saved for this query, which is both the doc_nb to start numbering this page at and
             // the way to tell that this page is the first one bringing results to that query
-            int alreadySaved = ofNullable(inner.select(BATCH_SEARCH_QUERY.QUERY_RESULTS).from(BATCH_SEARCH_QUERY).
-                    where(BATCH_SEARCH_QUERY.SEARCH_UUID.eq(batchSearchId).
-                            and(BATCH_SEARCH_QUERY.QUERY.eq(query))).
-                    fetchOne(BATCH_SEARCH_QUERY.QUERY_RESULTS)).orElse(0);
-            boolean firstResultsForQuery = alreadySaved == 0 && !documents.isEmpty();
+            int documentsAlreadySaved = documentsAlreadySavedFor(inner, batchSearchId, query);
+            boolean isFirstPageWithResults = documentsAlreadySaved == 0 && !documents.isEmpty();
 
-            // the column is nullable, and a plus() on NULL stays NULL: the numbering would then restart
-            // at 0 on every page, and every page would count as the query's first results
-            UpdateSetMoreStep<BatchSearchQueryRecord> updateBatchSearchQuery = inner.update(BATCH_SEARCH_QUERY).set(BATCH_SEARCH_QUERY.QUERY_RESULTS,
-                    coalesce(BATCH_SEARCH_QUERY.QUERY_RESULTS, 0).plus(documents.size()));
-            updateBatchSearchQuery.
-                    where(BATCH_SEARCH_QUERY.SEARCH_UUID.eq(batchSearchId).
-                            and(BATCH_SEARCH_QUERY.QUERY.eq(query))).execute();
-
-
-            UpdateSetMoreStep<org.icij.datashare.db.tables.records.BatchSearchRecord> updateBatchSearch = inner.update(BATCH_SEARCH)
-                    .set(BATCH_SEARCH.BATCH_RESULTS, BATCH_SEARCH.BATCH_RESULTS.plus(documents.size()))
-                    .set(BATCH_SEARCH.NB_QUERIES_WITHOUT_RESULTS, BATCH_SEARCH.NB_QUERIES_WITHOUT_RESULTS.minus(firstResultsForQuery ? 1 : 0));
-            updateBatchSearch.
-                    where(BATCH_SEARCH.UUID.eq(batchSearchId)).execute();
-
-
-            InsertValuesStep10<BatchSearchResultRecord, String, String, Integer, String, String, String, LocalDateTime, String, Long, String>
-                    insertQuery =
-                    inner.insertInto(BATCH_SEARCH_RESULT, BATCH_SEARCH_RESULT.SEARCH_UUID, BATCH_SEARCH_RESULT.QUERY, BATCH_SEARCH_RESULT.DOC_NB,
-                            BATCH_SEARCH_RESULT.DOC_ID, BATCH_SEARCH_RESULT.ROOT_ID, BATCH_SEARCH_RESULT.DOC_PATH, BATCH_SEARCH_RESULT.CREATION_DATE,
-                            BATCH_SEARCH_RESULT.CONTENT_TYPE, BATCH_SEARCH_RESULT.CONTENT_LENGTH, BATCH_SEARCH_RESULT.PRJ_ID);
-            IntStream.range(0, documents.size()).forEach(i -> insertQuery.values(batchSearchId, query, alreadySaved + i,
-                    documents.get(i).getId(), documents.get(i).getRootDocument(), documents.get(i).getPath().toString(),
-                    documents.get(i).getCreationDate() == null ? null :
-                            new Timestamp(documents.get(i).getCreationDate().getTime()).toLocalDateTime(),
-                    documents.get(i).getContentType(), documents.get(i).getContentLength(), documents.get(i).getProject().getId()));
-            return insertQuery.execute() > 0;
+            addToQueryResults(inner, batchSearchId, query, documents.size());
+            countPageAgainstBatch(inner, batchSearchId, documents.size(), isFirstPageWithResults);
+            return insertPage(inner, batchSearchId, query, documentsAlreadySaved, documents) > 0;
         });
+    }
 
+    private static Condition queryRowOf(String batchSearchId, String query) {
+        return BATCH_SEARCH_QUERY.SEARCH_UUID.eq(batchSearchId).and(BATCH_SEARCH_QUERY.QUERY.eq(query));
+    }
+
+    private int documentsAlreadySavedFor(DSLContext inner, String batchSearchId, String query) {
+        // fetchOne gives null when no row matches at all, which is not the same as a query saved nothing yet
+        return ofNullable(inner.select(BATCH_SEARCH_QUERY.QUERY_RESULTS).from(BATCH_SEARCH_QUERY).
+                where(queryRowOf(batchSearchId, query)).
+                fetchOne(BATCH_SEARCH_QUERY.QUERY_RESULTS)).orElse(0);
+    }
+
+    private void addToQueryResults(DSLContext inner, String batchSearchId, String query, int documentCount) {
+        inner.update(BATCH_SEARCH_QUERY).
+                set(BATCH_SEARCH_QUERY.QUERY_RESULTS, BATCH_SEARCH_QUERY.QUERY_RESULTS.plus(documentCount)).
+                where(queryRowOf(batchSearchId, query)).execute();
+    }
+
+    private void countPageAgainstBatch(DSLContext inner, String batchSearchId, int documentCount, boolean isFirstPageWithResults) {
+        inner.update(BATCH_SEARCH).
+                set(BATCH_SEARCH.BATCH_RESULTS, BATCH_SEARCH.BATCH_RESULTS.plus(documentCount)).
+                set(BATCH_SEARCH.NB_QUERIES_WITHOUT_RESULTS, BATCH_SEARCH.NB_QUERIES_WITHOUT_RESULTS.minus(isFirstPageWithResults ? 1 : 0)).
+                where(BATCH_SEARCH.UUID.eq(batchSearchId)).execute();
+    }
+
+    // five parameters: numbering a page needs the row it belongs to, the base read before the counter moved, and the page
+    private int insertPage(DSLContext inner, String batchSearchId, String query, int startingAt, List<Document> documents) {
+        InsertValuesStep10<BatchSearchResultRecord, String, String, Integer, String, String, String, LocalDateTime, String, Long, String>
+                insertQuery =
+                inner.insertInto(BATCH_SEARCH_RESULT, BATCH_SEARCH_RESULT.SEARCH_UUID, BATCH_SEARCH_RESULT.QUERY, BATCH_SEARCH_RESULT.DOC_NB,
+                        BATCH_SEARCH_RESULT.DOC_ID, BATCH_SEARCH_RESULT.ROOT_ID, BATCH_SEARCH_RESULT.DOC_PATH, BATCH_SEARCH_RESULT.CREATION_DATE,
+                        BATCH_SEARCH_RESULT.CONTENT_TYPE, BATCH_SEARCH_RESULT.CONTENT_LENGTH, BATCH_SEARCH_RESULT.PRJ_ID);
+        IntStream.range(0, documents.size()).forEach(i -> insertQuery.values(batchSearchId, query, startingAt + i,
+                documents.get(i).getId(), documents.get(i).getRootDocument(), documents.get(i).getPath().toString(),
+                documents.get(i).getCreationDate() == null ? null :
+                        new Timestamp(documents.get(i).getCreationDate().getTime()).toLocalDateTime(),
+                documents.get(i).getContentType(), documents.get(i).getContentLength(), documents.get(i).getProject().getId()));
+        return insertQuery.execute();
     }
 
     @Override
