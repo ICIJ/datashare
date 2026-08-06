@@ -136,6 +136,17 @@ public class ArtifactProducer {
 
     private boolean isCurrent(ArtifactType type, Artifact artifact, ArtifactContext context) throws IOException {
         ManifestEntry existing = repository.get(context.docArtifactDir(), type.token());
-        return existing != null && existing.isCurrentFor(artifact.taskInput());
+        if (existing == null || !existing.isCurrentFor(artifact.taskInput())) {
+            return false;
+        }
+        // A terminal entry is not proof the payload survived: a JVM death mid-swap, or a failed restore
+        // leaving the pages in a holding pen, takes it out from under a complete entry. Asking the disk is
+        // what makes a plain re-run repair that, instead of --artifactsForce over the whole corpus.
+        if (!ArtifactPayload.isMissing(context.docArtifactDir(), type, existing)) {
+            return true;
+        }
+        LOGGER.warn("'{}' entry for document {} is current but its payload is gone: re-producing",
+                type.token(), context.document().getId());
+        return false;
     }
 }
