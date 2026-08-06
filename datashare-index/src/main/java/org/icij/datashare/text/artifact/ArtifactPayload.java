@@ -25,15 +25,23 @@ public class ArtifactPayload {
             // sidecar as a second atomic move after it. Both or neither: SourceExtractor only serves the
             // cache when both are readable, so a pair half written by a JVM death is unservable and must
             // be re-produced rather than recorded as present.
-            case RAW -> Files.notExists(docArtifactDir.resolve(ArtifactPath.RAW_FILE))
-                    || Files.notExists(docArtifactDir.resolve(ArtifactPath.RAW_SIDECAR_FILE));
+            case RAW -> isAbsent(docArtifactDir.resolve(ArtifactPath.RAW_FILE))
+                    || isAbsent(docArtifactDir.resolve(ArtifactPath.RAW_SIDECAR_FILE));
             // The directory and the last page it advertises. The swap renames a fully written directory
             // into place, so a partial write is impossible, but a partial delete is not: discard() removes
             // pages one by one and only warns when it stops half way. Exhaustive over the enum on purpose:
             // a new type must decide its own shape here rather than default to "present".
-            case STRUCTURE -> Files.notExists(ArtifactPath.structureDir(docArtifactDir))
+            case STRUCTURE -> isAbsent(ArtifactPath.structureDir(docArtifactDir))
                     || lastPageMissing(docArtifactDir, entry);
         };
+    }
+
+    /** Absent, or a path the filesystem will not answer for. A stale NFS handle or a revoked permission
+     *  on a shared artifactDir makes both {@code exists} and {@code notExists} false, and the two callers
+     *  that record entries would stamp a COMPLETE one over a payload nobody has confirmed. Re-producing
+     *  costs work that a later run can redo; recording that lie is what leaves a document unrepairable. */
+    private static boolean isAbsent(Path path) {
+        return !Files.exists(path);
     }
 
     /** Whether the highest-numbered page the entry advertises is gone. Only the last one: pages are
@@ -45,6 +53,6 @@ public class ArtifactPayload {
         if (entry.pages() == null || entry.pages().total() < 1) {
             return false;
         }
-        return Files.notExists(ArtifactPath.structurePage(docArtifactDir, entry.pages().total(), "md"));
+        return isAbsent(ArtifactPath.structurePage(docArtifactDir, entry.pages().total(), "md"));
     }
 }
