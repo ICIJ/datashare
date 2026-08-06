@@ -123,11 +123,10 @@ public class StructureArtifact implements Artifact {
         return failure instanceof TikaException && ZIP_BOMB_MESSAGE.equals(failure.getMessage());
     }
 
-    // The document's artifact dir is created rather than assumed: with raw out of the selection nothing
-    // else creates it, so an ARTIFACT run over a fresh artifactDir would fail on every document. The swap
-    // itself is not structure-specific and lives in AtomicDirectorySwap.
+    // The swap itself is not structure-specific and lives in AtomicDirectorySwap, which creates the
+    // document's artifact dir on the way: with raw out of the selection nothing else creates it, so an
+    // ARTIFACT run over a fresh artifactDir would otherwise fail on every document.
     static void writePages(Path docArtifactDir, List<Page> pages) throws IOException {
-        Files.createDirectories(docArtifactDir);
         AtomicDirectorySwap.replace(ArtifactPath.structureDir(docArtifactDir), staging -> {
             for (int index = 0; index < pages.size(); index++) {
                 write(staging, index + 1, pages.get(index));

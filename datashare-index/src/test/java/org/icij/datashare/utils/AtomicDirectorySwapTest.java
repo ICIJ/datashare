@@ -53,6 +53,17 @@ public class AtomicDirectorySwapTest {
     }
 
     @Test
+    public void test_creates_the_parent_the_staging_directory_needs() throws Exception {
+        // The first artifact of a document has no dir to write into yet, so the helper makes it rather
+        // than handing every caller a NoSuchFileException on a fresh artifactDir.
+        Path nested = parent().resolve("a-document").resolve("payload");
+
+        AtomicDirectorySwap.replace(nested, staging -> Files.writeString(staging.resolve("one.txt"), "new"));
+
+        assertThat(Files.readString(nested.resolve("one.txt"))).isEqualTo("new");
+    }
+
+    @Test
     public void test_the_target_holds_only_what_the_writer_wrote() throws Exception {
         // A shorter payload than last time must not leave the previous run's extra files behind.
         Files.createDirectories(target());

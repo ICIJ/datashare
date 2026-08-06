@@ -1,6 +1,7 @@
 package org.icij.datashare.utils;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.function.IOConsumer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -25,26 +26,23 @@ public class AtomicDirectorySwap {
     private static final Logger LOGGER = LoggerFactory.getLogger(AtomicDirectorySwap.class);
     private static final String REPLACED_SUFFIX = ".replaced";
 
-    /** Writes the new contents into the staging directory it is handed. */
-    public interface Writer {
-        void writeInto(Path staging) throws IOException;
-    }
-
     private AtomicDirectorySwap() {}
 
     /**
      * Writes new contents through {@code writer} and puts them at {@code target}, replacing whatever is
-     * there (a directory, or a plain file another producer wrote at that path). The target's parent has
-     * to exist. On any failure the staging directory goes and the previous contents stay.
+     * there (a directory, or a plain file another producer wrote at that path). The target's parent is
+     * created if it is missing, since the staging directory goes in it. On any failure the staging
+     * directory goes and the previous contents stay.
      */
-    public static void replace(Path target, Writer writer) throws IOException {
+    public static void replace(Path target, IOConsumer<Path> writer) throws IOException {
+        Path parent = Files.createDirectories(target.getParent());
         String prefix = "." + target.getFileName() + "-";
-        reclaimHoldingPens(target.getParent(), prefix);
-        Path staging = createStagingDir(target.getParent(), prefix);
+        reclaimHoldingPens(parent, prefix);
+        Path staging = createStagingDir(parent, prefix);
         Path aside = staging.resolveSibling(staging.getFileName() + REPLACED_SUFFIX);
         Throwable failure = null;
         try {
-            writer.writeInto(staging);
+            writer.accept(staging);
             swapIntoPlace(staging, aside, target);
         } catch (Throwable thrown) {
             failure = thrown;
