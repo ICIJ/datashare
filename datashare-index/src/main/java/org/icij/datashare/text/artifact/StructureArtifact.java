@@ -60,6 +60,10 @@ public class StructureArtifact implements Artifact {
             List<Page> pages = parse(source, context.document());
             writePages(context.docArtifactDir(), pages);
             return ManifestEntry.paginated(taskInput(), pages.size());
+        } catch (ArtifactConfigurationException fatal) {
+            // Unchecked, and not an ArtifactException, so the catch-all below would otherwise demote the
+            // fatal bucket to one more per-document failure and drain the queue instead of ending the run.
+            throw fatal;
         } catch (UnreadableContentException unreadable) {
             // The producer records this one as processed with no payload too, so the payload goes now.
             discardPayload(context.docArtifactDir());
@@ -88,8 +92,11 @@ public class StructureArtifact implements Artifact {
      * </ul>
      * A cancelled parse also arrives as a TikaException, so this is not the last word: the producer asks
      * whether the run was cancelled before it records anything.
+     * <p>
+     * Package-private, not private: nothing this side can make a real Tika configuration break, so the
+     * fatal bucket is only reachable from a test that stands in for this method.
      */
-    private List<Page> parse(InputStream source, Document document) throws IOException, ArtifactException {
+    List<Page> parse(InputStream source, Document document) throws IOException, ArtifactException {
         try {
             return extractor.extract(source, document.getContentType(), resourceName(document));
         } catch (TikaConfigException fatal) {
