@@ -78,9 +78,10 @@ public class ArtifactPayloadTest {
     }
 
     @Test
-    public void test_structure_payload_dir_holding_a_page_is_not_missing() throws Exception {
+    public void test_structure_payload_dir_holding_the_pages_it_advertises_is_not_missing() throws Exception {
         Files.createDirectories(ArtifactPath.structureDir(docDir()));
         Files.writeString(ArtifactPath.structurePage(docDir(), 1, "md"), "# Title");
+        Files.writeString(ArtifactPath.structurePage(docDir(), 2, "md"), "# Second");
 
         assertThat(ArtifactPayload.isMissing(docDir(), ArtifactType.STRUCTURE,
                 ManifestEntry.paginated(TASK_INPUT, 2).withTerminalStatus())).isFalse();
