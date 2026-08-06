@@ -184,7 +184,7 @@ public class ArtifactResource {
                     DatashareCliOptions.ARTIFACT_DIR_OPT, id, project);
             return null;
         }
-        return ArtifactPath.dir(Path.of(artifactDir.get()).resolve(project), document.getId());
+        return ArtifactPath.dir(ArtifactPath.projectRoot(Path.of(artifactDir.get()), project), document.getId());
     }
 
     private static Map<String, String> structureContentTypes() {
