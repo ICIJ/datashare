@@ -1,6 +1,8 @@
 package org.icij.datashare.text.artifact;
 
 import org.apache.tika.Tika;
+import org.apache.tika.exception.TikaConfigException;
+import org.apache.tika.exception.TikaException;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.Hasher;
@@ -8,6 +10,7 @@ import org.icij.datashare.text.indexing.elasticsearch.ArtifactPath;
 import org.icij.extract.document.DocumentFactory;
 import org.icij.extract.extractor.Extractor;
 import org.icij.task.Options;
+import org.xml.sax.SAXException;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -59,6 +62,9 @@ public class PageArtifact implements Artifact {
                 return ManifestEntry.empty(taskInput());
             }
             return ManifestEntry.paginated(taskInput(), writePages(context, pages));
+        } catch (ArtifactException alreadyClassified) {
+            // Raised by extractPages(), so wrapping it again would only double its message.
+            throw alreadyClassified;
         } catch (Exception failure) {
             throw new ArtifactException("page extraction failed for " + document.getId(), failure);
         }
@@ -93,7 +99,7 @@ public class PageArtifact implements Artifact {
     // One Extractor per document, as the live endpoint does per request: disableOcr() is one-way, so
     // a document indexed without OCR cannot share an Extractor with one indexed with it. embedOutput
     // is deliberately left unset: this producer writes its own payload and nothing else.
-    private List<String> extractPages(Document document, Path source) throws IOException {
+    private List<String> extractPages(Document document, Path source) throws IOException, ArtifactException {
         Hasher hasher = Hasher.valueOf(document.getId().length());
         DocumentFactory documentFactory = new DocumentFactory()
                 .configure(Options.from(Map.of("digestAlgorithm", hasher.toStringWithoutDash())));
@@ -104,7 +110,41 @@ public class PageArtifact implements Artifact {
                 extractor.disableOcr();
             }
             return extractor.extractPages(source);
+        } catch (IOException failure) {
+            throw classify(document, failure);
         }
+    }
+
+    /**
+     * Sorts a parse failure into the three buckets {@link StructureArtifact} sorts its own into, since
+     * what a failure means decides whether the document is ever looked at again: a broken Tika
+     * configuration ends the run, Tika's memory limit and its zip-bomb false positive are worth another
+     * one, and content no parser can read is recorded as empty rather than re-parsed forever.
+     * <p>
+     * Read off the cause chain rather than by catch type: extract-lib parses on its own thread and hands
+     * whatever it caught back as the cause of an IOException (ParsingReaderWithContentHandler#read), so
+     * every bucket arrives here as the same exception. An IOException with no parse failure under it (a
+     * stalled mount, a truncated read) stays retryable, as it does there.
+     */
+    private static ArtifactException classify(Document document, IOException failure) {
+        for (Throwable cause = failure; cause != null; cause = cause.getCause()) {
+            if (cause instanceof TikaConfigException) {
+                throw new ArtifactConfigurationException(cause);
+            }
+            if (cause instanceof TikaException || cause instanceof SAXException) {
+                return StructureArtifact.isRetryable(cause) ? retryable(document, failure)
+                        : new UnreadableContentException(document.getId(), cause);
+            }
+            // A custom exception can return itself from getCause(), which would spin this walk forever.
+            if (cause == cause.getCause()) {
+                break;
+            }
+        }
+        return retryable(document, failure);
+    }
+
+    private static ArtifactException retryable(Document document, IOException failure) {
+        return new ArtifactException("page extraction failed for " + document.getId(), failure);
     }
 
     // Writes the whole payload to a unique temp file in the same directory (so the move is
