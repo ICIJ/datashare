@@ -90,8 +90,10 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
                     fetchOne(BATCH_SEARCH_QUERY.QUERY_RESULTS)).orElse(0);
             boolean firstResultsForQuery = alreadySaved == 0 && !documents.isEmpty();
 
+            // the column is nullable, and a plus() on NULL stays NULL: the numbering would then restart
+            // at 0 on every page, and every page would count as the query's first results
             UpdateSetMoreStep<BatchSearchQueryRecord> updateBatchSearchQuery = inner.update(BATCH_SEARCH_QUERY).set(BATCH_SEARCH_QUERY.QUERY_RESULTS,
-                    BATCH_SEARCH_QUERY.QUERY_RESULTS.plus(documents.size()));
+                    coalesce(BATCH_SEARCH_QUERY.QUERY_RESULTS, 0).plus(documents.size()));
             updateBatchSearchQuery.
                     where(BATCH_SEARCH_QUERY.SEARCH_UUID.eq(batchSearchId).
                             and(BATCH_SEARCH_QUERY.QUERY.eq(query))).execute();
