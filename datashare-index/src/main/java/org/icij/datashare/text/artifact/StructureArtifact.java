@@ -22,8 +22,8 @@ import java.util.Map;
 
 import static org.icij.datashare.text.nlp.DocumentMetadataConstants.RESOURCE_NAME_KEY;
 
-/** The structure artifact: a per-page Tika rendering written as page-NNNN.xhtml (sanitized, the
- *  source of truth) and page-NNNN.md (derived from it) under the document's structure/ dir. */
+/** The structure artifact: a per-page Tika rendering written as page-N.xhtml (sanitized, the
+ *  source of truth) and page-N.md (derived from it) under the document's structure/ dir. */
 public class StructureArtifact implements Artifact {
     private static final ArtifactType TYPE = ArtifactType.STRUCTURE;
     // Tika.getString() returns "Apache Tika <version>"; extract-lib strips the same prefix.

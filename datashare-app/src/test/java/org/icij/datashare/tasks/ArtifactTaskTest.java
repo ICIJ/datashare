@@ -130,7 +130,7 @@ public class ArtifactTaskTest {
         ManifestEntry structure = new FilesystemManifestRepository().get(docArtifactDir, "structure");
         assertThat(structure.status()).isEqualTo(ManifestEntryStatus.COMPLETE);
         assertThat(structure.pages().total()).isEqualTo(2);
-        assertThat(docArtifactDir.resolve("structure").resolve("page-0002.md").toFile()).isFile();
+        assertThat(docArtifactDir.resolve("structure").resolve("page-2.md").toFile()).isFile();
     }
 
     @Test(timeout = 10000)

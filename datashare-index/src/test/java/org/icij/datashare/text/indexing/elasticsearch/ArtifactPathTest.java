@@ -30,12 +30,12 @@ public class ArtifactPathTest {
     }
 
     @Test
-    public void test_structure_page_is_one_based_and_zero_padded_to_four() {
+    public void test_structure_page_is_one_based_and_unpadded() {
         Path docDir = ArtifactPath.dir(Path.of("/artifact/prj"), DIGEST);
         assertThat(ArtifactPath.structurePage(docDir, 1, "md").getFileName().toString())
-                .isEqualTo("page-0001.md");
+                .isEqualTo("page-1.md");
         assertThat(ArtifactPath.structurePage(docDir, 12, "xhtml").getFileName().toString())
-                .isEqualTo("page-0012.xhtml");
+                .isEqualTo("page-12.xhtml");
         assertThat(ArtifactPath.structurePage(docDir, 12345, "md").getFileName().toString())
                 .isEqualTo("page-12345.md");
     }
@@ -44,9 +44,9 @@ public class ArtifactPathTest {
     public void test_page_filename_digits_do_not_follow_the_default_locale() {
         Locale previous = Locale.getDefault();
         try {
-            // this locale formats %d with Arabic-Indic digits, so an unpinned format writes page-٠٠١٢.md
+            // this locale formats %d with Arabic-Indic digits, so an unpinned format writes page-١٢.md
             Locale.setDefault(Locale.forLanguageTag("ar-EG"));
-            assertThat(ArtifactPath.pageFilename(12, "md")).isEqualTo("page-0012.md");
+            assertThat(ArtifactPath.pageFilename(12, "md")).isEqualTo("page-12.md");
         } finally {
             Locale.setDefault(previous);
         }
