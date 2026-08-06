@@ -38,7 +38,7 @@ public class RawArtifact implements Artifact {
             // entry, an OCR-off image... Verify the raw payload actually landed before handing back
             // a terminal-able entry, so a silent miss fails loudly (nbFailed, re-runnable) instead of
             // being recorded as produced.
-            if (document.getExtractionLevel() > 0
+            if (!document.isRootDocument()
                     && Files.notExists(context.docArtifactDir().resolve(ArtifactPath.RAW_FILE))) {
                 throw new ArtifactException("raw extraction produced no bytes for " + document.getId(), null);
             }
@@ -53,9 +53,11 @@ public class RawArtifact implements Artifact {
     /** Build the raw manifest entry for an already-extracted document, without touching the
      *  filesystem. Shared by produce() and the INDEX-time ManifestRecorder so both stages emit
      *  the same entry. A root's source is the on-disk original (no payload here), so it records
-     *  an empty entry; an embedded node records its single-file payload. */
+     *  an empty entry; an embedded node records its single-file payload. Root means what
+     *  {@link Document#isRootDocument()} means, so a document whose labels disagree is not recorded as
+     *  processed-with-no-payload while {@code SourceExtractor} reads it down the embedded path. */
     public ManifestEntry entryFor(Document document) {
-        if (document.getExtractionLevel() <= 0) {
+        if (document.isRootDocument()) {
             return ManifestEntry.empty(taskInput());
         }
         return ManifestEntry.singleFile(taskInput(), document.getContentType(), document.getName());

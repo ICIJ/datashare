@@ -48,6 +48,19 @@ public class RawArtifactTest {
     }
 
     @Test
+    public void test_entry_for_a_document_whose_labels_disagree_is_not_empty() {
+        // A rootId pointing elsewhere sends SourceExtractor down the embedded path, so recording this one
+        // as a root would stamp "processed, source on disk" over a document whose source is not on disk.
+        Document disagreeing = createDoc("embeddedembedded").with(Path.of("/tmp/container.eml"))
+                .ofContentType("image/jpeg").withExtractionLevel((short) 0).withRootId("rootrootrootroot").build();
+
+        ManifestEntry entry = raw.entryFor(disagreeing);
+
+        assertThat(entry.status()).isNull();
+        assertThat(entry.filename()).isEqualTo("container.eml");
+    }
+
+    @Test
     public void test_type_and_task_input() {
         assertThat(raw.type()).isEqualTo(ArtifactType.RAW);
         assertThat(raw.taskInput()).isEqualTo(Map.of("type", "raw", "version", 1));
