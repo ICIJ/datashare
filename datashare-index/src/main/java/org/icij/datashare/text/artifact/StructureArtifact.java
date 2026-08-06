@@ -1,6 +1,5 @@
 package org.icij.datashare.text.artifact;
 
-import org.apache.commons.io.FileUtils;
 import org.apache.tika.Tika;
 import org.apache.tika.exception.TikaConfigException;
 import org.apache.tika.exception.TikaException;
@@ -9,9 +8,8 @@ import org.icij.datashare.text.Document;
 import org.icij.datashare.text.indexing.elasticsearch.ArtifactPath;
 import org.icij.datashare.text.structure.StructureMarkdownExtractor;
 import org.icij.datashare.text.structure.StructureMarkdownExtractor.Page;
+import org.icij.datashare.utils.AtomicDirectorySwap;
 import org.icij.datashare.utils.BuildVersions;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.xml.sax.SAXException;
 
 import java.io.IOException;
@@ -19,27 +17,19 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
-import java.util.stream.Stream;
 
 import static org.icij.datashare.text.nlp.DocumentMetadataConstants.RESOURCE_NAME_KEY;
 
 /** The structure artifact: a per-page Tika rendering written as page-NNNN.xhtml (sanitized, the
  *  source of truth) and page-NNNN.md (derived from it) under the document's structure/ dir. */
 public class StructureArtifact implements Artifact {
-    private static final Logger LOGGER = LoggerFactory.getLogger(StructureArtifact.class);
     private static final ArtifactType TYPE = ArtifactType.STRUCTURE;
     // Tika.getString() returns "Apache Tika <version>"; extract-lib strips the same prefix.
     private static final String TIKA_PREFIX = "Apache Tika";
     // Read once: Tika.getString() re-reads a jar resource, and taskInput() is called per document.
     private static final String TIKA_VERSION = Tika.getString().replace(TIKA_PREFIX, "").strip();
-    // Staging dirs live in the document dir, so every rename below is same-filesystem and therefore
-    // atomic, and are named so neither the manifest nor the serving side ever reads them.
-    private static final String STAGING_DIR_PREFIX = ".structure-";
-    private static final String REPLACED_SUFFIX = ".replaced";
     // The message AutoDetectParser gives a SecureContentHandler refusal (see isZipBombGuard).
     private static final String ZIP_BOMB_MESSAGE = "Zip bomb detected!";
 
@@ -147,111 +137,21 @@ public class StructureArtifact implements Artifact {
     }
 
     // The document's artifact dir is created rather than assumed: with raw out of the selection nothing
-    // else creates it, so an ARTIFACT run over a fresh artifactDir would fail on every document.
+    // else creates it, so an ARTIFACT run over a fresh artifactDir would fail on every document. The swap
+    // itself is not structure-specific and lives in AtomicDirectorySwap.
     static void writePages(Path docArtifactDir, List<Page> pages) throws IOException {
         Files.createDirectories(docArtifactDir);
-        reclaimReplacedPayloads(docArtifactDir);
-        Path staging = createStagingDir(docArtifactDir);
-        Path aside = staging.resolveSibling(staging.getFileName() + REPLACED_SUFFIX);
-        Throwable failure = null;
-        try {
+        AtomicDirectorySwap.replace(ArtifactPath.structureDir(docArtifactDir), staging -> {
             for (int index = 0; index < pages.size(); index++) {
                 write(staging, index + 1, pages.get(index));
             }
-            swapIntoPlace(staging, aside, docArtifactDir);
-        } catch (Throwable thrown) {
-            failure = thrown;
-            throw thrown;
-        } finally {
-            // Throwable, not Exception: an OutOfMemoryError while writing pages is a documented failure
-            // mode for these corpora, and the staging name is unique per invocation, so what it leaves
-            // behind is never reclaimed by anything.
-            discard(staging, failure);
-        }
-    }
-
-    // A leftover holding pen means a delete failed, and its name is unique per invocation, so nothing
-    // else would ever reclaim it: the document would grow by a full page set on every re-produce. Only
-    // ".replaced" pens are swept, never a staging directory, which a concurrent producer of the same
-    // digest may be writing into right now.
-    private static void reclaimReplacedPayloads(Path docArtifactDir) throws IOException {
-        try (Stream<Path> entries = Files.list(docArtifactDir)) {
-            entries.filter(entry -> isReplacedPayload(entry.getFileName().toString()))
-                    .forEach(leftover -> discard(leftover, null));
-        }
-    }
-
-    private static boolean isReplacedPayload(String name) {
-        return name.startsWith(STAGING_DIR_PREFIX) && name.endsWith(REPLACED_SUFFIX);
+        });
     }
 
     // Losing the payload is the point: it is regenerable, and one the manifest does not account for is
     // still served by any reader that lists the directory.
     private static void discardPayload(Path docArtifactDir) {
-        discard(ArtifactPath.structureDir(docArtifactDir), null);
-    }
-
-    // Files.createDirectory, not createTempDirectory: the JDK stamps a temp directory owner-only, and this
-    // one is renamed into place as structure/, which every uid sharing the artifactDir has to read. The
-    // random name still matters: two workers on the same digest must not share a staging directory.
-    private static Path createStagingDir(Path docArtifactDir) throws IOException {
-        return Files.createDirectory(docArtifactDir.resolve(STAGING_DIR_PREFIX + UUID.randomUUID()));
-    }
-
-    // Two renames rather than a delete then a move: the payload being replaced is only destroyed once the
-    // new page set holds its place, so a failure anywhere here leaves the old pages readable under the
-    // manifest entry that still describes them. Residual window: a JVM death between the two renames
-    // leaves structure/ missing until the document is re-run with --artifactsForce. A concurrent producer
-    // of the same digest can make either rename fail, and nothing here can tell whose payload the path
-    // holds, so that document fails loudly rather than stamping a page count over someone else's bytes.
-    private static void swapIntoPlace(Path newPages, Path aside, Path docArtifactDir) throws IOException {
-        Path structureDir = ArtifactPath.structureDir(docArtifactDir);
-        if (!Files.exists(structureDir)) {
-            Files.move(newPages, structureDir, StandardCopyOption.ATOMIC_MOVE);
-            return;
-        }
-        Files.move(structureDir, aside, StandardCopyOption.ATOMIC_MOVE);
-        try {
-            Files.move(newPages, structureDir, StandardCopyOption.ATOMIC_MOVE);
-        } catch (IOException moveFailure) {
-            restore(aside, structureDir, moveFailure);
-            throw moveFailure;
-        }
-        // Here rather than in the caller's finally: a failed restore above deliberately keeps the aside as
-        // the last copy of those pages.
-        discard(aside, null);
-    }
-
-    // A restore that fails too leaves the only copy of the payload in the holding pen while structure/ is
-    // missing under a manifest entry that still says complete, and skip-if-current asks the entry alone
-    // (ManifestEntry#isCurrentFor), never whether the payload is there: name the path at ERROR so an
-    // operator can rename it back by hand, since only --artifactsForce repairs it otherwise.
-    private static void restore(Path aside, Path structureDir, IOException moveFailure) {
-        try {
-            Files.move(aside, structureDir, StandardCopyOption.ATOMIC_MOVE);
-        } catch (IOException restoreFailure) {
-            moveFailure.addSuppressed(restoreFailure);
-            LOGGER.error("cannot restore the structure payload of {}: it is left in {}, rename it back by hand",
-                    structureDir, aside, restoreFailure);
-        }
-    }
-
-    // forceDelete throws on the very conditions that break the write step (a full disk, a revoked
-    // permission), so it is attached to the real failure instead of replacing the cause the operator needs
-    // to see. With nothing to attach it to, a leftover only wastes disk, so it must not fail the document.
-    private static void discard(Path directory, Throwable failure) {
-        if (Files.notExists(directory)) {
-            return;
-        }
-        try {
-            FileUtils.forceDelete(directory.toFile());
-        } catch (IOException cleanupFailure) {
-            if (failure == null) {
-                LOGGER.warn("cannot remove {}, leaving it behind", directory, cleanupFailure);
-            } else {
-                failure.addSuppressed(cleanupFailure);
-            }
-        }
+        AtomicDirectorySwap.discard(ArtifactPath.structureDir(docArtifactDir));
     }
 
     private static void write(Path pagesDir, int pageNumber, Page page) throws IOException {

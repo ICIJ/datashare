@@ -8,7 +8,6 @@ import org.icij.datashare.text.Document;
 import org.icij.datashare.text.Project;
 import org.icij.datashare.text.indexing.elasticsearch.ArtifactPath;
 import org.icij.datashare.text.indexing.elasticsearch.SourceExtractor;
-import org.icij.datashare.text.structure.StructureMarkdownExtractor.Page;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -21,8 +20,6 @@ import java.io.ByteArrayOutputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.attribute.PosixFilePermissions;
-import java.util.AbstractList;
 import java.util.List;
 import java.util.Random;
 import java.util.stream.Stream;
@@ -164,37 +161,6 @@ public class StructureArtifactTest {
     }
 
     @Test
-    public void test_produce_replaces_the_flat_structure_file_written_by_the_python_producer() throws Exception {
-        Files.writeString(dir.getRoot().toPath().resolve(ArtifactPath.STRUCTURE_DIR), "docling markdown");
-
-        ManifestEntry entry = new StructureArtifact().produce(contextFor(HTML));
-
-        assertThat(Files.isDirectory(ArtifactPath.structureDir(dir.getRoot().toPath()))).isTrue();
-        assertThat(Files.readString(page(1, "md"))).contains("# Title");
-        assertThat(entry.pages().total()).isEqualTo(1);
-    }
-
-    @Test
-    public void test_produce_removes_stale_pages_from_a_previous_longer_run() throws Exception {
-        Files.createDirectories(ArtifactPath.structureDir(dir.getRoot().toPath()));
-        Files.writeString(page(9, "md"), "stale page nine");
-
-        new StructureArtifact().produce(contextFor(HTML));
-
-        assertThat(Files.exists(page(9, "md"))).isFalse();
-        assertThat(Files.exists(page(1, "md"))).isTrue();
-    }
-
-    @Test
-    public void test_produce_leaves_sibling_artifacts_alone() throws Exception {
-        Files.writeString(dir.getRoot().toPath().resolve(ArtifactPath.RAW_FILE), "raw bytes");
-
-        new StructureArtifact().produce(contextFor(HTML));
-
-        assertThat(Files.readString(dir.getRoot().toPath().resolve(ArtifactPath.RAW_FILE))).isEqualTo("raw bytes");
-    }
-
-    @Test
     public void test_produce_fails_and_writes_nothing_when_the_source_cannot_be_read() throws Exception {
         SourceExtractor sources = mock(SourceExtractor.class);
         when(sources.getSource(project, doc)).thenThrow(new java.io.FileNotFoundException("gone"));
@@ -270,20 +236,6 @@ public class StructureArtifactTest {
         assertThat(Files.exists(ArtifactPath.structureDir(dir.getRoot().toPath()))).isFalse();
     }
 
-    @Test
-    public void test_produce_reclaims_a_replaced_payload_a_previous_run_could_not_delete() throws Exception {
-        // The holding pen is named uniquely per invocation, so nothing else would reclaim one a failed
-        // delete left behind: the document would grow by a full page set on every re-produce.
-        Path leftover = dir.getRoot().toPath().resolve(".structure-0dd0dd.replaced");
-        Files.createDirectories(leftover);
-        Files.writeString(leftover.resolve("page-0001.md"), "a page set nothing reads");
-
-        new StructureArtifact().produce(contextFor(HTML));
-
-        assertThat(temporaryEntries()).isEmpty();
-        assertThat(Files.readString(page(1, "md"))).contains("# Title");
-    }
-
     private static byte[] blankPng() throws Exception {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         ImageIO.write(new BufferedImage(4, 4, BufferedImage.TYPE_INT_RGB), "png", out);
@@ -300,133 +252,6 @@ public class StructureArtifactTest {
 
         assertThat(entry.pages().total()).isEqualTo(1);
         assertThat(Files.readString(ArtifactPath.structurePage(docArtifactDir, 1, "md"))).contains("# Title");
-    }
-
-    @Test
-    public void test_produce_swaps_in_the_new_pages_when_the_previous_payload_cannot_be_deleted() throws Exception {
-        // A nested, separately-locked subdir makes the previous payload undeletable while structureDir
-        // itself stays writable, ruling out a pass that only means page-0001 could not be written. Relies
-        // on the test process not running as root, which ignores the unwritable parent (CI and the devenv
-        // both run non-root).
-        Path lockedSubdir = ArtifactPath.structureDir(dir.getRoot().toPath()).resolve("locked");
-        Files.createDirectories(lockedSubdir);
-        Files.writeString(page(1, "md"), "old content");
-        Files.writeString(lockedSubdir.resolve("leftover.md"), "stale page from a previous run");
-        // Deleting a directory entry needs write permission on its parent, not the entry itself.
-        lockedSubdir.toFile().setWritable(false);
-
-        try {
-            ManifestEntry entry = new StructureArtifact().produce(contextFor(HTML));
-
-            // The previous payload is renamed aside, not deleted, so an undeletable leftover cannot fail
-            // the document.
-            assertThat(entry.pages().total()).isEqualTo(1);
-            assertThat(Files.readString(page(1, "md"))).contains("# Title");
-            assertThat(Files.exists(ArtifactPath.structureDir(dir.getRoot().toPath()).resolve("locked"))).isFalse();
-        } finally {
-            // Not lockedSubdir: produce() renamed the payload holding it aside, so a chmod of the original
-            // path silently does nothing and leaves a tree TemporaryFolder cannot delete.
-            restoreWritePermissions(dir.getRoot().toPath());
-        }
-    }
-
-    private static void restoreWritePermissions(Path root) throws Exception {
-        try (Stream<Path> entries = Files.walk(root)) {
-            entries.filter(Files::isDirectory).forEach(entry -> entry.toFile().setWritable(true));
-        }
-    }
-
-    @Test
-    public void test_produce_leaves_no_temp_dir_behind_after_a_successful_run() throws Exception {
-        new StructureArtifact().produce(contextFor(HTML));
-
-        assertThat(temporaryEntries()).isEmpty();
-    }
-
-    @Test
-    public void test_produce_ignores_a_leftover_of_the_old_shared_temp_directory_name() throws Exception {
-        // The temp dir is unique per invocation now, so nothing at a shared path can be adopted,
-        // blocked on, or destroyed by a concurrent producer of the same digest.
-        Files.writeString(dir.getRoot().toPath().resolve("structure.tmp"), "leftover of a fixed name");
-
-        ManifestEntry entry = new StructureArtifact().produce(contextFor(HTML));
-
-        assertThat(entry.pages().total()).isEqualTo(1);
-        assertThat(Files.readString(dir.getRoot().toPath().resolve("structure.tmp")))
-                .isEqualTo("leftover of a fixed name");
-    }
-
-    @Test
-    public void test_produce_keeps_the_old_page_set_when_the_new_one_cannot_be_written() throws Exception {
-        Files.createDirectories(ArtifactPath.structureDir(dir.getRoot().toPath()));
-        Files.writeString(page(1, "md"), "old content");
-        // An unwritable document dir: no temp dir can be created in it, so produce() fails before it
-        // touches the old, already-complete page set.
-        dir.getRoot().setWritable(false);
-
-        try {
-            new StructureArtifact().produce(contextFor(HTML));
-            org.junit.Assert.fail("expected an ArtifactException");
-        } catch (ArtifactException expected) {
-            // the new page set never made it to disk: the old one must survive untouched
-        } finally {
-            dir.getRoot().setWritable(true);
-        }
-        assertThat(Files.readString(page(1, "md"))).isEqualTo("old content");
-    }
-
-    @Test
-    public void test_the_page_directory_is_as_readable_as_the_dirs_around_it() throws Exception {
-        // The staging directory is renamed into place, so its mode is the mode structure/ ships with, and
-        // on a shared artifactDir an owner-only page directory is EACCES for every other uid.
-        new StructureArtifact().produce(contextFor(HTML));
-
-        Path createdThePlainWay = Files.createDirectory(dir.getRoot().toPath().resolve("control"));
-        assertThat(modeOf(ArtifactPath.structureDir(dir.getRoot().toPath()))).isEqualTo(modeOf(createdThePlainWay));
-    }
-
-    @Test
-    public void test_produce_leaves_no_replaced_payload_behind() throws Exception {
-        // The payload a run replaces is renamed aside rather than deleted, and leaving that aside behind
-        // doubles the disk a re-produced document costs.
-        Files.createDirectories(ArtifactPath.structureDir(dir.getRoot().toPath()));
-        Files.writeString(page(1, "md"), "the payload being replaced");
-
-        new StructureArtifact().produce(contextFor(HTML));
-
-        assertThat(Files.readString(page(1, "md"))).contains("# Title");
-        assertThat(temporaryEntries()).isEmpty();
-    }
-
-    @Test
-    public void test_no_staging_directory_survives_an_error_while_writing_pages() throws Exception {
-        // An OutOfMemoryError mid-write is a documented failure mode for these corpora, and the
-        // staging name is unique per invocation: what it leaves behind is never reclaimed by anything.
-        try {
-            StructureArtifact.writePages(dir.getRoot().toPath(), pagesFailingWith(new OutOfMemoryError("boom")));
-            org.junit.Assert.fail("expected the error to propagate");
-        } catch (OutOfMemoryError expected) {
-            // the cause the operator needs to see must not be replaced by a cleanup failure
-        }
-        assertThat(temporaryEntries()).isEmpty();
-    }
-
-    private static String modeOf(Path directory) throws Exception {
-        return PosixFilePermissions.toString(Files.getPosixFilePermissions(directory));
-    }
-
-    // A page list that throws when the writing loop reaches its first page.
-    private static List<Page> pagesFailingWith(Error failure) {
-        return new AbstractList<>() {
-            @Override public Page get(int index) { throw failure; }
-            @Override public int size() { return 1; }
-        };
-    }
-
-    private List<Path> temporaryEntries() throws Exception {
-        try (Stream<Path> entries = Files.list(dir.getRoot().toPath())) {
-            return entries.filter(entry -> entry.getFileName().toString().startsWith(".structure-")).toList();
-        }
     }
 
     // The two cases below go through the real producer loop, which owns the manifest write and
