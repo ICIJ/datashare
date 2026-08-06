@@ -1,11 +1,13 @@
 package org.icij.datashare.text.artifact;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import org.apache.tika.exception.TikaConfigException;
 import org.apache.tika.exception.TikaException;
 import org.apache.tika.exception.TikaMemoryLimitException;
 import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.Project;
+import org.icij.datashare.text.structure.StructureMarkdownExtractor.Page;
 import org.icij.datashare.text.indexing.elasticsearch.ArtifactPath;
 import org.icij.datashare.text.indexing.elasticsearch.SourceExtractor;
 import org.junit.Rule;
@@ -191,6 +193,25 @@ public class StructureArtifactTest {
             org.junit.Assert.fail("expected an UnreadableContentException");
         } catch (UnreadableContentException expected) {
             assertThat(Files.exists(ArtifactPath.structureDir(dir.getRoot().toPath()))).isFalse();
+        }
+    }
+
+    @Test
+    public void test_a_broken_configuration_ends_the_run_instead_of_failing_one_document() throws Exception {
+        // It fails every document the same way, so ArtifactTask rethrows it where it rethrows an Error.
+        // Catching it as one more document failure would drain the whole queue one ERROR at a time.
+        StructureArtifact misconfigured = new StructureArtifact() {
+            @Override
+            List<Page> parse(java.io.InputStream source, Document document) {
+                throw new ArtifactConfigurationException(new TikaConfigException("no parser for it"));
+            }
+        };
+
+        try {
+            misconfigured.produce(contextFor(HTML));
+            org.junit.Assert.fail("expected an ArtifactConfigurationException");
+        } catch (ArtifactConfigurationException expected) {
+            assertThat(expected.getCause()).isInstanceOf(TikaConfigException.class);
         }
     }
 

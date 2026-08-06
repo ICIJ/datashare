@@ -6,6 +6,7 @@ import org.apache.pdfbox.pdmodel.PDPage;
 import org.apache.pdfbox.pdmodel.PDPageContentStream;
 import org.apache.pdfbox.pdmodel.font.PDType1Font;
 import org.apache.pdfbox.pdmodel.font.Standard14Fonts;
+import org.apache.tika.exception.TikaConfigException;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.text.Document;
@@ -336,6 +337,25 @@ public class PageArtifactTest {
         assertThat(entry.pages()).isNull();
         assertThat(entry.taskInput().get("pipeline")).isEqualTo("tika");
         assertThat(Files.exists(ArtifactPath.pagesDir(context.docArtifactDir()))).isFalse();
+    }
+
+    @Test
+    public void test_a_broken_configuration_ends_the_run_instead_of_failing_one_document() throws Exception {
+        // It fails every document the same way, so ArtifactTask rethrows it where it rethrows an Error.
+        // Catching it as one more document failure would drain the whole queue one ERROR at a time.
+        PageArtifact misconfigured = new PageArtifact(new PropertiesProvider()) {
+            @Override
+            List<String> extractPages(Document document, Path source) {
+                throw new ArtifactConfigurationException(new TikaConfigException("no parser for it"));
+            }
+        };
+
+        try {
+            misconfigured.produce(rootContext(twoPagePdf()));
+            fail("expected an ArtifactConfigurationException");
+        } catch (ArtifactConfigurationException expected) {
+            assertThat(expected.getCause()).isInstanceOf(TikaConfigException.class);
+        }
     }
 
     @Test

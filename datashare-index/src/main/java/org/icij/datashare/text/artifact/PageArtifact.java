@@ -69,6 +69,10 @@ public class PageArtifact implements Artifact {
                 return ManifestEntry.empty(taskInput());
             }
             return ManifestEntry.paginated(taskInput(), writePages(context, pages));
+        } catch (ArtifactConfigurationException fatal) {
+            // Unchecked, and not an ArtifactException, so the catch-all below would otherwise demote the
+            // fatal bucket to one more per-document failure and drain the queue instead of ending the run.
+            throw fatal;
         } catch (ArtifactException alreadyClassified) {
             // Raised by extractPages(), so wrapping it again would only double its message.
             throw alreadyClassified;
@@ -106,7 +110,9 @@ public class PageArtifact implements Artifact {
     // One Extractor per document, as the live endpoint does per request: disableOcr() is one-way, so
     // a document indexed without OCR cannot share an Extractor with one indexed with it. embedOutput
     // is deliberately left unset: this producer writes its own payload and nothing else.
-    private List<String> extractPages(Document document, Path source) throws IOException, ArtifactException {
+    // Package-private, not private: nothing this side can make a real Tika configuration break, so the
+    // fatal bucket is only reachable from a test that stands in for this method.
+    List<String> extractPages(Document document, Path source) throws IOException, ArtifactException {
         Hasher hasher = Hasher.valueOf(document.getId().length());
         DocumentFactory documentFactory = new DocumentFactory()
                 .configure(Options.from(Map.of("digestAlgorithm", hasher.toStringWithoutDash())));
