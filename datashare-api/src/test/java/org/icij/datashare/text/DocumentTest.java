@@ -243,4 +243,21 @@ public class DocumentTest {
         assertThat(doc.getRecoveryStatus()).isNull();
         assertThat(doc.getPstExpected()).isNull();
     }
+
+    @Test
+    public void test_is_root_document_needs_both_labels_to_agree() {
+        // getRootDocument() falls back to this document's own id, so a document whose rootId was lost or
+        // self-assigned during indexing would claim to be a root and have a whole container's bytes served
+        // as its own. Every caller of isRootDocument() branches on that, so both labels are required here
+        // rather than at each of them.
+        assertThat(rootLabelled(null, (short) 0).isRootDocument()).isTrue();
+        assertThat(rootLabelled("doc-id", (short) 0).isRootDocument()).isTrue();
+        assertThat(rootLabelled(null, (short) 1).isRootDocument()).isFalse();
+        assertThat(rootLabelled("another-id", (short) 0).isRootDocument()).isFalse();
+    }
+
+    private static Document rootLabelled(String rootId, short extractionLevel) {
+        return createDoc("doc-id").with(project("p")).with(get("/x.txt")).with("hi")
+                .withRootId(rootId).withExtractionLevel(extractionLevel).build();
+    }
 }

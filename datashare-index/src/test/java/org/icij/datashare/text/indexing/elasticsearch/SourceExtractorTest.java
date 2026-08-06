@@ -176,7 +176,8 @@ public class SourceExtractorTest {
         Path path = get(getClass().getResource("/docs/embedded_doc.eml").getPath());
         Document document = DocumentBuilder.createDoc(project("project"), path)
                 .ofContentType("message/rfc822").withExtractionLevel((short) 1).build();
-        assertThat(document.isRootDocument()).isTrue();
+        // Document is where the two labels are required to agree, so this branch is not decided here.
+        assertThat(document.isRootDocument()).isFalse();
 
         try {
             new SourceExtractor(getPropertiesProvider()).getSource(document);
