@@ -162,7 +162,7 @@ public class StructureMarkdownExtractor {
         new ArrayList<>(body.childNodes()).forEach(lastPage::appendChild);
     }
 
-    // Wraps a sanitized fragment so a stored page-NNNN.xhtml parses as application/xhtml+xml rather than
+    // Wraps a sanitized fragment so a stored page-N.xhtml parses as application/xhtml+xml rather than
     // a bare body fragment. The re-parse is also what turns the cleaned HTML into XML (void elements
     // self-closed). jsoup inserts an empty <head>: harmless, still valid XHTML.
     private static org.jsoup.nodes.Document asXhtmlDocument(String sanitizedFragment) {

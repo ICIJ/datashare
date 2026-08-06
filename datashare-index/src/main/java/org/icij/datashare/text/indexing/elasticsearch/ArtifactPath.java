@@ -34,15 +34,16 @@ public class ArtifactPath {
         return docArtifactDir.resolve(STRUCTURE_DIR);
     }
 
-    /** {@code page-%04d.<extension>}, 1-based, as the convention's filesystem pagination requires. */
+    /** {@code page-%d.<extension>}, 1-based, as the convention's filesystem pagination requires. */
     public static Path structurePage(Path docArtifactDir, int page, String extension) {
         return structureDir(docArtifactDir).resolve(pageFilename(page, extension));
     }
 
     /** Just the filename, for a caller writing pages under a directory other than the final structure/
-     *  one (the producer's atomic-swap temp directory). {@link Locale#ROOT} so the default locale cannot
-     *  decide the digits: with LANG=ar_EG.UTF-8 it would write page-٠٠١٢.md. */
+     *  one (the producer's atomic-swap temp directory). Unpadded, so a reader formats the name from a
+     *  page number without knowing a width. {@link Locale#ROOT} so the default locale cannot decide the
+     *  digits: with LANG=ar_EG.UTF-8 it would write page-١٢.md. */
     public static String pageFilename(int page, String extension) {
-        return String.format(Locale.ROOT, "page-%04d.%s", page, extension);
+        return String.format(Locale.ROOT, "page-%d.%s", page, extension);
     }
 }

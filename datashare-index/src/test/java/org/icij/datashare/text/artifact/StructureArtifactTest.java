@@ -100,7 +100,7 @@ public class StructureArtifactTest {
         new StructureArtifact().produce(contextFor(PINNED_HTML));
 
         assertThat(storedPageNames()).isEqualTo(
-                List.of("page-0001.md", "page-0001.xhtml", "page-0002.md", "page-0002.xhtml"));
+                List.of("page-1.md", "page-1.xhtml", "page-2.md", "page-2.xhtml"));
         // The whitespace between blocks is Tika's own rendering, kept verbatim (see COMPACT_OUTPUT), so
         // these bytes track the Tika version rather than jsoup's pretty-printing defaults.
         assertThat(readPage(1, "xhtml")).isEqualTo("<html xmlns=\"http://www.w3.org/1999/xhtml\">"
