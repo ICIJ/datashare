@@ -340,6 +340,41 @@ public class PageArtifactTest {
     }
 
     @Test
+    public void test_a_document_with_no_pages_discards_the_payload_an_earlier_run_left() throws Exception {
+        // Same document, produced twice: a version bump makes the first run's entry stale and the second
+        // run finds no pages. An EMPTY entry records no ranges, so a content.txt surviving it is served by
+        // a reader that lists the directory with nothing left to say how to read it.
+        new PageArtifact(new PropertiesProvider()).produce(rootContext(twoPagePdf()));
+        Path txt = dir.getRoot().toPath().resolve("note.txt");
+        Files.writeString(txt, "one line, no page divs");
+        ArtifactContext context = rootContext(txt, "text/plain");
+
+        ManifestEntry entry = new PageArtifact(new PropertiesProvider()).produce(context);
+
+        assertThat(entry.status()).isEqualTo(ManifestEntryStatus.EMPTY);
+        assertThat(Files.exists(ArtifactPath.pagesDir(context.docArtifactDir()))).isFalse();
+    }
+
+    @Test
+    public void test_unreadable_content_discards_the_payload_an_earlier_run_left() throws Exception {
+        // The producer records this one as an empty entry too, so the same rule applies to it.
+        new PageArtifact(new PropertiesProvider()).produce(rootContext(twoPagePdf()));
+        Path broken = dir.getRoot().toPath().resolve("broken.docx");
+        byte[] garbage = new byte[1024];
+        new Random(42).nextBytes(garbage);
+        Files.write(broken, garbage);
+        ArtifactContext context = rootContext(broken,
+                "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
+
+        try {
+            new PageArtifact(new PropertiesProvider()).produce(context);
+            fail("expected an UnreadableContentException");
+        } catch (UnreadableContentException expected) {
+            assertThat(Files.exists(ArtifactPath.pagesDir(context.docArtifactDir()))).isFalse();
+        }
+    }
+
+    @Test
     public void test_a_broken_configuration_ends_the_run_instead_of_failing_one_document() throws Exception {
         // It fails every document the same way, so ArtifactTask rethrows it where it rethrows an Error.
         // Catching it as one more document failure would drain the whole queue one ERROR at a time.

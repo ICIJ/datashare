@@ -7,6 +7,7 @@ import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.Hasher;
 import org.icij.datashare.text.indexing.elasticsearch.ArtifactPath;
+import org.icij.datashare.utils.AtomicDirectorySwap;
 import org.icij.datashare.utils.BuildVersions;
 import org.icij.extract.document.DocumentFactory;
 import org.icij.extract.extractor.Extractor;
@@ -66,6 +67,9 @@ public class PageArtifact implements Artifact {
             // live endpoint returns for such a document too. EMPTY is terminal, so the document is
             // recorded once and not reprocessed on every run.
             if (pages.isEmpty()) {
+                // An earlier run's content.txt would otherwise stay on disk, described by no manifest
+                // entry and still served by any reader that lists the directory.
+                discardPayload(context.docArtifactDir());
                 return ManifestEntry.empty(taskInput());
             }
             return ManifestEntry.paginated(taskInput(), writePages(context, pages));
@@ -73,6 +77,10 @@ public class PageArtifact implements Artifact {
             // Unchecked, and not an ArtifactException, so the catch-all below would otherwise demote the
             // fatal bucket to one more per-document failure and drain the queue instead of ending the run.
             throw fatal;
+        } catch (UnreadableContentException unreadable) {
+            // The producer records this one as processed with no payload too, so the payload goes now.
+            discardPayload(context.docArtifactDir());
+            throw unreadable;
         } catch (ArtifactException alreadyClassified) {
             // Raised by extractPages(), so wrapping it again would only double its message.
             throw alreadyClassified;
@@ -195,6 +203,13 @@ public class PageArtifact implements Artifact {
             Files.deleteIfExists(temp);
         }
         return ranges;
+    }
+
+    // Losing the payload is the point: it is regenerable, and one the manifest does not account for is
+    // still served by any reader that lists the directory. The whole pages/ dir, since content.txt is all
+    // it holds beyond a temp file a crashed run left behind.
+    private static void discardPayload(Path docArtifactDir) {
+        AtomicDirectorySwap.discard(ArtifactPath.pagesDir(docArtifactDir));
     }
 
     private boolean ocrEnabled() {
