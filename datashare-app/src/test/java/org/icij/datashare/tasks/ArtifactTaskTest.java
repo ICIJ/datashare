@@ -104,7 +104,13 @@ public class ArtifactTaskTest {
         Long numberOfDocuments = runArtifactTask(Map.of("artifacts", "raw"));
 
         verify(mockEs).get("prj", EMBEDDED_DOC_SHA256, "rootId", List.of("content", "content_translated"));
-        assertThat(numberOfDocuments).isEqualTo(1);
+        // Raw asks isRootDocument() like the source path does, so on that disagreement the document is an
+        // embedded node with no payload of its own on disk: it fails loudly and stays re-runnable instead
+        // of being stamped "processed, source is the on-disk original" for a source getSource() can only
+        // fail to find.
+        assertThat(numberOfDocuments).isEqualTo(0);
+        assertThat(logback.logs(Level.ERROR)).contains(
+                "1 document(s) failed artifact production in project prj, re-run the ARTIFACT stage for them");
     }
 
     @Test(timeout = 10000)
