@@ -72,9 +72,11 @@ public class RawArtifactTest {
         Project project = Project.project("prj");
         Document doc = createDoc("doc-id").with(Path.of("/path/to/report.pdf")).ofContentType("application/pdf").withExtractionLevel((short) 1).build();
         Path docDir = dir.getRoot().toPath();
-        // Mirror extract-lib's side effect: extractEmbeddedSources writes the polled doc's raw bytes.
+        // Mirror extract-lib's side effect: extractEmbeddedSources writes the polled doc's raw bytes
+        // and their sidecar, the pair the read path needs.
         doAnswer(invocation -> {
             Files.createFile(docDir.resolve("raw"));
+            Files.createFile(docDir.resolve("raw.json"));
             return null;
         }).when(sources).extractEmbeddedSources(project, doc);
         ArtifactContext ctx = new ArtifactContext(project, doc, docDir, sources);

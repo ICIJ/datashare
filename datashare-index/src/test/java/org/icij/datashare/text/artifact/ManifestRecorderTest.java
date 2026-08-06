@@ -35,6 +35,7 @@ public class ManifestRecorderTest {
     private void writePayload(String docId) throws Exception {
         Files.createDirectories(ArtifactPath.dir(projectRoot(), docId));
         Files.write(ArtifactPath.dir(projectRoot(), docId).resolve("raw"), new byte[]{1, 2, 3});
+        Files.write(ArtifactPath.dir(projectRoot(), docId).resolve("raw.json"), "{}".getBytes());
     }
 
     @Test
