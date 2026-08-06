@@ -77,7 +77,7 @@ public class ArtifactResourceTest extends AbstractProdWebServerTest {
         Files.writeString(docDir.resolve("manifest.json"), json);
     }
 
-    // Written through ArtifactPath, never through an inline page-%04d format: a duplicated format
+    // Written through ArtifactPath, never through an inline page-N format: a duplicated format
     // string would let writer and reader drift together and hide a naming bug from these tests.
     private void writePages(Path docDir, ArtifactType type, String extension, String... pages) throws Exception {
         Files.createDirectories(ArtifactPath.payloadDir(docDir, type));
