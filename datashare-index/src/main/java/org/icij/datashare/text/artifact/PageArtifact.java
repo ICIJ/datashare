@@ -3,13 +3,17 @@ package org.icij.datashare.text.artifact;
 import org.apache.tika.Tika;
 import org.apache.tika.exception.TikaConfigException;
 import org.apache.tika.exception.TikaException;
+import org.apache.tika.extractor.DocumentSelector;
+import org.apache.tika.metadata.TikaCoreProperties;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.Hasher;
 import org.icij.datashare.text.indexing.elasticsearch.ArtifactPath;
+import org.icij.datashare.text.structure.StructureMarkdownExtractor;
 import org.icij.datashare.utils.AtomicDirectorySwap;
 import org.icij.datashare.utils.BuildVersions;
 import org.icij.extract.document.DocumentFactory;
+import org.icij.extract.extractor.EmbedSpawner;
 import org.icij.extract.extractor.Extractor;
 import org.icij.task.Options;
 import org.xml.sax.SAXException;
@@ -143,10 +147,45 @@ public class PageArtifact implements Artifact {
             if (document.getOcrParser() == null) {
                 extractor.disableOcr();
             }
-            return extractor.extractPages(source);
+            return extractor.extractPages(source, ownTextOf(source));
         } catch (IOException failure) {
             throw classify(document, failure);
         }
+    }
+
+    /**
+     * Selects the text that belongs to the document being paginated, which is what its pages must hold:
+     * they are its indexed content, paginated, so a page saying something the content field does not is
+     * a page the reader cannot search for. Three things belong to it, and nothing else does:
+     * <ul>
+     *   <li>the file being parsed itself. The selector gates the root parse too, not just the parts:
+     *       ParsingReaderWithContentHandler#ParsingTask hands the page-splitting handler to the parse
+     *       only when the selector accepts it, and a plain handler otherwise, so refusing the root
+     *       yields a document with no pages at all. Recognised by name, as DocumentResource recognises
+     *       an embed, which also lets in a part named exactly like the file holding it;</li>
+     *   <li>an INLINE part, which is what a scanned page's image is. {@link EmbedSpawner#parseEmbedded}
+     *       concatenates those into the document being parsed and the content field holds their OCR
+     *       text, so the pages must hold it too;</li>
+     *   <li>a nameless text or html part, which is how a mail's own body can reach the extractor: it is
+     *       not a part anyone detaches, so it has no name of its own. {@link StructureMarkdownExtractor#isOwnBody}
+     *       rather than "nameless" alone, so a nameless PST message (message/rfc822, a document of its
+     *       own) is still refused. Accepted consequence, as there: a nameless text attachment is
+     *       inlined, duplicating text that also has an artifact of its own.</li>
+     * </ul>
+     * Everything else is a document of its own: spawned by extract-lib, indexed as its own ES document,
+     * and given its own page artifact. Refusing it also means never parsing it, since Tika asks before
+     * it recurses, so a mail archive's tree is no longer parsed, OCR'd and buffered (64 MB, then spilled
+     * to java.io.tmpdir) to produce text that is then thrown away.
+     */
+    public static DocumentSelector ownTextOf(Path source) {
+        String name = source.getFileName().toString();
+        return metadata -> {
+            String resourceName = metadata.get(TikaCoreProperties.RESOURCE_NAME_KEY);
+            return name.equals(resourceName)
+                    || TikaCoreProperties.EmbeddedResourceType.INLINE.toString()
+                            .equals(metadata.get(TikaCoreProperties.EMBEDDED_RESOURCE_TYPE))
+                    || StructureMarkdownExtractor.isOwnBody(metadata);
+        };
     }
 
     /**

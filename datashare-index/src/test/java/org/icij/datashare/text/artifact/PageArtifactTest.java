@@ -7,6 +7,9 @@ import org.apache.pdfbox.pdmodel.PDPageContentStream;
 import org.apache.pdfbox.pdmodel.font.PDType1Font;
 import org.apache.pdfbox.pdmodel.font.Standard14Fonts;
 import org.apache.tika.exception.TikaConfigException;
+import org.apache.tika.extractor.DocumentSelector;
+import org.apache.tika.metadata.Metadata;
+import org.apache.tika.metadata.TikaCoreProperties;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.text.Document;
@@ -20,14 +23,19 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import java.io.IOException;
+import java.io.Reader;
+import java.io.StringWriter;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
 
+import static org.apache.tika.metadata.TikaCoreProperties.EmbeddedResourceType.ATTACHMENT;
+import static org.apache.tika.metadata.TikaCoreProperties.EmbeddedResourceType.INLINE;
 import static org.fest.assertions.Assertions.assertThat;
 import static org.icij.datashare.text.DocumentBuilder.createDoc;
 import static org.junit.Assert.fail;
@@ -45,6 +53,8 @@ public class PageArtifactTest {
     // byte). Referenced by its known char count below, not by decoding the written bytes back,
     // since a decode of a wrongly-sliced multi-byte range is corrupted rather than merely shorter.
     private static final String ACCENTED_PAGE = "Pagé un: coût élevé";
+    // The mail's own text, in the fixture that carries an attachment.
+    private static final String MAIL_BODY = "Mail body text.";
 
     @Test
     public void test_type_is_page() {
@@ -103,6 +113,56 @@ public class PageArtifactTest {
             document.save(pdf.toFile());
         }
         return pdf;
+    }
+
+    // A mail carrying the two-page PDF above as an attachment. The attachment is a document of its own
+    // (Tika marks it ATTACHMENT, extract-lib spawns it, indexes it separately and gives it its own page
+    // artifact), so none of its text belongs to the mail. A mail, not a PDF holding a PDF: a PDF's own
+    // page div is closed before its attachments are parsed, while a mail's is still open, which is what
+    // lets an attachment's characters land in it.
+    private Path emlWithAttachedPdf() throws IOException {
+        Path eml = dir.getRoot().toPath().resolve("mail.eml");
+        String attachment = Base64.getMimeEncoder().encodeToString(Files.readAllBytes(twoPagePdf()));
+        Files.writeString(eml, String.join("\r\n",
+                "From: sender@example.org",
+                "To: recipient@example.org",
+                "Subject: Report attached",
+                "MIME-Version: 1.0",
+                "Content-Type: multipart/mixed; boundary=\"BOUND\"",
+                "",
+                "--BOUND",
+                "Content-Type: text/plain; charset=UTF-8",
+                "",
+                MAIL_BODY,
+                "",
+                "--BOUND",
+                "Content-Type: application/pdf; name=\"report.pdf\"",
+                "Content-Disposition: attachment; filename=\"report.pdf\"",
+                "Content-Transfer-Encoding: base64",
+                "",
+                attachment,
+                "--BOUND--",
+                ""));
+        return eml;
+    }
+
+    // What indexing puts in the ES content field for a document: the text extract-lib hands the spewer,
+    // which is the root's own body, since a spawned embed's text goes to its own document's reader.
+    private static String indexedContent(Path source) throws IOException {
+        try (Extractor extractor = new Extractor()) {
+            extractor.disableOcr();
+            StringWriter indexed = new StringWriter();
+            try (Reader reader = extractor.extract(source).getReader()) {
+                reader.transferTo(indexed);
+            }
+            return indexed.toString();
+        }
+    }
+
+    // Page boundaries fall on whitespace Tika emits around the page divs, so the two sides can differ
+    // by a newline without differing by a word. Compared on words: what must not differ is the text.
+    private static String words(String text) {
+        return text.replaceAll("\\s+", " ").strip();
     }
 
     private ArtifactContext rootContext(Path source) {
@@ -372,6 +432,55 @@ public class PageArtifactTest {
         } catch (UnreadableContentException expected) {
             assertThat(Files.exists(ArtifactPath.pagesDir(context.docArtifactDir()))).isFalse();
         }
+    }
+
+    @Test
+    public void test_a_containers_pages_hold_the_same_text_as_the_container_document() throws Exception {
+        // What the pages are for: the document's indexed content, paginated. An attachment is indexed as
+        // its own document and paginated as its own artifact, so its text is in neither the container's
+        // content nor the container's pages. Asserted against what indexing puts in the content field
+        // rather than against a literal, since matching that field is the whole contract.
+        Path mail = emlWithAttachedPdf();
+        ArtifactContext context = rootContext(mail, "message/rfc822");
+        String indexed = indexedContent(mail);
+
+        ManifestEntry entry = new PageArtifact(new PropertiesProvider(Map.of("ocr", "false"))).produce(context);
+
+        assertThat(words(indexed)).contains(MAIL_BODY).excludes("Page two text");
+        assertThat(entry.pages().total()).isEqualTo(1);
+        assertThat(words(Files.readString(contentTxt(context)))).isEqualTo(words(indexed));
+    }
+
+    private static Metadata part(String resourceName, String embeddedResourceType, String contentType) {
+        Metadata metadata = new Metadata();
+        if (resourceName != null) {
+            metadata.set(TikaCoreProperties.RESOURCE_NAME_KEY, resourceName);
+        }
+        if (embeddedResourceType != null) {
+            metadata.set(TikaCoreProperties.EMBEDDED_RESOURCE_TYPE, embeddedResourceType);
+        }
+        if (contentType != null) {
+            metadata.set(Metadata.CONTENT_TYPE, contentType);
+        }
+        return metadata;
+    }
+
+    @Test
+    public void test_the_selection_keeps_the_document_and_its_inline_parts_and_drops_the_rest() {
+        // The file being parsed has to be selected or the page-splitting handler is never used for it
+        // (ParsingReaderWithContentHandler hands it a plain handler instead) and the document ends up
+        // with no pages at all. A scanned page's image is INLINE and its OCR text is in the content
+        // field, so it stays. A mail's own body can arrive nameless, so it stays. An attachment, a zip
+        // entry and a nameless PST message are documents of their own, indexed and paginated
+        // separately, so they go.
+        DocumentSelector selection = PageArtifact.ownTextOf(Path.of("/corpus/mail.eml"));
+
+        assertThat(selection.select(part("mail.eml", null, "message/rfc822"))).isTrue();
+        assertThat(selection.select(part(null, null, "text/plain; charset=UTF-8"))).isTrue();
+        assertThat(selection.select(part("image0.png", INLINE.toString(), "image/png"))).isTrue();
+        assertThat(selection.select(part("report.pdf", ATTACHMENT.toString(), "application/pdf"))).isFalse();
+        assertThat(selection.select(part("entry.txt", null, "text/plain"))).isFalse();
+        assertThat(selection.select(part(null, null, "message/rfc822"))).isFalse();
     }
 
     @Test

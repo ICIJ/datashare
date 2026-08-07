@@ -28,6 +28,7 @@ import org.icij.datashare.Repository.AggregateList;
 import org.icij.datashare.cli.DatashareCliOptions;
 import org.icij.datashare.session.DatashareUser;
 import org.icij.datashare.text.*;
+import org.icij.datashare.text.artifact.PageArtifact;
 import org.icij.datashare.text.indexing.ExtractedText;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.text.indexing.SearchedText;
@@ -204,7 +205,10 @@ public class DocumentResource {
                 extractor.disableOcr();
             }
             if (doc.isRootDocument()) {
-                return extractor.extractPageIndices(doc.getPath(), metadata -> true, doc.getId());
+                // The document's own text, not "every part": the indices describe this document's
+                // indexed content, which holds its own text and its inline parts, not an attachment's
+                // (that one is its own document, with pages of its own).
+                return extractor.extractPageIndices(doc.getPath(), PageArtifact.ownTextOf(doc.getPath()), doc.getId());
             } else {
                 return extractor.extractPageIndices(doc.getPath(),
                         metadata -> doc.getTitle().equals(metadata.get("resourceName")) ||
@@ -230,7 +234,9 @@ public class DocumentResource {
                 extractor.disableOcr();
             }
             if (doc.isRootDocument()) {
-                return extractor.extractPages(doc.getPath());
+                // Same selection as the cached page artifact, and for the same reason (see above): the
+                // pages served here and the pages stored there must be the same pages.
+                return extractor.extractPages(doc.getPath(), PageArtifact.ownTextOf(doc.getPath()));
             } else {
                 return extractor.extractPages(doc.getPath(),
                         metadata -> doc.getTitle().equals(metadata.get("resourceName")) ||
