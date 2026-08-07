@@ -6,6 +6,7 @@ import com.google.inject.assistedinject.Assisted;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import org.icij.datashare.PipelineHelper;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Stage;
 import org.icij.datashare.asynctasks.Task;
@@ -17,6 +18,7 @@ import org.icij.datashare.extract.DocumentCollectionFactory;
 import org.icij.datashare.monitoring.Monitorable;
 import org.icij.datashare.text.artifact.Artifact;
 import org.icij.datashare.text.artifact.ArtifactRegistry;
+import org.icij.datashare.text.artifact.ArtifactType;
 import org.icij.datashare.text.artifact.FilesystemManifestRepository;
 import org.icij.datashare.text.artifact.ManifestRecorder;
 import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchSpewer;
@@ -121,6 +123,16 @@ public class IndexTask extends PipelineTask<Path> implements Monitorable{
         // ManifestRecorder writes manifests to.
         ArtifactStages.artifactProjectRoot(propertiesProvider).ifPresent(projectRoot -> {
             List<Artifact> selected = ArtifactRegistry.withDefaults(propertiesProvider).select(propertiesProvider.get(ARTIFACTS_OPT).orElse(null));
+            // Only raw falls out of the streaming parse (see ManifestRecorder): a selection naming any
+            // other type reads as a promise this stage does not keep, so say so rather than drop it in
+            // silence. Silent when ARTIFACT is coming, since the run does produce them then: a warning
+            // that fires on a correct run is one nobody reads. Once per run, not per document.
+            List<String> notAtIndexTime = selected.stream().map(Artifact::type)
+                    .filter(type -> type != ArtifactType.RAW).map(ArtifactType::token).toList();
+            if (!notAtIndexTime.isEmpty() && !new PipelineHelper(propertiesProvider).stages.contains(Stage.ARTIFACT)) {
+                logger.warn("--artifacts selects {}, which the INDEX stage does not produce, and ARTIFACT is not in "
+                        + "--stages: only the 'raw' entry will be recorded.", notAtIndexTime);
+            }
             extractor.setEmbedOutputPath(projectRoot);
             spewer.setManifestRecorder(new ManifestRecorder(new FilesystemManifestRepository(), projectRoot, selected, ArtifactStages.force(propertiesProvider)));
         });
