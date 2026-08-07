@@ -62,9 +62,6 @@ public class DocumentResource {
         this.repository = repository;
         this.indexer = indexer;
         this.propertiesProvider = propertiesProvider;
-        // Injected, not constructed: DocumentSourceAccess is a @Singleton so that /documents/src and
-        // /artifacts/raw share one gate, and building a second instance here would let anything it
-        // gains later (a permission cache, a counter) diverge between the two routes.
         this.sources = sources;
     }
 
