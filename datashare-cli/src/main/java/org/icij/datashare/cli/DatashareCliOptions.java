@@ -499,7 +499,8 @@ public final class DatashareCliOptions {
     static void artifacts(OptionParser parser) {
         parser.acceptsAll(
                 List.of(ARTIFACTS_OPT),
-                "Artifact types to produce (comma-separated, e.g. " + ArtifactType.tokens() + "). Bare flag = all types." )
+                "Artifact types to produce (comma-separated, e.g. " + ArtifactType.tokens() + "). Bare flag = all types. "
+                        + "The INDEX stage produces 'raw' only; every other type is produced by the ARTIFACT stage." )
                 .withOptionalArg();
     }
 

@@ -24,7 +24,8 @@ public class PipelineOptions {
     // Mirrors the JOpt withOptionalArg semantics. Left null when absent so toProperties omits the
     // key and INDEX produces no artifacts.
     @Option(names = {"--artifacts"}, arity = "0..1", fallbackValue = "true",
-            description = "Artifact types to produce, comma-separated (bare flag = all types); unknown types are rejected.")
+            description = "Artifact types to produce, comma-separated (bare flag = all types); unknown types are rejected. "
+                    + "The INDEX stage produces 'raw' only; every other type is produced by the ARTIFACT stage.")
     String artifacts;
 
     // Explicit true/false like --ocr, no bare flag: the JOpt surface uses withRequiredArg, and a bare
