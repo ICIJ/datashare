@@ -123,17 +123,25 @@ public class IndexTask extends PipelineTask<Path> implements Monitorable{
         // ManifestRecorder writes manifests to.
         ArtifactStages.artifactProjectRoot(propertiesProvider).ifPresent(projectRoot -> {
             List<Artifact> selected = ArtifactRegistry.withDefaults(propertiesProvider).select(propertiesProvider.get(ARTIFACTS_OPT).orElse(null));
+            boolean rawSelected = selected.stream().anyMatch(artifact -> artifact.type() == ArtifactType.RAW);
+            boolean artifactStageRuns = new PipelineHelper(propertiesProvider).stages.contains(Stage.ARTIFACT);
             // Only raw falls out of the streaming parse (see ManifestRecorder): a selection naming any
             // other type reads as a promise this stage does not keep, so say so rather than drop it in
             // silence. Silent when ARTIFACT is coming, since the run does produce them then: a warning
             // that fires on a correct run is one nobody reads. Once per run, not per document.
             List<String> notAtIndexTime = selected.stream().map(Artifact::type)
                     .filter(type -> type != ArtifactType.RAW).map(ArtifactType::token).toList();
-            if (!notAtIndexTime.isEmpty() && !new PipelineHelper(propertiesProvider).stages.contains(Stage.ARTIFACT)) {
+            if (!notAtIndexTime.isEmpty() && !artifactStageRuns) {
                 logger.warn("--artifacts selects {}, which the INDEX stage does not produce, and ARTIFACT is not in "
-                        + "--stages: only the 'raw' entry will be recorded.", notAtIndexTime);
+                        + "--stages: {}", notAtIndexTime, rawSelected ? "only the 'raw' entry will be recorded."
+                        : "this stage records nothing and writes no embedded payload.");
             }
-            extractor.setEmbedOutputPath(projectRoot);
+            // extract-lib spools every embedded document's bytes here during the parse. Nothing reads
+            // them unless raw is recorded now or the ARTIFACT stage consumes them later, so a selection
+            // that wants neither must not pay the disk for them.
+            if (rawSelected || artifactStageRuns) {
+                extractor.setEmbedOutputPath(projectRoot);
+            }
             spewer.setManifestRecorder(new ManifestRecorder(new FilesystemManifestRepository(), projectRoot, selected, ArtifactStages.force(propertiesProvider)));
         });
         logger.info("Processing up to {} file(s) in parallel", parallelism);

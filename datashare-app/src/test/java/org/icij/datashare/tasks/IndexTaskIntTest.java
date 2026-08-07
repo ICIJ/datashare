@@ -12,6 +12,7 @@ import org.icij.datashare.extract.MemoryDocumentCollectionFactory;
 import org.icij.datashare.test.ElasticsearchRule;
 import org.icij.datashare.test.LogbackCapturingRule;
 import org.icij.datashare.text.Language;
+import org.icij.datashare.text.indexing.elasticsearch.ArtifactPath;
 import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchIndexer;
 import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchSpewer;
 import org.icij.datashare.user.User;
@@ -23,6 +24,7 @@ import org.icij.spewer.FieldNames;
 import org.icij.task.Options;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 import org.mockito.Mockito;
 import org.slf4j.event.Level;
 
@@ -45,6 +47,7 @@ import static org.mockito.Mockito.verify;
 public class IndexTaskIntTest {
     @Rule public ElasticsearchRule es = new ElasticsearchRule();
     @Rule public LogbackCapturingRule logback = new LogbackCapturingRule();
+    @Rule public TemporaryFolder artifactDir = new TemporaryFolder();
 
     static final List<Extractor> CREATED_EXTRACTORS = new ArrayList<>();
 
@@ -172,5 +175,66 @@ public class IndexTaskIntTest {
 
         assertThat(CREATED_EXTRACTORS.size()).isEqualTo(1);
         verify(CREATED_EXTRACTORS.get(0)).close();
+    }
+
+    @Test
+    public void index_task_writes_no_embedded_payload_when_nothing_will_consume_it() throws Exception {
+        CREATED_EXTRACTORS.clear();
+        DocumentQueue<Path> inputQueue = inputQueueFactory.createQueue(new PipelineHelper(propertiesProvider).getQueueNameFor(Stage.INDEX), Path.class);
+        inputQueue.add(Paths.get(ClassLoader.getSystemResource("docs/embedded_doc.eml").getPath()));
+        Map<String, Object> args = new HashMap<>(map);
+        args.put("artifacts", "structure");
+        args.put("artifactDir", artifactDir.getRoot().getPath());
+        args.put("stages", "SCAN,INDEX");
+
+        new ClosingProbeIndexTask(spewer, inputQueueFactory, new UpstreamGate.Factory(taskRepository),
+                new Task<>(IndexTask.class.getName(), User.local(), args), null).call();
+
+        // structure is produced by the ARTIFACT stage, which this run does not include, and raw is not
+        // selected: nobody records or reads the embedded bytes, so extract-lib must not write them.
+        assertThat(CREATED_EXTRACTORS.get(0).getEmbedOutputPath()).isNull();
+        assertThat(ArtifactPath.projectRoot(artifactDir.getRoot().toPath(), es.getIndexName()).toFile().exists()).isFalse();
+        assertThat(logback.logs(Level.WARN).stream()
+                .anyMatch(l -> l.contains("records nothing and writes no embedded payload"))).isTrue();
+    }
+
+    @Test
+    public void index_task_writes_embedded_payload_when_the_artifact_stage_will_consume_it() throws Exception {
+        CREATED_EXTRACTORS.clear();
+        DocumentQueue<Path> inputQueue = inputQueueFactory.createQueue(new PipelineHelper(propertiesProvider).getQueueNameFor(Stage.INDEX), Path.class);
+        inputQueue.add(Paths.get(ClassLoader.getSystemResource("docs/embedded_doc.eml").getPath()));
+        Map<String, Object> args = new HashMap<>(map);
+        args.put("artifacts", "structure");
+        args.put("artifactDir", artifactDir.getRoot().getPath());
+        args.put("stages", "SCAN,INDEX,ARTIFACT");
+
+        new ClosingProbeIndexTask(spewer, inputQueueFactory, new UpstreamGate.Factory(taskRepository),
+                new Task<>(IndexTask.class.getName(), User.local(), args), null).call();
+
+        // the ARTIFACT stage reads these bytes instead of re-extracting every embedded source
+        // (Object cast: Path implements Iterable<Path>, which would otherwise route assertThat to
+        // fest's IteratorAssert instead of ObjectAssert)
+        assertThat((Object) CREATED_EXTRACTORS.get(0).getEmbedOutputPath())
+                .isEqualTo(ArtifactPath.projectRoot(artifactDir.getRoot().toPath(), es.getIndexName()));
+    }
+
+    @Test
+    public void index_task_writes_embedded_payload_when_raw_is_selected() throws Exception {
+        CREATED_EXTRACTORS.clear();
+        DocumentQueue<Path> inputQueue = inputQueueFactory.createQueue(new PipelineHelper(propertiesProvider).getQueueNameFor(Stage.INDEX), Path.class);
+        inputQueue.add(Paths.get(ClassLoader.getSystemResource("docs/embedded_doc.eml").getPath()));
+        Map<String, Object> args = new HashMap<>(map);
+        args.put("artifacts", "raw");
+        args.put("artifactDir", artifactDir.getRoot().getPath());
+        args.put("stages", "SCAN,INDEX");
+
+        new ClosingProbeIndexTask(spewer, inputQueueFactory, new UpstreamGate.Factory(taskRepository),
+                new Task<>(IndexTask.class.getName(), User.local(), args), null).call();
+
+        // the ManifestRecorder records a raw entry for the embedded document, which needs the payload
+        // (Object cast: Path implements Iterable<Path>, which would otherwise route assertThat to
+        // fest's IteratorAssert instead of ObjectAssert)
+        assertThat((Object) CREATED_EXTRACTORS.get(0).getEmbedOutputPath())
+                .isEqualTo(ArtifactPath.projectRoot(artifactDir.getRoot().toPath(), es.getIndexName()));
     }
 }
