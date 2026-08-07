@@ -12,8 +12,9 @@ import java.util.stream.Collectors;
 public enum ArtifactType {
     RAW("raw"),
     STRUCTURE("structure"),
-    // The convention's type table spells this `pages`; the serving routes, the manifest key and this
-    // token are `page`. The doc is what gets fixed (see the spec's follow-ups), not this spelling.
+    // Singular, like the serving routes and the manifest key; the payload directory it writes is the
+    // plural `pages/` (see ArtifactPath.PAGES_DIR), which is the mapping the convention's type table
+    // records.
     PAGE("page");
 
     private final String token;
