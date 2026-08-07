@@ -218,10 +218,6 @@ public class PageArtifact implements Artifact {
                 return StructureArtifact.isRetryable(cause) ? retryable(document, failure)
                         : new UnreadableContentException(document.getId(), cause);
             }
-            // A custom exception can return itself from getCause(), which would spin this walk forever.
-            if (cause == cause.getCause()) {
-                break;
-            }
         }
         return retryable(document, failure);
     }
