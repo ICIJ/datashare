@@ -37,12 +37,9 @@ public class ManifestRecorder {
         }
         Path docArtifactDir = ArtifactPath.dir(projectRoot, document.getId());
         ManifestEntry entry = raw.entryFor(document);
-        // Before skip-if-current, not after, so this stage asks the payload question in the same order
-        // {@link ArtifactProducer#isCurrent} does: an entry is never treated as current until its payload
-        // has been confirmed. Only record a COMPLETE entry once the raw payload extract-lib wrote during
-        // the parse is really on disk. Otherwise skip, so a later ARTIFACT-stage run produces it rather
-        // than leaving a permanent false-COMPLETE. A root advertises no payload in its own dir, so it
-        // always records its EMPTY entry.
+        // Before skip-if-current, as in ArtifactProducer.isCurrent: nothing is current until its payload is
+        // confirmed. Skipping here leaves the document to a later ARTIFACT run rather than recording a
+        // permanent false-COMPLETE.
         if (ArtifactPayload.isMissing(docArtifactDir, ArtifactType.RAW, entry)) {
             return;
         }

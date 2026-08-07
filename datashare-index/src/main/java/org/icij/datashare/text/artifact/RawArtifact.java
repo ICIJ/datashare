@@ -30,11 +30,9 @@ public class RawArtifact implements Artifact {
             // extract-lib writes the raw/raw.json bytes for the embedded subtree as a side effect.
             context.sources().extractEmbeddedSources(context.project(), document);
             ManifestEntry entry = entryFor(document);
-            // extractAll can return normally without ever writing THIS polled document's bytes: a
-            // per-message parse failure the resilient parser swallows, a mid-walk abort, a corrupt entry,
-            // an OCR-off image... Verify the payload landed before handing back a terminal-able entry, so
-            // a silent miss fails loudly (nbFailed, re-runnable) instead of being recorded as produced. A
-            // root advertises no payload in this dir, so the predicate finds nothing to check for one.
+            // extractAll can return normally without ever writing THIS polled document's bytes: a parse
+            // failure the resilient parser swallows, a mid-walk abort, an OCR-off image... A silent miss
+            // must fail loudly (nbFailed, re-runnable) instead of being recorded as produced.
             if (ArtifactPayload.isMissing(context.docArtifactDir(), TYPE, entry)) {
                 throw new ArtifactException("raw extraction produced no bytes for " + document.getId(), null);
             }
