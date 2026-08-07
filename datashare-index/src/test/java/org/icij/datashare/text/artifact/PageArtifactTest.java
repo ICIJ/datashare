@@ -429,6 +429,37 @@ public class PageArtifactTest {
     }
 
     @Test
+    public void test_a_configuration_failure_reported_by_the_parse_thread_ends_the_run() throws Exception {
+        // ParsingReaderWithContentHandler#read hands back what the parse thread threw as the direct
+        // cause, so that is where a configuration this run cannot recover from shows up.
+        Document document = rootContext(twoPagePdf()).document();
+        IOException fromTheParser = new IOException("", new TikaConfigException("no parser for it"));
+
+        try {
+            PageArtifact.classify(document, fromTheParser);
+            fail("expected an ArtifactConfigurationException");
+        } catch (ArtifactConfigurationException expected) {
+            assertThat(expected.getCause()).isInstanceOf(TikaConfigException.class);
+        }
+    }
+
+    @Test
+    public void test_a_configuration_failure_from_deeper_in_the_chain_fails_one_document() throws Exception {
+        // Pagination spawns embeds into the same parse, so a TikaConfigException found further down the
+        // chain is one embed's parser going wrong, not this run's configuration. Ending the run on it
+        // would drain the queue on a single bad document. Retryable, not terminal: a config problem is
+        // this side going wrong, and the next run can have it fixed.
+        Document document = rootContext(twoPagePdf()).document();
+        IOException fromAnEmbed = new IOException("", new IOException("embedded parse failed",
+                new TikaConfigException("no parser for it")));
+
+        ArtifactException classified = PageArtifact.classify(document, fromAnEmbed);
+
+        assertThat(classified instanceof UnreadableContentException).isFalse();
+        assertThat(classified.getMessage()).contains(document.getId());
+    }
+
+    @Test
     public void test_a_failed_regeneration_leaves_the_previous_payload_untouched() throws Exception {
         ArtifactContext good = rootContext(twoPagePdf());
         new PageArtifact(new PropertiesProvider()).produce(good);

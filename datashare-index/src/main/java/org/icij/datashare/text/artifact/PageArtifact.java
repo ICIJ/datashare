@@ -159,11 +159,21 @@ public class PageArtifact implements Artifact {
      * whatever it caught back as the cause of an IOException (ParsingReaderWithContentHandler#read), so
      * every bucket arrives here as the same exception. An IOException with no parse failure under it (a
      * stalled mount, a truncated read) stays retryable, as it does there.
+     * <p>
+     * The fatal bucket is the one exception to reading down the chain: only what the parse thread itself
+     * threw counts. Pagination spawns embeds into the same parse, so a TikaConfigException found deeper
+     * is one embed's parser going wrong, and ending the whole run on it would drain the queue on a single
+     * bad document.
      */
-    private static ArtifactException classify(Document document, IOException failure) {
+    static ArtifactException classify(Document document, IOException failure) {
+        if (failure.getCause() instanceof TikaConfigException) {
+            throw new ArtifactConfigurationException(failure.getCause());
+        }
         for (Throwable cause = failure; cause != null; cause = cause.getCause()) {
+            // Deeper down: this side going wrong for one document, and a run with the configuration
+            // fixed can still read it, so retryable rather than terminal.
             if (cause instanceof TikaConfigException) {
-                throw new ArtifactConfigurationException(cause);
+                return retryable(document, failure);
             }
             if (cause instanceof TikaException || cause instanceof SAXException) {
                 return StructureArtifact.isRetryable(cause) ? retryable(document, failure)
