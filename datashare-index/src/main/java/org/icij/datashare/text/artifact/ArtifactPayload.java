@@ -26,6 +26,9 @@ public class ArtifactPayload {
             case RAW -> !Files.exists(docArtifactDir.resolve(ArtifactPath.RAW_FILE))
                     || !Files.exists(docArtifactDir.resolve(ArtifactPath.RAW_SIDECAR_FILE));
             case STRUCTURE -> !Files.exists(lastPageOrDir(docArtifactDir, entry));
+            // One file for every page, swapped in whole, so its existence answers for the payload: the
+            // per-page offsets live in the entry, and a run that wrote no pages recorded EMPTY above.
+            case PAGE -> !Files.exists(ArtifactPath.pagesContent(docArtifactDir));
         };
     }
 
