@@ -28,7 +28,6 @@ import java.io.StringWriter;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Arrays;
 import java.util.Base64;
 import java.util.List;
 import java.util.Map;
@@ -190,8 +189,8 @@ public class PageArtifactTest {
                 .isEqualTo(new String[]{"content.txt"});
     }
 
-    // The temp file is built by hand rather than with Files.createTempFile, whose restrictive
-    // rw------- mode would otherwise survive the ATOMIC_MOVE onto content.txt. Compared against a
+    // The payload must carry the umask default every other artifact file gets, not the rw-------
+    // the JDK stamps on a temp file (see AtomicDirectorySwap#createStagingDir). Compared against a
     // control file written with Files.write in the same directory, so this pins the umask default
     // rather than a hardcoded mode that a restrictive CI umask would falsify.
     @Test
@@ -590,28 +589,19 @@ public class PageArtifactTest {
                 .isEqualTo(new String[]{"content.txt"}); // no .tmp left behind
     }
 
-    // content.txt as a non-empty directory forces the temp write to finish (there is nothing wrong
-    // with the payload itself) and the move onto content.txt to fail: REPLACE_EXISTING cannot swap a
-    // file in over a non-empty directory. That is the one failure point no other test reaches.
+    // Whatever an earlier run left at the payload path, including a directory another producer wrote
+    // there: the swap moves it aside rather than trying to replace a file over it.
     @Test
-    public void test_a_move_failure_after_a_complete_write_leaves_no_tmp_file() throws Exception {
+    public void test_produce_replaces_a_payload_path_holding_something_else() throws Exception {
         ArtifactContext context = rootContext(twoPagePdf());
-        Path content = contentTxt(context);
-        Files.createDirectories(content);
-        Files.createFile(content.resolve("blocking-file"));
+        Files.createDirectories(contentTxt(context));
+        Files.createFile(contentTxt(context).resolve("blocking-file"));
 
-        try {
-            new PageArtifact(new PropertiesProvider()).produce(context);
-            fail("expected an ArtifactException");
-        } catch (ArtifactException expected) {
-            assertThat(expected.getMessage()).contains(context.document().getId());
-        }
+        new PageArtifact(new PropertiesProvider()).produce(context);
 
-        // Asserts on the shape, not the old literal name: createTempFile-era ".tmp" names are gone,
-        // but per-attempt UUID names still end in ".tmp", so this still fails if the temp file
-        // survives.
-        assertThat(Arrays.stream(ArtifactPath.pagesDir(context.docArtifactDir()).toFile().list())
-                .anyMatch(name -> name.endsWith(".tmp"))).isFalse();
+        assertThat(Files.readString(contentTxt(context))).contains("Page two text");
+        assertThat(ArtifactPath.pagesDir(context.docArtifactDir()).toFile().list())
+                .isEqualTo(new String[]{"content.txt"});
     }
 
     @Test

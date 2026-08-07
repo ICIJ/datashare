@@ -23,11 +23,9 @@ import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 import static org.icij.datashare.cli.DatashareCliOptions.OCR_OPT;
 
@@ -226,28 +224,20 @@ public class PageArtifact implements Artifact {
         return new ArtifactException("page extraction failed for " + document.getId(), failure);
     }
 
-    // Writes the whole payload to a unique temp file in the same directory (so the move is
-    // same-filesystem and therefore atomic), then swaps it in. A failure before the move leaves the
-    // previous content.txt in place, still matching its complete manifest entry. A failure after the
-    // move (the caller's repository.put, e.g. a manifest lock timeout) can instead leave the new
-    // content.txt live while the manifest still describes the previous one; guarding against that is
-    // a consumer-side concern (#2228), not this method's. Offsets are the byte counts actually
-    // written, so the recorded ranges cannot disagree with the file: half-open [start, end),
-    // contiguous, first start 0, last end == length.
+    // Through AtomicDirectorySwap, as the structure artifact writes its own pages: a failure before the
+    // swap leaves the previous content.txt in place, still matching its complete manifest entry, and the
+    // staging dir it writes into is unique per attempt, so two producers racing on the same document
+    // (shared artifactDir across hosts, or the same doc queued twice) cannot write to one another's
+    // bytes. A failure after the swap (the caller's repository.put, e.g. a manifest lock timeout) can
+    // instead leave the new content.txt live while the manifest still describes the previous one;
+    // guarding against that is a consumer-side concern (#2228), not this method's. Offsets are the byte
+    // counts actually written, so the recorded ranges cannot disagree with the file: half-open
+    // [start, end), contiguous, first start 0, last end == length.
     private static List<long[]> writePages(ArtifactContext context, List<String> pages) throws IOException {
-        Path content = ArtifactPath.pagesContent(context.docArtifactDir());
-        Files.createDirectories(content.getParent());
-        // A unique name per attempt: two producers racing on the same document (shared artifactDir
-        // across hosts, or the same doc queued twice) must never open the same temp path, or the
-        // loser's write truncates the winner's file to a hole of NUL bytes mid-write. Built by hand
-        // rather than with Files.createTempFile, which creates the file mode rw------- and would
-        // carry that restrictive mode onto content.txt through the ATOMIC_MOVE below, instead of the
-        // umask default every other artifact file gets.
-        Path temp = content.resolveSibling(content.getFileName() + "." + UUID.randomUUID() + ".tmp");
         List<long[]> ranges = new ArrayList<>();
-        long offset = 0;
-        try {
-            try (OutputStream out = Files.newOutputStream(temp)) {
+        AtomicDirectorySwap.replace(ArtifactPath.pagesDir(context.docArtifactDir()), staging -> {
+            long offset = 0;
+            try (OutputStream out = Files.newOutputStream(staging.resolve(ArtifactPath.PAGES_CONTENT_FILE))) {
                 for (String page : pages) {
                     byte[] bytes = page.getBytes(StandardCharsets.UTF_8);
                     out.write(bytes);
@@ -255,17 +245,13 @@ public class PageArtifact implements Artifact {
                     offset += bytes.length;
                 }
             }
-            Files.move(temp, content, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
-        } finally {
-            // A half-written temp file must never survive this call, whether the write or the move failed.
-            Files.deleteIfExists(temp);
-        }
+        });
         return ranges;
     }
 
     // Losing the payload is the point: it is regenerable, and one the manifest does not account for is
-    // still served by any reader that lists the directory. The whole pages/ dir, since content.txt is all
-    // it holds beyond a temp file a crashed run left behind.
+    // still served by any reader that lists the directory. The whole pages/ dir, since content.txt is
+    // all it holds.
     private static void discardPayload(Path docArtifactDir) {
         AtomicDirectorySwap.discard(ArtifactPath.pagesDir(docArtifactDir));
     }
