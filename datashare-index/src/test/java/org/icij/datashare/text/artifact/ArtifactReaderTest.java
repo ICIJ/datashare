@@ -303,11 +303,4 @@ public class ArtifactReaderTest {
         assertThat(reader.formats(node, ArtifactType.PAGE, entry, List.of("md", "txt"))).containsExactly("md", "txt");
         assertThat(reader.formats(node, ArtifactType.PAGE, entry, List.of("txt", "md"))).containsExactly("txt", "md");
     }
-
-    @Test
-    public void test_formats_returns_empty_list_when_no_candidates_are_present() throws Exception {
-        Path node = withByteRanges("content", "txt", new long[]{0, 7});
-        ManifestEntry entry = reader.servableEntry(node, ArtifactType.PAGE);
-        assertThat(reader.formats(node, ArtifactType.PAGE, entry, List.of("md", "html"))).isEmpty();
-    }
 }

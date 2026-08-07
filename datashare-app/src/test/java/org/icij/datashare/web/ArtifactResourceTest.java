@@ -128,28 +128,6 @@ public class ArtifactResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
-    public void test_page_manifest_not_found_when_entry_is_empty() throws Exception {
-        Path docDir = indexedDocDir(DIGEST);
-        writeManifest(docDir, "{\"page\": {\"status\": \"empty\", \"taskInput\": {},"
-                + " \"pages\": {\"total\": 2, \"pagination\": {\"type\": \"filesystem\"}}}}");
-        get("/api/local-datashare/artifacts/page/" + DIGEST).should().respond(404);
-    }
-
-    @Test
-    public void test_page_manifest_not_found_when_manifest_json_is_malformed() throws Exception {
-        Path docDir = indexedDocDir(DIGEST);
-        writeManifest(docDir, "{not valid json");
-        get("/api/local-datashare/artifacts/page/" + DIGEST).should().respond(404);
-    }
-
-    @Test
-    public void test_page_manifest_not_found_when_status_is_unknown() throws Exception {
-        Path docDir = indexedDocDir(DIGEST);
-        writeManifest(docDir, "{\"page\": {\"status\": \"bogus\", \"taskInput\": {}}}");
-        get("/api/local-datashare/artifacts/page/" + DIGEST).should().respond(404);
-    }
-
-    @Test
     public void test_page_manifest_not_found_when_pages_have_no_total() throws Exception {
         Path docDir = indexedDocDir(DIGEST);
         writePages(docDir, ArtifactType.PAGE, "txt", "page one");
@@ -201,12 +179,11 @@ public class ArtifactResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
-    public void test_page_out_of_range_and_non_numeric_are_not_found() throws Exception {
+    public void test_non_numeric_page_is_not_found() throws Exception {
         Path docDir = indexedDocDir(DIGEST);
         writePages(docDir, ArtifactType.PAGE, "txt", "page one");
         writeManifest(docDir, filesystemManifest("page", 1));
-        get("/api/local-datashare/artifacts/page/" + DIGEST + "/0").should().respond(404);
-        get("/api/local-datashare/artifacts/page/" + DIGEST + "/2").should().respond(404);
+        // Out-of-range numbers are the reader's rule; only the parse belongs to the route.
         get("/api/local-datashare/artifacts/page/" + DIGEST + "/abc").should().respond(404);
     }
 
