@@ -31,11 +31,8 @@ import static org.icij.datashare.text.Project.project;
 
 /** The single decision for serving a document's source bytes: who may download, whether the
  *  document exists, whether its root is within the size limit, and how the payload is built.
- *  Shared by DocumentResource (/documents/src) and ArtifactResource (/artifacts/raw) so the
- *  download restriction cannot drift into a bypass on one of the two routes. Keeping both verbs
- *  of the source route (GET for bytes, HEAD for the verdict alone) on this one path is what stops
- *  them from drifting apart, which is exactly how the frontend ended up reimplementing the size
- *  rule in the first place. */
+ *  Shared by /documents/src (both verbs) and /artifacts/raw, so the rule cannot drift into a
+ *  bypass on one of them. */
 @Singleton
 public class DocumentSourceAccess {
     private final Logger logger = LoggerFactory.getLogger(getClass());
