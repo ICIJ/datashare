@@ -97,7 +97,8 @@ public class ArtifactProducer {
         // No stack trace: these are benign, and a corpus holds enough of them to bury the real failures.
         LOGGER.warn("{}: recording an empty '{}' entry so it is not parsed again", failure.getMessage(), type.token());
         try {
-            repository.put(context.docArtifactDir(), type.token(), ManifestEntry.empty(artifact.taskInput()));
+            repository.put(context.docArtifactDir(), type.token(),
+                    ManifestEntry.empty(artifact.taskInput(context.document())));
             return true;
         } catch (IOException recordFailure) {
             LOGGER.error("failed to record artifact '{}' for document {}", type.token(), context.document().getId(), recordFailure);
@@ -136,7 +137,9 @@ public class ArtifactProducer {
 
     private boolean isCurrent(ArtifactType type, Artifact artifact, ArtifactContext context) throws IOException {
         ManifestEntry existing = repository.get(context.docArtifactDir(), type.token());
-        if (existing == null || !existing.isCurrentFor(artifact.taskInput())) {
+        // The document's own fingerprint, the one produce() records: comparing the run-level one here
+        // would skip a document whose payload was made under a different per-document input.
+        if (existing == null || !existing.isCurrentFor(artifact.taskInput(context.document()))) {
             return false;
         }
         // A terminal entry is not proof the payload survived a JVM death mid-swap or a failed restore.
