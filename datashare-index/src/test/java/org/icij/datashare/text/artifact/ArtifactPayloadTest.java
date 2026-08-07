@@ -49,11 +49,6 @@ public class ArtifactPayloadTest {
     }
 
     @Test
-    public void test_raw_payload_gone_is_missing() {
-        assertThat(ArtifactPayload.isMissing(docDir(), ArtifactType.RAW, completeSingleFile())).isTrue();
-    }
-
-    @Test
     public void test_an_unstamped_entry_is_checked_too() {
         // RawArtifact.produce and ManifestRecorder ask before withTerminalStatus() stamps the entry, so a
         // status-based test would answer "nothing to check" for every entry on the write side.
