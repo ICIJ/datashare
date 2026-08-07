@@ -51,10 +51,23 @@ public class PageArtifact implements Artifact {
     public Map<String, Object> taskInput() {
         // A fingerprint of the code that made the bytes, as StructureArtifact records: Tika renders the
         // text, extract-lib owns the parser set and the page splitting, and the datashare version covers
-        // what this class decides. The run's OCR setting, not the per-document one: taskInput() gets no
-        // document, and its contract keeps per-document state out so the same doc compares equal across
-        // batches.
-        return Map.of("pipeline", "tika", "version", TIKA_VERSION, "ocr", ocrEnabled(),
+        // what this class decides. The run's OCR setting is the best this document-less overload can do;
+        // what actually paginated a document is the overload below.
+        return taskInput(ocrEnabled());
+    }
+
+    @Override
+    public Map<String, Object> taskInput(Document document) {
+        // The OCR that made these pages, not the one the run asked for: extractPages() turns OCR off for
+        // a document indexed without it, so the run's flag alone stamps OCR-free pages as OCR'd. Re-index
+        // that file with OCR on and nothing the fingerprint sees changes (same bytes, same digest, same
+        // artifact dir), so skip-if-current serves the OCR-free pages forever. Still config, not data:
+        // the same document under the same run config compares equal in any batch.
+        return taskInput(ocrEnabled() && document.getOcrParser() != null);
+    }
+
+    private static Map<String, Object> taskInput(boolean ocr) {
+        return Map.of("pipeline", "tika", "version", TIKA_VERSION, "ocr", ocr,
                 "extract", BuildVersions.EXTRACT, "datashare", BuildVersions.DATASHARE);
     }
 
@@ -70,9 +83,9 @@ public class PageArtifact implements Artifact {
                 // An earlier run's content.txt would otherwise stay on disk, described by no manifest
                 // entry and still served by any reader that lists the directory.
                 discardPayload(context.docArtifactDir());
-                return ManifestEntry.empty(taskInput());
+                return ManifestEntry.empty(taskInput(document));
             }
-            return ManifestEntry.paginated(taskInput(), writePages(context, pages));
+            return ManifestEntry.paginated(taskInput(document), writePages(context, pages));
         } catch (ArtifactConfigurationException fatal) {
             // Unchecked, and not an ArtifactException, so the catch-all below would otherwise demote the
             // fatal bucket to one more per-document failure and drain the queue instead of ending the run.

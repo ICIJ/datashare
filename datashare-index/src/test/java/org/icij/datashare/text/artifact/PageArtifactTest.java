@@ -375,6 +375,41 @@ public class PageArtifactTest {
     }
 
     @Test
+    public void test_task_input_records_the_ocr_that_paginated_the_document() throws Exception {
+        // The run's flag alone is not what made these pages: a document indexed without OCR is
+        // paginated without OCR whatever the run asks for. Stamping those pages ocr:true is what lets
+        // the same file, re-indexed with OCR on, keep its OCR-free pages forever: same bytes, same
+        // digest, same artifact dir, same fingerprint, so skip-if-current never looks at it again.
+        PageArtifact withOcrRun = new PageArtifact(new PropertiesProvider());
+        Document notOcred = rootContext(twoPagePdf()).document();
+        Document ocred = createDoc(notOcred.getId()).with(notOcred.getPath()).ofContentType("application/pdf")
+                .withOcrParser("org.icij.extract.parser.ocr.OCRParserAdapter").build();
+
+        assertThat(withOcrRun.taskInput(notOcred).get("ocr")).isEqualTo(false);
+        assertThat(withOcrRun.taskInput(ocred).get("ocr")).isEqualTo(true);
+        // The run's flag still counts: with OCR off the extractor has it off, whatever the document says.
+        assertThat(new PageArtifact(new PropertiesProvider(Map.of("ocr", "false"))).taskInput(ocred).get("ocr"))
+                .isEqualTo(false);
+    }
+
+    @Test
+    public void test_a_document_reindexed_with_ocr_is_paginated_again() throws Exception {
+        Path pdf = twoPagePdf();
+        ArtifactContext context = rootContext(pdf);
+        ArtifactProducer producer = new ArtifactProducer(new FilesystemManifestRepository(), () -> false);
+        producer.run(List.of(new PageArtifact(new PropertiesProvider())), context, false);
+        Files.delete(contentTxt(context)); // regenerated only if the second run does not skip
+        Document reindexedWithOcr = createDoc(context.document().getId()).with(pdf).ofContentType("application/pdf")
+                .withOcrParser("org.icij.extract.parser.ocr.OCRParserAdapter").build();
+        ArtifactContext reindexed = new ArtifactContext(project, reindexedWithOcr, context.docArtifactDir(),
+                mock(SourceExtractor.class));
+
+        assertThat(producer.run(List.of(new PageArtifact(new PropertiesProvider())), reindexed, false)).isTrue();
+
+        assertThat(Files.exists(contentTxt(reindexed))).isTrue();
+    }
+
+    @Test
     public void test_a_broken_configuration_ends_the_run_instead_of_failing_one_document() throws Exception {
         // It fails every document the same way, so ArtifactTask rethrows it where it rethrows an Error.
         // Catching it as one more document failure would drain the whole queue one ERROR at a time.
@@ -454,7 +489,9 @@ public class PageArtifactTest {
         assertThat(entry.get("pages").get("pagination").get("type").asText()).isEqualTo("byteRanges");
         assertThat(entry.get("pages").get("pagination").get("ranges").size()).isEqualTo(2);
         assertThat(entry.get("taskInput").get("pipeline").asText()).isEqualTo("tika");
-        assertThat(entry.get("taskInput").get("ocr").asBoolean()).isTrue();
+        // False although the run has OCR on: this document was indexed without it, so that is what
+        // paginated it, and that is what makes the entry stale when the file is re-indexed with OCR.
+        assertThat(entry.get("taskInput").get("ocr").asBoolean()).isFalse();
         assertThat(entry.has("contentType")).isFalse();
         assertThat(entry.has("filename")).isFalse();
         assertThat(entry.has("complete")).isFalse();
