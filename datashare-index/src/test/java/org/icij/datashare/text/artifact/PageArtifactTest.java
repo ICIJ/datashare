@@ -633,10 +633,24 @@ public class PageArtifactTest {
         ArtifactContext context = rootContext(twoPagePdf());
         ArtifactProducer producer = new ArtifactProducer(new FilesystemManifestRepository(), () -> false);
         producer.run(List.of(new PageArtifact(new PropertiesProvider())), context, false);
-        Files.delete(contentTxt(context)); // if the second run produced again, it would be back
+        // Overwritten, not deleted: skip-if-current re-produces a payload that left the disk
+        // (ArtifactPayload#isMissing), so an absent content.txt would prove nothing about the skip.
+        Files.writeString(contentTxt(context), "kept from the first run");
 
         assertThat(producer.run(List.of(new PageArtifact(new PropertiesProvider())), context, false)).isTrue();
 
-        assertThat(Files.exists(contentTxt(context))).isFalse();
+        assertThat(Files.readString(contentTxt(context))).isEqualTo("kept from the first run");
+    }
+
+    @Test
+    public void test_a_second_run_produces_again_when_the_page_payload_left_the_disk() throws Exception {
+        ArtifactContext context = rootContext(twoPagePdf());
+        ArtifactProducer producer = new ArtifactProducer(new FilesystemManifestRepository(), () -> false);
+        producer.run(List.of(new PageArtifact(new PropertiesProvider())), context, false);
+        Files.delete(contentTxt(context));
+
+        assertThat(producer.run(List.of(new PageArtifact(new PropertiesProvider())), context, false)).isTrue();
+
+        assertThat(Files.readString(contentTxt(context))).contains("Page two text");
     }
 }
