@@ -11,6 +11,7 @@ public class ArtifactPath {
     public static final String RAW_SIDECAR_FILE = "raw.json";
     public static final String STRUCTURE_DIR = "structure";
     public static final String PAGES_DIR = "pages";
+    public static final String PAGES_CONTENT_FILE = "content.txt";
 
     private ArtifactPath() {}
 
@@ -56,6 +57,6 @@ public class ArtifactPath {
     /** The single payload file of the byte-ranges scheme, whose per-page offsets live in the
      *  manifest entry instead of in file names. The extension is fixed by the type: page is text. */
     public static Path pagesContent(Path docArtifactDir) {
-        return pagesDir(docArtifactDir).resolve("content.txt");
+        return pagesDir(docArtifactDir).resolve(PAGES_CONTENT_FILE);
     }
 }
