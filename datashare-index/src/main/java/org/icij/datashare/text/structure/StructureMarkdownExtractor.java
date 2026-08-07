@@ -233,7 +233,7 @@ public class StructureMarkdownExtractor {
     // narrow this down, since MailContentHandler defaults it to ATTACHMENT for a part with no
     // Content-Disposition header. Accepted consequence: a nameless attachment text part is inlined,
     // duplicating text that has its own artifact, while every named part is still refused.
-    static boolean isOwnBody(Metadata metadata) {
+    public static boolean isOwnBody(Metadata metadata) {
         return metadata.get(TikaCoreProperties.RESOURCE_NAME_KEY) == null
                 && INLINE_BODY_TYPES.contains(baseContentType(metadata));
     }
