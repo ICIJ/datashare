@@ -139,9 +139,8 @@ public class ArtifactProducer {
         if (existing == null || !existing.isCurrentFor(artifact.taskInput())) {
             return false;
         }
-        // A terminal entry is not proof the payload survived: a JVM death mid-swap, or a failed restore
-        // leaving the pages in a holding pen, takes it out from under a complete entry. Asking the disk is
-        // what makes a plain re-run repair that, instead of --artifactsForce over the whole corpus.
+        // A terminal entry is not proof the payload survived a JVM death mid-swap or a failed restore.
+        // Asking the disk is what lets a plain re-run repair it, instead of --artifactsForce on the corpus.
         if (ArtifactPayload.isMissing(context.docArtifactDir(), type, existing)) {
             LOGGER.warn("'{}' entry for document {} is current but its payload is gone: re-producing",
                     type.token(), context.document().getId());

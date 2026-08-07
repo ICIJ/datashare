@@ -43,8 +43,7 @@ public class ArtifactProducerTest {
             writePayload(ctx.docArtifactDir());
             return ManifestEntry.singleFile(taskInput, "text/plain", "a.txt");
         }
-        // A real producer writes its payload before the entry is recorded, and skip-if-current now checks
-        // the payload is still there: a fake that records without writing would be re-produced every run.
+        // skip-if-current now checks the payload, so a fake that records without writing is never skipped.
         private void writePayload(Path docArtifactDir) throws ArtifactException {
             try {
                 if (type == ArtifactType.RAW) {
@@ -95,8 +94,7 @@ public class ArtifactProducerTest {
     }
 
     @Test public void test_regenerates_when_the_recorded_structure_payload_is_gone() throws Exception {
-        // A JVM death between AtomicDirectorySwap's two renames, or a failed restore, leaves the payload
-        // missing under a complete entry. A plain re-run must repair it, not skip it forever (#2300).
+        // A payload gone from under a complete entry must be repaired by a plain re-run, not skipped (#2300).
         CountingArtifact structure = new CountingArtifact("structure", 1);
         producer.run(List.of(structure), ctx(), false);
         AtomicDirectorySwap.discard(ArtifactPath.structureDir(dir.getRoot().toPath()));
