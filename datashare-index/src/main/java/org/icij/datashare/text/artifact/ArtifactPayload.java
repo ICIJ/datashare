@@ -15,7 +15,10 @@ public class ArtifactPayload {
      *  stamped or not, because two of the three callers ask before {@link ManifestEntry#withTerminalStatus()}
      *  runs. An EMPTY entry advertises no payload of its own (a root document's raw source is the on-disk
      *  original, and unreadable content has nothing to write), so there is nothing to check and nothing to
-     *  repair. */
+     *  repair. {@code !exists} rather than {@code notExists}: a path the filesystem will not answer for
+     *  (a stale NFS handle, a revoked permission on a shared artifactDir) makes both false, and re-producing
+     *  costs work a later run can redo while stamping COMPLETE over an unconfirmed payload is what leaves a
+     *  document unrepairable. */
     public static boolean isMissing(Path docArtifactDir, ArtifactType type, ManifestEntry entry) {
         if (entry.status() == ManifestEntryStatus.EMPTY) {
             return false;
@@ -25,34 +28,24 @@ public class ArtifactPayload {
             // sidecar as a second atomic move after it. Both or neither: SourceExtractor only serves the
             // cache when both are readable, so a pair half written by a JVM death is unservable and must
             // be re-produced rather than recorded as present.
-            case RAW -> isAbsent(docArtifactDir.resolve(ArtifactPath.RAW_FILE))
-                    || isAbsent(docArtifactDir.resolve(ArtifactPath.RAW_SIDECAR_FILE));
-            // The directory and the last page it advertises. The swap renames a fully written directory
-            // into place, so a partial write is impossible, but a partial delete is not: discard() removes
-            // pages one by one and only warns when it stops half way. Exhaustive over the enum on purpose:
-            // a new type must decide its own shape here rather than default to "present".
-            case STRUCTURE -> isAbsent(ArtifactPath.structureDir(docArtifactDir))
-                    || lastPageMissing(docArtifactDir, entry);
+            // Exhaustive over the enum on purpose: a new type must decide its own shape here rather than
+            // default to "present".
+            case RAW -> !Files.exists(docArtifactDir.resolve(ArtifactPath.RAW_FILE))
+                    || !Files.exists(docArtifactDir.resolve(ArtifactPath.RAW_SIDECAR_FILE));
+            case STRUCTURE -> !Files.exists(lastPageOrDir(docArtifactDir, entry));
         };
     }
 
-    /** Absent, or a path the filesystem will not answer for. A stale NFS handle or a revoked permission
-     *  on a shared artifactDir makes both {@code exists} and {@code notExists} false, and the two callers
-     *  that record entries would stamp a COMPLETE one over a payload nobody has confirmed. Re-producing
-     *  costs work that a later run can redo; recording that lie is what leaves a document unrepairable. */
-    private static boolean isAbsent(Path path) {
-        return !Files.exists(path);
-    }
-
-    /** Whether the highest-numbered page the entry advertises is gone. Only the last one: pages are
-     *  written in order into a staging directory the swap renames in one move, so a set truncated by a
-     *  failed delete always loses its last page. An entry that advertises no usable page count says
-     *  nothing to check, and manifest.json is read from disk (a Python producer writes it too), so that
-     *  is a state to fall back from rather than re-produce on every run forever. */
-    private static boolean lastPageMissing(Path docArtifactDir, ManifestEntry entry) {
+    /** The one path that answers for the whole payload: the highest-numbered page the entry advertises.
+     *  Pages are written in order into a staging directory the swap renames in one move, so a partial write
+     *  is impossible and a set truncated by discard()'s page-by-page delete always loses its last page, and
+     *  a missing page implies a missing directory. Falls back to the directory when the entry advertises no
+     *  usable page count: manifest.json is read from disk (a Python producer writes it too), so that is a
+     *  state to fall back from rather than re-produce on every run forever. */
+    private static Path lastPageOrDir(Path docArtifactDir, ManifestEntry entry) {
         if (entry.pages() == null || entry.pages().total() < 1) {
-            return false;
+            return ArtifactPath.structureDir(docArtifactDir);
         }
-        return isAbsent(ArtifactPath.structurePage(docArtifactDir, entry.pages().total(), "md"));
+        return ArtifactPath.structurePage(docArtifactDir, entry.pages().total(), "md");
     }
 }
