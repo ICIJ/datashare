@@ -134,11 +134,13 @@ public class IndexTask extends PipelineTask<Path> implements Monitorable{
             if (!notAtIndexTime.isEmpty() && !artifactStageRuns) {
                 logger.warn("--artifacts selects {}, which the INDEX stage does not produce, and ARTIFACT is not in "
                         + "--stages: {}", notAtIndexTime, rawSelected ? "only the 'raw' entry will be recorded."
-                        : "this stage records nothing and writes no embedded payload.");
+                        : "this stage records nothing and writes no embedded payload; add 'raw' to --artifacts "
+                        + "to keep the embedded-download cache.");
             }
-            // extract-lib spools every embedded document's bytes here during the parse. Nothing reads
-            // them unless raw is recorded now or the ARTIFACT stage consumes them later, so a selection
-            // that wants neither must not pay the disk for them.
+            // extract-lib spools every embedded document's bytes here during the parse. This payload is
+            // not manifest-only: SourceExtractor.hasCachedEmbeddedSource also reads it straight off disk
+            // to let DocumentVerifier serve an oversized embed past embeddedDocumentDownloadMaxSize. A
+            // selection that skips it here trades that cache away, and a large embed 413s instead.
             if (rawSelected || artifactStageRuns) {
                 extractor.setEmbedOutputPath(projectRoot);
             }

@@ -196,6 +196,8 @@ public class IndexTaskIntTest {
         assertThat(ArtifactPath.projectRoot(artifactDir.getRoot().toPath(), es.getIndexName()).toFile().exists()).isFalse();
         assertThat(logback.logs(Level.WARN).stream()
                 .anyMatch(l -> l.contains("records nothing and writes no embedded payload"))).isTrue();
+        assertThat(logback.logs(Level.WARN).stream()
+                .anyMatch(l -> l.contains("add 'raw' to --artifacts"))).isTrue();
     }
 
     @Test
