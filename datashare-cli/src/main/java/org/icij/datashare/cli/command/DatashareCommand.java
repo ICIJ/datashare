@@ -63,12 +63,14 @@ public class DatashareCommand implements Runnable {
     public static void applySettingsDefaults(CommandLine commandLine, String[] args) {
         String settingsPath = settingsPathFrom(args);
         if (settingsPath == null) {
-            // Not "no file": PropertiesProvider(null) resolves a classpath datashare.properties and
-            // always folds in DS_DOCKER_* env vars. Letting those in would put them above every
-            // option default, which is not what -s asked for and inverts precedence in Docker.
+            // Not "no file": PropertiesProvider(null) resolves a classpath datashare.properties, which
+            // is not what -s asked for.
             return;
         }
-        Properties settings = new PropertiesProvider(settingsPath).getProperties();
+        // The file alone, not getProperties(), which also folds in DS_DOCKER_* env vars: those are a
+        // separate tier that CommonMode ranks, and promoting them here would make them beat an option
+        // default only when -s happens to be passed.
+        Properties settings = new PropertiesProvider(settingsPath).getFileProperties();
         if (settings.isEmpty()) {
             return;
         }

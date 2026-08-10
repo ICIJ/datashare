@@ -81,14 +81,7 @@ public class PropertiesProvider {
         if (cachedProperties == null) {
             synchronized(this) {
                 if (cachedProperties == null) {
-                    Properties localProperties = new Properties();
-                    try {
-                        InputStream propertiesStream = new FileInputStream(settingsPath.toFile());
-                        logger.info("reading properties from {}", settingsPath);
-                        localProperties.load(propertiesStream);
-                    } catch (IOException | NullPointerException e) {
-                        logger.warn("no {} file found, using default values", settingsPath);
-                    }
+                    Properties localProperties = getFileProperties();
                     loadEnvVariables(localProperties);
                     cachedProperties = localProperties;
                     logger.info("properties set to {}", cachedProperties);
@@ -96,6 +89,25 @@ public class PropertiesProvider {
             }
         }
         return cachedProperties;
+    }
+
+    /**
+     * The settings file's own contents, without the DS_DOCKER_* fold-in {@link #getProperties()} adds.
+     * A caller that ranks the operator's file against its own defaults needs the file alone: the env
+     * vars are a separate, higher tier, and letting them ride along here promotes them silently.
+     */
+    public Properties getFileProperties() {
+        Properties fileProperties = new Properties();
+        if (settingsPath == null) {
+            return fileProperties;
+        }
+        try (InputStream propertiesStream = new FileInputStream(settingsPath.toFile())) {
+            logger.info("reading properties from {}", settingsPath);
+            fileProperties.load(propertiesStream);
+        } catch (IOException e) {
+            logger.warn("no {} file found, using default values", settingsPath);
+        }
+        return fileProperties;
     }
 
     private void loadEnvVariables(Properties properties) {

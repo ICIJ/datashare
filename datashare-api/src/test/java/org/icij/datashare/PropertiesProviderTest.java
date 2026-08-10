@@ -271,6 +271,22 @@ public class PropertiesProviderTest {
     /**
      * see https://stackoverflow.com/questions/318239/how-do-i-set-environment-variables-from-java
      */
+    @Test
+    public void test_file_properties_leave_out_the_ds_env_variables() throws Exception {
+        putEnv("DS_DOCKER_FROM_ENV", "from-env");
+        File settings = folder.newFile("env.conf");
+        Files.write(settings.toPath(), asList("fromFile=from-file"));
+
+        PropertiesProvider provider = new PropertiesProvider(settings.getAbsolutePath());
+
+        // a caller ranking the operator's file against its own defaults must see the file alone:
+        // DS_DOCKER_* is a separate, higher tier and riding along here silently promotes it
+        assertThat(provider.getFileProperties()).includes(entry("fromFile", "from-file"));
+        assertThat(provider.getFileProperties().containsKey("fromEnv")).isFalse();
+        // getProperties() still folds them in, for callers that want the whole picture
+        assertThat(provider.getProperties()).includes(entry("fromEnv", "from-env"));
+    }
+
     private static void putEnv(String name, String value) throws Exception {
       try {
         Class<?> processEnvironmentClass = Class.forName("java.lang.ProcessEnvironment");

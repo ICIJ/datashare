@@ -80,9 +80,8 @@ public class SettingsDefaultsTest extends AbstractDatashareCommandTest {
 
     @Test
     public void test_a_classpath_properties_file_is_not_consulted_without_a_settings_option() throws Exception {
-        // PropertiesProvider(null) resolves datashare.properties off the context classloader and always
-        // folds in DS_DOCKER_* env vars. Neither is the operator's settings file, so neither may outrank
-        // a declared option default.
+        // PropertiesProvider(null) resolves datashare.properties off the context classloader, which is
+        // not the operator's settings file, so it may not outrank a declared option default.
         Files.writeString(tmp.getRoot().toPath().resolve("datashare.properties"), "ocr=false\n");
         ClassLoader previous = Thread.currentThread().getContextClassLoader();
         Thread.currentThread().setContextClassLoader(

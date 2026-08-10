@@ -226,10 +226,12 @@ public class DatashareCli {
     Properties asProperties(OptionSet options, String prefix) {
         Properties properties = new Properties();
         // Only a file the operator actually asked for may outrank a declared default: passing null here
-        // would resolve a classpath datashare.properties and fold in DS_DOCKER_* env vars, and neither
-        // is their settings file.
+        // would resolve a classpath datashare.properties, which is not their settings file. Read the
+        // file alone, not getProperties(), which also folds in DS_DOCKER_* env vars: those are a
+        // separate tier that CommonMode ranks, and promoting them here would make them beat an option
+        // default only when -s happens to be passed.
         Properties settings = options.has(SETTINGS_OPT)
-                ? new PropertiesProvider(String.valueOf(options.valueOf(SETTINGS_OPT))).getProperties()
+                ? new PropertiesProvider(String.valueOf(options.valueOf(SETTINGS_OPT))).getFileProperties()
                 : new Properties();
         for (Map.Entry<OptionSpec<?>, List<?>> entry : options.asMap().entrySet()) {
             OptionSpec<?> spec = entry.getKey();
