@@ -71,9 +71,6 @@ public class DatashareCommand implements Runnable {
         // separate tier that CommonMode ranks, and promoting them here would make them beat an option
         // default only when -s happens to be passed.
         Properties settings = new PropertiesProvider(settingsPath).getFileProperties();
-        if (settings.isEmpty()) {
-            return;
-        }
         CommandLine.IDefaultValueProvider fromSettings = new CommandLine.PropertiesDefaultProvider(settings);
         // Arity-0 booleans are excluded: picocli sets a matched flag to !defaultValue, so taking that
         // default from the file inverts the flag, and "resume=true" in the file would make -r mean

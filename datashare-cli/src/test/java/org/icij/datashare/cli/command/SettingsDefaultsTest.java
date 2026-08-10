@@ -49,14 +49,6 @@ public class SettingsDefaultsTest extends AbstractDatashareCommandTest {
     }
 
     @Test
-    public void test_annotation_defaults_are_untouched_without_a_settings_file() {
-        Properties props = parse("stage", "run", "--stages", "INDEX");
-
-        assertThat(props).includes(entry("ocr", "true"));
-        assertThat(props).includes(entry("scrollSize", "1000"));
-    }
-
-    @Test
     public void test_a_settings_file_does_not_invert_an_arity_zero_flag() throws IOException {
         // picocli sets an arity-0 boolean to !defaultValue when the flag is present, and it takes that
         // default from the value provider. A file saying resume=true must not turn -r into "do not resume".
@@ -89,7 +81,9 @@ public class SettingsDefaultsTest extends AbstractDatashareCommandTest {
         try {
             Properties props = parse("stage", "run", "--stages", "INDEX");
 
+            // both the key the classpath file names and one it does not keep their annotation defaults
             assertThat(props).includes(entry("ocr", "true"));
+            assertThat(props).includes(entry("scrollSize", "1000"));
         } finally {
             Thread.currentThread().setContextClassLoader(previous);
         }
