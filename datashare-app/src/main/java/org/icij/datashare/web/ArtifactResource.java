@@ -149,33 +149,38 @@ public class ArtifactResource {
                 : payload;
     }
 
-    @Operation(description = "Counts a query's occurrences in a document's structure pages, per page.",
+    @Operation(description = "Counts a query's occurrences in a document's Markdown structure pages, per page. "
+            + "Markdown only: the XHTML the page route serves is markup, so counting over it reports tag "
+            + "names, class names and link targets as occurrences of the user's term. Counts the document's "
+            + "original language: structure pages are rendered from the source bytes, so unlike "
+            + "/documents/searchContent this route has no targetLanguage and never counts a translation.",
             parameters = {
                     @Parameter(name = "project", description = "the project id", in = ParameterIn.PATH),
                     @Parameter(name = "id", description = "the document id", in = ParameterIn.PATH),
                     @Parameter(name = "query", description = "the term to count, matched literally", in = ParameterIn.QUERY),
-                    @Parameter(name = "routing", description = "routing key if not a root document", in = ParameterIn.QUERY),
-                    @Parameter(name = "format", description = "md (default) or xhtml", in = ParameterIn.QUERY)
+                    @Parameter(name = "routing", description = "routing key if not a root document", in = ParameterIn.QUERY)
             }
     )
-    @ApiResponse(responseCode = "200", description = "JSON {\"count\": N, \"hits\": [{\"page\": P, \"count\": N}]}")
-    @ApiResponse(responseCode = "400", description = "if the query is blank, or format is not one of md, xhtml")
+    @ApiResponse(responseCode = "200", description = "JSON {\"count\": N, \"pages\": P, \"scanned\": S, "
+            + "\"hits\": [{\"page\": P, \"count\": N}]}. scanned below pages means the artifact lost pages "
+            + "between its manifest and disk, so the counts are a floor rather than a total.")
+    @ApiResponse(responseCode = "400", description = "if the query is blank")
     @ApiResponse(responseCode = "403", description = "forbidden if the user doesn't have access to the project")
-    @ApiResponse(responseCode = "404", description = "if the document, the artifact, or that format is not found")
-    @Get("/:project/artifacts/structure/:id/search?query=:query&routing=:routing&format=:format")
-    public Payload structureSearch(final String project, final String id, final String query, final String routing,
-                                   final String format, final Context context) throws IOException {
+    @ApiResponse(responseCode = "404", description = "if the document, the artifact, or its markdown is not found")
+    // The verb before the id, as /documents/searchContent/:id has it, so this cannot collide with the
+    // :page route. Under that route's shape it would win only on a tie-break: fluent-http's UriParser
+    // orders on the count of :params across the whole pattern, query string included, and both hold
+    // five. A sixth would sort this second, :page would match "search", and every search would 404.
+    @Get("/:project/artifacts/structure/search/:id?query=:query&routing=:routing")
+    public Payload structureSearch(final String project, final String id, final String query,
+                                   final String routing, final Context context) throws IOException {
         requireGranted(context, project);
         if (query == null || query.isBlank()) {
             // Not the 404 /documents/searchContent gives an empty query: a missing parameter is a
             // malformed request, and a whitespace query would scan every page to match every space.
             return PayloadFormatter.error("a non-blank query is required", HttpStatus.BAD_REQUEST);
         }
-        String extension = structureExtension(format);
-        if (extension == null) {
-            return unsupportedFormat(format);
-        }
-        return search(docArtifactDir(project, id, routing), extension, query);
+        return search(project, id, routing, query);
     }
 
     @Operation(description = "Fetches a document's raw (embedded or source) bytes. Same access rules as /documents/src: project membership, the project's download restriction, and the root-document size limit.",
@@ -276,11 +281,14 @@ public class ArtifactResource {
         return new Payload(contentType, bytes).withHeader("X-Content-Type-Options", "nosniff");
     }
 
-    private Payload search(final Path docArtifactDir, final String extension, final String query) throws IOException {
+    // Same (project, id, routing) shape as manifest() and payload(), so all three routes read alike.
+    private Payload search(final String project, final String id, final String routing,
+                           final String query) throws IOException {
+        Path docArtifactDir = docArtifactDir(project, id, routing);
         if (docArtifactDir == null) {
             return Payload.notFound();
         }
-        StructureSearch.Hits hits = new StructureSearch(reader, docArtifactDir, extension).search(query);
+        StructureSearch.Hits hits = new StructureSearch(reader, docArtifactDir, MARKDOWN).search(query);
         return hits == null ? Payload.notFound() : PayloadFormatter.json(hits);
     }
 

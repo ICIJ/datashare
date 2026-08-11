@@ -17,6 +17,12 @@ import java.util.List;
  *  servable, where a page lives, and what a missing payload means. */
 public class ArtifactReader {
     private static final Logger LOGGER = LoggerFactory.getLogger(ArtifactReader.class);
+
+    /** Beyond this a total is a corrupt manifest, not a long document. It matters because {@link
+     *  StructureSearch} turns a total written by another producer into a loop bound, and unbounded,
+     *  {@code Integer.MAX_VALUE} never terminates at all: the counter wraps to MIN_VALUE, still in range. */
+    public static final int MAX_SERVABLE_PAGES = 100_000;
+
     private final ManifestRepository manifests;
 
     public ArtifactReader(ManifestRepository manifests) {
@@ -42,17 +48,19 @@ public class ArtifactReader {
     /**
      * The page count a servable entry advertises, or null when its pages block cannot be trusted:
      * absent, renamed by a producer whose manifest shape differs (unknown properties are ignored on
-     * read), or non-positive because Pages.total is a primitive that an absent field fills with 0.
-     * Warned rather than silent: such a manifest is otherwise indistinguishable from a document
-     * that has no artifact of this type at all, and the strict-store contract says it is not found.
+     * read), non-positive because Pages.total is a primitive that an absent field fills with 0, or
+     * past {@link #MAX_SERVABLE_PAGES}. Warned rather than silent: such a manifest is otherwise
+     * indistinguishable from a document that has no artifact of this type at all, and the
+     * strict-store contract says it is not found.
      */
     public Integer servableTotal(Path docArtifactDir, ArtifactType type, ManifestEntry entry) {
         Pages pages = entry.pages();
-        if (pages != null && pages.total() > 0) {
+        if (pages != null && pages.total() > 0 && pages.total() <= MAX_SERVABLE_PAGES) {
             return pages.total();
         }
         LOGGER.warn("complete '{}' entry in {} advertises no usable page count: its pages block is "
-                + "absent, renamed, or carries a non-positive total", type.token(), docArtifactDir);
+                + "absent, renamed, or carries a total outside 1..{}", type.token(), docArtifactDir,
+                MAX_SERVABLE_PAGES);
         return null;
     }
 
@@ -72,9 +80,10 @@ public class ArtifactReader {
         // them (same hazard as SourceExtractor#hasCachedEmbeddedSource), and reading one this
         // process cannot open would throw an IOException the serving side turns into a 500.
         if (!Files.isReadable(file)) {
-            // In range per the manifest but absent on disk: the two disagree, which is worth
-            // seeing in the logs rather than reshaping the advertised page count silently.
-            LOGGER.warn("manifest advertises {} page(s) for '{}' but {} is missing or unreadable", total, type.token(), file);
+            // In range per the manifest but absent on disk. DEBUG, not WARN: a caller walking every
+            // page would turn one disagreement into one line per page, replayable by any project
+            // member, so StructureSearch reports it once per scan and the page route answers 404.
+            LOGGER.debug("manifest advertises {} page(s) for '{}' but {} is missing or unreadable", total, type.token(), file);
             return null;
         }
         return Files.readAllBytes(file);

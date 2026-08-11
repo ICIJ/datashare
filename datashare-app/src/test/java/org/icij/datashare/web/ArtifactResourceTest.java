@@ -271,21 +271,38 @@ public class ArtifactResourceTest extends AbstractProdWebServerTest {
         Path docDir = indexedDocDir(DIGEST);
         writePages(docDir, ArtifactType.STRUCTURE, "md", "data and data", "nothing here", "data");
         writeManifest(docDir, filesystemManifest("structure", 3));
-        get("/api/local-datashare/artifacts/structure/" + DIGEST + "/search?query=data").should()
+        get("/api/local-datashare/artifacts/structure/search/" + DIGEST + "?query=data").should()
                 .respond(200).haveType("application/json")
-                .contain("{\"count\":3,\"hits\":[{\"page\":1,\"count\":2},{\"page\":3,\"count\":1}]}");
+                .contain("{\"count\":3,\"pages\":3,\"scanned\":3,"
+                        + "\"hits\":[{\"page\":1,\"count\":2},{\"page\":3,\"count\":1}]}");
     }
 
     @Test
-    public void test_structure_search_route_is_matched_before_the_page_route() throws Exception {
+    public void test_structure_search_reports_the_pages_it_could_not_read() throws Exception {
+        Path docDir = indexedDocDir(DIGEST);
+        writePages(docDir, ArtifactType.STRUCTURE, "md", "data", "data", "data");
+        Files.delete(ArtifactPath.payloadPage(docDir, ArtifactType.STRUCTURE, 2, "md"));
+        writeManifest(docDir, filesystemManifest("structure", 3));
+        // scanned below pages is the only thing separating this from a healthy document that really
+        // holds two occurrences, and without it the client shows an authoritative count for a
+        // degraded artifact.
+        get("/api/local-datashare/artifacts/structure/search/" + DIGEST + "?query=data").should()
+                .respond(200).contain("\"count\":2,\"pages\":3,\"scanned\":2");
+    }
+
+    @Test
+    public void test_structure_search_does_not_collide_with_the_page_route() throws Exception {
         Path docDir = indexedDocDir(DIGEST);
         writePages(docDir, ArtifactType.STRUCTURE, "md", "data");
         writeManifest(docDir, filesystemManifest("structure", 1));
-        // Both routes carry the same segment count, and only fluent-http's UriParser ordering
-        // (a literal segment sorts before a :param) puts this one first. Had :page won,
-        // parsePageNumber("search") would give 0 and the answer would be 404, so this 200 is the
-        // whole assertion.
-        get("/api/local-datashare/artifacts/structure/" + DIGEST + "/search?query=data").should().respond(200);
+        // The verb sits before the id, so the two patterns differ by a literal segment and no
+        // ordering rule is involved. Sharing the :page route's shape would have worked only on a
+        // tie-break: fluent-http's UriParser sorts on the number of :params across the whole
+        // pattern, query string included, and one more query parameter would have sorted this
+        // route second, matched :page, and turned every search into a 404.
+        get("/api/local-datashare/artifacts/structure/search/" + DIGEST + "?query=data").should().respond(200);
+        // And the page route still owns its own shape.
+        get("/api/local-datashare/artifacts/structure/" + DIGEST + "/1").should().respond(200);
     }
 
     @Test
@@ -295,8 +312,8 @@ public class ArtifactResourceTest extends AbstractProdWebServerTest {
         writeManifest(docDir, filesystemManifest("structure", 1));
         // 200 with an empty result, not 404: the client's counter shows "0 of 0", it does not
         // fall back to plain text.
-        get("/api/local-datashare/artifacts/structure/" + DIGEST + "/search?query=data").should()
-                .respond(200).contain("{\"count\":0,\"hits\":[]}");
+        get("/api/local-datashare/artifacts/structure/search/" + DIGEST + "?query=data").should()
+                .respond(200).contain("{\"count\":0,\"pages\":1,\"scanned\":1,\"hits\":[]}");
     }
 
     @Test
@@ -304,46 +321,40 @@ public class ArtifactResourceTest extends AbstractProdWebServerTest {
         Path docDir = indexedDocDir(DIGEST);
         writePages(docDir, ArtifactType.STRUCTURE, "md", "# one");
         writeManifest(docDir, filesystemManifest("structure", 1));
-        get("/api/local-datashare/artifacts/structure/" + DIGEST + "/search").should().respond(400);
-        get("/api/local-datashare/artifacts/structure/" + DIGEST + "/search?query=").should().respond(400);
+        get("/api/local-datashare/artifacts/structure/search/" + DIGEST + "").should().respond(400);
+        get("/api/local-datashare/artifacts/structure/search/" + DIGEST + "?query=").should().respond(400);
         // Whitespace-only is not empty, so /documents/searchContent runs it and matches every
         // space on every page. Rejected here instead.
-        get("/api/local-datashare/artifacts/structure/" + DIGEST + "/search?query=%20%20").should().respond(400);
+        get("/api/local-datashare/artifacts/structure/search/" + DIGEST + "?query=%20%20").should().respond(400);
     }
 
     @Test
-    public void test_structure_search_rejects_an_unsupported_format() throws Exception {
+    public void test_structure_search_counts_markdown_only() throws Exception {
         Path docDir = indexedDocDir(DIGEST);
-        writePages(docDir, ArtifactType.STRUCTURE, "md", "# one");
+        // Only the xhtml is on disk, so a search that could fall back to it would answer 200. It must
+        // 404 instead: counting over markup reports every tag name and link target as an occurrence
+        // of the user's term, and "html" would match a page whose only text is "AT&T".
+        writePages(docDir, ArtifactType.STRUCTURE, "xhtml",
+                "<html xmlns=\"http://www.w3.org/1999/xhtml\"><body><p>data</p></body></html>");
         writeManifest(docDir, filesystemManifest("structure", 1));
-        get("/api/local-datashare/artifacts/structure/" + DIGEST + "/search?query=one&format=pdf").should()
-                .respond(400).contain("'pdf'").contain("md").contain("xhtml");
+        get("/api/local-datashare/artifacts/structure/search/" + DIGEST + "?query=data").should().respond(404);
+        // The format is not a parameter at all, so asking for one changes nothing.
+        get("/api/local-datashare/artifacts/structure/search/" + DIGEST + "?query=html&format=xhtml")
+                .should().respond(404);
     }
 
     @Test
     public void test_structure_search_not_found_without_a_structure_artifact() throws Exception {
         indexedDocDir(DIGEST);
-        get("/api/local-datashare/artifacts/structure/" + DIGEST + "/search?query=data").should().respond(404);
-    }
-
-    @Test
-    public void test_structure_search_not_found_for_a_format_absent_on_disk() throws Exception {
-        Path docDir = indexedDocDir(DIGEST);
-        writePages(docDir, ArtifactType.STRUCTURE, "md", "data");
-        writeManifest(docDir, filesystemManifest("structure", 1));
-        // Same document and manifest, only the format differs: 404 rather than a zero count, so
-        // the client cannot read "no xhtml here" as "your term appears nowhere".
-        get("/api/local-datashare/artifacts/structure/" + DIGEST + "/search?query=data&format=md").should().respond(200);
-        get("/api/local-datashare/artifacts/structure/" + DIGEST + "/search?query=data&format=xhtml").should().respond(404);
+        get("/api/local-datashare/artifacts/structure/search/" + DIGEST + "?query=data").should().respond(404);
     }
 
     @Test
     public void test_structure_search_forbidden_for_non_member_project() {
-        get("/api/foo_index/artifacts/structure/" + DIGEST + "/search?query=data").should().respond(403);
-        // Membership gates before the query and format checks: a non-member must not learn that
-        // their query was blank or their format unsupported before they learn they are not a member.
-        get("/api/foo_index/artifacts/structure/" + DIGEST + "/search").should().respond(403);
-        get("/api/foo_index/artifacts/structure/" + DIGEST + "/search?query=data&format=pdf").should().respond(403);
+        get("/api/foo_index/artifacts/structure/search/" + DIGEST + "?query=data").should().respond(403);
+        // Membership gates before the query check: a non-member must not learn that their query was
+        // blank before they learn they are not a member.
+        get("/api/foo_index/artifacts/structure/search/" + DIGEST + "").should().respond(403);
     }
 
     @Test
