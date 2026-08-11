@@ -243,7 +243,7 @@ public class ArtifactResourceTest extends AbstractProdWebServerTest {
         writePages(docDir, ArtifactType.STRUCTURE, "md", "# one");
         writeManifest(docDir, filesystemManifest("structure", 1));
         get("/api/local-datashare/artifacts/structure/" + DIGEST + "/1?format=pdf").should()
-                .respond(400).contain("md").contain("xhtml");
+                .respond(400).contain("'pdf'").contain("md").contain("xhtml");
     }
 
     @Test
@@ -317,7 +317,7 @@ public class ArtifactResourceTest extends AbstractProdWebServerTest {
         writePages(docDir, ArtifactType.STRUCTURE, "md", "# one");
         writeManifest(docDir, filesystemManifest("structure", 1));
         get("/api/local-datashare/artifacts/structure/" + DIGEST + "/search?query=one&format=pdf").should()
-                .respond(400).contain("md").contain("xhtml");
+                .respond(400).contain("'pdf'").contain("md").contain("xhtml");
     }
 
     @Test
