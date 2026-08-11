@@ -65,6 +65,52 @@ public class StructureSearchTest {
         assertThat(markdownSearch().search("data")).isNull();
     }
 
+    @Test(timeout = 10_000)
+    public void test_search_is_null_when_the_manifest_advertises_an_impossible_page_count() throws Exception {
+        Path node = writePages("md", "data");
+        // manifest.json is written by other producers, so a wild total is hostile input, not a big
+        // document. Unbounded it never terminates: the counter wraps to MIN_VALUE and stays <= total.
+        Files.writeString(node.resolve(ArtifactPath.MANIFEST_FILE),
+                "{\"structure\": {\"status\": \"complete\", \"taskInput\": {}, \"pages\": "
+                        + "{\"total\": 2147483647, \"pagination\": {\"type\": \"filesystem\"}}}}");
+        assertThat(markdownSearch().search("data")).isNull();
+    }
+
+    @Test
+    public void test_a_page_missing_on_disk_is_reported_as_unscanned() throws Exception {
+        Path node = writePages("md", "data", "data", "data");
+        Files.delete(ArtifactPath.payloadPage(node, ArtifactType.STRUCTURE, 2, "md"));
+        completeManifest(3);
+        // Without this the client cannot tell a genuine 2 from a 3 that lost a page: both answer 200
+        // with the same body, so a degraded artifact reads as an authoritative count.
+        StructureSearch.Hits hits = markdownSearch().search("data");
+        assertThat(hits.pages()).isEqualTo(3);
+        assertThat(hits.scanned()).isEqualTo(2);
+    }
+
+    @Test
+    public void test_a_page_that_cannot_be_read_does_not_fail_the_whole_search() throws Exception {
+        Path node = writePages("md", "data", "data", "data");
+        Path page = ArtifactPath.payloadPage(node, ArtifactType.STRUCTURE, 2, "md");
+        Files.delete(page);
+        // A directory where a page file belongs: isReadable passes and readAllBytes throws, standing in
+        // for the mid-scan permission change a unit test cannot stage. Unhandled, one page 500s the lot.
+        Files.createDirectory(page);
+        completeManifest(3);
+        StructureSearch.Hits hits = markdownSearch().search("data");
+        assertThat(hits.count()).isEqualTo(2);
+        assertThat(hits.scanned()).isEqualTo(2);
+    }
+
+    @Test
+    public void test_every_page_read_counts_as_scanned() throws Exception {
+        writePages("md", "data", "nothing here");
+        completeManifest(2);
+        StructureSearch.Hits hits = markdownSearch().search("data");
+        assertThat(hits.pages()).isEqualTo(2);
+        assertThat(hits.scanned()).isEqualTo(2);
+    }
+
     @Test
     public void test_search_is_null_when_the_format_is_absent_from_disk() throws Exception {
         writePages("md", "data");
