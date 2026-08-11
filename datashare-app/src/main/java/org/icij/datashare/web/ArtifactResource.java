@@ -171,6 +171,10 @@ public class ArtifactResource {
     // :page route. Under that route's shape it would win only on a tie-break: fluent-http's UriParser
     // orders on the count of :params across the whole pattern, query string included, and both hold
     // five. A sixth would sort this second, :page would match "search", and every search would 404.
+    //
+    // Past the four-parameter limit, as every route here is: fluent-http binds the URL template's
+    // params positionally, so the count is set by the URL and not by this signature. Bundling them
+    // would only move the binding problem into a factory.
     @Get("/:project/artifacts/structure/search/:id?query=:query&routing=:routing")
     public Payload structureSearch(final String project, final String id, final String query,
                                    final String routing, final Context context) throws IOException {
