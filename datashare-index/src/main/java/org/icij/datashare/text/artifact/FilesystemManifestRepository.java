@@ -2,6 +2,7 @@ package org.icij.datashare.text.artifact;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.exc.MismatchedInputException;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.collect.MapMaker;
 import org.icij.datashare.json.JsonObjectMapper;
@@ -107,7 +108,9 @@ public class FilesystemManifestRepository implements ManifestRepository {
     private ObjectNode read(Path manifest) throws IOException {
         JsonNode root = MAPPER.readTree(Files.readAllBytes(manifest));
         if (!root.isObject()) {
-            throw new IOException(manifest + " is not a JSON object");
+            // A JsonProcessingException like the one bad syntax raises, so a reader telling corrupt
+            // manifests apart from real IO failures catches this shape too instead of 500ing on it.
+            throw MismatchedInputException.from(null, ObjectNode.class, manifest + " is not a JSON object");
         }
         return (ObjectNode) root;
     }
