@@ -75,6 +75,14 @@ public class ArtifactReaderTest {
     }
 
     @Test
+    public void test_servable_entry_is_null_when_manifest_json_is_not_an_object() throws Exception {
+        Path node = dir.getRoot().toPath();
+        Files.createDirectories(node);
+        Files.writeString(node.resolve(ArtifactPath.MANIFEST_FILE), "[]");
+        assertThat(reader.servableEntry(node, ArtifactType.PAGE)).isNull();
+    }
+
+    @Test
     public void test_servable_entry_is_null_when_status_is_unknown() throws Exception {
         Path node = dir.getRoot().toPath();
         Files.createDirectories(node);
