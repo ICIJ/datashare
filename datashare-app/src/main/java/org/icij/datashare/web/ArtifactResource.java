@@ -49,6 +49,8 @@ public class ArtifactResource {
     private static final Logger LOGGER = LoggerFactory.getLogger(ArtifactResource.class);
     // Extensions are fixed by type (convention §71). One ordered map, so adding a format is one
     // edit: its key set is the ?format= whitelist, the disk-probe order and the error-message order.
+    private static final String MARKDOWN = "md";
+    private static final String XHTML = "xhtml";
     private static final Map<String, String> STRUCTURE_CONTENT_TYPES = structureContentTypes();
 
     private final Indexer indexer;
@@ -132,7 +134,7 @@ public class ArtifactResource {
         // Membership gates before format validation, same as every other route here: a non-member
         // must see 403 regardless of what else is wrong with the request.
         requireGranted(context, project);
-        String extension = ofNullable(format).filter(value -> !value.isBlank()).orElse("md");
+        String extension = ofNullable(format).filter(value -> !value.isBlank()).orElse(MARKDOWN);
         String contentType = STRUCTURE_CONTENT_TYPES.get(extension);
         if (contentType == null) {
             // A bad format is a request error: 404 on this route means "no such page".
@@ -142,7 +144,7 @@ public class ArtifactResource {
         Payload payload = payload(project, id, page, routing, ArtifactType.STRUCTURE, extension, contentType);
         // The on-disk XHTML is written pre-sanitized by the structure producer; this is the serving
         // side's defense in depth for a payload written by another producer.
-        return "xhtml".equals(extension)
+        return XHTML.equals(extension)
                 ? payload.withHeader("Content-Security-Policy", "default-src 'none'; sandbox")
                 : payload;
     }
@@ -189,8 +191,8 @@ public class ArtifactResource {
 
     private static Map<String, String> structureContentTypes() {
         Map<String, String> contentTypes = new LinkedHashMap<>();
-        contentTypes.put("md", "text/markdown;charset=UTF-8");
-        contentTypes.put("xhtml", "application/xhtml+xml;charset=UTF-8");
+        contentTypes.put(MARKDOWN, "text/markdown;charset=UTF-8");
+        contentTypes.put(XHTML, "application/xhtml+xml;charset=UTF-8");
         return unmodifiableMap(contentTypes);
     }
 
