@@ -42,7 +42,10 @@ public class StructureSearch {
 
     // The entry only when a servable structure artifact carries this format on disk. Without the
     // formats probe, a document whose page-N.md files are gone would answer "no occurrences"
-    // instead of "no markdown here", contradicting what the manifest route told the client.
+    // instead of "no markdown here", contradicting what the manifest route told the client. The
+    // probe itself only checks page 1 (ArtifactReader#formats), matching what the manifest route
+    // advertises: a document missing page-1.md reads as "no markdown here", while a gap further in
+    // is just a page with no occurrence.
     private ManifestEntry searchableEntry() throws IOException {
         ManifestEntry entry = reader.servableEntry(docArtifactDir, TYPE);
         if (entry == null || reader.servableTotal(docArtifactDir, TYPE, entry) == null) {
