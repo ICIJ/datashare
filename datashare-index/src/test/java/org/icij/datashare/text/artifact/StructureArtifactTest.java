@@ -1,10 +1,10 @@
 package org.icij.datashare.text.artifact;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import org.icij.datashare.PropertiesProvider;
 import org.apache.tika.exception.TikaConfigException;
 import org.apache.tika.exception.TikaException;
 import org.apache.tika.exception.TikaMemoryLimitException;
+import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.Project;
@@ -199,7 +199,8 @@ public class StructureArtifactTest {
         when(sources.getSource(project, doc)).thenThrow(new java.io.FileNotFoundException("gone"));
 
         try {
-            new StructureArtifact(new PropertiesProvider()).produce(new ArtifactContext(project, doc, dir.getRoot().toPath(), sources));
+            new StructureArtifact(new PropertiesProvider())
+                    .produce(new ArtifactContext(project, doc, dir.getRoot().toPath(), sources));
             org.junit.Assert.fail("expected an ArtifactException");
         } catch (ArtifactException expected) {
             // the directory must not be created before the source is known to be readable
@@ -219,7 +220,8 @@ public class StructureArtifactTest {
         when(sources.getSource(project, broken)).thenAnswer(invocation -> new ByteArrayInputStream(garbage));
 
         try {
-            new StructureArtifact(new PropertiesProvider()).produce(new ArtifactContext(project, broken, dir.getRoot().toPath(), sources));
+            new StructureArtifact(new PropertiesProvider())
+                    .produce(new ArtifactContext(project, broken, dir.getRoot().toPath(), sources));
             org.junit.Assert.fail("expected an UnreadableContentException");
         } catch (UnreadableContentException expected) {
             assertThat(Files.exists(ArtifactPath.payloadDir(dir.getRoot().toPath(), ArtifactType.STRUCTURE))).isFalse();

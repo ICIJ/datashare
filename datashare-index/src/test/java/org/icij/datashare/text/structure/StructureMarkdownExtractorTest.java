@@ -350,7 +350,8 @@ public class StructureMarkdownExtractorTest {
         // The exact metadata shapes Tika hands shouldParseEmbedded: a mail's own text part carries no
         // resourceName, while an attachment, a zip entry and a PST mail item are documents in their own
         // right.
-        DocumentSelector selector = StructureMarkdownExtractor.buildParseContext(OcrSettings.NONE).get(DocumentSelector.class);
+        DocumentSelector selector =
+                StructureMarkdownExtractor.buildParseContext(OcrSettings.NONE).get(DocumentSelector.class);
 
         assertThat(selector.select(partMetadata(null, "text/plain"))).isTrue();
         assertThat(selector.select(partMetadata(null, "text/html; charset=UTF-8"))).isTrue();
