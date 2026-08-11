@@ -1,7 +1,9 @@
 package org.icij.datashare.text;
 
+import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchIndexer;
 import org.junit.Test;
 
+import java.io.IOException;
 import java.util.Locale;
 
 import static org.fest.assertions.Assertions.assertThat;
@@ -9,6 +11,19 @@ import static org.fest.assertions.Assertions.assertThat;
 /** Pins the folding and counting rules ContentOccurrences ports from
  *  searchOccurrences.painless.java: every test here fails if the two drift apart. */
 public class ContentOccurrencesTest {
+    @Test
+    public void test_the_ported_script_still_carries_the_rules_this_class_mirrors() throws IOException {
+        // Every other test here asserts the port against hardcoded expectations, so editing the script
+        // alone leaves them all green while the two counters start disagreeing. Substrings rather than
+        // a checksum: reformatting the script should not fail the build, changing its rules should.
+        String script = ElasticsearchIndexer.getScriptStringFromFile("searchOccurrences.painless.java");
+        assertThat(script).contains("Character.getType(c) == Character.LOWERCASE_LETTER");
+        assertThat(script).contains("Normalizer.normalize(Character.toString(c) , Normalizer.Form.NFKD)");
+        assertThat(script).contains("Character.getType(c) != Character.NON_SPACING_MARK");
+        assertThat(script).contains("int queryLength = query.length();");
+        assertThat(script).contains("contentInLower.indexOf(queryInLower, lastIndex + queryLength)");
+    }
+
     @Test
     public void test_matching_ignores_case() {
         assertThat(ContentOccurrences.count("Data and DATA", "data")).isEqualTo(2);
