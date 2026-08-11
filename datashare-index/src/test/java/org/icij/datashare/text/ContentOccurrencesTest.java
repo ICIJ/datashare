@@ -87,4 +87,13 @@ public class ContentOccurrencesTest {
             Locale.setDefault(previous);
         }
     }
+
+    @Test
+    public void test_the_step_uses_the_raw_query_length_not_the_folded_one() {
+        // U+FB00 is a LOWERCASE_LETTER whose NFKD form is "ff", so the folded query is twice the
+        // raw one. The script steps by the raw length (line 45), which finds the two overlapping
+        // matches here; stepping by the folded length would report 1 and diverge from
+        // Elasticsearch on any query holding a ligature.
+        assertThat(ContentOccurrences.count("afffb", "\ufb00")).isEqualTo(2);
+    }
 }
