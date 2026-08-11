@@ -18,6 +18,7 @@ import org.icij.datashare.text.artifact.ArtifactReader;
 import org.icij.datashare.text.artifact.ArtifactType;
 import org.icij.datashare.text.artifact.FilesystemManifestRepository;
 import org.icij.datashare.text.artifact.ManifestEntry;
+import org.icij.datashare.text.artifact.StructureSearch;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.text.indexing.elasticsearch.ArtifactPath;
 import org.icij.datashare.utils.DocumentSourceAccess;
@@ -134,19 +135,47 @@ public class ArtifactResource {
         // Membership gates before format validation, same as every other route here: a non-member
         // must see 403 regardless of what else is wrong with the request.
         requireGranted(context, project);
-        String extension = ofNullable(format).filter(value -> !value.isBlank()).orElse(MARKDOWN);
-        String contentType = STRUCTURE_CONTENT_TYPES.get(extension);
-        if (contentType == null) {
+        String extension = structureExtension(format);
+        if (extension == null) {
             // A bad format is a request error: 404 on this route means "no such page".
-            return PayloadFormatter.error("unsupported format '" + extension + "'; supported formats: "
-                    + String.join(", ", STRUCTURE_CONTENT_TYPES.keySet()), HttpStatus.BAD_REQUEST);
+            return unsupportedFormat(format);
         }
-        Payload payload = payload(project, id, page, routing, ArtifactType.STRUCTURE, extension, contentType);
+        Payload payload = payload(project, id, page, routing, ArtifactType.STRUCTURE, extension,
+                STRUCTURE_CONTENT_TYPES.get(extension));
         // The on-disk XHTML is written pre-sanitized by the structure producer; this is the serving
         // side's defense in depth for a payload written by another producer.
         return XHTML.equals(extension)
                 ? payload.withHeader("Content-Security-Policy", "default-src 'none'; sandbox")
                 : payload;
+    }
+
+    @Operation(description = "Counts a query's occurrences in a document's structure pages, per page.",
+            parameters = {
+                    @Parameter(name = "project", description = "the project id", in = ParameterIn.PATH),
+                    @Parameter(name = "id", description = "the document id", in = ParameterIn.PATH),
+                    @Parameter(name = "query", description = "the term to count, matched literally", in = ParameterIn.QUERY),
+                    @Parameter(name = "routing", description = "routing key if not a root document", in = ParameterIn.QUERY),
+                    @Parameter(name = "format", description = "md (default) or xhtml", in = ParameterIn.QUERY)
+            }
+    )
+    @ApiResponse(responseCode = "200", description = "JSON {\"count\": N, \"hits\": [{\"page\": P, \"count\": N}]}")
+    @ApiResponse(responseCode = "400", description = "if the query is blank, or format is not one of md, xhtml")
+    @ApiResponse(responseCode = "403", description = "forbidden if the user doesn't have access to the project")
+    @ApiResponse(responseCode = "404", description = "if the document, the artifact, or that format is not found")
+    @Get("/:project/artifacts/structure/:id/search?query=:query&routing=:routing&format=:format")
+    public Payload structureSearch(final String project, final String id, final String query, final String routing,
+                                   final String format, final Context context) throws IOException {
+        requireGranted(context, project);
+        if (query == null || query.isBlank()) {
+            // Not the 404 /documents/searchContent gives an empty query: a missing parameter is a
+            // malformed request, and a whitespace query would scan every page to match every space.
+            return PayloadFormatter.error("a non-blank query is required", HttpStatus.BAD_REQUEST);
+        }
+        String extension = structureExtension(format);
+        if (extension == null) {
+            return unsupportedFormat(format);
+        }
+        return search(docArtifactDir(project, id, routing), extension, query);
     }
 
     @Operation(description = "Fetches a document's raw (embedded or source) bytes. Same access rules as /documents/src: project membership, the project's download restriction, and the root-document size limit.",
@@ -196,6 +225,18 @@ public class ArtifactResource {
         return unmodifiableMap(contentTypes);
     }
 
+    // The extension a ?format= value asks for, defaulted, or null when it is not one this resource
+    // serves. Shared by the page route and the search route so their whitelists cannot drift.
+    private static String structureExtension(final String format) {
+        String extension = ofNullable(format).filter(value -> !value.isBlank()).orElse(MARKDOWN);
+        return STRUCTURE_CONTENT_TYPES.containsKey(extension) ? extension : null;
+    }
+
+    private static Payload unsupportedFormat(final String format) {
+        return PayloadFormatter.error("unsupported format '" + format + "'; supported formats: "
+                + String.join(", ", STRUCTURE_CONTENT_TYPES.keySet()), HttpStatus.BAD_REQUEST);
+    }
+
     private Payload manifest(final String project, final String id, final String routing,
                              final ArtifactType type, final Collection<String> formats) throws IOException {
         Path docArtifactDir = docArtifactDir(project, id, routing);
@@ -233,6 +274,14 @@ public class ArtifactResource {
         // Every artifact payload is text derived from an ingested document, served from this origin:
         // a browser that sniffs its way to another type could execute a malicious document.
         return new Payload(contentType, bytes).withHeader("X-Content-Type-Options", "nosniff");
+    }
+
+    private Payload search(final Path docArtifactDir, final String extension, final String query) throws IOException {
+        if (docArtifactDir == null) {
+            return Payload.notFound();
+        }
+        StructureSearch.Hits hits = new StructureSearch(reader, docArtifactDir, extension).search(query);
+        return hits == null ? Payload.notFound() : PayloadFormatter.json(hits);
     }
 
     private static int parsePageNumber(String page) {
