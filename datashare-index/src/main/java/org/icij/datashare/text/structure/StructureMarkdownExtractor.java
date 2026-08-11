@@ -39,11 +39,19 @@ import java.util.regex.Pattern;
 
 /**
  * Converts a document's source bytes into a per-page rendering of its structure. Pipeline: Tika XHTML
- * -> split on {@code <div class="page">} -> per-page sanitize -> flexmark html2md. OCR is disabled and
- * embedded documents contribute no pages, so the same bytes always yield byte-identical output, which
- * the content-addressed cache relies on.
+ * -> split on {@code <div class="page">} -> per-page sanitize -> flexmark html2md. Embedded documents
+ * contribute no pages, so the same bytes under the same {@link OcrSettings} always yield byte-identical
+ * output, which the content-addressed cache relies on: OCR is the one input that is not the bytes, so
+ * the caller passes it and records it in the artifact's fingerprint.
  */
 public class StructureMarkdownExtractor {
+
+    /** The OCR the INDEX stage applied to this document, so a page holds the text the content field
+     *  holds. Two knobs because two parsers are, as extract-lib splits them: {@code --ocr} for a
+     *  standalone image, {@code --ocrStrategy} for a scanned PDF (whose default really is NO_OCR). */
+    public record OcrSettings(boolean images, PDFParserConfig.OCR_STRATEGY pdfStrategy) {
+        public static final OcrSettings NONE = new OcrSettings(false, PDFParserConfig.OCR_STRATEGY.NO_OCR);
+    }
 
     private static final String GENERIC_CONTENT_TYPE = "application/octet-stream";
 
@@ -142,11 +150,11 @@ public class StructureMarkdownExtractor {
      * caller owns {@code source}: this method reads but does not close it. {@code contentType} and
      * {@code filename} are detection hints, either of which may be null.
      */
-    public List<Page> extract(InputStream source, String contentType, String filename)
+    public List<Page> extract(InputStream source, String contentType, String filename, OcrSettings ocr)
             throws IOException, SAXException, TikaException {
         // Kept rather than built inside toXhtml: the parse fills it with the type Tika detected.
         Metadata metadata = buildMetadata(contentType, filename);
-        org.jsoup.nodes.Document document = Jsoup.parse(toXhtml(source, metadata));
+        org.jsoup.nodes.Document document = Jsoup.parse(toXhtml(source, metadata, ocr));
         if (isMarkdown(metadata)) {
             document = parseAsMarkdown(document);
         }
@@ -232,12 +240,12 @@ public class StructureMarkdownExtractor {
         return page.html();
     }
 
-    String toXhtml(InputStream source, Metadata metadata)
+    String toXhtml(InputStream source, Metadata metadata, OcrSettings ocr)
             throws IOException, SAXException, TikaException {
         ToXMLContentHandler xhtmlHandler = new ToXMLContentHandler();
         new AutoDetectParser(RESILIENT_PARSER).parse(source,
                 new WriteOutContentHandler(xhtmlHandler, maxOutputChars),
-                metadata, buildParseContext());
+                metadata, buildParseContext(ocr));
         return xhtmlHandler.toString();
     }
 
@@ -261,18 +269,19 @@ public class StructureMarkdownExtractor {
         return contentType != null && !contentType.isBlank() && !GENERIC_CONTENT_TYPE.equalsIgnoreCase(contentType);
     }
 
-    // No OCR, no recursion into embedded parts, and IdentityHtmlMapper so inline formatting survives
-    // instead of being dropped by the DefaultHtmlMapper. Disabling OCR takes both configs: PDFParserConfig
+    // The caller's OCR, no recursion into embedded parts, and IdentityHtmlMapper so inline formatting
+    // survives instead of being dropped by the DefaultHtmlMapper. OCR takes both configs: PDFParserConfig
     // only governs a scanned PDF page, while a standalone image goes through TesseractOCRParser, which it
-    // does not reach. Output would otherwise depend on the tesseract build and langpacks, which taskInput
-    // does not record.
-    static ParseContext buildParseContext() {
+    // does not reach. With OCR on, output depends on the tesseract build and langpacks, which taskInput
+    // does not record: the same exposure PageArtifact already accepts, and the price of pages that hold
+    // what the content field holds.
+    static ParseContext buildParseContext(OcrSettings ocr) {
         ParseContext context = new ParseContext();
         PDFParserConfig pdfConfig = new PDFParserConfig();
-        pdfConfig.setOcrStrategy(PDFParserConfig.OCR_STRATEGY.NO_OCR);
+        pdfConfig.setOcrStrategy(ocr.pdfStrategy());
         context.set(PDFParserConfig.class, pdfConfig);
         TesseractOCRConfig tesseractConfig = new TesseractOCRConfig();
-        tesseractConfig.setSkipOcr(true);
+        tesseractConfig.setSkipOcr(!ocr.images());
         context.set(TesseractOCRConfig.class, tesseractConfig);
         context.set(HtmlMapper.class, new IdentityHtmlMapper());
         // Tika otherwise appends every embedded part's XHTML into this document's handler, buffering a

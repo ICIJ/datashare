@@ -4,9 +4,12 @@ import org.apache.tika.Tika;
 import org.apache.tika.exception.TikaConfigException;
 import org.apache.tika.exception.TikaException;
 import org.apache.tika.exception.TikaMemoryLimitException;
+import org.apache.tika.parser.pdf.PDFParserConfig;
+import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.indexing.elasticsearch.ArtifactPath;
 import org.icij.datashare.text.structure.StructureMarkdownExtractor;
+import org.icij.datashare.text.structure.StructureMarkdownExtractor.OcrSettings;
 import org.icij.datashare.text.structure.StructureMarkdownExtractor.Page;
 import org.icij.datashare.utils.AtomicDirectorySwap;
 import org.icij.datashare.utils.BuildVersions;
@@ -18,8 +21,11 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
+import static org.icij.datashare.cli.DatashareCliOptions.OCR_OPT;
+import static org.icij.datashare.cli.DatashareCliOptions.OCR_STRATEGY_OPT;
 import static org.icij.datashare.text.nlp.DocumentMetadataConstants.RESOURCE_NAME_KEY;
 
 /** The structure artifact: a per-page Tika rendering written as page-N.xhtml (sanitized, the
@@ -34,6 +40,11 @@ public class StructureArtifact implements Artifact {
     private static final String ZIP_BOMB_MESSAGE = "Zip bomb detected!";
 
     private final StructureMarkdownExtractor extractor = new StructureMarkdownExtractor();
+    private final PropertiesProvider propertiesProvider;
+
+    public StructureArtifact(PropertiesProvider propertiesProvider) {
+        this.propertiesProvider = propertiesProvider;
+    }
 
     @Override
     public ArtifactType type() {
@@ -42,24 +53,62 @@ public class StructureArtifact implements Artifact {
 
     @Override
     public Map<String, Object> taskInput() {
+        // The run's OCR setting is the best this document-less overload can do; what actually rendered
+        // a document is the overload below. Same split as PageArtifact.
+        return taskInput(runOcrSettings());
+    }
+
+    @Override
+    public Map<String, Object> taskInput(Document document) {
+        // The OCR that made these pages, not the one the run asked for, or re-indexing with OCR on
+        // would change nothing the fingerprint sees and skip-if-current would serve the OCR-free pages
+        // forever. Same reasoning as {@link PageArtifact#taskInput(Document)}.
+        return taskInput(ocrSettings(document));
+    }
+
+    private static Map<String, Object> taskInput(OcrSettings ocr) {
         // A fingerprint of the code that made the bytes, so skip-if-current sees pages an earlier release
         // rendered as stale: Tika renders the XHTML, extract-lib owns the parser set (the resilient PST
         // one), and the datashare version covers what this class decides (page grouping, safelist,
         // flexmark options), which no dependency version tracks. Deliberately conservative: any datashare
         // release makes every structure artifact stale, so the next ARTIFACT run re-extracts a corpus.
         return Map.of("pipeline", "tika", "version", TIKA_VERSION,
+                "ocr", ocr.images(), "ocrStrategy", ocr.pdfStrategy().name(),
                 "extract", BuildVersions.EXTRACT, "datashare", BuildVersions.DATASHARE);
+    }
+
+    // What the INDEX stage applied to this document, so the pages hold the text the content field holds.
+    // getOcrParser() is set only when OCR actually ran for it, and it is one-way here as disableOcr() is
+    // in PageArtifact: the run can turn OCR off, it cannot turn it on for a document indexed without it.
+    private OcrSettings ocrSettings(Document document) {
+        return document.getOcrParser() == null ? OcrSettings.NONE : runOcrSettings();
+    }
+
+    private OcrSettings runOcrSettings() {
+        boolean images = propertiesProvider.get(OCR_OPT).map(Boolean::parseBoolean).orElse(true);
+        return new OcrSettings(images, images ? pdfOcrStrategy() : PDFParserConfig.OCR_STRATEGY.NO_OCR);
+    }
+
+    // Unset or unparseable means NO_OCR, both as extract-lib resolves --ocrStrategy: a scanned PDF
+    // renders empty here exactly when the INDEX stage extracted nothing from it either.
+    private PDFParserConfig.OCR_STRATEGY pdfOcrStrategy() {
+        try {
+            return PDFParserConfig.OCR_STRATEGY.valueOf(
+                    propertiesProvider.get(OCR_STRATEGY_OPT).orElse("NO_OCR").toUpperCase(Locale.ROOT));
+        } catch (IllegalArgumentException unknown) {
+            return PDFParserConfig.OCR_STRATEGY.NO_OCR;
+        }
     }
 
     @Override
     public ManifestEntry produce(ArtifactContext context) throws ArtifactException {
         try (InputStream source = context.sources().getSource(context.project(), context.document())) {
-            // The parser's output is served as it comes, blank pages included: with OCR off a scanned page
-            // renders empty, and "the parser found no text here" is a different thing from the EMPTY of a
-            // raw entry, which means there is nothing at this path to serve at all.
+            // The parser's output is served as it comes, blank pages included: a document indexed without
+            // OCR renders its scanned pages empty here too, and "the parser found no text here" is a
+            // different thing from the EMPTY of a raw entry, which means there is nothing to serve at all.
             List<Page> pages = parse(source, context.document());
             writePages(context.docArtifactDir(), pages);
-            return ManifestEntry.paginated(taskInput(), pages.size());
+            return ManifestEntry.paginated(taskInput(context.document()), pages.size());
         } catch (ArtifactConfigurationException fatal) {
             // Unchecked, and not an ArtifactException, so the catch-all below would otherwise demote the
             // fatal bucket to one more per-document failure and drain the queue instead of ending the run.
@@ -98,7 +147,8 @@ public class StructureArtifact implements Artifact {
      */
     List<Page> parse(InputStream source, Document document) throws IOException, ArtifactException {
         try {
-            return extractor.extract(source, document.getContentType(), resourceName(document));
+            return extractor.extract(source, document.getContentType(), resourceName(document),
+                    ocrSettings(document));
         } catch (TikaConfigException fatal) {
             throw new ArtifactConfigurationException(fatal);
         } catch (TikaException | SAXException failure) {
