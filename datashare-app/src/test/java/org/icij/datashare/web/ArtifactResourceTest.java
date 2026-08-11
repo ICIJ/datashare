@@ -267,6 +267,86 @@ public class ArtifactResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
+    public void test_structure_search_counts_occurrences_across_pages() throws Exception {
+        Path docDir = indexedDocDir(DIGEST);
+        writePages(docDir, ArtifactType.STRUCTURE, "md", "data and data", "nothing here", "data");
+        writeManifest(docDir, filesystemManifest("structure", 3));
+        get("/api/local-datashare/artifacts/structure/" + DIGEST + "/search?query=data").should()
+                .respond(200).haveType("application/json")
+                .contain("{\"count\":3,\"hits\":[{\"page\":1,\"count\":2},{\"page\":3,\"count\":1}]}");
+    }
+
+    @Test
+    public void test_structure_search_route_is_matched_before_the_page_route() throws Exception {
+        Path docDir = indexedDocDir(DIGEST);
+        writePages(docDir, ArtifactType.STRUCTURE, "md", "data");
+        writeManifest(docDir, filesystemManifest("structure", 1));
+        // Both routes carry the same segment count, and only fluent-http's UriParser ordering
+        // (a literal segment sorts before a :param) puts this one first. Had :page won,
+        // parsePageNumber("search") would give 0 and the answer would be 404, so this 200 is the
+        // whole assertion.
+        get("/api/local-datashare/artifacts/structure/" + DIGEST + "/search?query=data").should().respond(200);
+    }
+
+    @Test
+    public void test_structure_search_answers_zero_for_a_document_with_no_match() throws Exception {
+        Path docDir = indexedDocDir(DIGEST);
+        writePages(docDir, ArtifactType.STRUCTURE, "md", "# one");
+        writeManifest(docDir, filesystemManifest("structure", 1));
+        // 200 with an empty result, not 404: the client's counter shows "0 of 0", it does not
+        // fall back to plain text.
+        get("/api/local-datashare/artifacts/structure/" + DIGEST + "/search?query=data").should()
+                .respond(200).contain("{\"count\":0,\"hits\":[]}");
+    }
+
+    @Test
+    public void test_structure_search_rejects_a_blank_query() throws Exception {
+        Path docDir = indexedDocDir(DIGEST);
+        writePages(docDir, ArtifactType.STRUCTURE, "md", "# one");
+        writeManifest(docDir, filesystemManifest("structure", 1));
+        get("/api/local-datashare/artifacts/structure/" + DIGEST + "/search").should().respond(400);
+        get("/api/local-datashare/artifacts/structure/" + DIGEST + "/search?query=").should().respond(400);
+        // Whitespace-only is not empty, so /documents/searchContent runs it and matches every
+        // space on every page. Rejected here instead.
+        get("/api/local-datashare/artifacts/structure/" + DIGEST + "/search?query=%20%20").should().respond(400);
+    }
+
+    @Test
+    public void test_structure_search_rejects_an_unsupported_format() throws Exception {
+        Path docDir = indexedDocDir(DIGEST);
+        writePages(docDir, ArtifactType.STRUCTURE, "md", "# one");
+        writeManifest(docDir, filesystemManifest("structure", 1));
+        get("/api/local-datashare/artifacts/structure/" + DIGEST + "/search?query=one&format=pdf").should()
+                .respond(400).contain("md").contain("xhtml");
+    }
+
+    @Test
+    public void test_structure_search_not_found_without_a_structure_artifact() throws Exception {
+        indexedDocDir(DIGEST);
+        get("/api/local-datashare/artifacts/structure/" + DIGEST + "/search?query=data").should().respond(404);
+    }
+
+    @Test
+    public void test_structure_search_not_found_for_a_format_absent_on_disk() throws Exception {
+        Path docDir = indexedDocDir(DIGEST);
+        writePages(docDir, ArtifactType.STRUCTURE, "md", "data");
+        writeManifest(docDir, filesystemManifest("structure", 1));
+        // Same document and manifest, only the format differs: 404 rather than a zero count, so
+        // the client cannot read "no xhtml here" as "your term appears nowhere".
+        get("/api/local-datashare/artifacts/structure/" + DIGEST + "/search?query=data&format=md").should().respond(200);
+        get("/api/local-datashare/artifacts/structure/" + DIGEST + "/search?query=data&format=xhtml").should().respond(404);
+    }
+
+    @Test
+    public void test_structure_search_forbidden_for_non_member_project() {
+        get("/api/foo_index/artifacts/structure/" + DIGEST + "/search?query=data").should().respond(403);
+        // Membership gates before the query and format checks: a non-member must not learn that
+        // their query was blank or their format unsupported before they learn they are not a member.
+        get("/api/foo_index/artifacts/structure/" + DIGEST + "/search").should().respond(403);
+        get("/api/foo_index/artifacts/structure/" + DIGEST + "/search?query=data&format=pdf").should().respond(403);
+    }
+
+    @Test
     public void test_raw_serves_the_source_bytes_as_an_attachment() throws Exception {
         File file = new File(temp.getRoot(), "raw-source.txt");
         MockIndexer.write(file, "source bytes");
