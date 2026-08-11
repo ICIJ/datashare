@@ -1,7 +1,8 @@
 package org.icij.datashare.text;
 
-import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchIndexer;
 import org.junit.Test;
+
+import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchIndexer;
 
 import java.io.IOException;
 import java.util.Locale;

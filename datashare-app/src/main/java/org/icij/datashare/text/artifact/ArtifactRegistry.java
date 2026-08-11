@@ -33,7 +33,8 @@ public class ArtifactRegistry {
      *  such rival producer: the pages/ payload is Java's alone. */
     public static ArtifactRegistry withDefaults(PropertiesProvider propertiesProvider) {
         return new ArtifactRegistry(
-                List.of(new RawArtifact(), new StructureArtifact(propertiesProvider), new PageArtifact(propertiesProvider)));
+                List.of(new RawArtifact(), new StructureArtifact(propertiesProvider),
+                        new PageArtifact(propertiesProvider)));
     }
 
     public List<Artifact> select(String flagValue) {
