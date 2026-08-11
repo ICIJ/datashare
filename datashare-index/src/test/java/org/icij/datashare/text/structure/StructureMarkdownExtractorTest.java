@@ -20,6 +20,7 @@ import org.apache.tika.metadata.TikaCoreProperties;
 import org.apache.tika.parser.ParseContext;
 import org.apache.tika.parser.ocr.TesseractOCRConfig;
 import org.apache.tika.parser.pdf.PDFParserConfig;
+import org.icij.datashare.text.structure.StructureMarkdownExtractor.OcrSettings;
 import org.icij.datashare.text.structure.StructureMarkdownExtractor.Page;
 import org.jsoup.Jsoup;
 import org.jsoup.parser.Parser;
@@ -50,7 +51,7 @@ public class StructureMarkdownExtractorTest {
 
     private List<Page> extract(StructureMarkdownExtractor extractor, InputStream source, String contentType)
             throws Exception {
-        return extractor.extract(source, contentType, null);
+        return extractor.extract(source, contentType, null, OcrSettings.NONE);
     }
 
     private ByteArrayInputStream stream(String s) {
@@ -104,7 +105,7 @@ public class StructureMarkdownExtractorTest {
     // Both hints a real Markdown document carries: the content type Tika detected at INDEX time and
     // the resource name from its metadata.
     private Page markdownPage(String source) throws Exception {
-        return extractor.extract(stream(source), "text/x-web-markdown", "README.md").get(0);
+        return extractor.extract(stream(source), "text/x-web-markdown", "README.md", OcrSettings.NONE).get(0);
     }
 
     @Test
@@ -349,7 +350,7 @@ public class StructureMarkdownExtractorTest {
         // The exact metadata shapes Tika hands shouldParseEmbedded: a mail's own text part carries no
         // resourceName, while an attachment, a zip entry and a PST mail item are documents in their own
         // right.
-        DocumentSelector selector = StructureMarkdownExtractor.buildParseContext().get(DocumentSelector.class);
+        DocumentSelector selector = StructureMarkdownExtractor.buildParseContext(OcrSettings.NONE).get(DocumentSelector.class);
 
         assertThat(selector.select(partMetadata(null, "text/plain"))).isTrue();
         assertThat(selector.select(partMetadata(null, "text/html; charset=UTF-8"))).isTrue();
@@ -516,11 +517,24 @@ public class StructureMarkdownExtractorTest {
 
     @Test
     public void test_parse_context_disables_ocr_for_both_pdf_and_standalone_images() {
-        ParseContext context = StructureMarkdownExtractor.buildParseContext();
+        ParseContext context = StructureMarkdownExtractor.buildParseContext(OcrSettings.NONE);
 
         assertThat(context.get(PDFParserConfig.class).getOcrStrategy())
                 .isEqualTo(PDFParserConfig.OCR_STRATEGY.NO_OCR);
         assertThat(context.get(TesseractOCRConfig.class).isSkipOcr()).isTrue();
+    }
+
+    @Test
+    public void test_parse_context_applies_the_ocr_the_caller_asks_for() {
+        // Both configs, because two parsers are involved: PDFParserConfig governs a scanned PDF page and
+        // TesseractOCRConfig governs a standalone image, which the PDF one never reaches. A document
+        // indexed with OCR whose pages render empty is the whole reason this is a parameter.
+        ParseContext context = StructureMarkdownExtractor.buildParseContext(
+                new OcrSettings(true, PDFParserConfig.OCR_STRATEGY.OCR_AND_TEXT_EXTRACTION));
+
+        assertThat(context.get(PDFParserConfig.class).getOcrStrategy())
+                .isEqualTo(PDFParserConfig.OCR_STRATEGY.OCR_AND_TEXT_EXTRACTION);
+        assertThat(context.get(TesseractOCRConfig.class).isSkipOcr()).isFalse();
     }
 
     @Test
@@ -537,8 +551,8 @@ public class StructureMarkdownExtractorTest {
             throws Exception {
         // isMarkdown reads the type Tika detected, not the caller's hint: a mismatched or generic hint
         // (an embedded .md arriving with its container's type, for instance) must not turn the branch off.
-        Page page = extractor.extract(stream("Some **bold** text.\n"), "application/octet-stream", "README.md")
-                .get(0);
+        Page page = extractor.extract(stream("Some **bold** text.\n"), "application/octet-stream", "README.md",
+                OcrSettings.NONE).get(0);
 
         assertThat(page.markdown()).contains("**bold**");
     }

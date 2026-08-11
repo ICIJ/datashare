@@ -1,6 +1,7 @@
 package org.icij.datashare.text.artifact;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import org.icij.datashare.PropertiesProvider;
 import org.apache.tika.exception.TikaConfigException;
 import org.apache.tika.exception.TikaException;
 import org.apache.tika.exception.TikaMemoryLimitException;
@@ -23,6 +24,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 import java.util.UUID;
 import java.util.stream.Stream;
@@ -76,8 +78,36 @@ public class StructureArtifactTest {
     }
 
     @Test
+    public void test_task_input_records_the_ocr_that_rendered_the_document() {
+        // A document indexed without OCR is rendered without it whatever the run asks, so the run's flag
+        // alone would stamp OCR-free pages as OCR'd: re-indexing with OCR on then changes nothing the
+        // fingerprint sees, and skip-if-current serves the OCR-free pages forever.
+        StructureArtifact withOcrRun = new StructureArtifact(
+                new PropertiesProvider(Map.of("ocrStrategy", "OCR_AND_TEXT_EXTRACTION")));
+        Document ocred = createDoc("ocr-id").with(Path.of("/path/to/scan.pdf")).ofContentType("application/pdf")
+                .withOcrParser("org.icij.extract.parser.ocr.OCRParserAdapter").build();
+
+        assertThat(withOcrRun.taskInput(doc).get("ocr")).isEqualTo(false);
+        assertThat(withOcrRun.taskInput(doc).get("ocrStrategy")).isEqualTo("NO_OCR");
+        assertThat(withOcrRun.taskInput(ocred).get("ocr")).isEqualTo(true);
+        assertThat(withOcrRun.taskInput(ocred).get("ocrStrategy")).isEqualTo("OCR_AND_TEXT_EXTRACTION");
+        // The run's switch still wins downward: it cannot OCR when the run turned OCR off.
+        assertThat(new StructureArtifact(new PropertiesProvider(Map.of("ocr", "false"))).taskInput(ocred).get("ocr"))
+                .isEqualTo(false);
+        // A fingerprint that does not move is the bug, so the two must not compare equal.
+        assertThat(withOcrRun.taskInput(ocred)).isNotEqualTo(withOcrRun.taskInput(doc));
+    }
+
+    @Test
+    public void test_an_unknown_ocr_strategy_degrades_to_no_ocr_as_extract_does() {
+        StructureArtifact misconfigured = new StructureArtifact(
+                new PropertiesProvider(Map.of("ocrStrategy", "NOPE")));
+        assertThat(misconfigured.taskInput().get("ocrStrategy")).isEqualTo("NO_OCR");
+    }
+
+    @Test
     public void test_type_and_task_input() {
-        StructureArtifact structure = new StructureArtifact();
+        StructureArtifact structure = new StructureArtifact(new PropertiesProvider());
         assertThat(structure.type()).isEqualTo(ArtifactType.STRUCTURE);
         assertThat(structure.taskInput().get("pipeline")).isEqualTo("tika");
         String version = (String) structure.taskInput().get("version");
@@ -100,7 +130,7 @@ public class StructureArtifactTest {
     // confirm the change was intended, then update the expectation.
     @Test
     public void test_the_stored_page_set_is_pinned() throws Exception {
-        new StructureArtifact().produce(contextFor(PINNED_HTML));
+        new StructureArtifact(new PropertiesProvider()).produce(contextFor(PINNED_HTML));
 
         assertThat(storedPageNames()).isEqualTo(
                 List.of("page-1.md", "page-1.xhtml", "page-2.md", "page-2.xhtml"));
@@ -133,7 +163,7 @@ public class StructureArtifactTest {
 
     @Test
     public void test_produce_writes_both_formats_for_page_one() throws Exception {
-        new StructureArtifact().produce(contextFor(HTML));
+        new StructureArtifact(new PropertiesProvider()).produce(contextFor(HTML));
 
         assertThat(Files.readString(page(1, "md"))).contains("# Title");
         assertThat(Files.readString(page(1, "xhtml"))).contains("<h1>Title</h1>");
@@ -142,7 +172,7 @@ public class StructureArtifactTest {
 
     @Test
     public void test_produce_returns_a_filesystem_paginated_entry() throws Exception {
-        ManifestEntry entry = new StructureArtifact().produce(contextFor(HTML));
+        ManifestEntry entry = new StructureArtifact(new PropertiesProvider()).produce(contextFor(HTML));
 
         assertThat(entry.pages().total()).isEqualTo(1);
         assertThat(entry.pages().pagination().type()).isEqualTo("filesystem");
@@ -153,11 +183,11 @@ public class StructureArtifactTest {
 
     @Test
     public void test_produce_is_byte_deterministic() throws Exception {
-        new StructureArtifact().produce(contextFor(HTML));
+        new StructureArtifact(new PropertiesProvider()).produce(contextFor(HTML));
         byte[] firstMd = Files.readAllBytes(page(1, "md"));
         byte[] firstXhtml = Files.readAllBytes(page(1, "xhtml"));
 
-        new StructureArtifact().produce(contextFor(HTML));
+        new StructureArtifact(new PropertiesProvider()).produce(contextFor(HTML));
 
         assertThat(Files.readAllBytes(page(1, "md"))).isEqualTo(firstMd);
         assertThat(Files.readAllBytes(page(1, "xhtml"))).isEqualTo(firstXhtml);
@@ -169,7 +199,7 @@ public class StructureArtifactTest {
         when(sources.getSource(project, doc)).thenThrow(new java.io.FileNotFoundException("gone"));
 
         try {
-            new StructureArtifact().produce(new ArtifactContext(project, doc, dir.getRoot().toPath(), sources));
+            new StructureArtifact(new PropertiesProvider()).produce(new ArtifactContext(project, doc, dir.getRoot().toPath(), sources));
             org.junit.Assert.fail("expected an ArtifactException");
         } catch (ArtifactException expected) {
             // the directory must not be created before the source is known to be readable
@@ -189,7 +219,7 @@ public class StructureArtifactTest {
         when(sources.getSource(project, broken)).thenAnswer(invocation -> new ByteArrayInputStream(garbage));
 
         try {
-            new StructureArtifact().produce(new ArtifactContext(project, broken, dir.getRoot().toPath(), sources));
+            new StructureArtifact(new PropertiesProvider()).produce(new ArtifactContext(project, broken, dir.getRoot().toPath(), sources));
             org.junit.Assert.fail("expected an UnreadableContentException");
         } catch (UnreadableContentException expected) {
             assertThat(Files.exists(ArtifactPath.payloadDir(dir.getRoot().toPath(), ArtifactType.STRUCTURE))).isFalse();
@@ -200,7 +230,7 @@ public class StructureArtifactTest {
     public void test_a_broken_configuration_ends_the_run_instead_of_failing_one_document() throws Exception {
         // It fails every document the same way, so ArtifactTask rethrows it where it rethrows an Error.
         // Catching it as one more document failure would drain the whole queue one ERROR at a time.
-        StructureArtifact misconfigured = new StructureArtifact() {
+        StructureArtifact misconfigured = new StructureArtifact(new PropertiesProvider()) {
             @Override
             List<Page> parse(java.io.InputStream source, Document document) {
                 throw new ArtifactConfigurationException(new TikaConfigException("no parser for it"));
@@ -238,7 +268,7 @@ public class StructureArtifactTest {
         Document scan = createDoc("scan-id").with(Path.of("/path/to/scan.png"))
                 .ofContentType("image/png").build();
 
-        ManifestEntry entry = new StructureArtifact().produce(contextFor(blankPng(), scan));
+        ManifestEntry entry = new StructureArtifact(new PropertiesProvider()).produce(contextFor(blankPng(), scan));
 
         assertThat(entry.status()).isNull(); // the producer loop stamps complete
         assertThat(entry.pages().total()).isEqualTo(1);
@@ -257,7 +287,7 @@ public class StructureArtifactTest {
         // an ARTIFACT run over a fresh artifactDir has to create it here or fail on every document.
         Path docArtifactDir = dir.getRoot().toPath().resolve("6a/bb/6abbdigest");
 
-        ManifestEntry entry = new StructureArtifact().produce(contextFor(HTML, docArtifactDir));
+        ManifestEntry entry = new StructureArtifact(new PropertiesProvider()).produce(contextFor(HTML, docArtifactDir));
 
         assertThat(entry.pages().total()).isEqualTo(1);
         assertThat(Files.readString(ArtifactPath.payloadPage(docArtifactDir, ArtifactType.STRUCTURE, 1, "md"))).contains("# Title");
@@ -269,7 +299,7 @@ public class StructureArtifactTest {
     @Test
     public void test_manifest_written_by_the_real_producer_loop_matches_the_convention() throws Exception {
         boolean produced = new ArtifactProducer(new FilesystemManifestRepository(), () -> false)
-                .run(List.of(new StructureArtifact()), contextFor(HTML), false);
+                .run(List.of(new StructureArtifact(new PropertiesProvider())), contextFor(HTML), false);
 
         assertThat(produced).isTrue();
         // The repository pretty-prints the manifest, so assert on the parsed tree rather than raw bytes.
@@ -285,11 +315,11 @@ public class StructureArtifactTest {
     @Test
     public void test_second_producer_run_skips_a_document_whose_payload_is_still_there() throws Exception {
         ArtifactProducer producer = new ArtifactProducer(new FilesystemManifestRepository(), () -> false);
-        producer.run(List.of(new StructureArtifact()), contextFor(HTML), false);
+        producer.run(List.of(new StructureArtifact(new PropertiesProvider())), contextFor(HTML), false);
         // Overwrite rather than delete: a deleted page is now a repair trigger, not proof of a skip.
         Files.writeString(page(1, "md"), "sentinel");
 
-        producer.run(List.of(new StructureArtifact()), contextFor(HTML), false);
+        producer.run(List.of(new StructureArtifact(new PropertiesProvider())), contextFor(HTML), false);
 
         assertThat(Files.readString(page(1, "md"))).isEqualTo("sentinel");
     }
@@ -297,13 +327,13 @@ public class StructureArtifactTest {
     @Test
     public void test_a_re_run_repairs_pages_stranded_in_a_holding_pen() throws Exception {
         ArtifactProducer producer = new ArtifactProducer(new FilesystemManifestRepository(), () -> false);
-        producer.run(List.of(new StructureArtifact()), contextFor(HTML), false);
+        producer.run(List.of(new StructureArtifact(new PropertiesProvider())), contextFor(HTML), false);
         // What a failed AtomicDirectorySwap.restore leaves behind: the only copy of the pages in a holding
         // pen while the target is gone, until now recoverable only by hand (#2300).
         Path pen = dir.getRoot().toPath().resolve(".structure-" + UUID.randomUUID() + ".replaced");
         Files.move(ArtifactPath.payloadDir(dir.getRoot().toPath(), ArtifactType.STRUCTURE), pen);
 
-        producer.run(List.of(new StructureArtifact()), contextFor(HTML), false);
+        producer.run(List.of(new StructureArtifact(new PropertiesProvider())), contextFor(HTML), false);
 
         assertThat(Files.readString(page(1, "md"))).contains("# Title");
         // reclaimHoldingPens swept the stale pen on the way through, so the repair costs no extra copy.
