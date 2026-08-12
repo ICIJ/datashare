@@ -8,6 +8,7 @@ import org.icij.datashare.text.indexing.elasticsearch.ArtifactPath;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Duration;
 import java.util.Map;
 
 import static org.fest.assertions.Assertions.assertThat;
@@ -93,13 +94,28 @@ public class StructureSearchTest {
         Path node = writePages("md", "data", "data", "data");
         Path page = ArtifactPath.payloadPage(node, ArtifactType.STRUCTURE, 2, "md");
         Files.delete(page);
-        // A directory where a page file belongs: isReadable passes and readAllBytes throws, standing in
-        // for the mid-scan permission change a unit test cannot stage. Unhandled, one page 500s the lot.
+        // A directory where a page file belongs: readAllBytes throws a plain IOException rather than
+        // the NoSuchFile/AccessDenied the reader maps to null, standing in for the stalled mount a unit
+        // test cannot stage. Unhandled, one such page turns a nine-hundred-page search into a 500.
         Files.createDirectory(page);
         completeManifest(3);
         StructureSearch.Hits hits = markdownSearch().search("data");
         assertThat(hits.count()).isEqualTo(2);
         assertThat(hits.scanned()).isEqualTo(2);
+    }
+
+    @Test(timeout = 10_000)
+    public void test_a_scan_stops_at_its_budget_and_reports_the_pages_it_never_reached() throws Exception {
+        writePages("md", "data", "data", "data");
+        completeManifest(3);
+        // A zero budget fails the very first deadline check, so nothing is scanned. The production
+        // budget is ten seconds precisely so it never fires on a real document, which is also why no
+        // test can reach it: this proves the loop consults the budget at all.
+        StructureSearch.Hits hits =
+                new StructureSearch(reader, dir.getRoot().toPath(), "md", Duration.ZERO).search("data");
+        assertThat(hits.pages()).isEqualTo(3);
+        assertThat(hits.scanned()).isEqualTo(0);
+        assertThat(hits.count()).isEqualTo(0);
     }
 
     @Test

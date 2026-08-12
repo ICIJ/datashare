@@ -6,6 +6,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -26,14 +27,31 @@ public class StructureSearch {
     private static final Logger LOGGER = LoggerFactory.getLogger(StructureSearch.class);
     private static final ArtifactType TYPE = ArtifactType.STRUCTURE;
 
+    /**
+     * Wall clock a single scan may spend before it answers with what it has. Deliberately far above
+     * any real document, which the {@link ArtifactReader#MAX_SERVABLE_PAGES} cap is not: that cap
+     * still allows a manifest to hold one of the ten HTTP worker threads for minutes. Generous
+     * enough never to fire on a real corpus, so the answer stays reproducible in practice, and
+     * {@code scanned} below {@code pages} tells the client the count is a floor when it does.
+     */
+    private static final Duration SCAN_BUDGET = Duration.ofSeconds(10);
+
     private final ArtifactReader reader;
     private final Path docArtifactDir;
     private final String extension;
+    private final Duration scanBudget;
 
     public StructureSearch(ArtifactReader reader, Path docArtifactDir, String extension) {
+        this(reader, docArtifactDir, extension, SCAN_BUDGET);
+    }
+
+    // Package-private: the budget is fixed in production, and no test can wait ten seconds to prove
+    // the loop consults it at all.
+    StructureSearch(ArtifactReader reader, Path docArtifactDir, String extension, Duration scanBudget) {
         this.reader = reader;
         this.docArtifactDir = docArtifactDir;
         this.extension = extension;
+        this.scanBudget = scanBudget;
     }
 
     /** Per-page occurrence counts in page order, pages with none omitted, or null when this
@@ -56,8 +74,11 @@ public class StructureSearch {
     // the algorithm rather than shortening it. Sibling serving code here runs to the same length.
     private Hits scan(ManifestEntry entry, int total, String query) {
         List<PageHits> hits = new ArrayList<>();
+        // Subtraction rather than a plain comparison, so a nanoTime wrap cannot end the scan early.
+        long deadline = System.nanoTime() + scanBudget.toNanos();
         int scanned = 0;
-        for (int page = 1; page <= total; page++) {
+        int page = 1;
+        for (; page <= total && System.nanoTime() - deadline < 0; page++) {
             Integer count = countPage(entry, page, query);
             if (count == null) {
                 continue;
@@ -67,13 +88,21 @@ public class StructureSearch {
                 hits.add(new PageHits(page, count));
             }
         }
-        if (scanned < total) {
-            // Once per scan, not once per page: the reader logs each miss at DEBUG precisely so this
-            // stays one line however many pages a degraded artifact has lost.
+        reportIncompleteScan(scanned, page - 1, total);
+        return new Hits(hits.stream().mapToInt(PageHits::count).sum(), total, scanned, hits);
+    }
+
+    // Two ways to come back short, and the log has to tell them apart: pages the scan reached and
+    // could not read, versus pages it never reached because the budget ran out. Once per scan, not
+    // once per page: the reader logs each unreadable page at DEBUG precisely so this stays one line.
+    private void reportIncompleteScan(int scanned, int reached, int total) {
+        if (reached < total) {
+            LOGGER.warn("stopped searching '{}' in {} after {} of {} page(s): the {}s scan budget ran out",
+                    TYPE.token(), docArtifactDir, reached, total, scanBudget.toSeconds());
+        } else if (scanned < total) {
             LOGGER.warn("searched {} of the {} page(s) the '{}' manifest advertises in {}: the rest are "
                     + "missing or unreadable", scanned, total, TYPE.token(), docArtifactDir);
         }
-        return new Hits(hits.stream().mapToInt(PageHits::count).sum(), total, scanned, hits);
     }
 
     // null when the page could not be read: missing on disk, or a read that throws (the window between
