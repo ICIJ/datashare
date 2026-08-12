@@ -7,7 +7,9 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.RandomAccessFile;
+import java.nio.file.AccessDeniedException;
 import java.nio.file.Files;
+import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.util.Collection;
 import java.util.List;
@@ -76,17 +78,21 @@ public class ArtifactReader {
                     byteRanges.ranges(), page, type, total);
         }
         Path file = ArtifactPath.payloadPage(docArtifactDir, type, page, extension);
-        // Readable, not merely present: payloads are written 0600 by whichever process produced
-        // them (same hazard as SourceExtractor#hasCachedEmbeddedSource), and reading one this
-        // process cannot open would throw an IOException the serving side turns into a 500.
-        if (!Files.isReadable(file)) {
-            // In range per the manifest but absent on disk. DEBUG, not WARN: a caller walking every
-            // page would turn one disagreement into one line per page, replayable by any project
-            // member, so StructureSearch reports it once per scan and the page route answers 404.
+        // Read and let it fail, rather than stat then read: on the shared artifactDir this is
+        // deployed on, each is a network round trip, and StructureSearch walks every page, so the
+        // pre-check doubled the round trips of a whole scan to learn what the read reports anyway.
+        try {
+            return Files.readAllBytes(file);
+        } catch (NoSuchFileException | AccessDeniedException unreadable) {
+            // Absent on disk though the manifest advertises it, or written 0600 by a producer
+            // running under another uid (the hazard SourceExtractor#hasCachedEmbeddedSource has):
+            // both read as "not found" here rather than as the 500 an IOException would become.
+            // DEBUG, not WARN: a caller walking every page would turn one disagreement into one
+            // line per page, replayable by any project member, so StructureSearch reports it once
+            // per scan and the single-page route answers 404.
             LOGGER.debug("manifest advertises {} page(s) for '{}' but {} is missing or unreadable", total, type.token(), file);
             return null;
         }
-        return Files.readAllBytes(file);
     }
 
     /** Which extensions are actually on disk, in the candidate order given. Probes per scheme,
