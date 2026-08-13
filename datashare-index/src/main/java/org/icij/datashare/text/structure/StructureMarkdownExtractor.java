@@ -105,6 +105,7 @@ public class StructureMarkdownExtractor {
     private static final FlexmarkHtmlConverter MARKDOWN_CONVERTER = FlexmarkHtmlConverter.builder(
             new MutableDataSet()
                     .set(FlexmarkHtmlConverter.SETEXT_HEADINGS, false)
+                    .set(FlexmarkHtmlConverter.UNORDERED_LIST_DELIMITER, '-')
                     .set(FlexmarkHtmlConverter.MAX_BLANK_LINES, 1)).build();
 
     // Tika has no Markdown parser: a Markdown document goes through TextAndCSVParser, which hands back

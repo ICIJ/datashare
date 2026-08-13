@@ -112,7 +112,7 @@ public class StructureArtifactTest {
                 + "<ul>\t<li>one</li>\n\t<li>two</li>\n</ul>\n"
                 + "<p><a href=\"page2.html\">next</a></p>\n\n<p>clean</p>\n</body></html>");
         assertThat(readPage(1, "md")).isEqualTo("# Title\n\nplain **bold** and *it* and under\n\n"
-                + "* one\n* two\n\n[next](page2.html)\n\nclean");
+                + "- one\n- two\n\n[next](page2.html)\n\nclean");
         assertThat(readPage(2, "xhtml")).isEqualTo("<html xmlns=\"http://www.w3.org/1999/xhtml\">"
                 + "<head></head><body><table><tbody><tr>\t<th>head</th></tr>\n"
                 + "<tr>\t<td>cell</td></tr>\n</tbody></table>\n\n\n</body></html>");
