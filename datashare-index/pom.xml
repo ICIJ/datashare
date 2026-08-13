@@ -46,6 +46,18 @@
             <artifactId>flexmark-html2md-converter</artifactId>
         </dependency>
         <dependency>
+            <!-- Used directly by StructureMarkdownExtractor to parse a Markdown source before the
+                 html2md pass; only pulled in transitively today via flexmark-html2md-converter, so
+                 declare it explicitly. No version: the root dependencyManagement pin governs it. -->
+            <groupId>com.vladsch.flexmark</groupId>
+            <artifactId>flexmark</artifactId>
+        </dependency>
+        <dependency>
+            <!-- GFM tables in a Markdown source. Same transitive-but-used case as flexmark above. -->
+            <groupId>com.vladsch.flexmark</groupId>
+            <artifactId>flexmark-ext-tables</artifactId>
+        </dependency>
+        <dependency>
             <!-- Used directly by StructureMarkdownExtractor; only pulled in transitively today via
                  flexmark, so declare it explicitly. No version: the root dependencyManagement pin
                  (1.22.1, matching Tika's expected jsoup) governs it. -->
