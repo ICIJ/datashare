@@ -175,6 +175,14 @@ public class StructureMarkdownExtractorTest {
     }
 
     @Test
+    public void test_strikethrough_in_a_markdown_source_survives_as_markup() throws Exception {
+        Page page = markdownPage("~~struck~~ and kept.\n");
+
+        assertThat(page.xhtml()).contains("<del>struck</del>");
+        assertThat(page.markdown()).contains("~~struck~~");
+    }
+
+    @Test
     public void test_plain_text_still_escapes_markdown_metacharacters() throws Exception {
         // Not a markup language: a literal "**" in a .txt must stay literal, so the branch above it
         // must not widen to every text/* type.

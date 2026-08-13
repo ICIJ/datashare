@@ -1,5 +1,6 @@
 package org.icij.datashare.text.structure;
 
+import com.vladsch.flexmark.ext.gfm.strikethrough.StrikethroughExtension;
 import com.vladsch.flexmark.ext.tables.TablesExtension;
 import com.vladsch.flexmark.html.HtmlRenderer;
 import com.vladsch.flexmark.html2md.converter.FlexmarkHtmlConverter;
@@ -57,7 +58,9 @@ public class StructureMarkdownExtractor {
     // everything but its src: a stored page is rendered, so a remote image is a beacon reporting the
     // reader's IP and which document they opened, and no protocol allowlist can tell one from a benign
     // image ("//host/pixel.png" passes). A link target stays, since rendering a page does not follow it.
-    private static final Safelist SAFELIST = Safelist.relaxed().removeTags("u")
+    // A <del> is added because a Markdown source's "~~struck~~" parses to one and Safelist.relaxed()
+    // has no del: it carries no attributes and no active content, and the client's own sanitizer allows it.
+    private static final Safelist SAFELIST = Safelist.relaxed().removeTags("u").addTags("del")
             .removeAttributes("img", "src").preserveRelativeLinks(true);
 
     // Pretty-printing would bake jsoup's indentation into the stored XHTML, so the page bytes would
@@ -106,7 +109,8 @@ public class StructureMarkdownExtractor {
     // the converter then writes back unescaped. Tables are on because the converter renders them back as
     // GFM tables and would otherwise see a wall of escaped pipes.
     private static final MutableDataSet MARKDOWN_OPTIONS = new MutableDataSet()
-            .set(com.vladsch.flexmark.parser.Parser.EXTENSIONS, List.of(TablesExtension.create()));
+            .set(com.vladsch.flexmark.parser.Parser.EXTENSIONS,
+                    List.of(TablesExtension.create(), StrikethroughExtension.create()));
 
     private static final com.vladsch.flexmark.parser.Parser MARKDOWN_PARSER =
             com.vladsch.flexmark.parser.Parser.builder(MARKDOWN_OPTIONS).build();
