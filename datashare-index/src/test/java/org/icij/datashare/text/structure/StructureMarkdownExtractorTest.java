@@ -133,7 +133,7 @@ public class StructureMarkdownExtractorTest {
     }
 
     @Test
-    public void test_unordered_lists_keep_the_dash_marker_a_markdown_source_used() throws Exception {
+    public void test_unordered_lists_keep_the_dash_marker_of_the_markdown_source() throws Exception {
         Page page = markdownPage("- one\n- two\n");
 
         assertThat(page.markdown()).contains("- one");
@@ -182,6 +182,29 @@ public class StructureMarkdownExtractorTest {
     }
 
     @Test
+    public void test_an_unsanitized_code_class_cannot_break_out_of_the_markdown_fence() throws Exception {
+        // jsoup cannot filter an attribute's value, and html2md writes a <code> class verbatim into the
+        // fence info string with no re-sanitization after: a class holding a newline, a closing fence and
+        // markup closes the fence early and drops the rest in as a raw HTML block.
+        Page page = extract(stream(
+                "<pre><code class=\"js&#10;```&#10;&lt;img src=x onerror=alert(1)&gt;&#10;\">code</code></pre>"),
+                "text/html").get(0);
+
+        assertThat(page.markdown()).excludes("onerror");
+        assertThat(page.markdown()).excludes("<img");
+    }
+
+    @Test
+    public void test_a_multi_class_highlighter_does_not_produce_a_garbage_fence_info_string() throws Exception {
+        // A real highlighter class (hljs, sourceCode, a language name) has no "language-" prefix, so kept
+        // verbatim it would produce a fence info string no renderer understands.
+        Page page = extract(stream("<pre><code class=\"hljs sourceCode python\">code</code></pre>"),
+                "text/html").get(0);
+
+        assertThat(page.markdown()).excludes("hljs sourceCode python");
+    }
+
+    @Test
     public void test_a_gfm_table_in_a_markdown_source_survives_the_round_trip() throws Exception {
         Page page = markdownPage("| a | b |\n|---|---|\n| 1 | 2 |\n");
 
@@ -196,6 +219,14 @@ public class StructureMarkdownExtractorTest {
 
         assertThat(page.xhtml()).contains("<del>struck</del>");
         assertThat(page.markdown()).contains("~~struck~~");
+    }
+
+    @Test
+    public void test_a_thematic_break_in_a_markdown_source_survives_the_round_trip() throws Exception {
+        Page page = markdownPage("a\n\n---\n\nb\n");
+
+        assertThat(page.xhtml()).contains("<hr");
+        assertThat(page.markdown()).contains("---");
     }
 
     @Test
@@ -518,6 +549,17 @@ public class StructureMarkdownExtractorTest {
         List<Page> pages = extract(
                 stream("<html><body><h1>Detected</h1></body></html>"), "application/octet-stream");
         assertThat(pages.get(0).markdown()).contains("# Detected");
+    }
+
+    @Test
+    public void test_a_generic_content_type_hint_with_a_markdown_filename_still_takes_the_markdown_branch()
+            throws Exception {
+        // isMarkdown reads the type Tika detected, not the caller's hint: a mismatched or generic hint
+        // (an embedded .md arriving with its container's type, for instance) must not turn the branch off.
+        Page page = extractor.extract(stream("Some **bold** text.\n"), "application/octet-stream", "README.md")
+                .get(0);
+
+        assertThat(page.markdown()).contains("**bold**");
     }
 
     private byte[] zipContaining(String entryName, String content) throws Exception {
