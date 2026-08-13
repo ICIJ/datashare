@@ -166,6 +166,14 @@ public class StructureMarkdownExtractorTest {
     }
 
     @Test
+    public void test_a_fenced_code_block_keeps_its_language() throws Exception {
+        Page page = markdownPage("```bash\nls -l\n```\n");
+
+        assertThat(page.xhtml()).contains("class=\"language-bash\"");
+        assertThat(page.markdown()).contains("```bash");
+    }
+
+    @Test
     public void test_a_gfm_table_in_a_markdown_source_survives_the_round_trip() throws Exception {
         Page page = markdownPage("| a | b |\n|---|---|\n| 1 | 2 |\n");
 
