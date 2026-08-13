@@ -60,7 +60,11 @@ public class StructureMarkdownExtractor {
     // image ("//host/pixel.png" passes). A link target stays, since rendering a page does not follow it.
     // A <del> is added because a Markdown source's "~~struck~~" parses to one and Safelist.relaxed()
     // has no del: it carries no attributes and no active content, and the client's own sanitizer allows it.
+    // "class" on a <code> only, so a fenced block keeps the language the converter needs to write
+    // the fence back. A class name is inert without an attacker-supplied stylesheet, and jsoup cannot
+    // filter attribute values, so this admits any class name on that one tag.
     private static final Safelist SAFELIST = Safelist.relaxed().removeTags("u").addTags("del")
+            .addAttributes("code", "class")
             .removeAttributes("img", "src").preserveRelativeLinks(true);
 
     // Pretty-printing would bake jsoup's indentation into the stored XHTML, so the page bytes would
