@@ -58,6 +58,11 @@
             <artifactId>flexmark-ext-tables</artifactId>
         </dependency>
         <dependency>
+            <!-- GFM strikethrough in a Markdown source. Same transitive-but-used case. -->
+            <groupId>com.vladsch.flexmark</groupId>
+            <artifactId>flexmark-ext-gfm-strikethrough</artifactId>
+        </dependency>
+        <dependency>
             <!-- Used directly by StructureMarkdownExtractor; only pulled in transitively today via
                  flexmark, so declare it explicitly. No version: the root dependencyManagement pin
                  (1.22.1, matching Tika's expected jsoup) governs it. -->
