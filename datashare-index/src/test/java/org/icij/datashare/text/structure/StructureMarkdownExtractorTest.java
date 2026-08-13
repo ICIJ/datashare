@@ -101,6 +101,97 @@ public class StructureMarkdownExtractorTest {
         assertThat(page.markdown()).excludes("alert");
     }
 
+    // Both hints a real Markdown document carries: the content type Tika detected at INDEX time and
+    // the resource name from its metadata.
+    private Page markdownPage(String source) throws Exception {
+        return extractor.extract(stream(source), "text/x-web-markdown", "README.md").get(0);
+    }
+
+    @Test
+    public void test_a_markdown_source_is_parsed_as_markdown_not_as_literal_text() throws Exception {
+        Page page = markdownPage("# Title\n\nSome **bold** and `code`.\n");
+
+        assertThat(page.markdown()).contains("# Title");
+        assertThat(page.markdown()).contains("**bold**");
+        assertThat(page.markdown()).contains("`code`");
+        // The bug: a Markdown source reaches the converter as one text node, so every metacharacter
+        // in it comes back backslash-escaped.
+        assertThat(page.markdown()).excludes("\\*");
+        assertThat(page.markdown()).excludes("\\`");
+        assertThat(page.xhtml()).contains("<h1>Title</h1>");
+        assertThat(page.xhtml()).contains("<strong>bold</strong>");
+    }
+
+    @Test
+    public void test_markdown_lists_and_links_survive_without_escaping() throws Exception {
+        Page page = markdownPage("- item one\n- item two\n\nA [link](http://example.com).\n");
+
+        assertThat(page.markdown()).contains("item one");
+        assertThat(page.markdown()).contains("[link](http://example.com)");
+        assertThat(page.markdown()).excludes("\\[");
+        assertThat(page.xhtml()).contains("<li>item one</li>");
+    }
+
+    @Test
+    public void test_raw_html_in_a_markdown_source_is_sanitized_out_of_both_formats() throws Exception {
+        Page page = markdownPage("Real text.\n\n<script>alert(1)</script>\n");
+
+        // Today this survives as "\<script\>alert(1)\</script\>", inert only because of the escaping
+        // this change removes, so the safelist has to be what drops it.
+        assertThat(page.markdown()).excludes("alert");
+        assertThat(page.markdown()).excludes("script");
+        assertThat(page.xhtml()).excludes("script");
+        assertThat(page.markdown()).contains("Real text.");
+    }
+
+    @Test
+    public void test_a_markdown_image_and_a_javascript_link_lose_their_targets() throws Exception {
+        Page page = markdownPage("![shot](http://remote/x.png)\n\nA [bad](javascript:alert(1)) link.\n");
+
+        assertThat(page.xhtml()).excludes("http://remote/x.png");
+        assertThat(page.xhtml()).excludes("javascript:");
+        assertThat(page.markdown()).excludes("javascript:");
+        assertThat(page.markdown()).contains("bad");
+    }
+
+    @Test
+    public void test_a_fenced_code_block_keeps_its_content_including_html() throws Exception {
+        Page page = markdownPage("```bash\nls -l\n<script>in a fence</script>\n```\n");
+
+        // A code sample is content, not markup: it survives as text on both sides.
+        assertThat(page.markdown()).contains("ls -l");
+        assertThat(page.markdown()).contains("<script>in a fence</script>");
+        assertThat(page.xhtml()).contains("<pre>");
+        assertThat(page.xhtml()).contains("&lt;script&gt;in a fence&lt;/script&gt;");
+    }
+
+    @Test
+    public void test_a_gfm_table_in_a_markdown_source_survives_the_round_trip() throws Exception {
+        Page page = markdownPage("| a | b |\n|---|---|\n| 1 | 2 |\n");
+
+        assertThat(page.xhtml()).contains("<table>");
+        assertThat(page.markdown()).contains("| a | b |");
+        assertThat(page.markdown()).excludes("\\|");
+    }
+
+    @Test
+    public void test_plain_text_still_escapes_markdown_metacharacters() throws Exception {
+        // Not a markup language: a literal "**" in a .txt must stay literal, so the branch above it
+        // must not widen to every text/* type.
+        Page page = extract(stream("a **b** c"), "text/plain").get(0);
+
+        assertThat(page.markdown()).contains("\\*");
+        assertThat(page.xhtml()).excludes("<strong>");
+    }
+
+    @Test
+    public void test_markdown_extraction_is_deterministic() throws Exception {
+        String source = "# Title\n\n- one\n- two\n\n`code`\n";
+
+        assertThat(markdownPage(source).markdown()).isEqualTo(markdownPage(source).markdown());
+        assertThat(markdownPage(source).xhtml()).isEqualTo(markdownPage(source).xhtml());
+    }
+
     @Test
     public void test_underline_is_normalized_to_plain_text() throws Exception {
         Page page = extract(

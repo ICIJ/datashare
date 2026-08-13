@@ -1,5 +1,7 @@
 package org.icij.datashare.text.structure;
 
+import com.vladsch.flexmark.ext.tables.TablesExtension;
+import com.vladsch.flexmark.html.HtmlRenderer;
 import com.vladsch.flexmark.html2md.converter.FlexmarkHtmlConverter;
 import com.vladsch.flexmark.util.data.MutableDataSet;
 import org.apache.tika.config.TikaConfig;
@@ -98,6 +100,24 @@ public class StructureMarkdownExtractor {
                     .set(FlexmarkHtmlConverter.SETEXT_HEADINGS, false)
                     .set(FlexmarkHtmlConverter.MAX_BLANK_LINES, 1)).build();
 
+    // Tika has no Markdown parser: a Markdown document goes through TextAndCSVParser, which hands back
+    // the whole file as a single literal text node, so every "**" reaching the converter above is text
+    // and comes out escaped as "\*\*". Parsing that text as Markdown first makes it real elements, which
+    // the converter then writes back unescaped. Tables are on because the converter renders them back as
+    // GFM tables and would otherwise see a wall of escaped pipes.
+    private static final MutableDataSet MARKDOWN_OPTIONS = new MutableDataSet()
+            .set(com.vladsch.flexmark.parser.Parser.EXTENSIONS, List.of(TablesExtension.create()));
+
+    private static final com.vladsch.flexmark.parser.Parser MARKDOWN_PARSER =
+            com.vladsch.flexmark.parser.Parser.builder(MARKDOWN_OPTIONS).build();
+
+    private static final HtmlRenderer MARKDOWN_RENDERER = HtmlRenderer.builder(MARKDOWN_OPTIONS).build();
+
+    // Tika 3.3.0 detects Markdown as text/x-web-markdown; the other two are the IANA name (RFC 7763)
+    // and its legacy alias, so a rename upstream does not silently switch this off.
+    private static final Set<String> MARKDOWN_TYPES =
+            Set.of("text/x-web-markdown", "text/markdown", "text/x-markdown");
+
     private static final Set<String> INLINE_BODY_TYPES = Set.of("text/plain", "text/html");
 
     public record Page(String xhtml, String markdown) {}
@@ -109,7 +129,12 @@ public class StructureMarkdownExtractor {
      */
     public List<Page> extract(InputStream source, String contentType, String filename)
             throws IOException, SAXException, TikaException {
-        org.jsoup.nodes.Document document = Jsoup.parse(toXhtml(source, contentType, filename));
+        // Kept rather than built inside toXhtml: the parse fills it with the type Tika detected.
+        Metadata metadata = buildMetadata(contentType, filename);
+        org.jsoup.nodes.Document document = Jsoup.parse(toXhtml(source, metadata));
+        if (isMarkdown(metadata)) {
+            document = parseAsMarkdown(document);
+        }
         List<Page> pages = new ArrayList<>();
         for (Element page : selectRootPages(document)) {
             // Both formats come from the same DOM, so they can never disagree about a page's content.
@@ -118,6 +143,21 @@ public class StructureMarkdownExtractor {
             pages.add(new Page(serializeAsXhtml(sanitized), markdown));
         }
         return pages;
+    }
+
+    // The type Tika settled on rather than the caller's hint: AutoDetectParser writes what it detected
+    // into the metadata it is given, so an embedded .md arriving with its container's generic type is
+    // recognised here too.
+    private static boolean isMarkdown(Metadata metadata) {
+        return MARKDOWN_TYPES.contains(baseContentType(metadata));
+    }
+
+    // Replaces Tika's single-text-node rendering with a DOM parsed from the Markdown that node holds.
+    // Nothing downstream knows the difference: page selection, the safelist and the converter run on it
+    // exactly as they run on a parser's own XHTML.
+    private static org.jsoup.nodes.Document parseAsMarkdown(org.jsoup.nodes.Document tikaOutput) {
+        Element body = tikaOutput.body() != null ? tikaOutput.body() : tikaOutput;
+        return Jsoup.parse(MARKDOWN_RENDERER.render(MARKDOWN_PARSER.parse(body.wholeText())));
     }
 
     /**
@@ -178,18 +218,20 @@ public class StructureMarkdownExtractor {
         return page.html();
     }
 
-    String toXhtml(InputStream source, String contentType, String filename)
+    String toXhtml(InputStream source, Metadata metadata)
             throws IOException, SAXException, TikaException {
         ToXMLContentHandler xhtmlHandler = new ToXMLContentHandler();
         new AutoDetectParser(RESILIENT_PARSER).parse(source,
                 new WriteOutContentHandler(xhtmlHandler, maxOutputChars),
-                buildMetadata(contentType, filename), buildParseContext());
+                metadata, buildParseContext());
         return xhtmlHandler.toString();
     }
 
     // The two hints Tika's detector takes, both as deterministic as the bytes themselves. A generic
     // application/octet-stream type (common for embedded nodes) would mislead detection rather than help
-    // it, so only a specific one is passed on; the filename is passed as it is.
+    // it, so only a specific one is passed on; the filename is passed as it is. The caller keeps the
+    // instance: AutoDetectParser writes the type it detected into it, which is what decides whether the
+    // Markdown branch above applies.
     static Metadata buildMetadata(String contentType, String filename) {
         Metadata metadata = new Metadata();
         if (isSpecificContentType(contentType)) {
