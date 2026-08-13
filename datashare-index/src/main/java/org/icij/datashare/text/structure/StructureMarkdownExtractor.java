@@ -35,6 +35,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 /**
  * Converts a document's source bytes into a per-page rendering of its structure. Pipeline: Tika XHTML
@@ -59,11 +60,14 @@ public class StructureMarkdownExtractor {
     // reader's IP and which document they opened, and no protocol allowlist can tell one from a benign
     // image ("//host/pixel.png" passes). A link target stays, since rendering a page does not follow it.
     // A <del> is added because a Markdown source's "~~struck~~" parses to one and Safelist.relaxed()
-    // has no del: it carries no attributes and no active content, and the client's own sanitizer allows it.
-    // "class" on a <code> only, so a fenced block keeps the language the converter needs to write
-    // the fence back. A class name is inert without an attacker-supplied stylesheet, and jsoup cannot
-    // filter attribute values, so this admits any class name on that one tag.
-    private static final Safelist SAFELIST = Safelist.relaxed().removeTags("u").addTags("del")
+    // has no del. An <hr> is added for the same reason a "---" thematic break parses to: like <del>,
+    // it is formatting-only, carries no attributes and no active content, and is common in real
+    // READMEs. Both are allowed because the client's own sanitizer allows them too.
+    // "class" on a <code> only, so a fenced block keeps the language the converter needs to write the
+    // fence back. jsoup cannot filter attribute values, and html2md writes this one straight into the
+    // markdown fence info string with no re-sanitization after (see keepOnlyLanguageClass), so what
+    // reaches Jsoup.clean is already reduced to a single recognized language token or nothing.
+    private static final Safelist SAFELIST = Safelist.relaxed().removeTags("u").addTags("del", "hr")
             .addAttributes("code", "class")
             .removeAttributes("img", "src").preserveRelativeLinks(true);
 
@@ -102,17 +106,21 @@ public class StructureMarkdownExtractor {
     }
 
     // Stateless once built; build once rather than per page.
+    // THEMATIC_BREAK is pinned to "---" for the same reason as the list delimiter below: the default
+    // ("*** ** * ** ***") is not what a "---" in a Markdown source round-trips to otherwise.
     private static final FlexmarkHtmlConverter MARKDOWN_CONVERTER = FlexmarkHtmlConverter.builder(
             new MutableDataSet()
                     .set(FlexmarkHtmlConverter.SETEXT_HEADINGS, false)
                     .set(FlexmarkHtmlConverter.UNORDERED_LIST_DELIMITER, '-')
+                    .set(FlexmarkHtmlConverter.THEMATIC_BREAK, "---")
                     .set(FlexmarkHtmlConverter.MAX_BLANK_LINES, 1)).build();
 
     // Tika has no Markdown parser: a Markdown document goes through TextAndCSVParser, which hands back
     // the whole file as a single literal text node, so every "**" reaching the converter above is text
     // and comes out escaped as "\*\*". Parsing that text as Markdown first makes it real elements, which
-    // the converter then writes back unescaped. Tables are on because the converter renders them back as
-    // GFM tables and would otherwise see a wall of escaped pipes.
+    // the converter then writes back unescaped. Tables and strikethrough are both on because the
+    // converter renders them back as GFM syntax (a table, "~~struck~~") and would otherwise see a wall
+    // of escaped pipes or literal tildes.
     private static final MutableDataSet MARKDOWN_OPTIONS = new MutableDataSet()
             .set(com.vladsch.flexmark.parser.Parser.EXTENSIONS,
                     List.of(TablesExtension.create(), StrikethroughExtension.create()));
@@ -295,11 +303,14 @@ public class StructureMarkdownExtractor {
     }
 
     /**
-     * Sanitizes one page (live jsoup DOM) to a safe Markdown-ready HTML subset (see SAFELIST). Empty
-     * paragraphs are removed first so they do not survive conversion as stray "<br />" noise.
+     * Sanitizes one page (live jsoup DOM) to a safe Markdown-ready HTML subset (see SAFELIST). Two
+     * pre-passes run before Jsoup.clean: empty paragraphs are removed so they do not survive conversion
+     * as stray "<br />" noise, and a code block's class is reduced to a single language token so nothing
+     * jsoup lets through unfiltered reaches the fence info string html2md writes from it.
      */
     String sanitize(Element page) {
         removeEmptyParagraphs(page);
+        keepOnlyLanguageClass(page);
         // A detached page has no output settings of its own and would serialize with jsoup's
         // pretty-printing defaults. Moving rather than copying: the nodes are not held twice, at the
         // cost of emptying the argument, which each page is only handed to once.
@@ -316,6 +327,21 @@ public class StructureMarkdownExtractor {
             if (isBlankParagraph(paragraph)) {
                 paragraph.remove();
             }
+        }
+    }
+
+    // A code class is an unsanitized channel: jsoup cannot filter an attribute's value, and html2md
+    // writes this one verbatim into the markdown fence info string with no re-sanitization afterward.
+    // A value holding a newline and a closing fence would otherwise close the fence early and drop the
+    // rest of the value in as a raw HTML block at the top level. classNames() splits on whitespace, so
+    // a newline inside the value cannot survive into a kept token.
+    private static final Pattern LANGUAGE_CLASS = Pattern.compile("language-[\\w.+#-]+");
+
+    private static void keepOnlyLanguageClass(Element page) {
+        for (Element code : page.select("code[class]")) {
+            String language = code.classNames().stream().filter(c -> LANGUAGE_CLASS.matcher(c).matches())
+                    .findFirst().orElse(null);
+            if (language == null) code.removeAttr("class"); else code.attr("class", language);
         }
     }
 
