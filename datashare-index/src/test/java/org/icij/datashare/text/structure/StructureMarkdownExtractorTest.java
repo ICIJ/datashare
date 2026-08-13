@@ -133,6 +133,14 @@ public class StructureMarkdownExtractorTest {
     }
 
     @Test
+    public void test_unordered_lists_keep_the_dash_marker_a_markdown_source_used() throws Exception {
+        Page page = markdownPage("- one\n- two\n");
+
+        assertThat(page.markdown()).contains("- one");
+        assertThat(page.markdown()).excludes("* one");
+    }
+
+    @Test
     public void test_raw_html_in_a_markdown_source_is_sanitized_out_of_both_formats() throws Exception {
         Page page = markdownPage("Real text.\n\n<script>alert(1)</script>\n");
 
