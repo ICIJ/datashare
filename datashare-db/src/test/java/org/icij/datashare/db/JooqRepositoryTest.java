@@ -526,6 +526,18 @@ public class JooqRepositoryTest {
     }
 
     @Test
+    public void test_delete_greedy_path_banner_stops_at_a_path_separator() {
+        repository.save(new PathBanner(project("project"), Paths.get("/path/to"), "this is note 1"));
+        repository.save(new PathBanner(project("project"), Paths.get("/path/to/note"), "this is note 2"));
+        repository.save(new PathBanner(project("project"), Paths.get("/path/toother"), "this is note 3"));
+
+        assertThat(repository.deleteGreedyPathBanner(project("project"), "/path/to")).isEqualTo(true);
+
+        assertThat(repository.getProjectPathBanners(project("project"))).
+                containsExactly(new PathBanner(project("project"), Paths.get("/path/toother"), "this is note 3"));
+    }
+
+    @Test
     public void test_delete_path_banners() {
         PathBanner pathBanner1 = new PathBanner(project("project"), Paths.get("/path"), "this is note 1");
         PathBanner pathBanner2 = new PathBanner(project("project"), Paths.get("/path/to/note"), "this is note 2");

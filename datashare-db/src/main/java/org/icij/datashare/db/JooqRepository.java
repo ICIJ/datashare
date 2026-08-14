@@ -479,7 +479,7 @@ public class JooqRepository implements Repository {
     public boolean deleteGreedyPathBanner(Project project, String path) {
         return using(connectionProvider, dialect).deleteFrom(PATH_BANNER)
                 .where(PATH_BANNER.PROJECT_ID.eq(project.getId()))
-                .and(PATH_BANNER.PATH.like(value(path).concat('%')))
+                .and(PATH_BANNER.PATH.eq(value(path)).or(PATH_BANNER.PATH.like(value(path).concat("/%"))))
                 .execute() > 0;
     }
 
