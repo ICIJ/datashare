@@ -18,6 +18,7 @@ import org.icij.datashare.policies.Policy;
 import org.icij.datashare.policies.Role;
 import org.icij.datashare.session.DatashareUser;
 
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
 
@@ -86,7 +87,7 @@ public class PathBannerResource {
     public List<PathBanner> getPathBanners(String project, String documentPath, Context context) {
         DatashareUser user = (DatashareUser) context.currentUser();
         forbiddenIfNotGranted(user.isGranted(project));
-        return repository.getPathBanners(project(project), documentPath);
+        return repository.getPathBanners(project(project), bannerPath(documentPath).toString());
     }
 
     @Operation(description = "Gets the list of notes for a project.",
@@ -115,7 +116,7 @@ public class PathBannerResource {
     public Payload savePathBanner(String project, String documentPath, PathBanner body, Context context) {
         DatashareUser user = (DatashareUser) context.currentUser();
         forbiddenIfNotGranted(user.isGranted(project));
-        PathBanner pathBanner = new PathBanner(project(project), Paths.get("/" + documentPath), body.note, body.variant, body.blurSensitiveMedia);
+        PathBanner pathBanner = new PathBanner(project(project), bannerPath(documentPath), body.note, body.variant, body.blurSensitiveMedia);
         return repository.save(pathBanner) ? created() : ok();
     }
 
@@ -123,9 +124,9 @@ public class PathBannerResource {
             Deletes path banners for a given project and path.
             
             By default, deletes the banner whose path matches exactly.
-            With `?greedy=true`, deletes every banner whose path starts with the given prefix
+            With `?greedy=true`, deletes the banner at the given path and every banner below it
             (subtree delete). For example, `DELETE /api/p1/pathBanners/a/b?greedy=true` removes
-            banners at `a/b`, `a/b/doc1`, `a/b/sub/doc2`, etc.
+            banners at `a/b`, `a/b/doc1`, `a/b/sub/doc2`, etc, but not the one at `a/bcd`.
             """,
             parameters = {
                     @Parameter(name = "project", description = "the project id", in = ParameterIn.PATH),
@@ -142,9 +143,9 @@ public class PathBannerResource {
         forbiddenIfNotGranted(user.isGranted(project));
         boolean isGreedy = "true".equals(context.query().get("greedy"));
         if (isGreedy) {
-            repository.deleteGreedyPathBanner(project(project), documentPath);
+            repository.deleteGreedyPathBanner(project(project), bannerPath(documentPath).toString());
         } else {
-            repository.deletePathBanner(project(project), documentPath);
+            repository.deletePathBanner(project(project), bannerPath(documentPath).toString());
         }
         return new Payload(NO_CONTENT);
     }
@@ -163,5 +164,10 @@ public class PathBannerResource {
         forbiddenIfNotGranted(user.isGranted(project));
         repository.deleteProjectPathBanners(project(project));
         return new Payload(NO_CONTENT);
+    }
+
+    // greedy route params never carry the leading slash, banners are stored with an absolute path
+    private static Path bannerPath(String documentPath) {
+        return Paths.get("/" + documentPath);
     }
 }
