@@ -355,7 +355,7 @@ public class TaskManagerTemporalIntTest {
     }
 
     private Closeable startDefaultQueueWorkers(WorkflowRegistry registry) {
-        return TemporalWorkers.start(temporal.getClient(), registry, List.of(WORKFLOWS_DEFAULT), new TemporalWorkerOptions(1, 1));
+        return TemporalWorkers.start(temporal.getClient(), registry, List.of(WORKFLOWS_DEFAULT), new TemporalWorkerOptions(1));
     }
 
     protected void awaitClearedInTemporal(Set<String> taskIds, int timeout, TimeUnit timeUnit) throws IOException {

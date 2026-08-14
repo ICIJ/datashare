@@ -565,7 +565,7 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
                     Utils.getRoutingStrategy(propertiesProvider), new Group(TaskGroupType.Java));
             // this process serves everything it discovered; a distributed deployment would pass a subset of the queues
             addCloseable(TemporalWorkers.start(temporal.getClient(), registry, registry.registeredQueues(),
-                    new TemporalWorkerOptions(getTaskWorkersNb(), getTaskWorkersNb())));
+                    new TemporalWorkerOptions(getTaskWorkersNb())));
         }
         return executorService;
     }
