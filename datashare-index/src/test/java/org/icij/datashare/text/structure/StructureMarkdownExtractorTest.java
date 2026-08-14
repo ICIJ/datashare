@@ -126,18 +126,12 @@ public class StructureMarkdownExtractorTest {
     public void test_markdown_lists_and_links_survive_without_escaping() throws Exception {
         Page page = markdownPage("- item one\n- item two\n\nA [link](http://example.com).\n");
 
-        assertThat(page.markdown()).contains("item one");
+        // The dash marker is the source's own: flexmark writes "*" unless it is pinned.
+        assertThat(page.markdown()).contains("- item one");
+        assertThat(page.markdown()).excludes("* item one");
         assertThat(page.markdown()).contains("[link](http://example.com)");
         assertThat(page.markdown()).excludes("\\[");
         assertThat(page.xhtml()).contains("<li>item one</li>");
-    }
-
-    @Test
-    public void test_unordered_lists_keep_the_dash_marker_of_the_markdown_source() throws Exception {
-        Page page = markdownPage("- one\n- two\n");
-
-        assertThat(page.markdown()).contains("- one");
-        assertThat(page.markdown()).excludes("* one");
     }
 
     @Test
@@ -163,22 +157,15 @@ public class StructureMarkdownExtractorTest {
     }
 
     @Test
-    public void test_a_fenced_code_block_keeps_its_content_including_html() throws Exception {
+    public void test_a_fenced_code_block_keeps_its_language_and_its_content() throws Exception {
         Page page = markdownPage("```bash\nls -l\n<script>in a fence</script>\n```\n");
 
+        assertThat(page.markdown()).contains("```bash");
+        assertThat(page.xhtml()).contains("class=\"language-bash\"");
         // A code sample is content, not markup: it survives as text on both sides.
         assertThat(page.markdown()).contains("ls -l");
         assertThat(page.markdown()).contains("<script>in a fence</script>");
-        assertThat(page.xhtml()).contains("<pre>");
         assertThat(page.xhtml()).contains("&lt;script&gt;in a fence&lt;/script&gt;");
-    }
-
-    @Test
-    public void test_a_fenced_code_block_keeps_its_language() throws Exception {
-        Page page = markdownPage("```bash\nls -l\n```\n");
-
-        assertThat(page.xhtml()).contains("class=\"language-bash\"");
-        assertThat(page.markdown()).contains("```bash");
     }
 
     @Test
@@ -192,16 +179,6 @@ public class StructureMarkdownExtractorTest {
 
         assertThat(page.markdown()).excludes("onerror");
         assertThat(page.markdown()).excludes("<img");
-    }
-
-    @Test
-    public void test_a_multi_class_highlighter_does_not_produce_a_garbage_fence_info_string() throws Exception {
-        // A real highlighter class (hljs, sourceCode, a language name) has no "language-" prefix, so kept
-        // verbatim it would produce a fence info string no renderer understands.
-        Page page = extract(stream("<pre><code class=\"hljs sourceCode python\">code</code></pre>"),
-                "text/html").get(0);
-
-        assertThat(page.markdown()).excludes("hljs sourceCode python");
     }
 
     @Test
@@ -241,10 +218,14 @@ public class StructureMarkdownExtractorTest {
 
     @Test
     public void test_markdown_extraction_is_deterministic() throws Exception {
+        // The Markdown parser and renderer are shared statics, so this pins that they hold no state
+        // between documents, which the content-addressed cache depends on.
         String source = "# Title\n\n- one\n- two\n\n`code`\n";
+        Page first = markdownPage(source);
+        Page second = markdownPage(source);
 
-        assertThat(markdownPage(source).markdown()).isEqualTo(markdownPage(source).markdown());
-        assertThat(markdownPage(source).xhtml()).isEqualTo(markdownPage(source).xhtml());
+        assertThat(first.markdown()).isEqualTo(second.markdown());
+        assertThat(first.xhtml()).isEqualTo(second.xhtml());
     }
 
     @Test

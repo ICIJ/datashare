@@ -59,10 +59,8 @@ public class StructureMarkdownExtractor {
     // everything but its src: a stored page is rendered, so a remote image is a beacon reporting the
     // reader's IP and which document they opened, and no protocol allowlist can tell one from a benign
     // image ("//host/pixel.png" passes). A link target stays, since rendering a page does not follow it.
-    // A <del> is added because a Markdown source's "~~struck~~" parses to one and Safelist.relaxed()
-    // has no del. An <hr> is added for the same reason a "---" thematic break parses to: like <del>,
-    // it is formatting-only, carries no attributes and no active content, and is common in real
-    // READMEs. Both are allowed because the client's own sanitizer allows them too.
+    // A Markdown source's "~~struck~~" and "---" parse to <del> and <hr>, which relaxed() has neither
+    // of: both are formatting-only, carry no attributes and no active content, so both are added.
     // "class" on a <code> only, so a fenced block keeps the language the converter needs to write the
     // fence back. jsoup cannot filter attribute values, and html2md writes this one straight into the
     // markdown fence info string with no re-sanitization after (see keepOnlyLanguageClass), so what
@@ -105,9 +103,9 @@ public class StructureMarkdownExtractor {
         this.maxOutputChars = maxOutputChars;
     }
 
-    // Stateless once built; build once rather than per page.
-    // THEMATIC_BREAK is pinned to "---" for the same reason as the list delimiter below: the default
-    // ("*** ** * ** ***") is not what a "---" in a Markdown source round-trips to otherwise.
+    // Stateless once built; build once rather than per page. The list delimiter and thematic break are
+    // pinned to what a Markdown source writes them as, since flexmark's defaults ("*", and
+    // "*** ** * ** ***") would rewrite a README's own syntax on the way back out.
     private static final FlexmarkHtmlConverter MARKDOWN_CONVERTER = FlexmarkHtmlConverter.builder(
             new MutableDataSet()
                     .set(FlexmarkHtmlConverter.SETEXT_HEADINGS, false)
@@ -130,10 +128,10 @@ public class StructureMarkdownExtractor {
 
     private static final HtmlRenderer MARKDOWN_RENDERER = HtmlRenderer.builder(MARKDOWN_OPTIONS).build();
 
-    // Tika 3.3.0 detects Markdown as text/x-web-markdown; the other two are the IANA name (RFC 7763)
-    // and its legacy alias, so a rename upstream does not silently switch this off.
-    private static final Set<String> MARKDOWN_TYPES =
-            Set.of("text/x-web-markdown", "text/markdown", "text/x-markdown");
+    // What Tika 3.3.0 detects Markdown as. The IANA name (text/markdown, RFC 7763) is deliberately not
+    // listed too: Tika never emits it, so it would be an untested branch standing in for a rename that
+    // has not happened.
+    private static final String MARKDOWN_TYPE = "text/x-web-markdown";
 
     private static final Set<String> INLINE_BODY_TYPES = Set.of("text/plain", "text/html");
 
@@ -166,15 +164,14 @@ public class StructureMarkdownExtractor {
     // into the metadata it is given, so an embedded .md arriving with its container's generic type is
     // recognised here too.
     private static boolean isMarkdown(Metadata metadata) {
-        return MARKDOWN_TYPES.contains(baseContentType(metadata));
+        return MARKDOWN_TYPE.equals(baseContentType(metadata));
     }
 
     // Replaces Tika's single-text-node rendering with a DOM parsed from the Markdown that node holds.
     // Nothing downstream knows the difference: page selection, the safelist and the converter run on it
     // exactly as they run on a parser's own XHTML.
     private static org.jsoup.nodes.Document parseAsMarkdown(org.jsoup.nodes.Document tikaOutput) {
-        Element body = tikaOutput.body() != null ? tikaOutput.body() : tikaOutput;
-        return Jsoup.parse(MARKDOWN_RENDERER.render(MARKDOWN_PARSER.parse(body.wholeText())));
+        return Jsoup.parse(MARKDOWN_RENDERER.render(MARKDOWN_PARSER.parse(tikaOutput.body().wholeText())));
     }
 
     /**
