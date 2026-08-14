@@ -23,7 +23,8 @@ public class TemporalWorkers {
     private static final WorkflowImplementationOptions WF_IMPLEMENTATION_DEFAULT_OPTIONS = WorkflowImplementationOptions.newBuilder()
             .setFailWorkflowExceptionTypes(Error.class) // Unregistered workflows
             .build();
-
+    private static final int MAX_CONCURRENT_WORKFLOW_TASK_EXECUTION = 200; //This value is hardcoded for now as workflow tasks are not very costly but it is necessary to keep it high enough
+    
     private TemporalWorkers() {
     }
 
@@ -44,7 +45,7 @@ public class TemporalWorkers {
 
         WorkerFactory workerFactory = WorkerFactory.newInstance(client);
         WorkerOptions workerOptions = WorkerOptions.newBuilder()
-                .setMaxConcurrentWorkflowTaskExecutionSize(options.maxConcurrentWorkflowSize())
+                .setMaxConcurrentWorkflowTaskExecutionSize(MAX_CONCURRENT_WORKFLOW_TASK_EXECUTION)
                 .setMaxConcurrentActivityExecutionSize(options.maxConcurrentActivitySize())
                 .build();
         Map<String, Worker> workers = new HashMap<>();
