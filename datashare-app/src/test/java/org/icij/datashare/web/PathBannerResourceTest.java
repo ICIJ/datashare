@@ -14,6 +14,7 @@ import java.nio.file.Paths;
 
 import static java.util.Collections.singletonList;
 import static org.icij.datashare.text.Project.project;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class PathBannerResourceTest extends AbstractProdWebServerTest {
@@ -37,7 +38,7 @@ public class PathBannerResourceTest extends AbstractProdWebServerTest {
     @Test
     public void test_get_notes_for_path() {
         PathBanner pathBanner = new PathBanner(project("local-datashare"), Paths.get("/path/to/note"), "this is a note");
-        when(jooqRepository.getPathBanners(project("local-datashare"), "url")).thenReturn(singletonList(pathBanner));
+        when(jooqRepository.getPathBanners(project("local-datashare"), "/url")).thenReturn(singletonList(pathBanner));
         get("/api/local-datashare/pathBanners/url").should().respond(200).
                 contain("\"path\":\"/path/to/note\"").
                 contain("\"variant\":\"info\"").
@@ -91,20 +92,23 @@ public class PathBannerResourceTest extends AbstractProdWebServerTest {
 
     @Test
     public void test_delete_path_banner() {
-        when(jooqRepository.deletePathBanner(project("local-datashare"), "path/to/note")).thenReturn(true);
+        when(jooqRepository.deletePathBanner(project("local-datashare"), "/path/to/note")).thenReturn(true);
         delete("/api/local-datashare/pathBanners/path/to/note").should().respond(204);
+        verify(jooqRepository).deletePathBanner(project("local-datashare"), "/path/to/note");
     }
 
     @Test
     public void test_delete_greedy_path_banner() {
-        when(jooqRepository.deleteGreedyPathBanner(project("local-datashare"), "path/to/note")).thenReturn(true);
+        when(jooqRepository.deleteGreedyPathBanner(project("local-datashare"), "/path/to/note")).thenReturn(true);
         delete("/api/local-datashare/pathBanners/path/to/note?greedy=true").should().respond(204);
+        verify(jooqRepository).deleteGreedyPathBanner(project("local-datashare"), "/path/to/note");
     }
 
     @Test
     public void test_delete_project_path_banners() {
         when(jooqRepository.deleteProjectPathBanners(project("local-datashare"))).thenReturn(true);
-        delete("/api/local-datashare/pathBanners/path/to/note").should().respond(204);
+        delete("/api/local-datashare/pathBanners").should().respond(204);
+        verify(jooqRepository).deleteProjectPathBanners(project("local-datashare"));
     }
 
     @Before
