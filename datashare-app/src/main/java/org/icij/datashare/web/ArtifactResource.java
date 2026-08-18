@@ -235,7 +235,9 @@ public class ArtifactResource {
     }
 
     // The extension a ?format= value asks for, defaulted, or null when it is not one this resource
-    // serves. Shared by the page route and the search route so their whitelists cannot drift.
+    // serves. The page route's whitelist alone: the search route takes no ?format= and counts the
+    // Markdown deliberately, since counting over the XHTML would report tag names, class names and
+    // link targets as occurrences of the user's term (see structureSearch).
     private static String structureExtension(final String format) {
         String extension = ofNullable(format).filter(value -> !value.isBlank()).orElse(MARKDOWN);
         return STRUCTURE_CONTENT_TYPES.containsKey(extension) ? extension : null;
