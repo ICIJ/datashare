@@ -70,25 +70,34 @@ public class StructureSearch {
     public Hits search(String query) throws IOException {
         ManifestEntry entry = reader.servableEntry(docArtifactDir, TYPE);
         Integer total = entry == null ? null : reader.servableTotal(docArtifactDir, TYPE, entry);
-        // Without the formats probe, a document whose page-N.md files are gone would answer "no
-        // occurrences" instead of "no markdown here". The probe checks page 1 only, as the manifest
-        // route does; a gap further in is reported through scanned().
-        if (total == null || reader.formats(docArtifactDir, TYPE, entry, List.of(extension)).isEmpty()) {
+        if (total == null) {
             return null;
         }
-        return scan(entry, total, query);
+        // Page 1 is counted here rather than probed. A formats() probe stats the very file the first
+        // loop iteration then reads, which is the stat-then-read round trip ArtifactReader#page was
+        // just changed to drop, reintroduced once per request. Null carries the same meaning the
+        // empty probe did: without a page 1 in this format the document has "no markdown here"
+        // rather than "no occurrences", which the route turns into 404. A gap further in is reported
+        // through scanned() instead, as the manifest route reports it.
+        Integer first = countPage(entry, 1, query);
+        return first == null ? null : scan(entry, total, query, first);
     }
 
-    // Over five lines on purpose: the loop accumulates two values and skips a third case, so the only
-    // way under the limit is a one-caller helper taking the accumulators as parameters, which hides
-    // the algorithm rather than shortening it. Sibling serving code here runs to the same length.
-    private Hits scan(ManifestEntry entry, int total, String query) {
+    // Over five lines on purpose: the loop accumulates three values and skips a fourth case, so the
+    // only way under the limit is a one-caller helper taking the accumulators as parameters, which
+    // hides the algorithm rather than shortening it. Sibling serving code here runs to the same length.
+    private Hits scan(ManifestEntry entry, int total, String query, int firstPage) {
         List<PageHits> hits = new ArrayList<>();
+        int matches = firstPage;
+        if (firstPage > 0) {
+            hits.add(new PageHits(1, firstPage));
+        }
         // Subtraction rather than a plain comparison, so a nanoTime wrap cannot end the scan early.
         long deadline = System.nanoTime() + scanBudget.toNanos();
         int last = Math.min(total, MAX_SCANNED_PAGES);
-        int scanned = 0;
-        int page = 1;
+        // One already: search() read page 1 to learn whether there is anything here to search.
+        int scanned = 1;
+        int page = 2;
         for (; page <= last && System.nanoTime() - deadline < 0; page++) {
             Integer count = countPage(entry, page, query);
             if (count == null) {
@@ -96,11 +105,12 @@ public class StructureSearch {
             }
             scanned++;
             if (count > 0) {
+                matches += count;
                 hits.add(new PageHits(page, count));
             }
         }
         reportIncompleteScan(scanned, page - 1, last, total);
-        return new Hits(hits.stream().mapToInt(PageHits::count).sum(), total, scanned, hits);
+        return new Hits(matches, total, scanned, hits);
     }
 
     // Three ways to come back short, and the log has to tell them apart: pages the budget never let
@@ -121,9 +131,9 @@ public class StructureSearch {
         }
     }
 
-    // null when the page could not be read: missing on disk, or a read that throws (the window between
-    // isReadable and readAllBytes, a permission change mid-scan, a stalled mount). Failing a
-    // nine-hundred-page search over one page would be worse, and scanned() carries the fact out.
+    // null when the page could not be read: missing on disk, unreadable (the reader maps every read
+    // failure to null), or a read that throws where even that cannot reach, such as a stalled mount.
+    // Failing a nine-hundred-page search over one page would be worse, and scanned() carries it out.
     private Integer countPage(ManifestEntry entry, int page, String query) {
         byte[] payload;
         try {
