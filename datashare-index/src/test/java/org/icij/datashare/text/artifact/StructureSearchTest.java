@@ -115,14 +115,16 @@ public class StructureSearchTest {
     public void test_a_scan_stops_at_its_budget_and_reports_the_pages_it_never_reached() throws Exception {
         writePages("md", "data", "data", "data");
         completeManifest(3);
-        // A zero budget fails the very first deadline check, so nothing is scanned. The production
-        // budget is ten seconds precisely so it never fires on a real document, which is also why no
-        // test can reach it: this proves the loop consults the budget at all.
+        // A zero budget fails the very first deadline check, so the loop scans nothing. Page 1 is
+        // counted regardless: reading it is how the search tells "no markdown here" (404) from "no
+        // occurrences" (200), which it has to answer before any budget applies. The production budget
+        // is ten seconds precisely so it never fires on a real document, which is also why no test
+        // can reach it: this proves the loop consults the budget at all.
         StructureSearch.Hits hits =
                 new StructureSearch(reader, dir.getRoot().toPath(), "md", Duration.ZERO).search("data");
         assertThat(hits.pages()).isEqualTo(3);
-        assertThat(hits.scanned()).isEqualTo(0);
-        assertThat(hits.count()).isEqualTo(0);
+        assertThat(hits.scanned()).isEqualTo(1);
+        assertThat(hits.count()).isEqualTo(1);
     }
 
     @Test
