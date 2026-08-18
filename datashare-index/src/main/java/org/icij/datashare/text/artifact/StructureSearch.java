@@ -73,31 +73,26 @@ public class StructureSearch {
         if (total == null) {
             return null;
         }
-        // Page 1 is counted here rather than probed. A formats() probe stats the very file the first
-        // loop iteration then reads, which is the stat-then-read round trip ArtifactReader#page was
-        // just changed to drop, reintroduced once per request. Null carries the same meaning the
-        // empty probe did: without a page 1 in this format the document has "no markdown here"
-        // rather than "no occurrences", which the route turns into 404. A gap further in is reported
-        // through scanned() instead, as the manifest route reports it.
-        Integer first = countPage(entry, 1, query);
-        return first == null ? null : scan(entry, total, query, first);
+        // "No markdown here" is not "no occurrences", and only the 404 the first says is right for a
+        // document whose page-N.md files are all gone. It is the whole scan that decides, never page
+        // 1 alone: one unreadable page costs its own count and nothing else, so a document whose
+        // first page is missing still answers for the pages after it, and scanned() carries the gap
+        // out. No probe either, since a stat asks what these reads already report.
+        Hits hits = scan(entry, total, query);
+        return hits.scanned() == 0 ? null : hits;
     }
 
     // Over five lines on purpose: the loop accumulates three values and skips a fourth case, so the
     // only way under the limit is a one-caller helper taking the accumulators as parameters, which
     // hides the algorithm rather than shortening it. Sibling serving code here runs to the same length.
-    private Hits scan(ManifestEntry entry, int total, String query, int firstPage) {
+    private Hits scan(ManifestEntry entry, int total, String query) {
         List<PageHits> hits = new ArrayList<>();
-        int matches = firstPage;
-        if (firstPage > 0) {
-            hits.add(new PageHits(1, firstPage));
-        }
+        int matches = 0;
         // Subtraction rather than a plain comparison, so a nanoTime wrap cannot end the scan early.
         long deadline = System.nanoTime() + scanBudget.toNanos();
         int last = Math.min(total, MAX_SCANNED_PAGES);
-        // One already: search() read page 1 to learn whether there is anything here to search.
-        int scanned = 1;
-        int page = 2;
+        int scanned = 0;
+        int page = 1;
         for (; page <= last && System.nanoTime() - deadline < 0; page++) {
             Integer count = countPage(entry, page, query);
             if (count == null) {
