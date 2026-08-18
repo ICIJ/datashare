@@ -6,6 +6,7 @@ import org.apache.tika.exception.TikaException;
 import org.apache.tika.exception.TikaMemoryLimitException;
 import org.apache.tika.parser.pdf.PDFParserConfig;
 import org.icij.datashare.PropertiesProvider;
+import org.icij.datashare.cli.OcrStrategy;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.indexing.elasticsearch.ArtifactPath;
 import org.icij.datashare.text.structure.StructureMarkdownExtractor;
@@ -88,12 +89,16 @@ public class StructureArtifact implements Artifact {
         return new OcrSettings(images, images ? pdfOcrStrategy() : PDFParserConfig.OCR_STRATEGY.NO_OCR);
     }
 
-    // Unset or unparseable means NO_OCR, both as extract-lib resolves --ocrStrategy: a scanned PDF
-    // renders empty here exactly when the INDEX stage extracted nothing from it either.
+    // Read as the CLI's own OcrStrategy and mapped by name into Tika's, so this accepts exactly what
+    // --ocrStrategy accepts rather than a second vocabulary that happens to agree today. Unset or
+    // unparseable means NO_OCR, as extract-lib resolves it: a scanned PDF renders empty here exactly
+    // when the INDEX stage extracted nothing from it either. A member renamed on either side lands in
+    // that same fallback rather than in a strategy nobody asked for.
     private PDFParserConfig.OCR_STRATEGY pdfOcrStrategy() {
         try {
-            return PDFParserConfig.OCR_STRATEGY.valueOf(
+            OcrStrategy strategy = OcrStrategy.valueOf(
                     propertiesProvider.get(OCR_STRATEGY_OPT).orElse("NO_OCR").toUpperCase(Locale.ROOT));
+            return PDFParserConfig.OCR_STRATEGY.valueOf(strategy.name());
         } catch (IllegalArgumentException unknown) {
             return PDFParserConfig.OCR_STRATEGY.NO_OCR;
         }
