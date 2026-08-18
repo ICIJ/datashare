@@ -29,12 +29,22 @@ public class StructureSearch {
 
     /**
      * Wall clock a single scan may spend before it answers with what it has. Deliberately far above
-     * any real document, which the {@link ArtifactReader#MAX_SERVABLE_PAGES} cap is not: that cap
-     * still allows a manifest to hold one of the ten HTTP worker threads for minutes. Generous
-     * enough never to fire on a real corpus, so the answer stays reproducible in practice, and
-     * {@code scanned} below {@code pages} tells the client the count is a floor when it does.
+     * any real document, which the {@link #MAX_SCANNED_PAGES} cap is not: that cap still allows a
+     * manifest to hold one of the ten HTTP worker threads for minutes. Generous enough never to fire
+     * on a real corpus, so the answer stays reproducible in practice, and {@code scanned} below
+     * {@code pages} tells the client the count is a floor when it does.
      */
     private static final Duration SCAN_BUDGET = Duration.ofSeconds(10);
+
+    /**
+     * The most pages one scan walks, however many the manifest advertises. Past this a total is
+     * hostile input rather than a long document: manifest.json is written by other producers, and an
+     * unbounded loop over {@code Integer.MAX_VALUE} never terminates at all, since the counter wraps
+     * to MIN_VALUE and stays in range. It bounds this loop and nothing else, which is why it lives
+     * here rather than in {@link ArtifactReader}: a merged archive or a bulk-exported log really can
+     * run past a hundred thousand pages, and the manifest and page routes serve it page by page.
+     */
+    private static final int MAX_SCANNED_PAGES = 100_000;
 
     private final ArtifactReader reader;
     private final Path docArtifactDir;
@@ -76,9 +86,10 @@ public class StructureSearch {
         List<PageHits> hits = new ArrayList<>();
         // Subtraction rather than a plain comparison, so a nanoTime wrap cannot end the scan early.
         long deadline = System.nanoTime() + scanBudget.toNanos();
+        int last = Math.min(total, MAX_SCANNED_PAGES);
         int scanned = 0;
         int page = 1;
-        for (; page <= total && System.nanoTime() - deadline < 0; page++) {
+        for (; page <= last && System.nanoTime() - deadline < 0; page++) {
             Integer count = countPage(entry, page, query);
             if (count == null) {
                 continue;
@@ -88,17 +99,22 @@ public class StructureSearch {
                 hits.add(new PageHits(page, count));
             }
         }
-        reportIncompleteScan(scanned, page - 1, total);
+        reportIncompleteScan(scanned, page - 1, last, total);
         return new Hits(hits.stream().mapToInt(PageHits::count).sum(), total, scanned, hits);
     }
 
-    // Two ways to come back short, and the log has to tell them apart: pages the scan reached and
-    // could not read, versus pages it never reached because the budget ran out. Once per scan, not
-    // once per page: the reader logs each unreadable page at DEBUG precisely so this stays one line.
-    private void reportIncompleteScan(int scanned, int reached, int total) {
-        if (reached < total) {
+    // Three ways to come back short, and the log has to tell them apart: pages the budget never let
+    // the scan reach, pages past the cap it will not walk at all, and pages it reached and could not
+    // read. Once per scan, not once per page: the reader logs each unreadable page at DEBUG
+    // precisely so this stays one line.
+    private void reportIncompleteScan(int scanned, int reached, int last, int total) {
+        if (reached < last) {
             LOGGER.warn("stopped searching '{}' in {} after {} of {} page(s): the {}s scan budget ran out",
                     TYPE.token(), docArtifactDir, reached, total, scanBudget.toSeconds());
+        } else if (last < total) {
+            LOGGER.warn("searched the first {} of the {} page(s) the '{}' manifest advertises in {}: one "
+                    + "scan walks at most {} page(s)", last, total, TYPE.token(), docArtifactDir,
+                    MAX_SCANNED_PAGES);
         } else if (scanned < total) {
             LOGGER.warn("searched {} of the {} page(s) the '{}' manifest advertises in {}: the rest are "
                     + "missing or unreadable", scanned, total, TYPE.token(), docArtifactDir);

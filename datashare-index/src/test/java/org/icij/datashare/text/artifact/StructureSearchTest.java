@@ -66,15 +66,22 @@ public class StructureSearchTest {
         assertThat(markdownSearch().search("data")).isNull();
     }
 
-    @Test(timeout = 10_000)
-    public void test_search_is_null_when_the_manifest_advertises_an_impossible_page_count() throws Exception {
+    // Under the scan cap a hundred thousand absent pages take a fraction of a second, so this fails
+    // well before the ten-second budget could end the loop instead: it pins the cap, not the budget.
+    @Test(timeout = 5_000)
+    public void test_a_wild_page_total_is_answered_but_scanned_only_up_to_the_cap() throws Exception {
         Path node = writePages("md", "data");
         // manifest.json is written by other producers, so a wild total is hostile input, not a big
-        // document. Unbounded it never terminates: the counter wraps to MIN_VALUE and stays <= total.
+        // document. Unbounded the loop never ends: the counter wraps to MIN_VALUE and stays <= total.
         Files.writeString(node.resolve(ArtifactPath.MANIFEST_FILE),
                 "{\"structure\": {\"status\": \"complete\", \"taskInput\": {}, \"pages\": "
                         + "{\"total\": 2147483647, \"pagination\": {\"type\": \"filesystem\"}}}}");
-        assertThat(markdownSearch().search("data")).isNull();
+        StructureSearch.Hits hits = markdownSearch().search("data");
+        // The total is reported as the manifest states it and only one page is on disk, so scanned
+        // below pages is what tells the client the count is a floor.
+        assertThat(hits.pages()).isEqualTo(Integer.MAX_VALUE);
+        assertThat(hits.scanned()).isEqualTo(1);
+        assertThat(hits.count()).isEqualTo(1);
     }
 
     @Test
