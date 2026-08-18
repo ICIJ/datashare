@@ -142,6 +142,18 @@ public class ArtifactReaderTest {
     }
 
     @Test
+    public void test_page_is_null_when_a_directory_sits_where_the_page_file_belongs() throws Exception {
+        Path node = withFilesystemPages(1, "page one");
+        Path file = ArtifactPath.payloadPage(node, ArtifactType.PAGE, 1, "txt");
+        Files.delete(file);
+        // Neither NoSuchFile nor AccessDenied: a plain FileSystemException, which the isReadable
+        // pre-check used to answer false for. It has to stay a 404 rather than escape as a 500.
+        Files.createDirectory(file);
+        ManifestEntry entry = reader.servableEntry(node, ArtifactType.PAGE);
+        assertThat(reader.page(node, ArtifactType.PAGE, entry, 1, "txt")).isNull();
+    }
+
+    @Test
     public void test_page_reads_the_filesystem_page() throws Exception {
         Path node = withFilesystemPages(2, "page one", "page two");
         ManifestEntry entry = reader.servableEntry(node, ArtifactType.PAGE);

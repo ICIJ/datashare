@@ -7,9 +7,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.RandomAccessFile;
-import java.nio.file.AccessDeniedException;
 import java.nio.file.Files;
-import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.util.Collection;
 import java.util.List;
@@ -79,10 +77,12 @@ public class ArtifactReader {
         // pre-check doubled the round trips of a whole scan to learn what the read reports anyway.
         try {
             return Files.readAllBytes(file);
-        } catch (NoSuchFileException | AccessDeniedException unreadable) {
-            // Absent on disk though the manifest advertises it, or written 0600 by a producer
-            // running under another uid (the hazard SourceExtractor#hasCachedEmbeddedSource has):
-            // both read as "not found" here rather than as the 500 an IOException would become.
+        } catch (IOException unreadable) {
+            // Absent on disk though the manifest advertises it, written 0600 by a producer running
+            // under another uid (the hazard SourceExtractor#hasCachedEmbeddedSource has), or a
+            // directory or symlink loop where a page file belongs. Every one of them is a payload
+            // the manifest promised and disk cannot give: the Files.isReadable() pre-check this
+            // replaced answered false for all of them, so all of them stay a 404 rather than a 500.
             // DEBUG, not WARN: a caller walking every page would turn one disagreement into one
             // line per page, replayable by any project member, so StructureSearch reports it once
             // per scan and the single-page route answers 404.
