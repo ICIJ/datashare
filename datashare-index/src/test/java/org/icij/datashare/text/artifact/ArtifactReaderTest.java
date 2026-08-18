@@ -129,6 +129,19 @@ public class ArtifactReaderTest {
     }
 
     @Test
+    public void test_a_total_past_a_hundred_thousand_is_still_servable() throws Exception {
+        Path node = dir.getRoot().toPath();
+        // A merged archive or a bulk-exported log really can run past a hundred thousand pages, and
+        // nothing here loops over the total: bounding a scan is the searcher's business, not the
+        // reader's, so a big document must not 404 on the manifest and page routes.
+        Files.writeString(node.resolve(ArtifactPath.MANIFEST_FILE),
+                "{\"page\": {\"status\": \"complete\", \"taskInput\": {}, "
+                        + "\"pages\": {\"total\": 150000, \"pagination\": {\"type\": \"filesystem\"}}}}");
+        ManifestEntry entry = reader.servableEntry(node, ArtifactType.PAGE);
+        assertThat(reader.servableTotal(node, ArtifactType.PAGE, entry)).isEqualTo(150000);
+    }
+
+    @Test
     public void test_page_reads_the_filesystem_page() throws Exception {
         Path node = withFilesystemPages(2, "page one", "page two");
         ManifestEntry entry = reader.servableEntry(node, ArtifactType.PAGE);
