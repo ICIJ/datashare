@@ -112,19 +112,29 @@ public class StructureSearchTest {
     }
 
     @Test(timeout = 10_000)
-    public void test_a_scan_stops_at_its_budget_and_reports_the_pages_it_never_reached() throws Exception {
+    public void test_a_scan_stops_at_its_budget() throws Exception {
         writePages("md", "data", "data", "data");
         completeManifest(3);
-        // A zero budget fails the very first deadline check, so the loop scans nothing. Page 1 is
-        // counted regardless: reading it is how the search tells "no markdown here" (404) from "no
-        // occurrences" (200), which it has to answer before any budget applies. The production budget
-        // is ten seconds precisely so it never fires on a real document, which is also why no test
-        // can reach it: this proves the loop consults the budget at all.
-        StructureSearch.Hits hits =
-                new StructureSearch(reader, dir.getRoot().toPath(), "md", Duration.ZERO).search("data");
-        assertThat(hits.pages()).isEqualTo(3);
-        assertThat(hits.scanned()).isEqualTo(1);
+        // A zero budget fails the very first deadline check, so nothing is scanned, and a scan that
+        // read no page cannot tell "no markdown here" from "budget gone": both answer 404, as a scan
+        // whose every page is unreadable does. Ignoring the budget would answer the three pages
+        // instead, which is what this pins. The production budget is ten seconds precisely so it
+        // never fires on a real document, which is also why no test can reach it.
+        assertThat(new StructureSearch(reader, dir.getRoot().toPath(), "md", Duration.ZERO)
+                .search("data")).isNull();
+    }
+
+    @Test
+    public void test_an_unreadable_first_page_does_not_hide_the_pages_after_it() throws Exception {
+        Path node = writePages("md", "data", "data");
+        Files.delete(ArtifactPath.payloadPage(node, ArtifactType.STRUCTURE, 1, "md"));
+        completeManifest(2);
+        // Page 1 is read like any other page: one unreadable page costs its own count and nothing
+        // else, or a malformed first byte range would 404 a document whose later pages are fine.
+        StructureSearch.Hits hits = markdownSearch().search("data");
         assertThat(hits.count()).isEqualTo(1);
+        assertThat(hits.scanned()).isEqualTo(1);
+        assertThat(hits.hits().get(0).page()).isEqualTo(2);
     }
 
     @Test
