@@ -111,11 +111,7 @@ public class ArtifactReader {
 
     // Half-open [start, end). A range outside the file means manifest and payload disagree, which
     // is a 404 for that page rather than a truncated body.
-    private byte[] slice(Path content, List<long[]> ranges, int page, ArtifactType type, int total) throws IOException {
-        if (!Files.isReadable(content)) {
-            LOGGER.warn("manifest advertises {} byte-range page(s) for '{}' but {} is missing or unreadable", total, type.token(), content);
-            return null;
-        }
+    private byte[] slice(Path content, List<long[]> ranges, int page, ArtifactType type, int total) {
         if (ranges == null || ranges.size() < page || ranges.get(page - 1).length != 2) {
             LOGGER.warn("manifest advertises {} byte-range page(s) for '{}' but range {} is malformed", total, type.token(), page);
             return null;
@@ -123,14 +119,23 @@ public class ArtifactReader {
         long[] range = ranges.get(page - 1);
         long start = range[0];
         long end = range[1];
-        if (start < 0 || end < start || end > Files.size(content) || end - start > Integer.MAX_VALUE) {
-            LOGGER.warn("byte range [{}, {}) for '{}' is outside {}", start, end, type.token(), content);
+        // What the bytes themselves cannot answer: a negative or inverted range, and a length no
+        // byte[] can hold. Whether the range fits the file is left to the read below.
+        if (start < 0 || end < start || end - start > Integer.MAX_VALUE) {
+            LOGGER.warn("byte range [{}, {}) for '{}' is malformed in {}", start, end, type.token(), content);
             return null;
         }
         byte[] slice = new byte[(int) (end - start)];
+        // Read and let it fail, as the filesystem branch above does: an isReadable() stat and a
+        // Files.size() bound check were two more round trips on a shared artifactDir to learn what
+        // the read reports anyway, and neither holds over the window between the check and the read.
         try (RandomAccessFile file = new RandomAccessFile(content.toFile(), "r")) {
             file.seek(start);
-            file.readFully(slice);   // handles the partial-read loop
+            file.readFully(slice);   // handles the partial-read loop; EOF means the range runs past the file
+        } catch (IOException unreadable) {
+            LOGGER.warn("manifest advertises {} byte-range page(s) for '{}' but [{}, {}) of {} could not be read",
+                    total, type.token(), start, end, content);
+            return null;
         }
         return slice;
     }
