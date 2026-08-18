@@ -1,8 +1,11 @@
 package org.icij.datashare.text.artifact;
 
+import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.text.Document;
 
 import java.util.Map;
+
+import static org.icij.datashare.cli.DatashareCliOptions.OCR_OPT;
 
 /** A derived representation of a document, produced alongside it and stored under its artifact dir.
  *  Implementations write payload files only and MUST NOT touch manifest.json. */
@@ -23,6 +26,14 @@ public interface Artifact {
      *  config, so the same doc in two different batches compares equal. */
     default Map<String, Object> taskInput(Document document) {
         return taskInput();
+    }
+
+    /** Whether this run enables OCR, defaulting to on as extract-lib's --ocr does. Shared because
+     *  more than one artifact renders a document with it and both have to read the option the same
+     *  way: two copies would let a change to how --ocr is parsed reach one artifact and not the other,
+     *  which shows up as two artifacts of the same document disagreeing about a scanned page. */
+    static boolean ocrEnabled(PropertiesProvider propertiesProvider) {
+        return propertiesProvider.get(OCR_OPT).map(Boolean::parseBoolean).orElse(true);
     }
 
     /** Produce payload files under context.docArtifactDir() and return the entry to record (without

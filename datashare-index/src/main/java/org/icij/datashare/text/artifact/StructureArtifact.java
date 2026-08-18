@@ -24,7 +24,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
-import static org.icij.datashare.cli.DatashareCliOptions.OCR_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.OCR_STRATEGY_OPT;
 import static org.icij.datashare.text.nlp.DocumentMetadataConstants.RESOURCE_NAME_KEY;
 
@@ -85,7 +84,7 @@ public class StructureArtifact implements Artifact {
     }
 
     private OcrSettings runOcrSettings() {
-        boolean images = propertiesProvider.get(OCR_OPT).map(Boolean::parseBoolean).orElse(true);
+        boolean images = Artifact.ocrEnabled(propertiesProvider);
         return new OcrSettings(images, images ? pdfOcrStrategy() : PDFParserConfig.OCR_STRATEGY.NO_OCR);
     }
 

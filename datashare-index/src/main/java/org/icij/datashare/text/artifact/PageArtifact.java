@@ -27,7 +27,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-import static org.icij.datashare.cli.DatashareCliOptions.OCR_OPT;
 
 /** The page artifact: a document's paginated PLAIN extracted text, written as a single
  *  pages/content.txt whose per-page half-open byte ranges live in the manifest entry. */
@@ -55,7 +54,7 @@ public class PageArtifact implements Artifact {
         // text, extract-lib owns the parser set and the page splitting, and the datashare version covers
         // what this class decides. The run's OCR setting is the best this document-less overload can do;
         // what actually paginated a document is the overload below.
-        return taskInput(ocrEnabled());
+        return taskInput(Artifact.ocrEnabled(propertiesProvider));
     }
 
     @Override
@@ -65,7 +64,7 @@ public class PageArtifact implements Artifact {
         // that file with OCR on and nothing the fingerprint sees changes (same bytes, same digest, same
         // artifact dir), so skip-if-current serves the OCR-free pages forever. Still config, not data:
         // the same document under the same run config compares equal in any batch.
-        return taskInput(ocrEnabled() && document.getOcrParser() != null);
+        return taskInput(Artifact.ocrEnabled(propertiesProvider) && document.getOcrParser() != null);
     }
 
     private static Map<String, Object> taskInput(boolean ocr) {
@@ -256,7 +255,4 @@ public class PageArtifact implements Artifact {
         AtomicDirectorySwap.discard(ArtifactPath.payloadDir(docArtifactDir, TYPE));
     }
 
-    private boolean ocrEnabled() {
-        return propertiesProvider.get(OCR_OPT).map(Boolean::parseBoolean).orElse(true);
-    }
 }
