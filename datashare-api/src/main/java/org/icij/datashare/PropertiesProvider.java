@@ -110,14 +110,25 @@ public class PropertiesProvider {
         return fileProperties;
     }
 
+    /**
+     * The DS_DOCKER_* tier alone, as the camelCased keys {@link #getProperties()} folds over the file.
+     * A caller ranking the operator's file against its own defaults needs this tier separately: it sits
+     * above the file, so substituting the file's value without it silently demotes the env var.
+     */
+    public static Properties getEnvProperties() {
+        Properties envProperties = new Properties();
+        envProperties.putAll(getenv().entrySet().stream().filter(entry -> entry.getKey().startsWith(PREFIX)).
+                collect(toMap(k -> camelCasify(k.getKey().replace(PREFIX, "")), Map.Entry::getValue)));
+        return envProperties;
+    }
+
     private void loadEnvVariables(Properties properties) {
-        Map<String, String> envVars = getenv().entrySet().stream().filter(entry -> entry.getKey().startsWith(PREFIX)).
-                collect(toMap(k -> camelCasify(k.getKey().replace(PREFIX, "")), Map.Entry::getValue));
+        Properties envVars = getEnvProperties();
         logger.info("adding properties from env vars {}", envVars);
         properties.putAll(envVars);
     }
 
-    private String camelCasify(String str) {
+    private static String camelCasify(String str) {
         String[] stringParts = str.toLowerCase().split("_");
         return stringParts[0] + stream(stringParts).skip(1).
                 map(s -> toUpperCase(s.charAt(0)) + s.substring(1)).
