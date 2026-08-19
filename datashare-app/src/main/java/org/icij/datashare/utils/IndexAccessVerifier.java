@@ -12,10 +12,12 @@ import java.util.stream.Collectors;
 import static java.util.Arrays.stream;
 
 public class IndexAccessVerifier {
-    /** An index name: dots allowed inside, never leading. That alone does not keep the elasticsearch
-     *  system indices (.kibana, .security) out of reach; "_all" and other "_"-leading names still match.
-     *  The grant check downstream of this pattern is what stops those, since none of them is a granted project. */
-    private static final String INDEX_NAME = "[-a-zA-Z0-9_]+(\\.[-a-zA-Z0-9_]+)*";
+    /** An index name: a dot separates namespaced segments, and neither a dot nor an underscore may lead.
+     *  A leading dot names an elasticsearch system index (.kibana, .security) and a leading underscore
+     *  an elasticsearch selector ("_all"), both of which reach far past the one project a caller is
+     *  granted. Refusing them here rather than downstream keeps the refusal independent of who is
+     *  granted what: a project row named "_all" is grantable, so a grant check alone would let it pass. */
+    private static final String INDEX_NAME = "[-a-zA-Z0-9][-a-zA-Z0-9_]*(\\.[-a-zA-Z0-9_]+)*";
     private static final Pattern INDICES = Pattern.compile("^" + INDEX_NAME + "(," + INDEX_NAME + ")*$");
     /** Suffix of an index derived from a project: "myproject.entities" is granted to whoever is granted "myproject". */
     private static final String ENTITIES_SUFFIX = ".entities";

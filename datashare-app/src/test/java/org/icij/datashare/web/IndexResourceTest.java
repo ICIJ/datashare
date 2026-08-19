@@ -276,11 +276,16 @@ public class IndexResourceTest extends AbstractProdWebServerTest {
 
     @Test
     public void test_close_all_indices_is_refused() throws IOException {
-        // "_all" passes the name grammar but is not a granted project, so it can no longer close
-        // (or reach) every index in the cluster including .kibana and .security
+        // granted "_all" on purpose: the name grammar has to refuse the selector outright, because a
+        // project row named "_all" is grantable and would otherwise close every index in the cluster
+        DatashareUser user = new DatashareUser(new HashMap<>() {{
+            put("uid", "cecile");
+            put("groups_by_applications", Map.of("datashare", List.of("_all")));
+        }});
         configure(routes -> routes.add(new IndexResource(indexer, propertiesProvider))
-                .filter(new BasicAuthFilter("/", "icij", DatashareUser.singleUser("cecile"))));
-        post("/api/index/_all/_close").withPreemptiveAuthentication("cecile", "").should().respond(403);
+                .filter(new BasicAuthFilter("/", "icij", DatashareUser.singleUser(user))));
+        post("/api/index/_all/_close").withPreemptiveAuthentication("cecile", "").should().respond(400);
+        post("/api/index/_all/_open").withPreemptiveAuthentication("cecile", "").should().respond(400);
     }
 
     @Test
