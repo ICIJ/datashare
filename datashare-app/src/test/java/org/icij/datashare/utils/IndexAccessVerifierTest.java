@@ -60,6 +60,17 @@ public class IndexAccessVerifierTest {
     }
 
     @Test
+    public void test_check_invalid_underscore_leading_index() {
+        // "_all" and its siblings are elasticsearch selectors, not index names: refusing them here
+        // means a project row named "_all" (creatable before the name guards) cannot grant the
+        // whole cluster to whoever holds it
+        assertThrows(IllegalArgumentException.class, () -> IndexAccessVerifier.checkIndices("_all"));
+        assertThrows(IllegalArgumentException.class, () -> IndexAccessVerifier.checkIndices("foo,_all"));
+        assertThrows(IllegalArgumentException.class, () -> IndexAccessVerifier.checkIndices("_foo.entities"));
+        assertThat(IndexAccessVerifier.checkIndices("my_project")).isEqualTo("my_project");
+    }
+
+    @Test
     public void test_check_path_grants_entities_index_of_granted_project() {
         // POST, not GET: proves isSearchPath is what authorizes this, not the isMethodGet short-circuit
         assertThat(IndexAccessVerifier.checkPath("foo.entities/_search", contextFor("POST", "foo"))).isEqualTo("foo.entities/_search");
