@@ -83,7 +83,7 @@ public class IndexResourceTest extends AbstractProdWebServerTest {
     }
     @Test
     public void test_put_create_local_index_in_local_mode() {
-        // createIndex now requires a grant on the index's base project; "index_name" must be one
+        // createIndex requires a grant on the index's base project, so "index_name" must be one
         when(jooqRepository.getProjects()).thenReturn(List.of(new Project("index_name")));
         configure(routes -> routes.add(new IndexResource(indexer, propertiesProvider)).filter(new LocalUserFilter(propertiesProvider, jooqRepository, es.getIndexNames())));
         put("/api/index/index_name").should().respond(201);
@@ -301,9 +301,10 @@ public class IndexResourceTest extends AbstractProdWebServerTest {
         try {
             post("/api/index/%s,%s/_close".formatted(idx1, idx2)).withPreemptiveAuthentication("cecile", "").should().respond(200);
         } finally {
-            // reopen unconditionally, even if the close assertion above failed: these indices are
-            // shared across the whole test class via @ClassRule, and nothing else restores them
-            post("/api/index/%s,%s/_open".formatted(idx1, idx2)).withPreemptiveAuthentication("cecile", "").should().respond(200);
+            // reopen through the indexer rather than the route under test, and without asserting:
+            // these indices are shared across the class via @ClassRule, so a failure here would both
+            // mask the close assertion above and leave the rest of the suite searching closed indices
+            indexer.executeRaw("POST", "%s,%s/_open".formatted(idx1, idx2), null);
         }
     }
 
