@@ -74,8 +74,10 @@ public class DatashareCommand implements Runnable {
         CommandLine.IDefaultValueProvider fromSettings = new CommandLine.PropertiesDefaultProvider(settings);
         // Arity-0 booleans are excluded: picocli sets a matched flag to !defaultValue, so taking that
         // default from the file inverts the flag, and "resume=true" in the file would make -r mean
-        // "do not resume". They keep their declared default here and CommonMode's overrideWith fold-in
-        // is what applies the file's value, as it did before this provider existed.
+        // "do not resume". They keep their declared default here, and the file's value reaches them
+        // through CommonMode's overrideWith fold-in only where toProperties() omits the key on false
+        // (resume, PipelineOptions:129). noDigestProject (GlobalOptions:150) and browserOpenLink
+        // (ServerOptions:147) write false unconditionally, so the file cannot set them: see #2339.
         commandLine.setDefaultValueProvider(
                 arg -> arg.arity().max() == 0 ? null : fromSettings.defaultValue(arg));
     }
