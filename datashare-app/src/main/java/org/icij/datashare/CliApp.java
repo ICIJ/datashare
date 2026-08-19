@@ -178,7 +178,9 @@ class CliApp {
 
         PipelineHelper pipeline = new PipelineHelper(new PropertiesProvider(properties));
         logger.info("executing {}", pipeline);
-        boolean completed = runPipeline(taskManager, pipeline, properties);
+        // the merged provider, not the raw CLI properties: task args are the only config a stage reads,
+        // so they need the DS_DOCKER_* and settings-file tiers CommonMode ranked, not just the typed args.
+        boolean completed = runPipeline(taskManager, pipeline, mode.properties());
         taskManager.shutdown();
         if (!completed) {
             // a partial run must not look like a success: `datashare ... && post-process.sh` would
