@@ -223,6 +223,11 @@ public class DatashareCli {
         return parser;
     }
 
+    /** Overridden in tests: env vars cannot be set on a running JVM under Java 21. */
+    Properties envProperties() {
+        return PropertiesProvider.getEnvProperties();
+    }
+
     Properties asProperties(OptionSet options, String prefix) {
         Properties properties = new Properties();
         // Only a file the operator actually asked for may outrank a declared default: passing null here
@@ -233,15 +238,18 @@ public class DatashareCli {
         Properties settings = options.has(SETTINGS_OPT)
                 ? new PropertiesProvider(String.valueOf(options.valueOf(SETTINGS_OPT))).getFileProperties()
                 : new Properties();
+        Properties env = envProperties();
         for (Map.Entry<OptionSpec<?>, List<?>> entry : options.asMap().entrySet()) {
             OptionSpec<?> spec = entry.getKey();
             String key = asPropertyKey(prefix, spec);
             boolean typed = options.has(spec);
             // Substituting the file's value, rather than omitting the key, matters for the consumers
             // that read these raw properties without CommonMode's settings fold-in: Main.startApplication
-            // for logLevel, CliApp.start for pluginsDir/extensionsDir, ArtifactTask for artifactDir.
+            // for logLevel and CliApp.start for pluginsDir/extensionsDir. A DS_DOCKER_* var wins over
+            // the file here, because CommonMode's overrideWith is a putAll: substituting the file's
+            // value blindly would let it clobber the env value the merged provider had ranked above it.
             if (!typed && settings.containsKey(key)) {
-                properties.setProperty(key, settings.getProperty(key));
+                properties.setProperty(key, env.getProperty(key, settings.getProperty(key)));
             } else if (typed || !entry.getValue().isEmpty()) {
                 properties.setProperty(key, asPropertyValue(entry.getValue()));
             }

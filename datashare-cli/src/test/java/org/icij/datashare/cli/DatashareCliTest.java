@@ -13,6 +13,7 @@ import java.net.URL;
 import java.net.URLClassLoader;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Properties;
 
 import static org.fest.assertions.Assertions.assertThat;
 import static org.fest.assertions.MapAssert.entry;
@@ -449,6 +450,29 @@ public class DatashareCliTest {
             Thread.currentThread().setContextClassLoader(previous);
         }
 
+        assertThat(cli.properties).includes(entry("parallelism", String.valueOf(DEFAULT_PARALLELISM)));
+    }
+
+    @Test
+    public void test_a_docker_env_var_outranks_the_settings_file_value() throws IOException {
+        // CommonMode.overrideWith is a putAll, so a value substituted here lands on top of the merged
+        // provider: substituting the file's artifactDir blindly would demote DS_DOCKER_ARTIFACT_DIR.
+        Path settings = settingsFile("artifactDir=/file/path\n");
+        DatashareCli cli = new DatashareCli() {
+            @Override
+            Properties envProperties() {
+                Properties env = new Properties();
+                env.setProperty("artifactDir", "/env/path");
+                env.setProperty("parallelism", "7");
+                return env;
+            }
+        };
+
+        cli.parseArguments(new String[] {"-s", settings.toString(), "--stages", "ARTIFACT"});
+
+        assertThat(cli.properties).includes(entry("artifactDir", "/env/path"));
+        // scoped to the keys the file declares: an env-only key keeps ranking through CommonMode, so
+        // it does not start outranking a declared option default here
         assertThat(cli.properties).includes(entry("parallelism", String.valueOf(DEFAULT_PARALLELISM)));
     }
 
