@@ -76,7 +76,7 @@ public class IndexResource {
     @Operation(description = "Create the index for the current user if it doesn't exist. Only available in LOCAL and EMBEDDED modes.")
     @ApiResponse(responseCode = "200", description = "returns 200 if the index already exists")
     @ApiResponse(responseCode = "201", description = "returns 201 if the index has been created")
-    @ApiResponse(responseCode = "403", description = "operation not allowed in current mode")
+    @ApiResponse(responseCode = "403", description = "operation not allowed in current mode, or index not granted to the user")
     @Put("/:index")
     public Payload createIndex(@Parameter(name = "index", description = "index to create", in = ParameterIn.PATH) final String index, Context context) throws IOException {
         modeVerifier.checkAllowedMode(Mode.LOCAL, Mode.EMBEDDED);
@@ -289,7 +289,7 @@ public class IndexResource {
     @Operation(description = "Close an index. Only available in LOCAL and EMBEDDED modes.")
     @ApiResponse(responseCode = "200", description = "index closed successfully")
     @ApiResponse(responseCode = "400", description = "invalid index name")
-    @ApiResponse(responseCode = "403", description = "operation not allowed in current mode")
+    @ApiResponse(responseCode = "403", description = "operation not allowed in current mode, or index not granted to the user")
     @Post("/:index/_close")
     public Payload closeIndex(
             @Parameter(name = "index", description = "index name to close", in = ParameterIn.PATH)
@@ -307,7 +307,7 @@ public class IndexResource {
     @Operation(description = "Open a closed index. Only available in LOCAL and EMBEDDED modes.")
     @ApiResponse(responseCode = "200", description = "index opened successfully")
     @ApiResponse(responseCode = "400", description = "invalid index name")
-    @ApiResponse(responseCode = "403", description = "operation not allowed in current mode")
+    @ApiResponse(responseCode = "403", description = "operation not allowed in current mode, or index not granted to the user")
     @Post("/:index/_open")
     public Payload openIndex(
             @Parameter(name = "index", description = "index name to open", in = ParameterIn.PATH)
