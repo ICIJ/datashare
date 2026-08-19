@@ -1,7 +1,6 @@
 package org.icij.datashare.tasks;
 
 
-import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.asynctasks.TaskRepositoryMemory;
 import org.icij.datashare.asynctasks.TaskResult;
@@ -168,13 +167,12 @@ public class ArtifactTaskTest {
                 "artifactDir", artifactDir.getRoot().toString(),
                 "defaultProject", "prj",
                 "parallelism", "2");
-        PropertiesProvider props = new PropertiesProvider(config);
         Task<Long> task = ArtifactTaskFixture.taskWith(config);
 
         ArtifactTask artifactTask = new ArtifactTask(factory, mockEs, new UpstreamGate.Factory(taskRepository), task, null) {
             @Override
             protected SourceExtractor createSourceExtractor() {
-                return new SourceExtractor(props) {
+                return new SourceExtractor(propertiesProvider) {
                     @Override
                     public TikaDocument extractEmbeddedSources(Project project, Document document) {
                         bothInFlight.countDown();
@@ -239,7 +237,6 @@ public class ArtifactTaskTest {
                 "artifactDir", artifactDir.getRoot().toString(),
                 "defaultProject", "prj",
                 "parallelism", "2");
-        PropertiesProvider props = new PropertiesProvider(config);
         Task<Long> task = ArtifactTaskFixture.taskWith(config);
 
         // exactly one of the two workers fails to build its extractor and dies; the other survives.
@@ -251,7 +248,7 @@ public class ArtifactTaskTest {
                 if (extractorCalls.getAndIncrement() == 0) {
                     throw new IllegalStateException("one worker has no extractor");
                 }
-                return new SourceExtractor(props) {
+                return new SourceExtractor(propertiesProvider) {
                     @Override
                     public TikaDocument extractEmbeddedSources(Project project, Document document) {
                         return null;
@@ -292,12 +289,11 @@ public class ArtifactTaskTest {
                 "artifactDir", artifactDir.getRoot().toString(),
                 "defaultProject", "prj",
                 "parallelism", "2");
-        PropertiesProvider props = new PropertiesProvider(config);
         ArtifactTask task = new ArtifactTask(factory, mockEs, new UpstreamGate.Factory(taskRepository),
                 ArtifactTaskFixture.taskWith(config), null) {
             @Override
             protected SourceExtractor createSourceExtractor() {
-                return new SourceExtractor(props) {
+                return new SourceExtractor(propertiesProvider) {
                     @Override
                     public TikaDocument extractEmbeddedSources(Project project, Document document) throws org.apache.tika.exception.TikaException {
                         if (document.getId().equals(failingId)) {
@@ -335,12 +331,11 @@ public class ArtifactTaskTest {
                 "artifactDir", artifactDir.getRoot().toString(),
                 "defaultProject", "prj",
                 "parallelism", "1");
-        PropertiesProvider props = new PropertiesProvider(config);
         ArtifactTask task = new ArtifactTask(factory, mockEs, new UpstreamGate.Factory(taskRepository),
                 ArtifactTaskFixture.taskWith(config), null) {
             @Override
             protected SourceExtractor createSourceExtractor() {
-                return new SourceExtractor(props) {
+                return new SourceExtractor(propertiesProvider) {
                     @Override
                     public TikaDocument extractEmbeddedSources(Project project, Document document) {
                         throw new OutOfMemoryError("Java heap space");
@@ -367,13 +362,12 @@ public class ArtifactTaskTest {
                 "artifactDir", artifactDir.getRoot().toString(),
                 "defaultProject", "prj",
                 "parallelism", "1");
-        PropertiesProvider props = new PropertiesProvider(config);
         Task<Long> task = ArtifactTaskFixture.taskWith(config);
 
         ArtifactTask artifactTask = new ArtifactTask(factory, mockEs, new UpstreamGate.Factory(taskRepository), task, null) {
             @Override
             protected SourceExtractor createSourceExtractor() {
-                return new SourceExtractor(props) {
+                return new SourceExtractor(propertiesProvider) {
                     @Override
                     public TikaDocument extractEmbeddedSources(Project project, Document document) {
                         started.countDown();
@@ -423,7 +417,6 @@ public class ArtifactTaskTest {
                 "artifactDir", artifactDir.getRoot().toString(),
                 "defaultProject", "prj",
                 "parallelism", "1");
-        PropertiesProvider props = new PropertiesProvider(config);
         Task<Long> task = ArtifactTaskFixture.taskWith(config);
 
         // a single worker, so cancelling while the first document is in flight must stop the worker
@@ -431,7 +424,7 @@ public class ArtifactTaskTest {
         ArtifactTask artifactTask = new ArtifactTask(factory, mockEs, new UpstreamGate.Factory(taskRepository), task, null) {
             @Override
             protected SourceExtractor createSourceExtractor() {
-                return new SourceExtractor(props) {
+                return new SourceExtractor(propertiesProvider) {
                     @Override
                     public TikaDocument extractEmbeddedSources(Project project, Document document) {
                         if (document.getId().equals(secondId)) {

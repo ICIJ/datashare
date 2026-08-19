@@ -49,6 +49,7 @@ public class RetroCompatibilityTest {
             }
             return new CommandLine.RunLast().execute(parseResult);
         });
+        DatashareCommand.applySettingsDefaults(commandLine, args);
         commandLine.execute(args);
         return cmd.collectProperties();
     }
