@@ -42,6 +42,7 @@
     import java.util.Map;
     import java.util.Objects;
     import java.util.Properties;
+    import java.util.regex.Pattern;
     import java.util.stream.Collectors;
     import java.util.stream.Stream;
 
@@ -56,6 +57,9 @@
     @Singleton
     @Prefix("/api/project")
     public class ProjectResource {
+        private static final Pattern INDEX_SAFE_NAME = Pattern.compile("[a-z0-9][-a-z0-9_]{0,254}");
+        private static final String INDEX_SAFE_NAME_ERROR = "`name` must be a lowercase letter or digit, then letters, digits, `-` or `_`.";
+
         private final Repository repository;
         private final Indexer indexer;
         private final TaskManager taskManager;
@@ -94,7 +98,7 @@
                 requestBody = @RequestBody(content = @Content(mediaType = "application/json", schema = @Schema(implementation = Project.class)))
         )
         @ApiResponse(responseCode = "201", description = "if project and index have been created")
-        @ApiResponse(responseCode = "400", description = "if project name is empty, contains a dot, or starts with an underscore")
+        @ApiResponse(responseCode = "400", description = "if project name is empty or is not usable as an index name")
         @ApiResponse(responseCode = "400", description = "if project path is not allowed for the project")
         @ApiResponse(responseCode = "409", description = "if project exists")
         @ApiResponse(responseCode = "500", description = "project creation in DB or index creation failed")
@@ -105,10 +109,8 @@
                 return PayloadFormatter.error("Project already exists.", HttpStatus.CONFLICT);
             } else if (isProjectNameEmpty(project)) {
                 return PayloadFormatter.error("`name` field is required.", HttpStatus.BAD_REQUEST);
-            } else if (project.getName().contains(".")) {
-                return PayloadFormatter.error("`name` must not contain a dot.", HttpStatus.BAD_REQUEST);
-            } else if (project.getName().startsWith("_")) {
-                return PayloadFormatter.error("`name` must not start with an underscore.", HttpStatus.BAD_REQUEST);
+            } else if (!isProjectNameIndexSafe(project)) {
+                return PayloadFormatter.error(INDEX_SAFE_NAME_ERROR, HttpStatus.BAD_REQUEST);
             }
             Project effectiveProject = isProjectSourcePathNull(project) ? withDefaultSourcePath(project) : project;
             if (!dataDirVerifier.allowed(effectiveProject.getSourcePath())) {
@@ -141,7 +143,7 @@
         )
         @ApiResponse(responseCode = "200", description = "if project has been updated")
         @ApiResponse(responseCode = "201", description = "if project did not exist and has been created")
-        @ApiResponse(responseCode = "400", description = "if `name` is empty, contains a dot or starts with an underscore on creation, or `sourcePath` is outside data dir")
+        @ApiResponse(responseCode = "400", description = "if `name` is empty, is not usable as an index name on creation, or `sourcePath` is outside data dir")
         @ApiResponse(responseCode = "403", description = "if the user lacks PROJECT_ADMIN+ on the project id")
         @ApiResponse(responseCode = "404", description = "if path id does not match body id, or if existing project is not accessible to the user")
         @ApiResponse(responseCode = "500", description = "if save failed")
@@ -156,13 +158,9 @@
             }
             boolean isCreate = !projectExists(id);
             // only a new project's name is validated: a legacy project whose name predates this
-            // check must still be updatable, so the guard applies to creation only, same as POST.
-            // Checked here, before dataDirVerifier, to match projectCreate's order.
-            if (isCreate && projectPayload.getName().contains(".")) {
-                return PayloadFormatter.error("`name` must not contain a dot.", HttpStatus.BAD_REQUEST);
-            }
-            if (isCreate && projectPayload.getName().startsWith("_")) {
-                return PayloadFormatter.error("`name` must not start with an underscore.", HttpStatus.BAD_REQUEST);
+            // check must still be updatable, so the guard applies to creation only, same as POST
+            if (isCreate && !isProjectNameIndexSafe(projectPayload)) {
+                return PayloadFormatter.error(INDEX_SAFE_NAME_ERROR, HttpStatus.BAD_REQUEST);
             }
             Project effectiveProject = isProjectSourcePathNull(projectPayload) ? withDefaultSourcePath(projectPayload) : projectPayload;
             if (!dataDirVerifier.allowed(effectiveProject.getSourcePath())) {
@@ -345,6 +343,15 @@
 
         private boolean isProjectNameEmpty(Project project) {
             return isEmpty(project.getName());
+        }
+
+        /** A name elasticsearch accepts as the index name created for the project. Anything else is saved
+         *  to the database first and only then fails at index creation, leaving a project row whose index
+         *  does not exist and which the ES proxy cannot reach. A dot is excluded on top of ES's own rules,
+         *  because {@link IndexAccessVerifier#baseProjects} reads "myproject.entities" as a namespaced
+         *  index of "myproject", so a project literally named that way would inherit another's grants. */
+        private boolean isProjectNameIndexSafe(Project project) {
+            return INDEX_SAFE_NAME.matcher(project.getName()).matches();
         }
 
         private boolean isProjectSourcePathNull(Project project) {

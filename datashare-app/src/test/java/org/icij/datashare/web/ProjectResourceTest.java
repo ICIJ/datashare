@@ -226,6 +226,31 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
+    public void test_cannot_create_project_whose_name_is_not_a_usable_index_name() {
+        // each of these reaches createIndexOnce and fails there, after repository.save has already
+        // committed the row: the project is then permanently unreachable through the ES proxy
+        when(repository.getProject(any())).thenReturn(null);
+        when(repository.save((Project) any())).thenReturn(true);
+
+        post("/api/project/", "{ \"name\": \"foo,bar\", \"sourcePath\": \"/vault/foo\" }").should().respond(400);
+        post("/api/project/", "{ \"name\": \"Foo\", \"sourcePath\": \"/vault/foo\" }").should().respond(400);
+        post("/api/project/", "{ \"name\": \"foo bar\", \"sourcePath\": \"/vault/foo\" }").should().respond(400);
+        post("/api/project/", "{ \"name\": \"-foo\", \"sourcePath\": \"/vault/foo\" }").should().respond(400);
+    }
+
+    @Test
+    public void test_can_update_an_existing_project_whose_name_predates_the_name_guard() {
+        // the guard is create-only: a legacy dotted or underscore-leading row must stay updatable
+        Project legacy = new Project("foo.entities", Path.of("/vault/foo"));
+        when(repository.getProject("foo.entities")).thenReturn(legacy);
+        when(repository.getProjects(any())).thenReturn(List.of(legacy));
+        when(repository.save((Project) any())).thenReturn(true);
+
+        String body = "{ \"name\": \"foo.entities\", \"label\": \"Legacy\", \"sourcePath\": \"/vault/foo\"}";
+        put("/api/project/foo.entities", body).should().respond(200);
+    }
+
+    @Test
     public void test_can_create_project_with_underscore_in_name() throws IOException {
         // a dot is the only hazard the suffix rule depends on; the fuller Project.NAME_PATTERN
         // (no underscore, 2-64 chars) is not this endpoint's contract and must not be enforced here
