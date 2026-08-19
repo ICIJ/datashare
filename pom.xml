@@ -116,7 +116,11 @@
              "IllegalArgumentException: Unsupported api 589824" (ASM9). ASM 9.x is backward compatible
              with Nashorn's ASM7-level usage, so pinning up is safe. -->
         <asm.version>9.9.1</asm.version>
-        <commons-beanutils.version>1.7.0</commons-beanutils.version>
+        <!-- Pinned up for CVE-2014-0114, CVE-2019-10086 and CVE-2025-48734. The image currently
+             ships 1.8.3 transitively; 1.9.4 is API compatible with it. -->
+        <commons-beanutils.version>1.9.4</commons-beanutils.version>
+        <!-- Pinned up for CVE-2026-55760 (directory traversal). The image currently ships 4.2.1. -->
+        <handlebars.version>4.5.2</handlebars.version>
         <jna.version>5.19.1</jna.version>
         <bouncycastle.version>1.70</bouncycastle.version>
         <httpcomponents.version>4.5.13</httpcomponents.version>
@@ -247,6 +251,19 @@
                 <groupId>org.ow2.asm</groupId>
                 <artifactId>asm-util</artifactId>
                 <version>${asm.version}</version>
+            </dependency>
+
+            <!-- commons-beanutils and handlebars pinned up for the CVEs noted beside their
+                 version properties. Both arrive transitively, so pinning here applies at any depth. -->
+            <dependency>
+                <groupId>commons-beanutils</groupId>
+                <artifactId>commons-beanutils</artifactId>
+                <version>${commons-beanutils.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.github.jknack</groupId>
+                <artifactId>handlebars</artifactId>
+                <version>${handlebars.version}</version>
             </dependency>
 
             <dependency>
