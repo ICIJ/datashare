@@ -13,7 +13,16 @@
     <artifactId>datashare-app</artifactId>
     <name>datashare-app</name>
 
+    <!-- central is declared first on purpose. JitPack synthesizes a POM for any coordinate it can
+         resolve from a GitHub tag, and for com.github.jknack:handlebars.java it returns one without
+         <packaging>pom</packaging>. Maven then rejects it as a parent, drops handlebars' declared
+         dependencies, and commons-text silently falls back to 1.10.0 from webjars-locator instead of
+         the 1.15.0 handlebars asks for. Querying central first avoids that. -->
     <repositories>
+        <repository>
+            <id>central</id>
+            <url>https://repo.maven.apache.org/maven2</url>
+        </repository>
         <repository>
             <id>jitpack.io</id>
             <url>https://jitpack.io</url>
