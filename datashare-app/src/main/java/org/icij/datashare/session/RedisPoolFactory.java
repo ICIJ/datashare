@@ -28,13 +28,22 @@ final class RedisPoolFactory {
         poolConfig.setTestWhileIdle(true);
         poolConfig.setTimeBetweenEvictionRunsMillis(EVICTION_RUN_INTERVAL_MILLIS);
         String redisAddress = propertiesProvider.get(REDIS_ADDRESS_OPT).orElse(DEFAULT_REDIS_ADDRESS);
+        // Pass host and port rather than the URI: in Jedis 2.9.0 every JedisPool(URI) constructor
+        // hands JedisFactory a hardcoded ssl=false and never reads the scheme, so a rediss:// address
+        // connects in plaintext and every command fails.
         URI uri = URI.create(redisAddress);
-        if (uri.getHost() == null) {
+        String host = uri.getHost();
+        // That also skips the isValid check JedisFactory(URI, ...) ran, so guard here: an address
+        // missing its // (redis:6379) is an opaque URI, whose null path makes getDBIndex throw.
+        if (host == null) {
             throw new InvalidURIException("Cannot open Redis connection due invalid URI. " + redisAddress);
         }
-        boolean ssl = "rediss".equalsIgnoreCase(uri.getScheme());
         int port = uri.getPort() == -1 ? Protocol.DEFAULT_PORT : uri.getPort();
-        return new JedisPool(poolConfig, uri.getHost(), port, Protocol.DEFAULT_TIMEOUT,
-                JedisURIHelper.getPassword(uri), JedisURIHelper.getDBIndex(uri), null, ssl);
+        int timeout = Protocol.DEFAULT_TIMEOUT;
+        String password = JedisURIHelper.getPassword(uri);
+        int database = JedisURIHelper.getDBIndex(uri);
+        String clientName = null;
+        boolean ssl = "rediss".equalsIgnoreCase(uri.getScheme());
+        return new JedisPool(poolConfig, host, port, timeout, password, database, clientName, ssl);
     }
 }
