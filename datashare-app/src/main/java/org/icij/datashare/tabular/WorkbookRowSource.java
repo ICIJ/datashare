@@ -39,8 +39,6 @@ public class WorkbookRowSource implements RowSource {
             "application/vnd.ms-excel",
             "application/vnd.ms-excel.sheet.macroenabled.12");
 
-    private final DataFormatter formatter = new DataFormatter();
-
     @Override
     public boolean supports(String contentType) {
         return SUPPORTED.contains(contentType);
@@ -52,7 +50,8 @@ public class WorkbookRowSource implements RowSource {
         try {
             Sheet sheet = selectSheet(workbook, options.sheet());
             FormulaEvaluator evaluator = workbook.getCreationHelper().createFormulaEvaluator();
-            return read(sheet, evaluator).stream().onClose(() -> close(workbook));
+            DataFormatter formatter = new DataFormatter();
+            return read(sheet, evaluator, formatter).stream().onClose(() -> close(workbook));
         } catch (RuntimeException failure) {
             close(workbook);
             throw failure;
@@ -80,17 +79,17 @@ public class WorkbookRowSource implements RowSource {
 
     // Materialized rather than lazily streamed: the workbook is already fully in memory, so a lazy
     // spliterator over it would buy nothing and would keep the workbook open for the caller to leak.
-    private List<Row> read(Sheet sheet, FormulaEvaluator evaluator) {
+    private static List<Row> read(Sheet sheet, FormulaEvaluator evaluator, DataFormatter formatter) {
         java.util.Iterator<org.apache.poi.ss.usermodel.Row> sheetRows = sheet.iterator();
         if (!sheetRows.hasNext()) {
             throw new IllegalArgumentException("no header row: the sheet is empty");
         }
-        List<String> headers = Row.headers(cells(sheetRows.next(), evaluator));
+        List<String> headers = Row.headers(cells(sheetRows.next(), evaluator, formatter));
 
         List<Row> rows = new ArrayList<>();
         long blank = 0;
         while (sheetRows.hasNext()) {
-            List<String> values = cells(sheetRows.next(), evaluator);
+            List<String> values = cells(sheetRows.next(), evaluator, formatter);
             if (values.stream().allMatch(String::isEmpty)) {
                 blank++;
                 continue;
@@ -103,10 +102,10 @@ public class WorkbookRowSource implements RowSource {
         return rows;
     }
 
-    private List<String> cells(org.apache.poi.ss.usermodel.Row row, FormulaEvaluator evaluator) {
+    private static List<String> cells(org.apache.poi.ss.usermodel.Row row, FormulaEvaluator evaluator, DataFormatter formatter) {
         List<String> values = new ArrayList<>();
         for (int column = 0; column < row.getLastCellNum(); column++) {
-            values.add(value(row.getCell(column), evaluator));
+            values.add(value(row.getCell(column), evaluator, formatter));
         }
         return values;
     }
@@ -116,7 +115,7 @@ public class WorkbookRowSource implements RowSource {
      * mapping's date format depend on how somebody styled the file. Date cells are therefore rendered
      * ISO-8601 instead, dropping the time part when it is midnight.
      */
-    private String value(Cell cell, FormulaEvaluator evaluator) {
+    private static String value(Cell cell, FormulaEvaluator evaluator, DataFormatter formatter) {
         if (cell == null) {
             return "";
         }
