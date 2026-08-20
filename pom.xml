@@ -436,6 +436,14 @@
                 <artifactId>poi-scratchpad</artifactId>
                 <version>${poi.version}</version>
             </dependency>
+            <!-- Reached only transitively, through Tika's OOXML parsers. Left to mediation, a future
+                 extract-lib bump could skew it against the POI pinned above, which fails at runtime
+                 with an OOXML schema error rather than at build time. -->
+            <dependency>
+                <groupId>org.apache.poi</groupId>
+                <artifactId>poi-ooxml-full</artifactId>
+                <version>${poi.version}</version>
+            </dependency>
             <!-- tika-parsers 3.3.0 manages commons-io 2.17.0, which wins Maven mediation, but the
                  commons-compress 1.28.0 it also pulls calls AbstractStreamBuilder.getInputStream(),
                  which only became public in commons-io 2.18.0. With 2.17.0 (protected), Tika's
