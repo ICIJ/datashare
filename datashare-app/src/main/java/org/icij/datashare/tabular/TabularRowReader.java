@@ -20,8 +20,11 @@ import java.util.stream.Stream;
  * SourceExtractor, plus the content type and charset Tika already detected at index time. It also
  * means no user-supplied path reaches the filesystem, so this route has no traversal surface at all.
  *
- * Authorization on the project is not checked here: it belongs to the callers wiring the REST and CLI
- * triggers, not to a reader.
+ * Authorization on the project is not checked here: the REST and CLI triggers must route through
+ * DocumentSourceAccess, the single decision for serving a document's source bytes, and wiring them to
+ * it belongs to #2206. Its DocumentVerifier.isRootDocumentSizeAllowed check is a size guard this
+ * class does not apply either, which matters because the tier-2 fallback buffers a whole document
+ * several times over.
  */
 public class TabularRowReader {
     private static final Set<String> GENERIC_TYPES =
@@ -33,7 +36,6 @@ public class TabularRowReader {
             "csv", "text/csv",
             "tsv", "text/tab-separated-values",
             "psv", "text/csv",
-            "txt", "text/plain",
             "json", "application/json",
             "jsonl", JsonRowSource.NDJSON_CONTENT_TYPE,
             "ndjson", JsonRowSource.NDJSON_CONTENT_TYPE);
