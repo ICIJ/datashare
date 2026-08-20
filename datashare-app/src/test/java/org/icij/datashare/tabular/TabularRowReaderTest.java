@@ -1,0 +1,151 @@
+package org.icij.datashare.tabular;
+
+import org.icij.datashare.text.Document;
+import org.icij.datashare.text.DocumentBuilder;
+import org.icij.datashare.text.Project;
+import org.icij.datashare.text.indexing.Indexer;
+import org.icij.datashare.text.indexing.elasticsearch.SourceExtractor;
+import org.junit.Before;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
+
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Stream;
+
+import static org.fest.assertions.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+public class TabularRowReaderTest {
+    @Rule public TemporaryFolder folder = new TemporaryFolder();
+
+    private final Indexer indexer = mock(Indexer.class);
+    private TabularRowReader reader;
+    private Project project;
+
+    @Before
+    public void setUp() {
+        project = new Project("local-datashare");
+        reader = new TabularRowReader(indexer, new SourceExtractor(new org.icij.datashare.PropertiesProvider()));
+    }
+
+    private Document indexed(String filename, String contentType, String content,
+                            Map<String, Object> metadata) throws Exception {
+        Path file = folder.getRoot().toPath().resolve(filename);
+        Files.writeString(file, content, StandardCharsets.UTF_8);
+        Document document = DocumentBuilder.createDoc("docId").with(file)
+                .ofContentType(contentType).with(StandardCharsets.UTF_8).with(metadata).build();
+        when(indexer.<Document>get("local-datashare", "docId", "docId")).thenReturn(document);
+        return document;
+    }
+
+    private List<Row> rows(RowSourceOptions options) throws Exception {
+        try (Stream<Row> rows = reader.rows(project, "docId", null, options)) {
+            return rows.toList();
+        }
+    }
+
+    @Test
+    public void test_reads_a_csv_document_through_the_delimited_reader() throws Exception {
+        indexed("companies.csv", "text/csv", "id,name\n1,ACME\n", Map.of());
+
+        assertThat(rows(RowSourceOptions.defaults()).get(0).values().get("name")).isEqualTo("ACME");
+    }
+
+    @Test
+    public void test_takes_the_delimiter_from_the_document_metadata() throws Exception {
+        indexed("companies.csv", "text/csv", "id;name\n1;ACME\n",
+                Map.of("tika_metadata_csv_delimiter", "semicolon"));
+
+        assertThat(rows(RowSourceOptions.defaults()).get(0).values().get("name")).isEqualTo("ACME");
+    }
+
+    @Test
+    public void test_the_mapping_delimiter_beats_the_metadata() throws Exception {
+        indexed("companies.csv", "text/csv", "id|name\n1|ACME\n",
+                Map.of("tika_metadata_csv_delimiter", "semicolon"));
+
+        assertThat(rows(RowSourceOptions.defaults().withDelimiter('|')).get(0).values().get("name"))
+                .isEqualTo("ACME");
+    }
+
+    @Test
+    public void test_a_jsonl_file_typed_text_plain_reaches_the_json_reader() throws Exception {
+        indexed("dump.jsonl", "text/plain", "{\"id\":1,\"name\":\"ACME\"}\n", Map.of());
+
+        assertThat(rows(RowSourceOptions.defaults()).get(0).values().get("name")).isEqualTo("ACME");
+    }
+
+    @Test
+    public void test_a_csv_typed_text_plain_still_reaches_the_delimited_reader() throws Exception {
+        indexed("companies.txt", "text/plain", "id,name\n1,ACME\n", Map.of());
+
+        assertThat(rows(RowSourceOptions.defaults()).get(0).values().get("name")).isEqualTo("ACME");
+    }
+
+    @Test
+    public void test_the_mapping_content_type_beats_the_stored_one() throws Exception {
+        indexed("mislabelled.csv", "text/csv", "{\"id\":1,\"name\":\"ACME\"}\n", Map.of());
+
+        assertThat(rows(RowSourceOptions.defaults().withContentType("application/json"))
+                .get(0).values().get("name")).isEqualTo("ACME");
+    }
+
+    @Test
+    public void test_an_unsupported_content_type_fails() throws Exception {
+        indexed("scan.pdf", "application/pdf", "not really a pdf", Map.of());
+
+        try {
+            rows(RowSourceOptions.defaults());
+            throw new AssertionError("expected an IllegalArgumentException");
+        } catch (IllegalArgumentException failure) {
+            assertThat(failure.getMessage()).contains("application/pdf");
+            assertThat(failure.getMessage()).contains("text/csv");
+        }
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void test_a_missing_document_fails() throws Exception {
+        when(indexer.<Document>get("local-datashare", "missing", "missing")).thenReturn(null);
+        try (Stream<Row> ignored = reader.rows(project, "missing", null, RowSourceOptions.defaults())) {
+            // the failure is expected before any row is read
+        }
+    }
+
+    @Test
+    public void test_effective_content_type_prefers_the_override() {
+        assertThat(TabularRowReader.effectiveContentType("application/json", "text/csv", "a.csv"))
+                .isEqualTo("application/json");
+    }
+
+    @Test
+    public void test_effective_content_type_falls_back_to_the_extension_only_when_generic() {
+        assertThat(TabularRowReader.effectiveContentType(null, "text/plain", "a.jsonl"))
+                .isEqualTo(JsonRowSource.NDJSON_CONTENT_TYPE);
+        assertThat(TabularRowReader.effectiveContentType(null, "text/csv", "a.jsonl"))
+                .isEqualTo("text/csv");
+        assertThat(TabularRowReader.effectiveContentType(null, "text/plain", "notes.md"))
+                .isEqualTo("text/plain");
+    }
+
+    @Test
+    public void test_delimiter_from_metadata_maps_tika_names() {
+        assertThat(TabularRowReader.delimiterFrom(Map.of("tika_metadata_csv_delimiter", "semicolon")))
+                .isEqualTo(';');
+        assertThat(TabularRowReader.delimiterFrom(Map.of("tika_metadata_csv_delimiter", "tab")))
+                .isEqualTo('\t');
+        assertThat(TabularRowReader.delimiterFrom(Map.of("tika_metadata_csv_delimiter", "pipe")))
+                .isEqualTo('|');
+        assertThat(TabularRowReader.delimiterFrom(Map.of("tika_metadata_csv_delimiter", "comma")))
+                .isEqualTo(',');
+        assertThat(TabularRowReader.delimiterFrom(Map.of())).isNull();
+        assertThat(TabularRowReader.delimiterFrom(Map.of("tika_metadata_csv_delimiter", "unknown")))
+                .isNull();
+    }
+}

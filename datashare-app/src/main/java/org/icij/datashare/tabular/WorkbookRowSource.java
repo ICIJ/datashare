@@ -34,7 +34,7 @@ import java.util.stream.Stream;
 public class WorkbookRowSource implements RowSource {
     private static final Logger LOGGER = LoggerFactory.getLogger(WorkbookRowSource.class);
 
-    private static final Set<String> SUPPORTED = Set.of(
+    public static final Set<String> SUPPORTED = Set.of(
             "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
             "application/vnd.ms-excel",
             "application/vnd.ms-excel.sheet.macroenabled.12");

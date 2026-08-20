@@ -20,7 +20,7 @@ import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 public class DelimitedRowSource implements RowSource {
-    private static final Set<String> SUPPORTED =
+    public static final Set<String> SUPPORTED =
             Set.of("text/csv", "text/tab-separated-values", "text/plain");
 
     private static final char DEFAULT_DELIMITER = ',';
