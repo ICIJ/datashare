@@ -11,6 +11,7 @@ import org.xml.sax.SAXException;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.UncheckedIOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -67,7 +68,7 @@ public class TikaTableRowSource implements RowSource {
             }
             rows.add(new Row(rows.size() + 1L, map(headers, values)));
         }
-        return rows.stream();
+        return rows.stream().onClose(() -> close(source));
     }
 
     // OCR off: a tabular source does not need it, and leaving it off keeps the parse cheap and its
@@ -124,5 +125,13 @@ public class TikaTableRowSource implements RowSource {
             }
         }
         return mapped;
+    }
+
+    private static void close(InputStream source) {
+        try {
+            source.close();
+        } catch (IOException e) {
+            throw new UncheckedIOException("closing the tabular source failed", e);
+        }
     }
 }
