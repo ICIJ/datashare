@@ -93,7 +93,7 @@ public class TabularRowReader {
 
     private RowSourceOptions resolve(Document document, RowSourceOptions options) {
         RowSourceOptions resolved = options.withContentType(effectiveContentType(
-                options.contentType(), document.getContentType(), document.getName()));
+                options.contentType(), document.getContentTypeOrDefault(), document.getName()));
         if (resolved.charset() == null && document.getContentEncoding() != null) {
             resolved = resolved.withCharset(document.getContentEncoding());
         }
