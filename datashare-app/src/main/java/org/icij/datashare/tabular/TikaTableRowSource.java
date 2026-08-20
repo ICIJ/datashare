@@ -39,6 +39,10 @@ import java.util.stream.Stream;
 public class TikaTableRowSource implements RowSource {
     private static final Logger LOGGER = LoggerFactory.getLogger(TikaTableRowSource.class);
 
+    /** Rows of this table only: a table nested inside a cell keeps its own rows, and thead, tbody and
+     *  tfoot survive the sanitizer, so a row is either a direct child or one level down. */
+    private static final String ROW_SELECTOR = ">tr, >thead>tr, >tbody>tr, >tfoot>tr";
+
     /** Only the types whose Tika parser was confirmed to emit table markup. Deliberately not a
      *  catch-all: claiming every unclaimed type would make this reader own application/pdf and force
      *  a future PDF table extractor to displace an incumbent. */
@@ -60,7 +64,7 @@ public class TikaTableRowSource implements RowSource {
     @Override
     public Stream<Row> rows(InputStream source, RowSourceOptions options) throws IOException {
         Element table = selectTable(tables(source, options), options.table());
-        Elements tableRows = table.select("tr");
+        Elements tableRows = table.select(ROW_SELECTOR);
         if (tableRows.isEmpty()) {
             throw new IllegalArgumentException("no header row: the table is empty");
         }
@@ -122,7 +126,7 @@ public class TikaTableRowSource implements RowSource {
      */
     private static List<String> cells(Element tableRow) {
         List<String> values = new ArrayList<>();
-        for (Element cell : tableRow.select("th, td")) {
+        for (Element cell : tableRow.select(">th, >td")) {
             if (cell.hasAttr("colspan") || cell.hasAttr("rowspan")) {
                 throw new IllegalArgumentException(
                         "merged cells make the columns ambiguous: remove the colspan or rowspan");
