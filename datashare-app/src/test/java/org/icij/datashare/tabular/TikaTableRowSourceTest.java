@@ -6,6 +6,7 @@ import org.junit.Test;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
@@ -94,6 +95,27 @@ public class TikaTableRowSourceTest {
     }
 
     @Test(expected = IllegalArgumentException.class)
+    public void test_data_row_with_colspan_fails() throws Exception {
+        readHtml("<html><body><table>"
+                + "<tr><th>id</th><th>name</th></tr>"
+                + "<tr><td colspan=\"2\">both</td></tr>"
+                + "</table></body></html>", RowSourceOptions.defaults());
+    }
+
+    @Test
+    public void test_closing_the_returned_stream_closes_the_source() throws Exception {
+        TrackingInputStream stream = new TrackingInputStream(
+                ("<html><body><table><tr><th>id</th></tr><tr><td>1</td></tr></table></body></html>")
+                        .getBytes(StandardCharsets.UTF_8));
+
+        try (Stream<Row> rows = source.rows(stream, RowSourceOptions.defaults().withContentType("text/html"))) {
+            rows.toList();
+        }
+
+        assertThat(stream.closed).isTrue();
+    }
+
+    @Test(expected = IllegalArgumentException.class)
     public void test_no_table_at_all_fails() throws Exception {
         readHtml("<html><body><p>no table here</p></body></html>", RowSourceOptions.defaults());
     }
@@ -113,6 +135,20 @@ public class TikaTableRowSourceTest {
 
         assertThat(rows).hasSize(1);
         assertThat(rows.get(0).values().get("name")).isEqualTo("ACME");
+    }
+
+    private static class TrackingInputStream extends ByteArrayInputStream {
+        private boolean closed = false;
+
+        private TrackingInputStream(byte[] content) {
+            super(content);
+        }
+
+        @Override
+        public void close() throws IOException {
+            closed = true;
+            super.close();
+        }
     }
 
     private static byte[] docxWithTable() throws Exception {
