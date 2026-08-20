@@ -116,6 +116,24 @@ public class TikaTableRowSourceTest {
     }
 
     @Test
+    public void test_a_nested_table_does_not_add_rows_to_the_outer_table() throws Exception {
+        List<Row> rows = readHtml(
+                "<html><body><table>"
+                        + "<tr><th>id</th><th>name</th></tr>"
+                        + "<tr><td>1</td><td>ACME"
+                        + "<table><tr><th>inner</th></tr><tr><td>nested</td></tr></table>"
+                        + "</td></tr>"
+                        + "<tr><td>2</td><td>Globex</td></tr>"
+                        + "</table></body></html>",
+                RowSourceOptions.defaults());
+
+        assertThat(rows).hasSize(2);
+        assertThat(rows.get(0).values()).hasSize(2);
+        assertThat(rows.get(0).values().get("id")).isEqualTo("1");
+        assertThat(rows.get(1).values().get("name")).isEqualTo("Globex");
+    }
+
+    @Test
     public void test_closing_the_returned_stream_closes_the_source() throws Exception {
         TrackingInputStream stream = new TrackingInputStream(
                 "<html><body><table><tr><th>id</th></tr><tr><td>1</td></tr></table></body></html>");
