@@ -44,8 +44,9 @@ public class JsonRowSource implements RowSource {
         JsonParser parser = mapper.createParser(source);
         // Positioning inside a root array is what makes readValues yield its elements rather than the
         // array as a single value; for NDJSON the parser is already where it needs to be.
-        if (parser.nextToken() == JsonToken.START_ARRAY) {
-            parser.nextToken();
+        if (parser.nextToken() == JsonToken.START_ARRAY && parser.nextToken() == JsonToken.END_ARRAY) {
+            close(parser);
+            return Stream.empty();
         }
         MappingIterator<JsonNode> records = mapper.readerFor(JsonNode.class).readValues(parser);
 

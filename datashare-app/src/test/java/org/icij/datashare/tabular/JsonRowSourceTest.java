@@ -83,4 +83,9 @@ public class JsonRowSourceTest {
         assertThat(rows.get(0).values().get("name")).isNull();
         assertThat(rows.get(1).values().get("name")).isEqualTo("Globex");
     }
+
+    @Test
+    public void test_empty_array_is_empty_not_an_error() throws Exception {
+        assertThat(read("[]")).isEmpty();
+    }
 }
