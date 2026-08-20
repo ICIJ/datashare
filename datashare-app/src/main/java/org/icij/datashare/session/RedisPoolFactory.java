@@ -5,7 +5,7 @@ import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.JedisPoolConfig;
 import redis.clients.jedis.Protocol;
 import redis.clients.jedis.exceptions.InvalidURIException;
-import redis.clients.util.JedisURIHelper;
+import redis.clients.jedis.util.JedisURIHelper;
 
 import javax.net.ssl.SSLParameters;
 import java.net.URI;

@@ -87,7 +87,7 @@ public class RedisPoolFactoryTest {
         // database 0, so an address carrying one splits the app across two databases.
         try (JedisPool databasePool = poolFor(configuredAddressWithDatabase(2));
              Jedis jedis = databasePool.getResource()) {
-            assertThat(jedis.getDB()).isEqualTo(2L);
+            assertThat(jedis.getDB()).isEqualTo(2);
         }
     }
 
