@@ -4,6 +4,7 @@ import org.icij.datashare.PropertiesProvider;
 import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.JedisPoolConfig;
 import redis.clients.jedis.Protocol;
+import redis.clients.jedis.exceptions.InvalidURIException;
 import redis.clients.util.JedisURIHelper;
 
 import java.net.URI;
@@ -28,6 +29,9 @@ final class RedisPoolFactory {
         poolConfig.setTimeBetweenEvictionRunsMillis(EVICTION_RUN_INTERVAL_MILLIS);
         String redisAddress = propertiesProvider.get(REDIS_ADDRESS_OPT).orElse(DEFAULT_REDIS_ADDRESS);
         URI uri = URI.create(redisAddress);
+        if (uri.getHost() == null) {
+            throw new InvalidURIException("Cannot open Redis connection due invalid URI. " + redisAddress);
+        }
         boolean ssl = "rediss".equalsIgnoreCase(uri.getScheme());
         int port = uri.getPort() == -1 ? Protocol.DEFAULT_PORT : uri.getPort();
         return new JedisPool(poolConfig, uri.getHost(), port, Protocol.DEFAULT_TIMEOUT,
