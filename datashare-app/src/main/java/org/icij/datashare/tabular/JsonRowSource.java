@@ -28,7 +28,7 @@ public class JsonRowSource implements RowSource {
      *  the internal token connecting an extension to this reader. It never appears on a document. */
     public static final String NDJSON_CONTENT_TYPE = "application/x-ndjson";
 
-    private static final Set<String> SUPPORTED = Set.of("application/json", NDJSON_CONTENT_TYPE);
+    public static final Set<String> SUPPORTED = Set.of("application/json", NDJSON_CONTENT_TYPE);
 
     private static final String SCALAR_ARRAY_SEPARATOR = "|";
 

@@ -1,0 +1,162 @@
+package org.icij.datashare.tabular;
+
+import org.icij.datashare.text.Document;
+import org.icij.datashare.text.Project;
+import org.icij.datashare.text.indexing.Indexer;
+import org.icij.datashare.text.indexing.elasticsearch.SourceExtractor;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Stream;
+
+/**
+ * Turns the document a mapping names into rows. Addressing the source by document id rather than by
+ * path is what buys embedded sources (a CSV inside a ZIP, a workbook attached to an email) through
+ * SourceExtractor, plus the content type and charset Tika already detected at index time. It also
+ * means no user-supplied path reaches the filesystem, so this route has no traversal surface at all.
+ *
+ * Authorization on the project is not checked here: it belongs to the callers wiring the REST and CLI
+ * triggers, not to a reader.
+ */
+public class TabularRowReader {
+    private static final Set<String> GENERIC_TYPES =
+            Set.of("text/plain", "application/octet-stream");
+
+    // Only the formats a reader claims. Tika 3.3.0 types a .csv named .txt, and every .jsonl, as
+    // text/plain, so without this the delimited reader would claim NDJSON files.
+    private static final Map<String, String> TYPE_BY_EXTENSION = Map.of(
+            "csv", "text/csv",
+            "tsv", "text/tab-separated-values",
+            "psv", "text/csv",
+            "txt", "text/plain",
+            "json", "application/json",
+            "jsonl", JsonRowSource.NDJSON_CONTENT_TYPE,
+            "ndjson", JsonRowSource.NDJSON_CONTENT_TYPE);
+
+    private static final String DELIMITER_METADATA_KEY = "tika_metadata_csv_delimiter";
+
+    private static final Map<String, Character> DELIMITER_BY_TIKA_NAME = Map.of(
+            "comma", ',', "tab", '\t', "pipe", '|', "semicolon", ';');
+
+    private static final List<String> SUPPORTED_CONTENT_TYPES = Stream.of(
+                    DelimitedRowSource.SUPPORTED, WorkbookRowSource.SUPPORTED, JsonRowSource.SUPPORTED,
+                    TikaTableRowSource.SUPPORTED)
+            .flatMap(Set::stream)
+            .sorted()
+            .toList();
+
+    private final Indexer indexer;
+    private final SourceExtractor sourceExtractor;
+    private final List<RowSource> readers;
+    private final RowSource fallback;
+
+    public TabularRowReader(Indexer indexer, SourceExtractor sourceExtractor) {
+        this(indexer, sourceExtractor,
+                List.of(new DelimitedRowSource(), new WorkbookRowSource(), new JsonRowSource()),
+                new TikaTableRowSource());
+    }
+
+    TabularRowReader(Indexer indexer, SourceExtractor sourceExtractor, List<RowSource> readers,
+                     RowSource fallback) {
+        this.indexer = indexer;
+        this.sourceExtractor = sourceExtractor;
+        this.readers = readers;
+        this.fallback = fallback;
+    }
+
+    /**
+     * @param rootId the container the document was extracted from, or null for a root document. ES
+     *               routes an embedded document by its root, so this cannot be derived here.
+     */
+    public Stream<Row> rows(Project project, String documentId, String rootId,
+                            RowSourceOptions options) throws IOException {
+        Document document = indexer.get(project.getName(), documentId,
+                rootId == null ? documentId : rootId);
+        if (document == null) {
+            throw new IllegalArgumentException("no such document in " + project.getName() + ": " + documentId);
+        }
+        RowSourceOptions resolved = resolve(document, options);
+        RowSource reader = select(resolved.contentType());
+        InputStream source = sourceExtractor.getSource(project, document);
+        try {
+            return reader.rows(source, resolved).onClose(() -> closeQuietly(source));
+        } catch (IOException | RuntimeException failure) {
+            closeQuietly(source);
+            throw failure;
+        }
+    }
+
+    private RowSourceOptions resolve(Document document, RowSourceOptions options) {
+        RowSourceOptions resolved = options.withContentType(effectiveContentType(
+                options.contentType(), document.getContentType(), document.getName()));
+        if (resolved.charset() == null && document.getContentEncoding() != null) {
+            resolved = resolved.withCharset(document.getContentEncoding());
+        }
+        if (resolved.delimiter() == null) {
+            resolved = resolved.withDelimiter(delimiterFrom(document.getMetadata()));
+        }
+        return resolved;
+    }
+
+    private RowSource select(String contentType) {
+        for (RowSource reader : readers) {
+            if (reader.supports(contentType)) {
+                return reader;
+            }
+        }
+        if (fallback.supports(contentType)) {
+            return fallback;
+        }
+        throw new IllegalArgumentException(
+                "no reader supports " + contentType + ", supported content types: " + SUPPORTED_CONTENT_TYPES);
+    }
+
+    /**
+     * The mapping's override wins; otherwise a generic stored type is refined by extension, because
+     * Tika has no mimetype for jsonl or ndjson and types a .csv without the extension as text/plain.
+     */
+    static String effectiveContentType(String override, String storedType, String filename) {
+        if (override != null) {
+            return override;
+        }
+        if (!GENERIC_TYPES.contains(storedType)) {
+            return storedType;
+        }
+        return Optional.ofNullable(TYPE_BY_EXTENSION.get(extension(filename))).orElse(storedType);
+    }
+
+    private static String extension(String filename) {
+        if (filename == null) {
+            return "";
+        }
+        int dot = filename.lastIndexOf('.');
+        return dot < 0 ? "" : filename.substring(dot + 1).toLowerCase(Locale.ROOT);
+    }
+
+    /**
+     * Tika's TextAndCSVParser sniffs the delimiter at index time and records its name under
+     * csv:delimiter, which reaches the metadata map as tika_metadata_csv_delimiter. Reading it beats
+     * sniffing again here: it costs nothing and it cannot disagree with the delimiter Tika used to
+     * produce the document's indexed text.
+     */
+    static Character delimiterFrom(Map<String, Object> metadata) {
+        if (metadata == null) {
+            return null;
+        }
+        Object name = metadata.get(DELIMITER_METADATA_KEY);
+        return name == null ? null : DELIMITER_BY_TIKA_NAME.get(name.toString().toLowerCase(Locale.ROOT));
+    }
+
+    private static void closeQuietly(InputStream source) {
+        try {
+            source.close();
+        } catch (IOException ignored) {
+            // the read already failed or already finished; the close failure adds nothing actionable
+        }
+    }
+}
