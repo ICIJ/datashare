@@ -62,12 +62,20 @@ public class DelimitedRowSource implements RowSource {
 
             @Override
             public boolean hasNext() {
-                return records.hasNext();
+                // commons-csv's iterator prefetches the next record here, so a malformed record (an
+                // unterminated quote, for instance) surfaces as an UncheckedIOException or an
+                // IllegalStateException from this call rather than from next(); naming the row number
+                // is what makes it actionable to whoever wrote the file.
+                try {
+                    return records.hasNext();
+                } catch (UncheckedIOException | IllegalStateException e) {
+                    throw new IllegalArgumentException("malformed row " + (number + 1) + ": " + e.getMessage(), e);
+                }
             }
 
             @Override
             public Row next() {
-                return new Row(++number, values(records.next(), headers, number));
+                return new Row(++number, values(records.next(), headers));
             }
         };
         return StreamSupport.stream(
@@ -75,10 +83,7 @@ public class DelimitedRowSource implements RowSource {
                 false);
     }
 
-    // A malformed record surfaces as an UncheckedIOException from commons-csv's own iterator; the row
-    // number is added because that is the only thing making the message actionable to whoever wrote
-    // the file. A Spliterator cannot throw a checked IOException, so unchecked is the only option.
-    private static Map<String, String> values(CSVRecord record, List<String> headers, long number) {
+    private static Map<String, String> values(CSVRecord record, List<String> headers) {
         Map<String, String> values = new HashMap<>();
         for (int column = 0; column < headers.size() && column < record.size(); column++) {
             if (headers.get(column) != null) {
