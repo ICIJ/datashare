@@ -6,9 +6,7 @@ import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.junit.Test;
 
-import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
@@ -27,12 +25,19 @@ public class RowSourceEquivalenceTest {
             Map.of("id", "1", "name", "ACME", "country", "FR"),
             Map.of("id", "2", "name", "Globex", "country", "US"));
 
+    /**
+     * The source stream is deliberately not in the try-with-resources list: closing the returned row
+     * stream is what has to release it, per the RowSource contract.
+     */
     private static List<Row> read(RowSource source, byte[] content, RowSourceOptions options)
             throws Exception {
-        try (InputStream stream = new ByteArrayInputStream(content);
-             Stream<Row> rows = source.rows(stream, options)) {
-            return rows.toList();
+        TrackingInputStream stream = new TrackingInputStream(content);
+        List<Row> read;
+        try (Stream<Row> rows = source.rows(stream, options)) {
+            read = rows.toList();
         }
+        assertThat(stream.closed).isTrue();
+        return read;
     }
 
     private static void assertEquivalent(List<Row> rows) {
@@ -111,6 +116,53 @@ public class RowSourceEquivalenceTest {
         assertEquivalent(read(new TikaTableRowSource(), ods(),
                 RowSourceOptions.defaults()
                         .withContentType("application/vnd.oasis.opendocument.spreadsheet")));
+    }
+
+    /**
+     * A row missing its last column, in each header-based reader. Every column the header declares is
+     * present in the map, so the mapping executor never branches on which format a row came from.
+     */
+    @Test
+    public void test_a_short_row_pads_the_missing_column_in_every_reader() throws Exception {
+        List<Map<String, String>> expected = List.of(
+                Map.of("id", "1", "name", "ACME", "country", "FR"),
+                Map.of("id", "2", "name", "Globex", "country", ""));
+
+        List<List<Row>> reads = List.of(
+                read(new DelimitedRowSource(),
+                        "id,name,country\n1,ACME,FR\n2,Globex\n".getBytes(StandardCharsets.UTF_8),
+                        RowSourceOptions.defaults()),
+                read(new WorkbookRowSource(), raggedWorkbook(), RowSourceOptions.defaults()),
+                read(new TikaTableRowSource(),
+                        ("<html><body><table>"
+                                + "<tr><th>id</th><th>name</th><th>country</th></tr>"
+                                + "<tr><td>1</td><td>ACME</td><td>FR</td></tr>"
+                                + "<tr><td>2</td><td>Globex</td></tr>"
+                                + "</table></body></html>").getBytes(StandardCharsets.UTF_8),
+                        RowSourceOptions.defaults().withContentType("text/html")));
+
+        for (List<Row> rows : reads) {
+            assertThat(rows).hasSize(2);
+            assertThat(rows.get(0).values()).isEqualTo(expected.get(0));
+            assertThat(rows.get(1).values()).isEqualTo(expected.get(1));
+        }
+    }
+
+    private static byte[] raggedWorkbook() throws Exception {
+        XSSFWorkbook workbook = new XSSFWorkbook();
+        Sheet sheet = workbook.createSheet("companies");
+        String[][] table = {{"id", "name", "country"}, {"1", "ACME", "FR"}, {"2", "Globex"}};
+        for (int rowIndex = 0; rowIndex < table.length; rowIndex++) {
+            org.apache.poi.ss.usermodel.Row row = sheet.createRow(rowIndex);
+            for (int column = 0; column < table[rowIndex].length; column++) {
+                row.createCell(column).setCellValue(table[rowIndex][column]);
+            }
+        }
+        try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            workbook.write(out);
+            workbook.close();
+            return out.toByteArray();
+        }
     }
 
     private static byte[] workbook(Workbook workbook) throws Exception {

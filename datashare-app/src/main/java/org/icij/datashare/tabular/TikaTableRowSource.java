@@ -7,15 +7,15 @@ import org.icij.datashare.text.structure.StructureMarkdownExtractor.Page;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.xml.sax.SAXException;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.stream.Stream;
 
@@ -31,8 +31,14 @@ import java.util.stream.Stream;
  * mapping's own date format has to handle it. And the extractor's output cap means an oversized
  * document throws rather than importing a truncated table, which is the behaviour a data import
  * needs; large files belong on tier 1.
+ *
+ * Cell text is stripped here while tier 1 leaves values untouched: Tika's XHTML rendering introduces
+ * its own indentation and newlines inside a cell, so the whitespace being removed is the renderer's
+ * rather than the document's.
  */
 public class TikaTableRowSource implements RowSource {
+    private static final Logger LOGGER = LoggerFactory.getLogger(TikaTableRowSource.class);
+
     /** Only the types whose Tika parser was confirmed to emit table markup. Deliberately not a
      *  catch-all: claiming every unclaimed type would make this reader own application/pdf and force
      *  a future PDF table extractor to displace an incumbent. */
@@ -61,12 +67,21 @@ public class TikaTableRowSource implements RowSource {
         List<String> headers = Row.headers(cells(tableRows.get(0)));
 
         List<Row> rows = new ArrayList<>();
+        long surplus = 0;
         for (int index = 1; index < tableRows.size(); index++) {
             List<String> values = cells(tableRows.get(index));
             if (values.stream().allMatch(String::isEmpty)) {
                 continue;
             }
-            rows.add(new Row(rows.size() + 1L, map(headers, values)));
+            if (values.size() > headers.size()) {
+                surplus++;
+            }
+            // Tolerated rather than refused, unlike tier 1: a stray trailing cell is common in
+            // real-world markup, and the rest of the row still lines up with the header.
+            rows.add(new Row(rows.size() + 1L, Row.values(headers, values)));
+        }
+        if (surplus > 0) {
+            LOGGER.info("dropped the cells past the {} declared columns in {} rows", headers.size(), surplus);
         }
         return rows.stream().onClose(() -> close(source));
     }
@@ -115,16 +130,6 @@ public class TikaTableRowSource implements RowSource {
             values.add(cell.text().strip());
         }
         return values;
-    }
-
-    private static Map<String, String> map(List<String> headers, List<String> values) {
-        Map<String, String> mapped = new HashMap<>();
-        for (int column = 0; column < headers.size(); column++) {
-            if (headers.get(column) != null) {
-                mapped.put(headers.get(column), column < values.size() ? values.get(column) : "");
-            }
-        }
-        return mapped;
     }
 
     private static void close(InputStream source) {

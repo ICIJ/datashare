@@ -88,4 +88,24 @@ public class JsonRowSourceTest {
     public void test_empty_array_is_empty_not_an_error() throws Exception {
         assertThat(read("[]")).isEmpty();
     }
+
+    @Test
+    public void test_a_record_that_is_not_an_object_fails() throws Exception {
+        try {
+            read("[1,2,3]");
+            throw new AssertionError("expected an IllegalArgumentException");
+        } catch (IllegalArgumentException failure) {
+            assertThat(failure.getMessage()).contains("row 1");
+        }
+    }
+
+    @Test
+    public void test_a_top_level_scalar_fails() throws Exception {
+        try {
+            read("42");
+            throw new AssertionError("expected an IllegalArgumentException");
+        } catch (IllegalArgumentException failure) {
+            assertThat(failure.getMessage()).contains("row 1");
+        }
+    }
 }

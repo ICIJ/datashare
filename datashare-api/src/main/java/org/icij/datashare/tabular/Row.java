@@ -1,10 +1,16 @@
 package org.icij.datashare.tabular;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-/** One data row. {@code number} is 1-based and excludes the header row. */
+/**
+ * One data row. {@code number} is the 1-based ordinal of the emitted row, not the row's position in
+ * the file: the header row and the rows a reader skips, an entirely blank one for instance, consume
+ * no number.
+ */
 public record Row(long number, Map<String, String> values) {
 
     /**
@@ -26,5 +32,34 @@ public record Row(long number, Map<String, String> values) {
             headers.add(name);
         }
         return headers;
+    }
+
+    /**
+     * Maps a row's cells onto the header names, in header order. Every column the header declares is
+     * present, padded with an empty string when the row is short, so a consumer never has to tell a
+     * missing cell from an empty one. A column whose header name is blank is dropped, and cells past
+     * the last declared column are ignored.
+     */
+    public static Map<String, String> values(List<String> headers, List<String> cells) {
+        Map<String, String> values = new LinkedHashMap<>();
+        for (int column = 0; column < headers.size(); column++) {
+            if (headers.get(column) != null) {
+                values.put(headers.get(column), column < cells.size() ? cells.get(column) : "");
+            }
+        }
+        return Collections.unmodifiableMap(values);
+    }
+
+    /**
+     * The same mapping, refusing a row carrying more fields than the header declares: that is the
+     * signature of a wrong delimiter or of a separator inside an unquoted value, and importing such a
+     * row would silently misalign every value in it.
+     */
+    public static Map<String, String> values(List<String> headers, List<String> cells, long number) {
+        if (cells.size() > headers.size()) {
+            throw new IllegalArgumentException("row " + number + " has " + cells.size()
+                    + " fields but the header declares " + headers.size());
+        }
+        return values(headers, cells);
     }
 }

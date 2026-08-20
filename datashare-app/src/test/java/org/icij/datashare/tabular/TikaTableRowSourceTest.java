@@ -6,7 +6,6 @@ import org.junit.Test;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
@@ -103,10 +102,23 @@ public class TikaTableRowSourceTest {
     }
 
     @Test
+    public void test_a_row_with_more_cells_than_the_header_keeps_the_declared_columns() throws Exception {
+        List<Row> rows = readHtml(
+                "<html><body><table>"
+                        + "<tr><th>id</th><th>name</th></tr>"
+                        + "<tr><td>1</td><td>ACME</td><td>stray</td></tr>"
+                        + "</table></body></html>",
+                RowSourceOptions.defaults());
+
+        assertThat(rows).hasSize(1);
+        assertThat(rows.get(0).values()).hasSize(2);
+        assertThat(rows.get(0).values().get("name")).isEqualTo("ACME");
+    }
+
+    @Test
     public void test_closing_the_returned_stream_closes_the_source() throws Exception {
         TrackingInputStream stream = new TrackingInputStream(
-                ("<html><body><table><tr><th>id</th></tr><tr><td>1</td></tr></table></body></html>")
-                        .getBytes(StandardCharsets.UTF_8));
+                "<html><body><table><tr><th>id</th></tr><tr><td>1</td></tr></table></body></html>");
 
         try (Stream<Row> rows = source.rows(stream, RowSourceOptions.defaults().withContentType("text/html"))) {
             rows.toList();
@@ -135,20 +147,6 @@ public class TikaTableRowSourceTest {
 
         assertThat(rows).hasSize(1);
         assertThat(rows.get(0).values().get("name")).isEqualTo("ACME");
-    }
-
-    private static class TrackingInputStream extends ByteArrayInputStream {
-        private boolean closed = false;
-
-        private TrackingInputStream(byte[] content) {
-            super(content);
-        }
-
-        @Override
-        public void close() throws IOException {
-            closed = true;
-            super.close();
-        }
     }
 
     private static byte[] docxWithTable() throws Exception {
