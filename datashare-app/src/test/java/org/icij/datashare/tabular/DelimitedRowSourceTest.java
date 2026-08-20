@@ -95,6 +95,35 @@ public class DelimitedRowSourceTest {
     }
 
     @Test
+    public void test_a_short_row_pads_the_missing_columns() throws Exception {
+        List<Row> rows = read("id,name,country\n1,ACME\n", RowSourceOptions.defaults());
+
+        assertThat(rows.get(0).values()).hasSize(3);
+        assertThat(rows.get(0).values().get("country")).isEqualTo("");
+    }
+
+    @Test
+    public void test_a_row_with_more_fields_than_the_header_fails() throws Exception {
+        try {
+            read("id,name\n1,ACME,extra\n", RowSourceOptions.defaults());
+            fail("expected an IllegalArgumentException");
+        } catch (IllegalArgumentException e) {
+            assertThat(e.getMessage()).contains("row 1");
+            assertThat(e.getMessage()).contains("3 fields");
+            assertThat(e.getMessage()).contains("declares 2");
+        }
+    }
+
+    @Test
+    public void test_skips_a_row_of_empty_fields_without_consuming_a_number() throws Exception {
+        List<Row> rows = read("id,name\n,\n1,ACME\n", RowSourceOptions.defaults());
+
+        assertThat(rows).hasSize(1);
+        assertThat(rows.get(0).number()).isEqualTo(1L);
+        assertThat(rows.get(0).values().get("name")).isEqualTo("ACME");
+    }
+
+    @Test
     public void test_malformed_record_names_the_row_number() throws Exception {
         try {
             read("id,name\n1,\"unterminated\n", RowSourceOptions.defaults());

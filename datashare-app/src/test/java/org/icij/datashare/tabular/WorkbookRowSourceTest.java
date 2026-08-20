@@ -101,6 +101,68 @@ public class WorkbookRowSourceTest {
     }
 
     @Test
+    public void test_reads_the_sheet_at_the_index_in_the_options() throws Exception {
+        XSSFWorkbook workbook = new XSSFWorkbook();
+        fill(workbook.createSheet("first"));
+        Sheet second = workbook.createSheet("second");
+        second.createRow(0).createCell(0).setCellValue("id");
+        second.createRow(1).createCell(0).setCellValue("999");
+
+        List<Row> rows = read(bytes(workbook),
+                new RowSourceOptions(null, null, null, null, "2", null));
+
+        assertThat(rows.get(0).values().get("id")).isEqualTo("999");
+    }
+
+    @Test
+    public void test_a_sheet_named_like_a_number_beats_that_position() throws Exception {
+        XSSFWorkbook workbook = new XSSFWorkbook();
+        Sheet named = workbook.createSheet("2");
+        named.createRow(0).createCell(0).setCellValue("id");
+        named.createRow(1).createCell(0).setCellValue("by name");
+        Sheet second = workbook.createSheet("other");
+        second.createRow(0).createCell(0).setCellValue("id");
+        second.createRow(1).createCell(0).setCellValue("by position");
+
+        List<Row> rows = read(bytes(workbook),
+                new RowSourceOptions(null, null, null, null, "2", null));
+
+        assertThat(rows.get(0).values().get("id")).isEqualTo("by name");
+    }
+
+    @Test
+    public void test_an_unknown_sheet_reference_fails() throws Exception {
+        XSSFWorkbook workbook = new XSSFWorkbook();
+        fill(workbook.createSheet("companies"));
+        byte[] content = bytes(workbook);
+
+        try {
+            read(content, new RowSourceOptions(null, null, null, null, "nope", null));
+            throw new AssertionError("expected an IllegalArgumentException");
+        } catch (IllegalArgumentException failure) {
+            assertThat(failure.getMessage()).contains("no such sheet: nope");
+        }
+    }
+
+    @Test
+    public void test_a_row_with_more_cells_than_the_header_fails() throws Exception {
+        XSSFWorkbook workbook = new XSSFWorkbook();
+        Sheet sheet = workbook.createSheet("companies");
+        fill(sheet);
+        sheet.getRow(1).createCell(2).setCellValue("surplus");
+        byte[] content = bytes(workbook);
+
+        try {
+            read(content, RowSourceOptions.defaults());
+            throw new AssertionError("expected an IllegalArgumentException");
+        } catch (IllegalArgumentException failure) {
+            assertThat(failure.getMessage()).contains("row 1");
+            assertThat(failure.getMessage()).contains("3 fields");
+            assertThat(failure.getMessage()).contains("declares 2");
+        }
+    }
+
+    @Test
     public void test_renders_a_date_cell_as_iso_date() throws Exception {
         XSSFWorkbook workbook = new XSSFWorkbook();
         Sheet sheet = workbook.createSheet("dates");

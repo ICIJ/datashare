@@ -9,8 +9,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
-import java.util.HashMap;
+import java.util.Collections;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.Spliterator;
@@ -22,6 +23,10 @@ import java.util.stream.StreamSupport;
  * Reads flat records out of JSON. One reader covers both shapes a dump comes in: peeking the first
  * token tells an array of objects apart from line-delimited or concatenated objects, and Jackson
  * iterates both identically once positioned.
+ *
+ * A record carries its own column names, so the header rules the other readers share do not reach
+ * here: a blank key becomes a column named "", keys are not stripped, a duplicate key is
+ * last-write-wins, and {@code {"addr.city":"X","addr":{"city":"Y"}}} collides silently.
  */
 public class JsonRowSource implements RowSource {
     /** Tika 3.3.0 has no mimetype for jsonl or ndjson, so this is the de facto type, used only as
@@ -60,9 +65,17 @@ public class JsonRowSource implements RowSource {
 
             @Override
             public Row next() {
-                Map<String, String> values = new HashMap<>();
-                flatten("", records.next(), values);
-                return new Row(++number, values);
+                JsonNode record = records.next();
+                number++;
+                // A scalar or an array has no keys to map onto columns, so it would yield a row with
+                // no values at all: refusing beats reporting an empty import as a success.
+                if (!record.isObject()) {
+                    throw new IllegalArgumentException(
+                            "row " + number + " is not a json object but a " + record.getNodeType());
+                }
+                Map<String, String> values = new LinkedHashMap<>();
+                flatten("", record, values);
+                return new Row(number, Collections.unmodifiableMap(values));
             }
         };
         return StreamSupport.stream(

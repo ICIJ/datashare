@@ -18,9 +18,7 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.stream.Stream;
 
@@ -73,7 +71,7 @@ public class WorkbookRowSource implements RowSource {
         try {
             return workbook.getSheetAt(Integer.parseInt(requested.strip()) - 1);
         } catch (IllegalArgumentException notAnIndex) {
-            throw new IllegalArgumentException("no such sheet: " + requested);
+            throw new IllegalArgumentException("no such sheet: " + requested, notAnIndex);
         }
     }
 
@@ -94,7 +92,8 @@ public class WorkbookRowSource implements RowSource {
                 blank++;
                 continue;
             }
-            rows.add(new Row(rows.size() + 1L, map(headers, values)));
+            long number = rows.size() + 1L;
+            rows.add(new Row(number, Row.values(headers, values, number)));
         }
         if (blank > 0) {
             LOGGER.info("skipped {} blank rows in sheet {}", blank, sheet.getSheetName());
@@ -133,16 +132,6 @@ public class WorkbookRowSource implements RowSource {
                 ? evaluator.evaluateFormulaCell(cell)
                 : cell.getCellType();
         return type == CellType.NUMERIC && DateUtil.isCellDateFormatted(cell);
-    }
-
-    private static Map<String, String> map(List<String> headers, List<String> values) {
-        Map<String, String> mapped = new HashMap<>();
-        for (int column = 0; column < headers.size(); column++) {
-            if (headers.get(column) != null) {
-                mapped.put(headers.get(column), column < values.size() ? values.get(column) : "");
-            }
-        }
-        return mapped;
     }
 
     private static void close(Workbook workbook) {

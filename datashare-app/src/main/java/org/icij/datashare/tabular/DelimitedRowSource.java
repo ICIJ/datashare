@@ -9,10 +9,8 @@ import java.io.InputStream;
 import java.io.UncheckedIOException;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.Spliterator;
 import java.util.Spliterators;
@@ -59,13 +57,26 @@ public class DelimitedRowSource implements RowSource {
     private static Stream<Row> stream(Iterator<CSVRecord> records, List<String> headers) {
         Iterator<Row> rows = new Iterator<>() {
             private long number = 0;
+            private List<String> pending;
 
             @Override
             public boolean hasNext() {
-                // commons-csv's iterator prefetches the next record here, so a malformed record (an
-                // unterminated quote, for instance) surfaces as an UncheckedIOException or an
-                // IllegalStateException from this call rather than from next(); naming the row number
-                // is what makes it actionable to whoever wrote the file.
+                // A record whose every field is empty is skipped, as it is in every other reader, and
+                // consumes no row number; commons-csv already drops a truly blank line.
+                while (pending == null && hasNextRecord()) {
+                    List<String> cells = records.next().toList();
+                    if (!cells.stream().allMatch(String::isEmpty)) {
+                        pending = cells;
+                    }
+                }
+                return pending != null;
+            }
+
+            // commons-csv's iterator prefetches the next record, so a malformed record (an
+            // unterminated quote, for instance) surfaces as an UncheckedIOException or an
+            // IllegalStateException from hasNext() rather than from next(); naming the row number is
+            // what makes it actionable to whoever wrote the file.
+            private boolean hasNextRecord() {
                 try {
                     return records.hasNext();
                 } catch (UncheckedIOException | IllegalStateException e) {
@@ -75,22 +86,15 @@ public class DelimitedRowSource implements RowSource {
 
             @Override
             public Row next() {
-                return new Row(++number, values(records.next(), headers));
+                List<String> cells = pending;
+                pending = null;
+                number++;
+                return new Row(number, Row.values(headers, cells, number));
             }
         };
         return StreamSupport.stream(
                 Spliterators.spliteratorUnknownSize(rows, Spliterator.ORDERED | Spliterator.NONNULL),
                 false);
-    }
-
-    private static Map<String, String> values(CSVRecord record, List<String> headers) {
-        Map<String, String> values = new HashMap<>();
-        for (int column = 0; column < headers.size() && column < record.size(); column++) {
-            if (headers.get(column) != null) {
-                values.put(headers.get(column), record.get(column));
-            }
-        }
-        return values;
     }
 
     private static void close(CSVParser parser) {
