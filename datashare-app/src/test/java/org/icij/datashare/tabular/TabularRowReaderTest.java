@@ -118,6 +118,24 @@ public class TabularRowReaderTest {
     }
 
     @Test
+    public void test_a_reader_failure_closes_the_source() throws Exception {
+        String html = "<html><body><p>no table here</p></body></html>";
+        Document document = indexed("page.html", "text/html", html, Map.of());
+        SourceExtractor sourceExtractor = mock(SourceExtractor.class);
+        TrackingInputStream source = new TrackingInputStream(html);
+        when(sourceExtractor.getSource(project, document)).thenReturn(source);
+
+        try (Stream<Row> ignored = new TabularRowReader(indexer, sourceExtractor)
+                .rows(project, "docId", null, RowSourceOptions.defaults())) {
+            throw new AssertionError("expected an IllegalArgumentException");
+        } catch (IllegalArgumentException failure) {
+            assertThat(failure.getMessage()).contains("no table");
+        }
+
+        assertThat(source.closed).isTrue();
+    }
+
+    @Test
     public void test_effective_content_type_prefers_the_override() {
         assertThat(TabularRowReader.effectiveContentType("application/json", "text/csv", "a.csv"))
                 .isEqualTo("application/json");
