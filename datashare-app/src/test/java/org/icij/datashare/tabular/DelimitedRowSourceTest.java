@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.stream.Stream;
 
 import static org.fest.assertions.Assertions.assertThat;
+import static org.junit.Assert.fail;
 
 public class DelimitedRowSourceTest {
     private final DelimitedRowSource source = new DelimitedRowSource();
@@ -91,5 +92,15 @@ public class DelimitedRowSourceTest {
     @Test
     public void test_header_with_no_data_rows_is_empty_not_an_error() throws Exception {
         assertThat(read("id,name\n", RowSourceOptions.defaults())).isEmpty();
+    }
+
+    @Test
+    public void test_malformed_record_names_the_row_number() throws Exception {
+        try {
+            read("id,name\n1,\"unterminated\n", RowSourceOptions.defaults());
+            fail("expected an IllegalArgumentException");
+        } catch (IllegalArgumentException e) {
+            assertThat(e.getMessage()).contains("row 1");
+        }
     }
 }
