@@ -36,6 +36,7 @@ public class TabularRowReader {
             "csv", "text/csv",
             "tsv", "text/tab-separated-values",
             "psv", "text/csv",
+            "txt", "text/plain",
             "json", "application/json",
             "jsonl", JsonRowSource.NDJSON_CONTENT_TYPE,
             "ndjson", JsonRowSource.NDJSON_CONTENT_TYPE);

@@ -151,6 +151,17 @@ public class TabularRowReaderTest {
                 .isEqualTo("text/plain");
     }
 
+    /**
+     * The extension table refines both generic types, and application/octet-stream is the one where
+     * the txt entry carries its weight: no reader claims octet-stream, so without it a .txt whose
+     * bytes Tika declined to type would fail instead of reaching the delimited reader.
+     */
+    @Test
+    public void test_effective_content_type_refines_an_octet_stream_txt() {
+        assertThat(TabularRowReader.effectiveContentType(null, "application/octet-stream", "notes.txt"))
+                .isEqualTo("text/plain");
+    }
+
     @Test
     public void test_delimiter_from_metadata_maps_tika_names() {
         assertThat(TabularRowReader.delimiterFrom(Map.of("tika_metadata_csv_delimiter", "semicolon")))
