@@ -28,8 +28,6 @@ final class RedisPoolFactory {
         poolConfig.setTimeBetweenEvictionRunsMillis(EVICTION_RUN_INTERVAL_MILLIS);
         String redisAddress = propertiesProvider.get(REDIS_ADDRESS_OPT).orElse(DEFAULT_REDIS_ADDRESS);
         URI uri = URI.create(redisAddress);
-        // JedisPool's URI constructors hardcode ssl=false, so a rediss:// address would connect
-        // in plaintext. Pass host and port instead, with ssl taken from the scheme.
         boolean ssl = "rediss".equalsIgnoreCase(uri.getScheme());
         int port = uri.getPort() == -1 ? Protocol.DEFAULT_PORT : uri.getPort();
         return new JedisPool(poolConfig, uri.getHost(), port, Protocol.DEFAULT_TIMEOUT,
