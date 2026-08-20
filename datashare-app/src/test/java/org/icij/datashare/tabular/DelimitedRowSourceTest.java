@@ -114,6 +114,20 @@ public class DelimitedRowSourceTest {
         }
     }
 
+    /**
+     * A trailing delimiter is one of the commonest real CSV shapes. The surplus field it produces is
+     * empty, so it carries no data and cannot be the misalignment a long row is refused for.
+     */
+    @Test
+    public void test_a_trailing_delimiter_does_not_fail_the_row() throws Exception {
+        List<Row> rows = read("id,name\n1,ACME,\n", RowSourceOptions.defaults());
+
+        assertThat(rows).hasSize(1);
+        assertThat(rows.get(0).values()).hasSize(2);
+        assertThat(rows.get(0).values().get("id")).isEqualTo("1");
+        assertThat(rows.get(0).values().get("name")).isEqualTo("ACME");
+    }
+
     @Test
     public void test_skips_a_row_of_empty_fields_without_consuming_a_number() throws Exception {
         List<Row> rows = read("id,name\n,\n1,ACME\n", RowSourceOptions.defaults());

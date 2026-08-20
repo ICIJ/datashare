@@ -162,6 +162,25 @@ public class WorkbookRowSourceTest {
         }
     }
 
+    /**
+     * Excel keeps cells past the last filled column when they were styled or previously emptied, and
+     * the user cannot see them. A blank surplus cell carries no data, so refusing the file over it
+     * would reject a very common workbook for nothing.
+     */
+    @Test
+    public void test_a_blank_cell_past_the_header_width_does_not_fail_the_row() throws Exception {
+        XSSFWorkbook workbook = new XSSFWorkbook();
+        Sheet sheet = workbook.createSheet("companies");
+        fill(sheet);
+        sheet.getRow(1).createCell(2);
+
+        List<Row> rows = read(bytes(workbook), RowSourceOptions.defaults());
+
+        assertThat(rows).hasSize(1);
+        assertThat(rows.get(0).values()).hasSize(2);
+        assertThat(rows.get(0).values().get("name")).isEqualTo("ACME");
+    }
+
     @Test
     public void test_renders_a_date_cell_as_iso_date() throws Exception {
         XSSFWorkbook workbook = new XSSFWorkbook();
