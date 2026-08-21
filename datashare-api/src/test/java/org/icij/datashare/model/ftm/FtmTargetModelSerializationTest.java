@@ -96,6 +96,44 @@ public class FtmTargetModelSerializationTest {
     }
 
     @Test
+    public void test_a_json_null_fails_with_a_clear_error() {
+        try {
+            model.parse("null");
+            fail("should have refused the null document");
+        } catch (IllegalArgumentException e) {
+            assertThat(e.getMessage()).contains("FtM");
+        }
+    }
+
+    @Test
+    public void test_a_property_with_null_values_fails_with_a_clear_error() {
+        try {
+            model.parse("{\"id\":\"person-1\",\"schema\":\"Person\",\"properties\":{\"name\":null}}");
+            fail("should have refused the null value list");
+        } catch (IllegalArgumentException e) {
+            assertThat(e.getMessage()).contains("name");
+            assertThat(e.getMessage()).contains("FtM");
+        }
+    }
+
+    @Test
+    public void test_a_property_holding_a_null_value_fails_with_a_clear_error() {
+        try {
+            model.parse("{\"id\":\"person-1\",\"schema\":\"Person\",\"properties\":{\"name\":[null]}}");
+            fail("should have refused the null value");
+        } catch (IllegalArgumentException e) {
+            assertThat(e.getMessage()).contains("name");
+            assertThat(e.getMessage()).contains("FtM");
+        }
+    }
+
+    @Test
+    public void test_the_multi_type_entity_it_collapses_is_valid() {
+        assertThat(model.validate(new ModelEntity("person-1", Set.of("Person", "LegalEntity", "Thing"),
+                Map.of("name", List.of("Jane Doe"))))).isEmpty();
+    }
+
+    @Test
     public void test_an_absent_properties_reads_as_empty() {
         ModelEntity entity = model.parse("{\"id\":\"person-1\",\"schema\":\"Person\"}");
 

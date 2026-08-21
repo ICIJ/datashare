@@ -4,6 +4,7 @@ import org.icij.datashare.model.EntityType;
 import org.icij.datashare.model.ModelEntity;
 import org.icij.datashare.model.Property;
 import org.icij.datashare.model.TargetModel;
+import org.icij.datashare.model.UnreadableModelResource;
 import org.junit.Test;
 
 import java.util.List;
@@ -11,6 +12,7 @@ import java.util.Map;
 import java.util.Set;
 
 import static org.fest.assertions.Assertions.assertThat;
+import static org.junit.Assert.fail;
 
 public class FtmTargetModelTest {
     private final TargetModel model = new FtmTargetModel();
@@ -77,6 +79,40 @@ public class FtmTargetModelTest {
     public void test_an_unknown_property_or_type_is_empty() {
         assertThat(model.property("Person", "shoeSize").isPresent()).isFalse();
         assertThat(model.property("Persona", "name").isPresent()).isFalse();
+    }
+
+    @Test
+    public void test_a_property_two_ancestors_declare_resolves_to_the_last_ancestor_by_name() {
+        assertThat(model.property("Message", "date").get().qname()).isEqualTo("Interval:date");
+        assertThat(model.property("Message", "description").get().qname()).isEqualTo("Thing:description");
+        assertThat(model.property("Event", "namesMentioned").get().qname()).isEqualTo("Interval:namesMentioned");
+    }
+
+    @Test
+    public void test_a_stub_property_another_of_the_types_declares_as_written_is_no_violation() {
+        List<TargetModel.Violation> violations = model.validate(new ModelEntity("x-1",
+                Set.of("LegalEntity", "ContractAward"),
+                Map.of("name", List.of("Total"), "callForTenders", List.of("c-1"))));
+
+        assertThat(violations.stream().anyMatch(violation -> violation.message().contains("stub"))).isFalse();
+    }
+
+    @Test
+    public void test_the_missing_required_properties_are_reported_in_the_model_s_order() {
+        List<TargetModel.Violation> violations = model.validate(
+                new ModelEntity("e-1", Set.of("Employment"), Map.of()));
+
+        assertThat(violations.get(0).message()).isEqualTo("type 'Employment' requires 'employer'");
+    }
+
+    @Test
+    public void test_a_missing_bundled_model_names_the_resource() {
+        try {
+            new FtmTargetModel("ftm/nope.json");
+            fail("should have refused the missing resource");
+        } catch (UnreadableModelResource e) {
+            assertThat(e.resource).isEqualTo("ftm/nope.json");
+        }
     }
 
     @Test

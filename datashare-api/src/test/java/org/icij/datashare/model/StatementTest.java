@@ -51,6 +51,32 @@ public class StatementTest {
     }
 
     @Test
+    public void test_a_null_sheet_and_an_empty_sheet_are_the_same_provenance() {
+        assertThat(new Statement.Provenance("doc-1", null, 1, "full_name"))
+                .isEqualTo(new Statement.Provenance("doc-1", "", 1, "full_name"));
+    }
+
+    @Test
+    public void test_a_nul_in_a_value_is_rejected() {
+        try {
+            Statement.of("ftm", "person-1", "Person", "name", "Jane\u0000doc-1", provenance);
+            fail("should have rejected the NUL in the value");
+        } catch (IllegalArgumentException e) {
+            assertThat(e.getMessage()).contains("value");
+        }
+    }
+
+    @Test
+    public void test_a_nul_in_the_provenance_is_rejected() {
+        try {
+            new Statement.Provenance("doc-1\u0000", "Sheet1", 12, "full_name");
+            fail("should have rejected the NUL in the documentId");
+        } catch (IllegalArgumentException e) {
+            assertThat(e.getMessage()).contains("documentId");
+        }
+    }
+
+    @Test
     public void test_a_null_id_is_rejected() {
         try {
             new Statement(null, "ftm", "person-1", "Person", "name", "Jane Doe", provenance);

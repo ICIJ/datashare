@@ -28,6 +28,16 @@ public class TargetModelRegistryTest {
     }
 
     @Test
+    public void test_an_unknown_model_keeps_the_requested_name() {
+        try {
+            TargetModelRegistry.get("wikidata");
+            fail("should have refused an unregistered model");
+        } catch (UnknownTargetModel e) {
+            assertThat(e.name).isEqualTo("wikidata");
+        }
+    }
+
+    @Test
     public void test_a_null_name_is_rejected() {
         try {
             TargetModelRegistry.get(null);

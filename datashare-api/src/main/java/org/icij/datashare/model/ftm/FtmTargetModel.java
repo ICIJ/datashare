@@ -7,22 +7,28 @@ import org.icij.datashare.model.EntityType;
 import org.icij.datashare.model.ModelEntity;
 import org.icij.datashare.model.Property;
 import org.icij.datashare.model.TargetModel;
+import org.icij.datashare.model.UnreadableModelResource;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.TreeSet;
 
 /**
  * The FollowTheMoney model, read from a bundled copy of its prebuilt ontology. The
  * {@code org.icij:ftm.java} artifact on the classpath is a build-time code generator and carries no
  * model data, so the file is vendored: version 4.10.2, retrieved 2026-08-21 from
- * https://raw.githubusercontent.com/opensanctions/followthemoney/main/js/src/defaultModel.json
+ * https://raw.githubusercontent.com/opensanctions/followthemoney/b9418ecd32bd60dd09c261134464860a0082ffb7/js/src/defaultModel.json
+ * with sha256 d1733d7963b4a662e8162529dfc8a1eb0dd86d035425853fbc67c26b63d99992. That path carries
+ * no {@code 4.10.2} tag, so the commit sha is the only stable pin. FollowTheMoney is MIT-licensed
+ * and its notice ships beside the ontology, as the {@code ftm/LICENSE} resource.
  */
 public class FtmTargetModel implements TargetModel {
     private static final String RESOURCE = "ftm/defaultModel-4.10.2.json";
@@ -31,15 +37,19 @@ public class FtmTargetModel implements TargetModel {
     private final Map<String, EntityType> types;
 
     public FtmTargetModel() {
-        try (InputStream stream = getClass().getClassLoader().getResourceAsStream(RESOURCE)) {
+        this(RESOURCE);
+    }
+
+    FtmTargetModel(String resource) {
+        try (InputStream stream = getClass().getClassLoader().getResourceAsStream(resource)) {
             if (stream == null) {
-                throw new IllegalStateException("no FtM model bundled at " + RESOURCE);
+                throw new UnreadableModelResource(resource);
             }
             JsonNode root = JsonObjectMapper.getMapper().readTree(stream);
             this.version = root.get("version").asText();
             this.types = types(root.get("schemata"));
         } catch (IOException e) {
-            throw new IllegalStateException("cannot read the FtM model at " + RESOURCE, e);
+            throw new UnreadableModelResource(resource, e);
         }
     }
 
@@ -61,7 +71,7 @@ public class FtmTargetModel implements TargetModel {
     @Override
     public String serialize(ModelEntity entity) {
         String schema = mostSpecific(entity.types()).orElseThrow(() -> new IllegalArgumentException(
-                "types " + entity.types() + " have no common schema in the FtM model"));
+                "types " + new TreeSet<>(entity.types()) + " have no common schema in the FtM model"));
         try {
             return JsonObjectMapper.getMapper()
                     .writeValueAsString(new FtmEntity(entity.id(), schema, entity.properties()));
@@ -78,21 +88,32 @@ public class FtmTargetModel implements TargetModel {
         } catch (JsonProcessingException e) {
             throw new IllegalArgumentException("cannot read FtM JSON", e);
         }
+        if (read == null) {
+            throw new IllegalArgumentException("no entity in FtM JSON");
+        }
         if (read.id() == null) {
             throw new IllegalArgumentException("missing 'id' in FtM JSON");
         }
         if (read.schema() == null) {
             throw new IllegalArgumentException("missing 'schema' in FtM JSON");
         }
-        return new ModelEntity(read.id(), Set.of(read.schema()),
-                read.properties() == null ? Map.of() : read.properties());
+        Map<String, List<String>> properties = read.properties() == null ? Map.of() : read.properties();
+        properties.forEach((property, values) -> {
+            if (values == null) {
+                throw new IllegalArgumentException("property '" + property + "' has no values in FtM JSON");
+            }
+            if (values.contains(null)) {
+                throw new IllegalArgumentException("property '" + property + "' has a null value in FtM JSON");
+            }
+        });
+        return new ModelEntity(read.id(), Set.of(read.schema()), properties);
     }
 
     @Override
     public List<Violation> validate(ModelEntity entity) {
         List<Violation> violations = new ArrayList<>(TargetModel.super.validate(entity));
         if (entity.types().size() > 1 && mostSpecific(entity.types()).isEmpty()) {
-            violations.add(new Violation("types " + entity.types()
+            violations.add(new Violation("types " + new TreeSet<>(entity.types())
                     + " have no common schema, so the entity cannot be written as FtM JSON"));
         }
         return violations;
@@ -119,7 +140,8 @@ public class FtmTargetModel implements TargetModel {
     private static EntityType type(String name, JsonNode schema, Map<String, Map<String, Property>> declared) {
         Set<String> ancestors = strings(schema.get("schemata"));
         Map<String, Property> properties = new HashMap<>();
-        ancestors.forEach(ancestor -> properties.putAll(declared.getOrDefault(ancestor, Map.of())));
+        // Two ancestors can declare the same property with different qnames: last one by name wins.
+        new TreeSet<>(ancestors).forEach(ancestor -> properties.putAll(declared.getOrDefault(ancestor, Map.of())));
         return new EntityType(name, schema.path("abstract").asBoolean(false), ancestors,
                 Map.copyOf(properties), strings(schema.path("required")), edge(schema.path("edge")));
     }
@@ -143,9 +165,9 @@ public class FtmTargetModel implements TargetModel {
     }
 
     private static Set<String> strings(JsonNode array) {
-        Set<String> values = new HashSet<>();
+        Set<String> values = new LinkedHashSet<>();
         array.forEach(value -> values.add(value.asText()));
-        return Set.copyOf(values);
+        return Collections.unmodifiableSet(values);
     }
 
     private static String text(JsonNode node, String field) {
