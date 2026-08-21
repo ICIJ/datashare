@@ -1,6 +1,7 @@
 package org.icij.datashare.web;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import io.swagger.v3.oas.annotations.Operation;
@@ -40,6 +41,11 @@ import static net.codestory.http.payload.Payload.ok;
 @Prefix("/api/index")
 public class IndexResource {
     private static final Logger logger = LoggerFactory.getLogger(IndexResource.class);
+    private static final String OPENSEARCH_DISTRIBUTION = "opensearch";
+    private static final String ES_ASYNC_SEARCH_PATH = "_async_search";
+    private static final String OPENSEARCH_ASYNC_SEARCH_PATH = "_plugins/_asynchronous_search";
+    private static final String OPENSEARCH_RUNNING_STATE = "RUNNING";
+    private volatile Boolean openSearchBackend;
     private final Indexer indexer;
     private final AsyncSearchStore asyncSearchStore;
     private final ModeVerifier modeVerifier;
@@ -131,7 +137,14 @@ public class IndexResource {
     public Payload esPost(@Parameter(name = "index", description = "elasticsearch path", in = ParameterIn.PATH) final String path, Context context, final net.codestory.http.Request request) throws IOException {
         try {
             String esUrl = withInjectedKeepAlive(IndexAccessVerifier.checkPath(path, context), path, context);
+            boolean translateAsyncSearch = IndexAccessVerifier.isAsyncSearchSubmit(path) && isOpenSearch();
+            if (translateAsyncSearch) {
+                esUrl = toOpenSearchAsyncSubmitUrl(esUrl);
+            }
             String response = indexer.executeRaw("POST", esUrl, new String(request.contentAsBytes()));
+            if (translateAsyncSearch) {
+                response = toElasticsearchAsyncEnvelope(response);
+            }
             if (IndexAccessVerifier.isAsyncSearchSubmit(path)) {
                 try {
                     recordAsyncSearchOwnership(path, context, response);
@@ -206,7 +219,14 @@ public class IndexResource {
             return PayloadFormatter.error("async search not found", HttpStatus.NOT_FOUND);
         }
         try {
-            String response = indexer.executeRaw(method, IndexAccessVerifier.getUrlString(context, path), null);
+            String statusUrl = IndexAccessVerifier.getUrlString(context, path);
+            if (isOpenSearch()) {
+                statusUrl = toOpenSearchAsyncStatusUrl(statusUrl);
+            }
+            String response = indexer.executeRaw(method, statusUrl, null);
+            if (isOpenSearch() && !"DELETE".equalsIgnoreCase(method)) {
+                response = toElasticsearchAsyncEnvelope(response);
+            }
             if ("DELETE".equalsIgnoreCase(method)) {
                 // ES already cancelled the search; a store failure (e.g. Redis down) shouldn't surface
                 // as a 500 to the user. The TTL will reap the orphaned record on its own.
@@ -233,6 +253,54 @@ public class IndexResource {
                     ? EntityUtils.toString(e.getResponse().getEntity()) : "";
             return PayloadFormatter.json(body).withCode(status);
         }
+    }
+
+    // OpenSearch implements async search as a plugin rather than a core API, so the same capability
+    // sits behind a different contract: the indices move from the path into an "index" parameter, and
+    // a completed search is discarded unless keep_on_completion asks for it. Elasticsearch retains a
+    // result as soon as it issues an id, so passing keep_on_completion=true is what makes the two
+    // behave alike -- without it a search that outlives wait_for_completion_timeout returns an id and
+    // then 404s on the first poll.
+    private String toOpenSearchAsyncSubmitUrl(String esUrl) {
+        String[] pathAndQuery = esUrl.split("\\?", 2);
+        String indices = pathAndQuery[0].split("/")[0];
+        StringBuilder url = new StringBuilder(OPENSEARCH_ASYNC_SEARCH_PATH).append("?");
+        if (pathAndQuery.length > 1 && !pathAndQuery[1].isEmpty()) {
+            url.append(pathAndQuery[1]).append("&");
+        }
+        return url.append("index=").append(indices).append("&keep_on_completion=true").toString();
+    }
+
+    private String toOpenSearchAsyncStatusUrl(String esUrl) {
+        return OPENSEARCH_ASYNC_SEARCH_PATH + esUrl.substring(ES_ASYNC_SEARCH_PATH.length());
+    }
+
+    // OpenSearch reports progress as a "state" string; the client reads Elasticsearch's booleans.
+    // Only RUNNING means the search is still going, so every other state is a finished search.
+    private String toElasticsearchAsyncEnvelope(String openSearchResponse) throws IOException {
+        JsonNode parsed = JsonObjectMapper.getMapper().readTree(openSearchResponse);
+        if (!parsed.isObject() || parsed.get("state") == null || parsed.get("state").isNull()) {
+            return openSearchResponse;
+        }
+        ObjectNode envelope = (ObjectNode) parsed;
+        boolean isRunning = OPENSEARCH_RUNNING_STATE.equalsIgnoreCase(envelope.remove("state").asText());
+        envelope.put("is_running", isRunning);
+        envelope.put("is_partial", isRunning);
+        return JsonObjectMapper.getMapper().writeValueAsString(envelope);
+    }
+
+    // The distribution cannot change while the process runs, and getVersion() is a call to the
+    // cluster, so resolve it once rather than on every async search.
+    private boolean isOpenSearch() {
+        if (openSearchBackend == null) {
+            try {
+                openSearchBackend = OPENSEARCH_DISTRIBUTION.equalsIgnoreCase(indexer.getVersion().get("distribution"));
+            } catch (Exception e) {
+                logger.warn("could not read the index distribution, assuming elasticsearch: {}", e.getMessage());
+                openSearchBackend = false;
+            }
+        }
+        return openSearchBackend;
     }
 
     // The current user owns the async search only if they submitted it AND still hold a grant on
