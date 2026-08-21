@@ -239,6 +239,15 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
+    public void test_cannot_create_project_whose_entities_index_would_exceed_the_name_limit() {
+        // 255 chars is a valid index name on its own, but the derived "<name>.entities" is 264 bytes,
+        // past elasticsearch's 255-byte limit; Project.NAME_PATTERN caps the name at 64
+        when(repository.getProject(any())).thenReturn(null);
+        String body = "{ \"name\": \"" + "a".repeat(255) + "\", \"sourcePath\": \"/vault/foo\" }";
+        post("/api/project/", body).should().respond(400);
+    }
+
+    @Test
     public void test_can_update_an_existing_project_whose_name_predates_the_name_guard() {
         // the guard is create-only: a legacy dotted or underscore-leading row must stay updatable
         Project legacy = new Project("foo.entities", Path.of("/vault/foo"));
@@ -251,14 +260,12 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
-    public void test_can_create_project_with_underscore_in_name() throws IOException {
-        // a dot is the only hazard the suffix rule depends on; the fuller Project.NAME_PATTERN
-        // (no underscore, 2-64 chars) is not this endpoint's contract and must not be enforced here
+    public void test_cannot_create_project_with_underscore_in_name() {
+        // Project.NAME_PATTERN rejects an underscore, so a project created here under one could
+        // never be granted, revoked or deleted through the CLI, nor recreated by the admin service
         String body = "{ \"name\": \"my_project\", \"label\": \"Foo Bar\", \"sourcePath\": \"/vault/foo\" }";
-        when(indexer.createIndex("my_project")).thenReturn(true);
         when(repository.getProject("my_project")).thenReturn(null);
-        when(repository.save((Project) any())).thenReturn(true);
-        post("/api/project/", body).should().respond(201);
+        post("/api/project/", body).should().respond(400).contain("name");
     }
 
     @Test
@@ -341,14 +348,12 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
-    public void test_put_create_allows_underscore_in_name() throws IOException {
+    public void test_put_create_returns_400_for_an_underscore() {
         when(repository.getProjects(any())).thenReturn(new ArrayList<>());
         when(repository.getProject("my_project")).thenReturn(null);
-        when(repository.save((Project) any())).thenReturn(true);
-        when(indexer.createIndex("my_project")).thenReturn(true);
 
         String body = "{ \"name\": \"my_project\", \"label\": \"Foo\", \"sourcePath\": \"/vault/foo\"}";
-        put("/api/project/my_project", body).should().respond(201);
+        put("/api/project/my_project", body).should().respond(400).contain("name");
     }
 
     @Test
