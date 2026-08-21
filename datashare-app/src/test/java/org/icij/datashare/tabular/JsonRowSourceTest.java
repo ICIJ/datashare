@@ -1,5 +1,6 @@
 package org.icij.datashare.tabular;
 
+import static org.junit.Assert.fail;
 import org.junit.Test;
 
 import java.io.ByteArrayInputStream;
@@ -108,4 +109,33 @@ public class JsonRowSourceTest {
             assertThat(failure.getMessage()).contains("row 1");
         }
     }
+
+    @Test
+    public void test_content_after_the_root_array_is_refused() throws Exception {
+        try {
+            read("[{\"a\":1}] {\"b\":2}");
+            fail("two dumps concatenated must not import the first one and report success");
+        } catch (IllegalArgumentException failure) {
+            assertThat(failure.getMessage()).contains("content after the end of the json array");
+        }
+    }
+
+    @Test
+    public void test_an_empty_source_is_refused() throws Exception {
+        for (String empty : List.of("", "   ")) {
+            try {
+                read(empty);
+                fail("an export truncated to nothing must not import as a clean success");
+            } catch (IllegalArgumentException failure) {
+                assertThat(failure.getMessage()).contains("the source is empty");
+            }
+        }
+    }
+
+    @Test
+    public void test_a_leading_empty_array_element_keeps_its_separator() throws Exception {
+        assertThat(read("{\"tags\":[\"\",\"b\"]}").get(0).values().get("tags")).isEqualTo("|b");
+        assertThat(read("{\"tags\":[null,null,\"c\"]}").get(0).values().get("tags")).isEqualTo("||c");
+    }
+
 }

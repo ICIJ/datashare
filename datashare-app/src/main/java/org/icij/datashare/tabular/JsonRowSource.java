@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.MappingIterator;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
@@ -47,20 +48,62 @@ public class JsonRowSource implements RowSource {
     @Override
     public Stream<Row> rows(InputStream source, RowSourceOptions options) throws IOException {
         JsonParser parser = mapper.createParser(source);
-        // Positioning inside a root array is what makes readValues yield its elements rather than the
-        // array as a single value; for NDJSON the parser is already where it needs to be.
-        if (parser.nextToken() == JsonToken.START_ARRAY && parser.nextToken() == JsonToken.END_ARRAY) {
-            close(parser);
-            return Stream.empty();
+        MappingIterator<JsonNode> records;
+        try {
+            // Positioning inside a root array is what makes readValues yield its elements rather than
+            // the array as a single value; for NDJSON the parser is already where it needs to be.
+            // An empty source is a failed export, not an empty one: every sibling reader refuses it,
+            // and importing zero rows out of a truncated file would report the loss as a success. An
+            // explicitly empty array is different, and stays a successful read of nothing.
+            JsonToken first = parser.nextToken();
+            if (first == null) {
+                throw new IllegalArgumentException("no records: the source is empty");
+            }
+            if (first == JsonToken.START_ARRAY && parser.nextToken() == JsonToken.END_ARRAY) {
+                close(parser);
+                return Stream.empty();
+            }
+            records = mapper.readerFor(JsonNode.class).readValues(parser);
+        } catch (IOException | RuntimeException failure) {
+            // The parser does not own a stream it was handed, so releasing it is not enough.
+            closeQuietly(parser);
+            closeQuietly(source);
+            throw failure;
         }
-        MappingIterator<JsonNode> records = mapper.readerFor(JsonNode.class).readValues(parser);
 
         Iterator<Row> rows = new Iterator<>() {
             private long number = 0;
 
             @Override
             public boolean hasNext() {
-                return records.hasNext();
+                // MappingIterator stops at the root array's closing bracket, so anything after it
+                // would be dropped without a word: two dumps concatenated by cat would import the
+                // first and report success.
+                boolean more = hasNextRecord();
+                if (!more) {
+                    refuseTrailingContent();
+                }
+                return more;
+            }
+
+            private boolean hasNextRecord() {
+                try {
+                    return records.hasNext();
+                } catch (RuntimeException malformed) {
+                    throw new IllegalArgumentException(
+                            "malformed record " + (number + 1) + ": " + malformed.getMessage(), malformed);
+                }
+            }
+
+            private void refuseTrailingContent() {
+                try {
+                    if (parser.nextToken() != null) {
+                        throw new IllegalArgumentException(
+                                "content after the end of the json array, at " + parser.currentLocation());
+                    }
+                } catch (IOException unreadable) {
+                    throw new UncheckedIOException("reading past the json array failed", unreadable);
+                }
             }
 
             @Override
@@ -105,11 +148,15 @@ public class JsonRowSource implements RowSource {
      */
     private static void joinScalars(String column, JsonNode array, Map<String, String> values) {
         StringBuilder joined = new StringBuilder();
-        for (JsonNode element : array) {
+        // The separator goes before every element but the first, keyed on the position rather than on
+        // whether anything has been written yet: an empty leading element would otherwise vanish and
+        // shift every value a splitting consumer reads.
+        for (int index = 0; index < array.size(); index++) {
+            JsonNode element = array.get(index);
             if (element.isContainerNode()) {
                 return;
             }
-            if (!joined.isEmpty()) {
+            if (index > 0) {
                 joined.append(SCALAR_ARRAY_SEPARATOR);
             }
             joined.append(element.isNull() ? "" : element.asText());
@@ -122,6 +169,14 @@ public class JsonRowSource implements RowSource {
             parser.close();
         } catch (IOException e) {
             throw new UncheckedIOException("closing the json source failed", e);
+        }
+    }
+
+    private static void closeQuietly(Closeable closeable) {
+        try {
+            closeable.close();
+        } catch (IOException ignored) {
+            // the read already failed; the close failure adds nothing the caller can act on
         }
     }
 }
