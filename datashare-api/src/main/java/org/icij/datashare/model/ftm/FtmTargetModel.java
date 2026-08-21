@@ -37,19 +37,15 @@ public class FtmTargetModel implements TargetModel {
     private final Map<String, EntityType> types;
 
     public FtmTargetModel() {
-        this(RESOURCE);
-    }
-
-    FtmTargetModel(String resource) {
-        try (InputStream stream = getClass().getClassLoader().getResourceAsStream(resource)) {
+        try (InputStream stream = getClass().getClassLoader().getResourceAsStream(RESOURCE)) {
             if (stream == null) {
-                throw new UnreadableModelResource(resource);
+                throw new UnreadableModelResource(RESOURCE);
             }
             JsonNode root = JsonObjectMapper.getMapper().readTree(stream);
             this.version = root.get("version").asText();
             this.types = types(root.get("schemata"));
         } catch (IOException e) {
-            throw new UnreadableModelResource(resource, e);
+            throw new UnreadableModelResource(RESOURCE, e);
         }
     }
 

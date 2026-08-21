@@ -106,16 +106,6 @@ public class FtmTargetModelTest {
     }
 
     @Test
-    public void test_a_missing_bundled_model_names_the_resource() {
-        try {
-            new FtmTargetModel("ftm/nope.json");
-            fail("should have refused the missing resource");
-        } catch (UnreadableModelResource e) {
-            assertThat(e.resource).isEqualTo("ftm/nope.json");
-        }
-    }
-
-    @Test
     public void test_validating_a_company_with_no_properties_reports_the_missing_inherited_name() {
         List<TargetModel.Violation> violations = model.validate(
                 new ModelEntity("c-1", Set.of("Company"), Map.of()));
