@@ -179,4 +179,71 @@ public class TikaTableRowSourceTest {
             return out.toByteArray();
         }
     }
+
+    @Test
+    public void test_supports_the_modern_numbers_generations() {
+        assertThat(source.supports("application/vnd.apple.numbers.13")).isTrue();
+        assertThat(source.supports("application/vnd.apple.numbers.18")).isTrue();
+    }
+
+    @Test
+    public void test_a_nested_table_stays_out_of_the_outer_cell_value() throws Exception {
+        List<Row> rows = readHtml("<html><body><table>"
+                + "<tr><th>id</th><th>name</th></tr>"
+                + "<tr><td>1</td><td>ACME<table><tr><th>inner</th></tr><tr><td>nested</td></tr></table></td></tr>"
+                + "</table></body></html>", RowSourceOptions.defaults());
+
+        assertThat(rows.get(0).values().get("name")).isEqualTo("ACME");
+    }
+
+    /**
+     * Word, TinyMCE and CKEditor write colspan="1" on every cell they emit, and a span of one merges
+     * nothing.
+     */
+    @Test
+    public void test_a_span_of_one_is_not_a_merged_cell() throws Exception {
+        List<Row> rows = readHtml("<html><body><table>"
+                + "<tr><th colspan=\"1\">id</th><th rowspan=\"1\">name</th></tr>"
+                + "<tr><td>1</td><td>ACME</td></tr></table></body></html>", RowSourceOptions.defaults());
+
+        assertThat(rows.get(0).values().get("name")).isEqualTo("ACME");
+    }
+
+    /**
+     * Tika renders ODF's table:number-columns-repeated as a colspan, and LibreOffice writes it on the
+     * trailing empty cells of every sheet, so an empty span is padding and has to expand back into the
+     * columns it stands for rather than be read as a merge.
+     */
+    @Test
+    public void test_an_empty_repeated_cell_expands_instead_of_failing() throws Exception {
+        List<Row> rows = readHtml("<html><body><table>"
+                + "<tr><th>id</th><th></th><th></th><th>name</th></tr>"
+                + "<tr><td>1</td><td colspan=\"2\"></td><td>ACME</td></tr></table></body></html>",
+                RowSourceOptions.defaults());
+
+        assertThat(rows.get(0).values().get("name")).isEqualTo("ACME");
+    }
+
+    @Test
+    public void test_a_cell_with_content_across_two_columns_is_still_refused() throws Exception {
+        try {
+            readHtml("<html><body><table><tr><th>id</th><th>name</th></tr>"
+                    + "<tr><td colspan=\"2\">merged</td></tr></table></body></html>", RowSourceOptions.defaults());
+            throw new AssertionError("a value spanning two columns cannot be lined up with either header");
+        } catch (IllegalArgumentException failure) {
+            assertThat(failure.getMessage()).contains("merged cells");
+        }
+    }
+
+    @Test
+    public void test_a_tfoot_written_before_the_body_stays_after_it() throws Exception {
+        List<Row> rows = readHtml("<html><body><table>"
+                + "<thead><tr><th>id</th></tr></thead>"
+                + "<tfoot><tr><td>total</td></tr></tfoot>"
+                + "<tbody><tr><td>b1</td></tr></tbody></table></body></html>", RowSourceOptions.defaults());
+
+        assertThat(rows.get(0).values().get("id")).isEqualTo("b1");
+        assertThat(rows.get(1).values().get("id")).isEqualTo("total");
+    }
+
 }

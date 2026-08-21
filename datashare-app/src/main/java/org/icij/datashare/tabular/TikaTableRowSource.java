@@ -6,7 +6,6 @@ import org.icij.datashare.text.structure.StructureMarkdownExtractor.OcrSettings;
 import org.icij.datashare.text.structure.StructureMarkdownExtractor.Page;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Element;
-import org.jsoup.select.Elements;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xml.sax.SAXException;
@@ -40,8 +39,14 @@ public class TikaTableRowSource implements RowSource {
     private static final Logger LOGGER = LoggerFactory.getLogger(TikaTableRowSource.class);
 
     /** Rows of this table only: a table nested inside a cell keeps its own rows, and thead, tbody and
-     *  tfoot survive the sanitizer, so a row is either a direct child or one level down. */
-    private static final String ROW_SELECTOR = ">tr, >thead>tr, >tbody>tr, >tfoot>tr";
+     *  tfoot survive the sanitizer, so a row is either a direct child or one level down. Selected in
+     *  four passes rather than as one comma group, because a group returns document order and a tfoot
+     *  written before its tbody is legal html that several exporters emit. */
+    private static final List<String> ROW_SELECTORS = List.of(">thead>tr", ">tr", ">tbody>tr", ">tfoot>tr");
+
+    /** Excel's column limit, used only to stop a hostile or corrupt span from expanding a row without
+     *  bound; a real sheet cannot exceed it. */
+    private static final int MAX_CELLS_PER_ROW = 16384;
 
     /** Only the types whose Tika parser was confirmed to emit table markup. Deliberately not a
      *  catch-all: claiming every unclaimed type would make this reader own application/pdf and force
@@ -52,7 +57,10 @@ public class TikaTableRowSource implements RowSource {
             "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
             "application/msword",
             "text/html",
-            "application/vnd.apple.numbers");
+            // Tika types Numbers by format generation, and only the pre-2013 one keeps the bare name.
+            "application/vnd.apple.numbers",
+            "application/vnd.apple.numbers.13",
+            "application/vnd.apple.numbers.18");
 
     private final StructureMarkdownExtractor extractor = new StructureMarkdownExtractor();
 
@@ -63,8 +71,18 @@ public class TikaTableRowSource implements RowSource {
 
     @Override
     public Stream<Row> rows(InputStream source, RowSourceOptions options) throws IOException {
+        // Nothing here is lazy: the extractor has consumed the source to exhaustion before the first
+        // row is built, so the source is released on the way out rather than by the returned stream.
+        try {
+            return read(source, options).stream();
+        } finally {
+            close(source);
+        }
+    }
+
+    private List<Row> read(InputStream source, RowSourceOptions options) throws IOException {
         Element table = selectTable(tables(source, options), options.table());
-        Elements tableRows = table.select(ROW_SELECTOR);
+        List<Element> tableRows = tableRows(table);
         if (tableRows.isEmpty()) {
             throw new IllegalArgumentException("no header row: the table is empty");
         }
@@ -87,7 +105,15 @@ public class TikaTableRowSource implements RowSource {
         if (surplus > 0) {
             LOGGER.info("dropped the cells past the {} declared columns in {} rows", headers.size(), surplus);
         }
-        return rows.stream().onClose(() -> close(source));
+        return rows;
+    }
+
+    private static List<Element> tableRows(Element table) {
+        List<Element> tableRows = new ArrayList<>();
+        for (String selector : ROW_SELECTORS) {
+            tableRows.addAll(table.select(selector));
+        }
+        return tableRows;
     }
 
     // OCR off: a tabular source does not need it, and leaving it off keeps the parse cheap and its
@@ -121,19 +147,49 @@ public class TikaTableRowSource implements RowSource {
 
     /**
      * A merged cell makes column alignment undefined, and silently misaligning every value under a
-     * header is worse than refusing the file, so a span anywhere in a row is rejected. Both th and td
+     * header is worse than refusing the file, so a cell that carries content across more than one
+     * column is rejected. A span of exactly one is not a merge, and Word, TinyMCE and CKEditor write
+     * colspan="1" on every cell they emit. An empty span is not a merge either: Tika renders ODF's
+     * table:number-columns-repeated as a colspan, and LibreOffice writes it on the trailing empty
+     * cells of every sheet, so those expand back into the empty columns they stand for. Both th and td
      * count as cells: a header row uses either depending on who wrote the document.
      */
     private static List<String> cells(Element tableRow) {
         List<String> values = new ArrayList<>();
         for (Element cell : tableRow.select(">th, >td")) {
-            if (cell.hasAttr("colspan") || cell.hasAttr("rowspan")) {
+            String text = text(cell);
+            int columns = span(cell, "colspan");
+            if (!text.isEmpty() && (columns > 1 || span(cell, "rowspan") > 1)) {
                 throw new IllegalArgumentException(
                         "merged cells make the columns ambiguous: remove the colspan or rowspan");
             }
-            values.add(cell.text().strip());
+            if (values.size() + columns > MAX_CELLS_PER_ROW) {
+                throw new IllegalArgumentException(
+                        "a row spans more than " + MAX_CELLS_PER_ROW + " columns, so the table is not a table");
+            }
+            values.add(text);
+            for (int repeat = 1; repeat < columns; repeat++) {
+                values.add("");
+            }
         }
         return values;
+    }
+
+    private static int span(Element cell, String attribute) {
+        try {
+            String declared = cell.attr(attribute).strip();
+            return declared.isEmpty() ? 1 : Math.max(1, Integer.parseInt(declared));
+        } catch (NumberFormatException notANumber) {
+            return 1;
+        }
+    }
+
+    // A nested table keeps its own rows, so its text must not be folded into the cell that holds it:
+    // Element.text() walks every descendant and would return "ACME inner nested" for one cell.
+    private static String text(Element cell) {
+        Element withoutNestedTables = cell.clone();
+        withoutNestedTables.select("table").remove();
+        return withoutNestedTables.text().strip();
     }
 
     private static void close(InputStream source) {
