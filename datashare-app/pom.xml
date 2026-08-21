@@ -41,6 +41,16 @@
         <dependency>
             <groupId>org.apache.poi</groupId>
             <artifactId>poi-ooxml</artifactId>
+            <exclusions>
+                <!-- poi-ooxml-lite is a strict subset of the poi-ooxml-full that tika-parser-microsoft
+                     already brings, so shipping both only duplicates ~6MB of identical schema classes
+                     into both fat jars and puts two copies of the same automatic module on a module
+                     path. POI's own guidance is to depend on exactly one of the two. -->
+                <exclusion>
+                    <groupId>org.apache.poi</groupId>
+                    <artifactId>poi-ooxml-lite</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.apache.poi</groupId>
