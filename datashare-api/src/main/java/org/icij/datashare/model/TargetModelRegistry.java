@@ -4,7 +4,6 @@ import org.icij.datashare.model.ftm.FtmTargetModel;
 
 import java.util.Map;
 import java.util.Objects;
-import java.util.TreeSet;
 
 public class TargetModelRegistry {
     private static final Map<String, TargetModel> MODELS = Map.of("ftm", new FtmTargetModel());
@@ -13,8 +12,7 @@ public class TargetModelRegistry {
         Objects.requireNonNull(name, "name");
         TargetModel model = MODELS.get(name);
         if (model == null) {
-            throw new IllegalArgumentException("unknown data model '" + name
-                    + "', known models: " + new TreeSet<>(MODELS.keySet()));
+            throw new UnknownTargetModel(name, MODELS.keySet());
         }
         return model;
     }

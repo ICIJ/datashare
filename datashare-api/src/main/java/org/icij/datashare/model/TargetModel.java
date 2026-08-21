@@ -1,10 +1,11 @@
 package org.icij.datashare.model;
 
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.SortedSet;
+import java.util.TreeSet;
 import java.util.stream.Stream;
 
 public interface TargetModel {
@@ -39,33 +40,36 @@ public interface TargetModel {
      */
     default List<Violation> validate(ModelEntity entity) {
         List<Violation> violations = new ArrayList<>();
-        if (entity.types().isEmpty()) {
+        SortedSet<String> names = new TreeSet<>(entity.types());
+        if (names.isEmpty()) {
             violations.add(new Violation("entity '" + entity.id() + "' has no type"));
         }
         List<EntityType> types = new ArrayList<>();
-        for (String name : entity.types()) {
+        for (String name : names) {
             Optional<EntityType> found = type(name);
             if (found.isEmpty()) {
                 violations.add(new Violation("unknown type '" + name + "' in model '" + name() + "'"));
             } else {
-                if (found.get().isAbstract()) {
-                    violations.add(new Violation("type '" + name + "' is abstract and cannot be instantiated"));
-                }
                 types.add(found.get());
             }
         }
+        if (!types.isEmpty() && types.stream().allMatch(EntityType::isAbstract)) {
+            violations.add(new Violation("every type in " + types.stream().map(EntityType::name).toList()
+                    + " is abstract and cannot be instantiated"));
+        }
         if (!types.isEmpty()) {
-            Map<String, Property> declared = new LinkedHashMap<>();
-            types.forEach(type -> type.properties().forEach(declared::putIfAbsent));
-            entity.properties().keySet().forEach(property -> {
-                Property declaration = declared.get(property);
-                if (declaration == null) {
-                    violations.add(new Violation("no property '" + property + "' on " + entity.types()));
-                } else if (declaration.stub()) {
+            for (String property : entity.properties().keySet()) {
+                List<Property> declarations = types.stream()
+                        .map(type -> type.properties().get(property))
+                        .filter(Objects::nonNull)
+                        .toList();
+                if (declarations.isEmpty()) {
+                    violations.add(new Violation("no property '" + property + "' on " + names));
+                } else if (declarations.stream().allMatch(Property::stub)) {
                     violations.add(new Violation("property '" + property + "' is a stub: it is inferred from the '"
-                            + declaration.range() + "' relation rather than written"));
+                            + declarations.get(0).range() + "' relation rather than written"));
                 }
-            });
+            }
         }
         for (EntityType type : types) {
             type.required().stream().filter(required -> isBlank(entity, required)).forEach(required ->

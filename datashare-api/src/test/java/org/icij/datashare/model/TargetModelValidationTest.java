@@ -99,6 +99,21 @@ public class TargetModelValidationTest {
                 Map.of("name", List.of("Jane Doe"), "vatNumber", List.of("FR123"))))).isEmpty();
     }
 
+    @Test
+    public void test_a_concrete_type_makes_its_abstract_ancestor_instantiable() {
+        assertThat(model.validate(new ModelEntity("p-1", Set.of("Person", "Thing"),
+                Map.of("name", List.of("Jane Doe"))))).isEmpty();
+    }
+
+    @Test
+    public void test_an_undeclared_property_names_the_types_in_a_stable_order() {
+        List<TargetModel.Violation> violations = model.validate(new ModelEntity("p-1", Set.of("Person", "Company"),
+                Map.of("name", List.of("Jane Doe"), "shoeSize", List.of("42"))));
+
+        assertThat(violations).hasSize(1);
+        assertThat(violations.get(0).message()).contains("[Company, Person]");
+    }
+
     private static class FakeModel implements TargetModel {
         private static final Map<String, EntityType> TYPES = Map.of(
                 "Thing", new EntityType("Thing", true, Set.of("Thing"),

@@ -10,6 +10,7 @@ import java.util.Map;
 import java.util.Set;
 
 import static org.fest.assertions.Assertions.assertThat;
+import static org.junit.Assert.fail;
 
 public class ModelEntityTest {
     @Test(expected = UnsupportedOperationException.class)
@@ -79,6 +80,49 @@ public class ModelEntityTest {
     @Test(expected = IllegalArgumentException.class)
     public void test_refuses_an_empty_collection() {
         ModelEntity.from(List.of());
+    }
+
+    @Test
+    public void test_a_null_id_is_rejected() {
+        try {
+            new ModelEntity(null, Set.of("Person"), Map.of("name", List.of("Jane Doe")));
+            fail("should have rejected a null id");
+        } catch (NullPointerException e) {
+            assertThat(e.getMessage()).contains("id");
+        }
+    }
+
+    @Test
+    public void test_null_types_are_rejected() {
+        try {
+            new ModelEntity("p-1", null, Map.of("name", List.of("Jane Doe")));
+            fail("should have rejected null types");
+        } catch (NullPointerException e) {
+            assertThat(e.getMessage()).contains("types");
+        }
+    }
+
+    @Test
+    public void test_null_properties_are_rejected() {
+        try {
+            new ModelEntity("p-1", Set.of("Person"), null);
+            fail("should have rejected null properties");
+        } catch (NullPointerException e) {
+            assertThat(e.getMessage()).contains("properties");
+        }
+    }
+
+    @Test
+    public void test_refuses_statements_belonging_to_two_models() {
+        try {
+            ModelEntity.from(List.of(statement("name", "Jane Doe", "full_name"),
+                    Statement.of("wikidata", "person-1", "Q5", "name", "Jane Q",
+                            new Statement.Provenance("doc-1", "Sheet1", 12, "full_name"))));
+            fail("should have refused statements from two models");
+        } catch (IllegalArgumentException e) {
+            assertThat(e.getMessage()).contains("ftm");
+            assertThat(e.getMessage()).contains("wikidata");
+        }
     }
 
     private Statement statement(String property, String value, String column) {
