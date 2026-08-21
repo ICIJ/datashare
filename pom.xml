@@ -98,6 +98,7 @@
         <aws-s3.version>2.35.10</aws-s3.version>
         <extract.version>9.16.0</extract.version>
         <opennlp.version>1.6.0</opennlp.version>
+        <poi.version>5.5.1</poi.version>
         <elasticsearch.version>8.19.8</elasticsearch.version>
         <jooq.version>3.19.10</jooq.version>
         <lucene.version>10.3.1</lucene.version>
@@ -417,6 +418,31 @@
                 <groupId>org.apache.commons</groupId>
                 <artifactId>commons-csv</artifactId>
                 <version>1.14.0</version>
+            </dependency>
+            <!-- Pinned because datashare-app now declares POI directly rather than relying on
+                 extract-lib's transitive. -->
+            <dependency>
+                <groupId>org.apache.poi</groupId>
+                <artifactId>poi</artifactId>
+                <version>${poi.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.poi</groupId>
+                <artifactId>poi-ooxml</artifactId>
+                <version>${poi.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.poi</groupId>
+                <artifactId>poi-scratchpad</artifactId>
+                <version>${poi.version}</version>
+            </dependency>
+            <!-- Reached only transitively, through Tika's OOXML parsers. Left to mediation, a future
+                 extract-lib bump could skew it against the POI pinned above, which fails at runtime
+                 with an OOXML schema error rather than at build time. -->
+            <dependency>
+                <groupId>org.apache.poi</groupId>
+                <artifactId>poi-ooxml-full</artifactId>
+                <version>${poi.version}</version>
             </dependency>
             <!-- tika-parsers 3.3.0 manages commons-io 2.17.0, which wins Maven mediation, but the
                  commons-compress 1.28.0 it also pulls calls AbstractStreamBuilder.getInputStream(),

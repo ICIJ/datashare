@@ -1,0 +1,182 @@
+package org.icij.datashare.tabular;
+
+import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.core.JsonToken;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.MappingIterator;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import java.io.Closeable;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.UncheckedIOException;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Set;
+import java.util.Spliterator;
+import java.util.Spliterators;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
+
+/**
+ * Reads flat records out of JSON. One reader covers both shapes a dump comes in: peeking the first
+ * token tells an array of objects apart from line-delimited or concatenated objects, and Jackson
+ * iterates both identically once positioned.
+ *
+ * A record carries its own column names, so the header rules the other readers share do not reach
+ * here: a blank key becomes a column named "", keys are not stripped, a duplicate key is
+ * last-write-wins, and {@code {"addr.city":"X","addr":{"city":"Y"}}} collides silently.
+ */
+public class JsonRowSource implements RowSource {
+    /** Tika 3.3.0 has no mimetype for jsonl or ndjson, so this is the de facto type, used only as
+     *  the internal token connecting an extension to this reader. It never appears on a document. */
+    public static final String NDJSON_CONTENT_TYPE = "application/x-ndjson";
+
+    public static final Set<String> SUPPORTED = Set.of("application/json", NDJSON_CONTENT_TYPE);
+
+    private static final String SCALAR_ARRAY_SEPARATOR = "|";
+
+    private final ObjectMapper mapper = new ObjectMapper();
+
+    @Override
+    public boolean supports(String contentType) {
+        return SUPPORTED.contains(contentType);
+    }
+
+    @Override
+    public Stream<Row> rows(InputStream source, RowSourceOptions options) throws IOException {
+        JsonParser parser = mapper.createParser(source);
+        MappingIterator<JsonNode> records;
+        try {
+            // Positioning inside a root array is what makes readValues yield its elements rather than
+            // the array as a single value; for NDJSON the parser is already where it needs to be.
+            // An empty source is a failed export, not an empty one: every sibling reader refuses it,
+            // and importing zero rows out of a truncated file would report the loss as a success. An
+            // explicitly empty array is different, and stays a successful read of nothing.
+            JsonToken first = parser.nextToken();
+            if (first == null) {
+                throw new IllegalArgumentException("no records: the source is empty");
+            }
+            if (first == JsonToken.START_ARRAY && parser.nextToken() == JsonToken.END_ARRAY) {
+                close(parser);
+                return Stream.empty();
+            }
+            records = mapper.readerFor(JsonNode.class).readValues(parser);
+        } catch (IOException | RuntimeException failure) {
+            // The parser does not own a stream it was handed, so releasing it is not enough.
+            closeQuietly(parser);
+            closeQuietly(source);
+            throw failure;
+        }
+
+        Iterator<Row> rows = new Iterator<>() {
+            private long number = 0;
+
+            @Override
+            public boolean hasNext() {
+                // MappingIterator stops at the root array's closing bracket, so anything after it
+                // would be dropped without a word: two dumps concatenated by cat would import the
+                // first and report success.
+                boolean more = hasNextRecord();
+                if (!more) {
+                    refuseTrailingContent();
+                }
+                return more;
+            }
+
+            private boolean hasNextRecord() {
+                try {
+                    return records.hasNext();
+                } catch (RuntimeException malformed) {
+                    throw new IllegalArgumentException(
+                            "malformed record " + (number + 1) + ": " + malformed.getMessage(), malformed);
+                }
+            }
+
+            private void refuseTrailingContent() {
+                try {
+                    if (parser.nextToken() != null) {
+                        throw new IllegalArgumentException(
+                                "content after the end of the json array, at " + parser.currentLocation());
+                    }
+                } catch (IOException unreadable) {
+                    throw new UncheckedIOException("reading past the json array failed", unreadable);
+                }
+            }
+
+            @Override
+            public Row next() {
+                JsonNode record = records.next();
+                number++;
+                // A scalar or an array has no keys to map onto columns, so it would yield a row with
+                // no values at all: refusing beats reporting an empty import as a success.
+                if (!record.isObject()) {
+                    throw new IllegalArgumentException(
+                            "row " + number + " is not a json object but a " + record.getNodeType());
+                }
+                Map<String, String> values = new LinkedHashMap<>();
+                flatten("", record, values);
+                return new Row(number, Collections.unmodifiableMap(values));
+            }
+        };
+        return StreamSupport.stream(
+                        Spliterators.spliteratorUnknownSize(rows,
+                                Spliterator.ORDERED | Spliterator.NONNULL), false)
+                .onClose(() -> close(parser));
+    }
+
+    private static void flatten(String prefix, JsonNode node, Map<String, String> values) {
+        node.properties().forEach(field -> {
+            String column = prefix.isEmpty() ? field.getKey() : prefix + "." + field.getKey();
+            JsonNode value = field.getValue();
+            if (value.isObject()) {
+                flatten(column, value, values);
+            } else if (value.isArray()) {
+                joinScalars(column, value, values);
+            } else {
+                values.put(column, value.isNull() ? "" : value.asText());
+            }
+        });
+    }
+
+    /**
+     * An array of scalars joins on a fixed separator so a mapping can rely on splitting it. An array
+     * of objects is skipped: there is no column name that would describe it. If multi-valued
+     * properties turn out to matter, the fix is a multi-value seam in Row, not a cleverer separator.
+     */
+    private static void joinScalars(String column, JsonNode array, Map<String, String> values) {
+        StringBuilder joined = new StringBuilder();
+        // The separator goes before every element but the first, keyed on the position rather than on
+        // whether anything has been written yet: an empty leading element would otherwise vanish and
+        // shift every value a splitting consumer reads.
+        for (int index = 0; index < array.size(); index++) {
+            JsonNode element = array.get(index);
+            if (element.isContainerNode()) {
+                return;
+            }
+            if (index > 0) {
+                joined.append(SCALAR_ARRAY_SEPARATOR);
+            }
+            joined.append(element.isNull() ? "" : element.asText());
+        }
+        values.put(column, joined.toString());
+    }
+
+    private static void close(JsonParser parser) {
+        try {
+            parser.close();
+        } catch (IOException e) {
+            throw new UncheckedIOException("closing the json source failed", e);
+        }
+    }
+
+    private static void closeQuietly(Closeable closeable) {
+        try {
+            closeable.close();
+        } catch (IOException ignored) {
+            // the read already failed; the close failure adds nothing the caller can act on
+        }
+    }
+}
