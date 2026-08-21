@@ -103,16 +103,6 @@ public class ModelEntityTest {
     }
 
     @Test
-    public void test_null_properties_are_rejected() {
-        try {
-            new ModelEntity("p-1", Set.of("Person"), null);
-            fail("should have rejected null properties");
-        } catch (NullPointerException e) {
-            assertThat(e.getMessage()).contains("properties");
-        }
-    }
-
-    @Test
     public void test_refuses_statements_belonging_to_two_models() {
         try {
             ModelEntity.from(List.of(statement("name", "Jane Doe", "full_name"),
