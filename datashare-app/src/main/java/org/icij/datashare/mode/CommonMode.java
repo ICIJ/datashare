@@ -21,6 +21,9 @@ import org.icij.datashare.asyncsearch.MemoryAsyncSearchStore;
 import org.icij.datashare.asyncsearch.RedisAsyncSearchStore;
 import org.icij.datashare.asynctasks.*;
 import org.icij.datashare.asynctasks.temporal.TemporalInterlocutor;
+import org.icij.datashare.asynctasks.temporal.TemporalWorkerOptions;
+import org.icij.datashare.asynctasks.temporal.TemporalWorkers;
+import org.icij.datashare.asynctasks.temporal.WorkflowRegistry;
 import org.icij.datashare.batch.BatchSearchRepository;
 import org.icij.datashare.cli.Mode;
 import org.icij.datashare.cli.QueueType;
@@ -554,12 +557,15 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
     private ExecutorService runTemporalWorkers() {
         if (getTaskWorkersNb() > 0) {
             TemporalInterlocutor temporal = get(TemporalInterlocutor.class);
-            executorService.submit(() -> {
-                closeables.add(temporal.discoverWorkflows(getTaskWorkersNb(), get(DatashareTaskFactory.class),
-                                get(TaskRepository.class),
-                                Utils.getRoutingStrategy(propertiesProvider),
-                                new Group(TaskGroupType.Java)));
-            });
+            DatashareTaskFactory taskFactory = get(DatashareTaskFactory.class);
+            TaskRepository taskRepository = get(TaskRepository.class);
+            WorkflowRegistry registry = new WorkflowRegistry();
+            registry.discoverWorkflows("org.icij.datashare.tasks",
+                    activityClass -> WorkflowRegistry.activityFactoryForSingleActivitiesWorkflow(activityClass, taskFactory, temporal.getClient(), taskRepository,  1d).getThrows(),
+                    Utils.getRoutingStrategy(propertiesProvider), new Group(TaskGroupType.Java));
+            // this process serves everything it discovered; a distributed deployment would pass a subset of the queues
+            addCloseable(TemporalWorkers.start(temporal.getClient(), registry, registry.registeredQueues(),
+                    new TemporalWorkerOptions(getTaskWorkersNb())));
         }
         return executorService;
     }

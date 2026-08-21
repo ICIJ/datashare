@@ -27,11 +27,6 @@ import io.temporal.serviceclient.OperatorServiceStubs;
 import io.temporal.serviceclient.OperatorServiceStubsOptions;
 import io.temporal.serviceclient.WorkflowServiceStubs;
 import io.temporal.serviceclient.WorkflowServiceStubsOptions;
-import io.temporal.worker.Worker;
-import io.temporal.worker.WorkerFactory;
-import io.temporal.worker.WorkerOptions;
-import io.temporal.worker.WorkflowImplementationOptions;
-import io.temporal.workflow.WorkflowInterface;
 import org.icij.datashare.EnvUtils;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.asynctasks.*;
@@ -39,11 +34,8 @@ import org.icij.datashare.asynctasks.bus.amqp.TaskError;
 import org.icij.datashare.function.Pair;
 import org.icij.datashare.function.ThrowingSupplier;
 import org.icij.datashare.json.JsonObjectMapper;
-import org.icij.datashare.tasks.RoutingStrategy;
 import org.icij.datashare.user.User;
-import org.reflections.Reflections;
 
-import java.io.Closeable;
 import java.io.IOException;
 import java.io.Serializable;
 import java.time.Duration;
@@ -51,18 +43,14 @@ import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
-import java.util.function.Predicate;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 import static io.grpc.health.v1.HealthCheckResponse.ServingStatus.SERVING;
 import static io.temporal.api.enums.v1.WorkflowExecutionStatus.*;
-import static org.icij.datashare.LambdaExceptionUtils.rethrowConsumer;
-import static org.icij.datashare.LambdaExceptionUtils.rethrowFunction;
 import static org.icij.datashare.PropertiesProvider.TEMPORAL_NAMESPACE_OPT;
 import static org.icij.datashare.PropertiesProvider.TEMPORAL_ADDRESS_OPT;
 import static org.icij.datashare.asynctasks.Task.USER_KEY;
-import static org.icij.datashare.asynctasks.TaskManagerTemporal.resolveWfTaskQueue;
 import static org.icij.datashare.asynctasks.bus.amqp.Event.MAX_RETRIES_LEFT;
 import static org.icij.datashare.asynctasks.temporal.TemporalHelper.*;
 
@@ -70,9 +58,7 @@ public class TemporalInterlocutor {
     private static final int DEFAULT_PAGE_SIZE = 100;
     private static final Duration DEFAULT_WORKFLOW_TASK_TIMEOUT = Duration.ofDays(7);
     private static final String TERMINATION_MSG = "terminated_by_user";
-    static WorkflowImplementationOptions WF_IMPLEMENTATION_DEFAULT_OPTIONS = WorkflowImplementationOptions.newBuilder()
-            .setFailWorkflowExceptionTypes(Error.class) // Unregistered workflows
-            .build();
+
     // TODO: in-memory hack for strong consistence, maybe a repository would be a better implem
     private final ConcurrentHashMap.KeySetView<String, Boolean> executions = ConcurrentHashMap.newKeySet();
 
@@ -125,17 +111,6 @@ public class TemporalInterlocutor {
     public TemporalInterlocutor(WorkflowClient client, WorkflowServiceGrpc.WorkflowServiceBlockingStub workflowServiceBlockingStub) {
         this.client = client;
         this.workflowServiceStubs = workflowServiceBlockingStub;
-    }
-
-    public <A extends TemporalActivityImpl<?, ?>> ThrowingSupplier<A> activityFactory(
-        Class<A> activityCls,
-        TaskFactory taskFactory,
-        TaskRepository taskRepository,
-        double progressWeight
-    ) {
-        return () -> activityCls
-            .getConstructor(TaskFactory.class, WorkflowClient.class, TaskRepository.class, Double.class)
-            .newInstance(taskFactory, client, taskRepository, progressWeight);
     }
 
     public void setupNamespace(Duration timeout) throws InterruptedException {
@@ -335,53 +310,7 @@ public class TemporalInterlocutor {
         return unknownIfNotFound(t -> createWorkflowStub(taskId).describe(), taskId);
     }
 
-    List<RegisteredWorkflow> discoverWorkflows(String packageName, TaskFactory taskFactory, TaskRepository taskRepository, RoutingStrategy routingStrategy, Group group) {
-        Reflections reflections = new Reflections(packageName);
-        Predicate<Class<?>> workflowFilter = makeWorkflowFilter(routingStrategy, group);
-        // We rely on naming convention rather than on inspection, that's OK as code is generated
-        try {
-            return reflections.getTypesAnnotatedWith(WorkflowInterface.class)
-                    .stream()
-                    .filter(workflowFilter)
-                    .map(rethrowFunction(c -> {
-                        String workflowKey = parseWorkflowKey(c);
-                        String workflowClassName = c.getName();
-                        String baseName = workflowClassName.replace("Workflow", "");
-                        Class<TemporalWorkflowImpl> wfImplClass = (Class<TemporalWorkflowImpl>) Class.forName(workflowClassName + "Impl");
-                        Class<TemporalActivityImpl<?, ?>> actImplCls = (Class<TemporalActivityImpl<?, ?>>) Class.forName(baseName + "ActivityImpl");
-                        String taskQueue = resolveWfTaskQueue(routingStrategy, workflowKey, group);
-                        List<RegisteredActivity> activities = List.of(new RegisteredActivity(activityFactory(actImplCls, taskFactory, taskRepository, 1d), taskQueue));
-                        return new RegisteredWorkflow(wfImplClass, taskQueue, activities);
-                    }))
-                    .toList();
-        } catch (ClassNotFoundException e) {
-            throw new UnknownTask("Workflow class not found: ", e);
-        }
-    }
 
-    public Closeable discoverWorkflows(int taskWorkersNb, TaskFactory taskFactory, TaskRepository taskRepository, RoutingStrategy routingStrategy, Group group) {
-        List<RegisteredWorkflow> registeredWorkflows = discoverWorkflows("org.icij.datashare.tasks", taskFactory, taskRepository, routingStrategy, group);
-        return createFactory(taskWorkersNb, registeredWorkflows);
-    }
-
-    public CloseableWorkerFactoryHandle createFactory(int taskWorkersNb, List<RegisteredWorkflow> registeredWorkflows) {
-        WorkerFactory workerFactory = WorkerFactory.newInstance(client);
-        HashMap<String, Worker> workers = new HashMap<>();
-        WorkerOptions workerOptions = WorkerOptions.newBuilder()
-                .setMaxConcurrentWorkflowTaskExecutionSize(taskWorkersNb)
-                .setMaxConcurrentActivityExecutionSize(taskWorkersNb)
-                .build();
-        registeredWorkflows.forEach(rethrowConsumer(wf -> {
-            String wfTaskQueue = wf.taskQueue();
-            workers.computeIfAbsent(wfTaskQueue, workerFactory::newWorker)
-                    .registerWorkflowImplementationTypes(WF_IMPLEMENTATION_DEFAULT_OPTIONS, wf.workflowCls());
-            wf.activities().forEach(rethrowConsumer(act -> {
-                workers.computeIfAbsent(act.taskQueue(), q -> workerFactory.newWorker(q, workerOptions))
-                        .registerActivitiesImplementations(act.activityFactory().get());
-            }));
-        }));
-        return new CloseableWorkerFactoryHandle(workerFactory);
-    }
 
     /**
      * Get the information of a Workflow running in Temporal represented as a Task
@@ -476,24 +405,12 @@ public class TemporalInterlocutor {
         }
     }
 
-    public record CloseableWorkerFactoryHandle(WorkerFactory factory) implements Closeable {
-            public CloseableWorkerFactoryHandle(WorkerFactory factory) {
-                this.factory = factory;
-                this.factory.start();
-            }
-
-            @Override
-            public void close() throws IOException {
-                synchronized (factory) {
-                    if (!this.factory.isShutdown()) {
-                        this.factory.shutdown();
-                    }
-                }
-            }
-        }
-
-    public record RegisteredActivity(ThrowingSupplier<?> activityFactory, String taskQueue) { }
-    public record RegisteredWorkflow(Class<?> workflowCls, String taskQueue, List<RegisteredActivity> activities) { }
+    /**
+     * The client this interlocutor talks to Temporal with
+     */
+    public WorkflowClient getClient() {
+        return client;
+    }
 
     // ------------------------
     // private utility functions
