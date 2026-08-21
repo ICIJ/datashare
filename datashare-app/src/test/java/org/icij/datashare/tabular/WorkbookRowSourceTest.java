@@ -6,6 +6,7 @@ import org.apache.poi.ss.usermodel.CellStyle;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import java.nio.charset.StandardCharsets;
 import org.junit.Test;
 
 import java.io.ByteArrayInputStream;
@@ -253,4 +254,66 @@ public class WorkbookRowSourceTest {
 
         assertThat(rows.get(0).values().get("name")).isEqualTo("");
     }
+
+    @Test
+    public void test_a_long_numeric_id_keeps_every_digit() throws Exception {
+        XSSFWorkbook workbook = new XSSFWorkbook();
+        Sheet sheet = workbook.createSheet("companies");
+        sheet.createRow(0).createCell(0).setCellValue("siren");
+        sheet.createRow(1).createCell(0).setCellValue(123456789012d);
+
+        List<Row> rows = read(bytes(workbook), RowSourceOptions.defaults());
+
+        assertThat(rows.get(0).values().get("siren")).isEqualTo("123456789012");
+    }
+
+    @Test
+    public void test_renders_a_time_only_cell_as_a_time() throws Exception {
+        XSSFWorkbook workbook = new XSSFWorkbook();
+        Sheet sheet = workbook.createSheet("times");
+        sheet.createRow(0).createCell(0).setCellValue("at");
+        CellStyle style = workbook.createCellStyle();
+        style.setDataFormat(workbook.createDataFormat().getFormat("hh:mm"));
+        Cell cell = sheet.createRow(1).createCell(0);
+        cell.setCellValue(14.5 / 24.0);
+        cell.setCellStyle(style);
+
+        List<Row> rows = read(bytes(workbook), RowSourceOptions.defaults());
+
+        assertThat(rows.get(0).values().get("at")).isEqualTo("14:30:00");
+    }
+
+    /**
+     * POI throws NotImplementedException on the functions it does not implement, and the file already
+     * holds the value the spreadsheet computed, so one such cell must cost its own value and no more.
+     */
+    @Test
+    public void test_an_unevaluatable_formula_does_not_abort_the_sheet() throws Exception {
+        XSSFWorkbook workbook = new XSSFWorkbook();
+        Sheet sheet = workbook.createSheet("companies");
+        sheet.createRow(0).createCell(0).setCellValue("id");
+        sheet.getRow(0).createCell(1).setCellValue("age");
+        sheet.createRow(1).createCell(0).setCellValue("1");
+        sheet.getRow(1).createCell(1).setCellFormula("DATEDIF(DATE(2020,1,1),DATE(2021,1,1),\"y\")");
+        sheet.createRow(2).createCell(0).setCellValue("2");
+        sheet.getRow(2).createCell(1).setCellValue("ok");
+
+        List<Row> rows = read(bytes(workbook), RowSourceOptions.defaults());
+
+        assertThat(rows).hasSize(2);
+        assertThat(rows.get(1).values().get("age")).isEqualTo("ok");
+    }
+
+    @Test
+    public void test_a_workbook_that_cannot_be_opened_releases_the_source() throws Exception {
+        TrackingInputStream stream = new TrackingInputStream("not a workbook".getBytes(StandardCharsets.UTF_8));
+
+        try {
+            source.rows(stream, RowSourceOptions.defaults());
+            throw new AssertionError("bytes that are not a workbook must be refused");
+        } catch (Exception expected) {
+            assertThat(stream.closed).isTrue();
+        }
+    }
+
 }
