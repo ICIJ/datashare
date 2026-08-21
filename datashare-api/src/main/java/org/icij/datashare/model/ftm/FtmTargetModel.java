@@ -1,5 +1,6 @@
 package org.icij.datashare.model.ftm;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.model.EntityType;
@@ -9,8 +10,10 @@ import org.icij.datashare.model.TargetModel;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -57,12 +60,42 @@ public class FtmTargetModel implements TargetModel {
 
     @Override
     public String serialize(ModelEntity entity) {
-        throw new UnsupportedOperationException();
+        String schema = mostSpecific(entity.types()).orElseThrow(() -> new IllegalArgumentException(
+                "types " + entity.types() + " have no common schema in the FtM model"));
+        try {
+            return JsonObjectMapper.getMapper()
+                    .writeValueAsString(new FtmEntity(entity.id(), schema, entity.properties()));
+        } catch (JsonProcessingException e) {
+            throw new IllegalArgumentException("cannot write entity '" + entity.id() + "' as FtM JSON", e);
+        }
     }
 
     @Override
     public ModelEntity parse(String json) {
-        throw new UnsupportedOperationException();
+        try {
+            FtmEntity read = JsonObjectMapper.getMapper().readValue(json, FtmEntity.class);
+            return new ModelEntity(read.id(), Set.of(read.schema()), read.properties());
+        } catch (JsonProcessingException e) {
+            throw new IllegalArgumentException("cannot read FtM JSON", e);
+        }
+    }
+
+    @Override
+    public List<Violation> validate(ModelEntity entity) {
+        List<Violation> violations = new ArrayList<>(TargetModel.super.validate(entity));
+        if (entity.types().size() > 1 && mostSpecific(entity.types()).isEmpty()) {
+            violations.add(new Violation("types " + entity.types()
+                    + " have no common schema, so the entity cannot be written as FtM JSON"));
+        }
+        return violations;
+    }
+
+    private Optional<String> mostSpecific(Set<String> types) {
+        return types.stream()
+                .filter(candidate -> type(candidate)
+                        .map(found -> found.ancestors().containsAll(types))
+                        .orElse(false))
+                .findFirst();
     }
 
     private static Map<String, EntityType> types(JsonNode schemata) {
@@ -110,4 +143,6 @@ public class FtmTargetModel implements TargetModel {
     private static String text(JsonNode node, String field) {
         return node.has(field) ? node.get(field).asText() : null;
     }
+
+    record FtmEntity(String id, String schema, Map<String, List<String>> properties) { }
 }
