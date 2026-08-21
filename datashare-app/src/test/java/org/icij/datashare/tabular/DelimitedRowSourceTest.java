@@ -146,4 +146,76 @@ public class DelimitedRowSourceTest {
             assertThat(e.getMessage()).contains("row 1");
         }
     }
+
+    @Test
+    public void test_a_byte_order_mark_is_not_part_of_the_first_column_name() throws Exception {
+        byte[] withBom = ("\uFEFFid,name\n1,ACME\n").getBytes(StandardCharsets.UTF_8);
+
+        List<Row> rows = read(withBom, RowSourceOptions.defaults());
+
+        assertThat(rows.get(0).values().keySet()).containsOnly("id", "name");
+        assertThat(rows.get(0).values().get("id")).isEqualTo("1");
+    }
+
+    @Test
+    public void test_a_header_row_whose_every_name_is_blank_is_refused() throws Exception {
+        try {
+            read(",,\nid,name,country\n1,ACME,FR\n", RowSourceOptions.defaults());
+            fail("a title or spacer row above the data must not import every row as an empty map");
+        } catch (IllegalArgumentException failure) {
+            assertThat(failure.getMessage()).contains("every name is blank");
+        }
+    }
+
+    @Test
+    public void test_a_tab_separated_content_type_implies_the_tab_delimiter() throws Exception {
+        for (String contentType : List.of("text/tab-separated-values", "text/tsv")) {
+            List<Row> rows = read("id\tname\n1\tACME\n",
+                    RowSourceOptions.defaults().withContentType(contentType));
+
+            assertThat(rows.get(0).values().get("name")).isEqualTo("ACME");
+        }
+    }
+
+    @Test
+    public void test_the_quote_character_is_configurable() throws Exception {
+        List<Row> rows = read("id,name\n1,'ACME, Inc'\n",
+                RowSourceOptions.defaults().withQuote('\''));
+
+        assertThat(rows.get(0).values().get("name")).isEqualTo("ACME, Inc");
+    }
+
+    /**
+     * Tika settles on a single-byte charset for a large mostly-ascii export, and reading utf-8 as
+     * latin-1 never reports an error, so the detected charset cannot be taken at face value.
+     */
+    @Test
+    public void test_a_utf8_source_detected_as_latin1_is_still_read_as_utf8() throws Exception {
+        List<Row> rows = read("id,name\n1,R\u00e9publique\n",
+                RowSourceOptions.defaults().withCharset(Charset.forName("ISO-8859-1")));
+
+        assertThat(rows.get(0).values().get("name")).isEqualTo("R\u00e9publique");
+    }
+
+    @Test
+    public void test_a_genuinely_latin1_source_keeps_the_detected_charset() throws Exception {
+        byte[] latin1 = "id,name\n1,R\u00e9publique\n".getBytes(Charset.forName("ISO-8859-1"));
+
+        List<Row> rows = read(latin1, RowSourceOptions.defaults().withCharset(Charset.forName("ISO-8859-1")));
+
+        assertThat(rows.get(0).values().get("name")).isEqualTo("R\u00e9publique");
+    }
+
+    @Test
+    public void test_a_failure_after_the_header_still_releases_the_source() throws Exception {
+        TrackingInputStream stream = new TrackingInputStream("id,id\n1,2\n".getBytes(StandardCharsets.UTF_8));
+
+        try {
+            source.rows(stream, RowSourceOptions.defaults());
+            fail("a duplicate header name must be refused");
+        } catch (IllegalArgumentException expected) {
+            assertThat(stream.closed).isTrue();
+        }
+    }
+
 }
