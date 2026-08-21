@@ -211,6 +211,64 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
+    public void test_cannot_create_project_with_invalid_name() {
+        String body = "{ \"name\": \"foo.entities\", \"label\": \"Foo Bar\", \"sourcePath\": \"/vault/foo\" }";
+        when(repository.getProject("foo.entities")).thenReturn(null);
+        post("/api/project/", body).should().respond(400);
+    }
+
+    @Test
+    public void test_cannot_create_project_named_with_a_leading_underscore() {
+        // "_all" granted to a user would let them read/close/open every index in the cluster
+        String body = "{ \"name\": \"_all\", \"label\": \"Foo Bar\", \"sourcePath\": \"/vault/foo\" }";
+        when(repository.getProject("_all")).thenReturn(null);
+        post("/api/project/", body).should().respond(400);
+    }
+
+    @Test
+    public void test_cannot_create_project_whose_name_is_not_a_usable_index_name() {
+        // each of these reaches createIndexOnce and fails there, after repository.save has already
+        // committed the row: the project is then permanently unreachable through the ES proxy
+        when(repository.getProject(any())).thenReturn(null);
+        when(repository.save((Project) any())).thenReturn(true);
+
+        post("/api/project/", "{ \"name\": \"foo,bar\", \"sourcePath\": \"/vault/foo\" }").should().respond(400);
+        post("/api/project/", "{ \"name\": \"Foo\", \"sourcePath\": \"/vault/foo\" }").should().respond(400);
+        post("/api/project/", "{ \"name\": \"foo bar\", \"sourcePath\": \"/vault/foo\" }").should().respond(400);
+        post("/api/project/", "{ \"name\": \"-foo\", \"sourcePath\": \"/vault/foo\" }").should().respond(400);
+    }
+
+    @Test
+    public void test_cannot_create_project_whose_entities_index_would_exceed_the_name_limit() {
+        // 255 chars is a valid index name on its own, but the derived "<name>.entities" is 264 bytes,
+        // past elasticsearch's 255-byte limit; Project.NAME_PATTERN caps the name at 64
+        when(repository.getProject(any())).thenReturn(null);
+        String body = "{ \"name\": \"" + "a".repeat(255) + "\", \"sourcePath\": \"/vault/foo\" }";
+        post("/api/project/", body).should().respond(400);
+    }
+
+    @Test
+    public void test_can_update_an_existing_project_whose_name_predates_the_name_guard() {
+        // the guard is create-only: a legacy dotted or underscore-leading row must stay updatable
+        Project legacy = new Project("foo.entities", Path.of("/vault/foo"));
+        when(repository.getProject("foo.entities")).thenReturn(legacy);
+        when(repository.getProjects(any())).thenReturn(List.of(legacy));
+        when(repository.save((Project) any())).thenReturn(true);
+
+        String body = "{ \"name\": \"foo.entities\", \"label\": \"Legacy\", \"sourcePath\": \"/vault/foo\"}";
+        put("/api/project/foo.entities", body).should().respond(200);
+    }
+
+    @Test
+    public void test_cannot_create_project_with_underscore_in_name() {
+        // Project.NAME_PATTERN rejects an underscore, so a project created here under one could
+        // never be granted, revoked or deleted through the CLI, nor recreated by the admin service
+        String body = "{ \"name\": \"my_project\", \"label\": \"Foo Bar\", \"sourcePath\": \"/vault/foo\" }";
+        when(repository.getProject("my_project")).thenReturn(null);
+        post("/api/project/", body).should().respond(400).contain("name");
+    }
+
+    @Test
     public void test_update_project() {
         Project oldFoo = new Project("foo", "Foo", Path.of("/vault/foo"), "", "", "", "", "*.*.*.*", null, null);
         when(repository.getProjects(any())).thenReturn(List.of(oldFoo));
@@ -278,6 +336,33 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
 
         String body = "{ \"name\": \"\", \"label\": \"Foo\", \"sourcePath\": \"/vault/foo\"}";
         put("/api/project/foo", body).should().respond(400).contain("name");
+    }
+
+    @Test
+    public void test_put_create_returns_400_when_name_invalid() {
+        when(repository.getProjects(any())).thenReturn(new ArrayList<>());
+        when(repository.getProject("foo.entities")).thenReturn(null);
+
+        String body = "{ \"name\": \"foo.entities\", \"label\": \"Foo\", \"sourcePath\": \"/vault/foo\"}";
+        put("/api/project/foo.entities", body).should().respond(400);
+    }
+
+    @Test
+    public void test_put_create_returns_400_for_an_underscore() {
+        when(repository.getProjects(any())).thenReturn(new ArrayList<>());
+        when(repository.getProject("my_project")).thenReturn(null);
+
+        String body = "{ \"name\": \"my_project\", \"label\": \"Foo\", \"sourcePath\": \"/vault/foo\"}";
+        put("/api/project/my_project", body).should().respond(400).contain("name");
+    }
+
+    @Test
+    public void test_put_create_returns_400_for_a_leading_underscore() {
+        when(repository.getProjects(any())).thenReturn(new ArrayList<>());
+        when(repository.getProject("_all")).thenReturn(null);
+
+        String body = "{ \"name\": \"_all\", \"label\": \"Foo\", \"sourcePath\": \"/vault/foo\"}";
+        put("/api/project/_all", body).should().respond(400);
     }
 
     @Test

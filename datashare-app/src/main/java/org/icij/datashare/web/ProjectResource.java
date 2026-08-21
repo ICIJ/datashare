@@ -56,6 +56,8 @@
     @Singleton
     @Prefix("/api/project")
     public class ProjectResource {
+        private static final String NAME_ERROR = "`name` must match " + Project.NAME_REGEX;
+
         private final Repository repository;
         private final Indexer indexer;
         private final TaskManager taskManager;
@@ -94,7 +96,7 @@
                 requestBody = @RequestBody(content = @Content(mediaType = "application/json", schema = @Schema(implementation = Project.class)))
         )
         @ApiResponse(responseCode = "201", description = "if project and index have been created")
-        @ApiResponse(responseCode = "400", description = "if project name is empty")
+        @ApiResponse(responseCode = "400", description = "if project name is empty or does not match the project name pattern")
         @ApiResponse(responseCode = "400", description = "if project path is not allowed for the project")
         @ApiResponse(responseCode = "409", description = "if project exists")
         @ApiResponse(responseCode = "500", description = "project creation in DB or index creation failed")
@@ -105,6 +107,8 @@
                 return PayloadFormatter.error("Project already exists.", HttpStatus.CONFLICT);
             } else if (isProjectNameEmpty(project)) {
                 return PayloadFormatter.error("`name` field is required.", HttpStatus.BAD_REQUEST);
+            } else if (!isProjectNameValid(project)) {
+                return PayloadFormatter.error(NAME_ERROR, HttpStatus.BAD_REQUEST);
             }
             Project effectiveProject = isProjectSourcePathNull(project) ? withDefaultSourcePath(project) : project;
             if (!dataDirVerifier.allowed(effectiveProject.getSourcePath())) {
@@ -137,7 +141,7 @@
         )
         @ApiResponse(responseCode = "200", description = "if project has been updated")
         @ApiResponse(responseCode = "201", description = "if project did not exist and has been created")
-        @ApiResponse(responseCode = "400", description = "if `name` is empty or `sourcePath` is outside data dir")
+        @ApiResponse(responseCode = "400", description = "if `name` is empty, does not match the project name pattern on creation, or `sourcePath` is outside data dir")
         @ApiResponse(responseCode = "403", description = "if the user lacks PROJECT_ADMIN+ on the project id")
         @ApiResponse(responseCode = "404", description = "if path id does not match body id, or if existing project is not accessible to the user")
         @ApiResponse(responseCode = "500", description = "if save failed")
@@ -150,12 +154,18 @@
             if (!Objects.equals(projectPayload.getId(), id)) {
                 return PayloadFormatter.error("Project id mismatch.", HttpStatus.NOT_FOUND);
             }
+            boolean isCreate = !projectExists(id);
+            // only a new project's name is validated: a legacy project whose name predates this
+            // check must still be updatable, so the guard applies to creation only, same as POST
+            if (isCreate && !isProjectNameValid(projectPayload)) {
+                return PayloadFormatter.error(NAME_ERROR, HttpStatus.BAD_REQUEST);
+            }
             Project effectiveProject = isProjectSourcePathNull(projectPayload) ? withDefaultSourcePath(projectPayload) : projectPayload;
             if (!dataDirVerifier.allowed(effectiveProject.getSourcePath())) {
                 return PayloadFormatter.error(String.format("`sourcePath` must not be outside %s.", dataDirVerifier.value()), HttpStatus.BAD_REQUEST);
             }
 
-            if (!projectExists(effectiveProject)) {
+            if (isCreate) {
                 if (!repository.save(effectiveProject) || !createIndexOnce(effectiveProject.getId())) {
                     return PayloadFormatter.error("Unable to create the project", HttpStatus.INTERNAL_SERVER_ERROR);
                 }
@@ -331,6 +341,16 @@
 
         private boolean isProjectNameEmpty(Project project) {
             return isEmpty(project.getName());
+        }
+
+        /** The name pattern the CLI ({@code Validators.projectName}) and the admin service already enforce.
+         *  A name outside it is saved to the database before index creation fails, or is created and then
+         *  can never be granted, revoked or deleted from the CLI. It excludes a dot, which matters on top
+         *  of ES's own rules because {@link IndexAccessVerifier#baseProjects} reads "myproject.entities"
+         *  as a namespaced index of "myproject", and caps the name at 64 characters, which keeps the
+         *  derived "<name>.entities" inside ES's 255-byte index name limit. */
+        private boolean isProjectNameValid(Project project) {
+            return Project.NAME_PATTERN.matcher(project.getName()).matches();
         }
 
         private boolean isProjectSourcePathNull(Project project) {

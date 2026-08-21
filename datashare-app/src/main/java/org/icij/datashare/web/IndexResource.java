@@ -23,6 +23,7 @@ import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.utils.IndexAccessVerifier;
 import org.icij.datashare.utils.ModeVerifier;
 import org.icij.datashare.utils.PayloadFormatter;
+import org.icij.datashare.web.errors.ForbiddenException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -72,13 +73,15 @@ public class IndexResource {
         return PayloadFormatter.json(indexer.executeRaw("GET", "/", null));
     }
 
-    @Operation(description = "Create the index for the current user if it doesn't exist.")
+    @Operation(description = "Create the index for the current user if it doesn't exist. Only available in LOCAL and EMBEDDED modes.")
     @ApiResponse(responseCode = "200", description = "returns 200 if the index already exists")
     @ApiResponse(responseCode = "201", description = "returns 201 if the index has been created")
+    @ApiResponse(responseCode = "403", description = "operation not allowed in current mode, or index not granted to the user")
     @Put("/:index")
-    public Payload createIndex(@Parameter(name = "index", description = "index to create", in = ParameterIn.PATH) final String index) throws IOException {
+    public Payload createIndex(@Parameter(name = "index", description = "index to create", in = ParameterIn.PATH) final String index, Context context) throws IOException {
+        modeVerifier.checkAllowedMode(Mode.LOCAL, Mode.EMBEDDED);
         try{
-            return indexer.createIndex(IndexAccessVerifier.checkIndices(index)) ? created() : ok();
+            return indexer.createIndex(checkGrantedIndices(index, context)) ? created() : ok();
         } catch (IllegalArgumentException e){
             return PayloadFormatter.error(e, HttpStatus.BAD_REQUEST);
         }
@@ -146,6 +149,14 @@ public class IndexResource {
         }
     }
 
+    // Both gates for an index taken from the path, in one place so a new index-scoped endpoint
+    // cannot pass the format check and forget the grant one.
+    private String checkGrantedIndices(String indices, Context context) {
+        String checkedIndices = IndexAccessVerifier.checkIndices(indices);
+        IndexAccessVerifier.baseProjects(checkedIndices).forEach(project -> ForbiddenException.requireGranted(context, project));
+        return checkedIndices;
+    }
+
     // Keep ES's result lifetime in lockstep with our ownership record: when an async-search submit
     // omits keep_alive, ES would otherwise retain the result for its multi-day default while our
     // record expires in minutes. Injecting our default keeps the two on the same schedule.
@@ -167,9 +178,10 @@ public class IndexResource {
             return;
         }
         DatashareUser submitter = (DatashareUser) context.currentUser();
-        // the first path segment holds the comma-separated indices, already validated as granted by checkPath() above
+        // the first path segment holds the comma-separated indices, already validated as granted by checkPath() above.
+        // They are stored as projects, because that is what a later poll re-checks the user's grants against.
         String indexSegment = path.split("/")[0];
-        List<String> grantedProjects = List.of(indexSegment.split(","));
+        List<String> grantedProjects = IndexAccessVerifier.baseProjects(indexSegment);
         Duration keepAlive = EsDuration.parse(context.get("keep_alive"), defaultKeepAlive);
         String asyncSearchId = idNode.asText();
         asyncSearchStore.put(asyncSearchId, new AsyncSearchOwner(submitter.id, grantedProjects), keepAlive);
@@ -277,7 +289,7 @@ public class IndexResource {
     @Operation(description = "Close an index. Only available in LOCAL and EMBEDDED modes.")
     @ApiResponse(responseCode = "200", description = "index closed successfully")
     @ApiResponse(responseCode = "400", description = "invalid index name")
-    @ApiResponse(responseCode = "403", description = "operation not allowed in current mode")
+    @ApiResponse(responseCode = "403", description = "operation not allowed in current mode, or index not granted to the user")
     @Post("/:index/_close")
     public Payload closeIndex(
             @Parameter(name = "index", description = "index name to close", in = ParameterIn.PATH)
@@ -285,7 +297,7 @@ public class IndexResource {
             Context context) throws IOException {
         modeVerifier.checkAllowedMode(Mode.LOCAL, Mode.EMBEDDED);
         try {
-            String path = IndexAccessVerifier.checkIndices(index) + "/_close";
+            String path = checkGrantedIndices(index, context) + "/_close";
             return PayloadFormatter.json(indexer.executeRaw("POST", IndexAccessVerifier.getUrlString(context, path), null));
         } catch (IllegalArgumentException e) {
             return PayloadFormatter.error(e, HttpStatus.BAD_REQUEST);
@@ -295,7 +307,7 @@ public class IndexResource {
     @Operation(description = "Open a closed index. Only available in LOCAL and EMBEDDED modes.")
     @ApiResponse(responseCode = "200", description = "index opened successfully")
     @ApiResponse(responseCode = "400", description = "invalid index name")
-    @ApiResponse(responseCode = "403", description = "operation not allowed in current mode")
+    @ApiResponse(responseCode = "403", description = "operation not allowed in current mode, or index not granted to the user")
     @Post("/:index/_open")
     public Payload openIndex(
             @Parameter(name = "index", description = "index name to open", in = ParameterIn.PATH)
@@ -303,7 +315,7 @@ public class IndexResource {
             Context context) throws IOException {
         modeVerifier.checkAllowedMode(Mode.LOCAL, Mode.EMBEDDED);
         try {
-            String path = IndexAccessVerifier.checkIndices(index) + "/_open";
+            String path = checkGrantedIndices(index, context) + "/_open";
             return PayloadFormatter.json(indexer.executeRaw("POST", IndexAccessVerifier.getUrlString(context, path), null));
         } catch (IllegalArgumentException e) {
             return PayloadFormatter.error(e, HttpStatus.BAD_REQUEST);

@@ -11,6 +11,7 @@ import org.icij.datashare.session.DatashareUser;
 import org.icij.datashare.session.LocalUserFilter;
 import org.icij.datashare.test.ElasticsearchRule;
 import org.icij.datashare.text.DocumentBuilder;
+import org.icij.datashare.text.Project;
 import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchIndexer;
 import org.icij.datashare.web.testhelpers.AbstractProdWebServerTest;
 import org.junit.After;
@@ -82,6 +83,8 @@ public class IndexResourceTest extends AbstractProdWebServerTest {
     }
     @Test
     public void test_put_create_local_index_in_local_mode() {
+        // createIndex requires a grant on the index's base project, so "index_name" must be one
+        when(jooqRepository.getProjects()).thenReturn(List.of(new Project("index_name")));
         configure(routes -> routes.add(new IndexResource(indexer, propertiesProvider)).filter(new LocalUserFilter(propertiesProvider, jooqRepository, es.getIndexNames())));
         put("/api/index/index_name").should().respond(201);
         put("/api/index/ !!").should().respond(400);
@@ -193,9 +196,35 @@ public class IndexResourceTest extends AbstractProdWebServerTest {
 
     @Test
     public void test_put_createIndex() {
+        configure(routes -> routes.add(new IndexResource(indexer, propertiesProvider))
+                .filter(new BasicAuthFilter("/", "icij", DatashareUser.singleUser("cecile"))));
         put("/api/index/cecile-datashare").withPreemptiveAuthentication("cecile", "pass").should().respond(201);
         put("/api/index/!!").withPreemptiveAuthentication("cecile", "pass").should().respond(400);
         put("/api/index/ cecile-datashare").withPreemptiveAuthentication("cecile", "pass").should().respond(400);
+    }
+
+    @Test
+    public void test_put_createIndex_allows_own_project_and_its_entities_index() {
+        configure(routes -> routes.add(new IndexResource(indexer, propertiesProvider))
+                .filter(new BasicAuthFilter("/", "icij", DatashareUser.singleUser("cecile"))));
+        put("/api/index/cecile-datashare").withPreemptiveAuthentication("cecile", "").should().respond(201);
+        put("/api/index/cecile-datashare.entities").withPreemptiveAuthentication("cecile", "").should().respond(201);
+    }
+
+    @Test
+    public void test_put_createIndex_refuses_ungranted_project() {
+        configure(routes -> routes.add(new IndexResource(indexer, propertiesProvider))
+                .filter(new BasicAuthFilter("/", "icij", DatashareUser.singleUser("cecile"))));
+        put("/api/index/victim.entities").withPreemptiveAuthentication("cecile", "").should().respond(403);
+        put("/api/index/victim").withPreemptiveAuthentication("cecile", "").should().respond(403);
+    }
+
+    @Test
+    public void test_put_createIndex_forbidden_in_server_mode() {
+        // granted, so a pass here would prove the mode gate is what refuses it, not the grant check
+        configure(routes -> routes.add(new IndexResource(indexer, serverModeProvider))
+                .filter(new BasicAuthFilter("/", "icij", DatashareUser.singleUser("cecile"))));
+        put("/api/index/cecile-datashare").withPreemptiveAuthentication("cecile", "").should().respond(403);
     }
 
     @Test
@@ -226,6 +255,73 @@ public class IndexResourceTest extends AbstractProdWebServerTest {
         configure(routes -> routes.add(new IndexResource(indexer, serverModeProvider))
                 .filter(new LocalUserFilter(serverModeProvider, jooqRepository, es.getIndexNames())));
         post("/api/index/%s/_open".formatted(es.getIndexName())).should().respond(403);
+    }
+
+    @Test
+    public void test_close_and_open_index_allowed_for_granted_project() throws IOException {
+        configure(routes -> routes.add(new IndexResource(indexer, propertiesProvider))
+                .filter(new BasicAuthFilter("/", "icij", DatashareUser.singleUser("cecile"))));
+        indexer.createIndex("cecile-datashare");
+        post("/api/index/cecile-datashare/_close").withPreemptiveAuthentication("cecile", "").should().respond(200);
+        post("/api/index/cecile-datashare/_open").withPreemptiveAuthentication("cecile", "").should().respond(200);
+    }
+
+    @Test
+    public void test_close_and_open_index_refuses_ungranted_project() throws IOException {
+        configure(routes -> routes.add(new IndexResource(indexer, propertiesProvider))
+                .filter(new BasicAuthFilter("/", "icij", DatashareUser.singleUser("cecile"))));
+        post("/api/index/victim/_close").withPreemptiveAuthentication("cecile", "").should().respond(403);
+        post("/api/index/victim/_open").withPreemptiveAuthentication("cecile", "").should().respond(403);
+    }
+
+    @Test
+    public void test_close_all_indices_is_refused() throws IOException {
+        // granted "_all" on purpose: the name grammar has to refuse the selector outright, because a
+        // project row named "_all" is grantable and would otherwise close every index in the cluster
+        DatashareUser user = new DatashareUser(new HashMap<>() {{
+            put("uid", "cecile");
+            put("groups_by_applications", Map.of("datashare", List.of("_all")));
+        }});
+        configure(routes -> routes.add(new IndexResource(indexer, propertiesProvider))
+                .filter(new BasicAuthFilter("/", "icij", DatashareUser.singleUser(user))));
+        post("/api/index/_all/_close").withPreemptiveAuthentication("cecile", "").should().respond(400);
+        post("/api/index/_all/_open").withPreemptiveAuthentication("cecile", "").should().respond(400);
+    }
+
+    @Test
+    public void test_close_index_allows_comma_separated_list_of_granted_projects() throws IOException {
+        String idx1 = es.getIndexNames()[1];
+        String idx2 = es.getIndexNames()[2];
+        DatashareUser user = new DatashareUser(new HashMap<>() {{
+            put("uid", "cecile");
+            put("groups_by_applications", Map.of("datashare", List.of(idx1, idx2)));
+        }});
+        configure(routes -> routes.add(new IndexResource(indexer, propertiesProvider))
+                .filter(new BasicAuthFilter("/", "icij", DatashareUser.singleUser(user))));
+        try {
+            post("/api/index/%s,%s/_close".formatted(idx1, idx2)).withPreemptiveAuthentication("cecile", "").should().respond(200);
+        } finally {
+            // reopen through the indexer rather than the route under test, and without asserting:
+            // these indices are shared across the class via @ClassRule, so a failure here would both
+            // mask the close assertion above and leave the rest of the suite searching closed indices
+            indexer.executeRaw("POST", "%s,%s/_open".formatted(idx1, idx2), null);
+        }
+    }
+
+    @Test
+    public void test_close_and_open_refuse_comma_separated_list_with_one_ungranted_project() throws IOException {
+        String granted = es.getIndexNames()[1];
+        DatashareUser user = new DatashareUser(new HashMap<>() {{
+            put("uid", "cecile");
+            put("groups_by_applications", Map.of("datashare", List.of(granted)));
+        }});
+        configure(routes -> routes.add(new IndexResource(indexer, propertiesProvider))
+                .filter(new BasicAuthFilter("/", "icij", DatashareUser.singleUser(user))));
+        post("/api/index/%s,victim/_close".formatted(granted)).withPreemptiveAuthentication("cecile", "").should().respond(403);
+        post("/api/index/%s,victim/_open".formatted(granted)).withPreemptiveAuthentication("cecile", "").should().respond(403);
+        // reversed: the ungranted index first, so a mutation checking only the list's last entry would still be caught
+        post("/api/index/victim,%s/_close".formatted(granted)).withPreemptiveAuthentication("cecile", "").should().respond(403);
+        post("/api/index/victim,%s/_open".formatted(granted)).withPreemptiveAuthentication("cecile", "").should().respond(403);
     }
 
     @Test
@@ -457,6 +553,21 @@ public class IndexResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
+    public void test_async_search_on_entities_index_is_polled_by_its_owner() throws IOException {
+        configure(routes -> routes.add(new IndexResource(indexer, asyncSearchStore, propertiesProvider))
+                .filter(new BasicAuthFilter("/", "icij", DatashareUser.singleUser("cecile"))));
+        indexer.createIndex("cecile-datashare.entities");
+        indexer.add("cecile-datashare.entities", DocumentBuilder.createDoc("doc-entities-1").build());
+
+        String id = submitAsyncSearchAs("cecile", "cecile-datashare.entities");
+
+        // ownership is recorded against the base project, so a later poll still matches the user's grants
+        assertThat(asyncSearchStore.get(id).get().projects).containsExactly("cecile-datashare");
+        get("/api/index/search/_async_search/" + urlEncode(id))
+                .withPreemptiveAuthentication("cecile", "").should().respond(200).contain("\"is_running\"");
+    }
+
+    @Test
     public void test_async_search_submit_injects_default_keep_alive_when_absent() throws IOException {
         configure(routes -> routes.add(new IndexResource(indexer, asyncSearchStore, propertiesProvider))
                 .filter(new BasicAuthFilter("/", "icij", DatashareUser.singleUser("cecile"))));
@@ -483,7 +594,7 @@ public class IndexResourceTest extends AbstractProdWebServerTest {
 
     @After
     public void tearDown() throws Exception {
-        es.delete("cecile-datashare", "index_name");
+        es.delete("cecile-datashare", "cecile-datashare.entities", "index_name");
     }
 }
 
