@@ -2,11 +2,40 @@ package org.icij.datashare.model;
 
 import org.junit.Test;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import static org.fest.assertions.Assertions.assertThat;
 
 public class ModelEntityTest {
+    @Test(expected = UnsupportedOperationException.class)
+    public void test_the_types_are_immutable() {
+        ModelEntity entity = new ModelEntity("p-1", new HashSet<>(Set.of("Person")),
+                new HashMap<>(Map.of("name", new ArrayList<>(List.of("Jane Doe")))));
+
+        entity.types().add("Company");
+    }
+
+    @Test(expected = UnsupportedOperationException.class)
+    public void test_the_properties_map_is_immutable() {
+        ModelEntity entity = new ModelEntity("p-1", new HashSet<>(Set.of("Person")),
+                new HashMap<>(Map.of("name", new ArrayList<>(List.of("Jane Doe")))));
+
+        entity.properties().put("birthDate", List.of("1980-04-02"));
+    }
+
+    @Test(expected = UnsupportedOperationException.class)
+    public void test_a_properties_value_list_is_immutable() {
+        ModelEntity entity = new ModelEntity("p-1", new HashSet<>(Set.of("Person")),
+                new HashMap<>(Map.of("name", new ArrayList<>(List.of("Jane Doe")))));
+
+        entity.properties().get("name").add("J. Doe");
+    }
+
     @Test
     public void test_groups_the_values_of_a_property_in_order() {
         ModelEntity entity = ModelEntity.from(List.of(

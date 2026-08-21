@@ -14,8 +14,17 @@ public interface TargetModel {
 
     Optional<EntityType> type(String name);
 
+    /**
+     * Writes the entity in this model's native JSON form, without validating it: an entity that
+     * {@link #validate} would reject (e.g. an abstract type) can still be serialized.
+     */
     String serialize(ModelEntity entity);
 
+    /**
+     * Reads an entity back from this model's native JSON form. The projection is lossy: a
+     * multi-type entity collapses to its most specific single type, so statements, not this JSON,
+     * remain the system of record.
+     */
     ModelEntity parse(String json);
 
     record Violation(String message) { }
@@ -24,6 +33,10 @@ public interface TargetModel {
         return type(type).map(found -> found.properties().get(name));
     }
 
+    /**
+     * Checks the entity's types and properties against this model's structure. Returns every
+     * violation found, or an empty list if the entity is structurally valid.
+     */
     default List<Violation> validate(ModelEntity entity) {
         List<Violation> violations = new ArrayList<>();
         if (entity.types().isEmpty()) {

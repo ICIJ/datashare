@@ -26,4 +26,14 @@ public class TargetModelRegistryTest {
             assertThat(e.getMessage()).contains("ftm");
         }
     }
+
+    @Test
+    public void test_a_null_name_is_rejected() {
+        try {
+            TargetModelRegistry.get(null);
+            fail("should have rejected a null name");
+        } catch (NullPointerException e) {
+            assertThat(e.getMessage()).contains("name");
+        }
+    }
 }

@@ -72,12 +72,20 @@ public class FtmTargetModel implements TargetModel {
 
     @Override
     public ModelEntity parse(String json) {
+        FtmEntity read;
         try {
-            FtmEntity read = JsonObjectMapper.getMapper().readValue(json, FtmEntity.class);
-            return new ModelEntity(read.id(), Set.of(read.schema()), read.properties());
+            read = JsonObjectMapper.getMapper().readValue(json, FtmEntity.class);
         } catch (JsonProcessingException e) {
             throw new IllegalArgumentException("cannot read FtM JSON", e);
         }
+        if (read.id() == null) {
+            throw new IllegalArgumentException("missing 'id' in FtM JSON");
+        }
+        if (read.schema() == null) {
+            throw new IllegalArgumentException("missing 'schema' in FtM JSON");
+        }
+        return new ModelEntity(read.id(), Set.of(read.schema()),
+                read.properties() == null ? Map.of() : read.properties());
     }
 
     @Override
