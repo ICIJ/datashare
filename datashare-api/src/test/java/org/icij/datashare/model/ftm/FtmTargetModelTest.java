@@ -1,9 +1,14 @@
 package org.icij.datashare.model.ftm;
 
 import org.icij.datashare.model.EntityType;
+import org.icij.datashare.model.ModelEntity;
 import org.icij.datashare.model.Property;
 import org.icij.datashare.model.TargetModel;
 import org.junit.Test;
+
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import static org.fest.assertions.Assertions.assertThat;
 
@@ -72,5 +77,35 @@ public class FtmTargetModelTest {
     public void test_an_unknown_property_or_type_is_empty() {
         assertThat(model.property("Person", "shoeSize").isPresent()).isFalse();
         assertThat(model.property("Persona", "name").isPresent()).isFalse();
+    }
+
+    @Test
+    public void test_validating_a_company_with_no_properties_reports_the_missing_inherited_name() {
+        List<TargetModel.Violation> violations = model.validate(
+                new ModelEntity("c-1", Set.of("Company"), Map.of()));
+
+        assertThat(violations).hasSize(1);
+        assertThat(violations.get(0).message()).contains("Company");
+        assertThat(violations.get(0).message()).contains("name");
+    }
+
+    @Test
+    public void test_validating_an_interest_reports_that_the_type_is_abstract() {
+        List<TargetModel.Violation> violations = model.validate(
+                new ModelEntity("i-1", Set.of("Interest"), Map.of()));
+
+        assertThat(violations).hasSize(1);
+        assertThat(violations.get(0).message()).contains("Interest");
+        assertThat(violations.get(0).message()).contains("abstract");
+    }
+
+    @Test
+    public void test_validating_a_person_writing_the_stub_property_employers_reports_the_stub() {
+        List<TargetModel.Violation> violations = model.validate(new ModelEntity("p-1", Set.of("Person"),
+                Map.of("name", List.of("Jane Doe"), "employers", List.of("e-1"))));
+
+        assertThat(violations).hasSize(1);
+        assertThat(violations.get(0).message()).contains("employers");
+        assertThat(violations.get(0).message()).contains("stub");
     }
 }

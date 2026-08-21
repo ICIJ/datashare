@@ -2,6 +2,7 @@ package org.icij.datashare.model;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -11,6 +12,13 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 
 public record ModelEntity(String id, Set<String> types, Map<String, List<String>> properties) {
+
+    public ModelEntity {
+        types = Set.copyOf(types);
+        Map<String, List<String>> copy = new LinkedHashMap<>();
+        properties.forEach((property, values) -> copy.put(property, List.copyOf(values)));
+        properties = Collections.unmodifiableMap(copy);
+    }
 
     public static ModelEntity from(Collection<Statement> statements) {
         if (statements.isEmpty()) {

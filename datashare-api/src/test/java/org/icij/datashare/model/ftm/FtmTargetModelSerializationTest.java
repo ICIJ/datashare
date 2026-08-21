@@ -72,4 +72,33 @@ public class FtmTargetModelSerializationTest {
             assertThat(e.getMessage()).contains("FtM");
         }
     }
+
+    @Test
+    public void test_a_missing_id_fails_with_a_clear_error() {
+        try {
+            model.parse("{\"schema\":\"Person\"}");
+            fail("should have refused the missing id");
+        } catch (IllegalArgumentException e) {
+            assertThat(e.getMessage()).contains("id");
+            assertThat(e.getMessage()).contains("FtM");
+        }
+    }
+
+    @Test
+    public void test_a_missing_schema_fails_with_a_clear_error() {
+        try {
+            model.parse("{\"id\":\"person-1\"}");
+            fail("should have refused the missing schema");
+        } catch (IllegalArgumentException e) {
+            assertThat(e.getMessage()).contains("schema");
+            assertThat(e.getMessage()).contains("FtM");
+        }
+    }
+
+    @Test
+    public void test_an_absent_properties_reads_as_empty() {
+        ModelEntity entity = model.parse("{\"id\":\"person-1\",\"schema\":\"Person\"}");
+
+        assertThat(entity.properties()).isEqualTo(Map.of());
+    }
 }
