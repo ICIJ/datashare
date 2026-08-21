@@ -2,9 +2,11 @@ package org.icij.datashare.tabular;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * One data row. {@code number} is the 1-based ordinal of the emitted row, not the row's position in
@@ -16,22 +18,36 @@ public record Row(long number, Map<String, String> values) {
     /**
      * Applies the one header rule every reader shares: a blank name means the column is dropped
      * (represented by a null entry the caller skips), a duplicate name is a mapping the reader
-     * cannot honour unambiguously and so fails.
+     * cannot honour unambiguously and so fails, and a header row with no name at all is not a header
+     * row: importing every data row as an empty map would report a total loss as a success.
      */
     public static List<String> headers(List<String> rawNames) {
         List<String> headers = new ArrayList<>();
+        Set<String> seen = new HashSet<>();
         for (String rawName : rawNames) {
-            String name = rawName == null ? "" : rawName.strip();
+            String name = rawName == null ? "" : strip(rawName);
             if (name.isEmpty()) {
                 headers.add(null);
                 continue;
             }
-            if (headers.contains(name)) {
+            if (!seen.add(name)) {
                 throw new IllegalArgumentException("duplicate column name in header: " + name);
             }
             headers.add(name);
         }
+        if (seen.isEmpty()) {
+            throw new IllegalArgumentException("no column name in the header row: every name is blank, "
+                    + "so the row above the data is a title or a spacer rather than a header");
+        }
         return headers;
+    }
+
+    // String.strip leaves a UTF-8 byte order mark in place, because U+FEFF is not whitespace. It can
+    // only ever precede the first name, and Excel writes one on every "CSV UTF-8" export, so without
+    // this the first column is named BOM + "id" and no mapping can address it.
+    private static String strip(String rawName) {
+        String name = rawName.strip();
+        return name.startsWith("\uFEFF") ? name.substring(1).strip() : name;
     }
 
     /**
