@@ -24,6 +24,8 @@ import static org.mockito.Mockito.when;
 public class TabularRowReaderTest {
     @Rule public TemporaryFolder folder = new TemporaryFolder();
 
+    private static final List<String> CONTENT_FIELDS = List.of("content", "content_translated");
+
     private final Indexer indexer = mock(Indexer.class);
     private TabularRowReader reader;
     private Project project;
@@ -40,7 +42,7 @@ public class TabularRowReaderTest {
         Files.writeString(file, content, StandardCharsets.UTF_8);
         Document document = DocumentBuilder.createDoc("docId").with(file)
                 .ofContentType(contentType).with(StandardCharsets.UTF_8).with(metadata).build();
-        when(indexer.<Document>get("local-datashare", "docId", "docId")).thenReturn(document);
+        when(indexer.<Document>get("local-datashare", "docId", "docId", CONTENT_FIELDS)).thenReturn(document);
         return document;
     }
 
@@ -111,7 +113,7 @@ public class TabularRowReaderTest {
 
     @Test(expected = IllegalArgumentException.class)
     public void test_a_missing_document_fails() throws Exception {
-        when(indexer.<Document>get("local-datashare", "missing", "missing")).thenReturn(null);
+        when(indexer.<Document>get("local-datashare", "missing", "missing", CONTENT_FIELDS)).thenReturn(null);
         try (Stream<Row> ignored = reader.rows(project, "missing", null, RowSourceOptions.defaults())) {
             // the failure is expected before any row is read
         }
@@ -176,4 +178,33 @@ public class TabularRowReaderTest {
         assertThat(TabularRowReader.delimiterFrom(Map.of("tika_metadata_csv_delimiter", "unknown")))
                 .isNull();
     }
+    /**
+     * An embedded document carries its container's path, so the path-derived name would hand a
+     * records.jsonl inside an archive the name of the archive and route the ndjson to the csv reader.
+     */
+    @Test
+    public void test_the_name_tika_recorded_beats_the_container_path() throws Exception {
+        indexed("archive.zip", "text/plain", "{\"id\":1,\"name\":\"ACME\"}\n",
+                Map.of("tika_metadata_resourcename", "records.jsonl"));
+
+        List<Row> rows = rows(RowSourceOptions.defaults());
+
+        assertThat(rows).hasSize(1);
+        assertThat(rows.get(0).values().get("name")).isEqualTo("ACME");
+    }
+
+    @Test
+    public void test_a_document_with_no_detected_content_type_is_refined_by_extension() throws Exception {
+        indexed("contacts.csv", null, "id,name\n1,ACME\n", Map.of());
+
+        assertThat(rows(RowSourceOptions.defaults()).get(0).values().get("name")).isEqualTo("ACME");
+    }
+
+    @Test
+    public void test_a_tsv_extension_supplies_the_delimiter_its_metadata_does_not() throws Exception {
+        indexed("companies.tsv", "text/plain", "id\tname\n1\tACME\n", Map.of());
+
+        assertThat(rows(RowSourceOptions.defaults()).get(0).values().get("name")).isEqualTo("ACME");
+    }
+
 }

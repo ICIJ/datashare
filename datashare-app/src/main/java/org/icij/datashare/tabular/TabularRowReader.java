@@ -27,8 +27,10 @@ import java.util.stream.Stream;
  * several times over.
  */
 public class TabularRowReader {
+    // "unknown" is what Document.getContentTypeOrDefault returns, and what the spewer stores, when
+    // Tika detected no type at all: the document that most needs refining by extension.
     private static final Set<String> GENERIC_TYPES =
-            Set.of("text/plain", "application/octet-stream");
+            Set.of("text/plain", "application/octet-stream", "unknown");
 
     // Only the formats a reader claims. Tika 3.3.0 types a .csv named .txt, and every .jsonl, as
     // text/plain, so without this the delimited reader would claim NDJSON files.
@@ -43,8 +45,17 @@ public class TabularRowReader {
 
     private static final String DELIMITER_METADATA_KEY = "tika_metadata_csv_delimiter";
 
+    private static final String RESOURCE_NAME_METADATA_KEY = "tika_metadata_resourcename";
+
+    // Below its sniffer's confidence threshold Tika types every delimited file as text/plain and
+    // records no delimiter, so for the two extensions that name one, the extension is the only thing
+    // left that does.
+    private static final Map<String, Character> DELIMITER_BY_EXTENSION = Map.of("tsv", '\t', "psv", '|');
+
     private static final Map<String, Character> DELIMITER_BY_TIKA_NAME = Map.of(
             "comma", ',', "tab", '\t', "pipe", '|', "semicolon", ';');
+
+    private static final List<String> CONTENT_FIELDS = List.of("content", "content_translated");
 
     private static final List<String> SUPPORTED_CONTENT_TYPES = Stream.of(
                     DelimitedRowSource.SUPPORTED, WorkbookRowSource.SUPPORTED, JsonRowSource.SUPPORTED,
@@ -78,8 +89,10 @@ public class TabularRowReader {
      */
     public Stream<Row> rows(Project project, String documentId, String rootId,
                             RowSourceOptions options) throws IOException {
+        // Excluding the extracted text, as DocumentSourceAccess does: only four metadata fields are
+        // read here, and a large tabular document's content would be a second full copy in heap.
         Document document = indexer.get(project.getName(), documentId,
-                rootId == null ? documentId : rootId);
+                rootId == null ? documentId : rootId, CONTENT_FIELDS);
         if (document == null) {
             throw new IllegalArgumentException("no such document in " + project.getName() + ": " + documentId);
         }
@@ -95,15 +108,29 @@ public class TabularRowReader {
     }
 
     private RowSourceOptions resolve(Document document, RowSourceOptions options) {
+        String filename = filename(document);
         RowSourceOptions resolved = options.withContentType(effectiveContentType(
-                options.contentType(), document.getContentTypeOrDefault(), document.getName()));
+                options.contentType(), document.getContentTypeOrDefault(), filename));
         if (resolved.charset() == null && document.getContentEncoding() != null) {
             resolved = resolved.withCharset(document.getContentEncoding());
         }
         if (resolved.delimiter() == null) {
-            resolved = resolved.withDelimiter(delimiterFrom(document.getMetadata()));
+            resolved = resolved.withDelimiter(Optional
+                    .ofNullable(delimiterFrom(document.getMetadata()))
+                    .orElseGet(() -> delimiterByExtension(filename)));
         }
         return resolved;
+    }
+
+    /**
+     * The name Tika recorded, not the path: an embedded document carries its container's path, so
+     * Document.getName would hand records.jsonl inside archive.zip the name of the archive and the
+     * extension refinement would go inert on exactly the embedded sources this class exists to reach.
+     */
+    static String filename(Document document) {
+        Map<String, Object> metadata = document.getMetadata();
+        Object resourceName = metadata == null ? null : metadata.get(RESOURCE_NAME_METADATA_KEY);
+        return resourceName == null ? document.getName() : resourceName.toString();
     }
 
     private RowSource select(String contentType) {
@@ -131,6 +158,10 @@ public class TabularRowReader {
             return storedType;
         }
         return Optional.ofNullable(TYPE_BY_EXTENSION.get(extension(filename))).orElse(storedType);
+    }
+
+    static Character delimiterByExtension(String filename) {
+        return DELIMITER_BY_EXTENSION.get(extension(filename));
     }
 
     private static String extension(String filename) {
