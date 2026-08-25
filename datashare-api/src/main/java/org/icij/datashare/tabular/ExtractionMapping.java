@@ -1,5 +1,7 @@
 package org.icij.datashare.tabular;
 
+import org.icij.datashare.model.EntityType;
+import org.icij.datashare.model.Property;
 import org.icij.datashare.model.TargetModel;
 import org.icij.datashare.model.TargetModelRegistry;
 
@@ -7,6 +9,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 
 public record ExtractionMapping(String id, String projectId, String userId, String name, String model,
                                 String documentId, RowSourceOptions options,
@@ -60,15 +63,30 @@ public record ExtractionMapping(String id, String projectId, String userId, Stri
         TargetModel target = TargetModelRegistry.get(model);
         List<TargetModel.Violation> violations = new ArrayList<>();
         entities.forEach((alias, entity) -> {
-            if (target.type(entity.type()).isEmpty()) {
+            Optional<EntityType> type = target.type(entity.type());
+            if (type.isEmpty()) {
                 violations.add(new TargetModel.Violation(
                         "unknown type '" + entity.type() + "' for entity '" + alias + "' in model '" + model + "'"));
                 return;
             }
-            entity.properties().keySet().stream()
-                    .filter(property -> target.property(entity.type(), property).isEmpty())
-                    .forEach(property -> violations.add(new TargetModel.Violation(
-                            "no property '" + property + "' on '" + entity.type() + "'")));
+            if (type.get().isAbstract()) {
+                violations.add(new TargetModel.Violation(
+                        "type '" + entity.type() + "' for entity '" + alias + "' is abstract and cannot be instantiated"));
+            }
+            entity.properties().forEach((name, mapping) -> {
+                Optional<Property> property = target.property(entity.type(), name);
+                if (property.isEmpty()) {
+                    violations.add(new TargetModel.Violation("no property '" + name + "' on '" + entity.type() + "'"));
+                } else if (property.get().stub()) {
+                    violations.add(new TargetModel.Violation(
+                            "property '" + name + "' on '" + entity.type() + "' is a stub: it is inferred from the '"
+                                    + property.get().range() + "' relation rather than written"));
+                }
+                if (mapping.entity() != null && !entities.containsKey(mapping.entity())) {
+                    violations.add(new TargetModel.Violation(
+                            "property '" + name + "' on entity '" + alias + "' references unknown entity '" + mapping.entity() + "'"));
+                }
+            });
         });
         return violations;
     }

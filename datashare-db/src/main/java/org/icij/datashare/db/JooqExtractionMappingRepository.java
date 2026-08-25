@@ -1,15 +1,19 @@
 package org.icij.datashare.db;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.DatabindException;
 import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.model.TargetModel;
 import org.icij.datashare.tabular.ExtractionMapping;
 import org.icij.datashare.tabular.ExtractionMappingRepository;
 import org.icij.datashare.tabular.InvalidExtractionMapping;
+import org.icij.datashare.tabular.UnreadableExtractionMapping;
 import org.icij.datashare.time.DatashareTime;
 import org.jooq.DSLContext;
 import org.jooq.SQLDialect;
 import org.jooq.impl.DSL;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.sql.DataSource;
 import java.io.IOException;
@@ -17,10 +21,12 @@ import java.io.UncheckedIOException;
 import java.sql.Timestamp;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Stream;
 
 import static org.icij.datashare.db.Tables.EXTRACTION_MAPPING;
 
 public class JooqExtractionMappingRepository implements ExtractionMappingRepository {
+    private static final Logger logger = LoggerFactory.getLogger(JooqExtractionMappingRepository.class);
     private final DataSource dataSource;
     private final SQLDialect dialect;
 
@@ -43,26 +49,36 @@ public class JooqExtractionMappingRepository implements ExtractionMappingReposit
                 .set(EXTRACTION_MAPPING.DEFINITION, write(mapping))
                 .set(EXTRACTION_MAPPING.CREATED_AT,
                         new Timestamp(DatashareTime.getInstance().currentTimeMillis()).toLocalDateTime())
-                .onConflictDoNothing().execute() > 0;
+                .onConflict(EXTRACTION_MAPPING.ID, EXTRACTION_MAPPING.PRJ_ID).doNothing().execute() > 0;
     }
 
     @Override
-    public Optional<ExtractionMapping> get(String id) {
+    public Optional<ExtractionMapping> get(String projectId, String id) {
         return Optional.ofNullable(create().select(EXTRACTION_MAPPING.DEFINITION).from(EXTRACTION_MAPPING)
-                .where(EXTRACTION_MAPPING.ID.eq(id)).fetchOne()).map(row -> read(row.value1()));
+                .where(EXTRACTION_MAPPING.ID.eq(id)).and(EXTRACTION_MAPPING.PRJ_ID.eq(projectId)).fetchOne())
+                .map(row -> read(id, row.value1()));
     }
 
     @Override
     public List<ExtractionMapping> list(String projectId) {
-        return create().select(EXTRACTION_MAPPING.DEFINITION).from(EXTRACTION_MAPPING)
+        return create().select(EXTRACTION_MAPPING.ID, EXTRACTION_MAPPING.DEFINITION).from(EXTRACTION_MAPPING)
                 .where(EXTRACTION_MAPPING.PRJ_ID.eq(projectId))
                 .orderBy(EXTRACTION_MAPPING.CREATED_AT)
-                .fetch().map(row -> read(row.value1()));
+                .fetch().stream()
+                .flatMap(row -> {
+                    try {
+                        return Stream.of(read(row.value1(), row.value2()));
+                    } catch (UnreadableExtractionMapping e) {
+                        logger.warn("skipping unreadable extraction mapping '{}'", row.value1(), e);
+                        return Stream.empty();
+                    }
+                }).toList();
     }
 
     @Override
-    public boolean delete(String id) {
-        return create().deleteFrom(EXTRACTION_MAPPING).where(EXTRACTION_MAPPING.ID.eq(id)).execute() > 0;
+    public boolean delete(String projectId, String id) {
+        return create().deleteFrom(EXTRACTION_MAPPING)
+                .where(EXTRACTION_MAPPING.ID.eq(id)).and(EXTRACTION_MAPPING.PRJ_ID.eq(projectId)).execute() > 0;
     }
 
     private DSLContext create() {
@@ -81,9 +97,11 @@ public class JooqExtractionMappingRepository implements ExtractionMappingReposit
         }
     }
 
-    private static ExtractionMapping read(String definition) {
+    private static ExtractionMapping read(String id, String definition) {
         try {
             return JsonObjectMapper.readValue(definition, new TypeReference<ExtractionMapping>() {});
+        } catch (DatabindException e) {
+            throw new UnreadableExtractionMapping(id, e);
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }

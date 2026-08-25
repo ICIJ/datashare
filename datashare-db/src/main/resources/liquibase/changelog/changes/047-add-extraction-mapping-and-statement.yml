@@ -35,17 +35,17 @@ databaseChangeLog:
                     nullable: false
               - column:
                   name: entity_id
-                  type: varchar(96)
+                  type: text
                   constraints:
                     nullable: false
               - column:
                   name: entity_type
-                  type: varchar(64)
+                  type: text
                   constraints:
                     nullable: false
               - column:
                   name: property
-                  type: varchar(96)
+                  type: text
                   constraints:
                     nullable: false
               - column:
@@ -92,7 +92,7 @@ databaseChangeLog:
                   type: varchar(96)
               - column:
                   name: entity_id
-                  type: varchar(96)
+                  type: text
 
   - changeSet:
       id: 82
@@ -105,18 +105,20 @@ databaseChangeLog:
                   name: id
                   type: varchar(96)
                   constraints:
+                    nullable: false
                     primaryKey: true
               - column:
                   name: prj_id
                   type: varchar(96)
                   constraints:
                     nullable: false
+                    primaryKey: true
               - column:
                   name: user_id
                   type: varchar(96)
               - column:
                   name: name
-                  type: varchar(255)
+                  type: text
                   constraints:
                     nullable: false
               - column:
