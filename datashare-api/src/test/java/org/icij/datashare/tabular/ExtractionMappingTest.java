@@ -1,0 +1,85 @@
+package org.icij.datashare.tabular;
+
+import org.icij.datashare.model.UnknownTargetModel;
+import org.junit.Test;
+
+import java.util.List;
+import java.util.Map;
+
+import static org.fest.assertions.Assertions.assertThat;
+import static org.junit.Assert.assertThrows;
+
+public class ExtractionMappingTest {
+
+    private static ExtractionMapping mapping(String model, Map<String, ExtractionMapping.EntityMapping> entities) {
+        return new ExtractionMapping("map-1", "prj", "jdoe", "members", model, "doc-1",
+                RowSourceOptions.defaults(), entities);
+    }
+
+    private static ExtractionMapping.EntityMapping person(Map<String, ExtractionMapping.PropertyMapping> properties) {
+        return new ExtractionMapping.EntityMapping("Person", List.of("id"), properties);
+    }
+
+    private static ExtractionMapping.PropertyMapping column(String name) {
+        return new ExtractionMapping.PropertyMapping(List.of(name), null, null, null, null);
+    }
+
+    @Test
+    public void test_unknown_model_is_rejected_at_construction() {
+        UnknownTargetModel thrown = assertThrows(UnknownTargetModel.class,
+                () -> mapping("wikidata", Map.of("member", person(Map.of("name", column("full_name"))))));
+        assertThat(thrown.name).isEqualTo("wikidata");
+    }
+
+    @Test
+    public void test_a_valid_mapping_reports_no_violation() {
+        assertThat(mapping("ftm", Map.of("member", person(Map.of("name", column("full_name"))))).validate()).isEmpty();
+    }
+
+    @Test
+    public void test_validate_reports_an_unknown_entity_type() {
+        ExtractionMapping.EntityMapping unknown =
+                new ExtractionMapping.EntityMapping("Unicorn", List.of("id"), Map.of("name", column("n")));
+        assertThat(mapping("ftm", Map.of("member", unknown)).validate().toString()).contains("Unicorn");
+    }
+
+    @Test
+    public void test_validate_reports_an_unknown_property_on_a_known_type() {
+        assertThat(mapping("ftm", Map.of("member", person(Map.of("hoofSize", column("h"))))).validate().toString())
+                .contains("hoofSize");
+    }
+
+    @Test
+    public void test_property_needs_exactly_one_source() {
+        assertThrows(IllegalArgumentException.class,
+                () -> new ExtractionMapping.PropertyMapping(List.of(), null, null, null, null));
+        assertThrows(IllegalArgumentException.class,
+                () -> new ExtractionMapping.PropertyMapping(List.of("a"), null, "SS", null, null));
+    }
+
+    @Test
+    public void test_join_needs_more_than_one_column() {
+        assertThrows(IllegalArgumentException.class,
+                () -> new ExtractionMapping.PropertyMapping(List.of("a"), " ", null, null, null));
+    }
+
+    @Test
+    public void test_format_needs_columns() {
+        assertThrows(IllegalArgumentException.class,
+                () -> new ExtractionMapping.PropertyMapping(List.of(), null, "SS", null, "%d.%m.%Y"));
+    }
+
+    @Test
+    public void test_a_null_user_is_allowed() {
+        ExtractionMapping cliAuthored = new ExtractionMapping("map-1", "prj", null, "members", "ftm", "doc-1",
+                RowSourceOptions.defaults(), Map.of("member", person(Map.of("name", column("full_name")))));
+        assertThat(cliAuthored.userId()).isNull();
+    }
+
+    @Test
+    public void test_entity_reference_needs_no_column() {
+        ExtractionMapping.PropertyMapping reference =
+                new ExtractionMapping.PropertyMapping(List.of(), null, null, "member", null);
+        assertThat(reference.entity()).isEqualTo("member");
+    }
+}
