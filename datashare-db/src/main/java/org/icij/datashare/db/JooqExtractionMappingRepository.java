@@ -1,0 +1,91 @@
+package org.icij.datashare.db;
+
+import com.fasterxml.jackson.core.type.TypeReference;
+import org.icij.datashare.json.JsonObjectMapper;
+import org.icij.datashare.model.TargetModel;
+import org.icij.datashare.tabular.ExtractionMapping;
+import org.icij.datashare.tabular.ExtractionMappingRepository;
+import org.icij.datashare.tabular.InvalidExtractionMapping;
+import org.icij.datashare.time.DatashareTime;
+import org.jooq.DSLContext;
+import org.jooq.SQLDialect;
+import org.jooq.impl.DSL;
+
+import javax.sql.DataSource;
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.sql.Timestamp;
+import java.util.List;
+import java.util.Optional;
+
+import static org.icij.datashare.db.Tables.EXTRACTION_MAPPING;
+
+public class JooqExtractionMappingRepository implements ExtractionMappingRepository {
+    private final DataSource dataSource;
+    private final SQLDialect dialect;
+
+    public JooqExtractionMappingRepository(DataSource dataSource, SQLDialect dialect) {
+        this.dataSource = dataSource;
+        this.dialect = dialect;
+    }
+
+    @Override
+    public boolean save(ExtractionMapping mapping) {
+        List<TargetModel.Violation> violations = mapping.validate();
+        if (!violations.isEmpty()) {
+            throw new InvalidExtractionMapping(mapping.id(), violations);
+        }
+        return create().insertInto(EXTRACTION_MAPPING)
+                .set(EXTRACTION_MAPPING.ID, mapping.id())
+                .set(EXTRACTION_MAPPING.PRJ_ID, mapping.projectId())
+                .set(EXTRACTION_MAPPING.USER_ID, mapping.userId())
+                .set(EXTRACTION_MAPPING.NAME, mapping.name())
+                .set(EXTRACTION_MAPPING.DEFINITION, write(mapping))
+                .set(EXTRACTION_MAPPING.CREATED_AT,
+                        new Timestamp(DatashareTime.getInstance().currentTimeMillis()).toLocalDateTime())
+                .onConflictDoNothing().execute() > 0;
+    }
+
+    @Override
+    public Optional<ExtractionMapping> get(String id) {
+        return Optional.ofNullable(create().select(EXTRACTION_MAPPING.DEFINITION).from(EXTRACTION_MAPPING)
+                .where(EXTRACTION_MAPPING.ID.eq(id)).fetchOne()).map(row -> read(row.value1()));
+    }
+
+    @Override
+    public List<ExtractionMapping> list(String projectId) {
+        return create().select(EXTRACTION_MAPPING.DEFINITION).from(EXTRACTION_MAPPING)
+                .where(EXTRACTION_MAPPING.PRJ_ID.eq(projectId))
+                .orderBy(EXTRACTION_MAPPING.CREATED_AT)
+                .fetch().map(row -> read(row.value1()));
+    }
+
+    @Override
+    public boolean delete(String id) {
+        return create().deleteFrom(EXTRACTION_MAPPING).where(EXTRACTION_MAPPING.ID.eq(id)).execute() > 0;
+    }
+
+    private DSLContext create() {
+        return DSL.using(dataSource, dialect);
+    }
+
+    // The definition column holds one concrete record type, not a Map<String, Object>, so there is
+    // no @type marker to force: the plain mapper round-trips it, and it also spares Charset (e.g.
+    // sun.nio.cs.UTF_8) from the typed mapper's polymorphic deserialization, which has no
+    // string-argument constructor to satisfy.
+    private static String write(ExtractionMapping mapping) {
+        try {
+            return JsonObjectMapper.writeValueAsString(mapping);
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+
+    private static ExtractionMapping read(String definition) {
+        try {
+            return JsonObjectMapper.readValue(definition, new TypeReference<ExtractionMapping>() {});
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+}
