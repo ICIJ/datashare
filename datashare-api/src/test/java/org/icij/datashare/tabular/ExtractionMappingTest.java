@@ -77,6 +77,17 @@ public class ExtractionMappingTest {
     }
 
     @Test
+    public void test_a_mapping_needs_at_least_one_entity() {
+        assertThrows(IllegalArgumentException.class, () -> mapping("ftm", Map.of()));
+    }
+
+    @Test
+    public void test_an_entity_needs_at_least_one_key() {
+        assertThrows(IllegalArgumentException.class,
+                () -> new ExtractionMapping.EntityMapping("Person", List.of(), Map.of()));
+    }
+
+    @Test
     public void test_entity_reference_needs_no_column() {
         ExtractionMapping.PropertyMapping reference =
                 new ExtractionMapping.PropertyMapping(List.of(), null, null, "member", null);
