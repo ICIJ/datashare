@@ -41,7 +41,7 @@ public class JooqCasbinRuleAdapter implements CasbinRuleAdapter {
         this.batchSize = batchSize;
     }
 
-    private static int determineBatchSize(SQLDialect dialect) {
+    static int determineBatchSize(SQLDialect dialect) {
         if (dialect.getName().contains("SQLite")) {
             return SQLITE_BATCHSIZE;  // SQLite: prefer larger batches in single transaction
         } else if (dialect.getName().contains("Postgres")) {

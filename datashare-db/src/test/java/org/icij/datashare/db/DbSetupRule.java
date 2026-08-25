@@ -9,6 +9,8 @@ import com.zaxxer.hikari.HikariDataSource;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.asynctasks.bus.amqp.UriResult;
 import org.icij.datashare.json.JsonObjectMapper;
+import org.jooq.DSLContext;
+import org.jooq.impl.DSL;
 import org.junit.rules.ExternalResource;
 
 import javax.sql.DataSource;
@@ -68,8 +70,8 @@ public class DbSetupRule extends ExternalResource {
         return new JooqExtractionMappingRepository(dataSource, RepositoryFactoryImpl.guessSqlDialectFrom(dataSourceUrl));
     }
 
-    org.jooq.DSLContext dsl() {
-        return org.jooq.impl.DSL.using(dataSource, RepositoryFactoryImpl.guessSqlDialectFrom(dataSourceUrl));
+    DSLContext dsl() {
+        return DSL.using(dataSource, RepositoryFactoryImpl.guessSqlDialectFrom(dataSourceUrl));
     }
 
     private static DataSource createDatasource(final String jdbcUrl) {

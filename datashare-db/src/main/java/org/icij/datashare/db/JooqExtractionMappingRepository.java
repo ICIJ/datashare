@@ -1,6 +1,5 @@
 package org.icij.datashare.db;
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DatabindException;
 import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.model.TargetModel;
@@ -54,9 +53,10 @@ public class JooqExtractionMappingRepository implements ExtractionMappingReposit
 
     @Override
     public Optional<ExtractionMapping> get(String projectId, String id) {
-        return Optional.ofNullable(create().select(EXTRACTION_MAPPING.DEFINITION).from(EXTRACTION_MAPPING)
-                .where(EXTRACTION_MAPPING.ID.eq(id)).and(EXTRACTION_MAPPING.PRJ_ID.eq(projectId)).fetchOne())
-                .map(row -> read(id, row.value1()));
+        return create().select(EXTRACTION_MAPPING.DEFINITION).from(EXTRACTION_MAPPING)
+                .where(EXTRACTION_MAPPING.ID.eq(id)).and(EXTRACTION_MAPPING.PRJ_ID.eq(projectId))
+                .fetchOptional(EXTRACTION_MAPPING.DEFINITION)
+                .map(definition -> read(id, definition));
     }
 
     @Override
@@ -99,7 +99,7 @@ public class JooqExtractionMappingRepository implements ExtractionMappingReposit
 
     private static ExtractionMapping read(String id, String definition) {
         try {
-            return JsonObjectMapper.readValue(definition, new TypeReference<ExtractionMapping>() {});
+            return JsonObjectMapper.readValue(definition, ExtractionMapping.class);
         } catch (DatabindException e) {
             throw new UnreadableExtractionMapping(id, e);
         } catch (IOException e) {

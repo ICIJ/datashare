@@ -4,7 +4,6 @@ import org.icij.datashare.tabular.ExtractionMapping;
 import org.icij.datashare.tabular.InvalidExtractionMapping;
 import org.icij.datashare.tabular.RowSourceOptions;
 import org.icij.datashare.tabular.UnreadableExtractionMapping;
-import org.icij.datashare.test.DatashareTimeRule;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -23,7 +22,6 @@ import static org.junit.Assert.assertThrows;
 @RunWith(Parameterized.class)
 public class JooqExtractionMappingRepositoryTest {
     @Rule public DbSetupRule dbRule;
-    @Rule public DatashareTimeRule time = new DatashareTimeRule("2020-07-08T12:13:14Z");
     private final JooqExtractionMappingRepository repository;
 
     private static ExtractionMapping mapping(String id, String projectId, String userId, String type) {

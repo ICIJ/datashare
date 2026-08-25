@@ -72,21 +72,21 @@ public class ExtractionMappingTest {
 
     @Test
     public void test_property_needs_exactly_one_source() {
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(InvalidPropertyMapping.class,
                 () -> new ExtractionMapping.PropertyMapping(List.of(), null, null, null, null));
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(InvalidPropertyMapping.class,
                 () -> new ExtractionMapping.PropertyMapping(List.of("a"), null, "SS", null, null));
     }
 
     @Test
     public void test_join_needs_more_than_one_column() {
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(InvalidPropertyMapping.class,
                 () -> new ExtractionMapping.PropertyMapping(List.of("a"), " ", null, null, null));
     }
 
     @Test
     public void test_format_needs_columns() {
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(InvalidPropertyMapping.class,
                 () -> new ExtractionMapping.PropertyMapping(List.of(), null, "SS", null, "%d.%m.%Y"));
     }
 
@@ -99,12 +99,12 @@ public class ExtractionMappingTest {
 
     @Test
     public void test_a_mapping_needs_at_least_one_entity() {
-        assertThrows(IllegalArgumentException.class, () -> mapping("ftm", Map.of()));
+        assertThrows(EmptyExtractionMapping.class, () -> mapping("ftm", Map.of()));
     }
 
     @Test
     public void test_an_entity_needs_at_least_one_key() {
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(InvalidEntityMapping.class,
                 () -> new ExtractionMapping.EntityMapping("Person", List.of(), Map.of()));
     }
 

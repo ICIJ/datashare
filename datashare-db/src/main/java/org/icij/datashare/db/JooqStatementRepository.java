@@ -6,12 +6,17 @@ import org.icij.datashare.model.Statement;
 import org.icij.datashare.model.StatementRepository;
 import org.icij.datashare.model.TargetModelRegistry;
 import org.icij.datashare.time.DatashareTime;
+import org.jooq.BatchBindStep;
+import org.jooq.Cursor;
 import org.jooq.DSLContext;
 import org.jooq.Query;
 import org.jooq.SQLDialect;
+import org.jooq.exception.DataAccessException;
 import org.jooq.impl.DSL;
 
 import javax.sql.DataSource;
+import java.sql.Connection;
+import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -30,33 +35,45 @@ import java.util.stream.StreamSupport;
 import static org.icij.datashare.db.Tables.STATEMENT;
 
 public class JooqStatementRepository implements StatementRepository {
-    private static final int CHUNK = 1_000;
+    private static final int FETCH_SIZE = 1_000;
     private final DataSource dataSource;
     private final SQLDialect dialect;
+    private final int chunkSize;
 
     public JooqStatementRepository(DataSource dataSource, SQLDialect dialect) {
         this.dataSource = dataSource;
         this.dialect = dialect;
+        this.chunkSize = JooqCasbinRuleAdapter.determineBatchSize(dialect);
     }
 
     @Override
     public int save(String projectId, String runId, Collection<Statement> statements) {
         LocalDateTime now = new Timestamp(DatashareTime.getInstance().currentTimeMillis()).toLocalDateTime();
-        List<Statement> ordered = List.copyOf(statements);
+        Iterator<Statement> source = statements.iterator();
         int written = 0;
-        for (int from = 0; from < ordered.size(); from += CHUNK) {
-            List<Statement> chunk = ordered.subList(from, Math.min(from + CHUNK, ordered.size()));
-            written += DSL.using(dataSource, dialect).transactionResult(configuration -> {
-                DSLContext create = DSL.using(configuration);
-                List<Query> queries = chunk.stream()
-                        .map(statement -> upsert(create, projectId, runId, statement, now)).toList();
-                return IntStream.of(create.batch(queries).execute()).sum();
-            });
+        while (source.hasNext()) {
+            List<Statement> chunk = new ArrayList<>(chunkSize);
+            while (chunk.size() < chunkSize && source.hasNext()) {
+                chunk.add(source.next());
+            }
+            written += create().transactionResult(configuration ->
+                    saveChunk(DSL.using(configuration), projectId, runId, chunk, now));
         }
         return written;
     }
 
-    private Query upsert(DSLContext create, String projectId, String runId, Statement statement, LocalDateTime now) {
+    // A batch built from Query...values(...) inlines every row's SQL and ships it as literal text
+    // (jOOQ's "batch multiple"); a batch built from one bound template query and repeated .bind()
+    // calls ("batch single") reuses the same PreparedStatement and lets Postgres plan it once.
+    private static int saveChunk(DSLContext create, String projectId, String runId, List<Statement> chunk, LocalDateTime now) {
+        BatchBindStep batch = create.batch(upsert(create, projectId, runId, chunk.get(0), now));
+        for (Statement statement : chunk) {
+            batch.bind(bindValues(projectId, runId, statement, now));
+        }
+        return IntStream.of(batch.execute()).sum();
+    }
+
+    private static Query upsert(DSLContext create, String projectId, String runId, Statement statement, LocalDateTime now) {
         return create.insertInto(STATEMENT)
                 .set(STATEMENT.ID, statement.id())
                 .set(STATEMENT.PRJ_ID, projectId)
@@ -76,9 +93,22 @@ public class JooqStatementRepository implements StatementRepository {
                 .onConflictDoNothing();
     }
 
+    // Bind order must match upsert()'s set(...) chain exactly: jOOQ's batch-single binds are
+    // positional, not named.
+    private static Object[] bindValues(String projectId, String runId, Statement statement, LocalDateTime now) {
+        return new Object[]{
+                statement.id(), projectId, runId, statement.model(),
+                TargetModelRegistry.get(statement.model()).version(),
+                statement.entityId(), statement.entityType(), statement.qualifiedProperty(), statement.value(),
+                statement.provenance().documentId(), statement.provenance().sheet(),
+                statement.provenance().rowNumber(), statement.provenance().column(),
+                now, now
+        };
+    }
+
     @Override
     public Optional<ModelEntity> entity(String projectId, String entityId) {
-        List<Statement> statements = DSL.using(dataSource, dialect)
+        List<Statement> statements = create()
                 .selectFrom(STATEMENT)
                 .where(STATEMENT.PRJ_ID.eq(projectId)).and(STATEMENT.ENTITY_ID.eq(entityId))
                 .orderBy(STATEMENT.MODEL, STATEMENT.PROPERTY, STATEMENT.VALUE)
@@ -86,15 +116,28 @@ public class JooqStatementRepository implements StatementRepository {
         return statements.isEmpty() ? Optional.empty() : Optional.of(ModelEntity.from(statements));
     }
 
+    // A DataSource-bound DSLContext never sets autoCommit(false), and pgjdbc only opens a
+    // server-side cursor when fetchSize > 0 AND autoCommit is false: without both, the driver
+    // buffers the whole result before the first row is emitted. So this holds one connection,
+    // outside the pool's default autocommit, for the stream's lifetime.
     @Override
     public Stream<ModelEntity> entities(String projectId) {
-        Stream<Statement> rows = DSL.using(dataSource, dialect)
-                .selectFrom(STATEMENT)
-                .where(STATEMENT.PRJ_ID.eq(projectId))
-                .orderBy(STATEMENT.ENTITY_ID, STATEMENT.MODEL, STATEMENT.PROPERTY, STATEMENT.VALUE)
-                .fetchLazy().stream()
-                .map(JooqStatementRepository::toStatement);
-        return group(rows);
+        Connection connection = openStreamingConnection();
+        try {
+            Cursor<StatementRecord> cursor = DSL.using(connection, dialect)
+                    .selectFrom(STATEMENT)
+                    .where(STATEMENT.PRJ_ID.eq(projectId))
+                    .orderBy(STATEMENT.ENTITY_ID, STATEMENT.MODEL, STATEMENT.PROPERTY, STATEMENT.VALUE)
+                    .fetchSize(FETCH_SIZE)
+                    .fetchLazy();
+            Stream<Statement> rows = cursor.stream()
+                    .map(JooqStatementRepository::toStatement)
+                    .onClose(() -> release(connection, cursor));
+            return group(rows);
+        } catch (RuntimeException e) {
+            closeQuietly(connection);
+            throw e;
+        }
     }
 
     @Override
@@ -102,6 +145,42 @@ public class JooqStatementRepository implements StatementRepository {
         try (Stream<ModelEntity> entities = entities(projectId)) {
             return consumer.apply(entities);
         }
+    }
+
+    private Connection openStreamingConnection() {
+        Connection connection;
+        try {
+            connection = dataSource.getConnection();
+        } catch (SQLException e) {
+            throw new DataAccessException("could not open a streaming connection", e);
+        }
+        try {
+            connection.setAutoCommit(false);
+        } catch (SQLException e) {
+            closeQuietly(connection);
+            throw new DataAccessException("could not open a streaming connection", e);
+        }
+        return connection;
+    }
+
+    private static void release(Connection connection, Cursor<?> cursor) {
+        try (connection) {
+            cursor.close();
+            connection.rollback();
+        } catch (SQLException e) {
+            throw new DataAccessException("could not release the streaming connection", e);
+        }
+    }
+
+    private static void closeQuietly(Connection connection) {
+        try {
+            connection.close();
+        } catch (SQLException ignored) {
+        }
+    }
+
+    private DSLContext create() {
+        return DSL.using(dataSource, dialect);
     }
 
     private static Statement toStatement(StatementRecord row) {
@@ -151,5 +230,9 @@ public class JooqStatementRepository implements StatementRepository {
         };
         return StreamSupport.stream(Spliterators.spliteratorUnknownSize(entities, Spliterator.ORDERED), false)
                 .onClose(statements::close);
+    }
+
+    int chunkSize() {
+        return chunkSize;
     }
 }
