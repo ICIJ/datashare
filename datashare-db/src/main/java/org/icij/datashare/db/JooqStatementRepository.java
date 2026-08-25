@@ -64,7 +64,8 @@ public class JooqStatementRepository implements StatementRepository {
                 .set(STATEMENT.LAST_SEEN, now)
                 .onConflict(STATEMENT.ID).doUpdate()
                 .set(STATEMENT.LAST_SEEN, now)
-                .set(STATEMENT.RUN_ID, runId);
+                .set(STATEMENT.RUN_ID, runId)
+                .set(STATEMENT.MODEL_VERSION, TargetModelRegistry.get(statement.model()).version());
     }
 
     @Override
