@@ -1,5 +1,6 @@
 package org.icij.datashare.db;
 
+import org.icij.datashare.model.ModelEntity;
 import org.icij.datashare.model.Statement;
 import org.icij.datashare.test.DatashareTimeRule;
 import org.icij.datashare.time.DatashareTime;
@@ -10,6 +11,8 @@ import org.junit.runners.Parameterized;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
+import java.util.stream.Stream;
 
 import static java.util.Arrays.asList;
 import static org.fest.assertions.Assertions.assertThat;
@@ -91,6 +94,76 @@ public class JooqStatementRepositoryTest {
     public void test_a_different_value_is_a_different_statement() {
         assertThat(repository.save("prj", "run-1", List.of(birthDate("1970-01-01"), birthDate("1980-02-02")))).isEqualTo(2);
         assertThat(dbRule.dsl().fetchCount(STATEMENT)).isEqualTo(2);
+    }
+
+    private static Statement statement(String entityId, String type, String property, String value) {
+        return Statement.of("ftm", entityId, type, property, value,
+                new Statement.Provenance("doc-1", "", 12L, property));
+    }
+
+    @Test
+    public void test_entity_regroups_its_statements() {
+        repository.save("prj", "run-1", List.of(
+                statement("e-1", "Person", "name", "Ada"),
+                statement("e-1", "Person", "birthDate", "1815-12-10")));
+
+        ModelEntity entity = repository.entity("prj", "e-1").orElseThrow();
+        assertThat(entity.id()).isEqualTo("e-1");
+        assertThat(entity.properties().get("name")).containsExactly("Ada");
+        assertThat(entity.properties().get("birthDate")).containsExactly("1815-12-10");
+    }
+
+    @Test
+    public void test_an_entity_keeps_every_one_of_its_types() {
+        repository.save("prj", "run-1", List.of(
+                statement("e-1", "Person", "name", "Ada"),
+                statement("e-1", "LegalEntity", "name", "Ada")));
+
+        assertThat(repository.entity("prj", "e-1").orElseThrow().types()).contains("Person", "LegalEntity");
+    }
+
+    @Test
+    public void test_a_property_keeps_every_one_of_its_values() {
+        repository.save("prj", "run-1", List.of(
+                statement("e-1", "Person", "name", "Ada"),
+                statement("e-1", "Person", "name", "Ada Lovelace")));
+
+        assertThat(repository.entity("prj", "e-1").orElseThrow().properties().get("name"))
+                .containsOnly("Ada", "Ada Lovelace");
+    }
+
+    @Test
+    public void test_entity_is_empty_when_the_project_holds_no_statement_for_it() {
+        repository.save("prj", "run-1", List.of(statement("e-1", "Person", "name", "Ada")));
+        assertThat(repository.entity("other", "e-1")).isEqualTo(Optional.empty());
+        assertThat(repository.entity("prj", "e-2")).isEqualTo(Optional.empty());
+    }
+
+    @Test
+    public void test_entities_returns_every_entity_of_the_project_and_no_other() {
+        repository.save("prj", "run-1", List.of(
+                statement("e-1", "Person", "name", "Ada"),
+                statement("e-2", "Person", "name", "Grace")));
+        repository.save("other", "run-2", List.of(statement("e-3", "Person", "name", "Alan")));
+
+        try (Stream<ModelEntity> entities = repository.entities("prj")) {
+            assertThat(entities.map(ModelEntity::id).toList()).containsOnly("e-1", "e-2");
+        }
+    }
+
+    @Test
+    public void test_entities_does_not_split_an_entity_across_two_results() {
+        repository.save("prj", "run-1", List.of(
+                statement("e-1", "Person", "name", "Ada"),
+                statement("e-2", "Person", "name", "Grace"),
+                statement("e-1", "Person", "birthDate", "1815-12-10")));
+
+        try (Stream<ModelEntity> entities = repository.entities("prj")) {
+            List<ModelEntity> found = entities.toList();
+            assertThat(found.size()).isEqualTo(2);
+            assertThat(found.stream().filter(e -> e.id().equals("e-1")).findFirst().orElseThrow()
+                    .properties().keySet()).containsOnly("name", "birthDate");
+        }
     }
 
     @Parameterized.Parameters
