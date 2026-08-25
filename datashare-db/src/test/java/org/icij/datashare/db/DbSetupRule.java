@@ -64,6 +64,10 @@ public class DbSetupRule extends ExternalResource {
         return new JooqStatementRepository(dataSource, RepositoryFactoryImpl.guessSqlDialectFrom(dataSourceUrl));
     }
 
+    public JooqExtractionMappingRepository createExtractionMappingRepository() {
+        return new JooqExtractionMappingRepository(dataSource, RepositoryFactoryImpl.guessSqlDialectFrom(dataSourceUrl));
+    }
+
     org.jooq.DSLContext dsl() {
         return org.jooq.impl.DSL.using(dataSource, RepositoryFactoryImpl.guessSqlDialectFrom(dataSourceUrl));
     }
