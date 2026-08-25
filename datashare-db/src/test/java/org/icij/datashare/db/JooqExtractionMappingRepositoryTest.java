@@ -137,12 +137,40 @@ public class JooqExtractionMappingRepositoryTest {
         assertThat(thrown.id).isEqualTo("map-1");
     }
 
+    @Test
+    public void test_list_skips_a_row_with_truncated_json_and_returns_the_others() {
+        repository.save(mapping("map-1", "prj", "jdoe", "Person"));
+        repository.save(mapping("map-2", "prj", "jdoe", "Person"));
+        truncate("map-2", "prj");
+
+        assertThat(repository.list("prj").stream().map(ExtractionMapping::id).toList()).containsOnly("map-1");
+    }
+
+    @Test
+    public void test_get_on_a_row_with_truncated_json_throws_unreadable_extraction_mapping() {
+        repository.save(mapping("map-1", "prj", "jdoe", "Person"));
+        truncate("map-1", "prj");
+
+        UnreadableExtractionMapping thrown = assertThrows(UnreadableExtractionMapping.class,
+                () -> repository.get("prj", "map-1"));
+        assertThat(thrown.id).isEqualTo("map-1");
+    }
+
     private void poison(String id, String projectId) {
         String definition = dbRule.dsl().select(EXTRACTION_MAPPING.DEFINITION).from(EXTRACTION_MAPPING)
                 .where(EXTRACTION_MAPPING.ID.eq(id)).and(EXTRACTION_MAPPING.PRJ_ID.eq(projectId))
                 .fetchOne(EXTRACTION_MAPPING.DEFINITION);
         String poisoned = definition.replace("\"model\":\"ftm\"", "\"model\":\"bogus\"");
         dbRule.dsl().update(EXTRACTION_MAPPING).set(EXTRACTION_MAPPING.DEFINITION, poisoned)
+                .where(EXTRACTION_MAPPING.ID.eq(id)).and(EXTRACTION_MAPPING.PRJ_ID.eq(projectId)).execute();
+    }
+
+    // A single "{" fails inside Jackson's raw field-name loop, so the parser raises the low-level
+    // JsonEOFException unwrapped. A cut further in (mid string value) fails instead inside a
+    // property's own deserializer call, which Jackson's bean deserializer wraps into a
+    // DatabindException, so it would not distinguish this fixture from the poisoned-model one.
+    private void truncate(String id, String projectId) {
+        dbRule.dsl().update(EXTRACTION_MAPPING).set(EXTRACTION_MAPPING.DEFINITION, "{")
                 .where(EXTRACTION_MAPPING.ID.eq(id)).and(EXTRACTION_MAPPING.PRJ_ID.eq(projectId)).execute();
     }
 

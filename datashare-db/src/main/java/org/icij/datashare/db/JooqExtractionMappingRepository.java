@@ -1,6 +1,6 @@
 package org.icij.datashare.db;
 
-import com.fasterxml.jackson.databind.DatabindException;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.model.TargetModel;
 import org.icij.datashare.tabular.ExtractionMapping;
@@ -100,7 +100,7 @@ public class JooqExtractionMappingRepository implements ExtractionMappingReposit
     private static ExtractionMapping read(String id, String definition) {
         try {
             return JsonObjectMapper.readValue(definition, ExtractionMapping.class);
-        } catch (DatabindException e) {
+        } catch (JsonProcessingException e) {
             throw new UnreadableExtractionMapping(id, e);
         } catch (IOException e) {
             throw new UncheckedIOException(e);
