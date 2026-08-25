@@ -9,10 +9,19 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
+import javax.sql.DataSource;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.lang.reflect.Proxy;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import static java.util.Arrays.asList;
@@ -25,46 +34,47 @@ public class JooqStatementRepositoryTest {
     @Rule public DatashareTimeRule time = new DatashareTimeRule("2020-07-08T12:13:14Z");
     private final JooqStatementRepository repository;
 
-    private static Statement birthDate(String value) {
-        return Statement.of("ftm", "entity-1", "Person", "birthDate", value,
-                new Statement.Provenance("doc-1", "", 12L, "dob"));
+    private static Statement statement(String entityId, String type, String property, String value) {
+        return Statement.of("ftm", entityId, type, property, value,
+                new Statement.Provenance("doc-1", "", 12L, property));
     }
 
     @Test
     public void test_save_writes_one_row_per_statement() {
-        assertThat(repository.save("prj", "run-1", List.of(birthDate("1970-01-01")))).isEqualTo(1);
+        Collection<Statement> statements = List.of(statement("entity-1", "Person", "birthDate", "1970-01-01"));
+        assertThat(repository.save("prj", "run-1", statements)).isEqualTo(1);
         assertThat(dbRule.dsl().fetchCount(STATEMENT)).isEqualTo(1);
     }
 
     @Test
     public void test_save_fills_the_ontology_version_without_the_caller_supplying_it() {
-        repository.save("prj", "run-1", List.of(birthDate("1970-01-01")));
+        repository.save("prj", "run-1", List.of(statement("entity-1", "Person", "birthDate", "1970-01-01")));
         assertThat(dbRule.dsl().select(STATEMENT.MODEL_VERSION).from(STATEMENT).fetchOne().value1())
                 .isEqualTo("4.10.2");
     }
 
     @Test
     public void test_save_stores_the_property_namespaced() {
-        repository.save("prj", "run-1", List.of(birthDate("1970-01-01")));
+        repository.save("prj", "run-1", List.of(statement("entity-1", "Person", "birthDate", "1970-01-01")));
         assertThat(dbRule.dsl().select(STATEMENT.PROPERTY).from(STATEMENT).fetchOne().value1())
                 .isEqualTo("ftm:birthDate");
     }
 
     @Test
     public void test_save_stores_the_provenance() {
-        repository.save("prj", "run-1", List.of(birthDate("1970-01-01")));
+        repository.save("prj", "run-1", List.of(statement("entity-1", "Person", "birthDate", "1970-01-01")));
         var row = dbRule.dsl().selectFrom(STATEMENT).fetchOne();
         assertThat(row.getDocId()).isEqualTo("doc-1");
         assertThat(row.getSheet()).isEqualTo("");
         assertThat(row.getRowNumber()).isEqualTo(12L);
-        assertThat(row.getColumnName()).isEqualTo("dob");
+        assertThat(row.getColumnName()).isEqualTo("birthDate");
         assertThat(row.getRunId()).isEqualTo("run-1");
         assertThat(row.getPrjId()).isEqualTo("prj");
     }
 
     @Test
     public void test_saving_the_same_data_twice_is_a_no_op() {
-        Collection<Statement> statements = List.of(birthDate("1970-01-01"));
+        Collection<Statement> statements = List.of(statement("entity-1", "Person", "birthDate", "1970-01-01"));
         repository.save("prj", "run-1", statements);
         var first = dbRule.dsl().selectFrom(STATEMENT).fetchOne();
 
@@ -81,13 +91,16 @@ public class JooqStatementRepositoryTest {
 
     @Test
     public void test_a_different_value_is_a_different_statement() {
-        assertThat(repository.save("prj", "run-1", List.of(birthDate("1970-01-01"), birthDate("1980-02-02")))).isEqualTo(2);
+        Collection<Statement> statements = List.of(
+                statement("entity-1", "Person", "birthDate", "1970-01-01"),
+                statement("entity-1", "Person", "birthDate", "1980-02-02"));
+        assertThat(repository.save("prj", "run-1", statements)).isEqualTo(2);
         assertThat(dbRule.dsl().fetchCount(STATEMENT)).isEqualTo(2);
     }
 
     @Test
     public void test_the_same_statement_saved_under_two_projects_keeps_both_rows() {
-        Collection<Statement> statements = List.of(birthDate("1970-01-01"));
+        Collection<Statement> statements = List.of(statement("entity-1", "Person", "birthDate", "1970-01-01"));
         repository.save("prj-a", "run-1", statements);
         repository.save("prj-b", "run-2", statements);
 
@@ -98,11 +111,6 @@ public class JooqStatementRepositoryTest {
                 .where(STATEMENT.PRJ_ID.eq("prj-a")).fetchOne().value1()).isEqualTo("run-1");
         assertThat(dbRule.dsl().select(STATEMENT.RUN_ID).from(STATEMENT)
                 .where(STATEMENT.PRJ_ID.eq("prj-b")).fetchOne().value1()).isEqualTo("run-2");
-    }
-
-    private static Statement statement(String entityId, String type, String property, String value) {
-        return Statement.of("ftm", entityId, type, property, value,
-                new Statement.Provenance("doc-1", "", 12L, property));
     }
 
     @Test
@@ -231,6 +239,76 @@ public class JooqStatementRepositoryTest {
         }
 
         assertThat(dbRule.dsl().fetchCount(STATEMENT)).isEqualTo(3);
+    }
+
+    @Test
+    public void test_save_crosses_the_chunk_boundary() {
+        int size = repository.chunkSize() + 1;
+        List<Statement> statements = IntStream.range(0, size)
+                .mapToObj(i -> statement("e-" + i, "Person", "name", "v" + i))
+                .toList();
+
+        assertThat(repository.save("prj", "run-1", statements)).isEqualTo(size);
+        assertThat(dbRule.dsl().fetchCount(STATEMENT)).isEqualTo(size);
+    }
+
+    @Test
+    public void test_entities_streams_with_a_non_autocommit_connection_and_a_fetch_size() {
+        repository.save("prj", "run-1", List.of(statement("e-1", "Person", "name", "Ada")));
+
+        AtomicBoolean autoCommit = new AtomicBoolean(true);
+        AtomicInteger fetchSize = new AtomicInteger(-1);
+        JooqStatementRepository capturingRepository = new JooqStatementRepository(
+                capturingDataSource(dbRule.dataSource, autoCommit, fetchSize),
+                RepositoryFactoryImpl.guessSqlDialectFrom(dbRule.dataSourceUrl));
+
+        try (Stream<ModelEntity> entities = capturingRepository.entities("prj")) {
+            entities.findFirst();
+            assertThat(autoCommit.get()).isFalse();
+            assertThat(fetchSize.get()).isEqualTo(1_000);
+        }
+    }
+
+    // No mocking framework is wired into this module: a JDK dynamic proxy delegating to the real
+    // JDBC objects lets the test observe setAutoCommit/setFetchSize calls without faking the whole
+    // driver's query behaviour.
+    private static DataSource capturingDataSource(DataSource real, AtomicBoolean autoCommit, AtomicInteger fetchSize) {
+        return (DataSource) Proxy.newProxyInstance(DataSource.class.getClassLoader(), new Class<?>[]{DataSource.class},
+                (proxy, method, args) -> {
+                    Object result = invokeReal(real, method, args);
+                    return "getConnection".equals(method.getName()) && result instanceof Connection connection
+                            ? capturingConnection(connection, autoCommit, fetchSize) : result;
+                });
+    }
+
+    private static Connection capturingConnection(Connection real, AtomicBoolean autoCommit, AtomicInteger fetchSize) {
+        return (Connection) Proxy.newProxyInstance(Connection.class.getClassLoader(), new Class<?>[]{Connection.class},
+                (proxy, method, args) -> {
+                    if ("setAutoCommit".equals(method.getName())) {
+                        autoCommit.set((Boolean) args[0]);
+                    }
+                    Object result = invokeReal(real, method, args);
+                    return result instanceof PreparedStatement statement
+                            ? capturingStatement(statement, fetchSize) : result;
+                });
+    }
+
+    private static PreparedStatement capturingStatement(PreparedStatement real, AtomicInteger fetchSize) {
+        return (PreparedStatement) Proxy.newProxyInstance(PreparedStatement.class.getClassLoader(), new Class<?>[]{PreparedStatement.class},
+                (proxy, method, args) -> {
+                    if ("setFetchSize".equals(method.getName())) {
+                        fetchSize.set((Integer) args[0]);
+                    }
+                    return invokeReal(real, method, args);
+                });
+    }
+
+    private static Object invokeReal(Object target, Method method, Object[] args) throws Throwable {
+        try {
+            return method.invoke(target, args);
+        } catch (InvocationTargetException e) {
+            throw e.getCause();
+        }
     }
 
     @Parameterized.Parameters

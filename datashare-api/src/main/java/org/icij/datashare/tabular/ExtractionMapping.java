@@ -20,10 +20,10 @@ public record ExtractionMapping(String id, String projectId, String userId, Stri
         Objects.requireNonNull(projectId, "projectId");
         Objects.requireNonNull(name, "name");
         Objects.requireNonNull(documentId, "documentId");
-        options = options == null ? RowSourceOptions.defaults() : options;
+        Objects.requireNonNull(options, "options");
         Objects.requireNonNull(entities, "entities");
         if (entities.isEmpty()) {
-            throw new IllegalArgumentException("a mapping builds no entity");
+            throw new EmptyExtractionMapping(id);
         }
         entities = Map.copyOf(entities);
         TargetModelRegistry.get(Objects.requireNonNull(model, "model"));
@@ -34,7 +34,7 @@ public record ExtractionMapping(String id, String projectId, String userId, Stri
             Objects.requireNonNull(type, "type");
             keys = List.copyOf(Objects.requireNonNull(keys, "keys"));
             if (keys.isEmpty()) {
-                throw new IllegalArgumentException("entity type '" + type + "' has no key column");
+                throw new InvalidEntityMapping(type);
             }
             properties = Map.copyOf(Objects.requireNonNull(properties, "properties"));
         }
@@ -45,14 +45,14 @@ public record ExtractionMapping(String id, String projectId, String userId, Stri
             columns = List.copyOf(columns == null ? List.of() : columns);
             long sources = (columns.isEmpty() ? 0 : 1) + (literal == null ? 0 : 1) + (entity == null ? 0 : 1);
             if (sources != 1) {
-                throw new IllegalArgumentException(
+                throw new InvalidPropertyMapping("sources",
                         "a property is filled from exactly one of columns, literal or entity, got " + sources);
             }
             if (join != null && columns.size() < 2) {
-                throw new IllegalArgumentException("'join' needs more than one column");
+                throw new InvalidPropertyMapping("join", "'join' needs more than one column");
             }
             if (format != null && columns.isEmpty()) {
-                throw new IllegalArgumentException("'format' applies to columns only");
+                throw new InvalidPropertyMapping("format", "'format' applies to columns only");
             }
         }
     }
