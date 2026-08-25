@@ -7,7 +7,6 @@ import org.icij.datashare.model.StatementRepository;
 import org.icij.datashare.model.TargetModelRegistry;
 import org.icij.datashare.time.DatashareTime;
 import org.jooq.DSLContext;
-import org.jooq.InsertOnDuplicateSetMoreStep;
 import org.jooq.Query;
 import org.jooq.SQLDialect;
 import org.jooq.impl.DSL;
@@ -23,6 +22,7 @@ import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.Spliterator;
 import java.util.Spliterators;
+import java.util.function.Function;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
@@ -42,18 +42,21 @@ public class JooqStatementRepository implements StatementRepository {
     @Override
     public int save(String projectId, String runId, Collection<Statement> statements) {
         LocalDateTime now = new Timestamp(DatashareTime.getInstance().currentTimeMillis()).toLocalDateTime();
-        return DSL.using(dataSource, dialect).transactionResult(configuration -> {
-            DSLContext create = DSL.using(configuration);
-            List<Query> queries = statements.stream().map(statement -> (Query) upsert(create, projectId, runId, statement, now)).toList();
-            int written = 0;
-            for (int from = 0; from < queries.size(); from += CHUNK) {
-                written += IntStream.of(create.batch(queries.subList(from, Math.min(from + CHUNK, queries.size()))).execute()).sum();
-            }
-            return written;
-        });
+        List<Statement> ordered = List.copyOf(statements);
+        int written = 0;
+        for (int from = 0; from < ordered.size(); from += CHUNK) {
+            List<Statement> chunk = ordered.subList(from, Math.min(from + CHUNK, ordered.size()));
+            written += DSL.using(dataSource, dialect).transactionResult(configuration -> {
+                DSLContext create = DSL.using(configuration);
+                List<Query> queries = chunk.stream()
+                        .map(statement -> upsert(create, projectId, runId, statement, now)).toList();
+                return IntStream.of(create.batch(queries).execute()).sum();
+            });
+        }
+        return written;
     }
 
-    private InsertOnDuplicateSetMoreStep<StatementRecord> upsert(DSLContext create, String projectId, String runId, Statement statement, LocalDateTime now) {
+    private Query upsert(DSLContext create, String projectId, String runId, Statement statement, LocalDateTime now) {
         return create.insertInto(STATEMENT)
                 .set(STATEMENT.ID, statement.id())
                 .set(STATEMENT.PRJ_ID, projectId)
@@ -70,10 +73,7 @@ public class JooqStatementRepository implements StatementRepository {
                 .set(STATEMENT.COLUMN_NAME, statement.provenance().column())
                 .set(STATEMENT.FIRST_SEEN, now)
                 .set(STATEMENT.LAST_SEEN, now)
-                .onConflict(STATEMENT.PRJ_ID, STATEMENT.ID).doUpdate()
-                .set(STATEMENT.LAST_SEEN, now)
-                .set(STATEMENT.RUN_ID, runId)
-                .set(STATEMENT.MODEL_VERSION, TargetModelRegistry.get(statement.model()).version());
+                .onConflictDoNothing();
     }
 
     @Override
@@ -81,6 +81,7 @@ public class JooqStatementRepository implements StatementRepository {
         List<Statement> statements = DSL.using(dataSource, dialect)
                 .selectFrom(STATEMENT)
                 .where(STATEMENT.PRJ_ID.eq(projectId)).and(STATEMENT.ENTITY_ID.eq(entityId))
+                .orderBy(STATEMENT.MODEL, STATEMENT.PROPERTY, STATEMENT.VALUE)
                 .fetch().map(JooqStatementRepository::toStatement);
         return statements.isEmpty() ? Optional.empty() : Optional.of(ModelEntity.from(statements));
     }
@@ -90,10 +91,17 @@ public class JooqStatementRepository implements StatementRepository {
         Stream<Statement> rows = DSL.using(dataSource, dialect)
                 .selectFrom(STATEMENT)
                 .where(STATEMENT.PRJ_ID.eq(projectId))
-                .orderBy(STATEMENT.ENTITY_ID)
+                .orderBy(STATEMENT.ENTITY_ID, STATEMENT.MODEL, STATEMENT.PROPERTY, STATEMENT.VALUE)
                 .fetchLazy().stream()
                 .map(JooqStatementRepository::toStatement);
         return group(rows);
+    }
+
+    @Override
+    public <R> R entities(String projectId, Function<Stream<ModelEntity>, R> consumer) {
+        try (Stream<ModelEntity> entities = entities(projectId)) {
+            return consumer.apply(entities);
+        }
     }
 
     private static Statement toStatement(StatementRecord row) {
@@ -102,8 +110,10 @@ public class JooqStatementRepository implements StatementRepository {
                 new Statement.Provenance(row.getDocId(), row.getSheet(), row.getRowNumber(), row.getColumnName()));
     }
 
-    // The query is ordered by entity_id, so an entity's statements are consecutive and each group can
-    // be emitted without holding the whole project in memory: one CSV can produce 100k+ entities.
+    // The query is ordered by (entity_id, model), so an entity's statements are consecutive and each
+    // group can be emitted without holding the whole project in memory: one CSV can produce 100k+
+    // entities. Grouping on entity_id alone would let a same-id entity spanning two models reach
+    // ModelEntity.from, which throws on a multi-model group.
     private static Stream<ModelEntity> group(Stream<Statement> statements) {
         Iterator<Statement> rows = statements.iterator();
         Iterator<ModelEntity> entities = new Iterator<>() {
@@ -126,10 +136,11 @@ public class JooqStatementRepository implements StatementRepository {
                 }
                 List<Statement> group = new ArrayList<>(List.of(pending));
                 String entityId = pending.entityId();
+                String model = pending.model();
                 pending = null;
                 while (rows.hasNext()) {
                     Statement row = rows.next();
-                    if (!row.entityId().equals(entityId)) {
+                    if (!row.entityId().equals(entityId) || !row.model().equals(model)) {
                         pending = row;
                         break;
                     }

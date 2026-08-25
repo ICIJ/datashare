@@ -11,9 +11,12 @@ public interface ExtractionMappingRepository {
      *  @throws InvalidExtractionMapping when the mapping does not validate against its target model. */
     boolean save(ExtractionMapping mapping);
 
-    Optional<ExtractionMapping> get(String id);
+    /** @throws UnreadableExtractionMapping when the stored row exists but its definition no longer
+     *  parses, e.g. against a model the mapping's own type or property has since dropped. */
+    Optional<ExtractionMapping> get(String projectId, String id);
 
+    /** Skips a row it cannot read rather than failing the whole list. */
     List<ExtractionMapping> list(String projectId);
 
-    boolean delete(String id);
+    boolean delete(String projectId, String id);
 }

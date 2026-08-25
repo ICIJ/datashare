@@ -50,6 +50,27 @@ public class ExtractionMappingTest {
     }
 
     @Test
+    public void test_validate_reports_an_abstract_type() {
+        ExtractionMapping.EntityMapping thing =
+                new ExtractionMapping.EntityMapping("Thing", List.of("id"), Map.of("name", column("n")));
+        assertThat(mapping("ftm", Map.of("member", thing)).validate().toString()).contains("Thing");
+    }
+
+    @Test
+    public void test_validate_reports_a_stub_property() {
+        assertThat(mapping("ftm", Map.of("member", person(Map.of("eventsOrganized", column("e")))))
+                .validate().toString()).contains("eventsOrganized");
+    }
+
+    @Test
+    public void test_validate_reports_a_dangling_entity_alias() {
+        ExtractionMapping.PropertyMapping reference =
+                new ExtractionMapping.PropertyMapping(List.of(), null, null, "typo-alias", null);
+        assertThat(mapping("ftm", Map.of("member", person(Map.of("name", reference)))).validate().toString())
+                .contains("typo-alias");
+    }
+
+    @Test
     public void test_property_needs_exactly_one_source() {
         assertThrows(IllegalArgumentException.class,
                 () -> new ExtractionMapping.PropertyMapping(List.of(), null, null, null, null));

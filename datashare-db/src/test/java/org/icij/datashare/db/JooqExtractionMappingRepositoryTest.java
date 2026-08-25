@@ -3,6 +3,7 @@ package org.icij.datashare.db;
 import org.icij.datashare.tabular.ExtractionMapping;
 import org.icij.datashare.tabular.InvalidExtractionMapping;
 import org.icij.datashare.tabular.RowSourceOptions;
+import org.icij.datashare.tabular.UnreadableExtractionMapping;
 import org.icij.datashare.test.DatashareTimeRule;
 import org.junit.Rule;
 import org.junit.Test;
@@ -36,13 +37,13 @@ public class JooqExtractionMappingRepositoryTest {
     public void test_save_and_get_round_trips_the_mapping() {
         ExtractionMapping expected = mapping("map-1", "prj", "jdoe", "Person");
         assertThat(repository.save(expected)).isTrue();
-        assertThat(repository.get("map-1").orElseThrow()).isEqualTo(expected);
+        assertThat(repository.get("prj", "map-1").orElseThrow()).isEqualTo(expected);
     }
 
     @Test
     public void test_the_reader_options_survive_the_round_trip() {
         repository.save(mapping("map-1", "prj", "jdoe", "Person"));
-        RowSourceOptions options = repository.get("map-1").orElseThrow().options();
+        RowSourceOptions options = repository.get("prj", "map-1").orElseThrow().options();
         assertThat(options.delimiter()).isEqualTo(';');
         assertThat(options.charset()).isEqualTo(StandardCharsets.UTF_8);
     }
@@ -50,14 +51,14 @@ public class JooqExtractionMappingRepositoryTest {
     @Test
     public void test_a_cli_authored_mapping_has_no_user() {
         repository.save(mapping("map-1", "prj", null, "Person"));
-        assertThat(repository.get("map-1").orElseThrow().userId()).isNull();
+        assertThat(repository.get("prj", "map-1").orElseThrow().userId()).isNull();
     }
 
     @Test
     public void test_a_mapping_is_immutable_once_saved() {
         repository.save(mapping("map-1", "prj", "jdoe", "Person"));
         assertThat(repository.save(mapping("map-1", "prj", "someone-else", "LegalEntity"))).isFalse();
-        assertThat(repository.get("map-1").orElseThrow().userId()).isEqualTo("jdoe");
+        assertThat(repository.get("prj", "map-1").orElseThrow().userId()).isEqualTo("jdoe");
     }
 
     @Test
@@ -65,7 +66,7 @@ public class JooqExtractionMappingRepositoryTest {
         InvalidExtractionMapping thrown = assertThrows(InvalidExtractionMapping.class,
                 () -> repository.save(mapping("map-1", "prj", "jdoe", "Unicorn")));
         assertThat(thrown.violations.toString()).contains("Unicorn");
-        assertThat(repository.get("map-1").isPresent()).isFalse();
+        assertThat(repository.get("prj", "map-1").isPresent()).isFalse();
     }
 
     @Test
@@ -77,7 +78,28 @@ public class JooqExtractionMappingRepositoryTest {
 
     @Test
     public void test_get_is_empty_for_an_unknown_id() {
-        assertThat(repository.get("nope").isPresent()).isFalse();
+        assertThat(repository.get("prj", "nope").isPresent()).isFalse();
+    }
+
+    @Test
+    public void test_get_does_not_see_another_projects_mapping() {
+        repository.save(mapping("map-1", "prj-a", "jdoe", "Person"));
+        assertThat(repository.get("prj-b", "map-1").isPresent()).isFalse();
+    }
+
+    @Test
+    public void test_delete_does_not_remove_another_projects_mapping() {
+        repository.save(mapping("map-1", "prj-a", "jdoe", "Person"));
+        assertThat(repository.delete("prj-b", "map-1")).isFalse();
+        assertThat(repository.get("prj-a", "map-1").isPresent()).isTrue();
+    }
+
+    @Test
+    public void test_two_projects_can_each_hold_a_mapping_under_the_same_id() {
+        assertThat(repository.save(mapping("map-1", "prj-a", "jdoe", "Person"))).isTrue();
+        assertThat(repository.save(mapping("map-1", "prj-b", "jdoe", "LegalEntity"))).isTrue();
+        assertThat(repository.get("prj-a", "map-1").orElseThrow().entities().get("member").type()).isEqualTo("Person");
+        assertThat(repository.get("prj-b", "map-1").orElseThrow().entities().get("member").type()).isEqualTo("LegalEntity");
     }
 
     @Test
@@ -93,9 +115,37 @@ public class JooqExtractionMappingRepositoryTest {
     @Test
     public void test_delete_removes_the_mapping() {
         repository.save(mapping("map-1", "prj", "jdoe", "Person"));
-        assertThat(repository.delete("map-1")).isTrue();
-        assertThat(repository.get("map-1").isPresent()).isFalse();
-        assertThat(repository.delete("map-1")).isFalse();
+        assertThat(repository.delete("prj", "map-1")).isTrue();
+        assertThat(repository.get("prj", "map-1").isPresent()).isFalse();
+        assertThat(repository.delete("prj", "map-1")).isFalse();
+    }
+
+    @Test
+    public void test_list_skips_a_row_it_cannot_read_and_returns_the_others() {
+        repository.save(mapping("map-1", "prj", "jdoe", "Person"));
+        repository.save(mapping("map-2", "prj", "jdoe", "Person"));
+        poison("map-2", "prj");
+
+        assertThat(repository.list("prj").stream().map(ExtractionMapping::id).toList()).containsOnly("map-1");
+    }
+
+    @Test
+    public void test_get_on_a_poisoned_row_names_the_failure_rather_than_disguising_it_as_io() {
+        repository.save(mapping("map-1", "prj", "jdoe", "Person"));
+        poison("map-1", "prj");
+
+        UnreadableExtractionMapping thrown = assertThrows(UnreadableExtractionMapping.class,
+                () -> repository.get("prj", "map-1"));
+        assertThat(thrown.id).isEqualTo("map-1");
+    }
+
+    private void poison(String id, String projectId) {
+        String definition = dbRule.dsl().select(EXTRACTION_MAPPING.DEFINITION).from(EXTRACTION_MAPPING)
+                .where(EXTRACTION_MAPPING.ID.eq(id)).and(EXTRACTION_MAPPING.PRJ_ID.eq(projectId))
+                .fetchOne(EXTRACTION_MAPPING.DEFINITION);
+        String poisoned = definition.replace("\"model\":\"ftm\"", "\"model\":\"bogus\"");
+        dbRule.dsl().update(EXTRACTION_MAPPING).set(EXTRACTION_MAPPING.DEFINITION, poisoned)
+                .where(EXTRACTION_MAPPING.ID.eq(id)).and(EXTRACTION_MAPPING.PRJ_ID.eq(projectId)).execute();
     }
 
     @Parameterized.Parameters

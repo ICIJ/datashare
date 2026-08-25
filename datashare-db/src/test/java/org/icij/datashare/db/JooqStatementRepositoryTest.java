@@ -9,6 +9,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
+import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -62,32 +63,20 @@ public class JooqStatementRepositoryTest {
     }
 
     @Test
-    public void test_saving_the_same_data_twice_changes_nothing_except_last_seen_and_run_id() {
+    public void test_saving_the_same_data_twice_is_a_no_op() {
         Collection<Statement> statements = List.of(birthDate("1970-01-01"));
         repository.save("prj", "run-1", statements);
         var first = dbRule.dsl().selectFrom(STATEMENT).fetchOne();
 
         DatashareTime.getInstance().addMilliseconds(60_000);
-        assertThat(repository.save("prj", "run-2", statements)).isEqualTo(1);
+        assertThat(repository.save("prj", "run-2", statements)).isEqualTo(0);
 
         assertThat(dbRule.dsl().fetchCount(STATEMENT)).isEqualTo(1);
         var second = dbRule.dsl().selectFrom(STATEMENT).fetchOne();
         assertThat(second.getId()).isEqualTo(first.getId());
         assertThat(second.getFirstSeen()).isEqualTo(first.getFirstSeen());
-        assertThat(second.getLastSeen().isAfter(first.getLastSeen())).isTrue();
-        assertThat(second.getRunId()).isEqualTo("run-2");
-    }
-
-    @Test
-    public void test_saving_the_same_data_twice_refreshes_the_model_version() {
-        Collection<Statement> statements = List.of(birthDate("1970-01-01"));
-        repository.save("prj", "run-1", statements);
-        dbRule.dsl().update(STATEMENT).set(STATEMENT.MODEL_VERSION, "stale").execute();
-
-        repository.save("prj", "run-2", statements);
-
-        assertThat(dbRule.dsl().select(STATEMENT.MODEL_VERSION).from(STATEMENT).fetchOne().value1())
-                .isEqualTo("4.10.2");
+        assertThat(second.getLastSeen()).isEqualTo(first.getLastSeen());
+        assertThat(second.getRunId()).isEqualTo(first.getRunId());
     }
 
     @Test
@@ -179,6 +168,69 @@ public class JooqStatementRepositoryTest {
             assertThat(found.stream().filter(e -> e.id().equals("e-1")).findFirst().orElseThrow()
                     .properties().keySet()).containsOnly("name", "birthDate");
         }
+    }
+
+    @Test
+    public void test_property_values_come_back_in_a_stable_order_across_a_resave() {
+        Collection<Statement> statements = List.of(
+                statement("e-1", "Person", "tag", "b"),
+                statement("e-1", "Person", "tag", "a"),
+                statement("e-1", "Person", "tag", "c"));
+
+        repository.save("prj", "run-1", statements);
+        assertThat(repository.entity("prj", "e-1").orElseThrow().properties().get("tag"))
+                .isEqualTo(List.of("a", "b", "c"));
+
+        repository.save("prj", "run-2", statements);
+        assertThat(repository.entity("prj", "e-1").orElseThrow().properties().get("tag"))
+                .isEqualTo(List.of("a", "b", "c"));
+    }
+
+    @Test
+    public void test_entities_splits_an_entity_id_shared_by_two_models_into_two_entities() {
+        LocalDateTime now = LocalDateTime.now();
+        insertRawStatement("id-1", "ftm", "shared", "Person", "ftm:name", "Ada", now);
+        insertRawStatement("id-2", "other", "shared", "Thing", "other:name", "Ada", now);
+
+        List<ModelEntity> entities = repository.entities("prj", Stream::toList);
+
+        assertThat(entities.size()).isEqualTo(2);
+        assertThat(entities.stream().allMatch(entity -> entity.id().equals("shared"))).isTrue();
+    }
+
+    private void insertRawStatement(String id, String model, String entityId, String entityType,
+                                     String property, String value, LocalDateTime now) {
+        dbRule.dsl().insertInto(STATEMENT)
+                .set(STATEMENT.ID, id)
+                .set(STATEMENT.PRJ_ID, "prj")
+                .set(STATEMENT.RUN_ID, "run-1")
+                .set(STATEMENT.MODEL, model)
+                .set(STATEMENT.MODEL_VERSION, "1.0")
+                .set(STATEMENT.ENTITY_ID, entityId)
+                .set(STATEMENT.ENTITY_TYPE, entityType)
+                .set(STATEMENT.PROPERTY, property)
+                .set(STATEMENT.VALUE, value)
+                .set(STATEMENT.DOC_ID, "doc-1")
+                .set(STATEMENT.SHEET, "")
+                .set(STATEMENT.ROW_NUMBER, 1L)
+                .set(STATEMENT.COLUMN_NAME, "name")
+                .set(STATEMENT.FIRST_SEEN, now)
+                .set(STATEMENT.LAST_SEEN, now)
+                .execute();
+    }
+
+    @Test
+    public void test_the_safe_entities_overload_releases_the_connection_on_a_short_circuit() {
+        repository.save("prj", "run-1", List.of(
+                statement("e-1", "Person", "name", "Ada"),
+                statement("e-2", "Person", "name", "Grace"),
+                statement("e-3", "Person", "name", "Alan")));
+
+        for (int i = 0; i < 12; i++) {
+            repository.entities("prj", Stream::findFirst);
+        }
+
+        assertThat(dbRule.dsl().fetchCount(STATEMENT)).isEqualTo(3);
     }
 
     @Parameterized.Parameters
