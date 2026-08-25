@@ -140,3 +140,6 @@ databaseChangeLog:
   - include:
       file: changes/046-add-tasks-type.yml
       relativeToChangelogFile: true
+  - include:
+      file: changes/047-add-extraction-mapping-and-statement.yml
+      relativeToChangelogFile: true

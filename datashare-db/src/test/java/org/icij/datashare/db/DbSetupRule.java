@@ -25,7 +25,7 @@ public class DbSetupRule extends ExternalResource {
     private static final Operation DELETE_ALL = deleteAllFrom(
             "document", "named_entity", "document_user_star", "document_tag", "batch_search_project", "batch_search", "user_inventory",
             "batch_search_query", "batch_search_result", "project", "path_banner", "document_user_recommendation", "api_key",
-            "user_history_project", "user_history_project", "user_history", "casbin_rule");
+            "user_history_project", "user_history_project", "user_history", "casbin_rule", "statement", "extraction_mapping");
     private static final SqlOperation RESET_USER_HISTORY_ID_SEQ_POSTGRES = sql("ALTER SEQUENCE user_history_id_seq RESTART WITH 1;");
     private static final SqlOperation RESET_ID_SEQ_SQLITE = sql("DELETE FROM `sqlite_sequence`;");
 
@@ -58,6 +58,10 @@ public class DbSetupRule extends ExternalResource {
 
     public JooqTaskRepository createTaskRepository() {
         return new JooqTaskRepository(dataSource, RepositoryFactoryImpl.guessSqlDialectFrom(dataSourceUrl));
+    }
+
+    org.jooq.DSLContext dsl() {
+        return org.jooq.impl.DSL.using(dataSource, RepositoryFactoryImpl.guessSqlDialectFrom(dataSourceUrl));
     }
 
     private static DataSource createDatasource(final String jdbcUrl) {

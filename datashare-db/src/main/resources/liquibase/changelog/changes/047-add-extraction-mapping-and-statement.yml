@@ -1,0 +1,136 @@
+databaseChangeLog:
+  - changeSet:
+      id: 81
+      author: pirhoo
+      changes:
+        - createTable:
+            tableName: statement
+            columns:
+              - column:
+                  name: id
+                  type: varchar(96)
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: prj_id
+                  type: varchar(96)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: run_id
+                  type: varchar(96)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: model
+                  type: varchar(32)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: model_version
+                  type: varchar(32)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: entity_id
+                  type: varchar(96)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: entity_type
+                  type: varchar(64)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: property
+                  type: varchar(96)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: value
+                  type: text
+                  constraints:
+                    nullable: false
+              - column:
+                  name: doc_id
+                  type: varchar(96)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: sheet
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: row_number
+                  type: bigint
+                  constraints:
+                    nullable: false
+              - column:
+                  name: column_name
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: first_seen
+                  type: datetime
+                  constraints:
+                    nullable: false
+              - column:
+                  name: last_seen
+                  type: datetime
+                  constraints:
+                    nullable: false
+        - createIndex:
+            indexName: statement_prj_entity
+            tableName: statement
+            columns:
+              - column:
+                  name: prj_id
+                  type: varchar(96)
+              - column:
+                  name: entity_id
+                  type: varchar(96)
+
+  - changeSet:
+      id: 82
+      author: pirhoo
+      changes:
+        - createTable:
+            tableName: extraction_mapping
+            columns:
+              - column:
+                  name: id
+                  type: varchar(96)
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: prj_id
+                  type: varchar(96)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: user_id
+                  type: varchar(96)
+              - column:
+                  name: name
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: definition
+                  type: text
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: datetime
+                  constraints:
+                    nullable: false
+        - createIndex:
+            indexName: extraction_mapping_prj_id
+            tableName: extraction_mapping
+            columns:
+              - column:
+                  name: prj_id
+                  type: varchar(96)
