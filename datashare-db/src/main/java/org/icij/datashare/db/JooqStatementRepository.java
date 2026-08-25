@@ -42,13 +42,15 @@ public class JooqStatementRepository implements StatementRepository {
     @Override
     public int save(String projectId, String runId, Collection<Statement> statements) {
         LocalDateTime now = new Timestamp(DatashareTime.getInstance().currentTimeMillis()).toLocalDateTime();
-        DSLContext create = DSL.using(dataSource, dialect);
-        List<Query> queries = statements.stream().map(statement -> (Query) upsert(create, projectId, runId, statement, now)).toList();
-        int written = 0;
-        for (int from = 0; from < queries.size(); from += CHUNK) {
-            written += IntStream.of(create.batch(queries.subList(from, Math.min(from + CHUNK, queries.size()))).execute()).sum();
-        }
-        return written;
+        return DSL.using(dataSource, dialect).transactionResult(configuration -> {
+            DSLContext create = DSL.using(configuration);
+            List<Query> queries = statements.stream().map(statement -> (Query) upsert(create, projectId, runId, statement, now)).toList();
+            int written = 0;
+            for (int from = 0; from < queries.size(); from += CHUNK) {
+                written += IntStream.of(create.batch(queries.subList(from, Math.min(from + CHUNK, queries.size()))).execute()).sum();
+            }
+            return written;
+        });
     }
 
     private InsertOnDuplicateSetMoreStep<StatementRecord> upsert(DSLContext create, String projectId, String runId, Statement statement, LocalDateTime now) {
@@ -68,7 +70,7 @@ public class JooqStatementRepository implements StatementRepository {
                 .set(STATEMENT.COLUMN_NAME, statement.provenance().column())
                 .set(STATEMENT.FIRST_SEEN, now)
                 .set(STATEMENT.LAST_SEEN, now)
-                .onConflict(STATEMENT.ID).doUpdate()
+                .onConflict(STATEMENT.PRJ_ID, STATEMENT.ID).doUpdate()
                 .set(STATEMENT.LAST_SEEN, now)
                 .set(STATEMENT.RUN_ID, runId)
                 .set(STATEMENT.MODEL_VERSION, TargetModelRegistry.get(statement.model()).version());
@@ -105,16 +107,21 @@ public class JooqStatementRepository implements StatementRepository {
     private static Stream<ModelEntity> group(Stream<Statement> statements) {
         Iterator<Statement> rows = statements.iterator();
         Iterator<ModelEntity> entities = new Iterator<>() {
-            private Statement pending = rows.hasNext() ? rows.next() : null;
+            private Statement pending;
+            private boolean primed;
 
             @Override
             public boolean hasNext() {
+                if (!primed) {
+                    pending = rows.hasNext() ? rows.next() : null;
+                    primed = true;
+                }
                 return pending != null;
             }
 
             @Override
             public ModelEntity next() {
-                if (pending == null) {
+                if (!hasNext()) {
                     throw new NoSuchElementException();
                 }
                 List<Statement> group = new ArrayList<>(List.of(pending));
