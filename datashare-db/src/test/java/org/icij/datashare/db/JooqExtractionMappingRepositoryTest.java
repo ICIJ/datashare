@@ -16,6 +16,7 @@ import java.util.Map;
 
 import static java.util.Arrays.asList;
 import static org.fest.assertions.Assertions.assertThat;
+import static org.icij.datashare.db.Tables.EXTRACTION_MAPPING;
 import static org.junit.Assert.assertThrows;
 
 @RunWith(Parameterized.class)
@@ -77,6 +78,16 @@ public class JooqExtractionMappingRepositoryTest {
     @Test
     public void test_get_is_empty_for_an_unknown_id() {
         assertThat(repository.get("nope").isPresent()).isFalse();
+    }
+
+    @Test
+    public void test_the_user_id_column_is_written() {
+        repository.save(mapping("map-1", "prj", null, "Person"));
+        repository.save(mapping("map-2", "prj", "jdoe", "Person"));
+        assertThat(dbRule.dsl().select(EXTRACTION_MAPPING.USER_ID).from(EXTRACTION_MAPPING)
+                .where(EXTRACTION_MAPPING.ID.eq("map-1")).fetchOne(EXTRACTION_MAPPING.USER_ID)).isNull();
+        assertThat(dbRule.dsl().select(EXTRACTION_MAPPING.USER_ID).from(EXTRACTION_MAPPING)
+                .where(EXTRACTION_MAPPING.ID.eq("map-2")).fetchOne(EXTRACTION_MAPPING.USER_ID)).isEqualTo("jdoe");
     }
 
     @Test

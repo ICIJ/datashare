@@ -10,12 +10,14 @@ databaseChangeLog:
                   name: id
                   type: varchar(96)
                   constraints:
+                    nullable: false
                     primaryKey: true
               - column:
                   name: prj_id
                   type: varchar(96)
                   constraints:
                     nullable: false
+                    primaryKey: true
               - column:
                   name: run_id
                   type: varchar(96)
@@ -58,7 +60,7 @@ databaseChangeLog:
                     nullable: false
               - column:
                   name: sheet
-                  type: varchar(255)
+                  type: text
                   constraints:
                     nullable: false
               - column:
@@ -68,7 +70,7 @@ databaseChangeLog:
                     nullable: false
               - column:
                   name: column_name
-                  type: varchar(255)
+                  type: text
                   constraints:
                     nullable: false
               - column:

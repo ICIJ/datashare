@@ -96,6 +96,21 @@ public class JooqStatementRepositoryTest {
         assertThat(dbRule.dsl().fetchCount(STATEMENT)).isEqualTo(2);
     }
 
+    @Test
+    public void test_the_same_statement_saved_under_two_projects_keeps_both_rows() {
+        Collection<Statement> statements = List.of(birthDate("1970-01-01"));
+        repository.save("prj-a", "run-1", statements);
+        repository.save("prj-b", "run-2", statements);
+
+        assertThat(dbRule.dsl().fetchCount(STATEMENT)).isEqualTo(2);
+        assertThat(repository.entity("prj-a", "entity-1")).isNotEqualTo(Optional.empty());
+        assertThat(repository.entity("prj-b", "entity-1")).isNotEqualTo(Optional.empty());
+        assertThat(dbRule.dsl().select(STATEMENT.RUN_ID).from(STATEMENT)
+                .where(STATEMENT.PRJ_ID.eq("prj-a")).fetchOne().value1()).isEqualTo("run-1");
+        assertThat(dbRule.dsl().select(STATEMENT.RUN_ID).from(STATEMENT)
+                .where(STATEMENT.PRJ_ID.eq("prj-b")).fetchOne().value1()).isEqualTo("run-2");
+    }
+
     private static Statement statement(String entityId, String type, String property, String value) {
         return Statement.of("ftm", entityId, type, property, value,
                 new Statement.Provenance("doc-1", "", 12L, property));
