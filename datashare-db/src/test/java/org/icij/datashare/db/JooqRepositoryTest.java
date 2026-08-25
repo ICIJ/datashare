@@ -4,6 +4,9 @@ import org.icij.datashare.DocumentUserRecommendation;
 import org.icij.datashare.PathBanner;
 import org.icij.datashare.Repository;
 import org.icij.datashare.UserEvent;
+import org.icij.datashare.model.Statement;
+import org.icij.datashare.tabular.ExtractionMapping;
+import org.icij.datashare.tabular.RowSourceOptions;
 import org.icij.datashare.test.DatashareTimeRule;
 import org.icij.datashare.text.*;
 import org.icij.datashare.user.User;
@@ -416,6 +419,22 @@ public class JooqRepositoryTest {
         assertThat(repository.getRecommendationsBy(project("prj"), List.of(user))).isEmpty();
         assertThat(repository.getUserHistory(user, DOCUMENT, 0, 10, "modification_date",true, "prj")).isEmpty();
         assertThat(repository.getUserEvents(user)).isEmpty();
+    }
+
+    @Test
+    public void test_delete_all_project_purges_its_statements_and_extraction_mappings() {
+        JooqStatementRepository statements = dbRule.createStatementRepository();
+        statements.save("prj", "run-1", List.of(Statement.of("ftm", "e-1", "Person", "name", "Ada",
+                new Statement.Provenance("doc-1", "", 12L, "name"))));
+        dbRule.createExtractionMappingRepository().save(new ExtractionMapping("map-1", "prj", "jdoe", "members",
+                "ftm", "doc-1", RowSourceOptions.defaults(),
+                Map.of("member", new ExtractionMapping.EntityMapping("Person", List.of("id"),
+                        Map.of("name", new ExtractionMapping.PropertyMapping(List.of("full_name"), null, null, null, null))))));
+
+        assertThat(repository.deleteAll("prj")).isTrue();
+
+        assertThat(statements.entity("prj", "e-1").isPresent()).isFalse();
+        assertThat(dbRule.createExtractionMappingRepository().list("prj")).isEmpty();
     }
 
     @Test

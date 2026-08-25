@@ -1,6 +1,5 @@
 package org.icij.datashare.db;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.model.TargetModel;
 import org.icij.datashare.tabular.ExtractionMapping;
@@ -63,7 +62,7 @@ public class JooqExtractionMappingRepository implements ExtractionMappingReposit
     public List<ExtractionMapping> list(String projectId) {
         return create().select(EXTRACTION_MAPPING.ID, EXTRACTION_MAPPING.DEFINITION).from(EXTRACTION_MAPPING)
                 .where(EXTRACTION_MAPPING.PRJ_ID.eq(projectId))
-                .orderBy(EXTRACTION_MAPPING.CREATED_AT)
+                .orderBy(EXTRACTION_MAPPING.CREATED_AT, EXTRACTION_MAPPING.ID)
                 .fetch().stream()
                 .flatMap(row -> {
                     try {
@@ -100,10 +99,8 @@ public class JooqExtractionMappingRepository implements ExtractionMappingReposit
     private static ExtractionMapping read(String id, String definition) {
         try {
             return JsonObjectMapper.readValue(definition, ExtractionMapping.class);
-        } catch (JsonProcessingException e) {
-            throw new UnreadableExtractionMapping(id, e);
         } catch (IOException e) {
-            throw new UncheckedIOException(e);
+            throw new UnreadableExtractionMapping(id, e);
         }
     }
 }

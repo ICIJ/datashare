@@ -1,5 +1,6 @@
 package org.icij.datashare.tabular;
 
+import org.icij.datashare.model.TargetModel;
 import org.icij.datashare.model.UnknownTargetModel;
 import org.junit.Test;
 
@@ -106,6 +107,40 @@ public class ExtractionMappingTest {
     public void test_an_entity_needs_at_least_one_key() {
         assertThrows(InvalidEntityMapping.class,
                 () -> new ExtractionMapping.EntityMapping("Person", List.of(), Map.of()));
+    }
+
+    @Test
+    public void test_validate_reports_a_required_property_the_mapping_never_fills() {
+        assertThat(mapping("ftm", Map.of("member", person(Map.of("birthDate", column("dob")))))
+                .validate().toString()).contains("requires 'name'");
+    }
+
+    @Test
+    public void test_validate_reports_the_unmapped_ends_of_an_edge_type() {
+        ExtractionMapping.EntityMapping ownership =
+                new ExtractionMapping.EntityMapping("Ownership", List.of("id"), Map.of("percentage", column("pct")));
+        String violations = mapping("ftm", Map.of("stake", ownership)).validate().toString();
+        assertThat(violations).contains("owner").contains("asset");
+    }
+
+    @Test
+    public void test_validate_reports_its_violations_in_a_stable_order() {
+        ExtractionMapping.EntityMapping unicorn =
+                new ExtractionMapping.EntityMapping("Unicorn", List.of("id"), Map.of("name", column("n")));
+        ExtractionMapping.EntityMapping dragon =
+                new ExtractionMapping.EntityMapping("Dragon", List.of("id"), Map.of("name", column("n")));
+        List<TargetModel.Violation> violations =
+                mapping("ftm", Map.of("zebra", unicorn, "aardvark", dragon)).validate();
+
+        assertThat(violations.get(0).message()).contains("aardvark");
+        assertThat(violations.get(1).message()).contains("zebra");
+    }
+
+    @Test
+    public void test_absent_reader_options_fall_back_to_the_defaults() {
+        ExtractionMapping mapping = new ExtractionMapping("map-1", "prj", "jdoe", "members", "ftm", "doc-1",
+                null, Map.of("member", person(Map.of("name", column("full_name")))));
+        assertThat(mapping.options()).isEqualTo(RowSourceOptions.defaults());
     }
 
     @Test

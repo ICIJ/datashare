@@ -10,19 +10,16 @@ import java.util.stream.Stream;
  *  makes safe. */
 public interface StatementRepository {
     /** Upserts by statement id. An existing row is left untouched: the write is a no-op on a re-save.
-     *  Returns the number of statements actually inserted. */
+     *  Returns the number of statements inserted, or fewer when the JDBC driver rewrites the batch
+     *  and reports no per-row count. */
     int save(String projectId, String runId, Collection<Statement> statements);
 
-    /** Every entity of a project, rebuilt by grouping its statements. Lazily read, and backed by a
-     *  pooled connection that is released only when the returned stream is closed. The caller MUST
-     *  close it, including on every early exit (e.g. {@code findFirst}, {@code limit},
-     *  {@code anyMatch}) or exception: abandoning it without closing leaks a pooled connection.
-     *  Prefer {@link #entities(String, Function)}, which closes it for you. */
-    Stream<ModelEntity> entities(String projectId);
-
-    /** Same as {@link #entities(String)}, but closes the stream for the caller once {@code consumer}
-     *  returns or throws. */
+    /** Every entity of a project, rebuilt by grouping its statements. The stream is read lazily from
+     *  a pooled connection and closed once {@code consumer} returns or throws, so {@code consumer}
+     *  has to consume it: returning the stream itself hands back a closed one. */
     <R> R entities(String projectId, Function<Stream<ModelEntity>, R> consumer);
 
+    /** The entity a project holds under this id. An id shared by two models yields the first by model
+     *  order, since an entity belongs to one model. */
     Optional<ModelEntity> entity(String projectId, String entityId);
 }
