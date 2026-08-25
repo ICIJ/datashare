@@ -156,11 +156,31 @@ public class JooqExtractionMappingRepositoryTest {
         assertThat(thrown.id).isEqualTo("map-1");
     }
 
-    private void poison(String id, String projectId) {
-        String definition = dbRule.dsl().select(EXTRACTION_MAPPING.DEFINITION).from(EXTRACTION_MAPPING)
+    @Test
+    public void test_a_stored_definition_without_reader_options_reads_with_the_defaults() {
+        repository.save(mapping("map-1", "prj", "jdoe", "Person"));
+        stripOptions("map-1", "prj");
+
+        assertThat(repository.get("prj", "map-1").orElseThrow().options())
+                .isEqualTo(RowSourceOptions.defaults());
+    }
+
+    private void stripOptions(String id, String projectId) {
+        String definition = definitionOf(id, projectId);
+        String stripped = definition.replaceAll("\"options\":\\{[^}]*},", "");
+        assertThat(stripped).isNotEqualTo(definition);
+        dbRule.dsl().update(EXTRACTION_MAPPING).set(EXTRACTION_MAPPING.DEFINITION, stripped)
+                .where(EXTRACTION_MAPPING.ID.eq(id)).and(EXTRACTION_MAPPING.PRJ_ID.eq(projectId)).execute();
+    }
+
+    private String definitionOf(String id, String projectId) {
+        return dbRule.dsl().select(EXTRACTION_MAPPING.DEFINITION).from(EXTRACTION_MAPPING)
                 .where(EXTRACTION_MAPPING.ID.eq(id)).and(EXTRACTION_MAPPING.PRJ_ID.eq(projectId))
                 .fetchOne(EXTRACTION_MAPPING.DEFINITION);
-        String poisoned = definition.replace("\"model\":\"ftm\"", "\"model\":\"bogus\"");
+    }
+
+    private void poison(String id, String projectId) {
+        String poisoned = definitionOf(id, projectId).replace("\"model\":\"ftm\"", "\"model\":\"bogus\"");
         dbRule.dsl().update(EXTRACTION_MAPPING).set(EXTRACTION_MAPPING.DEFINITION, poisoned)
                 .where(EXTRACTION_MAPPING.ID.eq(id)).and(EXTRACTION_MAPPING.PRJ_ID.eq(projectId)).execute();
     }

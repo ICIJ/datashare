@@ -40,7 +40,9 @@ import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toSet;
 import static org.icij.datashare.UserEvent.Type.fromId;
 import static org.icij.datashare.db.Tables.CASBIN_RULE;
+import static org.icij.datashare.db.Tables.EXTRACTION_MAPPING;
 import static org.icij.datashare.db.Tables.PATH_BANNER;
+import static org.icij.datashare.db.Tables.STATEMENT;
 import static org.icij.datashare.db.Tables.USER_HISTORY_PROJECT;
 import static org.icij.datashare.db.tables.Document.DOCUMENT;
 import static org.icij.datashare.db.tables.DocumentTag.DOCUMENT_TAG;
@@ -411,8 +413,12 @@ public class JooqRepository implements Repository {
             int deleteUserRecommendationResult = inner.deleteFrom(DOCUMENT_USER_RECOMMENDATION).where(DOCUMENT_USER_RECOMMENDATION.PRJ_ID.eq(projectId)).execute();
             List<Integer> deletedUserHistoryProjectIds = inner.deleteFrom(USER_HISTORY_PROJECT).where(USER_HISTORY_PROJECT.PRJ_ID.eq(projectId)).returning().fetch().getValues(USER_HISTORY_PROJECT.USER_HISTORY_ID);
             int deleteUserHistoryResult = inner.deleteFrom(USER_HISTORY).where(USER_HISTORY.ID.in(deletedUserHistoryProjectIds)).execute();
+            int deleteStatementResult = inner.deleteFrom(STATEMENT).where(STATEMENT.PRJ_ID.eq(projectId)).execute();
+            int deleteExtractionMappingResult = inner.deleteFrom(EXTRACTION_MAPPING).where(EXTRACTION_MAPPING.PRJ_ID.eq(projectId)).execute();
             int deleteProject = inner.deleteFrom(PROJECT).where(PROJECT.ID.eq(projectId)).execute();
-            return deleteStarResult + deleteTagResult + deleteUserRecommendationResult + deletedUserHistoryProjectIds.size() + deleteUserHistoryResult + deleteProject > 0;
+            return deleteStarResult + deleteTagResult + deleteUserRecommendationResult
+                    + deletedUserHistoryProjectIds.size() + deleteUserHistoryResult
+                    + deleteStatementResult + deleteExtractionMappingResult + deleteProject > 0;
         });
 
     }

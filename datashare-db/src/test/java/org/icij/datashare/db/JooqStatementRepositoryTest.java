@@ -1,10 +1,12 @@
 package org.icij.datashare.db;
 
+import com.zaxxer.hikari.HikariDataSource;
 import org.icij.datashare.model.ModelEntity;
 import org.icij.datashare.model.Statement;
 import org.icij.datashare.test.DatashareTimeRule;
 import org.icij.datashare.time.DatashareTime;
 import org.jooq.SQLDialect;
+import org.jooq.exception.DataAccessException;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -22,12 +24,12 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import static java.util.Arrays.asList;
 import static org.fest.assertions.Assertions.assertThat;
 import static org.icij.datashare.db.Tables.STATEMENT;
+import static org.junit.Assert.assertThrows;
 
 @RunWith(Parameterized.class)
 public class JooqStatementRepositoryTest {
@@ -86,7 +88,6 @@ public class JooqStatementRepositoryTest {
         var second = dbRule.dsl().selectFrom(STATEMENT).fetchOne();
         assertThat(second.getId()).isEqualTo(first.getId());
         assertThat(second.getFirstSeen()).isEqualTo(first.getFirstSeen());
-        assertThat(second.getLastSeen()).isEqualTo(first.getLastSeen());
         assertThat(second.getRunId()).isEqualTo(first.getRunId());
     }
 
@@ -159,9 +160,8 @@ public class JooqStatementRepositoryTest {
                 statement("e-2", "Person", "name", "Grace")));
         repository.save("other", "run-2", List.of(statement("e-3", "Person", "name", "Alan")));
 
-        try (Stream<ModelEntity> entities = repository.entities("prj")) {
-            assertThat(entities.map(ModelEntity::id).toList()).containsOnly("e-1", "e-2");
-        }
+        List<ModelEntity> found = repository.entities("prj", Stream::toList);
+        assertThat(found.stream().map(ModelEntity::id).toList()).containsOnly("e-1", "e-2");
     }
 
     @Test
@@ -171,12 +171,10 @@ public class JooqStatementRepositoryTest {
                 statement("e-2", "Person", "name", "Grace"),
                 statement("e-1", "Person", "birthDate", "1815-12-10")));
 
-        try (Stream<ModelEntity> entities = repository.entities("prj")) {
-            List<ModelEntity> found = entities.toList();
-            assertThat(found.size()).isEqualTo(2);
-            assertThat(found.stream().filter(e -> e.id().equals("e-1")).findFirst().orElseThrow()
-                    .properties().keySet()).containsOnly("name", "birthDate");
-        }
+        List<ModelEntity> found = repository.entities("prj", Stream::toList);
+        assertThat(found.size()).isEqualTo(2);
+        assertThat(found.stream().filter(e -> e.id().equals("e-1")).findFirst().orElseThrow()
+                .properties().keySet()).containsOnly("name", "birthDate");
     }
 
     @Test
@@ -196,6 +194,18 @@ public class JooqStatementRepositoryTest {
     }
 
     @Test
+    public void test_property_values_are_ordered_the_same_way_on_every_dialect() {
+        repository.save("prj", "run-1", List.of(
+                statement("e-1", "Person", "tag", "b-c"),
+                statement("e-1", "Person", "tag", "Zoe"),
+                statement("e-1", "Person", "tag", "abc"),
+                statement("e-1", "Person", "tag", "Abc")));
+
+        assertThat(repository.entity("prj", "e-1").orElseThrow().properties().get("tag"))
+                .isEqualTo(List.of("Abc", "Zoe", "abc", "b-c"));
+    }
+
+    @Test
     public void test_entities_splits_an_entity_id_shared_by_two_models_into_two_entities() {
         LocalDateTime now = LocalDateTime.now();
         insertRawStatement("id-1", "ftm", "shared", "Person", "ftm:name", "Ada", now);
@@ -205,6 +215,27 @@ public class JooqStatementRepositoryTest {
 
         assertThat(entities.size()).isEqualTo(2);
         assertThat(entities.stream().allMatch(entity -> entity.id().equals("shared"))).isTrue();
+    }
+
+    @Test
+    public void test_entity_serves_the_first_model_of_an_entity_id_shared_by_two() {
+        LocalDateTime now = LocalDateTime.now();
+        insertRawStatement("id-1", "ftm", "shared", "Person", "ftm:name", "Ada", now);
+        insertRawStatement("id-2", "other", "shared", "Thing", "other:name", "Grace", now);
+
+        ModelEntity entity = repository.entity("prj", "shared").orElseThrow();
+        assertThat(entity.id()).isEqualTo("shared");
+        assertThat(entity.types()).containsOnly("Person");
+        assertThat(entity.properties().get("name")).containsOnly("Ada");
+    }
+
+    @Test
+    public void test_a_property_that_is_not_namespaced_under_its_model_names_the_row_it_came_from() {
+        insertRawStatement("id-1", "ftm", "e-1", "Person", "nm", "Ada", LocalDateTime.now());
+
+        DataAccessException thrown = assertThrows(DataAccessException.class,
+                () -> repository.entity("prj", "e-1"));
+        assertThat(thrown.getMessage()).contains("id-1").contains("nm").contains("ftm");
     }
 
     private void insertRawStatement(String id, String model, String entityId, String entityType,
@@ -224,55 +255,49 @@ public class JooqStatementRepositoryTest {
                 .set(STATEMENT.ROW_NUMBER, 1L)
                 .set(STATEMENT.COLUMN_NAME, "name")
                 .set(STATEMENT.FIRST_SEEN, now)
-                .set(STATEMENT.LAST_SEEN, now)
                 .execute();
     }
 
     @Test
-    public void test_the_safe_entities_overload_releases_the_connection_on_a_short_circuit() {
+    public void test_entities_gives_the_connection_back_to_the_pool_on_a_short_circuit() {
         repository.save("prj", "run-1", List.of(
                 statement("e-1", "Person", "name", "Ada"),
-                statement("e-2", "Person", "name", "Grace"),
-                statement("e-3", "Person", "name", "Alan")));
+                statement("e-2", "Person", "name", "Grace")));
 
-        for (int i = 0; i < 12; i++) {
-            repository.entities("prj", Stream::findFirst);
-        }
-
-        assertThat(dbRule.dsl().fetchCount(STATEMENT)).isEqualTo(3);
+        assertThat(repository.entities("prj", Stream::findFirst).isPresent()).isTrue();
+        assertThat(activeConnections()).isEqualTo(0);
     }
 
     @Test
     public void test_save_crosses_the_chunk_boundary() {
-        int size = JooqCasbinRuleAdapter.determineBatchSize(RepositoryFactoryImpl.guessSqlDialectFrom(dbRule.dataSourceUrl)) + 1;
-        List<Statement> statements = IntStream.range(0, size)
-                .mapToObj(i -> statement("e-" + i, "Person", "name", "v" + i))
-                .toList();
+        SQLDialect dialect = RepositoryFactoryImpl.guessSqlDialectFrom(dbRule.dataSourceUrl);
+        JooqStatementRepository chunked = new JooqStatementRepository(dbRule.dataSource, dialect, 2);
+        List<Statement> statements = List.of(
+                statement("e-1", "Person", "name", "Ada"),
+                statement("e-2", "Person", "name", "Grace"),
+                statement("e-3", "Person", "name", "Alan"));
 
-        assertThat(repository.save("prj", "run-1", statements)).isEqualTo(size);
-        assertThat(dbRule.dsl().fetchCount(STATEMENT)).isEqualTo(size);
+        assertThat(chunked.save("prj", "run-1", statements)).isEqualTo(3);
+        assertThat(dbRule.dsl().fetchCount(STATEMENT)).isEqualTo(3);
     }
 
     @Test
-    public void test_entities_uses_a_non_autocommit_connection_and_a_fetch_size_only_on_postgres() {
+    public void test_entities_streams_on_a_non_autocommit_connection_with_a_fetch_size() {
         repository.save("prj", "run-1", List.of(statement("e-1", "Person", "name", "Ada")));
 
         AtomicBoolean autoCommit = new AtomicBoolean(true);
         AtomicInteger fetchSize = new AtomicInteger(-1);
-        SQLDialect dialect = RepositoryFactoryImpl.guessSqlDialectFrom(dbRule.dataSourceUrl);
         JooqStatementRepository capturingRepository = new JooqStatementRepository(
-                capturingDataSource(dbRule.dataSource, autoCommit, fetchSize), dialect);
+                capturingDataSource(dbRule.dataSource, autoCommit, fetchSize),
+                RepositoryFactoryImpl.guessSqlDialectFrom(dbRule.dataSourceUrl));
 
-        try (Stream<ModelEntity> entities = capturingRepository.entities("prj")) {
-            entities.findFirst();
-            if (dialect == SQLDialect.POSTGRES) {
-                assertThat(autoCommit.get()).isFalse();
-                assertThat(fetchSize.get()).isEqualTo(1_000);
-            } else {
-                assertThat(autoCommit.get()).isTrue();
-                assertThat(fetchSize.get()).isEqualTo(-1);
-            }
-        }
+        assertThat(capturingRepository.entities("prj", Stream::findFirst).isPresent()).isTrue();
+        assertThat(autoCommit.get()).isFalse();
+        assertThat(fetchSize.get()).isEqualTo(1_000);
+    }
+
+    private int activeConnections() {
+        return ((HikariDataSource) dbRule.dataSource).getHikariPoolMXBean().getActiveConnections();
     }
 
     // No mocking framework is wired into this module: a JDK dynamic proxy delegating to the real

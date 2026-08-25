@@ -78,11 +78,6 @@ databaseChangeLog:
                   type: datetime
                   constraints:
                     nullable: false
-              - column:
-                  name: last_seen
-                  type: datetime
-                  constraints:
-                    nullable: false
         - createIndex:
             indexName: statement_prj_entity
             tableName: statement
