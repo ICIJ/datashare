@@ -119,9 +119,21 @@ public class JooqStatementRepository implements StatementRepository {
     // A DataSource-bound DSLContext never sets autoCommit(false), and pgjdbc only opens a
     // server-side cursor when fetchSize > 0 AND autoCommit is false: without both, the driver
     // buffers the whole result before the first row is emitted. So this holds one connection,
-    // outside the pool's default autocommit, for the stream's lifetime.
+    // outside the pool's default autocommit, for the stream's lifetime. xerial's SQLite driver
+    // ignores fetchSize entirely, so the same treatment there is pure cost: a held read
+    // transaction on the shared-cache SQLite database, which makes a concurrent writer fail with
+    // SQLITE_LOCKED instead of retrying.
     @Override
     public Stream<ModelEntity> entities(String projectId) {
+        if (dialect != SQLDialect.POSTGRES) {
+            Stream<Statement> rows = create()
+                    .selectFrom(STATEMENT)
+                    .where(STATEMENT.PRJ_ID.eq(projectId))
+                    .orderBy(STATEMENT.ENTITY_ID, STATEMENT.MODEL, STATEMENT.PROPERTY, STATEMENT.VALUE)
+                    .fetchStream()
+                    .map(JooqStatementRepository::toStatement);
+            return group(rows);
+        }
         Connection connection = openStreamingConnection();
         try {
             Cursor<StatementRecord> cursor = DSL.using(connection, dialect)
@@ -230,9 +242,5 @@ public class JooqStatementRepository implements StatementRepository {
         };
         return StreamSupport.stream(Spliterators.spliteratorUnknownSize(entities, Spliterator.ORDERED), false)
                 .onClose(statements::close);
-    }
-
-    int chunkSize() {
-        return chunkSize;
     }
 }

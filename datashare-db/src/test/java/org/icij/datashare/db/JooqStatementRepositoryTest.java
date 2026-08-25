@@ -4,6 +4,7 @@ import org.icij.datashare.model.ModelEntity;
 import org.icij.datashare.model.Statement;
 import org.icij.datashare.test.DatashareTimeRule;
 import org.icij.datashare.time.DatashareTime;
+import org.jooq.SQLDialect;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -243,7 +244,7 @@ public class JooqStatementRepositoryTest {
 
     @Test
     public void test_save_crosses_the_chunk_boundary() {
-        int size = repository.chunkSize() + 1;
+        int size = JooqCasbinRuleAdapter.determineBatchSize(RepositoryFactoryImpl.guessSqlDialectFrom(dbRule.dataSourceUrl)) + 1;
         List<Statement> statements = IntStream.range(0, size)
                 .mapToObj(i -> statement("e-" + i, "Person", "name", "v" + i))
                 .toList();
@@ -253,19 +254,24 @@ public class JooqStatementRepositoryTest {
     }
 
     @Test
-    public void test_entities_streams_with_a_non_autocommit_connection_and_a_fetch_size() {
+    public void test_entities_uses_a_non_autocommit_connection_and_a_fetch_size_only_on_postgres() {
         repository.save("prj", "run-1", List.of(statement("e-1", "Person", "name", "Ada")));
 
         AtomicBoolean autoCommit = new AtomicBoolean(true);
         AtomicInteger fetchSize = new AtomicInteger(-1);
+        SQLDialect dialect = RepositoryFactoryImpl.guessSqlDialectFrom(dbRule.dataSourceUrl);
         JooqStatementRepository capturingRepository = new JooqStatementRepository(
-                capturingDataSource(dbRule.dataSource, autoCommit, fetchSize),
-                RepositoryFactoryImpl.guessSqlDialectFrom(dbRule.dataSourceUrl));
+                capturingDataSource(dbRule.dataSource, autoCommit, fetchSize), dialect);
 
         try (Stream<ModelEntity> entities = capturingRepository.entities("prj")) {
             entities.findFirst();
-            assertThat(autoCommit.get()).isFalse();
-            assertThat(fetchSize.get()).isEqualTo(1_000);
+            if (dialect == SQLDialect.POSTGRES) {
+                assertThat(autoCommit.get()).isFalse();
+                assertThat(fetchSize.get()).isEqualTo(1_000);
+            } else {
+                assertThat(autoCommit.get()).isTrue();
+                assertThat(fetchSize.get()).isEqualTo(-1);
+            }
         }
     }
 
