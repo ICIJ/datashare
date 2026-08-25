@@ -15,11 +15,17 @@ import org.jooq.impl.DSL;
 import javax.sql.DataSource;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.Optional;
+import java.util.Spliterator;
+import java.util.Spliterators;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 import static org.icij.datashare.db.Tables.STATEMENT;
 
@@ -69,12 +75,63 @@ public class JooqStatementRepository implements StatementRepository {
     }
 
     @Override
-    public Stream<ModelEntity> entities(String projectId) {
-        throw new UnsupportedOperationException("task 5");
+    public Optional<ModelEntity> entity(String projectId, String entityId) {
+        List<Statement> statements = DSL.using(dataSource, dialect)
+                .selectFrom(STATEMENT)
+                .where(STATEMENT.PRJ_ID.eq(projectId)).and(STATEMENT.ENTITY_ID.eq(entityId))
+                .fetch().map(JooqStatementRepository::toStatement);
+        return statements.isEmpty() ? Optional.empty() : Optional.of(ModelEntity.from(statements));
     }
 
     @Override
-    public Optional<ModelEntity> entity(String projectId, String entityId) {
-        throw new UnsupportedOperationException("task 5");
+    public Stream<ModelEntity> entities(String projectId) {
+        Stream<Statement> rows = DSL.using(dataSource, dialect)
+                .selectFrom(STATEMENT)
+                .where(STATEMENT.PRJ_ID.eq(projectId))
+                .orderBy(STATEMENT.ENTITY_ID)
+                .fetchLazy().stream()
+                .map(JooqStatementRepository::toStatement);
+        return group(rows);
+    }
+
+    private static Statement toStatement(StatementRecord row) {
+        return new Statement(row.getId(), row.getModel(), row.getEntityId(), row.getEntityType(),
+                row.getProperty().substring(row.getModel().length() + 1), row.getValue(),
+                new Statement.Provenance(row.getDocId(), row.getSheet(), row.getRowNumber(), row.getColumnName()));
+    }
+
+    // The query is ordered by entity_id, so an entity's statements are consecutive and each group can
+    // be emitted without holding the whole project in memory: one CSV can produce 100k+ entities.
+    private static Stream<ModelEntity> group(Stream<Statement> statements) {
+        Iterator<Statement> rows = statements.iterator();
+        Iterator<ModelEntity> entities = new Iterator<>() {
+            private Statement pending = rows.hasNext() ? rows.next() : null;
+
+            @Override
+            public boolean hasNext() {
+                return pending != null;
+            }
+
+            @Override
+            public ModelEntity next() {
+                if (pending == null) {
+                    throw new NoSuchElementException();
+                }
+                List<Statement> group = new ArrayList<>(List.of(pending));
+                String entityId = pending.entityId();
+                pending = null;
+                while (rows.hasNext()) {
+                    Statement row = rows.next();
+                    if (!row.entityId().equals(entityId)) {
+                        pending = row;
+                        break;
+                    }
+                    group.add(row);
+                }
+                return ModelEntity.from(group);
+            }
+        };
+        return StreamSupport.stream(Spliterators.spliteratorUnknownSize(entities, Spliterator.ORDERED), false)
+                .onClose(statements::close);
     }
 }
