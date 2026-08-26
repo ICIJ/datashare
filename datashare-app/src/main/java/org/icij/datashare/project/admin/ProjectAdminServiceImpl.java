@@ -353,7 +353,11 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
         boolean indexDeleted = !options.keepIndex()
                 && runStep("index", name, () -> {
                     boolean documents = indexer.deleteAll(name);
-                    indexer.deleteAll(Project.entitiesIndex(name));
+                    try {
+                        indexer.deleteAll(Project.entitiesIndex(name));
+                    } catch (IOException e) {
+                        LOGGER.error("cannot delete entities index for project {}", name, e);
+                    }
                     return documents;
                 });
         boolean dbDeleted = runStep("db", name, () -> repository.deleteAll(name));
