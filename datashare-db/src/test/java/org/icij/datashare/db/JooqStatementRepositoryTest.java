@@ -43,6 +43,42 @@ public class JooqStatementRepositoryTest {
     }
 
     @Test
+    public void test_save_writes_the_original_value_when_a_format_changed_it() {
+        repository.save("prj", "run-1", Stream.of(statement("entity-1", "Person", "birthDate", "1970-01-01")
+                .withOriginalValue("01/01/1970")));
+
+        assertThat(dbRule.dsl().select(STATEMENT.ORIGINAL_VALUE).from(STATEMENT).fetchOne().value1())
+                .isEqualTo("01/01/1970");
+    }
+
+    @Test
+    public void test_a_statement_no_format_touched_stores_no_original_value() {
+        repository.save("prj", "run-1", Stream.of(statement("entity-1", "Person", "name", "Jane Doe")));
+
+        assertThat(dbRule.dsl().select(STATEMENT.ORIGINAL_VALUE).from(STATEMENT).fetchOne().value1()).isNull();
+    }
+
+    @Test
+    public void test_a_statement_with_an_original_value_still_rebuilds_its_entity() {
+        repository.save("prj", "run-1", Stream.of(statement("entity-1", "Person", "birthDate", "1970-01-01")
+                .withOriginalValue("01/01/1970")));
+
+        assertThat(repository.entity("prj", "entity-1").orElseThrow().properties().get("birthDate"))
+                .containsExactly("1970-01-01");
+    }
+
+    @Test
+    public void test_save_binds_original_value_when_the_first_row_of_a_batch_has_none() {
+        repository.save("prj", "run-1", Stream.of(
+                statement("entity-1", "Person", "name", "Jane Doe"),
+                statement("entity-2", "Person", "birthDate", "1970-01-01").withOriginalValue("01/01/1970")));
+
+        assertThat(dbRule.dsl().select(STATEMENT.ENTITY_ID, STATEMENT.ORIGINAL_VALUE).from(STATEMENT)
+                .where(STATEMENT.ENTITY_ID.eq("entity-2")).fetchOne().value2())
+                .isEqualTo("01/01/1970");
+    }
+
+    @Test
     public void test_save_writes_one_row_per_statement() {
         List<Statement> statements = List.of(statement("entity-1", "Person", "birthDate", "1970-01-01"));
         assertThat(repository.save("prj", "run-1", statements.stream())).isEqualTo(1);
