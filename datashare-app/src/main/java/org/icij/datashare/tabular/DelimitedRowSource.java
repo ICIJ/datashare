@@ -48,7 +48,7 @@ public class DelimitedRowSource implements RowSource {
 
     @Override
     public Stream<Row> rows(InputStream source, RowSourceOptions options) throws IOException {
-        CSVParser parser = open(source, options);
+        CSVParser parser = parse(source, options);
         try {
             Iterator<CSVRecord> records = parser.iterator();
             if (!records.hasNext()) {
@@ -64,7 +64,7 @@ public class DelimitedRowSource implements RowSource {
 
     // Releases the source itself when the parser cannot be built, since no stream reaches the caller
     // to be closed on that path.
-    private static CSVParser open(InputStream source, RowSourceOptions options) throws IOException {
+    private static CSVParser parse(InputStream source, RowSourceOptions options) throws IOException {
         BufferedInputStream buffered = new BufferedInputStream(source);
         try {
             // CSVParser.parse over CSVParser.builder(): the builder's setReader is inherited from
