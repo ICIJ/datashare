@@ -4,6 +4,7 @@ import co.elastic.clients.elasticsearch._types.Refresh;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.test.ElasticsearchRule;
 import org.icij.datashare.text.Project;
+import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchIndexer;
 import org.junit.After;
 import org.junit.ClassRule;
@@ -20,6 +21,10 @@ import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import static org.fest.assertions.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.spy;
 
 public class EntitiesIndexRebuilderTest {
     @ClassRule public static ElasticsearchRule es = new ElasticsearchRule();
@@ -40,6 +45,7 @@ public class EntitiesIndexRebuilderTest {
         assertThat(rebuilder.rebuild("prj")).isEqualTo(1);
 
         assertThat(indexer.exists(Project.entitiesIndex("prj"))).isTrue();
+        assertThat(search("{\"query\":{\"match_all\":{}}}")).contains("person-1");
     }
 
     @Test
@@ -88,6 +94,15 @@ public class EntitiesIndexRebuilderTest {
         assertThat(rebuilder.rebuild("prj")).isEqualTo(2500);
 
         assertThat(search("{\"query\":{\"match_all\":{}},\"track_total_hits\":true}")).contains("\"value\":2500");
+    }
+
+    @Test(expected = IOException.class)
+    public void test_rebuild_fails_when_a_bulk_write_is_rejected() throws Exception {
+        statements.entities.add(entity("person-1", "Jane Doe"));
+        Indexer rejecting = spy(indexer);
+        doReturn(false).when(rejecting).bulkAdd(anyString(), anyList());
+
+        new EntitiesIndexRebuilder(rejecting, statements).rebuild("prj");
     }
 
     private String search(String query) throws IOException {

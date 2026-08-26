@@ -44,7 +44,10 @@ public class EntitiesIndexRebuilder {
                 chunk.add(ExtractedEntity.from(entities.next()));
             }
             try {
-                indexer.bulkAdd(indexName, chunk);
+                if (!indexer.bulkAdd(indexName, chunk)) {
+                    throw new UncheckedIOException(
+                            new IOException("bulk add rejected in " + indexName + " for a chunk of " + chunk.size() + " entities"));
+                }
             } catch (IOException e) {
                 throw new UncheckedIOException(e);
             }
