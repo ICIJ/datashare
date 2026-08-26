@@ -27,20 +27,24 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Optional;
+import java.util.Set;
 import java.util.Spliterator;
 import java.util.Spliterators;
+import java.util.TreeSet;
 import java.util.function.Function;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
+import static java.util.stream.Collectors.toCollection;
 import static org.icij.datashare.db.Tables.STATEMENT;
 
 public class JooqStatementRepository implements StatementRepository {
     private static final int FETCH_SIZE = 1_000;
     private static final Field<?>[] READ_FIELDS = {
-            STATEMENT.ID, STATEMENT.MODEL, STATEMENT.ENTITY_ID, STATEMENT.ENTITY_TYPE, STATEMENT.PROPERTY,
-            STATEMENT.VALUE, STATEMENT.DOC_ID, STATEMENT.SHEET, STATEMENT.ROW_NUMBER, STATEMENT.COLUMN_NAME};
+            STATEMENT.ID, STATEMENT.MODEL, STATEMENT.MODEL_VERSION, STATEMENT.ENTITY_ID, STATEMENT.ENTITY_TYPE,
+            STATEMENT.PROPERTY, STATEMENT.VALUE, STATEMENT.DOC_ID, STATEMENT.SHEET, STATEMENT.ROW_NUMBER,
+            STATEMENT.COLUMN_NAME};
     private final DataSource dataSource;
     private final SQLDialect dialect;
     private final int chunkSize;
@@ -56,6 +60,8 @@ public class JooqStatementRepository implements StatementRepository {
     }
 
     private record Write(String projectId, String runId, LocalDateTime now) { }
+
+    private record Row(Statement statement, String modelVersion) { }
 
     @Override
     public int save(String projectId, String runId, Stream<Statement> statements) {
@@ -124,15 +130,17 @@ public class JooqStatementRepository implements StatementRepository {
 
     @Override
     public Optional<ModelEntity> entity(String projectId, String entityId) {
-        List<Statement> statements = create()
+        List<Row> rows = create()
                 .select(READ_FIELDS).from(STATEMENT)
                 .where(STATEMENT.PRJ_ID.eq(projectId)).and(STATEMENT.ENTITY_ID.eq(entityId))
-                .fetch(JooqStatementRepository::toStatement);
+                .fetch(JooqStatementRepository::toRow);
         // The model an id shared by two models resolves to is picked here rather than with an ORDER
         // BY, because a database collation would otherwise decide it, and SQLite and Postgres do not
         // sort text alike.
-        return statements.stream().map(Statement::model).min(String::compareTo).map(model ->
-                ModelEntity.from(statements.stream().filter(row -> model.equals(row.model())).toList()));
+        return rows.stream().map(row -> row.statement().model()).min(String::compareTo).map(model -> {
+            List<Row> group = rows.stream().filter(row -> model.equals(row.statement().model())).toList();
+            return ModelEntity.from(group.stream().map(Row::statement).toList(), versions(group));
+        });
     }
 
     @Override
@@ -150,7 +158,7 @@ public class JooqStatementRepository implements StatementRepository {
     // locked": the embedded database buffers instead.
     private Stream<ModelEntity> entities(String projectId) {
         if (dialect != SQLDialect.POSTGRES) {
-            return group(read(create(), projectId).fetch(JooqStatementRepository::toStatement).stream());
+            return group(read(create(), projectId).fetch(JooqStatementRepository::toRow).stream());
         }
         Connection connection = openStreamingConnection();
         try {
@@ -158,7 +166,7 @@ public class JooqStatementRepository implements StatementRepository {
                     .fetchSize(FETCH_SIZE)
                     .fetchLazy();
             return group(cursor.stream()
-                    .map(JooqStatementRepository::toStatement)
+                    .map(JooqStatementRepository::toRow)
                     .onClose(() -> release(connection, cursor)));
         } catch (RuntimeException e) {
             JDBCUtils.safeClose(connection);
@@ -203,7 +211,7 @@ public class JooqStatementRepository implements StatementRepository {
         return DSL.using(dataSource, dialect);
     }
 
-    private static Statement toStatement(Record row) {
+    private static Row toRow(Record row) {
         String model = row.get(STATEMENT.MODEL);
         String prefix = model + ":";
         String property = row.get(STATEMENT.PROPERTY);
@@ -211,10 +219,15 @@ public class JooqStatementRepository implements StatementRepository {
             throw new DataAccessException("statement '" + row.get(STATEMENT.ID) + "' holds property '" + property
                     + "', which is not namespaced under its model '" + model + "'");
         }
-        return new Statement(row.get(STATEMENT.ID), model, row.get(STATEMENT.ENTITY_ID),
+        return new Row(new Statement(row.get(STATEMENT.ID), model, row.get(STATEMENT.ENTITY_ID),
                 row.get(STATEMENT.ENTITY_TYPE), property.substring(prefix.length()), row.get(STATEMENT.VALUE),
                 new Statement.Provenance(row.get(STATEMENT.DOC_ID), row.get(STATEMENT.SHEET),
-                        row.get(STATEMENT.ROW_NUMBER), row.get(STATEMENT.COLUMN_NAME)));
+                        row.get(STATEMENT.ROW_NUMBER), row.get(STATEMENT.COLUMN_NAME))),
+                row.get(STATEMENT.MODEL_VERSION));
+    }
+
+    private static Set<String> versions(List<Row> rows) {
+        return rows.stream().map(Row::modelVersion).collect(toCollection(TreeSet::new));
     }
 
     // The query is ordered by (entity_id, model), so an entity's statements are consecutive and each
@@ -222,18 +235,18 @@ public class JooqStatementRepository implements StatementRepository {
     // keyed on a low-cardinality column puts every one of its rows under a single entity, so neither
     // the project nor one group is ever collected first. Grouping on entity_id alone would let a
     // same-id entity spanning two models reach ModelEntity.from, which throws on a multi-model group.
-    private static Stream<ModelEntity> group(Stream<Statement> statements) {
-        Iterator<ModelEntity> entities = new Groups(statements.iterator());
+    private static Stream<ModelEntity> group(Stream<Row> rows) {
+        Iterator<ModelEntity> entities = new Groups(rows.iterator());
         return StreamSupport.stream(Spliterators.spliteratorUnknownSize(entities, Spliterator.ORDERED), false)
-                .onClose(statements::close);
+                .onClose(rows::close);
     }
 
     private static class Groups implements Iterator<ModelEntity> {
-        private final Iterator<Statement> rows;
-        private Statement pending;
+        private final Iterator<Row> rows;
+        private Row pending;
         private boolean primed;
 
-        Groups(Iterator<Statement> rows) {
+        Groups(Iterator<Row> rows) {
             this.rows = rows;
         }
 
@@ -251,16 +264,19 @@ public class JooqStatementRepository implements StatementRepository {
             if (!hasNext()) {
                 throw new NoSuchElementException();
             }
-            return ModelEntity.from(this::group);
+            // The versions the group was written under are collected as it is folded, and read once
+            // the fold is over, so a group is still never held whole to be counted.
+            Set<String> modelVersions = new TreeSet<>();
+            return ModelEntity.from(() -> group(modelVersions), modelVersions);
         }
 
         // The row that ends a group is the first row of the next one, so it is held back as pending
         // rather than read twice.
-        private Iterator<Statement> group() {
-            Statement first = pending;
+        private Iterator<Statement> group(Set<String> modelVersions) {
+            Row first = pending;
             pending = null;
             return new Iterator<>() {
-                private Statement next = first;
+                private Row next = first;
 
                 @Override
                 public boolean hasNext() {
@@ -269,14 +285,16 @@ public class JooqStatementRepository implements StatementRepository {
 
                 @Override
                 public Statement next() {
-                    Statement current = next;
-                    next = rows.hasNext() ? sameGroupAs(current) : null;
-                    return current;
+                    Row current = next;
+                    modelVersions.add(current.modelVersion());
+                    next = rows.hasNext() ? sameGroupAs(current.statement()) : null;
+                    return current.statement();
                 }
 
-                private Statement sameGroupAs(Statement current) {
-                    Statement row = rows.next();
-                    if (row.entityId().equals(current.entityId()) && row.model().equals(current.model())) {
+                private Row sameGroupAs(Statement current) {
+                    Row row = rows.next();
+                    if (row.statement().entityId().equals(current.entityId())
+                            && row.statement().model().equals(current.model())) {
                         return row;
                     }
                     pending = row;
