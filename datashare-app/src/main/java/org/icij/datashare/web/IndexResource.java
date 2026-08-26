@@ -19,6 +19,7 @@ import org.icij.datashare.asyncsearch.MemoryAsyncSearchStore;
 import org.icij.datashare.cli.Mode;
 import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.session.DatashareUser;
+import org.icij.datashare.text.Project;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.utils.IndexAccessVerifier;
 import org.icij.datashare.utils.ModeVerifier;
@@ -81,7 +82,13 @@ public class IndexResource {
     public Payload createIndex(@Parameter(name = "index", description = "index to create", in = ParameterIn.PATH) final String index, Context context) throws IOException {
         modeVerifier.checkAllowedMode(Mode.LOCAL, Mode.EMBEDDED);
         try{
-            return indexer.createIndex(checkGrantedIndices(index, context)) ? created() : ok();
+            String granted = checkGrantedIndices(index, context);
+            // a ".entities" name is granted through its base project, so it reaches here and has to be
+            // created with the entity mappings rather than the document ones
+            boolean created = granted.endsWith(Project.ENTITIES_INDEX_SUFFIX)
+                    ? indexer.createEntitiesIndex(granted.substring(0, granted.length() - Project.ENTITIES_INDEX_SUFFIX.length()))
+                    : indexer.createIndex(granted);
+            return created ? created() : ok();
         } catch (IllegalArgumentException e){
             return PayloadFormatter.error(e, HttpStatus.BAD_REQUEST);
         }
