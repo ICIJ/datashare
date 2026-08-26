@@ -121,14 +121,16 @@ public class EntitiesIndexRebuilderTest {
         return indexer.executeRaw("POST", Project.entitiesIndex("prj") + "/_search", query);
     }
 
+    // Bare keys, the shape JooqStatementRepository.entities(...) actually produces: ExtractedEntity
+    // is what adds the "ftm:" namespace back before indexing.
     private static ModelEntity entity(String id, String name) {
         return new ModelEntity("ftm", id, Set.of("Person"), Set.of("4.10.2"), Set.of("doc-1"),
-                Map.of("ftm:name", List.of(name)));
+                Map.of("name", List.of(name)));
     }
 
     private static ModelEntity birthDate(String id, String value) {
-        return new ModelEntity(id, "ftm", Set.of("Person"), Set.of("4.10.2"), Set.of("doc-1"),
-                Map.of("ftm:birthDate", List.of(value)));
+        return new ModelEntity("ftm", id, Set.of("Person"), Set.of("4.10.2"), Set.of("doc-1"),
+                Map.of("birthDate", List.of(value)));
     }
 
     private static class InMemoryStatements implements StatementRepository {
