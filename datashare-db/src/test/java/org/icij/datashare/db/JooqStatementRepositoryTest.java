@@ -78,9 +78,11 @@ public class JooqStatementRepositoryTest {
                 statement("entity-1", "Person", "name", "Jane Doe"),
                 statement("entity-2", "Person", "birthDate", "1970-01-01").withOriginalValue("01/01/1970")));
 
-        assertThat(dbRule.dsl().select(STATEMENT.ENTITY_ID, STATEMENT.ORIGINAL_VALUE).from(STATEMENT)
-                .where(STATEMENT.ENTITY_ID.eq("entity-2")).fetchOne().value2())
+        assertThat(dbRule.dsl().select(STATEMENT.ORIGINAL_VALUE).from(STATEMENT)
+                .where(STATEMENT.ENTITY_ID.eq("entity-2")).fetchOne().value1())
                 .isEqualTo("01/01/1970");
+        assertThat(dbRule.dsl().select(STATEMENT.ORIGINAL_VALUE).from(STATEMENT)
+                .where(STATEMENT.ENTITY_ID.eq("entity-1")).fetchOne().value1()).isNull();
     }
 
     @Test
@@ -143,6 +145,9 @@ public class JooqStatementRepositoryTest {
         List<Statement> first = new MappingExecutor(mapping).statements(new Row(1L, cells));
         List<Statement> second = new MappingExecutor(mapping).statements(new Row(1L, cells));
 
+        assertThat(first.stream().map(Statement::id).toList())
+                .isEqualTo(second.stream().map(Statement::id).toList());
+        assertThat(first).hasSize(1);
         assertThat(repository.save("prj", "run-1", first.stream())).isEqualTo(1);
         assertThat(repository.save("prj", "run-2", second.stream())).isEqualTo(1);
         assertThat(dbRule.dsl().fetchCount(STATEMENT)).isEqualTo(1);
