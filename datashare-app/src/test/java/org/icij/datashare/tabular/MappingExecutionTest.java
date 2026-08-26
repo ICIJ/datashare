@@ -16,6 +16,10 @@ import static java.util.stream.Collectors.groupingBy;
 import static java.util.stream.Collectors.toMap;
 import static org.fest.assertions.Assertions.assertThat;
 
+/**
+ * A csv and the mapping over it, read end to end: the entities a file states, the relationship
+ * between them, and the same ids on a second read.
+ */
 public class MappingExecutionTest {
     private static final String CSV = """
             person_id,full_name,born,company_id,company_name,job_title
@@ -65,13 +69,15 @@ public class MappingExecutionTest {
                 .containsExactly(entities.get("Person").id());
         assertThat(entities.get("Employment").properties().get("employer"))
                 .containsExactly(entities.get("Company").id());
-        assertThat(executor.skipped()).isEqualTo(0L);
+        assertThat(executor.skipped().values().stream().mapToLong(Long::longValue).sum()).isEqualTo(0L);
     }
 
     @Test
     public void test_the_same_file_read_twice_produces_the_same_statement_ids() throws Exception {
-        assertThat(run().stream().map(Statement::id).sorted().toList())
-                .isEqualTo(run().stream().map(Statement::id).sorted().toList());
+        List<String> first = run().stream().map(Statement::id).sorted().toList();
+
+        assertThat(first).isNotEmpty();
+        assertThat(run().stream().map(Statement::id).sorted().toList()).isEqualTo(first);
     }
 
     private List<Statement> run() throws Exception {
