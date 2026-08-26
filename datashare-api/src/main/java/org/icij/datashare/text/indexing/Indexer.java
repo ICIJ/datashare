@@ -24,6 +24,9 @@ public interface Indexer extends Closeable {
     Searcher search(List<String> indexesNames, Class<? extends Entity> entityClass, SearchQuery query);
 
     boolean createIndex(String indexName) throws IOException;
+    /** Creates the "<projectId>.entities" index holding the project's extracted entities, with the
+     *  entity mappings rather than the document ones. Returns false when it already exists. */
+    boolean createEntitiesIndex(String projectId) throws IOException;
     boolean deleteAll(String indexName) throws IOException;
     /**
      * Returns the number of documents indexed in {@code indexName}, or 0 if the index

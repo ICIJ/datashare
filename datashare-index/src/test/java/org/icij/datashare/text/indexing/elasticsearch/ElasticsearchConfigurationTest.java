@@ -16,7 +16,11 @@ import org.junit.Test;
 
 import java.util.HashMap;
 
+import static org.apache.commons.lang3.SystemUtils.IS_OS_WINDOWS;
 import static org.fest.assertions.Assertions.assertThat;
+import static org.icij.datashare.text.indexing.elasticsearch.ElasticsearchConfiguration.MAPPING_RESOURCE_NAME;
+import static org.icij.datashare.text.indexing.elasticsearch.ElasticsearchConfiguration.SETTINGS_RESOURCE_NAME;
+import static org.icij.datashare.text.indexing.elasticsearch.ElasticsearchConfiguration.SETTINGS_RESOURCE_NAME_WINDOWS;
 
 public class ElasticsearchConfigurationTest {
     @ClassRule
@@ -68,7 +72,9 @@ public class ElasticsearchConfigurationTest {
 
     @Test
     public void test_create_index_body_keeps_match_mapping_type_scalar() throws Exception {
-        JsonNode body = JsonObjectMapper.getMapper().readTree(ElasticsearchConfiguration.createIndexBody());
+        String settingsResource = IS_OS_WINDOWS ? SETTINGS_RESOURCE_NAME_WINDOWS : SETTINGS_RESOURCE_NAME;
+        JsonNode body = JsonObjectMapper.getMapper().readTree(
+                ElasticsearchConfiguration.createIndexBody(MAPPING_RESOURCE_NAME, settingsResource));
 
         JsonNode matchMappingType = null;
         for (JsonNode template : body.at("/mappings/dynamic_templates")) {

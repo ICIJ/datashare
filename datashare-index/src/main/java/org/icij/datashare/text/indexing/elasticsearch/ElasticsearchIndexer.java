@@ -538,6 +538,13 @@ public class ElasticsearchIndexer implements Indexer {
     }
 
     @Override
+    public boolean createEntitiesIndex(String projectId) {
+        return ElasticsearchConfiguration.createIndex(client, Project.entitiesIndex(projectId),
+                ElasticsearchConfiguration.ENTITIES_MAPPING_RESOURCE_NAME,
+                ElasticsearchConfiguration.ENTITIES_SETTINGS_RESOURCE_NAME);
+    }
+
+    @Override
     public boolean deleteAll(String indexName) throws IOException {
         if (!exists(indexName)) return false;
         Request post = new Request("POST", indexName + "/_delete_by_query?refresh");

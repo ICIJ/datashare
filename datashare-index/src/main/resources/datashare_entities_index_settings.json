@@ -1,0 +1,14 @@
+{
+  "index.mapping.total_fields.limit": 100000,
+  "index.number_of_shards": 1,
+  "index.query.default_field": ["properties.*"],
+  "analysis": {
+    "analyzer": {
+      "folding": {
+        "type": "custom",
+        "tokenizer": "standard",
+        "filter": ["lowercase", "asciifolding"]
+      }
+    }
+  }
+}
