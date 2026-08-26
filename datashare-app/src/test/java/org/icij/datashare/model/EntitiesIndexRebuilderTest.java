@@ -1,0 +1,120 @@
+package org.icij.datashare.model;
+
+import co.elastic.clients.elasticsearch._types.Refresh;
+import org.icij.datashare.PropertiesProvider;
+import org.icij.datashare.test.ElasticsearchRule;
+import org.icij.datashare.text.Project;
+import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchIndexer;
+import org.junit.After;
+import org.junit.ClassRule;
+import org.junit.Test;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
+
+import static org.fest.assertions.Assertions.assertThat;
+
+public class EntitiesIndexRebuilderTest {
+    @ClassRule public static ElasticsearchRule es = new ElasticsearchRule();
+    private final ElasticsearchIndexer indexer = new ElasticsearchIndexer(es.client, new PropertiesProvider())
+            .withRefresh(Refresh.True);
+    private final InMemoryStatements statements = new InMemoryStatements();
+    private final EntitiesIndexRebuilder rebuilder = new EntitiesIndexRebuilder(indexer, statements);
+
+    @After
+    public void tearDown() throws IOException {
+        es.delete(Project.entitiesIndex("prj"));
+    }
+
+    @Test
+    public void test_rebuild_creates_the_index_when_it_does_not_exist() throws Exception {
+        statements.entities.add(entity("person-1", "Jane Doe"));
+
+        assertThat(rebuilder.rebuild("prj")).isEqualTo(1);
+
+        assertThat(indexer.exists(Project.entitiesIndex("prj"))).isTrue();
+    }
+
+    @Test
+    public void test_the_rebuilt_entity_is_searchable_by_an_exact_property_value() throws Exception {
+        statements.entities.add(entity("person-1", "Jane Doe"));
+        rebuilder.rebuild("prj");
+
+        assertThat(search("{\"query\":{\"term\":{\"properties.ftm:name\":\"Jane Doe\"}}}")).contains("person-1");
+    }
+
+    @Test
+    public void test_the_rebuilt_entity_is_searchable_by_a_folded_property_value() throws Exception {
+        statements.entities.add(entity("person-2", "Émile Zola"));
+        rebuilder.rebuild("prj");
+
+        assertThat(search("{\"query\":{\"match\":{\"properties.ftm:name.text\":\"emile\"}}}")).contains("person-2");
+    }
+
+    @Test
+    public void test_the_rebuilt_entity_is_searchable_by_type_and_document() throws Exception {
+        statements.entities.add(entity("person-1", "Jane Doe"));
+        rebuilder.rebuild("prj");
+
+        assertThat(search("{\"query\":{\"term\":{\"types\":\"Person\"}}}")).contains("person-1");
+        assertThat(search("{\"query\":{\"term\":{\"documentIds\":\"doc-1\"}}}")).contains("person-1");
+    }
+
+    @Test
+    public void test_a_second_rebuild_drops_an_entity_that_left_the_store() throws Exception {
+        statements.entities.add(entity("person-1", "Jane Doe"));
+        statements.entities.add(entity("person-2", "John Doe"));
+        rebuilder.rebuild("prj");
+
+        statements.entities.remove(1);
+        assertThat(rebuilder.rebuild("prj")).isEqualTo(1);
+
+        String all = search("{\"query\":{\"match_all\":{}}}");
+        assertThat(all).contains("person-1");
+        assertThat(all).doesNotContain("person-2");
+    }
+
+    @Test
+    public void test_indexes_more_entities_than_one_chunk() throws Exception {
+        IntStream.range(0, 2500).forEach(i -> statements.entities.add(entity("person-" + i, "Name " + i)));
+
+        assertThat(rebuilder.rebuild("prj")).isEqualTo(2500);
+
+        assertThat(search("{\"query\":{\"match_all\":{}},\"track_total_hits\":true}")).contains("\"value\":2500");
+    }
+
+    private String search(String query) throws IOException {
+        return indexer.executeRaw("POST", Project.entitiesIndex("prj") + "/_search", query);
+    }
+
+    private static ModelEntity entity(String id, String name) {
+        return new ModelEntity("ftm", id, Set.of("Person"), Set.of("4.10.2"), Set.of("doc-1"),
+                Map.of("ftm:name", List.of(name)));
+    }
+
+    private static class InMemoryStatements implements StatementRepository {
+        private final List<ModelEntity> entities = new ArrayList<>();
+
+        @Override
+        public int save(String projectId, String runId, java.util.Collection<Statement> statements) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public <R> R entities(String projectId, Function<Stream<ModelEntity>, R> consumer) {
+            return consumer.apply(entities.stream());
+        }
+
+        @Override
+        public Optional<ModelEntity> entity(String projectId, String entityId) {
+            return entities.stream().filter(e -> e.id().equals(entityId)).findFirst();
+        }
+    }
+}
