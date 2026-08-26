@@ -3,6 +3,10 @@ package org.icij.datashare.db;
 import com.zaxxer.hikari.HikariDataSource;
 import org.icij.datashare.model.ModelEntity;
 import org.icij.datashare.model.Statement;
+import org.icij.datashare.tabular.ExtractionMapping;
+import org.icij.datashare.tabular.MappingExecutor;
+import org.icij.datashare.tabular.Row;
+import org.icij.datashare.tabular.RowSourceOptions;
 import org.icij.datashare.test.DatashareTimeRule;
 import org.icij.datashare.time.DatashareTime;
 import org.jooq.SQLDialect;
@@ -21,6 +25,7 @@ import java.sql.PreparedStatement;
 import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -126,6 +131,21 @@ public class JooqStatementRepositoryTest {
         assertThat(second.getFirstSeen()).isEqualTo(first.getFirstSeen());
         assertThat(second.getLastSeen()).isNotEqualTo(first.getLastSeen());
         assertThat(second.getRunId()).isEqualTo("run-2");
+    }
+
+    @Test
+    public void test_saving_the_same_row_twice_writes_it_once() {
+        ExtractionMapping mapping = new ExtractionMapping("map-1", "prj", "jdoe", "staff",
+                "ftm", "doc-1", RowSourceOptions.defaults(), Map.of("member",
+                new ExtractionMapping.EntityMapping("Person", List.of("passport"), Map.of("name",
+                        new ExtractionMapping.PropertyMapping(List.of("full_name"), null, null, null, null)))));
+        Map<String, String> cells = Map.of("passport", "AB123", "full_name", "Jane Doe");
+        List<Statement> first = new MappingExecutor(mapping).statements(new Row(1L, cells));
+        List<Statement> second = new MappingExecutor(mapping).statements(new Row(1L, cells));
+
+        assertThat(repository.save("prj", "run-1", first.stream())).isEqualTo(1);
+        assertThat(repository.save("prj", "run-2", second.stream())).isEqualTo(1);
+        assertThat(dbRule.dsl().fetchCount(STATEMENT)).isEqualTo(1);
     }
 
     @Test
