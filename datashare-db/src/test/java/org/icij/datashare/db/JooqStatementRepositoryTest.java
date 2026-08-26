@@ -178,6 +178,18 @@ public class JooqStatementRepositoryTest {
                 .properties().keySet()).containsOnly("name", "birthDate");
     }
 
+    // ExtractedEntity.from relies on the property keys coming back bare: it is the one that adds the
+    // model namespace before indexing. If toRow ever stopped stripping the prefix, this would fail
+    // here instead of surfacing as a silently double-namespaced index field.
+    @Test
+    public void test_entities_produces_bare_property_keys_not_namespaced() {
+        repository.save("prj", "run-1", Stream.of(statement("e-1", "Person", "name", "Ada")));
+
+        List<ModelEntity> found = repository.entities("prj", Stream::toList);
+
+        assertThat(found.get(0).properties().keySet()).containsOnly("name");
+    }
+
     @Test
     public void test_property_values_come_back_in_a_stable_order_across_a_resave() {
         List<Statement> statements = List.of(

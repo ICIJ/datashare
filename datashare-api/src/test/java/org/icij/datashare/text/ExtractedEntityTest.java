@@ -11,9 +11,11 @@ import java.util.Set;
 import static org.fest.assertions.Assertions.assertThat;
 
 public class ExtractedEntityTest {
+    // Bare keys, the shape JooqStatementRepository.toRow actually produces once it strips the
+    // model prefix off the stored property.
     private final ModelEntity source = new ModelEntity("ftm", "person-1", Set.of("Person", "LegalEntity"),
             Set.of("4.10.2"), Set.of("doc-1", "doc-2"),
-            Map.of("ftm:name", List.of("Jane Doe", "J. Doe"), "ftm:birthDate", List.of("1980-04-02")));
+            Map.of("name", List.of("Jane Doe", "J. Doe"), "birthDate", List.of("1980-04-02")));
 
     @Test
     public void test_projects_every_field_of_the_model_entity() {
