@@ -25,7 +25,7 @@ public record Row(long number, Map<String, String> values) {
         List<String> headers = new ArrayList<>();
         Set<String> seen = new HashSet<>();
         for (String rawName : rawNames) {
-            String name = rawName == null ? "" : strip(rawName);
+            String name = rawName == null ? "" : rawName.strip();
             if (name.isEmpty()) {
                 headers.add(null);
                 continue;
@@ -40,14 +40,6 @@ public record Row(long number, Map<String, String> values) {
                     + "so the row above the data is a title or a spacer rather than a header");
         }
         return headers;
-    }
-
-    // String.strip leaves a UTF-8 byte order mark in place, because U+FEFF is not whitespace. It can
-    // only ever precede the first name, and Excel writes one on every "CSV UTF-8" export, so without
-    // this the first column is named BOM + "id" and no mapping can address it.
-    private static String strip(String rawName) {
-        String name = rawName.strip();
-        return name.startsWith("\uFEFF") ? name.substring(1).strip() : name;
     }
 
     /**

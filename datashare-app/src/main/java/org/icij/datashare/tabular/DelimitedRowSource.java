@@ -16,6 +16,7 @@ import java.nio.charset.CharsetDecoder;
 import java.nio.charset.CoderResult;
 import java.nio.charset.CodingErrorAction;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
@@ -53,7 +54,7 @@ public class DelimitedRowSource implements RowSource {
             if (!records.hasNext()) {
                 throw new IllegalArgumentException("no header row: the source is empty");
             }
-            List<String> headers = Row.headers(records.next().toList());
+            List<String> headers = Row.headers(withoutBom(records.next().toList()));
             return stream(records, headers).onClose(() -> close(parser));
         } catch (RuntimeException failure) {
             closeQuietly(parser);
@@ -100,6 +101,19 @@ public class DelimitedRowSource implements RowSource {
         CoderResult result = decoder.decode(
                 ByteBuffer.wrap(head), CharBuffer.allocate(head.length + 1), false);
         return !result.isError();
+    }
+
+    // A byte order mark survives decoding, because U+FEFF is not whitespace, and Excel writes one on
+    // every "CSV UTF-8" export: without this the first column is named BOM + "id" and no mapping can
+    // address it. Stripped after decoding rather than off the byte stream, because a charset like
+    // bare UTF-16 needs the BOM bytes to pick its endianness.
+    private static List<String> withoutBom(List<String> header) {
+        if (header.isEmpty() || !header.get(0).startsWith("﻿")) {
+            return header;
+        }
+        List<String> stripped = new ArrayList<>(header);
+        stripped.set(0, stripped.get(0).substring(1));
+        return stripped;
     }
 
     private static CSVFormat format(RowSourceOptions options) {
