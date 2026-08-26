@@ -4,6 +4,7 @@ import net.codestory.http.Context;
 import net.codestory.http.Query;
 import net.codestory.http.errors.UnauthorizedException;
 import org.icij.datashare.session.DatashareUser;
+import org.icij.datashare.text.Project;
 
 import java.util.List;
 import java.util.regex.Pattern;
@@ -19,8 +20,6 @@ public class IndexAccessVerifier {
      *  granted what: a project row named "_all" is grantable, so a grant check alone would let it pass. */
     private static final String INDEX_NAME = "[-a-zA-Z0-9][-a-zA-Z0-9_]*(\\.[-a-zA-Z0-9_]+)*";
     private static final Pattern INDICES = Pattern.compile("^" + INDEX_NAME + "(," + INDEX_NAME + ")*$");
-    /** Suffix of an index derived from a project: "myproject.entities" is granted to whoever is granted "myproject". */
-    private static final String ENTITIES_SUFFIX = ".entities";
 
     static public String checkIndices(String indices) {
         if( indices == null) {
@@ -86,7 +85,8 @@ public class IndexAccessVerifier {
      *  or the base project it derives from. Suffix match on the whole remainder, never a prefix match,
      *  so "myproject-other" doesn't inherit "myproject". */
     public static List<String> baseProjects(String indices) {
-        return stream(indices.split(",")).map(i -> i.endsWith(ENTITIES_SUFFIX) ? i.substring(0, i.length() - ENTITIES_SUFFIX.length()) : i).toList();
+        return stream(indices.split(",")).map(i -> i.endsWith(Project.ENTITIES_INDEX_SUFFIX)
+                ? i.substring(0, i.length() - Project.ENTITIES_INDEX_SUFFIX.length()) : i).toList();
     }
 
     public static String getUrlString(Context context, String s) {

@@ -8,6 +8,7 @@ import java.net.InetSocketAddress;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Date;
+import java.util.Objects;
 import java.util.regex.Pattern;
 
 import static com.fasterxml.jackson.annotation.JsonCreator.Mode.DELEGATING;
@@ -21,6 +22,12 @@ public class Project extends ProjectProxy {
     public static final String ALLOW_FROM_MASK_REGEX = "^[\\d*]{1,3}(\\.[\\d*]{1,3}){3}$";
     public static final Pattern NAME_PATTERN = Pattern.compile(NAME_REGEX);
     public static final Pattern ALLOW_FROM_MASK_PATTERN = Pattern.compile(ALLOW_FROM_MASK_REGEX);
+    /** Suffix of an index derived from a project: "myproject.entities" is granted to whoever is granted "myproject". */
+    public static final String ENTITIES_INDEX_SUFFIX = ".entities";
+
+    public static String entitiesIndex(String projectId) {
+        return Objects.requireNonNull(projectId, "projectId") + ENTITIES_INDEX_SUFFIX;
+    }
 
     public final Path sourcePath;
     @JsonIgnore
