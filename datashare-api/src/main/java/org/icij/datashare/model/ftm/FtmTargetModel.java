@@ -149,8 +149,7 @@ public class FtmTargetModel implements TargetModel {
     }
 
     private static Property property(JsonNode property) {
-        return new Property(property.get("name").asText(), property.get("qname").asText(),
-                property.get("type").asText(), text(property, "range"),
+        return new Property(property.get("qname").asText(), text(property, "range"),
                 property.path("stub").asBoolean(false));
     }
 

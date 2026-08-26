@@ -154,11 +154,11 @@ public class TargetModelValidationTest {
         }
 
         private static Property property(String name) {
-            return new Property(name, "Fake:" + name, "string", null, false);
+            return new Property("Fake:" + name, null, false);
         }
 
         private static Property stub(String name) {
-            return new Property(name, "Fake:" + name, "entity", "Employment", true);
+            return new Property("Fake:" + name, "Employment", true);
         }
     }
 }

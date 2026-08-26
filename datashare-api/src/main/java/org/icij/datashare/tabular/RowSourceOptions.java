@@ -30,12 +30,4 @@ public record RowSourceOptions(String contentType, Charset charset, Character de
     public RowSourceOptions withQuote(Character newQuote) {
         return new RowSourceOptions(contentType, charset, delimiter, newQuote, sheet, table);
     }
-
-    public RowSourceOptions withSheet(String newSheet) {
-        return new RowSourceOptions(contentType, charset, delimiter, quote, newSheet, table);
-    }
-
-    public RowSourceOptions withTable(Integer newTable) {
-        return new RowSourceOptions(contentType, charset, delimiter, quote, sheet, newTable);
-    }
 }

@@ -5,8 +5,8 @@ import com.fasterxml.jackson.core.JsonToken;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.MappingIterator;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.icij.datashare.json.JsonObjectMapper;
 
-import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
@@ -19,6 +19,8 @@ import java.util.Spliterator;
 import java.util.Spliterators;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
+
+import static org.apache.commons.io.IOUtils.closeQuietly;
 
 /**
  * Reads flat records out of JSON. One reader covers both shapes a dump comes in: peeking the first
@@ -36,7 +38,9 @@ public class JsonRowSource implements RowSource {
 
     public static final Set<String> SUPPORTED = Set.of("application/json", NDJSON_CONTENT_TYPE);
 
-    private final ObjectMapper mapper = new ObjectMapper();
+    // The shared mapper rather than a private one: its StreamReadConstraints cap nesting depth and
+    // string length, which a user-supplied dump is exactly the input those guards exist for.
+    private final ObjectMapper mapper = JsonObjectMapper.getMapper();
 
     @Override
     public boolean supports(String contentType) {
@@ -63,7 +67,9 @@ public class JsonRowSource implements RowSource {
             }
             records = mapper.readerFor(JsonNode.class).readValues(parser);
         } catch (IOException | RuntimeException failure) {
-            // The parser does not own a stream it was handed, so releasing it is not enough.
+            // The parser does not own a stream it was handed, so releasing it is not enough. Both
+            // closes swallow: the read already failed, and a close failure on top of it adds nothing
+            // the caller can act on and must not mask the failure that matters.
             closeQuietly(parser);
             closeQuietly(source);
             throw failure;
@@ -152,14 +158,6 @@ public class JsonRowSource implements RowSource {
             parser.close();
         } catch (IOException e) {
             throw new UncheckedIOException("closing the json source failed", e);
-        }
-    }
-
-    private static void closeQuietly(Closeable closeable) {
-        try {
-            closeable.close();
-        } catch (IOException ignored) {
-            // the read already failed; the close failure adds nothing the caller can act on
         }
     }
 }

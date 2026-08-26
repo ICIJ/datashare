@@ -5,7 +5,6 @@ import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
 
 import java.io.BufferedInputStream;
-import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
@@ -24,6 +23,8 @@ import java.util.Spliterator;
 import java.util.Spliterators;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
+
+import static org.apache.commons.io.IOUtils.closeQuietly;
 
 public class DelimitedRowSource implements RowSource {
     /** text/tsv is the type Tika 3.3.0 writes when its sniffer finds a tab delimiter in a file whose
@@ -57,6 +58,8 @@ public class DelimitedRowSource implements RowSource {
             List<String> headers = Row.headers(withoutBom(records.next().toList()));
             return stream(records, headers).onClose(() -> close(parser));
         } catch (RuntimeException failure) {
+            // Swallowing the close: the read already failed, so a close failure on top of it adds
+            // nothing the caller can act on and must not mask the failure that matters.
             closeQuietly(parser);
             throw failure;
         }
@@ -183,14 +186,6 @@ public class DelimitedRowSource implements RowSource {
             parser.close();
         } catch (IOException e) {
             throw new UncheckedIOException("closing the delimited source failed", e);
-        }
-    }
-
-    private static void closeQuietly(Closeable closeable) {
-        try {
-            closeable.close();
-        } catch (IOException ignored) {
-            // the read already failed; the close failure adds nothing the caller can act on
         }
     }
 }

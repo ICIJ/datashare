@@ -23,6 +23,8 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Stream;
 
+import static org.apache.commons.io.IOUtils.closeQuietly;
+
 /**
  * Reads a workbook with POI. The whole workbook is loaded in memory, roughly 5 to 10 times the file
  * size in heap: streaming would mean two Excel code paths, since HSSF has no practical streaming
@@ -51,6 +53,8 @@ public class WorkbookRowSource implements RowSource {
         try {
             workbook = WorkbookFactory.create(source);
         } catch (IOException | RuntimeException failure) {
+            // Swallowing the close: the workbook never opened, so a close failure on top of that adds
+            // nothing the caller can act on and must not mask the failure that matters.
             closeQuietly(source);
             throw failure;
         }
@@ -175,14 +179,6 @@ public class WorkbookRowSource implements RowSource {
             workbook.close();
         } catch (IOException e) {
             throw new UncheckedIOException("closing the workbook failed", e);
-        }
-    }
-
-    private static void closeQuietly(InputStream source) {
-        try {
-            source.close();
-        } catch (IOException ignored) {
-            // the workbook already failed to open; the close failure adds nothing actionable
         }
     }
 }
