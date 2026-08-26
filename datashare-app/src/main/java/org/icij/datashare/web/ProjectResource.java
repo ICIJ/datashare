@@ -199,6 +199,7 @@
             Logger logger = LoggerFactory.getLogger(getClass());
             logger.info("Deleted {}'s record: {}", id, repository.deleteAll(id));
             logger.info("Deleted {}'s index: {}", id, indexer.deleteAll(id));
+            logger.info("Deleted {}'s entities index: {}", id, indexer.deleteAll(Project.entitiesIndex(id)));
             logger.info("Deleted {}'s queues: {}", id, deleteQueues(project));
             logger.info("Deleted {}'s report map: {}", id, deleteReportMap(project));
             propertiesProvider.get(DatashareCliOptions.ARTIFACT_DIR_OPT).ifPresent(dir -> {

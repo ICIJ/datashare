@@ -607,6 +607,19 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
+    public void test_delete_project_deletes_the_entities_index_too() throws Exception {
+        Project foo = new Project("local-datashare");
+        when(repository.getProjects(any())).thenReturn(List.of(foo));
+        when(repository.deleteAll("local-datashare")).thenReturn(true);
+        when(indexer.deleteAll("local-datashare")).thenReturn(true);
+
+        delete("/api/project/local-datashare").should().respond(204);
+
+        verify(indexer).deleteAll("local-datashare");
+        verify(indexer).deleteAll("local-datashare.entities");
+    }
+
+    @Test
     public void test_delete_project_delete_artifacts() throws Exception {
         configure(routes -> {
             propertiesProvider = new PropertiesProvider(new HashMap<>() {{
