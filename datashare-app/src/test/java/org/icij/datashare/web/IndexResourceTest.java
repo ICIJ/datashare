@@ -212,6 +212,18 @@ public class IndexResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
+    public void test_put_create_entities_index_uses_the_entity_mappings() throws IOException {
+        configure(routes -> routes.add(new IndexResource(indexer, propertiesProvider))
+                .filter(new BasicAuthFilter("/", "icij", DatashareUser.singleUser("cecile"))));
+
+        put("/api/index/cecile-datashare.entities").withPreemptiveAuthentication("cecile", "pass")
+                .should().respond(201);
+
+        String mapping = indexer.executeRaw("GET", "cecile-datashare.entities/_mapping", null);
+        assertThat(mapping).contains("entity_properties");
+    }
+
+    @Test
     public void test_put_createIndex_refuses_ungranted_project() {
         configure(routes -> routes.add(new IndexResource(indexer, propertiesProvider))
                 .filter(new BasicAuthFilter("/", "icij", DatashareUser.singleUser("cecile"))));
