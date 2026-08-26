@@ -351,7 +351,11 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
         String name = project.getName();
 
         boolean indexDeleted = !options.keepIndex()
-                && runStep("index", name, () -> indexer.deleteAll(name));
+                && runStep("index", name, () -> {
+                    boolean documents = indexer.deleteAll(name);
+                    indexer.deleteAll(Project.entitiesIndex(name));
+                    return documents;
+                });
         boolean dbDeleted = runStep("db", name, () -> repository.deleteAll(name));
         boolean queuesDeleted = runStep("queues", name, () -> deleteQueues(project));
         boolean reportMapDeleted = runStep("report map", name, () -> deleteReportMap(project));

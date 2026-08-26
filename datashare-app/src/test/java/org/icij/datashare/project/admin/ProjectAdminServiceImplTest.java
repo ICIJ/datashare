@@ -395,6 +395,44 @@ public class ProjectAdminServiceImplTest {
     }
 
     @Test
+    public void test_delete_empties_the_entities_index_too() throws Exception {
+        Project project = new Project("foo");
+        when(repository.getProject("foo")).thenReturn(project);
+        when(repository.deleteAll("foo")).thenReturn(true);
+        when(indexer.deleteAll("foo")).thenReturn(true);
+        DocumentQueue<Path> queue = mock(DocumentQueue.class);
+        when(queue.delete()).thenReturn(true);
+        when(documentCollectionFactory.getQueues(any(String.class), eq(Path.class))).thenReturn(List.of(queue));
+        ReportMap reportMap = mock(ReportMap.class);
+        when(reportMap.delete()).thenReturn(true);
+        when(documentCollectionFactory.createMap(any())).thenReturn(reportMap);
+        when(propertiesProvider.createOverriddenWith(any())).thenReturn(new Properties());
+        when(propertiesProvider.get(any())).thenReturn(Optional.empty());
+
+        ProjectDeleted deleted = service.delete("foo", new ProjectDeleteOptions(false));
+
+        verify(indexer).deleteAll("foo.entities");
+        assertThat(deleted.indexDeleted()).isTrue();
+    }
+
+    @Test
+    public void test_delete_keeping_the_index_keeps_the_entities_index_too() throws Exception {
+        Project project = new Project("foo");
+        when(repository.getProject("foo")).thenReturn(project);
+        when(repository.deleteAll("foo")).thenReturn(true);
+        DocumentQueue<Path> queue = mock(DocumentQueue.class);
+        when(documentCollectionFactory.getQueues(any(String.class), eq(Path.class))).thenReturn(List.of(queue));
+        ReportMap reportMap = mock(ReportMap.class);
+        when(documentCollectionFactory.createMap(any())).thenReturn(reportMap);
+        when(propertiesProvider.createOverriddenWith(any())).thenReturn(new Properties());
+        when(propertiesProvider.get(any())).thenReturn(Optional.empty());
+
+        service.delete("foo", new ProjectDeleteOptions(true));
+
+        verify(indexer, never()).deleteAll(any());
+    }
+
+    @Test
     public void test_delete_skips_index_when_keepIndex_true() throws Exception {
         when(repository.getProject("foo")).thenReturn(new Project("foo"));
         when(repository.deleteAll("foo")).thenReturn(true);
