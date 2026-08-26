@@ -36,6 +36,7 @@ import static org.fest.assertions.Assertions.assertThat;
 import static org.icij.datashare.text.Project.project;
 import static org.icij.datashare.user.User.localUser;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.MockitoAnnotations.initMocks;
 
@@ -165,6 +166,29 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
                 .contain("\"publisherName\":\"ICIJ\"")
                 .contain("\"sourcePath\":\"file:///vault/foo\"");
     }
+    @Test
+    public void test_create_project_creates_the_entities_index() throws IOException {
+        String body = "{ \"name\": \"foo\", \"sourcePath\": \"/vault/foo\" }";
+        when(indexer.createIndex("foo")).thenReturn(true);
+        when(repository.getProject("foo")).thenReturn(null);
+        when(repository.save((Project) any())).thenReturn(true);
+
+        post("/api/project/", body).should().respond(201);
+
+        verify(indexer).createEntitiesIndex("foo");
+    }
+
+    @Test
+    public void test_create_project_fails_when_the_entities_index_cannot_be_created() throws IOException {
+        String body = "{ \"name\": \"foo\", \"sourcePath\": \"/vault/foo\" }";
+        when(indexer.createIndex("foo")).thenReturn(true);
+        when(indexer.createEntitiesIndex("foo")).thenThrow(new IOException("ES down"));
+        when(repository.getProject("foo")).thenReturn(null);
+        when(repository.save((Project) any())).thenReturn(true);
+
+        post("/api/project/", body).should().respond(500);
+    }
+
     @Test
     public void test_cannot_create_project_twice() throws IOException {
         String body = "{ \"name\": \"foo\", \"sourcePath\": \"/vault/foo\" }";
