@@ -10,14 +10,19 @@ import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
 
-public record ModelEntity(String model, String id, Set<String> types, Map<String, List<String>> properties) {
+public record ModelEntity(String model, String id, Set<String> types, Set<String> modelVersions,
+                          Set<String> documentIds, Map<String, List<String>> properties) {
 
     public ModelEntity {
         Objects.requireNonNull(model, "model");
         Objects.requireNonNull(id, "id");
         Objects.requireNonNull(types, "types");
+        Objects.requireNonNull(modelVersions, "modelVersions");
+        Objects.requireNonNull(documentIds, "documentIds");
         Objects.requireNonNull(properties, "properties");
         types = Set.copyOf(types);
+        modelVersions = Set.copyOf(modelVersions);
+        documentIds = Set.copyOf(documentIds);
         Map<String, List<String>> copy = new LinkedHashMap<>();
         properties.forEach((property, values) -> copy.put(property, List.copyOf(values)));
         properties = Collections.unmodifiableMap(copy);
@@ -27,15 +32,17 @@ public record ModelEntity(String model, String id, Set<String> types, Map<String
      *  held, so a group larger than memory is not built to be collapsed. Properties and values come
      *  out in natural order, not in the order the statements arrived, so a database collation never
      *  decides what an entity looks like. */
-    public static ModelEntity from(Iterable<Statement> statements) {
+    public static ModelEntity from(Iterable<Statement> statements, Set<String> modelVersions) {
         SortedSet<String> ids = new TreeSet<>();
         SortedSet<String> models = new TreeSet<>();
         Set<String> types = new TreeSet<>();
+        Set<String> documentIds = new TreeSet<>();
         Map<String, SortedSet<String>> values = new TreeMap<>();
         for (Statement statement : statements) {
             ids.add(statement.entityId());
             models.add(statement.model());
             types.add(statement.entityType());
+            documentIds.add(statement.provenance().documentId());
             values.computeIfAbsent(statement.property(), property -> new TreeSet<>()).add(statement.value());
         }
         if (ids.isEmpty()) {
@@ -49,6 +56,6 @@ public record ModelEntity(String model, String id, Set<String> types, Map<String
         }
         Map<String, List<String>> properties = new LinkedHashMap<>();
         values.forEach((property, distinct) -> properties.put(property, List.copyOf(distinct)));
-        return new ModelEntity(models.first(), ids.first(), types, properties);
+        return new ModelEntity(models.first(), ids.first(), types, modelVersions, documentIds, properties);
     }
 }

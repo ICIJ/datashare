@@ -101,7 +101,7 @@ public class FtmTargetModel implements TargetModel {
                 throw new IllegalArgumentException("property '" + property + "' has a null value in FtM JSON");
             }
         });
-        return new ModelEntity(name(), read.id(), Set.of(read.schema()), properties);
+        return new ModelEntity(name(), read.id(), Set.of(read.schema()), Set.of(), Set.of(), properties);
     }
 
     @Override
