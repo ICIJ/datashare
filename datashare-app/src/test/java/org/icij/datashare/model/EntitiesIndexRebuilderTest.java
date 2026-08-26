@@ -88,6 +88,18 @@ public class EntitiesIndexRebuilderTest {
     }
 
     @Test
+    public void test_a_date_shaped_value_does_not_poison_a_later_non_date_value_in_the_same_property() throws Exception {
+        statements.entities.add(birthDate("person-1", "1980-04-02"));
+        statements.entities.add(birthDate("person-2", "circa 1980"));
+
+        rebuilder.rebuild("prj");
+
+        String all = search("{\"query\":{\"match_all\":{}}}");
+        assertThat(all).contains("person-1");
+        assertThat(all).contains("person-2");
+    }
+
+    @Test
     public void test_indexes_more_entities_than_one_chunk() throws Exception {
         IntStream.range(0, 2500).forEach(i -> statements.entities.add(entity("person-" + i, "Name " + i)));
 
@@ -112,6 +124,11 @@ public class EntitiesIndexRebuilderTest {
     private static ModelEntity entity(String id, String name) {
         return new ModelEntity("ftm", id, Set.of("Person"), Set.of("4.10.2"), Set.of("doc-1"),
                 Map.of("ftm:name", List.of(name)));
+    }
+
+    private static ModelEntity birthDate(String id, String value) {
+        return new ModelEntity(id, "ftm", Set.of("Person"), Set.of("4.10.2"), Set.of("doc-1"),
+                Map.of("ftm:birthDate", List.of(value)));
     }
 
     private static class InMemoryStatements implements StatementRepository {
