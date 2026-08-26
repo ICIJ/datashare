@@ -24,6 +24,18 @@ public class MappingExecutorTest {
         return new ExtractionMapping.PropertyMapping(List.of(name), null, null, null, null);
     }
 
+    static ExtractionMapping.PropertyMapping literal(String value) {
+        return new ExtractionMapping.PropertyMapping(List.of(), null, value, null, null);
+    }
+
+    static ExtractionMapping.PropertyMapping reference(String alias) {
+        return new ExtractionMapping.PropertyMapping(List.of(), null, null, alias, null);
+    }
+
+    static ExtractionMapping.PropertyMapping joined(List<String> columns, String separator) {
+        return new ExtractionMapping.PropertyMapping(columns, separator, null, null, null);
+    }
+
     static Row row(Map<String, String> values) {
         return new Row(7L, values);
     }
@@ -108,5 +120,83 @@ public class MappingExecutorTest {
     public void test_a_blank_cell_yields_no_statement() {
         assertThat(person(List.of("passport"), Map.of("name", column("full_name"), "email", column("mail")))
                 .statements(row(Map.of("passport", "AB123", "full_name", "Jane Doe", "mail", "")))).hasSize(1);
+    }
+
+    @Test
+    public void test_a_literal_property_is_stored_with_no_column_of_origin() {
+        Statement statement = new MappingExecutor(mapping(Map.of("member", entity("Person", List.of("passport"),
+                Map.of("name", column("full_name"), "nationality", literal("fr"))))))
+                .statements(row(Map.of("passport", "AB123", "full_name", "Jane Doe"))).stream()
+                .filter(candidate -> candidate.property().equals("nationality")).findFirst().orElseThrow();
+
+        assertThat(statement.value()).isEqualTo("fr");
+        assertThat(statement.provenance().column()).isEqualTo("");
+    }
+
+    @Test
+    public void test_several_columns_without_a_join_are_several_statements() {
+        List<Statement> statements = new MappingExecutor(mapping(Map.of("member", entity("Person",
+                List.of("passport"), Map.of("name", new ExtractionMapping.PropertyMapping(
+                        List.of("full_name", "maiden_name"), null, null, null, null))))))
+                .statements(row(Map.of("passport", "AB123", "full_name", "Jane Doe", "maiden_name", "Jane Roe")));
+
+        assertThat(statements).hasSize(2);
+        assertThat(statements.stream().map(Statement::value).sorted().toList())
+                .isEqualTo(List.of("Jane Doe", "Jane Roe"));
+        assertThat(statements.stream().map(statement -> statement.provenance().column()).sorted().toList())
+                .isEqualTo(List.of("full_name", "maiden_name"));
+    }
+
+    @Test
+    public void test_a_join_concatenates_the_columns_into_one_statement() {
+        Statement statement = new MappingExecutor(mapping(Map.of("member", entity("Person", List.of("passport"),
+                Map.of("name", joined(List.of("first_name", "last_name"), " "))))))
+                .statements(row(Map.of("passport", "AB123", "first_name", "Jane", "last_name", "Doe"))).get(0);
+
+        assertThat(statement.value()).isEqualTo("Jane Doe");
+        assertThat(statement.provenance().column()).isEqualTo("first_name,last_name");
+    }
+
+    @Test
+    public void test_a_join_skips_a_blank_column_rather_than_doubling_the_separator() {
+        Statement statement = new MappingExecutor(mapping(Map.of("member", entity("Person", List.of("passport"),
+                Map.of("name", joined(List.of("first_name", "middle_name", "last_name"), " "))))))
+                .statements(row(Map.of("passport", "AB123", "first_name", "Jane", "middle_name", "",
+                        "last_name", "Doe"))).get(0);
+
+        assertThat(statement.value()).isEqualTo("Jane Doe");
+    }
+
+    @Test
+    public void test_a_reference_stores_the_id_of_the_entity_it_names() {
+        List<Statement> statements = new MappingExecutor(mapping(Map.of(
+                "member", entity("Person", List.of("passport"), Map.of("name", column("full_name"))),
+                "employer", entity("Company", List.of("siren"), Map.of("name", column("company"))),
+                "job", entity("Employment", List.of("passport", "siren"), Map.of(
+                        "employee", reference("member"), "employer", reference("employer"))))))
+                .statements(row(Map.of("passport", "AB123", "full_name", "Jane Doe",
+                        "siren", "552100554", "company", "ACME")));
+
+        String person = statements.stream().filter(s -> s.entityType().equals("Person"))
+                .findFirst().orElseThrow().entityId();
+        Statement employee = statements.stream().filter(s -> s.property().equals("employee"))
+                .findFirst().orElseThrow();
+
+        assertThat(employee.value()).isEqualTo(person);
+        assertThat(employee.entityType()).isEqualTo("Employment");
+        assertThat(employee.provenance().column()).isEqualTo("");
+    }
+
+    @Test
+    public void test_a_reference_to_an_unidentified_entity_yields_no_statement() {
+        List<Statement> statements = new MappingExecutor(mapping(Map.of(
+                "member", entity("Person", List.of("passport"), Map.of("name", column("full_name"))),
+                "employer", entity("Company", List.of("siren"), Map.of("name", column("company"))),
+                "job", entity("Employment", List.of("passport"), Map.of(
+                        "employee", reference("member"), "employer", reference("employer"))))))
+                .statements(row(Map.of("passport", "AB123", "full_name", "Jane Doe",
+                        "siren", "", "company", "ACME")));
+
+        assertThat(statements.stream().filter(s -> s.property().equals("employer")).toList()).isEmpty();
     }
 }

@@ -9,6 +9,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeSet;
 
+import static java.util.stream.Collectors.joining;
+
 /**
  * Turns a row into the statements a mapping asks for. One instance per run: rows are consumed on one
  * thread, and nothing here reads or writes anything, so the caller owns the source and the store.
@@ -24,7 +26,7 @@ public class MappingExecutor {
         Map<String, String> ids = identify(row);
         List<Statement> statements = new ArrayList<>();
         for (String alias : new TreeSet<>(ids.keySet())) {
-            statements.addAll(statementsOf(alias, ids.get(alias), row));
+            statements.addAll(statementsOf(alias, ids.get(alias), row, ids));
         }
         return statements;
     }
@@ -49,12 +51,24 @@ public class MappingExecutor {
         return Hasher.SHA_384.hash(String.join("\u0000", parts));
     }
 
-    private List<Statement> statementsOf(String alias, String entityId, Row row) {
+    private List<Statement> statementsOf(String alias, String entityId, Row row, Map<String, String> ids) {
         ExtractionMapping.EntityMapping entity = mapping.entities().get(alias);
         List<Statement> statements = new ArrayList<>();
         for (String property : new TreeSet<>(entity.properties().keySet())) {
-            for (String column : entity.properties().get(property).columns()) {
-                add(statements, entityId, entity.type(), property, cell(row, column), column, row);
+            ExtractionMapping.PropertyMapping mapped = entity.properties().get(property);
+            if (mapped.literal() != null) {
+                add(statements, entityId, entity.type(), property, mapped.literal(), "", row);
+            } else if (mapped.entity() != null) {
+                add(statements, entityId, entity.type(), property, ids.get(mapped.entity()), "", row);
+            } else if (mapped.join() != null) {
+                add(statements, entityId, entity.type(), property, mapped.columns().stream()
+                                .map(column -> cell(row, column)).filter(cell -> !cell.isBlank())
+                                .collect(joining(mapped.join())),
+                        String.join(",", mapped.columns()), row);
+            } else {
+                for (String column : mapped.columns()) {
+                    add(statements, entityId, entity.type(), property, cell(row, column), column, row);
+                }
             }
         }
         return statements;
