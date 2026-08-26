@@ -13,6 +13,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
@@ -43,14 +44,14 @@ public class MappingExecutor {
             entity.properties().values().forEach(property -> {
                 columns.addAll(property.columns());
                 if (property.format() != null) {
-                    formats.computeIfAbsent(property.format(), DateTimeFormatter::ofPattern);
+                    formats.computeIfAbsent(property.format(), pattern -> DateTimeFormatter.ofPattern(pattern, Locale.ROOT));
                 }
             });
         });
     }
 
-    /** Entities that were identified but dropped, either by the model or because they produced no
-     *  statement at all. */
+    /** Entities dropped, for any of three reasons: one could not be identified, one produced no
+     *  statement, or one the model rejected. */
     public long skipped() {
         return skipped;
     }
@@ -88,7 +89,9 @@ public class MappingExecutor {
         Map<String, String> ids = new LinkedHashMap<>();
         mapping.entities().forEach((alias, entity) -> {
             List<String> keys = entity.keys().stream().map(column -> cell(row, column).strip()).sorted().toList();
-            if (keys.stream().noneMatch(String::isEmpty)) {
+            if (keys.stream().anyMatch(key -> key.isEmpty() || key.indexOf('\u0000') >= 0)) {
+                skipped++;
+            } else {
                 ids.put(alias, id(entity.type(), keys));
             }
         });

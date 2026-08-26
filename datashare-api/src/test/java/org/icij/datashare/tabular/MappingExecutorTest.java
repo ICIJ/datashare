@@ -4,6 +4,7 @@ import org.icij.datashare.model.Statement;
 import org.junit.Test;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 import static org.fest.assertions.Assertions.assertThat;
@@ -116,9 +117,51 @@ public class MappingExecutorTest {
     }
 
     @Test
+    public void test_the_entity_id_recipe_is_pinned_to_a_literal_hash() {
+        // Changing this value orphans every statement already stored under the id it replaces.
+        String expected = "0ab69dcbafdfbe3c4938d377bf99eb9b1a539945328b234e4e2c7179cb9db85c9ed41936b1e06c4b7da27a6f4eb8f0a3";
+
+        String actual = person(List.of("passport"), Map.of("name", column("full_name")))
+                .statements(row(Map.of("passport", "AB123", "full_name", "Jane Doe"))).get(0).entityId();
+
+        assertThat(actual).isEqualTo(expected);
+    }
+
+    @Test
     public void test_a_row_whose_key_is_blank_yields_no_statement() {
         assertThat(person(List.of("passport"), Map.of("name", column("full_name")))
                 .statements(row(Map.of("passport", "  ", "full_name", "Jane Doe")))).isEmpty();
+    }
+
+    @Test
+    public void test_a_row_whose_key_is_blank_is_counted_as_skipped() {
+        MappingExecutor executor = person(List.of("passport"), Map.of("name", column("full_name")));
+
+        executor.statements(row(Map.of("passport", "  ", "full_name", "Jane Doe")));
+
+        assertThat(executor.skipped()).isEqualTo(1L);
+    }
+
+    @Test
+    public void test_only_the_unidentifiable_entity_of_two_is_counted_as_skipped() {
+        MappingExecutor executor = new MappingExecutor(mapping(Map.of(
+                "member", entity("Person", List.of("passport"), Map.of("name", column("full_name"))),
+                "employer", entity("Company", List.of("siren"), Map.of("name", column("company"))))));
+
+        executor.statements(row(Map.of("passport", "AB123", "full_name", "Jane Doe",
+                "siren", "", "company", "ACME")));
+
+        assertThat(executor.skipped()).isEqualTo(1L);
+    }
+
+    @Test
+    public void test_a_key_cell_holding_a_nul_yields_no_statement_and_is_counted_as_skipped() {
+        MappingExecutor executor = person(List.of("passport"), Map.of("name", column("full_name")));
+
+        List<Statement> statements = executor.statements(row(Map.of("passport", "A\u0000B", "full_name", "Jane Doe")));
+
+        assertThat(statements).isEmpty();
+        assertThat(executor.skipped()).isEqualTo(1L);
     }
 
     @Test
@@ -239,6 +282,24 @@ public class MappingExecutorTest {
     }
 
     @Test
+    public void test_a_text_pattern_parses_the_same_regardless_of_the_default_locale() {
+        Locale original = Locale.getDefault();
+        Locale.setDefault(Locale.FRANCE);
+        try {
+            Statement statement = new MappingExecutor(mapping(Map.of("member", entity("Person",
+                    List.of("passport"), Map.of("name", column("full_name"),
+                            "birthDate", formatted("born", "dd/MMM/yyyy"))))))
+                    .statements(row(Map.of("passport", "AB123", "full_name", "Jane Doe", "born", "01/Mar/1970")))
+                    .stream().filter(candidate -> candidate.property().equals("birthDate")).findFirst().orElseThrow();
+
+            assertThat(statement.value()).isEqualTo("1970-03-01");
+            assertThat(statement.originalValue()).isEqualTo("01/Mar/1970");
+        } finally {
+            Locale.setDefault(original);
+        }
+    }
+
+    @Test
     public void test_a_malformed_pattern_fails_at_construction_not_at_the_first_row() {
         assertThrows(IllegalArgumentException.class, () -> new MappingExecutor(mapping(Map.of("member",
                 entity("Person", List.of("passport"),
@@ -266,7 +327,7 @@ public class MappingExecutorTest {
                 "full_name", "Jane Doe", "siren", "", "company", "")));
 
         assertThat(statements.stream().map(Statement::entityType).distinct().toList()).isEqualTo(List.of("Person"));
-        assertThat(executor.skipped()).isEqualTo(1L);
+        assertThat(executor.skipped()).isEqualTo(2L);
     }
 
     @Test
