@@ -1,0 +1,33 @@
+{
+  "dynamic": "strict",
+  "dynamic_templates": [
+    {
+      "entity_properties": {
+        "path_match": "properties.*",
+        "match_mapping_type": "string",
+        "mapping": {
+          "type": "keyword",
+          "ignore_above": 8191,
+          "fields": {
+            "text": {
+              "type": "text",
+              "analyzer": "folding"
+            }
+          }
+        }
+      }
+    }
+  ],
+  "properties": {
+    "type": { "type": "keyword" },
+    "id": { "type": "keyword" },
+    "model": { "type": "keyword" },
+    "modelVersions": { "type": "keyword" },
+    "types": { "type": "keyword" },
+    "documentIds": { "type": "keyword" },
+    "properties": {
+      "type": "object",
+      "dynamic": true
+    }
+  }
+}

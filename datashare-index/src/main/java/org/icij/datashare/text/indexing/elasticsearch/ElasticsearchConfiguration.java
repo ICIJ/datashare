@@ -36,6 +36,8 @@ public class ElasticsearchConfiguration {
     static final String MAPPING_RESOURCE_NAME = "datashare_index_mappings.json";
     static final String SETTINGS_RESOURCE_NAME = "datashare_index_settings.json";
     static final String SETTINGS_RESOURCE_NAME_WINDOWS = "datashare_index_settings_windows.json";
+    static final String ENTITIES_MAPPING_RESOURCE_NAME = "datashare_entities_index_mappings.json";
+    static final String ENTITIES_SETTINGS_RESOURCE_NAME = "datashare_entities_index_settings.json";
     static final int INDEX_MAX_RESULT_WINDOW = 100000;
     static Logger LOGGER = LoggerFactory.getLogger(ElasticsearchConfiguration.class);
 
@@ -116,13 +118,19 @@ public class ElasticsearchConfiguration {
     }
 
     public static boolean createIndex(ElasticsearchClient client, String indexName) {
+        String settingsResource = IS_OS_WINDOWS ? SETTINGS_RESOURCE_NAME_WINDOWS : SETTINGS_RESOURCE_NAME;
+        return createIndex(client, indexName, MAPPING_RESOURCE_NAME, settingsResource);
+    }
+
+    public static boolean createIndex(ElasticsearchClient client, String indexName,
+                                      String mappingsResource, String settingsResource) {
         ExistsRequest existsRequest = ExistsRequest.of(er -> er.index(indexName));
         try {
             if (!client.indices().exists(existsRequest).value()) {
                 LOGGER.info("index {} does not exist, creating one", indexName);
                 RestClient restClient = ((RestClientTransport) client._transport()).restClient();
                 Request request = new Request("PUT", "/" + indexName);
-                request.setJsonEntity(createIndexBody());
+                request.setJsonEntity(createIndexBody(mappingsResource, settingsResource));
                 restClient.performRequest(request);
                 return true;
             }
@@ -132,12 +140,11 @@ public class ElasticsearchConfiguration {
         return false;
     }
 
-    static String createIndexBody() throws JsonProcessingException {
-        String settingsResource = IS_OS_WINDOWS ? SETTINGS_RESOURCE_NAME_WINDOWS : SETTINGS_RESOURCE_NAME;
+    static String createIndexBody(String mappingsResource, String settingsResource) throws JsonProcessingException {
         ObjectMapper mapper = JsonObjectMapper.getMapper();
         ObjectNode body = mapper.createObjectNode();
         body.set("settings", mapper.readTree(getResourceContent(settingsResource)));
-        body.set("mappings", mapper.readTree(getResourceContent(MAPPING_RESOURCE_NAME)));
+        body.set("mappings", mapper.readTree(getResourceContent(mappingsResource)));
         return mapper.writeValueAsString(body);
     }
 

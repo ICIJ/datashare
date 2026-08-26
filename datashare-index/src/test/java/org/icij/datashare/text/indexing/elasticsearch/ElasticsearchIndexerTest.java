@@ -5,7 +5,12 @@ import co.elastic.clients.elasticsearch._types.Refresh;
 import co.elastic.clients.elasticsearch._types.Script;
 import co.elastic.clients.elasticsearch.core.GetRequest;
 import co.elastic.clients.elasticsearch.core.UpdateRequest;
+import co.elastic.clients.transport.rest_client.RestClientTransport;
 import org.apache.http.ConnectionClosedException;
+import org.apache.http.util.EntityUtils;
+import org.elasticsearch.client.Request;
+import org.elasticsearch.client.ResponseException;
+import org.elasticsearch.client.RestClient;
 import org.icij.datashare.Entity;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.test.ElasticsearchRule;
@@ -66,6 +71,11 @@ public class ElasticsearchIndexerTest {
     @After
     public void tearDown() throws Exception {
         es.removeAll();
+    }
+
+    @After
+    public void tearDownEntities() throws IOException {
+        es.delete("prj-entities.entities");
     }
 
     @Test
@@ -932,5 +942,39 @@ public class ElasticsearchIndexerTest {
         // THEN the document is still indexed (before the fix this threw
         // mapper_parsing_exception and dropped the whole document)
         assertThat((Document) indexer.get(es.getIndexName(), "sigdate-malformed")).isNotNull();
+    }
+
+    @Test
+    public void test_create_entities_index_maps_a_namespaced_property() throws Exception {
+        assertThat(indexer.createEntitiesIndex("prj-entities")).isTrue();
+
+        RestClient restClient = ((RestClientTransport) es.client._transport()).restClient();
+        String mapping = EntityUtils.toString(restClient.performRequest(
+                new Request("GET", "/prj-entities.entities/_mapping")).getEntity());
+
+        assertThat(mapping).contains("dynamic_templates");
+        assertThat(mapping).contains("entity_properties");
+    }
+
+    @Test
+    public void test_create_entities_index_twice_is_a_no_op() throws Exception {
+        assertThat(indexer.createEntitiesIndex("prj-entities")).isTrue();
+
+        assertThat(indexer.createEntitiesIndex("prj-entities")).isFalse();
+    }
+
+    @Test
+    public void test_the_entities_index_refuses_an_unmapped_top_level_field() throws Exception {
+        indexer.createEntitiesIndex("prj-entities");
+
+        RestClient restClient = ((RestClientTransport) es.client._transport()).restClient();
+        Request request = new Request("PUT", "/prj-entities.entities/_doc/e-1");
+        request.setJsonEntity("{\"surprise\": \"value\"}");
+        try {
+            restClient.performRequest(request);
+            fail("strict mapping should have refused an unmapped field");
+        } catch (ResponseException e) {
+            assertThat(e.getResponse().getStatusLine().getStatusCode()).isEqualTo(400);
+        }
     }
 }
