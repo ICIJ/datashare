@@ -262,6 +262,44 @@ public class JooqStatementRepositoryTest {
     }
 
     @Test
+    public void test_an_entity_carries_the_model_version_of_its_statements() {
+        repository.save("prj", "run-1", Stream.of(
+                Statement.of("ftm", "person-1", "Person", "name", "Jane Doe",
+                        new Statement.Provenance("doc-1", "Sheet1", 12, "full_name"))));
+
+        ModelEntity entity = repository.entity("prj", "person-1").orElseThrow();
+
+        assertThat(entity.model()).isEqualTo("ftm");
+        assertThat(entity.modelVersions()).containsOnly("4.10.2");
+    }
+
+    @Test
+    public void test_an_entity_carries_the_documents_its_statements_came_from() {
+        repository.save("prj", "run-1", Stream.of(
+                Statement.of("ftm", "person-1", "Person", "name", "Jane Doe",
+                        new Statement.Provenance("doc-1", "Sheet1", 12, "full_name")),
+                Statement.of("ftm", "person-1", "Person", "birthDate", "1980-04-02",
+                        new Statement.Provenance("doc-2", "Sheet1", 3, "dob"))));
+
+        ModelEntity entity = repository.entity("prj", "person-1").orElseThrow();
+
+        assertThat(entity.documentIds()).containsOnly("doc-1", "doc-2");
+    }
+
+    @Test
+    public void test_the_streamed_entities_carry_the_model_version_too() {
+        repository.save("prj", "run-1", Stream.of(
+                Statement.of("ftm", "person-1", "Person", "name", "Jane Doe",
+                        new Statement.Provenance("doc-1", "Sheet1", 12, "full_name"))));
+
+        List<ModelEntity> entities = repository.entities("prj", Stream::toList);
+
+        assertThat(entities).hasSize(1);
+        assertThat(entities.get(0).modelVersions()).containsOnly("4.10.2");
+        assertThat(entities.get(0).documentIds()).containsOnly("doc-1");
+    }
+
+    @Test
     public void test_entities_gives_the_connection_back_to_the_pool_on_a_short_circuit() {
         repository.save("prj", "run-1", Stream.of(
                 statement("e-1", "Person", "name", "Ada"),
