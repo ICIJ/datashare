@@ -36,8 +36,6 @@ public class JsonRowSource implements RowSource {
 
     public static final Set<String> SUPPORTED = Set.of("application/json", NDJSON_CONTENT_TYPE);
 
-    private static final String SCALAR_ARRAY_SEPARATOR = "|";
-
     private final ObjectMapper mapper = new ObjectMapper();
 
     @Override
@@ -117,7 +115,11 @@ public class JsonRowSource implements RowSource {
                             "row " + number + " is not a json object but a " + record.getNodeType());
                 }
                 Map<String, String> values = new LinkedHashMap<>();
-                flatten("", record, values);
+                try {
+                    flatten("", record, values);
+                } catch (IllegalArgumentException notTabular) {
+                    throw new IllegalArgumentException("row " + number + ": " + notTabular.getMessage(), notTabular);
+                }
                 return new Row(number, Collections.unmodifiableMap(values));
             }
         };
@@ -127,6 +129,9 @@ public class JsonRowSource implements RowSource {
                 .onClose(() -> close(parser));
     }
 
+    // An array is refused rather than joined or skipped: a joined array is a delimited file inside a
+    // cell, whose separator can collide with the data, and a skipped one loses values in silence. If
+    // multi-valued properties turn out to matter, the fix is a multi-value seam in Row.
     private static void flatten(String prefix, JsonNode node, Map<String, String> values) {
         node.properties().forEach(field -> {
             String column = prefix.isEmpty() ? field.getKey() : prefix + "." + field.getKey();
@@ -134,34 +139,12 @@ public class JsonRowSource implements RowSource {
             if (value.isObject()) {
                 flatten(column, value, values);
             } else if (value.isArray()) {
-                joinScalars(column, value, values);
+                throw new IllegalArgumentException(
+                        "column " + column + " holds an array, which no table cell can carry");
             } else {
                 values.put(column, value.isNull() ? "" : value.asText());
             }
         });
-    }
-
-    /**
-     * An array of scalars joins on a fixed separator so a mapping can rely on splitting it. An array
-     * of objects is skipped: there is no column name that would describe it. If multi-valued
-     * properties turn out to matter, the fix is a multi-value seam in Row, not a cleverer separator.
-     */
-    private static void joinScalars(String column, JsonNode array, Map<String, String> values) {
-        StringBuilder joined = new StringBuilder();
-        // The separator goes before every element but the first, keyed on the position rather than on
-        // whether anything has been written yet: an empty leading element would otherwise vanish and
-        // shift every value a splitting consumer reads.
-        for (int index = 0; index < array.size(); index++) {
-            JsonNode element = array.get(index);
-            if (element.isContainerNode()) {
-                return;
-            }
-            if (index > 0) {
-                joined.append(SCALAR_ARRAY_SEPARATOR);
-            }
-            joined.append(element.isNull() ? "" : element.asText());
-        }
-        values.put(column, joined.toString());
     }
 
     private static void close(JsonParser parser) {

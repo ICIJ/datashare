@@ -7,6 +7,7 @@ import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Stream;
 
 import static org.fest.assertions.Assertions.assertThat;
@@ -56,18 +57,20 @@ public class JsonRowSourceTest {
     }
 
     @Test
-    public void test_joins_arrays_of_scalars() throws Exception {
-        List<Row> rows = read("[{\"id\":1,\"tags\":[\"a\",\"b\"]}]");
-
-        assertThat(rows.get(0).values().get("tags")).isEqualTo("a|b");
-    }
-
-    @Test
-    public void test_skips_arrays_of_objects() throws Exception {
-        List<Row> rows = read("[{\"id\":1,\"kids\":[{\"n\":1}]}]");
-
-        assertThat(rows.get(0).values().get("kids")).isNull();
-        assertThat(rows.get(0).values().get("id")).isEqualTo("1");
+    public void test_an_array_value_is_refused_naming_its_row_and_column() throws Exception {
+        Map<String, String> columnByContent = Map.of(
+                "[{\"id\":1,\"tags\":[\"a\",\"b\"]}]", "tags",
+                "[{\"id\":1,\"kids\":[{\"n\":1}]}]", "kids",
+                "[{\"id\":1,\"addr\":{\"lines\":[]}}]", "addr.lines");
+        for (Map.Entry<String, String> arrayValue : columnByContent.entrySet()) {
+            try {
+                read(arrayValue.getKey());
+                fail("an array has no tabular representation: joining or skipping it loses data");
+            } catch (IllegalArgumentException failure) {
+                assertThat(failure.getMessage()).contains("row 1");
+                assertThat(failure.getMessage()).contains(arrayValue.getValue());
+            }
+        }
     }
 
     @Test
@@ -130,12 +133,6 @@ public class JsonRowSourceTest {
                 assertThat(failure.getMessage()).contains("the source is empty");
             }
         }
-    }
-
-    @Test
-    public void test_a_leading_empty_array_element_keeps_its_separator() throws Exception {
-        assertThat(read("{\"tags\":[\"\",\"b\"]}").get(0).values().get("tags")).isEqualTo("|b");
-        assertThat(read("{\"tags\":[null,null,\"c\"]}").get(0).values().get("tags")).isEqualTo("||c");
     }
 
 }
