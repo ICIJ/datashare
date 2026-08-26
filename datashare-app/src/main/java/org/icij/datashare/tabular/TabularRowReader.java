@@ -14,6 +14,8 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Stream;
 
+import static org.apache.commons.io.IOUtils.closeQuietly;
+
 /**
  * Turns the document a mapping names into rows. Addressing the source by document id rather than by
  * path is what buys embedded sources (a CSV inside a ZIP, a workbook attached to an email) through
@@ -67,20 +69,14 @@ public class TabularRowReader {
     private final Indexer indexer;
     private final SourceExtractor sourceExtractor;
     private final List<RowSource> readers;
-    private final RowSource fallback;
 
     public TabularRowReader(Indexer indexer, SourceExtractor sourceExtractor) {
-        this(indexer, sourceExtractor,
-                List.of(new DelimitedRowSource(), new WorkbookRowSource(), new JsonRowSource()),
-                new TikaTableRowSource());
-    }
-
-    TabularRowReader(Indexer indexer, SourceExtractor sourceExtractor, List<RowSource> readers,
-                     RowSource fallback) {
         this.indexer = indexer;
         this.sourceExtractor = sourceExtractor;
-        this.readers = readers;
-        this.fallback = fallback;
+        // Tika last: it is the tier-2 fallback, and only the types it was confirmed to render as
+        // table markup reach it, so it never displaces a tier-1 reader that claims the same type.
+        this.readers = List.of(new DelimitedRowSource(), new WorkbookRowSource(), new JsonRowSource(),
+                new TikaTableRowSource());
     }
 
     /**
@@ -102,6 +98,8 @@ public class TabularRowReader {
         try {
             return reader.rows(source, resolved).onClose(() -> closeQuietly(source));
         } catch (IOException | RuntimeException failure) {
+            // Swallowing the close: the read already failed or already finished, so a failure to
+            // release the source adds nothing the caller can act on and must not mask the real one.
             closeQuietly(source);
             throw failure;
         }
@@ -138,9 +136,6 @@ public class TabularRowReader {
             if (reader.supports(contentType)) {
                 return reader;
             }
-        }
-        if (fallback.supports(contentType)) {
-            return fallback;
         }
         throw new IllegalArgumentException(
                 "no reader supports " + contentType + ", supported content types: " + SUPPORTED_CONTENT_TYPES);
@@ -184,13 +179,5 @@ public class TabularRowReader {
         }
         Object name = metadata.get(DELIMITER_METADATA_KEY);
         return name == null ? null : DELIMITER_BY_TIKA_NAME.get(name.toString().toLowerCase(Locale.ROOT));
-    }
-
-    private static void closeQuietly(InputStream source) {
-        try {
-            source.close();
-        } catch (IOException ignored) {
-            // the read already failed or already finished; the close failure adds nothing actionable
-        }
     }
 }

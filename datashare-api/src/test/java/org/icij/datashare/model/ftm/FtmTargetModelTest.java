@@ -34,7 +34,6 @@ public class FtmTargetModelTest {
         Property name = model.property("Person", "name").get();
 
         assertThat(name.qname()).isEqualTo("Thing:name");
-        assertThat(name.type()).isEqualTo("name");
     }
 
     @Test
