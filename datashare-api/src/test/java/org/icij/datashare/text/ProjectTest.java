@@ -6,6 +6,7 @@ import java.nio.file.Path;
 import java.util.Date;
 
 import static org.fest.assertions.Assertions.assertThat;
+import static org.junit.Assert.fail;
 
 
 public class ProjectTest {
@@ -38,5 +39,19 @@ public class ProjectTest {
         assertThat(project.maintainerName).isEqualTo("Jane Doe");
         assertThat(project.publisherName).isEqualTo("ICIJ");
         assertThat(project.allowFromMask).isEqualTo("*.*.*.*");
+    }
+    @Test
+    public void test_entities_index_of_a_project() {
+        assertThat(Project.entitiesIndex("foo")).isEqualTo("foo.entities");
+    }
+
+    @Test
+    public void test_entities_index_rejects_a_null_project() {
+        try {
+            Project.entitiesIndex(null);
+            fail("should have rejected a null project id");
+        } catch (NullPointerException e) {
+            assertThat(e.getMessage()).contains("projectId");
+        }
     }
 }
