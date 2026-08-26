@@ -1,6 +1,9 @@
 package org.icij.datashare.tabular;
 
+import org.icij.datashare.model.ModelEntity;
 import org.icij.datashare.model.Statement;
+import org.icij.datashare.model.TargetModel;
+import org.icij.datashare.model.TargetModelRegistry;
 import org.icij.datashare.text.Hasher;
 
 import java.time.LocalDate;
@@ -11,7 +14,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
+import java.util.Set;
 import java.util.TreeSet;
 
 import static java.util.stream.Collectors.joining;
@@ -22,22 +25,63 @@ import static java.util.stream.Collectors.joining;
  */
 public class MappingExecutor {
     private final ExtractionMapping mapping;
+    private final TargetModel target;
     private final Map<String, DateTimeFormatter> formats = new HashMap<>();
+    private final Set<String> columns = new TreeSet<>();
+    private boolean checked;
+    private long skipped;
 
     public MappingExecutor(ExtractionMapping mapping) {
+        List<TargetModel.Violation> violations = mapping.validate();
+        if (!violations.isEmpty()) {
+            throw new InvalidExtractionMapping(mapping.id(), violations);
+        }
         this.mapping = mapping;
-        mapping.entities().values().forEach(entity -> entity.properties().values().stream()
-                .map(ExtractionMapping.PropertyMapping::format).filter(Objects::nonNull)
-                .forEach(format -> formats.computeIfAbsent(format, DateTimeFormatter::ofPattern)));
+        this.target = TargetModelRegistry.get(mapping.model());
+        mapping.entities().values().forEach(entity -> {
+            columns.addAll(entity.keys());
+            entity.properties().values().forEach(property -> {
+                columns.addAll(property.columns());
+                if (property.format() != null) {
+                    formats.computeIfAbsent(property.format(), DateTimeFormatter::ofPattern);
+                }
+            });
+        });
+    }
+
+    /** Entities that were identified but dropped, either by the model or because they produced no
+     *  statement at all. */
+    public long skipped() {
+        return skipped;
     }
 
     public List<Statement> statements(Row row) {
+        requireColumns(row);
         Map<String, String> ids = identify(row);
         List<Statement> statements = new ArrayList<>();
         for (String alias : new TreeSet<>(ids.keySet())) {
-            statements.addAll(statementsOf(alias, ids.get(alias), row, ids));
+            List<Statement> candidate = statementsOf(alias, ids.get(alias), row, ids);
+            if (candidate.isEmpty() || !target.validate(ModelEntity.from(candidate)).isEmpty()) {
+                skipped++;
+            } else {
+                statements.addAll(candidate);
+            }
         }
         return statements;
+    }
+
+    // Row.values pads a short row with empty strings, so a column the file does not have reads like a
+    // blank cell: without this, one typo imports every row as nothing and reports it as a success.
+    private void requireColumns(Row row) {
+        if (checked) {
+            return;
+        }
+        List<String> missing = columns.stream().filter(column -> !row.values().containsKey(column)).toList();
+        if (!missing.isEmpty()) {
+            throw new IllegalArgumentException("the source has no column " + missing + ", declared by mapping '"
+                    + mapping.id() + "'");
+        }
+        checked = true;
     }
 
     private Map<String, String> identify(Row row) {

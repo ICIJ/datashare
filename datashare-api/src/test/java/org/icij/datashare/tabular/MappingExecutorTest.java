@@ -244,4 +244,48 @@ public class MappingExecutorTest {
                 entity("Person", List.of("passport"),
                         Map.of("name", column("full_name"), "birthDate", formatted("born", "not-a-pattern")))))));
     }
+
+    @Test
+    public void test_an_entity_missing_a_required_property_is_dropped_and_counted() {
+        MappingExecutor executor = new MappingExecutor(mapping(Map.of("member",
+                entity("Person", List.of("passport"), Map.of("name", column("full_name"))))));
+
+        assertThat(executor.statements(row(Map.of("passport", "AB123", "full_name", "")))).isEmpty();
+        assertThat(executor.skipped()).isEqualTo(1L);
+    }
+
+    @Test
+    public void test_an_edge_that_lost_an_endpoint_is_dropped_but_the_entities_are_kept() {
+        MappingExecutor executor = new MappingExecutor(mapping(Map.of(
+                "member", entity("Person", List.of("passport"), Map.of("name", column("full_name"))),
+                "employer", entity("Company", List.of("siren"), Map.of("name", column("company"))),
+                "job", entity("Employment", List.of("passport"), Map.of(
+                        "employee", reference("member"), "employer", reference("employer"))))));
+
+        List<Statement> statements = executor.statements(row(Map.of("passport", "AB123",
+                "full_name", "Jane Doe", "siren", "", "company", "")));
+
+        assertThat(statements.stream().map(Statement::entityType).distinct().toList()).isEqualTo(List.of("Person"));
+        assertThat(executor.skipped()).isEqualTo(1L);
+    }
+
+    @Test
+    public void test_a_mapping_that_no_longer_validates_fails_at_construction() {
+        ExtractionMapping stale = mapping(Map.of("member",
+                entity("Person", List.of("passport"), Map.of("hoofSize", column("hooves")))));
+
+        InvalidExtractionMapping thrown =
+                assertThrows(InvalidExtractionMapping.class, () -> new MappingExecutor(stale));
+        assertThat(thrown.violations.toString()).contains("hoofSize");
+    }
+
+    @Test
+    public void test_a_column_the_source_does_not_have_fails_the_run() {
+        MappingExecutor executor = new MappingExecutor(mapping(Map.of("member",
+                entity("Person", List.of("passport"), Map.of("name", column("fullname"))))));
+
+        IllegalArgumentException thrown = assertThrows(IllegalArgumentException.class,
+                () -> executor.statements(row(Map.of("passport", "AB123", "full_name", "Jane Doe"))));
+        assertThat(thrown.getMessage()).contains("fullname");
+    }
 }
