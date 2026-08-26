@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.fest.assertions.Assertions.assertThat;
+import static org.junit.Assert.assertThrows;
 
 public class MappingExecutorTest {
 
@@ -34,6 +35,10 @@ public class MappingExecutorTest {
 
     static ExtractionMapping.PropertyMapping joined(List<String> columns, String separator) {
         return new ExtractionMapping.PropertyMapping(columns, separator, null, null, null);
+    }
+
+    static ExtractionMapping.PropertyMapping formatted(String name, String pattern) {
+        return new ExtractionMapping.PropertyMapping(List.of(name), null, null, null, pattern);
     }
 
     static Row row(Map<String, String> values) {
@@ -198,5 +203,45 @@ public class MappingExecutorTest {
                         "siren", "", "company", "ACME")));
 
         assertThat(statements.stream().filter(s -> s.property().equals("employer")).toList()).isEmpty();
+    }
+
+    @Test
+    public void test_a_formatted_column_is_stored_as_iso_with_the_input_kept() {
+        Statement statement = new MappingExecutor(mapping(Map.of("member", entity("Person", List.of("passport"),
+                Map.of("name", column("full_name"), "birthDate", formatted("born", "dd/MM/yyyy"))))))
+                .statements(row(Map.of("passport", "AB123", "full_name", "Jane Doe", "born", "01/03/1970")))
+                .stream().filter(candidate -> candidate.property().equals("birthDate")).findFirst().orElseThrow();
+
+        assertThat(statement.value()).isEqualTo("1970-03-01");
+        assertThat(statement.originalValue()).isEqualTo("01/03/1970");
+    }
+
+    @Test
+    public void test_a_value_that_does_not_parse_is_stored_as_it_was_read() {
+        Statement statement = new MappingExecutor(mapping(Map.of("member", entity("Person", List.of("passport"),
+                Map.of("name", column("full_name"), "birthDate", formatted("born", "dd/MM/yyyy"))))))
+                .statements(row(Map.of("passport", "AB123", "full_name", "Jane Doe", "born", "n/a")))
+                .stream().filter(candidate -> candidate.property().equals("birthDate")).findFirst().orElseThrow();
+
+        assertThat(statement.value()).isEqualTo("n/a");
+        assertThat(statement.originalValue()).isNull();
+    }
+
+    @Test
+    public void test_a_value_already_in_the_target_form_keeps_no_original() {
+        Statement statement = new MappingExecutor(mapping(Map.of("member", entity("Person", List.of("passport"),
+                Map.of("name", column("full_name"), "birthDate", formatted("born", "yyyy-MM-dd"))))))
+                .statements(row(Map.of("passport", "AB123", "full_name", "Jane Doe", "born", "1970-03-01")))
+                .stream().filter(candidate -> candidate.property().equals("birthDate")).findFirst().orElseThrow();
+
+        assertThat(statement.value()).isEqualTo("1970-03-01");
+        assertThat(statement.originalValue()).isNull();
+    }
+
+    @Test
+    public void test_a_malformed_pattern_fails_at_construction_not_at_the_first_row() {
+        assertThrows(IllegalArgumentException.class, () -> new MappingExecutor(mapping(Map.of("member",
+                entity("Person", List.of("passport"),
+                        Map.of("name", column("full_name"), "birthDate", formatted("born", "not-a-pattern")))))));
     }
 }

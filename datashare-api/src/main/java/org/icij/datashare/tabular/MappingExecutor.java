@@ -3,10 +3,15 @@ package org.icij.datashare.tabular;
 import org.icij.datashare.model.Statement;
 import org.icij.datashare.text.Hasher;
 
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.TreeSet;
 
 import static java.util.stream.Collectors.joining;
@@ -17,9 +22,13 @@ import static java.util.stream.Collectors.joining;
  */
 public class MappingExecutor {
     private final ExtractionMapping mapping;
+    private final Map<String, DateTimeFormatter> formats = new HashMap<>();
 
     public MappingExecutor(ExtractionMapping mapping) {
         this.mapping = mapping;
+        mapping.entities().values().forEach(entity -> entity.properties().values().stream()
+                .map(ExtractionMapping.PropertyMapping::format).filter(Objects::nonNull)
+                .forEach(format -> formats.computeIfAbsent(format, DateTimeFormatter::ofPattern)));
     }
 
     public List<Statement> statements(Row row) {
@@ -57,17 +66,18 @@ public class MappingExecutor {
         for (String property : new TreeSet<>(entity.properties().keySet())) {
             ExtractionMapping.PropertyMapping mapped = entity.properties().get(property);
             if (mapped.literal() != null) {
-                add(statements, entityId, entity.type(), property, mapped.literal(), "", row);
+                add(statements, entityId, entity.type(), property, new Value(mapped.literal(), null), "", row);
             } else if (mapped.entity() != null) {
-                add(statements, entityId, entity.type(), property, ids.get(mapped.entity()), "", row);
+                add(statements, entityId, entity.type(), property, new Value(ids.get(mapped.entity()), null), "", row);
             } else if (mapped.join() != null) {
-                add(statements, entityId, entity.type(), property, mapped.columns().stream()
+                add(statements, entityId, entity.type(), property, value(mapped.columns().stream()
                                 .map(column -> cell(row, column)).filter(cell -> !cell.isBlank())
-                                .collect(joining(mapped.join())),
+                                .collect(joining(mapped.join())), mapped.format()),
                         String.join(",", mapped.columns()), row);
             } else {
                 for (String column : mapped.columns()) {
-                    add(statements, entityId, entity.type(), property, cell(row, column), column, row);
+                    add(statements, entityId, entity.type(), property, value(cell(row, column), mapped.format()),
+                            column, row);
                 }
             }
         }
@@ -75,12 +85,29 @@ public class MappingExecutor {
     }
 
     private void add(List<Statement> statements, String entityId, String type, String property,
-                     String value, String column, Row row) {
-        if (value == null || value.isBlank()) {
+                     Value value, String column, Row row) {
+        if (value.value() == null || value.value().isBlank()) {
             return;
         }
-        statements.add(Statement.of(mapping.model(), entityId, type, property, value,
-                new Statement.Provenance(mapping.documentId(), mapping.options().sheet(), row.number(), column)));
+        Statement statement = Statement.of(mapping.model(), entityId, type, property, value.value(),
+                new Statement.Provenance(mapping.documentId(), mapping.options().sheet(), row.number(), column));
+        statements.add(value.original() == null ? statement : statement.withOriginalValue(value.original()));
+    }
+
+    private record Value(String value, String original) { }
+
+    // A date only: 'format' describes how a date column is written, and anything the pattern cannot
+    // read is left exactly as it was rather than dropped, so one 'n/a' does not cost a run.
+    private Value value(String cell, String format) {
+        if (format == null || cell == null || cell.isBlank()) {
+            return new Value(cell, null);
+        }
+        try {
+            String iso = LocalDate.parse(cell, formats.get(format)).toString();
+            return iso.equals(cell) ? new Value(cell, null) : new Value(iso, cell);
+        } catch (DateTimeParseException unparseable) {
+            return new Value(cell, null);
+        }
     }
 
     private static String cell(Row row, String column) {
