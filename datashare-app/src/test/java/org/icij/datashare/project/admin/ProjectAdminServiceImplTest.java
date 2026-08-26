@@ -197,6 +197,36 @@ public class ProjectAdminServiceImplTest {
     }
 
     @Test
+    public void test_create_creates_the_entities_index_too() throws Exception {
+        when(repository.getProject("foo")).thenReturn(null);
+        when(repository.save(any(Project.class))).thenReturn(true);
+
+        service.create(minimalRequest("foo"));
+
+        verify(indexer).createIndex("foo");
+        verify(indexer).createEntitiesIndex("foo");
+    }
+
+    @Test
+    public void test_create_compensates_db_when_the_entities_index_fails() throws Exception {
+        when(repository.getProject("foo")).thenReturn(null);
+        when(repository.save(any(Project.class))).thenReturn(true);
+        when(indexer.createEntitiesIndex("foo")).thenThrow(new IOException("ES down"));
+
+        try {
+            service.create(minimalRequest("foo"));
+            fail("expected IOException");
+        } catch (IOException e) {
+            assertThat(e.getMessage()).contains("ES down");
+        }
+
+        InOrder inOrder = Mockito.inOrder(repository, indexer);
+        inOrder.verify(repository).save(any(Project.class));
+        inOrder.verify(indexer).createEntitiesIndex("foo");
+        inOrder.verify(repository).deleteAll("foo");
+    }
+
+    @Test
     public void test_create_logs_suppressed_when_compensating_delete_also_fails() throws Exception {
         when(repository.getProject("foo")).thenReturn(null);
         when(repository.save(any(Project.class))).thenReturn(true);

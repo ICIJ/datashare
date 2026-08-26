@@ -512,6 +512,7 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
     private boolean createIndexOrRollback(String name) throws IOException {
         try {
             indexer.createIndex(name);
+            indexer.createEntitiesIndex(name);
             return true;
         } catch (RuntimeException | IOException e) {
             try {
