@@ -7,6 +7,7 @@ import org.icij.datashare.text.Project;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchIndexer;
 import org.junit.After;
+import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
 
@@ -32,6 +33,11 @@ public class EntitiesIndexRebuilderTest {
             .withRefresh(Refresh.True);
     private final InMemoryStatements statements = new InMemoryStatements();
     private final EntitiesIndexRebuilder rebuilder = new EntitiesIndexRebuilder(indexer, statements);
+
+    @Before
+    public void setUp() throws IOException {
+        es.delete(Project.entitiesIndex("prj"));
+    }
 
     @After
     public void tearDown() throws IOException {

@@ -86,7 +86,7 @@ public class IndexResource {
             // a ".entities" name is granted through its base project, so it reaches here and has to be
             // created with the entity mappings rather than the document ones
             boolean created = granted.endsWith(Project.ENTITIES_INDEX_SUFFIX)
-                    ? indexer.createEntitiesIndex(granted.substring(0, granted.length() - Project.ENTITIES_INDEX_SUFFIX.length()))
+                    ? indexer.createEntitiesIndex(IndexAccessVerifier.baseProjects(granted).get(0))
                     : indexer.createIndex(granted);
             return created ? created() : ok();
         } catch (IllegalArgumentException e){

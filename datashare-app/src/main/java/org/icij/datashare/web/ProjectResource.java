@@ -310,8 +310,9 @@
 
         boolean createIndexOnce(String name) {
             try {
-                this.indexer.createIndex(IndexAccessVerifier.checkIndices(name));
-                this.indexer.createEntitiesIndex(name);
+                String checked = IndexAccessVerifier.checkIndices(name);
+                this.indexer.createIndex(checked);
+                this.indexer.createEntitiesIndex(checked);
                 return true;
             } catch (IllegalArgumentException | IOException e){
                 return false;
