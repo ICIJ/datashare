@@ -534,7 +534,24 @@ public class ElasticsearchIndexer implements Indexer {
 
     @Override
     public boolean createIndex(final String indexName) {
-        return ElasticsearchConfiguration.createIndex(client, indexName);
+        if (indexName.endsWith(Project.ENTITIES_INDEX_SUFFIX)) {
+            return createEntitiesIndex(baseProject(indexName));
+        }
+        boolean created = ElasticsearchConfiguration.createIndex(client, indexName);
+        try {
+            createEntitiesIndex(indexName);
+        } catch (RuntimeException e) {
+            // all-or-nothing, so a caller compensating a failed create only has its own DB row left to undo
+            if (created) {
+                try {
+                    deleteIndex(indexName);
+                } catch (IOException rollback) {
+                    e.addSuppressed(rollback);
+                }
+            }
+            throw e;
+        }
+        return created;
     }
 
     @Override
@@ -542,6 +559,18 @@ public class ElasticsearchIndexer implements Indexer {
         return ElasticsearchConfiguration.createIndex(client, Project.entitiesIndex(projectId),
                 ElasticsearchConfiguration.ENTITIES_MAPPING_RESOURCE_NAME,
                 ElasticsearchConfiguration.ENTITIES_SETTINGS_RESOURCE_NAME);
+    }
+
+    private static String baseProject(String entitiesIndexName) {
+        return entitiesIndexName.substring(0, entitiesIndexName.length() - Project.ENTITIES_INDEX_SUFFIX.length());
+    }
+
+    @Override
+    public boolean deleteIndex(String indexName) throws IOException {
+        if (!exists(indexName)) return false;
+        Request delete = new Request("DELETE", "/" + indexName);
+        RestClient restClient = ((RestClientTransport) client._transport()).restClient();
+        return restClient.performRequest(delete).getStatusLine().getStatusCode() == 200;
     }
 
     @Override

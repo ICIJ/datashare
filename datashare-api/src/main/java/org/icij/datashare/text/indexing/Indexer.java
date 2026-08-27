@@ -23,10 +23,16 @@ public interface Indexer extends Closeable {
     QueryBuilderSearcher search(List<String> indexesNames, Class<? extends Entity> entityClass);
     Searcher search(List<String> indexesNames, Class<? extends Entity> entityClass, SearchQuery query);
 
+    /** Creates {@code indexName} and, unless it is itself a "&lt;project&gt;.entities" name, the entities
+     *  index derived from it, so every creation path pairs the two. Returns false when {@code indexName}
+     *  already exists, and creates neither index if either creation fails. */
     boolean createIndex(String indexName) throws IOException;
     /** Creates the "&lt;projectId&gt;.entities" index holding the project's extracted entities, with the
      *  entity mappings rather than the document ones. Returns false when it already exists. */
     boolean createEntitiesIndex(String projectId) throws IOException;
+    /** Drops {@code indexName}, mappings included, and returns false when it does not exist. Unlike
+     *  {@link #deleteAll} this discards the mappings, so it is how an index gets re-created with new ones. */
+    boolean deleteIndex(String indexName) throws IOException;
     boolean deleteAll(String indexName) throws IOException;
     /**
      * Returns the number of documents indexed in {@code indexName}, or 0 if the index

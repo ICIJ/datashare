@@ -1,6 +1,8 @@
 package org.icij.datashare.model;
 
 import co.elastic.clients.elasticsearch._types.Refresh;
+import co.elastic.clients.transport.rest_client.RestClientTransport;
+import org.elasticsearch.client.Request;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.test.ElasticsearchRule;
 import org.icij.datashare.text.Project;
@@ -22,6 +24,7 @@ import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import static org.fest.assertions.Assertions.assertThat;
+import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doReturn;
@@ -59,7 +62,7 @@ public class EntitiesIndexRebuilderTest {
         statements.entities.add(entity("person-1", "Jane Doe"));
         rebuilder.rebuild("prj");
 
-        assertThat(search("{\"query\":{\"term\":{\"properties.ftm:name\":\"Jane Doe\"}}}")).contains("person-1");
+        assertThat(search("{\"query\":{\"term\":{\"properties.ftm_name\":\"Jane Doe\"}}}")).contains("person-1");
     }
 
     @Test
@@ -67,7 +70,7 @@ public class EntitiesIndexRebuilderTest {
         statements.entities.add(entity("person-2", "Émile Zola"));
         rebuilder.rebuild("prj");
 
-        assertThat(search("{\"query\":{\"match\":{\"properties.ftm:name.text\":\"emile\"}}}")).contains("person-2");
+        assertThat(search("{\"query\":{\"match\":{\"properties.ftm_name.text\":\"emile\"}}}")).contains("person-2");
     }
 
     @Test
@@ -111,39 +114,81 @@ public class EntitiesIndexRebuilderTest {
 
         assertThat(rebuilder.rebuild("prj")).isEqualTo(2500);
 
-        assertThat(search("{\"query\":{\"match_all\":{}},\"track_total_hits\":true}")).contains("\"value\":2500");
+        assertThat(search("{\"query\":{\"match_all\":{}},\"track_total_hits\":true}"))
+                .contains("\"value\":2500,\"relation\":\"eq\"");
     }
 
-    @Test(expected = IOException.class)
+    @Test
     public void test_rebuild_fails_when_a_bulk_write_is_rejected() throws Exception {
         statements.entities.add(entity("person-1", "Jane Doe"));
         Indexer rejecting = spy(indexer);
         doReturn(false).when(rejecting).bulkAdd(anyString(), anyList());
 
-        new EntitiesIndexRebuilder(rejecting, statements).rebuild("prj");
+        try {
+            new EntitiesIndexRebuilder(rejecting, statements).rebuild("prj");
+            fail("should have reported the rejected bulk write");
+        } catch (IOException e) {
+            assertThat(e.getMessage()).contains("bulk add rejected");
+        }
+    }
+
+    @Test
+    public void test_rebuild_refuses_a_project_id_that_is_not_a_project_name() {
+        try {
+            rebuilder.rebuild("*");
+            fail("should have refused a wildcard project id");
+        } catch (IllegalArgumentException e) {
+            assertThat(e.getMessage()).contains("*");
+        } catch (IOException e) {
+            fail("should have refused the id before reaching elasticsearch");
+        }
+    }
+
+    @Test
+    public void test_rebuild_repairs_an_index_created_with_the_wrong_mappings() throws Exception {
+        Request create = new Request("PUT", "/" + Project.entitiesIndex("prj"));
+        create.setJsonEntity("{\"mappings\":{\"properties\":{\"id\":{\"type\":\"integer\"}}}}");
+        ((RestClientTransport) es.client._transport()).restClient().performRequest(create);
+        statements.entities.add(entity("person-1", "Jane Doe"));
+
+        assertThat(rebuilder.rebuild("prj")).isEqualTo(1);
+
+        assertThat(search("{\"query\":{\"term\":{\"properties.ftm_name\":\"Jane Doe\"}}}")).contains("person-1");
+    }
+
+    // a "properties.*" default_field would pass this and still blow the 1024-clause limit in production
+    @Test
+    public void test_the_rebuilt_entity_is_searchable_without_naming_a_field() throws Exception {
+        statements.entities.add(entity("person-1", "Jane Doe"));
+        rebuilder.rebuild("prj");
+
+        assertThat(search("{\"query\":{\"query_string\":{\"query\":\"jane OR nobody\"}}}")).contains("person-1");
+        assertThat(search("{\"query\":{\"query_string\":{\"query\":\"Person\"}}}")).contains("person-1");
+        assertThat(search("{\"query\":{\"query_string\":{\"query\":\"doc-1\"}}}")).contains("person-1");
     }
 
     private String search(String query) throws IOException {
         return indexer.executeRaw("POST", Project.entitiesIndex("prj") + "/_search", query);
     }
 
-    // Bare keys, the shape JooqStatementRepository.entities(...) actually produces: ExtractedEntity
-    // is what adds the "ftm:" namespace back before indexing.
-    private static ModelEntity entity(String id, String name) {
+    private static ModelEntity bareKeyed(String id, String property, String value) {
         return new ModelEntity("ftm", id, Set.of("Person"), Set.of("4.10.2"), Set.of("doc-1"),
-                Map.of("name", List.of(name)));
+                Map.of(property, List.of(value)));
+    }
+
+    private static ModelEntity entity(String id, String name) {
+        return bareKeyed(id, "name", name);
     }
 
     private static ModelEntity birthDate(String id, String value) {
-        return new ModelEntity("ftm", id, Set.of("Person"), Set.of("4.10.2"), Set.of("doc-1"),
-                Map.of("birthDate", List.of(value)));
+        return bareKeyed(id, "birthDate", value);
     }
 
     private static class InMemoryStatements implements StatementRepository {
         private final List<ModelEntity> entities = new ArrayList<>();
 
         @Override
-        public int save(String projectId, String runId, java.util.Collection<Statement> statements) {
+        public int save(String projectId, String runId, Stream<Statement> statements) {
             throw new UnsupportedOperationException();
         }
 

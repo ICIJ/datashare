@@ -1,5 +1,5 @@
 {
-  "dynamic": "strict",
+  "dynamic": "false",
   "date_detection": false,
   "dynamic_templates": [
     {
@@ -9,6 +9,7 @@
         "mapping": {
           "type": "keyword",
           "ignore_above": 8191,
+          "copy_to": "propertiesAll",
           "fields": {
             "text": {
               "type": "text",
@@ -28,10 +29,15 @@
       }
     },
     "id": { "type": "keyword" },
+    "entityId": { "type": "keyword" },
     "model": { "type": "keyword" },
     "modelVersions": { "type": "keyword" },
     "types": { "type": "keyword" },
     "documentIds": { "type": "keyword" },
+    "propertiesAll": {
+      "type": "text",
+      "analyzer": "folding"
+    },
     "properties": {
       "type": "object",
       "dynamic": true

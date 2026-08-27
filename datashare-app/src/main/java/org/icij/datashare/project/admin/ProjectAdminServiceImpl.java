@@ -350,16 +350,14 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
         // intact is a sticky state if the cascade aborts mid-stream.
         String name = project.getName();
 
-        boolean indexDeleted = !options.keepIndex()
-                && runStep("index", name, () -> {
-                    boolean documents = indexer.deleteAll(name);
-                    try {
-                        indexer.deleteAll(Project.entitiesIndex(name));
-                    } catch (IOException e) {
-                        LOGGER.error("cannot delete entities index for project {}", name, e);
-                    }
-                    return documents;
-                });
+        // two steps rather than one, and combined only once both have run: a failure on either index
+        // must neither hide the other nor stop it from being deleted. A project older than the
+        // entities index has none, which is nothing to report.
+        boolean documentsDeleted = !options.keepIndex() && runStep("index", name, () -> indexer.deleteAll(name));
+        String entitiesIndex = Project.entitiesIndex(name);
+        boolean entitiesDeleted = !options.keepIndex() && runStep("entities index", name,
+                () -> !indexer.exists(entitiesIndex) || indexer.deleteAll(entitiesIndex));
+        boolean indexDeleted = documentsDeleted && entitiesDeleted;
         boolean dbDeleted = runStep("db", name, () -> repository.deleteAll(name));
         boolean queuesDeleted = runStep("queues", name, () -> deleteQueues(project));
         boolean reportMapDeleted = runStep("report map", name, () -> deleteReportMap(project));
@@ -520,7 +518,6 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
     private boolean createIndexOrRollback(String name) throws IOException {
         try {
             indexer.createIndex(name);
-            indexer.createEntitiesIndex(name);
             return true;
         } catch (RuntimeException | IOException e) {
             try {

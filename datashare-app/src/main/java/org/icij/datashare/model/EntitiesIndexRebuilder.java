@@ -22,13 +22,18 @@ public class EntitiesIndexRebuilder {
         this.statements = statements;
     }
 
-    /** Empties the index and refills it, so an entity that left the store leaves the index too, and
-     *  returns how many entities were indexed. Creates the index first, which is what gives a project
-     *  created before the entities index existed one. */
+    /** Drops the index and refills it, so an entity that left the store leaves the index too, and
+     *  returns how many entities were indexed. Dropping rather than emptying repairs an index created
+     *  before the entity mappings existed, which holds the document ones and rejects every entity, and
+     *  re-creating it is what gives a project older than the entities index one at all. */
     public int rebuild(String projectId) throws IOException {
+        if (!Project.NAME_PATTERN.matcher(projectId).matches()) {
+            // an unvalidated id reaches a _delete_by_query URL path, where "*" is a whole-cluster wipe
+            throw new IllegalArgumentException("Bad format for project id : '" + projectId + "'");
+        }
         String indexName = Project.entitiesIndex(projectId);
+        indexer.deleteIndex(indexName);
         indexer.createEntitiesIndex(projectId);
-        indexer.deleteAll(indexName);
         try {
             return statements.entities(projectId, entities -> index(indexName, entities.iterator()));
         } catch (UncheckedIOException e) {

@@ -113,7 +113,7 @@
             Project effectiveProject = isProjectSourcePathNull(project) ? withDefaultSourcePath(project) : project;
             if (!dataDirVerifier.allowed(effectiveProject.getSourcePath())) {
                 return PayloadFormatter.error(String.format("`sourcePath` must not be outside %s.", dataDirVerifier.value()), HttpStatus.BAD_REQUEST);
-            } else if (!repository.save(effectiveProject) || !this.createIndexOnce(effectiveProject.getId())) {
+            } else if (!saveAndCreateIndex(effectiveProject)) {
                 return PayloadFormatter.error("Unable to create the project", HttpStatus.INTERNAL_SERVER_ERROR);
             }
             return new Payload(effectiveProject).withCode(HttpStatus.CREATED);
@@ -166,7 +166,7 @@
             }
 
             if (isCreate) {
-                if (!repository.save(effectiveProject) || !createIndexOnce(effectiveProject.getId())) {
+                if (!saveAndCreateIndex(effectiveProject)) {
                     return PayloadFormatter.error("Unable to create the project", HttpStatus.INTERNAL_SERVER_ERROR);
                 }
                 return new Payload(effectiveProject).withCode(HttpStatus.CREATED);
@@ -199,7 +199,7 @@
             Logger logger = LoggerFactory.getLogger(getClass());
             logger.info("Deleted {}'s record: {}", id, repository.deleteAll(id));
             logger.info("Deleted {}'s index: {}", id, indexer.deleteAll(id));
-            logger.info("Deleted {}'s entities index: {}", id, indexer.deleteAll(Project.entitiesIndex(id)));
+            logger.info("Deleted {}'s entities index: {}", id, deleteEntitiesIndex(id));
             logger.info("Deleted {}'s queues: {}", id, deleteQueues(project));
             logger.info("Deleted {}'s report map: {}", id, deleteReportMap(project));
             propertiesProvider.get(DatashareCliOptions.ARTIFACT_DIR_OPT).ifPresent(dir -> {
@@ -282,6 +282,17 @@
             return getQueues(project).stream().allMatch(DocumentQueue::delete);
         }
 
+        // contained like the CLI cascade does it (ProjectAdminServiceImpl#cascade): a disposable
+        // projection must not abort the delete and leave the queues, report map and artifacts behind
+        boolean deleteEntitiesIndex(String id) {
+            try {
+                return indexer.deleteAll(Project.entitiesIndex(id));
+            } catch (RuntimeException | IOException e) {
+                LoggerFactory.getLogger(getClass()).error("cannot delete entities index for project {}", id, e);
+                return false;
+            }
+        }
+
         boolean deleteReportMap(Project project) {
             return getReportMap(project).delete();
         }
@@ -308,13 +319,26 @@
             return getReportMap(reportMapName);
         }
 
+        /** Saves the row and creates the indices, undoing the row if index creation fails: a row left
+         *  behind makes {@code projectExists} true, so every retry would answer 409 instead. */
+        boolean saveAndCreateIndex(Project project) {
+            if (!repository.save(project)) {
+                return false;
+            }
+            if (createIndexOnce(project.getId())) {
+                return true;
+            }
+            repository.deleteAll(project.getId());
+            return false;
+        }
+
         boolean createIndexOnce(String name) {
             try {
-                String checked = IndexAccessVerifier.checkIndices(name);
-                this.indexer.createIndex(checked);
-                this.indexer.createEntitiesIndex(checked);
+                this.indexer.createIndex(IndexAccessVerifier.checkIndices(name));
                 return true;
-            } catch (IllegalArgumentException | IOException e){
+            } catch (RuntimeException | IOException e){
+                // the ES indexer reports failures as ConfigurationException, a RuntimeException
+                LoggerFactory.getLogger(getClass()).error("cannot create the index for project {}", name, e);
                 return false;
             }
         }
