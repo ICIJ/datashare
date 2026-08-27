@@ -3,6 +3,7 @@ package org.icij.datashare.model;
 import org.junit.Test;
 
 import static org.fest.assertions.Assertions.assertThat;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.fail;
 
 public class StatementTest {
@@ -77,93 +78,22 @@ public class StatementTest {
     }
 
     @Test
-    public void test_a_null_id_is_rejected() {
-        try {
-            new Statement(null, "ftm", "person-1", "Person", "name", "Jane Doe", provenance);
-            fail("should have rejected a null id");
-        } catch (NullPointerException e) {
-            assertThat(e.getMessage()).contains("id");
-        }
+    public void test_a_null_component_is_rejected_and_names_the_field() {
+        assertRejectsNull("id", () -> new Statement(null, "ftm", "person-1", "Person", "name", "Jane Doe", provenance));
+        assertRejectsNull("model", () -> new Statement("id", null, "person-1", "Person", "name", "Jane Doe", provenance));
+        assertRejectsNull("entityId", () -> new Statement("id", "ftm", null, "Person", "name", "Jane Doe", provenance));
+        assertRejectsNull("entityType", () -> new Statement("id", "ftm", "person-1", null, "name", "Jane Doe", provenance));
+        assertRejectsNull("property", () -> new Statement("id", "ftm", "person-1", "Person", null, "Jane Doe", provenance));
+        assertRejectsNull("value", () -> new Statement("id", "ftm", "person-1", "Person", "name", null, provenance));
+        assertRejectsNull("provenance", () -> new Statement("id", "ftm", "person-1", "Person", "name", "Jane Doe", null));
+        assertRejectsNull("documentId", () -> new Statement.Provenance(null, "Sheet1", 12, "full_name"));
+        assertRejectsNull("column", () -> new Statement.Provenance("doc-1", "Sheet1", 12, null));
     }
 
-    @Test
-    public void test_a_null_model_is_rejected() {
-        try {
-            new Statement("id", null, "person-1", "Person", "name", "Jane Doe", provenance);
-            fail("should have rejected a null model");
-        } catch (NullPointerException e) {
-            assertThat(e.getMessage()).contains("model");
-        }
-    }
-
-    @Test
-    public void test_a_null_entity_id_is_rejected() {
-        try {
-            new Statement("id", "ftm", null, "Person", "name", "Jane Doe", provenance);
-            fail("should have rejected a null entityId");
-        } catch (NullPointerException e) {
-            assertThat(e.getMessage()).contains("entityId");
-        }
-    }
-
-    @Test
-    public void test_a_null_entity_type_is_rejected() {
-        try {
-            new Statement("id", "ftm", "person-1", null, "name", "Jane Doe", provenance);
-            fail("should have rejected a null entityType");
-        } catch (NullPointerException e) {
-            assertThat(e.getMessage()).contains("entityType");
-        }
-    }
-
-    @Test
-    public void test_a_null_property_is_rejected() {
-        try {
-            new Statement("id", "ftm", "person-1", "Person", null, "Jane Doe", provenance);
-            fail("should have rejected a null property");
-        } catch (NullPointerException e) {
-            assertThat(e.getMessage()).contains("property");
-        }
-    }
-
-    @Test
-    public void test_a_null_value_is_rejected() {
-        try {
-            new Statement("id", "ftm", "person-1", "Person", "name", null, provenance);
-            fail("should have rejected a null value");
-        } catch (NullPointerException e) {
-            assertThat(e.getMessage()).contains("value");
-        }
-    }
-
-    @Test
-    public void test_a_null_provenance_is_rejected() {
-        try {
-            new Statement("id", "ftm", "person-1", "Person", "name", "Jane Doe", null);
-            fail("should have rejected a null provenance");
-        } catch (NullPointerException e) {
-            assertThat(e.getMessage()).contains("provenance");
-        }
-    }
-
-    @Test
-    public void test_a_null_document_id_is_rejected() {
-        try {
-            new Statement.Provenance(null, "Sheet1", 12, "full_name");
-            fail("should have rejected a null documentId");
-        } catch (NullPointerException e) {
-            assertThat(e.getMessage()).contains("documentId");
-        }
-    }
-
-    @Test
-    public void test_a_null_column_is_rejected() {
-        try {
-            new Statement.Provenance("doc-1", "Sheet1", 12, null);
-            fail("should have rejected a null column");
-        } catch (NullPointerException e) {
-            assertThat(e.getMessage()).contains("column");
-        }
+    // Every component is guarded the same way, so the field the message names is the only thing worth
+    // pinning: a copy-pasted guard naming its neighbour is what this catches.
+    private static void assertRejectsNull(String field, Runnable construction) {
+        assertThat(assertThrows(NullPointerException.class, construction::run).getMessage()).contains(field);
     }
 
     @Test
