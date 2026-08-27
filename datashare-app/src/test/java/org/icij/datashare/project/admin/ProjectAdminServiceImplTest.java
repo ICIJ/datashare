@@ -197,36 +197,6 @@ public class ProjectAdminServiceImplTest {
     }
 
     @Test
-    public void test_create_creates_the_entities_index_too() throws Exception {
-        when(repository.getProject("foo")).thenReturn(null);
-        when(repository.save(any(Project.class))).thenReturn(true);
-
-        service.create(minimalRequest("foo"));
-
-        verify(indexer).createIndex("foo");
-        verify(indexer).createEntitiesIndex("foo");
-    }
-
-    @Test
-    public void test_create_compensates_db_when_the_entities_index_fails() throws Exception {
-        when(repository.getProject("foo")).thenReturn(null);
-        when(repository.save(any(Project.class))).thenReturn(true);
-        when(indexer.createEntitiesIndex("foo")).thenThrow(new IOException("ES down"));
-
-        try {
-            service.create(minimalRequest("foo"));
-            fail("expected IOException");
-        } catch (IOException e) {
-            assertThat(e.getMessage()).contains("ES down");
-        }
-
-        InOrder inOrder = Mockito.inOrder(repository, indexer);
-        inOrder.verify(repository).save(any(Project.class));
-        inOrder.verify(indexer).createEntitiesIndex("foo");
-        inOrder.verify(repository).deleteAll("foo");
-    }
-
-    @Test
     public void test_create_logs_suppressed_when_compensating_delete_also_fails() throws Exception {
         when(repository.getProject("foo")).thenReturn(null);
         when(repository.save(any(Project.class))).thenReturn(true);
@@ -366,6 +336,8 @@ public class ProjectAdminServiceImplTest {
         when(repository.getProject("foo")).thenReturn(project);
         when(repository.deleteAll("foo")).thenReturn(true);
         when(indexer.deleteAll("foo")).thenReturn(true);
+        when(indexer.exists("foo.entities")).thenReturn(true);
+        when(indexer.deleteAll("foo.entities")).thenReturn(true);
         DocumentQueue<Path> queue = mock(DocumentQueue.class);
         when(queue.delete()).thenReturn(true);
         when(documentCollectionFactory.getQueues(any(String.class), eq(Path.class))).thenReturn(List.of(queue));
@@ -400,6 +372,8 @@ public class ProjectAdminServiceImplTest {
         when(repository.getProject("foo")).thenReturn(project);
         when(repository.deleteAll("foo")).thenReturn(true);
         when(indexer.deleteAll("foo")).thenReturn(true);
+        when(indexer.exists("foo.entities")).thenReturn(true);
+        when(indexer.deleteAll("foo.entities")).thenReturn(true);
         DocumentQueue<Path> queue = mock(DocumentQueue.class);
         when(queue.delete()).thenReturn(true);
         when(documentCollectionFactory.getQueues(any(String.class), eq(Path.class))).thenReturn(List.of(queue));
@@ -411,16 +385,18 @@ public class ProjectAdminServiceImplTest {
 
         ProjectDeleted deleted = service.delete("foo", new ProjectDeleteOptions(false));
 
+        verify(indexer).deleteAll("foo");
         verify(indexer).deleteAll("foo.entities");
         assertThat(deleted.indexDeleted()).isTrue();
     }
 
     @Test
-    public void test_delete_reports_index_deleted_when_only_the_entities_index_fails() throws Exception {
+    public void test_delete_reports_the_index_step_failed_when_only_the_entities_index_fails() throws Exception {
         Project project = new Project("foo");
         when(repository.getProject("foo")).thenReturn(project);
         when(repository.deleteAll("foo")).thenReturn(true);
         when(indexer.deleteAll("foo")).thenReturn(true);
+        when(indexer.exists("foo.entities")).thenReturn(true);
         when(indexer.deleteAll("foo.entities")).thenThrow(new IOException("ES down"));
         DocumentQueue<Path> queue = mock(DocumentQueue.class);
         when(queue.delete()).thenReturn(true);
@@ -433,6 +409,28 @@ public class ProjectAdminServiceImplTest {
 
         ProjectDeleted deleted = service.delete("foo", new ProjectDeleteOptions(false));
 
+        verify(indexer).deleteAll("foo.entities");
+        assertThat(deleted.indexDeleted()).isFalse();
+        assertThat(deleted.dbDeleted()).isTrue();
+        assertThat(deleted.queuesDeleted()).isTrue();
+    }
+
+    @Test
+    public void test_delete_reports_index_deleted_when_the_project_has_no_entities_index() throws Exception {
+        when(repository.getProject("foo")).thenReturn(new Project("foo"));
+        when(repository.deleteAll("foo")).thenReturn(true);
+        when(indexer.deleteAll("foo")).thenReturn(true);
+        when(indexer.exists("foo.entities")).thenReturn(false);
+        when(documentCollectionFactory.getQueues(any(String.class), eq(Path.class))).thenReturn(List.of());
+        ReportMap reportMap = mock(ReportMap.class);
+        when(reportMap.delete()).thenReturn(true);
+        when(documentCollectionFactory.createMap(any())).thenReturn(reportMap);
+        when(propertiesProvider.createOverriddenWith(any())).thenReturn(new Properties());
+        when(propertiesProvider.get(any())).thenReturn(Optional.empty());
+
+        ProjectDeleted deleted = service.delete("foo", new ProjectDeleteOptions(false));
+
+        verify(indexer, never()).deleteAll("foo.entities");
         assertThat(deleted.indexDeleted()).isTrue();
     }
 
@@ -484,6 +482,8 @@ public class ProjectAdminServiceImplTest {
     public void test_delete_continues_cascade_when_db_delete_fails() throws Exception {
         when(repository.getProject("foo")).thenReturn(new Project("foo"));
         when(indexer.deleteAll("foo")).thenReturn(true);
+        when(indexer.exists("foo.entities")).thenReturn(true);
+        when(indexer.deleteAll("foo.entities")).thenReturn(true);
         when(repository.deleteAll("foo")).thenThrow(new RuntimeException("DB down"));
         DocumentQueue<Path> queue = mock(DocumentQueue.class);
         when(queue.delete()).thenReturn(true);

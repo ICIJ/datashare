@@ -167,26 +167,16 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
                 .contain("\"sourcePath\":\"file:///vault/foo\"");
     }
     @Test
-    public void test_create_project_creates_the_entities_index() throws IOException {
+    public void test_create_project_undoes_the_row_when_the_index_cannot_be_created() throws IOException {
         String body = "{ \"name\": \"foo\", \"sourcePath\": \"/vault/foo\" }";
-        when(indexer.createIndex("foo")).thenReturn(true);
-        when(repository.getProject("foo")).thenReturn(null);
-        when(repository.save((Project) any())).thenReturn(true);
-
-        post("/api/project/", body).should().respond(201);
-
-        verify(indexer).createEntitiesIndex("foo");
-    }
-
-    @Test
-    public void test_create_project_fails_when_the_entities_index_cannot_be_created() throws IOException {
-        String body = "{ \"name\": \"foo\", \"sourcePath\": \"/vault/foo\" }";
-        when(indexer.createIndex("foo")).thenReturn(true);
-        when(indexer.createEntitiesIndex("foo")).thenThrow(new IOException("ES down"));
+        // the ES indexer reports a failure as ConfigurationException, a RuntimeException
+        when(indexer.createIndex("foo")).thenThrow(new RuntimeException("ES down"));
         when(repository.getProject("foo")).thenReturn(null);
         when(repository.save((Project) any())).thenReturn(true);
 
         post("/api/project/", body).should().respond(500);
+
+        verify(repository).deleteAll("foo");
     }
 
     @Test
@@ -616,6 +606,21 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
         delete("/api/project/local-datashare").should().respond(204);
 
         verify(indexer).deleteAll("local-datashare");
+        verify(indexer).deleteAll("local-datashare.entities");
+    }
+
+    @Test
+    public void test_delete_project_finishes_the_cascade_when_the_entities_index_fails() throws Exception {
+        Project foo = new Project("local-datashare");
+        when(repository.getProjects(any())).thenReturn(List.of(foo));
+        when(repository.deleteAll("local-datashare")).thenReturn(true);
+        when(indexer.deleteAll("local-datashare")).thenReturn(true);
+        when(indexer.deleteAll("local-datashare.entities")).thenThrow(new IOException("ES down"));
+
+        // 204 rather than the 500 an uncontained failure would return: the queue, report-map and
+        // artifact steps that come after this one still run
+        delete("/api/project/local-datashare").should().respond(204);
+
         verify(indexer).deleteAll("local-datashare.entities");
     }
 

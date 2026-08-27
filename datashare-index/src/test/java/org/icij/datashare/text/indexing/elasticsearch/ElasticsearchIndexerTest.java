@@ -9,7 +9,6 @@ import co.elastic.clients.transport.rest_client.RestClientTransport;
 import org.apache.http.ConnectionClosedException;
 import org.apache.http.util.EntityUtils;
 import org.elasticsearch.client.Request;
-import org.elasticsearch.client.ResponseException;
 import org.elasticsearch.client.RestClient;
 import org.icij.datashare.Entity;
 import org.icij.datashare.PropertiesProvider;
@@ -24,6 +23,7 @@ import org.icij.datashare.text.indexing.ExtractedText;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.text.indexing.SearchQuery;
 import org.icij.datashare.text.indexing.SearchedText;
+import org.junit.Before;
 import org.junit.After;
 import org.junit.ClassRule;
 import org.junit.Test;
@@ -73,9 +73,16 @@ public class ElasticsearchIndexerTest {
         es.removeAll();
     }
 
+    // both hooks, not just @After: a run killed before the teardown leaves the index behind and
+    // createEntitiesIndex would then answer false
+    @Before
+    public void setUpEntities() throws IOException {
+        es.delete("prj-entities", "prj-entities.entities");
+    }
+
     @After
     public void tearDownEntities() throws IOException {
-        es.delete("prj-entities.entities");
+        es.delete("prj-entities", "prj-entities.entities");
     }
 
     @Test
@@ -963,18 +970,48 @@ public class ElasticsearchIndexerTest {
         assertThat(indexer.createEntitiesIndex("prj-entities")).isFalse();
     }
 
+    // "dynamic": false rather than "strict": indexJoinFieldName and indexTypeFieldName are
+    // configurable, so a deployment that renames either must not have every write refused
     @Test
-    public void test_the_entities_index_refuses_an_unmapped_top_level_field() throws Exception {
+    public void test_the_entities_index_ignores_an_unmapped_top_level_field() throws Exception {
         indexer.createEntitiesIndex("prj-entities");
 
         RestClient restClient = ((RestClientTransport) es.client._transport()).restClient();
         Request request = new Request("PUT", "/prj-entities.entities/_doc/e-1");
         request.setJsonEntity("{\"surprise\": \"value\"}");
-        try {
-            restClient.performRequest(request);
-            fail("strict mapping should have refused an unmapped field");
-        } catch (ResponseException e) {
-            assertThat(e.getResponse().getStatusLine().getStatusCode()).isEqualTo(400);
-        }
+        restClient.performRequest(request);
+
+        String mapping = EntityUtils.toString(restClient.performRequest(
+                new Request("GET", "/prj-entities.entities/_mapping")).getEntity());
+        assertThat(mapping).excludes("surprise");
+    }
+
+    @Test
+    public void test_create_index_creates_the_entities_index_too() throws Exception {
+        assertThat(indexer.createIndex("prj-entities")).isTrue();
+
+        assertThat(indexer.exists("prj-entities.entities")).isTrue();
+        assertThat(indexer.createEntitiesIndex("prj-entities")).isFalse();
+    }
+
+    @Test
+    public void test_create_index_of_an_entities_name_uses_the_entity_mappings() throws Exception {
+        assertThat(indexer.createIndex("prj-entities.entities")).isTrue();
+
+        RestClient restClient = ((RestClientTransport) es.client._transport()).restClient();
+        String mapping = EntityUtils.toString(restClient.performRequest(
+                new Request("GET", "/prj-entities.entities/_mapping")).getEntity());
+        assertThat(mapping).contains("entity_properties");
+        assertThat(indexer.exists("prj-entities.entities.entities")).isFalse();
+    }
+
+    @Test
+    public void test_delete_index_drops_the_mappings_so_they_can_be_replaced() throws Exception {
+        indexer.createIndex("prj-entities.entities");
+
+        assertThat(indexer.deleteIndex("prj-entities.entities")).isTrue();
+
+        assertThat(indexer.exists("prj-entities.entities")).isFalse();
+        assertThat(indexer.deleteIndex("prj-entities.entities")).isFalse();
     }
 }

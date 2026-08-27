@@ -11,10 +11,14 @@ import java.util.Map;
 import java.util.Set;
 
 /** An entity rebuilt from the statement store, in the shape the "&lt;project&gt;.entities" index holds:
- *  the property keys are the namespaced wire form ("ftm:birthDate") the statements were stored under. */
+ *  the property keys are the namespaced wire form ("ftm_birthDate") the statements were stored under. */
 @IndexType("ExtractedEntity")
-public record ExtractedEntity(@IndexId String id, String model, Set<String> types, Set<String> modelVersions,
+public record ExtractedEntity(@IndexId String entityId, String model, Set<String> types, Set<String> modelVersions,
                               Set<String> documentIds, Map<String, List<String>> properties) implements Entity {
+    /** Not the colon {@link org.icij.datashare.model.Statement#qualifiedProperty()} stores: a colon is
+     *  the field/value delimiter of elasticsearch's query_string, so "properties.ftm:name:Jane" is a
+     *  parse error and every client would have to escape the separator to reach a single property. */
+    private static final String NAMESPACE_SEPARATOR = "_";
 
     // ModelEntity's keys are bare ("birthDate"): JooqStatementRepository.toRow strips the model
     // prefix a statement's property is stored under. The namespace goes back on here, at the index
@@ -22,13 +26,16 @@ public record ExtractedEntity(@IndexId String id, String model, Set<String> type
     // consume on the bare form.
     public static ExtractedEntity from(ModelEntity entity) {
         Map<String, List<String>> namespaced = new LinkedHashMap<>();
-        entity.properties().forEach((property, values) -> namespaced.put(entity.model() + ":" + property, values));
+        entity.properties().forEach((property, values) ->
+                namespaced.put(entity.model() + NAMESPACE_SEPARATOR + property, values));
         return new ExtractedEntity(entity.id(), entity.model(), entity.types(), entity.modelVersions(),
                 entity.documentIds(), namespaced);
     }
 
+    /** The document id, which the entity id alone cannot be: the statement store emits one entity per
+     *  (entity id, model) pair, so two models describing the same entity would overwrite each other. */
     @Override
     public String getId() {
-        return id;
+        return model + NAMESPACE_SEPARATOR + entityId;
     }
 }

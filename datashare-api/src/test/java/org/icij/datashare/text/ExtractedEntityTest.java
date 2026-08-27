@@ -11,44 +11,45 @@ import java.util.Set;
 import static org.fest.assertions.Assertions.assertThat;
 
 public class ExtractedEntityTest {
-    // Bare keys, the shape JooqStatementRepository.toRow actually produces once it strips the
-    // model prefix off the stored property.
-    private final ModelEntity source = new ModelEntity("ftm", "person-1", Set.of("Person", "LegalEntity"),
+    private final ModelEntity bareKeyedSource = new ModelEntity("ftm", "person-1", Set.of("Person", "LegalEntity"),
             Set.of("4.10.2"), Set.of("doc-1", "doc-2"),
             Map.of("name", List.of("Jane Doe", "J. Doe"), "birthDate", List.of("1980-04-02")));
 
     @Test
     public void test_projects_every_field_of_the_model_entity() {
-        ExtractedEntity entity = ExtractedEntity.from(source);
+        ExtractedEntity entity = ExtractedEntity.from(bareKeyedSource);
 
-        assertThat(entity.getId()).isEqualTo("person-1");
+        assertThat(entity.entityId()).isEqualTo("person-1");
+        assertThat(entity.getId()).isEqualTo("ftm_person-1");
         assertThat(entity.model()).isEqualTo("ftm");
         assertThat(entity.modelVersions()).containsOnly("4.10.2");
         assertThat(entity.types()).containsOnly("Person", "LegalEntity");
         assertThat(entity.documentIds()).containsOnly("doc-1", "doc-2");
-        assertThat(entity.properties().get("ftm:name")).containsExactly("Jane Doe", "J. Doe");
-        assertThat(entity.properties().get("ftm:birthDate")).containsExactly("1980-04-02");
+        assertThat(entity.properties().get("ftm_name")).containsExactly("Jane Doe", "J. Doe");
+        assertThat(entity.properties().get("ftm_birthDate")).containsExactly("1980-04-02");
     }
 
     @Test
     public void test_the_index_type_is_the_class_name() {
-        assertThat(JsonObjectMapper.getType(ExtractedEntity.from(source))).isEqualTo("ExtractedEntity");
+        assertThat(JsonObjectMapper.getType(ExtractedEntity.from(bareKeyedSource))).isEqualTo("ExtractedEntity");
     }
 
     @Test
     public void test_serializes_the_namespaced_properties_as_written() {
-        Map<String, Object> json = JsonObjectMapper.getJson(ExtractedEntity.from(source));
+        Map<String, Object> json = JsonObjectMapper.getJson(ExtractedEntity.from(bareKeyedSource));
 
         assertThat(json.get("model")).isEqualTo("ftm");
-        assertThat(((Map<?, ?>) json.get("properties")).get("ftm:birthDate")).isEqualTo(List.of("1980-04-02"));
+        assertThat(json.get("entityId")).isEqualTo("person-1");
+        assertThat(json.get("id")).isEqualTo("ftm_person-1");
+        assertThat(((Map<?, ?>) json.get("properties")).get("ftm_birthDate")).isEqualTo(List.of("1980-04-02"));
     }
 
     @Test
     public void test_reads_back_the_document_it_wrote() {
-        Map<String, Object> json = JsonObjectMapper.getJson(ExtractedEntity.from(source));
+        Map<String, Object> json = JsonObjectMapper.getJson(ExtractedEntity.from(bareKeyedSource));
 
         ExtractedEntity read = JsonObjectMapper.getObject(json, ExtractedEntity.class);
 
-        assertThat(read).isEqualTo(ExtractedEntity.from(source));
+        assertThat(read).isEqualTo(ExtractedEntity.from(bareKeyedSource));
     }
 }
