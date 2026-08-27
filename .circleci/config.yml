@@ -230,9 +230,11 @@ jobs:
             - /tmp/datashare-client/node_modules
       - run:
           name: Run tests
+          environment:
+            VITE_ES_HOST: http://localhost:9200
           command: |
             cd /tmp/datashare-client
-            yarn test:unit --silent --minWorkers 1 --maxWorkers 2  
+            yarn test:unit --silent --minWorkers 1 --maxWorkers 2
       - run:
           name: Build the front for distribution
           command: |
