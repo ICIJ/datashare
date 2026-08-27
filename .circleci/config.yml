@@ -231,12 +231,16 @@ jobs:
       - run:
           name: Wait for Elasticsearch
           command: |
-            for i in $(seq 1 30); do
-              curl -sf http://localhost:9200/_cluster/health && exit 0
-              echo "Elasticsearch not ready yet, retrying..."
-              sleep 2
+            for i in $(seq 1 60); do
+              if curl -sf http://localhost:9200/_cluster/health; then
+                echo
+                exit 0
+              fi
+              echo "Elasticsearch not ready yet (attempt $i/60), retrying..."
+              sleep 5
             done
-            echo "Elasticsearch never became ready" >&2
+            echo "Elasticsearch never became ready. Last response:" >&2
+            curl -v http://localhost:9200/_cluster/health >&2
             exit 1
       - run:
           name: Run tests
