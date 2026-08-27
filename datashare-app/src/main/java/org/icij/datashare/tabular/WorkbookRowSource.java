@@ -53,8 +53,6 @@ public class WorkbookRowSource implements RowSource {
         try {
             workbook = WorkbookFactory.create(source);
         } catch (IOException | RuntimeException failure) {
-            // Swallowing the close: the workbook never opened, so a close failure on top of that adds
-            // nothing the caller can act on and must not mask the failure that matters.
             closeQuietly(source);
             throw failure;
         }

@@ -44,28 +44,28 @@ public class JooqStatementRepositoryTest {
 
     @Test
     public void test_save_writes_one_row_per_statement() {
-        Collection<Statement> statements = List.of(statement("entity-1", "Person", "birthDate", "1970-01-01"));
-        assertThat(repository.save("prj", "run-1", statements)).isEqualTo(1);
+        List<Statement> statements = List.of(statement("entity-1", "Person", "birthDate", "1970-01-01"));
+        assertThat(repository.save("prj", "run-1", statements.stream())).isEqualTo(1);
         assertThat(dbRule.dsl().fetchCount(STATEMENT)).isEqualTo(1);
     }
 
     @Test
     public void test_save_fills_the_ontology_version_without_the_caller_supplying_it() {
-        repository.save("prj", "run-1", List.of(statement("entity-1", "Person", "birthDate", "1970-01-01")));
+        repository.save("prj", "run-1", Stream.of(statement("entity-1", "Person", "birthDate", "1970-01-01")));
         assertThat(dbRule.dsl().select(STATEMENT.MODEL_VERSION).from(STATEMENT).fetchOne().value1())
                 .isEqualTo("4.10.2");
     }
 
     @Test
     public void test_save_stores_the_property_namespaced() {
-        repository.save("prj", "run-1", List.of(statement("entity-1", "Person", "birthDate", "1970-01-01")));
+        repository.save("prj", "run-1", Stream.of(statement("entity-1", "Person", "birthDate", "1970-01-01")));
         assertThat(dbRule.dsl().select(STATEMENT.PROPERTY).from(STATEMENT).fetchOne().value1())
                 .isEqualTo("ftm:birthDate");
     }
 
     @Test
     public void test_save_stores_the_provenance() {
-        repository.save("prj", "run-1", List.of(statement("entity-1", "Person", "birthDate", "1970-01-01")));
+        repository.save("prj", "run-1", Stream.of(statement("entity-1", "Person", "birthDate", "1970-01-01")));
         var row = dbRule.dsl().selectFrom(STATEMENT).fetchOne();
         assertThat(row.getDocId()).isEqualTo("doc-1");
         assertThat(row.getSheet()).isEqualTo("");
@@ -76,35 +76,36 @@ public class JooqStatementRepositoryTest {
     }
 
     @Test
-    public void test_saving_the_same_data_twice_is_a_no_op() {
-        Collection<Statement> statements = List.of(statement("entity-1", "Person", "birthDate", "1970-01-01"));
-        repository.save("prj", "run-1", statements);
+    public void test_saving_the_same_data_twice_keeps_one_row_and_dates_the_new_observation() {
+        List<Statement> statements = List.of(statement("entity-1", "Person", "birthDate", "1970-01-01"));
+        repository.save("prj", "run-1", statements.stream());
         var first = dbRule.dsl().selectFrom(STATEMENT).fetchOne();
 
         DatashareTime.getInstance().addMilliseconds(60_000);
-        assertThat(repository.save("prj", "run-2", statements)).isEqualTo(0);
+        assertThat(repository.save("prj", "run-2", statements.stream())).isEqualTo(1);
 
         assertThat(dbRule.dsl().fetchCount(STATEMENT)).isEqualTo(1);
         var second = dbRule.dsl().selectFrom(STATEMENT).fetchOne();
         assertThat(second.getId()).isEqualTo(first.getId());
         assertThat(second.getFirstSeen()).isEqualTo(first.getFirstSeen());
-        assertThat(second.getRunId()).isEqualTo(first.getRunId());
+        assertThat(second.getLastSeen()).isNotEqualTo(first.getLastSeen());
+        assertThat(second.getRunId()).isEqualTo("run-2");
     }
 
     @Test
     public void test_a_different_value_is_a_different_statement() {
-        Collection<Statement> statements = List.of(
+        List<Statement> statements = List.of(
                 statement("entity-1", "Person", "birthDate", "1970-01-01"),
                 statement("entity-1", "Person", "birthDate", "1980-02-02"));
-        assertThat(repository.save("prj", "run-1", statements)).isEqualTo(2);
+        assertThat(repository.save("prj", "run-1", statements.stream())).isEqualTo(2);
         assertThat(dbRule.dsl().fetchCount(STATEMENT)).isEqualTo(2);
     }
 
     @Test
     public void test_the_same_statement_saved_under_two_projects_keeps_both_rows() {
-        Collection<Statement> statements = List.of(statement("entity-1", "Person", "birthDate", "1970-01-01"));
-        repository.save("prj-a", "run-1", statements);
-        repository.save("prj-b", "run-2", statements);
+        List<Statement> statements = List.of(statement("entity-1", "Person", "birthDate", "1970-01-01"));
+        repository.save("prj-a", "run-1", statements.stream());
+        repository.save("prj-b", "run-2", statements.stream());
 
         assertThat(dbRule.dsl().fetchCount(STATEMENT)).isEqualTo(2);
         assertThat(repository.entity("prj-a", "entity-1")).isNotEqualTo(Optional.empty());
@@ -117,7 +118,7 @@ public class JooqStatementRepositoryTest {
 
     @Test
     public void test_entity_regroups_its_statements() {
-        repository.save("prj", "run-1", List.of(
+        repository.save("prj", "run-1", Stream.of(
                 statement("e-1", "Person", "name", "Ada"),
                 statement("e-1", "Person", "birthDate", "1815-12-10")));
 
@@ -129,7 +130,7 @@ public class JooqStatementRepositoryTest {
 
     @Test
     public void test_an_entity_keeps_every_one_of_its_types() {
-        repository.save("prj", "run-1", List.of(
+        repository.save("prj", "run-1", Stream.of(
                 statement("e-1", "Person", "name", "Ada"),
                 statement("e-1", "LegalEntity", "name", "Ada")));
 
@@ -138,7 +139,7 @@ public class JooqStatementRepositoryTest {
 
     @Test
     public void test_a_property_keeps_every_one_of_its_values() {
-        repository.save("prj", "run-1", List.of(
+        repository.save("prj", "run-1", Stream.of(
                 statement("e-1", "Person", "name", "Ada"),
                 statement("e-1", "Person", "name", "Ada Lovelace")));
 
@@ -148,17 +149,17 @@ public class JooqStatementRepositoryTest {
 
     @Test
     public void test_entity_is_empty_when_the_project_holds_no_statement_for_it() {
-        repository.save("prj", "run-1", List.of(statement("e-1", "Person", "name", "Ada")));
+        repository.save("prj", "run-1", Stream.of(statement("e-1", "Person", "name", "Ada")));
         assertThat(repository.entity("other", "e-1")).isEqualTo(Optional.empty());
         assertThat(repository.entity("prj", "e-2")).isEqualTo(Optional.empty());
     }
 
     @Test
     public void test_entities_returns_every_entity_of_the_project_and_no_other() {
-        repository.save("prj", "run-1", List.of(
+        repository.save("prj", "run-1", Stream.of(
                 statement("e-1", "Person", "name", "Ada"),
                 statement("e-2", "Person", "name", "Grace")));
-        repository.save("other", "run-2", List.of(statement("e-3", "Person", "name", "Alan")));
+        repository.save("other", "run-2", Stream.of(statement("e-3", "Person", "name", "Alan")));
 
         List<ModelEntity> found = repository.entities("prj", Stream::toList);
         assertThat(found.stream().map(ModelEntity::id).toList()).containsOnly("e-1", "e-2");
@@ -166,7 +167,7 @@ public class JooqStatementRepositoryTest {
 
     @Test
     public void test_entities_does_not_split_an_entity_across_two_results() {
-        repository.save("prj", "run-1", List.of(
+        repository.save("prj", "run-1", Stream.of(
                 statement("e-1", "Person", "name", "Ada"),
                 statement("e-2", "Person", "name", "Grace"),
                 statement("e-1", "Person", "birthDate", "1815-12-10")));
@@ -179,23 +180,23 @@ public class JooqStatementRepositoryTest {
 
     @Test
     public void test_property_values_come_back_in_a_stable_order_across_a_resave() {
-        Collection<Statement> statements = List.of(
+        List<Statement> statements = List.of(
                 statement("e-1", "Person", "tag", "b"),
                 statement("e-1", "Person", "tag", "a"),
                 statement("e-1", "Person", "tag", "c"));
 
-        repository.save("prj", "run-1", statements);
+        repository.save("prj", "run-1", statements.stream());
         assertThat(repository.entity("prj", "e-1").orElseThrow().properties().get("tag"))
                 .isEqualTo(List.of("a", "b", "c"));
 
-        repository.save("prj", "run-2", statements);
+        repository.save("prj", "run-2", statements.stream());
         assertThat(repository.entity("prj", "e-1").orElseThrow().properties().get("tag"))
                 .isEqualTo(List.of("a", "b", "c"));
     }
 
     @Test
     public void test_property_values_are_ordered_the_same_way_on_every_dialect() {
-        repository.save("prj", "run-1", List.of(
+        repository.save("prj", "run-1", Stream.of(
                 statement("e-1", "Person", "tag", "b-c"),
                 statement("e-1", "Person", "tag", "Zoe"),
                 statement("e-1", "Person", "tag", "abc"),
@@ -215,6 +216,7 @@ public class JooqStatementRepositoryTest {
 
         assertThat(entities.size()).isEqualTo(2);
         assertThat(entities.stream().allMatch(entity -> entity.id().equals("shared"))).isTrue();
+        assertThat(entities.stream().map(ModelEntity::model).toList()).containsOnly("ftm", "other");
     }
 
     @Test
@@ -255,12 +257,13 @@ public class JooqStatementRepositoryTest {
                 .set(STATEMENT.ROW_NUMBER, 1L)
                 .set(STATEMENT.COLUMN_NAME, "name")
                 .set(STATEMENT.FIRST_SEEN, now)
+                .set(STATEMENT.LAST_SEEN, now)
                 .execute();
     }
 
     @Test
     public void test_entities_gives_the_connection_back_to_the_pool_on_a_short_circuit() {
-        repository.save("prj", "run-1", List.of(
+        repository.save("prj", "run-1", Stream.of(
                 statement("e-1", "Person", "name", "Ada"),
                 statement("e-2", "Person", "name", "Grace")));
 
@@ -277,23 +280,35 @@ public class JooqStatementRepositoryTest {
                 statement("e-2", "Person", "name", "Grace"),
                 statement("e-3", "Person", "name", "Alan"));
 
-        assertThat(chunked.save("prj", "run-1", statements)).isEqualTo(3);
+        assertThat(chunked.save("prj", "run-1", statements.stream())).isEqualTo(3);
         assertThat(dbRule.dsl().fetchCount(STATEMENT)).isEqualTo(3);
     }
 
+    // Only pgjdbc opens a server-side cursor, and only outside autocommit. SQLite ignores fetchSize
+    // and would hold a shared lock on the whole file for as long as the consumer runs, so it must be
+    // left in autocommit: this pins both halves of that split.
     @Test
-    public void test_entities_streams_on_a_non_autocommit_connection_with_a_fetch_size() {
-        repository.save("prj", "run-1", List.of(statement("e-1", "Person", "name", "Ada")));
+    public void test_entities_streams_out_of_autocommit_on_postgres_only() {
+        repository.save("prj", "run-1", Stream.of(statement("e-1", "Person", "name", "Ada")));
+        SQLDialect dialect = RepositoryFactoryImpl.guessSqlDialectFrom(dbRule.dataSourceUrl);
 
         AtomicBoolean autoCommit = new AtomicBoolean(true);
         AtomicInteger fetchSize = new AtomicInteger(-1);
         JooqStatementRepository capturingRepository = new JooqStatementRepository(
-                capturingDataSource(dbRule.dataSource, autoCommit, fetchSize),
-                RepositoryFactoryImpl.guessSqlDialectFrom(dbRule.dataSourceUrl));
+                capturingDataSource(dbRule.dataSource, autoCommit, fetchSize), dialect);
 
         assertThat(capturingRepository.entities("prj", Stream::findFirst).isPresent()).isTrue();
-        assertThat(autoCommit.get()).isFalse();
-        assertThat(fetchSize.get()).isEqualTo(1_000);
+        assertThat(autoCommit.get()).isEqualTo(dialect != SQLDialect.POSTGRES);
+        assertThat(fetchSize.get()).isEqualTo(dialect == SQLDialect.POSTGRES ? 1_000 : -1);
+    }
+
+    @Test
+    public void test_an_entity_names_the_model_it_was_rebuilt_from() {
+        repository.save("prj", "run-1", Stream.of(statement("e-1", "Person", "name", "Ada")));
+
+        assertThat(repository.entity("prj", "e-1").orElseThrow().model()).isEqualTo("ftm");
+        List<String> models = repository.entities("prj", entities -> entities.map(ModelEntity::model).toList());
+        assertThat(models).containsOnly("ftm");
     }
 
     private int activeConnections() {

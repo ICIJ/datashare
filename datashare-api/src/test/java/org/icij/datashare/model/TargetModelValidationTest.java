@@ -14,7 +14,7 @@ public class TargetModelValidationTest {
 
     @Test
     public void test_a_valid_entity_has_no_violation() {
-        assertThat(model.validate(new ModelEntity("p-1", Set.of("Person"),
+        assertThat(model.validate(new ModelEntity("fake", "p-1", Set.of("Person"),
                 Map.of("name", List.of("Jane Doe"))))).isEmpty();
     }
 
@@ -28,7 +28,7 @@ public class TargetModelValidationTest {
     @Test
     public void test_an_unknown_type_is_a_violation() {
         List<TargetModel.Violation> violations = model.validate(
-                new ModelEntity("p-1", Set.of("Robot"), Map.of("name", List.of("Jane Doe"))));
+                new ModelEntity("fake", "p-1", Set.of("Robot"), Map.of("name", List.of("Jane Doe"))));
 
         assertThat(violations).hasSize(1);
         assertThat(violations.get(0).message()).contains("Robot");
@@ -38,7 +38,7 @@ public class TargetModelValidationTest {
     @Test
     public void test_an_abstract_type_cannot_be_instantiated() {
         List<TargetModel.Violation> violations = model.validate(
-                new ModelEntity("t-1", Set.of("Thing"), Map.of("name", List.of("Jane Doe"))));
+                new ModelEntity("fake", "t-1", Set.of("Thing"), Map.of("name", List.of("Jane Doe"))));
 
         assertThat(violations).hasSize(1);
         assertThat(violations.get(0).message()).contains("Thing");
@@ -47,7 +47,7 @@ public class TargetModelValidationTest {
 
     @Test
     public void test_an_undeclared_property_is_a_violation() {
-        List<TargetModel.Violation> violations = model.validate(new ModelEntity("p-1", Set.of("Person"),
+        List<TargetModel.Violation> violations = model.validate(new ModelEntity("fake", "p-1", Set.of("Person"),
                 Map.of("name", List.of("Jane Doe"), "shoeSize", List.of("42"))));
 
         assertThat(violations).hasSize(1);
@@ -56,7 +56,7 @@ public class TargetModelValidationTest {
 
     @Test
     public void test_a_stub_property_cannot_be_written() {
-        List<TargetModel.Violation> violations = model.validate(new ModelEntity("p-1", Set.of("Person"),
+        List<TargetModel.Violation> violations = model.validate(new ModelEntity("fake", "p-1", Set.of("Person"),
                 Map.of("name", List.of("Jane Doe"), "employers", List.of("e-1"))));
 
         assertThat(violations).hasSize(1);
@@ -67,7 +67,7 @@ public class TargetModelValidationTest {
     @Test
     public void test_a_missing_required_property_is_a_violation() {
         List<TargetModel.Violation> violations = model.validate(
-                new ModelEntity("p-1", Set.of("Person"), Map.of()));
+                new ModelEntity("fake", "p-1", Set.of("Person"), Map.of()));
 
         assertThat(violations).hasSize(1);
         assertThat(violations.get(0).message()).contains("Person");
@@ -77,7 +77,7 @@ public class TargetModelValidationTest {
     @Test
     public void test_a_blank_required_property_is_a_violation() {
         List<TargetModel.Violation> violations = model.validate(
-                new ModelEntity("p-1", Set.of("Person"), Map.of("name", List.of(" "))));
+                new ModelEntity("fake", "p-1", Set.of("Person"), Map.of("name", List.of(" "))));
 
         assertThat(violations).hasSize(1);
         assertThat(violations.get(0).message()).contains("name");
@@ -85,7 +85,7 @@ public class TargetModelValidationTest {
 
     @Test
     public void test_an_edge_needs_both_of_its_ends() {
-        List<TargetModel.Violation> violations = model.validate(new ModelEntity("e-1", Set.of("Employment"),
+        List<TargetModel.Violation> violations = model.validate(new ModelEntity("fake", "e-1", Set.of("Employment"),
                 Map.of("employee", List.of("p-1"))));
 
         assertThat(violations).hasSize(1);
@@ -95,19 +95,19 @@ public class TargetModelValidationTest {
 
     @Test
     public void test_a_multi_type_entity_may_use_a_property_of_either_type() {
-        assertThat(model.validate(new ModelEntity("p-1", Set.of("Person", "Company"),
+        assertThat(model.validate(new ModelEntity("fake", "p-1", Set.of("Person", "Company"),
                 Map.of("name", List.of("Jane Doe"), "vatNumber", List.of("FR123"))))).isEmpty();
     }
 
     @Test
     public void test_a_concrete_type_makes_its_abstract_ancestor_instantiable() {
-        assertThat(model.validate(new ModelEntity("p-1", Set.of("Person", "Thing"),
+        assertThat(model.validate(new ModelEntity("fake", "p-1", Set.of("Person", "Thing"),
                 Map.of("name", List.of("Jane Doe"))))).isEmpty();
     }
 
     @Test
     public void test_an_undeclared_property_names_the_types_in_a_stable_order() {
-        List<TargetModel.Violation> violations = model.validate(new ModelEntity("p-1", Set.of("Person", "Company"),
+        List<TargetModel.Violation> violations = model.validate(new ModelEntity("fake", "p-1", Set.of("Person", "Company"),
                 Map.of("name", List.of("Jane Doe"), "shoeSize", List.of("42"))));
 
         assertThat(violations).hasSize(1);

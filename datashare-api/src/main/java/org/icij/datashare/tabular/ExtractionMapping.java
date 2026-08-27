@@ -1,6 +1,7 @@
 package org.icij.datashare.tabular;
 
 import org.icij.datashare.model.ModelEntity;
+import org.icij.datashare.model.Property;
 import org.icij.datashare.model.TargetModel;
 import org.icij.datashare.model.TargetModelRegistry;
 
@@ -9,6 +10,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
 
@@ -70,14 +72,37 @@ public record ExtractionMapping(String id, String projectId, String userId, Stri
             target.validate(probe(alias, entity)).forEach(violation ->
                     violations.add(new TargetModel.Violation("entity '" + alias + "': " + violation.message())));
             for (String property : new TreeSet<>(entity.properties().keySet())) {
-                String reference = entity.properties().get(property).entity();
-                if (reference != null && !entities.containsKey(reference)) {
-                    violations.add(new TargetModel.Violation("property '" + property + "' on entity '" + alias
-                            + "' references unknown entity '" + reference + "'"));
-                }
+                reference(target, alias, entity, property).ifPresent(violations::add);
             }
         }
         return violations;
+    }
+
+    /** A cross-reference has to point at an entity the mapping declares, through a property that
+     *  takes entities, whose declared range the referenced type satisfies: an edge pointing at the
+     *  wrong kind of entity is invalid in the target model, not just in this mapping. */
+    private Optional<TargetModel.Violation> reference(TargetModel target, String alias, EntityMapping entity,
+                                                      String property) {
+        String reference = entity.properties().get(property).entity();
+        if (reference == null) {
+            return Optional.empty();
+        }
+        String on = "property '" + property + "' on entity '" + alias + "' ";
+        EntityMapping referenced = entities.get(reference);
+        if (referenced == null) {
+            return Optional.of(new TargetModel.Violation(on + "references unknown entity '" + reference + "'"));
+        }
+        if (target.type(entity.type()).isEmpty()) {
+            return Optional.empty();
+        }
+        String range = target.property(entity.type(), property).map(Property::range).orElse(null);
+        if (range == null) {
+            return Optional.of(new TargetModel.Violation(on + "holds a value, not a reference to an entity"));
+        }
+        return target.type(referenced.type())
+                .filter(type -> !type.name().equals(range) && !type.ancestors().contains(range))
+                .map(type -> new TargetModel.Violation(on + "needs a '" + range + "', but entity '" + reference
+                        + "' is a '" + type.name() + "'"));
     }
 
     // A mapping declares which properties it fills, not what they will hold, so the model's own
@@ -87,6 +112,6 @@ public record ExtractionMapping(String id, String projectId, String userId, Stri
     private ModelEntity probe(String alias, EntityMapping entity) {
         Map<String, List<String>> properties = new LinkedHashMap<>();
         new TreeSet<>(entity.properties().keySet()).forEach(property -> properties.put(property, List.of("?")));
-        return new ModelEntity(alias, Set.of(entity.type()), properties);
+        return new ModelEntity(model, alias, Set.of(entity.type()), properties);
     }
 }

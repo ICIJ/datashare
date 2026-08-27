@@ -8,6 +8,11 @@ public class UnreadableModelResource extends RuntimeException {
         this.resource = resource;
     }
 
+    public UnreadableModelResource(String resource, String detail) {
+        super("cannot read the data model at '%s': %s".formatted(resource, detail));
+        this.resource = resource;
+    }
+
     public UnreadableModelResource(String resource, Throwable root) {
         super("cannot read the data model at '%s'".formatted(resource), root);
         this.resource = resource;

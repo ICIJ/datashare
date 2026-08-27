@@ -60,7 +60,7 @@ public interface TargetModel {
                     + " is abstract and cannot be instantiated"));
         }
         if (!types.isEmpty()) {
-            for (String property : entity.properties().keySet()) {
+            for (String property : new TreeSet<>(entity.properties().keySet())) {
                 List<Property> declarations = types.stream()
                         .map(type -> type.properties().get(property))
                         .filter(Objects::nonNull)

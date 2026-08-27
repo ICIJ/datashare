@@ -12,11 +12,11 @@ import static org.fest.assertions.Assertions.assertThat;
 import static org.junit.Assert.assertThrows;
 
 public class FtmTargetModelSerializationTest {
-    private final TargetModel model = new FtmTargetModel();
+    private static final TargetModel model = new FtmTargetModel();
 
     @Test
     public void test_round_trips_a_person() {
-        ModelEntity person = new ModelEntity("person-1", Set.of("Person"),
+        ModelEntity person = new ModelEntity("ftm", "person-1", Set.of("Person"),
                 Map.of("name", List.of("Jane Doe", "J. Doe"), "birthDate", List.of("1980-04-02")));
 
         assertThat(model.parse(model.serialize(person))).isEqualTo(person);
@@ -24,7 +24,7 @@ public class FtmTargetModelSerializationTest {
 
     @Test
     public void test_serializes_the_ftm_entity_shape() {
-        String json = model.serialize(new ModelEntity("person-1", Set.of("Person"),
+        String json = model.serialize(new ModelEntity("ftm", "person-1", Set.of("Person"),
                 Map.of("name", List.of("Jane Doe"))));
 
         assertThat(json).contains("\"id\":\"person-1\"");
@@ -34,7 +34,7 @@ public class FtmTargetModelSerializationTest {
 
     @Test
     public void test_collapses_a_multi_type_entity_to_its_most_specific_type() {
-        String json = model.serialize(new ModelEntity("person-1", Set.of("Person", "LegalEntity", "Thing"),
+        String json = model.serialize(new ModelEntity("ftm", "person-1", Set.of("Person", "LegalEntity", "Thing"),
                 Map.of("name", List.of("Jane Doe"))));
 
         assertThat(json).contains("\"schema\":\"Person\"");
@@ -42,7 +42,7 @@ public class FtmTargetModelSerializationTest {
 
     @Test
     public void test_types_with_no_common_schema_are_a_violation() {
-        ModelEntity confused = new ModelEntity("x-1", Set.of("Person", "Company"),
+        ModelEntity confused = new ModelEntity("ftm", "x-1", Set.of("Person", "Company"),
                 Map.of("name", List.of("Jane Doe")));
 
         List<TargetModel.Violation> violations = model.validate(confused);
@@ -53,7 +53,7 @@ public class FtmTargetModelSerializationTest {
 
     @Test
     public void test_serializing_types_with_no_common_schema_fails() {
-        assertThrowsContaining(() -> model.serialize(new ModelEntity("x-1", Set.of("Person", "Company"),
+        assertThrowsContaining(() -> model.serialize(new ModelEntity("ftm", "x-1", Set.of("Person", "Company"),
                 Map.of("name", List.of("Jane Doe")))), "Person", "Company");
     }
 
@@ -93,7 +93,7 @@ public class FtmTargetModelSerializationTest {
 
     @Test
     public void test_the_multi_type_entity_it_collapses_is_valid() {
-        assertThat(model.validate(new ModelEntity("person-1", Set.of("Person", "LegalEntity", "Thing"),
+        assertThat(model.validate(new ModelEntity("ftm", "person-1", Set.of("Person", "LegalEntity", "Thing"),
                 Map.of("name", List.of("Jane Doe"))))).isEmpty();
     }
 

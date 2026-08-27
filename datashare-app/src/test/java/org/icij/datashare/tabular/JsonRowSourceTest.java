@@ -124,6 +124,29 @@ public class JsonRowSourceTest {
     }
 
     @Test
+    public void test_content_after_an_empty_root_array_is_refused() throws Exception {
+        try {
+            read("[]\n[{\"id\":1}]");
+            fail("an empty array must not turn off the trailing-content check");
+        } catch (IllegalArgumentException failure) {
+            assertThat(failure.getMessage()).contains("content after the end of the json array");
+        }
+    }
+
+    @Test
+    public void test_a_deeply_nested_record_still_flattens() throws Exception {
+        StringBuilder open = new StringBuilder("[{");
+        for (int level = 0; level < 30; level++) {
+            open.append("\"k").append(level).append("\":{");
+        }
+        String json = open + "\"leaf\":1" + "}".repeat(31) + "]";
+
+        assertThat(read(json).get(0).values().keySet().iterator().next())
+                .isEqualTo("k0.k1.k2.k3.k4.k5.k6.k7.k8.k9.k10.k11.k12.k13.k14.k15.k16.k17.k18.k19"
+                        + ".k20.k21.k22.k23.k24.k25.k26.k27.k28.k29.leaf");
+    }
+
+    @Test
     public void test_an_empty_source_is_refused() throws Exception {
         for (String empty : List.of("", "   ")) {
             try {

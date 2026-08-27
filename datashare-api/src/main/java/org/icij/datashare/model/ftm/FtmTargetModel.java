@@ -42,8 +42,8 @@ public class FtmTargetModel implements TargetModel {
                 throw new UnreadableModelResource(RESOURCE);
             }
             JsonNode root = JsonObjectMapper.getMapper().readTree(stream);
-            this.version = root.get("version").asText();
-            this.types = types(root.get("schemata"));
+            this.version = present(root, "version").asText();
+            this.types = types(present(root, "schemata"));
         } catch (IOException e) {
             throw new UnreadableModelResource(RESOURCE, e);
         }
@@ -101,7 +101,7 @@ public class FtmTargetModel implements TargetModel {
                 throw new IllegalArgumentException("property '" + property + "' has a null value in FtM JSON");
             }
         });
-        return new ModelEntity(read.id(), Set.of(read.schema()), properties);
+        return new ModelEntity(name(), read.id(), Set.of(read.schema()), properties);
     }
 
     @Override
@@ -123,39 +123,51 @@ public class FtmTargetModel implements TargetModel {
     }
 
     private static Map<String, EntityType> types(JsonNode schemata) {
-        Map<String, Map<String, Property>> declared = new HashMap<>();
-        schemata.fields().forEachRemaining(schema ->
-                declared.put(schema.getKey(), properties(schema.getValue().get("properties"))));
+        Map<String, Map<String, Property>> properties = new HashMap<>();
+        Map<String, Set<String>> required = new HashMap<>();
+        schemata.properties().forEach(schema -> {
+            properties.put(schema.getKey(), properties(schema.getValue().path("properties")));
+            required.put(schema.getKey(), strings(schema.getValue().path("required")));
+        });
         Map<String, EntityType> types = new HashMap<>();
-        schemata.fields().forEachRemaining(schema ->
-                types.put(schema.getKey(), type(schema.getKey(), schema.getValue(), declared)));
+        schemata.properties().forEach(schema ->
+                types.put(schema.getKey(), type(schema.getKey(), schema.getValue(), properties, required)));
         return Map.copyOf(types);
     }
 
-    private static EntityType type(String name, JsonNode schema, Map<String, Map<String, Property>> declared) {
-        Set<String> ancestors = strings(schema.get("schemata"));
+    // The prebuilt ontology resolves neither properties nor required transitively, so both are merged
+    // over the ancestor closure here: 28 of the 69 concrete schemata require a property they inherit
+    // without redeclaring it. The type's own requirements come first so a violation list still reads
+    // in the order the schema states them.
+    private static EntityType type(String name, JsonNode schema, Map<String, Map<String, Property>> declared,
+                                   Map<String, Set<String>> declaredRequired) {
+        Set<String> ancestors = strings(present(schema, "schemata"));
         Map<String, Property> properties = new HashMap<>();
+        Set<String> required = new LinkedHashSet<>(declaredRequired.getOrDefault(name, Set.of()));
         // Two ancestors can declare the same property with different qnames: last one by name wins.
-        new TreeSet<>(ancestors).forEach(ancestor -> properties.putAll(declared.getOrDefault(ancestor, Map.of())));
+        new TreeSet<>(ancestors).forEach(ancestor -> {
+            properties.putAll(declared.getOrDefault(ancestor, Map.of()));
+            required.addAll(declaredRequired.getOrDefault(ancestor, Set.of()));
+        });
         return new EntityType(name, schema.path("abstract").asBoolean(false), ancestors,
-                Map.copyOf(properties), strings(schema.path("required")), edge(schema.path("edge")));
+                Map.copyOf(properties), Collections.unmodifiableSet(required), edge(schema.path("edge")));
     }
 
-    private static Map<String, Property> properties(JsonNode properties) {
+    private static Map<String, Property> properties(JsonNode node) {
         Map<String, Property> declared = new HashMap<>();
-        properties.fields().forEachRemaining(property ->
-                declared.put(property.getKey(), property(property.getValue())));
+        node.properties().forEach(property -> declared.put(property.getKey(), property(property.getValue())));
         return declared;
     }
 
     private static Property property(JsonNode property) {
-        return new Property(property.get("qname").asText(), text(property, "range"),
+        return new Property(present(property, "qname").asText(), property.path("range").asText(null),
                 property.path("stub").asBoolean(false));
     }
 
     private static EntityType.Edge edge(JsonNode edge) {
-        return edge.isMissingNode() ? null : new EntityType.Edge(edge.get("source").asText(),
-                edge.get("target").asText(), edge.get("directed").asBoolean(false));
+        return edge.isMissingNode() || edge.isNull() ? null
+                : new EntityType.Edge(present(edge, "source").asText(), present(edge, "target").asText(),
+                        edge.path("directed").asBoolean(false));
     }
 
     private static Set<String> strings(JsonNode array) {
@@ -164,8 +176,14 @@ public class FtmTargetModel implements TargetModel {
         return Collections.unmodifiableSet(values);
     }
 
-    private static String text(JsonNode node, String field) {
-        return node.has(field) ? node.get(field).asText() : null;
+    // Every field this parser needs is read through here rather than with get(), so a bundle whose
+    // shape moved fails as UnreadableModelResource naming the field instead of as a bare NPE.
+    private static JsonNode present(JsonNode node, String field) {
+        JsonNode value = node.path(field);
+        if (value.isMissingNode() || value.isNull()) {
+            throw new UnreadableModelResource(RESOURCE, "missing '" + field + "'");
+        }
+        return value;
     }
 
     record FtmEntity(String id, String schema, Map<String, List<String>> properties) { }

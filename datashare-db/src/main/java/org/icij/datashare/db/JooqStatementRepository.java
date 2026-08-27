@@ -11,6 +11,7 @@ import org.jooq.Cursor;
 import org.jooq.DSLContext;
 import org.jooq.Field;
 import org.jooq.Record;
+import org.jooq.ResultQuery;
 import org.jooq.SQLDialect;
 import org.jooq.exception.DataAccessException;
 import org.jooq.impl.DSL;
@@ -22,8 +23,6 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
@@ -42,8 +41,6 @@ public class JooqStatementRepository implements StatementRepository {
     private static final Field<?>[] READ_FIELDS = {
             STATEMENT.ID, STATEMENT.MODEL, STATEMENT.ENTITY_ID, STATEMENT.ENTITY_TYPE, STATEMENT.PROPERTY,
             STATEMENT.VALUE, STATEMENT.DOC_ID, STATEMENT.SHEET, STATEMENT.ROW_NUMBER, STATEMENT.COLUMN_NAME};
-    private static final Comparator<Statement> BY_PROPERTY_THEN_VALUE =
-            Comparator.comparing(Statement::property).thenComparing(Statement::value);
     private final DataSource dataSource;
     private final SQLDialect dialect;
     private final int chunkSize;
@@ -61,18 +58,21 @@ public class JooqStatementRepository implements StatementRepository {
     private record Write(String projectId, String runId, LocalDateTime now) { }
 
     @Override
-    public int save(String projectId, String runId, Collection<Statement> statements) {
+    public int save(String projectId, String runId, Stream<Statement> statements) {
         Write write = new Write(projectId, runId,
                 new Timestamp(DatashareTime.getInstance().currentTimeMillis()).toLocalDateTime());
-        Iterator<Statement> source = statements.iterator();
+        DSLContext create = create();
         int written = 0;
-        while (source.hasNext()) {
-            List<Statement> chunk = new ArrayList<>(Math.min(chunkSize, statements.size()));
-            while (chunk.size() < chunkSize && source.hasNext()) {
-                chunk.add(source.next());
+        try (statements) {
+            Iterator<Statement> source = statements.iterator();
+            while (source.hasNext()) {
+                List<Statement> chunk = new ArrayList<>(chunkSize);
+                while (chunk.size() < chunkSize && source.hasNext()) {
+                    chunk.add(source.next());
+                }
+                written += create.transactionResult(configuration ->
+                        saveChunk(DSL.using(configuration), write, chunk));
             }
-            written += create().transactionResult(configuration ->
-                    saveChunk(DSL.using(configuration), write, chunk));
         }
         return written;
     }
@@ -81,10 +81,14 @@ public class JooqStatementRepository implements StatementRepository {
     // (jOOQ's "batch multiple"); a batch built from one bound template query and repeated .bind()
     // calls ("batch single") reuses the same PreparedStatement and lets Postgres plan it once. Both
     // the template's column list and each row's positional binds come from the same record, so they
-    // cannot drift.
+    // cannot drift, and the conflict branch reads the row being inserted through EXCLUDED rather than
+    // binding its own values, which would not line up with the record's positional binds.
     private static int saveChunk(DSLContext create, Write write, List<Statement> chunk) {
-        BatchBindStep batch = create.batch(
-                create.insertInto(STATEMENT).set(row(write, chunk.get(0))).onConflictDoNothing());
+        BatchBindStep batch = create.batch(create.insertInto(STATEMENT).set(row(write, chunk.get(0)))
+                .onConflict(STATEMENT.ID, STATEMENT.PRJ_ID).doUpdate()
+                .set(STATEMENT.RUN_ID, DSL.excluded(STATEMENT.RUN_ID))
+                .set(STATEMENT.MODEL_VERSION, DSL.excluded(STATEMENT.MODEL_VERSION))
+                .set(STATEMENT.LAST_SEEN, DSL.excluded(STATEMENT.LAST_SEEN)));
         for (Statement statement : chunk) {
             batch.bind(row(write, statement).intoArray());
         }
@@ -107,6 +111,7 @@ public class JooqStatementRepository implements StatementRepository {
         row.setRowNumber(statement.provenance().rowNumber());
         row.setColumnName(statement.provenance().column());
         row.setFirstSeen(write.now());
+        row.setLastSeen(write.now());
         return row;
     }
 
@@ -122,11 +127,12 @@ public class JooqStatementRepository implements StatementRepository {
         List<Statement> statements = create()
                 .select(READ_FIELDS).from(STATEMENT)
                 .where(STATEMENT.PRJ_ID.eq(projectId)).and(STATEMENT.ENTITY_ID.eq(entityId))
-                .orderBy(STATEMENT.MODEL)
-                .fetch().map(JooqStatementRepository::toStatement);
-        try (Stream<ModelEntity> entities = group(statements.stream())) {
-            return entities.findFirst();
-        }
+                .fetch(JooqStatementRepository::toStatement);
+        // The model an id shared by two models resolves to is picked here rather than with an ORDER
+        // BY, because a database collation would otherwise decide it, and SQLite and Postgres do not
+        // sort text alike.
+        return statements.stream().map(Statement::model).min(String::compareTo).map(model ->
+                ModelEntity.from(statements.stream().filter(row -> model.equals(row.model())).toList()));
     }
 
     @Override
@@ -136,17 +142,19 @@ public class JooqStatementRepository implements StatementRepository {
         }
     }
 
-    // A DataSource-bound DSLContext never sets autoCommit(false), and pgjdbc only opens a server-side
-    // cursor when fetchSize > 0 AND autoCommit is false: without both, the driver buffers the whole
-    // result before the first row is emitted. So this holds one connection, outside the pool's
-    // default autocommit, for the stream's lifetime.
+    // Only pgjdbc streams, and only when fetchSize > 0 AND autoCommit is false: without both, the
+    // driver buffers the whole result before the first row is emitted. So Postgres holds one
+    // connection, outside the pool's default autocommit, for the stream's lifetime. SQLite ignores
+    // fetchSize and has no server-side cursor, and a read it keeps open holds a shared lock on the
+    // whole file until the consumer returns, which makes every concurrent writer fail "database is
+    // locked": the embedded database buffers instead.
     private Stream<ModelEntity> entities(String projectId) {
+        if (dialect != SQLDialect.POSTGRES) {
+            return group(read(create(), projectId).fetch(JooqStatementRepository::toStatement).stream());
+        }
         Connection connection = openStreamingConnection();
         try {
-            Cursor<Record> cursor = DSL.using(connection, dialect)
-                    .select(READ_FIELDS).from(STATEMENT)
-                    .where(STATEMENT.PRJ_ID.eq(projectId))
-                    .orderBy(STATEMENT.ENTITY_ID, STATEMENT.MODEL)
+            Cursor<Record> cursor = read(DSL.using(connection, dialect), projectId)
                     .fetchSize(FETCH_SIZE)
                     .fetchLazy();
             return group(cursor.stream()
@@ -156,6 +164,12 @@ public class JooqStatementRepository implements StatementRepository {
             JDBCUtils.safeClose(connection);
             throw e;
         }
+    }
+
+    private static ResultQuery<Record> read(DSLContext create, String projectId) {
+        return create.select(READ_FIELDS).from(STATEMENT)
+                .where(STATEMENT.PRJ_ID.eq(projectId))
+                .orderBy(STATEMENT.ENTITY_ID, STATEMENT.MODEL);
     }
 
     private Connection openStreamingConnection() {
@@ -204,49 +218,71 @@ public class JooqStatementRepository implements StatementRepository {
     }
 
     // The query is ordered by (entity_id, model), so an entity's statements are consecutive and each
-    // group can be emitted without holding the whole project in memory: one CSV can produce 100k+
-    // entities. Grouping on entity_id alone would let a same-id entity spanning two models reach
-    // ModelEntity.from, which throws on a multi-model group. Property and value are then sorted here
-    // rather than in the ORDER BY, because a database collation would otherwise decide the order of
-    // an entity's values, and SQLite and Postgres do not sort text alike.
+    // one is folded into its entity as it is read: one CSV can produce 100k+ entities, and a mapping
+    // keyed on a low-cardinality column puts every one of its rows under a single entity, so neither
+    // the project nor one group is ever collected first. Grouping on entity_id alone would let a
+    // same-id entity spanning two models reach ModelEntity.from, which throws on a multi-model group.
     private static Stream<ModelEntity> group(Stream<Statement> statements) {
-        Iterator<Statement> rows = statements.iterator();
-        Iterator<ModelEntity> entities = new Iterator<>() {
-            private Statement pending;
-            private boolean primed;
-
-            @Override
-            public boolean hasNext() {
-                if (!primed) {
-                    pending = rows.hasNext() ? rows.next() : null;
-                    primed = true;
-                }
-                return pending != null;
-            }
-
-            @Override
-            public ModelEntity next() {
-                if (!hasNext()) {
-                    throw new NoSuchElementException();
-                }
-                List<Statement> group = new ArrayList<>();
-                group.add(pending);
-                String entityId = pending.entityId();
-                String model = pending.model();
-                pending = null;
-                while (rows.hasNext()) {
-                    Statement row = rows.next();
-                    if (!row.entityId().equals(entityId) || !row.model().equals(model)) {
-                        pending = row;
-                        break;
-                    }
-                    group.add(row);
-                }
-                group.sort(BY_PROPERTY_THEN_VALUE);
-                return ModelEntity.from(group);
-            }
-        };
+        Iterator<ModelEntity> entities = new Groups(statements.iterator());
         return StreamSupport.stream(Spliterators.spliteratorUnknownSize(entities, Spliterator.ORDERED), false)
                 .onClose(statements::close);
+    }
+
+    private static class Groups implements Iterator<ModelEntity> {
+        private final Iterator<Statement> rows;
+        private Statement pending;
+        private boolean primed;
+
+        Groups(Iterator<Statement> rows) {
+            this.rows = rows;
+        }
+
+        @Override
+        public boolean hasNext() {
+            if (!primed) {
+                pending = rows.hasNext() ? rows.next() : null;
+                primed = true;
+            }
+            return pending != null;
+        }
+
+        @Override
+        public ModelEntity next() {
+            if (!hasNext()) {
+                throw new NoSuchElementException();
+            }
+            return ModelEntity.from(this::group);
+        }
+
+        // The row that ends a group is the first row of the next one, so it is held back as pending
+        // rather than read twice.
+        private Iterator<Statement> group() {
+            Statement first = pending;
+            pending = null;
+            return new Iterator<>() {
+                private Statement next = first;
+
+                @Override
+                public boolean hasNext() {
+                    return next != null;
+                }
+
+                @Override
+                public Statement next() {
+                    Statement current = next;
+                    next = rows.hasNext() ? sameGroupAs(current) : null;
+                    return current;
+                }
+
+                private Statement sameGroupAs(Statement current) {
+                    Statement row = rows.next();
+                    if (row.entityId().equals(current.entityId()) && row.model().equals(current.model())) {
+                        return row;
+                    }
+                    pending = row;
+                    return null;
+                }
+            };
+        }
     }
 }
