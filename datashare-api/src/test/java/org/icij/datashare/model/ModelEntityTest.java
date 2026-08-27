@@ -10,31 +10,19 @@ import java.util.Map;
 import java.util.Set;
 
 import static org.fest.assertions.Assertions.assertThat;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.fail;
 
 public class ModelEntityTest {
-    @Test(expected = UnsupportedOperationException.class)
-    public void test_the_types_are_immutable() {
+    @Test
+    public void test_the_entity_copies_the_collections_it_was_handed() {
         ModelEntity entity = new ModelEntity("p-1", new HashSet<>(Set.of("Person")),
                 new HashMap<>(Map.of("name", new ArrayList<>(List.of("Jane Doe")))));
 
-        entity.types().add("Company");
-    }
-
-    @Test(expected = UnsupportedOperationException.class)
-    public void test_the_properties_map_is_immutable() {
-        ModelEntity entity = new ModelEntity("p-1", new HashSet<>(Set.of("Person")),
-                new HashMap<>(Map.of("name", new ArrayList<>(List.of("Jane Doe")))));
-
-        entity.properties().put("birthDate", List.of("1980-04-02"));
-    }
-
-    @Test(expected = UnsupportedOperationException.class)
-    public void test_a_properties_value_list_is_immutable() {
-        ModelEntity entity = new ModelEntity("p-1", new HashSet<>(Set.of("Person")),
-                new HashMap<>(Map.of("name", new ArrayList<>(List.of("Jane Doe")))));
-
-        entity.properties().get("name").add("J. Doe");
+        assertThrows(UnsupportedOperationException.class, () -> entity.types().add("Company"));
+        assertThrows(UnsupportedOperationException.class,
+                () -> entity.properties().put("birthDate", List.of("1980-04-02")));
+        assertThrows(UnsupportedOperationException.class, () -> entity.properties().get("name").add("J. Doe"));
     }
 
     @Test
