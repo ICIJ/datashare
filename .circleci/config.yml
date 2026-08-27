@@ -232,20 +232,23 @@ jobs:
           name: Wait for Elasticsearch
           command: |
             for i in $(seq 1 60); do
-              if curl -sf http://127.0.0.1:9200/_cluster/health; then
+              if curl -sf http://elasticsearch:9200/_cluster/health || curl -sf http://127.0.0.1:9200/_cluster/health; then
                 echo
                 exit 0
               fi
               echo "Elasticsearch not ready yet (attempt $i/60), retrying..."
               sleep 5
             done
-            echo "Elasticsearch never became ready. Last response:" >&2
+            echo "Elasticsearch never became ready. Diagnostics:" >&2
+            echo "--- via elasticsearch:9200 ---" >&2
+            curl -v http://elasticsearch:9200/_cluster/health >&2
+            echo "--- via 127.0.0.1:9200 ---" >&2
             curl -v http://127.0.0.1:9200/_cluster/health >&2
             exit 1
       - run:
           name: Run tests
           environment:
-            VITE_ES_HOST: http://127.0.0.1:9200
+            VITE_ES_HOST: http://elasticsearch:9200
           command: |
             cd /tmp/datashare-client
             yarn test:unit --silent --minWorkers 1 --maxWorkers 2
