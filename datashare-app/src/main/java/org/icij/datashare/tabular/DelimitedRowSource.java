@@ -58,8 +58,6 @@ public class DelimitedRowSource implements RowSource {
             List<String> headers = Row.headers(withoutBom(records.next().toList()));
             return stream(records, headers).onClose(() -> close(parser));
         } catch (RuntimeException failure) {
-            // Swallowing the close: the read already failed, so a close failure on top of it adds
-            // nothing the caller can act on and must not mask the failure that matters.
             closeQuietly(parser);
             throw failure;
         }

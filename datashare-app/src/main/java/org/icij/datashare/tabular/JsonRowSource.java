@@ -5,7 +5,6 @@ import com.fasterxml.jackson.core.JsonToken;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.MappingIterator;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.icij.datashare.json.JsonObjectMapper;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -38,9 +37,11 @@ public class JsonRowSource implements RowSource {
 
     public static final Set<String> SUPPORTED = Set.of("application/json", NDJSON_CONTENT_TYPE);
 
-    // The shared mapper rather than a private one: its StreamReadConstraints cap nesting depth and
-    // string length, which a user-supplied dump is exactly the input those guards exist for.
-    private final ObjectMapper mapper = JsonObjectMapper.getMapper();
+    // A private mapper rather than the shared one: JsonObjectMapper's StreamReadConstraints are cut
+    // for HTTP request bodies, and on a data dump they are wrong in both directions. They raise the
+    // single-string cap from 20 MB to 1 GB, which is the guard that matters for a user-supplied file,
+    // and they lower the nesting cap from 1000 to 20, which flatten() is built to handle.
+    private final ObjectMapper mapper = new ObjectMapper();
 
     @Override
     public boolean supports(String contentType) {
@@ -56,20 +57,21 @@ public class JsonRowSource implements RowSource {
             // the array as a single value; for NDJSON the parser is already where it needs to be.
             // An empty source is a failed export, not an empty one: every sibling reader refuses it,
             // and importing zero rows out of a truncated file would report the loss as a success. An
-            // explicitly empty array is different, and stays a successful read of nothing.
+            // explicitly empty array is different, and stays a successful read of nothing, but it is
+            // still refused when something follows it: readValues cannot be handed a parser sitting
+            // on the array's closing bracket, so this path runs that check itself.
             JsonToken first = parser.nextToken();
             if (first == null) {
                 throw new IllegalArgumentException("no records: the source is empty");
             }
             if (first == JsonToken.START_ARRAY && parser.nextToken() == JsonToken.END_ARRAY) {
+                refuseTrailingContent(parser);
                 close(parser);
                 return Stream.empty();
             }
             records = mapper.readerFor(JsonNode.class).readValues(parser);
         } catch (IOException | RuntimeException failure) {
-            // The parser does not own a stream it was handed, so releasing it is not enough. Both
-            // closes swallow: the read already failed, and a close failure on top of it adds nothing
-            // the caller can act on and must not mask the failure that matters.
+            // The parser does not own a stream it was handed, so releasing it is not enough.
             closeQuietly(parser);
             closeQuietly(source);
             throw failure;
@@ -85,7 +87,7 @@ public class JsonRowSource implements RowSource {
                 // first and report success.
                 boolean more = hasNextRecord();
                 if (!more) {
-                    refuseTrailingContent();
+                    refuseTrailingContent(parser);
                 }
                 return more;
             }
@@ -96,17 +98,6 @@ public class JsonRowSource implements RowSource {
                 } catch (RuntimeException malformed) {
                     throw new IllegalArgumentException(
                             "malformed record " + (number + 1) + ": " + malformed.getMessage(), malformed);
-                }
-            }
-
-            private void refuseTrailingContent() {
-                try {
-                    if (parser.nextToken() != null) {
-                        throw new IllegalArgumentException(
-                                "content after the end of the json array, at " + parser.currentLocation());
-                    }
-                } catch (IOException unreadable) {
-                    throw new UncheckedIOException("reading past the json array failed", unreadable);
                 }
             }
 
@@ -151,6 +142,17 @@ public class JsonRowSource implements RowSource {
                 values.put(column, value.isNull() ? "" : value.asText());
             }
         });
+    }
+
+    private static void refuseTrailingContent(JsonParser parser) {
+        try {
+            if (parser.nextToken() != null) {
+                throw new IllegalArgumentException(
+                        "content after the end of the json array, at " + parser.currentLocation());
+            }
+        } catch (IOException unreadable) {
+            throw new UncheckedIOException("reading past the json array failed", unreadable);
+        }
     }
 
     private static void close(JsonParser parser) {

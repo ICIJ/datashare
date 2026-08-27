@@ -4,7 +4,6 @@ import org.icij.datashare.model.EntityType;
 import org.icij.datashare.model.ModelEntity;
 import org.icij.datashare.model.Property;
 import org.icij.datashare.model.TargetModel;
-import org.icij.datashare.model.UnreadableModelResource;
 import org.junit.Test;
 
 import java.util.List;
@@ -12,10 +11,9 @@ import java.util.Map;
 import java.util.Set;
 
 import static org.fest.assertions.Assertions.assertThat;
-import static org.junit.Assert.fail;
 
 public class FtmTargetModelTest {
-    private final TargetModel model = new FtmTargetModel();
+    private static final TargetModel model = new FtmTargetModel();
 
     @Test
     public void test_loads_the_bundled_model() {
@@ -54,10 +52,16 @@ public class FtmTargetModelTest {
     }
 
     @Test
-    public void test_required_is_taken_verbatim_rather_than_inherited() {
+    public void test_required_is_inherited_from_the_ancestors_that_declare_it() {
         assertThat(model.type("Person").get().required()).containsOnly("name");
-        assertThat(model.type("Address").get().required()).isEmpty();
+        assertThat(model.type("Address").get().required()).containsOnly("name");
+        assertThat(model.type("Table").get().required()).containsOnly("name", "fileName");
         assertThat(model.type("Employment").get().required()).containsOnly("employee", "employer");
+    }
+
+    @Test
+    public void test_an_inherited_requirement_comes_after_the_type_s_own() {
+        assertThat(List.copyOf(model.type("Document").get().required())).isEqualTo(List.of("fileName", "name"));
     }
 
     @Test
@@ -89,7 +93,7 @@ public class FtmTargetModelTest {
 
     @Test
     public void test_a_stub_property_another_of_the_types_declares_as_written_is_no_violation() {
-        List<TargetModel.Violation> violations = model.validate(new ModelEntity("x-1",
+        List<TargetModel.Violation> violations = model.validate(new ModelEntity("ftm", "x-1",
                 Set.of("LegalEntity", "ContractAward"),
                 Map.of("name", List.of("Total"), "callForTenders", List.of("c-1"))));
 
@@ -99,7 +103,7 @@ public class FtmTargetModelTest {
     @Test
     public void test_the_missing_required_properties_are_reported_in_the_model_s_order() {
         List<TargetModel.Violation> violations = model.validate(
-                new ModelEntity("e-1", Set.of("Employment"), Map.of()));
+                new ModelEntity("ftm", "e-1", Set.of("Employment"), Map.of()));
 
         assertThat(violations.get(0).message()).isEqualTo("type 'Employment' requires 'employer'");
     }
@@ -107,7 +111,7 @@ public class FtmTargetModelTest {
     @Test
     public void test_a_property_required_by_several_types_is_reported_once() {
         List<TargetModel.Violation> violations = model.validate(
-                new ModelEntity("p-1", Set.of("Person", "LegalEntity"), Map.of()));
+                new ModelEntity("ftm", "p-1", Set.of("Person", "LegalEntity"), Map.of()));
 
         assertThat(violations).hasSize(1);
         assertThat(violations.get(0).message()).contains("name");
@@ -116,7 +120,7 @@ public class FtmTargetModelTest {
     @Test
     public void test_validating_a_company_with_no_properties_reports_the_missing_inherited_name() {
         List<TargetModel.Violation> violations = model.validate(
-                new ModelEntity("c-1", Set.of("Company"), Map.of()));
+                new ModelEntity("ftm", "c-1", Set.of("Company"), Map.of()));
 
         assertThat(violations).hasSize(1);
         assertThat(violations.get(0).message()).contains("Company");
@@ -126,7 +130,7 @@ public class FtmTargetModelTest {
     @Test
     public void test_validating_an_interest_reports_that_the_type_is_abstract() {
         List<TargetModel.Violation> violations = model.validate(
-                new ModelEntity("i-1", Set.of("Interest"), Map.of()));
+                new ModelEntity("ftm", "i-1", Set.of("Interest"), Map.of()));
 
         assertThat(violations).hasSize(1);
         assertThat(violations.get(0).message()).contains("Interest");
@@ -135,7 +139,7 @@ public class FtmTargetModelTest {
 
     @Test
     public void test_validating_a_person_writing_the_stub_property_employers_reports_the_stub() {
-        List<TargetModel.Violation> violations = model.validate(new ModelEntity("p-1", Set.of("Person"),
+        List<TargetModel.Violation> violations = model.validate(new ModelEntity("ftm", "p-1", Set.of("Person"),
                 Map.of("name", List.of("Jane Doe"), "employers", List.of("e-1"))));
 
         assertThat(violations).hasSize(1);

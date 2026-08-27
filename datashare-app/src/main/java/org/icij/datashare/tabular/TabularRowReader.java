@@ -98,8 +98,6 @@ public class TabularRowReader {
         try {
             return reader.rows(source, resolved).onClose(() -> closeQuietly(source));
         } catch (IOException | RuntimeException failure) {
-            // Swallowing the close: the read already failed or already finished, so a failure to
-            // release the source adds nothing the caller can act on and must not mask the real one.
             closeQuietly(source);
             throw failure;
         }

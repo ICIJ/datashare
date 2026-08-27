@@ -8,6 +8,7 @@ import org.icij.datashare.tabular.InvalidExtractionMapping;
 import org.icij.datashare.tabular.UnreadableExtractionMapping;
 import org.icij.datashare.time.DatashareTime;
 import org.jooq.DSLContext;
+import org.jooq.Record3;
 import org.jooq.SQLDialect;
 import org.jooq.impl.DSL;
 import org.slf4j.Logger;
@@ -17,6 +18,8 @@ import javax.sql.DataSource;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.sql.Timestamp;
+import java.time.LocalDateTime;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
@@ -58,17 +61,22 @@ public class JooqExtractionMappingRepository implements ExtractionMappingReposit
                 .map(definition -> read(id, definition));
     }
 
+    // created_at holds milliseconds, so two mappings authored in the same millisecond tie and the
+    // order falls to id. That tie is broken here rather than in the ORDER BY, because a database
+    // collation would otherwise decide it, and SQLite and Postgres do not sort text alike.
     @Override
     public List<ExtractionMapping> list(String projectId) {
-        return create().select(EXTRACTION_MAPPING.ID, EXTRACTION_MAPPING.DEFINITION).from(EXTRACTION_MAPPING)
+        return create().select(EXTRACTION_MAPPING.CREATED_AT, EXTRACTION_MAPPING.ID, EXTRACTION_MAPPING.DEFINITION)
+                .from(EXTRACTION_MAPPING)
                 .where(EXTRACTION_MAPPING.PRJ_ID.eq(projectId))
-                .orderBy(EXTRACTION_MAPPING.CREATED_AT, EXTRACTION_MAPPING.ID)
                 .fetch().stream()
+                .sorted(Comparator.<Record3<LocalDateTime, String, String>, LocalDateTime>comparing(Record3::value1)
+                        .thenComparing(Record3::value2, Comparator.naturalOrder()))
                 .flatMap(row -> {
                     try {
-                        return Stream.of(read(row.value1(), row.value2()));
+                        return Stream.of(read(row.value2(), row.value3()));
                     } catch (UnreadableExtractionMapping e) {
-                        logger.warn("skipping unreadable extraction mapping '{}'", row.value1(), e);
+                        logger.warn("skipping unreadable extraction mapping '{}'", row.value2(), e);
                         return Stream.empty();
                     }
                 }).toList();

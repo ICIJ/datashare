@@ -15,7 +15,7 @@ import static org.junit.Assert.assertThrows;
 public class ModelEntityTest {
     @Test
     public void test_the_entity_copies_the_collections_it_was_handed() {
-        ModelEntity entity = new ModelEntity("p-1", new HashSet<>(Set.of("Person")),
+        ModelEntity entity = new ModelEntity("ftm", "p-1", new HashSet<>(Set.of("Person")),
                 new HashMap<>(Map.of("name", new ArrayList<>(List.of("Jane Doe")))));
 
         assertThrows(UnsupportedOperationException.class, () -> entity.types().add("Company"));
@@ -25,15 +25,16 @@ public class ModelEntityTest {
     }
 
     @Test
-    public void test_groups_the_values_of_a_property_in_order() {
+    public void test_groups_the_values_of_a_property_in_natural_order() {
         ModelEntity entity = ModelEntity.from(List.of(
                 statement("name", "Jane Doe", "full_name"),
                 statement("birthDate", "1980-04-02", "dob"),
                 statement("name", "J. Doe", "known_as")));
 
+        assertThat(entity.model()).isEqualTo("ftm");
         assertThat(entity.id()).isEqualTo("person-1");
         assertThat(entity.types()).containsOnly("Person");
-        assertThat(entity.properties().get("name")).containsExactly("Jane Doe", "J. Doe");
+        assertThat(entity.properties().get("name")).containsExactly("J. Doe", "Jane Doe");
         assertThat(entity.properties().get("birthDate")).containsExactly("1980-04-02");
     }
 
@@ -71,8 +72,9 @@ public class ModelEntityTest {
 
     @Test
     public void test_the_null_arguments_are_rejected() {
-        assertRejectsNull("id", () -> new ModelEntity(null, Set.of("Person"), Map.of("name", List.of("Jane Doe"))));
-        assertRejectsNull("types", () -> new ModelEntity("p-1", null, Map.of("name", List.of("Jane Doe"))));
+        assertRejectsNull("model", () -> new ModelEntity(null, "p-1", Set.of("Person"), Map.of("name", List.of("Jane Doe"))));
+        assertRejectsNull("id", () -> new ModelEntity("ftm", null, Set.of("Person"), Map.of("name", List.of("Jane Doe"))));
+        assertRejectsNull("types", () -> new ModelEntity("ftm", "p-1", null, Map.of("name", List.of("Jane Doe"))));
     }
 
     private static void assertRejectsNull(String field, Runnable construction) {
@@ -83,7 +85,7 @@ public class ModelEntityTest {
     public void test_refuses_statements_belonging_to_two_models() {
         String message = assertThrows(IllegalArgumentException.class, () ->
                 ModelEntity.from(List.of(statement("name", "Jane Doe", "full_name"),
-                        Statement.of("wikidata", "person-1", "Q5", "name", "Jane Q",
+                        new Statement("id-2", "wikidata", "person-1", "Q5", "name", "Jane Q",
                                 new Statement.Provenance("doc-1", "Sheet1", 12, "full_name"))))).getMessage();
 
         assertThat(message).contains("ftm");

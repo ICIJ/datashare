@@ -97,6 +97,25 @@ public class StatementTest {
     }
 
     @Test
+    public void test_an_unknown_model_is_rejected_before_the_statement_exists() {
+        UnknownTargetModel thrown = assertThrows(UnknownTargetModel.class,
+                () -> Statement.of("wikidata", "person-1", "Q5", "name", "Jane Doe", provenance));
+
+        assertThat(thrown.name).isEqualTo("wikidata");
+    }
+
+    @Test
+    public void test_an_entity_id_longer_than_the_indexed_column_is_rejected() {
+        String tooLong = "x".repeat(Statement.MAX_ENTITY_ID_LENGTH + 1);
+
+        assertThat(assertThrows(IllegalArgumentException.class,
+                () -> Statement.of("ftm", tooLong, "Person", "name", "Jane Doe", provenance)).getMessage())
+                .contains("entityId");
+        assertThat(Statement.of("ftm", "x".repeat(Statement.MAX_ENTITY_ID_LENGTH), "Person", "name", "Jane Doe",
+                provenance).entityId().length()).isEqualTo(Statement.MAX_ENTITY_ID_LENGTH);
+    }
+
+    @Test
     public void test_the_qualified_property_prefixes_the_model() {
         Statement statement = Statement.of("ftm", "person-1", "Person", "birthDate", "1980-04-02", provenance);
 

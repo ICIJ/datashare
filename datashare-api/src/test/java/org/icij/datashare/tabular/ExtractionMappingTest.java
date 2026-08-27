@@ -25,6 +25,10 @@ public class ExtractionMappingTest {
         return new ExtractionMapping.PropertyMapping(List.of(name), null, null, null, null);
     }
 
+    private static ExtractionMapping.PropertyMapping reference(String alias) {
+        return new ExtractionMapping.PropertyMapping(List.of(), null, null, alias, null);
+    }
+
     @Test
     public void test_unknown_model_is_rejected_at_construction() {
         UnknownTargetModel thrown = assertThrows(UnknownTargetModel.class,
@@ -65,10 +69,8 @@ public class ExtractionMappingTest {
 
     @Test
     public void test_validate_reports_a_dangling_entity_alias() {
-        ExtractionMapping.PropertyMapping reference =
-                new ExtractionMapping.PropertyMapping(List.of(), null, null, "typo-alias", null);
-        assertThat(mapping("ftm", Map.of("member", person(Map.of("name", reference)))).validate().toString())
-                .contains("typo-alias");
+        assertThat(mapping("ftm", Map.of("member", person(Map.of("name", reference("typo-alias")))))
+                .validate().toString()).contains("typo-alias");
     }
 
     @Test
@@ -115,12 +117,43 @@ public class ExtractionMappingTest {
                 .validate().toString()).contains("requires 'name'");
     }
 
+    // Debt requires only its source end (debtor), so its target end (creditor) is reported by the
+    // edge rule alone: on an edge type whose both ends are required, the required-property rule
+    // reports them first and the edge rule never runs.
     @Test
     public void test_validate_reports_the_unmapped_ends_of_an_edge_type() {
-        ExtractionMapping.EntityMapping ownership =
-                new ExtractionMapping.EntityMapping("Ownership", List.of("id"), Map.of("percentage", column("pct")));
-        String violations = mapping("ftm", Map.of("stake", ownership)).validate().toString();
-        assertThat(violations).contains("owner").contains("asset");
+        ExtractionMapping.EntityMapping debt =
+                new ExtractionMapping.EntityMapping("Debt", List.of("id"), Map.of("amount", column("amt")));
+        String violations = mapping("ftm", Map.of("owed", debt)).validate().toString();
+        assertThat(violations).contains("edge type 'Debt' needs 'creditor'");
+    }
+
+    @Test
+    public void test_validate_reports_a_reference_to_the_wrong_kind_of_entity() {
+        ExtractionMapping.EntityMapping ownership = new ExtractionMapping.EntityMapping("Ownership",
+                List.of("id"), Map.of("owner", reference("home"), "asset", column("a")));
+        ExtractionMapping.EntityMapping address =
+                new ExtractionMapping.EntityMapping("Address", List.of("id"), Map.of("city", column("c")));
+        String violations = mapping("ftm", Map.of("stake", ownership, "home", address)).validate().toString();
+        assertThat(violations).contains("needs a 'LegalEntity', but entity 'home' is a 'Address'");
+    }
+
+    @Test
+    public void test_validate_accepts_a_reference_to_a_descendant_of_the_declared_range() {
+        ExtractionMapping.EntityMapping ownership = new ExtractionMapping.EntityMapping("Ownership",
+                List.of("id"), Map.of("owner", reference("boss"), "asset", column("a")));
+        ExtractionMapping.EntityMapping person = new ExtractionMapping.EntityMapping("Person",
+                List.of("id"), Map.of("name", column("n")));
+        String violations = mapping("ftm", Map.of("stake", ownership, "boss", person)).validate().toString();
+        assertThat(violations).excludes("needs a");
+    }
+
+    @Test
+    public void test_validate_reports_a_reference_on_a_property_that_holds_a_value() {
+        ExtractionMapping.EntityMapping person = new ExtractionMapping.EntityMapping("Person",
+                List.of("id"), Map.of("name", reference("member")));
+        String violations = mapping("ftm", Map.of("member", person)).validate().toString();
+        assertThat(violations).contains("holds a value, not a reference to an entity");
     }
 
     @Test
@@ -145,8 +178,6 @@ public class ExtractionMappingTest {
 
     @Test
     public void test_entity_reference_needs_no_column() {
-        ExtractionMapping.PropertyMapping reference =
-                new ExtractionMapping.PropertyMapping(List.of(), null, null, "member", null);
-        assertThat(reference.entity()).isEqualTo("member");
+        assertThat(reference("member").entity()).isEqualTo("member");
     }
 }

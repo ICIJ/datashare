@@ -35,7 +35,7 @@ databaseChangeLog:
                     nullable: false
               - column:
                   name: entity_id
-                  type: text
+                  type: varchar(512)
                   constraints:
                     nullable: false
               - column:
@@ -78,6 +78,11 @@ databaseChangeLog:
                   type: datetime
                   constraints:
                     nullable: false
+              - column:
+                  name: last_seen
+                  type: datetime
+                  constraints:
+                    nullable: false
         - createIndex:
             indexName: statement_prj_entity
             tableName: statement
@@ -87,7 +92,7 @@ databaseChangeLog:
                   type: varchar(96)
               - column:
                   name: entity_id
-                  type: text
+                  type: varchar(512)
 
   - changeSet:
       id: 82
