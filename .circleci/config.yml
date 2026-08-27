@@ -229,6 +229,16 @@ jobs:
           paths:
             - /tmp/datashare-client/node_modules
       - run:
+          name: Wait for Elasticsearch
+          command: |
+            for i in $(seq 1 30); do
+              curl -sf http://localhost:9200/_cluster/health && exit 0
+              echo "Elasticsearch not ready yet, retrying..."
+              sleep 2
+            done
+            echo "Elasticsearch never became ready" >&2
+            exit 1
+      - run:
           name: Run tests
           environment:
             VITE_ES_HOST: http://localhost:9200
