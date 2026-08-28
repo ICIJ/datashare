@@ -34,10 +34,12 @@ public record Statement(String id, String model, String entityId, String entityT
     }
 
     /** Builds a statement for the write path, rejecting a model no {@link TargetModelRegistry} knows
-     *  before any of it reaches the store. The canonical constructor stays lenient, so a row written
-     *  under a model since retired still reads back. */
+     *  before any of it reaches the store. Leniency is a read-only promise: the canonical constructor
+     *  takes any model name, so a row written under a model since retired still reads back, but
+     *  writing that row again fails, since the store stamps every row with the model's version. */
     public static Statement of(String model, String entityId, String entityType,
                                String property, String value, Provenance provenance) {
+        Objects.requireNonNull(model, "model");
         TargetModelRegistry.get(model);
         return new Statement(id(model, entityId, entityType, property, value, provenance),
                 model, entityId, entityType, property, value, provenance);

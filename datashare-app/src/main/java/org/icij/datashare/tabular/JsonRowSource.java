@@ -1,10 +1,13 @@
 package org.icij.datashare.tabular;
 
+import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonToken;
+import com.fasterxml.jackson.core.StreamReadConstraints;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.MappingIterator;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.icij.datashare.json.JsonObjectMapper;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -38,10 +41,13 @@ public class JsonRowSource implements RowSource {
     public static final Set<String> SUPPORTED = Set.of("application/json", NDJSON_CONTENT_TYPE);
 
     // A private mapper rather than the shared one: JsonObjectMapper's StreamReadConstraints are cut
-    // for HTTP request bodies, and on a data dump they are wrong in both directions. They raise the
-    // single-string cap from 20 MB to 1 GB, which is the guard that matters for a user-supplied file,
-    // and they lower the nesting cap from 1000 to 20, which flatten() is built to handle.
-    private final ObjectMapper mapper = new ObjectMapper();
+    // for HTTP request bodies, and a data dump needs only half of them. Its single-string cap of 1 GB
+    // is the guard that matters for a user-supplied file, so it is reused here; its nesting cap of 20
+    // is not, and Jackson's default of 1000 stands, since flatten() is built to handle the depth.
+    private final ObjectMapper mapper = new ObjectMapper(JsonFactory.builder()
+            .streamReadConstraints(StreamReadConstraints.builder()
+                    .maxStringLength(JsonObjectMapper.MAX_STRING_LENGTH).build())
+            .build());
 
     @Override
     public boolean supports(String contentType) {

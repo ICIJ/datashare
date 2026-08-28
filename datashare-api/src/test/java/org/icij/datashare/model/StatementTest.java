@@ -88,6 +88,7 @@ public class StatementTest {
         assertRejectsNull("provenance", () -> new Statement("id", "ftm", "person-1", "Person", "name", "Jane Doe", null));
         assertRejectsNull("documentId", () -> new Statement.Provenance(null, "Sheet1", 12, "full_name"));
         assertRejectsNull("column", () -> new Statement.Provenance("doc-1", "Sheet1", 12, null));
+        assertRejectsNull("model", () -> Statement.of(null, "person-1", "Person", "name", "Jane Doe", provenance));
     }
 
     // Every component is guarded the same way, so the field the message names is the only thing worth

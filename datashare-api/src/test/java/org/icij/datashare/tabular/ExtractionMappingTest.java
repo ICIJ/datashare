@@ -157,6 +157,16 @@ public class ExtractionMappingTest {
     }
 
     @Test
+    public void test_validate_reports_a_reference_on_an_undeclared_property_once() {
+        ExtractionMapping.EntityMapping person = new ExtractionMapping.EntityMapping("Person",
+                List.of("id"), Map.of("name", column("n"), "sidekick", reference("member")));
+        String violations = mapping("ftm", Map.of("member", person)).validate().toString();
+
+        assertThat(violations).contains("no property 'sidekick'");
+        assertThat(violations).excludes("holds a value");
+    }
+
+    @Test
     public void test_validate_reports_its_violations_in_a_stable_order() {
         ExtractionMapping.EntityMapping unicorn =
                 new ExtractionMapping.EntityMapping("Unicorn", List.of("id"), Map.of("name", column("n")));
