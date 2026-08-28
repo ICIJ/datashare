@@ -9,7 +9,7 @@ import java.util.Map;
 import java.util.Set;
 
 import static org.fest.assertions.Assertions.assertThat;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.assertThrows;
 
 public class FtmTargetModelSerializationTest {
     private final TargetModel model = new FtmTargetModel();
@@ -53,78 +53,42 @@ public class FtmTargetModelSerializationTest {
 
     @Test
     public void test_serializing_types_with_no_common_schema_fails() {
-        try {
-            model.serialize(new ModelEntity("x-1", Set.of("Person", "Company"),
-                    Map.of("name", List.of("Jane Doe"))));
-            fail("should have refused to pick a schema");
-        } catch (IllegalArgumentException e) {
-            assertThat(e.getMessage()).contains("Person");
-            assertThat(e.getMessage()).contains("Company");
-        }
+        assertThrowsContaining(() -> model.serialize(new ModelEntity("x-1", Set.of("Person", "Company"),
+                Map.of("name", List.of("Jane Doe")))), "Person", "Company");
     }
 
     @Test
     public void test_unreadable_json_fails_with_a_clear_error() {
-        try {
-            model.parse("{\"id\": ");
-            fail("should have refused the truncated json");
-        } catch (IllegalArgumentException e) {
-            assertThat(e.getMessage()).contains("FtM");
-        }
+        assertThrowsContaining(() -> model.parse("{\"id\": "), "FtM");
     }
 
     @Test
     public void test_a_missing_id_fails_with_a_clear_error() {
-        try {
-            model.parse("{\"schema\":\"Person\"}");
-            fail("should have refused the missing id");
-        } catch (IllegalArgumentException e) {
-            assertThat(e.getMessage()).contains("id");
-            assertThat(e.getMessage()).contains("FtM");
-        }
+        assertThrowsContaining(() -> model.parse("{\"schema\":\"Person\"}"), "id", "FtM");
     }
 
     @Test
     public void test_a_missing_schema_fails_with_a_clear_error() {
-        try {
-            model.parse("{\"id\":\"person-1\"}");
-            fail("should have refused the missing schema");
-        } catch (IllegalArgumentException e) {
-            assertThat(e.getMessage()).contains("schema");
-            assertThat(e.getMessage()).contains("FtM");
-        }
+        assertThrowsContaining(() -> model.parse("{\"id\":\"person-1\"}"), "schema", "FtM");
     }
 
     @Test
     public void test_a_json_null_fails_with_a_clear_error() {
-        try {
-            model.parse("null");
-            fail("should have refused the null document");
-        } catch (IllegalArgumentException e) {
-            assertThat(e.getMessage()).contains("FtM");
-        }
+        assertThrowsContaining(() -> model.parse("null"), "FtM");
     }
 
     @Test
     public void test_a_property_with_null_values_fails_with_a_clear_error() {
-        try {
-            model.parse("{\"id\":\"person-1\",\"schema\":\"Person\",\"properties\":{\"name\":null}}");
-            fail("should have refused the null value list");
-        } catch (IllegalArgumentException e) {
-            assertThat(e.getMessage()).contains("name");
-            assertThat(e.getMessage()).contains("FtM");
-        }
+        assertThrowsContaining(
+                () -> model.parse("{\"id\":\"person-1\",\"schema\":\"Person\",\"properties\":{\"name\":null}}"),
+                "name", "FtM");
     }
 
     @Test
     public void test_a_property_holding_a_null_value_fails_with_a_clear_error() {
-        try {
-            model.parse("{\"id\":\"person-1\",\"schema\":\"Person\",\"properties\":{\"name\":[null]}}");
-            fail("should have refused the null value");
-        } catch (IllegalArgumentException e) {
-            assertThat(e.getMessage()).contains("name");
-            assertThat(e.getMessage()).contains("FtM");
-        }
+        assertThrowsContaining(
+                () -> model.parse("{\"id\":\"person-1\",\"schema\":\"Person\",\"properties\":{\"name\":[null]}}"),
+                "name", "FtM");
     }
 
     @Test
@@ -138,5 +102,12 @@ public class FtmTargetModelSerializationTest {
         ModelEntity entity = model.parse("{\"id\":\"person-1\",\"schema\":\"Person\"}");
 
         assertThat(entity.properties()).isEqualTo(Map.of());
+    }
+
+    private static void assertThrowsContaining(Runnable action, String... messageParts) {
+        String message = assertThrows(IllegalArgumentException.class, action::run).getMessage();
+        for (String part : messageParts) {
+            assertThat(message).contains(part);
+        }
     }
 }
