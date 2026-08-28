@@ -53,11 +53,13 @@ public class ArtifactTask extends PipelineTask<String> {
     private final Path artifactDir;
     private final int parallelism;
     private final ExecutorService executor;
+    private final String taskId;
 
     @Inject
     public ArtifactTask(DocumentCollectionFactory<String> factory, Indexer indexer, final UpstreamGate.Factory gateFactory, @Assisted Task<Long> taskView, @Assisted final Function<Double, Void> updateCallback) {
         super(Stage.ARTIFACT, taskView.getUser(), factory, new PropertiesProvider(taskView.args), String.class, gateFactory.forTask(taskView));
         this.indexer = indexer;
+        taskId = taskView.id;
         project = Project.project(ArtifactStages.resolveProjectName(propertiesProvider));
         parallelism = Math.max(1, propertiesProvider.get(PARALLELISM_OPT).map(Integer::parseInt).orElse(1));
         artifactDir = Path.of(propertiesProvider.get(ARTIFACT_DIR_OPT).orElseThrow(() -> new IllegalArgumentException(String.format("cannot create artifact task with empty %s", ARTIFACT_DIR_OPT))));
@@ -138,7 +140,7 @@ public class ArtifactTask extends PipelineTask<String> {
         boolean force = ArtifactStages.force(propertiesProvider);
         // The producer owns what counts as a cancellation (see ArtifactProducer#isCancellation), so this
         // loop and the produce loop it drives cannot disagree about it.
-        ArtifactProducer producer = new ArtifactProducer(new FilesystemManifestRepository(), executor::isShutdown);
+        ArtifactProducer producer = new ArtifactProducer(new FilesystemManifestRepository(), executor::isShutdown, taskId);
         Path projectRoot = ArtifactPath.projectRoot(artifactDir, project.name);
         // The interrupt check keeps cancellation prompt, since cancel() calls executor.shutdownNow()
         // while a worker may sit between two non-blocking polls.

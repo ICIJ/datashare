@@ -70,11 +70,13 @@ public class IndexTask extends PipelineTask<Path> implements Monitorable{
     private final AtomicInteger skipped = new AtomicInteger(0);
     private final Integer parallelism;
     private final Integer indexTimeout;
+    private final String taskId;
 
     @Inject
     public IndexTask(final ElasticsearchSpewer spewer, final DocumentCollectionFactory<Path> factory, final UpstreamGate.Factory gateFactory, @Assisted Task<Long> taskView, @Assisted final Function<Double, Void> progressCallback) throws IOException {
         super(Stage.INDEX, taskView.getUser(), factory, new PropertiesProvider(taskView.args), Path.class, gateFactory.forTask(taskView));
         this.spewer = spewer;
+        taskId = taskView.id;
         parallelism = propertiesProvider.get(PARALLELISM_OPT).map(Integer::parseInt).orElse(Runtime.getRuntime().availableProcessors());
         indexTimeout = getIndexTimeout();
         warnIfParseTimeoutDisabled();
@@ -144,7 +146,7 @@ public class IndexTask extends PipelineTask<Path> implements Monitorable{
             if (rawSelected || artifactStageRuns) {
                 extractor.setEmbedOutputPath(projectRoot);
             }
-            spewer.setManifestRecorder(new ManifestRecorder(new FilesystemManifestRepository(), projectRoot, selected, ArtifactStages.force(propertiesProvider)));
+            spewer.setManifestRecorder(new ManifestRecorder(new FilesystemManifestRepository(), projectRoot, selected, ArtifactStages.force(propertiesProvider), taskId));
         });
         logger.info("Processing up to {} file(s) in parallel", parallelism);
         try {

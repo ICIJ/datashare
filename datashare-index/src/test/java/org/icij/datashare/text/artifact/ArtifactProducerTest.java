@@ -19,10 +19,11 @@ import static org.fest.assertions.Assertions.assertThat;
 import static org.icij.datashare.text.DocumentBuilder.createDoc;
 
 public class ArtifactProducerTest {
+    private static final String TASK_ID = "org.icij.datashare.tasks.ArtifactTask-a1b2c3";
     @Rule public TemporaryFolder dir = new TemporaryFolder();
     private final ManifestRepository repository = new FilesystemManifestRepository();
     // No cancellation asked for: the cases below that do simulate one say so explicitly.
-    private final ArtifactProducer producer = new ArtifactProducer(repository, () -> false);
+    private final ArtifactProducer producer = new ArtifactProducer(repository, () -> false, TASK_ID);
 
     // The interrupt flag is the JDK's cancellation mechanism and the producer restores it on purpose, so
     // it survives the test that set it: cleared once here rather than in every case's finally.
@@ -70,6 +71,18 @@ public class ArtifactProducerTest {
         producer.run(List.of(raw), ctx(), false);
         assertThat(raw.produced.get()).isEqualTo(1);
         assertThat(repository.get(dir.getRoot().toPath(), "raw").isComplete()).isTrue();
+    }
+
+    @Test public void test_records_the_producing_task_id() throws Exception {
+        producer.run(List.of(new CountingArtifact("raw", 1)), ctx(), false);
+        assertThat(repository.get(dir.getRoot().toPath(), "raw").taskId()).isEqualTo(TASK_ID);
+    }
+
+    @Test public void test_records_the_producing_task_id_on_an_empty_entry() throws Exception {
+        CountingArtifact raw = new CountingArtifact("raw", 1);
+        raw.producesEmpty = true;
+        producer.run(List.of(raw), ctx(), false);
+        assertThat(repository.get(dir.getRoot().toPath(), "raw").taskId()).isEqualTo(TASK_ID);
     }
 
     @Test public void test_skips_when_task_input_matches() throws Exception {
@@ -142,7 +155,7 @@ public class ArtifactProducerTest {
     @Test public void test_unreadable_content_during_a_cancellation_records_nothing() throws Exception {
         // Tika reports a cancelled parse as a parse failure too, and recording "this document has no
         // structure" because the operator pressed cancel is a lie only --artifactsForce could undo.
-        ArtifactProducer cancelledProducer = new ArtifactProducer(repository, () -> true);
+        ArtifactProducer cancelledProducer = new ArtifactProducer(repository, () -> true, TASK_ID);
         CountingArtifact structure = new CountingArtifact("structure", 1) {
             public ManifestEntry produce(ArtifactContext ctx) throws ArtifactException {
                 Thread.interrupted(); // cleared already, as Tika leaves it
@@ -189,7 +202,7 @@ public class ArtifactProducerTest {
     @Test public void test_a_cancel_stops_the_remaining_types() throws Exception {
         // Flag still set when we catch, so the top-of-produce guard stops the next type before it tries.
         // It counts as a cancellation because the task reports one, not because of the flag.
-        ArtifactProducer cancelledProducer = new ArtifactProducer(repository, () -> true);
+        ArtifactProducer cancelledProducer = new ArtifactProducer(repository, () -> true, TASK_ID);
         CountingArtifact structure = new CountingArtifact("structure", 1);
 
         boolean allSucceeded = cancelledProducer.run(List.of(interruptingArtifact(), structure), ctx(), false);
@@ -211,7 +224,7 @@ public class ArtifactProducerTest {
     }
 
     @Test public void test_a_cancel_recognised_from_the_cause_chain_stops_the_remaining_types() throws Exception {
-        ArtifactProducer cancelledProducer = new ArtifactProducer(repository, () -> true);
+        ArtifactProducer cancelledProducer = new ArtifactProducer(repository, () -> true, TASK_ID);
         CountingArtifact structure = new CountingArtifact("structure", 1);
 
         boolean allSucceeded = cancelledProducer.run(
@@ -238,7 +251,7 @@ public class ArtifactProducerTest {
     @Test public void test_a_cancel_recognised_from_an_interrupted_io_exception_stops_the_remaining_types() throws Exception {
         // extract-lib's cancellation path surfaces this one, and being an IOException rather than an
         // InterruptedException it would otherwise be counted as a failed document.
-        ArtifactProducer cancelledProducer = new ArtifactProducer(repository, () -> true);
+        ArtifactProducer cancelledProducer = new ArtifactProducer(repository, () -> true, TASK_ID);
         CountingArtifact structure = new CountingArtifact("structure", 1);
 
         boolean allSucceeded = cancelledProducer.run(
@@ -251,7 +264,7 @@ public class ArtifactProducerTest {
     @Test(timeout = 5000) public void test_a_self_referential_cause_chain_does_not_spin_forever() throws Exception {
         // A custom or deserialised exception can return itself from getCause(), which hangs the worker
         // inside its own catch block until the task's one-day timeout, with nothing logged to say so.
-        ArtifactProducer cancelledProducer = new ArtifactProducer(repository, () -> true);
+        ArtifactProducer cancelledProducer = new ArtifactProducer(repository, () -> true, TASK_ID);
         CountingArtifact selfCaused = new CountingArtifact("raw", 1) {
             public ManifestEntry produce(ArtifactContext ctx) throws ArtifactException {
                 throw new ArtifactException("boom", null) {

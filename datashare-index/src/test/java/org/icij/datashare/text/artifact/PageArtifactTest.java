@@ -504,7 +504,7 @@ public class PageArtifactTest {
     public void test_a_document_reindexed_with_ocr_is_paginated_again() throws Exception {
         Path pdf = twoPagePdf();
         ArtifactContext context = rootContext(pdf);
-        ArtifactProducer producer = new ArtifactProducer(new FilesystemManifestRepository(), () -> false);
+        ArtifactProducer producer = new ArtifactProducer(new FilesystemManifestRepository(), () -> false, null);
         producer.run(List.of(new PageArtifact(new PropertiesProvider())), context, false);
         Files.delete(contentTxt(context)); // regenerated only if the second run does not skip
         Document reindexedWithOcr = createDoc(context.document().getId()).with(pdf).ofContentType("application/pdf")
@@ -607,7 +607,7 @@ public class PageArtifactTest {
     @Test
     public void test_the_written_manifest_matches_the_convention_shape() throws Exception {
         ArtifactContext context = rootContext(twoPagePdf());
-        ArtifactProducer producer = new ArtifactProducer(new FilesystemManifestRepository(), () -> false);
+        ArtifactProducer producer = new ArtifactProducer(new FilesystemManifestRepository(), () -> false, null);
 
         assertThat(producer.run(List.of(new PageArtifact(new PropertiesProvider())), context, false)).isTrue();
 
@@ -631,7 +631,7 @@ public class PageArtifactTest {
     @Test
     public void test_a_second_run_skips_a_document_already_produced_with_the_same_task_input() throws Exception {
         ArtifactContext context = rootContext(twoPagePdf());
-        ArtifactProducer producer = new ArtifactProducer(new FilesystemManifestRepository(), () -> false);
+        ArtifactProducer producer = new ArtifactProducer(new FilesystemManifestRepository(), () -> false, null);
         producer.run(List.of(new PageArtifact(new PropertiesProvider())), context, false);
         // Overwritten, not deleted: skip-if-current re-produces a payload that left the disk
         // (ArtifactPayload#isMissing), so an absent content.txt would prove nothing about the skip.
@@ -645,7 +645,7 @@ public class PageArtifactTest {
     @Test
     public void test_a_second_run_produces_again_when_the_page_payload_left_the_disk() throws Exception {
         ArtifactContext context = rootContext(twoPagePdf());
-        ArtifactProducer producer = new ArtifactProducer(new FilesystemManifestRepository(), () -> false);
+        ArtifactProducer producer = new ArtifactProducer(new FilesystemManifestRepository(), () -> false, null);
         producer.run(List.of(new PageArtifact(new PropertiesProvider())), context, false);
         Files.delete(contentTxt(context));
 

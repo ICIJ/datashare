@@ -15,32 +15,40 @@ public record ManifestEntry(
         String contentType,
         String filename,
         Double confidence,
-        String label) {
+        String label,
+        String taskId) {
 
     public static ManifestEntry singleFile(Map<String, Object> taskInput, String contentType, String filename) {
-        return new ManifestEntry(null, taskInput, null, contentType, filename, null, null);
+        return new ManifestEntry(null, taskInput, null, contentType, filename, null, null, null);
     }
 
     /** A payload split into one file per page (see {@link FilesystemPagination}). */
     public static ManifestEntry paginated(Map<String, Object> taskInput, int total) {
-        return new ManifestEntry(null, taskInput, new Pages(total, new FilesystemPagination()), null, null, null, null);
+        return new ManifestEntry(null, taskInput, new Pages(total, new FilesystemPagination()), null, null, null, null, null);
     }
 
     /** A single content file split by half-open byte ranges, one per page. `total` is derived from the
      *  offsets themselves, so a producer cannot record a count that disagrees with the ranges it wrote. */
     public static ManifestEntry paginated(Map<String, Object> taskInput, List<long[]> ranges) {
         return new ManifestEntry(null, taskInput, new Pages(ranges.size(), new ByteRangePagination(ranges)),
-                null, null, null, null);
+                null, null, null, null, null);
     }
 
     /** A node that was processed but has no payload to serve from its own dir (e.g. a root
      *  document whose source is the on-disk original). Recorded so it is not reprocessed. */
     public static ManifestEntry empty(Map<String, Object> taskInput) {
-        return new ManifestEntry(ManifestEntryStatus.EMPTY, taskInput, null, null, null, null, null);
+        return new ManifestEntry(ManifestEntryStatus.EMPTY, taskInput, null, null, null, null, null, null);
     }
 
     public ManifestEntry withStatus(ManifestEntryStatus status) {
-        return new ManifestEntry(status, taskInput, pages, contentType, filename, confidence, label);
+        return new ManifestEntry(status, taskInput, pages, contentType, filename, confidence, label, taskId);
+    }
+
+    /** Stamps the id of the task that produced this entry, so an artifact can be traced back to its run.
+     *  Not part of {@link #isCurrentFor}: keying skip-if-current on it would regenerate the whole corpus
+     *  on every run, since every run has a new task id. */
+    public ManifestEntry withTaskId(String taskId) {
+        return new ManifestEntry(status, taskInput, pages, contentType, filename, confidence, label, taskId);
     }
 
     /** Producers return EMPTY as-is; any other (status-less) entry becomes COMPLETE. Callers stamp

@@ -69,7 +69,7 @@ public class ElasticsearchSpewerTest {
     public void test_write_records_raw_manifest_when_recorder_set() throws Exception {
         Path projectRoot = artifactDir.getRoot().toPath().resolve("prj");
         ManifestRepository repository = new FilesystemManifestRepository();
-        spewer.setManifestRecorder(new ManifestRecorder(repository, projectRoot, List.of(new RawArtifact()), false));
+        spewer.setManifestRecorder(new ManifestRecorder(repository, projectRoot, List.of(new RawArtifact()), false, null));
         final TikaDocument document = new DocumentFactory().withIdentifier(new PathIdentifier()).create(get("recorded-file.txt"));
         document.setReader(new ParsingReader(new ByteArrayInputStream("test".getBytes())));
 

@@ -24,7 +24,7 @@ public class ArtifactReaderTest {
     // production factory for it: the read side is exercised from a hand-built entry.
     private static ManifestEntry byteRangeEntry(int total, List<long[]> ranges) {
         Pages pages = new Pages(total, new ByteRangePagination(ByteRangePagination.TYPE, ranges));
-        return new ManifestEntry(null, Map.of(), pages, null, null, null, null);
+        return new ManifestEntry(null, Map.of(), pages, null, null, null, null, null);
     }
 
     private Path withFilesystemPages(int total, String... pages) throws Exception {

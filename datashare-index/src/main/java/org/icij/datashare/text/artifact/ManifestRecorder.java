@@ -20,12 +20,14 @@ public class ManifestRecorder {
     private final Path projectRoot;
     private final boolean force;
     private final boolean rawSelected;
+    private final String taskId;
     private final RawArtifact raw = new RawArtifact();
 
-    public ManifestRecorder(ManifestRepository repository, Path projectRoot, List<Artifact> selected, boolean force) {
+    public ManifestRecorder(ManifestRepository repository, Path projectRoot, List<Artifact> selected, boolean force, String taskId) {
         this.repository = repository;
         this.projectRoot = projectRoot;
         this.force = force;
+        this.taskId = taskId;
         this.rawSelected = selected.stream().anyMatch(artifact -> artifact.type() == ArtifactType.RAW);
     }
 
@@ -49,6 +51,6 @@ public class ManifestRecorder {
                 return;
             }
         }
-        repository.put(docArtifactDir, ArtifactType.RAW.token(), entry.withTerminalStatus());
+        repository.put(docArtifactDir, ArtifactType.RAW.token(), entry.withTerminalStatus().withTaskId(taskId));
     }
 }

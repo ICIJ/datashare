@@ -15,6 +15,7 @@ import static org.icij.datashare.text.DocumentBuilder.createDoc;
 
 public class ManifestRecorderTest {
     private static final String EMBEDDED_ID = "eeee1111222233334444555566667777";
+    private static final String TASK_ID = "org.icij.datashare.tasks.IndexTask-a1b2c3";
     @Rule public TemporaryFolder tmp = new TemporaryFolder();
     private final ManifestRepository repository = new FilesystemManifestRepository();
     private final RawArtifact raw = new RawArtifact();
@@ -24,7 +25,7 @@ public class ManifestRecorderTest {
     }
 
     private ManifestRecorder recorder(boolean force) {
-        return new ManifestRecorder(repository, projectRoot(), List.of(raw), force);
+        return new ManifestRecorder(repository, projectRoot(), List.of(raw), force, TASK_ID);
     }
 
     private Document embedded(String id) {
@@ -53,6 +54,26 @@ public class ManifestRecorderTest {
     }
 
     @Test
+    public void test_records_the_indexing_task_id() throws Exception {
+        Document doc = embedded(EMBEDDED_ID);
+        writePayload(doc.getId());
+
+        recorder(false).record(doc);
+
+        assertThat(repository.get(ArtifactPath.dir(projectRoot(), doc.getId()), "raw").taskId()).isEqualTo(TASK_ID);
+    }
+
+    @Test
+    public void test_records_the_indexing_task_id_on_an_empty_root_entry() throws Exception {
+        Document root = createDoc("rootrootrootroot").with(Path.of("/tmp/root.pdf"))
+                .ofContentType("application/pdf").withExtractionLevel((short) 0).build();
+
+        recorder(false).record(root);
+
+        assertThat(repository.get(ArtifactPath.dir(projectRoot(), root.getId()), "raw").taskId()).isEqualTo(TASK_ID);
+    }
+
+    @Test
     public void test_skips_embedded_when_payload_missing() throws Exception {
         Document doc = embedded(EMBEDDED_ID);
 
@@ -65,7 +86,7 @@ public class ManifestRecorderTest {
     public void test_null_task_input_entry_is_not_current() throws Exception {
         Document doc = embedded(EMBEDDED_ID);
         Path dir = ArtifactPath.dir(projectRoot(), doc.getId());
-        repository.put(dir, "raw", new ManifestEntry(ManifestEntryStatus.COMPLETE, null, null, null, null, null, null));
+        repository.put(dir, "raw", new ManifestEntry(ManifestEntryStatus.COMPLETE, null, null, null, null, null, null, null));
         writePayload(doc.getId());
 
         recorder(false).record(doc);
@@ -114,7 +135,7 @@ public class ManifestRecorderTest {
     @Test
     public void test_no_op_when_raw_not_selected() throws Exception {
         Document doc = embedded(EMBEDDED_ID);
-        ManifestRecorder recorder = new ManifestRecorder(repository, projectRoot(), List.of(), false);
+        ManifestRecorder recorder = new ManifestRecorder(repository, projectRoot(), List.of(), false, TASK_ID);
 
         recorder.record(doc);
 
