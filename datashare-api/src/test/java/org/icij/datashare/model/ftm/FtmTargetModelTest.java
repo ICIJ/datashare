@@ -106,6 +106,15 @@ public class FtmTargetModelTest {
     }
 
     @Test
+    public void test_a_property_required_by_several_types_is_reported_once() {
+        List<TargetModel.Violation> violations = model.validate(
+                new ModelEntity("p-1", Set.of("Person", "LegalEntity"), Map.of()));
+
+        assertThat(violations).hasSize(1);
+        assertThat(violations.get(0).message()).contains("name");
+    }
+
+    @Test
     public void test_validating_a_company_with_no_properties_reports_the_missing_inherited_name() {
         List<TargetModel.Violation> violations = model.validate(
                 new ModelEntity("c-1", Set.of("Company"), Map.of()));
