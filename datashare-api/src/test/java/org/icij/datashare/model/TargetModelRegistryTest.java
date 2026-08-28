@@ -3,7 +3,7 @@ package org.icij.datashare.model;
 import org.junit.Test;
 
 import static org.fest.assertions.Assertions.assertThat;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.assertThrows;
 
 public class TargetModelRegistryTest {
     @Test
@@ -17,33 +17,17 @@ public class TargetModelRegistryTest {
     }
 
     @Test
-    public void test_an_unknown_model_names_the_known_ones() {
-        try {
-            TargetModelRegistry.get("wikidata");
-            fail("should have refused an unregistered model");
-        } catch (IllegalArgumentException e) {
-            assertThat(e.getMessage()).contains("wikidata");
-            assertThat(e.getMessage()).contains("ftm");
-        }
-    }
+    public void test_an_unknown_model_names_the_known_ones_and_keeps_the_requested_name() {
+        UnknownTargetModel e = assertThrows(UnknownTargetModel.class, () -> TargetModelRegistry.get("wikidata"));
 
-    @Test
-    public void test_an_unknown_model_keeps_the_requested_name() {
-        try {
-            TargetModelRegistry.get("wikidata");
-            fail("should have refused an unregistered model");
-        } catch (UnknownTargetModel e) {
-            assertThat(e.name).isEqualTo("wikidata");
-        }
+        assertThat(e.getMessage()).contains("wikidata");
+        assertThat(e.getMessage()).contains("ftm");
+        assertThat(e.name).isEqualTo("wikidata");
     }
 
     @Test
     public void test_a_null_name_is_rejected() {
-        try {
-            TargetModelRegistry.get(null);
-            fail("should have rejected a null name");
-        } catch (NullPointerException e) {
-            assertThat(e.getMessage()).contains("name");
-        }
+        assertThat(assertThrows(NullPointerException.class, () -> TargetModelRegistry.get(null)).getMessage())
+                .contains("name");
     }
 }

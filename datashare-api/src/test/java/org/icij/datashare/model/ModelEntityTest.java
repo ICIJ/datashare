@@ -11,7 +11,6 @@ import java.util.Set;
 
 import static org.fest.assertions.Assertions.assertThat;
 import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.fail;
 
 public class ModelEntityTest {
     @Test
@@ -71,36 +70,24 @@ public class ModelEntityTest {
     }
 
     @Test
-    public void test_a_null_id_is_rejected() {
-        try {
-            new ModelEntity(null, Set.of("Person"), Map.of("name", List.of("Jane Doe")));
-            fail("should have rejected a null id");
-        } catch (NullPointerException e) {
-            assertThat(e.getMessage()).contains("id");
-        }
+    public void test_the_null_arguments_are_rejected() {
+        assertRejectsNull("id", () -> new ModelEntity(null, Set.of("Person"), Map.of("name", List.of("Jane Doe"))));
+        assertRejectsNull("types", () -> new ModelEntity("p-1", null, Map.of("name", List.of("Jane Doe"))));
     }
 
-    @Test
-    public void test_null_types_are_rejected() {
-        try {
-            new ModelEntity("p-1", null, Map.of("name", List.of("Jane Doe")));
-            fail("should have rejected null types");
-        } catch (NullPointerException e) {
-            assertThat(e.getMessage()).contains("types");
-        }
+    private static void assertRejectsNull(String field, Runnable construction) {
+        assertThat(assertThrows(NullPointerException.class, construction::run).getMessage()).contains(field);
     }
 
     @Test
     public void test_refuses_statements_belonging_to_two_models() {
-        try {
-            ModelEntity.from(List.of(statement("name", "Jane Doe", "full_name"),
-                    Statement.of("wikidata", "person-1", "Q5", "name", "Jane Q",
-                            new Statement.Provenance("doc-1", "Sheet1", 12, "full_name"))));
-            fail("should have refused statements from two models");
-        } catch (IllegalArgumentException e) {
-            assertThat(e.getMessage()).contains("ftm");
-            assertThat(e.getMessage()).contains("wikidata");
-        }
+        String message = assertThrows(IllegalArgumentException.class, () ->
+                ModelEntity.from(List.of(statement("name", "Jane Doe", "full_name"),
+                        Statement.of("wikidata", "person-1", "Q5", "name", "Jane Q",
+                                new Statement.Provenance("doc-1", "Sheet1", 12, "full_name"))))).getMessage();
+
+        assertThat(message).contains("ftm");
+        assertThat(message).contains("wikidata");
     }
 
     private Statement statement(String property, String value, String column) {
