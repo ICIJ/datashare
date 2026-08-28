@@ -1,9 +1,11 @@
 package org.icij.datashare.model;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.stream.Stream;
@@ -71,9 +73,12 @@ public interface TargetModel {
                 }
             }
         }
+        Set<String> reported = new HashSet<>();
         for (EntityType type : types) {
-            type.required().stream().filter(required -> isBlank(entity, required)).forEach(required ->
-                    violations.add(new Violation("type '" + type.name() + "' requires '" + required + "'")));
+            type.required().stream()
+                    .filter(required -> isBlank(entity, required) && reported.add(required))
+                    .forEach(required ->
+                            violations.add(new Violation("type '" + type.name() + "' requires '" + required + "'")));
             if (type.edge() != null) {
                 Stream.of(type.edge().source(), type.edge().target())
                         .filter(end -> !type.required().contains(end))
