@@ -300,7 +300,7 @@ public class StructureArtifactTest {
 
     @Test
     public void test_manifest_written_by_the_real_producer_loop_matches_the_convention() throws Exception {
-        boolean produced = new ArtifactProducer(new FilesystemManifestRepository(), () -> false)
+        boolean produced = new ArtifactProducer(new FilesystemManifestRepository(), () -> false, null)
                 .run(List.of(new StructureArtifact(new PropertiesProvider())), contextFor(HTML), false);
 
         assertThat(produced).isTrue();
@@ -316,7 +316,7 @@ public class StructureArtifactTest {
 
     @Test
     public void test_second_producer_run_skips_a_document_whose_payload_is_still_there() throws Exception {
-        ArtifactProducer producer = new ArtifactProducer(new FilesystemManifestRepository(), () -> false);
+        ArtifactProducer producer = new ArtifactProducer(new FilesystemManifestRepository(), () -> false, null);
         producer.run(List.of(new StructureArtifact(new PropertiesProvider())), contextFor(HTML), false);
         // Overwrite rather than delete: a deleted page is now a repair trigger, not proof of a skip.
         Files.writeString(page(1, "md"), "sentinel");
@@ -328,7 +328,7 @@ public class StructureArtifactTest {
 
     @Test
     public void test_a_re_run_repairs_pages_stranded_in_a_holding_pen() throws Exception {
-        ArtifactProducer producer = new ArtifactProducer(new FilesystemManifestRepository(), () -> false);
+        ArtifactProducer producer = new ArtifactProducer(new FilesystemManifestRepository(), () -> false, null);
         producer.run(List.of(new StructureArtifact(new PropertiesProvider())), contextFor(HTML), false);
         // What a failed AtomicDirectorySwap.restore leaves behind: the only copy of the pages in a holding
         // pen while the target is gone, until now recoverable only by hand (#2300).

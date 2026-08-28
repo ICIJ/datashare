@@ -17,10 +17,12 @@ public class ArtifactProducer {
     private static final Logger LOGGER = LoggerFactory.getLogger(ArtifactProducer.class);
     private final ManifestRepository repository;
     private final BooleanSupplier cancelRequested;
+    private final String taskId;
 
-    public ArtifactProducer(ManifestRepository repository, BooleanSupplier cancelRequested) {
+    public ArtifactProducer(ManifestRepository repository, BooleanSupplier cancelRequested, String taskId) {
         this.repository = repository;
         this.cancelRequested = cancelRequested;
+        this.taskId = taskId;
     }
 
     public boolean run(List<Artifact> artifacts, ArtifactContext context, boolean force) {
@@ -58,9 +60,7 @@ public class ArtifactProducer {
             // lock): real concurrency on the same document is rare and, when it happens, at worst
             // duplicates work (accepted for now). Only the manifest write below is serialised.
             ManifestEntry produced = artifact.produce(context);
-            // put() holds the per-doc write lock while it merges the entry, so the recorded manifest
-            // stays consistent (and cross-process/host safe) with the payload just written.
-            repository.put(context.docArtifactDir(), type.token(), produced.withTerminalStatus());
+            record(context, type, produced.withTerminalStatus());
             return true;
         } catch (UnreadableContentException unreadable) {
             // The cancel question comes first: a cancelled Tika parse arrives as a parse failure too, and
@@ -76,6 +76,13 @@ public class ArtifactProducer {
             LOGGER.error("failed to produce artifact '{}' for document {}", type.token(), context.document().getId(), failure);
             return false;
         }
+    }
+
+    // The one manifest-write point for every path, so no artifact is recorded without the id of the run
+    // that produced it. put() holds the per-doc write lock while it merges the entry, so the recorded
+    // manifest stays consistent (and cross-process/host safe) with the payload just written.
+    private void record(ArtifactContext context, ArtifactType type, ManifestEntry entry) throws IOException {
+        repository.put(context.docArtifactDir(), type.token(), entry.withTaskId(taskId));
     }
 
     // Restoring the flag is what ends ArtifactTask's while(!isInterrupted()) loop instead of polling the
@@ -97,8 +104,7 @@ public class ArtifactProducer {
         // No stack trace: these are benign, and a corpus holds enough of them to bury the real failures.
         LOGGER.warn("{}: recording an empty '{}' entry so it is not parsed again", failure.getMessage(), type.token());
         try {
-            repository.put(context.docArtifactDir(), type.token(),
-                    ManifestEntry.empty(artifact.taskInput(context.document())));
+            record(context, type, ManifestEntry.empty(artifact.taskInput(context.document())));
             return true;
         } catch (IOException recordFailure) {
             LOGGER.error("failed to record artifact '{}' for document {}", type.token(), context.document().getId(), recordFailure);

@@ -93,6 +93,47 @@ public class ManifestEntryTest {
     }
 
     @Test
+    public void test_with_task_id_stamps_the_producing_task_and_keeps_the_other_fields() {
+        ManifestEntry entry = ManifestEntry.singleFile(Map.of("type", "raw", "version", 1),
+                "application/pdf", "report.pdf").withStatus(ManifestEntryStatus.COMPLETE);
+
+        ManifestEntry stamped = entry.withTaskId("org.icij.datashare.tasks.IndexTask-a1b2c3");
+
+        assertThat(stamped.taskId()).isEqualTo("org.icij.datashare.tasks.IndexTask-a1b2c3");
+        assertThat(stamped.status()).isEqualTo(ManifestEntryStatus.COMPLETE);
+        assertThat(stamped.taskInput()).isEqualTo(Map.of("type", "raw", "version", 1));
+        assertThat(stamped.filename()).isEqualTo("report.pdf");
+    }
+
+    @Test
+    public void test_task_id_round_trips_as_task_id() throws Exception {
+        ManifestEntry entry = ManifestEntry.paginated(Map.of("pipeline", "tika"), 2)
+                .withTerminalStatus().withTaskId("artifact-task-1");
+
+        String json = mapper.writeValueAsString(entry);
+
+        assertThat(json).contains("\"taskId\":\"artifact-task-1\"");
+        assertThat(mapper.readValue(json, ManifestEntry.class).taskId()).isEqualTo("artifact-task-1");
+    }
+
+    @Test
+    public void test_an_entry_written_before_task_ids_reads_back_with_a_null_task_id() throws Exception {
+        assertThat(mapper.readValue("{\"status\":\"complete\"}", ManifestEntry.class).taskId()).isNull();
+    }
+
+    @Test
+    public void test_an_unstamped_entry_does_not_serialize_a_task_id() throws Exception {
+        ManifestEntry entry = ManifestEntry.empty(Map.of("type", "raw", "version", 1));
+        assertThat(mapper.writeValueAsString(entry)).excludes("taskId");
+    }
+
+    @Test
+    public void test_the_task_id_is_not_part_of_skip_if_current() {
+        ManifestEntry entry = ManifestEntry.empty(Map.of("type", "raw", "version", 1)).withTaskId("another-run");
+        assertThat(entry.isCurrentFor(Map.of("type", "raw", "version", 1))).isTrue();
+    }
+
+    @Test
     public void test_convenience_predicates_are_not_serialized() throws Exception {
         ManifestEntry entry = ManifestEntry.paginated(Map.of("pipeline", "tika"), 2)
                 .withStatus(ManifestEntryStatus.COMPLETE);

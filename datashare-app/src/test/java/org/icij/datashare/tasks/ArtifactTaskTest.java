@@ -152,6 +152,23 @@ public class ArtifactTaskTest {
     }
 
     @Test(timeout = 10000)
+    public void test_the_recorded_entry_carries_the_id_of_the_running_task() throws Exception {
+        indexEmbeddedPdfUnderItsRoot();
+        DocumentQueue<String> queue = factory.createQueue("extract:queue:artifact", String.class);
+        queue.add(EMBEDDED_PDF_SHA256 + "|" + EMBEDDED_DOC_SHA256);
+        // The task itself, not a literal: this is what pins the wiring from Task.id down to the manifest.
+        Task<Long> task = ArtifactTaskFixture.taskWith(Map.of(
+                "artifactDir", artifactDir.getRoot().toString(),
+                "defaultProject", "prj",
+                "artifacts", "true"));
+
+        new ArtifactTask(factory, mockEs, new UpstreamGate.Factory(taskRepository), task, null).call();
+
+        Path docArtifactDir = artifactDir.getRoot().toPath().resolve("prj/6a/bb/" + EMBEDDED_PDF_SHA256);
+        assertThat(new FilesystemManifestRepository().get(docArtifactDir, "structure").taskId()).isEqualTo(task.id);
+    }
+
+    @Test(timeout = 10000)
     public void test_workers_run_concurrently() throws Exception {
         indexEmbeddedDoc();
         String secondId = "1111111111111111111111111111111111111111111111111111111111111111";
