@@ -158,4 +158,14 @@ public class JsonRowSourceTest {
         }
     }
 
+    // The reader takes a user-supplied dump, not an HTTP body, so a single field larger than
+    // Jackson's 20 MB default cap has to read rather than fail the whole import.
+    @Test
+    public void test_reads_a_string_larger_than_jacksons_default_cap() throws Exception {
+        String blob = "x".repeat(20_000_001);
+
+        List<Row> rows = read("{\"blob\":\"" + blob + "\"}");
+
+        assertThat(rows.get(0).values().get("blob")).isEqualTo(blob);
+    }
 }

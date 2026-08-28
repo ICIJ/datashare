@@ -60,10 +60,11 @@ public record ExtractionMapping(String id, String projectId, String userId, Stri
         }
     }
 
-    /** Checks every entity type and property against the target model. Called on save, not on read,
-     *  so a mapping stored before the ontology moved underneath it still loads. Aliases and property
-     *  names are walked in sorted order, so the same mapping always reports the same violations in
-     *  the same order. */
+    /** Checks every entity type and property against the target model. The compact constructor only
+     *  checks the model is known, so this is the only complete structural check, and a writer that
+     *  skips it stores a mapping the model rejects. Called on save, not on read, so a mapping stored
+     *  before the ontology moved underneath it still loads. Aliases and property names are walked in
+     *  sorted order, so the same mapping always reports the same violations in the same order. */
     public List<TargetModel.Violation> validate() {
         TargetModel target = TargetModelRegistry.get(model);
         List<TargetModel.Violation> violations = new ArrayList<>();
@@ -95,7 +96,11 @@ public record ExtractionMapping(String id, String projectId, String userId, Stri
         if (target.type(entity.type()).isEmpty()) {
             return Optional.empty();
         }
-        String range = target.property(entity.type(), property).map(Property::range).orElse(null);
+        Optional<Property> declared = target.property(entity.type(), property);
+        if (declared.isEmpty()) {
+            return Optional.empty();
+        }
+        String range = declared.get().range();
         if (range == null) {
             return Optional.of(new TargetModel.Violation(on + "holds a value, not a reference to an entity"));
         }
