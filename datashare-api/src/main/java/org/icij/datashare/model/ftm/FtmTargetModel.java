@@ -69,8 +69,7 @@ public class FtmTargetModel implements TargetModel {
         String schema = mostSpecific(entity.types()).orElseThrow(() -> new IllegalArgumentException(
                 "types " + new TreeSet<>(entity.types()) + " have no common schema in the FtM model"));
         try {
-            return JsonObjectMapper.getMapper()
-                    .writeValueAsString(new FtmEntity(entity.id(), schema, entity.properties()));
+            return JsonObjectMapper.writeValueAsString(new FtmEntity(entity.id(), schema, entity.properties()));
         } catch (JsonProcessingException e) {
             throw new IllegalArgumentException("cannot write entity '" + entity.id() + "' as FtM JSON", e);
         }
@@ -80,8 +79,8 @@ public class FtmTargetModel implements TargetModel {
     public ModelEntity parse(String json) {
         FtmEntity read;
         try {
-            read = JsonObjectMapper.getMapper().readValue(json, FtmEntity.class);
-        } catch (JsonProcessingException e) {
+            read = JsonObjectMapper.readValue(json, FtmEntity.class);
+        } catch (IOException e) {
             throw new IllegalArgumentException("cannot read FtM JSON", e);
         }
         if (read == null) {
