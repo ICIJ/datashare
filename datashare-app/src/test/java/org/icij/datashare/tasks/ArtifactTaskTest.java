@@ -312,9 +312,11 @@ public class ArtifactTaskTest {
             protected SourceExtractor createSourceExtractor() {
                 return new SourceExtractor(propertiesProvider) {
                     @Override
-                    public TikaDocument extractEmbeddedSources(Project project, Document document) throws org.apache.tika.exception.TikaException {
+                    public TikaDocument extractEmbeddedSources(Project project, Document document) throws java.io.IOException {
                         if (document.getId().equals(failingId)) {
-                            throw new org.apache.tika.exception.TikaException("boom");
+                            // A read failure, not a parse failure: a parse failure is recorded as an empty
+                            // entry rather than counted as a failed document.
+                            throw new java.io.IOException("boom");
                         }
                         return null;
                     }
