@@ -169,6 +169,24 @@ public class StructureArtifact implements Artifact {
         return failure instanceof TikaMemoryLimitException || isZipBombGuard(failure);
     }
 
+    /**
+     * The cause that makes {@code failure} content no parser can read, or null when the failure is worth
+     * another run. Read off the cause chain rather than by catch type, since each producer wraps its parse
+     * failure differently. A TikaConfigException down the chain is this side going wrong for one document
+     * rather than unreadable content, so a run with the configuration fixed still gets to try it.
+     */
+    static Throwable unreadableCause(Throwable failure) {
+        for (Throwable cause = failure; cause != null; cause = cause.getCause()) {
+            if (cause instanceof TikaConfigException) {
+                return null;
+            }
+            if (cause instanceof TikaException || cause instanceof SAXException) {
+                return isRetryable(cause) ? null : cause;
+            }
+        }
+        return null;
+    }
+
     // The document's own name, from the Tika metadata rather than from the path: an embedded document
     // carries its container's path, so the path would hand a mail attachment's bytes the name of the
     // archive they came out of.

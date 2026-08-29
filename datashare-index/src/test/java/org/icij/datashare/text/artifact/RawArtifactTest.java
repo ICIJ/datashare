@@ -1,5 +1,7 @@
 package org.icij.datashare.text.artifact;
 
+import org.apache.tika.exception.EncryptedDocumentException;
+import org.apache.tika.exception.TikaException;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.Project;
 import org.icij.datashare.text.indexing.elasticsearch.SourceExtractor;
@@ -7,13 +9,17 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Map;
+import java.util.zip.ZipException;
 
 import static org.fest.assertions.Assertions.assertThat;
 import static org.icij.datashare.text.DocumentBuilder.createDoc;
+import static org.junit.Assert.fail;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -104,16 +110,66 @@ public class RawArtifactTest {
         assertThat(entry.isComplete()).isFalse();
     }
 
-    @Test(expected = ArtifactException.class)
-    public void test_produce_throws_when_polled_doc_raw_bytes_were_not_written() throws Exception {
-        // extractEmbeddedSources runs (e.g. a swallowed per-message parse failure mid-walk) but never
-        // writes THIS polled document's raw bytes: produce() must fail loudly, not stamp a terminal entry.
-        SourceExtractor sources = mock(SourceExtractor.class); // no-op: writes nothing to disk
+    @Test
+    public void test_produce_reports_encrypted_content_as_unreadable() throws Exception {
+        // An encryption method no parser can undo surfaces as a TikaException, not as a type of its own.
+        try {
+            produceFailingWith(new EncryptedDocumentException("Unsupported feature encryption used in entry"));
+            fail("expected an UnreadableContentException");
+        } catch (UnreadableContentException expected) {
+            assertThat(expected.documentId).isEqualTo("doc-id");
+        }
+    }
+
+    @Test
+    public void test_produce_reports_a_structurally_corrupt_archive_as_unreadable() throws Exception {
+        try {
+            produceFailingWith(new TikaException("TIKA-198: Illegal IOException from PackageParser",
+                    new ZipException("Unexpected record signature")));
+            fail("expected an UnreadableContentException");
+        } catch (UnreadableContentException expected) {
+            assertThat(expected.documentId).isEqualTo("doc-id");
+        }
+    }
+
+    @Test
+    public void test_produce_keeps_a_read_failure_retryable() throws Exception {
+        try {
+            produceFailingWith(new IOException("stalled mount"));
+            fail("expected an ArtifactException");
+        } catch (UnreadableContentException unexpected) {
+            fail("a read failure is retryable, not unreadable content");
+        } catch (ArtifactException expected) {
+            assertThat(expected.getMessage()).contains("raw extraction failed");
+        }
+    }
+
+    @Test
+    public void test_produce_keeps_missing_raw_bytes_retryable() throws Exception {
+        // extractEmbeddedSources returns without writing THIS polled document's bytes (a swallowed
+        // per-message parse failure mid-walk): a genuine failure a re-run can get past, so it fails loudly.
+        SourceExtractor sources = mock(SourceExtractor.class);
         Project project = Project.project("prj");
         Document doc = createDoc("doc-id").with(Path.of("/path/to/report.pdf")).ofContentType("application/pdf").withExtractionLevel((short) 1).build();
-        ArtifactContext ctx = new ArtifactContext(project, doc, dir.getRoot().toPath(), sources);
 
-        new RawArtifact().produce(ctx);
+        try {
+            new RawArtifact().produce(new ArtifactContext(project, doc, dir.getRoot().toPath(), sources));
+            fail("expected an ArtifactException");
+        } catch (UnreadableContentException unexpected) {
+            fail("missing raw bytes are retryable, not unreadable content");
+        } catch (ArtifactException expected) {
+            assertThat(expected.getMessage()).contains("raw extraction produced no bytes");
+        }
+    }
+
+    private void produceFailingWith(Exception failure) throws Exception {
+        SourceExtractor sources = mock(SourceExtractor.class);
+        Project project = Project.project("prj");
+        Document doc = createDoc("doc-id").with(Path.of("/path/to/archive.zip"))
+                .ofContentType("application/zip").withExtractionLevel((short) 0).build();
+        doThrow(failure).when(sources).extractEmbeddedSources(project, doc);
+
+        new RawArtifact().produce(new ArtifactContext(project, doc, dir.getRoot().toPath(), sources));
     }
 
     @Test(expected = ArtifactException.class)
@@ -127,15 +183,5 @@ public class RawArtifactTest {
         ArtifactContext ctx = new ArtifactContext(project, doc, dir.getRoot().toPath(), sources);
 
         new RawArtifact().produce(ctx);
-    }
-
-    @Test(expected = ArtifactException.class)
-    public void test_produce_wraps_extraction_failure() throws Exception {
-        SourceExtractor sources = mock(SourceExtractor.class);
-        Project project = Project.project("prj");
-        Document doc = createDoc("doc-id").with(Path.of("/path/to/x.pdf")).ofContentType("application/pdf").build();
-        org.mockito.Mockito.doThrow(new java.io.IOException("nope")).when(sources).extractEmbeddedSources(project, doc);
-
-        new RawArtifact().produce(new ArtifactContext(project, doc, dir.getRoot().toPath(), sources));
     }
 }

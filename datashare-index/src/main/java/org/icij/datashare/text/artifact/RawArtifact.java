@@ -40,6 +40,10 @@ public class RawArtifact implements Artifact {
         } catch (ArtifactException noRawBytes) {
             throw noRawBytes;
         } catch (Exception extractionFailure) {
+            Throwable unreadable = StructureArtifact.unreadableCause(extractionFailure);
+            if (unreadable != null) {
+                throw new UnreadableContentException(document.getId(), unreadable);
+            }
             throw new ArtifactException("raw extraction failed for " + document.getId(), extractionFailure);
         }
     }

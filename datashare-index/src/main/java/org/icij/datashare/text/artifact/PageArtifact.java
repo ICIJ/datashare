@@ -2,7 +2,6 @@ package org.icij.datashare.text.artifact;
 
 import org.apache.tika.Tika;
 import org.apache.tika.exception.TikaConfigException;
-import org.apache.tika.exception.TikaException;
 import org.apache.tika.extractor.DocumentSelector;
 import org.apache.tika.metadata.TikaCoreProperties;
 import org.icij.datashare.PropertiesProvider;
@@ -16,7 +15,6 @@ import org.icij.extract.document.DocumentFactory;
 import org.icij.extract.extractor.EmbedSpawner;
 import org.icij.extract.extractor.Extractor;
 import org.icij.task.Options;
-import org.xml.sax.SAXException;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -205,18 +203,9 @@ public class PageArtifact implements Artifact {
         if (failure.getCause() instanceof TikaConfigException) {
             throw new ArtifactConfigurationException(failure.getCause());
         }
-        for (Throwable cause = failure; cause != null; cause = cause.getCause()) {
-            // Deeper down: this side going wrong for one document, and a run with the configuration
-            // fixed can still read it, so retryable rather than terminal.
-            if (cause instanceof TikaConfigException) {
-                return retryable(document, failure);
-            }
-            if (cause instanceof TikaException || cause instanceof SAXException) {
-                return StructureArtifact.isRetryable(cause) ? retryable(document, failure)
-                        : new UnreadableContentException(document.getId(), cause);
-            }
-        }
-        return retryable(document, failure);
+        Throwable unreadable = StructureArtifact.unreadableCause(failure);
+        return unreadable == null ? retryable(document, failure)
+                : new UnreadableContentException(document.getId(), unreadable);
     }
 
     private static ArtifactException retryable(Document document, IOException failure) {
