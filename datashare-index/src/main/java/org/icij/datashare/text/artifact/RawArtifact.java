@@ -27,9 +27,21 @@ public class RawArtifact implements Artifact {
     public ManifestEntry produce(ArtifactContext context) throws ArtifactException {
         Document document = context.document();
         try {
-            // extract-lib writes the raw/raw.json bytes for the embedded subtree as a side effect.
-            context.sources().extractEmbeddedSources(context.project(), document);
             ManifestEntry entry = entryFor(document);
+            try {
+                // extract-lib writes the raw/raw.json bytes for the embedded subtree as a side effect.
+                context.sources().extractEmbeddedSources(context.project(), document);
+            } catch (Exception extractionFailure) {
+                // The walk writes as it goes, so it can fail further along the root's tree with this
+                // document's own bytes already written: those bytes are the artifact, and classifying
+                // another node's failure onto this one records "no payload" over a payload that is there,
+                // permanently. A root advertises no payload of its own, so nothing on disk answers for it.
+                if (document.isRootDocument()
+                        || ArtifactPayload.isMissing(context.docArtifactDir(), TYPE, entry)) {
+                    throw extractionFailure;
+                }
+                return entry;
+            }
             // extractAll can return normally without ever writing THIS polled document's bytes: a parse
             // failure the resilient parser swallows, a mid-walk abort, an OCR-off image... A silent miss
             // must fail loudly (nbFailed, re-runnable) instead of being recorded as produced.
