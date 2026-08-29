@@ -162,6 +162,29 @@ public class RawArtifactTest {
         }
     }
 
+    @Test
+    public void test_produce_records_the_bytes_a_failed_walk_had_already_written() throws Exception {
+        // The walk writes as it goes: a failure further along the root's tree leaves this document's own
+        // bytes on disk, and an empty entry there would disclaim a payload skip-if-current never revisits.
+        SourceExtractor sources = mock(SourceExtractor.class);
+        Project project = Project.project("prj");
+        Document doc = createDoc("doc-id").with(Path.of("/path/to/image2.jpg"))
+                .ofContentType("image/jpeg").withExtractionLevel((short) 1).build();
+        Path docDir = dir.getRoot().toPath();
+        doAnswer(invocation -> {
+            Files.createFile(docDir.resolve("raw"));
+            Files.createFile(docDir.resolve("raw.json"));
+            throw new TikaException("TIKA-198: Illegal IOException from PackageParser",
+                    new ZipException("Unexpected record signature"));
+        }).when(sources).extractEmbeddedSources(project, doc);
+
+        ManifestEntry entry = new RawArtifact().produce(new ArtifactContext(project, doc, docDir, sources));
+
+        assertThat(entry.status()).isNull();
+        assertThat(entry.contentType()).isEqualTo("image/jpeg");
+        assertThat(entry.filename()).isEqualTo("image2.jpg");
+    }
+
     private void produceFailingWith(Exception failure) throws Exception {
         SourceExtractor sources = mock(SourceExtractor.class);
         Project project = Project.project("prj");
