@@ -252,9 +252,11 @@ public class StructureMarkdownExtractor {
             new AutoDetectParser(RESILIENT_PARSER).parse(source,
                     new WriteOutContentHandler(xhtmlHandler, maxOutputChars),
                     metadata, buildParseContext(ocr));
-        } catch (SAXException failure) {
+        } catch (SAXException | TikaException failure) {
             // The cap is ours, so reaching it is truncation and not content no parser can read. Read off
-            // the cause chain, as Tika's own parseToString does: a parser catching a SAXException rewraps it.
+            // the cause chain, as Tika's own parseToString does, and off both types: CompositeParser
+            // rethrows the SAXException the cap raises, but a leaf parser catching it rewraps it as a
+            // TikaException (Word2006MLParser, and extract-lib's resilient PST parser).
             if (!WriteLimitReachedException.isWriteLimitReached(failure)) {
                 throw failure;
             }

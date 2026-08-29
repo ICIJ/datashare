@@ -455,6 +455,32 @@ public class StructureMarkdownExtractorTest {
     }
 
     @Test
+    public void test_output_over_the_limit_is_kept_when_a_parser_rewraps_the_cap() throws Exception {
+        // CompositeParser rethrows the SAXException the cap raises, but a leaf parser that catches it
+        // hands it back as a TikaException (Word2006MLParser here, extract-lib's resilient PST parser
+        // for a mail archive), which would otherwise land in the unreadable-content bucket again.
+        StructureMarkdownExtractor bounded = new StructureMarkdownExtractor(100);
+
+        List<Page> pages = extract(bounded, stream(wordFlatOpcPackage("x".repeat(10_000))),
+                "application/vnd.ms-word2006ml");
+
+        // 93 of the 100, the remainder being the newlines written around the elements holding the text.
+        assertThat(markdown(pages)).isEqualTo(List.of("x".repeat(93)));
+    }
+
+    // The pre-OOXML flat package Word2006MLParser reads, with a single document part: its text is written
+    // out during the parser's own SAX parse, which is where the cap is reached.
+    private String wordFlatOpcPackage(String text) {
+        return "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
+                + "<pkg:package xmlns:pkg=\"http://schemas.microsoft.com/office/2006/xmlPackage\">"
+                + "<pkg:part pkg:name=\"/word/document.xml\" pkg:contentType=\"application/vnd."
+                + "openxmlformats-officedocument.wordprocessingml.document.main+xml\"><pkg:xmlData>"
+                + "<w:document xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\">"
+                + "<w:body><w:p><w:r><w:t>" + text + "</w:t></w:r></w:p></w:body></w:document>"
+                + "</pkg:xmlData></pkg:part></pkg:package>";
+    }
+
+    @Test
     public void test_body_content_entirely_inside_page_divs_is_unchanged() throws Exception {
         // Pinned byte-for-byte: a change here invalidates every already-produced page set.
         List<Page> pages = extract(stream(
