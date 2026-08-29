@@ -13,7 +13,6 @@ import org.apache.pdfbox.pdmodel.interactive.documentnavigation.outline.PDDocume
 import org.apache.pdfbox.pdmodel.interactive.documentnavigation.outline.PDOutlineItem;
 import org.apache.pdfbox.pdmodel.interactive.form.PDAcroForm;
 import org.apache.pdfbox.pdmodel.interactive.form.PDTextField;
-import org.apache.tika.exception.TikaException;
 import org.apache.tika.extractor.DocumentSelector;
 import org.apache.tika.metadata.Metadata;
 import org.apache.tika.metadata.TikaCoreProperties;
@@ -25,7 +24,6 @@ import org.icij.datashare.text.structure.StructureMarkdownExtractor.Page;
 import org.jsoup.Jsoup;
 import org.jsoup.parser.Parser;
 import org.junit.Test;
-import org.xml.sax.SAXException;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -443,17 +441,17 @@ public class StructureMarkdownExtractorTest {
     }
 
     @Test
-    public void test_output_over_the_limit_stops_the_parse_instead_of_filling_the_heap() throws Exception {
-        // The rendering is buffered whole and held several times over (buffer, string, DOM, every page's
-        // XHTML and Markdown), times --parallelism, and no catch on the produce path handles an OOM.
+    public void test_output_over_the_limit_keeps_the_text_rendered_up_to_the_cap() throws Exception {
+        // The parse still stops at the cap (see DEFAULT_MAX_OUTPUT_CHARS), but reaching our own cap is
+        // truncation and not content no parser can read, so what was rendered first is kept.
         StructureMarkdownExtractor bounded = new StructureMarkdownExtractor(100);
 
-        try {
-            extract(bounded, stream("<html><body><p>" + "x".repeat(10_000) + "</p></body></html>"), "text/html");
-            org.junit.Assert.fail("expected the parse to stop at the output limit");
-        } catch (SAXException | TikaException expected) {
-            // told apart from a readable document one level up, not silently truncated
-        }
+        List<Page> pages = extract(bounded,
+                stream("<html><body><p>" + "x".repeat(10_000) + "</p></body></html>"), "text/html");
+
+        // 90 of the 100, not all of them: the cap counts every character event, and the newlines
+        // XHTMLContentHandler writes around the elements it opens are character events too.
+        assertThat(markdown(pages)).isEqualTo(List.of("x".repeat(90)));
     }
 
     @Test

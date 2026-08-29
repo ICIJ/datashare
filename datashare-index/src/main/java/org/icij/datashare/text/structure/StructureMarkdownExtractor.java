@@ -7,6 +7,7 @@ import com.vladsch.flexmark.html2md.converter.FlexmarkHtmlConverter;
 import com.vladsch.flexmark.util.data.MutableDataSet;
 import org.apache.tika.config.TikaConfig;
 import org.apache.tika.exception.TikaException;
+import org.apache.tika.exception.WriteLimitReachedException;
 import org.apache.tika.extractor.DocumentSelector;
 import org.apache.tika.metadata.Metadata;
 import org.apache.tika.metadata.TikaCoreProperties;
@@ -26,6 +27,8 @@ import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.safety.Safelist;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.xml.sax.SAXException;
 
 import java.io.IOException;
@@ -45,6 +48,8 @@ import java.util.regex.Pattern;
  * the caller passes it and records it in the artifact's fingerprint.
  */
 public class StructureMarkdownExtractor {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(StructureMarkdownExtractor.class);
 
     /** The OCR the INDEX stage applied to this document, so a page holds the text the content field
      *  holds. Two knobs because two parsers are, as extract-lib splits them: {@code --ocr} for a
@@ -243,9 +248,19 @@ public class StructureMarkdownExtractor {
     String toXhtml(InputStream source, Metadata metadata, OcrSettings ocr)
             throws IOException, SAXException, TikaException {
         ToXMLContentHandler xhtmlHandler = new ToXMLContentHandler();
-        new AutoDetectParser(RESILIENT_PARSER).parse(source,
-                new WriteOutContentHandler(xhtmlHandler, maxOutputChars),
-                metadata, buildParseContext(ocr));
+        try {
+            new AutoDetectParser(RESILIENT_PARSER).parse(source,
+                    new WriteOutContentHandler(xhtmlHandler, maxOutputChars),
+                    metadata, buildParseContext(ocr));
+        } catch (SAXException failure) {
+            // The cap is ours, so reaching it is truncation and not content no parser can read. Read off
+            // the cause chain, as Tika's own parseToString does: a parser catching a SAXException rewraps it.
+            if (!WriteLimitReachedException.isWriteLimitReached(failure)) {
+                throw failure;
+            }
+            LOGGER.warn("rendering of \"{}\" stopped at the {}-character output cap: the text up to it is kept",
+                    metadata.get(TikaCoreProperties.RESOURCE_NAME_KEY), maxOutputChars);
+        }
         return xhtmlHandler.toString();
     }
 
