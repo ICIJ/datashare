@@ -27,7 +27,7 @@ public class EntitiesIndexRebuilder {
      *  before the entity mappings existed, which holds the document ones and rejects every entity, and
      *  re-creating it is what gives a project older than the entities index one at all. */
     public int rebuild(String projectId) throws IOException {
-        if (!Project.NAME_PATTERN.matcher(projectId).matches()) {
+        if (projectId == null || !Project.NAME_PATTERN.matcher(projectId).matches()) {
             // an unvalidated id reaches a _delete_by_query URL path, where "*" is a whole-cluster wipe
             throw new IllegalArgumentException("Bad format for project id : '" + projectId + "'");
         }

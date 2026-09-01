@@ -40,7 +40,8 @@ public class ExtractedEntityTest {
 
         assertThat(json.get("model")).isEqualTo("ftm");
         assertThat(json.get("entityId")).isEqualTo("person-1");
-        assertThat(json.get("id")).isEqualTo("ftm_person-1");
+        // the namespaced id lives in the _id alone, like NamedEntity's and Document's
+        assertThat(json.keySet()).excludes("id");
         assertThat(((Map<?, ?>) json.get("properties")).get("ftm_birthDate")).isEqualTo(List.of("1980-04-02"));
     }
 

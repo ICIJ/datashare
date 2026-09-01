@@ -10,6 +10,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import net.codestory.http.Context;
 import net.codestory.http.annotations.*;
 import net.codestory.http.constants.HttpStatus;
+import net.codestory.http.errors.HttpException;
 import net.codestory.http.payload.Payload;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.asyncsearch.AsyncSearchOwner;
@@ -84,7 +85,11 @@ public class IndexResource {
             // a ".entities" name is granted through its base project, so it reaches here; createIndex
             // picks the entity mappings for it rather than the document ones
             return indexer.createIndex(checkGrantedIndices(index, context)) ? created() : ok();
-        } catch (IllegalArgumentException e){
+        } catch (HttpException e){
+            // checkGrantedIndices refuses an ungranted project with a 403 that must not collapse to 400
+            throw e;
+        } catch (RuntimeException e){
+            // the ES indexer reports entities-index creation failures as ConfigurationException
             return PayloadFormatter.error(e, HttpStatus.BAD_REQUEST);
         }
     }

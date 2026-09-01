@@ -28,7 +28,6 @@
         "name": { "type": "keyword" }
       }
     },
-    "id": { "type": "keyword" },
     "entityId": { "type": "keyword" },
     "model": { "type": "keyword" },
     "modelVersions": { "type": "keyword" },

@@ -1,5 +1,6 @@
 package org.icij.datashare.text;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import org.icij.datashare.Entity;
 import org.icij.datashare.model.ModelEntity;
 import org.icij.datashare.text.indexing.IndexId;
@@ -33,8 +34,10 @@ public record ExtractedEntity(@IndexId String entityId, String model, Set<String
     }
 
     /** The document id, which the entity id alone cannot be: the statement store emits one entity per
-     *  (entity id, model) pair, so two models describing the same entity would overwrite each other. */
+     *  (entity id, model) pair, so two models describing the same entity would overwrite each other.
+     *  Hidden from the source like {@link NamedEntity#getId()}: it already lives in the _id. */
     @Override
+    @JsonIgnore
     public String getId() {
         return model + NAMESPACE_SEPARATOR + entityId;
     }

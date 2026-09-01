@@ -995,6 +995,15 @@ public class ElasticsearchIndexerTest {
     }
 
     @Test
+    public void test_create_index_on_an_existing_index_stays_a_no_op() throws Exception {
+        ElasticsearchConfiguration.createIndex(es.client, "prj-entities");
+
+        assertThat(indexer.createIndex("prj-entities")).isFalse();
+        // without the created gate, IndexTask's no-op call would reach out for the entities index too
+        assertThat(indexer.exists("prj-entities.entities")).isFalse();
+    }
+
+    @Test
     public void test_create_index_of_an_entities_name_uses_the_entity_mappings() throws Exception {
         assertThat(indexer.createIndex("prj-entities.entities")).isTrue();
 
