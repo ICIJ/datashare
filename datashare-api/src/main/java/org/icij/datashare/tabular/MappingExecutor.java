@@ -168,15 +168,16 @@ public class MappingExecutor {
         if (cell == null || cell.isEmpty()) {
             return;
         }
-        String value = value(cell, format, provenance.rowNumber());
+        String value = value(cell, format, provenance);
         Statement statement = Statement.of(mapping.model(), entityId, type, property, value, provenance);
         into.add(value.equals(cell) ? statement : statement.withOriginalValue(cell));
     }
 
     // Whatever the pattern cannot read is left exactly as it was rather than dropped or rewritten,
     // so one 'n/a' in a date column does not cost a run, and is counted so a whole column that never
-    // converts cannot pass for a clean import.
-    private String value(String cell, String format, long rowNumber) {
+    // converts cannot pass for a clean import. The log names the column, never the cell: an
+    // unconvertible cell is document content, and DEBUG logs are not bound by project access rules.
+    private String value(String cell, String format, Statement.Provenance provenance) {
         if (format == null) {
             return cell;
         }
@@ -184,7 +185,7 @@ public class MappingExecutor {
         if (iso != null) {
             return iso;
         }
-        count(Skip.CELL_UNREADABLE, cell, rowNumber);
+        count(Skip.CELL_UNREADABLE, provenance.column(), provenance.rowNumber());
         return cell;
     }
 
