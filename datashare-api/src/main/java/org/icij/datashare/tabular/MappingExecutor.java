@@ -46,14 +46,11 @@ public class MappingExecutor {
         this.mapping = mapping;
         this.documentId = mapping.documentId();
         this.sheet = mapping.options().sheet();
-        List<TargetModel.Violation> violations = new ArrayList<>(mapping.validate());
-        if (sheet != null && sheet.indexOf('\u0000') >= 0) {
-            violations.add(new TargetModel.Violation("the sheet name holds a NUL character"));
-        }
-        mapping.entities().forEach((alias, entity) -> declare(alias, entity, violations));
+        List<TargetModel.Violation> violations = mapping.validate();
         if (!violations.isEmpty()) {
             throw new InvalidExtractionMapping(mapping.id(), violations);
         }
+        mapping.entities().forEach(this::declare);
         Stream.of(Skip.values()).forEach(reason -> skipped.put(reason, 0L));
     }
 
@@ -77,28 +74,15 @@ public class MappingExecutor {
     }
 
     // Key columns are sorted and de-duplicated once here rather than per row, because the id a row
-    // lands on depends on that order and a Map.copyOf does not carry one.
-    private void declare(String alias, ExtractionMapping.EntityMapping entity,
-                         List<TargetModel.Violation> violations) {
+    // lands on depends on that order and a Map.copyOf does not carry one. Formats compile without a
+    // guard: validate() already refused every pattern this mapping could not run.
+    private void declare(String alias, ExtractionMapping.EntityMapping entity) {
         keyColumns.put(alias, entity.keys().stream().distinct().sorted().toList());
         columns.addAll(entity.keys());
-        if (entity.properties().isEmpty()) {
-            violations.add(new TargetModel.Violation("entity '" + alias
-                    + "' maps no property, so no row can produce a statement for it"));
-        }
-        entity.properties().forEach((name, property) -> {
+        entity.properties().values().forEach(property -> {
             columns.addAll(property.columns());
-            String where = "property '" + name + "' on entity '" + alias + "' ";
-            if (property.literal() != null && property.literal().isBlank()) {
-                violations.add(new TargetModel.Violation(where + "has a blank literal, which no row can store"));
-            }
             if (property.format() != null) {
-                try {
-                    formats.declare(property.format());
-                } catch (IllegalArgumentException unusable) {
-                    violations.add(new TargetModel.Violation(where + "has an unusable format: "
-                            + unusable.getMessage()));
-                }
+                formats.declare(property.format());
             }
         });
     }

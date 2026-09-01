@@ -30,6 +30,20 @@ public class ExtractionMappingTest {
     }
 
     @Test
+    public void test_validate_reports_the_flaws_only_a_run_would_otherwise_catch() {
+        ExtractionMapping.PropertyMapping blank =
+                new ExtractionMapping.PropertyMapping(List.of(), null, " ", null, null);
+        ExtractionMapping.PropertyMapping twoDigitYear =
+                new ExtractionMapping.PropertyMapping(List.of("born"), null, null, null, "dd/MM/yy");
+
+        String violations = mapping("ftm", Map.of("member",
+                person(Map.of("nationality", blank, "birthDate", twoDigitYear)))).validate().toString();
+
+        assertThat(violations).contains("blank literal");
+        assertThat(violations).contains("two-digit year");
+    }
+
+    @Test
     public void test_unknown_model_is_rejected_at_construction() {
         UnknownTargetModel thrown = assertThrows(UnknownTargetModel.class,
                 () -> mapping("wikidata", Map.of("member", person(Map.of("name", column("full_name"))))));
