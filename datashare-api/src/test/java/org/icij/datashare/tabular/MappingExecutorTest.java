@@ -346,6 +346,28 @@ public class MappingExecutorTest {
     }
 
     @Test
+    public void test_a_zero_padded_cell_under_a_non_padded_pattern_still_converts() {
+        MappingExecutor executor = person(List.of("passport"),
+                Map.of("name", column("full_name"), "birthDate", formatted("born", "d/M/yyyy")));
+
+        Statement statement = of(executor.statements(row(Map.of("passport", "AB123",
+                "full_name", "Jane Doe", "born", "01/03/1970"))), "birthDate");
+
+        assertThat(statement.value()).isEqualTo("1970-03-01");
+        assertThat(executor.skipped().get(CELL_UNREADABLE)).isEqualTo(0L);
+    }
+
+    @Test
+    public void test_a_year_below_one_thousand_is_stored_padded_to_iso() {
+        Statement statement = of(person(List.of("passport"),
+                Map.of("name", column("full_name"), "birthDate", formatted("born", "yyyy")))
+                .statements(row(Map.of("passport", "AB123", "full_name", "Jane Doe",
+                        "born", "0070"))), "birthDate");
+
+        assertThat(statement.value()).isEqualTo("0070");
+    }
+
+    @Test
     public void test_a_two_digit_year_pattern_fails_at_construction() {
         InvalidExtractionMapping thrown = assertThrows(InvalidExtractionMapping.class,
                 () -> person(List.of("passport"),
