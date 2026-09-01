@@ -8,6 +8,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.EnumMap;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -61,10 +62,12 @@ public class MappingExecutor {
 
     public List<Statement> statements(Row row) {
         requireColumns(row);
-        Map<String, String> ids = identify(row);
+        Map<String, String> cells = new HashMap<>();
+        columns.forEach(column -> cells.put(column, cell(row, column)));
+        Map<String, String> ids = identify(cells, row.number());
         Map<String, Statement> statements = new LinkedHashMap<>();
         for (String alias : ids.keySet()) {
-            List<Statement> candidate = statementsOf(alias, row, ids);
+            List<Statement> candidate = statementsOf(alias, row, cells, ids);
             if (candidate.isEmpty()) {
                 count(Skip.ENTITY_EMPTY, alias, row.number());
             }
@@ -92,21 +95,24 @@ public class MappingExecutor {
     // reader whose records carry their own names can legitimately omit a column further down, so only
     // the first row is worth failing on: after that a missing column is data, and is counted.
     private void requireColumns(Row row) {
+        if (row.values().keySet().containsAll(columns)) {
+            checked = true;
+            return;
+        }
         List<String> missing = columns.stream().filter(column -> !row.values().containsKey(column)).toList();
-        if (!missing.isEmpty() && !checked) {
+        if (!checked) {
             throw new InvalidExtractionMapping(mapping.id(),
                     List.of(new TargetModel.Violation("the source has no column " + missing)));
         }
         missing.forEach(column -> count(Skip.CELL_MISSING, column, row.number()));
-        checked = true;
     }
 
-    private Map<String, String> identify(Row row) {
+    private Map<String, String> identify(Map<String, String> cells, long rowNumber) {
         Map<String, String> ids = new TreeMap<>();
         keyColumns.forEach((alias, keys) -> {
-            List<String> values = keys.stream().map(column -> cell(row, column)).toList();
+            List<String> values = keys.stream().map(cells::get).toList();
             if (values.stream().anyMatch(String::isEmpty)) {
-                count(Skip.ENTITY_UNIDENTIFIED, alias, row.number());
+                count(Skip.ENTITY_UNIDENTIFIED, alias, rowNumber);
             } else {
                 ids.put(alias, id(mapping.entities().get(alias).type(), values));
             }
@@ -123,7 +129,8 @@ public class MappingExecutor {
         return Hasher.SHA_384.hash(String.join("\u0000", mapping.model(), type, String.join("\u0000", values)));
     }
 
-    private List<Statement> statementsOf(String alias, Row row, Map<String, String> ids) {
+    private List<Statement> statementsOf(String alias, Row row, Map<String, String> cells,
+                                          Map<String, String> ids) {
         ExtractionMapping.EntityMapping entity = mapping.entities().get(alias);
         String entityId = ids.get(alias);
         List<Statement> statements = new ArrayList<>();
@@ -134,12 +141,12 @@ public class MappingExecutor {
                 statement(statements, entityId, entity.type(), property, given, null, provenance(row, ""));
             } else if (mapped.join() != null) {
                 statement(statements, entityId, entity.type(), property, mapped.columns().stream()
-                        .map(column -> cell(row, column)).filter(cell -> !cell.isEmpty())
+                        .map(cells::get).filter(cell -> !cell.isEmpty())
                         .collect(joining(mapped.join())), mapped.format(),
                         provenance(row, String.join(",", mapped.columns())));
             } else {
                 for (String column : mapped.columns()) {
-                    statement(statements, entityId, entity.type(), property, cell(row, column), mapped.format(),
+                    statement(statements, entityId, entity.type(), property, cells.get(column), mapped.format(),
                             provenance(row, column));
                 }
             }
