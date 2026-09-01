@@ -328,7 +328,10 @@
             if (createIndexOnce(project.getId())) {
                 return true;
             }
-            repository.deleteAll(project.getId());
+            if (!repository.deleteAll(project.getId())) {
+                // the stale row makes projectExists answer 409 to every retry, so leave a trace of it
+                LoggerFactory.getLogger(getClass()).error("could not roll back project row for {} after index creation failed", project.getId());
+            }
             return false;
         }
 

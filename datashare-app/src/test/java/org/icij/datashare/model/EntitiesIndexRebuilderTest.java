@@ -133,6 +133,18 @@ public class EntitiesIndexRebuilderTest {
     }
 
     @Test
+    public void test_rebuild_refuses_a_null_project_id() {
+        try {
+            rebuilder.rebuild(null);
+            fail("should have refused a null project id");
+        } catch (IllegalArgumentException e) {
+            assertThat(e.getMessage()).contains("null");
+        } catch (IOException e) {
+            fail("should have refused the id before reaching elasticsearch");
+        }
+    }
+
+    @Test
     public void test_rebuild_refuses_a_project_id_that_is_not_a_project_name() {
         try {
             rebuilder.rebuild("*");

@@ -537,21 +537,23 @@ public class ElasticsearchIndexer implements Indexer {
         if (indexName.endsWith(Project.ENTITIES_INDEX_SUFFIX)) {
             return createEntitiesIndex(baseProject(indexName));
         }
-        boolean created = ElasticsearchConfiguration.createIndex(client, indexName);
+        if (!ElasticsearchConfiguration.createIndex(client, indexName)) {
+            // an existing index keeps this call a side-effect-free no-op, as IndexTask relies on:
+            // retrofitting an entities index onto an older project is EntitiesIndexRebuilder's job
+            return false;
+        }
         try {
             createEntitiesIndex(indexName);
         } catch (RuntimeException e) {
             // all-or-nothing, so a caller compensating a failed create only has its own DB row left to undo
-            if (created) {
-                try {
-                    deleteIndex(indexName);
-                } catch (IOException rollback) {
-                    e.addSuppressed(rollback);
-                }
+            try {
+                deleteIndex(indexName);
+            } catch (IOException rollback) {
+                e.addSuppressed(rollback);
             }
             throw e;
         }
-        return created;
+        return true;
     }
 
     @Override
