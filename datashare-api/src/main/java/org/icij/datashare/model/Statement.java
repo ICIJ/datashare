@@ -11,6 +11,10 @@ public record Statement(String id, String model, String entityId, String entityT
      *  disagreeing on which mapping key a project accepts. */
     public static final int MAX_ENTITY_ID_LENGTH = 512;
 
+    /** The digest behind every tabular id, statement and entity alike, pinned by test: changing it
+     *  re-identifies everything already stored. */
+    public static final Hasher DIGESTER = Hasher.SHA_384;
+
     public Statement {
         Objects.requireNonNull(id, "id");
         model = component(model, "model");
@@ -69,7 +73,7 @@ public record Statement(String id, String model, String entityId, String entityT
     // input can forge a collision.
     private static String id(String model, String entityId, String entityType,
                              String property, String value, Provenance provenance) {
-        return Hasher.SHA_384.hash(String.join("\u0000", model, entityId, entityType, property, value,
+        return DIGESTER.hash(String.join("\u0000", model, entityId, entityType, property, value,
                 provenance.documentId(),
                 provenance.sheet(),
                 String.valueOf(provenance.rowNumber()),

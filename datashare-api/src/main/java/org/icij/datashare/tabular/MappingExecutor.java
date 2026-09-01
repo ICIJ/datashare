@@ -2,7 +2,6 @@ package org.icij.datashare.tabular;
 
 import org.icij.datashare.model.Statement;
 import org.icij.datashare.model.TargetModel;
-import org.icij.datashare.text.Hasher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -123,7 +122,7 @@ public class MappingExecutor {
     // mappings that call the same identifier differently agree. NUL-joined for the reason
     // Statement.id is: a cell can hold any printable character.
     private String id(String type, List<String> values) {
-        return Hasher.SHA_384.hash(String.join("\u0000", mapping.model(), type, String.join("\u0000", values)));
+        return Statement.DIGESTER.hash(String.join("\u0000", mapping.model(), type, String.join("\u0000", values)));
     }
 
     private List<Statement> statementsOf(String alias, Row row, Map<String, String> cells,
@@ -131,8 +130,9 @@ public class MappingExecutor {
         ExtractionMapping.EntityMapping entity = mapping.entities().get(alias);
         String entityId = ids.get(alias);
         List<Statement> statements = new ArrayList<>();
-        for (String property : entity.properties().keySet()) {
-            ExtractionMapping.PropertyMapping mapped = entity.properties().get(property);
+        for (Map.Entry<String, ExtractionMapping.PropertyMapping> declared : entity.properties().entrySet()) {
+            String property = declared.getKey();
+            ExtractionMapping.PropertyMapping mapped = declared.getValue();
             if (mapped.literal() != null || mapped.entity() != null) {
                 String given = mapped.literal() != null ? mapped.literal() : ids.get(mapped.entity());
                 statement(statements, entityId, entity.type(), property, given, null, provenance(row, ""));
