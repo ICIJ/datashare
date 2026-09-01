@@ -12,6 +12,7 @@ import java.time.temporal.TemporalAccessor;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 /**
  * The date patterns a mapping declares, compiled when they are declared rather than on the first row,
@@ -19,18 +20,17 @@ import java.util.Map;
  * model reads. Pinned to {@link Locale#ROOT}, so a month name reads the same wherever the run happens.
  */
 class DateFormats {
+    private static final Pattern TWO_DIGIT_YEAR = Pattern.compile("(?<![yu])[yu]{2}(?![yu])");
+
     private final Map<String, DateTimeFormatter> formats = new HashMap<>();
 
     // A two-digit year resolves against 2000, so 'dd/MM/yy' would store 01/01/50 as 2050 and a
     // mapping has no way to say otherwise. Refusing the pattern beats storing a date a century out.
     void declare(String pattern) {
-        if (formats.containsKey(pattern)) {
-            return;
-        }
-        if (twoDigitYear(pattern)) {
+        if (TWO_DIGIT_YEAR.matcher(pattern.replaceAll("'[^']*'", "")).find()) {
             throw new IllegalArgumentException("a two-digit year is ambiguous, write the year in full");
         }
-        formats.put(pattern, DateTimeFormatter.ofPattern(pattern, Locale.ROOT));
+        formats.computeIfAbsent(pattern, declared -> DateTimeFormatter.ofPattern(declared, Locale.ROOT));
     }
 
     /**
@@ -61,23 +61,5 @@ class DateFormats {
             return YearMonth.from(parsed);
         }
         return Year.from(parsed);
-    }
-
-    private static boolean twoDigitYear(String pattern) {
-        boolean quoted = false;
-        int run = 0;
-        for (int index = 0; index <= pattern.length(); index++) {
-            char letter = index < pattern.length() ? pattern.charAt(index) : ' ';
-            quoted = letter == '\'' ? !quoted : quoted;
-            if (!quoted && (letter == 'y' || letter == 'u')) {
-                run++;
-            } else {
-                if (run == 2) {
-                    return true;
-                }
-                run = 0;
-            }
-        }
-        return false;
     }
 }

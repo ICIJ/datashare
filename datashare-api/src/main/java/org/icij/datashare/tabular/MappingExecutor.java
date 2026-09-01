@@ -11,11 +11,11 @@ import java.util.EnumMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.regex.Pattern;
+import java.util.stream.Stream;
 
 import static java.util.stream.Collectors.joining;
 
@@ -30,7 +30,6 @@ import static java.util.stream.Collectors.joining;
  */
 public class MappingExecutor {
     private static final Logger LOGGER = LoggerFactory.getLogger(MappingExecutor.class);
-    private static final Pattern INVISIBLE = Pattern.compile("[\\uFEFF\\u200B-\\u200D]");
     private static final Pattern NON_BREAKING_SPACE = Pattern.compile("[\\u00A0\\u2007\\u202F]");
 
     /** What a run dropped, and why. ENTITY_ counts one entity of one row, CELL_ counts one cell. */
@@ -41,7 +40,6 @@ public class MappingExecutor {
     private final String sheet;
     private final DateFormats formats = new DateFormats();
     private final Map<String, List<String>> keyColumns = new TreeMap<>();
-    private final Map<String, List<String>> propertyNames = new TreeMap<>();
     private final Set<String> columns = new TreeSet<>();
     private final Map<Skip, Long> skipped = new EnumMap<>(Skip.class);
     private boolean checked;
@@ -58,9 +56,7 @@ public class MappingExecutor {
         if (!violations.isEmpty()) {
             throw new InvalidExtractionMapping(mapping.id(), violations);
         }
-        for (Skip reason : Skip.values()) {
-            skipped.put(reason, 0L);
-        }
+        Stream.of(Skip.values()).forEach(reason -> skipped.put(reason, 0L));
     }
 
     /** What the run dropped, by reason, every reason present. */
@@ -82,12 +78,11 @@ public class MappingExecutor {
         return List.copyOf(statements.values());
     }
 
-    // Sorting and de-duplicating here, once, rather than per row: an immutable mapping fixes the
-    // order its aliases, keys and properties are walked in, and a Map.copyOf does not carry one.
+    // Key columns are sorted and de-duplicated once here rather than per row, because the id a row
+    // lands on depends on that order and a Map.copyOf does not carry one.
     private void declare(String alias, ExtractionMapping.EntityMapping entity,
                          List<TargetModel.Violation> violations) {
         keyColumns.put(alias, entity.keys().stream().distinct().sorted().toList());
-        propertyNames.put(alias, entity.properties().keySet().stream().sorted().toList());
         columns.addAll(entity.keys());
         if (entity.properties().isEmpty()) {
             violations.add(new TargetModel.Violation("entity '" + alias
@@ -150,37 +145,34 @@ public class MappingExecutor {
         ExtractionMapping.EntityMapping entity = mapping.entities().get(alias);
         String entityId = ids.get(alias);
         List<Statement> statements = new ArrayList<>();
-        for (String property : propertyNames.get(alias)) {
+        for (String property : entity.properties().keySet()) {
             ExtractionMapping.PropertyMapping mapped = entity.properties().get(property);
-            if (mapped.literal() != null) {
-                statement(entityId, entity.type(), property, mapped.literal(), null, provenance(row, ""))
-                        .ifPresent(statements::add);
-            } else if (mapped.entity() != null) {
-                statement(entityId, entity.type(), property, ids.get(mapped.entity()), null, provenance(row, ""))
-                        .ifPresent(statements::add);
+            if (mapped.literal() != null || mapped.entity() != null) {
+                String given = mapped.literal() != null ? mapped.literal() : ids.get(mapped.entity());
+                statement(statements, entityId, entity.type(), property, given, null, provenance(row, ""));
             } else if (mapped.join() != null) {
-                statement(entityId, entity.type(), property, mapped.columns().stream()
+                statement(statements, entityId, entity.type(), property, mapped.columns().stream()
                         .map(column -> cell(row, column)).filter(cell -> !cell.isEmpty())
                         .collect(joining(mapped.join())), mapped.format(),
-                        provenance(row, String.join(",", mapped.columns()))).ifPresent(statements::add);
+                        provenance(row, String.join(",", mapped.columns())));
             } else {
                 for (String column : mapped.columns()) {
-                    statement(entityId, entity.type(), property, cell(row, column), mapped.format(),
-                            provenance(row, column)).ifPresent(statements::add);
+                    statement(statements, entityId, entity.type(), property, cell(row, column), mapped.format(),
+                            provenance(row, column));
                 }
             }
         }
         return statements;
     }
 
-    private Optional<Statement> statement(String entityId, String type, String property, String cell,
-                                          String format, Statement.Provenance provenance) {
+    private void statement(List<Statement> into, String entityId, String type, String property, String cell,
+                           String format, Statement.Provenance provenance) {
         if (cell == null || cell.isEmpty()) {
-            return Optional.empty();
+            return;
         }
         String value = value(cell, format, provenance.rowNumber());
         Statement statement = Statement.of(mapping.model(), entityId, type, property, value, provenance);
-        return Optional.of(value.equals(cell) ? statement : statement.withOriginalValue(cell));
+        into.add(value.equals(cell) ? statement : statement.withOriginalValue(cell));
     }
 
     // Whatever the pattern cannot read is left exactly as it was rather than dropped or rewritten,
@@ -210,7 +202,7 @@ public class MappingExecutor {
         if (cell.indexOf('\u0000') >= 0) {
             return "";
         }
-        return NON_BREAKING_SPACE.matcher(INVISIBLE.matcher(cell).replaceAll("")).replaceAll(" ").strip();
+        return NON_BREAKING_SPACE.matcher(cell).replaceAll(" ").strip();
     }
 
     private void count(Skip reason, String what, long rowNumber) {
