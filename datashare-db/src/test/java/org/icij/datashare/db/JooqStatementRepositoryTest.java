@@ -66,6 +66,17 @@ public class JooqStatementRepositoryTest {
     }
 
     @Test
+    public void test_a_resave_refreshes_the_original_value() {
+        Statement fact = statement("entity-1", "Person", "birthDate", "1970-01-01");
+
+        repository.save("prj", "run-1", Stream.of(fact.withOriginalValue("01/01/1970")));
+        repository.save("prj", "run-2", Stream.of(fact.withOriginalValue("1970/01/01")));
+
+        assertThat(dbRule.dsl().select(STATEMENT.ORIGINAL_VALUE).from(STATEMENT).fetchOne().value1())
+                .isEqualTo("1970/01/01");
+    }
+
+    @Test
     public void test_save_binds_original_value_when_the_first_row_of_a_batch_has_none() {
         repository.save("prj", "run-1", Stream.of(
                 statement("entity-1", "Person", "name", "Jane Doe"),

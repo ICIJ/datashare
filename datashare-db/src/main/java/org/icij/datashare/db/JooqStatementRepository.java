@@ -94,6 +94,8 @@ public class JooqStatementRepository implements StatementRepository {
                 .onConflict(STATEMENT.ID, STATEMENT.PRJ_ID).doUpdate()
                 .set(STATEMENT.RUN_ID, DSL.excluded(STATEMENT.RUN_ID))
                 .set(STATEMENT.MODEL_VERSION, DSL.excluded(STATEMENT.MODEL_VERSION))
+                // The one content column outside the id hash, so a conflict does not imply it matches.
+                .set(STATEMENT.ORIGINAL_VALUE, DSL.excluded(STATEMENT.ORIGINAL_VALUE))
                 .set(STATEMENT.LAST_SEEN, DSL.excluded(STATEMENT.LAST_SEEN)));
         for (Statement statement : chunk) {
             batch.bind(row(write, statement).intoArray());
