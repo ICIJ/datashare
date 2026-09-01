@@ -1,6 +1,6 @@
 package org.icij.datashare.model;
 
-import org.icij.datashare.text.ExtractedEntity;
+import org.icij.datashare.text.StructuredEntity;
 import org.icij.datashare.text.Project;
 import org.icij.datashare.text.indexing.Indexer;
 
@@ -44,9 +44,9 @@ public class EntitiesIndexRebuilder {
     private int index(String indexName, Iterator<ModelEntity> entities) {
         int written = 0;
         while (entities.hasNext()) {
-            List<ExtractedEntity> chunk = new ArrayList<>(CHUNK_SIZE);
+            List<StructuredEntity> chunk = new ArrayList<>(CHUNK_SIZE);
             while (chunk.size() < CHUNK_SIZE && entities.hasNext()) {
-                chunk.add(ExtractedEntity.from(entities.next()));
+                chunk.add(StructuredEntity.from(entities.next()));
             }
             try {
                 if (!indexer.bulkAdd(indexName, chunk)) {

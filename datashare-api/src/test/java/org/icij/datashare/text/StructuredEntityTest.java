@@ -10,14 +10,14 @@ import java.util.Set;
 
 import static org.fest.assertions.Assertions.assertThat;
 
-public class ExtractedEntityTest {
+public class StructuredEntityTest {
     private final ModelEntity bareKeyedSource = new ModelEntity("ftm", "person-1", Set.of("Person", "LegalEntity"),
             Set.of("4.10.2"), Set.of("doc-1", "doc-2"),
             Map.of("name", List.of("Jane Doe", "J. Doe"), "birthDate", List.of("1980-04-02")));
 
     @Test
     public void test_projects_every_field_of_the_model_entity() {
-        ExtractedEntity entity = ExtractedEntity.from(bareKeyedSource);
+        StructuredEntity entity = StructuredEntity.from(bareKeyedSource);
 
         assertThat(entity.entityId()).isEqualTo("person-1");
         assertThat(entity.getId()).isEqualTo("ftm_person-1");
@@ -31,12 +31,12 @@ public class ExtractedEntityTest {
 
     @Test
     public void test_the_index_type_is_the_class_name() {
-        assertThat(JsonObjectMapper.getType(ExtractedEntity.from(bareKeyedSource))).isEqualTo("ExtractedEntity");
+        assertThat(JsonObjectMapper.getType(StructuredEntity.from(bareKeyedSource))).isEqualTo("StructuredEntity");
     }
 
     @Test
     public void test_serializes_the_namespaced_properties_as_written() {
-        Map<String, Object> json = JsonObjectMapper.getJson(ExtractedEntity.from(bareKeyedSource));
+        Map<String, Object> json = JsonObjectMapper.getJson(StructuredEntity.from(bareKeyedSource));
 
         assertThat(json.get("model")).isEqualTo("ftm");
         assertThat(json.get("entityId")).isEqualTo("person-1");
@@ -47,10 +47,10 @@ public class ExtractedEntityTest {
 
     @Test
     public void test_reads_back_the_document_it_wrote() {
-        Map<String, Object> json = JsonObjectMapper.getJson(ExtractedEntity.from(bareKeyedSource));
+        Map<String, Object> json = JsonObjectMapper.getJson(StructuredEntity.from(bareKeyedSource));
 
-        ExtractedEntity read = JsonObjectMapper.getObject(json, ExtractedEntity.class);
+        StructuredEntity read = JsonObjectMapper.getObject(json, StructuredEntity.class);
 
-        assertThat(read).isEqualTo(ExtractedEntity.from(bareKeyedSource));
+        assertThat(read).isEqualTo(StructuredEntity.from(bareKeyedSource));
     }
 }
