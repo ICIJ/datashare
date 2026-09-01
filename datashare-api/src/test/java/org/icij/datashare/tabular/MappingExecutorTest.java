@@ -355,6 +355,12 @@ public class MappingExecutorTest {
     }
 
     @Test
+    public void test_a_quoted_literal_does_not_fuse_two_two_digit_years_into_a_full_year() {
+        assertThrows(InvalidExtractionMapping.class, () -> person(List.of("passport"),
+                Map.of("name", column("full_name"), "birthDate", formatted("born", "yy'x'yy"))));
+    }
+
+    @Test
     public void test_a_value_already_in_the_target_form_keeps_no_original() {
         Statement statement = of(person(List.of("passport"), Map.of("name", column("full_name"),
                         "birthDate", formatted("born", "yyyy-MM-dd")))

@@ -27,7 +27,7 @@ class DateFormats {
     // A two-digit year resolves against 2000, so 'dd/MM/yy' would store 01/01/50 as 2050 and a
     // mapping has no way to say otherwise. Refusing the pattern beats storing a date a century out.
     void declare(String pattern) {
-        if (TWO_DIGIT_YEAR.matcher(pattern.replaceAll("'[^']*'", "")).find()) {
+        if (TWO_DIGIT_YEAR.matcher(pattern.replaceAll("'[^']*'", " ")).find()) {
             throw new IllegalArgumentException("a two-digit year is ambiguous, write the year in full");
         }
         formats.computeIfAbsent(pattern, declared -> DateTimeFormatter.ofPattern(declared, Locale.ROOT));
