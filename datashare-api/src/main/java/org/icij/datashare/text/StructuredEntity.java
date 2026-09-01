@@ -13,8 +13,8 @@ import java.util.Set;
 
 /** An entity rebuilt from the statement store, in the shape the "&lt;project&gt;.entities" index holds:
  *  the property keys are the namespaced wire form ("ftm_birthDate") the statements were stored under. */
-@IndexType("ExtractedEntity")
-public record ExtractedEntity(@IndexId String entityId, String model, Set<String> types, Set<String> modelVersions,
+@IndexType("StructuredEntity")
+public record StructuredEntity(@IndexId String entityId, String model, Set<String> types, Set<String> modelVersions,
                               Set<String> documentIds, Map<String, List<String>> properties) implements Entity {
     /** Not the colon {@link org.icij.datashare.model.Statement#qualifiedProperty()} stores: a colon is
      *  the field/value delimiter of elasticsearch's query_string, so "properties.ftm:name:Jane" is a
@@ -25,11 +25,11 @@ public record ExtractedEntity(@IndexId String entityId, String model, Set<String
     // prefix a statement's property is stored under. The namespace goes back on here, at the index
     // boundary, rather than in ModelEntity, which TargetModel.validate and ExtractionMapping.probe
     // consume on the bare form.
-    public static ExtractedEntity from(ModelEntity entity) {
+    public static StructuredEntity from(ModelEntity entity) {
         Map<String, List<String>> namespaced = new LinkedHashMap<>();
         entity.properties().forEach((property, values) ->
                 namespaced.put(entity.model() + NAMESPACE_SEPARATOR + property, values));
-        return new ExtractedEntity(entity.id(), entity.model(), entity.types(), entity.modelVersions(),
+        return new StructuredEntity(entity.id(), entity.model(), entity.types(), entity.modelVersions(),
                 entity.documentIds(), namespaced);
     }
 
