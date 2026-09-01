@@ -16,11 +16,15 @@ import java.util.regex.Pattern;
  */
 public record Row(long number, Map<String, String> values) {
     private static final Pattern NON_BREAKING_SPACE = Pattern.compile("[\\u00A0\\u2007\\u202F]");
+    private static final Pattern INVISIBLE = Pattern.compile("[\\uFEFF\\u200B-\\u200D]");
 
     /** The whitespace rule headers and cells share: the space a spreadsheet writes as U+00A0 reads
-     *  as a space, and surrounding whitespace is not content. */
+     *  as a space, a zero-width character or stray BOM is removed (it is not whitespace to strip(),
+     *  yet it would silently split one key value into two entity ids), and surrounding whitespace
+     *  is not content. */
     static String clean(String name) {
-        return NON_BREAKING_SPACE.matcher(name).replaceAll(" ").strip();
+        String visible = INVISIBLE.matcher(name).replaceAll("");
+        return NON_BREAKING_SPACE.matcher(visible).replaceAll(" ").strip();
     }
 
     /**

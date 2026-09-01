@@ -47,10 +47,7 @@ public class MappingExecutor {
         this.mapping = mapping;
         this.documentId = mapping.documentId();
         this.sheet = mapping.options().sheet();
-        List<TargetModel.Violation> violations = mapping.validate();
-        if (!violations.isEmpty()) {
-            throw new InvalidExtractionMapping(mapping.id(), violations);
-        }
+        mapping.requireValid();
         mapping.entities().forEach(this::declare);
         Stream.of(Skip.values()).forEach(reason -> skipped.put(reason, 0L));
     }
@@ -185,12 +182,14 @@ public class MappingExecutor {
     }
 
     // The one place a cell enters, keys and values alike. A NUL would abort the run from inside
-    // Statement's constructor, so it reads as blank. Row.clean is normalisation, not formatting: an
+    // Statement's constructor, so it reads as blank, and is counted: unlike a genuinely blank cell,
+    // it held content the run could not keep. Row.clean is normalisation, not formatting: an
     // interior non-breaking space becomes a plain space with no originalValue recorded, the same way
     // surrounding whitespace is dropped unrecorded.
-    private static String cell(Row row, String column) {
+    private String cell(Row row, String column) {
         String cell = row.values().getOrDefault(column, "");
         if (cell.indexOf('\u0000') >= 0) {
+            count(Skip.CELL_UNREADABLE, column, row.number());
             return "";
         }
         return Row.clean(cell);

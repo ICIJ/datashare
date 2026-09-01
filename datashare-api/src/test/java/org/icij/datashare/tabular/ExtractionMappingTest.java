@@ -44,6 +44,20 @@ public class ExtractionMappingTest {
     }
 
     @Test
+    public void test_validate_reports_every_nul_a_statement_would_carry() {
+        ExtractionMapping.PropertyMapping nulLiteral =
+                new ExtractionMapping.PropertyMapping(List.of(), null, "f\u0000r", null, null);
+        ExtractionMapping nulled = new ExtractionMapping("map-1", "prj", "jdoe", "members", "ftm",
+                "doc\u00001", RowSourceOptions.defaults(),
+                Map.of("member", person(Map.of("nationality", nulLiteral))));
+
+        String violations = nulled.validate().toString();
+
+        assertThat(violations).contains("document id");
+        assertThat(violations).contains("literal holding a NUL");
+    }
+
+    @Test
     public void test_unknown_model_is_rejected_at_construction() {
         UnknownTargetModel thrown = assertThrows(UnknownTargetModel.class,
                 () -> mapping("wikidata", Map.of("member", person(Map.of("name", column("full_name"))))));
