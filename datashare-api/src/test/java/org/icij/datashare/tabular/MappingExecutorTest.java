@@ -14,10 +14,6 @@ import static org.icij.datashare.tabular.MappingExecutor.Skip.ENTITY_EMPTY;
 import static org.icij.datashare.tabular.MappingExecutor.Skip.ENTITY_UNIDENTIFIED;
 import static org.junit.Assert.assertThrows;
 
-/**
- * One row against one mapping: what a statement carries, when an entity converges on one id, and
- * what a run drops rather than stores.
- */
 public class MappingExecutorTest {
 
     private static ExtractionMapping mapping(Map<String, ExtractionMapping.EntityMapping> entities) {

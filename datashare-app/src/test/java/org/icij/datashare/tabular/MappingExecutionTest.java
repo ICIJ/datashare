@@ -16,10 +16,6 @@ import static java.util.stream.Collectors.groupingBy;
 import static java.util.stream.Collectors.toMap;
 import static org.fest.assertions.Assertions.assertThat;
 
-/**
- * A csv and the mapping over it, read end to end: the entities a file states and the relationship
- * between them.
- */
 public class MappingExecutionTest {
     private static final String CSV = """
             person_id,full_name,born,company_id,company_name,job_title
