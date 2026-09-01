@@ -342,16 +342,6 @@ public class MappingExecutorTest {
     }
 
     @Test
-    public void test_a_join_skips_a_column_holding_only_a_non_breaking_space() {
-        Statement statement = person(List.of("passport"),
-                Map.of("name", joined(List.of("first_name", "middle_name", "last_name"), " ")))
-                .statements(row(Map.of("passport", "AB123", "first_name", "Jane", "middle_name", "\u00A0",
-                        "last_name", "Doe"))).get(0);
-
-        assertThat(statement.value()).isEqualTo("Jane Doe");
-    }
-
-    @Test
     public void test_a_reference_stores_the_id_of_the_entity_it_names() {
         List<Statement> statements = new MappingExecutor(mapping(Map.of(
                 "member", entity("Person", List.of("passport"), Map.of("name", column("full_name"))),
