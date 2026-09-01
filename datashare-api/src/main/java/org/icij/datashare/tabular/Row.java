@@ -7,6 +7,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 /**
  * One data row. {@code number} is the 1-based ordinal of the emitted row, not the row's position in
@@ -14,6 +15,13 @@ import java.util.Set;
  * no number.
  */
 public record Row(long number, Map<String, String> values) {
+    private static final Pattern NON_BREAKING_SPACE = Pattern.compile("[\\u00A0\\u2007\\u202F]");
+
+    /** The whitespace rule headers and cells share: the space a spreadsheet writes as U+00A0 reads
+     *  as a space, and surrounding whitespace is not content. */
+    static String clean(String name) {
+        return NON_BREAKING_SPACE.matcher(name).replaceAll(" ").strip();
+    }
 
     /**
      * Applies the one header rule every reader shares: a blank name means the column is dropped
@@ -25,7 +33,7 @@ public record Row(long number, Map<String, String> values) {
         List<String> headers = new ArrayList<>();
         Set<String> seen = new HashSet<>();
         for (String rawName : rawNames) {
-            String name = rawName == null ? "" : rawName.strip();
+            String name = rawName == null ? "" : clean(rawName);
             if (name.isEmpty()) {
                 headers.add(null);
                 continue;

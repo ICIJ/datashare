@@ -14,7 +14,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
-import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 import static java.util.stream.Collectors.joining;
@@ -30,7 +29,6 @@ import static java.util.stream.Collectors.joining;
  */
 public class MappingExecutor {
     private static final Logger LOGGER = LoggerFactory.getLogger(MappingExecutor.class);
-    private static final Pattern NON_BREAKING_SPACE = Pattern.compile("[\\u00A0\\u2007\\u202F]");
 
     /** What a run dropped, and why. ENTITY_ counts one entity of one row, CELL_ counts one cell. */
     public enum Skip { ENTITY_UNIDENTIFIED, ENTITY_EMPTY, CELL_UNREADABLE, CELL_MISSING }
@@ -195,14 +193,15 @@ public class MappingExecutor {
     }
 
     // The one place a cell enters, keys and values alike. A NUL would abort the run from inside
-    // Statement's constructor, and the space a spreadsheet writes as U+00A0 is not content: both read
-    // as blank rather than as a rewritten value, so neither can forge an entity id nor a statement.
+    // Statement's constructor, so it reads as blank. Row.clean is normalisation, not formatting: an
+    // interior non-breaking space becomes a plain space with no originalValue recorded, the same way
+    // surrounding whitespace is dropped unrecorded.
     private static String cell(Row row, String column) {
         String cell = row.values().getOrDefault(column, "");
         if (cell.indexOf('\u0000') >= 0) {
             return "";
         }
-        return NON_BREAKING_SPACE.matcher(cell).replaceAll(" ").strip();
+        return Row.clean(cell);
     }
 
     private void count(Skip reason, String what, long rowNumber) {
