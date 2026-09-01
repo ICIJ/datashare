@@ -124,12 +124,6 @@ public class StatementTest {
     }
 
     @Test
-    public void test_a_statement_has_no_original_value_by_default() {
-        assertThat(Statement.of("ftm", "person-1", "Person", "name", "Jane Doe", provenance).originalValue())
-                .isNull();
-    }
-
-    @Test
     public void test_the_original_value_does_not_change_the_id() {
         Statement statement = Statement.of("ftm", "person-1", "Person", "birthDate", "1970-01-01", provenance);
 

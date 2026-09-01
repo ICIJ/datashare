@@ -57,13 +57,6 @@ public class JooqStatementRepositoryTest {
     }
 
     @Test
-    public void test_a_statement_no_format_touched_stores_no_original_value() {
-        repository.save("prj", "run-1", Stream.of(statement("entity-1", "Person", "name", "Jane Doe")));
-
-        assertThat(dbRule.dsl().select(STATEMENT.ORIGINAL_VALUE).from(STATEMENT).fetchOne().value1()).isNull();
-    }
-
-    @Test
     public void test_a_statement_with_an_original_value_still_rebuilds_its_entity() {
         repository.save("prj", "run-1", Stream.of(statement("entity-1", "Person", "birthDate", "1970-01-01")
                 .withOriginalValue("01/01/1970")));

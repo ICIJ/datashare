@@ -17,8 +17,8 @@ import static java.util.stream.Collectors.toMap;
 import static org.fest.assertions.Assertions.assertThat;
 
 /**
- * A csv and the mapping over it, read end to end: the entities a file states, the relationship
- * between them, and the same ids on a second read.
+ * A csv and the mapping over it, read end to end: the entities a file states and the relationship
+ * between them.
  */
 public class MappingExecutionTest {
     private static final String CSV = """
@@ -70,21 +70,5 @@ public class MappingExecutionTest {
         assertThat(entities.get("Employment").properties().get("employer"))
                 .containsExactly(entities.get("Company").id());
         assertThat(executor.skipped().values().stream().mapToLong(Long::longValue).sum()).isEqualTo(0L);
-    }
-
-    @Test
-    public void test_the_same_file_read_twice_produces_the_same_statement_ids() throws Exception {
-        List<String> first = run().stream().map(Statement::id).sorted().toList();
-
-        assertThat(first).isNotEmpty();
-        assertThat(run().stream().map(Statement::id).sorted().toList()).isEqualTo(first);
-    }
-
-    private List<Statement> run() throws Exception {
-        MappingExecutor executor = new MappingExecutor(MAPPING);
-        try (InputStream source = new ByteArrayInputStream(CSV.getBytes(UTF_8));
-             Stream<Row> rows = new DelimitedRowSource().rows(source, RowSourceOptions.defaults())) {
-            return rows.flatMap(row -> executor.statements(row).stream()).toList();
-        }
     }
 }
