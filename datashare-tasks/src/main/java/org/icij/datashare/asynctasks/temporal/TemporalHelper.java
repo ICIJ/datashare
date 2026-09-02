@@ -4,22 +4,15 @@ import io.temporal.api.enums.v1.WorkflowExecutionStatus;
 import io.temporal.api.workflow.v1.WorkflowExecutionInfo;
 import io.temporal.common.converter.DefaultDataConverter;
 import io.temporal.failure.ApplicationFailure;
-import io.temporal.workflow.WorkflowMethod;
-import org.icij.datashare.asynctasks.Group;
 import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.asynctasks.TaskFilters;
-import org.icij.datashare.tasks.RoutingStrategy;
 import org.icij.datashare.user.User;
 
-import java.lang.reflect.Method;
-import java.util.Arrays;
-import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static io.temporal.api.enums.v1.WorkflowExecutionStatus.*;
@@ -27,8 +20,7 @@ import static org.icij.datashare.asynctasks.temporal.TemporalInterlocutor.USER_C
 
 public class TemporalHelper {
 
-    private static final String WORKFLOW_METHOD_CLASS_NAME = WorkflowMethod.class.getName();
-        private static final DefaultDataConverter defaultDataConverter = DefaultDataConverter.newDefaultInstance();
+    private static final DefaultDataConverter defaultDataConverter = DefaultDataConverter.newDefaultInstance();
 
 
     public static Task.State asTaskState(WorkflowExecutionStatus status) {
@@ -98,56 +90,4 @@ public class TemporalHelper {
     protected static <R> R taskWrapper(Supplier<R> taskSupplier) {
         return taskWrapper((t) -> taskSupplier.get(), null, Set.of());
     }
-
-    static String parseWorkflowKey(Class<?> workflowInterface) {
-        // We have to get method by name because of the dynamic class loader and proxies... inspection doesn't work
-        // properly: m.isAnnotationPresent(WorkflowMethod.class) fails
-        List<Method> annotated = Arrays.stream(workflowInterface.getDeclaredMethods())
-            .filter(m -> Arrays.stream(m.getAnnotations()).anyMatch(a -> a.annotationType().getName().equals(WORKFLOW_METHOD_CLASS_NAME)))
-            .toList();
-        if (annotated.size() != 1) {
-            throw new RuntimeException("expected exactly one workflow method for " + workflowInterface);
-        }
-        return annotated.get(0).getAnnotation(WorkflowMethod.class).name();
-    }
-
-    /**
-     * Returns a predicate that filters all the interfaces that can be used as effective Workflow interfaces.
-     * The filter will reject all the interfaces that don't have at least one WorkflowMethod
-     * @param routingStrategy
-     * @param workerGroup
-     * @return
-     */
-    static Predicate<Class<?>> makeWorkflowFilter(RoutingStrategy routingStrategy, Group workerGroup) {
-        return c -> {
-            if (!c.isInterface()) {
-                return false;
-            }
-            // Skip signal/query-only interfaces (like TemporalWorkflow) that have no @WorkflowMethod
-            boolean hasWorkflowMethod = Arrays.stream(c.getDeclaredMethods())
-                .anyMatch(m -> Arrays.stream(m.getAnnotations())
-                    .anyMatch(a -> a.annotationType().getName().equals(WORKFLOW_METHOD_CLASS_NAME)));
-            if (!hasWorkflowMethod) {
-                return false;
-            }
-            switch (routingStrategy) {
-                case UNIQUE -> {
-                    return true;
-                }
-                case GROUP, NAME -> {
-                    return parseWorkflowKey(c).equals(asKey(workerGroup.getId()));
-                }
-                default -> throw new IllegalArgumentException("invalid routing strategy " + routingStrategy);
-            }
-        };
-    }
-
-    private static String asKey(String taskGroupId) {
-        String asKey = taskGroupId.codePoints().mapToObj(c -> {
-            String current = String.valueOf((char) c);
-            return current.equals(current.toUpperCase()) ? "-" + current.toLowerCase() : current;
-        }).collect(Collectors.joining());
-        return asKey.startsWith("-") ? asKey.substring(1) : asKey;
-    }
-
 }
