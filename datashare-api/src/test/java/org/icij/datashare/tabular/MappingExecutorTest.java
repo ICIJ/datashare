@@ -145,6 +145,38 @@ public class MappingExecutorTest {
     }
 
     @Test
+    public void test_an_entity_without_keys_is_one_record_per_row() {
+        MappingExecutor executor = person(List.of(), Map.of("name", column("full_name")));
+
+        String seventh = executor.statements(row(Map.of("full_name", "Jane Doe"))).get(0).entityId();
+        String eighth = executor.statements(new Row(8L, Map.of("full_name", "Jane Doe"))).get(0).entityId();
+
+        assertThat(seventh).isNotEqualTo(eighth);
+        assertThat(person(List.of(), Map.of("name", column("full_name")))
+                .statements(row(Map.of("full_name", "Jane Doe"))).get(0).entityId()).isEqualTo(seventh);
+    }
+
+    @Test
+    public void test_the_row_scoped_id_recipe_is_pinned_to_a_literal_hash() {
+        // Changing this value orphans every statement already stored under the id it replaces.
+        String expected = "b5935bd4b042697726cccdd9b75fb355095c03fa2a7c7ae6ea3d43f5ad7d4fdd30bc40a20ed5790eba2e61d0d144cef5";
+
+        String actual = person(List.of(), Map.of("name", column("full_name")))
+                .statements(row(Map.of("full_name", "Jane Doe"))).get(0).entityId();
+
+        assertThat(actual).isEqualTo(expected);
+    }
+
+    @Test
+    public void test_a_keyless_entity_with_a_blank_row_is_counted_empty_not_unidentified() {
+        MappingExecutor executor = person(List.of(), Map.of("name", column("full_name")));
+
+        assertThat(executor.statements(row(Map.of("full_name", "")))).isEmpty();
+        assertThat(executor.skipped().get(ENTITY_EMPTY)).isEqualTo(1L);
+        assertThat(executor.skipped().get(ENTITY_UNIDENTIFIED)).isEqualTo(0L);
+    }
+
+    @Test
     public void test_a_row_whose_key_is_blank_yields_no_statement_and_is_counted() {
         MappingExecutor executor = person(List.of("passport"), Map.of("name", column("full_name")));
 

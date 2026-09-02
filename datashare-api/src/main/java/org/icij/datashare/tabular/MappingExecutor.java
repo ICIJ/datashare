@@ -106,6 +106,10 @@ public class MappingExecutor {
     private Map<String, String> identify(Map<String, String> cells, long rowNumber) {
         Map<String, String> ids = new TreeMap<>();
         keyColumns.forEach((alias, keys) -> {
+            if (keys.isEmpty()) {
+                ids.put(alias, rowId(mapping.entities().get(alias).type(), rowNumber));
+                return;
+            }
             List<String> values = keys.stream().map(cells::get).toList();
             if (values.stream().anyMatch(String::isEmpty)) {
                 count(Skip.ENTITY_UNIDENTIFIED, alias, rowNumber);
@@ -114,6 +118,14 @@ public class MappingExecutor {
             }
         });
         return ids;
+    }
+
+    // A keyless entity is row-scoped, each row its own record, so its id carries what locates the
+    // row rather than key values. Re-reading the same file lands on the same ids; an edited file
+    // shifts row numbers, which is what re-extracting a document is for.
+    private String rowId(String type, long rowNumber) {
+        return Statement.DIGESTER.hash(String.join("\u0000", mapping.model(), type, documentId,
+                sheet == null ? "" : sheet, String.valueOf(rowNumber)));
     }
 
     // The key values in the order their column names sort, never reordered among themselves: two

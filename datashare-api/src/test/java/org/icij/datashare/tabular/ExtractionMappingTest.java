@@ -134,9 +134,9 @@ public class ExtractionMappingTest {
     }
 
     @Test
-    public void test_an_entity_needs_at_least_one_key() {
-        assertThrows(InvalidEntityMapping.class,
-                () -> new ExtractionMapping.EntityMapping("Person", List.of(), Map.of()));
+    public void test_an_entity_without_keys_is_valid() {
+        assertThat(mapping("ftm", Map.of("member", new ExtractionMapping.EntityMapping("Person",
+                List.of(), Map.of("name", column("full_name"))))).validate()).isEmpty();
     }
 
     @Test
