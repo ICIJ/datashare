@@ -82,6 +82,18 @@ public class EntitiesIndexRebuilderTest {
         assertThat(search("{\"query\":{\"term\":{\"documentIds\":\"doc-1\"}}}")).contains("person-1");
     }
 
+    // The index is dropped before the stream is consumed, so one group the store refuses to fold
+    // must not cost the project its whole index.
+    @Test
+    public void test_an_entity_that_cannot_be_rebuilt_is_skipped_rather_than_failing_the_rebuild() throws Exception {
+        statements.unrebuildable = 1;
+        statements.entities.add(entity("person-1", "Jane Doe"));
+
+        assertThat(rebuilder.rebuild("prj")).isEqualTo(1);
+
+        assertThat(search("{\"query\":{\"match_all\":{}}}")).contains("person-1");
+    }
+
     @Test
     public void test_a_second_rebuild_drops_an_entity_that_left_the_store() throws Exception {
         statements.entities.add(entity("person-1", "Jane Doe"));
@@ -198,6 +210,7 @@ public class EntitiesIndexRebuilderTest {
 
     private static class InMemoryStatements implements StatementRepository {
         private final List<ModelEntity> entities = new ArrayList<>();
+        private int unrebuildable;
 
         @Override
         public int save(String projectId, String runId, Stream<Statement> statements) {
@@ -211,7 +224,10 @@ public class EntitiesIndexRebuilderTest {
 
         @Override
         public <R> R entities(String projectId, Function<Stream<ModelEntity>, R> consumer) {
-            return consumer.apply(entities.stream());
+            Stream<ModelEntity> refused = Stream.of("refused").limit(unrebuildable).map(group -> {
+                throw new IllegalArgumentException("statements give the entity 2 types: [Company, Person]");
+            });
+            return consumer.apply(Stream.concat(refused, entities.stream()));
         }
 
         @Override

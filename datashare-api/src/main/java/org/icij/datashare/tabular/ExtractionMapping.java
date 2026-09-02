@@ -92,6 +92,10 @@ public record ExtractionMapping(String id, String projectId, String userId, Stri
             entity.keys().stream().filter(ExtractionMapping::holdsNul).forEach(key ->
                     violations.add(new TargetModel.Violation("entity '" + alias
                             + "' has a key column name holding a NUL character")));
+            if (entity.keys().stream().anyMatch(String::isEmpty)) {
+                violations.add(new TargetModel.Violation("entity '" + alias
+                        + "' has a blank key column name, which no header can match"));
+            }
             for (String property : new TreeSet<>(entity.properties().keySet())) {
                 reference(target, alias, entity, property).ifPresent(violations::add);
                 runtime(alias, entity.properties().get(property), property, formats).forEach(violations::add);
@@ -124,6 +128,9 @@ public record ExtractionMapping(String id, String projectId, String userId, Stri
         }
         mapped.columns().stream().filter(ExtractionMapping::holdsNul).forEach(column ->
                 violations.add(new TargetModel.Violation(where + "has a column name holding a NUL character")));
+        if (mapped.columns().stream().anyMatch(String::isEmpty)) {
+            violations.add(new TargetModel.Violation(where + "has a blank column name, which no header can match"));
+        }
         if (mapped.format() != null) {
             try {
                 formats.declare(mapped.format());

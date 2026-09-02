@@ -33,6 +33,12 @@ public class FtmTargetModelSerializationTest {
     }
 
     @Test
+    public void test_serializing_a_type_the_model_does_not_declare_fails() {
+        assertThrowsContaining(() -> model.serialize(new ModelEntity("ftm", "x-1", "Robot", Set.of(), Set.of(),
+                Map.of("name", List.of("Jane Doe")))), "Robot", "FtM");
+    }
+
+    @Test
     public void test_unreadable_json_fails_with_a_clear_error() {
         assertThrowsContaining(() -> model.parse("{\"id\": "), "FtM");
     }

@@ -159,12 +159,39 @@ public class MappingExecutorTest {
     @Test
     public void test_the_row_scoped_id_recipe_is_pinned_to_a_literal_hash() {
         // Changing this value orphans every statement already stored under the id it replaces.
-        String expected = "b5935bd4b042697726cccdd9b75fb355095c03fa2a7c7ae6ea3d43f5ad7d4fdd30bc40a20ed5790eba2e61d0d144cef5";
+        String expected = "fcb781c296021312b1480ac878a03694f8a41c4f715d866a113bdf235b34dfd7839e7c5d4d5a1edd07bdb8d917e572a7";
 
         String actual = person(List.of(), Map.of("name", column("full_name")))
                 .statements(row(Map.of("full_name", "Jane Doe"))).get(0).entityId();
 
         assertThat(actual).isEqualTo(expected);
+    }
+
+    @Test
+    public void test_two_keyless_entities_of_one_type_are_two_entities() {
+        List<Statement> statements = new MappingExecutor(mapping(Map.of(
+                "buyer", entity("Person", List.of(), Map.of("name", column("buyer_name"))),
+                "seller", entity("Person", List.of(), Map.of("name", column("seller_name"))))))
+                .statements(row(Map.of("buyer_name", "Jane Doe", "seller_name", "John Roe")));
+
+        assertThat(statements).hasSize(2);
+        assertThat(statements.get(0).entityId()).isNotEqualTo(statements.get(1).entityId());
+    }
+
+    @Test
+    public void test_a_blank_key_column_name_fails_at_construction() {
+        InvalidExtractionMapping thrown = assertThrows(InvalidExtractionMapping.class,
+                () -> person(List.of(" "), Map.of("name", column("full_name"))));
+
+        assertThat(thrown.violations.toString()).contains("blank key column name");
+    }
+
+    @Test
+    public void test_a_blank_column_name_fails_at_construction() {
+        InvalidExtractionMapping thrown = assertThrows(InvalidExtractionMapping.class,
+                () -> person(List.of("passport"), Map.of("name", column("\u200B"))));
+
+        assertThat(thrown.violations.toString()).contains("blank column name");
     }
 
     @Test

@@ -65,6 +65,10 @@ public class FtmTargetModel implements TargetModel {
 
     @Override
     public String serialize(ModelEntity entity) {
+        if (type(entity.type()).isEmpty()) {
+            throw new IllegalArgumentException(
+                    "type '" + entity.type() + "' is no schema of the FtM model, so it cannot be written as FtM JSON");
+        }
         try {
             return JsonObjectMapper.writeValueAsString(new FtmEntity(entity.id(), entity.type(), entity.properties()));
         } catch (JsonProcessingException e) {
