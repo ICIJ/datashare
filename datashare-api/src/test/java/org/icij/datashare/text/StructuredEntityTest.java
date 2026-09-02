@@ -23,7 +23,7 @@ public class StructuredEntityTest {
         assertThat(entity.getId()).isEqualTo("ftm_person-1");
         assertThat(entity.model()).isEqualTo("ftm");
         assertThat(entity.modelVersions()).containsOnly("4.10.2");
-        assertThat(entity.type()).isEqualTo("Person");
+        assertThat(entity.entityType()).isEqualTo("Person");
         assertThat(entity.documentIds()).containsOnly("doc-1", "doc-2");
         assertThat(entity.properties().get("ftm_name")).containsExactly("Jane Doe", "J. Doe");
         assertThat(entity.properties().get("ftm_birthDate")).containsExactly("1980-04-02");

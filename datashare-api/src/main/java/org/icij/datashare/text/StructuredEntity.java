@@ -14,7 +14,9 @@ import java.util.Set;
 /** An entity rebuilt from the statement store, in the shape the "&lt;project&gt;.entities" index holds:
  *  the property keys are the namespaced wire form ("ftm_birthDate") the statements were stored under. */
 @IndexType("StructuredEntity")
-public record StructuredEntity(@IndexId String entityId, String model, String type, Set<String> modelVersions,
+/** {@code entityType}, not {@code type}: the indexer stamps every document's {@code type} field
+ *  with its kind ("StructuredEntity"), so the model type needs its own name. */
+public record StructuredEntity(@IndexId String entityId, String model, String entityType, Set<String> modelVersions,
                               Set<String> documentIds, Map<String, List<String>> properties) implements Entity {
     /** Not the colon {@link org.icij.datashare.model.Statement#qualifiedProperty()} stores: a colon is
      *  the field/value delimiter of elasticsearch's query_string, so "properties.ftm:name:Jane" is a
