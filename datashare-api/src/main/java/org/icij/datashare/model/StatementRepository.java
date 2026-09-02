@@ -22,6 +22,13 @@ public interface StatementRepository {
      *  has to consume it: returning the stream itself hands back a closed one. */
     <R> R entities(String projectId, Function<Stream<ModelEntity>, R> consumer);
 
+    /** Deletes every statement a document contributed to a project, and returns how many. This is
+     *  the retraction path: re-extracting a document deletes its statements first, so a corrected
+     *  value, a re-typed mapping or a shrunken file leaves no stale row behind. Document scope, not
+     *  run scope: one entity legitimately aggregates statements from several documents, and only the
+     *  document being re-read is stale. */
+    int deleteByDocument(String projectId, String documentId);
+
     /** The entity a project holds under this id. An id shared by two models yields the first model in
      *  natural order, since an entity belongs to one model, and the entity names the model it came
      *  from. */
