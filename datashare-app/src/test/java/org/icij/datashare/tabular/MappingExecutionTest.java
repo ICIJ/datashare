@@ -54,7 +54,7 @@ public class MappingExecutionTest {
 
         Map<String, ModelEntity> entities = statements.stream().collect(groupingBy(Statement::entityId))
                 .values().stream().map(statementGroup -> ModelEntity.from(statementGroup, Set.of()))
-                .collect(toMap(entity -> entity.types().iterator().next(), entity -> entity));
+                .collect(toMap(ModelEntity::type, entity -> entity));
 
         assertThat(entities.keySet()).contains("Person", "Company", "Employment");
         assertThat(entities.get("Person").properties().get("name")).containsExactly("Jane Doe");

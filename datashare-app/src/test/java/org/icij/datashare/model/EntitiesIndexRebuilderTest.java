@@ -184,7 +184,7 @@ public class EntitiesIndexRebuilderTest {
     }
 
     private static ModelEntity bareKeyed(String id, String property, String value) {
-        return new ModelEntity("ftm", id, Set.of("Person"), Set.of("4.10.2"), Set.of("doc-1"),
+        return new ModelEntity("ftm", id, "Person", Set.of("4.10.2"), Set.of("doc-1"),
                 Map.of(property, List.of(value)));
     }
 

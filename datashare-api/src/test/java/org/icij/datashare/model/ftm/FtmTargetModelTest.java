@@ -92,35 +92,17 @@ public class FtmTargetModelTest {
     }
 
     @Test
-    public void test_a_stub_property_another_of_the_types_declares_as_written_is_no_violation() {
-        List<TargetModel.Violation> violations = model.validate(new ModelEntity("ftm", "x-1",
-                Set.of("LegalEntity", "ContractAward"), Set.of(), Set.of(),
-                Map.of("name", List.of("Total"), "callForTenders", List.of("c-1"))));
-
-        assertThat(violations.stream().anyMatch(violation -> violation.message().contains("stub"))).isFalse();
-    }
-
-    @Test
     public void test_the_missing_required_properties_are_reported_in_the_model_s_order() {
         List<TargetModel.Violation> violations = model.validate(
-                new ModelEntity("ftm", "e-1", Set.of("Employment"), Set.of(), Set.of(), Map.of()));
+                new ModelEntity("ftm", "e-1", "Employment", Set.of(), Set.of(), Map.of()));
 
         assertThat(violations.get(0).message()).isEqualTo("type 'Employment' requires 'employer'");
     }
 
     @Test
-    public void test_a_property_required_by_several_types_is_reported_once() {
-        List<TargetModel.Violation> violations = model.validate(
-                new ModelEntity("ftm", "p-1", Set.of("Person", "LegalEntity"), Set.of(), Set.of(), Map.of()));
-
-        assertThat(violations).hasSize(1);
-        assertThat(violations.get(0).message()).contains("name");
-    }
-
-    @Test
     public void test_validating_a_company_with_no_properties_reports_the_missing_inherited_name() {
         List<TargetModel.Violation> violations = model.validate(
-                new ModelEntity("ftm", "c-1", Set.of("Company"), Set.of(), Set.of(), Map.of()));
+                new ModelEntity("ftm", "c-1", "Company", Set.of(), Set.of(), Map.of()));
 
         assertThat(violations).hasSize(1);
         assertThat(violations.get(0).message()).contains("Company");
@@ -130,7 +112,7 @@ public class FtmTargetModelTest {
     @Test
     public void test_validating_an_interest_reports_that_the_type_is_abstract() {
         List<TargetModel.Violation> violations = model.validate(
-                new ModelEntity("ftm", "i-1", Set.of("Interest"), Set.of(), Set.of(), Map.of()));
+                new ModelEntity("ftm", "i-1", "Interest", Set.of(), Set.of(), Map.of()));
 
         assertThat(violations).hasSize(1);
         assertThat(violations.get(0).message()).contains("Interest");
@@ -139,7 +121,7 @@ public class FtmTargetModelTest {
 
     @Test
     public void test_validating_a_person_writing_the_stub_property_employers_reports_the_stub() {
-        List<TargetModel.Violation> violations = model.validate(new ModelEntity("ftm", "p-1", Set.of("Person"), Set.of(), Set.of(),
+        List<TargetModel.Violation> violations = model.validate(new ModelEntity("ftm", "p-1", "Person", Set.of(), Set.of(),
                 Map.of("name", List.of("Jane Doe"), "employers", List.of("e-1"))));
 
         assertThat(violations).hasSize(1);

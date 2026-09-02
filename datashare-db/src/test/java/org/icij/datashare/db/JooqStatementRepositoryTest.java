@@ -193,13 +193,17 @@ public class JooqStatementRepositoryTest {
         assertThat(entity.properties().get("birthDate")).containsExactly("1815-12-10");
     }
 
+    // The executor hashes the type into the entity id, so two types under one id can only be
+    // corrupt or legacy data: rebuilding surfaces it rather than silently picking one.
     @Test
-    public void test_an_entity_keeps_every_one_of_its_types() {
+    public void test_two_types_under_one_entity_id_are_refused() {
         repository.save("prj", "run-1", Stream.of(
                 statement("e-1", "Person", "name", "Ada"),
                 statement("e-1", "LegalEntity", "name", "Ada")));
 
-        assertThat(repository.entity("prj", "e-1").orElseThrow().types()).contains("Person", "LegalEntity");
+        IllegalArgumentException thrown = assertThrows(IllegalArgumentException.class,
+                () -> repository.entity("prj", "e-1"));
+        assertThat(thrown.getMessage()).contains("Person").contains("LegalEntity");
     }
 
     @Test
@@ -301,7 +305,7 @@ public class JooqStatementRepositoryTest {
 
         ModelEntity entity = repository.entity("prj", "shared").orElseThrow();
         assertThat(entity.id()).isEqualTo("shared");
-        assertThat(entity.types()).containsOnly("Person");
+        assertThat(entity.type()).isEqualTo("Person");
         assertThat(entity.properties().get("name")).containsOnly("Ada");
     }
 
