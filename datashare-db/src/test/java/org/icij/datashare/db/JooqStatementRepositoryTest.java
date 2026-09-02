@@ -122,21 +122,37 @@ public class JooqStatementRepositoryTest {
         assertThat(row.getPrjId()).isEqualTo("prj");
     }
 
+    // A no-op re-run must not rewrite rows: unconditional refresh doubled the table's churn on
+    // every identical save, for run and last-seen values nothing reads.
     @Test
-    public void test_saving_the_same_data_twice_keeps_one_row_and_dates_the_new_observation() {
+    public void test_saving_the_same_data_twice_rewrites_nothing() {
         List<Statement> statements = List.of(statement("entity-1", "Person", "birthDate", "1970-01-01"));
         repository.save("prj", "run-1", statements.stream());
         var first = dbRule.dsl().selectFrom(STATEMENT).fetchOne();
 
         DatashareTime.getInstance().addMilliseconds(60_000);
-        assertThat(repository.save("prj", "run-2", statements.stream())).isEqualTo(1);
+        assertThat(repository.save("prj", "run-2", statements.stream())).isEqualTo(0);
 
         assertThat(dbRule.dsl().fetchCount(STATEMENT)).isEqualTo(1);
         var second = dbRule.dsl().selectFrom(STATEMENT).fetchOne();
         assertThat(second.getId()).isEqualTo(first.getId());
         assertThat(second.getFirstSeen()).isEqualTo(first.getFirstSeen());
-        assertThat(second.getLastSeen()).isNotEqualTo(first.getLastSeen());
-        assertThat(second.getRunId()).isEqualTo("run-2");
+        assertThat(second.getLastSeen()).isEqualTo(first.getLastSeen());
+        assertThat(second.getRunId()).isEqualTo("run-1");
+    }
+
+    @Test
+    public void test_a_row_written_under_an_older_ontology_is_refreshed_on_resave() {
+        Statement fact = statement("entity-1", "Person", "birthDate", "1970-01-01");
+        insertRawStatement(fact.id(), "ftm", "entity-1", "Person", "ftm:birthDate", "1970-01-01",
+                LocalDateTime.now());
+        dbRule.dsl().update(STATEMENT).set(STATEMENT.MODEL_VERSION, "1.0").execute();
+
+        repository.save("prj", "run-2", Stream.of(fact));
+
+        var row = dbRule.dsl().selectFrom(STATEMENT).fetchOne();
+        assertThat(row.getModelVersion()).isEqualTo("4.10.2");
+        assertThat(row.getRunId()).isEqualTo("run-2");
     }
 
     @Test
@@ -153,7 +169,7 @@ public class JooqStatementRepositoryTest {
                 .isEqualTo(second.stream().map(Statement::id).toList());
         assertThat(first).hasSize(1);
         assertThat(repository.save("prj", "run-1", first.stream())).isEqualTo(1);
-        assertThat(repository.save("prj", "run-2", second.stream())).isEqualTo(1);
+        assertThat(repository.save("prj", "run-2", second.stream())).isEqualTo(0);
         assertThat(dbRule.dsl().fetchCount(STATEMENT)).isEqualTo(1);
     }
 

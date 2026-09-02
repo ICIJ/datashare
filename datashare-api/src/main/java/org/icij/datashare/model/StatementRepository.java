@@ -8,11 +8,13 @@ import java.util.stream.Stream;
  *  partial, re-runnable result rather than an all-or-nothing outcome, which the upsert's idempotence
  *  makes safe. */
 public interface StatementRepository {
-    /** Upserts by statement id, refreshing the run and the model version of a statement this run has
-     *  seen again, so a row's age tells a re-observed statement from a stale one. The statements are
-     *  consumed lazily, one chunk at a time, so a whole extraction never has to fit in memory; the
-     *  stream is closed on return. Returns the number of statements written, or fewer when the JDBC
-     *  driver rewrites the batch and reports no per-row count. */
+    /** Upserts by statement id. A row the run re-observed unchanged is left exactly as it was, not
+     *  even its last-seen moves: a no-op re-run writes nothing, and staleness is handled by deleting
+     *  a document's statements before rewriting them, not by per-row timestamps. A row whose content
+     *  moved (an ontology bump, a re-recorded original value) is refreshed, run and timestamps
+     *  included. The statements are consumed lazily, one chunk at a time, so a whole extraction
+     *  never has to fit in memory; the stream is closed on return. Returns the number of statements
+     *  written, or fewer when the JDBC driver rewrites the batch and reports no per-row count. */
     int save(String projectId, String runId, Stream<Statement> statements);
 
     /** Every entity of a project, rebuilt by grouping its statements. The stream is read lazily from
