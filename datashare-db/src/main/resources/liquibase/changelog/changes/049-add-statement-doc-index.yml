@@ -1,0 +1,15 @@
+databaseChangeLog:
+  - changeSet:
+      id: 84
+      author: pirhoo
+      changes:
+        - createIndex:
+            indexName: statement_prj_doc
+            tableName: statement
+            columns:
+              - column:
+                  name: prj_id
+                  type: varchar(96)
+              - column:
+                  name: doc_id
+                  type: varchar(96)
