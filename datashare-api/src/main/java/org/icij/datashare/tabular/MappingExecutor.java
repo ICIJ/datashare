@@ -40,6 +40,7 @@ public class MappingExecutor {
     private final ExtractionMapping mapping;
     private final String documentId;
     private final String sheet;
+    private final DateFormats formats = new DateFormats();
     private final Map<String, List<String>> keyColumns = new TreeMap<>();
     private final Set<String> columns = new TreeSet<>();
     private final Map<Skip, Long> skipped = new EnumMap<>(Skip.class);
@@ -80,7 +81,12 @@ public class MappingExecutor {
     private void declare(String alias, ExtractionMapping.EntityMapping entity) {
         keyColumns.put(alias, entity.keys().stream().distinct().toList());
         columns.addAll(entity.keys());
-        entity.properties().values().forEach(property -> columns.addAll(property.columns()));
+        entity.properties().values().forEach(property -> {
+            columns.addAll(property.columns());
+            if (property.format() != null) {
+                formats.declare(property.format());
+            }
+        });
     }
 
     // Row.values pads a short row with empty strings, so a column the file does not have reads like a
@@ -132,15 +138,15 @@ public class MappingExecutor {
             ExtractionMapping.PropertyMapping mapped = declared.getValue();
             if (mapped.literal() != null || mapped.entity() != null) {
                 String given = mapped.literal() != null ? mapped.literal() : ids.get(mapped.entity());
-                filling.fill(property, given, provenance(row, ""));
+                filling.fill(property, given, null, provenance(row, ""));
             } else if (mapped.join() != null) {
                 filling.fill(property, mapped.columns().stream()
                         .map(cells::get).filter(cell -> !cell.isEmpty())
-                        .collect(joining(mapped.join())),
+                        .collect(joining(mapped.join())), mapped.format(),
                         provenance(row, String.join(",", mapped.columns())));
             } else {
                 for (String column : mapped.columns()) {
-                    filling.fill(property, cells.get(column), provenance(row, column));
+                    filling.fill(property, cells.get(column), mapped.format(), provenance(row, column));
                 }
             }
         }
@@ -159,12 +165,30 @@ public class MappingExecutor {
             this.type = type;
         }
 
-        private void fill(String property, String cell, Statement.Provenance provenance) {
+        private void fill(String property, String cell, String format, Statement.Provenance provenance) {
             if (cell == null || cell.isEmpty()) {
                 return;
             }
-            statements.add(Statement.of(mapping.model(), entityId, type, property, cell, provenance));
+            String value = value(cell, format, provenance);
+            Statement statement = Statement.of(mapping.model(), entityId, type, property, value, provenance);
+            statements.add(value.equals(cell) ? statement : statement.withOriginalValue(cell));
         }
+    }
+
+    // Whatever the pattern cannot read is left exactly as it was rather than dropped or rewritten,
+    // so one 'n/a' in a date column does not cost a run, and is counted so a whole column that never
+    // converts cannot pass for a clean import. The log names the column, never the cell: an
+    // unconvertible cell is document content, and DEBUG logs are not bound by project access rules.
+    private String value(String cell, String format, Statement.Provenance provenance) {
+        if (format == null) {
+            return cell;
+        }
+        String iso = formats.iso(cell, format);
+        if (iso != null) {
+            return iso;
+        }
+        count(Skip.CELL_UNREADABLE, provenance.column(), provenance.rowNumber());
+        return cell;
     }
 
     private Statement.Provenance provenance(Row row, String column) {
