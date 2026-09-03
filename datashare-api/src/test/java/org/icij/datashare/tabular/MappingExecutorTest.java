@@ -34,6 +34,14 @@ public class MappingExecutorTest {
         return new ExtractionMapping.PropertyMapping(names, null, null, null, null);
     }
 
+    private static ExtractionMapping.PropertyMapping literal(String value) {
+        return new ExtractionMapping.PropertyMapping(List.of(), null, value, null, null);
+    }
+
+    private static ExtractionMapping.PropertyMapping joined(List<String> columns, String separator) {
+        return new ExtractionMapping.PropertyMapping(columns, separator, null, null, null);
+    }
+
     private static Row row(Map<String, String> values) {
         return new Row(7L, values);
     }
@@ -215,6 +223,16 @@ public class MappingExecutorTest {
     }
 
     @Test
+    public void test_a_literal_property_is_stored_with_no_column_of_origin() {
+        Statement statement = of(person(List.of("passport"),
+                Map.of("name", column("full_name"), "nationality", literal("fr")))
+                .statements(row(Map.of("passport", "AB123", "full_name", "Jane Doe"))), "nationality");
+
+        assertThat(statement.value()).isEqualTo("fr");
+        assertThat(statement.provenance().column()).isEqualTo("");
+    }
+
+    @Test
     public void test_several_columns_without_a_join_are_several_statements() {
         List<Statement> statements = person(List.of("passport"),
                 Map.of("name", columns(List.of("full_name", "maiden_name"))))
@@ -227,7 +245,39 @@ public class MappingExecutorTest {
                 .isEqualTo(List.of("full_name", "maiden_name"));
     }
 
+    @Test
+    public void test_a_join_concatenates_the_columns_into_one_statement() {
+        Statement statement = person(List.of("passport"),
+                Map.of("name", joined(List.of("first_name", "last_name"), " ")))
+                .statements(row(Map.of("passport", "AB123", "first_name", "Jane", "last_name", "Doe"))).get(0);
 
+        assertThat(statement.value()).isEqualTo("Jane Doe");
+        assertThat(statement.provenance().column()).isEqualTo("first_name,last_name");
+    }
+
+    @Test
+    public void test_a_join_skips_a_blank_column_rather_than_doubling_the_separator() {
+        Statement statement = person(List.of("passport"),
+                Map.of("name", joined(List.of("first_name", "middle_name", "last_name"), " ")))
+                .statements(row(Map.of("passport", "AB123", "first_name", "Jane", "middle_name", "",
+                        "last_name", "Doe"))).get(0);
+
+        assertThat(statement.value()).isEqualTo("Jane Doe");
+    }
+
+
+
+
+
+
+    @Test
+    public void test_a_padded_literal_is_stored_stripped_like_the_cell_it_mirrors() {
+        Statement statement = of(person(List.of("passport"),
+                Map.of("name", column("full_name"), "nationality", literal(" fr ")))
+                .statements(row(Map.of("passport", "AB123", "full_name", "Jane Doe"))), "nationality");
+
+        assertThat(statement.value()).isEqualTo("fr");
+    }
 
     @Test
     public void test_a_column_the_source_does_not_have_fails_the_run() {

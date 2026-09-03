@@ -18,6 +18,8 @@ import java.util.stream.Stream;
 
 import static java.util.stream.Collectors.joining;
 
+import static java.util.stream.Collectors.joining;
+
 /**
  * Turns a row into the statements a mapping asks for. One instance per run: rows are consumed on one
  * thread, and nothing here reads or writes anything, so the caller owns the source and the store.
@@ -128,8 +130,17 @@ public class MappingExecutor {
         for (Map.Entry<String, ExtractionMapping.PropertyMapping> declared : entity.properties().entrySet()) {
             String property = declared.getKey();
             ExtractionMapping.PropertyMapping mapped = declared.getValue();
-            for (String column : mapped.columns()) {
-                filling.fill(property, cells.get(column), provenance(row, column));
+            if (mapped.literal() != null) {
+                filling.fill(property, mapped.literal(), provenance(row, ""));
+            } else if (mapped.join() != null) {
+                filling.fill(property, mapped.columns().stream()
+                        .map(cells::get).filter(cell -> !cell.isEmpty())
+                        .collect(joining(mapped.join())),
+                        provenance(row, String.join(",", mapped.columns())));
+            } else {
+                for (String column : mapped.columns()) {
+                    filling.fill(property, cells.get(column), provenance(row, column));
+                }
             }
         }
         return filling.statements;
