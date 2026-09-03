@@ -148,7 +148,39 @@ public class MappingExecutorTest {
         assertThat(one).isEqualTo(two);
     }
 
+    @Test
+    public void test_an_entity_without_keys_is_one_record_per_row() {
+        MappingExecutor executor = person(List.of(), Map.of("name", column("full_name")));
 
+        String seventh = executor.statements(row(Map.of("full_name", "Jane Doe"))).get(0).entityId();
+        String eighth = executor.statements(new Row(8L, Map.of("full_name", "Jane Doe"))).get(0).entityId();
+
+        assertThat(seventh).isNotEqualTo(eighth);
+        assertThat(person(List.of(), Map.of("name", column("full_name")))
+                .statements(row(Map.of("full_name", "Jane Doe"))).get(0).entityId()).isEqualTo(seventh);
+    }
+
+    @Test
+    public void test_the_row_scoped_id_recipe_is_pinned_to_a_literal_hash() {
+        // Changing this value orphans every statement already stored under the id it replaces.
+        String expected = "fcb781c296021312b1480ac878a03694f8a41c4f715d866a113bdf235b34dfd7839e7c5d4d5a1edd07bdb8d917e572a7";
+
+        String actual = person(List.of(), Map.of("name", column("full_name")))
+                .statements(row(Map.of("full_name", "Jane Doe"))).get(0).entityId();
+
+        assertThat(actual).isEqualTo(expected);
+    }
+
+    @Test
+    public void test_two_keyless_entities_of_one_type_are_two_entities() {
+        List<Statement> statements = new MappingExecutor(mapping(Map.of(
+                "buyer", entity("Person", List.of(), Map.of("name", column("buyer_name"))),
+                "seller", entity("Person", List.of(), Map.of("name", column("seller_name"))))))
+                .statements(row(Map.of("buyer_name", "Jane Doe", "seller_name", "John Roe")));
+
+        assertThat(statements).hasSize(2);
+        assertThat(statements.get(0).entityId()).isNotEqualTo(statements.get(1).entityId());
+    }
 
     @Test
     public void test_a_blank_key_column_name_fails_at_construction() {
@@ -164,6 +196,15 @@ public class MappingExecutorTest {
                 () -> person(List.of("passport"), Map.of("name", column("\u200B"))));
 
         assertThat(thrown.violations.toString()).contains("blank column name");
+    }
+
+    @Test
+    public void test_a_keyless_entity_with_a_blank_row_is_counted_empty_not_unidentified() {
+        MappingExecutor executor = person(List.of(), Map.of("name", column("full_name")));
+
+        assertThat(executor.statements(row(Map.of("full_name", "")))).isEmpty();
+        assertThat(executor.skipped().get(ENTITY_EMPTY)).isEqualTo(1L);
+        assertThat(executor.skipped().get(ENTITY_UNIDENTIFIED)).isEqualTo(0L);
     }
 
     @Test
