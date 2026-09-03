@@ -29,6 +29,16 @@ public interface StatementRepository {
      *  document being re-read is stale. */
     int deleteByDocument(String projectId, String documentId);
 
+    /** Rewrites what a document contributed: the retraction and the write, in the one order that
+     *  leaves no stale row behind, since doing it the other way round deletes what it has just
+     *  written. Not atomic, because a save commits per chunk: a crash between the two leaves the
+     *  document retracted and re-extractable rather than half rewritten, which is the safe side of
+     *  the window to fall on. */
+    default int replace(String projectId, String runId, String documentId, Stream<Statement> statements) {
+        deleteByDocument(projectId, documentId);
+        return save(projectId, runId, statements);
+    }
+
     /** The entity a project holds under this id. An id shared by two models yields the first model in
      *  natural order, since an entity belongs to one model, and the entity names the model it came
      *  from. */

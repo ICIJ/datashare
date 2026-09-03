@@ -214,13 +214,13 @@ public class JooqStatementRepositoryTest {
     }
 
     @Test
-    public void test_deleting_then_rewriting_a_document_leaves_no_stale_statement() {
+    public void test_replacing_a_document_leaves_no_stale_statement() {
         repository.save("prj", "run-1", Stream.of(
                 statement("e-1", "Person", "name", "Ada"),
                 statement("e-1", "Person", "birthDate", "1815-12-10")));
 
-        repository.deleteByDocument("prj", "doc-1");
-        repository.save("prj", "run-2", Stream.of(statement("e-1", "Person", "name", "Ada Lovelace")));
+        assertThat(repository.replace("prj", "run-2", "doc-1",
+                Stream.of(statement("e-1", "Person", "name", "Ada Lovelace")))).isEqualTo(1);
 
         assertThat(repository.entity("prj", "e-1").orElseThrow().properties())
                 .isEqualTo(Map.of("name", List.of("Ada Lovelace")));
