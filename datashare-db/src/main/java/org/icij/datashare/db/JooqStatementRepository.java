@@ -43,7 +43,7 @@ public class JooqStatementRepository implements StatementRepository {
     private static final int FETCH_SIZE = 1_000;
     private static final Field<?>[] READ_FIELDS = {
             STATEMENT.ID, STATEMENT.MODEL, STATEMENT.MODEL_VERSION, STATEMENT.ENTITY_ID, STATEMENT.ENTITY_TYPE,
-            STATEMENT.PROPERTY, STATEMENT.VALUE, STATEMENT.ORIGINAL_VALUE, STATEMENT.DOC_ID, STATEMENT.SHEET,
+            STATEMENT.PROPERTY, STATEMENT.VALUE, STATEMENT.DOC_ID, STATEMENT.SHEET,
             STATEMENT.ROW_NUMBER, STATEMENT.COLUMN_NAME};
     private final DataSource dataSource;
     private final SQLDialect dialect;
@@ -223,7 +223,7 @@ public class JooqStatementRepository implements StatementRepository {
         }
         return new Row(new Statement(row.get(STATEMENT.ID), model, row.get(STATEMENT.ENTITY_ID),
                 row.get(STATEMENT.ENTITY_TYPE), property.substring(prefix.length()), row.get(STATEMENT.VALUE),
-                row.get(STATEMENT.ORIGINAL_VALUE),
+                null,
                 new Statement.Provenance(row.get(STATEMENT.DOC_ID), row.get(STATEMENT.SHEET),
                         row.get(STATEMENT.ROW_NUMBER), row.get(STATEMENT.COLUMN_NAME))),
                 row.get(STATEMENT.MODEL_VERSION));
