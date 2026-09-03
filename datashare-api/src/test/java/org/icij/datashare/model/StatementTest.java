@@ -79,13 +79,13 @@ public class StatementTest {
 
     @Test
     public void test_a_null_component_is_rejected_and_names_the_field() {
-        assertRejectsNull("id", () -> new Statement(null, "ftm", "person-1", "Person", "name", "Jane Doe", provenance));
-        assertRejectsNull("model", () -> new Statement("id", null, "person-1", "Person", "name", "Jane Doe", provenance));
-        assertRejectsNull("entityId", () -> new Statement("id", "ftm", null, "Person", "name", "Jane Doe", provenance));
-        assertRejectsNull("entityType", () -> new Statement("id", "ftm", "person-1", null, "name", "Jane Doe", provenance));
-        assertRejectsNull("property", () -> new Statement("id", "ftm", "person-1", "Person", null, "Jane Doe", provenance));
-        assertRejectsNull("value", () -> new Statement("id", "ftm", "person-1", "Person", "name", null, provenance));
-        assertRejectsNull("provenance", () -> new Statement("id", "ftm", "person-1", "Person", "name", "Jane Doe", null));
+        assertRejectsNull("id", () -> new Statement(null, "ftm", "person-1", "Person", "name", "Jane Doe", null, provenance));
+        assertRejectsNull("model", () -> new Statement("id", null, "person-1", "Person", "name", "Jane Doe", null, provenance));
+        assertRejectsNull("entityId", () -> new Statement("id", "ftm", null, "Person", "name", "Jane Doe", null, provenance));
+        assertRejectsNull("entityType", () -> new Statement("id", "ftm", "person-1", null, "name", "Jane Doe", null, provenance));
+        assertRejectsNull("property", () -> new Statement("id", "ftm", "person-1", "Person", null, "Jane Doe", null, provenance));
+        assertRejectsNull("value", () -> new Statement("id", "ftm", "person-1", "Person", "name", null, null, provenance));
+        assertRejectsNull("provenance", () -> new Statement("id", "ftm", "person-1", "Person", "name", "Jane Doe", null, null));
         assertRejectsNull("documentId", () -> new Statement.Provenance(null, "Sheet1", 12, "full_name"));
         assertRejectsNull("column", () -> new Statement.Provenance("doc-1", "Sheet1", 12, null));
         assertRejectsNull("model", () -> Statement.of(null, "person-1", "Person", "name", "Jane Doe", provenance));
@@ -121,5 +121,20 @@ public class StatementTest {
         Statement statement = Statement.of("ftm", "person-1", "Person", "birthDate", "1980-04-02", provenance);
 
         assertThat(statement.qualifiedProperty()).isEqualTo("ftm:birthDate");
+    }
+
+    @Test
+    public void test_the_original_value_does_not_change_the_id() {
+        Statement statement = Statement.of("ftm", "person-1", "Person", "birthDate", "1970-01-01", provenance);
+
+        assertThat(statement.withOriginalValue("01/01/1970").id()).isEqualTo(statement.id());
+        assertThat(statement.withOriginalValue("01/01/1970").originalValue()).isEqualTo("01/01/1970");
+    }
+
+    @Test
+    public void test_a_nul_in_the_original_value_is_rejected() {
+        Statement statement = Statement.of("ftm", "person-1", "Person", "name", "Jane Doe", provenance);
+
+        assertThrows(IllegalArgumentException.class, () -> statement.withOriginalValue("Jane\u0000Doe"));
     }
 }

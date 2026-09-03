@@ -212,7 +212,7 @@ public class JooqStatementRepository implements StatementRepository {
         }
         return new Row(new Statement(row.get(STATEMENT.ID), model, row.get(STATEMENT.ENTITY_ID),
                                      row.get(STATEMENT.ENTITY_TYPE), property.substring(prefix.length()),
-                                     row.get(STATEMENT.VALUE),
+                                     row.get(STATEMENT.VALUE), null,
                                      new Statement.Provenance(row.get(STATEMENT.DOC_ID), row.get(STATEMENT.SHEET),
                                                               row.get(STATEMENT.ROW_NUMBER),
                                                               row.get(STATEMENT.COLUMN_NAME))),
