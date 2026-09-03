@@ -22,21 +22,27 @@ public interface StatementRepository {
      *  has to consume it: returning the stream itself hands back a closed one. */
     <R> R entities(String projectId, Function<Stream<ModelEntity>, R> consumer);
 
-    /** Deletes every statement a document contributed to a project, and returns how many. This is
-     *  the retraction path: re-extracting a document deletes its statements first, so a corrected
-     *  value, a re-typed mapping or a shrunken file leaves no stale row behind. Document scope, not
-     *  run scope: one entity legitimately aggregates statements from several documents, and only the
-     *  document being re-read is stale. */
-    int deleteByDocument(String projectId, String documentId);
+    /** Deletes every statement one sheet of a document contributed to a project, and returns how
+     *  many. This is the retraction path: re-extracting a sheet deletes its statements first, so a
+     *  corrected value, a re-typed mapping or a shrunken file leaves no stale row behind. Sheet
+     *  scope, because a mapping reads one sheet and a workbook carries a mapping per sheet: on
+     *  document scope, replacing one sheet would delete its siblings and never rewrite them. Pass
+     *  the empty sheet a single-table format writes. Changing which sheet a mapping reads still
+     *  strands what it wrote under the old one, since nothing then retracts it. */
+    int deleteByDocument(String projectId, String documentId, String sheet);
 
-    /** Rewrites what a document contributed: the retraction and the write, in the one order that
-     *  leaves no stale row behind, since doing it the other way round deletes what it has just
-     *  written. Not atomic, because a save commits per chunk: a crash between the two leaves the
-     *  document retracted and re-extractable rather than half rewritten, which is the safe side of
-     *  the window to fall on. */
-    default int replace(String projectId, String runId, String documentId, Stream<Statement> statements) {
-        deleteByDocument(projectId, documentId);
-        return save(projectId, runId, statements);
+    /** Rewrites what one sheet of a document contributed: the retraction and the write, in the one
+     *  order that leaves no stale row behind, since doing it the other way round deletes what it has
+     *  just written. Not atomic, because a save commits per chunk: a crash between the two leaves the
+     *  sheet retracted and re-extractable rather than half rewritten, which is the safe side of the
+     *  window to fall on. The rows written here are new, so the conditional upsert a plain save
+     *  leans on cannot spare any of them. */
+    default int replace(String projectId, String runId, String documentId, String sheet,
+                        Stream<Statement> statements) {
+        try (statements) {
+            deleteByDocument(projectId, documentId, sheet);
+            return save(projectId, runId, statements);
+        }
     }
 
     /** The entity a project holds under this id. An id shared by two models yields the first model in

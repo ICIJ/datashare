@@ -13,3 +13,6 @@ databaseChangeLog:
               - column:
                   name: doc_id
                   type: varchar(96)
+              - column:
+                  name: sheet
+                  type: text
