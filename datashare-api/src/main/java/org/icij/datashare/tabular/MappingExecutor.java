@@ -150,37 +150,25 @@ public class MappingExecutor {
     private List<Statement> statementsOf(String alias, Row row, Map<String, String> cells,
                                           Map<String, String> ids) {
         ExtractionMapping.EntityMapping entity = mapping.entities().get(alias);
-        String entityId = ids.get(alias);
-        List<Statement> statements = new ArrayList<>();
+        Filling filling = new Filling(ids.get(alias), entity.type());
         for (Map.Entry<String, ExtractionMapping.PropertyMapping> declared : entity.properties().entrySet()) {
             String property = declared.getKey();
             ExtractionMapping.PropertyMapping mapped = declared.getValue();
             if (mapped.literal() != null || mapped.entity() != null) {
                 String given = mapped.literal() != null ? mapped.literal() : ids.get(mapped.entity());
-                statement(statements, entityId, entity.type(), property, given, null, provenance(row, ""));
+                filling.fill(property, given, null, provenance(row, ""));
             } else if (mapped.join() != null) {
-                statement(statements, entityId, entity.type(), property, mapped.columns().stream()
+                filling.fill(property, mapped.columns().stream()
                         .map(cells::get).filter(cell -> !cell.isEmpty())
                         .collect(joining(mapped.join())), mapped.format(),
                         provenance(row, String.join(",", mapped.columns())));
             } else {
                 for (String column : mapped.columns()) {
-                    statement(statements, entityId, entity.type(), property, cells.get(column), mapped.format(),
-                            provenance(row, column));
+                    filling.fill(property, cells.get(column), mapped.format(), provenance(row, column));
                 }
             }
         }
-        return statements;
-    }
-
-    private void statement(List<Statement> into, String entityId, String type, String property, String cell,
-                           String format, Statement.Provenance provenance) {
-        if (cell == null || cell.isEmpty()) {
-            return;
-        }
-        String value = value(cell, format, provenance);
-        Statement statement = Statement.of(mapping.model(), entityId, type, property, value, provenance);
-        into.add(value.equals(cell) ? statement : statement.withOriginalValue(cell));
+        return filling.statements;
     }
 
     // An entity produces a statement when a literal or a filled cell fills one of its properties, or
@@ -206,6 +194,28 @@ public class MappingExecutor {
         return mapping.entities().get(alias).properties().values().stream().anyMatch(mapped ->
                 mapped.literal() != null || stored.contains(mapped.entity())
                         || mapped.columns().stream().anyMatch(column -> !cells.get(column).isEmpty()));
+    }
+
+    // The entity id and type every statement of one entity carries, so filling a property passes
+    // only what changes from one property to the next.
+    private class Filling {
+        private final List<Statement> statements = new ArrayList<>();
+        private final String entityId;
+        private final String type;
+
+        private Filling(String entityId, String type) {
+            this.entityId = entityId;
+            this.type = type;
+        }
+
+        private void fill(String property, String cell, String format, Statement.Provenance provenance) {
+            if (cell == null || cell.isEmpty()) {
+                return;
+            }
+            String value = value(cell, format, provenance);
+            Statement statement = Statement.of(mapping.model(), entityId, type, property, value, provenance);
+            statements.add(value.equals(cell) ? statement : statement.withOriginalValue(cell));
+        }
     }
 
     // Whatever the pattern cannot read is left exactly as it was rather than dropped or rewritten,
