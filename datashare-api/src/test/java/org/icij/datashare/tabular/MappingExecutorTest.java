@@ -255,6 +255,18 @@ public class MappingExecutorTest {
     }
 
     @Test
+    public void test_a_multi_key_missing_one_value_identifies_nothing() {
+        // Hashing the values that are left instead would merge every row missing that column into
+        // one entity, and make the row indistinguishable from a row of the same type keyed on the
+        // one column that is filled. A counted loss beats a silent merge.
+        MappingExecutor executor = person(List.of("passport", "country"), Map.of("name", column("full_name")));
+
+        assertThat(executor.statements(row(Map.of("passport", "", "country", "FR",
+                "full_name", "Jane Doe")))).isEmpty();
+        assertThat(executor.skipped().get(ENTITY_UNIDENTIFIED)).isEqualTo(1L);
+    }
+
+    @Test
     public void test_a_key_holding_only_a_non_breaking_space_is_not_an_identifier() {
         MappingExecutor executor = person(List.of("passport"), Map.of("name", column("full_name")));
 
