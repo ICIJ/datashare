@@ -14,6 +14,39 @@ import java.util.Set;
  * no number.
  */
 public record Row(long number, Map<String, String> values) {
+    /** The whitespace rule headers and cells share: the space a spreadsheet writes as U+00A0 reads
+     *  as a space, a zero-width character or stray BOM is removed (it is not whitespace to strip(),
+     *  yet it would silently split one key value into two entity ids), and surrounding whitespace
+     *  is not content. Runs on every cell of every row, so a cell holding none of it, which is the
+     *  overwhelming case, walks away with the string it came in with. */
+    static String clean(String name) {
+        for (int index = 0; index < name.length(); index++) {
+            char letter = name.charAt(index);
+            if (invisible(letter) || nonBreakingSpace(letter)) {
+                return rewritten(name);
+            }
+        }
+        return name.strip();
+    }
+
+    private static String rewritten(String name) {
+        StringBuilder cleaned = new StringBuilder(name.length());
+        for (int index = 0; index < name.length(); index++) {
+            char letter = name.charAt(index);
+            if (!invisible(letter)) {
+                cleaned.append(nonBreakingSpace(letter) ? ' ' : letter);
+            }
+        }
+        return cleaned.toString().strip();
+    }
+
+    private static boolean invisible(char letter) {
+        return letter == '\uFEFF' || letter >= '\u200B' && letter <= '\u200D';
+    }
+
+    private static boolean nonBreakingSpace(char letter) {
+        return letter == '\u00A0' || letter == '\u2007' || letter == '\u202F';
+    }
 
     /**
      * Applies the one header rule every reader shares: a blank name means the column is dropped
@@ -25,7 +58,7 @@ public record Row(long number, Map<String, String> values) {
         List<String> headers = new ArrayList<>();
         Set<String> seen = new HashSet<>();
         for (String rawName : rawNames) {
-            String name = rawName == null ? "" : rawName.strip();
+            String name = rawName == null ? "" : clean(rawName);
             if (name.isEmpty()) {
                 headers.add(null);
                 continue;
