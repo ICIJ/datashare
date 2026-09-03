@@ -270,7 +270,21 @@ public class JooqStatementRepository implements StatementRepository {
             // The versions the group was written under are collected as it is folded, and read once
             // the fold is over, so a group is still never held whole to be counted.
             Set<String> modelVersions = new TreeSet<>();
-            return ModelEntity.from(() -> group(modelVersions), modelVersions);
+            Iterator<Statement> statements = group(modelVersions);
+            try {
+                return ModelEntity.from(() -> statements, modelVersions);
+            } catch (RuntimeException unfoldable) {
+                // A fold that gives up part way leaves the group half read and pending null, which
+                // reads as "no more entities": the rows it never reached would end the stream
+                // instead of the group. Finishing the group puts pending back on the next one, so a
+                // caller that skips this entity still sees every entity after it.
+                try {
+                    statements.forEachRemaining(ignored -> { });
+                } catch (RuntimeException unreadable) {
+                    unfoldable.addSuppressed(unreadable);
+                }
+                throw unfoldable;
+            }
         }
 
         // The row that ends a group is the first row of the next one, so it is held back as pending
