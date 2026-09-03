@@ -38,7 +38,7 @@ class DateFormats {
 
     /** The cell in ISO form, or null when the declared pattern cannot read it. */
     String iso(String cell, String pattern) {
-        DateTimeFormatter format = formats.computeIfAbsent(pattern, DateFormats::compile);
+        DateTimeFormatter format = formats.get(pattern);
         // Text the pattern cannot even lex is ordinary data ('n/a' in a date column), not worth a
         // stack-trace-filling exception per cell: the throwing path is kept for text that lexes but
         // does not resolve, like 31/02 under strict resolution.
@@ -58,12 +58,17 @@ class DateFormats {
     // date() drops. One round-trip over a fixed date turns "fails on every row" into a refusal at
     // declare time, which validate() reports as an unusable format.
     private static DateTimeFormatter compile(String pattern) {
-        DateTimeFormatter format = DateTimeFormatter.ofPattern(strict(pattern), Locale.ROOT)
-                .withResolverStyle(ResolverStyle.STRICT);
+        String rewritten = strict(pattern);
+        DateTimeFormatter format;
+        try {
+            format = DateTimeFormatter.ofPattern(rewritten, Locale.ROOT).withResolverStyle(ResolverStyle.STRICT);
+        } catch (IllegalArgumentException malformed) {
+            throw new UnusableDateFormat(pattern, "is not a date pattern: " + malformed.getMessage());
+        }
         try {
             date(format.parse(format.format(PROBE)));
         } catch (DateTimeException undatable) {
-            throw new IllegalArgumentException("the pattern cannot turn a cell into a date the model stores");
+            throw new UnusableDateFormat(pattern, "cannot turn a cell into a date the model stores");
         }
         return format;
     }
@@ -86,59 +91,58 @@ class DateFormats {
         return Year.from(parsed);
     }
 
-    // One quote-aware pass doing the jobs strict parsing needs. A week-based field ('Y', 'w', 'W')
+    // The rewrite strict parsing needs. A week-based field ('Y', 'w', 'W')
     // never resolves to a date, so a pattern carrying one would read no cell at all. And 'y' is
     // year-of-era, which STRICT refuses to resolve without an era, so it is rewritten to the
     // proleptic 'u' unless the pattern carries a 'G': rewritten next to an era, every BC year would
     // silently read as CE.
     private static String strict(String pattern) {
-        boolean era = carriesUnquoted(pattern, 'G');
+        char[] letters = unquoted(pattern);
+        boolean era = new String(letters).indexOf('G') >= 0;
         StringBuilder rewritten = new StringBuilder(pattern.length());
-        boolean quoted = false;
         int run = 0;
-        for (int index = 0; index < pattern.length(); index++) {
-            char letter = pattern.charAt(index);
-            if (letter == '\'') {
-                quoted = !quoted;
+        for (int index = 0; index < letters.length; index++) {
+            char letter = letters[index];
+            if (letter == 'Y' || letter == 'w' || letter == 'W') {
+                throw new UnusableDateFormat(pattern,
+                        "carries the week-based '" + letter + "', which never resolves to a date");
             }
-            if (!quoted && (letter == 'Y' || letter == 'w' || letter == 'W')) {
-                throw new IllegalArgumentException("'" + letter + "' is week-based and never resolves to a date");
+            if (letter == 'u' && era) {
+                throw new UnusableDateFormat(pattern,
+                        "holds a proleptic year 'u' next to an era 'G', which parses the era and ignores it, use 'y'");
             }
-            if (!quoted && letter == 'u' && era) {
-                throw new IllegalArgumentException(
-                        "a proleptic year 'u' next to an era 'G' parses the era and ignores it, use 'y'");
-            }
-            boolean year = !quoted && (letter == 'y' || letter == 'u');
+            boolean year = letter == 'y' || letter == 'u';
             if (!year) {
-                requireFullYear(run);
+                requireFullYear(pattern, run);
             }
             run = year ? run + 1 : 0;
-            rewritten.append(year && !era ? 'u' : letter);
+            rewritten.append(year && !era ? 'u' : pattern.charAt(index));
         }
-        requireFullYear(run);
+        requireFullYear(pattern, run);
         return rewritten.toString();
+    }
+
+    // Quoted text is literal, so it is blanked out before anything looks for a pattern letter: the
+    // era scan and the rewrite then cannot disagree about what a quote covers.
+    private static char[] unquoted(String pattern) {
+        char[] letters = pattern.toCharArray();
+        boolean quoted = false;
+        for (int index = 0; index < letters.length; index++) {
+            boolean quote = letters[index] == '\'';
+            quoted = quote != quoted;
+            if (quoted || quote) {
+                letters[index] = ' ';
+            }
+        }
+        return letters;
     }
 
     // 'yy' resolves against 2000 and a lone 'y' reads '70' as the first century: either stores a
     // date a century out and a mapping has no way to say otherwise, so refusing the pattern beats
     // storing the corruption.
-    private static void requireFullYear(int run) {
+    private static void requireFullYear(String pattern, int run) {
         if (run == 1 || run == 2) {
-            throw new IllegalArgumentException("a one- or two-digit year is ambiguous, write the year in full");
+            throw new UnusableDateFormat(pattern, "has a one- or two-digit year, write the year in full");
         }
-    }
-
-    private static boolean carriesUnquoted(String pattern, char wanted) {
-        boolean quoted = false;
-        for (int index = 0; index < pattern.length(); index++) {
-            char letter = pattern.charAt(index);
-            if (letter == '\'') {
-                quoted = !quoted;
-            }
-            if (!quoted && letter == wanted) {
-                return true;
-            }
-        }
-        return false;
     }
 }

@@ -737,4 +737,22 @@ public class MappingExecutorTest {
         assertThat(second).hasSize(1);
         assertThat(executor.skipped().get(CELL_MISSING)).isEqualTo(1L);
     }
+
+    @Test
+    public void test_an_unusable_format_names_the_pattern_it_refuses() {
+        InvalidExtractionMapping thrown = assertThrows(InvalidExtractionMapping.class,
+                () -> person(List.of("passport"),
+                        Map.of("name", column("full_name"), "birthDate", formatted("born", "HH:mm"))));
+
+        assertThat(thrown.violations.toString()).contains("'HH:mm'");
+    }
+
+    @Test
+    public void test_a_pattern_letter_that_does_not_exist_is_a_violation_not_a_crash() {
+        InvalidExtractionMapping thrown = assertThrows(InvalidExtractionMapping.class,
+                () -> person(List.of("passport"),
+                        Map.of("name", column("full_name"), "birthDate", formatted("born", "bbbb"))));
+
+        assertThat(thrown.violations.toString()).contains("'bbbb'");
+    }
 }

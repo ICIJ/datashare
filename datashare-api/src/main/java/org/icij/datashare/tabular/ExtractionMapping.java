@@ -147,7 +147,7 @@ public record ExtractionMapping(String id, String projectId, String userId, Stri
         if (mapped.format() != null) {
             try {
                 formats.declare(mapped.format());
-            } catch (IllegalArgumentException unusable) {
+            } catch (UnusableDateFormat unusable) {
                 violations.add(new TargetModel.Violation(where + "has an unusable format: "
                         + unusable.getMessage()));
             }
