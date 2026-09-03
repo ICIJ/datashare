@@ -1,0 +1,11 @@
+databaseChangeLog:
+  - changeSet:
+      id: 83
+      author: pirhoo
+      changes:
+        - addColumn:
+            tableName: statement
+            columns:
+              - column:
+                  name: original_value
+                  type: text

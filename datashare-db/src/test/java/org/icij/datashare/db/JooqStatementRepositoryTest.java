@@ -43,6 +43,48 @@ public class JooqStatementRepositoryTest {
     }
 
     @Test
+    public void test_save_writes_the_original_value_when_a_format_changed_it() {
+        repository.save("prj", "run-1", Stream.of(statement("entity-1", "Person", "birthDate", "1970-01-01")
+                .withOriginalValue("01/01/1970")));
+
+        assertThat(dbRule.dsl().select(STATEMENT.ORIGINAL_VALUE).from(STATEMENT).fetchOne().value1())
+                .isEqualTo("01/01/1970");
+    }
+
+    @Test
+    public void test_a_statement_with_an_original_value_still_rebuilds_its_entity() {
+        repository.save("prj", "run-1", Stream.of(statement("entity-1", "Person", "birthDate", "1970-01-01")
+                .withOriginalValue("01/01/1970")));
+
+        assertThat(repository.entity("prj", "entity-1").orElseThrow().properties().get("birthDate"))
+                .containsExactly("1970-01-01");
+    }
+
+    @Test
+    public void test_a_resave_refreshes_the_original_value() {
+        Statement fact = statement("entity-1", "Person", "birthDate", "1970-01-01");
+
+        repository.save("prj", "run-1", Stream.of(fact.withOriginalValue("01/01/1970")));
+        repository.save("prj", "run-2", Stream.of(fact.withOriginalValue("1970/01/01")));
+
+        assertThat(dbRule.dsl().select(STATEMENT.ORIGINAL_VALUE).from(STATEMENT).fetchOne().value1())
+                .isEqualTo("1970/01/01");
+    }
+
+    @Test
+    public void test_save_binds_original_value_when_the_first_row_of_a_batch_has_none() {
+        repository.save("prj", "run-1", Stream.of(
+                statement("entity-1", "Person", "name", "Jane Doe"),
+                statement("entity-2", "Person", "birthDate", "1970-01-01").withOriginalValue("01/01/1970")));
+
+        assertThat(dbRule.dsl().select(STATEMENT.ORIGINAL_VALUE).from(STATEMENT)
+                .where(STATEMENT.ENTITY_ID.eq("entity-2")).fetchOne().value1())
+                .isEqualTo("01/01/1970");
+        assertThat(dbRule.dsl().select(STATEMENT.ORIGINAL_VALUE).from(STATEMENT)
+                .where(STATEMENT.ENTITY_ID.eq("entity-1")).fetchOne().value1()).isNull();
+    }
+
+    @Test
     public void test_save_writes_one_row_per_statement() {
         List<Statement> statements = List.of(statement("entity-1", "Person", "birthDate", "1970-01-01"));
         assertThat(repository.save("prj", "run-1", statements.stream())).isEqualTo(1);
@@ -75,22 +117,8 @@ public class JooqStatementRepositoryTest {
         assertThat(row.getPrjId()).isEqualTo("prj");
     }
 
-    @Test
-    public void test_saving_the_same_data_twice_keeps_one_row_and_dates_the_new_observation() {
-        List<Statement> statements = List.of(statement("entity-1", "Person", "birthDate", "1970-01-01"));
-        repository.save("prj", "run-1", statements.stream());
-        var first = dbRule.dsl().selectFrom(STATEMENT).fetchOne();
 
-        DatashareTime.getInstance().addMilliseconds(60_000);
-        assertThat(repository.save("prj", "run-2", statements.stream())).isEqualTo(1);
 
-        assertThat(dbRule.dsl().fetchCount(STATEMENT)).isEqualTo(1);
-        var second = dbRule.dsl().selectFrom(STATEMENT).fetchOne();
-        assertThat(second.getId()).isEqualTo(first.getId());
-        assertThat(second.getFirstSeen()).isEqualTo(first.getFirstSeen());
-        assertThat(second.getLastSeen()).isNotEqualTo(first.getLastSeen());
-        assertThat(second.getRunId()).isEqualTo("run-2");
-    }
 
     @Test
     public void test_a_different_value_is_a_different_statement() {
@@ -116,6 +144,34 @@ public class JooqStatementRepositoryTest {
                 .where(STATEMENT.PRJ_ID.eq("prj-b")).fetchOne().value1()).isEqualTo("run-2");
     }
 
+
+
+    @Test
+    public void test_saving_the_same_data_twice_keeps_one_row_and_dates_the_new_observation() {
+        List<Statement> statements = List.of(statement("entity-1", "Person", "birthDate", "1970-01-01"));
+        repository.save("prj", "run-1", statements.stream());
+        var first = dbRule.dsl().selectFrom(STATEMENT).fetchOne();
+
+        DatashareTime.getInstance().addMilliseconds(60_000);
+        assertThat(repository.save("prj", "run-2", statements.stream())).isEqualTo(1);
+
+        assertThat(dbRule.dsl().fetchCount(STATEMENT)).isEqualTo(1);
+        var second = dbRule.dsl().selectFrom(STATEMENT).fetchOne();
+        assertThat(second.getId()).isEqualTo(first.getId());
+        assertThat(second.getFirstSeen()).isEqualTo(first.getFirstSeen());
+        assertThat(second.getLastSeen()).isNotEqualTo(first.getLastSeen());
+        assertThat(second.getRunId()).isEqualTo("run-2");
+    }
+
+    @Test
+    public void test_an_entity_keeps_every_one_of_its_types() {
+        repository.save("prj", "run-1", Stream.of(
+                statement("e-1", "Person", "name", "Ada"),
+                statement("e-1", "LegalEntity", "name", "Ada")));
+
+        assertThat(repository.entity("prj", "e-1").orElseThrow().types()).contains("Person", "LegalEntity");
+    }
+
     @Test
     public void test_entity_regroups_its_statements() {
         repository.save("prj", "run-1", Stream.of(
@@ -128,14 +184,6 @@ public class JooqStatementRepositoryTest {
         assertThat(entity.properties().get("birthDate")).containsExactly("1815-12-10");
     }
 
-    @Test
-    public void test_an_entity_keeps_every_one_of_its_types() {
-        repository.save("prj", "run-1", Stream.of(
-                statement("e-1", "Person", "name", "Ada"),
-                statement("e-1", "LegalEntity", "name", "Ada")));
-
-        assertThat(repository.entity("prj", "e-1").orElseThrow().types()).contains("Person", "LegalEntity");
-    }
 
     @Test
     public void test_a_property_keeps_every_one_of_its_values() {
