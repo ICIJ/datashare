@@ -5,11 +5,15 @@ import org.icij.datashare.text.Hasher;
 import java.util.Objects;
 
 public record Statement(String id, String model, String entityId, String entityType,
-                        String property, String value, Provenance provenance) {
+                        String property, String value, String originalValue, Provenance provenance) {
     /** An entity id ends up in the (prj_id, entity_id) index, whose entries Postgres caps at 2704
      *  bytes and SQLite does not cap at all. Bounding it here is what keeps the two dialects from
      *  disagreeing on which mapping key a project accepts. */
     public static final int MAX_ENTITY_ID_LENGTH = 512;
+
+    /** The digest behind every tabular id, statement and entity alike, pinned by test: changing it
+     *  re-identifies everything already stored. */
+    public static final Hasher DIGESTER = Hasher.SHA_384;
 
     public Statement {
         Objects.requireNonNull(id, "id");
@@ -22,6 +26,7 @@ public record Statement(String id, String model, String entityId, String entityT
         entityType = component(entityType, "entityType");
         property = component(property, "property");
         value = component(value, "value");
+        originalValue = originalValue == null ? null : component(originalValue, "originalValue");
         Objects.requireNonNull(provenance, "provenance");
     }
 
@@ -42,11 +47,17 @@ public record Statement(String id, String model, String entityId, String entityT
         Objects.requireNonNull(model, "model");
         TargetModelRegistry.get(model);
         return new Statement(id(model, entityId, entityType, property, value, provenance),
-                model, entityId, entityType, property, value, provenance);
+                model, entityId, entityType, property, value, null, provenance);
     }
 
     public String qualifiedProperty() {
         return model + ":" + property;
+    }
+
+    /** The value as it was read, kept when a format changed it. Outside the id hash: the same fact
+     *  keeps the same id whether or not the raw value was recorded. */
+    public Statement withOriginalValue(String raw) {
+        return new Statement(id, model, entityId, entityType, property, value, raw, provenance);
     }
 
     private static String component(String value, String field) {
@@ -62,7 +73,7 @@ public record Statement(String id, String model, String entityId, String entityT
     // input can forge a collision.
     private static String id(String model, String entityId, String entityType,
                              String property, String value, Provenance provenance) {
-        return Hasher.SHA_384.hash(String.join("\u0000", model, entityId, entityType, property, value,
+        return DIGESTER.hash(String.join("\u0000", model, entityId, entityType, property, value,
                 provenance.documentId(),
                 provenance.sheet(),
                 String.valueOf(provenance.rowNumber()),

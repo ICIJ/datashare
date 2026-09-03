@@ -94,7 +94,7 @@ public class ModelEntityTest {
     public void test_refuses_statements_belonging_to_two_models() {
         String message = assertThrows(IllegalArgumentException.class, () ->
                 ModelEntity.from(List.of(statement("name", "Jane Doe", "full_name"),
-                        new Statement("id-2", "wikidata", "person-1", "Q5", "name", "Jane Q",
+                        new Statement("id-2", "wikidata", "person-1", "Q5", "name", "Jane Q", null,
                                 new Statement.Provenance("doc-1", "Sheet1", 12, "full_name"))),
                         Set.of("4.10.2"))).getMessage();
 
