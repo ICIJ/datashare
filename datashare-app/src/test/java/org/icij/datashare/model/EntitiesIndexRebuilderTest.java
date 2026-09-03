@@ -205,7 +205,7 @@ public class EntitiesIndexRebuilderTest {
         }
 
         @Override
-        public int deleteByDocument(String projectId, String documentId) {
+        public int deleteByDocument(String projectId, String documentId, String sheet) {
             throw new UnsupportedOperationException();
         }
 

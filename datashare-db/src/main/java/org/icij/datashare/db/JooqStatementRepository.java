@@ -140,9 +140,10 @@ public class JooqStatementRepository implements StatementRepository {
     }
 
     @Override
-    public int deleteByDocument(String projectId, String documentId) {
+    public int deleteByDocument(String projectId, String documentId, String sheet) {
         return create().deleteFrom(STATEMENT)
                 .where(STATEMENT.PRJ_ID.eq(projectId)).and(STATEMENT.DOC_ID.eq(documentId))
+                .and(STATEMENT.SHEET.eq(sheet))
                 .execute();
     }
 

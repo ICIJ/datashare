@@ -205,7 +205,7 @@ public class JooqStatementRepositoryTest {
                         new Statement.Provenance("doc-2", "", 3, "dob"))));
         repository.save("other", "run-2", Stream.of(statement("e-2", "Person", "name", "Grace")));
 
-        assertThat(repository.deleteByDocument("prj", "doc-1")).isEqualTo(1);
+        assertThat(repository.deleteByDocument("prj", "doc-1", "")).isEqualTo(1);
 
         assertThat(dbRule.dsl().fetchCount(STATEMENT)).isEqualTo(2);
         assertThat(repository.entity("prj", "e-1").orElseThrow().properties().keySet())
@@ -214,12 +214,26 @@ public class JooqStatementRepositoryTest {
     }
 
     @Test
+    public void test_delete_by_document_spares_the_other_sheets_of_the_same_document() {
+        repository.save("prj", "run-1", Stream.of(
+                Statement.of("ftm", "e-1", "Person", "name", "Ada",
+                        new Statement.Provenance("doc-1", "Sheet1", 2, "name")),
+                Statement.of("ftm", "e-2", "Person", "name", "Grace",
+                        new Statement.Provenance("doc-1", "Sheet2", 2, "name"))));
+
+        assertThat(repository.deleteByDocument("prj", "doc-1", "Sheet1")).isEqualTo(1);
+
+        assertThat(repository.entity("prj", "e-1").isPresent()).isFalse();
+        assertThat(repository.entity("prj", "e-2").isPresent()).isTrue();
+    }
+
+    @Test
     public void test_replacing_a_document_leaves_no_stale_statement() {
         repository.save("prj", "run-1", Stream.of(
                 statement("e-1", "Person", "name", "Ada"),
                 statement("e-1", "Person", "birthDate", "1815-12-10")));
 
-        assertThat(repository.replace("prj", "run-2", "doc-1",
+        assertThat(repository.replace("prj", "run-2", "doc-1", "",
                 Stream.of(statement("e-1", "Person", "name", "Ada Lovelace")))).isEqualTo(1);
 
         assertThat(repository.entity("prj", "e-1").orElseThrow().properties())
