@@ -10,17 +10,18 @@ import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
 
-public record ModelEntity(String model, String id, Set<String> types, Set<String> modelVersions,
+/** One type, not a set: the entity id hashes the type, so two types can never share an id and a
+ *  multi-type entity cannot exist by construction. */
+public record ModelEntity(String model, String id, String type, Set<String> modelVersions,
                           Set<String> documentIds, Map<String, List<String>> properties) {
 
     public ModelEntity {
         Objects.requireNonNull(model, "model");
         Objects.requireNonNull(id, "id");
-        Objects.requireNonNull(types, "types");
+        Objects.requireNonNull(type, "type");
         Objects.requireNonNull(modelVersions, "modelVersions");
         Objects.requireNonNull(documentIds, "documentIds");
         Objects.requireNonNull(properties, "properties");
-        types = Set.copyOf(types);
         modelVersions = Set.copyOf(modelVersions);
         documentIds = Set.copyOf(documentIds);
         Map<String, List<String>> copy = new LinkedHashMap<>();
@@ -35,7 +36,7 @@ public record ModelEntity(String model, String id, Set<String> types, Set<String
     public static ModelEntity from(Iterable<Statement> statements, Set<String> modelVersions) {
         SortedSet<String> ids = new TreeSet<>();
         SortedSet<String> models = new TreeSet<>();
-        Set<String> types = new TreeSet<>();
+        SortedSet<String> types = new TreeSet<>();
         Set<String> documentIds = new TreeSet<>();
         Map<String, SortedSet<String>> values = new TreeMap<>();
         for (Statement statement : statements) {
@@ -54,8 +55,11 @@ public record ModelEntity(String model, String id, Set<String> types, Set<String
         if (models.size() > 1) {
             throw new IllegalArgumentException("statements belong to " + models.size() + " models: " + models);
         }
+        if (types.size() > 1) {
+            throw new IllegalArgumentException("statements give the entity " + types.size() + " types: " + types);
+        }
         Map<String, List<String>> properties = new LinkedHashMap<>();
         values.forEach((property, distinct) -> properties.put(property, List.copyOf(distinct)));
-        return new ModelEntity(models.first(), ids.first(), types, modelVersions, documentIds, properties);
+        return new ModelEntity(models.first(), ids.first(), types.first(), modelVersions, documentIds, properties);
     }
 }

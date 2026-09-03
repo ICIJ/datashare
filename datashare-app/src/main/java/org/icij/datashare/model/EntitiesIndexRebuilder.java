@@ -3,6 +3,8 @@ package org.icij.datashare.model;
 import org.icij.datashare.text.StructuredEntity;
 import org.icij.datashare.text.Project;
 import org.icij.datashare.text.indexing.Indexer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -13,6 +15,7 @@ import java.util.List;
 /** Rebuilds a project's entities index from the statement store, which is the system of record: the
  *  index is a disposable projection and this is the only thing that writes it. */
 public class EntitiesIndexRebuilder {
+    private static final Logger LOGGER = LoggerFactory.getLogger(EntitiesIndexRebuilder.class);
     private static final int CHUNK_SIZE = 1_000;
     private final Indexer indexer;
     private final StatementRepository statements;
@@ -41,7 +44,34 @@ public class EntitiesIndexRebuilder {
         }
     }
 
-    private int index(String indexName, Iterator<ModelEntity> entities) {
+    // A group the store refuses to fold into an entity (two types under one id, which the id recipe
+    // makes impossible to write but rows written before it can still hold) is skipped rather than
+    // thrown: the index is already dropped by the time it is read, so failing the run would leave the
+    // project with no index at all and do the same again on every retry. The refusal surfaces from
+    // hasNext, since the entities are streamed, and the retry terminates because the store drains a
+    // group before it judges it, so each refusal has consumed the group it refused.
+    private static Iterator<ModelEntity> skippingUnrebuildable(String indexName, Iterator<ModelEntity> entities) {
+        return new Iterator<>() {
+            @Override
+            public boolean hasNext() {
+                while (true) {
+                    try {
+                        return entities.hasNext();
+                    } catch (IllegalArgumentException unrebuildable) {
+                        LOGGER.warn("skipping an entity of {} that cannot be rebuilt", indexName, unrebuildable);
+                    }
+                }
+            }
+
+            @Override
+            public ModelEntity next() {
+                return entities.next();
+            }
+        };
+    }
+
+    private int index(String indexName, Iterator<ModelEntity> source) {
+        Iterator<ModelEntity> entities = skippingUnrebuildable(indexName, source);
         int written = 0;
         while (entities.hasNext()) {
             List<StructuredEntity> chunk = new ArrayList<>(CHUNK_SIZE);

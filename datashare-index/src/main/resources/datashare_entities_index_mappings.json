@@ -21,7 +21,7 @@
     }
   ],
   "properties": {
-    "type": { "type": "keyword" },
+    "entityType": { "type": "keyword" },
     "join": {
       "type": "object",
       "properties": {
@@ -31,7 +31,7 @@
     "entityId": { "type": "keyword" },
     "model": { "type": "keyword" },
     "modelVersions": { "type": "keyword" },
-    "types": { "type": "keyword" },
+    "type": { "type": "keyword" },
     "documentIds": { "type": "keyword" },
     "propertiesAll": {
       "type": "text",

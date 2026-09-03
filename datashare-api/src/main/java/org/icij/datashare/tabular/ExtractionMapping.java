@@ -117,6 +117,6 @@ public record ExtractionMapping(String id, String projectId, String userId, Stri
     private ModelEntity probe(String alias, EntityMapping entity) {
         Map<String, List<String>> properties = new LinkedHashMap<>();
         new TreeSet<>(entity.properties().keySet()).forEach(property -> properties.put(property, List.of("?")));
-        return new ModelEntity(model, alias, Set.of(entity.type()), Set.of(), Set.of(documentId), properties);
+        return new ModelEntity(model, alias, entity.type(), Set.of(), Set.of(documentId), properties);
     }
 }
