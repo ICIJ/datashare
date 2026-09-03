@@ -104,7 +104,7 @@ public record Row(long number, Map<String, String> values) {
      * that carries no data and cannot misalign anything.
      */
     public static Map<String, String> values(List<String> headers, List<String> cells, long number) {
-        if (cells.stream().skip(headers.size()).anyMatch(cell -> !cell.isBlank())) {
+        if (cells.stream().skip(headers.size()).anyMatch(cell -> !clean(cell).isEmpty())) {
             throw new IllegalArgumentException("row " + number + " has " + cells.size()
                     + " fields but the header declares " + headers.size());
         }
