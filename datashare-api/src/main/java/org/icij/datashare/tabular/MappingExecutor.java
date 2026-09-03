@@ -130,8 +130,9 @@ public class MappingExecutor {
         for (Map.Entry<String, ExtractionMapping.PropertyMapping> declared : entity.properties().entrySet()) {
             String property = declared.getKey();
             ExtractionMapping.PropertyMapping mapped = declared.getValue();
-            if (mapped.literal() != null) {
-                filling.fill(property, mapped.literal(), provenance(row, ""));
+            if (mapped.literal() != null || mapped.entity() != null) {
+                String given = mapped.literal() != null ? mapped.literal() : ids.get(mapped.entity());
+                filling.fill(property, given, provenance(row, ""));
             } else if (mapped.join() != null) {
                 filling.fill(property, mapped.columns().stream()
                         .map(cells::get).filter(cell -> !cell.isEmpty())
