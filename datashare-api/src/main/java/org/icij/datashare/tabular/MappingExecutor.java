@@ -31,7 +31,9 @@ import static java.util.stream.Collectors.joining;
 public class MappingExecutor {
     private static final Logger LOGGER = LoggerFactory.getLogger(MappingExecutor.class);
 
-    /** What a run dropped, and why. ENTITY_ counts one entity of one row, CELL_ counts one cell. */
+    /** What a run dropped, and why. ENTITY_ counts one entity of one row, CELL_UNREADABLE one cell,
+     *  and CELL_MISSING one column, once: a column the source stops carrying is one structural fact,
+     *  not one per row of a file that may hold millions. */
     public enum Skip { ENTITY_UNIDENTIFIED, ENTITY_EMPTY, CELL_UNREADABLE, CELL_MISSING }
 
     private final ExtractionMapping mapping;
@@ -41,6 +43,7 @@ public class MappingExecutor {
     private final Map<String, List<String>> keyColumns = new TreeMap<>();
     private final Set<String> columns = new TreeSet<>();
     private final Map<Skip, Long> skipped = new EnumMap<>(Skip.class);
+    private final Set<String> absent = new TreeSet<>();
     private boolean checked;
 
     public MappingExecutor(ExtractionMapping mapping) {
@@ -91,7 +94,8 @@ public class MappingExecutor {
     // Row.values pads a short row with empty strings, so a column the file does not have reads like a
     // blank cell: without this, one typo imports every row as nothing and reports it as a success. A
     // reader whose records carry their own names can legitimately omit a column further down, so only
-    // the first row is worth failing on: after that a missing column is data, and is counted.
+    // the first row is worth failing on: after that a missing column is data, and is counted once,
+    // since a field a whole file omits is one fact and not one per row.
     private void requireColumns(Row row) {
         if (row.values().keySet().containsAll(columns)) {
             checked = true;
@@ -102,7 +106,7 @@ public class MappingExecutor {
             throw new InvalidExtractionMapping(mapping.id(),
                     List.of(new TargetModel.Violation("the source has no column " + missing)));
         }
-        missing.forEach(column -> count(Skip.CELL_MISSING, column, row.number()));
+        missing.stream().filter(absent::add).forEach(column -> count(Skip.CELL_MISSING, column, row.number()));
     }
 
     private Map<String, String> identify(Map<String, String> cells, long rowNumber) {

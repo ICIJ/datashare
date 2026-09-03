@@ -762,6 +762,19 @@ public class MappingExecutorTest {
     }
 
     @Test
+    public void test_a_column_the_source_stops_carrying_is_counted_once_not_once_per_row() {
+        MappingExecutor executor = person(List.of("passport"),
+                Map.of("name", column("full_name"), "email", column("mail")));
+
+        executor.statements(row(Map.of("passport", "AB123", "full_name", "Jane Doe",
+                "mail", "jane@example.org")));
+        executor.statements(new Row(8L, Map.of("passport", "AB124", "full_name", "John Roe")));
+        executor.statements(new Row(9L, Map.of("passport", "AB125", "full_name", "Ann Poe")));
+
+        assertThat(executor.skipped().get(CELL_MISSING)).isEqualTo(1L);
+    }
+
+    @Test
     public void test_an_unusable_format_names_the_pattern_it_refuses() {
         InvalidExtractionMapping thrown = assertThrows(InvalidExtractionMapping.class,
                 () -> person(List.of("passport"),
