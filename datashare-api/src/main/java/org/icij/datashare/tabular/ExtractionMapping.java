@@ -36,11 +36,9 @@ public record ExtractionMapping(String id, String projectId, String userId, Stri
         public EntityMapping {
             Objects.requireNonNull(type, "type");
             // Keys name header columns, so they get the cleaning headers get: a key pasted with a
-            // non-breaking space still matches the header it names.
+            // non-breaking space still matches the header it names. No key at all is a valid
+            // mapping: each row is then its own record, identified by where it sits in the file.
             keys = List.copyOf(Objects.requireNonNull(keys, "keys")).stream().map(Row::clean).toList();
-            if (keys.isEmpty()) {
-                throw new InvalidEntityMapping(type);
-            }
             properties = Map.copyOf(Objects.requireNonNull(properties, "properties"));
         }
     }
