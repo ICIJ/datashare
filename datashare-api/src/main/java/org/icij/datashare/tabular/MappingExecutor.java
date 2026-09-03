@@ -51,6 +51,7 @@ public class MappingExecutor {
         this.mapping = mapping;
         this.documentId = mapping.documentId();
         this.sheet = mapping.options().sheet();
+        mapping.requireValid();
         mapping.entities().forEach(this::declare);
         Stream.of(Skip.values()).forEach(reason -> skipped.put(reason, 0L));
     }
@@ -77,7 +78,8 @@ public class MappingExecutor {
     }
 
     // Key columns are de-duplicated once here rather than per row, because a column named twice
-    // would otherwise hash its cell twice.
+    // would otherwise hash its cell twice. Formats compile without a guard: validate() already
+    // refused every pattern this mapping could not run.
     private void declare(String alias, ExtractionMapping.EntityMapping entity) {
         keyColumns.put(alias, entity.keys().stream().distinct().toList());
         columns.addAll(entity.keys());

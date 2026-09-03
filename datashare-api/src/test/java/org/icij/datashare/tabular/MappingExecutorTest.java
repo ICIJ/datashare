@@ -150,7 +150,21 @@ public class MappingExecutorTest {
 
 
 
+    @Test
+    public void test_a_blank_key_column_name_fails_at_construction() {
+        InvalidExtractionMapping thrown = assertThrows(InvalidExtractionMapping.class,
+                () -> person(List.of(" "), Map.of("name", column("full_name"))));
 
+        assertThat(thrown.violations.toString()).contains("blank key column name");
+    }
+
+    @Test
+    public void test_a_blank_column_name_fails_at_construction() {
+        InvalidExtractionMapping thrown = assertThrows(InvalidExtractionMapping.class,
+                () -> person(List.of("passport"), Map.of("name", column("\u200B"))));
+
+        assertThat(thrown.violations.toString()).contains("blank column name");
+    }
 
     @Test
     public void test_a_row_whose_key_is_blank_yields_no_statement_and_is_counted() {
@@ -414,8 +428,48 @@ public class MappingExecutorTest {
         assertThat(statement.value()).isEqualTo("0070");
     }
 
+    @Test
+    public void test_a_single_letter_year_pattern_fails_at_construction() {
+        InvalidExtractionMapping thrown = assertThrows(InvalidExtractionMapping.class,
+                () -> person(List.of("passport"),
+                        Map.of("name", column("full_name"), "birthDate", formatted("born", "d/M/y"))));
 
+        assertThat(thrown.violations.toString()).contains("write the year in full");
+    }
 
+    @Test
+    public void test_a_week_based_year_pattern_fails_at_construction() {
+        InvalidExtractionMapping thrown = assertThrows(InvalidExtractionMapping.class,
+                () -> person(List.of("passport"),
+                        Map.of("name", column("full_name"), "birthDate", formatted("born", "dd/MM/YYYY"))));
+
+        assertThat(thrown.violations.toString()).contains("week-based");
+    }
+
+    @Test
+    public void test_a_pattern_carrying_no_date_fails_at_construction() {
+        InvalidExtractionMapping thrown = assertThrows(InvalidExtractionMapping.class,
+                () -> person(List.of("passport"),
+                        Map.of("name", column("full_name"), "birthDate", formatted("born", "HH:mm"))));
+
+        assertThat(thrown.violations.toString()).contains("unusable format");
+    }
+
+    @Test
+    public void test_a_pattern_carrying_an_offset_fails_at_construction() {
+        assertThrows(InvalidExtractionMapping.class, () -> person(List.of("passport"),
+                Map.of("name", column("full_name"),
+                        "birthDate", formatted("born", "yyyy-MM-dd'T'HH:mmXXX"))));
+    }
+
+    @Test
+    public void test_a_proleptic_year_next_to_an_era_fails_at_construction() {
+        InvalidExtractionMapping thrown = assertThrows(InvalidExtractionMapping.class,
+                () -> person(List.of("passport"),
+                        Map.of("name", column("full_name"), "birthDate", formatted("born", "G uuuu"))));
+
+        assertThat(thrown.violations.toString()).contains("use 'y'");
+    }
 
     @Test
     public void test_an_era_pattern_reads_a_bc_year_as_bc() {
@@ -439,6 +493,20 @@ public class MappingExecutorTest {
         assertThat(statement.originalValue()).isNull();
     }
 
+    @Test
+    public void test_a_two_digit_year_pattern_fails_at_construction() {
+        InvalidExtractionMapping thrown = assertThrows(InvalidExtractionMapping.class,
+                () -> person(List.of("passport"),
+                        Map.of("name", column("full_name"), "birthDate", formatted("born", "dd/MM/yy"))));
+
+        assertThat(thrown.violations.toString()).contains("two-digit year");
+    }
+
+    @Test
+    public void test_a_quoted_literal_does_not_fuse_two_two_digit_years_into_a_full_year() {
+        assertThrows(InvalidExtractionMapping.class, () -> person(List.of("passport"),
+                Map.of("name", column("full_name"), "birthDate", formatted("born", "yy'x'yy"))));
+    }
 
     @Test
     public void test_a_value_already_in_the_target_form_keeps_no_original() {
@@ -468,9 +536,59 @@ public class MappingExecutorTest {
         }
     }
 
+    @Test
+    public void test_a_nul_document_id_fails_at_construction() {
+        ExtractionMapping nulDocument = new ExtractionMapping("map-1", "prj", "jdoe", "staff", "ftm",
+                "doc\u00001", RowSourceOptions.defaults(),
+                Map.of("member", entity("Person", List.of("passport"), Map.of("name", column("full_name")))));
 
+        InvalidExtractionMapping thrown =
+                assertThrows(InvalidExtractionMapping.class, () -> new MappingExecutor(nulDocument));
+        assertThat(thrown.violations.toString()).contains("document id");
+    }
 
+    @Test
+    public void test_a_nul_literal_fails_at_construction() {
+        InvalidExtractionMapping thrown = assertThrows(InvalidExtractionMapping.class,
+                () -> person(List.of("passport"),
+                        Map.of("name", column("full_name"), "nationality", literal("f\u0000r"))));
 
+        assertThat(thrown.violations.toString()).contains("literal holding a NUL");
+    }
+
+    @Test
+    public void test_a_nul_join_separator_fails_at_construction() {
+        InvalidExtractionMapping thrown = assertThrows(InvalidExtractionMapping.class,
+                () -> person(List.of("passport"),
+                        Map.of("name", joined(List.of("first_name", "last_name"), "\u0000"))));
+
+        assertThat(thrown.violations.toString()).contains("join separator holding a NUL");
+    }
+
+    @Test
+    public void test_a_nul_column_name_fails_at_construction() {
+        InvalidExtractionMapping thrown = assertThrows(InvalidExtractionMapping.class,
+                () -> person(List.of("passport"), Map.of("name", column("full\u0000name"))));
+
+        assertThat(thrown.violations.toString()).contains("column name holding a NUL");
+    }
+
+    @Test
+    public void test_a_nul_key_column_name_fails_at_construction() {
+        InvalidExtractionMapping thrown = assertThrows(InvalidExtractionMapping.class,
+                () -> person(List.of("pass\u0000port"), Map.of("name", column("full_name"))));
+
+        assertThat(thrown.violations.toString()).contains("key column name holding a NUL");
+    }
+
+    @Test
+    public void test_a_non_breaking_space_literal_fails_at_construction() {
+        InvalidExtractionMapping thrown = assertThrows(InvalidExtractionMapping.class,
+                () -> person(List.of("passport"),
+                        Map.of("name", column("full_name"), "nationality", literal("\u00A0"))));
+
+        assertThat(thrown.violations.toString()).contains("blank literal");
+    }
 
     @Test
     public void test_a_padded_literal_is_stored_stripped_like_the_cell_it_mirrors() {
@@ -481,7 +599,42 @@ public class MappingExecutorTest {
         assertThat(statement.value()).isEqualTo("fr");
     }
 
+    @Test
+    public void test_a_blank_literal_fails_at_construction() {
+        InvalidExtractionMapping thrown = assertThrows(InvalidExtractionMapping.class,
+                () -> person(List.of("passport"),
+                        Map.of("name", column("full_name"), "nationality", literal(" "))));
 
+        assertThat(thrown.violations.toString()).contains("blank literal");
+    }
+
+    @Test
+    public void test_an_entity_that_maps_no_property_fails_at_construction() {
+        InvalidExtractionMapping thrown = assertThrows(InvalidExtractionMapping.class,
+                () -> new MappingExecutor(mapping(Map.of(
+                        "home", entity("Address", List.of("street"), Map.of())))));
+
+        assertThat(thrown.violations.toString()).contains("maps no property");
+    }
+
+    @Test
+    public void test_a_sheet_holding_a_nul_fails_at_construction() {
+        ExtractionMapping mapping = new ExtractionMapping("map-1", "prj", "jdoe", "staff", "ftm", "doc-1",
+                new RowSourceOptions(null, null, null, null, "\u0000Sheet", null),
+                Map.of("member", entity("Person", List.of("passport"), Map.of("name", column("full_name")))));
+
+        assertThrows(IllegalArgumentException.class, () -> new MappingExecutor(mapping));
+    }
+
+    @Test
+    public void test_a_mapping_that_no_longer_validates_fails_at_construction() {
+        ExtractionMapping stale = mapping(Map.of("member",
+                entity("Person", List.of("passport"), Map.of("hoofSize", column("hooves")))));
+
+        InvalidExtractionMapping thrown =
+                assertThrows(InvalidExtractionMapping.class, () -> new MappingExecutor(stale));
+        assertThat(thrown.violations.toString()).contains("hoofSize");
+    }
 
     @Test
     public void test_a_column_the_source_does_not_have_fails_the_run() {
@@ -519,4 +672,21 @@ public class MappingExecutorTest {
         assertThat(executor.skipped().get(CELL_MISSING)).isEqualTo(1L);
     }
 
+    @Test
+    public void test_an_unusable_format_names_the_pattern_it_refuses() {
+        InvalidExtractionMapping thrown = assertThrows(InvalidExtractionMapping.class,
+                () -> person(List.of("passport"),
+                        Map.of("name", column("full_name"), "birthDate", formatted("born", "HH:mm"))));
+
+        assertThat(thrown.violations.toString()).contains("'HH:mm'");
+    }
+
+    @Test
+    public void test_a_pattern_letter_that_does_not_exist_is_a_violation_not_a_crash() {
+        InvalidExtractionMapping thrown = assertThrows(InvalidExtractionMapping.class,
+                () -> person(List.of("passport"),
+                        Map.of("name", column("full_name"), "birthDate", formatted("born", "bbbb"))));
+
+        assertThat(thrown.violations.toString()).contains("'bbbb'");
+    }
 }

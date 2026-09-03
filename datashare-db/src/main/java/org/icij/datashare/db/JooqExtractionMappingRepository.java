@@ -1,10 +1,8 @@
 package org.icij.datashare.db;
 
 import org.icij.datashare.json.JsonObjectMapper;
-import org.icij.datashare.model.TargetModel;
 import org.icij.datashare.tabular.ExtractionMapping;
 import org.icij.datashare.tabular.ExtractionMappingRepository;
-import org.icij.datashare.tabular.InvalidExtractionMapping;
 import org.icij.datashare.tabular.UnreadableExtractionMapping;
 import org.icij.datashare.time.DatashareTime;
 import org.jooq.DSLContext;
@@ -38,10 +36,7 @@ public class JooqExtractionMappingRepository implements ExtractionMappingReposit
 
     @Override
     public boolean save(ExtractionMapping mapping) {
-        List<TargetModel.Violation> violations = mapping.validate();
-        if (!violations.isEmpty()) {
-            throw new InvalidExtractionMapping(mapping.id(), violations);
-        }
+        mapping.requireValid();
         return create().insertInto(EXTRACTION_MAPPING)
                 .set(EXTRACTION_MAPPING.ID, mapping.id())
                 .set(EXTRACTION_MAPPING.PRJ_ID, mapping.projectId())

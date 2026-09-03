@@ -30,6 +30,36 @@ public class ExtractionMappingTest {
     }
 
     @Test
+    public void test_validate_reports_the_flaws_only_a_run_would_otherwise_catch() {
+        ExtractionMapping.PropertyMapping blank =
+                new ExtractionMapping.PropertyMapping(List.of(), null, " ", null, null);
+        ExtractionMapping.PropertyMapping twoDigitYear =
+                new ExtractionMapping.PropertyMapping(List.of("born"), null, null, null, "dd/MM/yy");
+
+        String violations = mapping("ftm", Map.of("member",
+                person(Map.of("nationality", blank, "birthDate", twoDigitYear)))).validate().toString();
+
+        assertThat(violations).contains("blank literal");
+        assertThat(violations).contains("two-digit year");
+    }
+
+    @Test
+    public void test_validate_reports_every_nul_a_statement_would_carry() {
+        ExtractionMapping.PropertyMapping nulLiteral =
+                new ExtractionMapping.PropertyMapping(List.of(), null, "f\u0000r", null, null);
+        ExtractionMapping nulled = new ExtractionMapping("map-1", "prj", "jdoe", "members", "ftm",
+                "doc\u00001", RowSourceOptions.defaults(),
+                Map.of("member", person(Map.of("nationality", nulLiteral))));
+
+        String violations = nulled.validate().toString();
+
+        assertThat(violations).contains("document id");
+        assertThat(violations).contains("literal holding a NUL");
+    }
+
+
+
+    @Test
     public void test_unknown_model_is_rejected_at_construction() {
         UnknownTargetModel thrown = assertThrows(UnknownTargetModel.class,
                 () -> mapping("wikidata", Map.of("member", person(Map.of("name", column("full_name"))))));
@@ -105,11 +135,6 @@ public class ExtractionMappingTest {
         assertThrows(EmptyExtractionMapping.class, () -> mapping("ftm", Map.of()));
     }
 
-    @Test
-    public void test_an_entity_needs_at_least_one_key() {
-        assertThrows(InvalidEntityMapping.class,
-                () -> new ExtractionMapping.EntityMapping("Person", List.of(), Map.of()));
-    }
 
     @Test
     public void test_validate_reports_a_required_property_the_mapping_never_fills() {
@@ -189,5 +214,10 @@ public class ExtractionMappingTest {
     @Test
     public void test_entity_reference_needs_no_column() {
         assertThat(reference("member").entity()).isEqualTo("member");
+    }
+    @Test
+    public void test_an_entity_needs_at_least_one_key() {
+        assertThrows(InvalidEntityMapping.class,
+                () -> new ExtractionMapping.EntityMapping("Person", List.of(), Map.of()));
     }
 }
