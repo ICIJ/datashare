@@ -3,6 +3,10 @@ package org.icij.datashare.db;
 import com.zaxxer.hikari.HikariDataSource;
 import org.icij.datashare.model.ModelEntity;
 import org.icij.datashare.model.Statement;
+import org.icij.datashare.tabular.ExtractionMapping;
+import org.icij.datashare.tabular.MappingExecutor;
+import org.icij.datashare.tabular.Row;
+import org.icij.datashare.tabular.RowSourceOptions;
 import org.icij.datashare.test.DatashareTimeRule;
 import org.icij.datashare.time.DatashareTime;
 import org.jooq.SQLDialect;
@@ -22,6 +26,7 @@ import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -118,8 +123,56 @@ public class JooqStatementRepositoryTest {
         assertThat(row.getPrjId()).isEqualTo("prj");
     }
 
+    // A no-op re-run must not rewrite rows: unconditional refresh doubled the table's churn on
+    // every identical save, for run and last-seen values nothing reads.
+    @Test
+    public void test_saving_the_same_data_twice_rewrites_nothing() {
+        List<Statement> statements = List.of(statement("entity-1", "Person", "birthDate", "1970-01-01"));
+        repository.save("prj", "run-1", statements.stream());
+        var first = dbRule.dsl().selectFrom(STATEMENT).fetchOne();
 
+        DatashareTime.getInstance().addMilliseconds(60_000);
+        assertThat(repository.save("prj", "run-2", statements.stream())).isEqualTo(0);
 
+        assertThat(dbRule.dsl().fetchCount(STATEMENT)).isEqualTo(1);
+        var second = dbRule.dsl().selectFrom(STATEMENT).fetchOne();
+        assertThat(second.getId()).isEqualTo(first.getId());
+        assertThat(second.getFirstSeen()).isEqualTo(first.getFirstSeen());
+        assertThat(second.getLastSeen()).isEqualTo(first.getLastSeen());
+        assertThat(second.getRunId()).isEqualTo("run-1");
+    }
+
+    @Test
+    public void test_a_row_written_under_an_older_ontology_is_refreshed_on_resave() {
+        Statement fact = statement("entity-1", "Person", "birthDate", "1970-01-01");
+        insertRawStatement(fact.id(), "ftm", "entity-1", "Person", "ftm:birthDate", "1970-01-01",
+                LocalDateTime.now());
+        dbRule.dsl().update(STATEMENT).set(STATEMENT.MODEL_VERSION, "1.0").execute();
+
+        repository.save("prj", "run-2", Stream.of(fact));
+
+        var row = dbRule.dsl().selectFrom(STATEMENT).fetchOne();
+        assertThat(row.getModelVersion()).isEqualTo("4.10.2");
+        assertThat(row.getRunId()).isEqualTo("run-2");
+    }
+
+    @Test
+    public void test_saving_the_same_row_twice_writes_it_once() {
+        ExtractionMapping mapping = new ExtractionMapping("map-1", "prj", "jdoe", "staff",
+                "ftm", "doc-1", RowSourceOptions.defaults(), Map.of("member",
+                new ExtractionMapping.EntityMapping("Person", List.of("passport"), Map.of("name",
+                        new ExtractionMapping.PropertyMapping(List.of("full_name"), null, null, null, null)))));
+        Map<String, String> cells = Map.of("passport", "AB123", "full_name", "Jane Doe");
+        List<Statement> first = new MappingExecutor(mapping, "").statements(new Row(1L, cells));
+        List<Statement> second = new MappingExecutor(mapping, "").statements(new Row(1L, cells));
+
+        assertThat(first.stream().map(Statement::id).toList())
+                .isEqualTo(second.stream().map(Statement::id).toList());
+        assertThat(first).hasSize(1);
+        assertThat(repository.save("prj", "run-1", first.stream())).isEqualTo(1);
+        assertThat(repository.save("prj", "run-2", second.stream())).isEqualTo(0);
+        assertThat(dbRule.dsl().fetchCount(STATEMENT)).isEqualTo(1);
+    }
 
     @Test
     public void test_a_different_value_is_a_different_statement() {
@@ -145,25 +198,6 @@ public class JooqStatementRepositoryTest {
                 .where(STATEMENT.PRJ_ID.eq("prj-b")).fetchOne().value1()).isEqualTo("run-2");
     }
 
-
-
-    @Test
-    public void test_saving_the_same_data_twice_keeps_one_row_and_dates_the_new_observation() {
-        List<Statement> statements = List.of(statement("entity-1", "Person", "birthDate", "1970-01-01"));
-        repository.save("prj", "run-1", statements.stream());
-        var first = dbRule.dsl().selectFrom(STATEMENT).fetchOne();
-
-        DatashareTime.getInstance().addMilliseconds(60_000);
-        assertThat(repository.save("prj", "run-2", statements.stream())).isEqualTo(1);
-
-        assertThat(dbRule.dsl().fetchCount(STATEMENT)).isEqualTo(1);
-        var second = dbRule.dsl().selectFrom(STATEMENT).fetchOne();
-        assertThat(second.getId()).isEqualTo(first.getId());
-        assertThat(second.getFirstSeen()).isEqualTo(first.getFirstSeen());
-        assertThat(second.getLastSeen()).isNotEqualTo(first.getLastSeen());
-        assertThat(second.getRunId()).isEqualTo("run-2");
-    }
-
     @Test
     public void test_entity_regroups_its_statements() {
         repository.save("prj", "run-1", Stream.of(
@@ -175,7 +209,6 @@ public class JooqStatementRepositoryTest {
         assertThat(entity.properties().get("name")).containsExactly("Ada");
         assertThat(entity.properties().get("birthDate")).containsExactly("1815-12-10");
     }
-
 
     @Test
     public void test_a_property_keeps_every_one_of_its_values() {
