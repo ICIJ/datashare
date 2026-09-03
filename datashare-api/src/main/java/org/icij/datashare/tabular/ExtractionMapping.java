@@ -51,7 +51,9 @@ public record ExtractionMapping(String id, String projectId, String userId, Stri
     public record PropertyMapping(List<String> columns, String join, String literal, String entity, String format) {
         public PropertyMapping {
             // Column names get the cleaning headers get, and a literal gets the cleaning cells get:
-            // a mapping authored by copy-paste behaves like the file it was copied from.
+            // a mapping authored by copy-paste behaves like the file it was copied from. JSON is the
+            // exception: a record carries its own keys and JsonRowSource leaves them untouched, so a
+            // key holding an invisible character is named by no mapping and the read fails on row 1.
             columns = List.copyOf(columns == null ? List.of() : columns).stream().map(Row::clean).toList();
             literal = literal == null ? null : Row.clean(literal);
             long sources = (columns.isEmpty() ? 0 : 1) + (literal == null ? 0 : 1) + (entity == null ? 0 : 1);
