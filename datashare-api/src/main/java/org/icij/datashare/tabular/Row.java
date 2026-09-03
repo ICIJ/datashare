@@ -15,7 +15,7 @@ import java.util.Set;
  */
 public record Row(long number, Map<String, String> values) {
     /** The whitespace rule headers and cells share: the space a spreadsheet writes as U+00A0 reads
-     *  as a space, a zero-width character or stray BOM is removed (it is not whitespace to strip(),
+     *  as a space, a zero-width formatting character or stray BOM is removed (it is not whitespace to strip(),
      *  yet it would silently split one key value into two entity ids), and surrounding whitespace
      *  is not content. Runs on every cell of every row, so a cell holding none of it, which is the
      *  overwhelming case, walks away with the string it came in with. */
@@ -40,8 +40,12 @@ public record Row(long number, Map<String, String> values) {
         return cleaned.toString().strip();
     }
 
+    // Spelled out rather than swept as a range: U+200C and U+200D sit in the middle of it and are
+    // not invisible at all, they spell words in Persian, Arabic and Hindi and hold a composed emoji
+    // together, so removing them rewrites the value and merges two entities under one id.
     private static boolean invisible(char letter) {
-        return letter == '\uFEFF' || letter >= '\u200B' && letter <= '\u200D';
+        return letter == '\uFEFF' || letter == '\u200B' || letter == '\u200E' || letter == '\u200F'
+                || letter == '\u2060' || letter == '\u00AD';
     }
 
     private static boolean nonBreakingSpace(char letter) {

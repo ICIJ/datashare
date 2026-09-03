@@ -22,4 +22,31 @@ public class RowTest {
     public void test_clean_removes_a_zero_width_space_inside_a_value() {
         assertThat(Row.clean("AB\u200B123")).isEqualTo("AB123");
     }
+
+    @Test
+    public void test_clean_keeps_a_zero_width_non_joiner_that_spells_a_different_word() {
+        assertThat(Row.clean("\u0645\u06CC\u200C\u0631\u0648\u062F"))
+                .isEqualTo("\u0645\u06CC\u200C\u0631\u0648\u062F");
+    }
+
+    @Test
+    public void test_clean_keeps_the_zero_width_joiner_that_holds_an_emoji_together() {
+        assertThat(Row.clean("\uD83D\uDC69\u200D\uD83D\uDCBB"))
+                .isEqualTo("\uD83D\uDC69\u200D\uD83D\uDCBB");
+    }
+
+    @Test
+    public void test_clean_removes_the_direction_marks_a_spreadsheet_wraps_around_a_value() {
+        assertThat(Row.clean("\u200E12\u200F")).isEqualTo("12");
+    }
+
+    @Test
+    public void test_clean_removes_a_word_joiner() {
+        assertThat(Row.clean("AB\u2060123")).isEqualTo("AB123");
+    }
+
+    @Test
+    public void test_clean_removes_a_soft_hyphen() {
+        assertThat(Row.clean("AB\u00AD123")).isEqualTo("AB123");
+    }
 }
