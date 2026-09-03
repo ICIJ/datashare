@@ -35,7 +35,9 @@ public record ExtractionMapping(String id, String projectId, String userId, Stri
     public record EntityMapping(String type, List<String> keys, Map<String, PropertyMapping> properties) {
         public EntityMapping {
             Objects.requireNonNull(type, "type");
-            keys = List.copyOf(Objects.requireNonNull(keys, "keys"));
+            // Keys name header columns, so they get the cleaning headers get: a key pasted with a
+            // non-breaking space still matches the header it names.
+            keys = List.copyOf(Objects.requireNonNull(keys, "keys")).stream().map(Row::clean).toList();
             if (keys.isEmpty()) {
                 throw new InvalidEntityMapping(type);
             }
@@ -45,7 +47,10 @@ public record ExtractionMapping(String id, String projectId, String userId, Stri
 
     public record PropertyMapping(List<String> columns, String join, String literal, String entity, String format) {
         public PropertyMapping {
-            columns = List.copyOf(columns == null ? List.of() : columns);
+            // Column names get the cleaning headers get, and a literal gets the cleaning cells get:
+            // a mapping authored by copy-paste behaves like the file it was copied from.
+            columns = List.copyOf(columns == null ? List.of() : columns).stream().map(Row::clean).toList();
+            literal = literal == null ? null : Row.clean(literal);
             long sources = (columns.isEmpty() ? 0 : 1) + (literal == null ? 0 : 1) + (entity == null ? 0 : 1);
             if (sources != 1) {
                 throw new InvalidPropertyMapping(
