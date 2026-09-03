@@ -120,7 +120,8 @@ public class MappingExecutor {
             if (values.stream().anyMatch(String::isEmpty)) {
                 count(Skip.ENTITY_UNIDENTIFIED, alias, rowNumber);
             } else {
-                ids.put(alias, id(mapping.entities().get(alias).type(), values));
+                ids.put(alias, id(mapping.entities().get(alias).type(),
+                        mapping.entities().get(alias).keyLiteral(), values));
             }
         });
         return ids;
@@ -138,11 +139,12 @@ public class MappingExecutor {
 
     // The key values sorted among themselves, and no column name, no alias: two files naming the
     // same identifier differently still land on one entity. The price is that a swapped pair reads
-    // as the same pair. NUL-joined for the reason Statement.id is: a cell can hold any printable
-    // character.
-    private String id(String type, List<String> values) {
+    // as the same pair, and that two aliases of one type keyed on unrelated surrogate columns merge
+    // when their values coincide, which is what the mapping's key literal is for. NUL-joined for
+    // the reason Statement.id is: a cell can hold any printable character.
+    private String id(String type, String keyLiteral, List<String> values) {
         return Statement.DIGESTER.hash(String.join("\u0000", mapping.model(), type,
-                String.join("\u0000", values.stream().sorted().toList())));
+                keyLiteral == null ? "" : keyLiteral, String.join("\u0000", values.stream().sorted().toList())));
     }
 
     private List<Statement> statementsOf(String alias, Row row, Map<String, String> cells,
