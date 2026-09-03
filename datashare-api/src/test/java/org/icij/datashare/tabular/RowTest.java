@@ -3,6 +3,7 @@ package org.icij.datashare.tabular;
 import org.junit.Test;
 
 import java.util.List;
+import java.util.Map;
 
 import static org.fest.assertions.Assertions.assertThat;
 
@@ -48,5 +49,10 @@ public class RowTest {
     @Test
     public void test_clean_removes_a_soft_hyphen() {
         assertThat(Row.clean("AB\u00AD123")).isEqualTo("AB123");
+    }
+
+    @Test
+    public void test_a_surplus_cell_holding_only_a_non_breaking_space_carries_no_data() {
+        assertThat(Row.values(List.of("a"), List.of("1", "\u00A0"), 2L)).isEqualTo(Map.of("a", "1"));
     }
 }
