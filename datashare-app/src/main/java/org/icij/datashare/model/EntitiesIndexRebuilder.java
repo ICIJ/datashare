@@ -57,8 +57,9 @@ public class EntitiesIndexRebuilder {
                 while (true) {
                     try {
                         return entities.hasNext();
-                    } catch (IllegalArgumentException unrebuildable) {
-                        LOGGER.warn("skipping an entity of {} that cannot be rebuilt", indexName, unrebuildable);
+                    } catch (UnrebuildableEntity unrebuildable) {
+                        LOGGER.warn("skipping an entity of {} that cannot be rebuilt: {}", indexName,
+                                unrebuildable.getMessage());
                     }
                 }
             }

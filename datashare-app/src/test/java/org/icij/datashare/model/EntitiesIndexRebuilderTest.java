@@ -24,6 +24,7 @@ import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import static org.fest.assertions.Assertions.assertThat;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -92,6 +93,16 @@ public class EntitiesIndexRebuilderTest {
         assertThat(rebuilder.rebuild("prj")).isEqualTo(1);
 
         assertThat(search("{\"query\":{\"match_all\":{}}}")).contains("person-1");
+    }
+
+    // A group the store cannot fold is bad data and is skipped, but statements grouped wrongly are a
+    // fault in the read itself: skipping those would report a short index as a complete rebuild.
+    @Test
+    public void test_a_grouping_fault_stops_the_rebuild_rather_than_being_skipped() {
+        statements.misgrouped = 1;
+        statements.entities.add(entity("person-1", "Jane Doe"));
+
+        assertThrows(IllegalArgumentException.class, () -> rebuilder.rebuild("prj"));
     }
 
     @Test
@@ -211,6 +222,7 @@ public class EntitiesIndexRebuilderTest {
     private static class InMemoryStatements implements StatementRepository {
         private final List<ModelEntity> entities = new ArrayList<>();
         private int unrebuildable;
+        private int misgrouped;
 
         @Override
         public int save(String projectId, String runId, Stream<Statement> statements) {
@@ -220,9 +232,12 @@ public class EntitiesIndexRebuilderTest {
         @Override
         public <R> R entities(String projectId, Function<Stream<ModelEntity>, R> consumer) {
             Stream<ModelEntity> refused = Stream.of("refused").limit(unrebuildable).map(group -> {
-                throw new IllegalArgumentException("statements give the entity 2 types: [Company, Person]");
+                throw new UnrebuildableEntity(List.of("Company", "Person"));
             });
-            return consumer.apply(Stream.concat(refused, entities.stream()));
+            Stream<ModelEntity> faulty = Stream.of("misgrouped").limit(misgrouped).map(group -> {
+                throw new IllegalArgumentException("statements belong to 2 entities: [e-1, e-2]");
+            });
+            return consumer.apply(Stream.concat(Stream.concat(refused, faulty), entities.stream()));
         }
 
         @Override
