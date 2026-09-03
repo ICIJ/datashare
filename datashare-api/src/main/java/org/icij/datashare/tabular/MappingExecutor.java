@@ -8,6 +8,7 @@ import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -61,13 +62,14 @@ public class MappingExecutor {
         Map<String, String> cells = new HashMap<>();
         columns.forEach(column -> cells.put(column, cell(row, column)));
         Map<String, String> ids = identify(cells, row.number());
+        Set<String> stored = stored(ids, cells);
+        ids.keySet().stream().filter(alias -> !stored.contains(alias))
+                .forEach(alias -> count(Skip.ENTITY_EMPTY, alias, row.number()));
+        ids.keySet().retainAll(stored);
         Map<String, Statement> statements = new LinkedHashMap<>();
         for (String alias : ids.keySet()) {
-            List<Statement> candidate = statementsOf(alias, row, cells, ids);
-            if (candidate.isEmpty()) {
-                count(Skip.ENTITY_EMPTY, alias, row.number());
-            }
-            candidate.forEach(statement -> statements.putIfAbsent(statement.id(), statement));
+            statementsOf(alias, row, cells, ids)
+                    .forEach(statement -> statements.putIfAbsent(statement.id(), statement));
         }
         return List.copyOf(statements.values());
     }
@@ -175,6 +177,31 @@ public class MappingExecutor {
         String value = value(cell, format, provenance);
         Statement statement = Statement.of(mapping.model(), entityId, type, property, value, provenance);
         into.add(value.equals(cell) ? statement : statement.withOriginalValue(cell));
+    }
+
+    // An entity produces a statement when a literal or a filled cell fills one of its properties, or
+    // when it points at an entity that does: an edge holding nothing but its two endpoints is stored
+    // on their strength. An entity that stores nothing sits in no index, so an edge naming its id
+    // would record an endpoint that exists nowhere, and dropping that edge can in turn empty the
+    // entity carrying it, which is why this settles rather than deciding in one pass.
+    private Set<String> stored(Map<String, String> ids, Map<String, String> cells) {
+        Set<String> stored = new HashSet<>();
+        for (boolean growing = true; growing; ) {
+            growing = false;
+            for (String alias : ids.keySet()) {
+                if (!stored.contains(alias) && fills(alias, cells, stored)) {
+                    stored.add(alias);
+                    growing = true;
+                }
+            }
+        }
+        return stored;
+    }
+
+    private boolean fills(String alias, Map<String, String> cells, Set<String> stored) {
+        return mapping.entities().get(alias).properties().values().stream().anyMatch(mapped ->
+                mapped.literal() != null || stored.contains(mapped.entity())
+                        || mapped.columns().stream().anyMatch(column -> !cells.get(column).isEmpty()));
     }
 
     // Whatever the pattern cannot read is left exactly as it was rather than dropped or rewritten,
