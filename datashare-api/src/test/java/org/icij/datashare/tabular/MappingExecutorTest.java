@@ -412,7 +412,28 @@ public class MappingExecutorTest {
         assertThat(executor.skipped().get(ENTITY_UNIDENTIFIED)).isEqualTo(1L);
     }
 
+    @Test
+    public void test_a_reference_to_an_entity_that_stored_nothing_is_dropped() {
+        MappingExecutor executor = employment();
 
+        List<Statement> statements = executor.statements(row(Map.of("passport", "AB123",
+                "full_name", "Jane Doe", "siren", "552100554", "company", "")));
+
+        assertThat(statements.stream().map(Statement::property).sorted().toList())
+                .isEqualTo(List.of("employee", "name"));
+        assertThat(executor.skipped().get(ENTITY_EMPTY)).isEqualTo(1L);
+    }
+
+    @Test
+    public void test_an_edge_that_loses_every_endpoint_is_dropped_too() {
+        MappingExecutor executor = employment();
+
+        List<Statement> statements = executor.statements(row(Map.of("passport", "AB123",
+                "full_name", "", "siren", "552100554", "company", "")));
+
+        assertThat(statements).isEmpty();
+        assertThat(executor.skipped().get(ENTITY_EMPTY)).isEqualTo(3L);
+    }
 
     @Test
     public void test_a_formatted_column_is_stored_as_iso_with_the_input_kept() {
