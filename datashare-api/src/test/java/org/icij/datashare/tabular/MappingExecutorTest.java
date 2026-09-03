@@ -46,6 +46,10 @@ public class MappingExecutorTest {
         return new ExtractionMapping.PropertyMapping(columns, separator, null, null, null);
     }
 
+    private static ExtractionMapping.PropertyMapping formatted(String name, String pattern) {
+        return new ExtractionMapping.PropertyMapping(List.of(name), null, null, null, pattern);
+    }
+
     private static Row row(Map<String, String> values) {
         return new Row(7L, values);
     }
@@ -123,6 +127,7 @@ public class MappingExecutorTest {
         assertThat(one).isEqualTo(two);
     }
 
+
     @Test
     public void test_a_key_column_declared_twice_identifies_the_same_entity_as_once() {
         String twice = person(List.of("passport", "passport"), Map.of("name", column("full_name")))
@@ -142,6 +147,8 @@ public class MappingExecutorTest {
 
         assertThat(one).isEqualTo(two);
     }
+
+
 
 
 
@@ -312,12 +319,154 @@ public class MappingExecutorTest {
     }
 
 
+    @Test
+    public void test_a_formatted_column_is_stored_as_iso_with_the_input_kept() {
+        Statement statement = of(person(List.of("passport"),
+                Map.of("name", column("full_name"), "birthDate", formatted("born", "dd/MM/yyyy")))
+                .statements(row(Map.of("passport", "AB123", "full_name", "Jane Doe",
+                        "born", "01/03/1970"))), "birthDate");
+
+        assertThat(statement.value()).isEqualTo("1970-03-01");
+        assertThat(statement.originalValue()).isEqualTo("01/03/1970");
+    }
+
+    @Test
+    public void test_a_value_that_does_not_parse_is_stored_as_it_was_read_and_counted() {
+        MappingExecutor executor = person(List.of("passport"),
+                Map.of("name", column("full_name"), "birthDate", formatted("born", "dd/MM/yyyy")));
+
+        Statement statement = of(executor.statements(row(Map.of("passport", "AB123",
+                "full_name", "Jane Doe", "born", "n/a"))), "birthDate");
+
+        assertThat(statement.value()).isEqualTo("n/a");
+        assertThat(statement.originalValue()).isNull();
+        assertThat(executor.skipped().get(CELL_UNREADABLE)).isEqualTo(1L);
+    }
+
+    @Test
+    public void test_a_day_the_month_does_not_have_is_kept_as_it_was_read() {
+        MappingExecutor executor = person(List.of("passport"),
+                Map.of("name", column("full_name"), "birthDate", formatted("born", "dd/MM/yyyy")));
+
+        Statement statement = of(executor.statements(row(Map.of("passport", "AB123",
+                "full_name", "Jane Doe", "born", "31/02/1970"))), "birthDate");
+
+        assertThat(statement.value()).isEqualTo("31/02/1970");
+        assertThat(statement.originalValue()).isNull();
+        assertThat(executor.skipped().get(CELL_UNREADABLE)).isEqualTo(1L);
+    }
+
+    @Test
+    public void test_a_pattern_carrying_a_time_keeps_the_time() {
+        Statement statement = of(person(List.of("passport"), Map.of("name", column("full_name"),
+                        "birthDate", formatted("born", "dd/MM/yyyy HH:mm")))
+                .statements(row(Map.of("passport", "AB123", "full_name", "Jane Doe",
+                        "born", "01/03/1970 14:30"))), "birthDate");
+
+        assertThat(statement.value()).isEqualTo("1970-03-01T14:30");
+        assertThat(statement.originalValue()).isEqualTo("01/03/1970 14:30");
+    }
+
+    @Test
+    public void test_a_year_only_pattern_is_read_rather_than_left_alone() {
+        MappingExecutor executor = person(List.of("passport"),
+                Map.of("name", column("full_name"), "birthDate", formatted("born", "yyyy")));
+
+        Statement statement = of(executor.statements(row(Map.of("passport", "AB123",
+                "full_name", "Jane Doe", "born", "1970"))), "birthDate");
+
+        assertThat(statement.value()).isEqualTo("1970");
+        assertThat(executor.skipped().get(CELL_UNREADABLE)).isEqualTo(0L);
+    }
+
+    @Test
+    public void test_a_year_and_month_pattern_is_read_rather_than_left_alone() {
+        MappingExecutor executor = person(List.of("passport"),
+                Map.of("name", column("full_name"), "birthDate", formatted("born", "MM/yyyy")));
+
+        Statement statement = of(executor.statements(row(Map.of("passport", "AB123",
+                "full_name", "Jane Doe", "born", "03/1970"))), "birthDate");
+
+        assertThat(statement.value()).isEqualTo("1970-03");
+        assertThat(statement.originalValue()).isEqualTo("03/1970");
+        assertThat(executor.skipped().get(CELL_UNREADABLE)).isEqualTo(0L);
+    }
+
+    @Test
+    public void test_a_zero_padded_cell_under_a_non_padded_pattern_still_converts() {
+        MappingExecutor executor = person(List.of("passport"),
+                Map.of("name", column("full_name"), "birthDate", formatted("born", "d/M/yyyy")));
+
+        Statement statement = of(executor.statements(row(Map.of("passport", "AB123",
+                "full_name", "Jane Doe", "born", "01/03/1970"))), "birthDate");
+
+        assertThat(statement.value()).isEqualTo("1970-03-01");
+        assertThat(executor.skipped().get(CELL_UNREADABLE)).isEqualTo(0L);
+    }
+
+    @Test
+    public void test_a_year_below_one_thousand_is_stored_padded_to_iso() {
+        Statement statement = of(person(List.of("passport"),
+                Map.of("name", column("full_name"), "birthDate", formatted("born", "yyyy")))
+                .statements(row(Map.of("passport", "AB123", "full_name", "Jane Doe",
+                        "born", "0070"))), "birthDate");
+
+        assertThat(statement.value()).isEqualTo("0070");
+    }
 
 
 
 
+    @Test
+    public void test_an_era_pattern_reads_a_bc_year_as_bc() {
+        Statement statement = of(person(List.of("passport"),
+                Map.of("name", column("full_name"), "birthDate", formatted("born", "G yyyy")))
+                .statements(row(Map.of("passport", "AB123", "full_name", "Jane Doe",
+                        "born", "BC 0044"))), "birthDate");
+
+        assertThat(statement.value()).isEqualTo("-0043");
+        assertThat(statement.originalValue()).isEqualTo("BC 0044");
+    }
+
+    @Test
+    public void test_a_bce_year_is_stored_in_the_iso_expanded_form() {
+        Statement statement = of(person(List.of("passport"),
+                Map.of("name", column("full_name"), "birthDate", formatted("born", "yyyy")))
+                .statements(row(Map.of("passport", "AB123", "full_name", "Jane Doe",
+                        "born", "-0070"))), "birthDate");
+
+        assertThat(statement.value()).isEqualTo("-0070");
+        assertThat(statement.originalValue()).isNull();
+    }
 
 
+    @Test
+    public void test_a_value_already_in_the_target_form_keeps_no_original() {
+        Statement statement = of(person(List.of("passport"), Map.of("name", column("full_name"),
+                        "birthDate", formatted("born", "yyyy-MM-dd")))
+                .statements(row(Map.of("passport", "AB123", "full_name", "Jane Doe",
+                        "born", "1970-03-01"))), "birthDate");
+
+        assertThat(statement.value()).isEqualTo("1970-03-01");
+        assertThat(statement.originalValue()).isNull();
+    }
+
+    @Test
+    public void test_a_text_pattern_parses_the_same_regardless_of_the_default_locale() {
+        Locale original = Locale.getDefault();
+        Locale.setDefault(Locale.FRANCE);
+        try {
+            Statement statement = of(person(List.of("passport"), Map.of("name", column("full_name"),
+                            "birthDate", formatted("born", "dd/MMM/yyyy")))
+                    .statements(row(Map.of("passport", "AB123", "full_name", "Jane Doe",
+                            "born", "01/Mar/1970"))), "birthDate");
+
+            assertThat(statement.value()).isEqualTo("1970-03-01");
+            assertThat(statement.originalValue()).isEqualTo("01/Mar/1970");
+        } finally {
+            Locale.setDefault(original);
+        }
+    }
 
 
 
@@ -331,6 +480,7 @@ public class MappingExecutorTest {
 
         assertThat(statement.value()).isEqualTo("fr");
     }
+
 
 
     @Test
