@@ -98,6 +98,17 @@ public final class Validators {
         };
     }
 
+    public static Role instanceOrDomainRole(String alias) {
+        if (alias == null || alias.isBlank()) {
+            throw new InvalidValueException("role", "role must be one of domain_admin|instance_admin");
+        }
+        return switch (alias.trim().toLowerCase(java.util.Locale.ROOT)) {
+            case "domain_admin" -> Role.DOMAIN_ADMIN;
+            case "instance_admin" -> Role.INSTANCE_ADMIN;
+            default -> throw new InvalidValueException("role", "role must be one of domain_admin|instance_admin");
+        };
+    }
+
     public static void allowFromMask(String value) {
         if (value == null || !Project.ALLOW_FROM_MASK_PATTERN.matcher(value).matches()) {
             throw new InvalidValueException("allowFromMask",
