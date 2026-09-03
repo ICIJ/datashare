@@ -7,7 +7,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.regex.Pattern;
 
 /**
  * One data row. {@code number} is the 1-based ordinal of the emitted row, not the row's position in
@@ -15,16 +14,38 @@ import java.util.regex.Pattern;
  * no number.
  */
 public record Row(long number, Map<String, String> values) {
-    private static final Pattern NON_BREAKING_SPACE = Pattern.compile("[\\u00A0\\u2007\\u202F]");
-    private static final Pattern INVISIBLE = Pattern.compile("[\\uFEFF\\u200B-\\u200D]");
-
     /** The whitespace rule headers and cells share: the space a spreadsheet writes as U+00A0 reads
      *  as a space, a zero-width character or stray BOM is removed (it is not whitespace to strip(),
      *  yet it would silently split one key value into two entity ids), and surrounding whitespace
-     *  is not content. */
+     *  is not content. Runs on every cell of every row, so a cell holding none of it, which is the
+     *  overwhelming case, walks away with the string it came in with. */
     static String clean(String name) {
-        String visible = INVISIBLE.matcher(name).replaceAll("");
-        return NON_BREAKING_SPACE.matcher(visible).replaceAll(" ").strip();
+        for (int index = 0; index < name.length(); index++) {
+            char letter = name.charAt(index);
+            if (invisible(letter) || nonBreakingSpace(letter)) {
+                return rewritten(name);
+            }
+        }
+        return name.strip();
+    }
+
+    private static String rewritten(String name) {
+        StringBuilder cleaned = new StringBuilder(name.length());
+        for (int index = 0; index < name.length(); index++) {
+            char letter = name.charAt(index);
+            if (!invisible(letter)) {
+                cleaned.append(nonBreakingSpace(letter) ? ' ' : letter);
+            }
+        }
+        return cleaned.toString().strip();
+    }
+
+    private static boolean invisible(char letter) {
+        return letter == '\uFEFF' || letter >= '\u200B' && letter <= '\u200D';
+    }
+
+    private static boolean nonBreakingSpace(char letter) {
+        return letter == '\u00A0' || letter == '\u2007' || letter == '\u202F';
     }
 
     /**
