@@ -57,7 +57,23 @@ public class ExtractionMappingTest {
         assertThat(violations).contains("literal holding a NUL");
     }
 
+    @Test
+    public void test_validate_refuses_a_key_literal_holding_a_nul() {
+        ExtractionMapping.EntityMapping member = new ExtractionMapping.EntityMapping("Person", "sup\u0000plier",
+                List.of("id"), Map.of("name", column("full_name")));
 
+        assertThat(mapping("ftm", Map.of("member", member)).validate().toString())
+                .contains("key literal holding a NUL");
+    }
+
+    @Test
+    public void test_validate_refuses_a_key_literal_on_a_keyless_entity() {
+        ExtractionMapping.EntityMapping member = new ExtractionMapping.EntityMapping("Person", "supplier",
+                List.of(), Map.of("name", column("full_name")));
+
+        assertThat(mapping("ftm", Map.of("member", member)).validate().toString())
+                .contains("key literal but no key");
+    }
 
     @Test
     public void test_unknown_model_is_rejected_at_construction() {
@@ -135,6 +151,11 @@ public class ExtractionMappingTest {
         assertThrows(EmptyExtractionMapping.class, () -> mapping("ftm", Map.of()));
     }
 
+    @Test
+    public void test_an_entity_without_keys_is_valid() {
+        assertThat(mapping("ftm", Map.of("member", new ExtractionMapping.EntityMapping("Person",
+                List.of(), Map.of("name", column("full_name"))))).validate()).isEmpty();
+    }
 
     @Test
     public void test_validate_reports_a_required_property_the_mapping_never_fills() {
@@ -214,10 +235,5 @@ public class ExtractionMappingTest {
     @Test
     public void test_entity_reference_needs_no_column() {
         assertThat(reference("member").entity()).isEqualTo("member");
-    }
-    @Test
-    public void test_an_entity_without_keys_is_valid() {
-        assertThat(mapping("ftm", Map.of("member", new ExtractionMapping.EntityMapping("Person",
-                List.of(), Map.of("name", column("full_name"))))).validate()).isEmpty();
     }
 }

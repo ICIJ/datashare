@@ -32,7 +32,12 @@ public record ExtractionMapping(String id, String projectId, String userId, Stri
         TargetModelRegistry.get(Objects.requireNonNull(model, "model"));
     }
 
-    public record EntityMapping(String type, List<String> keys, Map<String, PropertyMapping> properties) {
+    public record EntityMapping(String type, String keyLiteral, List<String> keys,
+                                Map<String, PropertyMapping> properties) {
+        public EntityMapping(String type, List<String> keys, Map<String, PropertyMapping> properties) {
+            this(type, null, keys, properties);
+        }
+
         public EntityMapping {
             Objects.requireNonNull(type, "type");
             // Keys name header columns, so they get the cleaning headers get: a key pasted with a
@@ -95,6 +100,14 @@ public record ExtractionMapping(String id, String projectId, String userId, Stri
             if (entity.keys().stream().anyMatch(String::isEmpty)) {
                 violations.add(new TargetModel.Violation("entity '" + alias
                         + "' has a blank key column name, which no header can match"));
+            }
+            if (entity.keyLiteral() != null && holdsNul(entity.keyLiteral())) {
+                violations.add(new TargetModel.Violation("entity '" + alias
+                        + "' has a key literal holding a NUL character"));
+            }
+            if (entity.keyLiteral() != null && entity.keys().isEmpty()) {
+                violations.add(new TargetModel.Violation("entity '" + alias
+                        + "' has a key literal but no key, and a row-scoped id carries no literal"));
             }
             for (String property : new TreeSet<>(entity.properties().keySet())) {
                 reference(target, alias, entity, property).ifPresent(violations::add);

@@ -26,6 +26,11 @@ public class MappingExecutorTest {
         return new ExtractionMapping.EntityMapping(type, keys, properties);
     }
 
+    private static ExtractionMapping.EntityMapping keyed(String type, String keyLiteral, List<String> keys,
+                                                         Map<String, ExtractionMapping.PropertyMapping> properties) {
+        return new ExtractionMapping.EntityMapping(type, keyLiteral, keys, properties);
+    }
+
     private static ExtractionMapping.PropertyMapping column(String name) {
         return new ExtractionMapping.PropertyMapping(List.of(name), null, null, null, null);
     }
@@ -127,6 +132,29 @@ public class MappingExecutorTest {
         assertThat(one).isEqualTo(two);
     }
 
+    @Test
+    public void test_two_aliases_of_one_type_keyed_alike_are_one_entity_without_a_key_literal() {
+        List<Statement> statements = new MappingExecutor(mapping(Map.of(
+                "supplier", entity("Company", List.of("supplier_ref"), Map.of("name", column("supplier_name"))),
+                "customer", entity("Company", List.of("customer_ref"), Map.of("name", column("customer_name"))))))
+                .statements(row(Map.of("supplier_ref", "42", "customer_ref", "42",
+                        "supplier_name", "Acme", "customer_name", "Globex")));
+
+        assertThat(statements.get(0).entityId()).isEqualTo(statements.get(1).entityId());
+    }
+
+    @Test
+    public void test_a_key_literal_tells_two_aliases_of_one_type_keyed_alike_apart() {
+        List<Statement> statements = new MappingExecutor(mapping(Map.of(
+                "supplier", keyed("Company", "supplier", List.of("supplier_ref"),
+                        Map.of("name", column("supplier_name"))),
+                "customer", keyed("Company", "customer", List.of("customer_ref"),
+                        Map.of("name", column("customer_name"))))))
+                .statements(row(Map.of("supplier_ref", "42", "customer_ref", "42",
+                        "supplier_name", "Acme", "customer_name", "Globex")));
+
+        assertThat(statements.get(0).entityId()).isNotEqualTo(statements.get(1).entityId());
+    }
 
     @Test
     public void test_a_key_column_declared_twice_identifies_the_same_entity_as_once() {
@@ -146,6 +174,17 @@ public class MappingExecutorTest {
                 .statements(row(Map.of("passport", "AB123", "full_name", "Jane Doe"))).get(0).entityId();
 
         assertThat(one).isEqualTo(two);
+    }
+
+    @Test
+    public void test_the_entity_id_recipe_is_pinned_to_a_literal_hash() {
+        // Changing this value orphans every statement already stored under the id it replaces.
+        String expected = "ff7fe1f88ad6b4c43b681d67aa06aa0de23f2144fe88561aab83b29c419eb9ade49223d296e8c425a54e3fb42b98e28a";
+
+        String actual = person(List.of("passport"), Map.of("name", column("full_name")))
+                .statements(row(Map.of("passport", "AB123", "full_name", "Jane Doe"))).get(0).entityId();
+
+        assertThat(actual).isEqualTo(expected);
     }
 
     @Test
@@ -372,6 +411,7 @@ public class MappingExecutorTest {
         assertThat(of(statements, "employee").entityType()).isEqualTo("Employment");
         assertThat(executor.skipped().get(ENTITY_UNIDENTIFIED)).isEqualTo(1L);
     }
+
 
 
     @Test
