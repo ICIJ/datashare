@@ -72,11 +72,11 @@ public class MappingExecutor {
         return List.copyOf(statements.values());
     }
 
-    // Key columns are sorted and de-duplicated once here rather than per row, because the id a row
-    // lands on depends on that order and a Map.copyOf does not carry one. Formats compile without a
-    // guard: validate() already refused every pattern this mapping could not run.
+    // Key columns are de-duplicated once here rather than per row, because a column named twice
+    // would otherwise hash its cell twice. Formats compile without a guard: validate() already
+    // refused every pattern this mapping could not run.
     private void declare(String alias, ExtractionMapping.EntityMapping entity) {
-        keyColumns.put(alias, entity.keys().stream().distinct().sorted().toList());
+        keyColumns.put(alias, entity.keys().stream().distinct().toList());
         columns.addAll(entity.keys());
         entity.properties().values().forEach(property -> {
             columns.addAll(property.columns());
@@ -130,13 +130,13 @@ public class MappingExecutor {
                 sheet == null ? "" : sheet, String.valueOf(rowNumber)));
     }
 
-    // The key values in the order their column names sort, never reordered among themselves: two
-    // mappings declaring the same keys in another order still land on one entity, while two people
-    // whose given and family names are each other's do not. No column name and no alias, so two
-    // mappings that call the same identifier differently agree. NUL-joined for the reason
-    // Statement.id is: a cell can hold any printable character.
+    // The key values sorted among themselves, and no column name, no alias: two files naming the
+    // same identifier differently still land on one entity. The price is that a swapped pair reads
+    // as the same pair. NUL-joined for the reason Statement.id is: a cell can hold any printable
+    // character.
     private String id(String type, List<String> values) {
-        return Statement.DIGESTER.hash(String.join("\u0000", mapping.model(), type, String.join("\u0000", values)));
+        return Statement.DIGESTER.hash(String.join("\u0000", mapping.model(), type,
+                String.join("\u0000", values.stream().sorted().toList())));
     }
 
     private List<Statement> statementsOf(String alias, Row row, Map<String, String> cells,

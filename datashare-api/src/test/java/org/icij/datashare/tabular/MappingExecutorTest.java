@@ -102,7 +102,21 @@ public class MappingExecutorTest {
     }
 
     @Test
-    public void test_two_key_cells_holding_each_other_s_value_are_two_entities() {
+    public void test_two_mappings_naming_the_same_key_columns_differently_agree() {
+        String one = person(List.of("family", "given"), Map.of("name", column("full_name")))
+                .statements(row(Map.of("family", "Dupont", "given", "Pierre", "full_name", "Pierre Dupont")))
+                .get(0).entityId();
+        String two = person(List.of("first", "last"), Map.of("name", column("full_name")))
+                .statements(row(Map.of("first", "Pierre", "last", "Dupont", "full_name", "Pierre Dupont")))
+                .get(0).entityId();
+
+        assertThat(one).isEqualTo(two);
+    }
+
+    @Test
+    public void test_two_key_cells_holding_each_other_s_value_are_one_entity() {
+        // The price of agreeing across files: nothing in the id says which column a value came
+        // from, so a swapped pair reads as the same pair.
         String one = person(List.of("given", "family"), Map.of("name", column("full_name")))
                 .statements(row(Map.of("given", "Jean", "family", "Pierre", "full_name", "Jean Pierre")))
                 .get(0).entityId();
@@ -110,7 +124,7 @@ public class MappingExecutorTest {
                 .statements(row(Map.of("given", "Pierre", "family", "Jean", "full_name", "Pierre Jean")))
                 .get(0).entityId();
 
-        assertThat(one).isNotEqualTo(two);
+        assertThat(one).isEqualTo(two);
     }
 
     @Test
