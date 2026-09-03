@@ -46,10 +46,15 @@ public class MappingExecutor {
     private final Set<String> absent = new TreeSet<>();
     private boolean checked;
 
-    public MappingExecutor(ExtractionMapping mapping) {
+    /** {@code sheet} is the section of the document these rows come from, as the reader resolved it:
+     *  a workbook's sheet name, the Tika fallback's table index, or empty for a format with one
+     *  table. It is taken from the caller rather than read off the mapping's options, because the
+     *  options hold what was asked for and the id needs what was read: "1" and "Sheet1" name one
+     *  sheet and must hash alike, while two tables of one document must not. */
+    public MappingExecutor(ExtractionMapping mapping, String sheet) {
         this.mapping = mapping;
         this.documentId = mapping.documentId();
-        this.sheet = mapping.options().sheet();
+        this.sheet = sheet;
         mapping.requireValid();
         mapping.entities().forEach(this::declare);
         Stream.of(Skip.values()).forEach(reason -> skipped.put(reason, 0L));

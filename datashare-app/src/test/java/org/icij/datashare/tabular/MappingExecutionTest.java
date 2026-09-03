@@ -45,7 +45,7 @@ public class MappingExecutionTest {
 
     @Test
     public void test_a_csv_and_a_mapping_produce_two_entities_and_the_relationship_between_them() throws Exception {
-        MappingExecutor executor = new MappingExecutor(MAPPING);
+        MappingExecutor executor = new MappingExecutor(MAPPING, "");
         List<Statement> statements;
         try (InputStream source = new ByteArrayInputStream(CSV.getBytes(UTF_8));
              Stream<Row> rows = new DelimitedRowSource().rows(source, RowSourceOptions.defaults())) {

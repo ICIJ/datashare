@@ -61,7 +61,7 @@ public class MappingExecutorTest {
 
     private static MappingExecutor person(List<String> keys,
                                           Map<String, ExtractionMapping.PropertyMapping> properties) {
-        return new MappingExecutor(mapping(Map.of("member", entity("Person", keys, properties))));
+        return new MappingExecutor(mapping(Map.of("member", entity("Person", keys, properties))), "");
     }
 
     private static MappingExecutor employment() {
@@ -69,7 +69,7 @@ public class MappingExecutorTest {
                 "member", entity("Person", List.of("passport"), Map.of("name", column("full_name"))),
                 "employer", entity("Company", List.of("siren"), Map.of("name", column("company"))),
                 "job", entity("Employment", List.of("passport"), Map.of(
-                        "employee", reference("member"), "employer", reference("employer"))))));
+                        "employee", reference("member"), "employer", reference("employer"))))), "");
     }
 
     private static Statement of(List<Statement> statements, String property) {
@@ -136,7 +136,7 @@ public class MappingExecutorTest {
     public void test_two_aliases_of_one_type_keyed_alike_are_one_entity_without_a_key_literal() {
         List<Statement> statements = new MappingExecutor(mapping(Map.of(
                 "supplier", entity("Company", List.of("supplier_ref"), Map.of("name", column("supplier_name"))),
-                "customer", entity("Company", List.of("customer_ref"), Map.of("name", column("customer_name"))))))
+                "customer", entity("Company", List.of("customer_ref"), Map.of("name", column("customer_name"))))), "")
                 .statements(row(Map.of("supplier_ref", "42", "customer_ref", "42",
                         "supplier_name", "Acme", "customer_name", "Globex")));
 
@@ -149,7 +149,7 @@ public class MappingExecutorTest {
                 "supplier", keyed("Company", "supplier", List.of("supplier_ref"),
                         Map.of("name", column("supplier_name"))),
                 "customer", keyed("Company", "customer", List.of("customer_ref"),
-                        Map.of("name", column("customer_name"))))))
+                        Map.of("name", column("customer_name"))))), "")
                 .statements(row(Map.of("supplier_ref", "42", "customer_ref", "42",
                         "supplier_name", "Acme", "customer_name", "Globex")));
 
@@ -174,6 +174,20 @@ public class MappingExecutorTest {
                 .statements(row(Map.of("passport", "AB123", "full_name", "Jane Doe"))).get(0).entityId();
 
         assertThat(one).isEqualTo(two);
+    }
+
+    @Test
+    public void test_two_tables_of_one_document_do_not_share_an_entity() {
+        ExtractionMapping keyless = new ExtractionMapping("map-1", "prj", "jdoe", "staff", "ftm", "doc-1",
+                RowSourceOptions.defaults(), Map.of("member",
+                entity("Person", List.of(), Map.of("name", column("full_name")))));
+
+        String first = new MappingExecutor(keyless, "1")
+                .statements(row(Map.of("full_name", "Jane Doe"))).get(0).entityId();
+        String second = new MappingExecutor(keyless, "2")
+                .statements(row(Map.of("full_name", "Jane Doe"))).get(0).entityId();
+
+        assertThat(first).isNotEqualTo(second);
     }
 
     @Test
@@ -214,7 +228,7 @@ public class MappingExecutorTest {
     public void test_two_keyless_entities_of_one_type_are_two_entities() {
         List<Statement> statements = new MappingExecutor(mapping(Map.of(
                 "buyer", entity("Person", List.of(), Map.of("name", column("buyer_name"))),
-                "seller", entity("Person", List.of(), Map.of("name", column("seller_name"))))))
+                "seller", entity("Person", List.of(), Map.of("name", column("seller_name"))))), "")
                 .statements(row(Map.of("buyer_name", "Jane Doe", "seller_name", "John Roe")));
 
         assertThat(statements).hasSize(2);
@@ -331,7 +345,7 @@ public class MappingExecutorTest {
     public void test_two_aliases_of_one_entity_do_not_repeat_a_statement() {
         List<Statement> statements = new MappingExecutor(mapping(Map.of(
                 "buyer", entity("Person", List.of("passport"), Map.of("name", column("full_name"))),
-                "seller", entity("Person", List.of("passport"), Map.of("name", column("full_name"))))))
+                "seller", entity("Person", List.of("passport"), Map.of("name", column("full_name"))))), "")
                 .statements(row(Map.of("passport", "AB123", "full_name", "Jane Doe")));
 
         assertThat(statements).hasSize(1);
@@ -386,7 +400,7 @@ public class MappingExecutorTest {
                 "member", entity("Person", List.of("passport"), Map.of("name", column("full_name"))),
                 "employer", entity("Company", List.of("siren"), Map.of("name", column("company"))),
                 "job", entity("Employment", List.of("passport", "siren"), Map.of(
-                        "employee", reference("member"), "employer", reference("employer"))))))
+                        "employee", reference("member"), "employer", reference("employer"))))), "")
                 .statements(row(Map.of("passport", "AB123", "full_name", "Jane Doe",
                         "siren", "552100554", "company", "ACME")));
 
@@ -645,7 +659,7 @@ public class MappingExecutorTest {
                 Map.of("member", entity("Person", List.of("passport"), Map.of("name", column("full_name")))));
 
         InvalidExtractionMapping thrown =
-                assertThrows(InvalidExtractionMapping.class, () -> new MappingExecutor(nulDocument));
+                assertThrows(InvalidExtractionMapping.class, () -> new MappingExecutor(nulDocument, ""));
         assertThat(thrown.violations.toString()).contains("document id");
     }
 
@@ -714,7 +728,7 @@ public class MappingExecutorTest {
     public void test_an_entity_that_maps_no_property_fails_at_construction() {
         InvalidExtractionMapping thrown = assertThrows(InvalidExtractionMapping.class,
                 () -> new MappingExecutor(mapping(Map.of(
-                        "home", entity("Address", List.of("street"), Map.of())))));
+                        "home", entity("Address", List.of("street"), Map.of()))), ""));
 
         assertThat(thrown.violations.toString()).contains("maps no property");
     }
@@ -725,7 +739,7 @@ public class MappingExecutorTest {
                 new RowSourceOptions(null, null, null, null, "\u0000Sheet", null),
                 Map.of("member", entity("Person", List.of("passport"), Map.of("name", column("full_name")))));
 
-        assertThrows(IllegalArgumentException.class, () -> new MappingExecutor(mapping));
+        assertThrows(IllegalArgumentException.class, () -> new MappingExecutor(mapping, ""));
     }
 
     @Test
@@ -734,7 +748,7 @@ public class MappingExecutorTest {
                 entity("Person", List.of("passport"), Map.of("hoofSize", column("hooves")))));
 
         InvalidExtractionMapping thrown =
-                assertThrows(InvalidExtractionMapping.class, () -> new MappingExecutor(stale));
+                assertThrows(InvalidExtractionMapping.class, () -> new MappingExecutor(stale, ""));
         assertThat(thrown.violations.toString()).contains("hoofSize");
     }
 
