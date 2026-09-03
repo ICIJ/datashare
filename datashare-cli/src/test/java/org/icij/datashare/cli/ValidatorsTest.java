@@ -137,6 +137,30 @@ public class ValidatorsTest {
     }
 
     @Test
+    public void test_instanceOrDomainRole_accepts_valid_aliases() {
+        assertThat(Validators.instanceOrDomainRole("domain_admin")).isEqualTo(Role.DOMAIN_ADMIN);
+        assertThat(Validators.instanceOrDomainRole("instance_admin")).isEqualTo(Role.INSTANCE_ADMIN);
+    }
+
+    @Test
+    public void test_instanceOrDomainRole_rejects_unknown() {
+        try {
+            Validators.instanceOrDomainRole("admin");
+            fail("expected InvalidValueException");
+        } catch (Validators.InvalidValueException e) {
+            assertThat(e.getMessage()).contains("domain_admin|instance_admin");
+        }
+    }
+
+    @Test
+    public void test_instanceOrDomainRole_rejects_null_or_blank() {
+        try { Validators.instanceOrDomainRole(null); fail(); }
+        catch (Validators.InvalidValueException e) { /* expected */ }
+        try { Validators.instanceOrDomainRole("  "); fail(); }
+        catch (Validators.InvalidValueException e) { /* expected */ }
+    }
+
+    @Test
     public void test_allow_from_mask_accepts_valid() {
         Validators.allowFromMask("*.*.*.*");
         Validators.allowFromMask("10.0.0.0");
