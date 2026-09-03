@@ -1,12 +1,8 @@
 package org.icij.datashare.model;
 
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
-import java.util.Set;
-import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.stream.Stream;
 
@@ -42,50 +38,34 @@ public interface TargetModel {
      */
     default List<Violation> validate(ModelEntity entity) {
         List<Violation> violations = new ArrayList<>();
-        SortedSet<String> names = new TreeSet<>(entity.types());
-        if (names.isEmpty()) {
-            violations.add(new Violation("entity '" + entity.id() + "' has no type"));
+        Optional<EntityType> found = type(entity.type());
+        if (found.isEmpty()) {
+            violations.add(new Violation("unknown type '" + entity.type() + "' in model '" + name() + "'"));
+            return violations;
         }
-        List<EntityType> types = new ArrayList<>();
-        for (String name : names) {
-            Optional<EntityType> found = type(name);
-            if (found.isEmpty()) {
-                violations.add(new Violation("unknown type '" + name + "' in model '" + name() + "'"));
-            } else {
-                types.add(found.get());
+        EntityType type = found.get();
+        if (type.isAbstract()) {
+            violations.add(new Violation("type '" + type.name() + "' is abstract and cannot be instantiated"));
+        }
+        for (String property : new TreeSet<>(entity.properties().keySet())) {
+            Property declared = type.properties().get(property);
+            if (declared == null) {
+                violations.add(new Violation("no property '" + property + "' on '" + type.name() + "'"));
+            } else if (declared.stub()) {
+                violations.add(new Violation("property '" + property + "' is a stub: it is inferred from the '"
+                        + declared.range() + "' relation rather than written"));
             }
         }
-        if (!types.isEmpty() && types.stream().allMatch(EntityType::isAbstract)) {
-            violations.add(new Violation("every type in " + types.stream().map(EntityType::name).toList()
-                    + " is abstract and cannot be instantiated"));
-        }
-        if (!types.isEmpty()) {
-            for (String property : new TreeSet<>(entity.properties().keySet())) {
-                List<Property> declarations = types.stream()
-                        .map(type -> type.properties().get(property))
-                        .filter(Objects::nonNull)
-                        .toList();
-                if (declarations.isEmpty()) {
-                    violations.add(new Violation("no property '" + property + "' on " + names));
-                } else if (declarations.stream().allMatch(Property::stub)) {
-                    violations.add(new Violation("property '" + property + "' is a stub: it is inferred from the '"
-                            + declarations.get(0).range() + "' relation rather than written"));
-                }
-            }
-        }
-        Set<String> reported = new HashSet<>();
-        for (EntityType type : types) {
-            type.required().stream()
-                    .filter(required -> isBlank(entity, required) && reported.add(required))
-                    .forEach(required ->
-                            violations.add(new Violation("type '" + type.name() + "' requires '" + required + "'")));
-            if (type.edge() != null) {
-                Stream.of(type.edge().source(), type.edge().target())
-                        .filter(end -> !type.required().contains(end))
-                        .filter(end -> isBlank(entity, end))
-                        .forEach(end -> violations.add(
-                                new Violation("edge type '" + type.name() + "' needs '" + end + "'")));
-            }
+        type.required().stream()
+                .filter(required -> isBlank(entity, required))
+                .forEach(required ->
+                        violations.add(new Violation("type '" + type.name() + "' requires '" + required + "'")));
+        if (type.edge() != null) {
+            Stream.of(type.edge().source(), type.edge().target())
+                    .filter(end -> !type.required().contains(end))
+                    .filter(end -> isBlank(entity, end))
+                    .forEach(end -> violations.add(
+                            new Violation("edge type '" + type.name() + "' needs '" + end + "'")));
         }
         return violations;
     }
