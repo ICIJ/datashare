@@ -56,7 +56,7 @@ public record ModelEntity(String model, String id, String type, Set<String> mode
             throw new IllegalArgumentException("statements belong to " + models.size() + " models: " + models);
         }
         if (types.size() > 1) {
-            throw new UnrebuildableEntity(types);
+            throw new IllegalArgumentException("statements give the entity " + types.size() + " types: " + types);
         }
         Map<String, List<String>> properties = new LinkedHashMap<>();
         values.forEach((property, distinct) -> properties.put(property, List.copyOf(distinct)));
