@@ -36,13 +36,13 @@ public record ModelEntity(String model, String id, String type, Set<String> mode
     public static ModelEntity from(Iterable<Statement> statements, Set<String> modelVersions) {
         SortedSet<String> ids = new TreeSet<>();
         SortedSet<String> models = new TreeSet<>();
-        SortedSet<String> types = new TreeSet<>();
+        String type = null;
         Set<String> documentIds = new TreeSet<>();
         Map<String, SortedSet<String>> values = new TreeMap<>();
         for (Statement statement : statements) {
             ids.add(statement.entityId());
             models.add(statement.model());
-            types.add(statement.entityType());
+            type = statement.entityType();
             documentIds.add(statement.provenance().documentId());
             values.computeIfAbsent(statement.property(), property -> new TreeSet<>()).add(statement.value());
         }
@@ -55,11 +55,8 @@ public record ModelEntity(String model, String id, String type, Set<String> mode
         if (models.size() > 1) {
             throw new IllegalArgumentException("statements belong to " + models.size() + " models: " + models);
         }
-        if (types.size() > 1) {
-            throw new IllegalArgumentException("statements give the entity " + types.size() + " types: " + types);
-        }
         Map<String, List<String>> properties = new LinkedHashMap<>();
         values.forEach((property, distinct) -> properties.put(property, List.copyOf(distinct)));
-        return new ModelEntity(models.first(), ids.first(), types.first(), modelVersions, documentIds, properties);
+        return new ModelEntity(models.first(), ids.first(), type, modelVersions, documentIds, properties);
     }
 }

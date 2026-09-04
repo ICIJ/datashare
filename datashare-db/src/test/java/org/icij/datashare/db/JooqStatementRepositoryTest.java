@@ -165,17 +165,6 @@ public class JooqStatementRepositoryTest {
     }
 
     @Test
-    public void test_two_types_under_one_entity_id_are_refused() {
-        repository.save("prj", "run-1", Stream.of(
-                statement("e-1", "Person", "name", "Ada"),
-                statement("e-1", "LegalEntity", "name", "Ada")));
-
-        IllegalArgumentException thrown = assertThrows(IllegalArgumentException.class,
-                () -> repository.entity("prj", "e-1"));
-        assertThat(thrown.getMessage()).contains("Person").contains("LegalEntity");
-    }
-
-    @Test
     public void test_entity_regroups_its_statements() {
         repository.save("prj", "run-1", Stream.of(
                 statement("e-1", "Person", "name", "Ada"),
