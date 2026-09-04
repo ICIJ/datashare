@@ -16,7 +16,7 @@ public class FtmTargetModelSerializationTest {
 
     @Test
     public void test_round_trips_a_person() {
-        ModelEntity person = new ModelEntity("ftm", "person-1", Set.of("Person"), Set.of(), Set.of(),
+        ModelEntity person = new ModelEntity("ftm", "person-1", "Person", Set.of(), Set.of(),
                 Map.of("name", List.of("Jane Doe", "J. Doe"), "birthDate", List.of("1980-04-02")));
 
         assertThat(model.parse(model.serialize(person))).isEqualTo(person);
@@ -24,7 +24,7 @@ public class FtmTargetModelSerializationTest {
 
     @Test
     public void test_serializes_the_ftm_entity_shape() {
-        String json = model.serialize(new ModelEntity("ftm", "person-1", Set.of("Person"), Set.of(), Set.of(),
+        String json = model.serialize(new ModelEntity("ftm", "person-1", "Person", Set.of(), Set.of(),
                 Map.of("name", List.of("Jane Doe"))));
 
         assertThat(json).contains("\"id\":\"person-1\"");
@@ -33,28 +33,9 @@ public class FtmTargetModelSerializationTest {
     }
 
     @Test
-    public void test_collapses_a_multi_type_entity_to_its_most_specific_type() {
-        String json = model.serialize(new ModelEntity("ftm", "person-1", Set.of("Person", "LegalEntity", "Thing"), Set.of(), Set.of(),
-                Map.of("name", List.of("Jane Doe"))));
-
-        assertThat(json).contains("\"schema\":\"Person\"");
-    }
-
-    @Test
-    public void test_types_with_no_common_schema_are_a_violation() {
-        ModelEntity confused = new ModelEntity("ftm", "x-1", Set.of("Person", "Company"), Set.of(), Set.of(),
-                Map.of("name", List.of("Jane Doe")));
-
-        List<TargetModel.Violation> violations = model.validate(confused);
-
-        assertThat(violations).hasSize(1);
-        assertThat(violations.get(0).message()).contains("no common schema");
-    }
-
-    @Test
-    public void test_serializing_types_with_no_common_schema_fails() {
-        assertThrowsContaining(() -> model.serialize(new ModelEntity("ftm", "x-1", Set.of("Person", "Company"), Set.of(), Set.of(),
-                Map.of("name", List.of("Jane Doe")))), "Person", "Company");
+    public void test_serializing_a_type_the_model_does_not_declare_fails() {
+        assertThrowsContaining(() -> model.serialize(new ModelEntity("ftm", "x-1", "Robot", Set.of(), Set.of(),
+                Map.of("name", List.of("Jane Doe")))), "Robot", "FtM");
     }
 
     @Test
@@ -89,12 +70,6 @@ public class FtmTargetModelSerializationTest {
         assertThrowsContaining(
                 () -> model.parse("{\"id\":\"person-1\",\"schema\":\"Person\",\"properties\":{\"name\":[null]}}"),
                 "name", "FtM");
-    }
-
-    @Test
-    public void test_the_multi_type_entity_it_collapses_is_valid() {
-        assertThat(model.validate(new ModelEntity("ftm", "person-1", Set.of("Person", "LegalEntity", "Thing"), Set.of(), Set.of(),
-                Map.of("name", List.of("Jane Doe"))))).isEmpty();
     }
 
     @Test

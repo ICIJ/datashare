@@ -20,6 +20,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.time.LocalDateTime;
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -164,15 +165,6 @@ public class JooqStatementRepositoryTest {
     }
 
     @Test
-    public void test_an_entity_keeps_every_one_of_its_types() {
-        repository.save("prj", "run-1", Stream.of(
-                statement("e-1", "Person", "name", "Ada"),
-                statement("e-1", "LegalEntity", "name", "Ada")));
-
-        assertThat(repository.entity("prj", "e-1").orElseThrow().types()).contains("Person", "LegalEntity");
-    }
-
-    @Test
     public void test_entity_regroups_its_statements() {
         repository.save("prj", "run-1", Stream.of(
                 statement("e-1", "Person", "name", "Ada"),
@@ -284,7 +276,7 @@ public class JooqStatementRepositoryTest {
 
         ModelEntity entity = repository.entity("prj", "shared").orElseThrow();
         assertThat(entity.id()).isEqualTo("shared");
-        assertThat(entity.types()).containsOnly("Person");
+        assertThat(entity.type()).isEqualTo("Person");
         assertThat(entity.properties().get("name")).containsOnly("Ada");
     }
 
@@ -295,6 +287,31 @@ public class JooqStatementRepositoryTest {
         DataAccessException thrown = assertThrows(DataAccessException.class,
                 () -> repository.entity("prj", "e-1"));
         assertThat(thrown.getMessage()).contains("id-1").contains("nm").contains("ftm");
+    }
+
+    // The two read paths fail differently. The buffered one maps every row before grouping, so a row
+    // it cannot read aborts the call outright. The lazy one fails part way through a group, and that
+    // must not take the rest of the stream down with it: an aborted fold used to leave the iterator
+    // reading as exhausted, which turned a truncated index into a successful rebuild.
+    @Test
+    public void test_a_group_that_fails_part_way_does_not_end_the_stream() {
+        LocalDateTime now = LocalDateTime.now();
+        insertRawStatement("id-1", "ftm", "e-1", "Person", "ftm:name", "Ada", now);
+        insertRawStatement("id-2", "ftm", "e-2", "Person", "nm", "Grace", now);
+        insertRawStatement("id-3", "ftm", "e-3", "Person", "ftm:name", "Hedy", now);
+
+        if (RepositoryFactoryImpl.guessSqlDialectFrom(dbRule.dataSourceUrl) != SQLDialect.POSTGRES) {
+            assertThrows(DataAccessException.class, () -> repository.entities("prj", Stream::toList));
+            return;
+        }
+        repository.entities("prj", entities -> {
+            Iterator<ModelEntity> iterator = entities.iterator();
+            assertThrows(DataAccessException.class, iterator::next);
+
+            assertThat(iterator.hasNext()).isTrue();
+            assertThat(iterator.next().id()).isEqualTo("e-3");
+            return null;
+        });
     }
 
     private void insertRawStatement(String id, String model, String entityId, String entityType,

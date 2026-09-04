@@ -15,11 +15,10 @@ import static org.junit.Assert.assertThrows;
 public class ModelEntityTest {
     @Test
     public void test_the_entity_copies_the_collections_it_was_handed() {
-        ModelEntity entity = new ModelEntity("ftm", "p-1", new HashSet<>(Set.of("Person")),
+        ModelEntity entity = new ModelEntity("ftm", "p-1", "Person",
                 new HashSet<>(Set.of("4.10.2")), new HashSet<>(Set.of("doc-1")),
                 new HashMap<>(Map.of("name", new ArrayList<>(List.of("Jane Doe")))));
 
-        assertThrows(UnsupportedOperationException.class, () -> entity.types().add("Company"));
         assertThrows(UnsupportedOperationException.class, () -> entity.modelVersions().add("4.11.0"));
         assertThrows(UnsupportedOperationException.class, () -> entity.documentIds().add("doc-2"));
         assertThrows(UnsupportedOperationException.class,
@@ -36,19 +35,9 @@ public class ModelEntityTest {
 
         assertThat(entity.model()).isEqualTo("ftm");
         assertThat(entity.id()).isEqualTo("person-1");
-        assertThat(entity.types()).containsOnly("Person");
+        assertThat(entity.type()).isEqualTo("Person");
         assertThat(entity.properties().get("name")).containsExactly("J. Doe", "Jane Doe");
         assertThat(entity.properties().get("birthDate")).containsExactly("1980-04-02");
-    }
-
-    @Test
-    public void test_unions_the_types_of_the_statements() {
-        ModelEntity entity = ModelEntity.from(List.of(
-                statement("name", "Jane Doe", "full_name"),
-                Statement.of("ftm", "person-1", "LegalEntity", "name", "Jane Doe",
-                        new Statement.Provenance("doc-2", null, 3, "counterparty"))), Set.of("4.10.2"));
-
-        assertThat(entity.types()).containsOnly("Person", "LegalEntity");
     }
 
     @Test
@@ -79,11 +68,11 @@ public class ModelEntityTest {
         Set<String> documents = Set.of("doc-1");
         Map<String, List<String>> name = Map.of("name", List.of("Jane Doe"));
 
-        assertRejectsNull("model", () -> new ModelEntity(null, "p-1", Set.of("Person"), versions, documents, name));
-        assertRejectsNull("id", () -> new ModelEntity("ftm", null, Set.of("Person"), versions, documents, name));
-        assertRejectsNull("types", () -> new ModelEntity("ftm", "p-1", null, versions, documents, name));
-        assertRejectsNull("modelVersions", () -> new ModelEntity("ftm", "p-1", Set.of("Person"), null, documents, name));
-        assertRejectsNull("documentIds", () -> new ModelEntity("ftm", "p-1", Set.of("Person"), versions, null, name));
+        assertRejectsNull("model", () -> new ModelEntity(null, "p-1", "Person", versions, documents, name));
+        assertRejectsNull("id", () -> new ModelEntity("ftm", null, "Person", versions, documents, name));
+        assertRejectsNull("type", () -> new ModelEntity("ftm", "p-1", null, versions, documents, name));
+        assertRejectsNull("modelVersions", () -> new ModelEntity("ftm", "p-1", "Person", null, documents, name));
+        assertRejectsNull("documentIds", () -> new ModelEntity("ftm", "p-1", "Person", versions, null, name));
     }
 
     private static void assertRejectsNull(String field, Runnable construction) {

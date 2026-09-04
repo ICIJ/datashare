@@ -11,7 +11,7 @@ import java.util.Set;
 import static org.fest.assertions.Assertions.assertThat;
 
 public class StructuredEntityTest {
-    private final ModelEntity bareKeyedSource = new ModelEntity("ftm", "person-1", Set.of("Person", "LegalEntity"),
+    private final ModelEntity bareKeyedSource = new ModelEntity("ftm", "person-1", "Person",
             Set.of("4.10.2"), Set.of("doc-1", "doc-2"),
             Map.of("name", List.of("Jane Doe", "J. Doe"), "birthDate", List.of("1980-04-02")));
 
@@ -23,7 +23,7 @@ public class StructuredEntityTest {
         assertThat(entity.getId()).isEqualTo("ftm_person-1");
         assertThat(entity.model()).isEqualTo("ftm");
         assertThat(entity.modelVersions()).containsOnly("4.10.2");
-        assertThat(entity.types()).containsOnly("Person", "LegalEntity");
+        assertThat(entity.entityType()).isEqualTo("Person");
         assertThat(entity.documentIds()).containsOnly("doc-1", "doc-2");
         assertThat(entity.properties().get("ftm_name")).containsExactly("Jane Doe", "J. Doe");
         assertThat(entity.properties().get("ftm_birthDate")).containsExactly("1980-04-02");

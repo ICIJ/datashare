@@ -11,7 +11,6 @@ import org.icij.datashare.model.UnreadableModelResource;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
@@ -66,10 +65,12 @@ public class FtmTargetModel implements TargetModel {
 
     @Override
     public String serialize(ModelEntity entity) {
-        String schema = mostSpecific(entity.types()).orElseThrow(() -> new IllegalArgumentException(
-                "types " + new TreeSet<>(entity.types()) + " have no common schema in the FtM model"));
+        if (type(entity.type()).isEmpty()) {
+            throw new IllegalArgumentException(
+                    "type '" + entity.type() + "' is no schema of the FtM model, so it cannot be written as FtM JSON");
+        }
         try {
-            return JsonObjectMapper.writeValueAsString(new FtmEntity(entity.id(), schema, entity.properties()));
+            return JsonObjectMapper.writeValueAsString(new FtmEntity(entity.id(), entity.type(), entity.properties()));
         } catch (JsonProcessingException e) {
             throw new IllegalArgumentException("cannot write entity '" + entity.id() + "' as FtM JSON", e);
         }
@@ -101,25 +102,7 @@ public class FtmTargetModel implements TargetModel {
                 throw new IllegalArgumentException("property '" + property + "' has a null value in FtM JSON");
             }
         });
-        return new ModelEntity(name(), read.id(), Set.of(read.schema()), Set.of(), Set.of(), properties);
-    }
-
-    @Override
-    public List<Violation> validate(ModelEntity entity) {
-        List<Violation> violations = new ArrayList<>(TargetModel.super.validate(entity));
-        if (entity.types().size() > 1 && mostSpecific(entity.types()).isEmpty()) {
-            violations.add(new Violation("types " + new TreeSet<>(entity.types())
-                    + " have no common schema, so the entity cannot be written as FtM JSON"));
-        }
-        return violations;
-    }
-
-    private Optional<String> mostSpecific(Set<String> types) {
-        return types.stream()
-                .filter(candidate -> type(candidate)
-                        .map(found -> found.ancestors().containsAll(types))
-                        .orElse(false))
-                .findFirst();
+        return new ModelEntity(name(), read.id(), read.schema(), Set.of(), Set.of(), properties);
     }
 
     private static Map<String, EntityType> types(JsonNode schemata) {

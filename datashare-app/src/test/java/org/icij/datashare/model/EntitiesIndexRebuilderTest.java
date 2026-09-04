@@ -78,7 +78,7 @@ public class EntitiesIndexRebuilderTest {
         statements.entities.add(entity("person-1", "Jane Doe"));
         rebuilder.rebuild("prj");
 
-        assertThat(search("{\"query\":{\"term\":{\"types\":\"Person\"}}}")).contains("person-1");
+        assertThat(search("{\"query\":{\"term\":{\"entityType\":\"Person\"}}}")).contains("person-1");
         assertThat(search("{\"query\":{\"term\":{\"documentIds\":\"doc-1\"}}}")).contains("person-1");
     }
 
@@ -184,7 +184,7 @@ public class EntitiesIndexRebuilderTest {
     }
 
     private static ModelEntity bareKeyed(String id, String property, String value) {
-        return new ModelEntity("ftm", id, Set.of("Person"), Set.of("4.10.2"), Set.of("doc-1"),
+        return new ModelEntity("ftm", id, "Person", Set.of("4.10.2"), Set.of("doc-1"),
                 Map.of(property, List.of(value)));
     }
 
