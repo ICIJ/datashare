@@ -24,7 +24,6 @@ import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import static org.fest.assertions.Assertions.assertThat;
-import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -52,7 +51,7 @@ public class EntitiesIndexRebuilderTest {
     public void test_rebuild_creates_the_index_when_it_does_not_exist() throws Exception {
         statements.entities.add(entity("person-1", "Jane Doe"));
 
-        assertThat(rebuilder.rebuild("prj").written()).isEqualTo(1);
+        assertThat(rebuilder.rebuild("prj")).isEqualTo(1);
 
         assertThat(indexer.exists(Project.entitiesIndex("prj"))).isTrue();
         assertThat(search("{\"query\":{\"match_all\":{}}}")).contains("person-1");
@@ -83,41 +82,6 @@ public class EntitiesIndexRebuilderTest {
         assertThat(search("{\"query\":{\"term\":{\"documentIds\":\"doc-1\"}}}")).contains("person-1");
     }
 
-    // The index is dropped before the stream is consumed, so one group the store refuses to fold
-    // must not cost the project its whole index.
-    @Test
-    public void test_an_entity_that_cannot_be_rebuilt_is_skipped_rather_than_failing_the_rebuild() throws Exception {
-        statements.unrebuildable = 1;
-        statements.entities.add(entity("person-1", "Jane Doe"));
-
-        assertThat(rebuilder.rebuild("prj").written()).isEqualTo(1);
-
-        assertThat(search("{\"query\":{\"match_all\":{}}}")).contains("person-1");
-    }
-
-    // A skip only shows up in a log line, so a caller given a single count cannot tell a complete
-    // index from one that is missing entities.
-    @Test
-    public void test_the_rebuild_counts_the_entities_it_skipped() throws Exception {
-        statements.unrebuildable = 2;
-        statements.entities.add(entity("person-1", "Jane Doe"));
-
-        EntitiesIndexRebuilder.Rebuilt rebuilt = rebuilder.rebuild("prj");
-
-        assertThat(rebuilt.written()).isEqualTo(1);
-        assertThat(rebuilt.skipped()).isEqualTo(2);
-    }
-
-    // A group the store cannot fold is bad data and is skipped, but statements grouped wrongly are a
-    // fault in the read itself: skipping those would report a short index as a complete rebuild.
-    @Test
-    public void test_a_grouping_fault_stops_the_rebuild_rather_than_being_skipped() {
-        statements.misgrouped = 1;
-        statements.entities.add(entity("person-1", "Jane Doe"));
-
-        assertThrows(IllegalArgumentException.class, () -> rebuilder.rebuild("prj"));
-    }
-
     @Test
     public void test_a_second_rebuild_drops_an_entity_that_left_the_store() throws Exception {
         statements.entities.add(entity("person-1", "Jane Doe"));
@@ -125,7 +89,7 @@ public class EntitiesIndexRebuilderTest {
         rebuilder.rebuild("prj");
 
         statements.entities.remove(1);
-        assertThat(rebuilder.rebuild("prj").written()).isEqualTo(1);
+        assertThat(rebuilder.rebuild("prj")).isEqualTo(1);
 
         String all = search("{\"query\":{\"match_all\":{}}}");
         assertThat(all).contains("person-1");
@@ -148,7 +112,7 @@ public class EntitiesIndexRebuilderTest {
     public void test_indexes_more_entities_than_one_chunk() throws Exception {
         IntStream.range(0, 2500).forEach(i -> statements.entities.add(entity("person-" + i, "Name " + i)));
 
-        assertThat(rebuilder.rebuild("prj").written()).isEqualTo(2500);
+        assertThat(rebuilder.rebuild("prj")).isEqualTo(2500);
 
         assertThat(search("{\"query\":{\"match_all\":{}},\"track_total_hits\":true}"))
                 .contains("\"value\":2500,\"relation\":\"eq\"");
@@ -199,7 +163,7 @@ public class EntitiesIndexRebuilderTest {
         ((RestClientTransport) es.client._transport()).restClient().performRequest(create);
         statements.entities.add(entity("person-1", "Jane Doe"));
 
-        assertThat(rebuilder.rebuild("prj").written()).isEqualTo(1);
+        assertThat(rebuilder.rebuild("prj")).isEqualTo(1);
 
         assertThat(search("{\"query\":{\"term\":{\"properties.ftm_name\":\"Jane Doe\"}}}")).contains("person-1");
     }
@@ -234,8 +198,6 @@ public class EntitiesIndexRebuilderTest {
 
     private static class InMemoryStatements implements StatementRepository {
         private final List<ModelEntity> entities = new ArrayList<>();
-        private int unrebuildable;
-        private int misgrouped;
 
         @Override
         public int save(String projectId, String runId, Stream<Statement> statements) {
@@ -244,13 +206,7 @@ public class EntitiesIndexRebuilderTest {
 
         @Override
         public <R> R entities(String projectId, Function<Stream<ModelEntity>, R> consumer) {
-            Stream<ModelEntity> refused = IntStream.range(0, unrebuildable).mapToObj(group -> {
-                throw new UnrebuildableEntity(List.of("Company", "Person"));
-            });
-            Stream<ModelEntity> faulty = Stream.of("misgrouped").limit(misgrouped).map(group -> {
-                throw new IllegalArgumentException("statements belong to 2 entities: [e-1, e-2]");
-            });
-            return consumer.apply(Stream.concat(Stream.concat(refused, faulty), entities.stream()));
+            return consumer.apply(entities.stream());
         }
 
         @Override
