@@ -25,11 +25,16 @@ public class EntitiesIndexRebuilder {
         this.statements = statements;
     }
 
-    /** Drops the index and refills it, so an entity that left the store leaves the index too, and
-     *  returns how many entities were indexed. Dropping rather than emptying repairs an index created
-     *  before the entity mappings existed, which holds the document ones and rejects every entity, and
-     *  re-creating it is what gives a project older than the entities index one at all. */
-    public int rebuild(String projectId) throws IOException {
+    /** What a rebuild put in the index: {@code written} entities are searchable, {@code skipped} ones
+     *  were left out because their statements contradict each other, so a non-zero {@code skipped}
+     *  means the index holds less than the store does. */
+    public record Rebuilt(int written, int skipped) {}
+
+    /** Drops the index and refills it, so an entity that left the store leaves the index too. Dropping
+     *  rather than emptying repairs an index created before the entity mappings existed, which holds
+     *  the document ones and rejects every entity, and re-creating it is what gives a project older
+     *  than the entities index one at all. */
+    public Rebuilt rebuild(String projectId) throws IOException {
         if (projectId == null || !Project.NAME_PATTERN.matcher(projectId).matches()) {
             // an unvalidated id reaches a _delete_by_query URL path, where "*" is a whole-cluster wipe
             throw new IllegalArgumentException("Bad format for project id : '" + projectId + "'");
@@ -44,20 +49,23 @@ public class EntitiesIndexRebuilder {
         }
     }
 
-    // A group the store refuses to fold into an entity (two types under one id, which the id recipe
-    // makes impossible to write but rows written before it can still hold) is skipped rather than
-    // thrown: the index is already dropped by the time it is read, so failing the run would leave the
-    // project with no index at all and do the same again on every retry. The refusal surfaces from
-    // hasNext, since the entities are streamed, and the retry terminates because the store drains a
-    // group before it judges it, so each refusal has consumed the group it refused.
-    private static Iterator<ModelEntity> skippingUnrebuildable(String indexName, Iterator<ModelEntity> entities) {
-        return new Iterator<>() {
+    private Rebuilt index(String indexName, Iterator<ModelEntity> source) {
+        // A group the store refuses to fold into an entity (two types under one id, which the id recipe
+        // makes impossible to write but rows written before it can still hold) is skipped rather than
+        // thrown: the index is already dropped by the time it is read, so failing the run would leave the
+        // project with no index at all and do the same again on every retry. The refusal surfaces from
+        // hasNext, since the entities are streamed, and the retry terminates because the store drains a
+        // group before it judges it, so each refusal has consumed the group it refused.
+        class SkippingUnrebuildable implements Iterator<ModelEntity> {
+            private int skipped;
+
             @Override
             public boolean hasNext() {
                 while (true) {
                     try {
-                        return entities.hasNext();
+                        return source.hasNext();
                     } catch (UnrebuildableEntity unrebuildable) {
+                        skipped++;
                         LOGGER.warn("skipping an entity of {} that cannot be rebuilt: {}", indexName,
                                 unrebuildable.getMessage());
                     }
@@ -66,13 +74,10 @@ public class EntitiesIndexRebuilder {
 
             @Override
             public ModelEntity next() {
-                return entities.next();
+                return source.next();
             }
-        };
-    }
-
-    private int index(String indexName, Iterator<ModelEntity> source) {
-        Iterator<ModelEntity> entities = skippingUnrebuildable(indexName, source);
+        }
+        SkippingUnrebuildable entities = new SkippingUnrebuildable();
         int written = 0;
         while (entities.hasNext()) {
             List<StructuredEntity> chunk = new ArrayList<>(CHUNK_SIZE);
@@ -89,6 +94,6 @@ public class EntitiesIndexRebuilder {
             }
             written += chunk.size();
         }
-        return written;
+        return new Rebuilt(written, entities.skipped);
     }
 }
