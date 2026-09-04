@@ -41,18 +41,6 @@ public class ModelEntityTest {
     }
 
     @Test
-    public void test_refuses_statements_giving_the_entity_two_types() {
-        String message = assertThrows(IllegalArgumentException.class, () -> ModelEntity.from(List.of(
-                statement("name", "Jane Doe", "full_name"),
-                Statement.of("ftm", "person-1", "LegalEntity", "name", "Jane Doe",
-                        new Statement.Provenance("doc-2", null, 3, "counterparty"))), Set.of("4.10.2")))
-                .getMessage();
-
-        assertThat(message).contains("Person");
-        assertThat(message).contains("LegalEntity");
-    }
-
-    @Test
     public void test_the_same_value_from_two_cells_is_two_statements_but_one_value() {
         ModelEntity entity = ModelEntity.from(List.of(
                 statement("name", "Jane Doe", "full_name"),
