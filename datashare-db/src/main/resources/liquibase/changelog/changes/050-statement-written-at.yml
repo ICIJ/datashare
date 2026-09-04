@@ -1,0 +1,34 @@
+databaseChangeLog:
+  - changeSet:
+      id: 85
+      author: pirhoo
+      comment: >
+        A row the run re-observed unchanged is no longer rewritten, so the column records when the
+        row was written and not when it was last seen, and last_seen holds nothing first_seen did
+        not already say.
+      changes:
+        - renameColumn:
+            tableName: statement
+            oldColumnName: first_seen
+            newColumnName: written_at
+            columnDataType: datetime
+  - changeSet:
+      id: 86
+      author: pirhoo
+      dbms: postgresql
+      changes:
+        - dropColumn:
+            tableName: statement
+            columnName: last_seen
+  - changeSet:
+      id: 87
+      author: pirhoo
+      dbms: sqlite
+      comment: >
+        Liquibase does not emit a drop for SQLite and leaves the column in place, silently. SQLite
+        itself has dropped columns since 3.35 and the bundled driver carries 3.40, so the statement
+        it will not write is issued here rather than recreating the table the way older changesets
+        in this changelog had to.
+      changes:
+        - sql:
+            sql: ALTER TABLE statement DROP COLUMN last_seen
