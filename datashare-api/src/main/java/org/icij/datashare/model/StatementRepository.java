@@ -9,17 +9,41 @@ import java.util.stream.Stream;
  *  makes safe. */
 public interface StatementRepository {
     /** Upserts by statement id. A row the run re-observed unchanged is left exactly as it was, not
-     *  even its written-at moves, so a no-op re-run writes nothing. A row whose content moved (an
-     *  ontology bump, a re-recorded original value) is refreshed, run and timestamp included. The
-     *  statements are consumed lazily, one chunk at a time, so a whole extraction never has to fit in memory; the
-     *  stream is closed on return. Returns the number of statements written, or fewer when the JDBC
-     *  driver rewrites the batch and reports no per-row count. */
+     *  even its written-at moves: a no-op re-run writes nothing, and staleness is handled by deleting
+     *  a sheet's statements before rewriting them, not by per-row timestamps. A row whose content
+     *  moved (an ontology bump, a re-recorded original value) is refreshed, run and timestamp
+     *  included. The statements are consumed lazily, one chunk at a time, so a whole extraction
+     *  never has to fit in memory; the stream is closed on return. Returns the number of statements
+     *  written, or fewer when the JDBC driver rewrites the batch and reports no per-row count. */
     int save(String projectId, String runId, Stream<Statement> statements);
 
     /** Every entity of a project, rebuilt by grouping its statements. The stream is read lazily from
      *  a pooled connection and closed once {@code consumer} returns or throws, so {@code consumer}
      *  has to consume it: returning the stream itself hands back a closed one. */
     <R> R entities(String projectId, Function<Stream<ModelEntity>, R> consumer);
+
+    /** Deletes every statement one sheet of a document contributed to a project, and returns how
+     *  many. This is the retraction path: re-extracting a sheet deletes its statements first, so a
+     *  corrected value, a re-typed mapping or a shrunken file leaves no stale row behind. Sheet
+     *  scope, because a mapping reads one sheet and a workbook carries a mapping per sheet: on
+     *  document scope, replacing one sheet would delete its siblings and never rewrite them. Pass
+     *  the empty sheet a single-table format writes. Changing which sheet a mapping reads still
+     *  strands what it wrote under the old one, since nothing then retracts it. */
+    int deleteByDocument(String projectId, String documentId, String sheet);
+
+    /** Rewrites what one sheet of a document contributed: the retraction and the write, in the one
+     *  order that leaves no stale row behind, since doing it the other way round deletes what it has
+     *  just written. Not atomic, because a save commits per chunk: a crash between the two leaves the
+     *  sheet retracted and re-extractable rather than half rewritten, which is the safe side of the
+     *  window to fall on. The rows written here are new, so the conditional upsert a plain save
+     *  leans on cannot spare any of them. */
+    default int replace(String projectId, String runId, String documentId, String sheet,
+                        Stream<Statement> statements) {
+        try (statements) {
+            deleteByDocument(projectId, documentId, sheet);
+            return save(projectId, runId, statements);
+        }
+    }
 
     /** The entity a project holds under this id. An id shared by two models yields the first model in
      *  natural order, since an entity belongs to one model, and the entity names the model it came

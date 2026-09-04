@@ -205,6 +205,11 @@ public class EntitiesIndexRebuilderTest {
         }
 
         @Override
+        public int deleteByDocument(String projectId, String documentId, String sheet) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
         public <R> R entities(String projectId, Function<Stream<ModelEntity>, R> consumer) {
             return consumer.apply(entities.stream());
         }

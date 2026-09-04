@@ -147,5 +147,8 @@ databaseChangeLog:
       file: changes/048-add-statement-original-value.yml
       relativeToChangelogFile: true
   - include:
+      file: changes/049-add-statement-doc-index.yml
+      relativeToChangelogFile: true
+  - include:
       file: changes/050-statement-written-at.yml
       relativeToChangelogFile: true
