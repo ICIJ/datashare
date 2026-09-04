@@ -90,12 +90,22 @@ public class JooqStatementRepository implements StatementRepository {
     // cannot drift, and the conflict branch reads the row being inserted through EXCLUDED rather than
     // binding its own values, which would not line up with the record's positional binds.
     private static int saveChunk(DSLContext create, Write write, List<Statement> chunk) {
+        // The update is conditional so a no-op re-run rewrites nothing: unconditional, every row and
+        // both index entries are rewritten on every re-run (measured 35->70->94 MB over three
+        // identical saves), for WRITTEN_AT and RUN_ID values nothing reads. Only a row whose content
+        // actually moved (an ontology bump, an original_value recorded under another format) is
+        // rewritten, and takes the fresh run and timestamp with it, which is why the column says
+        // when the row was written and not when it was last seen. DO UPDATE ... WHERE needs
+        // SQLite 3.24+; the bundled driver carries 3.40.
         BatchBindStep batch = create.batch(create.insertInto(STATEMENT).set(row(write, chunk.get(0)))
                 .onConflict(STATEMENT.ID, STATEMENT.PRJ_ID).doUpdate()
                 .set(STATEMENT.RUN_ID, DSL.excluded(STATEMENT.RUN_ID))
                 .set(STATEMENT.MODEL_VERSION, DSL.excluded(STATEMENT.MODEL_VERSION))
+                // The one content column outside the id hash, so a conflict does not imply it matches.
                 .set(STATEMENT.ORIGINAL_VALUE, DSL.excluded(STATEMENT.ORIGINAL_VALUE))
-                .set(STATEMENT.LAST_SEEN, DSL.excluded(STATEMENT.LAST_SEEN)));
+                .set(STATEMENT.WRITTEN_AT, DSL.excluded(STATEMENT.WRITTEN_AT))
+                .where(STATEMENT.MODEL_VERSION.ne(DSL.excluded(STATEMENT.MODEL_VERSION))
+                        .or(STATEMENT.ORIGINAL_VALUE.isDistinctFrom(DSL.excluded(STATEMENT.ORIGINAL_VALUE)))));
         for (Statement statement : chunk) {
             batch.bind(row(write, statement).intoArray());
         }
@@ -118,8 +128,7 @@ public class JooqStatementRepository implements StatementRepository {
         row.setSheet(statement.provenance().sheet());
         row.setRowNumber(statement.provenance().rowNumber());
         row.setColumnName(statement.provenance().column());
-        row.setFirstSeen(write.now());
-        row.setLastSeen(write.now());
+        row.setWrittenAt(write.now());
         return row;
     }
 
