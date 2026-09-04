@@ -137,8 +137,7 @@ public class JooqStatementRepositoryTest {
         assertThat(dbRule.dsl().fetchCount(STATEMENT)).isEqualTo(1);
         var second = dbRule.dsl().selectFrom(STATEMENT).fetchOne();
         assertThat(second.getId()).isEqualTo(first.getId());
-        assertThat(second.getFirstSeen()).isEqualTo(first.getFirstSeen());
-        assertThat(second.getLastSeen()).isEqualTo(first.getLastSeen());
+        assertThat(second.getWrittenAt()).isEqualTo(first.getWrittenAt());
         assertThat(second.getRunId()).isEqualTo("run-1");
     }
 
@@ -363,8 +362,7 @@ public class JooqStatementRepositoryTest {
                 .set(STATEMENT.SHEET, "")
                 .set(STATEMENT.ROW_NUMBER, 1L)
                 .set(STATEMENT.COLUMN_NAME, "name")
-                .set(STATEMENT.FIRST_SEEN, now)
-                .set(STATEMENT.LAST_SEEN, now)
+                .set(STATEMENT.WRITTEN_AT, now)
                 .execute();
     }
 

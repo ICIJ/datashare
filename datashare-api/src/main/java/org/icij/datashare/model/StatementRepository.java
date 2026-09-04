@@ -9,8 +9,8 @@ import java.util.stream.Stream;
  *  makes safe. */
 public interface StatementRepository {
     /** Upserts by statement id. A row the run re-observed unchanged is left exactly as it was, not
-     *  even its last-seen moves, so a no-op re-run writes nothing. A row whose content moved (an
-     *  ontology bump, a re-recorded original value) is refreshed, run and timestamps included. The
+     *  even its written-at moves, so a no-op re-run writes nothing. A row whose content moved (an
+     *  ontology bump, a re-recorded original value) is refreshed, run and timestamp included. The
      *  statements are consumed lazily, one chunk at a time, so a whole extraction never has to fit in memory; the
      *  stream is closed on return. Returns the number of statements written, or fewer when the JDBC
      *  driver rewrites the batch and reports no per-row count. */
