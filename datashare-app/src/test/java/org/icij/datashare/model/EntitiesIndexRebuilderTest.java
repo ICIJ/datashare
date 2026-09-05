@@ -205,7 +205,13 @@ public class EntitiesIndexRebuilderTest {
         }
 
         @Override
-        public int deleteByDocument(String projectId, String documentId, String sheet) {
+        public int deleteBySheet(String projectId, String documentId, String sheet) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public Replaced replace(String projectId, String runId, String documentId, String sheet,
+                                Stream<Statement> statements) {
             throw new UnsupportedOperationException();
         }
 
