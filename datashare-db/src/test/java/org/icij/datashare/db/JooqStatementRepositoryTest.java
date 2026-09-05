@@ -3,6 +3,7 @@ package org.icij.datashare.db;
 import com.zaxxer.hikari.HikariDataSource;
 import org.icij.datashare.model.ModelEntity;
 import org.icij.datashare.model.Statement;
+import org.icij.datashare.model.StatementRepository;
 import org.icij.datashare.tabular.ExtractionMapping;
 import org.icij.datashare.tabular.Row;
 import org.icij.datashare.tabular.RowSourceOptions;
@@ -209,46 +210,108 @@ public class JooqStatementRepositoryTest {
     }
 
     @Test
-    public void test_delete_by_document_removes_its_statements_and_no_other() {
+    public void test_delete_by_sheet_removes_its_statements_and_no_other() {
         repository.save("prj", "run-1", Stream.of(
                 statement("e-1", "Person", "name", "Ada"),
                 Statement.of("ftm", "e-1", "Person", "birthDate", "1815-12-10",
                         new Statement.Provenance("doc-2", "", 3, "dob"))));
         repository.save("other", "run-2", Stream.of(statement("e-2", "Person", "name", "Grace")));
 
-        assertThat(repository.deleteByDocument("prj", "doc-1", "")).isEqualTo(1);
+        assertThat(repository.deleteBySheet("prj", "doc-1", "")).isEqualTo(1);
 
-        assertThat(dbRule.dsl().fetchCount(STATEMENT)).isEqualTo(2);
         assertThat(repository.entity("prj", "e-1").orElseThrow().properties().keySet())
                 .containsOnly("birthDate");
         assertThat(repository.entity("other", "e-2").isPresent()).isTrue();
     }
 
     @Test
-    public void test_delete_by_document_spares_the_other_sheets_of_the_same_document() {
+    public void test_delete_by_sheet_spares_the_other_sheets_of_the_same_document() {
         repository.save("prj", "run-1", Stream.of(
                 Statement.of("ftm", "e-1", "Person", "name", "Ada",
                         new Statement.Provenance("doc-1", "Sheet1", 2, "name")),
                 Statement.of("ftm", "e-2", "Person", "name", "Grace",
                         new Statement.Provenance("doc-1", "Sheet2", 2, "name"))));
 
-        assertThat(repository.deleteByDocument("prj", "doc-1", "Sheet1")).isEqualTo(1);
+        assertThat(repository.deleteBySheet("prj", "doc-1", "Sheet1")).isEqualTo(1);
 
         assertThat(repository.entity("prj", "e-1").isPresent()).isFalse();
         assertThat(repository.entity("prj", "e-2").isPresent()).isTrue();
     }
 
     @Test
-    public void test_replacing_a_document_leaves_no_stale_statement() {
+    public void test_delete_by_sheet_reads_a_null_sheet_as_the_empty_one_the_write_stored() {
+        repository.save("prj", "run-1", Stream.of(statement("e-1", "Person", "name", "Ada")));
+
+        assertThat(repository.deleteBySheet("prj", "doc-1", null)).isEqualTo(1);
+
+        assertThat(repository.entity("prj", "e-1").isPresent()).isFalse();
+    }
+
+    @Test
+    public void test_replace_leaves_no_stale_statement() {
         repository.save("prj", "run-1", Stream.of(
                 statement("e-1", "Person", "name", "Ada"),
                 statement("e-1", "Person", "birthDate", "1815-12-10")));
 
         assertThat(repository.replace("prj", "run-2", "doc-1", "",
-                Stream.of(statement("e-1", "Person", "name", "Ada Lovelace")))).isEqualTo(1);
+                Stream.of(statement("e-1", "Person", "name", "Ada Lovelace"))))
+                .isEqualTo(new StatementRepository.Replaced(2, 1));
 
         assertThat(repository.entity("prj", "e-1").orElseThrow().properties())
                 .isEqualTo(Map.of("name", List.of("Ada Lovelace")));
+    }
+
+    @Test
+    public void test_replace_spares_the_other_sheets_of_the_same_document() {
+        Statement onSheet2 = Statement.of("ftm", "e-2", "Person", "name", "Grace",
+                new Statement.Provenance("doc-1", "Sheet2", 2, "name"));
+        repository.save("prj", "run-1", Stream.of(
+                Statement.of("ftm", "e-1", "Person", "name", "Ada",
+                        new Statement.Provenance("doc-1", "Sheet1", 2, "name")),
+                onSheet2));
+
+        assertThat(repository.replace("prj", "run-2", "doc-1", "Sheet2", Stream.of(onSheet2)))
+                .isEqualTo(new StatementRepository.Replaced(1, 1));
+
+        assertThat(repository.entity("prj", "e-1").isPresent()).isTrue();
+        assertThat(repository.entity("prj", "e-2").isPresent()).isTrue();
+    }
+
+    @Test
+    public void test_replace_retracts_a_sheet_the_extraction_no_longer_yields_anything_for() {
+        repository.save("prj", "run-1", Stream.of(statement("e-1", "Person", "name", "Ada")));
+
+        assertThat(repository.replace("prj", "run-2", "doc-1", "", Stream.of()))
+                .isEqualTo(new StatementRepository.Replaced(1, 0));
+
+        assertThat(repository.entity("prj", "e-1").isPresent()).isFalse();
+    }
+
+    @Test
+    public void test_replace_leaves_the_sheet_alone_when_the_extraction_fails_on_its_first_row() {
+        repository.save("prj", "run-1", Stream.of(statement("e-1", "Person", "name", "Ada")));
+        Stream<Statement> failing = Stream.of(1).map(row -> {
+            throw new IllegalStateException("the source has no column name");
+        });
+
+        assertThrows(IllegalStateException.class,
+                () -> repository.replace("prj", "run-2", "doc-1", "", failing));
+
+        assertThat(repository.entity("prj", "e-1").orElseThrow().properties())
+                .isEqualTo(Map.of("name", List.of("Ada")));
+    }
+
+    @Test
+    public void test_replace_refuses_a_statement_written_by_another_sheet() {
+        repository.save("prj", "run-1", Stream.of(
+                Statement.of("ftm", "e-1", "Person", "name", "Ada",
+                        new Statement.Provenance("doc-1", "Sheet1", 2, "name"))));
+
+        assertThrows(IllegalArgumentException.class, () -> repository.replace("prj", "run-2", "doc-1",
+                "Sheet1", Stream.of(Statement.of("ftm", "e-2", "Person", "name", "Grace",
+                        new Statement.Provenance("doc-1", "Sheet2", 2, "name")))));
+
+        assertThat(repository.entity("prj", "e-1").isPresent()).isTrue();
     }
 
     @Test
