@@ -2,6 +2,9 @@ databaseChangeLog:
   - changeSet:
       id: 84
       author: pirhoo
+      comment: Retraction deletes one sheet of one document; (prj_id, doc_id) narrows to the rows it
+        has to visit anyway, so sheet is left to the filter rather than put in an index entry, where
+        an unbounded text column is what makes Postgres and SQLite disagree on what they accept.
       changes:
         - createIndex:
             indexName: statement_prj_doc
@@ -13,6 +16,3 @@ databaseChangeLog:
               - column:
                   name: doc_id
                   type: varchar(96)
-              - column:
-                  name: sheet
-                  type: text
