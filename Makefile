@@ -47,6 +47,14 @@ build: dist
 dist: migrate
 	$(MVN) clean package -DskipTests
 
+## Apply linter corrections
+lint:
+	$(MVN) intellij-code-formatter:format
+
+## Check codestyle
+check:
+	$(MVN) intellij-code-formatter:check
+
 ## Run all tests
 test:
 	$(MVN) test
