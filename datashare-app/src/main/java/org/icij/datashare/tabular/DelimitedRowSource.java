@@ -121,11 +121,11 @@ public class DelimitedRowSource implements RowSource {
 
             @Override
             public boolean hasNext() {
-                // A record whose every field is empty is skipped, as it is in every other reader, and
+                // A record whose every field is blank is skipped, as it is in every other reader, and
                 // consumes no row number; commons-csv already drops a truly blank line.
                 while (pending == null && hasNextRecord()) {
                     List<String> cells = records.next().toList();
-                    if (!cells.stream().allMatch(String::isEmpty)) {
+                    if (!cells.stream().allMatch(Row::blank)) {
                         pending = cells;
                     }
                 }

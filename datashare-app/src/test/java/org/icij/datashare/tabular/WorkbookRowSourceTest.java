@@ -243,6 +243,23 @@ public class WorkbookRowSourceTest {
     }
 
     @Test
+    public void test_skips_a_row_whose_cells_hold_only_invisible_characters() throws Exception {
+        XSSFWorkbook workbook = new XSSFWorkbook();
+        Sheet sheet = workbook.createSheet("companies");
+        fill(sheet);
+        sheet.createRow(2).createCell(0).setCellValue("\u00A0");
+        sheet.getRow(2).createCell(1).setCellValue("\u200B");
+        sheet.createRow(3).createCell(0).setCellValue("2");
+        sheet.getRow(3).createCell(1).setCellValue("Globex");
+
+        List<Row> rows = read(bytes(workbook), RowSourceOptions.defaults());
+
+        assertThat(rows).hasSize(2);
+        assertThat(rows.get(1).values().get("name")).isEqualTo("Globex");
+        assertThat(rows.get(1).number()).isEqualTo(2L);
+    }
+
+    @Test
     public void test_blank_cell_is_the_empty_string() throws Exception {
         XSSFWorkbook workbook = new XSSFWorkbook();
         Sheet sheet = workbook.createSheet("companies");
