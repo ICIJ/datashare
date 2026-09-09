@@ -3,7 +3,6 @@ package org.icij.datashare.text;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import org.icij.datashare.Entity;
 import org.icij.datashare.model.ModelEntity;
-import org.icij.datashare.text.indexing.IndexId;
 import org.icij.datashare.text.indexing.IndexType;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -15,7 +14,7 @@ import java.util.Set;
  *  and the model's type is {@code entityType}, since the indexer stamps every document's {@code type}
  *  field with its kind ("StructuredEntity"). */
 @IndexType("StructuredEntity")
-public record StructuredEntity(@IndexId String entityId, String model, String entityType, Set<String> modelVersions, Set<String> documentIds, Map<String, List<String>> properties)
+public record StructuredEntity(String entityId, String model, String entityType, Set<String> modelVersions, Set<String> documentIds, Map<String, List<String>> properties)
         implements Entity {
     /** Not the colon {@link org.icij.datashare.model.Statement#qualifiedProperty()} stores: a colon is
      *  the field/value delimiter of elasticsearch's query_string, so "properties.ftm:name:Jane" is a
