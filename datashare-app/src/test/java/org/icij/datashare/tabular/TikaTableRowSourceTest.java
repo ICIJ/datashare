@@ -246,4 +246,18 @@ public class TikaTableRowSourceTest {
         assertThat(rows.get(1).values().get("id")).isEqualTo("total");
     }
 
+    @Test
+    public void test_skips_a_row_whose_cells_hold_only_invisible_characters() throws Exception {
+        List<Row> rows = readHtml(
+                "<html><body><table>"
+                        + "<tr><th>id</th><th>name</th></tr>"
+                        + "<tr><td>&#8203;</td><td>&#8203;</td></tr>"
+                        + "<tr><td>1</td><td>ACME</td></tr>"
+                        + "</table></body></html>",
+                RowSourceOptions.defaults());
+
+        assertThat(rows).hasSize(1);
+        assertThat(rows.get(0).number()).isEqualTo(1L);
+        assertThat(rows.get(0).values().get("name")).isEqualTo("ACME");
+    }
 }

@@ -85,7 +85,7 @@ public class TikaTableRowSource implements RowSource {
         long surplus = 0;
         for (int index = 1; index < tableRows.size(); index++) {
             List<String> values = cells(tableRows.get(index));
-            if (values.stream().allMatch(String::isEmpty)) {
+            if (values.stream().allMatch(Row::blank)) {
                 continue;
             }
             if (values.size() > headers.size()) {
