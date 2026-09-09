@@ -8,8 +8,9 @@ public record Statement(String id, String model, String entityId, String entityT
      *  bytes and SQLite does not cap at all. Bounding it here is what keeps the two dialects from
      *  disagreeing on which mapping key a project accepts. */
     public static final int MAX_ENTITY_ID_LENGTH = 512;
-    /** The digest behind every tabular id, statement and entity alike, pinned by test: changing it
-     *  re-identifies everything already stored. */
+    /** The digest behind every statement id, pinned by
+     *  {@code StatementTest#test_the_id_digest_is_pinned}: changing it re-identifies every statement
+     *  already stored. */
     public static final Hasher DIGESTER = Hasher.SHA_384;
 
     public Statement {
