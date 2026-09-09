@@ -55,4 +55,14 @@ public class RowTest {
     public void test_a_surplus_cell_holding_only_a_non_breaking_space_carries_no_data() {
         assertThat(Row.values(List.of("a"), List.of("1", "\u00A0"), 2L)).isEqualTo(Map.of("a", "1"));
     }
+
+    @Test
+    public void test_a_mapped_cell_carrying_a_non_breaking_space_reads_like_its_plain_form() {
+        assertThat(Row.values(List.of("a"), List.of("1\u00A0"))).isEqualTo(Map.of("a", "1"));
+    }
+
+    @Test
+    public void test_a_mapped_cell_carrying_a_zero_width_character_reads_like_its_plain_form() {
+        assertThat(Row.values(List.of("a"), List.of("AB\u200B123"))).isEqualTo(Map.of("a", "AB123"));
+    }
 }
