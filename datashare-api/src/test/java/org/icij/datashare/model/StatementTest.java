@@ -15,7 +15,13 @@ public class StatementTest {
         Statement two = Statement.of("ftm", "person-1", "Person", "name", "Jane Doe", provenance);
 
         assertThat(one.id()).isEqualTo(two.id());
-        assertThat(one.id().length()).isEqualTo(96);
+    }
+
+    @Test
+    public void test_the_id_digest_is_pinned() {
+        assertThat(Statement.of("ftm", "person-1", "Person", "name", "Jane Doe", provenance).id())
+                .isEqualTo("ddd486e94a679882d4f01d6ec0012595937cfdbfcdd82ef4a29ae87fd337cd38"
+                        + "ea83fbd655a60a93a93537c7fcb5fbdf");
     }
 
     @Test
