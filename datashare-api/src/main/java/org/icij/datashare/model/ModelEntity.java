@@ -10,8 +10,8 @@ import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
 
-/** One type, not a set: the entity id hashes the type, so two types can never share an id and a
- *  multi-type entity cannot exist by construction. */
+/** One type, not a set: a group is keyed on the entity id and the model, not the type, so statements
+ *  carrying two types are refused rather than folded into an entity whose type depends on row order. */
 public record ModelEntity(String model, String id, String type, Set<String> modelVersions,
                           Set<String> documentIds, Map<String, List<String>> properties) {
 
@@ -36,13 +36,13 @@ public record ModelEntity(String model, String id, String type, Set<String> mode
     public static ModelEntity from(Iterable<Statement> statements, Set<String> modelVersions) {
         SortedSet<String> ids = new TreeSet<>();
         SortedSet<String> models = new TreeSet<>();
-        String type = null;
+        SortedSet<String> types = new TreeSet<>();
         Set<String> documentIds = new TreeSet<>();
         Map<String, SortedSet<String>> values = new TreeMap<>();
         for (Statement statement : statements) {
             ids.add(statement.entityId());
             models.add(statement.model());
-            type = statement.entityType();
+            types.add(statement.entityType());
             documentIds.add(statement.provenance().documentId());
             values.computeIfAbsent(statement.property(), property -> new TreeSet<>()).add(statement.value());
         }
@@ -55,8 +55,11 @@ public record ModelEntity(String model, String id, String type, Set<String> mode
         if (models.size() > 1) {
             throw new IllegalArgumentException("statements belong to " + models.size() + " models: " + models);
         }
+        if (types.size() > 1) {
+            throw new IllegalArgumentException("statements give the entity " + types.size() + " types: " + types);
+        }
         Map<String, List<String>> properties = new LinkedHashMap<>();
         values.forEach((property, distinct) -> properties.put(property, List.copyOf(distinct)));
-        return new ModelEntity(models.first(), ids.first(), type, modelVersions, documentIds, properties);
+        return new ModelEntity(models.first(), ids.first(), types.first(), modelVersions, documentIds, properties);
     }
 }
