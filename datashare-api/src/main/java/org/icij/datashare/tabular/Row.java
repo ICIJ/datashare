@@ -83,13 +83,14 @@ public record Row(long number, Map<String, String> values) {
      * Maps a row's cells onto the header names, in header order. Every column the header declares is
      * present, padded with an empty string when the row is short, so a consumer never has to tell a
      * missing cell from an empty one. A column whose header name is blank is dropped, and cells past
-     * the last declared column are ignored.
+     * the last declared column are ignored. Each mapped value goes through {@link #clean}, the rule
+     * the header names already follow.
      */
     public static Map<String, String> values(List<String> headers, List<String> cells) {
         Map<String, String> values = new LinkedHashMap<>();
         for (int column = 0; column < headers.size(); column++) {
             if (headers.get(column) != null) {
-                values.put(headers.get(column), column < cells.size() ? cells.get(column) : "");
+                values.put(headers.get(column), column < cells.size() ? clean(cells.get(column)) : "");
             }
         }
         return Collections.unmodifiableMap(values);
