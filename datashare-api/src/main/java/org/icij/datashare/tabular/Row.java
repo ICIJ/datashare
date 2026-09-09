@@ -29,6 +29,12 @@ public record Row(long number, Map<String, String> values) {
         return name.strip();
     }
 
+    /** A cell holding nothing but that same invisible filler carries no more content than an empty
+     *  one, so every reader's blank-row check reads it the way {@link #clean} does. */
+    public static boolean blank(String cell) {
+        return clean(cell).isEmpty();
+    }
+
     private static String rewritten(String name) {
         StringBuilder cleaned = new StringBuilder(name.length());
         for (int index = 0; index < name.length(); index++) {
@@ -105,7 +111,7 @@ public record Row(long number, Map<String, String> values) {
      * that carries no data and cannot misalign anything.
      */
     public static Map<String, String> values(List<String> headers, List<String> cells, long number) {
-        if (cells.stream().skip(headers.size()).anyMatch(cell -> !clean(cell).isEmpty())) {
+        if (!cells.stream().skip(headers.size()).allMatch(Row::blank)) {
             throw new IllegalArgumentException("row " + number + " has " + cells.size()
                     + " fields but the header declares " + headers.size());
         }

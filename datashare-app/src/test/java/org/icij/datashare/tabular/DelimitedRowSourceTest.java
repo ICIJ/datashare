@@ -138,6 +138,15 @@ public class DelimitedRowSourceTest {
     }
 
     @Test
+    public void test_skips_a_row_whose_fields_hold_only_invisible_characters() throws Exception {
+        List<Row> rows = read("id,name\n\u00A0,\u200B\n1,ACME\n", RowSourceOptions.defaults());
+
+        assertThat(rows).hasSize(1);
+        assertThat(rows.get(0).number()).isEqualTo(1L);
+        assertThat(rows.get(0).values().get("name")).isEqualTo("ACME");
+    }
+
+    @Test
     public void test_malformed_record_names_the_row_number() throws Exception {
         try {
             read("id,name\n1,\"unterminated\n", RowSourceOptions.defaults());
