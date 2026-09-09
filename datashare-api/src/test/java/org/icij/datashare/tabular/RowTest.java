@@ -65,4 +65,11 @@ public class RowTest {
     public void test_a_mapped_cell_carrying_a_zero_width_character_reads_like_its_plain_form() {
         assertThat(Row.values(List.of("a"), List.of("AB\u200B123"))).isEqualTo(Map.of("a", "AB123"));
     }
+
+    @Test
+    public void test_a_row_whose_cells_hold_only_invisible_filler_is_blank() {
+        assertThat(Row.blank("\u00A0")).isTrue();
+        assertThat(Row.blank("\uFEFF")).isTrue();
+        assertThat(Row.blank("0")).isFalse();
+    }
 }
