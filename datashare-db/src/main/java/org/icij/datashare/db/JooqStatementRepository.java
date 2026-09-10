@@ -91,12 +91,8 @@ public class JooqStatementRepository implements StatementRepository {
     // binding its own values, which would not line up with the record's positional binds.
     private static int saveChunk(DSLContext create, Write write, List<Statement> chunk) {
         // The update is conditional so a no-op re-run rewrites nothing: unconditional, every row and
-        // both index entries are rewritten on every re-run (measured 35->70->94 MB over three
-        // identical saves), for WRITTEN_AT and RUN_ID values nothing reads. Only a row whose content
-        // actually moved (an ontology bump, an original_value recorded under another format) is
-        // rewritten, and takes the fresh run and timestamp with it, which is why the column says
-        // when the row was written and not when it was last seen. DO UPDATE ... WHERE needs
-        // SQLite 3.24+; the bundled driver carries 3.40.
+        // both index entries are rewritten on every re-run, for WRITTEN_AT and RUN_ID values nothing
+        // reads. DO UPDATE ... WHERE needs SQLite 3.24+; the bundled driver carries 3.40.
         BatchBindStep batch = create.batch(create.insertInto(STATEMENT).set(row(write, chunk.get(0)))
                 .onConflict(STATEMENT.ID, STATEMENT.PRJ_ID).doUpdate()
                 .set(STATEMENT.RUN_ID, DSL.excluded(STATEMENT.RUN_ID))
