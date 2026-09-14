@@ -48,7 +48,8 @@ public record ExtractionMapping(String id, String projectId, String userId, Stri
         }
     }
 
-    public record PropertyMapping(List<String> columns, String join, String literal, String entity, String format) {
+    public record PropertyMapping(List<String> columns, String join, String literal, String entity,
+                                  String dateFormat) {
         public PropertyMapping {
             // Column names get the cleaning headers get, and a literal gets the cleaning cells get:
             // a mapping authored by copy-paste behaves like the file it was copied from. JSON is the
@@ -64,8 +65,8 @@ public record ExtractionMapping(String id, String projectId, String userId, Stri
             if (join != null && columns.size() < 2) {
                 throw new InvalidPropertyMapping("'join' needs more than one column");
             }
-            if (format != null && columns.isEmpty()) {
-                throw new InvalidPropertyMapping("'format' applies to columns only");
+            if (dateFormat != null && columns.isEmpty()) {
+                throw new InvalidPropertyMapping("'dateFormat' applies to columns only");
             }
         }
     }
@@ -150,11 +151,11 @@ public record ExtractionMapping(String id, String projectId, String userId, Stri
         if (mapped.columns().stream().anyMatch(String::isEmpty)) {
             violations.add(new TargetModel.Violation(where + "has a blank column name, which no header can match"));
         }
-        if (mapped.format() != null) {
+        if (mapped.dateFormat() != null) {
             try {
-                formats.declare(mapped.format());
+                formats.declare(mapped.dateFormat());
             } catch (UnusableDateFormat unusable) {
-                violations.add(new TargetModel.Violation(where + "has an unusable format: "
+                violations.add(new TargetModel.Violation(where + "has an unusable date format: "
                         + unusable.getMessage()));
             }
         }

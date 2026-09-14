@@ -582,7 +582,7 @@ public class MappingExecutorTest {
                 () -> person(List.of("passport"),
                         Map.of("name", column("full_name"), "birthDate", formatted("born", "HH:mm"))));
 
-        assertThat(thrown.violations.toString()).contains("unusable format");
+        assertThat(thrown.violations.toString()).contains("unusable date format");
     }
 
     @Test

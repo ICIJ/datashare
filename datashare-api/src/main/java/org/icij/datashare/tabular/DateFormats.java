@@ -25,11 +25,9 @@ import java.util.Map;
 class DateFormats {
     // A leap day, so the round-trip in compile() exercises the strictest date the calendar has.
     private static final LocalDateTime PROBE = LocalDateTime.of(2004, 2, 29, 15, 45, 58);
-
     // Year.toString is unpadded ('70' for year 70), unlike every other Temporal: 'uuuu' prints the
     // ISO form the others print, four digits minimum, '-' for BCE and '+' past 9999.
     private static final DateTimeFormatter YEAR = DateTimeFormatter.ofPattern("uuuu", Locale.ROOT);
-
     private final Map<String, DateTimeFormatter> formats = new HashMap<>();
 
     void declare(String pattern) {
@@ -56,7 +54,7 @@ class DateFormats {
 
     // Compiling proves syntax only: 'HH:mm' carries no date at all. One round-trip over a fixed date
     // turns "fails on every row" into a refusal at declare time, which validate() reports as an
-    // unusable format.
+    // unusable date format.
     private static DateTimeFormatter compile(String pattern) {
         String rewritten = strict(pattern);
         DateTimeFormatter format;
@@ -104,15 +102,15 @@ class DateFormats {
             char letter = letters[index];
             if (letter == 'Y' || letter == 'w' || letter == 'W') {
                 throw new UnusableDateFormat(pattern,
-                        "carries the week-based '" + letter + "', which never resolves to a date");
+                                             "carries the week-based '" + letter + "', which never resolves to a date");
             }
             if ("XxZOVz".indexOf(letter) >= 0) {
-                throw new UnusableDateFormat(pattern,
-                        "carries '" + letter + "': an offset is a precision the target model does not store");
+                throw new UnusableDateFormat(pattern, "carries '" + letter +
+                                                      "': an offset is a precision the target model does not store");
             }
             if (letter == 'u' && era) {
                 throw new UnusableDateFormat(pattern,
-                        "holds a proleptic year 'u' next to an era 'G', which parses the era and ignores it, use 'y'");
+                                             "holds a proleptic year 'u' next to an era 'G', which parses the era and ignores it, use 'y'");
             }
             boolean year = letter == 'y' || letter == 'u';
             if (!year) {

@@ -96,8 +96,8 @@ public class MappingExecutor {
         columns.addAll(entity.keys());
         entity.properties().values().forEach(property -> {
             columns.addAll(property.columns());
-            if (property.format() != null) {
-                formats.declare(property.format());
+            if (property.dateFormat() != null) {
+                formats.declare(property.dateFormat());
             }
         });
     }
@@ -171,11 +171,11 @@ public class MappingExecutor {
             } else if (mapped.join() != null) {
                 filling.fill(property, mapped.columns().stream()
                         .map(cells::get).filter(cell -> !cell.isEmpty())
-                        .collect(joining(mapped.join())), mapped.format(),
+                        .collect(joining(mapped.join())), mapped.dateFormat(),
                         provenance(row, String.join(",", mapped.columns())));
             } else {
                 for (String column : mapped.columns()) {
-                    filling.fill(property, cells.get(column), mapped.format(), provenance(row, column));
+                    filling.fill(property, cells.get(column), mapped.dateFormat(), provenance(row, column));
                 }
             }
         }
@@ -219,11 +219,11 @@ public class MappingExecutor {
             this.type = type;
         }
 
-        private void fill(String property, String cell, String format, Statement.Provenance provenance) {
+        private void fill(String property, String cell, String dateFormat, Statement.Provenance provenance) {
             if (cell == null || cell.isEmpty()) {
                 return;
             }
-            String value = value(cell, format, provenance);
+            String value = dateValue(cell, dateFormat, provenance);
             Statement statement = Statement.of(mapping.model(), entityId, type, property, value, provenance);
             statements.add(value.equals(cell) ? statement : statement.withOriginalValue(cell));
         }
@@ -233,11 +233,11 @@ public class MappingExecutor {
     // so one 'n/a' in a date column does not cost a run, and is counted so a whole column that never
     // converts cannot pass for a clean import. The log names the column, never the cell: an
     // unconvertible cell is document content, and DEBUG logs are not bound by project access rules.
-    private String value(String cell, String format, Statement.Provenance provenance) {
-        if (format == null) {
+    private String dateValue(String cell, String dateFormat, Statement.Provenance provenance) {
+        if (dateFormat == null) {
             return cell;
         }
-        String iso = formats.iso(cell, format);
+        String iso = formats.iso(cell, dateFormat);
         if (iso != null) {
             return iso;
         }
