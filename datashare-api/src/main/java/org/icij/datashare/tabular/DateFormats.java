@@ -54,9 +54,9 @@ class DateFormats {
         }
     }
 
-    // Compiling proves syntax only: 'HH:mm' carries no date at all, and an offset is a precision
-    // date() drops. One round-trip over a fixed date turns "fails on every row" into a refusal at
-    // declare time, which validate() reports as an unusable format.
+    // Compiling proves syntax only: 'HH:mm' carries no date at all. One round-trip over a fixed date
+    // turns "fails on every row" into a refusal at declare time, which validate() reports as an
+    // unusable format.
     private static DateTimeFormatter compile(String pattern) {
         String rewritten = strict(pattern);
         DateTimeFormatter format;
@@ -76,9 +76,6 @@ class DateFormats {
     // The precision the pattern actually carries: reading every cell as a date would drop the time a
     // datetime column declares, and refuse the year or year-and-month the target model accepts.
     private static Temporal date(TemporalAccessor parsed) {
-        if (parsed.isSupported(ChronoField.OFFSET_SECONDS)) {
-            throw new DateTimeException("an offset is a precision the target model does not store");
-        }
         if (parsed.isSupported(ChronoField.HOUR_OF_DAY)) {
             return LocalDateTime.from(parsed);
         }
@@ -91,11 +88,13 @@ class DateFormats {
         return Year.from(parsed);
     }
 
-    // The rewrite strict parsing needs. A week-based field ('Y', 'w', 'W')
-    // never resolves to a date, so a pattern carrying one would read no cell at all. And 'y' is
-    // year-of-era, which STRICT refuses to resolve without an era, so it is rewritten to the
-    // proleptic 'u' unless the pattern carries a 'G': rewritten next to an era, every BC year would
-    // silently read as CE.
+    // The rewrite strict parsing needs, and the pattern letters no rewrite can save. A week-based
+    // field ('Y', 'w', 'W') never resolves to a date, so a pattern carrying one would read no cell at
+    // all. An offset or a zone is a precision the target model does not store, and is named here
+    // rather than left to compile()'s round-trip, which cannot print one off a local probe and would
+    // report it as the generic "not a date the model stores". And 'y' is year-of-era, which STRICT
+    // refuses to resolve without an era, so it is rewritten to the proleptic 'u' unless the pattern
+    // carries a 'G': rewritten next to an era, every BC year would silently read as CE.
     private static String strict(String pattern) {
         char[] letters = unquoted(pattern);
         boolean era = new String(letters).indexOf('G') >= 0;
@@ -106,6 +105,10 @@ class DateFormats {
             if (letter == 'Y' || letter == 'w' || letter == 'W') {
                 throw new UnusableDateFormat(pattern,
                         "carries the week-based '" + letter + "', which never resolves to a date");
+            }
+            if ("XxZOVz".indexOf(letter) >= 0) {
+                throw new UnusableDateFormat(pattern,
+                        "carries '" + letter + "': an offset is a precision the target model does not store");
             }
             if (letter == 'u' && era) {
                 throw new UnusableDateFormat(pattern,
