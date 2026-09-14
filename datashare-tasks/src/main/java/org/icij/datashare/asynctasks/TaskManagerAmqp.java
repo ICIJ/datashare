@@ -2,6 +2,7 @@ package org.icij.datashare.asynctasks;
 
 import java.util.List;
 import java.util.function.Consumer;
+
 import org.icij.datashare.asynctasks.bus.amqp.*;
 
 import org.icij.datashare.tasks.RoutingStrategy;
@@ -116,13 +117,13 @@ public class TaskManagerAmqp extends StoreAndQueueTaskManagerImpl {
     public List<Task<?>> clearDoneTasks(TaskFilters filters) throws IOException {
         // Require tasks to be in final state and apply user filters
         Stream<Task<?>> taskStream = tasks.getTasks(filters.withStates(FINAL_STATES))
-            .map(t -> {
-                try {
-                    return tasks.delete(t.id);
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
-            });
+                .map(t -> {
+                    try {
+                        return tasks.delete(t.id);
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                });
         return taskStream.toList();
     }
 
@@ -151,7 +152,7 @@ public class TaskManagerAmqp extends StoreAndQueueTaskManagerImpl {
             } else {
                 return amqp.isConnectionOpen();
             }
-        } catch (RuntimeException|IOException e) {
+        } catch (RuntimeException | IOException e) {
             logger.error("error sending monitoring event", e);
             return false;
         }

@@ -35,7 +35,7 @@ public final class LambdaExceptionUtils {
     /**
      * .map(rethrowFunction(name -> Class.forName(name))) or .map(rethrowFunction(Class::forName))
      */
-    public static <T, R, E extends Exception> Function<T, R> rethrowFunction(Function_WithExceptions<T, R, E> function) throws E  {
+    public static <T, R, E extends Exception> Function<T, R> rethrowFunction(Function_WithExceptions<T, R, E> function) throws E {
         return t -> {
             try {
                 return function.apply(t);

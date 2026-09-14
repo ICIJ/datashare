@@ -88,7 +88,7 @@ public class BatchSearchRunner implements CancellableTask, UserTask, Callable<Ba
         String scrollDuration = propertiesProvider.get(BATCH_SEARCH_SCROLL_DURATION_OPT).orElse(DEFAULT_SCROLL_DURATION);
         int scrollSizeFromParams = parseInt(propertiesProvider.get(BATCH_SEARCH_SCROLL_SIZE_OPT)
                 .orElse(propertiesProvider.get(SCROLL_SIZE_OPT)
-                .orElse(String.valueOf(DEFAULT_SCROLL_SIZE))));
+                        .orElse(String.valueOf(DEFAULT_SCROLL_SIZE))));
         int scrollSize = min(scrollSizeFromParams, MAX_SCROLL_SIZE);
         callThread = Thread.currentThread();
         callWaiterLatch.countDown(); // for tests

@@ -30,8 +30,8 @@ public interface EnumTypeToken {
      */
     default String buildClassName(final Class<?> interfaceClass,
                                   final Enum<? extends EnumTypeToken> enumValue) {
-        String packageName   = interfaceClass.getPackage().getName();
-        String typeName      = enumValue.name().toLowerCase();
+        String packageName = interfaceClass.getPackage().getName();
+        String typeName = enumValue.name().toLowerCase();
         String interfaceName = interfaceClass.getSimpleName();
         String implClassName = capitalize.apply(typeName) + interfaceName;
         return String.join(".", packageName, typeName, implClassName);
@@ -43,10 +43,10 @@ public interface EnumTypeToken {
         if (className == null || className.isEmpty()) {
             return Optional.empty();
         }
-        String[] classNameSplit  = className.split("\\.");
-        String   simpleClassName = classNameSplit[classNameSplit.length-1];
-        String   interfaceName   = interfaceClass.getSimpleName();
-        String   enumValueName   = removePattFrom.apply(interfaceName).apply(simpleClassName);
+        String[] classNameSplit = className.split("\\.");
+        String simpleClassName = classNameSplit[classNameSplit.length - 1];
+        String interfaceName = interfaceClass.getSimpleName();
+        String enumValueName = removePattFrom.apply(interfaceName).apply(simpleClassName);
         return parse(enumType, enumValueName);
     }
 
@@ -55,7 +55,7 @@ public interface EnumTypeToken {
             return Optional.empty();
         }
         try {
-            return Optional.of( Enum.valueOf( enumType, enumValueName.toUpperCase(Locale.ROOT) ) );
+            return Optional.of(Enum.valueOf(enumType, enumValueName.toUpperCase(Locale.ROOT)));
 
         } catch (IllegalArgumentException e) {
             return Optional.empty();

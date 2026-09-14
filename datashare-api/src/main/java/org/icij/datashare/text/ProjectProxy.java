@@ -19,8 +19,8 @@ public class ProjectProxy implements Entity {
     public final String name;
 
     @JsonCreator(mode = DELEGATING)
-    public ProjectProxy(@JsonProperty("name") String name){
-        this.name  = name;
+    public ProjectProxy(@JsonProperty("name") String name) {
+        this.name = name;
     }
 
     @JsonIgnore
@@ -29,7 +29,7 @@ public class ProjectProxy implements Entity {
         return this.name;
     }
 
-    public static ProjectProxy proxy(String projectName){
+    public static ProjectProxy proxy(String projectName) {
         return new ProjectProxy(projectName);
     }
 
@@ -46,17 +46,19 @@ public class ProjectProxy implements Entity {
         return Objects.hash(name);
     }
 
-    public static List<String> asNameList(List<ProjectProxy> projects){
+    public static List<String> asNameList(List<ProjectProxy> projects) {
         return projects.stream().map(ProjectProxy::getId).collect(toList());
     }
 
-    public static List<ProjectProxy> fromNameStringList(List<String> projects){
+    public static List<ProjectProxy> fromNameStringList(List<String> projects) {
         return projects.stream().map(ProjectProxy::proxy).collect(toList());
     }
-    public static String[] asNameArray(List<ProjectProxy> projects){
-        return  asNameList(projects).toArray(new String[0]);
+
+    public static String[] asNameArray(List<ProjectProxy> projects) {
+        return asNameList(projects).toArray(new String[0]);
     }
-    public static String asCommaConcatNames(List<ProjectProxy> projects){
+
+    public static String asCommaConcatNames(List<ProjectProxy> projects) {
         return projects.stream().map(ProjectProxy::getId).collect(Collectors.joining(", "));
     }
 

@@ -21,7 +21,8 @@ class UpstreamSealableLatch implements SealableLatch {
 
     /** Nothing to wake up: the drainer re-polls on its own once {@link #await()} returns. */
     @Override
-    public void signal() {}
+    public void signal() {
+    }
 
     @Override
     public void await() throws InterruptedException {

@@ -103,7 +103,7 @@ public class BatchDownloadRunner implements Callable<BatchDownloadRunnerResult>,
         String scrollDuration = propertiesProvider.get(BATCH_DOWNLOAD_SCROLL_DURATION_OPT).orElse(DEFAULT_SCROLL_DURATION);
         int scrollSizeFromParams = parseInt(propertiesProvider.get(BATCH_DOWNLOAD_SCROLL_SIZE_OPT)
                 .orElse(propertiesProvider.get(SCROLL_SIZE_OPT)
-                .orElse(valueOf(DEFAULT_SCROLL_SIZE))));
+                        .orElse(valueOf(DEFAULT_SCROLL_SIZE))));
         int scrollSize = min(scrollSizeFromParams, MAX_SCROLL_SIZE);
         long maxZipSizeBytes = HumanReadableSize.parse(propertiesProvider.get(BATCH_DOWNLOAD_MAX_SIZE_OPT).orElse(DEFAULT_BATCH_DOWNLOAD_MAX_SIZE));
         long zippedFilesSize = 0;
@@ -150,12 +150,12 @@ public class BatchDownloadRunner implements Callable<BatchDownloadRunnerResult>,
             throw ElasticSearchAdapterException.createFrom(esEx);
         }
         BatchDownloadRunnerResult.TruncationReason truncationReason = null; //Can stay null if no truncation was made
-        if(numberOfResults.get() < docsToProcessSize) {
-            if(zippedFilesSize > maxZipSizeBytes) {
+        if (numberOfResults.get() < docsToProcessSize) {
+            if (zippedFilesSize > maxZipSizeBytes) {
                 truncationReason = BatchDownloadRunnerResult.TruncationReason.SIZE_LIMIT;
                 logger.warn("File size of results for batch download {} of user {} exceeds size limit {}. Zip entries will be limited",
                         batchDownload.uuid, batchDownload.user, maxZipSizeBytes);
-            } else if(numberOfResults.get() >= maxResultSize) {
+            } else if (numberOfResults.get() >= maxResultSize) {
                 truncationReason = BatchDownloadRunnerResult.TruncationReason.FILE_COUNT_LIMIT;
                 logger.warn("Number of files results for batch download {} of user {} exceeds file size limit {}. Zip entries will be limited",
                         batchDownload.uuid, batchDownload.user, maxResultSize);
@@ -236,7 +236,7 @@ public class BatchDownloadRunner implements Callable<BatchDownloadRunnerResult>,
             this(batchDownload, propertiesProvider, new ZipOutputStream(new FileOutputStream(batchDownload.filename.toFile())));
         }
 
-        protected Zipper(BatchDownload batchDownload,  PropertiesProvider propertiesProvider, ZipOutputStream zipOutputStream) {
+        protected Zipper(BatchDownload batchDownload, PropertiesProvider propertiesProvider, ZipOutputStream zipOutputStream) {
             this.batchDownload = batchDownload;
             this.zipOutputStream = zipOutputStream;
             this.propertiesProvider = propertiesProvider;
@@ -299,7 +299,7 @@ public class BatchDownloadRunner implements Callable<BatchDownloadRunnerResult>,
             return StringUtils.stripEnd(this.rootHost, "/").concat("/#/tasks/batch-download");
         }
 
-        public String batchDownloadsLinkRow () {
+        public String batchDownloadsLinkRow() {
             if (rootHost == null || rootHost.trim().isEmpty()) {
                 return "";
             }
@@ -331,7 +331,7 @@ public class BatchDownloadRunner implements Callable<BatchDownloadRunnerResult>,
                 Mail mail = new Mail(from, recipient, subject, body);
                 passwordSender.send(mail);
             } catch (MailException mex) {
-                logger.error("failed to send mail password" , mex);
+                logger.error("failed to send mail password", mex);
             }
         }
     }

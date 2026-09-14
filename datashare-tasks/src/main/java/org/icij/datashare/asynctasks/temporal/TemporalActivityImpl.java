@@ -7,6 +7,7 @@ import io.temporal.activity.Activity;
 import io.temporal.activity.ActivityInfo;
 import io.temporal.client.WorkflowClient;
 import io.temporal.client.WorkflowStub;
+
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
@@ -14,6 +15,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.function.BiConsumer;
+
 import org.icij.datashare.asynctasks.ProgressSmoother;
 import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.asynctasks.TaskFactory;
@@ -67,15 +69,15 @@ public abstract class TemporalActivityImpl<R, T extends Callable<R>> {
         return taskWrapper(rethrowFunction(inputArgs -> {
             ActivityInfo info = Activity.getExecutionContext().getInfo();
             User user = Optional.ofNullable((HashMap<String, Object>) inputArgs.get("user"))
-                .map(User::new)
-                .orElse(null);
+                    .map(User::new)
+                    .orElse(null);
             // TODO : BatchSearchRunner relies on the Task.id to retrieve the Queries to run from the DB.
             // TODO : This is a design that relies on unwritten convention, so it should be changed
             Task<?> task = new Task<>(info.getWorkflowId(), getTaskClass().getSimpleName(), user, inputArgs);
             BiConsumer<String, Double> progressFn = getProgressFn(info);
             ProgressSmoother smoothedProgress = new ProgressSmoother(progressFn, 10);
             Callable<R> taskFn = (Callable<R>) TaskFactoryHelper.createTaskCallable(
-                getTaskFactory(), getTaskClass().getName(), task, task.progress(smoothedProgress)
+                    getTaskFactory(), getTaskClass().getName(), task, task.progress(smoothedProgress)
             );
             progressFn.accept(task.getId(), 0.0);
             R result = taskFn.call();

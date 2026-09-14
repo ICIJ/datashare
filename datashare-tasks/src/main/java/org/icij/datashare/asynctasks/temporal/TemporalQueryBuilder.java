@@ -8,11 +8,13 @@ import static org.icij.datashare.asynctasks.temporal.TemporalInterlocutor.USER_C
 import static org.icij.datashare.asynctasks.temporal.TemporalInterlocutor.WORKFLOW_TYPE_ATTRIBUTE;
 
 import io.temporal.api.enums.v1.WorkflowExecutionStatus;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.regex.Pattern;
+
 import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.asynctasks.TaskFilters;
 import org.icij.datashare.user.User;
@@ -40,17 +42,17 @@ public class TemporalQueryBuilder {
             return null;
         }
         List<String> statuses = states.stream()
-            .sorted()
-            .flatMap(TemporalHelper::asWorkflowExecutionStatus)
-            .distinct()
-            .map(TemporalQueryBuilder::statusLabel)
-            .toList();
+                .sorted()
+                .flatMap(TemporalHelper::asWorkflowExecutionStatus)
+                .distinct()
+                .map(TemporalQueryBuilder::statusLabel)
+                .toList();
         if (statuses.size() == 1) {
             return EXECUTION_STATUS_ATTRIBUTE.getName() + " = " + statuses.stream().iterator().next();
         }
         return String.join(
-            " OR ",
-            statuses.stream().map(s -> EXECUTION_STATUS_ATTRIBUTE.getName() + "= '" + s + "'").toList()
+                " OR ",
+                statuses.stream().map(s -> EXECUTION_STATUS_ATTRIBUTE.getName() + "= '" + s + "'").toList()
         );
     }
 
@@ -70,7 +72,7 @@ public class TemporalQueryBuilder {
             String trimmed = part.trim();
             if (!SUPPORTED_NAME_QUERY_PATTERN.matcher(trimmed).matches()) {
                 throw new IllegalArgumentException("invalid pattern " + trimmed + " with Temporal, exact match or prefix queries are supported."
-                    + " Test your name query against the " + SUPPORTED_NAME_QUERY_PATTERN.pattern() + " pattern to ensure compatibility");
+                        + " Test your name query against the " + SUPPORTED_NAME_QUERY_PATTERN.pattern() + " pattern to ensure compatibility");
             }
             if (trimmed.endsWith(".*")) {
                 clauses.add(WORKFLOW_TYPE_ATTRIBUTE.getName() + " STARTS_WITH '" + trimmed.substring(0, trimmed.length() - 2) + "'");
@@ -90,11 +92,11 @@ public class TemporalQueryBuilder {
 
     private static String statusLabel(WorkflowExecutionStatus status) {
         String[] split = status.name()
-            .replace("WORKFLOW_EXECUTION_STATUS_", "")
-            .toLowerCase()
-            .split("_");
+                .replace("WORKFLOW_EXECUTION_STATUS_", "")
+                .toLowerCase()
+                .split("_");
         return stream(split)
-            .map(s -> toUpperCase(s.charAt(0)) + s.substring(1))
-            .collect(joining());
+                .map(s -> toUpperCase(s.charAt(0)) + s.substring(1))
+                .collect(joining());
     }
 }

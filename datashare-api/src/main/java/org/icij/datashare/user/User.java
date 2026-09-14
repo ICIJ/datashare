@@ -71,10 +71,10 @@ public class User implements Entity, Comparable<User> {
     }
 
     public User(Map<String, Object> map) {
-        this((String)map.get("uid"),
-                (String)map.get("name"),
-                (String)map.get("email"),
-                (String)map.getOrDefault("provider", LOCAL),
+        this((String) map.get("uid"),
+                (String) map.get("name"),
+                (String) map.get("email"),
+                (String) map.getOrDefault("provider", LOCAL),
                 map, //details
                 (String) map.get("jsonProjectKey"));
     }
@@ -104,11 +104,11 @@ public class User implements Entity, Comparable<User> {
     public List<String> getApplicationProjectNames() {
         List<String> jsonKeys = List.of(jsonProjectKey.split("\\."));
         Map<String, Object> node = details;
-        for (String key: jsonKeys)  {
+        for (String key : jsonKeys) {
             Object o = node.get(key);
-            if (o instanceof Map<?,?>) {
+            if (o instanceof Map<?, ?>) {
                 node = (Map<String, Object>) o;
-            } else if (jsonKeys.indexOf(key) == jsonKeys.size() -1 && o instanceof List<?>) {
+            } else if (jsonKeys.indexOf(key) == jsonKeys.size() - 1 && o instanceof List<?>) {
                 return (List<String>) o;
             } else {
                 return new ArrayList<>();
@@ -193,16 +193,33 @@ public class User implements Entity, Comparable<User> {
         return getProjects().contains(project);
     }
 
-    @Override public String getId() { return id;}
+    @Override
+    public String getId() {
+        return id;
+    }
 
-    public String queueName() { return "extract:queue_" + id;}
+    public String queueName() {
+        return "extract:queue_" + id;
+    }
+
     @JsonIgnore
-    public String getPath() { return this.equals(local()) || isNull() ? "" : id;}
+    public String getPath() {
+        return this.equals(local()) || isNull() ? "" : id;
+    }
+
     @JsonIgnore
-    public boolean isNull() { return this.id == null;}
+    public boolean isNull() {
+        return this.id == null;
+    }
+
     @JsonIgnore
-    public boolean isLocal() { return LOCAL.equals(this.id);}
-    public static User local() { return localUser(LOCAL);}
+    public boolean isLocal() {
+        return LOCAL.equals(this.id);
+    }
+
+    public static User local() {
+        return localUser(LOCAL);
+    }
 
     public static User localUser(String id, String... projectNames) {
         return localUser(id, Arrays.stream(projectNames).toList());
@@ -228,9 +245,15 @@ public class User implements Entity, Comparable<User> {
 
         return detailsMap;
     }
-    public static User nullUser() { return new User((String)null);}
+
+    public static User nullUser() {
+        return new User((String) null);
+    }
+
     @Override
-    public int hashCode() { return Objects.hash(id);}
+    public int hashCode() {
+        return Objects.hash(id);
+    }
 
     @Override
     public boolean equals(Object o) {
@@ -240,7 +263,7 @@ public class User implements Entity, Comparable<User> {
     }
 
     static String getDefaultProjectsKey() {
-        return isEmpty(System.getProperty(JVM_PROJECT_KEY)) ? DEFAULT_PROJECTS_KEY: System.getProperty(JVM_PROJECT_KEY);
+        return isEmpty(System.getProperty(JVM_PROJECT_KEY)) ? DEFAULT_PROJECTS_KEY : System.getProperty(JVM_PROJECT_KEY);
     }
 
     @Override

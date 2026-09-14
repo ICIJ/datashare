@@ -8,7 +8,8 @@ import java.nio.file.Path;
 /** Whether the payload a manifest entry advertises is still on disk. Single definition of the question,
  *  so skip-if-current, INDEX-time recording and raw's post-extraction check cannot drift apart. */
 public class ArtifactPayload {
-    private ArtifactPayload() {}
+    private ArtifactPayload() {
+    }
 
     /** Takes the entry stamped or not, since two of the three callers ask before
      *  {@link ManifestEntry#withTerminalStatus()} runs. {@code !exists} rather than {@code notExists}: a

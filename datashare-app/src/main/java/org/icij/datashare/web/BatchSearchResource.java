@@ -47,7 +47,7 @@ public class BatchSearchResource {
             Retrieves the batch search list for the user issuing the request filter with the given criteria, and the total of batch searches matching the criteria.
             
             If from/size are not given their default values are 0, meaning that all the results are returned. BatchDate must be a list of 2 items (the first one for the starting date and the second one for the ending date) If defined publishState is a string equals to "0" or "1\"""",
-            requestBody = @RequestBody(description = "the json webQuery request body", required = true,  content = @Content(schema = @Schema(implementation = BatchSearchRepository.WebQuery.class)))
+            requestBody = @RequestBody(description = "the json webQuery request body", required = true, content = @Content(schema = @Schema(implementation = BatchSearchRepository.WebQuery.class)))
     )
     @ApiResponse(responseCode = "200", description = "the list of batch searches with the total batch searches for the query", useReturnTypeSchema = true)
     @Post("/search")
@@ -56,8 +56,9 @@ public class BatchSearchResource {
         return new WebResponse<>(batchSearchRepository.getRecords(user, user.getProjectNames(), webQuery), webQuery.from, webQuery.size,
                 batchSearchRepository.getTotal(user, user.getProjectNames(), webQuery));
     }
+
     @Operation(description = "Retrieves the list of batch searches",
-            parameters ={
+            parameters = {
                     @Parameter(name = "query", in = ParameterIn.QUERY, description = "'freetext' search filter. Empty string or '*' to select all. Default is '*'"),
                     @Parameter(name = "field", in = ParameterIn.QUERY, description = "specifies field on query filter ('all','author'...). Default is 'all' "),
                     @Parameter(name = "queries", in = ParameterIn.QUERY, description = "list of selected queries in the batch search (to invert selection put 'queriesExcluded' parameter to true)"),
@@ -76,11 +77,11 @@ public class BatchSearchResource {
         DatashareUser user = (DatashareUser) context.currentUser();
         int from = Integer.parseInt(ofNullable(context.get("from")).orElse("0"));
         int size = Integer.parseInt(ofNullable(context.get("size")).orElse("100"));
-        List<String> queries = ofNullable(context.get("queries")).map(q-> List.of(q.split(","))).orElse(null);
-        List<String> project = ofNullable(context.get("project")).map(q-> List.of(q.split(","))).orElse(null);
-        List<String> batchDate = ofNullable(context.get("batchDate")).map(q-> List.of(q.split(","))).orElse(null);
-        List<String> state =ofNullable(context.get("state")).map(q->  List.of(q.split(","))).orElse(null);
-        List<String> contentTypes = ofNullable(context.get("contentTypes")).map(q-> List.of(q.split(","))).orElse(null);
+        List<String> queries = ofNullable(context.get("queries")).map(q -> List.of(q.split(","))).orElse(null);
+        List<String> project = ofNullable(context.get("project")).map(q -> List.of(q.split(","))).orElse(null);
+        List<String> batchDate = ofNullable(context.get("batchDate")).map(q -> List.of(q.split(","))).orElse(null);
+        List<String> state = ofNullable(context.get("state")).map(q -> List.of(q.split(","))).orElse(null);
+        List<String> contentTypes = ofNullable(context.get("contentTypes")).map(q -> List.of(q.split(","))).orElse(null);
         String query = ofNullable(context.get("query")).orElse("*");
         String field = ofNullable(context.get("field")).orElse("all");
         String sort = ofNullable(context.get("sort")).orElse("doc_nb");
@@ -124,13 +125,13 @@ public class BatchSearchResource {
     }
 
     @Operation(description = "Retrieves the batch search queries with the given batch id and returns a list of strings UTF-8 encoded",
-                parameters = {@Parameter(name = "from", description = "if not provided it starts from 0", in = ParameterIn.QUERY),
-                              @Parameter(name = "size", description = "if not provided all queries are returned from the \"from\" parameter", in = ParameterIn.QUERY),
-                              @Parameter(name = "format", description = "if set to csv, it answers with content-disposition attachment (file downloading)", in = ParameterIn.QUERY),
-                              @Parameter(name = "search", description = "if provided it will filter the queries accordingly", in = ParameterIn.QUERY),
-                              @Parameter(name = "sort", description = "field name to sort by, \"query_number\" by default (if it does not exist it will return a 500 error)", in = ParameterIn.QUERY),
-                              @Parameter(name = "order", description = "order to sort by, \"asc\" by default (if it does not exist it will return a 500 error)", in = ParameterIn.QUERY),
-                              @Parameter(name = "maxResult", description = "number of maximum results for each returned query (-1 means no maxResults)", in = ParameterIn.QUERY)})
+            parameters = {@Parameter(name = "from", description = "if not provided it starts from 0", in = ParameterIn.QUERY),
+                    @Parameter(name = "size", description = "if not provided all queries are returned from the \"from\" parameter", in = ParameterIn.QUERY),
+                    @Parameter(name = "format", description = "if set to csv, it answers with content-disposition attachment (file downloading)", in = ParameterIn.QUERY),
+                    @Parameter(name = "search", description = "if provided it will filter the queries accordingly", in = ParameterIn.QUERY),
+                    @Parameter(name = "sort", description = "field name to sort by, \"query_number\" by default (if it does not exist it will return a 500 error)", in = ParameterIn.QUERY),
+                    @Parameter(name = "order", description = "order to sort by, \"asc\" by default (if it does not exist it will return a 500 error)", in = ParameterIn.QUERY),
+                    @Parameter(name = "maxResult", description = "number of maximum results for each returned query (-1 means no maxResults)", in = ParameterIn.QUERY)})
     @ApiResponse(responseCode = "200", description = "the batch search queries map [(query, nbResults), ...]")
     @Get("/search/:batchid/queries")
     public Payload getBatchQueries(@Parameter(name = "batchId", description = "identifier of the batch search", in = ParameterIn.PATH) String batchId, Context context) {
@@ -148,7 +149,7 @@ public class BatchSearchResource {
             String contentType = "text/csv;charset=UTF-8";
             String queriesFilename = batchId + "-queries.csv";
             String body = String.join("\n", queries.keySet());
-            return new Payload(contentType, body). withHeader("Content-Disposition", "attachment;filename=\"" + queriesFilename + "\"");
+            return new Payload(contentType, body).withHeader("Content-Disposition", "attachment;filename=\"" + queriesFilename + "\"");
         }
         return new Payload(queries);
     }
@@ -231,24 +232,24 @@ public class BatchSearchResource {
         return (Boolean) value;
     }
 
-    @Operation( description = """
+    @Operation(description = """
             Retrieves the results of a batch search as JSON with a list of items and a pagination metadata.
             
             If from/size are not given their default values are 0, meaning that all the results are returned.""",
-                requestBody = @RequestBody(
-                        required = true,
-                        description = "filter ",
-                        content = @Content(schema = @Schema(implementation = BatchSearchRepository.WebQuery.class))
-                ),
-                parameters = { @Parameter(name = "batchId", description = "id of the batchsearch") }
+            requestBody = @RequestBody(
+                    required = true,
+                    description = "filter ",
+                    content = @Content(schema = @Schema(implementation = BatchSearchRepository.WebQuery.class))
+            ),
+            parameters = {@Parameter(name = "batchId", description = "id of the batchsearch")}
     )
     @Post("/search/result/:batchid")
     public WebResponse<SearchResult> getResult(String batchId, BatchSearchRepository.WebQuery webQuery, Context context) {
         return getResultsOrThrowUnauthorized(batchId, (User) context.currentUser(), webQuery);
     }
 
-    @Operation( description = "Retrieves the results of a batch search as an attached CSV file.",
-                parameters = {@Parameter(name = "batchid")}
+    @Operation(description = "Retrieves the results of a batch search as an attached CSV file.",
+            parameters = {@Parameter(name = "batchid")}
     )
     @ApiResponse(responseCode = "200", description = "returns the results of the batch search as CSV attached file.")
     @Get("/search/result/csv/:batchid")
@@ -307,8 +308,8 @@ public class BatchSearchResource {
 
     private WebResponse<SearchResult> getResultsOrThrowUnauthorized(String batchId, User user, BatchSearchRepository.WebQuery webQuery) {
         try {
-            return new WebResponse<>(batchSearchRepository.getResults(user, batchId, webQuery), webQuery.from,webQuery.size,
-                    batchSearchRepository.getResultsTotal(user,batchId,webQuery));
+            return new WebResponse<>(batchSearchRepository.getResults(user, batchId, webQuery), webQuery.from, webQuery.size,
+                    batchSearchRepository.getResultsTotal(user, batchId, webQuery));
         } catch (JooqBatchSearchRepository.UnauthorizedUserException unauthorized) {
             throw new UnauthorizedException();
         }

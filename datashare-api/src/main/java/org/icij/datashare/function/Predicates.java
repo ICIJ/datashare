@@ -13,9 +13,9 @@ import java.util.function.Predicate;
 public class Predicates {
 
     // String is not empty
-    public static final Predicate<String> notEmptyStr = s -> ! s.isEmpty();
+    public static final Predicate<String> notEmptyStr = s -> !s.isEmpty();
     // List is not empty
-    public static final Predicate<List> notEmptyList = l -> ! l.isEmpty();
+    public static final Predicate<List> notEmptyList = l -> !l.isEmpty();
 
     // Equal To
     public static final Function<Integer, Predicate<Integer>> isEQ = a -> b -> a.equals(b);

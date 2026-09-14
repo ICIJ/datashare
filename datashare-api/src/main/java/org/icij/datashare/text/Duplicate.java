@@ -31,13 +31,15 @@ public class Duplicate implements Entity {
 
     @JsonCreator
     private Duplicate(@JsonProperty("id") final String id,
-                     @JsonProperty("path") final Path path,
-                     @JsonProperty("documentId") final String docId) {
+                      @JsonProperty("path") final Path path,
+                      @JsonProperty("documentId") final String docId) {
         this.id = id;
         this.path = path;
         this.documentId = docId;
     }
 
     @Override
-    public String getId() { return id;}
+    public String getId() {
+        return id;
+    }
 }

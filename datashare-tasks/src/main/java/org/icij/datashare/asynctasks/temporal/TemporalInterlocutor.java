@@ -83,24 +83,24 @@ public class TemporalInterlocutor {
 
     // See https://docs.temporal.io/list-filter#supported-operators
     public static final SearchAttributeKey<String> WORKFLOW_TYPE_ATTRIBUTE =
-        SearchAttributeKey.forKeyword("WorkflowType");
+            SearchAttributeKey.forKeyword("WorkflowType");
     public static final SearchAttributeKey<String> EXECUTION_STATUS_ATTRIBUTE =
-        SearchAttributeKey.forKeyword("ExecutionStatus");
+            SearchAttributeKey.forKeyword("ExecutionStatus");
     public static final SearchAttributeKey<String> USER_CUSTOM_ATTRIBUTE = SearchAttributeKey.forKeyword("UserId");
     public static final SearchAttributeKey<Double> MAX_PROGRESS_CUSTOM_ATTRIBUTE =
-        SearchAttributeKey.forDouble("MaxProgress");
+            SearchAttributeKey.forDouble("MaxProgress");
     public static final SearchAttributeKey<Double> PROGRESS_CUSTOM_ATTRIBUTE = SearchAttributeKey.forDouble("Progress");
 
     public static final Map<String, IndexedValueType> CUSTOM_SEARCH_ATTRIBUTES = Map.of(
-        MAX_PROGRESS_CUSTOM_ATTRIBUTE.getName(), IndexedValueType.INDEXED_VALUE_TYPE_DOUBLE,
-        PROGRESS_CUSTOM_ATTRIBUTE.getName(), IndexedValueType.INDEXED_VALUE_TYPE_DOUBLE,
-        USER_CUSTOM_ATTRIBUTE.getName(), IndexedValueType.INDEXED_VALUE_TYPE_KEYWORD
+            MAX_PROGRESS_CUSTOM_ATTRIBUTE.getName(), IndexedValueType.INDEXED_VALUE_TYPE_DOUBLE,
+            PROGRESS_CUSTOM_ATTRIBUTE.getName(), IndexedValueType.INDEXED_VALUE_TYPE_DOUBLE,
+            USER_CUSTOM_ATTRIBUTE.getName(), IndexedValueType.INDEXED_VALUE_TYPE_KEYWORD
     );
     public static final Duration DEFAULT_NAMESPACE_POLL_INTERVAL = Duration.of(50, ChronoUnit.MILLIS);
 
     private static final Set<Status.Code> NAMESPACE_EXISTS = Set.of(Status.ALREADY_EXISTS.getCode());
     private static final NamespaceConfig DEFAULT_NAMESPACE_CONFIG =
-        NamespaceConfig.newBuilder().setWorkflowExecutionRetentionTtl(Durations.fromDays(365)).build();
+            NamespaceConfig.newBuilder().setWorkflowExecutionRetentionTtl(Durations.fromDays(365)).build();
     private final WorkflowServiceGrpc.WorkflowServiceBlockingStub workflowServiceStubs;
 
 
@@ -112,7 +112,7 @@ public class TemporalInterlocutor {
 
     public TemporalInterlocutor(PropertiesProvider propertiesProvider) throws InterruptedException {
         this(propertiesProvider.get(TEMPORAL_ADDRESS_OPT).orElse(EnvUtils.resolveUri("temporalAddress", "temporal:7233")),
-            propertiesProvider.get(TEMPORAL_NAMESPACE_OPT).orElse(DEFAULT_NAMESPACE));
+                propertiesProvider.get(TEMPORAL_NAMESPACE_OPT).orElse(DEFAULT_NAMESPACE));
     }
 
     // for tests
@@ -128,14 +128,14 @@ public class TemporalInterlocutor {
     }
 
     public <A extends TemporalActivityImpl<?, ?>> ThrowingSupplier<A> activityFactory(
-        Class<A> activityCls,
-        TaskFactory taskFactory,
-        TaskRepository taskRepository,
-        double progressWeight
+            Class<A> activityCls,
+            TaskFactory taskFactory,
+            TaskRepository taskRepository,
+            double progressWeight
     ) {
         return () -> activityCls
-            .getConstructor(TaskFactory.class, WorkflowClient.class, TaskRepository.class, Double.class)
-            .newInstance(taskFactory, client, taskRepository, progressWeight);
+                .getConstructor(TaskFactory.class, WorkflowClient.class, TaskRepository.class, Double.class)
+                .newInstance(taskFactory, client, taskRepository, progressWeight);
     }
 
     public void setupNamespace(Duration timeout) throws InterruptedException {
@@ -143,20 +143,20 @@ public class TemporalInterlocutor {
         long timeoutMillis = timeout.toMillis();
         String namespace = getNamespace();
         WorkflowServiceGrpc.WorkflowServiceBlockingStub workflowServiceBlockingStub =
-            client.getWorkflowServiceStubs().blockingStub();
+                client.getWorkflowServiceStubs().blockingStub();
         OperatorServiceGrpc.OperatorServiceBlockingStub operatorServiceBlockingStub =
-            OperatorServiceStubs.newServiceStubs(
-                OperatorServiceStubsOptions.newBuilder()
-                    .setChannel(client.getWorkflowServiceStubs().getRawChannel())
-                    .validateAndBuildWithDefaults()).blockingStub();
+                OperatorServiceStubs.newServiceStubs(
+                        OperatorServiceStubsOptions.newBuilder()
+                                .setChannel(client.getWorkflowServiceStubs().getRawChannel())
+                                .validateAndBuildWithDefaults()).blockingStub();
         synchronized (this) {
             boolean createNamespace = !hasNamespace(workflowServiceBlockingStub, client.getOptions().getNamespace());
             if (createNamespace) {
                 try {
                     RegisterNamespaceRequest registerNamespaceRequest = RegisterNamespaceRequest.newBuilder()
-                        .setWorkflowExecutionRetentionPeriod(
-                            DEFAULT_NAMESPACE_CONFIG.getWorkflowExecutionRetentionTtl())
-                        .setNamespace(namespace).build();
+                            .setWorkflowExecutionRetentionPeriod(
+                                    DEFAULT_NAMESPACE_CONFIG.getWorkflowExecutionRetentionTtl())
+                            .setNamespace(namespace).build();
                     workflowServiceBlockingStub.registerNamespace(registerNamespaceRequest);
                 } catch (StatusRuntimeException ex) {
                     if (!NAMESPACE_EXISTS.contains(ex.getStatus().getCode())) {
@@ -168,12 +168,12 @@ public class TemporalInterlocutor {
                 while (true) {
                     if ((System.currentTimeMillis() - start >= timeoutMillis)) {
                         throw new RuntimeException(
-                            "failed to setup namespace search attribute in less than " + timeout);
+                                "failed to setup namespace search attribute in less than " + timeout);
                     }
                     try {
                         operatorServiceBlockingStub.addSearchAttributes(
-                            AddSearchAttributesRequest.newBuilder().setNamespace(namespace)
-                                .putAllSearchAttributes(CUSTOM_SEARCH_ATTRIBUTES).build()
+                                AddSearchAttributesRequest.newBuilder().setNamespace(namespace)
+                                        .putAllSearchAttributes(CUSTOM_SEARCH_ATTRIBUTES).build()
                         );
                         break;
                     } catch (StatusRuntimeException ex) {
@@ -181,7 +181,7 @@ public class TemporalInterlocutor {
                             continue;
                         }
                         if (ex.getStatus().getCode().equals(Status.Code.FAILED_PRECONDITION)
-                            && ex.getMessage().contains("Namespace has invalid state")) {
+                                && ex.getMessage().contains("Namespace has invalid state")) {
                             continue;
                         }
                         Thread.sleep(DEFAULT_NAMESPACE_POLL_INTERVAL.toMillis());
@@ -200,11 +200,11 @@ public class TemporalInterlocutor {
     public void deleteNamespace(Duration timeout) {
         String namespace = client.getOptions().getNamespace();
         OperatorServiceStubs.newServiceStubs(
-                OperatorServiceStubsOptions.newBuilder()
-                    .setChannel(client.getWorkflowServiceStubs().getRawChannel())
-                    .validateAndBuildWithDefaults())
-            .blockingStub()
-            .deleteNamespace(DeleteNamespaceRequest.newBuilder().setNamespace(namespace).build());
+                        OperatorServiceStubsOptions.newBuilder()
+                                .setChannel(client.getWorkflowServiceStubs().getRawChannel())
+                                .validateAndBuildWithDefaults())
+                .blockingStub()
+                .deleteNamespace(DeleteNamespaceRequest.newBuilder().setNamespace(namespace).build());
         awaitNamespaceDeleted(client.getWorkflowServiceStubs().blockingStub(), namespace, timeout);
     }
 
@@ -234,7 +234,7 @@ public class TemporalInterlocutor {
         // TODO: add support for cancellation rather than termination, update the TaskManager API accordingly
         return unknownIfNotFound(tId -> {
             WorkflowStub workflowStub = createWorkflowStub(tId);
-            if(workflowStub.describe().getStatus() != WORKFLOW_EXECUTION_STATUS_RUNNING) {
+            if (workflowStub.describe().getStatus() != WORKFLOW_EXECUTION_STATUS_RUNNING) {
                 return false;
             }
             try {
@@ -256,13 +256,13 @@ public class TemporalInterlocutor {
         Map<String, Object> args = null;
         WorkflowExecution execution = workflowExecutionInfo.getExecution();
         Payloads payloads = client.fetchHistory(execution.getWorkflowId(), execution.getRunId()).getEvents().get(0)
-            .getWorkflowExecutionStartedEventAttributes().getInput();
+                .getWorkflowExecutionStartedEventAttributes().getInput();
         if (payloads.getPayloadsCount() > 1) {
             throw new RuntimeException("invalid payload count, expected exactly 1 payload");
         }
         TemporalInputPayload payload =
-            defaultDataConverter.fromPayload(payloads.getPayloads(0), TemporalInputPayload.class,
-                TemporalInputPayload.class);
+                defaultDataConverter.fromPayload(payloads.getPayloads(0), TemporalInputPayload.class,
+                        TemporalInputPayload.class);
         if (payload != null) {
             args = payload.args();
             args.computeIfPresent(USER_KEY, (k, v) -> JsonObjectMapper.convertValue(v, User.class));
@@ -273,7 +273,7 @@ public class TemporalInterlocutor {
     public PageFetcher<WorkflowExecutionInfo> getWorkflowExecutionFetcher(String query) {
         return (ByteString nextPageToken) -> {
             ListWorkflowExecutionsRequest.Builder requestBuilder =
-                ListWorkflowExecutionsRequest.newBuilder().setNamespace(getNamespace()).setPageSize(DEFAULT_PAGE_SIZE);
+                    ListWorkflowExecutionsRequest.newBuilder().setNamespace(getNamespace()).setPageSize(DEFAULT_PAGE_SIZE);
             if (nextPageToken != null) {
                 requestBuilder.setNextPageToken(nextPageToken);
             }
@@ -283,7 +283,7 @@ public class TemporalInterlocutor {
                 }
             });
             ListWorkflowExecutionsResponse response = workflowServiceStubs
-                .listWorkflowExecutions(requestBuilder.build());
+                    .listWorkflowExecutions(requestBuilder.build());
             return new Page<>(response.getExecutionsList(), response.getNextPageToken());
         };
     }
@@ -291,9 +291,9 @@ public class TemporalInterlocutor {
     public void deleteExecution(String workflowId) {
         try {
             DeleteWorkflowExecutionRequest deleteWorkflowExecutionRequest = DeleteWorkflowExecutionRequest.newBuilder()
-                .setNamespace(getNamespace())
-                .setWorkflowExecution(WorkflowExecution.newBuilder().setWorkflowId(workflowId))
-                .build();
+                    .setNamespace(getNamespace())
+                    .setWorkflowExecution(WorkflowExecution.newBuilder().setWorkflowId(workflowId))
+                    .build();
             workflowServiceStubs.deleteWorkflowExecution(deleteWorkflowExecutionRequest);
             // Try to refresh the cache
             client.newUntypedWorkflowStub(workflowId).describe();
@@ -326,9 +326,9 @@ public class TemporalInterlocutor {
 
     public Stream<WorkflowExecutionInfo> eventuallyConsistentListExecutions(TaskFilters filters) {
         PageFetcher<WorkflowExecutionInfo> fetcher =
-            getWorkflowExecutionFetcher(TemporalQueryBuilder.buildFromFilters(filters));
+                getWorkflowExecutionFetcher(TemporalQueryBuilder.buildFromFilters(filters));
         return StreamSupport.stream(
-            Spliterators.spliteratorUnknownSize(new TemporalPageIterator<>(fetcher), Spliterator.ORDERED), false);
+                Spliterators.spliteratorUnknownSize(new TemporalPageIterator<>(fetcher), Spliterator.ORDERED), false);
     }
 
     public WorkflowExecutionDescription getWorkflowExecution(String taskId) throws UnknownTask {
@@ -392,7 +392,9 @@ public class TemporalInterlocutor {
         return parseTask(getWorkflowExecution(taskId));
     }
 
-    public record Page<P>(List<P> items, ByteString nextPageToken) { }
+    public record Page<P>(List<P> items, ByteString nextPageToken) {
+    }
+
     @FunctionalInterface
     public interface PageFetcher<P> {
         Page<P> fetchPage(ByteString nextPageToken);
@@ -456,8 +458,8 @@ public class TemporalInterlocutor {
             if (missingItems == null) {
                 if (!this.remainingIds.isEmpty()) {
                     missingItems = fetchKnownExecInfoFn.apply(this.remainingIds)
-                        .filter(asExecInfoFilter(filters))
-                        .iterator();
+                            .filter(asExecInfoFilter(filters))
+                            .iterator();
                 } else {
                     missingItems = Stream.<WorkflowExecutionInfo>of().iterator();
                 }
@@ -477,23 +479,26 @@ public class TemporalInterlocutor {
     }
 
     public record CloseableWorkerFactoryHandle(WorkerFactory factory) implements Closeable {
-            public CloseableWorkerFactoryHandle(WorkerFactory factory) {
-                this.factory = factory;
-                this.factory.start();
-            }
+        public CloseableWorkerFactoryHandle(WorkerFactory factory) {
+            this.factory = factory;
+            this.factory.start();
+        }
 
-            @Override
-            public void close() throws IOException {
-                synchronized (factory) {
-                    if (!this.factory.isShutdown()) {
-                        this.factory.shutdown();
-                    }
+        @Override
+        public void close() throws IOException {
+            synchronized (factory) {
+                if (!this.factory.isShutdown()) {
+                    this.factory.shutdown();
                 }
             }
         }
+    }
 
-    public record RegisteredActivity(ThrowingSupplier<?> activityFactory, String taskQueue) { }
-    public record RegisteredWorkflow(Class<?> workflowCls, String taskQueue, List<RegisteredActivity> activities) { }
+    public record RegisteredActivity(ThrowingSupplier<?> activityFactory, String taskQueue) {
+    }
+
+    public record RegisteredWorkflow(Class<?> workflowCls, String taskQueue, List<RegisteredActivity> activities) {
+    }
 
     // ------------------------
     // private utility functions
@@ -566,7 +571,7 @@ public class TemporalInterlocutor {
     private static double parseProgress(SearchAttributes searchAttributes) {
         Double progress = searchAttributes.get(PROGRESS_CUSTOM_ATTRIBUTE);
         Double maxProgress = searchAttributes.get(MAX_PROGRESS_CUSTOM_ATTRIBUTE);
-        if(maxProgress == 0d) {
+        if (maxProgress == 0d) {
             return 0.0;
         }
         return progress == null ? 0.0 : progress / maxProgress;

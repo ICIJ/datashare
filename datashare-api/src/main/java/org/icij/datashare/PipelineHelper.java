@@ -30,11 +30,11 @@ public class PipelineHelper {
     }
 
     public String getQueueNameFor(Stage stage) {
-        return stage.isFirstEnum() ? null: getQueueName(propertiesProvider, stage);
+        return stage.isFirstEnum() ? null : getQueueName(propertiesProvider, stage);
     }
 
     public String getOutputQueueNameFor(Stage stage) {
-        return stage.isLastEnum() ? null: getQueueName(propertiesProvider, getNextStage(stage));
+        return stage.isLastEnum() ? null : getQueueName(propertiesProvider, getNextStage(stage));
     }
 
     public Stage getNextStage(Stage stage) {

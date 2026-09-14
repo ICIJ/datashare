@@ -34,7 +34,9 @@ import static org.icij.datashare.PropertiesProvider.DEFAULT_PROJECT_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_DEFAULT_PROJECT;
 import static org.icij.datashare.cli.DatashareCliOptions.MAX_CONTENT_LENGTH_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.NLP_PIPELINE_OPT;
+
 import org.icij.datashare.asynctasks.TaskGroupType;
+
 import static org.icij.extract.document.Identifier.shorten;
 
 @TemporalSingleActivityWorkflow(name = "ner", activityOptions = @ActivityOpts(timeout = "P7D"))
@@ -51,15 +53,15 @@ public class ExtractNlpTask extends PipelineTask<String> implements Monitorable 
 
     @Inject
     public ExtractNlpTask(Indexer indexer, PipelineRegistry registry, final DocumentCollectionFactory<String> factory, final UpstreamGate.Factory gateFactory, @Assisted Task<Long> taskView, @Assisted final Function<Double, Void> progressCallback) {
-        this(indexer, registry.get(Pipeline.Type.parse((String)taskView.args.get(NLP_PIPELINE_OPT))), factory, gateFactory.forTask(taskView), taskView, progressCallback);
+        this(indexer, registry.get(Pipeline.Type.parse((String) taskView.args.get(NLP_PIPELINE_OPT))), factory, gateFactory.forTask(taskView), taskView, progressCallback);
     }
 
 
     ExtractNlpTask(Indexer indexer, Pipeline pipeline, final DocumentCollectionFactory<String> factory, final UpstreamGate gate, @Assisted Task<Long> taskView, @Assisted final Function<Double, Void> progressCallback) {
         super(Stage.NLP, taskView.getUser(), factory, new PropertiesProvider(taskView.args), String.class, gate);
         this.nlpPipeline = pipeline;
-        project = Project.project(ofNullable((String)taskView.args.get(DEFAULT_PROJECT_OPT)).orElse(DEFAULT_DEFAULT_PROJECT));
-        maxContentLengthChars = (int) HumanReadableSize.parse(ofNullable((String)taskView.args.get(MAX_CONTENT_LENGTH_OPT)).orElse(valueOf(DEFAULT_MAX_CONTENT_LENGTH)));
+        project = Project.project(ofNullable((String) taskView.args.get(DEFAULT_PROJECT_OPT)).orElse(DEFAULT_DEFAULT_PROJECT));
+        maxContentLengthChars = (int) HumanReadableSize.parse(ofNullable((String) taskView.args.get(MAX_CONTENT_LENGTH_OPT)).orElse(valueOf(DEFAULT_MAX_CONTENT_LENGTH)));
         this.indexer = indexer;
         this.progressCallback = progressCallback;
     }

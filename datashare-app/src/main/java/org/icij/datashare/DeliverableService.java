@@ -26,9 +26,13 @@ public abstract class DeliverableService<T extends Deliverable> {
     protected final DeliverableRegistry<T> deliverableRegistry;
 
     abstract T newDeliverable(URL url);
+
     abstract DeliverableRegistry<T> createRegistry(InputStream pluginJsonContent);
+
     abstract String getDeleteOpt(Properties cliProperties);
+
     abstract String getInstallOpt(Properties cliProperties);
+
     abstract String getListOpt(Properties cliProperties);
 
     public DeliverableService(Path deliverableDir, InputStream inputStream) {
@@ -45,16 +49,16 @@ public abstract class DeliverableService<T extends Deliverable> {
     }
 
     public void downloadAndInstallFromCli(Properties cliProperties) throws IOException {
-       try {
-           downloadAndInstall(getInstallOpt(cliProperties)); // plugin with id
-       } catch (DeliverableRegistry.UnknownDeliverableException not_a_plugin) {
-           try {
-               URL pluginUrl = new URL(getInstallOpt(cliProperties));
-               downloadAndInstall(pluginUrl); // from url
-           } catch (MalformedURLException not_url) {
-               newDeliverable(Paths.get(getInstallOpt(cliProperties)).toUri().toURL()).install(deliverablesDir); // from file
-           }
-       }
+        try {
+            downloadAndInstall(getInstallOpt(cliProperties)); // plugin with id
+        } catch (DeliverableRegistry.UnknownDeliverableException not_a_plugin) {
+            try {
+                URL pluginUrl = new URL(getInstallOpt(cliProperties));
+                downloadAndInstall(pluginUrl); // from url
+            } catch (MalformedURLException not_url) {
+                newDeliverable(Paths.get(getInstallOpt(cliProperties)).toUri().toURL()).install(deliverablesDir); // from file
+            }
+        }
     }
 
     public Set<DeliverablePackage> list(String patternString) {
@@ -103,10 +107,10 @@ public abstract class DeliverableService<T extends Deliverable> {
     public void delete(String id) throws IOException {
         Predicate<DeliverablePackage> predicate = d -> d.reference().getId().equals(id) || d.reference().getUrl().getPath().equals(id);
         List<DeliverablePackage> deliverables = list().stream().filter(predicate).collect(Collectors.toList());
-        for (DeliverablePackage deliverable: deliverables) {
+        for (DeliverablePackage deliverable : deliverables) {
             // A deliverable can have several references, if it's installed using
             // the registry or directly from a remote URL.
-            for (Deliverable ref: deliverable.references()) {
+            for (Deliverable ref : deliverable.references()) {
                 ref.delete(deliverablesDir);
             }
         }

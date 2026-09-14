@@ -46,6 +46,6 @@ public interface Time {
      */
     Date itIsNow(String dateTime);
 
-	void addMilliseconds(int toAddInMs);
+    void addMilliseconds(int toAddInMs);
 
 }

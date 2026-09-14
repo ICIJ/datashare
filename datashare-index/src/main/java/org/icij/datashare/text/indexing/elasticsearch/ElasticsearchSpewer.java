@@ -25,6 +25,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 
 import static java.lang.System.currentTimeMillis;
+
 import java.util.HashMap;
 import java.util.Map;
 
@@ -291,7 +292,7 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
         String content = readContent(document);
         if (document.getLanguage() == null) {
             builder.with(languageGuesser.guess(content));
-        } else  {
+        } else {
             builder.with(Language.parse(document.getLanguage()));
         }
         builder.with(content);

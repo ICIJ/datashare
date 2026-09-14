@@ -35,12 +35,12 @@ public class TaskError implements Serializable {
     public TaskError(Throwable throwable) {
         this(throwable.getClass().getName(), throwable.getMessage(),
                 ofNullable(throwable.getCause()).map(c -> format("%s: %s",
-                                throwable.getCause().getClass().getName(),
-                                throwable.getCause().getMessage())).orElse(null), stream(throwable.getStackTrace()).map(se ->
-                        {
-                            String name = se.isNativeMethod() ? se.getClassName(): format("%s.%s", se.getClassName(), se.getMethodName());
-                            return new StacktraceItem(se.getFileName(), se.getLineNumber(), name);
-                        }).collect(Collectors.toList()));
+                        throwable.getCause().getClass().getName(),
+                        throwable.getCause().getMessage())).orElse(null), stream(throwable.getStackTrace()).map(se ->
+                {
+                    String name = se.isNativeMethod() ? se.getClassName() : format("%s.%s", se.getClassName(), se.getMethodName());
+                    return new StacktraceItem(se.getFileName(), se.getLineNumber(), name);
+                }).collect(Collectors.toList()));
     }
 
     @Override
@@ -98,7 +98,7 @@ public class TaskError implements Serializable {
 
         @Override
         public String toString() {
-            return "\tat " + name + (lineno < 0 ? " (native method)": ":" + lineno);
+            return "\tat " + name + (lineno < 0 ? " (native method)" : ":" + lineno);
         }
     }
 }

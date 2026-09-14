@@ -107,8 +107,15 @@ public class OAuth2CookieFilter extends DatashareAuthFilter {
             throw new IllegalStateException(format("oauthCallbackPath (%s) cannot start with oauthSigninPath (%s)", oauthCallbackPath, oauthSigninPath));
         }
         this.defaultOauthApi = new DefaultApi20() {
-            @Override public String getAccessTokenEndpoint() { return oauthTokenUrl;}
-            @Override protected String getAuthorizationBaseUrl() { return oauthAuthorizeUrl;}
+            @Override
+            public String getAccessTokenEndpoint() {
+                return oauthTokenUrl;
+            }
+
+            @Override
+            protected String getAuthorizationBaseUrl() {
+                return oauthAuthorizeUrl;
+            }
         };
     }
 
@@ -152,8 +159,9 @@ public class OAuth2CookieFilter extends DatashareAuthFilter {
     protected DatashareUser processOAuthApiResponse(Response oauthApiResponse) throws IOException {
         ObjectMapper mapper = new ObjectMapper();
         ObjectNode root = (ObjectNode) mapper.readTree(oauthApiResponse.getBody());
-        Map<String, Object> userMap = mapper.convertValue(root, new TypeReference<>() {});
-        if (!oauthClaimIdAttribute.isEmpty()){
+        Map<String, Object> userMap = mapper.convertValue(root, new TypeReference<>() {
+        });
+        if (!oauthClaimIdAttribute.isEmpty()) {
             if (userMap.get(oauthClaimIdAttribute) == null) {
                 logger.error("The attribute {} does not exist in the response body.", oauthClaimIdAttribute);
                 throw new BadRequestException();
@@ -189,7 +197,7 @@ public class OAuth2CookieFilter extends DatashareAuthFilter {
         String host = ofNullable(context.request().header("x-forwarded-host")).orElse(context.request().header("Host"));
         String proto = ofNullable(context.request().header("x-forwarded-proto")).orElse(context.request().isSecure() ? "https" : "http");
         String url = proto + "://" + host + this.oauthCallbackPath;
-        logger.info("oauth callback url = {}",url);
+        logger.info("oauth callback url = {}", url);
         return url;
     }
 
@@ -250,8 +258,13 @@ public class OAuth2CookieFilter extends DatashareAuthFilter {
         }
     }
 
-    @Override protected Payload signout(Context context) {
+    @Override
+    protected Payload signout(Context context) {
         return super.signout(context);
     }
-    @Override protected int expiry() { return oauthTtl;}
+
+    @Override
+    protected int expiry() {
+        return oauthTtl;
+    }
 }

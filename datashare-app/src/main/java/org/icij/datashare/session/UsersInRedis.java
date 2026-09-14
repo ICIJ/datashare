@@ -43,7 +43,7 @@ public class UsersInRedis implements UserStore, Closeable {
     public User find(String login, String password) {
         try (Jedis jedis = redis.getResource()) {
             org.icij.datashare.user.User user = fromJson(jedis.get(login));
-            return user != null && Hasher.SHA_256.hash(password).equals(user.details.get("password")) ? new DatashareUser(user): null;
+            return user != null && Hasher.SHA_256.hash(password).equals(user.details.get("password")) ? new DatashareUser(user) : null;
         }
     }
 

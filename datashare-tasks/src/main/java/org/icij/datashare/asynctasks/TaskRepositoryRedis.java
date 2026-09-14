@@ -23,7 +23,7 @@ public class TaskRepositoryRedis extends RedissonMap<String, TaskGroupMetadata<?
     }
 
     @Override
-    public <V extends Serializable> Task<V> getTask(String taskId) throws IOException, UnknownTask{
+    public <V extends Serializable> Task<V> getTask(String taskId) throws IOException, UnknownTask {
         TaskGroupMetadata<V> taskGroupMetadata = (TaskGroupMetadata<V>) super.get(taskId);
         if (taskGroupMetadata == null) {
             throw new UnknownTask(taskId);
@@ -34,8 +34,8 @@ public class TaskRepositoryRedis extends RedissonMap<String, TaskGroupMetadata<?
     @Override
     public Stream<Task<? extends Serializable>> getTasks(TaskFilters filters) throws IOException, UnknownTask {
         return super.values().stream().map(TaskGroupMetadata::task)
-            .filter(filters::filter)
-            .map(t -> (Task<? extends Serializable>)t);
+                .filter(filters::filter)
+                .map(t -> (Task<? extends Serializable>) t);
     }
 
     @Override

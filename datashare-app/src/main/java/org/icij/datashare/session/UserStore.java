@@ -11,7 +11,10 @@ import java.util.Set;
 
 public interface UserStore extends Users {
     boolean save(User user);
+
     boolean delete(String login);
+
     WebResponse<User> listUsers(UserFilter filter, Comparator<User> sort, int from, int size);
+
     List<User> getUsersByIds(Set<String> ids);
 }

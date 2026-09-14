@@ -23,11 +23,16 @@ public class ArtifactCoverageChecker {
     // with thousands of holes still logs a bounded, readable line.
     private static final int MAX_HOLES_IN_SUMMARY = 50;
 
-    public record Hole(String docId, String rootId, String reason) {}
+    public record Hole(String docId, String rootId, String reason) {
+    }
+
     /** empties: docs with a terminal manifest and a readable but zero-byte source. Legitimately
      *  empty (e.g. empty mail-item nodes), so they are retrievable and NOT counted as holes. */
     public record Report(long checked, List<Hole> holes, long empties) {
-        public boolean complete() { return holes.isEmpty(); }
+        public boolean complete() {
+            return holes.isEmpty();
+        }
+
         public String summary() {
             StringBuilder builder = new StringBuilder(String.format("checked %d document(s), %d hole(s)%n", checked, holes.size()));
             holes.stream().limit(MAX_HOLES_IN_SUMMARY).forEach(hole ->

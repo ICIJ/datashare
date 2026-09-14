@@ -16,12 +16,12 @@ import jakarta.inject.Inject;
 
 @TemporalSingleActivityWorkflow(name = "get-api-key", activityOptions = @ActivityOpts(timeout = "P1D"))
 @TaskGroup(TaskGroupType.Java)
-public class GetApiKeyTask extends DefaultTask<String> implements UserTask  {
+public class GetApiKeyTask extends DefaultTask<String> implements UserTask {
     private final ApiKeyRepository apiKeyRepository;
     private final User user;
 
     @Inject
-    public GetApiKeyTask(ApiKeyRepository apiKeyRepository,@Assisted User user) {
+    public GetApiKeyTask(ApiKeyRepository apiKeyRepository, @Assisted User user) {
         this.apiKeyRepository = apiKeyRepository;
         this.user = user;
     }

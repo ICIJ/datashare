@@ -37,7 +37,7 @@ public class DatashareCli {
         OptionSpec<Void> helpOpt = DatashareCliOptions.help(parser);
         OptionSpec<Void> versionOpt = DatashareCliOptions.version(parser);
 
-        List<CliExtension> extensions  = CliExtensionService.getInstance().getExtensions();
+        List<CliExtension> extensions = CliExtensionService.getInstance().getExtensions();
         OptionSpec<String> extOption = DatashareCliOptions.extOption(parser);
         if (extensions.size() > 1) {
             System.out.println("For now we only allow one CLI extension");
@@ -270,8 +270,8 @@ public class DatashareCli {
         // when in datashare shell script we call java ... -m EMBEDDED $@
         // if the user provided -m SERVER then values will be [EMBEDDED,SERVER] so this function will keep the user option!
         // it has to be refactored because we can't use lists with separator in jopts simple, we use lists as string
-        String stringValue = !values.isEmpty() ? String.valueOf(values.get(values.size() - 1)): "";
-        return stringValue.isEmpty() ? "true": stringValue;
+        String stringValue = !values.isEmpty() ? String.valueOf(values.get(values.size() - 1)) : "";
+        return stringValue.isEmpty() ? "true" : stringValue;
     }
 
     private void printHelp(OptionParser parser) {

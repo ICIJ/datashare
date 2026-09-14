@@ -59,9 +59,11 @@ public class JooqStatementRepository implements StatementRepository {
         this.chunkSize = chunkSize;
     }
 
-    private record Write(String projectId, String runId, LocalDateTime now) { }
+    private record Write(String projectId, String runId, LocalDateTime now) {
+    }
 
-    private record Row(Statement statement, String modelVersion) { }
+    private record Row(Statement statement, String modelVersion) {
+    }
 
     @Override
     public int save(String projectId, String runId, Stream<Statement> statements) {

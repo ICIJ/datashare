@@ -62,7 +62,7 @@ public class NamedEntityResource {
                         final Context context) throws IOException {
         requireGranted(context, project);
         List<? extends Entity> nes = indexer.search(singletonList(project), NamedEntity.class).
-                thatMatchesFieldValue("mentionNorm", mentionNorm).execute().map(ne -> ((NamedEntity)ne).hide()).collect(toList());
+                thatMatchesFieldValue("mentionNorm", mentionNorm).execute().map(ne -> ((NamedEntity) ne).hide()).collect(toList());
         indexer.bulkUpdate(project, nes);
         return ok();
     }

@@ -41,7 +41,9 @@ public class SearchQuery {
         return query == null;
     }
 
-    public String toString() {return query;}
+    public String toString() {
+        return query;
+    }
 
     @Override
     public boolean equals(Object o) {

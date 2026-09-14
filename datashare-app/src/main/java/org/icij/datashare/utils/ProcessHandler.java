@@ -26,9 +26,9 @@ public class ProcessHandler {
     public static boolean isProcessRunning(Path pidPath, int timeout, TimeUnit timeunit) throws IOException, InterruptedException {
         try (Stream<String> lines = Files.lines(pidPath)) {
             Long pid = Long.parseLong(
-                lines.findFirst()
-                    .orElseThrow(() -> new RuntimeException("PID file is empty"))
-                    .strip()
+                    lines.findFirst()
+                            .orElseThrow(() -> new RuntimeException("PID file is empty"))
+                            .strip()
             );
             return isProcessRunning(pid, timeout, timeunit);
         }
@@ -53,24 +53,24 @@ public class ProcessHandler {
     public static void killProcessById(Long pid, boolean force) {
         Stream<ProcessHandle> liveProcesses = ProcessHandle.allProcesses();
         liveProcesses
-            .filter(handle -> handle.isAlive() && pid.equals(handle.pid()))
-            .findFirst()
-            .ifPresent(parent -> {
-                    parent.descendants()
-                        .forEach(child -> {
+                .filter(handle -> handle.isAlive() && pid.equals(handle.pid()))
+                .findFirst()
+                .ifPresent(parent -> {
+                            parent.descendants()
+                                    .forEach(child -> {
+                                        if (force) {
+                                            child.destroyForcibly();
+                                        } else {
+                                            child.destroy();
+                                        }
+                                    });
                             if (force) {
-                                child.destroyForcibly();
+                                parent.destroyForcibly();
                             } else {
-                                child.destroy();
+                                parent.destroy();
                             }
-                        });
-                    if (force) {
-                        parent.destroyForcibly();
-                    } else {
-                        parent.destroy();
-                    }
-                }
-            );
+                        }
+                );
     }
 
     public static List<Path> findPidPaths(String pattern, Path dir) throws IOException {

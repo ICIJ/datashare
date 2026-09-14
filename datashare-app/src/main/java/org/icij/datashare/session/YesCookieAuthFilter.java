@@ -95,7 +95,18 @@ public class YesCookieAuthFilter extends CookieAuthFilter {
         return super.matches(uri, context);
     }
 
-    @Override protected String cookieName() { return "_ds_session_id";}
-    @Override protected int expiry() { return ttl;}
-    @Override protected boolean redirectToLogin(String uri) { return false;}
+    @Override
+    protected String cookieName() {
+        return "_ds_session_id";
+    }
+
+    @Override
+    protected int expiry() {
+        return ttl;
+    }
+
+    @Override
+    protected boolean redirectToLogin(String uri) {
+        return false;
+    }
 }

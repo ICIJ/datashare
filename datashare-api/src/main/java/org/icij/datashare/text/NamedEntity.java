@@ -5,7 +5,9 @@ import com.fasterxml.jackson.annotation.JsonGetter;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
+
 import java.io.Serial;
+
 import org.icij.datashare.Entity;
 import org.icij.datashare.function.ThrowingFunction;
 import org.icij.datashare.function.ThrowingFunctions;
@@ -61,27 +63,31 @@ public final class NamedEntity implements Entity {
     private Boolean hidden;
 
     public enum Category implements Serializable {
-        PERSON       ("PERS"),
-        ORGANIZATION ("ORG"),
-        LOCATION     ("LOC"),
-        EMAIL        ("MAIL"),
-        DATE         ("DATE"),
-        MONEY        ("MON"),
-        NUMBER       ("NUM"),
-        NONE         ("NONE"),
-        UNKNOWN      ("UNK");
+        PERSON("PERS"),
+        ORGANIZATION("ORG"),
+        LOCATION("LOC"),
+        EMAIL("MAIL"),
+        DATE("DATE"),
+        MONEY("MON"),
+        NUMBER("NUM"),
+        NONE("NONE"),
+        UNKNOWN("UNK");
 
         private static final long serialVersionUID = -1596432856473673L;
 
         private final String abbreviation;
 
-        Category(final String abbrev) { abbreviation = abbrev; }
+        Category(final String abbrev) {
+            abbreviation = abbrev;
+        }
 
-        public String getAbbreviation() { return abbreviation; }
+        public String getAbbreviation() {
+            return abbreviation;
+        }
 
         public static Category parse(String entityCategory) {
             if (entityCategory == null || entityCategory.isEmpty() ||
-                entityCategory.trim().equals("0") || entityCategory.trim().equals("O")) {
+                    entityCategory.trim().equals("0") || entityCategory.trim().equals("O")) {
                 return NONE;
             }
             try {
@@ -91,7 +97,7 @@ public final class NamedEntity implements Entity {
                 for (Category cat : values()) {
                     String catAbbreviation = cat.getAbbreviation();
                     if (normEntityCategory.equalsIgnoreCase(catAbbreviation) ||
-                        normEntityCategory.equalsIgnoreCase(catAbbreviation.substring(0, min(catAbbreviation.length(), 3))) )
+                            normEntityCategory.equalsIgnoreCase(catAbbreviation.substring(0, min(catAbbreviation.length(), 3))))
                         return cat;
                 }
                 return UNKNOWN;
@@ -123,15 +129,15 @@ public final class NamedEntity implements Entity {
                                      Pipeline.Type extr,
                                      Language extrLang,
                                      Map<String, Object> metadata
-                                     ) {
+    ) {
         return new NamedEntity(cat, mention, offsets, doc, rootDocument, extr, extrLang, false, null, metadata);
     }
 
     public static List<NamedEntity> allFrom(String text, Annotations annotations) {
         return annotations.getTags().stream()
-                .map     ( tag -> from(text, tag, annotations) )
-                .filter  ( ne -> ne.category != UNKNOWN)
-                .collect ( Collectors.toList() );
+                .map(tag -> from(text, tag, annotations))
+                .filter(ne -> ne.category != UNKNOWN)
+                .collect(Collectors.toList());
     }
 
     public static NamedEntity from(String text, NlpTag tag, Annotations annotations) {
@@ -143,22 +149,22 @@ public final class NamedEntity implements Entity {
 
     @JsonCreator
     private NamedEntity(
-                        @JsonProperty("category") Category category,
-                        @JsonProperty("mention") String mention,
-                        @JsonProperty("offsets") List<Long> offsets,
-                        @JsonProperty("documentId") String documentId,
-                        @JsonProperty("rootDocument") String rootDocument,
-                        @JsonProperty("extractor") Pipeline.Type extractor,
-                        @JsonProperty("extractorLanguage") Language extractorLanguage,
-                        @JsonProperty("isHidden") Boolean hidden,
-                        @JsonProperty("partsOfSpeech") String partsOfSpeech,
-                        @JsonProperty("metadata") Map<String, Object> metadata
+            @JsonProperty("category") Category category,
+            @JsonProperty("mention") String mention,
+            @JsonProperty("offsets") List<Long> offsets,
+            @JsonProperty("documentId") String documentId,
+            @JsonProperty("rootDocument") String rootDocument,
+            @JsonProperty("extractor") Pipeline.Type extractor,
+            @JsonProperty("extractorLanguage") Language extractorLanguage,
+            @JsonProperty("isHidden") Boolean hidden,
+            @JsonProperty("partsOfSpeech") String partsOfSpeech,
+            @JsonProperty("metadata") Map<String, Object> metadata
     ) {
         if (mention == null || mention.isEmpty()) {
             throw new IllegalArgumentException("Mention is undefined");
         }
         this.mentionNorm = StringUtils.normalize(mention);
-        this.id = DEFAULT_DIGESTER.hash( String.join("|",
+        this.id = DEFAULT_DIGESTER.hash(String.join("|",
                 documentId,
                 String.valueOf(offsets),
                 extractor.toString(),
@@ -178,23 +184,66 @@ public final class NamedEntity implements Entity {
 
     @Override
     @JsonIgnore
-    public String getId() { return id; }
-    public String getMention() { return mention; }
-    public Category getCategory() { return category; }
+    public String getId() {
+        return id;
+    }
+
+    public String getMention() {
+        return mention;
+    }
+
+    public Category getCategory() {
+        return category;
+    }
+
     @JsonIgnore
-    public String getDocumentId() { return documentId; }
+    public String getDocumentId() {
+        return documentId;
+    }
+
     @JsonIgnore
-    public String getRootDocument() { return rootDocument; }
-    public int getMentionNormTextLength() {return mentionNorm.length();}
-    public List<Long> getOffsets() { return offsets; }
-    public Pipeline.Type getExtractor() { return extractor; }
-    public Language getExtractorLanguage() { return extractorLanguage; }
-    public Map<String, Object> getMetadata() { return metadata; }
+    public String getRootDocument() {
+        return rootDocument;
+    }
+
+    public int getMentionNormTextLength() {
+        return mentionNorm.length();
+    }
+
+    public List<Long> getOffsets() {
+        return offsets;
+    }
+
+    public Pipeline.Type getExtractor() {
+        return extractor;
+    }
+
+    public Language getExtractorLanguage() {
+        return extractorLanguage;
+    }
+
+    public Map<String, Object> getMetadata() {
+        return metadata;
+    }
+
     @JsonGetter("isHidden")
-    public Boolean isHidden() { return hidden; }
-    public NamedEntity hide() { this.hidden = true; return this;}
-    public NamedEntity unhide() { this.hidden = false; return this;}
-    public String getPartsOfSpeech() { return partsOfSpeech; }
+    public Boolean isHidden() {
+        return hidden;
+    }
+
+    public NamedEntity hide() {
+        this.hidden = true;
+        return this;
+    }
+
+    public NamedEntity unhide() {
+        this.hidden = false;
+        return this;
+    }
+
+    public String getPartsOfSpeech() {
+        return partsOfSpeech;
+    }
 
     @Override
     public String toString() {

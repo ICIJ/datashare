@@ -30,7 +30,7 @@ public class SourcePath implements Entity {
      */
     public static Optional<SourcePath> create(Path path) {
         try {
-            return Optional.of( new SourcePath(path) );
+            return Optional.of(new SourcePath(path));
         } catch (IllegalStateException e) {
             LOGGER.error("Failed to create document", e);
             return Optional.empty();
@@ -48,14 +48,15 @@ public class SourcePath implements Entity {
     private String hash;
 
 
-    private SourcePath() {}
+    private SourcePath() {
+    }
 
     private SourcePath(Path path) throws IllegalArgumentException {
-        if ( ! Files.exists(path))
+        if (!Files.exists(path))
             throw new IllegalArgumentException("File " + path + " does not exist.");
-        if ( ! Files.isRegularFile(path))
+        if (!Files.isRegularFile(path))
             throw new IllegalArgumentException("File " + path + " is not a regular file.");
-        if ( ! Files.isReadable(path))
+        if (!Files.isReadable(path))
             throw new IllegalArgumentException("File " + path + " is not readable.");
         this.path = path;
         this.hash = DEFAULT_DIGESTER.hash(getPath().toString());

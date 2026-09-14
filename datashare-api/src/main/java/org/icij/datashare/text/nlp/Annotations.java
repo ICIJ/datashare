@@ -2,6 +2,7 @@ package org.icij.datashare.text.nlp;
 
 import java.util.ArrayList;
 import java.util.List;
+
 import org.icij.datashare.text.Language;
 import org.icij.datashare.text.NamedEntity;
 

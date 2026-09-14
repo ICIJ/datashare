@@ -1,6 +1,7 @@
 package org.icij.datashare.nlp;
 
 import com.google.inject.Inject;
+
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -8,6 +9,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.Collection;
 import java.util.Collections;
+
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.text.ContentTypeCategory;
 import org.icij.datashare.text.Document;
@@ -117,24 +119,24 @@ public class EmailPipeline extends AbstractPipeline {
 
     protected List<NamedEntity> processMetadata(Document doc) {
         return parsedEmailHeaders
-            .stream()
-            .flatMap(k -> Optional.ofNullable(doc.getMetadata().get(k))
-                .map(m -> {
-                    Map<String, Object> meta = Map.of(MESSAGE_HEADER_FIELD, k);
-                    NamedEntitiesBuilder builder = new NamedEntitiesBuilder(
-                        EMAIL, doc.getId(), doc.getLanguage())
-                        .withRoot(doc.getRootDocument())
-                        .withMetadata(meta);
-                    Matcher metaMatcher = pattern.matcher(m.toString());
-                    while (metaMatcher.find()) {
-                        builder.add(NamedEntity.Category.EMAIL, metaMatcher.group(0),
-                            -1);
-                    }
-                    return builder.build();
-                }).stream()
-            )
-            .flatMap(Collection::stream)
-            .collect(Collectors.toList());
+                .stream()
+                .flatMap(k -> Optional.ofNullable(doc.getMetadata().get(k))
+                        .map(m -> {
+                            Map<String, Object> meta = Map.of(MESSAGE_HEADER_FIELD, k);
+                            NamedEntitiesBuilder builder = new NamedEntitiesBuilder(
+                                    EMAIL, doc.getId(), doc.getLanguage())
+                                    .withRoot(doc.getRootDocument())
+                                    .withMetadata(meta);
+                            Matcher metaMatcher = pattern.matcher(m.toString());
+                            while (metaMatcher.find()) {
+                                builder.add(NamedEntity.Category.EMAIL, metaMatcher.group(0),
+                                        -1);
+                            }
+                            return builder.build();
+                        }).stream()
+                )
+                .flatMap(Collection::stream)
+                .collect(Collectors.toList());
     }
 
 
@@ -151,10 +153,13 @@ public class EmailPipeline extends AbstractPipeline {
     }
 
     @Override
-    public Type getType() { return EMAIL;}
+    public Type getType() {
+        return EMAIL;
+    }
 
     @Override
-    public void terminate(Language language) {}
+    public void terminate(Language language) {
+    }
 
     @Override
     public Set<Language> supportedLanguages() {
@@ -162,14 +167,22 @@ public class EmailPipeline extends AbstractPipeline {
     }
 
     @Override
-    public List<NamedEntity.Category> getTargetEntities() { return Collections.singletonList(NamedEntity.Category.EMAIL);}
+    public List<NamedEntity.Category> getTargetEntities() {
+        return Collections.singletonList(NamedEntity.Category.EMAIL);
+    }
 
     @Override
-    public boolean isCaching() { return false;}
+    public boolean isCaching() {
+        return false;
+    }
 
     @Override
-    public Charset getEncoding() { return Charset.defaultCharset();}
+    public Charset getEncoding() {
+        return Charset.defaultCharset();
+    }
 
     @Override
-    public boolean initialize(Language language) { return true;}
+    public boolean initialize(Language language) {
+        return true;
+    }
 }

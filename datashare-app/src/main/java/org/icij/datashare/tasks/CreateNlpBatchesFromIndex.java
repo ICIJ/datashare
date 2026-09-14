@@ -19,6 +19,7 @@ import static org.icij.datashare.nlp.NlpHelper.pipelineExtras;
 
 import com.google.inject.Inject;
 import com.google.inject.assistedinject.Assisted;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -28,6 +29,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
+
 import org.icij.datashare.Entity;
 import org.icij.datashare.asynctasks.CancellableTask;
 import org.icij.datashare.asynctasks.Task;
@@ -75,8 +77,8 @@ public class CreateNlpBatchesFromIndex extends DefaultTask<List<String>> impleme
 
     @Inject
     public CreateNlpBatchesFromIndex(
-        final TaskManager taskManager, final Indexer indexer, @Assisted Task<LinkedList<String>> taskView,
-        @Assisted final Function<Double, Void> ignored
+            final TaskManager taskManager, final Indexer indexer, @Assisted Task<LinkedList<String>> taskView,
+            @Assisted final Function<Double, Void> ignored
     ) {
         this.user = taskView.getUser();
         this.taskManager = taskManager;
@@ -102,25 +104,25 @@ public class CreateNlpBatchesFromIndex extends DefaultTask<List<String>> impleme
             searcher = indexer.search(singletonList(projectName), Document.class, new SearchQuery(searchQuery));
         }
         searcher = searcher.limit(scrollSize)
-            .withoutSource("language", "rootDocument")
-            .withoutSource("content", "contentTranslated")
-            .sort("language", Indexer.Searcher.SortOrder.ASC);
+                .withoutSource("language", "rootDocument")
+                .withoutSource("content", "contentTranslated")
+                .sort("language", Indexer.Searcher.SortOrder.ASC);
         Map<Language, ? extends List<? extends Entity>> scrolledDocsByLanguage = searcher
-            .scroll(scrollDuration)
-            .collect(groupingBy(d -> ((Document) d).getLanguage()));
+                .scroll(scrollDuration)
+                .collect(groupingBy(d -> ((Document) d).getLanguage()));
         ArrayList<Document> batch = new ArrayList<>(this.batchSize);
         long totalHits = searcher.totalHits();
         logger.info(
-            "pushing batches of {} docs ids for index {}, pipeline {} with {} scroll and size of {}",
-            totalHits, projectName, nlpPipeline, scrollDuration, scrollSize
+                "pushing batches of {} docs ids for index {}, pipeline {} with {} scroll and size of {}",
+                totalHits, projectName, nlpPipeline, scrollDuration, scrollSize
         );
         do {
             // For each scrolled page, we fill the batch...
             taskIds.addAll(this.enqueueScrollBatches(scrolledDocsByLanguage, batch));
             // and keep scrolling...
             scrolledDocsByLanguage = searcher
-                .scroll(scrollDuration)
-                .collect(groupingBy(d -> ((Document) d).getLanguage()));
+                    .scroll(scrollDuration)
+                    .collect(groupingBy(d -> ((Document) d).getLanguage()));
             // until we reach a page smaller than the scroll size aka the last page of the scroll
         } while (scrolledDocsByLanguage.values().stream().map(List::size).mapToInt(Integer::intValue).sum() >= scrollSize);
         // Let's fill the batches for that last page
@@ -138,7 +140,7 @@ public class CreateNlpBatchesFromIndex extends DefaultTask<List<String>> impleme
         ArrayList<String> batchTaskIds = new ArrayList<>();
         // Make sure we consume the languages in order
         Iterator<? extends Map.Entry<Language, ? extends List<? extends Entity>>> docsIt = docsByLanguage.entrySet()
-            .stream().sorted(Comparator.comparing(e -> e.getKey().name())).iterator();
+                .stream().sorted(Comparator.comparing(e -> e.getKey().name())).iterator();
         while (docsIt.hasNext()) {
             Map.Entry<Language, ? extends List<? extends Entity>> entry = docsIt.next();
             Language language = entry.getKey();
@@ -172,7 +174,7 @@ public class CreateNlpBatchesFromIndex extends DefaultTask<List<String>> impleme
         // TODO: here we bind the task name to the Java class name which is not ideal since it leaks Java inners
         //  bolts to Python, it could be nice to decouple task names from class names since they can change and
         //  are bound to languages
-        logger.info("{} - {}", DatashareTime.getNow().getTime(), ((List<BatchDocument>)args.get("docs")).get(0).language());
+        logger.info("{} - {}", DatashareTime.getNow().getTime(), ((List<BatchDocument>) args.get("docs")).get(0).language());
         taskId = this.taskManager.startTask(BatchNlpTask.class, this.user, args);
         batch.clear();
         return taskId;
@@ -190,8 +192,8 @@ public class CreateNlpBatchesFromIndex extends DefaultTask<List<String>> impleme
 
     private Map<String, Object> batchTaskArgs() {
         Map<String, Object> args = new HashMap<>(Map.of(
-            "pipeline", this.nlpPipeline.name(),
-            "maxLength", this.maxTextLength
+                "pipeline", this.nlpPipeline.name(),
+                "maxLength", this.maxTextLength
         ));
         args.putAll(pipelineExtras(this.nlpPipeline));
         return args;

@@ -48,24 +48,25 @@ public class Project extends ProjectProxy {
     public Project(String name) {
         this(name, Paths.get("/vault").resolve(name), "*.*.*.*");
     }
+
     @JsonCreator(mode = PROPERTIES)
-    public Project( @JsonProperty("name") String name,
-                    @JsonProperty("sourcePath") Path sourcePath) {
+    public Project(@JsonProperty("name") String name,
+                   @JsonProperty("sourcePath") Path sourcePath) {
         this(name, sourcePath, "*.*.*.*");
     }
 
     public Project(String name, Path sourcePath, String allowFromMask) {
         this(name,
-            name,
-            null,
-            sourcePath,
-            null,
-            null,
-            null,
-            null,
-            allowFromMask,
-            null,
-            null
+                name,
+                null,
+                sourcePath,
+                null,
+                null,
+                null,
+                null,
+                allowFromMask,
+                null,
+                null
         );
     }
 
@@ -80,16 +81,16 @@ public class Project extends ProjectProxy {
                    Date creationDate,
                    Date updateDate) {
         this(name,
-            label,
-            null,
-            sourcePath,
-            sourceUrl,
-            maintainerName,
-            publisherName,
-            logoUrl,
-            allowFromMask,
-            creationDate,
-            updateDate
+                label,
+                null,
+                sourcePath,
+                sourceUrl,
+                maintainerName,
+                publisherName,
+                logoUrl,
+                allowFromMask,
+                creationDate,
+                updateDate
         );
     }
 
@@ -173,5 +174,7 @@ public class Project extends ProjectProxy {
     }
 
     @Override
-    public String toString() { return "Project{name='" + name + '\'' + '}';}
+    public String toString() {
+        return "Project{name='" + name + '\'' + '}';
+    }
 }

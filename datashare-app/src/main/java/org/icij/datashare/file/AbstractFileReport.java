@@ -20,11 +20,13 @@ import java.nio.file.attribute.PosixFilePermissions;
 public abstract class AbstractFileReport {
     public enum Type {
         DIRECTORY, FILE;
+
         @JsonValue
         public String toValue() {
             return name().toLowerCase();
         }
     }
+
     @JsonIgnore
     protected final File file;
     @JsonIgnore
@@ -45,16 +47,19 @@ public abstract class AbstractFileReport {
         this.file = file;
         this.fileAttributes = fileAttributes;
     }
+
     abstract Type getType();
-    protected String fileProt () {
+
+    protected String fileProt() {
         if (fileAttributes instanceof PosixFileAttributes) {
             return PosixFilePermissions.toString(((PosixFileAttributes) fileAttributes).permissions());
-        } else if (fileAttributes instanceof DosFileAttributes){
-            return dosFileAttributeToString((DosFileAttributes)fileAttributes);
+        } else if (fileAttributes instanceof DosFileAttributes) {
+            return dosFileAttributeToString((DosFileAttributes) fileAttributes);
         } else {
             throw new IllegalStateException("Unknown file attributes : " + fileAttributes);
         }
     }
+
     @NotNull
     private String dosFileAttributeToString(DosFileAttributes fileAttributes) {
         StringBuilder sb = new StringBuilder(9);
@@ -66,6 +71,11 @@ public abstract class AbstractFileReport {
         return sb.toString();
     }
 
-    public long getSize() { return fileAttributes.size(); }
-    public String getName() { return file.getPath(); }
+    public long getSize() {
+        return fileAttributes.size();
+    }
+
+    public String getName() {
+        return file.getPath();
+    }
 }

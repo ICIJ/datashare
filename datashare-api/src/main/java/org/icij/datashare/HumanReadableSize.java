@@ -5,9 +5,11 @@ import java.util.regex.Pattern;
 
 public class HumanReadableSize {
     static Pattern pattern = Pattern.compile("([0-9]+)([KMG])");
+
     public enum Unit {
         K(1024), M(K.bytes * 1024), G(M.bytes * 1024);
         private final long bytes;
+
         Unit(long bytes) {
             this.bytes = bytes;
         }

@@ -10,7 +10,7 @@ import java.util.function.Function;
 public interface ThrowingSupplier<T> {
 
     default T get() {
-        try{
+        try {
             return getThrows();
         } catch (Exception e) {
             throw new RuntimeException(e);
@@ -23,9 +23,9 @@ public interface ThrowingSupplier<T> {
     default <R> ThrowingSupplier<R> andThen(ThrowingFunction<? super T, ? extends R> after) {
         Objects.requireNonNull(after);
         try {
-            return () -> after.apply( get() );
+            return () -> after.apply(get());
 
-        } catch (Exception e){
+        } catch (Exception e) {
             throw new RuntimeException(e);
         }
     }
@@ -33,9 +33,9 @@ public interface ThrowingSupplier<T> {
     default <R> ThrowingSupplier<R> andThen(Function<? super T, ? extends R> after) {
         Objects.requireNonNull(after);
         try {
-            return () -> after.apply( get() );
+            return () -> after.apply(get());
 
-        } catch (Exception e){
+        } catch (Exception e) {
             throw new RuntimeException(e);
         }
     }

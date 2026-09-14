@@ -18,16 +18,16 @@ import static org.icij.datashare.text.NamedEntity.Category.*;
 
 
 public interface Pipeline {
-    static Set<Type> set(Type ...types) {
+    static Set<Type> set(Type... types) {
         return new HashSet<>(Arrays.asList(types));
     }
 
     enum Type implements EnumTypeToken {
-        TEST((short)-1),
-        CORENLP((short)0),
-        OPENNLP((short)4),
-        EMAIL((short)5),
-        SPACY((short)6);
+        TEST((short) -1),
+        CORENLP((short) 0),
+        OPENNLP((short) 4),
+        EMAIL((short) 5),
+        SPACY((short) 6);
 
         private final String className;
         public final short code;
@@ -40,7 +40,7 @@ public interface Pipeline {
         }
 
         public static Type fromCode(final int code) {
-            for (Type t: Type.values()) {
+            for (Type t : Type.values()) {
                 if (t.code == code) {
                     return t;
                 }
@@ -49,7 +49,9 @@ public interface Pipeline {
         }
 
         @Override
-        public String getClassName() { return className; }
+        public String getClassName() {
+            return className;
+        }
 
         public static Type parse(final String valueName) {
             return EnumTypeToken.parse(Type.class, valueName).
@@ -61,7 +63,7 @@ public interface Pipeline {
         }
 
         public static Set<Pipeline.Type> parseAll(final String comaSeparatedTypes) {
-            return comaSeparatedTypes == null || comaSeparatedTypes.isEmpty() ? new HashSet<>():
+            return comaSeparatedTypes == null || comaSeparatedTypes.isEmpty() ? new HashSet<>() :
                     stream(comaSeparatedTypes.split(",")).map(Type::valueOf).collect(Collectors.toSet());
         }
     }
@@ -77,12 +79,12 @@ public interface Pipeline {
         }
 
         public static Function<List<NamedEntity.Category>, Function<Boolean, Properties>>
-            build = entityCategories -> enableCaching -> {
-                Properties properties = new Properties();
-                properties.setProperty(ENTITIES.getName(), joinComma.apply(entityCategories));
-                properties.setProperty(CACHING.getName(),  String.valueOf(enableCaching));
-                return properties;
-            };
+                build = entityCategories -> enableCaching -> {
+            Properties properties = new Properties();
+            properties.setProperty(ENTITIES.getName(), joinComma.apply(entityCategories));
+            properties.setProperty(CACHING.getName(), String.valueOf(enableCaching));
+            return properties;
+        };
     }
 
     Charset DEFAULT_ENCODING = UTF_8;
@@ -94,6 +96,7 @@ public interface Pipeline {
     boolean initialize(Language language) throws InterruptedException;
 
     List<NamedEntity> process(Document doc) throws InterruptedException;
+
     List<NamedEntity> process(Document doc, int contentLength, int contentOffset) throws InterruptedException;
 
     void terminate(Language language) throws InterruptedException;

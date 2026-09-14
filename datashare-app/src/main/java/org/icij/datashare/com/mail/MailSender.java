@@ -16,7 +16,7 @@ import static javax.mail.Message.RecipientType.TO;
 
 public class MailSender {
     protected final Logger logger = LoggerFactory.getLogger(this.getClass());
-    
+
     public final int port;
     public final String host;
     final String user;
@@ -30,12 +30,12 @@ public class MailSender {
 
     public MailSender(URI uri) {
         this(
-            uri.getHost(),
-            uri.getPort(),
-            uri.getUserInfo() != null ? uri.getUserInfo().split(":")[0]: null,
-            uri.getUserInfo() != null ? uri.getUserInfo().split(":")[1]: null,
-            uri.getScheme().equals("smtps"),
-            ofNullable(uri.getQuery()).orElse("").contains("debug=true")
+                uri.getHost(),
+                uri.getPort(),
+                uri.getUserInfo() != null ? uri.getUserInfo().split(":")[0] : null,
+                uri.getUserInfo() != null ? uri.getUserInfo().split(":")[1] : null,
+                uri.getScheme().equals("smtps"),
+                ofNullable(uri.getQuery()).orElse("").contains("debug=true")
         );
     }
 
@@ -56,7 +56,7 @@ public class MailSender {
             logger.error("If error is about MailcapFile, delete .mailcap in the user's home");
             throw new MailException(e);
         } catch (Throwable t) {
-            logger.error("Failed to send mail : hostmail=" + host + ", port=" + port,  t);
+            logger.error("Failed to send mail : hostmail=" + host + ", port=" + port, t);
             throw new MailException(t);
         }
     }
@@ -113,5 +113,7 @@ public class MailSender {
         });
     }
 
-    boolean shouldAuth() {return user != null;}
+    boolean shouldAuth() {
+        return user != null;
+    }
 }

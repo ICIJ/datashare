@@ -24,6 +24,7 @@ public class DocumentUserRecommendation {
         this.user = user;
         this.creationDate = creationDate;
     }
+
     public DocumentUserRecommendation(@JsonProperty("document") Document document, @JsonProperty("project") ProjectProxy project, @JsonProperty("user") User user) {
         this(document, project, user, DatashareTime.getInstance().now());
     }

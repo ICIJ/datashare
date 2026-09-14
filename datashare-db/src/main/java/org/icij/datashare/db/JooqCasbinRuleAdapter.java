@@ -128,7 +128,6 @@ public class JooqCasbinRuleAdapter implements CasbinRuleAdapter {
     }
 
 
-
     private void saveSectionPolicyWithBatch(DSLContext ctx, Model model, String section) {
         if (!model.model.containsKey(section)) return;
         for (String ptype : model.model.get(section).keySet()) {

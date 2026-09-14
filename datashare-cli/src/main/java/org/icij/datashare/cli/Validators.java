@@ -16,17 +16,22 @@ public final class Validators {
 
     public static class InvalidValueException extends RuntimeException {
         private final String field;
+
         public InvalidValueException(String field, String message) {
             super(message);
             this.field = field;
         }
-        public String field() { return field; }
+
+        public String field() {
+            return field;
+        }
     }
 
     private static final Pattern LOGIN = Pattern.compile("^[a-z0-9][a-z0-9._-]{1,63}$");
     private static final Set<String> PROVIDERS = Set.of(User.LOCAL, User.OAUTH, User.EXTERNAL);
 
-    private Validators() {}
+    private Validators() {
+    }
 
     public static void login(String value) {
         if (value == null || !LOGIN.matcher(value).matches()) {
@@ -69,6 +74,7 @@ public final class Validators {
         }
         return validatedGroups;
     }
+
     public static boolean password(String value) {
         if (value == null || value.isBlank()) {
             throw new InvalidValueException("password", "password is required");
@@ -89,9 +95,9 @@ public final class Validators {
                     "role must be one of admin|editor|member|visitor");
         }
         return switch (alias.trim().toLowerCase(java.util.Locale.ROOT)) {
-            case "admin"   -> Role.PROJECT_ADMIN;
-            case "editor"  -> Role.PROJECT_EDITOR;
-            case "member"  -> Role.PROJECT_MEMBER;
+            case "admin" -> Role.PROJECT_ADMIN;
+            case "editor" -> Role.PROJECT_EDITOR;
+            case "member" -> Role.PROJECT_MEMBER;
             case "visitor" -> Role.PROJECT_VISITOR;
             default -> throw new InvalidValueException("role",
                     "role must be one of admin|editor|member|visitor");

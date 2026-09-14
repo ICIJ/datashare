@@ -16,7 +16,8 @@ public class BuildVersions {
     public static final String DATASHARE = version("datashare");
     public static final String EXTRACT = version("extract");
 
-    private BuildVersions() {}
+    private BuildVersions() {
+    }
 
     private static Properties read() {
         Properties properties = new Properties();

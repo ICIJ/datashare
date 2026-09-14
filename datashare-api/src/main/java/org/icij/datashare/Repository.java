@@ -14,48 +14,75 @@ import java.util.Set;
 
 public interface Repository {
     NamedEntity getNamedEntity(String id);
+
     Document getDocument(String id);
+
     void create(List<NamedEntity> neList);
+
     void create(Document document);
 
     // user related
     AggregateList<User> getRecommendations(Project project);
+
     AggregateList<User> getRecommendations(Project project, List<String> documentIds);
+
     boolean addToUserHistory(List<Project> project, UserEvent userEvent);
+
     boolean renameSavedSearch(User user, int eventId, String newName);
+
     List<UserEvent> getUserHistory(User user, UserEvent.Type type, int from, int size, String sort, boolean desc, String... projectIds);
+
     List<UserEvent> getUserEvents(User user);
+
     int getUserHistorySize(User user, UserEvent.Type type, String... projectIds);
+
     boolean deleteUserHistory(User user, UserEvent.Type type);
+
     boolean deleteUserHistoryEvent(User user, int eventId);
 
     // project related
     List<Document> getDocumentsNotTaggedWithPipeline(Project project, Pipeline.Type type);
+
     List<Document> getStarredDocuments(User user);
+
     List<String> getStarredDocuments(Project project, User user);
 
     Set<String> getRecommendationsBy(Project project, List<User> users);
 
     // document user recommendations
     List<DocumentUserRecommendation> getDocumentUserRecommendations(int from, int size);
+
     List<DocumentUserRecommendation> getDocumentUserRecommendations(int from, int size, List<Project> projects);
+
     int recommend(Project project, User user, List<String> documentIds);
+
     int unrecommend(Project project, User user, List<String> documentIds);
 
     // standalone (to remove later ?)
     int star(Project project, User user, List<String> documentIds);
+
     int unstar(Project project, User user, List<String> documentIds);
+
     boolean tag(Project prj, String documentId, Tag... tags);
+
     boolean untag(Project prj, String documentId, Tag... tags);
+
     boolean tag(Project prj, List<String> documentIds, Tag... tags);
+
     boolean untag(Project prj, List<String> documentIds, Tag... tags);
+
     List<String> getDocuments(Project project, Tag... tags);
+
     List<Tag> getTags(Project project, String documentId);
 
     boolean deleteAll(String projectId);
+
     Project getProject(String projectId);
+
     List<Project> getProjects();
+
     List<Project> getProjects(List<String> projectIds);
+
     boolean save(Project project);
 
     List<PathBanner> getPathBanners(Project prj, String pathPrefix);
@@ -73,9 +100,13 @@ public interface Repository {
     boolean getHealth();
 
     boolean save(User user);
+
     boolean deleteUser(String userId);
+
     User getUser(String userId);
+
     List<User> listUsers(UserFilter filter);
+
     // TODO: from version 21.0.3
     //  remove this after version 22.0.0 (or in a few stable releases)
     void temporaryFixLiquibaseIds();
@@ -107,7 +138,15 @@ public interface Repository {
             return count == aggregate.count &&
                     Objects.equals(item, aggregate.item);
         }
-        @Override public int hashCode() { return Objects.hash(item, count);}
-        @Override public String toString() { return item + "=" + count;}
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(item, count);
+        }
+
+        @Override
+        public String toString() {
+            return item + "=" + count;
+        }
     }
 }

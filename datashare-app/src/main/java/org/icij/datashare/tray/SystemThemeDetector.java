@@ -14,7 +14,7 @@ public class SystemThemeDetector {
     private static final Logger LOGGER = LoggerFactory.getLogger(SystemThemeDetector.class);
     private static final long TIMEOUT_MS = 2000;
 
-    public enum Theme { DARK, LIGHT, UNKNOWN }
+    public enum Theme {DARK, LIGHT, UNKNOWN}
 
     /** Seam over process execution; returns trimmed stdout or throws on failure/timeout. */
     @FunctionalInterface
@@ -50,7 +50,7 @@ public class SystemThemeDetector {
     private Theme detectLinux() {
         try {
             String colorScheme = runner.run(TIMEOUT_MS,
-                    "gsettings", "get", "org.gnome.desktop.interface", "color-scheme")
+                            "gsettings", "get", "org.gnome.desktop.interface", "color-scheme")
                     .toLowerCase(Locale.ROOT);
             if (colorScheme.contains("prefer-dark")) {
                 return Theme.DARK;
@@ -70,7 +70,7 @@ public class SystemThemeDetector {
     private Theme detectLinuxGtkTheme() {
         try {
             String theme = runner.run(TIMEOUT_MS,
-                    "gsettings", "get", "org.gnome.desktop.interface", "gtk-theme")
+                            "gsettings", "get", "org.gnome.desktop.interface", "gtk-theme")
                     .toLowerCase(Locale.ROOT);
             return theme.contains("dark") ? Theme.DARK : Theme.LIGHT;
         } catch (Exception e) {
@@ -82,9 +82,9 @@ public class SystemThemeDetector {
     private Theme detectWindows() {
         try {
             String registryValue = runner.run(TIMEOUT_MS,
-                    "reg", "query",
-                    "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize",
-                    "/v", "SystemUsesLightTheme")
+                            "reg", "query",
+                            "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize",
+                            "/v", "SystemUsesLightTheme")
                     .toLowerCase(Locale.ROOT);
             if (registryValue.contains("0x1")) {
                 return Theme.LIGHT;

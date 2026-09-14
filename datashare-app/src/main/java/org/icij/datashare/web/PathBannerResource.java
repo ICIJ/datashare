@@ -61,7 +61,7 @@ public class PathBannerResource {
             - `GET /api/p1/pathBanners/a/b/doc1` will return path banner A and B
             - `GET /api/p1/pathBanners/a/c/doc2` will return path banner A
             - `GET /api/p1/pathBanners/d/doc3` will return an empty list
-           
+            
             Note the `:path:` it is a greedy parameter at the end of the url
             
             ```
@@ -77,8 +77,8 @@ public class PathBannerResource {
             matches `/start/with/myparameter/with/slashes` and the parameter variable will contain `myparameter/with/slashes`
             """,
             parameters = {
-                @Parameter(name = "project", description = "the project id", in = ParameterIn.PATH),
-                @Parameter(name = "path", description = "the path of the document.", in = ParameterIn.PATH),
+                    @Parameter(name = "project", description = "the project id", in = ParameterIn.PATH),
+                    @Parameter(name = "path", description = "the path of the document.", in = ParameterIn.PATH),
             }
     )
     @ApiResponse(responseCode = "403", description = "if the user is not granted for the project")

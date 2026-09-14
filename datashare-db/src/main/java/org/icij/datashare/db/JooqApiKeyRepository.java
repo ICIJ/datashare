@@ -32,36 +32,36 @@ public class JooqApiKeyRepository implements ApiKeyRepository {
     @Override
     public ApiKey get(String base64Key) {
         DSLContext ctx = using(connectionProvider, dialect);
-            return createApiKey(ctx.selectFrom(API_KEY).
-                    where(API_KEY.ID.eq(ApiKey.DEFAULT_DIGESTER.hash(base64Key))).fetchOne());
+        return createApiKey(ctx.selectFrom(API_KEY).
+                where(API_KEY.ID.eq(ApiKey.DEFAULT_DIGESTER.hash(base64Key))).fetchOne());
 
     }
 
     @Override
     public ApiKey get(User user) {
         DSLContext ctx = using(connectionProvider, dialect);
-            return createApiKey(ctx.selectFrom(API_KEY).
-                    where(API_KEY.USER_ID.eq(user.id)).fetchOne());
+        return createApiKey(ctx.selectFrom(API_KEY).
+                where(API_KEY.USER_ID.eq(user.id)).fetchOne());
 
     }
 
     @Override
     public boolean delete(User user) {
         DSLContext ctx = using(connectionProvider, dialect);
-            return ctx.deleteFrom(API_KEY)
-                    .where(API_KEY.USER_ID.eq(user.id)).execute() > 0;
+        return ctx.deleteFrom(API_KEY)
+                .where(API_KEY.USER_ID.eq(user.id)).execute() > 0;
 
     }
 
     @Override
     public boolean save(ApiKey apiKey) {
         DSLContext ctx = using(connectionProvider, dialect);
-            return ctx.insertInto(API_KEY).
-                    values(apiKey.getId(), apiKey.getUser().id, new Timestamp((DatashareTime.getInstance().currentTimeMillis()))).
-                    onConflict(API_KEY.USER_ID).doUpdate().
-                    set(API_KEY.ID, apiKey.getId()).
-                    set(API_KEY.CREATION_DATE, new Timestamp((DatashareTime.getInstance().currentTimeMillis())).toLocalDateTime()).
-                    where(API_KEY.USER_ID.eq(apiKey.getUser().id)).execute() > 0;
+        return ctx.insertInto(API_KEY).
+                values(apiKey.getId(), apiKey.getUser().id, new Timestamp((DatashareTime.getInstance().currentTimeMillis()))).
+                onConflict(API_KEY.USER_ID).doUpdate().
+                set(API_KEY.ID, apiKey.getId()).
+                set(API_KEY.CREATION_DATE, new Timestamp((DatashareTime.getInstance().currentTimeMillis())).toLocalDateTime()).
+                where(API_KEY.USER_ID.eq(apiKey.getUser().id)).execute() > 0;
 
     }
 

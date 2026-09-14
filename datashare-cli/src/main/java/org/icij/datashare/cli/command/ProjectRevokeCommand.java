@@ -66,17 +66,17 @@ public class ProjectRevokeCommand implements Runnable, DatashareSubcommand {
     public void run() {
         try {
             String project = projectPositional != null ? projectPositional : projectFlag;
-            String user    = userPositional    != null ? userPositional    : userFlag;
+            String user = userPositional != null ? userPositional : userFlag;
 
             if (project != null) Validators.projectName(project);
-            if (user    != null) Validators.login(user);
+            if (user != null) Validators.login(user);
 
             Prompter prompter = resolvePrompter();
             if (project == null) project = require(prompter, "Project name", Validators::projectName, "--project");
-            if (user    == null) user    = require(prompter, "User login",   Validators::login,        "--user");
+            if (user == null) user = require(prompter, "User login", Validators::login, "--user");
 
             this.validatedProject = project;
-            this.validatedUser    = user;
+            this.validatedUser = user;
         } catch (InvalidValueException | Prompter.ValidationFailedException e) {
             spec.commandLine().getErr().println("error: " + e.getMessage());
             throw new CliExitException(5);

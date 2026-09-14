@@ -127,6 +127,7 @@ public class UserAdminServiceImpl implements UserAdminService {
     private static boolean isLocal(UserCreateRequest request) {
         return User.LOCAL.equals(request.provider());
     }
+
     private boolean isExternal(UserCreateRequest request) {
         return User.EXTERNAL.equals(request.provider());
     }

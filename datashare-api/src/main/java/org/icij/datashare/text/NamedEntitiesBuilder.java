@@ -33,13 +33,16 @@ public class NamedEntitiesBuilder {
 
     public List<NamedEntity> build() {
         return mentionIndicesMap.entrySet().stream().map(e ->
-                NamedEntity.create(e.getKey()._2(), e.getKey()._1(), e.getValue(), docId, rootId, type, language, metadata)).
+                        NamedEntity.create(e.getKey()._2(), e.getKey()._1(), e.getValue(), docId, rootId, type, language, metadata)).
                 collect(Collectors.toList());
     }
 
     public NamedEntitiesBuilder add(NamedEntity.Category category, String mention, long index) {
         mentionIndicesMap.putIfAbsent(new Pair<>(mention, category), new LinkedList<>());
-        mentionIndicesMap.computeIfPresent(new Pair<>(mention, category), (k, v) -> { v.add(index); return v;});
+        mentionIndicesMap.computeIfPresent(new Pair<>(mention, category), (k, v) -> {
+            v.add(index);
+            return v;
+        });
         return this;
     }
 
@@ -47,6 +50,7 @@ public class NamedEntitiesBuilder {
         this.rootId = rootId;
         return this;
     }
+
     public NamedEntitiesBuilder withMetadata(Map<String, Object> metadata) {
         this.metadata = metadata;
         return this;

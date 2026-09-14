@@ -37,7 +37,7 @@ public class StatusResource {
     }
 
     @Operation(description = "Retrieve the status of databus connection, database connection and index.",
-            parameters = { @Parameter(name = "format=openmetrics", description = "if provided in the URL it will return the status in openmetrics format", in = ParameterIn.QUERY) })
+            parameters = {@Parameter(name = "format=openmetrics", description = "if provided in the URL it will return the status in openmetrics format", in = ParameterIn.QUERY)})
     @ApiResponse(responseCode = "200", description = "returns the status of datashare elements", useReturnTypeSchema = true)
     @ApiResponse(responseCode = "504", description = "proxy error when elasticsearch is down", useReturnTypeSchema = true)
     @ApiResponse(responseCode = "503", description = "service unavailable when other services are down", useReturnTypeSchema = true)

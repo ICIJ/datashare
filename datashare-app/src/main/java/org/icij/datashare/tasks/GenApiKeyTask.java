@@ -29,6 +29,7 @@ public class GenApiKeyTask extends DefaultTask<String> implements UserTask {
         this.apiKeyRepository = apiKeyRepository;
         this.user = user;
     }
+
     @Override
     public String call() throws Exception {
         SecretKey secretKey = DatashareApiKey.generateSecretKey();

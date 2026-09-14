@@ -11,6 +11,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import jakarta.inject.Inject;
+
 import java.io.IOException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -53,7 +54,7 @@ public class IndexWaiterFilter implements Filter {
                         LOGGER.info("Ping indexer succeeded");
                         break;
                     }
-                } catch (IOException|RuntimeException e) {
+                } catch (IOException | RuntimeException e) {
                     if (i % 10 == 0) {
                         LOGGER.info("Ping failed. Waiting for indexer to be up " + e);
                     }
@@ -69,5 +70,7 @@ public class IndexWaiterFilter implements Filter {
     }
 
     @Override
-    public boolean matches(String uri, Context context) { return true;}
+    public boolean matches(String uri, Context context) {
+        return true;
+    }
 }

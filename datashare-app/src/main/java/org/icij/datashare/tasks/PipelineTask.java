@@ -63,7 +63,9 @@ public abstract class PipelineTask<T> extends DefaultTask<Long> implements UserT
     }
 
     @Override
-    public User getUser() { return user;}
+    public User getUser() {
+        return user;
+    }
 
     protected DocumentQueue<T> getInputQueue(Class<T> clazz) {
         String queueName = getInputQueueName();

@@ -15,18 +15,18 @@ import static java.util.Arrays.stream;
 
 
 public enum Hasher {
-    MD5     (16),
-    SHA_1   (40),
-    SHA_256 (64),
-    SHA_384 (96),
-    SHA_512 (128);
+    MD5(16),
+    SHA_1(40),
+    SHA_256(64),
+    SHA_384(96),
+    SHA_512(128);
 
     public static final Charset DEFAULT_ENCODING = StandardCharsets.UTF_8;
     private final String algorithm;
     public final int digestLength;
 
     Hasher(int digestLen) {
-        algorithm    = name().replace('_', '-');
+        algorithm = name().replace('_', '-');
         digestLength = digestLen;
     }
 

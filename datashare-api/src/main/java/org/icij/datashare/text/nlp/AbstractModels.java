@@ -1,6 +1,6 @@
 package org.icij.datashare.text.nlp;
 
-import java.io.File;
+
 import org.icij.datashare.DynamicClassLoader;
 import org.icij.datashare.io.RemoteFiles;
 import org.icij.datashare.text.Language;
@@ -11,6 +11,7 @@ import java.io.IOException;
 import java.net.URL;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -45,6 +46,7 @@ public abstract class AbstractModels<T> {
      * @throws InterruptedException because loadModelFile could need to load dependent models of another language (cf CoreNlp) see get-
      */
     protected abstract T loadModelFile(Language language) throws IOException, InterruptedException;
+
     protected abstract String getVersion();
 
     public T get(Language language) throws InterruptedException {
@@ -83,9 +85,9 @@ public abstract class AbstractModels<T> {
     }
 
     public void addResourceToContextClassLoader(Path resourcePath) {
-        DynamicClassLoader classLoader = (DynamicClassLoader)ClassLoader.getSystemClassLoader();
+        DynamicClassLoader classLoader = (DynamicClassLoader) ClassLoader.getSystemClassLoader();
         final URL resource = classLoader.getResource(resourcePath.toString());
-        LOGGER.info("adding {} to system classloader", resource == null? null: resource.getPath());
+        LOGGER.info("adding {} to system classloader", resource == null ? null : resource.getPath());
         classLoader.add(resource);
     }
 
@@ -110,7 +112,7 @@ public abstract class AbstractModels<T> {
             remoteFiles.shutdown();
         }
     }
-    
+
     public void unload(Language language) throws InterruptedException {
         Semaphore l = modelLock.get(language);
         l.acquire();
@@ -120,17 +122,24 @@ public abstract class AbstractModels<T> {
             l.release();
         }
     }
+
     public static void syncModels(final boolean sync) {
         LoggerFactory.getLogger(AbstractModels.class).info("synchronize models is set to {}", sync);
         System.setProperty(JVM_PROPERTY_NAME, String.valueOf(sync));
     }
+
     public static boolean isSync() {
         return parseBoolean(System.getProperty(JVM_PROPERTY_NAME, "true"));
     }
 
-    public boolean isLoaded(Language language) { return models.containsKey(language);}
-    protected RemoteFiles getRemoteFiles() { return RemoteFiles.getDefault();}
-    
+    public boolean isLoaded(Language language) {
+        return models.containsKey(language);
+    }
+
+    protected RemoteFiles getRemoteFiles() {
+        return RemoteFiles.getDefault();
+    }
+
     private boolean isFile(String remoteKey) {
         // We make the false assumption that files will have extension
         return Path.of(remoteKey).getFileName().toString().split("\\.").length > 0;

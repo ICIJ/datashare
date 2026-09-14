@@ -22,11 +22,11 @@ public class IndexAccessVerifier {
     private static final Pattern INDICES = Pattern.compile("^" + INDEX_NAME + "(," + INDEX_NAME + ")*$");
 
     static public String checkIndices(String indices) {
-        if( indices == null) {
+        if (indices == null) {
             throw new IllegalArgumentException("indices is null");
         }
-        if( !INDICES.matcher(indices).matches()) {
-            throw new IllegalArgumentException("Bad format for indices : '" + indices+"'");
+        if (!INDICES.matcher(indices).matches()) {
+            throw new IllegalArgumentException("Bad format for indices : '" + indices + "'");
         }
         return indices;
     }

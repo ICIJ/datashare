@@ -8,21 +8,25 @@ import java.util.Date;
 import java.util.Objects;
 
 public class UserEvent {
-    public enum Type {DOCUMENT((short) 0), SEARCH((short)1);
+    public enum Type {
+        DOCUMENT((short) 0), SEARCH((short) 1);
         public final short id;
+
         Type(short id) {
             this.id = id;
         }
 
         public static Type fromId(final int id) {
-            for (Type t: Type.values()) {
+            for (Type t : Type.values()) {
                 if (t.id == id) {
                     return t;
                 }
             }
             throw new IllegalArgumentException("cannot find id " + id);
         }
-    };
+    }
+
+    ;
     public final int id;
     public final User user;
     public final Date creationDate;
@@ -44,6 +48,7 @@ public class UserEvent {
     public UserEvent(User user, Type type, String name, URI uri, Date creationDate, Date modificationDate, int eventId) {
         this(eventId, user, type, name, uri, creationDate, modificationDate);
     }
+
     public UserEvent(User user, Type type, String name, URI uri, Date creationDate, Date modificationDate) {
         this(user, type, name, uri, creationDate, modificationDate, -1);
     }

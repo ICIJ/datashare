@@ -9,6 +9,6 @@ public class ErrorEvent extends TaskEvent {
     @JsonCreator
     public ErrorEvent(@JsonProperty("taskId") String taskId, @JsonProperty("error") TaskError error) {
         super(taskId);
-        this.error= error;
+        this.error = error;
     }
 }

@@ -74,5 +74,8 @@ public class FormAuthFilter extends DatashareAuthFilter {
                 .withCookie(this.authCookie(this.buildCookie(user, "/")));
     }
 
-    @Override protected int expiry() { return sessionTtl; }
+    @Override
+    protected int expiry() {
+        return sessionTtl;
+    }
 }

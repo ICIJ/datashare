@@ -9,7 +9,10 @@ import java.util.Optional;
  */
 public interface AsyncSearchStore {
     void put(String asyncId, AsyncSearchOwner owner, Duration keepAlive);
+
     Optional<AsyncSearchOwner> get(String asyncId);
+
     void remove(String asyncId);
+
     void refresh(String asyncId, Duration keepAlive);
 }

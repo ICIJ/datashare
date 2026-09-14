@@ -15,7 +15,8 @@ import java.net.URI;
  */
 @JsonTypeInfo(use = JsonTypeInfo.Id.CLASS, property = "@type")
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public record BatchDownloadRunnerResult(URI uri, long size, @Nullable TruncationReason truncationReason) implements Serializable, DownloadableResult {
+public record BatchDownloadRunnerResult(URI uri, long size,
+                                        @Nullable TruncationReason truncationReason) implements Serializable, DownloadableResult {
 
     @Override
     public URI getUri() {

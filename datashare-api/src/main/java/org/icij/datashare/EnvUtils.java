@@ -12,15 +12,15 @@ public class EnvUtils {
 
     static {
         getEnvFile().ifPresent((f) ->
-            {
-                if (f.toFile().exists()) {
-                    try (FileInputStream input = new FileInputStream(f.toFile())) {
-                        envProperties.load(input);
-                    } catch (IOException e) {
-                        throw new RuntimeException("Failed to dev env configuration", e);
+                {
+                    if (f.toFile().exists()) {
+                        try (FileInputStream input = new FileInputStream(f.toFile())) {
+                            envProperties.load(input);
+                        } catch (IOException e) {
+                            throw new RuntimeException("Failed to dev env configuration", e);
+                        }
                     }
                 }
-            }
         );
     }
 

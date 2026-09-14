@@ -46,7 +46,7 @@ public class QpidAmqpServer implements Closeable {
     private Map<String, Object> createSystemConfig(final String configFileName) {
         Map<String, Object> attributes = new HashMap<>();
         URL initialConfig = QpidAmqpServer.class.getClassLoader().getResource(configFileName);
-        logger.info("initial config : {}", Objects.requireNonNull(initialConfig," initialConfig cannot be null").toExternalForm());
+        logger.info("initial config : {}", Objects.requireNonNull(initialConfig, " initialConfig cannot be null").toExternalForm());
         attributes.put("type", "Memory");
         attributes.put("initialConfigurationLocation", initialConfig.toExternalForm());
         attributes.put("startupLoggedToSystemOut", true);

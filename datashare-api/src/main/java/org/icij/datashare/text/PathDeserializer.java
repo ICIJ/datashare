@@ -9,7 +9,10 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 
 public class PathDeserializer extends StdScalarDeserializer<Path> {
-    public PathDeserializer() { super(Path.class); }
+    public PathDeserializer() {
+        super(Path.class);
+    }
+
     @Override
     public Path deserialize(JsonParser jsonParser, DeserializationContext deserializationContext) throws IOException {
         return Paths.get(jsonParser.getText().trim());

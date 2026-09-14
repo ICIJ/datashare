@@ -19,7 +19,7 @@ public class RedisBlockingQueue<T> extends RedissonBlockingQueue<T> implements C
 
     @Inject
     public RedisBlockingQueue(RedissonClient redissonClient, String queueName) {
-       this(redissonClient, queueName, new JsonJacksonCodec());
+        this(redissonClient, queueName, new JsonJacksonCodec());
     }
 
     public RedisBlockingQueue(RedissonClient redissonClient, String queueName, BaseCodec codec) {

@@ -14,7 +14,7 @@ import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
 @Singleton
-public class RedisDocumentCollectionFactory <T> implements DocumentCollectionFactory<T> {
+public class RedisDocumentCollectionFactory<T> implements DocumentCollectionFactory<T> {
     PropertiesProvider propertiesProvider;
     RedissonClient redissonClient;
 

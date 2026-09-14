@@ -4,7 +4,9 @@ import org.icij.datashare.asynctasks.TaskGroupType;
 
 import com.google.inject.Inject;
 import com.google.inject.assistedinject.Assisted;
+
 import java.util.function.Function;
+
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Stage;
 import org.icij.datashare.asynctasks.Task;
@@ -33,7 +35,7 @@ public class ScanTask extends PipelineTask<Path> {
     public ScanTask(DocumentCollectionFactory<Path> factory, @Assisted Task<Long> task, @Assisted Function<Double, Void> updateCallback) {
         super(Stage.SCAN, task.getUser(), factory, new PropertiesProvider(task.args), Path.class);
         scanner = new Scanner(outputQueue).configure(options().createFrom(Options.from(task.args)));
-        path = Paths.get((String)task.args.get(DATA_DIR_OPT));
+        path = Paths.get((String) task.args.get(DATA_DIR_OPT));
     }
 
     @Override

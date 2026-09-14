@@ -16,6 +16,7 @@ public class PathBanner {
     public enum Variant {
         dark, light, danger, info, success, warning, primary, secondary
     }
+
     public final Project project;
     public final String note;
     @JsonSerialize(using = PathSerializer.class)
@@ -55,7 +56,10 @@ public class PathBanner {
     }
 
     @Override
-    public int hashCode() { return Objects.hash(project, path);}
+    public int hashCode() {
+        return Objects.hash(project, path);
+    }
+
     @Override
     public String toString() {
         return "PathBanner{project=" + project.name + ", path=" + path + '}';

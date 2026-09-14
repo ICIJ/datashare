@@ -24,7 +24,8 @@ public class ContentOccurrences {
     private static final int MEMO_LIMIT = 0x600;
     private static final String[] MEMO = new String[MEMO_LIMIT];
 
-    private ContentOccurrences() {}
+    private ContentOccurrences() {
+    }
 
     /**
      * Occurrences of {@code query} in {@code content}, both folded first. Stepping by the raw query's

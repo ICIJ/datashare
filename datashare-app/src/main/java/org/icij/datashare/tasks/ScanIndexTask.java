@@ -2,7 +2,9 @@ package org.icij.datashare.tasks;
 
 import com.google.inject.Inject;
 import com.google.inject.assistedinject.Assisted;
+
 import java.util.function.Function;
+
 import org.icij.datashare.Entity;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Stage;
@@ -42,7 +44,9 @@ import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_SCROLL_SLICES;
 import static org.icij.datashare.cli.DatashareCliOptions.SCROLL_DURATION_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.SCROLL_SIZE_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.SCROLL_SLICES_OPT;
+
 import org.icij.datashare.asynctasks.TaskGroupType;
+
 import static org.icij.datashare.text.indexing.ScrollQueryBuilder.createScrollQuery;
 
 @TemporalSingleActivityWorkflow(name = "scan-index", activityOptions = @ActivityOpts(timeout = "P7D"))

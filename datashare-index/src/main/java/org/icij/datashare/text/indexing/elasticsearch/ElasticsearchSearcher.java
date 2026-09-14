@@ -13,7 +13,9 @@ import com.fasterxml.jackson.core.io.JsonStringEncoder;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import jakarta.json.JsonException;
+
 import java.util.Objects;
+
 import org.icij.datashare.Entity;
 import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.text.indexing.Indexer;
@@ -87,11 +89,12 @@ class ElasticsearchSearcher implements Indexer.Searcher {
 
     @Override
     public Stream<? extends Entity> scroll(String duration) throws IOException {
-        return scroll(createScrollQuery().withDuration(duration).withSlices(0,0).build());
+        return scroll(createScrollQuery().withDuration(duration).withSlices(0, 0).build());
     }
+
     @Override
     public Stream<? extends Entity> scroll(String duration, String stringQuery) throws IOException {
-        return scroll(createScrollQuery().withDuration(duration).withStringQuery(stringQuery).withSlices(0,0).build());
+        return scroll(createScrollQuery().withDuration(duration).withStringQuery(stringQuery).withSlices(0, 0).build());
     }
 
     protected BoolQuery.Builder getBoolQueryBuilder(String query) throws JsonException {

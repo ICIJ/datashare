@@ -15,15 +15,15 @@ public class DataDirVerifier {
         this.propertiesProvider = propertiesProvider;
     }
 
-    public String value () {
+    public String value() {
         return propertiesProvider.get(DATA_DIR_OPT).orElse(DEFAULT_DATA_DIR);
     }
 
-    public Path path () {
+    public Path path() {
         return Paths.get(this.value());
     }
 
-    public boolean allowed (Path path) {
+    public boolean allowed(Path path) {
         return path.equals(this.path()) || path.startsWith(this.path());
     }
 }

@@ -29,9 +29,9 @@ public class Functions {
      * @param <C>    the combined type
      * @return a Stream of type C
      */
-    public static<A, B, C> Stream<C> zip(Stream<? extends A> a,
-                                         Stream<? extends B> b,
-                                         BiFunction<? super A, ? super B, ? extends C> zipper) {
+    public static <A, B, C> Stream<C> zip(Stream<? extends A> a,
+                                          Stream<? extends B> b,
+                                          BiFunction<? super A, ? super B, ? extends C> zipper) {
         Objects.requireNonNull(zipper);
 
         @SuppressWarnings("unchecked")
@@ -42,12 +42,12 @@ public class Functions {
         // Zipping looses DISTINCT and SORTED characteristics
         int charcs = (
                 spliterA.characteristics() &
-                spliterB.characteristics() &
-                ~ (Spliterator.DISTINCT | Spliterator.SORTED)
+                        spliterB.characteristics() &
+                        ~(Spliterator.DISTINCT | Spliterator.SORTED)
         );
 
-        long zipSize = ( (charcs & Spliterator.SIZED) != 0) ?
-                  Math.min(spliterA.getExactSizeIfKnown(), spliterB.getExactSizeIfKnown())
+        long zipSize = ((charcs & Spliterator.SIZED) != 0) ?
+                Math.min(spliterA.getExactSizeIfKnown(), spliterB.getExactSizeIfKnown())
                 : -1;
 
         Iterator<A> aIter = Spliterators.iterator(spliterA);
@@ -57,6 +57,7 @@ public class Functions {
             public boolean hasNext() {
                 return aIter.hasNext() && bIter.hasNext();
             }
+
             @Override
             public C next() {
                 return zipper.apply(aIter.next(), bIter.next());
@@ -65,7 +66,7 @@ public class Functions {
 
         Spliterator<C> split = Spliterators.spliterator(cIter, zipSize, charcs);
         return (a.isParallel() || b.isParallel()) ?
-                  StreamSupport.stream(split, true)
+                StreamSupport.stream(split, true)
                 : StreamSupport.stream(split, false);
     }
 

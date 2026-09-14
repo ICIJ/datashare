@@ -3,6 +3,7 @@ package org.icij.datashare.asynctasks;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
+
 import org.icij.datashare.time.DatashareTime;
 
 
@@ -21,8 +22,8 @@ public class ProgressSmoother implements BiFunction<String, Double, Void> {
     public Void apply(String taskId, Double progress) {
         long now = DatashareTime.getInstance().currentTimeMillis();
         lastPublished.compute(
-            taskId,
-            (tId, lastUpdated) -> this.progressWithRate(tId, lastUpdated, now, progress)
+                taskId,
+                (tId, lastUpdated) -> this.progressWithRate(tId, lastUpdated, now, progress)
         );
         if (progress == 1.0) {
             // Clear the cache when we hit 1.0

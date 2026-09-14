@@ -41,7 +41,7 @@ public class TaskManagerTemporal implements TaskManager {
         String taskId = taskView.id;
         try {
             taskRepository.insert(taskView, group);
-            temporal.createWorkflow(taskId, taskView.name, resolveWfTaskQueue(taskView.name ,group),
+            temporal.createWorkflow(taskId, taskView.name, resolveWfTaskQueue(taskView.name, group),
                     generateSearchAttributes(taskView), taskView.args);
             taskView.setState(Task.State.RUNNING);
             taskRepository.update(taskView);
@@ -80,7 +80,7 @@ public class TaskManagerTemporal implements TaskManager {
     @Override
     public boolean stopTask(String taskId) throws IOException, UnknownTask {
         //TODO Check if synchronous call
-        if(temporal.terminateWorkflow(taskId)) {
+        if (temporal.terminateWorkflow(taskId)) {
             Task<?> task = taskRepository.getTask(taskId);
             task.setState(Task.State.CANCELLED);
             taskRepository.update(task);
@@ -110,23 +110,23 @@ public class TaskManagerTemporal implements TaskManager {
     public void reconcileTasks() throws IOException {
         logger.info("Scanning repository for tasks to reconcile");
         taskRepository.getTasks(new TaskFilters().withStates(Set.of(Task.State.RUNNING)))
-            .forEach(repoTask -> {
-                logger.info("Reconciling task {} with Temporal", repoTask.getId());
-                try {
-                    Task<Serializable> temporalTask = temporal.getTask(repoTask.id);
-                    if (temporalTask.isFinished()) {
-                        logger.info("Task {} is finished in Temporal, update the completion information in repository", repoTask.getId());
-                        taskRepository.update(temporalTask);
-                    } else {
-                        logger.info("Task {} is still running in Temporal, attaching completion listener", repoTask.getId());
-                        attachCompletionListener(repoTask.id);
+                .forEach(repoTask -> {
+                    logger.info("Reconciling task {} with Temporal", repoTask.getId());
+                    try {
+                        Task<Serializable> temporalTask = temporal.getTask(repoTask.id);
+                        if (temporalTask.isFinished()) {
+                            logger.info("Task {} is finished in Temporal, update the completion information in repository", repoTask.getId());
+                            taskRepository.update(temporalTask);
+                        } else {
+                            logger.info("Task {} is still running in Temporal, attaching completion listener", repoTask.getId());
+                            attachCompletionListener(repoTask.id);
+                        }
+                    } catch (UnknownTask e) {
+                        logger.warn("Task {} is RUNNING in repository but not found in Temporal. The task will never complete", repoTask.id);
+                    } catch (IOException e) {
+                        logger.warn("Failed to reconcile task {}", repoTask.id, e);
                     }
-                } catch (UnknownTask e) {
-                    logger.warn("Task {} is RUNNING in repository but not found in Temporal. The task will never complete", repoTask.id);
-                } catch (IOException e) {
-                    logger.warn("Failed to reconcile task {}", repoTask.id, e);
-                }
-            });
+                });
     }
 
     /**
@@ -136,7 +136,7 @@ public class TaskManagerTemporal implements TaskManager {
      */
     private void attachCompletionListener(String taskId) {
         CompletableFuture<Serializable> future = temporal.createWorkflowStub(taskId)
-            .getResultAsync(Serializable.class);
+                .getResultAsync(Serializable.class);
         pendingListeners.put(taskId, future);
         future.whenComplete((result, ex) -> {
             pendingListeners.remove(taskId);
@@ -164,22 +164,21 @@ public class TaskManagerTemporal implements TaskManager {
      */
     private <T extends Serializable> void updateTaskWithCompletionInfoFromTemporal(Task<T> inRepository) {
         Task<T> inTemporal = temporal.getTask(inRepository.getId());
-        if(inTemporal == null) {
+        if (inTemporal == null) {
             logger.warn("Unable to retrieve task {} from Temporal. Cannot update completion infos in repository", inRepository.getId());
             return;
         }
         inRepository.setState(inTemporal.getState());
 
-        if(inTemporal.getResult() != null) {
+        if (inTemporal.getResult() != null) {
             inRepository.setResult(inTemporal.getResult());
         }
 
-        if(inTemporal.getError() != null) {
+        if (inTemporal.getError() != null) {
             inRepository.setError(inTemporal.getError());
         }
 
     }
-
 
 
     @Override
@@ -241,10 +240,10 @@ public class TaskManagerTemporal implements TaskManager {
 
     static SearchAttributes generateSearchAttributes(Task<?> taskView) {
         SearchAttributes.Builder builder = SearchAttributes.newBuilder()
-            .set(PROGRESS_CUSTOM_ATTRIBUTE, 0d)
-            .set(MAX_PROGRESS_CUSTOM_ATTRIBUTE, 1d);
+                .set(PROGRESS_CUSTOM_ATTRIBUTE, 0d)
+                .set(MAX_PROGRESS_CUSTOM_ATTRIBUTE, 1d);
         Optional.ofNullable(taskView.getUser()).ifPresent(u -> {
-            if(u.getId() != null) {
+            if (u.getId() != null) {
                 builder.set(USER_CUSTOM_ATTRIBUTE, u.getId());
             }
         });

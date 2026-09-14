@@ -45,7 +45,7 @@ public class BatchDownloadCleaner implements Runnable {
         if (ttlHour == 0) return;
         try {
             logger.debug("deleting expired batch download zip files from {}", downloadDir);
-            stream(ofNullable(downloadDir.toFile().listFiles()).orElse(new File[] {}))
+            stream(ofNullable(downloadDir.toFile().listFiles()).orElse(new File[]{}))
                     .filter(f -> filePattern.matcher(f.getName()).matches())
                     .filter(f -> DatashareTime.getInstance().currentTimeMillis() - f.lastModified() >= ttlHour * 1000L * 60 * 60)
                     .forEach(File::delete);

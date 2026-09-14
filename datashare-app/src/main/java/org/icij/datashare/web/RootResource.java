@@ -59,7 +59,7 @@ public class RootResource {
         } else {
             content = new String(Files.readAllBytes(index), Charset.defaultCharset());
         }
-        List<String> projectNames = context.currentUser() == null ? new LinkedList<>() : ((DatashareUser)context.currentUser()).getProjectNames();
+        List<String> projectNames = context.currentUser() == null ? new LinkedList<>() : ((DatashareUser) context.currentUser()).getProjectNames();
         PluginService pluginService = createPluginService();
         if (pluginService != null) {
             return pluginService.addPlugins(content, projectNames);
@@ -73,9 +73,9 @@ public class RootResource {
 
     @Operation(description = """
             Gets the public (i.e. without user's information) datashare settings parameters.
-
+            
             These parameters are used for the client app for the init process.
-
+            
             The endpoint obfuscates values for keys containing password, key, secret, address, or url.
             URI values with embedded credentials (e.g. scheme://user:pass@host) have user and password masked.
             """)

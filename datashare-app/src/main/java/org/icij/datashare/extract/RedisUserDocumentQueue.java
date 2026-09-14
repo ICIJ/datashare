@@ -40,6 +40,7 @@ public class RedisUserDocumentQueue<T> extends RedisDocumentQueue<T> {
     public String getQueueName() {
         return queueName;
     }
+
     private static String getQueueName(User user, String baseQueueName) {
         return user.isNull() ? baseQueueName : user.queueName();
     }

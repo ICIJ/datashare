@@ -29,7 +29,9 @@ public class ExtensionResource {
     private final ExtensionService extensionService;
 
     @Inject
-    public ExtensionResource(ExtensionService extensionService) {this.extensionService = extensionService;}
+    public ExtensionResource(ExtensionService extensionService) {
+        this.extensionService = extensionService;
+    }
 
     @Operation(description = """
             Gets the extension set in JSON.
@@ -80,7 +82,9 @@ public class ExtensionResource {
     @Operation(description = "Preflight request")
     @ApiResponse(responseCode = "200", description = "returns OPTIONS and DELETE")
     @Options("/uninstall")
-    public Payload uninstallExtensionPreflight() { return ok().withAllowMethods("OPTIONS", "DELETE");}
+    public Payload uninstallExtensionPreflight() {
+        return ok().withAllowMethods("OPTIONS", "DELETE");
+    }
 
     @Operation(description = "Uninstall extension specified by its id.")
     @ApiResponse(responseCode = "204", description = "returns 204 if the extension is uninstalled (idempotent)")

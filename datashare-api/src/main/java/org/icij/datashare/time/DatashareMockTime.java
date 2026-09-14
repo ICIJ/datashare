@@ -29,12 +29,12 @@ public class DatashareMockTime implements Time {
     }
 
     public void setMockDate(String dateTime) {
-		setMockDate(DatashareDateUtils.formatDate(dateTime));
-	}
+        setMockDate(DatashareDateUtils.formatDate(dateTime));
+    }
 
-	public void addMilliseconds(int timeToAddInMs) {
-		setMockDate(DatashareDateUtils.addMilliseconds(now(), timeToAddInMs));
-	}
+    public void addMilliseconds(int timeToAddInMs) {
+        setMockDate(DatashareDateUtils.addMilliseconds(now(), timeToAddInMs));
+    }
 
     protected void notifyListeners() {
         for (DateChangeListener listener : listeners) {
@@ -42,7 +42,9 @@ public class DatashareMockTime implements Time {
         }
     }
 
-    public Date now() { return mockDate; }
+    public Date now() {
+        return mockDate;
+    }
 
     public long currentTimeMillis() {
         return mockDate.getTime();
@@ -53,8 +55,8 @@ public class DatashareMockTime implements Time {
     }
 
     public Date itIsNow(String date) {
-    	setMockDate(date);
-    	return now();
+        setMockDate(date);
+        return now();
     }
 
 }

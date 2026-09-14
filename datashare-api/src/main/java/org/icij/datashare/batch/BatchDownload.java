@@ -36,14 +36,14 @@ public class BatchDownload {
     public final SearchQuery query;
 
     public BatchDownload(final List<Project> projects, User user, String query, String uri) {
-        this(projects, user, query,  uri, Paths.get(System.getProperty("java.io.tmpdir")),false);
+        this(projects, user, query, uri, Paths.get(System.getProperty("java.io.tmpdir")), false);
     }
 
     public BatchDownload(final List<Project> projects, User user, String query) {
         this(projects, user, query, null, Paths.get(System.getProperty("java.io.tmpdir")), false);
     }
 
-    public BatchDownload(final List<Project> projects, User user, String query, String uri, Path downloadDir, boolean isEncrypted)  {
+    public BatchDownload(final List<Project> projects, User user, String query, String uri, Path downloadDir, boolean isEncrypted) {
         this(UUID.randomUUID().toString(), projects, downloadDir.resolve(createFilename(user)),
                 new SearchQuery(ofNullable(query).orElseThrow(() -> new IllegalArgumentException("query cannot be null"))), uri, user, isEncrypted);
     }
@@ -57,7 +57,7 @@ public class BatchDownload {
                   @JsonProperty("user") User user,
                   @JsonProperty("encrypted") boolean encrypted) {
         this.query = ofNullable(query).orElseThrow(() -> new IllegalArgumentException("query cannot be null or empty"));
-        if ( query.isNull() || (query.isJsonQuery() && query.asJson() == null)) {
+        if (query.isNull() || (query.isJsonQuery() && query.asJson() == null)) {
             throw new IllegalArgumentException("invalid query: " + query);
         }
         this.uuid = uuid;
@@ -89,7 +89,10 @@ public class BatchDownload {
     }
 
     @Override
-    public String toString() { return "BatchDownload{filename=" + filename + '}'; }
+    public String toString() {
+        return "BatchDownload{filename=" + filename + '}';
+    }
+
     @Override
     public int hashCode() {
         return Objects.hash(filename, query);

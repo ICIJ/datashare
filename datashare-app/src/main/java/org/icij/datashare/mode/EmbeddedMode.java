@@ -26,8 +26,14 @@ import static org.icij.datashare.cli.DatashareCliOptions.ELASTICSEARCH_DATA_PATH
 public class EmbeddedMode extends LocalMode {
     private static final Logger logger = LoggerFactory.getLogger(EmbeddedMode.class);
     public static int AMQP_PORT = 5672;
-    EmbeddedMode(Properties properties) { super(properties);}
-    public EmbeddedMode(Map<String, Object> properties) { super(properties);}
+
+    EmbeddedMode(Properties properties) {
+        super(properties);
+    }
+
+    public EmbeddedMode(Map<String, Object> properties) {
+        super(properties);
+    }
 
     @Override
     protected void configure() {
@@ -38,7 +44,7 @@ public class EmbeddedMode extends LocalMode {
                         format("Missing required option %s.", ELASTICSEARCH_DATA_PATH_OPT))
         );
         createDefaultSettingsFileIfNeeded(elasticsearchSettings, elasticsearchDataPath);
-        
+
         List<String> args = buildElasticsearchArgs(Path.of(elasticsearchSettings));
         String elasticsearchScript = new OsArchDetector().isWindows() ? "elasticsearch.bat" : "elasticsearch";
         args.add(0, format("%s/current/bin/%s", elasticsearchDir, elasticsearchScript));
@@ -52,14 +58,14 @@ public class EmbeddedMode extends LocalMode {
         // JVM) on exit. Without this, stopping datashare relied on the OS propagating SIGHUP
         // through the process group, which is racy and left Elasticsearch running.
         addCloseable(elasticsearchProcess);
-        
+
         if (propertiesProvider.getProperties().contains(QueueType.AMQP.name())) {
             addCloseable(new QpidAmqpServer(AMQP_PORT).start());
             ExtensionService extensionService = new ExtensionService(propertiesProvider);
             bind(ExtensionService.class).toInstance(extensionService);
-            boolean isSpacyInstalled = ! extensionService
-            .listInstalled("datashare-extension-nlp-spacy.*")
-            .isEmpty();
+            boolean isSpacyInstalled = !extensionService
+                    .listInstalled("datashare-extension-nlp-spacy.*")
+                    .isEmpty();
             if (isSpacyInstalled) {
                 PythonNlpWorkerPool workerPool = new PythonNlpWorkerPool(extensionService, propertiesProvider);
                 try {

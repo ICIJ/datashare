@@ -5,5 +5,6 @@ import java.net.URI;
 public interface DownloadableResult {
 
     URI getUri();
+
     long getSize();
 }

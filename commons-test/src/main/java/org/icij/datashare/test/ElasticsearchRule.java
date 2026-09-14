@@ -45,7 +45,7 @@ public class ElasticsearchRule extends ExternalResource {
     }
 
     public ElasticsearchRule(String host, int port, boolean withLegacyHeaders) {
-        this(new String[] {generateIndexName()}, create("%s:%d".formatted(host, port)), withLegacyHeaders);
+        this(new String[]{generateIndexName()}, create("%s:%d".formatted(host, port)), withLegacyHeaders);
     }
 
     public ElasticsearchRule(int nbIndices) {

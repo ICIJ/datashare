@@ -30,6 +30,7 @@ public class TaskCreation extends Event {
         protected TaskCreationDeserializer() {
             super((Class<?>) null);
         }
+
         protected TaskCreationDeserializer(Class<?> vc) {
             super(vc);
         }

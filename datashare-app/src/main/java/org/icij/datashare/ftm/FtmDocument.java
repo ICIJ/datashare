@@ -20,6 +20,7 @@ public class FtmDocument implements Document {
     public static final String TRANSLATED_CONTENT_KEY = "content";
     @JsonIgnore
     org.icij.datashare.text.Document icijDoc;
+
     public FtmDocument(org.icij.datashare.text.Document doc) {
         this.icijDoc = doc;
     }

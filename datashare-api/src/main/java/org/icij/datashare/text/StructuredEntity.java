@@ -15,7 +15,7 @@ import java.util.Set;
  *  the property keys are the namespaced wire form ("ftm_birthDate") the statements were stored under. */
 @IndexType("StructuredEntity")
 public record StructuredEntity(@IndexId String entityId, String model, Set<String> types, Set<String> modelVersions,
-                              Set<String> documentIds, Map<String, List<String>> properties) implements Entity {
+                               Set<String> documentIds, Map<String, List<String>> properties) implements Entity {
     /** Not the colon {@link org.icij.datashare.model.Statement#qualifiedProperty()} stores: a colon is
      *  the field/value delimiter of elasticsearch's query_string, so "properties.ftm:name:Jane" is a
      *  parse error and every client would have to escape the separator to reach a single property. */
