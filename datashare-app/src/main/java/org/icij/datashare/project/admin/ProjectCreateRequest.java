@@ -16,4 +16,5 @@ public record ProjectCreateRequest(
         Date creationDate,
         Date updateDate,
         boolean createIndex
-) {}
+) {
+}

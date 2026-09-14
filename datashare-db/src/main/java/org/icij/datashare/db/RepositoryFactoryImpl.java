@@ -43,6 +43,7 @@ public class RepositoryFactoryImpl implements RepositoryFactory {
     public Repository createRepository() {
         return createRepository(JooqRepository::new);
     }
+
     @Override
     public ApiKeyRepository createApiKeyRepository() {
         return createRepository(JooqApiKeyRepository::new);
@@ -84,7 +85,7 @@ public class RepositoryFactoryImpl implements RepositoryFactory {
     }
 
     public static SQLDialect guessSqlDialectFrom(String dataSourceUrl) {
-        for (SQLDialect dialect: SQLDialect.values()) {
+        for (SQLDialect dialect : SQLDialect.values()) {
             if (dataSourceUrl.contains(dialect.name().toLowerCase())) {
                 return dialect;
             }
@@ -92,8 +93,13 @@ public class RepositoryFactoryImpl implements RepositoryFactory {
         throw new IllegalArgumentException("unknown SQL dialect for datasource : " + dataSourceUrl);
     }
 
-    public DataSource getDataSource() {return dataSource;}
-    public SQLDialect guessSqlDialect() {return guessSqlDialectFrom(getDataSourceUrl());}
+    public DataSource getDataSource() {
+        return dataSource;
+    }
+
+    public SQLDialect guessSqlDialect() {
+        return guessSqlDialectFrom(getDataSourceUrl());
+    }
 
     DataSource createDatasource() {
         HikariConfig config = new HikariConfig();
@@ -110,7 +116,12 @@ public class RepositoryFactoryImpl implements RepositoryFactory {
     }
 
     private static class NullUIService extends LoggerUIService {
-        @Override public void sendMessage(String message) {}
-        @Override public void sendErrorMessage(String message, Throwable exception) {}
+        @Override
+        public void sendMessage(String message) {
+        }
+
+        @Override
+        public void sendErrorMessage(String message, Throwable exception) {
+        }
     }
 }

@@ -7,7 +7,8 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 public class BatchDownloadApp {
-    private BatchDownloadApp() {}
+    private BatchDownloadApp() {
+    }
 
     static ScheduledExecutorService scheduleCleanup(BatchDownloadCleaner cleaner) {
         long period = cleaner.tickPeriodSeconds();

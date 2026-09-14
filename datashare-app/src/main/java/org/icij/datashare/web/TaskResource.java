@@ -577,9 +577,14 @@ public class TaskResource {
     }
 
     // JSON responses
-    public record ErrorResponse(String message) {}
-    public record TaskResponse(String taskId) {}
-    public record TasksResponse(List<String> taskIds) {}
+    public record ErrorResponse(String message) {
+    }
+
+    public record TaskResponse(String taskId) {
+    }
+
+    public record TasksResponse(List<String> taskIds) {
+    }
 
     private String fieldValue(String field, List<Part> parts) {
         List<String> values = fieldValues(field, parts);
@@ -649,17 +654,18 @@ public class TaskResource {
     TaskFilters taskFiltersFromContext(Context context) throws BadRequestException {
         return taskFiltersFromContext(context.query(), (User) context.currentUser(), null);
     }
+
     // TODO: this is for backwards compatibility, we should updated APIs to use TaskFilters instead
     TaskFilters taskFiltersFromContext(Query query, User user, Integer regexFlags) throws BadRequestException {
         validatedFilterKeys(query);
         QueryParameterExtractor querySelector = new QueryParameterExtractor(query);
         return new TaskFilters()
-            .with(user)
-            .with(querySelector.name())
-            .withTypes(querySelector.types())
-            .withStates(querySelector.states())
-            .with(querySelector.args())
-            .with(regexFlags);
+                .with(user)
+                .with(querySelector.name())
+                .withTypes(querySelector.types())
+                .withStates(querySelector.states())
+                .with(querySelector.args())
+                .with(regexFlags);
     }
 
     void validatedFilterKeys(Query query) throws BadRequestException {

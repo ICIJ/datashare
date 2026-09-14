@@ -6,8 +6,8 @@ import java.util.Set;
 
 public enum TaskType {
     BATCH_SEARCH(
-        "org.icij.datashare.tasks.BatchSearchRunner",
-        "org.icij.datashare.tasks.BatchSearchRunnerProxy"
+            "org.icij.datashare.tasks.BatchSearchRunner",
+            "org.icij.datashare.tasks.BatchSearchRunnerProxy"
     ),
     BATCH_DOWNLOAD("org.icij.datashare.tasks.BatchDownloadRunner"),
     INDEX("org.icij.datashare.tasks.IndexTask"),
@@ -31,13 +31,15 @@ public enum TaskType {
         this.names = Set.of(names);
     }
 
-    public Set<String> getNames() { return names; }
+    public Set<String> getNames() {
+        return names;
+    }
 
     public static Optional<TaskType> fromName(String fqdn) {
         if (fqdn == null) return Optional.empty();
         return Arrays.stream(values())
-            .filter(t -> t.names.contains(fqdn))
-            .findFirst();
+                .filter(t -> t.names.contains(fqdn))
+                .findFirst();
     }
 
     /**

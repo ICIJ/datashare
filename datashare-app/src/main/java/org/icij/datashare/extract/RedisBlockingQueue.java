@@ -24,7 +24,7 @@ public class RedisBlockingQueue<T> extends RedissonBlockingQueue<T> implements C
     }
 
     public RedisBlockingQueue(RedissonClient redissonClient, String queueName) {
-        super(new JsonJacksonCodec(), new CommandSyncService(((Redisson)redissonClient).getConnectionManager(), new RedissonObjectBuilder(redissonClient)), queueName, redissonClient);
+        super(new JsonJacksonCodec(), new CommandSyncService(((Redisson) redissonClient).getConnectionManager(), new RedissonObjectBuilder(redissonClient)), queueName, redissonClient);
         this.redissonClient = redissonClient;
     }
 

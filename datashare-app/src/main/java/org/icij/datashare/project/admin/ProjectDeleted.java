@@ -8,4 +8,5 @@ public record ProjectDeleted(
         boolean reportMapDeleted,
         boolean artifactsDeleted,
         boolean noop
-) {}
+) {
+}

@@ -29,13 +29,14 @@ public class Mail {
         this.subject = subject;
     }
 
-    @Override public String toString() {
-    	return String.format(
-    			"subject:[%s]\n" +
-    			"from:[%s]\n" +
-    			"to:[%s]\n" +
-    			"cc:[%s]\n" +
-    			"body:[%s]", subject, from, toRecipientList, ccRecipientList, messageBody.trim());
+    @Override
+    public String toString() {
+        return String.format(
+                "subject:[%s]\n" +
+                        "from:[%s]\n" +
+                        "to:[%s]\n" +
+                        "cc:[%s]\n" +
+                        "body:[%s]", subject, from, toRecipientList, ccRecipientList, messageBody.trim());
     }
-    
+
 }

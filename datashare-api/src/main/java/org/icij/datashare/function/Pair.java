@@ -13,12 +13,17 @@ public class Pair<T1, T2> {
     private final T2 second;
 
     public Pair(T1 fst, T2 snd) {
-        first  = fst;
+        first = fst;
         second = snd;
     }
 
-    public T1 _1() { return first; }
-    public T2 _2() { return second; }
+    public T1 _1() {
+        return first;
+    }
+
+    public T2 _2() {
+        return second;
+    }
 
     @Override
     public int hashCode() {
@@ -27,11 +32,11 @@ public class Pair<T1, T2> {
 
     @Override
     public boolean equals(Object o) {
-        if ( ! (o instanceof Pair) ) {
+        if (!(o instanceof Pair)) {
             return false;
         }
         Pair objPair = (Pair) o;
-        return  first .equals(objPair._1()) &&
+        return first.equals(objPair._1()) &&
                 second.equals(objPair._2());
     }
 

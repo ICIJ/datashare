@@ -148,7 +148,7 @@ public class SourceExtractor {
         Hasher hasher = Hasher.valueOf(document.getId().length());
         List<DigestingParser.Digester> digesters = new ArrayList<>();
         // Digester without the project name
-        digesters.add(new CommonsDigester(20 * 1024 * 1024,  hasher.toStringWithoutDash()));
+        digesters.add(new CommonsDigester(20 * 1024 * 1024, hasher.toStringWithoutDash()));
         // Digester with the project name
         digesters.add(new UpdatableDigester(project.getId(), hasher.toString()));
         // Digester with the project name set on "defaultProject" for retro-compatibility
@@ -169,7 +169,7 @@ public class SourceExtractor {
         // and EmbeddedDocumentExtractor's live-parse fallback on a cache miss - drift only
         // costs a wasted cache entry + re-parse, it doesn't lose the content.
         DigestingParser.Digester digester = noDigestProject() ?
-                new CommonsDigester(20 * 1024 * 1024,  hasher.toStringWithoutDash()):
+                new CommonsDigester(20 * 1024 * 1024, hasher.toStringWithoutDash()) :
                 new UpdatableDigester(project.getId(), hasher.toString());
 
         Identifier identifier = new DigestIdentifier(hasher.toString(), Charset.defaultCharset());

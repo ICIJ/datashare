@@ -26,7 +26,8 @@ public class AtomicDirectorySwap {
     private static final Logger LOGGER = LoggerFactory.getLogger(AtomicDirectorySwap.class);
     private static final String REPLACED_SUFFIX = ".replaced";
 
-    private AtomicDirectorySwap() {}
+    private AtomicDirectorySwap() {
+    }
 
     /**
      * Writes new contents through {@code writer} and puts them at {@code target}, replacing whatever is

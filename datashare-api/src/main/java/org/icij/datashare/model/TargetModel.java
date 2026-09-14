@@ -30,7 +30,8 @@ public interface TargetModel {
      */
     ModelEntity parse(String json);
 
-    record Violation(String message) { }
+    record Violation(String message) {
+    }
 
     default Optional<Property> property(String type, String name) {
         return type(type).map(found -> found.properties().get(name));

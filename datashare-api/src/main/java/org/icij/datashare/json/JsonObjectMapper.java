@@ -126,7 +126,8 @@ public class JsonObjectMapper {
         String json;
         try {
             json = MAPPER.writeValueAsString(obj);
-            return MAPPER.readValue(json, new TypeReference<HashMap<String, Object>>(){});
+            return MAPPER.readValue(json, new TypeReference<HashMap<String, Object>>() {
+            });
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -163,7 +164,7 @@ public class JsonObjectMapper {
      * @param cls the class holding index type-annotated field
      * @return the index type String
      */
-    public static String getType(Class<? extends Entity> cls){
+    public static String getType(Class<? extends Entity> cls) {
         return cls.getAnnotation(IndexType.class).value();
     }
 
@@ -175,7 +176,7 @@ public class JsonObjectMapper {
      * @param <T> the concrete type of entity
      * @return the index type String
      */
-    public static <T extends Entity> String getType(T obj){
+    public static <T extends Entity> String getType(T obj) {
         return getType(obj.getClass());
     }
 
@@ -187,7 +188,7 @@ public class JsonObjectMapper {
      * @return the index id String
      */
     public static <T extends Entity> String getId(T obj) {
-        for(Field field : obj.getClass().getDeclaredFields()) {
+        for (Field field : obj.getClass().getDeclaredFields()) {
             if (field.isAnnotationPresent(IndexId.class)) {
                 field.setAccessible(true);
                 try {
@@ -208,7 +209,7 @@ public class JsonObjectMapper {
      * @return the parent's hash String
      */
     public static <T extends Entity> String getParent(T obj) {
-        for(Field field : obj.getClass().getDeclaredFields()) {
+        for (Field field : obj.getClass().getDeclaredFields()) {
             if (field.isAnnotationPresent(IndexParent.class)) {
                 field.setAccessible(true);
                 try {
@@ -250,7 +251,8 @@ public class JsonObjectMapper {
 
     public static Map<String, Object> deserialize(String jsonMap) {
         try {
-            return new ObjectMapper().readValue(jsonMap, new TypeReference<HashMap<String, Object>>() {});
+            return new ObjectMapper().readValue(jsonMap, new TypeReference<HashMap<String, Object>>() {
+            });
         } catch (JsonProcessingException e) {
             throw new RuntimeException(e);
         }

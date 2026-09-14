@@ -23,8 +23,8 @@ public class DeliverableRegistry<T extends Deliverable> {
         return ofNullable(deliverableMap.get(deliverableId)).orElseThrow(() -> new UnknownDeliverableException(deliverableId));
     }
 
-    public Set<T> search(String patternString){
-        Pattern pattern = Pattern.compile(patternString,Pattern.CASE_INSENSITIVE);
+    public Set<T> search(String patternString) {
+        Pattern pattern = Pattern.compile(patternString, Pattern.CASE_INSENSITIVE);
         return new HashSet<>(deliverableMap.values()).stream().filter(d -> pattern.matcher(d.getId()).find()
                 || pattern.matcher(d.getName()).find() || pattern.matcher(d.getDescription()).find()).collect(Collectors.toSet());
     }

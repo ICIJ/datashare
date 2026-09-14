@@ -55,6 +55,13 @@ public abstract class DatashareAuthFilter extends CookieAuthFilter {
         return new Payload(401);
     }
 
-    @Override protected String cookieName() { return COOKIE_NAME; }
-    @Override protected boolean redirectToLogin(String uri) { return false; }
+    @Override
+    protected String cookieName() {
+        return COOKIE_NAME;
+    }
+
+    @Override
+    protected boolean redirectToLogin(String uri) {
+        return false;
+    }
 }

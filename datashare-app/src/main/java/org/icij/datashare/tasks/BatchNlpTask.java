@@ -1,14 +1,17 @@
 package org.icij.datashare.tasks;
 
 import static java.util.Optional.ofNullable;
+
 import org.icij.datashare.asynctasks.TaskGroupType;
 
 import com.google.inject.Inject;
 import com.google.inject.assistedinject.Assisted;
+
 import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
+
 import org.icij.datashare.asynctasks.CancellableTask;
 import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.asynctasks.TaskGroup;
@@ -79,7 +82,7 @@ public class BatchNlpTask extends DefaultTask<Long> implements UserTask, Cancell
                 int nbChunks = indexDoc.getContentTextLength() / this.maxLength + 1;
                 for (int chunkIndex = 0; chunkIndex < nbChunks; chunkIndex++) {
                     List<NamedEntity> namedEntities =
-                        pipeline.process(indexDoc, maxLength, chunkIndex * maxLength);
+                            pipeline.process(indexDoc, maxLength, chunkIndex * maxLength);
                     if (chunkIndex < nbChunks - 1) {
                         indexer.bulkAdd(project, namedEntities);
                     } else {

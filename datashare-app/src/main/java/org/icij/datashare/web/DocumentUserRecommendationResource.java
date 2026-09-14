@@ -49,9 +49,9 @@ public class DocumentUserRecommendationResource {
     }
 
     @Operation(description = "Gets all user's document recommendations.",
-                parameters = {@Parameter(name = "from", description = "if not provided it starts from 0", in = ParameterIn.QUERY),
-                              @Parameter(name = "size", description = "if not provided, the 50 first record from the \"from\" parameter", in = ParameterIn.QUERY),
-                              @Parameter(name = "project", description = "if not provided, return every recommendations for every project", in = ParameterIn.QUERY)})
+            parameters = {@Parameter(name = "from", description = "if not provided it starts from 0", in = ParameterIn.QUERY),
+                    @Parameter(name = "size", description = "if not provided, the 50 first record from the \"from\" parameter", in = ParameterIn.QUERY),
+                    @Parameter(name = "project", description = "if not provided, return every recommendations for every project", in = ParameterIn.QUERY)})
     @ApiResponse(responseCode = "200", description = "returns the user's document recommendations", useReturnTypeSchema = true)
     @ApiResponse(responseCode = "400", description = "if either `from` or `size` are present and cannot be parsed")
     @Get("/")

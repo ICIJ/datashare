@@ -28,7 +28,9 @@ import static org.icij.datashare.cli.DatashareCliOptions.AUTH_MODE_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.SESSION_STORE_TYPE_OPT;
 
 public class ServerMode extends CommonMode {
-    ServerMode(Properties properties) { super(properties);}
+    ServerMode(Properties properties) {
+        super(properties);
+    }
 
     @Override
     protected void configure() {
@@ -44,7 +46,8 @@ public class ServerMode extends CommonMode {
         configurePersistence();
     }
 
-    @Provides @Singleton
+    @Provides
+    @Singleton
     SessionIdStore provideSessionIdStore() {
         QueueType sessionStoreType = getQueueType(propertiesProvider, SESSION_STORE_TYPE_OPT, QueueType.MEMORY);
         if (QueueType.MEMORY == sessionStoreType) {
@@ -57,12 +60,18 @@ public class ServerMode extends CommonMode {
 
     static Class<? extends Filter> filterClassFor(AuthMode mode) {
         switch (mode) {
-            case OAUTH:      return OAuth2CookieFilter.class;
-            case FORM:       return FormAuthFilter.class;
-            case BASIC:      return BasicAuthAdaptorFilter.class;
-            case YES_COOKIE: return YesCookieAuthFilter.class;
-            case YES_BASIC:  return YesBasicAuthFilter.class;
-            default:         throw new IllegalStateException("Unhandled auth mode: " + mode);
+            case OAUTH:
+                return OAuth2CookieFilter.class;
+            case FORM:
+                return FormAuthFilter.class;
+            case BASIC:
+                return BasicAuthAdaptorFilter.class;
+            case YES_COOKIE:
+                return YesCookieAuthFilter.class;
+            case YES_BASIC:
+                return YesBasicAuthFilter.class;
+            default:
+                throw new IllegalStateException("Unhandled auth mode: " + mode);
         }
     }
 

@@ -27,7 +27,7 @@ public class UsersInDb implements UserStore {
     @Override
     public User find(String login) {
         org.icij.datashare.user.User userInDb = userRepository.getUser(login);
-        if(userInDb == null) {
+        if (userInDb == null) {
             return null;
         }
         return new DatashareUser(userInDb);
@@ -36,7 +36,7 @@ public class UsersInDb implements UserStore {
     @Override
     public User find(String login, String password) {
         org.icij.datashare.user.User user = userRepository.getUser(login);
-        return user != null && Hasher.SHA_256.hash(password).equals(user.details.get("password")) ? new DatashareUser(user): null;
+        return user != null && Hasher.SHA_256.hash(password).equals(user.details.get("password")) ? new DatashareUser(user) : null;
     }
 
     @Override

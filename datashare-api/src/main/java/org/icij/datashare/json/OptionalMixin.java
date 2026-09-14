@@ -10,6 +10,7 @@ final class OptionalMixin {
     @JsonProperty
     private Object value;
 
-    private OptionalMixin() {}
+    private OptionalMixin() {
+    }
 
 }

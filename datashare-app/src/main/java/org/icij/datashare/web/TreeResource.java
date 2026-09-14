@@ -50,13 +50,19 @@ public class TreeResource {
             """)
     @ApiResponse(responseCode = "200", description = "returns the list of files and directory", useReturnTypeSchema = true)
     @Get(":dirPath:")
-    public DirectoryReport getTree(@Parameter(name="dirPath", description="directory path in the tree", in = ParameterIn.PATH) final String dirPath, Context context) throws IOException {
-        Path path = IS_OS_WINDOWS ?  Paths.get(dirPath) : Paths.get(File.separator, dirPath);
+    public DirectoryReport getTree(@Parameter(name = "dirPath", description = "directory path in the tree", in = ParameterIn.PATH) final String dirPath, Context context) throws IOException {
+        Path path = IS_OS_WINDOWS ? Paths.get(dirPath) : Paths.get(File.separator, dirPath);
         int depth = parseInt(ofNullable(context.get("depth")).orElse("0"));
         File dir = path.toFile();
-        if (!dir.exists()) { throw new NotFoundException(); }
-        if (!dir.isDirectory()) { throw new BadRequestException();}
-        if (!isAllowed(dir)) { throw new ForbiddenException();}
+        if (!dir.exists()) {
+            throw new NotFoundException();
+        }
+        if (!dir.isDirectory()) {
+            throw new BadRequestException();
+        }
+        if (!isAllowed(dir)) {
+            throw new ForbiddenException();
+        }
         return tree(path, depth);
     }
 
@@ -68,17 +74,17 @@ public class TreeResource {
         return rootReport;
     }
 
-    protected boolean isAllowed (File file) throws IOException {
+    protected boolean isAllowed(File file) throws IOException {
         String dataDirCanonical = dataDirPath().toFile().getCanonicalPath();
         String dirCanonical = file.getCanonicalPath();
         return dirCanonical.startsWith(dataDirCanonical);
     }
 
-    protected String dataDir () {
+    protected String dataDir() {
         return propertiesProvider.get(DATA_DIR_OPT).orElse(DEFAULT_DATA_DIR);
     }
 
-    protected Path dataDirPath () {
+    protected Path dataDirPath() {
         return Paths.get(this.dataDir());
     }
 }

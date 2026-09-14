@@ -26,7 +26,7 @@ public class LocalUserFilter extends CookieAuthFilter {
     }
 
     //for tests
-    public LocalUserFilter(final PropertiesProvider propertiesProvider, final Repository repository, String ...projectNames) {
+    public LocalUserFilter(final PropertiesProvider propertiesProvider, final Repository repository, String... projectNames) {
         super(propertiesProvider.get("protectedUrPrefix").orElse("/"),
                 singleUser(propertiesProvider.get("defaultUserName").orElse("local"), projectNames),
                 SessionIdStore.inMemory());
@@ -54,11 +54,22 @@ public class LocalUserFilter extends CookieAuthFilter {
         return super.matches(uri, context);
     }
 
-    @Override protected String cookieName() { return "_ds_session_id"; }
-    @Override protected int expiry() { return Integer.MAX_VALUE; }
-    @Override protected boolean redirectToLogin(String uri) { return false; }
+    @Override
+    protected String cookieName() {
+        return "_ds_session_id";
+    }
 
-    protected User getUserWithEveryProjects () {
+    @Override
+    protected int expiry() {
+        return Integer.MAX_VALUE;
+    }
+
+    @Override
+    protected boolean redirectToLogin(String uri) {
+        return false;
+    }
+
+    protected User getUserWithEveryProjects() {
         // We must cast back to DatashareUser to be able to use the `setProjects` method
         DatashareUser datashareUser = (DatashareUser) users.find(userName);
         datashareUser.setProjects(repository.getProjects());

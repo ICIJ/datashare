@@ -28,13 +28,13 @@ import static org.icij.datashare.asynctasks.temporal.TemporalInterlocutor.USER_C
 public class TemporalHelper {
 
     private static final String WORKFLOW_METHOD_CLASS_NAME = WorkflowMethod.class.getName();
-        private static final DefaultDataConverter defaultDataConverter = DefaultDataConverter.newDefaultInstance();
+    private static final DefaultDataConverter defaultDataConverter = DefaultDataConverter.newDefaultInstance();
 
 
     public static Task.State asTaskState(WorkflowExecutionStatus status) {
         return switch (status) {
             case WORKFLOW_EXECUTION_STATUS_UNSPECIFIED ->
-                throw new RuntimeException("unknown temporal workflow state " + status);
+                    throw new RuntimeException("unknown temporal workflow state " + status);
             // Could be queued but temporal as no such state...
             case WORKFLOW_EXECUTION_STATUS_RUNNING -> Task.State.RUNNING;
             case WORKFLOW_EXECUTION_STATUS_COMPLETED -> Task.State.DONE;
@@ -42,7 +42,7 @@ public class TemporalHelper {
             case WORKFLOW_EXECUTION_STATUS_CANCELED -> Task.State.CANCELLED;
             case WORKFLOW_EXECUTION_STATUS_TERMINATED -> Task.State.CANCELLED;
             case WORKFLOW_EXECUTION_STATUS_CONTINUED_AS_NEW ->
-                throw new RuntimeException("continue as new is not currently supported " + status);
+                    throw new RuntimeException("continue as new is not currently supported " + status);
             case WORKFLOW_EXECUTION_STATUS_TIMED_OUT -> Task.State.ERROR;
             case UNRECOGNIZED -> throw new RuntimeException("unknown temporal workflow state " + status);
         };
@@ -69,7 +69,7 @@ public class TemporalHelper {
                 return false;
             }
             User user = Optional.ofNullable(execInfo.getSearchAttributes().getIndexedFieldsOrDefault(USER_CUSTOM_ATTRIBUTE.getName(), null))
-                    .map(userId -> new User (defaultDataConverter.fromPayload(userId, String.class, String.class))).orElse(null);
+                    .map(userId -> new User(defaultDataConverter.fromPayload(userId, String.class, String.class))).orElse(null);
 
             return filters.byUser(user);
         };
@@ -91,7 +91,7 @@ public class TemporalHelper {
     }
 
     protected static <R> R taskWrapper(Supplier<R> taskSupplier,
-                                                            Set<Class<? extends Exception>> retriables) {
+                                       Set<Class<? extends Exception>> retriables) {
         return taskWrapper((t) -> taskSupplier.get(), null, retriables);
     }
 
@@ -103,8 +103,8 @@ public class TemporalHelper {
         // We have to get method by name because of the dynamic class loader and proxies... inspection doesn't work
         // properly: m.isAnnotationPresent(WorkflowMethod.class) fails
         List<Method> annotated = Arrays.stream(workflowInterface.getDeclaredMethods())
-            .filter(m -> Arrays.stream(m.getAnnotations()).anyMatch(a -> a.annotationType().getName().equals(WORKFLOW_METHOD_CLASS_NAME)))
-            .toList();
+                .filter(m -> Arrays.stream(m.getAnnotations()).anyMatch(a -> a.annotationType().getName().equals(WORKFLOW_METHOD_CLASS_NAME)))
+                .toList();
         if (annotated.size() != 1) {
             throw new RuntimeException("expected exactly one workflow method for " + workflowInterface);
         }
@@ -125,8 +125,8 @@ public class TemporalHelper {
             }
             // Skip signal/query-only interfaces (like TemporalWorkflow) that have no @WorkflowMethod
             boolean hasWorkflowMethod = Arrays.stream(c.getDeclaredMethods())
-                .anyMatch(m -> Arrays.stream(m.getAnnotations())
-                    .anyMatch(a -> a.annotationType().getName().equals(WORKFLOW_METHOD_CLASS_NAME)));
+                    .anyMatch(m -> Arrays.stream(m.getAnnotations())
+                            .anyMatch(a -> a.annotationType().getName().equals(WORKFLOW_METHOD_CLASS_NAME)));
             if (!hasWorkflowMethod) {
                 return false;
             }

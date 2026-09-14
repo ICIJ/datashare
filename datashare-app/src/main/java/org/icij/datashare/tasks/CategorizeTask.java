@@ -43,12 +43,13 @@ public class CategorizeTask extends PipelineTask<String> implements Monitorable 
     private final Function<Double, Void> progressCallback;
     private final Indexer indexer;
     private final Project project;
+
     @Inject
     public CategorizeTask(final Indexer indexer, final DocumentCollectionFactory<String> factory, final UpstreamGate.Factory gateFactory, @Assisted Task<Long> taskView, @Assisted final Function<Double, Void> progressCallback) {
         super(Stage.CATEGORIZE, taskView.getUser(), factory, new PropertiesProvider(taskView.args), String.class, gateFactory.forTask(taskView));
         this.progressCallback = progressCallback;
         this.indexer = indexer;
-        project = Project.project(ofNullable((String)taskView.args.get(DEFAULT_PROJECT_OPT)).orElse(DEFAULT_DEFAULT_PROJECT));
+        project = Project.project(ofNullable((String) taskView.args.get(DEFAULT_PROJECT_OPT)).orElse(DEFAULT_DEFAULT_PROJECT));
     }
 
     @Override

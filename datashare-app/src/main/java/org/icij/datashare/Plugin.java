@@ -2,9 +2,11 @@ package org.icij.datashare;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
+
 import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
 import java.nio.file.Files;
+
 import org.apache.commons.compress.archivers.ArchiveEntry;
 import org.apache.commons.compress.archivers.ArchiveException;
 import org.apache.commons.compress.archivers.ArchiveInputStream;
@@ -18,6 +20,7 @@ import java.nio.file.Paths;
 import java.util.List;
 import java.util.regex.Pattern;
 import java.util.zip.GZIPInputStream;
+
 import org.jetbrains.annotations.NotNull;
 
 import static java.util.Optional.ofNullable;
@@ -26,9 +29,9 @@ import static org.apache.commons.io.FilenameUtils.getExtension;
 
 public class Plugin extends Extension {
     private static final Pattern versionBeginsWithV = Pattern.compile("v[0-9.]*");
-    private static final int  MAX_ENTRY_COUNT = 10_000;
-    private static final long MAX_ENTRY_SIZE  = 100L * 1024 * 1024;  // 100 MB per entry
-    private static final long MAX_TOTAL_SIZE  = 1024L * 1024 * 1024; // 1 GB total
+    private static final int MAX_ENTRY_COUNT = 10_000;
+    private static final long MAX_ENTRY_SIZE = 100L * 1024 * 1024;  // 100 MB per entry
+    private static final long MAX_TOTAL_SIZE = 1024L * 1024 * 1024; // 1 GB total
     public final List<String> extensions;
 
     @JsonCreator
@@ -39,17 +42,17 @@ public class Plugin extends Extension {
                   @JsonProperty("url") URL url,
                   @JsonProperty("homepage") URL homepage,
                   @JsonProperty("extensions") List<String> extensions
-    ){
+    ) {
         super(id, name, version, description, url, homepage, Type.PLUGIN);
         this.extensions = ofNullable(extensions).orElse(List.of());
     }
 
-    public Plugin(String id, String name, String version, String description, URL url, URL homepage){
+    public Plugin(String id, String name, String version, String description, URL url, URL homepage) {
         this(id, name, version, description, url, homepage, null);
     }
 
     Plugin(URL url) {
-        super(url,Type.PLUGIN);
+        super(url, Type.PLUGIN);
         this.extensions = List.of();
     }
 
@@ -78,7 +81,7 @@ public class Plugin extends Extension {
     @Override
     public void install(File pluginFile, Path pluginsDir) throws IOException {
         File[] pluginDirDirectories = pluginsDir.toFile()
-            .listFiles((dir, fileName) -> dir.toPath().resolve(fileName).toFile().isDirectory());
+                .listFiles((dir, fileName) -> dir.toPath().resolve(fileName).toFile().isDirectory());
         File[] candidateFiles = ofNullable(pluginDirDirectories).orElse(new File[0]);
         List<File> previousVersionInstalled = getPreviousVersionInstalled(candidateFiles, getBaseName(getUrlFileName()));
         if (previousVersionInstalled.size() > 0) {

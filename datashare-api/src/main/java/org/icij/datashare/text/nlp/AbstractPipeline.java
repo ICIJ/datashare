@@ -40,16 +40,24 @@ public abstract class AbstractPipeline implements Pipeline {
     }
 
     @Override
-    public Type getType() { return Type.fromClassName(getClass().getSimpleName()).get(); }
+    public Type getType() {
+        return Type.fromClassName(getClass().getSimpleName()).get();
+    }
 
     @Override
-    public List<NamedEntity.Category> getTargetEntities() { return targetEntities; }
+    public List<NamedEntity.Category> getTargetEntities() {
+        return targetEntities;
+    }
 
     @Override
-    public boolean isCaching() { return caching; }
+    public boolean isCaching() {
+        return caching;
+    }
 
     @Override
-    public Charset getEncoding() { return encoding; }
+    public Charset getEncoding() {
+        return encoding;
+    }
 
     public static AbstractPipeline create(final String pipelineName, final PropertiesProvider propertiesProvider) throws NoSuchMethodException, IllegalAccessException, InvocationTargetException, InstantiationException, ClassNotFoundException {
         Class<? extends AbstractPipeline> pipelineClass = (Class<? extends AbstractPipeline>) Class.forName(valueOf(pipelineName).getClassName());

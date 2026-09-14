@@ -26,7 +26,9 @@ public class DatashareTime implements Time {
     static {
         defaultInstance = new DatashareTime();
     }
-    private DatashareTime() {}
+
+    private DatashareTime() {
+    }
 
     /**
      * Singleton instance method.
@@ -52,7 +54,7 @@ public class DatashareTime implements Time {
         if (datashareTimeClassName != null) {
             try {
                 @SuppressWarnings("rawtypes")
-				Class datashareMockTimeClass = Class.forName(datashareTimeClassName);
+                Class datashareMockTimeClass = Class.forName(datashareTimeClassName);
                 if (systemPropertyInstance == null
                         || !datashareTimeClassName.equals(systemPropertyInstance.getClass().getName())) {
                     systemPropertyInstance = (Time) datashareMockTimeClass.newInstance();
@@ -74,8 +76,9 @@ public class DatashareTime implements Time {
     public Date now() {
         return new Date();
     }
+
     public static Date getNow() {
-    	return getInstance().now();
+        return getInstance().now();
     }
 
     /**
@@ -97,14 +100,14 @@ public class DatashareTime implements Time {
 
     public void setMockDate(String dateTime) {
         throw new UnsupportedOperationException("DatashareTime is in real time mode");
-	}
+    }
 
-	public void addMilliseconds(int toBeAddedInMilliseconds) {
+    public void addMilliseconds(int toBeAddedInMilliseconds) {
         throw new UnsupportedOperationException("DatashareTime is in real time mode");
-	}
+    }
 
     private static void logErrorInstance(String datashareTimeClassName) {
-        logger.error("Cannot instantiate class : <" + datashareTimeClassName+ "> returning default instance");
+        logger.error("Cannot instantiate class : <" + datashareTimeClassName + "> returning default instance");
     }
 
     public static void setMockTime(boolean mockTime) {
@@ -119,8 +122,8 @@ public class DatashareTime implements Time {
         return System.getProperty(DATASHARE_TIME_CLASS_PROPERTY) != null;
     }
 
-	public Date itIsNow(String date) {
-		throw new UnsupportedOperationException("DatashareTime is in real time mode");
-	}
+    public Date itIsNow(String date) {
+        throw new UnsupportedOperationException("DatashareTime is in real time mode");
+    }
 
 }

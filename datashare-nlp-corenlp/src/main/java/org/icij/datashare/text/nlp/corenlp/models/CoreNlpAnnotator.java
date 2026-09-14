@@ -4,6 +4,6 @@ public class CoreNlpAnnotator<T> {
     public final T annotator;
 
     CoreNlpAnnotator(T annotator) {
-            this.annotator = annotator;
-        }
+        this.annotator = annotator;
+    }
 }

@@ -24,30 +24,42 @@ public class PluginService extends DeliverableService<Plugin> {
     public static final String PLUGINS_BASE_URL = "/plugins";
     private final ExtensionService extensionService;
 
-    public PluginService() { this(Paths.get("." + PLUGINS_BASE_URL));}
+    public PluginService() {
+        this(Paths.get("." + PLUGINS_BASE_URL));
+    }
 
     @Inject
-    public PluginService(PropertiesProvider propertiesProvider, ExtensionService  extensionService) {
+    public PluginService(PropertiesProvider propertiesProvider, ExtensionService extensionService) {
         this(Paths.get(propertiesProvider.get(PropertiesProvider.PLUGINS_DIR_OPT).orElse("." + PLUGINS_BASE_URL)), extensionService);
     }
 
-    public PluginService(Path pluginsDir) { this(pluginsDir, ClassLoader.getSystemResourceAsStream(DEFAULT_PLUGIN_REGISTRY_FILENAME));}
-    public PluginService(Path pluginsDir, ExtensionService extensionService) { this(pluginsDir, ClassLoader.getSystemResourceAsStream(DEFAULT_PLUGIN_REGISTRY_FILENAME), extensionService);}
+    public PluginService(Path pluginsDir) {
+        this(pluginsDir, ClassLoader.getSystemResourceAsStream(DEFAULT_PLUGIN_REGISTRY_FILENAME));
+    }
+
+    public PluginService(Path pluginsDir, ExtensionService extensionService) {
+        this(pluginsDir, ClassLoader.getSystemResourceAsStream(DEFAULT_PLUGIN_REGISTRY_FILENAME), extensionService);
+    }
+
     public PluginService(Path pluginsDir, InputStream inputStream, ExtensionService extensionService) {
         super(pluginsDir, inputStream);
         this.extensionService = extensionService;
     }
+
     public PluginService(Path pluginsDir, InputStream inputStream) {
         this(pluginsDir, inputStream, null);
     }
 
     @Override
-    Plugin newDeliverable(URL url) { return new Plugin(url);}
+    Plugin newDeliverable(URL url) {
+        return new Plugin(url);
+    }
 
     @Override
     DeliverableRegistry<Plugin> createRegistry(InputStream pluginJsonContent) {
         try {
-            return new ObjectMapper().readValue(pluginJsonContent, new TypeReference<>() {});
+            return new ObjectMapper().readValue(pluginJsonContent, new TypeReference<>() {
+            });
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -109,7 +121,8 @@ public class PluginService extends DeliverableService<Plugin> {
         try {
             Path packageJson = pluginDir.resolve("package.json");
             if (packageJson.toFile().isFile()) {
-                Map<String, Object> packageMap = new ObjectMapper().readValue(packageJson.toFile(), new TypeReference<HashMap<String, Object>>() {});
+                Map<String, Object> packageMap = new ObjectMapper().readValue(packageJson.toFile(), new TypeReference<HashMap<String, Object>>() {
+                });
                 if (packageMap.containsKey("private")) {
                     if (!Boolean.parseBoolean((packageMap.get("private").toString()))) {
                         return pluginDir;
@@ -145,14 +158,27 @@ public class PluginService extends DeliverableService<Plugin> {
 
     private Path getPluginProperty(Path packageJson, String property) {
         try {
-            Map<String, Object> packageJsonMap = new ObjectMapper().readValue(packageJson.toFile(), new TypeReference<HashMap<String, Object>>() {});
+            Map<String, Object> packageJsonMap = new ObjectMapper().readValue(packageJson.toFile(), new TypeReference<HashMap<String, Object>>() {
+            });
             String value = (String) packageJsonMap.get(property);
             return value == null ? null : packageJson.getParent().resolve(value);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
     }
-    @Override String getDeleteOpt(Properties cliProperties) { return cliProperties.getProperty(PLUGIN_DELETE_OPT);}
-    @Override String getInstallOpt(Properties cliProperties) { return cliProperties.getProperty(PLUGIN_INSTALL_OPT);}
-    @Override String getListOpt(Properties cliProperties) { return cliProperties.getProperty(PLUGIN_LIST_OPT);}
+
+    @Override
+    String getDeleteOpt(Properties cliProperties) {
+        return cliProperties.getProperty(PLUGIN_DELETE_OPT);
+    }
+
+    @Override
+    String getInstallOpt(Properties cliProperties) {
+        return cliProperties.getProperty(PLUGIN_INSTALL_OPT);
+    }
+
+    @Override
+    String getListOpt(Properties cliProperties) {
+        return cliProperties.getProperty(PLUGIN_LIST_OPT);
+    }
 }

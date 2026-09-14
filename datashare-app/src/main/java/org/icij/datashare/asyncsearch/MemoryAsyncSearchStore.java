@@ -12,7 +12,8 @@ import java.util.concurrent.ConcurrentHashMap;
  * here because memory mode runs in a single process.
  */
 public class MemoryAsyncSearchStore implements AsyncSearchStore {
-    private record Entry(AsyncSearchOwner owner, Instant expiresAt) {}
+    private record Entry(AsyncSearchOwner owner, Instant expiresAt) {
+    }
 
     private final ConcurrentHashMap<String, Entry> entries = new ConcurrentHashMap<>();
     private final Clock clock;

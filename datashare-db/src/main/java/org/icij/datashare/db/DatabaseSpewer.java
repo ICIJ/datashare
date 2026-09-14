@@ -37,8 +37,8 @@ public class DatabaseSpewer extends Spewer {
         Charset charset = Charset.forName(ofNullable(tikaDocument.getMetadata().get(CONTENT_ENCODING)).orElse("utf-8"));
         String contentType = ofNullable(tikaDocument.getMetadata().get(CONTENT_TYPE)).orElse(DEFAULT_VALUE_UNKNOWN).split(";")[0];
         long contentLength = Long.parseLong(ofNullable(tikaDocument.getMetadata().get(CONTENT_LENGTH)).orElse("-1"));
-        String parentId = parent == null ? null: parent.getId();
-        String rootId = root == null ? null: root.getId();
+        String parentId = parent == null ? null : parent.getId();
+        String rootId = root == null ? null : root.getId();
 
         Document document = DocumentBuilder.createDoc().
                 with(project).

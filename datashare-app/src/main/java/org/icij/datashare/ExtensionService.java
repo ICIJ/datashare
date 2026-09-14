@@ -24,21 +24,41 @@ public class ExtensionService extends DeliverableService<Extension> {
         this(Paths.get(propertiesProvider.get(PropertiesProvider.EXTENSIONS_DIR_OPT).orElse("." + EXTENSION_BASE_URL)));
     }
 
-    public ExtensionService(Path extensionsDir) { this(extensionsDir, ClassLoader.getSystemResourceAsStream(DEFAULT_EXTENSION_REGISTRY_FILENAME));}
-    public ExtensionService(Path extensionsDir, InputStream inputStream) { super(extensionsDir, inputStream);}
+    public ExtensionService(Path extensionsDir) {
+        this(extensionsDir, ClassLoader.getSystemResourceAsStream(DEFAULT_EXTENSION_REGISTRY_FILENAME));
+    }
 
-    @Override Extension newDeliverable(URL url) { return new Extension(url, Extension.Type.UNKNOWN);}
+    public ExtensionService(Path extensionsDir, InputStream inputStream) {
+        super(extensionsDir, inputStream);
+    }
+
+    @Override
+    Extension newDeliverable(URL url) {
+        return new Extension(url, Extension.Type.UNKNOWN);
+    }
 
     @Override
     DeliverableRegistry<Extension> createRegistry(InputStream pluginJsonContent) {
         try {
-            return new ObjectMapper().readValue(pluginJsonContent, new TypeReference<>() {});
+            return new ObjectMapper().readValue(pluginJsonContent, new TypeReference<>() {
+            });
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
     }
 
-    @Override String getDeleteOpt(Properties cliProperties) { return cliProperties.getProperty(EXTENSION_DELETE_OPT);}
-    @Override String getInstallOpt(Properties cliProperties) { return cliProperties.getProperty(EXTENSION_INSTALL_OPT);}
-    @Override String getListOpt(Properties cliProperties) { return cliProperties.getProperty(EXTENSION_LIST_OPT);}
+    @Override
+    String getDeleteOpt(Properties cliProperties) {
+        return cliProperties.getProperty(EXTENSION_DELETE_OPT);
+    }
+
+    @Override
+    String getInstallOpt(Properties cliProperties) {
+        return cliProperties.getProperty(EXTENSION_INSTALL_OPT);
+    }
+
+    @Override
+    String getListOpt(Properties cliProperties) {
+        return cliProperties.getProperty(EXTENSION_LIST_OPT);
+    }
 }

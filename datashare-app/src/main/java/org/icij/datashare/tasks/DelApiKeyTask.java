@@ -22,7 +22,7 @@ public class DelApiKeyTask extends DefaultTask<Boolean> implements UserTask {
     private final User user;
 
     @Inject
-    public DelApiKeyTask(ApiKeyRepository apiKeyRepository,@Assisted User user) {
+    public DelApiKeyTask(ApiKeyRepository apiKeyRepository, @Assisted User user) {
         this.apiKeyRepository = apiKeyRepository;
         this.user = user;
     }

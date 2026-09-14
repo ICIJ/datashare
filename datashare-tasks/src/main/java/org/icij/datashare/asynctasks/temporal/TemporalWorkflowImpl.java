@@ -13,10 +13,10 @@ public abstract class TemporalWorkflowImpl implements TemporalWorkflow {
 
     @Override
     public void progress(ProgressSignal progressSignal) {
-        logger.info("Received progressSignal for activity {}, currentProgress : {}",progressSignal.activityId(), progressSignal.progress());
+        logger.info("Received progressSignal for activity {}, currentProgress : {}", progressSignal.activityId(), progressSignal.progress());
         currentProgress = progressSignal.progress();
         Workflow.upsertTypedSearchAttributes(
-            PROGRESS_CUSTOM_ATTRIBUTE.valueSet(currentProgress)
+                PROGRESS_CUSTOM_ATTRIBUTE.valueSet(currentProgress)
         );
     }
 

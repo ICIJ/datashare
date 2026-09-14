@@ -35,7 +35,9 @@ public class ApiKeyFilter implements Filter {
     }
 
     @Override
-    public boolean matches(String uri, Context context) { return uri.startsWith(protectedUrlPrefix);}
+    public boolean matches(String uri, Context context) {
+        return uri.startsWith(protectedUrlPrefix);
+    }
 
     @Override
     public Payload apply(String uri, Context context, PayloadSupplier nextFilter) throws Exception {
@@ -44,20 +46,22 @@ public class ApiKeyFilter implements Filter {
         }
         String apiKey = readApiKeyInHeader(context);
         if (apiKey != null) {
-          String login = apiKeyStore.getLogin(apiKey);
-          if (login != null) {
-            User user = users.find(login);
-            context.setCurrentUser(user);
-              if (postLoginEnroller != null && user instanceof DatashareUser dsUser) {
-                  postLoginEnroller.enroll(dsUser);
-              }
-            return nextFilter.get().withHeader(CACHE_CONTROL, "must-revalidate");
-          }
+            String login = apiKeyStore.getLogin(apiKey);
+            if (login != null) {
+                User user = users.find(login);
+                context.setCurrentUser(user);
+                if (postLoginEnroller != null && user instanceof DatashareUser dsUser) {
+                    postLoginEnroller.enroll(dsUser);
+                }
+                return nextFilter.get().withHeader(CACHE_CONTROL, "must-revalidate");
+            }
         }
         return new Payload(UNAUTHORIZED);
     }
 
-    protected String readApiKeyInHeader(Context context) { return getToken(context.header("authorization"));}
+    protected String readApiKeyInHeader(Context context) {
+        return getToken(context.header("authorization"));
+    }
 
     private String getToken(String authorizationHeader) {
         if (authorizationHeader == null) return null;
@@ -66,5 +70,7 @@ public class ApiKeyFilter implements Filter {
         return typeAndCredential[0].equalsIgnoreCase("bearer") ? typeAndCredential[1] : null;
     }
 
-    protected String dsCookieName() { return "_ds_session_id";}
+    protected String dsCookieName() {
+        return "_ds_session_id";
+    }
 }

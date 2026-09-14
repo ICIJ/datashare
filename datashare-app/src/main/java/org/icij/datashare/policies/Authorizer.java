@@ -35,7 +35,8 @@ public final class Authorizer implements Closeable {
     private static final String SEPARATOR = "::";
     private static final String DEFAULT_POLICY_FILE = "casbin/model.conf";
     private final SyncedEnforcer enforcer;
-    @Nullable private Closeable watcherCloseable;
+    @Nullable
+    private Closeable watcherCloseable;
 
     @Inject
     public Authorizer(CasbinRuleAdapter adapter) throws IOException {

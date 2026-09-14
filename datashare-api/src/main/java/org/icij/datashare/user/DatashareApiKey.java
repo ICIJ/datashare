@@ -48,9 +48,20 @@ public class DatashareApiKey implements ApiKey {
         return keyGen.generateKey();
     }
 
-    @Override public User getUser() { return user;}
-    @Override public Date getCreationDate() { return creationDate;}
-    @Override public String getId() { return hashedKey;}
+    @Override
+    public User getUser() {
+        return user;
+    }
+
+    @Override
+    public Date getCreationDate() {
+        return creationDate;
+    }
+
+    @Override
+    public String getId() {
+        return hashedKey;
+    }
 
     @Override
     public boolean equals(Object o) {

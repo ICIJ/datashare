@@ -25,4 +25,5 @@ public record ProjectCreated(
         Date updateDate,
         boolean indexCreated,
         boolean noop
-) {}
+) {
+}

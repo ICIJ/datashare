@@ -22,11 +22,12 @@ public class TaskFinder {
     private final BatchSearchRepository batchSearchRepository;
 
     private static final Map<BatchSearchRecord.State, Task.State> STATE_MAP = new EnumMap<>(Map.of(
-            BatchSearchRecord.State.QUEUED,  Task.State.QUEUED,
+            BatchSearchRecord.State.QUEUED, Task.State.QUEUED,
             BatchSearchRecord.State.RUNNING, Task.State.RUNNING,
             BatchSearchRecord.State.SUCCESS, Task.State.DONE,
             BatchSearchRecord.State.FAILURE, Task.State.ERROR
     ));
+
     @Inject
     public TaskFinder(TaskManager taskManager, BatchSearchRepository batchSearchRepository) {
         this.taskManager = taskManager;
@@ -44,7 +45,7 @@ public class TaskFinder {
      */
     public Stream<Task<?>> findVisibleTasksFor(User user, TaskFilters filters) throws
             IOException {
-        if(user == null) {
+        if (user == null) {
             throw new IllegalArgumentException("Cannot retrieve Tasks of a null user");
         }
         filters = filters.with(user); //Ensure only the tasks of the user are returned
@@ -71,7 +72,7 @@ public class TaskFinder {
 
     }
 
-    
+
     /**
      * Retrieves a task by id.
      * First looks in the task repository, then falls back to the user's batch search records,

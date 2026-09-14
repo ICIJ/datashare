@@ -69,10 +69,10 @@ class CliApp {
     // Picocli itself owns exit code 2 (usage errors) and signals it before
     // dispatch, so it does not appear here. Kept in sync with the "code"
     // string in error() output; operators reading scripts can match either.
-    static final int EXIT_SUCCESS    = 0;
-    static final int EXIT_RUNTIME    = 1;
-    static final int EXIT_NOT_FOUND  = 3;
-    static final int EXIT_CONFLICT   = 4;
+    static final int EXIT_SUCCESS = 0;
+    static final int EXIT_RUNTIME = 1;
+    static final int EXIT_NOT_FOUND = 3;
+    static final int EXIT_CONFLICT = 4;
     static final int EXIT_VALIDATION = 5;
 
     static void start(Properties properties) throws Exception {
@@ -96,9 +96,9 @@ class CliApp {
     private static void process(DeliverableService<?> deliverableService, Properties properties) throws IOException {
         String listPattern = deliverableService.getListOpt(properties);
         if (listPattern != null) {
-            listPattern = listPattern.equalsIgnoreCase("true") ? ".*":listPattern;
+            listPattern = listPattern.equalsIgnoreCase("true") ? ".*" : listPattern;
             deliverableService.list(listPattern).forEach(DeliverablePackage::displayInformation);
-        } else if(deliverableService.getInstallOpt(properties) != null) {
+        } else if (deliverableService.getInstallOpt(properties) != null) {
             deliverableService.downloadAndInstallFromCli(properties);
         } else if (deliverableService.getDeleteOpt(properties) != null) {
             deliverableService.deleteFromCli(properties);
@@ -320,8 +320,13 @@ class CliApp {
      * without re-deriving the reason from booleans.
      */
     private record GrantOutcome(String creator, GrantStatus status) {
-        boolean granted() { return status == GrantStatus.GRANTED; }
-        static GrantOutcome skipped() { return new GrantOutcome(null, GrantStatus.SKIPPED); }
+        boolean granted() {
+            return status == GrantStatus.GRANTED;
+        }
+
+        static GrantOutcome skipped() {
+            return new GrantOutcome(null, GrantStatus.SKIPPED);
+        }
     }
 
     private enum GrantStatus {
@@ -702,10 +707,10 @@ class CliApp {
 
     static int handleProjectGrant(ProjectAdminService service, Properties properties) {
         String project = properties.getProperty(PROJECT_GRANT_OPT);
-        String user    = properties.getProperty(PROJECT_GRANT_USER_OPT);
-        String alias   = properties.getProperty(PROJECT_GRANT_ROLE_OPT);
+        String user = properties.getProperty(PROJECT_GRANT_USER_OPT);
+        String alias = properties.getProperty(PROJECT_GRANT_ROLE_OPT);
         boolean ifNotExists = Boolean.parseBoolean(properties.getProperty(PROJECT_GRANT_IF_NOT_EXISTS_OPT));
-        boolean json        = Boolean.parseBoolean(properties.getProperty(PROJECT_GRANT_JSON_OPT));
+        boolean json = Boolean.parseBoolean(properties.getProperty(PROJECT_GRANT_JSON_OPT));
         try {
             Role role = Validators.projectRole(alias);
             ProjectGranted granted = ifNotExists
@@ -724,8 +729,8 @@ class CliApp {
     }
 
     private static void emitGrantResult(ProjectGranted granted, boolean json) {
-        String roleShort  = stripPrefix(granted.role());
-        String prevShort  = granted.previousRole() == null ? null : stripPrefix(granted.previousRole());
+        String roleShort = stripPrefix(granted.role());
+        String prevShort = granted.previousRole() == null ? null : stripPrefix(granted.previousRole());
         if (json) {
             // LinkedHashMap (not Map.ofEntries) because previousRole may be null
             // and we want it to serialize as a JSON null.
@@ -759,12 +764,12 @@ class CliApp {
     static int handleProjectRevoke(ProjectAdminService service,
                                    Properties properties,
                                    java.util.function.Supplier<Prompter> prompterFactory) {
-        String project   = properties.getProperty(PROJECT_REVOKE_OPT);
-        String user      = properties.getProperty(PROJECT_REVOKE_USER_OPT);
-        boolean yes      = Boolean.parseBoolean(properties.getProperty(PROJECT_REVOKE_YES_OPT));
-        boolean noInput  = Boolean.parseBoolean(properties.getProperty(PROJECT_REVOKE_NO_INPUT_OPT));
+        String project = properties.getProperty(PROJECT_REVOKE_OPT);
+        String user = properties.getProperty(PROJECT_REVOKE_USER_OPT);
+        boolean yes = Boolean.parseBoolean(properties.getProperty(PROJECT_REVOKE_YES_OPT));
+        boolean noInput = Boolean.parseBoolean(properties.getProperty(PROJECT_REVOKE_NO_INPUT_OPT));
         boolean ifExists = Boolean.parseBoolean(properties.getProperty(PROJECT_REVOKE_IF_EXISTS_OPT));
-        boolean json     = Boolean.parseBoolean(properties.getProperty(PROJECT_REVOKE_JSON_OPT));
+        boolean json = Boolean.parseBoolean(properties.getProperty(PROJECT_REVOKE_JSON_OPT));
         try {
             if (!yes && !noInput) {
                 System.err.println("Will revoke all roles for '" + user + "' on '" + project + "'.");
@@ -792,10 +797,10 @@ class CliApp {
                 .toList();
         if (json) {
             printJsonOrFallback(java.util.Map.ofEntries(
-                    java.util.Map.entry("project", revoked.name()),
-                    java.util.Map.entry("user", revoked.userLogin()),
-                    java.util.Map.entry("revokedRoles", shortRoles),
-                    java.util.Map.entry("noop", revoked.noop())),
+                            java.util.Map.entry("project", revoked.name()),
+                            java.util.Map.entry("user", revoked.userLogin()),
+                            java.util.Map.entry("revokedRoles", shortRoles),
+                            java.util.Map.entry("noop", revoked.noop())),
                     fallbackRevokeLine(revoked, shortRoles));
             return;
         }

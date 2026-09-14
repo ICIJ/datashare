@@ -37,7 +37,7 @@ class ElasticsearchQueryBuilderSearcher extends ElasticsearchSearcher implements
         this.boolQueryBuilder = new BoolQuery.Builder().must(must -> must.match(m -> m.field("type").query(JsonObjectMapper.getType(cls))));
         this.stringQuery = query.toString();
     }
-    
+
     @Override
     public Indexer.QueryBuilderSearcher ofStatus(Document.Status status) {
         this.boolQueryBuilder.must(must -> must.match(mq -> mq.field("status").query(status.toString())));
@@ -46,7 +46,7 @@ class ElasticsearchQueryBuilderSearcher extends ElasticsearchSearcher implements
 
     @Override
     public Stream<? extends Entity> execute() throws IOException {
-        if(stringQuery != null) {
+        if (stringQuery != null) {
             getBoolQueryBuilder(stringQuery);
         }
         sourceBuilder.index(indexesNames).query(q -> q.bool(boolQueryBuilder.build()));
@@ -58,7 +58,7 @@ class ElasticsearchQueryBuilderSearcher extends ElasticsearchSearcher implements
     @Override
     protected BoolQuery.Builder getBoolQueryBuilder(String query) {
         return query != null ? boolQueryBuilder.must(m -> m.matchAll(ma -> ma))
-                .must(m -> m.queryString(qs -> qs.query(buildQueryString(query, fuzziness, phraseMatches)))):
+                .must(m -> m.queryString(qs -> qs.query(buildQueryString(query, fuzziness, phraseMatches)))) :
                 boolQueryBuilder;
     }
 

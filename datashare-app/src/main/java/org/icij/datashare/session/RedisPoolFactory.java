@@ -22,7 +22,8 @@ final class RedisPoolFactory {
     private static final String USER_INFO = "://[^@/]*@";
     private static final String REDACTED_USER_INFO = "://***@";
 
-    private RedisPoolFactory() {}
+    private RedisPoolFactory() {
+    }
 
     /**
      * The URI overload is the one that reads the scheme: in Jedis 2.9.0 the shorter ones hand

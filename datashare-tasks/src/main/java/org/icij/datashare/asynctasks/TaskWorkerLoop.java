@@ -57,10 +57,10 @@ public class TaskWorkerLoop implements Callable<Integer>, Closeable {
         taskSupplier.addEventListener((event -> {
             if (event instanceof ShutdownEvent) {
                 closeAsync(); // for sending ack
-            // TODO: python alignment possible, in Python if the
-            //  worker.negative_acknowledge(task_id, requeue) succeeds the worker doesn't wait
-            //  for confirmation by the task manager to consider the task nacked (this works for
-            //  AMQP where the nack is transactional, does it work for Redis ?)
+                // TODO: python alignment possible, in Python if the
+                //  worker.negative_acknowledge(task_id, requeue) succeeds the worker doesn't wait
+                //  for confirmation by the task manager to consider the task nacked (this works for
+                //  AMQP where the nack is transactional, does it work for Redis ?)
             } else if (event instanceof CancelledEvent cancelledEvent) {
                 cancelledTasks.remove(cancelledEvent.taskId);
             } else if (event instanceof CancelEvent cancelEvent) {
@@ -70,7 +70,7 @@ public class TaskWorkerLoop implements Callable<Integer>, Closeable {
         }));
     }
 
-    public Integer call()  {
+    public Integer call() {
         waitForMainLoopCalled.countDown();
         if (taskSupplier instanceof TaskSupplierAmqp) {
             taskSupplier.consumeTasks(this::handle);

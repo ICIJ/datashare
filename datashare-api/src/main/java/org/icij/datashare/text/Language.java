@@ -194,7 +194,7 @@ public enum Language implements Serializable {
     ZULU("zu", "zul"),
     UNKNOWN("un", "ukn");
 
-    private static final long serialVersionUID =-7964823164978231L;
+    private static final long serialVersionUID = -7964823164978231L;
 
     private final String iso6391Code;
     private final String iso6392Code;
@@ -204,8 +204,13 @@ public enum Language implements Serializable {
         iso6392Code = iso2Code;
     }
 
-    public String iso6391Code() { return iso6391Code; }
-    public String iso6392Code() { return iso6392Code; }
+    public String iso6391Code() {
+        return iso6391Code;
+    }
+
+    public String iso6392Code() {
+        return iso6392Code;
+    }
 
     public static Language parse(final String language) {
         if (language == null || language.isEmpty()) {

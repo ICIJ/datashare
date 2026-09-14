@@ -2,6 +2,7 @@ package org.icij.datashare.asynctasks;
 
 import java.io.IOException;
 import java.io.Serializable;
+
 import org.icij.datashare.asynctasks.bus.amqp.CancelledEvent;
 import org.icij.datashare.asynctasks.bus.amqp.ErrorEvent;
 import org.icij.datashare.asynctasks.bus.amqp.ProgressEvent;
@@ -13,7 +14,7 @@ import org.icij.datashare.asynctasks.bus.amqp.TaskEvent;
  */
 abstract class StoreAndQueueTaskManagerImpl implements StoreAndQueueTaskManager {
 
-     // For test
+    // For test
     abstract protected Group getTaskGroup(String taskId) throws IOException;
 
     /**
@@ -28,7 +29,7 @@ abstract class StoreAndQueueTaskManagerImpl implements StoreAndQueueTaskManager 
      */
     @Override
     public <V extends Serializable> String startTask(Task<V> taskView, Group group)
-        throws IOException, TaskAlreadyExists {
+            throws IOException, TaskAlreadyExists {
         insert(taskView, group);
         taskView.queue();
         enqueue(taskView);

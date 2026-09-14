@@ -2,7 +2,7 @@ package org.icij.datashare.tasks;
 
 import co.elastic.clients.elasticsearch._types.ElasticsearchException;
 
-public class ElasticSearchAdapterException extends RuntimeException{
+public class ElasticSearchAdapterException extends RuntimeException {
     private ElasticSearchAdapterException(String jsonCause) {
         super(jsonCause);
     }

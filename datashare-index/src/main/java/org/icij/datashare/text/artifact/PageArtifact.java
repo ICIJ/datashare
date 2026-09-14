@@ -178,7 +178,7 @@ public class PageArtifact implements Artifact {
             String resourceName = metadata.get(TikaCoreProperties.RESOURCE_NAME_KEY);
             return name.equals(resourceName)
                     || TikaCoreProperties.EmbeddedResourceType.INLINE.toString()
-                            .equals(metadata.get(TikaCoreProperties.EMBEDDED_RESOURCE_TYPE))
+                    .equals(metadata.get(TikaCoreProperties.EMBEDDED_RESOURCE_TYPE))
                     || StructureMarkdownExtractor.isOwnBody(metadata);
         };
     }

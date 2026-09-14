@@ -29,7 +29,9 @@ public class PluginResource {
     private final PluginService pluginService;
 
     @Inject
-    public PluginResource(PluginService pluginService) { this.pluginService = pluginService; }
+    public PluginResource(PluginService pluginService) {
+        this.pluginService = pluginService;
+    }
 
     @Operation(description = """
             Gets the plugins set in JSON.
@@ -81,7 +83,9 @@ public class PluginResource {
     @Operation(description = "Preflight request")
     @ApiResponse(responseCode = "200", description = "returns 200 with OPTIONS and DELETE")
     @Options("/uninstall")
-    public Payload uninstallPluginPreflight() { return ok().withAllowMethods("OPTIONS", "DELETE");}
+    public Payload uninstallPluginPreflight() {
+        return ok().withAllowMethods("OPTIONS", "DELETE");
+    }
 
     @Operation(description = "Uninstall plugin specified by its id.")
     @ApiResponse(responseCode = "204", description = "returns 204 if the plugin is uninstalled (idempotent)")
@@ -89,7 +93,7 @@ public class PluginResource {
     public Payload uninstallPlugin(String pluginId) throws IOException {
         try {
             pluginService.delete(pluginId);
-        } catch (DeliverableRegistry.UnknownDeliverableException|NoSuchElementException unknownDeliverableException) {
+        } catch (DeliverableRegistry.UnknownDeliverableException | NoSuchElementException unknownDeliverableException) {
             return new Payload(204);
         }
         return new Payload(204);

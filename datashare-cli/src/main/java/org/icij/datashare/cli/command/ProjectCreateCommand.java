@@ -197,7 +197,8 @@ public class ProjectCreateCommand implements Runnable, DatashareSubcommand {
      */
     private static String promptOptional(Prompter prompter, String label, String defaultValue) {
         String displayLabel = defaultValue == null ? label : label + " [" + defaultValue + "]";
-        String line = prompter.promptString(displayLabel, s -> {});
+        String line = prompter.promptString(displayLabel, s -> {
+        });
         return line == null || line.isBlank() ? null : line.trim();
     }
 

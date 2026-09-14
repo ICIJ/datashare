@@ -3,6 +3,7 @@ package org.icij.datashare.text.nlp;
 import static java.util.Comparator.comparingInt;
 
 import java.util.Comparator;
+
 import org.icij.datashare.text.NamedEntity;
 
 public class NlpTag {

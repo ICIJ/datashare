@@ -34,12 +34,19 @@ public class YesBasicAuthFilter extends BasicAuthFilter {
     }
 
     static class DummyUsers implements Users {
-        @Override public User find(String login, String password) { return find(login);}
-        @Override public User find(String login) { return new DatashareUser(new HashMap<>() {{
-            put("uid", login);
-            put("groups_by_applications", new HashMap<>() {{
-                put("datashare", singletonList("local-datashare"));
+        @Override
+        public User find(String login, String password) {
+            return find(login);
+        }
+
+        @Override
+        public User find(String login) {
+            return new DatashareUser(new HashMap<>() {{
+                put("uid", login);
+                put("groups_by_applications", new HashMap<>() {{
+                    put("datashare", singletonList("local-datashare"));
+                }});
             }});
-        }});}
+        }
     }
 }

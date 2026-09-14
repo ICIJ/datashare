@@ -32,6 +32,7 @@ import java.io.IOException;
 import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
+
 import org.apache.http.util.EntityUtils;
 import org.elasticsearch.client.ResponseException;
 
@@ -81,14 +82,14 @@ public class IndexResource {
     @Put("/:index")
     public Payload createIndex(@Parameter(name = "index", description = "index to create", in = ParameterIn.PATH) final String index, Context context) throws IOException {
         modeVerifier.checkAllowedMode(Mode.LOCAL, Mode.EMBEDDED);
-        try{
+        try {
             // a ".entities" name is granted through its base project, so it reaches here; createIndex
             // picks the entity mappings for it rather than the document ones
             return indexer.createIndex(checkGrantedIndices(index, context)) ? created() : ok();
-        } catch (HttpException e){
+        } catch (HttpException e) {
             // checkGrantedIndices refuses an ungranted project with a 403 that must not collapse to 400
             throw e;
-        } catch (RuntimeException e){
+        } catch (RuntimeException e) {
             // the ES indexer reports entities-index creation failures as ConfigurationException
             return PayloadFormatter.error(e, HttpStatus.BAD_REQUEST);
         }
@@ -99,10 +100,10 @@ public class IndexResource {
     @ApiResponse(responseCode = "400", description = "returns 400 if there is an error from ElasticSearch")
     @Options("/:index")
     public Payload createIndexPreflight(final String index) {
-        try{
+        try {
             IndexAccessVerifier.checkIndices(index);
             return PayloadFormatter.allowMethods("OPTIONS", "PUT");
-        }catch (IllegalArgumentException e){
+        } catch (IllegalArgumentException e) {
             return PayloadFormatter.error(e, HttpStatus.BAD_REQUEST);
         }
     }
@@ -114,7 +115,7 @@ public class IndexResource {
     public Payload esHead(final String path) throws IOException {
         try {
             return new Payload(indexer.executeRaw("HEAD", path, null));
-        } catch (IllegalArgumentException e){
+        } catch (IllegalArgumentException e) {
             return PayloadFormatter.error(e, HttpStatus.BAD_REQUEST);
         }
     }
@@ -151,7 +152,7 @@ public class IndexResource {
                 }
             }
             return PayloadFormatter.json(response);
-        } catch ( IllegalArgumentException e){
+        } catch (IllegalArgumentException e) {
             return PayloadFormatter.error(e, HttpStatus.BAD_REQUEST);
         }
     }
@@ -208,7 +209,7 @@ public class IndexResource {
                 return asyncSearchStatus("GET", path, context);
             }
             return PayloadFormatter.json(indexer.executeRaw("GET", IndexAccessVerifier.checkPath(path, context), ""));
-        } catch (IllegalArgumentException e){
+        } catch (IllegalArgumentException e) {
             return PayloadFormatter.error(e, HttpStatus.BAD_REQUEST);
         }
     }
@@ -241,8 +242,8 @@ public class IndexResource {
                 }
             }
             return PayloadFormatter.json(response);
-        // Deliberate: this endpoint is an ES proxy, so we translate the ES low-level
-        // client's ResponseException into the same HTTP status/body rather than a 500.
+            // Deliberate: this endpoint is an ES proxy, so we translate the ES low-level
+            // client's ResponseException into the same HTTP status/body rather than a 500.
         } catch (ResponseException e) {
             int status = e.getResponse().getStatusLine().getStatusCode();
             if (status == HttpStatus.NOT_FOUND) {
@@ -288,7 +289,7 @@ public class IndexResource {
         try {
             IndexAccessVerifier.checkIndices(index);
             return PayloadFormatter.allowMethods(indexer.executeRaw("OPTIONS", path, null));
-        } catch (IllegalArgumentException e){
+        } catch (IllegalArgumentException e) {
             return PayloadFormatter.error(e, HttpStatus.BAD_REQUEST);
         }
     }
@@ -299,8 +300,7 @@ public class IndexResource {
     @ApiResponse(responseCode = "403", description = "operation not allowed in current mode, or index not granted to the user")
     @Post("/:index/_close")
     public Payload closeIndex(
-            @Parameter(name = "index", description = "index name to close", in = ParameterIn.PATH)
-            final String index,
+            @Parameter(name = "index", description = "index name to close", in = ParameterIn.PATH) final String index,
             Context context) throws IOException {
         modeVerifier.checkAllowedMode(Mode.LOCAL, Mode.EMBEDDED);
         try {
@@ -317,8 +317,7 @@ public class IndexResource {
     @ApiResponse(responseCode = "403", description = "operation not allowed in current mode, or index not granted to the user")
     @Post("/:index/_open")
     public Payload openIndex(
-            @Parameter(name = "index", description = "index name to open", in = ParameterIn.PATH)
-            final String index,
+            @Parameter(name = "index", description = "index name to open", in = ParameterIn.PATH) final String index,
             Context context) throws IOException {
         modeVerifier.checkAllowedMode(Mode.LOCAL, Mode.EMBEDDED);
         try {
@@ -343,8 +342,7 @@ public class IndexResource {
     @ApiResponse(responseCode = "403", description = "operation not allowed in current mode")
     @Get("/_snapshot/:repository")
     public Payload getSnapshotRepository(
-            @Parameter(name = "repository", description = "snapshot repository name", in = ParameterIn.PATH)
-            final String repository) throws IOException {
+            @Parameter(name = "repository", description = "snapshot repository name", in = ParameterIn.PATH) final String repository) throws IOException {
         modeVerifier.checkAllowedMode(Mode.LOCAL, Mode.EMBEDDED);
         return PayloadFormatter.json(indexer.executeRaw("GET", "_snapshot/" + repository, null));
     }
@@ -354,8 +352,7 @@ public class IndexResource {
     @ApiResponse(responseCode = "403", description = "operation not allowed in current mode")
     @Put("/_snapshot/:repository")
     public Payload createSnapshotRepository(
-            @Parameter(name = "repository", description = "snapshot repository name", in = ParameterIn.PATH)
-            final String repository,
+            @Parameter(name = "repository", description = "snapshot repository name", in = ParameterIn.PATH) final String repository,
             net.codestory.http.Request request) throws IOException {
         modeVerifier.checkAllowedMode(Mode.LOCAL, Mode.EMBEDDED);
         return PayloadFormatter.json(indexer.executeRaw("PUT", "_snapshot/" + repository, new String(request.contentAsBytes())));
@@ -366,8 +363,7 @@ public class IndexResource {
     @ApiResponse(responseCode = "403", description = "operation not allowed in current mode")
     @Delete("/_snapshot/:repository")
     public Payload deleteSnapshotRepository(
-            @Parameter(name = "repository", description = "snapshot repository name", in = ParameterIn.PATH)
-            final String repository) throws IOException {
+            @Parameter(name = "repository", description = "snapshot repository name", in = ParameterIn.PATH) final String repository) throws IOException {
         modeVerifier.checkAllowedMode(Mode.LOCAL, Mode.EMBEDDED);
         return PayloadFormatter.json(indexer.executeRaw("DELETE", "_snapshot/" + repository, null));
     }
@@ -377,8 +373,7 @@ public class IndexResource {
     @ApiResponse(responseCode = "403", description = "operation not allowed in current mode")
     @Get("/_snapshot/:repository/_all")
     public Payload getSnapshots(
-            @Parameter(name = "repository", description = "snapshot repository name", in = ParameterIn.PATH)
-            final String repository) throws IOException {
+            @Parameter(name = "repository", description = "snapshot repository name", in = ParameterIn.PATH) final String repository) throws IOException {
         modeVerifier.checkAllowedMode(Mode.LOCAL, Mode.EMBEDDED);
         return PayloadFormatter.json(indexer.executeRaw("GET", "_snapshot/" + repository + "/_all", null));
     }
@@ -388,10 +383,8 @@ public class IndexResource {
     @ApiResponse(responseCode = "403", description = "operation not allowed in current mode")
     @Get("/_snapshot/:repository/:snapshot")
     public Payload getSnapshot(
-            @Parameter(name = "repository", description = "snapshot repository name", in = ParameterIn.PATH)
-            final String repository,
-            @Parameter(name = "snapshot", description = "snapshot name", in = ParameterIn.PATH)
-            final String snapshot) throws IOException {
+            @Parameter(name = "repository", description = "snapshot repository name", in = ParameterIn.PATH) final String repository,
+            @Parameter(name = "snapshot", description = "snapshot name", in = ParameterIn.PATH) final String snapshot) throws IOException {
         modeVerifier.checkAllowedMode(Mode.LOCAL, Mode.EMBEDDED);
         return PayloadFormatter.json(indexer.executeRaw("GET", "_snapshot/" + repository + "/" + snapshot, null));
     }
@@ -401,10 +394,8 @@ public class IndexResource {
     @ApiResponse(responseCode = "403", description = "operation not allowed in current mode")
     @Put("/_snapshot/:repository/:snapshot")
     public Payload createSnapshot(
-            @Parameter(name = "repository", description = "snapshot repository name", in = ParameterIn.PATH)
-            final String repository,
-            @Parameter(name = "snapshot", description = "snapshot name", in = ParameterIn.PATH)
-            final String snapshot,
+            @Parameter(name = "repository", description = "snapshot repository name", in = ParameterIn.PATH) final String repository,
+            @Parameter(name = "snapshot", description = "snapshot name", in = ParameterIn.PATH) final String snapshot,
             Context context,
             net.codestory.http.Request request) throws IOException {
         modeVerifier.checkAllowedMode(Mode.LOCAL, Mode.EMBEDDED);
@@ -418,10 +409,8 @@ public class IndexResource {
     @ApiResponse(responseCode = "403", description = "operation not allowed in current mode")
     @Post("/_snapshot/:repository/:snapshot/_restore")
     public Payload restoreSnapshot(
-            @Parameter(name = "repository", description = "snapshot repository name", in = ParameterIn.PATH)
-            final String repository,
-            @Parameter(name = "snapshot", description = "snapshot name", in = ParameterIn.PATH)
-            final String snapshot,
+            @Parameter(name = "repository", description = "snapshot repository name", in = ParameterIn.PATH) final String repository,
+            @Parameter(name = "snapshot", description = "snapshot name", in = ParameterIn.PATH) final String snapshot,
             Context context,
             net.codestory.http.Request request) throws IOException {
         modeVerifier.checkAllowedMode(Mode.LOCAL, Mode.EMBEDDED);
@@ -435,10 +424,8 @@ public class IndexResource {
     @ApiResponse(responseCode = "403", description = "operation not allowed in current mode")
     @Delete("/_snapshot/:repository/:snapshot")
     public Payload deleteSnapshot(
-            @Parameter(name = "repository", description = "snapshot repository name", in = ParameterIn.PATH)
-            final String repository,
-            @Parameter(name = "snapshot", description = "snapshot name", in = ParameterIn.PATH)
-            final String snapshot) throws IOException {
+            @Parameter(name = "repository", description = "snapshot repository name", in = ParameterIn.PATH) final String repository,
+            @Parameter(name = "snapshot", description = "snapshot name", in = ParameterIn.PATH) final String snapshot) throws IOException {
         modeVerifier.checkAllowedMode(Mode.LOCAL, Mode.EMBEDDED);
         return PayloadFormatter.json(indexer.executeRaw("DELETE", "_snapshot/" + repository + "/" + snapshot, null));
     }

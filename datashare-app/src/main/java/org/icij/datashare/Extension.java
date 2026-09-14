@@ -8,6 +8,7 @@ import static org.apache.commons.io.FilenameUtils.getBaseName;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
+
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.FilenameFilter;
@@ -27,6 +28,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
 import org.apache.commons.io.FilenameUtils;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
@@ -49,12 +51,12 @@ public class Extension implements Deliverable {
 
     @JsonCreator
     public Extension(@JsonProperty("id") String id,
-                  @JsonProperty("name") String name,
-                  @JsonProperty("version") String version,
-                  @JsonProperty("description") String description,
-                  @JsonProperty("url") URL url,
-                  @JsonProperty("homepage") URL homepage,
-                  @JsonProperty("type") Type type){
+                     @JsonProperty("name") String name,
+                     @JsonProperty("version") String version,
+                     @JsonProperty("description") String description,
+                     @JsonProperty("url") URL url,
+                     @JsonProperty("homepage") URL homepage,
+                     @JsonProperty("type") Type type) {
         this.id = requireNonNull(id);
         this.url = url;
         this.homepage = homepage;
@@ -77,7 +79,9 @@ public class Extension implements Deliverable {
         this.hostSpecific = isHostSpecific();
     }
 
-    Extension(URL url) {this(url, Type.UNKNOWN);}
+    Extension(URL url) {
+        this(url, Type.UNKNOWN);
+    }
 
     @Override
     public File download() throws IOException {
@@ -99,8 +103,8 @@ public class Extension implements Deliverable {
         File tmpFile = Files.createTempFile(TMP_PREFIX, suffix).toFile();
         logger.info("downloading from url {}", url);
         try (FileOutputStream fileOutputStream = new FileOutputStream(tmpFile)) {
-           fileOutputStream.getChannel().transferFrom(readableByteChannel, 0, Long.MAX_VALUE);
-           return tmpFile;
+            fileOutputStream.getChannel().transferFrom(readableByteChannel, 0, Long.MAX_VALUE);
+            return tmpFile;
         }
     }
 
@@ -158,13 +162,13 @@ public class Extension implements Deliverable {
                 .collect(Collectors.toList());
     }
 
-    static Entry<String,String> extractIdVersion(URL url){
-        String baseName = removePattern(endsWithExtension,FilenameUtils.getName(url.getFile().replaceAll("/$","")));
+    static Entry<String, String> extractIdVersion(URL url) {
+        String baseName = removePattern(endsWithExtension, FilenameUtils.getName(url.getFile().replaceAll("/$", "")));
         Matcher matcher = extensionFormat.matcher(baseName);
-        if(matcher.matches()){
-            return new AbstractMap.SimpleEntry<>(matcher.group(1),matcher.group(2));
+        if (matcher.matches()) {
+            return new AbstractMap.SimpleEntry<>(matcher.group(1), matcher.group(2));
         }
-        return new AbstractMap.SimpleEntry<>(baseName,null);
+        return new AbstractMap.SimpleEntry<>(baseName, null);
     }
 
     static String removePattern(Pattern pattern, String string) {
@@ -175,19 +179,40 @@ public class Extension implements Deliverable {
         return string;
     }
 
-    @Override public URL getUrl() { return url; }
+    @Override
+    public URL getUrl() {
+        return url;
+    }
 
-    @Override public URL getHomepage() { return homepage; }
+    @Override
+    public URL getHomepage() {
+        return homepage;
+    }
 
-    @Override public String getId() { return this.id; }
+    @Override
+    public String getId() {
+        return this.id;
+    }
 
-    @Override public String getName() { return name; }
+    @Override
+    public String getName() {
+        return name;
+    }
 
-    @Override public String getDescription() { return description; }
+    @Override
+    public String getDescription() {
+        return description;
+    }
 
-    @Override public String getVersion() { return version; }
+    @Override
+    public String getVersion() {
+        return version;
+    }
 
-    @Override public Type getType() { return type; }
+    @Override
+    public Type getType() {
+        return type;
+    }
 
     @JsonIgnore
     public Path getCanonicalPath() {
@@ -211,8 +236,13 @@ public class Extension implements Deliverable {
         return null;
     }
 
-    protected String getUrlFileName() { return DeliverableHelper.getUrlFileName(url);}
-    protected boolean isTemporaryFile(File extensionFile) { return extensionFile.getName().startsWith(Plugin.TMP_PREFIX);}
+    protected String getUrlFileName() {
+        return DeliverableHelper.getUrlFileName(url);
+    }
+
+    protected boolean isTemporaryFile(File extensionFile) {
+        return extensionFile.getName().startsWith(Plugin.TMP_PREFIX);
+    }
 
     @Override
     public String toString() {
@@ -223,8 +253,8 @@ public class Extension implements Deliverable {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (!(o instanceof Extension extension)) return false;
-        if(version == null || extension.version == null){
-            if(version == null && extension.version == null)
+        if (version == null || extension.version == null) {
+            if (version == null && extension.version == null)
                 return id.equals(extension.id);
             return false;
         }
@@ -242,8 +272,9 @@ public class Extension implements Deliverable {
         int idCompare = this.id.compareTo(deliverable.getId());
         return idCompare == 0 ? ofNullable(this.version).orElse("-1").compareTo(ofNullable(deliverable.getVersion()).orElse("-1")) : idCompare;
     }
+
     protected boolean isHostSpecific() {
-        return !FilenameUtils.getName(this.url.getFile().replaceAll("/$","")).endsWith(".jar");
+        return !FilenameUtils.getName(this.url.getFile().replaceAll("/$", "")).endsWith(".jar");
     }
 
 }

@@ -5,9 +5,11 @@ import java.util.Properties;
 
 public class JsonData {
     public Map<String, Object> data;
+
     public Object get(String key) {
         return data.get(key);
     }
+
     public Properties asProperties() {
         Properties properties = new Properties();
         properties.putAll(data);

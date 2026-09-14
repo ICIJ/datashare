@@ -6,6 +6,7 @@ import com.google.inject.assistedinject.Assisted;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.function.Function;
+
 import org.icij.datashare.PipelineHelper;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Stage;
@@ -38,6 +39,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.Duration;
 import java.util.List;
+
 import org.icij.time.HumanDuration;
 
 import static java.lang.Math.max;
@@ -55,7 +57,7 @@ import static org.icij.datashare.cli.DatashareCliOptions.*;
 @Option(name = DEFAULT_PROJECT_OPT, description = "the default project name")
 @Option(name = "projectName", description = "task project name")
 @TaskGroup(TaskGroupType.Java)
-public class IndexTask extends PipelineTask<Path> implements Monitorable{
+public class IndexTask extends PipelineTask<Path> implements Monitorable {
     private static final Path PATH_POISON = Paths.get("POISON");
     private final Logger logger = LoggerFactory.getLogger(getClass());
     private final ElasticsearchSpewer spewer;
@@ -201,6 +203,6 @@ public class IndexTask extends PipelineTask<Path> implements Monitorable{
     @Override
     public double getProgressRate() {
         totalToProcess = max(inputQueue.size(), totalToProcess);
-        return totalToProcess == 0 ? 0 : (double)(totalToProcess - inputQueue.size()) / totalToProcess;
+        return totalToProcess == 0 ? 0 : (double) (totalToProcess - inputQueue.size()) / totalToProcess;
     }
 }

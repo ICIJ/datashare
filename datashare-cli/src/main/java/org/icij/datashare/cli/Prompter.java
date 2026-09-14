@@ -11,11 +11,15 @@ import java.util.function.Supplier;
 public class Prompter {
     public static class ValidationFailedException extends RuntimeException {
         private final String field;
+
         public ValidationFailedException(String field, String message) {
             super(message);
             this.field = field;
         }
-        public String field() { return field; }
+
+        public String field() {
+            return field;
+        }
     }
 
     static final int MAX_RETRIES = 3;
@@ -26,8 +30,8 @@ public class Prompter {
 
     public Prompter() {
         this(new BufferedReader(new InputStreamReader(System.in)),
-             new PrintWriter(System.err, true),
-             () -> System.console() == null ? new char[0] : System.console().readPassword());
+                new PrintWriter(System.err, true),
+                () -> System.console() == null ? new char[0] : System.console().readPassword());
     }
 
     public Prompter(BufferedReader in, PrintWriter out, Supplier<char[]> passwordSupplier) {

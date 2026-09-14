@@ -150,6 +150,7 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
     public static CommonMode create(final Map<String, Object> map, boolean override) {
         return create(PropertiesProvider.fromMap(map));
     }
+
     public static CommonMode create(final Properties properties) {
         return switch (getMode(properties)) {
             case NER -> new NerMode(properties);
@@ -160,21 +161,33 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
         };
     }
 
-    public Mode getMode() {return mode;}
-    public <T> T get(Class<T> type) {return injector.getInstance(type);}
-    public <T> T get(Key<T> key) {return injector.getInstance(key);}
+    public Mode getMode() {
+        return mode;
+    }
+
+    public <T> T get(Class<T> type) {
+        return injector.getInstance(type);
+    }
+
+    public <T> T get(Key<T> key) {
+        return injector.getInstance(key);
+    }
+
     public Injector createChildInjector(Module... modules) {
         return injector.createChildInjector(modules);
     }
+
     public boolean shouldRunWorker() {
         boolean batchQueueType = getQueueType(propertiesProvider, BATCH_QUEUE_TYPE_OPT, DEFAULT_BATCH_QUEUE_TYPE)
-            .equals(TEMPORAL);
+                .equals(TEMPORAL);
         return (CommonMode.getMode(this.properties()) == Mode.EMBEDDED || getMode() == Mode.LOCAL)
                 && (properties().containsValue(QueueType.AMQP.name()) || batchQueueType);
     }
+
     int getTaskWorkersNb() {
         return parseInt((String) ofNullable(properties().get(TASK_WORKERS_OPT)).orElse(DEFAULT_TASK_WORKERS));
     }
+
     double getProgressMinIntervalS() {
         return ofNullable(properties().getProperty(TASK_PROGRESS_INTERVAL_OPT))
                 .map(Double::parseDouble)
@@ -196,7 +209,7 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
         install(new FactoryModuleBuilder().build(DatashareTaskFactory.class));
 
         QueueType batchQueueType = getQueueType(propertiesProvider, BATCH_QUEUE_TYPE_OPT, DEFAULT_BATCH_QUEUE_TYPE);
-        switch ( batchQueueType ) {
+        switch (batchQueueType) {
             case REDIS:
                 bind(TaskManager.class).to(TaskManagerRedis.class);
                 bind(TaskModifier.class).to(TaskSupplierRedis.class);
@@ -217,7 +230,8 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
         }
     }
 
-    @Provides @Singleton
+    @Provides
+    @Singleton
     RedissonClient provideRedissonClient() {
         int poolSize = redisPoolSize(propertiesProvider);
         propertiesProvider.get(REDIS_POOL_SIZE_OPT).map(Integer::parseInt)
@@ -244,7 +258,8 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
         return propertiesProvider.get(REDIS_POOL_SIZE_OPT).map(Integer::parseInt).map(configured -> Math.max(configured, floor)).orElse(floor);
     }
 
-    @Provides @Singleton
+    @Provides
+    @Singleton
     org.icij.datashare.asynctasks.bus.amqp.AmqpInterlocutor provideAmqpInterlocutor() {
         AmqpInterlocutor amqp = null;
         try {
@@ -256,19 +271,22 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
         return amqp;
     }
 
-    @Provides @Singleton
+    @Provides
+    @Singleton
     TemporalInterlocutor provideTemporal(final PropertiesProvider propertiesProvider) throws InterruptedException {
         return new TemporalInterlocutor(propertiesProvider);
     }
 
-    @Provides @Singleton
+    @Provides
+    @Singleton
     TaskManagerMemory provideTaskManagerMemory(
             DatashareTaskFactory taskFactory, TaskRepository taskRepository, PropertiesProvider propertiesProvider) {
         return new TaskManagerMemory(
                 taskFactory, taskRepository, propertiesProvider, new CountDownLatch(1));
     }
 
-    @Provides @Singleton
+    @Provides
+    @Singleton
     TaskManagerRedis provideTaskManagerRedis(
             RedissonClient redissonClient, PropertiesProvider propertiesProvider, TaskRepository taskRepository) {
         return new TaskManagerRedis(
@@ -276,7 +294,8 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
                 Integer.parseInt(propertiesProvider.get(TASK_MANAGER_POLLING_INTERVAL_OPT).orElse("5000")));
     }
 
-    @Provides @Singleton
+    @Provides
+    @Singleton
     TaskManagerAmqp provideTaskManagerAmqp(
             AmqpInterlocutor amqp,
             TaskRepository taskRepository, PropertiesProvider propertiesProvider) throws IOException {
@@ -285,51 +304,61 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
                 Integer.parseInt(propertiesProvider.get(TASK_MANAGER_POLLING_INTERVAL_OPT).orElse("5000")));
     }
 
-    @Provides @Singleton
+    @Provides
+    @Singleton
     TaskManagerTemporal provideTaskManagerTemporal(
             TemporalInterlocutor temporal, TaskRepository taskRepository, PropertiesProvider propertiesProvider) {
         return new TaskManagerTemporal(
                 temporal, taskRepository, Utils.getRoutingStrategy(propertiesProvider));
     }
 
-    @Provides @Singleton
+    @Provides
+    @Singleton
     TaskRepositoryMemory provideTaskRepositoryMemory() {
         return new TaskRepositoryMemory();
     }
 
-    @Provides @Singleton
+    @Provides
+    @Singleton
     TaskRepositoryRedis provideTaskRepositoryRedis(RedissonClient redissonClient) {
         return new TaskRepositoryRedis(redissonClient);
     }
 
-    @Provides @Singleton
+    @Provides
+    @Singleton
     TaskSupplierRedis provideTaskSupplierRedis(RedissonClient redissonClient, PropertiesProvider propertiesProvider) {
         return new TaskSupplierRedis(redissonClient, Utils.getRoutingKey(propertiesProvider));
     }
 
-    @Provides @Singleton
+    @Provides
+    @Singleton
     TaskSupplierAmqp provideTaskSupplierAmqp(
             org.icij.datashare.asynctasks.bus.amqp.AmqpInterlocutor amqp, PropertiesProvider propertiesProvider) throws IOException {
         return new TaskSupplierAmqp(amqp, Utils.getRoutingKey(propertiesProvider));
     }
 
-    @Provides @Singleton
+    @Provides
+    @Singleton
     DocumentCollectionFactory<Path> provideScanQueue(final PropertiesProvider propertiesProvider) {
         return switch (getQueueType(propertiesProvider, QUEUE_TYPE_OPT, DEFAULT_QUEUE_TYPE)) {
             case MEMORY -> new MemoryDocumentCollectionFactory<>(propertiesProvider);
-            case REDIS, AMQP, TEMPORAL -> new RedisDocumentCollectionFactory<>(propertiesProvider, get(RedissonClient.class));
+            case REDIS, AMQP, TEMPORAL ->
+                    new RedisDocumentCollectionFactory<>(propertiesProvider, get(RedissonClient.class));
         };
     }
 
-    @Provides @Singleton
+    @Provides
+    @Singleton
     DocumentCollectionFactory<String> provideIndexQueue(final PropertiesProvider propertiesProvider) {
         return switch (getQueueType(propertiesProvider, QUEUE_TYPE_OPT, DEFAULT_QUEUE_TYPE)) {
             case MEMORY -> new MemoryDocumentCollectionFactory<>(propertiesProvider);
-            case REDIS, AMQP, TEMPORAL -> new RedisDocumentCollectionFactory<>(propertiesProvider, get(RedissonClient.class));
+            case REDIS, AMQP, TEMPORAL ->
+                    new RedisDocumentCollectionFactory<>(propertiesProvider, get(RedissonClient.class));
         };
     }
 
-    @Provides @Singleton
+    @Provides
+    @Singleton
     AsyncSearchStore provideAsyncSearchStore(final PropertiesProvider propertiesProvider) {
         return switch (getQueueType(propertiesProvider, QUEUE_TYPE_OPT, DEFAULT_QUEUE_TYPE)) {
             case MEMORY -> new MemoryAsyncSearchStore();
@@ -337,7 +366,8 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
         };
     }
 
-    @Provides @Singleton
+    @Provides
+    @Singleton
     Authorizer provideAuthorizer(CasbinRuleAdapter adapter, Provider<RedissonClient> redissonProvider) throws IOException {
         if (QueueType.REDIS.name().equals(propertiesProvider.get(BUS_TYPE_OPT).orElse(null))) {
             // Event-driven: RTopic notifies all instances immediately on policy change.
@@ -357,14 +387,16 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
         return authorizer;
     }
 
-    @Provides @Singleton
+    @Provides
+    @Singleton
     Indexer provideIndexer() {
         ElasticsearchIndexer indexer = new ElasticsearchIndexer(createESClient(propertiesProvider), propertiesProvider);
         addCloseable(indexer);
         return indexer;
     }
 
-    @Provides @Singleton
+    @Provides
+    @Singleton
     UserStore provideUserStore(final Injector injector) {
         Class<? extends UserStore> providerClass = resolveUserStoreClass();
         logger.info("setting auth users provider to {}", providerClass);
@@ -375,7 +407,8 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
         return userStore;
     }
 
-    @Provides @Singleton
+    @Provides
+    @Singleton
     Users provideUsers(UserStore userStore, UsersIdProviderCache usersIdProviderCache) {
         boolean authModeRequiringCache = isAuthModeRequiringCache();
 
@@ -426,7 +459,8 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
         }
     }
 
-    @Provides @Singleton
+    @Provides
+    @Singleton
     UsersIdProviderCache provideUsersIdProviderCache(final Injector injector) {
         boolean requiresCache = isAuthModeRequiringCache();
         if (requiresCache) {
@@ -453,12 +487,14 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
                 .orElse(false);
     }
 
-    @Provides @Singleton
+    @Provides
+    @Singleton
     LanguageGuesser provideLanguageGuesser() throws IOException {
         return new OptimaizeLanguageGuesser();
     }
 
-    @Provides @Singleton
+    @Provides
+    @Singleton
     PipelineRegistry providePipelineRegistry(final PropertiesProvider propertiesProvider) {
         PipelineRegistry pipelineRegistry = new PipelineRegistry(propertiesProvider);
         pipelineRegistry.register(EmailPipeline.class);
@@ -473,9 +509,9 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
     public Configuration createWebConfiguration() {
         return routes -> addModeConfiguration(
                 defaultRoutes(
-                            addCorsFilter(routes,
-                                    propertiesProvider
-                            )
+                        addCorsFilter(routes,
+                                propertiesProvider
+                        )
                 )
         );
     }
@@ -500,9 +536,9 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
         return routes.bind(PLUGINS_BASE_URL, Paths.get(pluginsDir).toFile());
     }
 
-     public Routes addExtensionsConfiguration(Routes routes) {
-         ExtensionLoader extensionLoader = new ExtensionLoader(Paths.get(ofNullable(getExtensionsDir()).orElse("./extensions")));
-         if (extensionLoader.extensionsDir != null) {
+    public Routes addExtensionsConfiguration(Routes routes) {
+        ExtensionLoader extensionLoader = new ExtensionLoader(Paths.get(ofNullable(getExtensionsDir()).orElse("./extensions")));
+        if (extensionLoader.extensionsDir != null) {
             try {
                 extensionLoader.load(routes::add, this::isEligibleForLoading);
                 extensionLoader.load(cls -> JsonObjectMapper.registerSubtypes(new NamedType(cls)), this::isJsonType);
@@ -529,7 +565,7 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
         bind(ProjectAdminService.class).to(ProjectAdminServiceImpl.class).in(Singleton.class);
 
         TaskRepositoryType taskRepositoryType = TaskRepositoryType.valueOf(propertiesProvider.get(TASK_REPOSITORY_OPT).orElse("DATABASE"));
-        switch ( taskRepositoryType ) {
+        switch (taskRepositoryType) {
             case MEMORY -> bind(TaskRepository.class).to(TaskRepositoryMemory.class);
             case REDIS -> bind(TaskRepository.class).to(TaskRepositoryRedis.class);
             case DATABASE -> {
@@ -543,8 +579,8 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
     private ExecutorService runTaskWorkerLoop() {
         if (getTaskWorkersNb() > 0) {
             List<TaskWorkerLoop> workers = IntStream.range(0, getTaskWorkersNb())
-                .mapToObj(i -> new TaskWorkerLoop(get(DatashareTaskFactory.class), get(TaskSupplier.class),
-                    getProgressMinIntervalS())).toList();
+                    .mapToObj(i -> new TaskWorkerLoop(get(DatashareTaskFactory.class), get(TaskSupplier.class),
+                            getProgressMinIntervalS())).toList();
             workers.forEach(this::addCloseable);
             workers.forEach(executorService::submit);
         }
@@ -556,9 +592,9 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
             TemporalInterlocutor temporal = get(TemporalInterlocutor.class);
             executorService.submit(() -> {
                 closeables.add(temporal.discoverWorkflows(getTaskWorkersNb(), get(DatashareTaskFactory.class),
-                                get(TaskRepository.class),
-                                Utils.getRoutingStrategy(propertiesProvider),
-                                new Group(TaskGroupType.Java)));
+                        get(TaskRepository.class),
+                        Utils.getRoutingStrategy(propertiesProvider),
+                        new Group(TaskGroupType.Java)));
             });
         }
         return executorService;
@@ -606,10 +642,10 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
         return Mode.valueOf(ofNullable(properties).orElse(new Properties()).getProperty(MODE_OPT));
     }
 
-    public static QueueType getQueueType(PropertiesProvider properties, String propertyName, QueueType defaultQueueType){
+    public static QueueType getQueueType(PropertiesProvider properties, String propertyName, QueueType defaultQueueType) {
         return QueueType.valueOf(
-            ofNullable(properties).orElse(new PropertiesProvider()).
-                get(propertyName).orElse(defaultQueueType.name()).toUpperCase());
+                ofNullable(properties).orElse(new PropertiesProvider()).
+                        get(propertyName).orElse(defaultQueueType.name()).toUpperCase());
     }
 
     public QueueType getCurrentBatchQueueType() {

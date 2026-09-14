@@ -19,7 +19,7 @@ public class StatusMapper {
     public StatusMapper(String metricName, Object status, String environment) {
         this.metricName = metricName;
         this.status = status;
-        this.environment = environment == null?"": String.format("environment=\"%s\",", environment);
+        this.environment = environment == null ? "" : String.format("environment=\"%s\",", environment);
     }
 
     @Override

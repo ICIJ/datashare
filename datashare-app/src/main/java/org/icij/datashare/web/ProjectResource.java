@@ -1,389 +1,393 @@
-    package org.icij.datashare.web;
+package org.icij.datashare.web;
 
-    import com.google.inject.Inject;
-    import com.google.inject.Singleton;
-    import io.swagger.v3.oas.annotations.Operation;
-    import io.swagger.v3.oas.annotations.Parameter;
-    import io.swagger.v3.oas.annotations.enums.ParameterIn;
-    import io.swagger.v3.oas.annotations.media.Content;
-    import io.swagger.v3.oas.annotations.media.Schema;
-    import io.swagger.v3.oas.annotations.parameters.RequestBody;
-    import io.swagger.v3.oas.annotations.responses.ApiResponse;
-    import net.codestory.http.Context;
-    import net.codestory.http.annotations.*;
-    import net.codestory.http.constants.HttpStatus;
-    import net.codestory.http.errors.UnauthorizedException;
-    import net.codestory.http.payload.Payload;
-    import org.apache.commons.io.FileUtils;
-    import org.icij.datashare.PropertiesProvider;
-    import org.icij.datashare.Repository;
-    import org.icij.datashare.cli.DatashareCliOptions;
-    import org.icij.datashare.cli.Mode;
-    import org.icij.datashare.extract.DocumentCollectionFactory;
-    import org.icij.datashare.policies.Policy;
-    import org.icij.datashare.policies.Role;
-    import org.icij.datashare.session.DatashareUser;
-    import org.icij.datashare.asynctasks.TaskManager;
-    import org.icij.datashare.text.Project;
-    import org.icij.datashare.text.indexing.Indexer;
-    import org.icij.datashare.utils.DataDirVerifier;
-    import org.icij.datashare.utils.IndexAccessVerifier;
-    import org.icij.datashare.utils.ModeVerifier;
-    import org.icij.datashare.utils.PayloadFormatter;
-    import org.icij.extract.queue.DocumentQueue;
-    import org.icij.extract.report.ReportMap;
-    import org.slf4j.Logger;
-    import org.slf4j.LoggerFactory;
+import com.google.inject.Inject;
+import com.google.inject.Singleton;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.enums.ParameterIn;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.parameters.RequestBody;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import net.codestory.http.Context;
+import net.codestory.http.annotations.*;
+import net.codestory.http.constants.HttpStatus;
+import net.codestory.http.errors.UnauthorizedException;
+import net.codestory.http.payload.Payload;
+import org.apache.commons.io.FileUtils;
+import org.icij.datashare.PropertiesProvider;
+import org.icij.datashare.Repository;
+import org.icij.datashare.cli.DatashareCliOptions;
+import org.icij.datashare.cli.Mode;
+import org.icij.datashare.extract.DocumentCollectionFactory;
+import org.icij.datashare.policies.Policy;
+import org.icij.datashare.policies.Role;
+import org.icij.datashare.session.DatashareUser;
+import org.icij.datashare.asynctasks.TaskManager;
+import org.icij.datashare.text.Project;
+import org.icij.datashare.text.indexing.Indexer;
+import org.icij.datashare.utils.DataDirVerifier;
+import org.icij.datashare.utils.IndexAccessVerifier;
+import org.icij.datashare.utils.ModeVerifier;
+import org.icij.datashare.utils.PayloadFormatter;
+import org.icij.extract.queue.DocumentQueue;
+import org.icij.extract.report.ReportMap;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-    import java.io.File;
-    import java.io.IOException;
-    import java.nio.file.Path;
-    import java.util.List;
-    import java.util.Map;
-    import java.util.Objects;
-    import java.util.Properties;
-    import java.util.stream.Collectors;
-    import java.util.stream.Stream;
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Path;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Properties;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
-    import static java.util.concurrent.TimeUnit.MILLISECONDS;
-    import static net.codestory.http.errors.NotFoundException.notFoundIfNull;
-    import static net.codestory.http.payload.Payload.ok;
-    import static org.apache.tika.utils.StringUtils.isEmpty;
-    import static org.icij.datashare.PropertiesProvider.DEFAULT_PROJECT_OPT;
-    import static org.icij.datashare.PropertiesProvider.QUEUE_NAME_OPT;
-    import static org.icij.datashare.text.Project.isAllowed;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static net.codestory.http.errors.NotFoundException.notFoundIfNull;
+import static net.codestory.http.payload.Payload.ok;
+import static org.apache.tika.utils.StringUtils.isEmpty;
+import static org.icij.datashare.PropertiesProvider.DEFAULT_PROJECT_OPT;
+import static org.icij.datashare.PropertiesProvider.QUEUE_NAME_OPT;
+import static org.icij.datashare.text.Project.isAllowed;
 
-    @Singleton
-    @Prefix("/api/project")
-    public class ProjectResource {
-        private static final String NAME_ERROR = "`name` must match " + Project.NAME_REGEX;
+@Singleton
+@Prefix("/api/project")
+public class ProjectResource {
+    private static final String NAME_ERROR = "`name` must match " + Project.NAME_REGEX;
 
-        private final Repository repository;
-        private final Indexer indexer;
-        private final TaskManager taskManager;
-        private final DataDirVerifier dataDirVerifier;
-        private final ModeVerifier modeVerifier;
-        private final DocumentCollectionFactory<Path> documentCollectionFactory;
-        private final PropertiesProvider propertiesProvider;
+    private final Repository repository;
+    private final Indexer indexer;
+    private final TaskManager taskManager;
+    private final DataDirVerifier dataDirVerifier;
+    private final ModeVerifier modeVerifier;
+    private final DocumentCollectionFactory<Path> documentCollectionFactory;
+    private final PropertiesProvider propertiesProvider;
 
-        @Inject
-        public ProjectResource(Repository repository, Indexer indexer, TaskManager taskManager, PropertiesProvider propertiesProvider, DocumentCollectionFactory<Path> documentCollectionFactory) {
-            this.repository = repository;
-            this.indexer = indexer;
-            this.taskManager = taskManager;
-            this.propertiesProvider = propertiesProvider;
-            this.dataDirVerifier = new DataDirVerifier(propertiesProvider);
-            this.modeVerifier = new ModeVerifier(propertiesProvider);
-            this.documentCollectionFactory = documentCollectionFactory;
+    @Inject
+    public ProjectResource(Repository repository, Indexer indexer, TaskManager taskManager, PropertiesProvider propertiesProvider, DocumentCollectionFactory<Path> documentCollectionFactory) {
+        this.repository = repository;
+        this.indexer = indexer;
+        this.taskManager = taskManager;
+        this.propertiesProvider = propertiesProvider;
+        this.dataDirVerifier = new DataDirVerifier(propertiesProvider);
+        this.modeVerifier = new ModeVerifier(propertiesProvider);
+        this.documentCollectionFactory = documentCollectionFactory;
+    }
+
+    @Operation(description = "Preflight option request")
+    @ApiResponse(responseCode = "200", description = "returns 200 with OPTIONS, POST, GET and DELETE")
+    @Options("/")
+    public Payload rootProjectOpt(String id) {
+        return ok().withAllowMethods("OPTIONS", "POST", "GET", "DELETE");
+    }
+
+    @Operation(description = "Get all user's projects",
+            requestBody = @RequestBody(content = @Content(mediaType = "application/json", schema = @Schema(implementation = Project[].class)))
+    )
+    @ApiResponse(responseCode = "200", useReturnTypeSchema = true)
+    @Get("/")
+    public List<Project> getProjects(Context context) {
+        DatashareUser user = (DatashareUser) context.currentUser();
+        return getUserProjects(user);
+    }
+
+    @Operation(description = "Creates a project",
+            requestBody = @RequestBody(content = @Content(mediaType = "application/json", schema = @Schema(implementation = Project.class)))
+    )
+    @ApiResponse(responseCode = "201", description = "if project and index have been created")
+    @ApiResponse(responseCode = "400", description = "if project name is empty or does not match the project name pattern")
+    @ApiResponse(responseCode = "400", description = "if project path is not allowed for the project")
+    @ApiResponse(responseCode = "409", description = "if project exists")
+    @ApiResponse(responseCode = "500", description = "project creation in DB or index creation failed")
+    @Post("/")
+    public Payload projectCreate(Project project) {
+        modeVerifier.checkAllowedMode(Mode.LOCAL, Mode.EMBEDDED);
+        if (projectExists(project)) {
+            return PayloadFormatter.error("Project already exists.", HttpStatus.CONFLICT);
+        } else if (isProjectNameEmpty(project)) {
+            return PayloadFormatter.error("`name` field is required.", HttpStatus.BAD_REQUEST);
+        } else if (!isProjectNameValid(project)) {
+            return PayloadFormatter.error(NAME_ERROR, HttpStatus.BAD_REQUEST);
+        }
+        Project effectiveProject = isProjectSourcePathNull(project) ? withDefaultSourcePath(project) : project;
+        if (!dataDirVerifier.allowed(effectiveProject.getSourcePath())) {
+            return PayloadFormatter.error(String.format("`sourcePath` must not be outside %s.", dataDirVerifier.value()), HttpStatus.BAD_REQUEST);
+        } else if (!saveAndCreateIndex(effectiveProject)) {
+            return PayloadFormatter.error("Unable to create the project", HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+        return new Payload(effectiveProject).withCode(HttpStatus.CREATED);
+    }
+
+    @Operation(description = "Preflight project resource option request",
+            parameters = {@Parameter(name = "id", description = "project id")}
+    )
+    @ApiResponse(responseCode = "200", description = "returns 200 with OPTIONS, PUT and DELETE")
+    @Options("/:id")
+    public Payload projectOptions(String id) {
+        return ok().withAllowMethods("OPTIONS", "PUT", "DELETE");
+    }
+
+    @Operation(description = "Gets the project information for the given id",
+            parameters = @Parameter(name = "id", in = ParameterIn.QUERY)
+    )
+    @ApiResponse(responseCode = "200", useReturnTypeSchema = true)
+    @ApiResponse(responseCode = "404", description = "if the project is not found in database")
+    @Get("/:id")
+    public Project projectRead(String id, Context context) {
+        return notFoundIfNull(getUserProject((DatashareUser) context.currentUser(), id));
+    }
+
+    @Operation(description = "Updates a project, or creates it if it does not exist. Creation requires INSTANCE_ADMIN or DOMAIN_ADMIN; PROJECT_ADMIN can only update existing projects.",
+            requestBody = @RequestBody(content = @Content(mediaType = "application/json", schema = @Schema(implementation = Project.class)), required = true)
+    )
+    @ApiResponse(responseCode = "200", description = "if project has been updated")
+    @ApiResponse(responseCode = "201", description = "if project did not exist and has been created")
+    @ApiResponse(responseCode = "400", description = "if `name` is empty, does not match the project name pattern on creation, or `sourcePath` is outside data dir")
+    @ApiResponse(responseCode = "403", description = "if the user lacks PROJECT_ADMIN+ on the project id")
+    @ApiResponse(responseCode = "404", description = "if path id does not match body id, or if existing project is not accessible to the user")
+    @ApiResponse(responseCode = "500", description = "if save failed")
+    @Put("/:id")
+    @Policy(role = Role.PROJECT_ADMIN, idParam = "id")
+    public Payload projectUpdate(String id, Project projectPayload, Context context) {
+        if (isProjectNameEmpty(projectPayload)) {
+            return PayloadFormatter.error("`name` field is required.", HttpStatus.BAD_REQUEST);
+        }
+        if (!Objects.equals(projectPayload.getId(), id)) {
+            return PayloadFormatter.error("Project id mismatch.", HttpStatus.NOT_FOUND);
+        }
+        boolean isCreate = !projectExists(id);
+        // only a new project's name is validated: a legacy project whose name predates this
+        // check must still be updatable, so the guard applies to creation only, same as POST
+        if (isCreate && !isProjectNameValid(projectPayload)) {
+            return PayloadFormatter.error(NAME_ERROR, HttpStatus.BAD_REQUEST);
+        }
+        Project effectiveProject = isProjectSourcePathNull(projectPayload) ? withDefaultSourcePath(projectPayload) : projectPayload;
+        if (!dataDirVerifier.allowed(effectiveProject.getSourcePath())) {
+            return PayloadFormatter.error(String.format("`sourcePath` must not be outside %s.", dataDirVerifier.value()), HttpStatus.BAD_REQUEST);
         }
 
-        @Operation(description = "Preflight option request")
-        @ApiResponse(responseCode = "200", description = "returns 200 with OPTIONS, POST, GET and DELETE")
-        @Options("/")
-        public Payload rootProjectOpt(String id) {return ok().withAllowMethods("OPTIONS", "POST", "GET", "DELETE");}
-
-        @Operation(description = "Get all user's projects",
-                requestBody = @RequestBody(content = @Content(mediaType = "application/json", schema = @Schema(implementation = Project[].class)))
-        )
-        @ApiResponse(responseCode = "200", useReturnTypeSchema = true)
-        @Get("/")
-        public List<Project> getProjects(Context context) {
-            DatashareUser user = (DatashareUser) context.currentUser();
-            return getUserProjects(user);
-        }
-
-        @Operation(description = "Creates a project",
-                requestBody = @RequestBody(content = @Content(mediaType = "application/json", schema = @Schema(implementation = Project.class)))
-        )
-        @ApiResponse(responseCode = "201", description = "if project and index have been created")
-        @ApiResponse(responseCode = "400", description = "if project name is empty or does not match the project name pattern")
-        @ApiResponse(responseCode = "400", description = "if project path is not allowed for the project")
-        @ApiResponse(responseCode = "409", description = "if project exists")
-        @ApiResponse(responseCode = "500", description = "project creation in DB or index creation failed")
-        @Post("/")
-        public Payload projectCreate(Project project) {
-            modeVerifier.checkAllowedMode(Mode.LOCAL, Mode.EMBEDDED);
-            if (projectExists(project)) {
-                return PayloadFormatter.error("Project already exists.", HttpStatus.CONFLICT);
-            } else if (isProjectNameEmpty(project)) {
-                return PayloadFormatter.error("`name` field is required.", HttpStatus.BAD_REQUEST);
-            } else if (!isProjectNameValid(project)) {
-                return PayloadFormatter.error(NAME_ERROR, HttpStatus.BAD_REQUEST);
-            }
-            Project effectiveProject = isProjectSourcePathNull(project) ? withDefaultSourcePath(project) : project;
-            if (!dataDirVerifier.allowed(effectiveProject.getSourcePath())) {
-                return PayloadFormatter.error(String.format("`sourcePath` must not be outside %s.", dataDirVerifier.value()), HttpStatus.BAD_REQUEST);
-            } else if (!saveAndCreateIndex(effectiveProject)) {
+        if (isCreate) {
+            if (!saveAndCreateIndex(effectiveProject)) {
                 return PayloadFormatter.error("Unable to create the project", HttpStatus.INTERNAL_SERVER_ERROR);
             }
             return new Payload(effectiveProject).withCode(HttpStatus.CREATED);
         }
 
-        @Operation(description = "Preflight project resource option request",
-                parameters = {@Parameter(name = "id", description = "project id")}
-        )
-        @ApiResponse(responseCode = "200", description = "returns 200 with OPTIONS, PUT and DELETE")
-        @Options("/:id")
-        public Payload projectOptions(String id) {return ok().withAllowMethods("OPTIONS", "PUT", "DELETE");}
-
-        @Operation(description = "Gets the project information for the given id",
-                parameters = @Parameter(name = "id", in = ParameterIn.QUERY)
-        )
-        @ApiResponse(responseCode = "200", useReturnTypeSchema = true)
-        @ApiResponse(responseCode = "404", description = "if the project is not found in database")
-        @Get("/:id")
-        public Project projectRead(String id, Context context) {
-            return notFoundIfNull(getUserProject((DatashareUser) context.currentUser(), id));
+        DatashareUser user = (DatashareUser) context.currentUser();
+        if (getUserProject(user, id) == null) {
+            return PayloadFormatter.error("Project not found", HttpStatus.NOT_FOUND);
+        }
+        if (!repository.save(effectiveProject)) {
+            return PayloadFormatter.error("Unable to save the project", HttpStatus.INTERNAL_SERVER_ERROR);
         }
 
-        @Operation(description = "Updates a project, or creates it if it does not exist. Creation requires INSTANCE_ADMIN or DOMAIN_ADMIN; PROJECT_ADMIN can only update existing projects.",
-                requestBody = @RequestBody(content = @Content(mediaType = "application/json", schema = @Schema(implementation = Project.class)), required = true)
-        )
-        @ApiResponse(responseCode = "200", description = "if project has been updated")
-        @ApiResponse(responseCode = "201", description = "if project did not exist and has been created")
-        @ApiResponse(responseCode = "400", description = "if `name` is empty, does not match the project name pattern on creation, or `sourcePath` is outside data dir")
-        @ApiResponse(responseCode = "403", description = "if the user lacks PROJECT_ADMIN+ on the project id")
-        @ApiResponse(responseCode = "404", description = "if path id does not match body id, or if existing project is not accessible to the user")
-        @ApiResponse(responseCode = "500", description = "if save failed")
-        @Put("/:id")
-        @Policy(role = Role.PROJECT_ADMIN, idParam = "id")
-        public Payload projectUpdate(String id, Project projectPayload, Context context) {
-            if (isProjectNameEmpty(projectPayload)) {
-                return PayloadFormatter.error("`name` field is required.", HttpStatus.BAD_REQUEST);
-            }
-            if (!Objects.equals(projectPayload.getId(), id)) {
-                return PayloadFormatter.error("Project id mismatch.", HttpStatus.NOT_FOUND);
-            }
-            boolean isCreate = !projectExists(id);
-            // only a new project's name is validated: a legacy project whose name predates this
-            // check must still be updatable, so the guard applies to creation only, same as POST
-            if (isCreate && !isProjectNameValid(projectPayload)) {
-                return PayloadFormatter.error(NAME_ERROR, HttpStatus.BAD_REQUEST);
-            }
-            Project effectiveProject = isProjectSourcePathNull(projectPayload) ? withDefaultSourcePath(projectPayload) : projectPayload;
-            if (!dataDirVerifier.allowed(effectiveProject.getSourcePath())) {
-                return PayloadFormatter.error(String.format("`sourcePath` must not be outside %s.", dataDirVerifier.value()), HttpStatus.BAD_REQUEST);
-            }
+        return new Payload(effectiveProject).withCode(HttpStatus.OK);
+    }
 
-            if (isCreate) {
-                if (!saveAndCreateIndex(effectiveProject)) {
-                    return PayloadFormatter.error("Unable to create the project", HttpStatus.INTERNAL_SERVER_ERROR);
-                }
-                return new Payload(effectiveProject).withCode(HttpStatus.CREATED);
-            }
-
-            DatashareUser user = (DatashareUser) context.currentUser();
-            if (getUserProject(user, id) == null) {
-                return PayloadFormatter.error("Project not found", HttpStatus.NOT_FOUND);
-            }
-            if (!repository.save(effectiveProject)) {
-                return PayloadFormatter.error("Unable to save the project", HttpStatus.INTERNAL_SERVER_ERROR);
-            }
-
-            return new Payload(effectiveProject).withCode(HttpStatus.OK);
+    @Operation(description = "Deletes the project from database and elasticsearch index.",
+            parameters = {@Parameter(name = "id", description = "project id")}
+    )
+    @ApiResponse(responseCode = "204", description = "if project is deleted")
+    @ApiResponse(responseCode = "401", description = "if project id is not in the current user's projects")
+    @Delete("/:id")
+    public Payload projectDelete(String id, Context context) throws IOException {
+        modeVerifier.checkAllowedMode(Mode.LOCAL, Mode.EMBEDDED);
+        DatashareUser user = (DatashareUser) context.currentUser();
+        Project project = getUserProject(user, id);
+        if (project == null) {
+            throw new UnauthorizedException();
         }
-
-        @Operation(description = "Deletes the project from database and elasticsearch index.",
-                parameters = {@Parameter(name = "id", description = "project id")}
-        )
-        @ApiResponse(responseCode = "204", description = "if project is deleted")
-        @ApiResponse(responseCode = "401", description = "if project id is not in the current user's projects")
-        @Delete("/:id")
-        public Payload projectDelete(String id, Context context) throws IOException {
-            modeVerifier.checkAllowedMode(Mode.LOCAL, Mode.EMBEDDED);
-            DatashareUser user = (DatashareUser) context.currentUser();
-            Project project = getUserProject(user, id);
-            if (project == null) {
-                throw new UnauthorizedException();
-            }
-            Logger logger = LoggerFactory.getLogger(getClass());
-            logger.info("Deleted {}'s record: {}", id, repository.deleteAll(id));
-            logger.info("Deleted {}'s index: {}", id, indexer.deleteAll(id));
-            logger.info("Deleted {}'s entities index: {}", id, deleteEntitiesIndex(id));
-            logger.info("Deleted {}'s queues: {}", id, deleteQueues(project));
-            logger.info("Deleted {}'s report map: {}", id, deleteReportMap(project));
-            propertiesProvider.get(DatashareCliOptions.ARTIFACT_DIR_OPT).ifPresent(dir -> {
-                try {
-                    File projectArtifactDir = Path.of(dir).resolve(id).toFile();
-                    FileUtils.deleteDirectory(projectArtifactDir);
-                    logger.info("Deleted artifacts dir {}", projectArtifactDir);
-                } catch (IOException e) {
-                    logger.error("cannot delete project {} artifact dir", id, e);
-                }
-            });
-            return new Payload(204);
-        }
-
-        @Operation(description = """
-                Returns 200 if the project is allowed with this network route : in Datashare database there is the project table that can specify an IP mask that is allowed per project. If the client IP is not in the range, then the file download will be forbidden. In that project table there is a field called `allow_from_mask` that can have a mask with IP and star wildcard.
-                
-                Ex : `192.168.*.*` will match all subnetwork `192.168.0.0` IP's and only users with an IP in.""",
-                parameters = {@Parameter(name = "id", description = "project id")}
-        )
-        @ApiResponse(responseCode = "200", description = "if project download is allowed for this project and IP")
-        @ApiResponse(responseCode = "403", description = "if project download is not allowed")
-        @Get("/isDownloadAllowed/:id")
-        public Payload isDownloadAllowed(String id, Context context) {
-            List<String> projectIds = ((DatashareUser) context.currentUser()).getProjectNames();
-            String retrievedProjectId = projectIds.stream()
-                    .filter(i -> i.equals(id))
-                    .findAny()
-                    .orElse(null);
-
-            if (retrievedProjectId == null){
-                return ok(); // unknown is allowed
-            }
-            Project project = repository.getProject(retrievedProjectId);
-
-            if (project != null && !isAllowed(project, context.request().clientAddress()))  {
-                return PayloadFormatter.error("Download not allowed", HttpStatus.FORBIDDEN);
-            }
-
-            return ok();
-        }
-
-        @Operation(description = "Deletes all user's projects from database and elasticsearch index.")
-        @ApiResponse(responseCode = "204", description = "if projects are deleted")
-        @Delete("/")
-        public Payload deleteProjects(Context context) throws IOException {
-            DatashareUser user = (DatashareUser) context.currentUser();
-            Logger logger = LoggerFactory.getLogger(getClass());
-            getUserProjects(user).forEach(project -> {
-                try {
-                    projectDelete(project.name, context);
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
-            });
-            logger.info("Stopping tasks : {}", taskManager.stopTasks(user));
-            taskManager.waitTasksToBeDone(taskManager.getTerminationPollingInterval()*2, MILLISECONDS);
-            logger.info("Deleted tasks : {}", !taskManager.clearDoneTasks().isEmpty());
-            return new Payload(204);
-        }
-
-        List<String> getUserProjectIds(DatashareUser user) {
-            return user.getProjectNames();
-        }
-
-        List<Project> getUserProjects(DatashareUser user) {
-            List<String> projectIds = this.getUserProjectIds(user);
-            return repository.getProjects(projectIds);
-        }
-
-        Project getUserProject(DatashareUser user, String id) {
-            return getUserProjects(user)
-                    .stream()
-                    .filter((Project p) -> p.getId().equals(id))
-                    .findAny()
-                    .orElse(null);
-        }
-
-        boolean deleteQueues(Project project) {
-            return getQueues(project).stream().allMatch(DocumentQueue::delete);
-        }
-
-        // contained like the CLI cascade does it (ProjectAdminServiceImpl#cascade): a disposable
-        // projection must not abort the delete and leave the queues, report map and artifacts behind
-        boolean deleteEntitiesIndex(String id) {
+        Logger logger = LoggerFactory.getLogger(getClass());
+        logger.info("Deleted {}'s record: {}", id, repository.deleteAll(id));
+        logger.info("Deleted {}'s index: {}", id, indexer.deleteAll(id));
+        logger.info("Deleted {}'s entities index: {}", id, deleteEntitiesIndex(id));
+        logger.info("Deleted {}'s queues: {}", id, deleteQueues(project));
+        logger.info("Deleted {}'s report map: {}", id, deleteReportMap(project));
+        propertiesProvider.get(DatashareCliOptions.ARTIFACT_DIR_OPT).ifPresent(dir -> {
             try {
-                return indexer.deleteAll(Project.entitiesIndex(id));
-            } catch (RuntimeException | IOException e) {
-                LoggerFactory.getLogger(getClass()).error("cannot delete entities index for project {}", id, e);
-                return false;
+                File projectArtifactDir = Path.of(dir).resolve(id).toFile();
+                FileUtils.deleteDirectory(projectArtifactDir);
+                logger.info("Deleted artifacts dir {}", projectArtifactDir);
+            } catch (IOException e) {
+                logger.error("cannot delete project {} artifact dir", id, e);
             }
+        });
+        return new Payload(204);
+    }
+
+    @Operation(description = """
+            Returns 200 if the project is allowed with this network route : in Datashare database there is the project table that can specify an IP mask that is allowed per project. If the client IP is not in the range, then the file download will be forbidden. In that project table there is a field called `allow_from_mask` that can have a mask with IP and star wildcard.
+            
+            Ex : `192.168.*.*` will match all subnetwork `192.168.0.0` IP's and only users with an IP in.""",
+            parameters = {@Parameter(name = "id", description = "project id")}
+    )
+    @ApiResponse(responseCode = "200", description = "if project download is allowed for this project and IP")
+    @ApiResponse(responseCode = "403", description = "if project download is not allowed")
+    @Get("/isDownloadAllowed/:id")
+    public Payload isDownloadAllowed(String id, Context context) {
+        List<String> projectIds = ((DatashareUser) context.currentUser()).getProjectNames();
+        String retrievedProjectId = projectIds.stream()
+                .filter(i -> i.equals(id))
+                .findAny()
+                .orElse(null);
+
+        if (retrievedProjectId == null) {
+            return ok(); // unknown is allowed
+        }
+        Project project = repository.getProject(retrievedProjectId);
+
+        if (project != null && !isAllowed(project, context.request().clientAddress())) {
+            return PayloadFormatter.error("Download not allowed", HttpStatus.FORBIDDEN);
         }
 
-        boolean deleteReportMap(Project project) {
-            return getReportMap(project).delete();
-        }
+        return ok();
+    }
 
-        List<DocumentQueue<Path>> getQueues(Project project) {
-            String name = project.getName();
-            Properties properties = propertiesProvider.createOverriddenWith(Map.of(DEFAULT_PROJECT_OPT, name));
-            String defaultQueueName = properties.getOrDefault(QUEUE_NAME_OPT, "extract:queue").toString();
-            String queuePrefix =  defaultQueueName + PropertiesProvider.QUEUE_SEPARATOR + name;
-            String queuePattern = queuePrefix + PropertiesProvider.QUEUE_SEPARATOR + "*";
-            return Stream.concat(
-                    // TODO remove legacy queue name 26/02/2024
-                    documentCollectionFactory.getQueues(queuePrefix, Path.class).stream(),
-                    documentCollectionFactory.getQueues(queuePattern, Path.class).stream()
-            ).collect(Collectors.toList());
-        }
-
-        ReportMap getReportMap(String reportMapName) {
-            return documentCollectionFactory.createMap(reportMapName);
-        }
-
-        ReportMap getReportMap(Project project) {
-            String reportMapName = "extract:report:" + project.getName();
-            return getReportMap(reportMapName);
-        }
-
-        /** Saves the row and creates the indices, undoing the row if index creation fails: a row left
-         *  behind makes {@code projectExists} true, so every retry would answer 409 instead. */
-        boolean saveAndCreateIndex(Project project) {
-            if (!repository.save(project)) {
-                return false;
+    @Operation(description = "Deletes all user's projects from database and elasticsearch index.")
+    @ApiResponse(responseCode = "204", description = "if projects are deleted")
+    @Delete("/")
+    public Payload deleteProjects(Context context) throws IOException {
+        DatashareUser user = (DatashareUser) context.currentUser();
+        Logger logger = LoggerFactory.getLogger(getClass());
+        getUserProjects(user).forEach(project -> {
+            try {
+                projectDelete(project.name, context);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
             }
-            if (createIndexOnce(project.getId())) {
-                return true;
-            }
-            if (!repository.deleteAll(project.getId())) {
-                // the stale row makes projectExists answer 409 to every retry, so leave a trace of it
-                LoggerFactory.getLogger(getClass()).error("could not roll back project row for {} after index creation failed", project.getId());
-            }
+        });
+        logger.info("Stopping tasks : {}", taskManager.stopTasks(user));
+        taskManager.waitTasksToBeDone(taskManager.getTerminationPollingInterval() * 2, MILLISECONDS);
+        logger.info("Deleted tasks : {}", !taskManager.clearDoneTasks().isEmpty());
+        return new Payload(204);
+    }
+
+    List<String> getUserProjectIds(DatashareUser user) {
+        return user.getProjectNames();
+    }
+
+    List<Project> getUserProjects(DatashareUser user) {
+        List<String> projectIds = this.getUserProjectIds(user);
+        return repository.getProjects(projectIds);
+    }
+
+    Project getUserProject(DatashareUser user, String id) {
+        return getUserProjects(user)
+                .stream()
+                .filter((Project p) -> p.getId().equals(id))
+                .findAny()
+                .orElse(null);
+    }
+
+    boolean deleteQueues(Project project) {
+        return getQueues(project).stream().allMatch(DocumentQueue::delete);
+    }
+
+    // contained like the CLI cascade does it (ProjectAdminServiceImpl#cascade): a disposable
+    // projection must not abort the delete and leave the queues, report map and artifacts behind
+    boolean deleteEntitiesIndex(String id) {
+        try {
+            return indexer.deleteAll(Project.entitiesIndex(id));
+        } catch (RuntimeException | IOException e) {
+            LoggerFactory.getLogger(getClass()).error("cannot delete entities index for project {}", id, e);
             return false;
         }
+    }
 
-        boolean createIndexOnce(String name) {
-            try {
-                this.indexer.createIndex(IndexAccessVerifier.checkIndices(name));
-                return true;
-            } catch (RuntimeException | IOException e){
-                // the ES indexer reports failures as ConfigurationException, a RuntimeException
-                LoggerFactory.getLogger(getClass()).error("cannot create the index for project {}", name, e);
-                return false;
-            }
+    boolean deleteReportMap(Project project) {
+        return getReportMap(project).delete();
+    }
+
+    List<DocumentQueue<Path>> getQueues(Project project) {
+        String name = project.getName();
+        Properties properties = propertiesProvider.createOverriddenWith(Map.of(DEFAULT_PROJECT_OPT, name));
+        String defaultQueueName = properties.getOrDefault(QUEUE_NAME_OPT, "extract:queue").toString();
+        String queuePrefix = defaultQueueName + PropertiesProvider.QUEUE_SEPARATOR + name;
+        String queuePattern = queuePrefix + PropertiesProvider.QUEUE_SEPARATOR + "*";
+        return Stream.concat(
+                // TODO remove legacy queue name 26/02/2024
+                documentCollectionFactory.getQueues(queuePrefix, Path.class).stream(),
+                documentCollectionFactory.getQueues(queuePattern, Path.class).stream()
+        ).collect(Collectors.toList());
+    }
+
+    ReportMap getReportMap(String reportMapName) {
+        return documentCollectionFactory.createMap(reportMapName);
+    }
+
+    ReportMap getReportMap(Project project) {
+        String reportMapName = "extract:report:" + project.getName();
+        return getReportMap(reportMapName);
+    }
+
+    /** Saves the row and creates the indices, undoing the row if index creation fails: a row left
+     *  behind makes {@code projectExists} true, so every retry would answer 409 instead. */
+    boolean saveAndCreateIndex(Project project) {
+        if (!repository.save(project)) {
+            return false;
         }
-
-        private boolean projectExists(Project project) {
-            return projectExists(project.getName());
+        if (createIndexOnce(project.getId())) {
+            return true;
         }
-
-        private boolean projectExists(String name) {
-            return repository.getProject(name) != null;
+        if (!repository.deleteAll(project.getId())) {
+            // the stale row makes projectExists answer 409 to every retry, so leave a trace of it
+            LoggerFactory.getLogger(getClass()).error("could not roll back project row for {} after index creation failed", project.getId());
         }
+        return false;
+    }
 
-        private Project withDefaultSourcePath(Project project) {
-            return new Project(
-                    project.getName(),
-                    project.getLabel(),
-                    project.getDescription(),
-                    dataDirVerifier.path(),
-                    project.getSourceUrl(),
-                    project.getMaintainerName(),
-                    project.getPublisherName(),
-                    project.getLogoUrl(),
-                    project.getAllowFromMask(),
-                    project.creationDate,
-                    project.updateDate);
-        }
-
-        private boolean isProjectNameEmpty(Project project) {
-            return isEmpty(project.getName());
-        }
-
-        /** The name pattern the CLI ({@code Validators.projectName}) and the admin service already enforce.
-         *  A name outside it is saved to the database before index creation fails, or is created and then
-         *  can never be granted, revoked or deleted from the CLI. It excludes a dot, which matters on top
-         *  of ES's own rules because {@link IndexAccessVerifier#baseProjects} reads "myproject.entities"
-         *  as a namespaced index of "myproject", and caps the name at 64 characters, which keeps the
-         *  derived "<name>.entities" inside ES's 255-byte index name limit. */
-        private boolean isProjectNameValid(Project project) {
-            return Project.NAME_PATTERN.matcher(project.getName()).matches();
-        }
-
-        private boolean isProjectSourcePathNull(Project project) {
-            return project.getSourcePath() == null;
+    boolean createIndexOnce(String name) {
+        try {
+            this.indexer.createIndex(IndexAccessVerifier.checkIndices(name));
+            return true;
+        } catch (RuntimeException | IOException e) {
+            // the ES indexer reports failures as ConfigurationException, a RuntimeException
+            LoggerFactory.getLogger(getClass()).error("cannot create the index for project {}", name, e);
+            return false;
         }
     }
+
+    private boolean projectExists(Project project) {
+        return projectExists(project.getName());
+    }
+
+    private boolean projectExists(String name) {
+        return repository.getProject(name) != null;
+    }
+
+    private Project withDefaultSourcePath(Project project) {
+        return new Project(
+                project.getName(),
+                project.getLabel(),
+                project.getDescription(),
+                dataDirVerifier.path(),
+                project.getSourceUrl(),
+                project.getMaintainerName(),
+                project.getPublisherName(),
+                project.getLogoUrl(),
+                project.getAllowFromMask(),
+                project.creationDate,
+                project.updateDate);
+    }
+
+    private boolean isProjectNameEmpty(Project project) {
+        return isEmpty(project.getName());
+    }
+
+    /** The name pattern the CLI ({@code Validators.projectName}) and the admin service already enforce.
+     *  A name outside it is saved to the database before index creation fails, or is created and then
+     *  can never be granted, revoked or deleted from the CLI. It excludes a dot, which matters on top
+     *  of ES's own rules because {@link IndexAccessVerifier#baseProjects} reads "myproject.entities"
+     *  as a namespaced index of "myproject", and caps the name at 64 characters, which keeps the
+     *  derived "<name>.entities" inside ES's 255-byte index name limit. */
+    private boolean isProjectNameValid(Project project) {
+        return Project.NAME_PATTERN.matcher(project.getName()).matches();
+    }
+
+    private boolean isProjectSourcePathNull(Project project) {
+        return project.getSourcePath() == null;
+    }
+}

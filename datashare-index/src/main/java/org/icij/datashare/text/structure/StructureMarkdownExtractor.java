@@ -148,7 +148,8 @@ public class StructureMarkdownExtractor {
 
     private static final Set<String> INLINE_BODY_TYPES = Set.of("text/plain", "text/html");
 
-    public record Page(String xhtml, String markdown) {}
+    public record Page(String xhtml, String markdown) {
+    }
 
     /**
      * Parses {@code source} once and returns one {@link Page} per page of the root document. The
@@ -364,7 +365,8 @@ public class StructureMarkdownExtractor {
         for (Element code : page.select("code[class]")) {
             String language = code.classNames().stream().filter(c -> LANGUAGE_CLASS.matcher(c).matches())
                     .findFirst().orElse(null);
-            if (language == null) code.removeAttr("class"); else code.attr("class", language);
+            if (language == null) code.removeAttr("class");
+            else code.attr("class", language);
         }
     }
 

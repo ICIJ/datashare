@@ -118,7 +118,7 @@ public class StructureSearch {
                     TYPE.token(), docArtifactDir, reached, total, scanBudget.toSeconds());
         } else if (last < total) {
             LOGGER.warn("searched the first {} of the {} page(s) the '{}' manifest advertises in {}: one "
-                    + "scan walks at most {} page(s)", last, total, TYPE.token(), docArtifactDir,
+                            + "scan walks at most {} page(s)", last, total, TYPE.token(), docArtifactDir,
                     MAX_SCANNED_PAGES);
         } else if (scanned < total) {
             LOGGER.warn("searched {} of the {} page(s) the '{}' manifest advertises in {}: the rest are "
@@ -142,7 +142,9 @@ public class StructureSearch {
 
     /** The response body. {@code scanned} is below {@code pages} when the artifact lost pages between
      *  the manifest and disk: the counts are then a floor, not a total, and only this field says so. */
-    public record Hits(int count, int pages, int scanned, List<PageHits> hits) {}
+    public record Hits(int count, int pages, int scanned, List<PageHits> hits) {
+    }
 
-    public record PageHits(int page, int count) {}
+    public record PageHits(int page, int count) {
+    }
 }

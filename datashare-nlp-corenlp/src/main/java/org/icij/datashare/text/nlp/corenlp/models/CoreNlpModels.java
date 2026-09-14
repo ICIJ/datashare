@@ -10,11 +10,13 @@ import static org.icij.datashare.text.Language.SPANISH;
 
 import edu.stanford.nlp.pipeline.LanguageInfo;
 import edu.stanford.nlp.pipeline.StanfordCoreNLP;
+
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Properties;
 import java.util.Set;
+
 import org.icij.datashare.text.Language;
 import org.icij.datashare.text.nlp.AbstractModels;
 import org.icij.datashare.text.nlp.Pipeline;
@@ -23,13 +25,13 @@ public class CoreNlpModels extends AbstractModels<StanfordCoreNLP> {
     static final String VERSION = "4.5.10";
 
     public static final Set<Language> SUPPORTED_LANGUAGES = Set.of(
-        ENGLISH,
-        SPANISH,
-        FRENCH,
-        CHINESE,
-        GERMAN,
-        HUNGARIAN,
-        ITALIAN
+            ENGLISH,
+            SPANISH,
+            FRENCH,
+            CHINESE,
+            GERMAN,
+            HUNGARIAN,
+            ITALIAN
     );
 
     private static volatile CoreNlpModels instance;

@@ -62,8 +62,8 @@ public class UserResource {
     private final UserAdminService userAdminService;
     private final ProjectAdminService projectAdminService;
 
-    private List<Project> getDatashareUserProjects (DatashareUser datashareUser) {
-        List<String> projectNames =  datashareUser.getProjectNames();
+    private List<Project> getDatashareUserProjects(DatashareUser datashareUser) {
+        List<String> projectNames = datashareUser.getProjectNames();
         List<Project> projects = datashareUser.getProjects();
         List<Project> repositoryProjects = repository.getProjects(projectNames);
         return projects.stream().map(project -> repositoryProjects.stream()
@@ -89,16 +89,16 @@ public class UserResource {
     @Get("")
     @Policy(role = Role.PROJECT_ADMIN)
     public Payload listUsers(Context context) {
-        String q          = context.get("q");
-        String domain     = context.get("domain");
-        String index      = context.get("index");
-        String sortParam  = context.get("sort");
-        boolean desc      = Boolean.parseBoolean(context.get("desc"));
+        String q = context.get("q");
+        String domain = context.get("domain");
+        String index = context.get("index");
+        String sortParam = context.get("sort");
+        boolean desc = Boolean.parseBoolean(context.get("desc"));
         int from = Integer.parseInt(Optional.ofNullable(context.get("from")).orElse("0"));
         int size = Integer.parseInt(Optional.ofNullable(context.get("size")).orElse("100"));
         String noRoleParam = context.get("noRole");
-        Boolean noRole    = noRoleParam != null ? Boolean.parseBoolean(noRoleParam) : null;
-        boolean isScoped  = domain != null || index != null;
+        Boolean noRole = noRoleParam != null ? Boolean.parseBoolean(noRoleParam) : null;
+        boolean isScoped = domain != null || index != null;
 
         // 0. Validate sort param early
         if (sortParam != null && !sortParam.isBlank()
@@ -326,21 +326,22 @@ public class UserResource {
     public Payload getUserHistory(String type, int from, int size, String sort, String desc, String projects, Context context) {
         DatashareUser user = (DatashareUser) context.currentUser();
         Type eventType = Type.valueOf(type.toUpperCase());
-        String sortBy = getStringValue(sort).orElse( USER_HISTORY.MODIFICATION_DATE.getName());
+        String sortBy = getStringValue(sort).orElse(USER_HISTORY.MODIFICATION_DATE.getName());
         try {
             WebResponse<UserEvent> userEventWebResponse = new WebResponse<>(
                     repository.getUserHistory(user, eventType, from, size, sortBy, parseBooleanQueryArg(desc), parseProjectIdsQueryArg(projects)),
-                    from,size,
+                    from, size,
                     repository.getUserHistorySize(user, eventType, parseProjectIdsQueryArg(projects)));
             return new Payload(userEventWebResponse);
-        } catch (IllegalArgumentException e){
+        } catch (IllegalArgumentException e) {
             return Payload.badRequest();
         }
     }
 
-    private static Optional<String> getStringValue(String value){
+    private static Optional<String> getStringValue(String value) {
         return Optional.ofNullable(value).filter(Predicate.not(String::isBlank));
     }
+
     @NotNull
     private static String[] parseProjectIdsQueryArg(String projects) {
         return getStringValue(projects).isEmpty() ? new String[]{} : projects.trim().split(",");
@@ -359,9 +360,9 @@ public class UserResource {
     @ApiResponse(responseCode = "200", description = "returns 200 when event is added or updated.")
     @Put("/me/history")
     public Payload addToUserHistory(@Parameter(name = "query", description = "user history query to save", in = ParameterIn.QUERY) UserHistoryQuery query, Context context) {
-        if(!isNull(query.eventId)){
+        if (!isNull(query.eventId)) {
             boolean updated = repository.renameSavedSearch((DatashareUser) context.currentUser(), query.eventId, query.name);
-            return updated? ok():new Payload(400);
+            return updated ? ok() : new Payload(400);
         }
         repository.addToUserHistory(query.projects, new UserEvent((DatashareUser) context.currentUser(), query.type, query.name, query.uri));
         return ok();
@@ -399,7 +400,7 @@ public class UserResource {
         final Integer eventId;
 
         @JsonCreator
-        private UserHistoryQuery(@JsonProperty("type") String type, @JsonProperty("name") String name, @JsonProperty("projectIds") List<String> projectIds,  @JsonProperty("uri") String uri, @JsonProperty("eventId") Integer id) {
+        private UserHistoryQuery(@JsonProperty("type") String type, @JsonProperty("name") String name, @JsonProperty("projectIds") List<String> projectIds, @JsonProperty("uri") String uri, @JsonProperty("eventId") Integer id) {
             this.type = Type.valueOf(type);
             this.projects = projectIds == null ? Collections.emptyList() : projectIds.stream().map(Project::project).collect(Collectors.toList());
             this.name = name;

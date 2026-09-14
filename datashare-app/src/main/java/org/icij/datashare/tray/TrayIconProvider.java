@@ -41,7 +41,10 @@ public class TrayIconProvider {
     enum Variant {
         BLACK("black"), WHITE("white"), COLOR("color");
         final String fileName;
-        Variant(String fileName) { this.fileName = fileName; }
+
+        Variant(String fileName) {
+            this.fileName = fileName;
+        }
     }
 
     private final OsFamily os;
@@ -113,9 +116,12 @@ public class TrayIconProvider {
             return Variant.BLACK; // template image; the OS recolors it
         }
         switch (theme) {
-            case LIGHT: return Variant.BLACK;
-            case DARK:  return Variant.WHITE;
-            default:    return Variant.COLOR; // theme unknown: the colour logo reads on any panel
+            case LIGHT:
+                return Variant.BLACK;
+            case DARK:
+                return Variant.WHITE;
+            default:
+                return Variant.COLOR; // theme unknown: the colour logo reads on any panel
         }
     }
 

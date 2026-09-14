@@ -28,8 +28,8 @@ public class OptimaizeLanguageGuesser implements LanguageGuesser {
 
     public OptimaizeLanguageGuesser() throws IOException {
         this.languageDetector = LanguageDetectorBuilder.create(NgramExtractors.standard())
-                        .withProfiles(new LanguageProfileReader().readAllBuiltIn())
-                        .build();
+                .withProfiles(new LanguageProfileReader().readAllBuiltIn())
+                .build();
     }
 
     @Override

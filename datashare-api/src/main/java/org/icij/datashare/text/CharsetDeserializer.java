@@ -24,5 +24,7 @@ public class CharsetDeserializer extends JsonDeserializer<Charset> {
         return getDefault();
     }
 
-    private Charset getDefault() { return StandardCharsets.US_ASCII;}
+    private Charset getDefault() {
+        return StandardCharsets.US_ASCII;
+    }
 }

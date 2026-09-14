@@ -4,8 +4,10 @@ import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.encoder.PatternLayoutEncoder;
 import ch.qos.logback.core.AppenderBase;
 import ch.qos.logback.core.Context;
+
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
+
 import org.slf4j.ILoggerFactory;
 import org.slf4j.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
@@ -74,6 +76,7 @@ public class LogbackAppenderWrapper {
         protected void append(ILoggingEvent iLoggingEvent) {
             events.add(iLoggingEvent);
         }
+
         void reset() {
             events.clear();
         }

@@ -82,7 +82,7 @@ public class AmqpInterlocutor implements Closeable {
     }
 
     AmqpInterlocutor createPublishChannels(AmqpQueue... amqpQueues) {
-        for (AmqpQueue queue: amqpQueues) {
+        for (AmqpQueue queue : amqpQueues) {
             try {
                 createAmqpChannelForPublish(queue);
             } catch (IOException e) {
@@ -152,6 +152,12 @@ public class AmqpInterlocutor implements Closeable {
             super("Unknown channel for queue " + queue);
         }
     }
-    public boolean hasMonitoringQueue() {return configuration.monitoring;}
-    public boolean isConnectionOpen() {return connection.isOpen();}
+
+    public boolean hasMonitoringQueue() {
+        return configuration.monitoring;
+    }
+
+    public boolean isConnectionOpen() {
+        return connection.isOpen();
+    }
 }

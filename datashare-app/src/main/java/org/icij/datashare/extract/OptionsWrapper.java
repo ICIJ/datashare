@@ -17,7 +17,9 @@ public class OptionsWrapper<V> {
         this.options = options;
     }
 
-    public Map<String, V> getOptions() { return options;}
+    public Map<String, V> getOptions() {
+        return options;
+    }
 
     public Options<String> asOptions() {
         return Options.from(asProperties());

@@ -33,7 +33,7 @@ public class TaskSupplierAmqp implements TaskSupplier {
     public TaskSupplierAmqp(AmqpInterlocutor amqp, String routingKey) throws IOException {
         this.amqp = amqp;
         this.consumer = routingKey == null ?
-                new AmqpConsumer<>(amqp, null, AmqpQueue.TASK, Task.class):
+                new AmqpConsumer<>(amqp, null, AmqpQueue.TASK, Task.class) :
                 new AmqpConsumer<>(amqp, null, AmqpQueue.TASK, Task.class, routingKey);
         this.eventConsumer = new AmqpConsumer<>(amqp, this::handleEvent, AmqpQueue.WORKER_EVENT, Event.class).consumeEvents();
     }
@@ -84,7 +84,7 @@ public class TaskSupplierAmqp implements TaskSupplier {
     @Override
     public void error(String taskId, TaskError taskError) {
         try {
-            amqp.publish(AmqpQueue.MANAGER_EVENT,new ErrorEvent(taskId, taskError));
+            amqp.publish(AmqpQueue.MANAGER_EVENT, new ErrorEvent(taskId, taskError));
         } catch (IOException e) {
             LoggerFactory.getLogger(getClass()).warn("cannot publish error for task {}", taskId);
         }

@@ -22,7 +22,8 @@ import static org.icij.datashare.cli.DatashareCliOptions.PORT_OPT;
  */
 public final class DatashareOptions {
 
-    private DatashareOptions() {}
+    private DatashareOptions() {
+    }
 
     /**
      * Normalizes the raw picocli properties so the application layer receives

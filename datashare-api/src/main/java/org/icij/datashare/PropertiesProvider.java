@@ -53,7 +53,10 @@ public class PropertiesProvider {
     private final Path settingsPath;
     private volatile Properties cachedProperties;
 
-    public PropertiesProvider() {this((String) null);}
+    public PropertiesProvider() {
+        this((String) null);
+    }
+
     public PropertiesProvider(String fileName) {
         this.settingsPath = getFilePath(fileName);
     }
@@ -79,7 +82,7 @@ public class PropertiesProvider {
 
     public Properties getProperties() {
         if (cachedProperties == null) {
-            synchronized(this) {
+            synchronized (this) {
                 if (cachedProperties == null) {
                     Properties localProperties = getFileProperties();
                     loadEnvVariables(localProperties);
@@ -137,7 +140,7 @@ public class PropertiesProvider {
 
     public Optional<String> get(final String propertyName) {
         return getProperties().getProperty(propertyName) == null ?
-                Optional.empty():
+                Optional.empty() :
                 Optional.of((getProperties().getProperty(propertyName)));
     }
 
@@ -182,8 +185,8 @@ public class PropertiesProvider {
 
     public Map<String, Object> getFilteredProperties(String... excludedKeyPatterns) {
         return getProperties().entrySet().
-                stream().filter(e -> stream(excludedKeyPatterns).noneMatch(s -> Pattern.matches(s, (String)e.getKey()))).
-                collect(toMap(e -> (String)e.getKey(), Map.Entry::getValue));
+                stream().filter(e -> stream(excludedKeyPatterns).noneMatch(s -> Pattern.matches(s, (String) e.getKey()))).
+                collect(toMap(e -> (String) e.getKey(), Map.Entry::getValue));
     }
 
     public void save() throws IOException {
@@ -230,15 +233,15 @@ public class PropertiesProvider {
     }
 
     public int queueCapacity() throws IllegalArgumentException {
-            int qC = parseInt(get(QUEUE_CAPACITY_OPT).orElse(String.valueOf(DEFAULT_QUEUE_CAPACITY)));
-            if( qC < 1 ){
-                throw new IllegalArgumentException("Queue capacity must be a positive integer");
-            }
-            return qC;
+        int qC = parseInt(get(QUEUE_CAPACITY_OPT).orElse(String.valueOf(DEFAULT_QUEUE_CAPACITY)));
+        if (qC < 1) {
+            throw new IllegalArgumentException("Queue capacity must be a positive integer");
+        }
+        return qC;
     }
 
     private void putAllIfIsAbsent(Properties dest, Properties propertiesToMerge) {
-        for (Map.Entry entry: propertiesToMerge.entrySet()) {
+        for (Map.Entry entry : propertiesToMerge.entrySet()) {
             dest.putIfAbsent(entry.getKey(), entry.getValue());
         }
     }
@@ -274,6 +277,8 @@ public class PropertiesProvider {
     }
 
     public static class SettingsNotFound extends RuntimeException {
-        SettingsNotFound() { super("cannot find settings file");}
+        SettingsNotFound() {
+            super("cannot find settings file");
+        }
     }
 }

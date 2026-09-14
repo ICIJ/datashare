@@ -29,7 +29,7 @@ public class MemoryDocumentCollectionFactory<T> implements DocumentCollectionFac
 
     @Inject
     public MemoryDocumentCollectionFactory(final PropertiesProvider propertiesProvider) {
-        this.queueCapacity = propertiesProvider.queueCapacity() ;
+        this.queueCapacity = propertiesProvider.queueCapacity();
     }
 
     @Override

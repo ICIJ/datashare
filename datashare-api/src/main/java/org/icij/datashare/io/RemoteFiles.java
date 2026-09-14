@@ -16,6 +16,7 @@ import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.regex.Pattern;
+
 import org.slf4j.LoggerFactory;
 import software.amazon.awssdk.auth.credentials.AnonymousCredentialsProvider;
 import software.amazon.awssdk.http.nio.netty.NettyNioAsyncHttpClient;
@@ -61,13 +62,13 @@ public class RemoteFiles {
 
     public static RemoteFiles getWith(String bucketName, String endPoint, boolean pathStyleAccessEnabled) {
         NettyNioAsyncHttpClient.Builder httpClientBuilder = NettyNioAsyncHttpClient.builder()
-            .connectionTimeout(Duration.ofMillis(CONNECTION_TIMEOUT_MS))
-            .readTimeout(Duration.ofMillis(READ_TIMEOUT_MS));
+                .connectionTimeout(Duration.ofMillis(CONNECTION_TIMEOUT_MS))
+                .readTimeout(Duration.ofMillis(READ_TIMEOUT_MS));
 
         S3AsyncClientBuilder s3ClientBuilder = S3AsyncClient.builder()
-            .credentialsProvider(AnonymousCredentialsProvider.create())
-            .httpClientBuilder(httpClientBuilder)
-            .region(Region.of(S3_REGION));
+                .credentialsProvider(AnonymousCredentialsProvider.create())
+                .httpClientBuilder(httpClientBuilder)
+                .region(Region.of(S3_REGION));
 
         if (endPoint != null && !endPoint.isEmpty()) {
             s3ClientBuilder.endpointOverride(URI.create(endPoint));
@@ -75,32 +76,32 @@ public class RemoteFiles {
 
         if (pathStyleAccessEnabled) {
             s3ClientBuilder.serviceConfiguration(S3Configuration.builder()
-                .pathStyleAccessEnabled(true)
-                .build());
+                    .pathStyleAccessEnabled(true)
+                    .build());
         }
 
         return new RemoteFiles(s3ClientBuilder.build(), bucketName);
     }
 
     public void upload(final File localFile, final String remoteKey)
-        throws InterruptedException, FileNotFoundException {
+            throws InterruptedException, FileNotFoundException {
         if (localFile.isDirectory()) {
             try (S3TransferManager transferManager = S3TransferManager.builder().s3Client(s3Client).build()) {
                 UploadDirectoryRequest request = UploadDirectoryRequest.builder()
-                    .bucket(bucket)
-                    .s3Prefix(remoteKey)
-                    .source(localFile.toPath())
-                    .maxDepth(null)
-                    .build();
+                        .bucket(bucket)
+                        .s3Prefix(remoteKey)
+                        .source(localFile.toPath())
+                        .maxDepth(null)
+                        .build();
                 final DirectoryUpload uploads = transferManager.uploadDirectory(request);
                 uploads.completionFuture().join();
             }
         } else {
             final PutObjectRequest putObjectRequest = PutObjectRequest.builder()
-                .bucket(bucket)
-                .key(remoteKey)
-                .metadata(Map.of(CONTENT_LENGTH, String.valueOf(localFile.length())))
-                .build();
+                    .bucket(bucket)
+                    .key(remoteKey)
+                    .metadata(Map.of(CONTENT_LENGTH, String.valueOf(localFile.length())))
+                    .build();
             s3Client.putObject(putObjectRequest, localFile.toPath()).join();
         }
     }
@@ -109,10 +110,10 @@ public class RemoteFiles {
         if (localFile.isDirectory()) {
             try (S3TransferManager transferManager = S3TransferManager.builder().s3Client(s3Client).build()) {
                 DownloadDirectoryRequest request = DownloadDirectoryRequest.builder()
-                    .bucket(bucket)
-                    .destination(localFile.toPath())
-                    .filter(o -> o.key().startsWith(remoteKey))
-                    .build();
+                        .bucket(bucket)
+                        .destination(localFile.toPath())
+                        .filter(o -> o.key().startsWith(remoteKey))
+                        .build();
                 transferManager.downloadDirectory(request).completionFuture().join();
             }
         } else {
@@ -131,28 +132,28 @@ public class RemoteFiles {
                 return false;
             }
             ListObjectsRequest listObjectsRequest = ListObjectsRequest.builder()
-                .bucket(bucket).prefix(remoteKey).build();
+                    .bucket(bucket).prefix(remoteKey).build();
             ListObjectsResponse response = s3Client.listObjects(listObjectsRequest).join();
             Map<String, Long> remoteObjectsMap = response.contents().stream()
-                .filter(os -> os.size() != 0) // because remote dirs are empty keys
-                .collect(toMap(S3Object::key, S3Object::size)); // Etag is 128bits MD5 hashed from file
+                    .filter(os -> os.size() != 0) // because remote dirs are empty keys
+                    .collect(toMap(S3Object::key, S3Object::size)); // Etag is 128bits MD5 hashed from file
             Map<String, Long> localFilesMap = walk(localDir.toPath(), FileVisitOption.FOLLOW_LINKS)
-                .map(Path::toFile)
-                .filter(File::isFile)
-                .collect(toMap(f -> getKeyFromFile(localFile, f), File::length));
+                    .map(Path::toFile)
+                    .filter(File::isFile)
+                    .collect(toMap(f -> getKeyFromFile(localFile, f), File::length));
             boolean equals = localFilesMap.equals(remoteObjectsMap);
             if (remoteObjectsMap.isEmpty()) {
                 LoggerFactory.getLogger(getClass()).warn("remote object map is empty ({})", remoteKey);
             } else {
                 LoggerFactory.getLogger(getClass())
-                    .debug("remote {} local {} is equal ? {}", remoteObjectsMap, localFilesMap, equals);
+                        .debug("remote {} local {} is equal ? {}", remoteObjectsMap, localFilesMap, equals);
             }
             return equals;
         } else {
             HeadObjectRequest getObjectAttributesRequest = HeadObjectRequest.builder()
-                .bucket(bucket)
-                .key(remoteKey)
-                .build();
+                    .bucket(bucket)
+                    .key(remoteKey)
+                    .build();
             HeadObjectResponse response = s3Client.headObject(getObjectAttributesRequest).join();
             return response.contentLength() == localFile.length();
         }
@@ -160,10 +161,10 @@ public class RemoteFiles {
 
     void createBucket() {
         s3Client.listBuckets().join().buckets().stream()
-            .filter(b -> bucket.equals(b.name()))
-            .findAny()
-            .ifPresentOrElse(b -> {
-            }, () -> s3Client.createBucket(CreateBucketRequest.builder().bucket(bucket).build()).join());
+                .filter(b -> bucket.equals(b.name()))
+                .findAny()
+                .ifPresentOrElse(b -> {
+                }, () -> s3Client.createBucket(CreateBucketRequest.builder().bucket(bucket).build()).join());
     }
 
     void deleteBucket() {
@@ -178,9 +179,9 @@ public class RemoteFiles {
 
     private String getKeyFromFile(File localFile, File f) {
         return f.getPath().
-            replace(localFile.getPath(), "").
-            replaceAll("^" + Pattern.quote(File.separator) + "+", "").
-            replace(File.separator, "/");
+                replace(localFile.getPath(), "").
+                replaceAll("^" + Pattern.quote(File.separator) + "+", "").
+                replace(File.separator, "/");
     }
 
     boolean objectExists(final String key) {

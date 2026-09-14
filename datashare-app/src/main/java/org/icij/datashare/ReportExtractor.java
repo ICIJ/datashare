@@ -13,6 +13,7 @@ import java.util.HashMap;
 
 public class ReportExtractor {
     static Logger logger = LoggerFactory.getLogger(ReportExtractor.class.getName());
+
     public static void main(String[] args) throws IOException {
         if (args.length != 2) {
             System.out.println("usage: report redis-url report-name");

@@ -17,6 +17,7 @@ import static java.util.Optional.ofNullable;
 
 public class BatchSearchRecord {
     public enum State {QUEUED, RUNNING, SUCCESS, FAILURE}
+
     public final String uuid;
     public final boolean published;
     @JsonIgnore
@@ -90,10 +91,11 @@ public class BatchSearchRecord {
      * copy constructor
      * @param record to copy
      */
-    public BatchSearchRecord(BatchSearchRecord record){
+    public BatchSearchRecord(BatchSearchRecord record) {
         this(record.uuid, record.getProjects(), record.name, record.description, record.nbQueries, record.nbQueriesWithoutResults, record.date,
                 record.state, record.uri, record.user, record.nbResults, record.published, record.errorMessage, record.errorQuery);
     }
+
     @JsonProperty("projects")
     List<String> getProjects() {
         return projects.stream().map(ProjectProxy::getId).collect(Collectors.toList());

@@ -10,6 +10,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.regex.Pattern;
+
 import org.icij.datashare.tasks.TaskType;
 import org.icij.datashare.user.User;
 
@@ -139,12 +140,12 @@ public final class TaskFilters {
 
     boolean byArgs(Map<String, Object> taskArgs) {
         return Optional.ofNullable(getArgsPatterns())
-            .map(patterns -> patterns.entrySet()
-                            .stream()
-                            .allMatch(e -> e.getValue()
-                                    .matcher(String.valueOf(getValue(taskArgs, e.getKey())))
-                                    .find()))
-            .orElse(true);
+                .map(patterns -> patterns.entrySet()
+                        .stream()
+                        .allMatch(e -> e.getValue()
+                                .matcher(String.valueOf(getValue(taskArgs, e.getKey())))
+                                .find()))
+                .orElse(true);
     }
 
     private Pattern getNamePattern() {
@@ -182,10 +183,10 @@ public final class TaskFilters {
         }
         TaskFilters filters = (TaskFilters) o;
         return Objects.equals(args, filters.args) && Objects.equals(states, filters.states)
-            && Objects.equals(types, filters.types)
-            && Objects.equals(name, filters.name) && Objects.equals(user, filters.user)
-            && Objects.equals(regexFlags, filters.regexFlags) && Objects.equals(argsPatterns,
-            filters.argsPatterns) && Objects.equals(taskNamePattern, filters.taskNamePattern);
+                && Objects.equals(types, filters.types)
+                && Objects.equals(name, filters.name) && Objects.equals(user, filters.user)
+                && Objects.equals(regexFlags, filters.regexFlags) && Objects.equals(argsPatterns,
+                filters.argsPatterns) && Objects.equals(taskNamePattern, filters.taskNamePattern);
     }
 
     @Override

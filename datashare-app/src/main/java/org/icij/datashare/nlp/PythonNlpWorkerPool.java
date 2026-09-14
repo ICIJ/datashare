@@ -9,6 +9,7 @@ import static org.icij.datashare.utils.ProcessHandler.killProcessById;
 
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
+
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
@@ -16,6 +17,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+
 import org.icij.datashare.ExecutableExtensionHelper;
 import org.icij.datashare.ExtensionService;
 import org.icij.datashare.PropertiesProvider;
@@ -48,7 +50,7 @@ public class PythonNlpWorkerPool implements Closeable {
 
     protected ProcessBuilder buildProcess() throws IOException, InterruptedException {
         ExecutableExtensionHelper extensionHelper = new ExecutableExtensionHelper(
-            extensionService, "datashare-extension-nlp-spacy"
+                extensionService, "datashare-extension-nlp-spacy"
         );
         //Resolve symlinks
         Path tmpRoot = Path.of(System.getProperty("java.io.tmpdir")).toRealPath();
@@ -56,7 +58,7 @@ public class PythonNlpWorkerPool implements Closeable {
             if (isProcessRunning(p, 1, TimeUnit.SECONDS)) {
                 String pid = Files.readAllLines(p).get(0);
                 String msg = "found phantom worker running in process " + pid
-                    + ", kill this process before restarting datashare !";
+                        + ", kill this process before restarting datashare !";
                 throw new RuntimeException(msg);
             }
             Files.deleteIfExists(p);
@@ -68,11 +70,11 @@ public class PythonNlpWorkerPool implements Closeable {
 
     private static Path dumpNlpWorkerConfig() throws IOException {
         Map<String, String> workerConfig = Map.of(
-            "type", "amqp",
-            "rabbitmq_host", "localhost",
-            "rabbitmq_port", String.valueOf(AMQP_PORT),
-            "rabbitmq_user", "admin",
-            "rabbitmq_password", "admin"
+                "type", "amqp",
+                "rabbitmq_host", "localhost",
+                "rabbitmq_port", String.valueOf(AMQP_PORT),
+                "rabbitmq_user", "admin",
+                "rabbitmq_password", "admin"
         );
         Path workerConfigPath = Files.createTempFile("datashare-extension-nlp-spacy-config-", ".json");
         File tempFile = workerConfigPath.toFile();

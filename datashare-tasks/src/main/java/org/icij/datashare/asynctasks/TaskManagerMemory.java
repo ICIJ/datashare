@@ -1,6 +1,7 @@
 package org.icij.datashare.asynctasks;
 
 import java.util.stream.Stream;
+
 import org.apache.commons.lang3.NotImplementedException;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.asynctasks.bus.amqp.Event;
@@ -94,9 +95,9 @@ public class TaskManagerMemory extends StoreAndQueueTaskManagerImpl implements T
     public void canceled(Task<?> task, boolean requeue) {
         Task<?> taskView;
         try {
-             taskView = getTask(task.id);
-             taskView.cancel();
-             update(taskView);
+            taskView = getTask(task.id);
+            taskView.cancel();
+            update(taskView);
         } catch (UnknownTask ex) {
             logger.warn("unknown task id <{}> for cancel={} call", task.id, requeue);
         } catch (IOException e) {
@@ -147,13 +148,13 @@ public class TaskManagerMemory extends StoreAndQueueTaskManagerImpl implements T
         synchronized (tasks) {
             // Require tasks to be in final state and apply user filters
             Stream<Task<?>> taskStream = tasks.getTasks(filters.withStates(FINAL_STATES))
-                .map(t -> {
-                    try {
-                        return tasks.delete(t.id);
-                    } catch (IOException e) {
-                        throw new RuntimeException(e);
-                    }
-                });
+                    .map(t -> {
+                        try {
+                            return tasks.delete(t.id);
+                        } catch (IOException e) {
+                            throw new RuntimeException(e);
+                        }
+                    });
             return taskStream.toList();
         }
     }
@@ -247,5 +248,6 @@ public class TaskManagerMemory extends StoreAndQueueTaskManagerImpl implements T
     }
 
     @Override
-    public void waitForConsumer() {}
+    public void waitForConsumer() {
+    }
 }

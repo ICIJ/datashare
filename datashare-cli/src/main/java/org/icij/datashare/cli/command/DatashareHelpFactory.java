@@ -26,7 +26,8 @@ public final class DatashareHelpFactory {
     private static final int INDENT = 2;
     private static final int COLUMN_GAP = 2;
 
-    private DatashareHelpFactory() {}
+    private DatashareHelpFactory() {
+    }
 
     /**
      * Applies help styling to cmd and all its subcommands recursively.
@@ -64,15 +65,15 @@ public final class DatashareHelpFactory {
         // Bold markup (@|bold ...|@) is processed by picocli's ANSI pass at print time,
         // respecting --no-color / NO_COLOR automatically.
         for (String key : List.of(SECTION_KEY_OPTION_LIST_HEADING, SECTION_KEY_COMMAND_LIST_HEADING,
-                                   SECTION_KEY_PARAMETER_LIST_HEADING, SECTION_KEY_DESCRIPTION_HEADING)) {
+                SECTION_KEY_PARAMETER_LIST_HEADING, SECTION_KEY_DESCRIPTION_HEADING)) {
             sections.put(key, h -> "");
         }
 
-        sections.put(SECTION_KEY_DESCRIPTION,    DatashareHelpFactory::renderDescription);
-        sections.put(SECTION_KEY_OPTION_LIST,    h -> headedSection(h, "Options:",        ownOptionRows(h),    sharedFirstColWidth(h)));
-        sections.put(SECTION_KEY_COMMAND_LIST,   h -> headedSection(h, "Commands:",       renderCommandList(h)));
-        sections.put(SECTION_KEY_PARAMETER_LIST, h -> headedSection(h, "Arguments:",      renderParameterList(h)));
-        sections.put("globalOptionList",         h -> headedSection(h, "Global Options:", globalOptionRows(h), sharedFirstColWidth(h)));
+        sections.put(SECTION_KEY_DESCRIPTION, DatashareHelpFactory::renderDescription);
+        sections.put(SECTION_KEY_OPTION_LIST, h -> headedSection(h, "Options:", ownOptionRows(h), sharedFirstColWidth(h)));
+        sections.put(SECTION_KEY_COMMAND_LIST, h -> headedSection(h, "Commands:", renderCommandList(h)));
+        sections.put(SECTION_KEY_PARAMETER_LIST, h -> headedSection(h, "Arguments:", renderParameterList(h)));
+        sections.put("globalOptionList", h -> headedSection(h, "Global Options:", globalOptionRows(h), sharedFirstColWidth(h)));
 
         List<String> keys = new ArrayList<>(usage.sectionKeys());
         int idx = keys.indexOf(SECTION_KEY_OPTION_LIST);
@@ -133,7 +134,7 @@ public final class DatashareHelpFactory {
         return options.stream()
                 .filter(o -> !o.hidden())
                 .sorted(Comparator.comparing(DatashareHelpFactory::optionSortKey))
-                .map(o -> new String[]{ optionLabel(o), firstLine(o.description()) })
+                .map(o -> new String[]{optionLabel(o), firstLine(o.description())})
                 .collect(Collectors.toList());
     }
 
@@ -143,12 +144,12 @@ public final class DatashareHelpFactory {
      */
     private static int sharedFirstColWidth(CommandLine.Help help) {
         return Stream.concat(
-                help.commandSpec().options().stream().filter(o -> !o.inherited()),
-                help.commandSpec().root().options().stream()
-        ).filter(o -> !o.hidden())
-         .mapToInt(o -> optionLabel(o).length())
-         .max()
-         .orElse(0);
+                        help.commandSpec().options().stream().filter(o -> !o.inherited()),
+                        help.commandSpec().root().options().stream()
+                ).filter(o -> !o.hidden())
+                .mapToInt(o -> optionLabel(o).length())
+                .max()
+                .orElse(0);
     }
 
     static String renderCommandList(CommandLine.Help help) {
@@ -157,8 +158,8 @@ public final class DatashareHelpFactory {
             return "";
         }
         List<String[]> rows = subs.entrySet().stream()
-                .map(e -> new String[]{ e.getKey(),
-                        firstLine(e.getValue().getCommandSpec().usageMessage().description()) })
+                .map(e -> new String[]{e.getKey(),
+                        firstLine(e.getValue().getCommandSpec().usageMessage().description())})
                 .collect(Collectors.toList());
         return twoColumns(rows);
     }
@@ -171,7 +172,7 @@ public final class DatashareHelpFactory {
             return "";
         }
         List<String[]> rows = params.stream()
-                .map(p -> new String[]{ p.paramLabel(), firstLine(p.description()) })
+                .map(p -> new String[]{p.paramLabel(), firstLine(p.description())})
                 .collect(Collectors.toList());
         return twoColumns(rows);
     }

@@ -15,7 +15,8 @@ import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_DEFAULT_PROJECT
 /** Shared artifact-stage configuration for the INDEX and ARTIFACT stages, so the two stages resolve
  *  the project, the force flag, and the artifact directory the same way and cannot drift. */
 public final class ArtifactStages {
-    private ArtifactStages() {}
+    private ArtifactStages() {
+    }
 
     /** Resolve the project name the same way ElasticsearchSpewer.configure resolves the ES index
      *  name: prefer the task-level projectName, then defaultProject, then the built-in default. Keeps

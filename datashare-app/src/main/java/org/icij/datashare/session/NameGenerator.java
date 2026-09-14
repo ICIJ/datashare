@@ -1,9 +1,11 @@
 package org.icij.datashare.session;
+
 import java.util.List;
 import java.util.Random;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.unmodifiableList;
+
 /**
  * generates fancy names like docker
  * cf https://github.com/moby/moby/blob/master/pkg/namesgenerator/names-generator.go
@@ -12,10 +14,13 @@ public class NameGenerator {
     public static void main(String[] args) {
         System.out.println(generate());
     }
+
     private static final Random random = new Random();
+
     public static String generate() {
         return left.get(random.nextInt(left.size())) + "_" + right.get(random.nextInt(right.size()));
     }
+
     static List<String> left = unmodifiableList(asList(
             "admiring",
             "adoring",

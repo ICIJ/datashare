@@ -39,8 +39,8 @@ public class OsArchDetector {
         static OS fromSystemString(String osName) {
             String normalizedOsName = normalize(osName);
             return stream(values()).filter(os -> os.osPattern.matcher(normalizedOsName).matches())
-                .findFirst()
-                .orElseThrow(() -> new IllegalArgumentException(format("Unknown OS: %s", osName)));
+                    .findFirst()
+                    .orElseThrow(() -> new IllegalArgumentException(format("Unknown OS: %s", osName)));
         }
     }
 

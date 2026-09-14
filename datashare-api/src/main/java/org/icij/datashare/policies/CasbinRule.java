@@ -107,6 +107,7 @@ public class CasbinRule {
         String[] values = arr.subList(1, arr.size()).toArray(new String[0]);
         return new CasbinRule(ptype, values);
     }
+
     public String[] toStringArray() {
         return new String[]{this.ptype, this.v0, this.v1, this.v2, this.v3, this.v4, this.v5};
     }

@@ -54,7 +54,7 @@ public class UsersIdProviderRedisCache implements UsersIdProviderCache, Closeabl
         try (Jedis jedis = redis.getResource()) {
             long existingTtl = jedis.ttl(user.login());
             Transaction transaction = jedis.multi();
-            transaction.set(user.login(), JsonObjectMapper.serialize(((DatashareUser)user).details));
+            transaction.set(user.login(), JsonObjectMapper.serialize(((DatashareUser) user).details));
             // -1 = persistent key: never add an expiry
             // -2 = new key: apply configured TTL
             // existing TTL >= configured TTL: don't shorten an active session

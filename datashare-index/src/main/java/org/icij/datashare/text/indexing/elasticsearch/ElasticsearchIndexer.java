@@ -103,16 +103,16 @@ public class ElasticsearchIndexer implements Indexer {
             put("status", Document.Status.DONE);
         }};
         bulkRequest.operations(
-            BulkOperation.of(op -> op.update(up -> up.index(indexName)
-                    .id(parent.getId())
-                    .routing(routing)
-                    .action(a -> a.doc(status)))),
-            BulkOperation.of(op -> op.update(up -> up.index(indexName)
-                    .id(parent.getId())
-                    .routing(routing)
-                    .action(a -> a.script(scr -> scr.lang("painless")
-                            .source("if (!ctx._source.nerTags.contains(params.nerTag)) ctx._source.nerTags.add(params.nerTag);")
-                            .params("nerTag", JsonData.of(nerType.toString()))))))
+                BulkOperation.of(op -> op.update(up -> up.index(indexName)
+                        .id(parent.getId())
+                        .routing(routing)
+                        .action(a -> a.doc(status)))),
+                BulkOperation.of(op -> op.update(up -> up.index(indexName)
+                        .id(parent.getId())
+                        .routing(routing)
+                        .action(a -> a.script(scr -> scr.lang("painless")
+                                .source("if (!ctx._source.nerTags.contains(params.nerTag)) ctx._source.nerTags.add(params.nerTag);")
+                                .params("nerTag", JsonData.of(nerType.toString()))))))
         );
 
         for (Entity child : namedEntities) {
@@ -160,7 +160,8 @@ public class ElasticsearchIndexer implements Indexer {
         String parent = getParent(obj);
         String root = getRoot(obj);
         setJoinFields(json, type, parent);
-        IndexRequest.Builder<Map<String,Object>> req; req = new IndexRequest.Builder<Map<String,Object>>()
+        IndexRequest.Builder<Map<String, Object>> req;
+        req = new IndexRequest.Builder<Map<String, Object>>()
                 .index(indexName)
                 .id(id)
                 .refresh(esCfg.refreshPolicy)
@@ -179,7 +180,7 @@ public class ElasticsearchIndexer implements Indexer {
         String parent = getParent(obj);
         String root = getRoot(obj);
         setJoinFields(json, type, parent);
-        UpdateRequest.Builder<Map<String,Object>, Object> req = new UpdateRequest.Builder<Map<String,Object>,Object>()
+        UpdateRequest.Builder<Map<String, Object>, Object> req = new UpdateRequest.Builder<Map<String, Object>, Object>()
                 .index(indexName)
                 .id(id)
                 .refresh(esCfg.refreshPolicy)
@@ -218,7 +219,7 @@ public class ElasticsearchIndexer implements Indexer {
     }
 
     @Override
-    public boolean exists(String indexName, String id, Path path)  throws IOException {
+    public boolean exists(String indexName, String id, Path path) throws IOException {
         GetRequest req = new GetRequest.Builder()
                 .index(indexName)
                 .id(id)
@@ -308,7 +309,8 @@ public class ElasticsearchIndexer implements Indexer {
                     .build();
             GetResponse<ObjectNode> resp = client.get(req, ObjectNode.class);
             if (resp.found()) {
-                Map<String, Object> sourceAsMap = JsonObjectMapper.readValue(JsonObjectMapper.writeValueAsString(resp.source()), new TypeReference<>() {});
+                Map<String, Object> sourceAsMap = JsonObjectMapper.readValue(JsonObjectMapper.writeValueAsString(resp.source()), new TypeReference<>() {
+                });
                 sourceAsMap.put("rootDocument", ofNullable(resp.routing()).orElse(id));
                 type = (String) sourceAsMap.get(esCfg.docTypeField);
                 Class<T> tClass = (Class<T>) Class.forName("org.icij.datashare.text." + type);
@@ -330,6 +332,7 @@ public class ElasticsearchIndexer implements Indexer {
             throw new FileNotFoundException(String.format("Unable to find : %s", painlessFilename));
         }
     }
+
     public static String getScriptStringFromFile(String filename) throws IOException {
         String script;
         if (memoizeScript.containsKey(filename)) {
@@ -340,13 +343,14 @@ public class ElasticsearchIndexer implements Indexer {
         }
         return script;
     }
+
     private static Script getExtractedTextScript(final int offset, final int limit, final String targetLanguage) throws IOException {
-        Map<String,Object> params = new HashMap<>() {{
+        Map<String, Object> params = new HashMap<>() {{
             put("offset", offset);
             put("limit", limit);
         }};
-        if(targetLanguage != null){
-            params.put("targetLanguage",targetLanguage);
+        if (targetLanguage != null) {
+            params.put("targetLanguage", targetLanguage);
         }
         return new Script.Builder().lang("painless")
                 .source(ElasticsearchIndexer.getScriptStringFromFile("extractedText.painless.java"))
@@ -368,29 +372,30 @@ public class ElasticsearchIndexer implements Indexer {
         Script script = getExtractedTextScript(offset, limit, targetLanguage);
         Map<String, Object> pagination = getPagination(routing, sourceBuilder, script);
         ExtractedText extractedText;
-        if (targetLanguage != null){
+        if (targetLanguage != null) {
             extractedText = new ExtractedText((String) pagination.get("content"), (Integer) pagination.get("offset"),
-                    (Integer) pagination.get("limit"), (Integer) pagination.get("maxOffset"),(String) pagination.get("targetLanguage"));
+                    (Integer) pagination.get("limit"), (Integer) pagination.get("maxOffset"), (String) pagination.get("targetLanguage"));
         } else {
-            extractedText =  new ExtractedText((String) pagination.get("content"), (Integer) pagination.get("offset"),
+            extractedText = new ExtractedText((String) pagination.get("content"), (Integer) pagination.get("offset"),
                     (Integer) pagination.get("limit"), (Integer) pagination.get("maxOffset"));
         }
-       return extractedText;
+        return extractedText;
     }
 
     private static Script searchQueryOccurrencesScript(final String query, String targetLanguage) throws IOException {
-        Map<String,Object> params = new HashMap<>() {{
+        Map<String, Object> params = new HashMap<>() {{
             put("query", query);
         }};
 
-        if(targetLanguage != null){
-            params.put("targetLanguage",targetLanguage);
+        if (targetLanguage != null) {
+            params.put("targetLanguage", targetLanguage);
         }
 
         return new Script.Builder().lang("painless")
                 .source(ElasticsearchIndexer.getScriptStringFromFile("searchOccurrences.painless.java"))
                 .params(mapObjectTomapJsonData(params)).build();
     }
+
     @Override
     public SearchedText searchTextOccurrences(String indexName, String id, String query, String targetLanguage) throws IOException {
         return this.searchContentOccurrences(indexName, id, id, query, targetLanguage);
@@ -401,6 +406,7 @@ public class ElasticsearchIndexer implements Indexer {
         return this.searchContentOccurrences(indexName, id, routing, query, targetLanguage);
 
     }
+
     private SearchedText searchContentOccurrences(String indexName, String id, String routing, final String query, String targetLanguage) throws IOException {
         SearchRequest.Builder sourceBuilder = new SearchRequest.Builder().index(indexName).size(DEFAULT_SEARCH_SIZE).timeout("30m");
         if (query.isEmpty()) {
@@ -408,11 +414,13 @@ public class ElasticsearchIndexer implements Indexer {
         }
         sourceBuilder.query(Query.of(q -> q.bool(bq -> bq.must(qt -> qt.term(t -> t.field("_id").value(id))))));
         Script script = searchQueryOccurrencesScript(query, targetLanguage);
-        Map<String, Object> pagination = getPagination(routing, sourceBuilder, script);;
+        Map<String, Object> pagination = getPagination(routing, sourceBuilder, script);
+        ;
         SearchedText searchedText;
-        List<Integer> l = JsonObjectMapper.convertValue(pagination.get("offsets"), new TypeReference<>() {});
-        int[] offsets = l.stream().mapToInt(i-> i).toArray();
-        if (targetLanguage != null){
+        List<Integer> l = JsonObjectMapper.convertValue(pagination.get("offsets"), new TypeReference<>() {
+        });
+        int[] offsets = l.stream().mapToInt(i -> i).toArray();
+        if (targetLanguage != null) {
             searchedText = new SearchedText(
                     offsets,
                     (Integer) pagination.get("count"),
@@ -431,19 +439,18 @@ public class ElasticsearchIndexer implements Indexer {
         sourceBuilder.scriptFields("pagination", ScriptField.of(sf -> sf.script(script)));
         SearchResponse<ObjectNode> search = client.search(sourceBuilder.routing(routing).build(), ObjectNode.class);
         List<Hit<ObjectNode>> tHits = searchHitStream(() -> search.hits().hits().iterator()).toList();
-        if(tHits.isEmpty()){
+        if (tHits.isEmpty()) {
             throw new IllegalArgumentException("Document not found");
         }
-        ArrayList<Map<String,Object>> tHitsPaginationArray = tHits.get(0).fields().get("pagination")
+        ArrayList<Map<String, Object>> tHitsPaginationArray = tHits.get(0).fields().get("pagination")
                 .to(JsonObjectMapper.constructCollectionType(ArrayList.class, Map.class));
-        Map<String,Object> pagination = tHitsPaginationArray.get(0);
-        if(pagination.get("error") != null ){
-            int code= ((Integer)pagination.get("code"));
-            if (code == 400){
-                throw new StringIndexOutOfBoundsException((String)pagination.get("error"));
-            }
-            else{
-                throw new IllegalArgumentException((String)pagination.get("error"));
+        Map<String, Object> pagination = tHitsPaginationArray.get(0);
+        if (pagination.get("error") != null) {
+            int code = ((Integer) pagination.get("code"));
+            if (code == 400) {
+                throw new StringIndexOutOfBoundsException((String) pagination.get("error"));
+            } else {
+                throw new IllegalArgumentException((String) pagination.get("error"));
             }
         }
         return pagination;
@@ -480,7 +487,7 @@ public class ElasticsearchIndexer implements Indexer {
     private boolean groupTagUntag(Project prj, List<String> documentIds, Script untagScript) throws IOException {
         UpdateByQueryRequest.Builder updateByQuery = new UpdateByQueryRequest.Builder().index(prj.getId());
         updateByQuery.query(q -> q.terms(qt -> qt.field("_id")
-                                                 .terms(tq -> tq.value(stream(documentIds.toArray(new String[0])).map(FieldValue::of).collect(toList())))));
+                .terms(tq -> tq.value(stream(documentIds.toArray(new String[0])).map(FieldValue::of).collect(toList())))));
         updateByQuery.conflicts(Conflicts.Proceed);
         updateByQuery.script(untagScript);
         updateByQuery.refresh(esCfg.refreshPolicy.equals(Refresh.True));
@@ -491,7 +498,7 @@ public class ElasticsearchIndexer implements Indexer {
 
     private Script createTagScript(Tag[] tags) {
         return new Script.Builder().lang("painless")
-                .source(                "int updates = 0;" +
+                .source("int updates = 0;" +
                         "if (ctx._source.tags == null) ctx._source.tags = [];" +
                         "for (int i = 0; i < params.tags.length; i++) {" +
                         "  if (!ctx._source.tags.contains(params.tags[i])) {" +
@@ -528,7 +535,7 @@ public class ElasticsearchIndexer implements Indexer {
     @Override
     public Searcher search(final List<String> indexesNames, Class<? extends Entity> entityClass, SearchQuery query) {
         return query.isJsonQuery() ?
-                new ElasticsearchSearcher(client, indexesNames, entityClass, query.asJson()):
+                new ElasticsearchSearcher(client, indexesNames, entityClass, query.asJson()) :
                 new ElasticsearchQueryBuilderSearcher(client, indexesNames, entityClass, query);
     }
 
@@ -608,17 +615,17 @@ public class ElasticsearchIndexer implements Indexer {
     }
 
     private boolean executeBulk(BulkRequest.Builder bulkRequest) throws IOException {
-      bulkRequest.refresh(esCfg.refreshPolicy);
-      BulkResponse bulkResponse = client.bulk(bulkRequest.build());
-      if (bulkResponse.errors()) {
-          for (BulkResponseItem resp : bulkResponse.items()) {
-              if (resp.error() != null) {
-                  LOGGER.error("bulk request failed : {}", resp.error().reason());
-              }
-          }
-          return false;
-      }
-      return true;
+        bulkRequest.refresh(esCfg.refreshPolicy);
+        BulkResponse bulkResponse = client.bulk(bulkRequest.build());
+        if (bulkResponse.errors()) {
+            for (BulkResponseItem resp : bulkResponse.items()) {
+                if (resp.error() != null) {
+                    LOGGER.error("bulk request failed : {}", resp.error().reason());
+                }
+            }
+            return false;
+        }
+        return true;
     }
 
     @Override

@@ -5,7 +5,9 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.ByteBufInputStream;
 import io.netty.buffer.ByteBufOutputStream;
+
 import java.util.List;
+
 import org.icij.datashare.asynctasks.bus.amqp.AmqpQueue;
 import org.icij.datashare.asynctasks.bus.amqp.CancelEvent;
 import org.icij.datashare.asynctasks.bus.amqp.ShutdownEvent;
@@ -89,13 +91,13 @@ public class TaskManagerRedis extends StoreAndQueueTaskManagerImpl {
     public List<Task<?>> clearDoneTasks(TaskFilters filters) throws IOException {
         // Require tasks to be in final state and apply user filters
         Stream<Task<?>> taskStream = tasks.getTasks(filters.withStates(FINAL_STATES))
-            .map(t -> {
-                try {
-                    return tasks.delete(t.id);
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
-            });
+                .map(t -> {
+                    try {
+                        return tasks.delete(t.id);
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                });
         return taskStream.toList();
     }
 
@@ -200,7 +202,7 @@ public class TaskManagerRedis extends StoreAndQueueTaskManagerImpl {
         taskQueue(task).add(task);
     }
 
-    public  static class RedisCodec<T> extends BaseCodec {
+    public static class RedisCodec<T> extends BaseCodec {
         private final Class<T> clazz;
         private final Encoder keyEncoder;
         private final Decoder<Object> keyDecoder;

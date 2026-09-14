@@ -70,23 +70,23 @@ public class ProjectGrantCommand implements Runnable, DatashareSubcommand {
     public void run() {
         try {
             String project = projectPositional != null ? projectPositional : projectFlag;
-            String user    = userPositional    != null ? userPositional    : userFlag;
-            String roleIn  = rolePositional    != null ? rolePositional    : roleFlag;
+            String user = userPositional != null ? userPositional : userFlag;
+            String roleIn = rolePositional != null ? rolePositional : roleFlag;
 
             if (project != null) Validators.projectName(project);
-            if (user    != null) Validators.login(user);
-            if (roleIn  != null) Validators.projectRole(roleIn);
+            if (user != null) Validators.login(user);
+            if (roleIn != null) Validators.projectRole(roleIn);
 
             Prompter prompter = resolvePrompter();
             if (project == null) project = require(prompter, "Project name", Validators::projectName, "--project");
-            if (user    == null) user    = require(prompter, "User login",   Validators::login,        "--user");
+            if (user == null) user = require(prompter, "User login", Validators::login, "--user");
             // Validators.projectRole returns Role; wrap as Consumer for the require() signature.
             // We only care that it doesn't throw.
-            if (roleIn  == null) roleIn  = require(prompter, "Role (admin|editor|member|visitor)",
-                                                  s -> Validators.projectRole(s), "--role");
+            if (roleIn == null) roleIn = require(prompter, "Role (admin|editor|member|visitor)",
+                    s -> Validators.projectRole(s), "--role");
 
-            this.validatedProject   = project;
-            this.validatedUser      = user;
+            this.validatedProject = project;
+            this.validatedUser = user;
             this.validatedRoleAlias = roleIn.trim().toLowerCase(java.util.Locale.ROOT);
         } catch (InvalidValueException | Prompter.ValidationFailedException e) {
             spec.commandLine().getErr().println("error: " + e.getMessage());

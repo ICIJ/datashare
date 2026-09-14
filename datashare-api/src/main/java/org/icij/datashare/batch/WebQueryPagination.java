@@ -15,7 +15,8 @@ import static java.util.Optional.ofNullable;
 import static org.icij.datashare.batch.WebQueryPagination.OrderDirection.ASC;
 
 public class WebQueryPagination {
-    public enum OrderDirection { ASC, DESC }
+    public enum OrderDirection {ASC, DESC}
+
     public final String sort;
     public final OrderDirection order;
     public final int from;

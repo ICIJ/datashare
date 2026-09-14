@@ -47,5 +47,7 @@ public class Tag {
     }
 
     @Override
-    public String toString() { return "Tag{label='" + label + '\'' + '}';}
+    public String toString() {
+        return "Tag{label='" + label + '\'' + '}';
+    }
 }

@@ -12,7 +12,7 @@ import java.util.stream.Collectors;
 
 import static java.util.Optional.ofNullable;
 
-public class DeliverablePackage implements Comparable<DeliverablePackage>{
+public class DeliverablePackage implements Comparable<DeliverablePackage> {
     @JsonIgnore
     private final Path deliverablesDir;
     @JsonIgnore
@@ -77,15 +77,29 @@ public class DeliverablePackage implements Comparable<DeliverablePackage>{
         System.out.println("\t" + deliverable.getType());
     }
 
-    public String getId() {return reference().getId();}
-    public String getName() {return reference().getName();}
-    public String getDescription() {return reference().getDescription();}
-    public Deliverable.Type getType() {return reference().getType();}
-    public String getVersion() {return reference().getVersion();}
+    public String getId() {
+        return reference().getId();
+    }
+
+    public String getName() {
+        return reference().getName();
+    }
+
+    public String getDescription() {
+        return reference().getDescription();
+    }
+
+    public Deliverable.Type getType() {
+        return reference().getType();
+    }
+
+    public String getVersion() {
+        return reference().getVersion();
+    }
 
     @Override
     public String toString() {
-        return  "Package id="+ reference().getId() +
+        return "Package id=" + reference().getId() +
                 " version=" + reference().getVersion();
     }
 

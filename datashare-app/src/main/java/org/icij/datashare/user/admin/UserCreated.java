@@ -9,4 +9,5 @@ public record UserCreated(
         String provider,
         List<String> groups,
         boolean noop
-) {}
+) {
+}
