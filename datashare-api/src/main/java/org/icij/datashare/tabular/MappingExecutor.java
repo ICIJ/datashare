@@ -54,6 +54,12 @@ public class MappingExecutor {
     public MappingExecutor(ExtractionMapping mapping, String sheet) {
         this.mapping = mapping;
         this.documentId = mapping.documentId();
+        // The one string here the mapping never saw, so validate() cannot vouch for it: a workbook
+        // naming a sheet with a NUL would otherwise reach Statement's constructor and abort the run
+        // on its first row.
+        if (sheet != null && sheet.indexOf('\u0000') >= 0) {
+            throw new IllegalArgumentException("the sheet name holds a NUL character");
+        }
         this.sheet = sheet;
         mapping.requireValid();
         mapping.entities().forEach(this::declare);

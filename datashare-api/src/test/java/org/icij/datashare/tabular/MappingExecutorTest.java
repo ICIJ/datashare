@@ -767,6 +767,14 @@ public class MappingExecutorTest {
     }
 
     @Test
+    public void test_a_resolved_sheet_holding_a_nul_fails_at_construction() {
+        ExtractionMapping mapping = mapping(Map.of("member",
+                entity("Person", List.of("passport"), Map.of("name", column("full_name")))));
+
+        assertThrows(IllegalArgumentException.class, () -> new MappingExecutor(mapping, "Sheet\u00001"));
+    }
+
+    @Test
     public void test_a_mapping_that_no_longer_validates_fails_at_construction() {
         ExtractionMapping stale = mapping(Map.of("member",
                 entity("Person", List.of("passport"), Map.of("hoofSize", column("hooves")))));
