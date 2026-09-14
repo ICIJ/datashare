@@ -43,7 +43,11 @@ public record ExtractionMapping(String id, String projectId, String userId, Stri
             // Keys name header columns, so they get the cleaning headers get: a key pasted with a
             // non-breaking space still matches the header it names. No key at all is a valid
             // mapping: each row is then its own record, identified by where it sits in the file.
+            // The key literal is hashed alongside the key values and gets the same cleaning: an
+            // invisible character in one of two mappings meant to agree would otherwise split one
+            // entity in two, which is the merge the literal exists to control.
             keys = List.copyOf(Objects.requireNonNull(keys, "keys")).stream().map(Row::clean).toList();
+            keyLiteral = keyLiteral == null ? null : Row.clean(keyLiteral);
             properties = Map.copyOf(Objects.requireNonNull(properties, "properties"));
         }
     }
@@ -106,6 +110,10 @@ public record ExtractionMapping(String id, String projectId, String userId, Stri
             if (entity.keyLiteral() != null && holdsNul(entity.keyLiteral())) {
                 violations.add(new TargetModel.Violation("entity '" + alias
                         + "' has a key literal holding a NUL character"));
+            }
+            if (entity.keyLiteral() != null && entity.keyLiteral().isBlank()) {
+                violations.add(new TargetModel.Violation("entity '" + alias
+                        + "' has a blank key literal, which hashes like no literal at all"));
             }
             if (entity.keyLiteral() != null && entity.keys().isEmpty()) {
                 violations.add(new TargetModel.Violation("entity '" + alias
