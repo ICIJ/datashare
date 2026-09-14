@@ -134,7 +134,7 @@ public class ExtractionMappingTest {
     }
 
     @Test
-    public void test_format_needs_columns() {
+    public void test_date_format_needs_columns() {
         assertThrows(InvalidPropertyMapping.class,
                 () -> new ExtractionMapping.PropertyMapping(List.of(), null, "SS", null, "%d.%m.%Y"));
     }

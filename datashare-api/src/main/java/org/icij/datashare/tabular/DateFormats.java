@@ -56,7 +56,7 @@ class DateFormats {
 
     // Compiling proves syntax only: 'HH:mm' carries no date at all. One round-trip over a fixed date
     // turns "fails on every row" into a refusal at declare time, which validate() reports as an
-    // unusable format.
+    // unusable date format.
     private static DateTimeFormatter compile(String pattern) {
         String rewritten = strict(pattern);
         DateTimeFormatter format;
