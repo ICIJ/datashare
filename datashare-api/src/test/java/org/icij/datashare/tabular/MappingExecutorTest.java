@@ -157,6 +157,20 @@ public class MappingExecutorTest {
     }
 
     @Test
+    public void test_an_invisible_character_in_a_key_literal_does_not_split_the_entity() {
+        String padded = new MappingExecutor(mapping(Map.of("supplier",
+                keyed("Company", " supp\u200Blier ", List.of("supplier_ref"),
+                        Map.of("name", column("supplier_name"))))), "")
+                .statements(row(Map.of("supplier_ref", "42", "supplier_name", "Acme"))).get(0).entityId();
+        String plain = new MappingExecutor(mapping(Map.of("supplier",
+                keyed("Company", "supplier", List.of("supplier_ref"),
+                        Map.of("name", column("supplier_name"))))), "")
+                .statements(row(Map.of("supplier_ref", "42", "supplier_name", "Acme"))).get(0).entityId();
+
+        assertThat(padded).isEqualTo(plain);
+    }
+
+    @Test
     public void test_a_key_column_declared_twice_identifies_the_same_entity_as_once() {
         String twice = person(List.of("passport", "passport"), Map.of("name", column("full_name")))
                 .statements(row(Map.of("passport", "AB123", "full_name", "Jane Doe"))).get(0).entityId();
@@ -722,6 +736,16 @@ public class MappingExecutorTest {
                         Map.of("name", column("full_name"), "nationality", literal(" "))));
 
         assertThat(thrown.violations.toString()).contains("blank literal");
+    }
+
+    @Test
+    public void test_a_blank_key_literal_fails_at_construction() {
+        InvalidExtractionMapping thrown = assertThrows(InvalidExtractionMapping.class,
+                () -> new MappingExecutor(mapping(Map.of("supplier",
+                        keyed("Company", "\u00A0", List.of("supplier_ref"),
+                                Map.of("name", column("supplier_name"))))), ""));
+
+        assertThat(thrown.violations.toString()).contains("blank key literal");
     }
 
     @Test
