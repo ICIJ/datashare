@@ -587,9 +587,11 @@ public class MappingExecutorTest {
 
     @Test
     public void test_a_pattern_carrying_an_offset_fails_at_construction() {
-        assertThrows(InvalidExtractionMapping.class, () -> person(List.of("passport"),
-                Map.of("name", column("full_name"),
+        InvalidExtractionMapping thrown = assertThrows(InvalidExtractionMapping.class,
+                () -> person(List.of("passport"), Map.of("name", column("full_name"),
                         "birthDate", formatted("born", "yyyy-MM-dd'T'HH:mmXXX"))));
+
+        assertThat(thrown.violations.toString()).contains("an offset is a precision");
     }
 
     @Test
