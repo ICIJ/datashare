@@ -75,8 +75,8 @@ public class MappingExecutor {
         requireColumns(row);
         Map<String, String> cells = new HashMap<>();
         columns.forEach(column -> cells.put(column, cell(row, column)));
-        Map<String, String> ids = identify(cells, row.number());
-        Set<String> stored = stored(ids, cells);
+        Map<String, String> ids = entityIds(cells, row.number());
+        Set<String> stored = storing(ids, cells);
         ids.keySet().stream().filter(alias -> !stored.contains(alias))
                 .forEach(alias -> count(Skip.ENTITY_EMPTY, alias, row.number()));
         ids.keySet().retainAll(stored);
@@ -120,7 +120,7 @@ public class MappingExecutor {
         missing.stream().filter(absent::add).forEach(column -> count(Skip.CELL_MISSING, column, row.number()));
     }
 
-    private Map<String, String> identify(Map<String, String> cells, long rowNumber) {
+    private Map<String, String> entityIds(Map<String, String> cells, long rowNumber) {
         Map<String, String> ids = new TreeMap<>();
         keyColumns.forEach((alias, keys) -> {
             if (keys.isEmpty()) {
@@ -187,7 +187,7 @@ public class MappingExecutor {
     // on their strength. An entity that stores nothing sits in no index, so an edge naming its id
     // would record an endpoint that exists nowhere, and dropping that edge can in turn empty the
     // entity carrying it, which is why this settles rather than deciding in one pass.
-    private Set<String> stored(Map<String, String> ids, Map<String, String> cells) {
+    private Set<String> storing(Map<String, String> ids, Map<String, String> cells) {
         Set<String> stored = new HashSet<>();
         for (boolean growing = true; growing; ) {
             growing = false;
