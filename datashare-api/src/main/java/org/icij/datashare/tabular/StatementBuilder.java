@@ -4,7 +4,6 @@ import org.icij.datashare.model.Statement;
 import org.icij.datashare.model.TargetModel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.HashMap;
@@ -16,7 +15,6 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.stream.Stream;
-
 import static java.util.stream.Collectors.joining;
 
 /**
@@ -28,13 +26,13 @@ import static java.util.stream.Collectors.joining;
  * only would otherwise lose every other row of that group, and the entity a row contributes to is
  * whole where its statements are regrouped, not here.
  */
-public class MappingExecutor {
-    private static final Logger LOGGER = LoggerFactory.getLogger(MappingExecutor.class);
+public class StatementBuilder {
+    private static final Logger LOGGER = LoggerFactory.getLogger(StatementBuilder.class);
 
     /** What a run dropped, and why. ENTITY_ counts one entity of one row, CELL_UNREADABLE one cell,
      *  and CELL_MISSING one column, once: a column the source stops carrying is one structural fact,
      *  not one per row of a file that may hold millions. */
-    public enum Skip { ENTITY_UNIDENTIFIED, ENTITY_EMPTY, CELL_UNREADABLE, CELL_MISSING }
+    public enum Skip {ENTITY_UNIDENTIFIED, ENTITY_EMPTY, CELL_UNREADABLE, CELL_MISSING}
 
     private final ExtractionMapping mapping;
     private final String documentId;
@@ -51,7 +49,7 @@ public class MappingExecutor {
      *  table. It is taken from the caller rather than read off the mapping's options, because the
      *  options hold what was asked for and the id needs what was read: "1" and "Sheet1" name one
      *  sheet and must hash alike, while two tables of one document must not. */
-    public MappingExecutor(ExtractionMapping mapping, String sheet) {
+    public StatementBuilder(ExtractionMapping mapping, String sheet) {
         this.mapping = mapping;
         this.documentId = mapping.documentId();
         // The one string here the mapping never saw, so validate() cannot vouch for it: a workbook
@@ -78,12 +76,12 @@ public class MappingExecutor {
         Map<String, String> ids = entityIds(cells, row.number());
         Set<String> stored = storing(ids, cells);
         ids.keySet().stream().filter(alias -> !stored.contains(alias))
-                .forEach(alias -> count(Skip.ENTITY_EMPTY, alias, row.number()));
+           .forEach(alias -> count(Skip.ENTITY_EMPTY, alias, row.number()));
         ids.keySet().retainAll(stored);
         Map<String, Statement> statements = new LinkedHashMap<>();
         for (String alias : ids.keySet()) {
-            statementsOf(alias, row, cells, ids)
-                    .forEach(statement -> statements.putIfAbsent(statement.id(), statement));
+            statementsOf(alias, row, cells, ids).forEach(
+                    statement -> statements.putIfAbsent(statement.id(), statement));
         }
         return List.copyOf(statements.values());
     }
@@ -114,8 +112,8 @@ public class MappingExecutor {
         }
         List<String> missing = columns.stream().filter(column -> !row.values().containsKey(column)).toList();
         if (!checked) {
-            throw new InvalidExtractionMapping(mapping.id(),
-                    List.of(new TargetModel.Violation("the source has no column " + missing)));
+            throw new InvalidExtractionMapping(mapping.id(), List.of(new TargetModel.Violation(
+                    "the source has no column " + missing)));
         }
         missing.stream().filter(absent::add).forEach(column -> count(Skip.CELL_MISSING, column, row.number()));
     }
@@ -131,8 +129,8 @@ public class MappingExecutor {
             if (values.stream().anyMatch(String::isEmpty)) {
                 count(Skip.ENTITY_UNIDENTIFIED, alias, rowNumber);
             } else {
-                ids.put(alias, id(mapping.entities().get(alias).type(),
-                        mapping.entities().get(alias).keyLiteral(), values));
+                ids.put(alias,
+                        id(mapping.entities().get(alias).type(), mapping.entities().get(alias).keyLiteral(), values));
             }
         });
         return ids;
@@ -144,8 +142,9 @@ public class MappingExecutor {
     // unlike the keyed recipe: with no key values to tell them apart, two keyless entities of one
     // type would otherwise be the same entity on every row, merging a row's buyer into its seller.
     private String rowId(String alias, String type, long rowNumber) {
-        return Statement.DIGESTER.hash(String.join("\u0000", mapping.model(), type, alias, documentId,
-                sheet == null ? "" : sheet, String.valueOf(rowNumber)));
+        return Statement.DIGESTER.hash(
+                String.join("\u0000", mapping.model(), type, alias, documentId, sheet == null ? "" : sheet,
+                            String.valueOf(rowNumber)));
     }
 
     // The key values sorted among themselves, and no column name, no alias: two files naming the
@@ -154,12 +153,12 @@ public class MappingExecutor {
     // when their values coincide, which is what the mapping's key literal is for. NUL-joined for
     // the reason Statement.id is: a cell can hold any printable character.
     private String id(String type, String keyLiteral, List<String> values) {
-        return Statement.DIGESTER.hash(String.join("\u0000", mapping.model(), type,
-                keyLiteral == null ? "" : keyLiteral, String.join("\u0000", values.stream().sorted().toList())));
+        return Statement.DIGESTER.hash(
+                String.join("\u0000", mapping.model(), type, keyLiteral == null ? "" : keyLiteral,
+                            String.join("\u0000", values.stream().sorted().toList())));
     }
 
-    private List<Statement> statementsOf(String alias, Row row, Map<String, String> cells,
-                                          Map<String, String> ids) {
+    private List<Statement> statementsOf(String alias, Row row, Map<String, String> cells, Map<String, String> ids) {
         ExtractionMapping.EntityMapping entity = mapping.entities().get(alias);
         Filling filling = new Filling(ids.get(alias), entity.type());
         for (Map.Entry<String, ExtractionMapping.PropertyMapping> declared : entity.properties().entrySet()) {
@@ -169,10 +168,9 @@ public class MappingExecutor {
                 String given = mapped.literal() != null ? mapped.literal() : ids.get(mapped.entity());
                 filling.fill(property, given, null, provenance(row, ""));
             } else if (mapped.join() != null) {
-                filling.fill(property, mapped.columns().stream()
-                        .map(cells::get).filter(cell -> !cell.isEmpty())
-                        .collect(joining(mapped.join())), mapped.dateFormat(),
-                        provenance(row, String.join(",", mapped.columns())));
+                filling.fill(property, mapped.columns().stream().map(cells::get).filter(cell -> !cell.isEmpty())
+                                             .collect(joining(mapped.join())), mapped.dateFormat(),
+                             provenance(row, String.join(",", mapped.columns())));
             } else {
                 for (String column : mapped.columns()) {
                     filling.fill(property, cells.get(column), mapped.dateFormat(), provenance(row, column));
@@ -202,9 +200,9 @@ public class MappingExecutor {
     }
 
     private boolean fills(String alias, Map<String, String> cells, Set<String> stored) {
-        return mapping.entities().get(alias).properties().values().stream().anyMatch(mapped ->
-                mapped.literal() != null || stored.contains(mapped.entity())
-                        || mapped.columns().stream().anyMatch(column -> !cells.get(column).isEmpty()));
+        return mapping.entities().get(alias).properties().values().stream().anyMatch(
+                mapped -> mapped.literal() != null || stored.contains(mapped.entity()) ||
+                          mapped.columns().stream().anyMatch(column -> !cells.get(column).isEmpty()));
     }
 
     // The entity id and type every statement of one entity carries, so filling a property passes
