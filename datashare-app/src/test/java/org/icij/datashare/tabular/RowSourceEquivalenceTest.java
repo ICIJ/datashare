@@ -120,7 +120,7 @@ public class RowSourceEquivalenceTest {
 
     /**
      * A row missing its last column, in each header-based reader. Every column the header declares is
-     * present in the map, so the mapping executor never branches on which format a row came from.
+     * present in the map, so the statement builder never branches on which format a row came from.
      */
     @Test
     public void test_a_short_row_pads_the_missing_column_in_every_reader() throws Exception {
