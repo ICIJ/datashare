@@ -80,7 +80,7 @@ public record ExtractionMapping(String id, String projectId, String userId, Stri
      *  any string a statement would carry (Statement's constructor aborts on one, so catching it
      *  here is what keeps a bad mapping from killing a run mid-file). The compact constructor only
      *  checks the model is known, so this is the only complete check, run on save and again by the
-     *  executor, so a mapping stored before the ontology moved underneath it still loads and fails
+     *  builder, so a mapping stored before the ontology moved underneath it still loads and fails
      *  only when run. Aliases and property names are walked in sorted order, so the same mapping
      *  always reports the same violations in the same order. */
     public List<TargetModel.Violation> validate() {
@@ -128,7 +128,7 @@ public record ExtractionMapping(String id, String projectId, String userId, Stri
         return violations;
     }
 
-    /** {@link #validate()}, throwing: the save path and the executor refuse an unusable mapping
+    /** {@link #validate()}, throwing: the save path and the builder refuse an unusable mapping
      *  the same way. */
     public void requireValid() {
         List<TargetModel.Violation> violations = validate();

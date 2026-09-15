@@ -28,8 +28,8 @@ import static java.util.stream.Collectors.joining;
  * only would otherwise lose every other row of that group, and the entity a row contributes to is
  * whole where its statements are regrouped, not here.
  */
-public class MappingExecutor {
-    private static final Logger LOGGER = LoggerFactory.getLogger(MappingExecutor.class);
+public class StatementBuilder {
+    private static final Logger LOGGER = LoggerFactory.getLogger(StatementBuilder.class);
 
     /** What a run dropped, and why. ENTITY_ counts one entity of one row, CELL_UNREADABLE one cell,
      *  and CELL_MISSING one column, once: a column the source stops carrying is one structural fact,
@@ -51,7 +51,7 @@ public class MappingExecutor {
      *  table. It is taken from the caller rather than read off the mapping's options, because the
      *  options hold what was asked for and the id needs what was read: "1" and "Sheet1" name one
      *  sheet and must hash alike, while two tables of one document must not. */
-    public MappingExecutor(ExtractionMapping mapping, String sheet) {
+    public StatementBuilder(ExtractionMapping mapping, String sheet) {
         this.mapping = mapping;
         this.documentId = mapping.documentId();
         // The one string here the mapping never saw, so validate() cannot vouch for it: a workbook

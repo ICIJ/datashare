@@ -8,13 +8,13 @@ import java.util.Locale;
 import java.util.Map;
 
 import static org.fest.assertions.Assertions.assertThat;
-import static org.icij.datashare.tabular.MappingExecutor.Skip.CELL_MISSING;
-import static org.icij.datashare.tabular.MappingExecutor.Skip.CELL_UNREADABLE;
-import static org.icij.datashare.tabular.MappingExecutor.Skip.ENTITY_EMPTY;
-import static org.icij.datashare.tabular.MappingExecutor.Skip.ENTITY_UNIDENTIFIED;
+import static org.icij.datashare.tabular.StatementBuilder.Skip.CELL_MISSING;
+import static org.icij.datashare.tabular.StatementBuilder.Skip.CELL_UNREADABLE;
+import static org.icij.datashare.tabular.StatementBuilder.Skip.ENTITY_EMPTY;
+import static org.icij.datashare.tabular.StatementBuilder.Skip.ENTITY_UNIDENTIFIED;
 import static org.junit.Assert.assertThrows;
 
-public class MappingExecutorTest {
+public class StatementBuilderTest {
 
     private static ExtractionMapping mapping(Map<String, ExtractionMapping.EntityMapping> entities) {
         return new ExtractionMapping("map-1", "prj", "jdoe", "staff", "ftm", "doc-1",
@@ -59,13 +59,13 @@ public class MappingExecutorTest {
         return new Row(7L, values);
     }
 
-    private static MappingExecutor person(List<String> keys,
+    private static StatementBuilder person(List<String> keys,
                                           Map<String, ExtractionMapping.PropertyMapping> properties) {
-        return new MappingExecutor(mapping(Map.of("member", entity("Person", keys, properties))), "");
+        return new StatementBuilder(mapping(Map.of("member", entity("Person", keys, properties))), "");
     }
 
-    private static MappingExecutor employment() {
-        return new MappingExecutor(mapping(Map.of(
+    private static StatementBuilder employment() {
+        return new StatementBuilder(mapping(Map.of(
                 "member", entity("Person", List.of("passport"), Map.of("name", column("full_name"))),
                 "employer", entity("Company", List.of("siren"), Map.of("name", column("company"))),
                 "job", entity("Employment", List.of("passport"), Map.of(
@@ -134,7 +134,7 @@ public class MappingExecutorTest {
 
     @Test
     public void test_two_aliases_of_one_type_keyed_alike_are_one_entity_without_a_key_literal() {
-        List<Statement> statements = new MappingExecutor(mapping(Map.of(
+        List<Statement> statements = new StatementBuilder(mapping(Map.of(
                 "supplier", entity("Company", List.of("supplier_ref"), Map.of("name", column("supplier_name"))),
                 "customer", entity("Company", List.of("customer_ref"), Map.of("name", column("customer_name"))))), "")
                 .statements(row(Map.of("supplier_ref", "42", "customer_ref", "42",
@@ -145,7 +145,7 @@ public class MappingExecutorTest {
 
     @Test
     public void test_a_key_literal_tells_two_aliases_of_one_type_keyed_alike_apart() {
-        List<Statement> statements = new MappingExecutor(mapping(Map.of(
+        List<Statement> statements = new StatementBuilder(mapping(Map.of(
                 "supplier", keyed("Company", "supplier", List.of("supplier_ref"),
                         Map.of("name", column("supplier_name"))),
                 "customer", keyed("Company", "customer", List.of("customer_ref"),
@@ -158,11 +158,11 @@ public class MappingExecutorTest {
 
     @Test
     public void test_an_invisible_character_in_a_key_literal_does_not_split_the_entity() {
-        String padded = new MappingExecutor(mapping(Map.of("supplier",
+        String padded = new StatementBuilder(mapping(Map.of("supplier",
                 keyed("Company", " supp\u200Blier ", List.of("supplier_ref"),
                         Map.of("name", column("supplier_name"))))), "")
                 .statements(row(Map.of("supplier_ref", "42", "supplier_name", "Acme"))).get(0).entityId();
-        String plain = new MappingExecutor(mapping(Map.of("supplier",
+        String plain = new StatementBuilder(mapping(Map.of("supplier",
                 keyed("Company", "supplier", List.of("supplier_ref"),
                         Map.of("name", column("supplier_name"))))), "")
                 .statements(row(Map.of("supplier_ref", "42", "supplier_name", "Acme"))).get(0).entityId();
@@ -196,9 +196,9 @@ public class MappingExecutorTest {
                 RowSourceOptions.defaults(), Map.of("member",
                 entity("Person", List.of(), Map.of("name", column("full_name")))));
 
-        String first = new MappingExecutor(keyless, "1")
+        String first = new StatementBuilder(keyless, "1")
                 .statements(row(Map.of("full_name", "Jane Doe"))).get(0).entityId();
-        String second = new MappingExecutor(keyless, "2")
+        String second = new StatementBuilder(keyless, "2")
                 .statements(row(Map.of("full_name", "Jane Doe"))).get(0).entityId();
 
         assertThat(first).isNotEqualTo(second);
@@ -217,10 +217,10 @@ public class MappingExecutorTest {
 
     @Test
     public void test_an_entity_without_keys_is_one_record_per_row() {
-        MappingExecutor executor = person(List.of(), Map.of("name", column("full_name")));
+        StatementBuilder builder = person(List.of(), Map.of("name", column("full_name")));
 
-        String seventh = executor.statements(row(Map.of("full_name", "Jane Doe"))).get(0).entityId();
-        String eighth = executor.statements(new Row(8L, Map.of("full_name", "Jane Doe"))).get(0).entityId();
+        String seventh = builder.statements(row(Map.of("full_name", "Jane Doe"))).get(0).entityId();
+        String eighth = builder.statements(new Row(8L, Map.of("full_name", "Jane Doe"))).get(0).entityId();
 
         assertThat(seventh).isNotEqualTo(eighth);
         assertThat(person(List.of(), Map.of("name", column("full_name")))
@@ -240,7 +240,7 @@ public class MappingExecutorTest {
 
     @Test
     public void test_two_keyless_entities_of_one_type_are_two_entities() {
-        List<Statement> statements = new MappingExecutor(mapping(Map.of(
+        List<Statement> statements = new StatementBuilder(mapping(Map.of(
                 "buyer", entity("Person", List.of(), Map.of("name", column("buyer_name"))),
                 "seller", entity("Person", List.of(), Map.of("name", column("seller_name"))))), "")
                 .statements(row(Map.of("buyer_name", "Jane Doe", "seller_name", "John Roe")));
@@ -267,19 +267,19 @@ public class MappingExecutorTest {
 
     @Test
     public void test_a_keyless_entity_with_a_blank_row_is_counted_empty_not_unidentified() {
-        MappingExecutor executor = person(List.of(), Map.of("name", column("full_name")));
+        StatementBuilder builder = person(List.of(), Map.of("name", column("full_name")));
 
-        assertThat(executor.statements(row(Map.of("full_name", "")))).isEmpty();
-        assertThat(executor.skipped().get(ENTITY_EMPTY)).isEqualTo(1L);
-        assertThat(executor.skipped().get(ENTITY_UNIDENTIFIED)).isEqualTo(0L);
+        assertThat(builder.statements(row(Map.of("full_name", "")))).isEmpty();
+        assertThat(builder.skipped().get(ENTITY_EMPTY)).isEqualTo(1L);
+        assertThat(builder.skipped().get(ENTITY_UNIDENTIFIED)).isEqualTo(0L);
     }
 
     @Test
     public void test_a_row_whose_key_is_blank_yields_no_statement_and_is_counted() {
-        MappingExecutor executor = person(List.of("passport"), Map.of("name", column("full_name")));
+        StatementBuilder builder = person(List.of("passport"), Map.of("name", column("full_name")));
 
-        assertThat(executor.statements(row(Map.of("passport", "  ", "full_name", "Jane Doe")))).isEmpty();
-        assertThat(executor.skipped().get(ENTITY_UNIDENTIFIED)).isEqualTo(1L);
+        assertThat(builder.statements(row(Map.of("passport", "  ", "full_name", "Jane Doe")))).isEmpty();
+        assertThat(builder.skipped().get(ENTITY_UNIDENTIFIED)).isEqualTo(1L);
     }
 
     @Test
@@ -287,44 +287,44 @@ public class MappingExecutorTest {
         // Hashing the values that are left instead would merge every row missing that column into
         // one entity, and make the row indistinguishable from a row of the same type keyed on the
         // one column that is filled. A counted loss beats a silent merge.
-        MappingExecutor executor = person(List.of("passport", "country"), Map.of("name", column("full_name")));
+        StatementBuilder builder = person(List.of("passport", "country"), Map.of("name", column("full_name")));
 
-        assertThat(executor.statements(row(Map.of("passport", "", "country", "FR",
+        assertThat(builder.statements(row(Map.of("passport", "", "country", "FR",
                 "full_name", "Jane Doe")))).isEmpty();
-        assertThat(executor.skipped().get(ENTITY_UNIDENTIFIED)).isEqualTo(1L);
+        assertThat(builder.skipped().get(ENTITY_UNIDENTIFIED)).isEqualTo(1L);
     }
 
     @Test
     public void test_a_key_holding_only_a_non_breaking_space_is_not_an_identifier() {
-        MappingExecutor executor = person(List.of("passport"), Map.of("name", column("full_name")));
+        StatementBuilder builder = person(List.of("passport"), Map.of("name", column("full_name")));
 
-        List<Statement> statements = executor.statements(row(Map.of("passport", "\u00A0",
+        List<Statement> statements = builder.statements(row(Map.of("passport", "\u00A0",
                 "full_name", "Jane Doe")));
 
         assertThat(statements).isEmpty();
-        assertThat(executor.skipped().get(ENTITY_UNIDENTIFIED)).isEqualTo(1L);
+        assertThat(builder.skipped().get(ENTITY_UNIDENTIFIED)).isEqualTo(1L);
     }
 
     @Test
     public void test_a_value_cell_holding_a_nul_does_not_cost_the_run() {
-        MappingExecutor executor = person(List.of("passport"),
+        StatementBuilder builder = person(List.of("passport"),
                 Map.of("name", column("full_name"), "email", column("mail")));
 
-        List<Statement> statements = executor.statements(row(Map.of("passport", "AB123",
+        List<Statement> statements = builder.statements(row(Map.of("passport", "AB123",
                 "full_name", "Jane\u0000Doe", "mail", "jane@example.org")));
 
         assertThat(statements).hasSize(1);
         assertThat(statements.get(0).property()).isEqualTo("email");
-        assertThat(executor.skipped().get(CELL_UNREADABLE)).isEqualTo(1L);
+        assertThat(builder.skipped().get(CELL_UNREADABLE)).isEqualTo(1L);
     }
 
     @Test
     public void test_a_key_cell_holding_a_nul_yields_no_statement_and_is_counted() {
-        MappingExecutor executor = person(List.of("passport"), Map.of("name", column("full_name")));
+        StatementBuilder builder = person(List.of("passport"), Map.of("name", column("full_name")));
 
-        assertThat(executor.statements(row(Map.of("passport", "AB\u0000123", "full_name", "Jane Doe")))).isEmpty();
-        assertThat(executor.skipped().get(CELL_UNREADABLE)).isEqualTo(1L);
-        assertThat(executor.skipped().get(ENTITY_UNIDENTIFIED)).isEqualTo(1L);
+        assertThat(builder.statements(row(Map.of("passport", "AB\u0000123", "full_name", "Jane Doe")))).isEmpty();
+        assertThat(builder.skipped().get(CELL_UNREADABLE)).isEqualTo(1L);
+        assertThat(builder.skipped().get(ENTITY_UNIDENTIFIED)).isEqualTo(1L);
     }
 
     @Test
@@ -349,15 +349,15 @@ public class MappingExecutorTest {
 
     @Test
     public void test_a_row_that_fills_no_property_is_counted_as_empty() {
-        MappingExecutor executor = person(List.of("passport"), Map.of("name", column("full_name")));
+        StatementBuilder builder = person(List.of("passport"), Map.of("name", column("full_name")));
 
-        assertThat(executor.statements(row(Map.of("passport", "AB123", "full_name", "")))).isEmpty();
-        assertThat(executor.skipped().get(ENTITY_EMPTY)).isEqualTo(1L);
+        assertThat(builder.statements(row(Map.of("passport", "AB123", "full_name", "")))).isEmpty();
+        assertThat(builder.skipped().get(ENTITY_EMPTY)).isEqualTo(1L);
     }
 
     @Test
     public void test_two_aliases_of_one_entity_do_not_repeat_a_statement() {
-        List<Statement> statements = new MappingExecutor(mapping(Map.of(
+        List<Statement> statements = new StatementBuilder(mapping(Map.of(
                 "buyer", entity("Person", List.of("passport"), Map.of("name", column("full_name"))),
                 "seller", entity("Person", List.of("passport"), Map.of("name", column("full_name"))))), "")
                 .statements(row(Map.of("passport", "AB123", "full_name", "Jane Doe")));
@@ -410,7 +410,7 @@ public class MappingExecutorTest {
 
     @Test
     public void test_a_reference_stores_the_id_of_the_entity_it_names() {
-        List<Statement> statements = new MappingExecutor(mapping(Map.of(
+        List<Statement> statements = new StatementBuilder(mapping(Map.of(
                 "member", entity("Person", List.of("passport"), Map.of("name", column("full_name"))),
                 "employer", entity("Company", List.of("siren"), Map.of("name", column("company"))),
                 "job", entity("Employment", List.of("passport", "siren"), Map.of(
@@ -429,38 +429,38 @@ public class MappingExecutorTest {
 
     @Test
     public void test_an_edge_that_lost_an_endpoint_keeps_the_endpoint_it_has() {
-        MappingExecutor executor = employment();
+        StatementBuilder builder = employment();
 
-        List<Statement> statements = executor.statements(row(Map.of("passport", "AB123",
+        List<Statement> statements = builder.statements(row(Map.of("passport", "AB123",
                 "full_name", "Jane Doe", "siren", "", "company", "")));
 
         assertThat(statements.stream().map(Statement::entityType).distinct().sorted().toList())
                 .isEqualTo(List.of("Employment", "Person"));
         assertThat(of(statements, "employee").entityType()).isEqualTo("Employment");
-        assertThat(executor.skipped().get(ENTITY_UNIDENTIFIED)).isEqualTo(1L);
+        assertThat(builder.skipped().get(ENTITY_UNIDENTIFIED)).isEqualTo(1L);
     }
 
     @Test
     public void test_a_reference_to_an_entity_that_stored_nothing_is_dropped() {
-        MappingExecutor executor = employment();
+        StatementBuilder builder = employment();
 
-        List<Statement> statements = executor.statements(row(Map.of("passport", "AB123",
+        List<Statement> statements = builder.statements(row(Map.of("passport", "AB123",
                 "full_name", "Jane Doe", "siren", "552100554", "company", "")));
 
         assertThat(statements.stream().map(Statement::property).sorted().toList())
                 .isEqualTo(List.of("employee", "name"));
-        assertThat(executor.skipped().get(ENTITY_EMPTY)).isEqualTo(1L);
+        assertThat(builder.skipped().get(ENTITY_EMPTY)).isEqualTo(1L);
     }
 
     @Test
     public void test_an_edge_that_loses_every_endpoint_is_dropped_too() {
-        MappingExecutor executor = employment();
+        StatementBuilder builder = employment();
 
-        List<Statement> statements = executor.statements(row(Map.of("passport", "AB123",
+        List<Statement> statements = builder.statements(row(Map.of("passport", "AB123",
                 "full_name", "", "siren", "552100554", "company", "")));
 
         assertThat(statements).isEmpty();
-        assertThat(executor.skipped().get(ENTITY_EMPTY)).isEqualTo(3L);
+        assertThat(builder.skipped().get(ENTITY_EMPTY)).isEqualTo(3L);
     }
 
     @Test
@@ -476,28 +476,28 @@ public class MappingExecutorTest {
 
     @Test
     public void test_a_value_that_does_not_parse_is_stored_as_it_was_read_and_counted() {
-        MappingExecutor executor = person(List.of("passport"),
+        StatementBuilder builder = person(List.of("passport"),
                 Map.of("name", column("full_name"), "birthDate", formatted("born", "dd/MM/yyyy")));
 
-        Statement statement = of(executor.statements(row(Map.of("passport", "AB123",
+        Statement statement = of(builder.statements(row(Map.of("passport", "AB123",
                 "full_name", "Jane Doe", "born", "n/a"))), "birthDate");
 
         assertThat(statement.value()).isEqualTo("n/a");
         assertThat(statement.originalValue()).isNull();
-        assertThat(executor.skipped().get(CELL_UNREADABLE)).isEqualTo(1L);
+        assertThat(builder.skipped().get(CELL_UNREADABLE)).isEqualTo(1L);
     }
 
     @Test
     public void test_a_day_the_month_does_not_have_is_kept_as_it_was_read() {
-        MappingExecutor executor = person(List.of("passport"),
+        StatementBuilder builder = person(List.of("passport"),
                 Map.of("name", column("full_name"), "birthDate", formatted("born", "dd/MM/yyyy")));
 
-        Statement statement = of(executor.statements(row(Map.of("passport", "AB123",
+        Statement statement = of(builder.statements(row(Map.of("passport", "AB123",
                 "full_name", "Jane Doe", "born", "31/02/1970"))), "birthDate");
 
         assertThat(statement.value()).isEqualTo("31/02/1970");
         assertThat(statement.originalValue()).isNull();
-        assertThat(executor.skipped().get(CELL_UNREADABLE)).isEqualTo(1L);
+        assertThat(builder.skipped().get(CELL_UNREADABLE)).isEqualTo(1L);
     }
 
     @Test
@@ -513,39 +513,39 @@ public class MappingExecutorTest {
 
     @Test
     public void test_a_year_only_pattern_is_read_rather_than_left_alone() {
-        MappingExecutor executor = person(List.of("passport"),
+        StatementBuilder builder = person(List.of("passport"),
                 Map.of("name", column("full_name"), "birthDate", formatted("born", "yyyy")));
 
-        Statement statement = of(executor.statements(row(Map.of("passport", "AB123",
+        Statement statement = of(builder.statements(row(Map.of("passport", "AB123",
                 "full_name", "Jane Doe", "born", "1970"))), "birthDate");
 
         assertThat(statement.value()).isEqualTo("1970");
-        assertThat(executor.skipped().get(CELL_UNREADABLE)).isEqualTo(0L);
+        assertThat(builder.skipped().get(CELL_UNREADABLE)).isEqualTo(0L);
     }
 
     @Test
     public void test_a_year_and_month_pattern_is_read_rather_than_left_alone() {
-        MappingExecutor executor = person(List.of("passport"),
+        StatementBuilder builder = person(List.of("passport"),
                 Map.of("name", column("full_name"), "birthDate", formatted("born", "MM/yyyy")));
 
-        Statement statement = of(executor.statements(row(Map.of("passport", "AB123",
+        Statement statement = of(builder.statements(row(Map.of("passport", "AB123",
                 "full_name", "Jane Doe", "born", "03/1970"))), "birthDate");
 
         assertThat(statement.value()).isEqualTo("1970-03");
         assertThat(statement.originalValue()).isEqualTo("03/1970");
-        assertThat(executor.skipped().get(CELL_UNREADABLE)).isEqualTo(0L);
+        assertThat(builder.skipped().get(CELL_UNREADABLE)).isEqualTo(0L);
     }
 
     @Test
     public void test_a_zero_padded_cell_under_a_non_padded_pattern_still_converts() {
-        MappingExecutor executor = person(List.of("passport"),
+        StatementBuilder builder = person(List.of("passport"),
                 Map.of("name", column("full_name"), "birthDate", formatted("born", "d/M/yyyy")));
 
-        Statement statement = of(executor.statements(row(Map.of("passport", "AB123",
+        Statement statement = of(builder.statements(row(Map.of("passport", "AB123",
                 "full_name", "Jane Doe", "born", "01/03/1970"))), "birthDate");
 
         assertThat(statement.value()).isEqualTo("1970-03-01");
-        assertThat(executor.skipped().get(CELL_UNREADABLE)).isEqualTo(0L);
+        assertThat(builder.skipped().get(CELL_UNREADABLE)).isEqualTo(0L);
     }
 
     @Test
@@ -675,7 +675,7 @@ public class MappingExecutorTest {
                 Map.of("member", entity("Person", List.of("passport"), Map.of("name", column("full_name")))));
 
         InvalidExtractionMapping thrown =
-                assertThrows(InvalidExtractionMapping.class, () -> new MappingExecutor(nulDocument, ""));
+                assertThrows(InvalidExtractionMapping.class, () -> new StatementBuilder(nulDocument, ""));
         assertThat(thrown.violations.toString()).contains("document id");
     }
 
@@ -743,7 +743,7 @@ public class MappingExecutorTest {
     @Test
     public void test_a_blank_key_literal_fails_at_construction() {
         InvalidExtractionMapping thrown = assertThrows(InvalidExtractionMapping.class,
-                () -> new MappingExecutor(mapping(Map.of("supplier",
+                () -> new StatementBuilder(mapping(Map.of("supplier",
                         keyed("Company", "\u00A0", List.of("supplier_ref"),
                                 Map.of("name", column("supplier_name"))))), ""));
 
@@ -753,7 +753,7 @@ public class MappingExecutorTest {
     @Test
     public void test_an_entity_that_maps_no_property_fails_at_construction() {
         InvalidExtractionMapping thrown = assertThrows(InvalidExtractionMapping.class,
-                () -> new MappingExecutor(mapping(Map.of(
+                () -> new StatementBuilder(mapping(Map.of(
                         "home", entity("Address", List.of("street"), Map.of()))), ""));
 
         assertThat(thrown.violations.toString()).contains("maps no property");
@@ -765,7 +765,7 @@ public class MappingExecutorTest {
                 new RowSourceOptions(null, null, null, null, "\u0000Sheet", null),
                 Map.of("member", entity("Person", List.of("passport"), Map.of("name", column("full_name")))));
 
-        assertThrows(IllegalArgumentException.class, () -> new MappingExecutor(mapping, ""));
+        assertThrows(IllegalArgumentException.class, () -> new StatementBuilder(mapping, ""));
     }
 
     @Test
@@ -773,7 +773,7 @@ public class MappingExecutorTest {
         ExtractionMapping mapping = mapping(Map.of("member",
                 entity("Person", List.of("passport"), Map.of("name", column("full_name")))));
 
-        assertThrows(IllegalArgumentException.class, () -> new MappingExecutor(mapping, "Sheet\u00001"));
+        assertThrows(IllegalArgumentException.class, () -> new StatementBuilder(mapping, "Sheet\u00001"));
     }
 
     @Test
@@ -782,44 +782,44 @@ public class MappingExecutorTest {
                 entity("Person", List.of("passport"), Map.of("hoofSize", column("hooves")))));
 
         InvalidExtractionMapping thrown =
-                assertThrows(InvalidExtractionMapping.class, () -> new MappingExecutor(stale, ""));
+                assertThrows(InvalidExtractionMapping.class, () -> new StatementBuilder(stale, ""));
         assertThat(thrown.violations.toString()).contains("hoofSize");
     }
 
     @Test
     public void test_a_column_the_source_does_not_have_fails_the_run() {
-        MappingExecutor executor = person(List.of("passport"), Map.of("name", column("fullname")));
+        StatementBuilder builder = person(List.of("passport"), Map.of("name", column("fullname")));
 
         IllegalArgumentException thrown = assertThrows(IllegalArgumentException.class,
-                () -> executor.statements(row(Map.of("passport", "AB123", "full_name", "Jane Doe"))));
+                () -> builder.statements(row(Map.of("passport", "AB123", "full_name", "Jane Doe"))));
         assertThat(thrown.getMessage()).contains("fullname");
     }
 
     @Test
     public void test_a_row_that_omits_a_column_the_first_row_had_is_counted_not_fatal() {
-        MappingExecutor executor = person(List.of("passport"),
+        StatementBuilder builder = person(List.of("passport"),
                 Map.of("name", column("full_name"), "email", column("mail")));
 
-        executor.statements(row(Map.of("passport", "AB123", "full_name", "Jane Doe",
+        builder.statements(row(Map.of("passport", "AB123", "full_name", "Jane Doe",
                 "mail", "jane@example.org")));
-        List<Statement> second = executor.statements(new Row(8L, Map.of("passport", "AB124",
+        List<Statement> second = builder.statements(new Row(8L, Map.of("passport", "AB124",
                 "full_name", "John Roe")));
 
         assertThat(second).hasSize(1);
-        assertThat(executor.skipped().get(CELL_MISSING)).isEqualTo(1L);
+        assertThat(builder.skipped().get(CELL_MISSING)).isEqualTo(1L);
     }
 
     @Test
     public void test_a_column_the_source_stops_carrying_is_counted_once_not_once_per_row() {
-        MappingExecutor executor = person(List.of("passport"),
+        StatementBuilder builder = person(List.of("passport"),
                 Map.of("name", column("full_name"), "email", column("mail")));
 
-        executor.statements(row(Map.of("passport", "AB123", "full_name", "Jane Doe",
+        builder.statements(row(Map.of("passport", "AB123", "full_name", "Jane Doe",
                 "mail", "jane@example.org")));
-        executor.statements(new Row(8L, Map.of("passport", "AB124", "full_name", "John Roe")));
-        executor.statements(new Row(9L, Map.of("passport", "AB125", "full_name", "Ann Poe")));
+        builder.statements(new Row(8L, Map.of("passport", "AB124", "full_name", "John Roe")));
+        builder.statements(new Row(9L, Map.of("passport", "AB125", "full_name", "Ann Poe")));
 
-        assertThat(executor.skipped().get(CELL_MISSING)).isEqualTo(1L);
+        assertThat(builder.skipped().get(CELL_MISSING)).isEqualTo(1L);
     }
 
     @Test
