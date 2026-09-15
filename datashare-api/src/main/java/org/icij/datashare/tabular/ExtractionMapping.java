@@ -28,8 +28,7 @@ public record ExtractionMapping(String id, String projectId, String userId, Stri
         TargetModelRegistry.get(Objects.requireNonNull(model, "model"));
     }
 
-    public record EntityMapping(String type, String keyLiteral, List<String> keys,
-                                Map<String, PropertyMapping> properties) {
+    public record EntityMapping(String type, String keyLiteral, List<String> keys, Map<String, PropertyMapping> properties) {
         public EntityMapping(String type, List<String> keys, Map<String, PropertyMapping> properties) {
             this(type, null, keys, properties);
         }
@@ -48,8 +47,7 @@ public record ExtractionMapping(String id, String projectId, String userId, Stri
         }
     }
 
-    public record PropertyMapping(List<String> columns, String join, String literal, String entity,
-                                  String dateFormat) {
+    public record PropertyMapping(List<String> columns, String join, String literal, String entity, String dateFormat) {
         public PropertyMapping {
             // Column names get the cleaning headers get, and a literal gets the cleaning cells get:
             // a mapping authored by copy-paste behaves like the file it was copied from. JSON is the
@@ -76,7 +74,7 @@ public record ExtractionMapping(String id, String projectId, String userId, Stri
      *  any string a statement would carry (Statement's constructor aborts on one, so catching it
      *  here is what keeps a bad mapping from killing a run mid-file). The compact constructor only
      *  checks the model is known, so this is the only complete check, run on save and again by the
-     *  executor, so a mapping stored before the ontology moved underneath it still loads and fails
+     *  builder, so a mapping stored before the ontology moved underneath it still loads and fails
      *  only when run. Aliases and property names are walked in sorted order, so the same mapping
      *  always reports the same violations in the same order. */
     public List<TargetModel.Violation> validate() {
@@ -94,27 +92,26 @@ public record ExtractionMapping(String id, String projectId, String userId, Stri
             target.validate(probe(alias, entity)).forEach(violation -> violations.add(
                     new TargetModel.Violation("entity '" + alias + "': " + violation.message())));
             if (entity.properties().isEmpty()) {
-                violations.add(new TargetModel.Violation("entity '" + alias
-                        + "' maps no property, so no row can produce a statement for it"));
+                violations.add(new TargetModel.Violation(
+                        "entity '" + alias + "' maps no property, so no row can produce a statement for it"));
             }
-            entity.keys().stream().filter(ExtractionMapping::holdsNul).forEach(key ->
-                    violations.add(new TargetModel.Violation("entity '" + alias
-                            + "' has a key column name holding a NUL character")));
+            entity.keys().stream().filter(ExtractionMapping::holdsNul).forEach(key -> violations.add(
+                    new TargetModel.Violation("entity '" + alias + "' has a key column name holding a NUL character")));
             if (entity.keys().stream().anyMatch(String::isEmpty)) {
-                violations.add(new TargetModel.Violation("entity '" + alias
-                        + "' has a blank key column name, which no header can match"));
+                violations.add(new TargetModel.Violation(
+                        "entity '" + alias + "' has a blank key column name, which no header can match"));
             }
             if (entity.keyLiteral() != null && holdsNul(entity.keyLiteral())) {
-                violations.add(new TargetModel.Violation("entity '" + alias
-                        + "' has a key literal holding a NUL character"));
+                violations.add(
+                        new TargetModel.Violation("entity '" + alias + "' has a key literal holding a NUL character"));
             }
             if (entity.keyLiteral() != null && entity.keyLiteral().isBlank()) {
-                violations.add(new TargetModel.Violation("entity '" + alias
-                        + "' has a blank key literal, which hashes like no literal at all"));
+                violations.add(new TargetModel.Violation(
+                        "entity '" + alias + "' has a blank key literal, which hashes like no literal at all"));
             }
             if (entity.keyLiteral() != null && entity.keys().isEmpty()) {
-                violations.add(new TargetModel.Violation("entity '" + alias
-                        + "' has a key literal but no key, and a row-scoped id carries no literal"));
+                violations.add(new TargetModel.Violation(
+                        "entity '" + alias + "' has a key literal but no key, and a row-scoped id carries no literal"));
             }
             for (String property : new TreeSet<>(entity.properties().keySet())) {
                 reference(target, alias, entity, property).ifPresent(violations::add);
@@ -124,7 +121,7 @@ public record ExtractionMapping(String id, String projectId, String userId, Stri
         return violations;
     }
 
-    /** {@link #validate()}, throwing: the save path and the executor refuse an unusable mapping
+    /** {@link #validate()}, throwing: the save path and the builder refuse an unusable mapping
      *  the same way. */
     public void requireValid() {
         List<TargetModel.Violation> violations = validate();
@@ -146,8 +143,8 @@ public record ExtractionMapping(String id, String projectId, String userId, Stri
         if (mapped.join() != null && holdsNul(mapped.join())) {
             violations.add(new TargetModel.Violation(where + "has a join separator holding a NUL character"));
         }
-        mapped.columns().stream().filter(ExtractionMapping::holdsNul).forEach(column ->
-                violations.add(new TargetModel.Violation(where + "has a column name holding a NUL character")));
+        mapped.columns().stream().filter(ExtractionMapping::holdsNul).forEach(column -> violations.add(
+                new TargetModel.Violation(where + "has a column name holding a NUL character")));
         if (mapped.columns().stream().anyMatch(String::isEmpty)) {
             violations.add(new TargetModel.Violation(where + "has a blank column name, which no header can match"));
         }
@@ -155,8 +152,8 @@ public record ExtractionMapping(String id, String projectId, String userId, Stri
             try {
                 formats.declare(mapped.dateFormat());
             } catch (UnusableDateFormat unusable) {
-                violations.add(new TargetModel.Violation(where + "has an unusable date format: "
-                        + unusable.getMessage()));
+                violations.add(
+                        new TargetModel.Violation(where + "has an unusable date format: " + unusable.getMessage()));
             }
         }
         return violations;
